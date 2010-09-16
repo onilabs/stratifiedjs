@@ -1,0 +1,289 @@
+<link href="api.css" rel="stylesheet" type="text/css" media="screen,projection" />
+<div id="banner">
+    <h1>Apollo 0.8.0+ API</h1>
+    <p  class="subh1">
+      A list of all built-in StratifiedJS modules.
+    </p>
+</div>
+<div class="row clearfix lastrow" style="min-height:700px">
+  <div id="index">
+  </div>
+  <div id="view">
+  </div>
+</div>
+
+<script src="../oni-apollo.js"></script>
+<script type="text/sjs">
+var datapath = "";
+var jspath = "";
+
+var http = require("http");
+require("jquery-binding").install({
+  url: jspath + "jquery-1.4.1.min.js"
+});
+
+try {
+  waitfor {
+    waitfor {
+      var api = http.jsonp(datapath + "api.jsonp", {forcecb: "apicb"});
+    }
+    and {
+      http.script(jspath + "jquery.ba-hashchange.js");
+    }
+    and {
+      http.script(jspath + "showdown.js?6");
+    }
+  }
+  or {
+    hold(500);
+    $("#index").html("Loading API index...");
+    hold();
+  }
+} catch (e) {
+  // XXX error undefined? json? script?
+  $("#index").html("Initialization error: "+e);
+  hold();
+}
+
+function nbr(s) { 
+  return s ? s.replace(/\n/g, "<br/>") : ""; 
+}
+
+var markdown = function () {
+  var showdown;
+  if (window["Showdown"]) showdown = new Showdown.converter();
+  if (showdown) {
+    return function(s) {
+      if (!s) return "";
+      return (showdown.makeHtml(s));
+    }
+  } else {
+    return nbr;
+  }
+}();
+
+function buildFunctionHtml(href) {
+  href = href.split("/");
+  var modulename = parentname = href[0];
+  var functionname = href[1];
+  var module = api[modulename];
+  var fn = module.children[functionname];
+  if (href.length == 2 && !fn) {
+    // probably a Class
+    return buildModuleHtml(href.join("/"));
+  }
+  if (href.length == 3) {
+    classname = parentname = href[1];
+    functionname = href[2];
+    fn = module.classes[classname].children[functionname];
+  }
+  
+  var html = [];
+  html.push("<h2>"+functionname+"</h2>");
+  if (fn.summary) 
+    html.push("\
+      <div class='desc'>"+ 
+        (0&&fn.shortcut? ("<span class='shortcut'> &#8658; shortcut for 
+         <a href='#" + parentname + "/" + fn.shortcut + "'>"+ fn.shortcut +"()</a></span> ") : "")  
+        +markdown(fn.summary)+"
+      </div>");
+
+  html.push("\
+    <h3>
+      <a class='crumble' style='text-decoration:none' href='#" + modulename + "'>"
+      +parentname+"</a>."+functionname);
+  if (fn.type == "function") {
+    html.push("(<span style='color:#555'>");
+    var rv = "";
+    if (fn["return"]) {
+      var type = fn["return"].type;
+      if (module.classes[type]) {
+        type = "<a href='#"+modulename + "/" + type+"'>"+ type + "</a>";
+      }
+      rv = "<span class='returns'>returns "+type+"</span>";
+    }
+    if ("param" in fn) for (var i = 0, p; p = fn["param"][i]; i++) {
+      var pname = p.name;
+      if (p.type) if (p.type.indexOf("undefined") != -1 || 
+        p.type.indexOf("optional") == 0) pname = "<span style='color:#888'>[" + pname + "]</span>";
+      html.push( (i != 0 ? ", " : "") + pname);
+    }
+    html.push("</span>)"+rv);
+  }
+  html.push("</h3>");
+
+  html.push("<table cellspacing='0'>");
+  if ("param" in fn) for (var i = 0, p; p = fn["param"][i]; i++) {
+    html.push("\
+      <tr>
+        <td class='fnname'><p>"+p.name +"</p></td>
+        <td>"+ "<span class='type'>" + p.type + "</span>" + markdown(p.summary)+"</td>
+      </tr>");
+  }
+  html.push("</table>");
+
+  if (fn["setting"]) {
+    html.push("<h3>Settings</h3><table cellspacing='0'>");
+    for (var i = 0, p; p = fn["setting"][i]; i++) {
+      html.push("\
+        <tr>
+          <td class='fnname'><p>"+p.name+"</p></td>
+          <td class='desc'>
+            <span class='type'>" + p.type + "</span>" + 
+            (p.def ? ("<span class='defaultvalue'>Default: " +p.def + "</span>"):"")+
+            markdown(p.summary)+"
+          </td>
+        </tr>");
+    }
+    html.push("</table>");
+  }
+
+  if (fn["return"] && fn["return"].desc) {
+    html.push("\
+      <h3>Return value</h3><table cellspacing='0'>
+      <tr>
+        <td class='fnname'><p>"+fn["return"].type+"</p></td>
+        <td class='desc'>
+          "+markdown(fn["return"].desc)+"
+        </td>
+      </tr></table>");
+  }
+
+  if (fn.desc) {
+    html.push("\
+      <h3>More information</h3>
+      <div class='longdesc'>" + markdown(fn.desc) + "</div>
+    ");
+  }  
+  return html.join("");
+}
+
+function buildModuleHtml(href) {
+  var html = [];
+  href = href.split("/");
+  
+  var name = href[0];
+  if (href.length >= 2) {
+    var className = href[1];
+    html.push("<h2>The " + className + " class</h2>");
+    var module = api[name].classes[className];
+    name = name + "/" + className;
+  }
+  else {
+    html.push("<h2>The " + name + " module</h2>");
+    var module = api[name];
+  }
+  if (name && !module) {
+    return "<h2>Module not found</h2>";
+  }
+
+  if (module.summary) html.push("<div class='desc'>" + markdown(module.summary) + "</div>");
+   
+  var functions_html = []; 
+  functions_html.push("<h3>Functions</h3><table cellspacing='0'>");
+  for (var childname in module.children) {
+    var child = module.children[childname];
+    if (child.type != "function") continue;
+    functions_html.push("\
+      <tr>
+        <td class='fnname'>
+          <p><a class='apilink' href='#" + name + "/" + childname + "'>"+childname+"</a></p>
+        </td>
+        <td>"+markdown(child.summary)+"</td>
+      </tr>");
+  }
+  functions_html.push("</table>");
+  if (functions_html.length > 2) html = html.concat(functions_html);
+  
+  var variables_html = [];
+  variables_html.push("<h3>Variables</h3><table cellspacing='0'>");
+  for (var childname in module.children) {
+    var child = module.children[childname];
+    if (child.type != "variable") continue;
+    variables_html.push("\
+      <tr>
+        <td class='fnname'>
+          <p>"+childname+"</p>
+        </td>
+        <td>"+markdown(child.summary)+"</td>
+      </tr>");
+  }
+  variables_html.push("</table>");
+  if (variables_html.length > 2) html = html.concat(variables_html);
+  
+  
+  var classes_html = [];
+  classes_html.push("<h3>Classes</h3><table cellspacing='0'>");
+  for (var childname in module.classes) {
+    var child = module.classes[childname];
+    classes_html.push("\
+      <tr>
+        <td class='fnname'>
+          <p><a class='apilink' href='#" + name + "/" + childname + "'>"+childname+"</a></p>
+        </td>
+        <td>"+markdown(child.summary)+"</td>
+      </tr>");
+  }
+  classes_html.push("</table>");
+  if (classes_html.length > 2) html = html.concat(classes_html);
+  
+  if (module.desc) {
+    html.push("\
+      <h3>More information</h3>
+      <div class='longdesc'>" + markdown(module.desc)+"</div>");
+  }
+  
+  return html.join("");
+}
+
+function buildIndexHtml () {
+  var html = [];
+  html.push("<h2>Modules</h2><ul class='moduleindex'>");
+  for (var modulename in api) {
+    var module = api[modulename];
+    html.push("<li><h3><a class='apilink' href='#" + modulename + "'>" + modulename + "</a></h3><ul style='display:none'>");
+    for (var childname in module.children) {
+      html.push("<li><a class='apilink' href='#" + modulename + "/" + childname + "'>"+""+ childname +"</a></li>");
+    }
+    for (var childname in module.classes) {
+      html.push("<li><a class='apilink' href='#" + modulename + "/" + childname + "'>"+""+ childname +"</a></li>");
+    }
+    html.push("</ul></li>");
+  };
+  html.push("</ul>");
+  
+  return html.join("");
+}
+
+$("#index").html(buildIndexHtml());
+
+function changeView(fn, href) {
+  $("#view").html(fn(href));
+  //$(window).scrollTop(0);
+  //$(window).animate({scrollTop:0}, 900, 'ease');
+  var ul = $("a[href*=#"+href.split("/")[0]+"]").parent().next();
+  $(".moduleindex ul").each(function (h) {
+    if ($(this).get(0) != ul.get(0)) $(this).hide();
+  });
+  ul.show();
+  
+  if (window["prettyPrint"]) prettyPrint();
+  if (window["Cufon"] && !/mobile/i.test(navigator.userAgent)) {
+    Cufon.refresh();
+  }
+}
+
+waitfor{
+  while ($(window).waitFor("hashchange")) {
+    var href = location.hash.substring(1);
+    if (href == "") href = "http";
+    if (href.indexOf("/") != -1)
+      changeView(buildFunctionHtml, href);
+    else 
+      changeView(buildModuleHtml, href);
+  }
+} and { 
+  $(window).trigger("hashchange"); 
+}
+
+</script>

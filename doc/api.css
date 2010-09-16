@@ -1,0 +1,84 @@
+body, table {
+  font: 12px sans-serif;
+  line-height: 1.8em;
+}
+p {margin: 3px 0px 5px;}
+#index {
+  width: 190px;
+  float:left;
+  padding: 0 20px 0 0px;
+}
+#view {
+  width: 600px;
+  padding-bottom: 0px;
+  margin-right:10px;
+  float:left;
+  min-height:400px;
+}
+
+td {
+  border-top: 1px solid #ddd;
+  padding: 8px 0 5px 0;
+  vertical-align: top;
+}
+table {
+  width: 100%;
+  margin-bottom: 40px;
+}
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+ul li ul{
+  padding-left: 30px;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+#index li {
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+#index li li:hover, #index h3:hover {
+  text-decoration: underline;
+}
+.moduleindex ul {
+  display:none;
+}
+div.desc { margin-bottom: 40px; }
+.longdesc { margin-top: 10px; }
+.crumble:hover { text-decoration: underline !important; }
+.fnname { width: 30%; }
+.subhead {
+  xborder-top: 1px solid #000;
+  padding-top: 20px;
+  margin: 20px 0 10px 0;
+  font-size: 17px;
+}
+.returns { float:right; }
+#view a {
+  /*text-decoration:none;*/
+  color: #333;
+}
+#index a {
+  color: #333;
+  text-decoration:none;
+}
+#index a:hover, #view a:hover { text-decoration: underline; }
+a.apilink { display:block; }
+.defaultvalue { color: #777; display: block; }
+.type { color: #777; display: block; float:right; margin: 3px 0 0 20px; }
+.shortcut { color: #777; display: block; float:right; margin-left:20px; }
+pre, .longdesc code {
+  display: block;
+  white-space: pre;
+  border: 1px solid #eaeaea; background: #fdfdfd; 
+  padding: 10px 10px 10px 15px;
+  margin: 15px 0 15px 0;
+}
+.longdesc h4 { margin: 0; }
+.longdesc p { margin: 0; }
+
+#index .toggle { width: 0.4em; display:none;}

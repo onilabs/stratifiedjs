@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <meta name="apple-mobile-web-app-capable" content="yes"/> 
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="viewport" content="initial-scale = 1.0,maximum-scale = 1.0,width=device-width"/>
+    <script src="../oni-apollo.js" type="text/javascript"></script>
+    <script type="text/sjs">
+    
+require("jquery-binding").install();
+var r = require("common").supplant;
+var yql = require("yql");
+var more = $("#more");
+
+try {
+  waitfor {
+    var cities = yql.query(
+      "select title from html " +
+      "where url='http://en.wikipedia.org/wiki/List_of_cities_proper_by_population' " +
+      "and xpath='//table/tr/td[2]/a'").query.results.a;
+  }
+  or {
+    $("#more h2").html("Just show Chicago");
+    more.$click();
+    throw "user can't wait!";
+  }
+} catch(e) {
+  var cities = [{
+    title: "Chicago"
+  }];
+}
+
+waitfor {
+  while (true) {
+    var page = 0;
+    var per_page = 13;
+    var cityindex = Math.floor(Math.random() * cities.length);
+    var city = cities[cityindex].title;
+    $("#city h2").text(city);
+    $("#results .blob:not(#more):not(#city)").remove();
+
+    waitfor {
+      while (true) {
+        waitfor {
+          var q = "select * from flickr.photos.search(@begin, @amount) " +
+            "where text=@city and sort='relevance' and extras='url_m'";
+          var rv = yql.query(q, {begin: page * per_page, amount: per_page, city:city});
+          var photos = rv.query.results ? rv.query.results.photo: [];
+          for (var i = 0, photo; photo = photos[i]; ++i) {
+            more.before(r("
+            <div class='blob'>
+              <a target='_blank' href='http://www.flickr.com/photos/{owner}/{id}' 
+                class='img' style='background-image:url({url_m})'/>
+                <h3>{title}</h3>
+              </a>
+            </div>
+            ", photo));
+          }
+        }
+        or {
+          $("#more h2").text("Cancel lookup").addClass("working");
+          more.$click();
+          --page;
+        }
+        $("#more h2").html("Load more &#8230;").removeClass("working");
+        waitfor {
+          more.$click();
+        }
+        or {
+          while (true) {
+            $(window).$scroll();
+            var frombottom = $(document).height() - $(window).height()
+            - $(document).scrollTop();
+            if (frombottom < 100) break;
+          }
+        }
+        ++page;
+      }
+    }
+    or {
+      $("#nextcity").$click();
+    }
+  }
+}
+and {
+  while (true) {
+    var imgs = $(".img");
+    var img = imgs.get(Math.floor(Math.random() * imgs.length));
+    var p = [20, 20, 50, 80, 80][Math.floor(Math.random() * 5)];
+    $(img).css({
+      backgroundPosition: p + "% " + 50 + "%"
+    });
+    hold(3000);
+  }
+} 
+    </script>
+    <link rel="stylesheet" type="text/css" href="flickrcities.css"/>
+    <title>Flickr Cities</title>
+  </head>
+  <body>
+    <h1>Flickr <span style='font-weight:normal'>Cities</span></h1>
+    <div id="nextcity">
+      <button>Next city</button>
+    </div>
+    <div id="results" class="clearfix">
+      <div id="city" class="blob textblob">
+        <div><h2>Loading cities &#8230;</h2></div>
+      </div>
+      <div id="more" class="blob textblob">
+        <div><h2></h2></div>
+      </div>
+    </div>
+  </body>
+</html>

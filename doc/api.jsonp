@@ -1,0 +1,1070 @@
+apicb({
+  "common": {
+    "type": "module",
+    "children": {
+      "bind": {
+        "type": "function",
+        "summary": "Bind a function to a given 'this' object.",
+        "param": [
+          {
+            "type": "Function",
+            "name": "f",
+            "summary": "Function to bind to *thisObj*"
+          },
+          {
+            "type": "Object",
+            "name": "thisObj",
+            "summary": "'this' object to bind *f* to"
+          }
+        ],
+        "return": {
+          "type": "Function",
+          "desc": "Bound function"
+        }
+      },
+      "isArray": {
+        "type": "function",
+        "summary": "Tests if an object is an array.",
+        "param": [
+          {
+            "type": "anything",
+            "name": "testObj",
+            "summary": "Object to test."
+          }
+        ],
+        "return": {
+          "type": "Boolean"
+        }
+      },
+      "supplant": {
+        "type": "function",
+        "summary": "Performs variable substitution on a string.",
+        "param": [
+          {
+            "type": "String",
+            "name": "template",
+            "summary": "A string holding variable names enclosed in **{ }** braces."
+          },
+          {
+            "type": "Object",
+            "name": "replacements",
+            "summary": "Hash of key/value pairs that will be replaced in *template*."
+          }
+        ],
+        "return": {
+          "type": "String",
+          "desc": "String with placeholders replaced by variables."
+        },
+        "desc": "Example:\n`var rv = common.supplant(\"Hello {who}\", { who: \"world\"});\n// rv will equal \"Hello world\"`\n"
+      },
+      "sanitize": {
+        "type": "function",
+        "summary": "Make a string safe for insertion into html.",
+        "param": [
+          {
+            "type": "String",
+            "name": "str",
+            "summary": "String to sanitize."
+          }
+        ],
+        "return": {
+          "type": "String",
+          "desc": "Sanitized string."
+        },
+        "desc": "Returns sanitized string with **<**,**>**, and **&** replaced by their corresponding html entities.\n"
+      }
+    },
+    "classes": {},
+    "summary": "Common JS utility functions"
+  },
+  "cutil": {
+    "type": "module",
+    "children": {
+      "waitforAll": {
+        "type": "function",
+        "summary": "Execute a number of functions on different strata and wait for all\nof them to finish.",
+        "param": [
+          {
+            "type": "Array",
+            "name": "arr",
+            "summary": "Array of functions."
+          }
+        ]
+      },
+      "waitforFirst": {
+        "type": "function",
+        "summary": "Execute a number of functions on different strata and wait for the first\none to finish.",
+        "return": {
+          "type": "value",
+          "desc": "Return value of function that finished first."
+        },
+        "param": [
+          {
+            "type": "Array",
+            "name": "arr",
+            "summary": "Array of functions."
+          }
+        ]
+      },
+      "makeBoundedFunction": {
+        "type": "function",
+        "summary": "A wrapper for limiting the number of concurrent executions of a function.",
+        "return": {
+          "type": "Function",
+          "desc": "The wrapped function."
+        },
+        "param": [
+          {
+            "type": "Function",
+            "name": "f",
+            "summary": "The function to wrap."
+          },
+          {
+            "type": "Integer",
+            "name": "max_concurrent_calls",
+            "summary": "The maximum number of concurrent executions to allow for 'f'."
+          }
+        ]
+      }
+    },
+    "classes": {
+      "Semaphore": {
+        "children": {
+          "Semaphore": {
+            "type": "function",
+            "summary": "Constructor for a Semaphore object.",
+            "return": {
+              "type": "Semaphore"
+            },
+            "param": [
+              {
+                "type": "Integer",
+                "name": "permits",
+                "summary": "Number of permits available to be handed out."
+              }
+            ],
+            "desc": "Example:\n`var S = new (cutil.Semaphore)(10);`\n"
+          },
+          "permits": {
+            "type": "variable",
+            "summary": "Number of free permits currently available to be handed out."
+          },
+          "acquire": {
+            "type": "function",
+            "summary": "Acquire a permit. If all permits are currently taken, block until one\nbecomes available.",
+            "return": {
+              "type": "Permit",
+              "desc": "An object with a *__finally__* method, which will release\nthe semaphore."
+            },
+            "desc": "Calls to [Semaphore.acquire](#cutil/Semaphore/acquire)\nusually need to be paired up with calls\nto [Semaphore.release](#cutil/Semaphore/release).\nInstead of doing this manually,\n[Semaphore.acquire](#cutil/Semaphore/acquire) can be used in a\n'using' block:\n\n`using (mySemaphore.acquire()) {\n  ...\n}`\n\nHere the 'using' construct will automatically call the permit's\n*__finally__* method when the code block is left.\n"
+          },
+          "release": {
+            "type": "function",
+            "summary": "Release a permit.",
+            "desc": "If upon releasing a permit, there are other strata\nwaiting for a permit (by blocking in\n[Semaphore.acquire](#cutil/Semaphore/acquire)),\nthe oldest one will be handed the permit and resumed\nafter [Semaphore.release](#cutil/Semaphore/release) returns.\n\nCalls to [Semaphore.release](#cutil/Semaphore/release) are usually\npaired with calls to [Semaphore.acquire](#cutil/Semaphore/acquire).\nSee documentation for [Semaphore.acquire](#cutil/Semaphore/acquire)\nfor an alternative to doing this manually.\n"
+          }
+        },
+        "summary": "A counting semaphore."
+      },
+      "Queue": {
+        "children": {
+          "Queue": {
+            "type": "function",
+            "summary": "Constructor for a bounded FIFO queue datastructure.",
+            "param": [
+              {
+                "type": "Integer",
+                "name": "capacity",
+                "summary": "Maximum number of items to which the queue will\nbe allowed to grow."
+              }
+            ],
+            "return": {
+              "type": "Queue"
+            }
+          },
+          "count": {
+            "type": "function",
+            "summary": "Returns current number of elements in the queue.",
+            "return": {
+              "type": "Integer"
+            }
+          },
+          "put": {
+            "type": "function",
+            "summary": "Put an item into the queue; blocks if the queue has reached\nits capacity. Safe to be called from multiple strata concurrently.",
+            "param": [
+              {
+                "type": "anything",
+                "name": "item",
+                "summary": "Item to put into the queue."
+              }
+            ]
+          },
+          "get": {
+            "type": "function",
+            "summary": "Get an item from the queue; blocks if the queue is empty.\nSafe to be called from multiple strata concurrently.",
+            "return": {
+              "type": "item",
+              "desc": "Item retrieved from front of queue."
+            }
+          }
+        }
+      }
+    },
+    "summary": "The cutil module contains utility functions and constructs for\nconcurrent stratified programming."
+  },
+  "debug": {
+    "type": "module",
+    "children": {
+      "console": {
+        "type": "function",
+        "param": [
+          {
+            "type": "optional Object",
+            "name": "settings"
+          }
+        ],
+        "summary": "Open a visual console optimized for StratifiedJS.",
+        "setting": [
+          {
+            "type": "Boolean",
+            "name": "collapsed",
+            "def": "true",
+            "summary": "Only show a summon button the bottom left."
+          },
+          {
+            "type": "Number",
+            "name": "height",
+            "def": "200",
+            "summary": "The default height for the resizableconsole. "
+          }
+        ],
+        "target": "{String} [target] ...",
+        "return": {
+          "type": "Console"
+        }
+      }
+    },
+    "classes": {},
+    "summary": "A module containing StratifiedJS debug tools.",
+    "desc": "`var c = require(\"debug\").console();\nc.log(\"Hello\", document);\nc.warn(\"Oooh noo!\");`\n"
+  },
+  "dom": {
+    "type": "module",
+    "children": {
+      "waitforEvent": {
+        "type": "function",
+        "summary": "Blocks until one of the specified DOM events is triggered on the specified element.",
+        "param": [
+          {
+            "type": "String | DOMElement",
+            "name": "selector",
+            "summary": "Id of DOM element or DOM element on which to wait for the given *events*."
+          },
+          {
+            "type": "String",
+            "name": "events",
+            "summary": "String containing one or more space-separated DOM event names. E.g.: \"click mouseover\"."
+          },
+          {
+            "type": "optional Function",
+            "name": "filter",
+            "summary": "Function through which received\nevents will be passed. [waitforEvent](#dom/waitforEvent)\ncontinues listening for events and won't return until the filter\nreturns a value != true."
+          }
+        ],
+        "return": {
+          "type": "DOMEvent",
+          "desc": "Event object associated with the event that was triggered."
+        },
+        "desc": "`var e = dom.waitforEvent(\"myid\", \"click\");\nalert(e.currentTarget);`\n\n### Keep observing events in an event loop:\n\n`while (require('dom').waitforEvent(\"myid\", \"mouseover\")) {\n  console.log(\"mouseover!\");\n}`\n\nNote that this type of event loop can lose events (which is\nsometimes desirable and sometimes isn't). See\n[dom.eventQueue](#dom/eventQueue) for an alternative.\n"
+      },
+      "eventQueue": {
+        "type": "function",
+        "summary": "Constructs a new EventQueue object.",
+        "return": {
+          "type": "EventQueue"
+        },
+        "param": [
+          {
+            "type": "String | DOMElement",
+            "name": "selector",
+            "summary": "Id of DOM element or DOM element on which to listen for the given *events*."
+          },
+          {
+            "type": "String",
+            "name": "events",
+            "summary": "A string containing one or more space-separated DOM event names. e.g: \"click mouseover\"."
+          },
+          {
+            "type": "optional Function",
+            "name": "filter",
+            "summary": "Function through which received\nevents will be passed. An event 'e' will only be put into the queue\nif 'filter(e)==true'."
+          }
+        ],
+        "desc": "The returned [EventQueue](#dom/EventQueue) object proceeds to listen for\nevents immediately in the background, and continues to do so until\n[EventQueue.stop](#dom/EventQueue/stop) is called.\n\nAlternatively, as [EventQueue](#dom/EventQueue) implements a\n[__finally__](#dom/EventQueue/__finally__) method, it can be used in a\n'using' block:\n\n`using (var Q = require('dom').eventQueue(elem,\"click\")) {\n  while (true) {\n    var ev = Q.get();\n    ...\n  }\n}`\n\nHere the 'using' construct will automatically call the\n[EventQueue](#dom/EventQueue)'s\n[__finally__](#dom/EventQueue/__finally__) method when the 'using' code\nblock is exited.\n"
+      },
+      "setCookie": {
+        "type": "function",
+        "summary": "Sets a cookie to keep data across browsing sessions.",
+        "param": [
+          {
+            "type": "String",
+            "name": "name",
+            "summary": "Name of the cookie."
+          },
+          {
+            "type": "String",
+            "name": "value",
+            "summary": "Value of the cookie."
+          },
+          {
+            "type": "optional Number",
+            "name": "days",
+            "summary": "Integer defining the number of days this cookie will be stored."
+          }
+        ],
+        "desc": "If the optional *days* parameter is undefined or '==0',\nthe cookie will live until the browser is closed.\n"
+      },
+      "getCookie": {
+        "type": "function",
+        "summary": "Retrieves a previously set cookie.",
+        "param": [
+          {
+            "type": "String",
+            "name": "name",
+            "summary": "Name of the requested cookie."
+          }
+        ],
+        "return": {
+          "type": "String",
+          "desc": "Value of the cookie or empty string if the cookie is not set."
+        }
+      },
+      "removeCookie": {
+        "type": "function",
+        "summary": "Removes a previously set cookie.",
+        "param": [
+          {
+            "type": "String",
+            "name": "name",
+            "summary": "Name of the cookie that is about to be eaten."
+          }
+        ]
+      }
+    },
+    "classes": {
+      "EventQueue": {
+        "children": {
+          "count": {
+            "type": "function",
+            "summary": "Returns current number of events in the queue.",
+            "return": {
+              "type": "Integer"
+            }
+          },
+          "get": {
+            "type": "function",
+            "summary": "Retrieve the next event from the queue; blocks if the queue is empty.\nSafe to be called from multiple strata concurrently.",
+            "return": {
+              "type": "DOMEvent",
+              "desc": "DOMEvent retrieved from head of queue."
+            }
+          },
+          "stop": {
+            "type": "function",
+            "summary": "Stop listening for events.",
+            "desc": "See 'More information' section under [dom.eventQueue](#dom/eventQueue)\nfor an alternative to calling [EventQueue.stop](#dom/EventQueue/stop)\nmanually.\n"
+          },
+          "__finally__": {
+            "type": "function",
+            "summary": "Calls [EventQueue.stop](#dom/EventQueue/stop).\nAllows EventQueue to be used a 'using' construct.",
+            "desc": "See 'More information' section under [dom.eventQueue](#dom/eventQueue).\n"
+          }
+        },
+        "summary": "Listens for specified events and stores them in a queue.",
+        "desc": "Use function [dom.eventQueue](#dom/eventQueue) to construct a new\nEventQueue object.\n\n"
+      }
+    },
+    "summary": "Utilities for interacting with the DOM"
+  },
+  "facebook": {
+    "type": "module",
+    "children": {
+      "install": {
+        "type": "function",
+        "param": [
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "A set of key/value pairs configuring the library."
+          }
+        ],
+        "setting": [
+          {
+            "type": "Boolean",
+            "name": "autoload",
+            "def": "true",
+            "summary": "Load the JS library if it's not included yet."
+          }
+        ],
+        "summary": "Load the Facebook JS API and Installs the stratified functions.",
+        "return": {
+          "type": "FB",
+          "desc": "The FB global object."
+        }
+      }
+    },
+    "classes": {},
+    "summary": "Loads the Facebook JS SDK and installs stratified functions for it.",
+    "desc": "\n\n    require(\"facebook\").install();\n    \n    FB.init({ appId : '125343570841606', status : true, cookie : true });\n    \n    var fbstatus = FB.$getLoginStatus();\n    FB.$login({perms: 'publish_stream,read_stream'});\n\n    console.log(FB.$api(\"/me\").name);\n    console.log(FB.$api('/me/feed'));\n    \n    var friend10 = FB.$api('/me/friends')[10];\n    console.log(FB.$api(friend10.id + '/feed'));\n    \n    // post a message to 'my' wall\n    FB.$api('/me/feed', 'post', {\n      message: \"test message\"\n    });\n\n\n### Functions that get a stratified version\n\n<table cellspacing=0>\n  <tr><td style='width:13em'>FB</td><td>\n  api login logout ui getLoginStatus\n  </td></tr>\n</table>\n"
+  },
+  "google": {
+    "type": "module",
+    "children": {
+      "search": {
+        "type": "function",
+        "summary": "Performs a Google web search query ",
+        "param": [
+          {
+            "type": "String",
+            "name": "query",
+            "summary": "The search query to execute."
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of additional\nkey/value query parameters."
+          }
+        ],
+        "return": {
+          "type": "Object",
+          "desc": "The query result."
+        },
+        "desc": "Uses the RESTful Google search API.\nSee <http://code.google.com/apis/ajaxsearch/documentation/reference.html#_intro_fonje>.\n\nExample:\n`var s = require(\"google\").search(\"Onilabs\", {start:4});\nconsole.log(s.responseData.results[0].url); // first result`\n"
+      },
+      "siteSearch": {
+        "type": "function",
+        "summary": "Performs a web search query limited to a particular site.",
+        "param": [
+          {
+            "type": "String",
+            "name": "query",
+            "summary": "The search query to execute."
+          },
+          {
+            "type": "String",
+            "name": "site",
+            "summary": "URL of site to limit the search to."
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of additional\nkey/value query parameters."
+          }
+        ],
+        "return": {
+          "type": "Object",
+          "desc": "The query result."
+        },
+        "desc": "See [http.search](#google/search)\n"
+      },
+      "translate": {
+        "type": "function",
+        "summary": "Translates a string of text using the Google Translation webservice.",
+        "param": [
+          {
+            "type": "String|Array",
+            "name": "text",
+            "summary": "A string containing the text to translate or an array specifying several strings for translation."
+          },
+          {
+            "type": "String|Array",
+            "name": "to",
+            "summary": "A string specifying the target language or an array specifying several target languages."
+          },
+          {
+            "type": "optional String",
+            "name": "from",
+            "summary": "An optional string specifying the source language."
+          },
+          {
+            "type": "optional Object",
+            "name": "extra",
+            "summary": "A hash of key/value pairs to append to the request."
+          }
+        ],
+        "return": {
+          "type": "Object",
+          "desc": "A ['Language Detection Result'](http://code.google.com/apis/ajaxlanguage/documentation/reference.html#detectResult)"
+        },
+        "desc": "Uses the RESTful Google Translation API.\nSee <http://code.google.com/apis/ajaxlanguage/documentation/reference.html#_intro_fonje>\n\nNote that Google places a limit of ~2000 characters on request\nURIs. This limits the number of characters that can be translated by\nthe API in one go.\n\nExample:\n`var t = google.translate(\"hello\", \"de\");\nconsole.log(t.translation, t.detectedSourceLanguage); // hallo, en`\n\n"
+      },
+      "dictionaryLookup": {
+        "type": "function",
+        "param": [
+          {
+            "type": "String",
+            "name": "word",
+            "summary": "The word to look up"
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of additional\nkey/value query parameters."
+          }
+        ],
+        "return": {
+          "type": "Object"
+        },
+        "summary": "**Experimental** API performing dictionary queries using the **unofficial** Google dictionary service."
+      },
+      "speak": {
+        "type": "function",
+        "summary": "**Experimental** API using the **unofficial** Google TTS service to\nspeak a phrase.",
+        "param": [
+          {
+            "type": "String",
+            "name": "txt",
+            "summary": "Text to speak."
+          },
+          {
+            "type": "optional String",
+            "name": "language",
+            "summary": "Language of *txt* (default: \"en\")."
+          }
+        ],
+        "desc": "Currently only works in Chrome and Safari.\n\nNote that the API is limited to inputs of ~100 characters and is heavily\nrate-limited.\n"
+      },
+      "load": {
+        "type": "function",
+        "summary": "Loads a JavaScript Google AJAX Module.",
+        "param": [
+          {
+            "type": "String",
+            "name": "moduleName",
+            "summary": "A string representing a module."
+          },
+          {
+            "type": "optional String",
+            "name": "moduleVersion",
+            "summary": "The module version to load."
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "An optional hash of key/value pairs."
+          }
+        ],
+        "desc": "See <http://code.google.com/apis/ajax/documentation/#GoogleLoad>\n\nExample:\n`require('google').load(\"language\", \"1\");\nif (google.language.isFontRenderingSupported(\"hi\"))\n  ...`\n"
+      }
+    },
+    "classes": {},
+    "summary": "Bindings to various Google Webservices and APIs "
+  },
+  "http": {
+    "type": "module",
+    "children": {
+      "constructQueryString": {
+        "type": "function",
+        "summary": "Build a URL query string.",
+        "param": [
+          {
+            "type": "QUERYHASHARR",
+            "name": "hashes",
+            "summary": "Object(s) with key/value pairs. See below for full syntax."
+          }
+        ],
+        "return": {
+          "type": "String"
+        },
+        "desc": "*hashes* can be a simple object with key/values or an arbitrarily nested\narray of (arrays of) key/value objects.\n\nFurthermore, if the value in a key/value pair is an array [a,b,c], then\na key=value query will be encoded for each of the array elements.\n\n###Examples:\n\n    http.constructQueryString({a:1,b:\"foo&bar\"}); // -> \"a=1&b=foo%26bar\"\n\n    http.constructQueryString([[null,[{a:1,b:['x','y']},{c:3}],[[]]]]);\n    // -> \"a=1&b=x&b=y&c=3\"`\n\nFull syntax for *hashes*:\n\n    QUERYHASHARR :  QUERYHASH       |\n                    [ QUERYHASHES ]\n\n    QUERYHASHES  :  QUERYHASH                |\n                    QUERYHASHES, QUERYHASHES |\n                    [ QUERYHASHES ]\n\n    QUERYHASH    : { }        |\n                   null       |\n                   undefined  |\n                   { QUERIES }\n\n    QUERIES      : QUERY          |\n                   QUERIES, QUERY\n\n    QUERY        : SIMPLE_QUERY |\n                   MULTI_QUERY\n\n    SIMPLE_QUERY : \"field\" : \"value\"\n\n    MULTI_QUERY  : \"field\" : [ \"value1\", ... ]\n\n"
+      },
+      "constructURL": {
+        "type": "function",
+        "summary": "Build a URL string.",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "urlspec",
+            "summary": "String and optional query hashes. See below for full syntax."
+          }
+        ],
+        "return": {
+          "type": "String"
+        },
+        "desc": "*urlspec* can be a simple string or an (arbitrarily nested) array composed\nof a base string and a number of QUERYHASHES (as accepted by\n[http.constructQueryString](#http/constructQueryString)).\n\n###Examples:\n\n    http.constructURL(\"foo.txt\"); // -> \"foo.txt\"\n\n    http.constructURL(\"foo?a=b\"); // -> \"foo?a=b\"\n\n    http.constructURL(\"foo?a=b\", {b:1}); // -> \"foo?a=b&b=1\"\n\n    http.constructURL(\"foo?a=b\", {b:[1,2]}); // -> \"foo?a=b&b=1&b=2\"\n\n    http.constructURL(\"foo?a=b\", [{b:[1,2]}]); // -> \"foo?a=b&b=1&b=2\"\n\n    http.constructURL([\"http://foo\", {bar:\"x\", zz:\"w\"}, {foo:[1,2,3]}]);\n    // -> \"http://foo?bar=x&zz=w&foo=1&foo=2&foo=3\"\n\n    http.constructURL([[\"http://foo\", {bar:\"x\", zz:\"w\"}], [{foo:[1,2,3]}]]);\n    // -> \"http://foo?bar=x&zz=w&foo=1&foo=2&foo=3\"\n\nFull syntax for *urlspec*:\n\n    URLSPEC   :  BASE                     |\n                 BASE, QUERYHASHES        |\n                 [ URLSPEC ]\n\n    QUERYHASHES   :  QUERYHASH                |\n                     QUERYHASHES, QUERYHASHES |\n                     [ QUERYHASHES ]\n\n    QUERYHASH  : { }        |\n                 null       |\n                 undefined  |\n                 { QUERIES }\n\n    QUERIES    : QUERY          |\n                 QUERIES, QUERY\n\n    QUERY      : SIMPLE_QUERY |\n                 MULTI_QUERY\n\n    SIMPLE_QUERY : \"field\" : \"value\"\n\n    MULTI_QUERY  : \"field\" : [ \"value1\", ... ]\n\n    BASE       : url string (may contain a query string already)\n\n"
+      },
+      "xhr": {
+        "type": "function",
+        "summary": "Performs an XMLHttpRequest.",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "url",
+            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of settings (or array of hashes)"
+          }
+        ],
+        "return": {
+          "type": "XMLHttpRequest object"
+        },
+        "setting": [
+          {
+            "type": "String",
+            "name": "method",
+            "def": "\"GET\"",
+            "summary": "Request method."
+          },
+          {
+            "type": "QUERYHASHARR",
+            "name": "query",
+            "summary": "Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString)."
+          },
+          {
+            "type": "String",
+            "name": "body",
+            "summary": "Request body."
+          },
+          {
+            "type": "Object",
+            "name": "headers",
+            "summary": "Hash of additional request headers."
+          },
+          {
+            "type": "String",
+            "name": "username",
+            "summary": "Username for authentication."
+          },
+          {
+            "type": "String",
+            "name": "password",
+            "summary": "Password for authentication."
+          },
+          {
+            "type": "Boolean",
+            "name": "throwing",
+            "def": "true",
+            "summary": "Throw exception on error."
+          },
+          {
+            "type": "XMLHttpRequest",
+            "name": "req",
+            "summary": "XMLHttpRequest object to (re-)use for this request."
+          }
+        ],
+        "desc": "If the request is unsuccessful, and the call is configured to throw\nexceptions (setting {\"throwing\":true}; the default), an exception will\nbe thrown which has a 'status' member set to the request status, and a\n'req' member set to the XMLHttpRequest object.\n\n*This request does **not** work cross-domain.*\n\n###Example:\n\n    try { \n      alert(http.xhr(\"foo.txt\").responseText);\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
+      },
+      "get": {
+        "type": "function",
+        "summary": "Perform a HTTP GET request and return the response text.",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "url",
+            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
+          }
+        ],
+        "return": {
+          "type": "String"
+        },
+        "shortcut": "xhr",
+        "desc": "An alias for\n\n    http.xhr(url,settings).responseText\n\n*This request does **not** work cross-domain.*\n\n### Example:\n\n`console.log(\n  require(\"http\").get(\"data.txt\")\n);`\n\n### Example: timeout\n\n`var http = require(\"http\");\nwaitfor {\n  var data = http.get(\"data.txt\");\n} or {\n  hold(1000);\n}\nif (!data) {\n  throw \"Server too slow...\";\n}`\n"
+      },
+      "post": {
+        "type": "function",
+        "summary": "Perform a HTTP POST request and return the response text.",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "url",
+            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
+          },
+          {
+            "type": "String|null",
+            "name": "body",
+            "summary": "Request body."
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
+          }
+        ],
+        "return": {
+          "type": "String"
+        },
+        "shortcut": "xhr",
+        "desc": "*This request does **not** work cross-domain.*\n\n### Example:    \n`var http = require(\"http\");\nvar response = http.post(\"/service\", \"some raw data\");\nconsole.log(\"server replied:\", response)`\n\n### Example: posting data in the url, not the body\n`var http = require(\"http\");\nvar rv = http.post(\"/service\", null,\n                   { query: {\n                          name: \"ford\",\n                          lastname: \"prefect\"\n                            }\n                   });\n// sends an HTTP POST to /service \n// with payload: name=ford&lastname=prefect\nconsole.log(require(\"json\").parse(rv).id);`\n"
+      },
+      "json": {
+        "type": "function",
+        "summary": "Perform a HTTP GET request and parse the response text as a JSON object.",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "url",
+            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
+          }
+        ],
+        "shortcut": "get",
+        "return": {
+          "type": "Object"
+        },
+        "desc": "*This request does **not** work cross-domain.*\n\n### Example:\n`var http = require(\"http\");\nvar animals = http.json(\"/animals.php?type=cats\").animals;\nfor (var i = 0, cat; cat = animals[i]; i++) {\n  console.log(cat.name);\n}`\n"
+      },
+      "xml": {
+        "type": "function",
+        "summary": "Perform a HTTP GET request and return the response XML.",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "url",
+            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
+          }
+        ],
+        "return": {
+          "type": "Object"
+        },
+        "shortcut": "xhr",
+        "desc": "An alias for\n\n    http.xhr(url,settings).responseXML\n\n*This request does **not** work cross-domain.*\n\n### Example:\n\n`var http = require(\"http\");\nvar root = http.xml(\"data.xml\").documentElement;\nconsole.log(\"Items in document: \", root.children.length)`\n"
+      },
+      "jsonp": {
+        "type": "function",
+        "summary": "Perform a cross-domain capable JSONP-style request. ",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "url",
+            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
+          },
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of settings (or array of hashes)"
+          }
+        ],
+        "return": {
+          "type": "Object"
+        },
+        "setting": [
+          {
+            "type": "Boolean",
+            "name": "iframe",
+            "def": "false",
+            "summary": "Perform the request in a temporary iframe."
+          },
+          {
+            "type": "QUERYHASHARR",
+            "name": "query",
+            "summary": "Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString)."
+          },
+          {
+            "type": "String",
+            "name": "cbfield",
+            "def": "\"callback\"",
+            "summary": "Name of JSONP callback field in query string."
+          },
+          {
+            "type": "String",
+            "name": "forcecb",
+            "summary": "Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*."
+          }
+        ],
+        "desc": "*This request **works** cross-domain.*\n\n### Example:\n\n`var http = require(\"http\");\nvar url = \"http://api.flickr.com/services/feeds/photos_public.gne?\" +\n          \"tags=cat&tagmode=any&format=json\";\nvar data = http.jsonp(url, {cbfield:\"jsoncallback\"});\nfor (var i = 0, item; item = data.items[i]; i++) {\n   c.log(\"src=\", item.media.m);\n};`\n"
+      },
+      "script": {
+        "type": "function",
+        "summary": "Load and execute a plain JavaScript file.",
+        "param": [
+          {
+            "type": "URLSPEC",
+            "name": "url",
+            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
+          }
+        ],
+        "desc": "*This request **works** cross-domain.*\n\nIt is safe to call this function simultaneously from several strata,\neven for the same URL: The given URL will only be loaded **once**, and\nall callers will block until it is loaded.\n\n### Example:\n\n`var http = require(\"http\");\nhttp.script(\"http://code.jquery.com/jquery.js\");\njQuery(\"body\").css({background:\"red\"});`\n"
+      }
+    },
+    "classes": {},
+    "summary": "The stratified functions defined in this API can be used to transmit data\nfrom/to servers without page refreshing. In addition to\n'ajax-style' interactions with the home domain of an app, these\nfunctions also form the basis of cross-domain access to many\npublic web APIs.",
+    "desc": "Note: functions that are marked not to work cross-domain might \nwork it if the browser has \nimplemented [access-control](http://www.w3.org/TR/access-control/).\n"
+  },
+  "jquery-binding": {
+    "type": "module",
+    "children": {
+      "install": {
+        "type": "function",
+        "summary": "Installs the jQuery and by default the stratified functions.",
+        "param": [
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "An optional set of key/value pairs that configuring the installation."
+          }
+        ],
+        "setting": [
+          {
+            "type": "Boolean",
+            "name": "autoload",
+            "def": "true",
+            "summary": "Defines if jQuery should be loaded if 'window.jQuery' does not exist yet."
+          },
+          {
+            "type": "Boolean",
+            "name": "stratify",
+            "def": "true",
+            "summary": "Defines if stratified jQuery wrappers/plugins should be installed. e.g. .click(callback) -> .$click()."
+          },
+          {
+            "type": "String",
+            "name": "url",
+            "def": "Google CDN",
+            "summary": "A string containing the URL to the jQuery library which will be loaded in case it doesn't exist yet and autoload is enabled. This can be a cross-domain or local URL."
+          },
+          {
+            "type": "String",
+            "name": "version",
+            "def": "1.4.2",
+            "summary": "A string defining the version of jQuery to load from Google's CDN in case the 'url' setting is not changed."
+          }
+        ],
+        "return": {
+          "type": "jQuery",
+          "desc": "A jQuery object with the stratified plugin installed."
+        }
+      }
+    },
+    "classes": {},
+    "summary": "A convenience module used to load and extend jQuery to make use of StratifiedJS features.",
+    "desc": "By default [install](#jquery-binding/install) will load jQuery from\na CDN and add stratified versions ($+fnname) of the most common [jQuery functions](http://api.jquery.com/category/events/).\n\n    require(\"jquery-binding\").install();\n    \n    while (true) {\n      $(\"a\").$click();\n      // do something after a click on a link\n      $(\"a\").$animate({color:red});\n      // we'll get here after the animation is done\n      // after that we'll go back to listening to click events\n    }\n\nA generic $(selector).waitFor(eventName).\n\n    while(true) {\n      $(\"body\").waitFor(\"click\");\n      // do something after a click was fired\n    }\n\n\n### jQuery functions that get a stratified version\n\n<table cellspacing=0>\n  <tr><td style='width:13em'>jQuery</td><td>\n  get, post, getJSON, getScript <br/>though we recommend the <a href=\"#http\">http</a> module for these\n  </td></tr>\n  <tr><td>jQuery.fn</td><td>\n  animate, show, hide, load, bind, live\n  </td></tr>\n  <tr><td>Events</td><td>\n  blur focus focusin focusout load resize scroll unload click dblclick\n  mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave\n  change select submit keydown keypress keyup error.\n  </td></tr>\n  <tr><td>Special cases</td><td>\n  $bind automatically calls unbind when the event happened<br/>\n  $bind has an alias: waitFor<br/>\n  $live automatically calls die when the event happened\n  </td></tr>\n</table>\n\n"
+  },
+  "lastfm": {
+    "type": "module",
+    "children": {
+      "key": {
+        "type": "variable",
+        "summary": "A string containing the API key. \nBy default it will use Last.fm's own demo key (which should not be used in production)."
+      },
+      "get": {
+        "type": "function",
+        "summary": "Execute a remote method on the Last.fm API.",
+        "param": [
+          {
+            "type": "optional String",
+            "name": "method",
+            "summary": "A string defining the remote method you want to call."
+          },
+          {
+            "type": "optional Object",
+            "name": "params",
+            "summary": "Object with key/value pairs describing the request parameters."
+          }
+        ],
+        "return": {
+          "type": "Object"
+        },
+        "desc": "`var name = require(\"lastfm\").get({\n  method: \"user.getinfo\", \n  user: \"rj\"\n}).realname;`\n"
+      }
+    },
+    "classes": {},
+    "summary": "A wrapper around the Last.fm API",
+    "desc": "This module uses the JSONP interface of [the Last.fm API](http://www.last.fm/api).\n`var lastfm = require(\"lastfm\");\nlastfm.key = \"somekey...\";\nvar tracks = lastfm.get({\n  method: \"user.getrecenttracks\", \n  user: \"rj\"\n}).track;\nfor (var i = 0; i < tracks.length; i++) {\n  console.log(tracks[i].name);\n}\n`\n\n"
+  },
+  "twitter": {
+    "type": "module",
+    "children": {
+      "getProfile": {
+        "type": "function",
+        "summary": "Gets a Twitter profile.",
+        "param": [
+          {
+            "type": "String",
+            "name": "name",
+            "summary": "The Twitter profile id."
+          }
+        ],
+        "return": {
+          "type": "Object"
+        }
+      },
+      "get": {
+        "type": "function",
+        "summary": "Gets tweets by the given user",
+        "param": [
+          {
+            "type": "String",
+            "name": "name",
+            "summary": "The Twitter profile id."
+          },
+          {
+            "type": "Integer",
+            "name": "limit",
+            "summary": "Optional limit on the number of tweets to retrieve (default: 10)"
+          }
+        ],
+        "return": {
+          "type": "Object"
+        }
+      },
+      "search": {
+        "type": "function",
+        "summary": "Search the Twitter universe.",
+        "param": [
+          {
+            "type": "String",
+            "name": "query",
+            "summary": "A string containing query arguments."
+          }
+        ],
+        "return": {
+          "type": "Object"
+        }
+      },
+      "loadAnywhereAPI": {
+        "type": "function",
+        "summary": "Loads the Twitter @Anywhere API.",
+        "param": [
+          {
+            "type": "String",
+            "summary": " [key] API key"
+          },
+          {
+            "type": "boolean",
+            "name": "wrap_api",
+            "summary": "Whether to install stratified bindings on window.twttr object."
+          }
+        ]
+      },
+      "showConnectButton": {
+        "type": "function",
+        "summary": "Inserts a 'Connect to Twitter button' at the given location.",
+        "param": [
+          {
+            "type": "Selector",
+            "summary": " [parent] JQuery-style selector"
+          }
+        ],
+        "description": "Requires a prior call to 'loadAnywhereAPI'"
+      },
+      "signIn": {
+        "type": "function",
+        "summary": "Shows the Twitter @Anywhere Connect popup",
+        "description": "Requires a prior call to 'loadAnywhereAPI'"
+      },
+      "signOut": {
+        "type": "function",
+        "summary": "Signs out the connected user.",
+        "description": "Requires a prior call to 'loadAnywhereAPI'"
+      },
+      "tweet": {
+        "type": "function",
+        "summary": "Tweets the given text",
+        "param": [
+          {
+            "type": "String",
+            "summary": "Text to tweet."
+          }
+        ],
+        "description": "Requires a prior call to 'loadAnywhereAPI' and a signed in user."
+      },
+      "isConnected": {
+        "type": "function",
+        "summary": "Returns true if a user is signed into the app.",
+        "description": "Requires a prior call to 'loadAnywhereAPI'."
+      },
+      "waitforConnected": {
+        "type": "function",
+        "summary": "Waits until a user is connected, or returns immediately if there is already a connected user.",
+        "description": "Requires a prior call to 'loadAnywhereAPI'."
+      },
+      "waitforDisconnected": {
+        "type": "function",
+        "summary": "Waits until the user is disconnected, or returns immediately if there is no connected user.",
+        "description": "Requires a prior call to 'loadAnywhereAPI'."
+      }
+    },
+    "classes": {},
+    "summary": "Stratified bindings to the Twitter API."
+  },
+  "yql": {
+    "type": "module",
+    "children": {
+      "query": {
+        "type": "function",
+        "summary": "Execute a [YQL query](http://developer.yahoo.com/yql/guide/yql_overview_guide.html) on the Yahoo Web Service.  \n*This request **works** cross-domain.*",
+        "param": [
+          {
+            "type": "String",
+            "name": "statement",
+            "summary": "YQL query."
+          },
+          {
+            "type": "optional Object",
+            "name": "parameters",
+            "summary": " Key-value hash of parameters for the query."
+          }
+        ],
+        "return": {
+          "type": "Object",
+          "desc": "The query result."
+        },
+        "desc": "The Yahoo! Query Language is an expressive SQL-like language that lets you query, filter, and join data across Web services. \nDebug your YQL queries in the [YQL Console](http://developer.yahoo.com/yql/console)\n\n### HTML selector Example\n\n    var yql = require(\"yql\");\n    var q = \"select * from html where url=@url and xpath='//h1'\";\n    var rv = yql.query(q, {url:\"http://www.onilabs.com\"});\n    c.log(rv.results.h1);\n\n### Cross-domain XML Example\n\n    var yql = require(\"yql\");\n    var q = \"select * from xml where url=@url\";\n    var rv = yql.query(q, {\n      url:\"http://www.weather.gov/xml/current_obs/OOUH1.xml\"\n    });\n    c.log(rv.results.current_observation.temp_c)\n"
+      },
+      "getFeed": {
+        "type": "function",
+        "summary": "Load a feed through the Yahoo Web Service.  \n*This request **works** cross-domain.*",
+        "shortcut": "query",
+        "param": [
+          {
+            "type": "String",
+            "name": "url",
+            "summary": "A string containing the URL of the requested Atom feed."
+          }
+        ],
+        "return": {
+          "type": "Array",
+          "desc": "An array of Atom entries"
+        },
+        "desc": "This is a convenience wrapper for [the feed table](http://developer.yahoo.com/yql/console/#h=desc%20feed).\n\n`var yql = require(\"yql\");\nvar rv = yql.getFeed(\"http://planet.mozilla.org/atom.xml\"});\nconsole.log(rv[0].title);`\n"
+      },
+      "getFile": {
+        "type": "function",
+        "summary": "Returns any file smaller than 25kb through the Yahoo Web Service as a string.  \n*This request **works** cross-domain.*",
+        "shortcut": "query",
+        "desc": "This is a convenience wrapper for [the data.uri table](http://developer.yahoo.com/yql/console/#h=desc%20data.uri).\n",
+        "param": [
+          {
+            "type": "String",
+            "name": "url",
+            "summary": "A string containing the URL of the requested file."
+          }
+        ],
+        "return": {
+          "type": "string"
+        }
+      }
+    },
+    "classes": {},
+    "summary": "A stratified wrapper for the [Yahoo! Query Language](http://developer.yahoo.com/yql/) (YQL) Web Service, \nwhich enables you to access Internet data with SQL-like commands.",
+    "desc": "\n    var yql = require(\"yql\");\n    var q = \"select * from html where url=@url and xpath='//h1'\";\n    var rv = yql.query(q, {url:\"http://www.onilabs.com\"});\n    c.log(rv.results.h1);\n\nSee the [query](#yql/query) function for more examples.\n"
+  }
+});
