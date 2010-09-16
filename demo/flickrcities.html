@@ -12,42 +12,38 @@ var r = require("common").supplant;
 var yql = require("yql");
 var more = $("#more");
 
-try {
-  waitfor {
-    var cities = yql.query(
-      "select title from html " +
-      "where url='http://en.wikipedia.org/wiki/List_of_cities_proper_by_population' " +
-      "and xpath='//table/tr/td[2]/a'").query.results.a;
-  }
-  or {
-    $("#more h2").html("Just show Chicago");
-    more.$click();
-    throw "user can't wait!";
-  }
-} catch(e) {
+//----------------------------------------------------------------------
+// load list of cities from wikipedia:
+
+waitfor {
+  var cities = yql.query(
+    "select title from html " +
+    "where url='http://en.wikipedia.org/wiki/List_of_cities_proper_by_population' " +
+    "and xpath='//table/tr/td[2]/a'").results.a;
+}
+or {
+  $("#more h2").html("Just show Chicago");
+  more.$click();
+  throw "user can't wait!";
+}
+catch(e) {
   var cities = [{
     title: "Chicago"
   }];
 }
 
-waitfor {
-  while (true) {
-    var page = 0;
-    var per_page = 13;
-    var cityindex = Math.floor(Math.random() * cities.length);
-    var city = cities[cityindex].title;
-    $("#city h2").text(city);
-    $("#results .blob:not(#more):not(#city)").remove();
+//----------------------------------------------------------------------
+// helper functions:
 
-    waitfor {
-      while (true) {
-        waitfor {
-          var q = "select * from flickr.photos.search(@begin, @amount) " +
-            "where text=@city and sort='relevance' and extras='url_m'";
-          var rv = yql.query(q, {begin: page * per_page, amount: per_page, city:city});
-          var photos = rv.query.results ? rv.query.results.photo: [];
-          for (var i = 0, photo; photo = photos[i]; ++i) {
-            more.before(r("
+var per_page = 13;
+
+function loadPhotos(city, page) {
+  var q = "select * from flickr.photos.search(@begin, @amount) " +
+    "where text=@city and sort='relevance' and extras='url_m'";
+  var rv = yql.query(q, {begin: page * per_page, amount: per_page, city:city});
+  var photos = rv.results ? rv.results.photo: [];
+  for (var i = 0, photo; photo = photos[i]; ++i) {
+    more.before(r("
             <div class='blob'>
               <a target='_blank' href='http://www.flickr.com/photos/{owner}/{id}' 
                 class='img' style='background-image:url({url_m})'/>
@@ -55,34 +51,41 @@ waitfor {
               </a>
             </div>
             ", photo));
-          }
-        }
-        or {
-          $("#more h2").text("Cancel lookup").addClass("working");
-          more.$click();
-          --page;
-        }
-        $("#more h2").html("Load more &#8230;").removeClass("working");
-        waitfor {
-          more.$click();
-        }
-        or {
-          while (true) {
-            $(window).$scroll();
-            var frombottom = $(document).height() - $(window).height()
-            - $(document).scrollTop();
-            if (frombottom < 100) break;
-          }
-        }
-        ++page;
-      }
-    }
-    or {
-      $("#nextcity").$click();
-    }
   }
 }
-and {
+
+function showCity(city) {
+  var page = 0;
+  $("#city h2").text(city);
+  $("#results .blob:not(#more):not(#city)").remove();
+  
+  while (true) {
+    waitfor {
+      loadPhotos(city, page);
+    }
+    or {
+      $("#more h2").text("Cancel lookup").addClass("working");
+      more.$click();
+      --page;
+    }
+    
+    $("#more h2").html("Load more &#8230;").removeClass("working");
+    waitfor {
+      more.$click();
+    }
+    or {
+      while (true) {
+        $(window).$scroll();
+        var frombottom = $(document).height() - $(window).height()
+          - $(document).scrollTop();
+        if (frombottom < 100) break;
+      }
+    }
+    ++page;    
+  }
+}
+
+function animateImages() {
   while (true) {
     var imgs = $(".img");
     var img = imgs.get(Math.floor(Math.random() * imgs.length));
@@ -92,12 +95,30 @@ and {
     });
     hold(3000);
   }
-} 
+}
+
+//----------------------------------------------------------------------
+// main program loop:
+
+while (true) {
+  var cityindex = Math.floor(Math.random() * cities.length);
+  waitfor {
+    showCity(cities[cityindex].title);
+  }
+  or {
+    animateImages();
+  }
+  or {
+    $("#nextcity").$click();
+  }
+}
+
     </script>
     <link rel="stylesheet" type="text/css" href="flickrcities.css"/>
     <title>Flickr Cities</title>
   </head>
   <body>
+    <a href="http://onilabs.com/blog/flickrcities-tutorial" style="position:absolute;top:3px;right:8px;color:#aaa">Read the Oni Apollo tutorial</a>
     <h1>Flickr <span style='font-weight:normal'>Cities</span></h1>
     <div id="nextcity">
       <button>Next city</button>

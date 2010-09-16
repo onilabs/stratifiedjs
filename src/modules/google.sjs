@@ -3,7 +3,7 @@
  * Bindings to various Google webservices and APIs
  *
  * Part of the Oni Apollo client-side SJS library
- * 0.8.0+
+ * 0.9.0
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
