@@ -3,7 +3,7 @@
  * Stratified XHR and JSONP request methods
  *
  * Part of the Oni Apollo client-side SJS library
- * 0.9.0+
+ * 0.9.1
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
