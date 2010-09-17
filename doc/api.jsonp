@@ -894,12 +894,12 @@ apicb({
     "children": {
       "getProfile": {
         "type": "function",
-        "summary": "Gets a Twitter profile.",
+        "summary": "Retrieve a Twitter profile.",
         "param": [
           {
             "type": "String",
             "name": "name",
-            "summary": "The Twitter profile id."
+            "summary": "Twitter profile id."
           }
         ],
         "return": {
@@ -908,7 +908,7 @@ apicb({
       },
       "get": {
         "type": "function",
-        "summary": "Gets tweets by the given user",
+        "summary": "Retrieve tweets by the given user.",
         "param": [
           {
             "type": "String",
@@ -916,9 +916,10 @@ apicb({
             "summary": "The Twitter profile id."
           },
           {
-            "type": "Integer",
+            "type": "optional Integer",
             "name": "limit",
-            "summary": "Optional limit on the number of tweets to retrieve (default: 10)"
+            "def": "10",
+            "summary": "Limit on the number of tweets to retrieve"
           }
         ],
         "return": {
@@ -938,68 +939,6 @@ apicb({
         "return": {
           "type": "Object"
         }
-      },
-      "loadAnywhereAPI": {
-        "type": "function",
-        "summary": "Loads the Twitter @Anywhere API.",
-        "param": [
-          {
-            "type": "String",
-            "summary": " [key] API key"
-          },
-          {
-            "type": "boolean",
-            "name": "wrap_api",
-            "summary": "Whether to install stratified bindings on window.twttr object."
-          }
-        ]
-      },
-      "showConnectButton": {
-        "type": "function",
-        "summary": "Inserts a 'Connect to Twitter button' at the given location.",
-        "param": [
-          {
-            "type": "Selector",
-            "summary": " [parent] JQuery-style selector"
-          }
-        ],
-        "description": "Requires a prior call to 'loadAnywhereAPI'"
-      },
-      "signIn": {
-        "type": "function",
-        "summary": "Shows the Twitter @Anywhere Connect popup",
-        "description": "Requires a prior call to 'loadAnywhereAPI'"
-      },
-      "signOut": {
-        "type": "function",
-        "summary": "Signs out the connected user.",
-        "description": "Requires a prior call to 'loadAnywhereAPI'"
-      },
-      "tweet": {
-        "type": "function",
-        "summary": "Tweets the given text",
-        "param": [
-          {
-            "type": "String",
-            "summary": "Text to tweet."
-          }
-        ],
-        "description": "Requires a prior call to 'loadAnywhereAPI' and a signed in user."
-      },
-      "isConnected": {
-        "type": "function",
-        "summary": "Returns true if a user is signed into the app.",
-        "description": "Requires a prior call to 'loadAnywhereAPI'."
-      },
-      "waitforConnected": {
-        "type": "function",
-        "summary": "Waits until a user is connected, or returns immediately if there is already a connected user.",
-        "description": "Requires a prior call to 'loadAnywhereAPI'."
-      },
-      "waitforDisconnected": {
-        "type": "function",
-        "summary": "Waits until the user is disconnected, or returns immediately if there is no connected user.",
-        "description": "Requires a prior call to 'loadAnywhereAPI'."
       }
     },
     "classes": {},

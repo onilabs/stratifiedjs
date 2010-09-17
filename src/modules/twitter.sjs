@@ -3,7 +3,7 @@
  * Stratified bindings to the Twitter API.
  *
  * Part of the Oni Apollo client-side SJS library
- * 0.9.0
+ * 0.9.0+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
@@ -38,8 +38,8 @@ var common = require("common");
 
 /**
   @function  getProfile
-  @summary   Gets a Twitter profile.
-  @param     {String} [name] The Twitter profile id.
+  @summary   Retrieve a Twitter profile.
+  @param     {String} [name] Twitter profile id.
   @return    {Object}
 */
 exports.getProfile = function(id) {
@@ -48,9 +48,9 @@ exports.getProfile = function(id) {
 
 /**
   @function  get
-  @summary   Gets tweets by the given user
+  @summary   Retrieve tweets by the given user.
   @param     {String} [name] The Twitter profile id.
-  @param     {Integer} [limit] Optional limit on the number of tweets to retrieve (default: 10)
+  @param     {optional Integer} [limit=10] Limit on the number of tweets to retrieve
   @return    {Object}
 */
 exports.get = function(id, limit) {
@@ -70,7 +70,7 @@ exports.search = function(query) {
 
 //----------------------------------------------------------------------
 // @anywhere API
-
+/*
 
 function wrap1(obj, f) {
   obj["$"+f] = function() {
@@ -95,13 +95,14 @@ function wrap(obj) {
 
 var API;
 var APIClient;
-
-/**
-  @function  loadAnywhereAPI
-  @summary   Loads the Twitter &#0064;Anywhere API.
-  @param     {String}  [key] API key
-  @param     {boolean} [wrap_api] Whether to install stratified bindings on window.twttr object.
 */
+/**
+  at_function  loadAnywhereAPI
+  at_summary   Loads the Twitter &#0064;Anywhere API.
+  at_param     {String}  [key] API key
+  at_param     {boolean} [wrap_api] Whether to install stratified bindings on window.twttr object.
+*/
+/*
 exports.loadAnywhereAPI = function(key, wrap_api) {
   if (!window['twttr'] || !window.twttr.anywhere) {
     var url = "http://platform.twitter.com/anywhere.js?v=1.1.2";
@@ -121,51 +122,57 @@ exports.loadAnywhereAPI = function(key, wrap_api) {
     twttr.$anywhere = APIClient;
   }
 };
-
-/**
-  @function  showConnectButton
-  @summary   Inserts a 'Connect to Twitter button' at the given location.
-  @param     {Selector}  [parent] JQuery-style selector
-  @description Requires a prior call to 'loadAnywhereAPI'
 */
+/**
+  at_function  showConnectButton
+  at_summary   Inserts a 'Connect to Twitter button' at the given location.
+  at_param     {Selector}  [parent] JQuery-style selector
+  at_description Requires a prior call to 'loadAnywhereAPI'
+*/
+/*
 exports.showConnectButton = function(parent) {
   APIClient(parent).connectButton();
 }
-
-/**
-  @function  signIn
-  @summary   Shows the Twitter &#0064;Anywhere Connect popup
-  @description Requires a prior call to 'loadAnywhereAPI'
 */
+/**
+  at_function  signIn
+  at_summary   Shows the Twitter &#0064;Anywhere Connect popup
+  at_description Requires a prior call to 'loadAnywhereAPI'
+*/
+/*
 exports.signIn = function() { APIClient.signIn(); };
-
-/**
-  @function  signOut
-  @summary   Signs out the connected user.
-  @description Requires a prior call to 'loadAnywhereAPI'
 */
+/**
+  at_function  signOut
+  at_summary   Signs out the connected user.
+  at_description Requires a prior call to 'loadAnywhereAPI'
+*/
+/*
 exports.signOut = function() { API.signOut(); };
-
-/**
-  @function  tweet
-  @summary   Tweets the given text
-  @param     {String} Text to tweet.
-  @description Requires a prior call to 'loadAnywhereAPI' and a signed in user.
 */
+/**
+  at_function  tweet
+  at_summary   Tweets the given text
+  at_param     {String} Text to tweet.
+  at_description Requires a prior call to 'loadAnywhereAPI' and a signed in user.
+*/
+/*
 exports.tweet = function(txt) { waitfor(rv) {APIClient.Status.update(txt, resume); } return rv; };
-
-/**
-  @function  isConnected
-  @summary   Returns true if a user is signed into the app.
-  @description Requires a prior call to 'loadAnywhereAPI'.
 */
+/**
+  at_function  isConnected
+  at_summary   Returns true if a user is signed into the app.
+  at_description Requires a prior call to 'loadAnywhereAPI'.
+*/
+/*
 exports.isConnected = function() { return APIClient.isConnected(); }
-
-/**
-  @function  waitforConnected
-  @summary   Waits until a user is connected, or returns immediately if there is already a connected user.
-  @description Requires a prior call to 'loadAnywhereAPI'.
 */
+/**
+  at_function  waitforConnected
+  at_summary   Waits until a user is connected, or returns immediately if there is already a connected user.
+  at_description Requires a prior call to 'loadAnywhereAPI'.
+*/
+/*
 exports.waitforConnected = function() {
   if (exports.isConnected()) return;
   waitfor() {
@@ -175,12 +182,13 @@ exports.waitforConnected = function() {
     APIClient.unbind("authComplete", resume);
   }
 };
-
-/**
-  @function  waitforDisconnected
-  @summary   Waits until the user is disconnected, or returns immediately if there is no connected user.
-  @description Requires a prior call to 'loadAnywhereAPI'.
 */
+/**
+  at_function  waitforDisconnected
+  at_summary   Waits until the user is disconnected, or returns immediately if there is no connected user.
+  at_description Requires a prior call to 'loadAnywhereAPI'.
+*/
+/*
 exports.waitforDisconnected = function() {
   if (!exports.isConnected()) return;
   waitfor() {
@@ -190,3 +198,4 @@ exports.waitforDisconnected = function() {
     APIClient.unbind("signOut", resume);
   }
 };  
+*/
