@@ -72,6 +72,22 @@ apicb({
           "desc": "Sanitized string."
         },
         "desc": "Returns sanitized string with **<**,**>**, and **&** replaced by their corresponding html entities.\n"
+      },
+      "mergeSettings": {
+        "type": "function",
+        "summary": "Merge objects of key/value pairs.",
+        "param": [
+          {
+            "type": "SETTINGSHASHARR",
+            "name": "hashes",
+            "summary": "Object(s) with key/value pairs.\nSee below for full syntax."
+          }
+        ],
+        "return": {
+          "type": "Object",
+          "desc": "Object with all key/value pairs merged."
+        },
+        "desc": "*hashes* can be a simple object with key/value pairs or an arbitrarily nested\narray of (arrays of) key/value objects.\n\nThe key/value pairs will be merged into the return object in the order that\nthey appear in the arguments. I.e. settings on objects that appear later in\n*mergeSettings* arguments override settings from earlier objects.\n\nFull syntax for *hashes*:\n\n    SETTINGSHASHARR : SETTINGSHASH       |\n                      [ SETTINGSHASHES ]\n\n    SETTINGSHASHES  : SETTINGSHASH |\n                      SETTINGSHASHES, SETTINGSHASHES\n\n    SETTINGSHASH    : undefined             |\n                      [ SETTINGSHASH, ... ] |\n                      { key: value, ... }\n"
       }
     },
     "classes": {},

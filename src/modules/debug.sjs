@@ -3,7 +3,7 @@
  * SJS console 
  *
  * Part of the Oni Apollo client-side SJS library
- * 0.9.1
+ * 0.9.1+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
@@ -178,7 +178,7 @@ exports.console = function(opts) {
 };
 
 function Console(opts) {
-  this.opts = opts || {};
+  opts = opts || {};
   if (isWebkitMobile) opts.fullscreen = true;
   opts.height = opts.height || 200;
   var div = document.createElement("div");

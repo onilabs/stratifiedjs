@@ -3,7 +3,7 @@
  * Stratified XHR and JSONP request methods
  *
  * Part of the Oni Apollo client-side SJS library
- * 0.9.1
+ * 0.9.1+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
@@ -44,31 +44,6 @@
 */
 
 var common = require("common");
-
-
-/*
- OPTIONHASH : null |
-              [ OPTIONHASH, ... ] |
-              { option: value }
-*/
-function consolidateOpts(/*option-hash,...*/) {
-  return accuOpts({}, arguments);
-}
-
-function accuOpts(accu /*,option-hash,...*/) {
-  for (var a=1; a<arguments.length; ++a) {
-    var arg = arguments[a];
-    if (common.isArray(arg)) {
-      for (var i=0; i<arg.length; ++i)
-        accuOpts(accu, arg[i]);
-    }
-    else {
-      for (var o in arg)
-        accu[o] = arg[o];
-    }
-  }
-  return accu;
-}
 
 //----------------------------------------------------------------------
 // url functions
@@ -278,7 +253,7 @@ function createXMLHttpRequest() {
 
 */
 function xhr(url, settings) {
-  var opts = consolidateOpts({
+  var opts = common.mergeSettings({
     method   : "GET",
 //    query    : undefined,
     body     : null,
@@ -465,7 +440,7 @@ exports.xml = function(/* url, settings */) {
     };`
 */
 exports.jsonp = function(url, settings) {
-  var opts = consolidateOpts({
+  var opts = common.mergeSettings({
     iframe : false,
 //    query : undefined,
     cbfield : "callback",

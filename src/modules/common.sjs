@@ -3,7 +3,7 @@
  * Common JS utility functions 
  *
  * Part of the Oni Apollo client-side SJS library
- * 0.9.1
+ * 0.9.1+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
@@ -99,3 +99,49 @@ exports.sanitize = function(str) {
     return replacements[c];
   })
 };
+
+/**
+  @function mergeSettings
+  @summary Merge objects of key/value pairs.
+  @param {SETTINGSHASHARR} [hashes] Object(s) with key/value pairs.
+                                    See below for full syntax.
+  @return {Object} Object with all key/value pairs merged.
+  @desc
+    *hashes* can be a simple object with key/value pairs or an arbitrarily nested
+    array of (arrays of) key/value objects.
+
+    The key/value pairs will be merged into the return object in the order that
+    they appear in the arguments. I.e. settings on objects that appear later in
+    *mergeSettings* arguments override settings from earlier objects.
+
+    Full syntax for *hashes*:
+
+        SETTINGSHASHARR : SETTINGSHASH       |
+                          [ SETTINGSHASHES ]
+
+        SETTINGSHASHES  : SETTINGSHASH |
+                          SETTINGSHASHES, SETTINGSHASHES
+
+        SETTINGSHASH    : undefined             |
+                          [ SETTINGSHASH, ... ] |
+                          { key: value, ... }
+*/
+exports.mergeSettings = function(/*settings-hash,...*/) {
+  return accuSettings({}, arguments);
+}
+
+// helper for mergeSettings:
+function accuSettings(accu /*,settings-hash,...*/) {
+  for (var a=1; a<arguments.length; ++a) {
+    var arg = arguments[a];
+    if (exports.isArray(arg)) {
+      for (var i=0; i<arg.length; ++i)
+        accuSettings(accu, arg[i]);
+    }
+    else {
+      for (var o in arg)
+        accu[o] = arg[o];
+    }
+  }
+  return accu;
+}
