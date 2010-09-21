@@ -246,16 +246,21 @@ apicb({
             "type": "Boolean",
             "name": "collapsed",
             "def": "true",
-            "summary": "Only show a summon button the bottom left."
+            "summary": "Show the summon button on the bottom left of the window."
           },
           {
             "type": "Number",
             "name": "height",
             "def": "200",
-            "summary": "The default height for the resizableconsole. "
+            "summary": "Default height for the resizable console (only relevant for target:null. "
+          },
+          {
+            "type": "String",
+            "name": "target",
+            "def": "null",
+            "summary": "Id of parent DOM element. If null, a full-width resizable div will be appended to the document."
           }
         ],
-        "target": "{String} [target] ...",
         "return": {
           "type": "Console"
         }

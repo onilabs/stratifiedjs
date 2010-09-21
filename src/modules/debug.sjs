@@ -41,9 +41,9 @@
   @function console
   @param    {optional Object} [settings]
   @summary  Open a visual console optimized for StratifiedJS.
-  @setting  {Boolean} [collapsed=true] Only show a summon button the bottom left.
-  @setting  {Number} [height=200] The default height for the resizableconsole. 
-  @target   {String} [target] ...
+  @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
+  @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null. 
+  @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
   @return   {Console}
 */
 var common = require('common');
@@ -178,9 +178,12 @@ exports.console = function(opts) {
 };
 
 function Console(opts) {
-  opts = opts || {};
-  if (isWebkitMobile) opts.fullscreen = true;
-  opts.height = opts.height || 200;
+  opts = common.mergeSettings({
+    collapsed : true,
+    height: 200,
+    fullscreen: isWebkitMobile ? true : false
+  }, opts);
+                              
   var div = document.createElement("div");
   var parent = opts.target ? document.getElementById(opts.target) : null;
   if (!parent) {
