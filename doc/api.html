@@ -14,9 +14,7 @@
 
 <script src="../oni-apollo.js"></script>
 <script type="text/sjs">
-var datapath = "";
 var jspath = "";
-
 var http = require("http");
 require("jquery-binding").install({
   url: jspath + "jquery-1.4.1.min.js"
@@ -25,7 +23,7 @@ require("jquery-binding").install({
 try {
   waitfor {
     waitfor {
-      var api = http.jsonp(datapath + "api.jsonp", {forcecb: "apicb"});
+      var api = http.jsonp("api.jsonp", {forcecb: "apicb"});
     }
     and {
       http.script(jspath + "jquery.ba-hashchange.js");
