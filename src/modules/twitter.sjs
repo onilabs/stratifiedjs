@@ -62,10 +62,11 @@ exports.get = function(id, limit) {
   @function  search
   @summary   Search the Twitter universe.
   @param     {String} [query] A string containing query arguments.
+  @param     {optional Object} [params] Key/value hash with optional request parameters. See <http://apiwiki.twitter.com/Twitter-Search-API-Method:-search>
   @return    {Object}
 */
-exports.search = function(query) {
-  return http.jsonp(["http://search.twitter.com/search.json",{q:query}]);
+exports.search = function(query, params) {
+  return http.jsonp(["http://search.twitter.com/search.json",{q:query}, params]);
 };
 
 //----------------------------------------------------------------------

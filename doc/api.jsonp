@@ -955,6 +955,11 @@ apicb({
             "type": "String",
             "name": "query",
             "summary": "A string containing query arguments."
+          },
+          {
+            "type": "optional Object",
+            "name": "params",
+            "summary": "Key/value hash with optional request parameters. See <http://apiwiki.twitter.com/Twitter-Search-API-Method:-search>"
           }
         ],
         "return": {
