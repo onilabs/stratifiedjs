@@ -66,6 +66,7 @@ function buildFunctionHtml(href) {
   var functionname = href[1];
   var module = api[modulename];
   var fn = module.children[functionname];
+  var classname = null;
   if (href.length == 2 && !fn) {
     // probably a Class
     return buildModuleHtml(href.join("/"));
@@ -88,7 +89,7 @@ function buildFunctionHtml(href) {
 
   html.push("\
     <h3>
-      <a class='crumble' style='text-decoration:none' href='#" + modulename + "'>"
+      <a class='crumble' style='text-decoration:none' href='#" + modulename + (classname ? ("/" + classname) : "") + "'>"
       +parentname+"</a>."+functionname);
   if (fn.type == "function") {
     html.push("(<span style='color:#555'>");
