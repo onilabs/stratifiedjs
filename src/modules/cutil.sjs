@@ -35,21 +35,54 @@
              concurrent stratified programming.
 */
 
+var common = require('common');
+
 /**
   @function waitforAll
-  @summary  Execute a number of functions on different strata and wait for all
-            of them to finish.
-  @param    {Array} [arr] Array of functions.
+  @summary  Execute a number of functions on separate strata and wait for all
+            of them to finish, or, execute a single function with different
+            arguments on separate stata and wait for all executions to finish.
+  @param    {Function | Array} [funcs] Function or array of functions.
+  @param    {optional Object | Array} [args] Argument or array of arguments.
+  @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
+  @desc
+    If *funcs* is an array of functions, each of the functions will
+    be executed on a separate stratum, with 'this' set to *this_obj* and
+    the first argument set to *args*.
+
+    If *funcs* is a single function and *args* is an array, *funcs* will be
+    called *args.length* times on separate strata with its first argument set
+    to a different elements of *args* in each stratum.
 */
-exports.waitforAll = function waitforAll(arr) {
-  if (!arr.length) return;
+exports.waitforAll = function waitforAll(funcs, args, this_obj) {
+  this_obj = this_obj || this;
+  if (common.isArray(funcs))
+    return waitforAllFuncs(funcs, args, this_obj);
+  else if (common.isArray(args))
+    return waitforAllArgs(funcs, args, this_obj);
+  // else
+  throw new Error("waitforAll: argument error; either funcs or args needs to be an array");
+};
+
+function waitforAllFuncs(funcs, args, this_obj) {
+  if (!funcs.length) return;
   waitfor {
-    arr[0]();
+      funcs[0].call(this_obj, args);
   }
   and {
-    waitforAll(arr.slice(1));
+    waitforAllFuncs(funcs.slice(1), args, this_obj);
   }
 };
+
+function waitforAllArgs(f, args, this_obj) {
+  if (!args.length) return;
+  waitfor {
+    f.call(this_obj, args[0]);
+  }
+  and {
+    waitforAllArgs(f, args.slice(1), this_obj);
+  }
+}
 
 /**
   @function waitforFirst
