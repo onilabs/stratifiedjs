@@ -41,7 +41,7 @@ var common = require('common');
   @function waitforAll
   @summary  Execute a number of functions on separate strata and wait for all
             of them to finish, or, execute a single function with different
-            arguments on separate stata and wait for all executions to finish.
+            arguments on separate strata and wait for all executions to finish.
   @param    {Function | Array} [funcs] Function or array of functions.
   @param    {optional Object | Array} [args] Argument or array of arguments.
   @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
@@ -67,9 +67,12 @@ exports.waitforAll = function waitforAll(funcs, args, this_obj) {
 function waitforAllFuncs(funcs, args, this_obj) {
   if (!funcs.length) return;
   waitfor {
-      funcs[0].call(this_obj, args);
+    funcs[0].call(this_obj, args);
   }
   and {
+    // We're calling hold(0) here so that we are not bound by the size
+    // of the native VM's stack:
+    hold(0);
     waitforAllFuncs(funcs.slice(1), args, this_obj);
   }
 };
@@ -80,6 +83,9 @@ function waitforAllArgs(f, args, this_obj) {
     f.call(this_obj, args[0]);
   }
   and {
+    // We're calling hold(0) here so that we are not bound by the size
+    // of the native VM's stack:
+    hold(0);
     waitforAllArgs(f, args.slice(1), this_obj);
   }
 }
@@ -97,6 +103,9 @@ exports.waitforFirst = function waitforFirst(arr) {
     return arr[0]();
   }
   or {
+    // We're calling hold(0) here so that we are not bound by the size
+    // of the native VM's stack:
+    hold(0);
     return waitforFirst(arr.slice(1));
   }
 };

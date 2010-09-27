@@ -98,7 +98,7 @@ apicb({
     "children": {
       "waitforAll": {
         "type": "function",
-        "summary": "Execute a number of functions on separate strata and wait for all\nof them to finish, or, execute a single function with different\narguments on separate stata and wait for all executions to finish.",
+        "summary": "Execute a number of functions on separate strata and wait for all\nof them to finish, or, execute a single function with different\narguments on separate strata and wait for all executions to finish.",
         "param": [
           {
             "type": "Function | Array",
@@ -924,6 +924,35 @@ apicb({
   "twitter": {
     "type": "module",
     "children": {
+      "initAnywhere": {
+        "type": "function",
+        "summary": "Load Twitter @Anywhere and install stratified functions for accessing the full RESTful Twitter API.",
+        "param": [
+          {
+            "type": "optional Object",
+            "name": "settings",
+            "summary": "Hash of settings"
+          }
+        ],
+        "return": {
+          "type": "Object",
+          "desc": "Twitter API Client object with stratified functions *call* and *waitforEvent*, see below."
+        },
+        "setting": [
+          {
+            "type": "String",
+            "name": "v",
+            "def": "1",
+            "summary": "Version of API to load."
+          },
+          {
+            "type": "String",
+            "name": "id",
+            "summary": "API key."
+          }
+        ],
+        "desc": "See <http://dev.twitter.com/anywhere/begin> for an introduction to the\nTwitter @Anywhere library.\n\n*initAnywhere* returns the **Twitter API Client** object (the object named\n**T** in the @Anywhere docs).\n\nTwo extra functions will be installed on the API Client:\n\n- *call(method, params)*: make a (stratified) call to the RESTful Twitter API (see <http://dev.twitter.com/doc>).\n\n- *waitforEvent(event)*: wait for an @Anywhere event, such as e.g. \"authComplete\"\n"
+      },
       "getProfile": {
         "type": "function",
         "summary": "Retrieve a Twitter profile.",
