@@ -152,6 +152,26 @@ apicb({
             "summary": "The maximum number of concurrent executions to allow for 'f'."
           }
         ]
+      },
+      "makeRateLimitedFunction": {
+        "type": "function",
+        "summary": "A wrapper for limiting the rate at which a function can be called.",
+        "return": {
+          "type": "Function",
+          "desc": "The wrapped function."
+        },
+        "param": [
+          {
+            "type": "Function",
+            "name": "f",
+            "summary": "The function to wrap."
+          },
+          {
+            "type": "Integer",
+            "name": "max_cps",
+            "summary": "The maximum number of calls per seconds allowed for 'f'."
+          }
+        ]
       }
     },
     "classes": {

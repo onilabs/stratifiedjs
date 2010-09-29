@@ -208,6 +208,29 @@ exports.makeBoundedFunction = function(f, max_concurrent_calls) {
 };
 
 /**
+  @function makeRateLimitedFunction
+  @summary  A wrapper for limiting the rate at which a function can be called.
+  @return   {Function} The wrapped function.
+  @param    {Function} [f] The function to wrap.
+  @param    {Integer} [max_cps] The maximum number of calls per seconds allowed for 'f'.
+*/
+exports.makeRateLimitedFunction = function(f, max_cps) {
+  var min_elapsed = 1000/max_cps;
+  var last_call;
+  return exports.makeBoundedFunction(
+  function() {
+    if (last_call) {
+      var elapsed = (new Date()) - last_call;
+      if (elapsed < min_elapsed)
+        hold(min_elapsed - elapsed);
+    }
+    last_call = new Date();
+    return f.apply(this, arguments);
+  }, 1);
+};
+
+
+/**
   @class   Queue
 
   @function Queue
