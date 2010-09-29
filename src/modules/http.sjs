@@ -573,8 +573,10 @@ exports.script = function(/*url, queries*/) {
       
       function listenerIE(e) {
         if (e.srcElement.readyState == "loaded" ||
-            e.srcElement.readyState == "complete")
+            e.srcElement.readyState == "complete") {
+          hold(0);
           resume();
+        }
       }
       
       if (elem.addEventListener)
@@ -585,8 +587,8 @@ exports.script = function(/*url, queries*/) {
       }
       
       // kick off the load:
-      elem.src = url;
       document.getElementsByTagName("head")[0].appendChild(elem);
+      elem.src = url;
     }
     retract {
       _pendingScripts[url] = null;
