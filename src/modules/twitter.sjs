@@ -60,15 +60,27 @@ exports.initAnywhere = function(settings) {
   settings = common.mergeSettings(
     { v : "1" },
     settings);
-  require("http").script([
-    "http://platform.twitter.com/anywhere.js", settings
-  ]);
-  waitfor(var _t) {
-    twttr.anywhere(resume);
-  };
-  for (var i in twttr.anywhere._instances) break;
-  var _tw = twttr.anywhere._instances[i].contentWindow.twttr;
+  if (!window['twttr'])
+    require("http").script([
+      "http://platform.twitter.com/anywhere.js", settings
+    ]);
+  
+  try {
+    waitfor(var _t) {
+      twttr.anywhere(resume);
+    };
+  }
+  catch (e) {
+    // twttr.anywhere throws exceptions as strings, not as 'new
+    // Error'. Wrap them here so that they show nicely in the IE
+    // console, etc.
+    if (!(e instanceof Error))
+      e = new Error(e);
+    throw e;
+  }
 
+  var _tw = twttr.anywhere._instances[_t.version].contentWindow.twttr;
+  
   /*
   _tw.klass("twttr.anywhere.proxies.Collection").methods({
     $: function() {
@@ -83,13 +95,12 @@ exports.initAnywhere = function(settings) {
   _t.call = function(method, params) {
     waitfor(var rv, success) {
       params = params || {};
-      params.token = _t.token;
       _tw.anywhere.remote.call(method, [params], {
         success: function(rv) { resume(rv, true); },
         error: function(rv) { resume(rv, false); } 
       });
     }
-    if (!success) throw rv;
+    if (!success) throw (rv ? rv : "twitter request error");
     return rv;
   };
   
