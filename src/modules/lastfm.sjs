@@ -3,7 +3,7 @@
  * Bindings to the lastfm API 
  *
  * Part of the Oni Apollo client-side SJS library
- * 0.9.2
+ * 0.9.2+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
