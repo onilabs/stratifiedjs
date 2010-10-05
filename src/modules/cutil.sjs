@@ -65,28 +65,34 @@ exports.waitforAll = function waitforAll(funcs, args, this_obj) {
 };
 
 function waitforAllFuncs(funcs, args, this_obj) {
-  if (!funcs.length) return;
-  waitfor {
+  if (funcs.length == 1)
     funcs[0].call(this_obj, args);
-  }
-  and {
-    // We're calling hold(0) here so that we are not bound by the size
-    // of the native VM's stack:
-    hold(0);
-    waitforAllFuncs(funcs.slice(1), args, this_obj);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforAll as a language primitive
+    var split = Math.floor(funcs.length/2);
+    waitfor {
+      waitforAllFuncs(funcs.slice(0,split), args, this_obj);
+    }
+    and {
+      waitforAllFuncs(funcs.slice(split), args, this_obj);
+    }
   }
 };
 
 function waitforAllArgs(f, args, this_obj) {
-  if (!args.length) return;
-  waitfor {
+  if (args.length == 1)
     f.call(this_obj, args[0]);
-  }
-  and {
-    // We're calling hold(0) here so that we are not bound by the size
-    // of the native VM's stack:
-    hold(0);
-    waitforAllArgs(f, args.slice(1), this_obj);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforAll as a language primitive
+    var split = Math.floor(args.length/2);
+    waitfor {
+      waitforAllArgs(f, args.slice(0,split), this_obj);
+    }
+    and {
+      waitforAllArgs(f, args.slice(split), this_obj);
+    }
   }
 }
 
@@ -98,15 +104,18 @@ function waitforAllArgs(f, args, this_obj) {
   @param    {Array} [arr] Array of functions.
 */
 exports.waitforFirst = function waitforFirst(arr) {
-  if (!arr.length) hold();
-  waitfor {
+  if (arr.length == 1)
     return arr[0]();
-  }
-  or {
-    // We're calling hold(0) here so that we are not bound by the size
-    // of the native VM's stack:
-    hold(0);
-    return waitforFirst(arr.slice(1));
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforFirst as a language primitive
+    var split = Math.floor(arr.length/2);    
+    waitfor {
+      return waitforFirst(arr.slice(0,split));
+    }
+    or {
+      return waitforFirst(arr.slice(0,split));
+    }
   }
 };
 

@@ -228,6 +228,10 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
 z-index:9999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
   document.getElementsByTagName("body")[0].appendChild(this.summonbutton);
+  if (opts.target) {
+    opts.collapsed = false;
+    this.closebutton.parentNode.removeChild(this.closebutton);
+  }
   if (opts.collapsed) {
     this.collapse();
   }
