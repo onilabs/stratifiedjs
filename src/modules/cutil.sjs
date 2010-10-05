@@ -56,10 +56,16 @@ var common = require('common');
 */
 exports.waitforAll = function waitforAll(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (common.isArray(funcs))
+  if (common.isArray(funcs)) {
+    if (!funcs.length) return;
+    //...else
     return waitforAllFuncs(funcs, args, this_obj);
-  else if (common.isArray(args))
+  }
+  else if (common.isArray(args)) {
+    if (!args.length) return;
+    //...else
     return waitforAllArgs(funcs, args, this_obj);
+  }
   // else
   throw new Error("waitforAll: argument error; either funcs or args needs to be an array");
 };
@@ -114,7 +120,7 @@ exports.waitforFirst = function waitforFirst(arr) {
       return waitforFirst(arr.slice(0,split));
     }
     or {
-      return waitforFirst(arr.slice(0,split));
+      return waitforFirst(arr.slice(split));
     }
   }
 };
