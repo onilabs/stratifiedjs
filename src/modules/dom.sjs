@@ -42,6 +42,8 @@ function elementsFromSelector(selector) {
   // at the moment we only do simple, single element selectors
   if (typeof selector === "string")
     elems = [document.getElementById(selector)];
+  else if (require("common").isArray(selector))
+    elems = selector;
   else
     elems = [selector];
   
