@@ -104,23 +104,67 @@ function waitforAllArgs(f, args, this_obj) {
 
 /**
   @function waitforFirst
-  @summary  Execute a number of functions on different strata and wait for the first
-            one to finish.
-  @return   {value} Return value of function that finished first.
-  @param    {Array} [arr] Array of functions.
+  @summary  Execute a number of functions on separate strata and wait for the first
+            of them to finish, or, execute a single function with different
+            arguments on separate strata and wait for the first execution to finish.
+  @return   {value} Return value of function execution that finished first.
+  @param    {Function | Array} [funcs] Function or array of functions.
+  @param    {optional Object | Array} [args] Argument or array of arguments.
+  @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
+  @desc
+    If *funcs* is an array of functions, each of the functions will
+    be executed on a separate stratum, with 'this' set to *this_obj* and
+    the first argument set to *args*.
+
+    If *funcs* is a single function and *args* is an array, *funcs* will be
+    called *args.length* times on separate strata with its first argument set
+    to a different elements of *args* in each stratum.
 */
-exports.waitforFirst = function waitforFirst(arr) {
-  if (arr.length == 1)
-    return arr[0]();
+exports.waitforFirst = function waitforFirst(funcs, args, this_obj) {
+  this_obj = this_obj || this;
+  if (common.isArray(funcs)) {
+    if (!funcs.length) return;
+    //...else
+    return waitforFirstFuncs(funcs, args, this_obj);
+  }
+  else if (common.isArray(args)) {
+    if (!args.length) return;
+    //...else
+    return waitforFirstArgs(funcs, args, this_obj);
+  }
+  // else
+  throw new Error("waitforFirst: argument error; either funcs or args needs to be an array");
+};
+
+
+function waitforFirstFuncs(funcs, args, this_obj) {
+  if (funcs.length == 1)
+    return funcs[0].call(this_obj, args);
   else {
     // build a binary recursion tree, so that we don't blow the stack easily
     // XXX we should really have waitforFirst as a language primitive
-    var split = Math.floor(arr.length/2);    
+    var split = Math.floor(funcs.length/2);    
     waitfor {
-      return waitforFirst(arr.slice(0,split));
+      return waitforFirstFuncs(funcs.slice(0,split), args, this_obj);
     }
     or {
-      return waitforFirst(arr.slice(split));
+      return waitforFirstFuncs(funcs.slice(split), args, this_obj);
+    }
+  }
+};
+
+function waitforFirstArgs(f, args, this_obj) {
+  if (args.length == 1)
+    return f.call(this_obj, args[0]);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforFirst as a language primitive
+    var split = Math.floor(args.length/2);    
+    waitfor {
+      return waitforFirstArgs(f, args.slice(0,split), this_obj);
+    }
+    or {
+      return waitforFirstArgs(f, args.slice(split), this_obj);
     }
   }
 };

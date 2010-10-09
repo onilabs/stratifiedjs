@@ -120,18 +120,29 @@ apicb({
       },
       "waitforFirst": {
         "type": "function",
-        "summary": "Execute a number of functions on different strata and wait for the first\none to finish.",
+        "summary": "Execute a number of functions on separate strata and wait for the first\nof them to finish, or, execute a single function with different\narguments on separate strata and wait for the first execution to finish.",
         "return": {
           "type": "value",
-          "desc": "Return value of function that finished first."
+          "desc": "Return value of function execution that finished first."
         },
         "param": [
           {
-            "type": "Array",
-            "name": "arr",
-            "summary": "Array of functions."
+            "type": "Function | Array",
+            "name": "funcs",
+            "summary": "Function or array of functions."
+          },
+          {
+            "type": "optional Object | Array",
+            "name": "args",
+            "summary": "Argument or array of arguments."
+          },
+          {
+            "type": "optional Object",
+            "name": "this_obj",
+            "summary": "'this' object on which *funcs* will be executed."
           }
-        ]
+        ],
+        "desc": "If *funcs* is an array of functions, each of the functions will\nbe executed on a separate stratum, with 'this' set to *this_obj* and\nthe first argument set to *args*.\n\nIf *funcs* is a single function and *args* is an array, *funcs* will be\ncalled *args.length* times on separate strata with its first argument set\nto a different elements of *args* in each stratum.\n"
       },
       "makeBoundedFunction": {
         "type": "function",
