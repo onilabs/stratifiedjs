@@ -103,8 +103,8 @@ exports.sanitize = function(str) {
 /**
   @function mergeSettings
   @summary Merge objects of key/value pairs.
-  @param {SETTINGSHASHARR} [hashes] Object(s) with key/value pairs.
-                                    See below for full syntax.
+  @param {SETTINGSHASHES} [hashes] Object(s) with key/value pairs.
+                                   See below for full syntax.
   @return {Object} Object with all key/value pairs merged.
   @desc
     *hashes* can be a simple object with key/value pairs or an arbitrarily nested
@@ -115,9 +115,6 @@ exports.sanitize = function(str) {
     *mergeSettings* arguments override settings from earlier objects.
 
     Full syntax for *hashes*:
-
-        SETTINGSHASHARR : SETTINGSHASH       |
-                          [ SETTINGSHASHES ]
 
         SETTINGSHASHES  : SETTINGSHASH |
                           SETTINGSHASHES, SETTINGSHASHES
