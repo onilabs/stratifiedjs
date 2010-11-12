@@ -2,7 +2,7 @@
  * Oni Apollo 'common' module
  * Common JS utility functions 
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *
@@ -51,12 +51,25 @@ exports.bind = function(f, thisObj) {
   @param    {anything} [testObj] Object to test.
   @return   {Boolean}
 */
-exports.isArray = function(testObj) {   
-  return testObj &&
-    !(testObj.propertyIsEnumerable('length')) &&
-    (typeof testObj === 'object') &&
-    (typeof testObj.length === 'number');
-}
+// see apollo/src/apollo-js-bootstrap.js
+exports.isArray = __oni_rt.isArray;
+
+/**
+  @function flatten
+  @summary Create a recursively flattened version of an array.
+  @param   {Array} [arr] The array to flatten.
+  @return  {Array} Flattend version of *arr*, consisting of the elements
+                   of *arr*, but with elements that are arrays replaced by
+                   their elements (recursively).
+  @desc
+     ###Example:
+
+         var a = [1,2,[3,4,[5,6]],[[7,8]],[9],10];
+         var b = require('common').flatten(a);
+         // b is now [1,2,3,4,5,6,7,8,9,10]
+*/
+// see apollo/src/apollo-js-bootstrap.js
+exports.flatten = __oni_rt.flatten;
 
 /**
   @function supplant
@@ -65,9 +78,10 @@ exports.isArray = function(testObj) {
   @param    {Object} [replacements] Hash of key/value pairs that will be replaced in *template*.
   @return   {String} String with placeholders replaced by variables.
   @desc
-    Example:
-    `var rv = common.supplant("Hello {who}", { who: "world"});
-    // rv will equal "Hello world"`
+    ###Example:
+
+        var rv = common.supplant("Hello {who}", { who: "world"});
+        // rv will equal "Hello world"
 */
 exports.supplant = function(str, o) {
   if (!o || !str) return str;
@@ -103,12 +117,21 @@ exports.sanitize = function(str) {
 /**
   @function mergeSettings
   @summary Merge objects of key/value pairs.
-  @param {SETTINGSHASHES} [hashes] Object(s) with key/value pairs.
+  @param {SETTINGSHASHARR} [hashes] Object(s) with key/value pairs.
                                    See below for full syntax.
   @return {Object} Object with all key/value pairs merged.
   @desc
     *hashes* can be a simple object with key/value pairs or an arbitrarily nested
     array of (arrays of) key/value objects.
+
+    Instead of passing an array, the individual array components can also
+    be passed as individual parameters. E.g., the following two calls are
+    equivalent:
+
+        common.mergeSettings({a:1}, {b:1});
+        // is equivalent to
+        common.mergeSettings([{a:1}, {b:1}]);
+
 
     The key/value pairs will be merged into the return object in the order that
     they appear in the arguments. I.e. settings on objects that appear later in
@@ -116,29 +139,11 @@ exports.sanitize = function(str) {
 
     Full syntax for *hashes*:
 
-        SETTINGSHASHES  : SETTINGSHASH |
-                          SETTINGSHASHES, SETTINGSHASHES
+        SETTINGSHASHEARR  : arbitrarily nested array of [ SETTINGSHASH* ]
 
-        SETTINGSHASH    : undefined             |
-                          [ SETTINGSHASH, ... ] |
-                          { key: value, ... }
+        SETTINGSHASH    : { key: value, ... } | undefined
 */
 exports.mergeSettings = function(/*settings-hash,...*/) {
-  return accuSettings({}, arguments);
+  return __oni_rt.accuSettings({}, arguments);
 }
 
-// helper for mergeSettings:
-function accuSettings(accu /*,settings-hash,...*/) {
-  for (var a=1; a<arguments.length; ++a) {
-    var arg = arguments[a];
-    if (exports.isArray(arg)) {
-      for (var i=0; i<arg.length; ++i)
-        accuSettings(accu, arg[i]);
-    }
-    else {
-      for (var o in arg)
-        accu[o] = arg[o];
-    }
-  }
-  return accu;
-}

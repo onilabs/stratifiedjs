@@ -1,4 +1,32 @@
 apicb({
+  "base64": {
+    "type": "module",
+    "children": {
+      "encode": {
+        "type": "function",
+        "param": [
+          {
+            "type": "String",
+            "name": "input",
+            "summary": "String to encode"
+          }
+        ]
+      },
+      "decode": {
+        "type": "function",
+        "param": [
+          {
+            "type": "String",
+            "name": "input",
+            "summary": "String to decode"
+          }
+        ]
+      }
+    },
+    "classes": {},
+    "summary": "base64 encoding and decoding",
+    "desc": "###Notice from the original code:\n\nThis code was written by Tyler Akins and has been placed in the\npublic domain.  It would be nice if you left this header intact.\nBase64 code from Tyler Akins -- http://rumkin.com\n"
+  },
   "common": {
     "type": "module",
     "children": {
@@ -36,6 +64,22 @@ apicb({
           "type": "Boolean"
         }
       },
+      "flatten": {
+        "type": "function",
+        "summary": "Create a recursively flattened version of an array.",
+        "param": [
+          {
+            "type": "Array",
+            "name": "arr",
+            "summary": "The array to flatten."
+          }
+        ],
+        "return": {
+          "type": "Array",
+          "desc": "Flattend version of *arr*, consisting of the elements\nof *arr*, but with elements that are arrays replaced by\ntheir elements (recursively)."
+        },
+        "desc": "###Example:\n\n    var a = [1,2,[3,4,[5,6]],[[7,8]],[9],10];\n    var b = require('common').flatten(a);\n    // b is now [1,2,3,4,5,6,7,8,9,10]\n"
+      },
       "supplant": {
         "type": "function",
         "summary": "Performs variable substitution on a string.",
@@ -55,7 +99,7 @@ apicb({
           "type": "String",
           "desc": "String with placeholders replaced by variables."
         },
-        "desc": "Example:\n`var rv = common.supplant(\"Hello {who}\", { who: \"world\"});\n// rv will equal \"Hello world\"`\n"
+        "desc": "###Example:\n\n    var rv = common.supplant(\"Hello {who}\", { who: \"world\"});\n    // rv will equal \"Hello world\"\n"
       },
       "sanitize": {
         "type": "function",
@@ -78,7 +122,7 @@ apicb({
         "summary": "Merge objects of key/value pairs.",
         "param": [
           {
-            "type": "SETTINGSHASHES",
+            "type": "SETTINGSHASHARR",
             "name": "hashes",
             "summary": "Object(s) with key/value pairs.\nSee below for full syntax."
           }
@@ -87,7 +131,7 @@ apicb({
           "type": "Object",
           "desc": "Object with all key/value pairs merged."
         },
-        "desc": "*hashes* can be a simple object with key/value pairs or an arbitrarily nested\narray of (arrays of) key/value objects.\n\nThe key/value pairs will be merged into the return object in the order that\nthey appear in the arguments. I.e. settings on objects that appear later in\n*mergeSettings* arguments override settings from earlier objects.\n\nFull syntax for *hashes*:\n\n    SETTINGSHASHES  : SETTINGSHASH |\n                      SETTINGSHASHES, SETTINGSHASHES\n\n    SETTINGSHASH    : undefined             |\n                      [ SETTINGSHASH, ... ] |\n                      { key: value, ... }\n"
+        "desc": "*hashes* can be a simple object with key/value pairs or an arbitrarily nested\narray of (arrays of) key/value objects.\n\nInstead of passing an array, the individual array components can also\nbe passed as individual parameters. E.g., the following two calls are\nequivalent:\n\n    common.mergeSettings({a:1}, {b:1});\n    // is equivalent to\n    common.mergeSettings([{a:1}, {b:1}]);\n\n\nThe key/value pairs will be merged into the return object in the order that\nthey appear in the arguments. I.e. settings on objects that appear later in\n*mergeSettings* arguments override settings from earlier objects.\n\nFull syntax for *hashes*:\n\n    SETTINGSHASHEARR  : arbitrarily nested array of [ SETTINGSHASH* ]\n\n    SETTINGSHASH    : { key: value, ... } | undefined\n"
       }
     },
     "classes": {},
@@ -183,6 +227,21 @@ apicb({
             "summary": "The maximum number of calls per seconds allowed for 'f'."
           }
         ]
+      },
+      "makeExclusiveFunction": {
+        "type": "function",
+        "summary": "A wrapper for limiting the number of concurrent executions of a function to one. \nInstead of potentially waiting for the previous execution to end, like makeBoundedFunction, it will cancel it.",
+        "return": {
+          "type": "Function",
+          "desc": "The wrapped function."
+        },
+        "param": [
+          {
+            "type": "Function",
+            "name": "f",
+            "summary": "The function to wrap."
+          }
+        ]
       }
     },
     "classes": {
@@ -199,6 +258,12 @@ apicb({
                 "type": "Integer",
                 "name": "permits",
                 "summary": "Number of permits available to be handed out."
+              },
+              {
+                "type": "Boolean",
+                "name": "sync",
+                "def": "false",
+                "summary": "Toggles synchronous behaviour (see [Semaphore.release](#cutil/Semaphore/release))"
               }
             ],
             "desc": "Example:\n`var S = new (cutil.Semaphore)(10);`\n"
@@ -219,7 +284,7 @@ apicb({
           "release": {
             "type": "function",
             "summary": "Release a permit.",
-            "desc": "If upon releasing a permit, there are other strata\nwaiting for a permit (by blocking in\n[Semaphore.acquire](#cutil/Semaphore/acquire)),\nthe oldest one will be handed the permit and resumed\nafter [Semaphore.release](#cutil/Semaphore/release) returns.\n\nCalls to [Semaphore.release](#cutil/Semaphore/release) are usually\npaired with calls to [Semaphore.acquire](#cutil/Semaphore/acquire).\nSee documentation for [Semaphore.acquire](#cutil/Semaphore/acquire)\nfor an alternative to doing this manually.\n"
+            "desc": "If upon releasing a permit, there are other strata\nwaiting for a permit (by blocking in\n[Semaphore.acquire](#cutil/Semaphore/acquire)),\nthe oldest one will be handed the permit and resumed.\n\nThe sequencing of resumption is determined by the Semaphore\nconstructor flag 'sync':\n\nIf sync is false, the pending stratum will be resumed\n*after* [Semaphore.release](#cutil/Semaphore/release) returns.\n\nIf sync is true, the pending stratum will be resumed *before*\n[Semaphore.release](#cutil/Semaphore/release) returns.\n\nCalls to [Semaphore.release](#cutil/Semaphore/release) are usually\npaired with calls to [Semaphore.acquire](#cutil/Semaphore/acquire).\nSee documentation for [Semaphore.acquire](#cutil/Semaphore/acquire)\nfor an alternative to doing this manually.\n"
           }
         },
         "summary": "A counting semaphore."
@@ -234,6 +299,12 @@ apicb({
                 "type": "Integer",
                 "name": "capacity",
                 "summary": "Maximum number of items to which the queue will\nbe allowed to grow."
+              },
+              {
+                "type": "Boolean",
+                "name": "sync",
+                "def": "false",
+                "summary": "Whether or not this queue uses synchronous semaphores (see [Semaphore](#cutil/Semaphore))"
               }
             ],
             "return": {
@@ -274,6 +345,17 @@ apicb({
   "debug": {
     "type": "module",
     "children": {
+      "log": {
+        "type": "function",
+        "summary": "Log the given object to all Stratfied JS consoles created with *receivelog* = *true*.",
+        "param": [
+          {
+            "type": "Object",
+            "name": "obj",
+            "summary": "Object to log."
+          }
+        ]
+      },
       "console": {
         "type": "function",
         "param": [
@@ -282,7 +364,7 @@ apicb({
             "name": "settings"
           }
         ],
-        "summary": "Open a visual console optimized for StratifiedJS.",
+        "summary": "Open a Stratified JavaScript console.",
         "setting": [
           {
             "type": "Boolean",
@@ -301,6 +383,12 @@ apicb({
             "name": "target",
             "def": "null",
             "summary": "Id of parent DOM element. If null, a full-width resizable div will be appended to the document."
+          },
+          {
+            "type": "Boolean",
+            "name": "receivelog",
+            "def": "true",
+            "summary": "Whether the console will display object logged to [debug.log](#debug/log)."
           }
         ],
         "return": {
@@ -308,7 +396,82 @@ apicb({
         }
       }
     },
-    "classes": {},
+    "classes": {
+      "Console": {
+        "children": {
+          "collapse": {
+            "type": "function",
+            "summary": "Collapses the console."
+          },
+          "expand": {
+            "type": "function",
+            "summary": "Restores a collapsed console."
+          },
+          "exec": {
+            "type": "function",
+            "summary": "Execute the given commandline in this console.",
+            "param": [
+              {
+                "type": "String",
+                "name": "cl",
+                "summary": "Commandline string."
+              }
+            ]
+          },
+          "log": {
+            "type": "function",
+            "summary": "Log the given object to the console.",
+            "param": [
+              {
+                "type": "Object",
+                "name": "obj",
+                "summary": "Object to log."
+              }
+            ]
+          },
+          "warn": {
+            "type": "function",
+            "summary": "Write a warning to the console.",
+            "param": [
+              {
+                "type": "String",
+                "name": "str",
+                "summary": "Warning string."
+              }
+            ]
+          },
+          "error": {
+            "type": "function",
+            "summary": "Write an error to the console.",
+            "param": [
+              {
+                "type": "String",
+                "name": "str",
+                "summary": "Error string."
+              }
+            ]
+          },
+          "clear": {
+            "type": "function",
+            "summary": "Clear the console."
+          },
+          "focus": {
+            "type": "function",
+            "summary": "Focus the console."
+          },
+          "shutdown": {
+            "type": "function",
+            "summary": "Shutdown this console."
+          },
+          "__finally__": {
+            "type": "function",
+            "summary": "Calls [Console.shutdown](#debug/Console/shutdown).\nAllows Console to be used a 'using' construct."
+          }
+        },
+        "summary": "Stratified JavaScript console.",
+        "desc": "Use function [debug.console](#debug/console) to open a new Console object.\n\n"
+      }
+    },
     "summary": "A module containing StratifiedJS debug tools.",
     "desc": "`var c = require(\"debug\").console();\nc.log(\"Hello\", document);\nc.warn(\"Oooh noo!\");`\n"
   },
@@ -333,11 +496,16 @@ apicb({
             "type": "optional Function",
             "name": "filter",
             "summary": "Function through which received\nevents will be passed. [waitforEvent](#dom/waitforEvent)\ncontinues listening for events and won't return until the filter\nreturns a value != true."
+          },
+          {
+            "type": "optional Function",
+            "name": "eventTransformer",
+            "summary": "Function through which an\nevent will be passed before passing the return value on to\n*filter* and/or returning it from *waitforEvent*."
           }
         ],
         "return": {
-          "type": "DOMEvent",
-          "desc": "Event object associated with the event that was triggered."
+          "type": "DOMEvent | Object",
+          "desc": "Event object associated with the event that\nwas triggered. This will be the original DOMEvent, or a return\nvalue from *eventTransformer*."
         },
         "desc": "`var e = dom.waitforEvent(\"myid\", \"click\");\nalert(e.currentTarget);`\n\n### Keep observing events in an event loop:\n\n`while (require('dom').waitforEvent(\"myid\", \"mouseover\")) {\n  console.log(\"mouseover!\");\n}`\n\nNote that this type of event loop can lose events (which is\nsometimes desirable and sometimes isn't). See\n[dom.eventQueue](#dom/eventQueue) for an alternative.\n"
       },
@@ -362,6 +530,11 @@ apicb({
             "type": "optional Function",
             "name": "filter",
             "summary": "Function through which received\nevents will be passed. An event 'e' will only be put into the queue\nif 'filter(e)==true'."
+          },
+          {
+            "type": "optional Function",
+            "name": "eventTransformer",
+            "summary": "Function through which an\nevent will be passed before passing the return value on to\n*filter* and/or entering it into the queue."
           }
         ],
         "desc": "The returned [EventQueue](#dom/EventQueue) object proceeds to listen for\nevents immediately in the background, and continues to do so until\n[EventQueue.stop](#dom/EventQueue/stop) is called.\n\nAlternatively, as [EventQueue](#dom/EventQueue) implements a\n[__finally__](#dom/EventQueue/__finally__) method, it can be used in a\n'using' block:\n\n`using (var Q = require('dom').eventQueue(elem,\"click\")) {\n  while (true) {\n    var ev = Q.get();\n    ...\n  }\n}`\n\nHere the 'using' construct will automatically call the\n[EventQueue](#dom/EventQueue)'s\n[__finally__](#dom/EventQueue/__finally__) method when the 'using' code\nblock is exited.\n"
@@ -429,8 +602,8 @@ apicb({
             "type": "function",
             "summary": "Retrieve the next event from the queue; blocks if the queue is empty.\nSafe to be called from multiple strata concurrently.",
             "return": {
-              "type": "DOMEvent",
-              "desc": "DOMEvent retrieved from head of queue."
+              "type": "DOMEvent | Object",
+              "desc": "DOMEvent (or object returned from *eventTransformer*)\nretrieved from head of queue."
             }
           },
           "stop": {
@@ -634,13 +807,13 @@ apicb({
           {
             "type": "QUERYHASHARR",
             "name": "hashes",
-            "summary": "Object(s) with key/value pairs. See below for full syntax."
+            "summary": "Object(s) with key/value pairs.\nSee below for full syntax."
           }
         ],
         "return": {
           "type": "String"
         },
-        "desc": "*hashes* can be a simple object with key/values or an arbitrarily nested\narray of (arrays of) key/value objects.\n\nFurthermore, if the value in a key/value pair is an array [a,b,c], then\na key=value query will be encoded for each of the array elements.\n\n###Examples:\n\n    http.constructQueryString({a:1,b:\"foo&bar\"}); // -> \"a=1&b=foo%26bar\"\n\n    http.constructQueryString([[null,[{a:1,b:['x','y']},{c:3}],[[]]]]);\n    // -> \"a=1&b=x&b=y&c=3\"`\n\nFull syntax for *hashes*:\n\n    QUERYHASHARR :  QUERYHASH       |\n                    [ QUERYHASHES ]\n\n    QUERYHASHES  :  QUERYHASH                |\n                    QUERYHASHES, QUERYHASHES |\n                    [ QUERYHASHES ]\n\n    QUERYHASH    : { }        |\n                   null       |\n                   undefined  |\n                   { QUERIES }\n\n    QUERIES      : QUERY          |\n                   QUERIES, QUERY\n\n    QUERY        : SIMPLE_QUERY |\n                   MULTI_QUERY\n\n    SIMPLE_QUERY : \"field\" : \"value\"\n\n    MULTI_QUERY  : \"field\" : [ \"value1\", ... ]\n\n"
+        "desc": "###Notes:\n\n*hashes* can be a simple object with key/values or an arbitrarily nested\narray of (arrays of) key/value objects.\n\nInstead of passing an array, the individual array components can also\nbe passed as individual parameters to [http.constructURL](#http/constructURL).\nE.g. the following two calls are equivalent:\n\n     http.constructQueryString({a:1}, {b:1});\n     // is equivalent to\n     http.constructQueryString([{a:1}, {b:1}]);\n\n\nIf the value in a key/value pair is an array [a,b,c], then\na key=value query will be encoded for each of the array elements.\n\n###Examples:\n\n    http.constructQueryString({a:1}, {b:1}); // -> \"a=1&b=1\"\n\n    http.constructQueryString({a:1,b:\"foo&bar\"}); // -> \"a=1&b=foo%26bar\"\n\n    http.constructQueryString([[null,[{a:1,b:['x','y']},{c:3}],[[]]]]);\n    // -> \"a=1&b=x&b=y&c=3\"`\n\nFull syntax for *hashes*:\n\n    QUERYHASHARR :  arbitraily nested array of [ QUERYHASH* ]\n\n    QUERYHASH : { QUERY* } | undefined\n\n    QUERY      : SIMPLE_QUERY | MULTI_QUERY\n\n    SIMPLE_QUERY : \"field\" : \"value\"\n\n    MULTI_QUERY  : \"field\" : [ \"value1\", ... ]\n\n"
       },
       "constructURL": {
         "type": "function",
@@ -649,13 +822,74 @@ apicb({
           {
             "type": "URLSPEC",
             "name": "urlspec",
-            "summary": "String and optional query hashes. See below for full syntax."
+            "summary": "Base string and optional path strings\nand query hashes. See below for full syntax."
           }
         ],
         "return": {
           "type": "String"
         },
-        "desc": "*urlspec* can be a simple string or an (arbitrarily nested) array composed\nof a base string and a number of QUERYHASHES (as accepted by\n[http.constructQueryString](#http/constructQueryString)).\n\n###Examples:\n\n    http.constructURL(\"foo.txt\"); // -> \"foo.txt\"\n\n    http.constructURL(\"foo?a=b\"); // -> \"foo?a=b\"\n\n    http.constructURL(\"foo?a=b\", {b:1}); // -> \"foo?a=b&b=1\"\n\n    http.constructURL(\"foo?a=b\", {b:[1,2]}); // -> \"foo?a=b&b=1&b=2\"\n\n    http.constructURL(\"foo?a=b\", [{b:[1,2]}]); // -> \"foo?a=b&b=1&b=2\"\n\n    http.constructURL([\"http://foo\", {bar:\"x\", zz:\"w\"}, {foo:[1,2,3]}]);\n    // -> \"http://foo?bar=x&zz=w&foo=1&foo=2&foo=3\"\n\n    http.constructURL([[\"http://foo\", {bar:\"x\", zz:\"w\"}], [{foo:[1,2,3]}]]);\n    // -> \"http://foo?bar=x&zz=w&foo=1&foo=2&foo=3\"\n\nFull syntax for *urlspec*:\n\n    URLSPEC   :  BASE                     |\n                 BASE, QUERYHASHES        |\n                 [ URLSPEC ]\n\n    QUERYHASHES   :  QUERYHASH                |\n                     QUERYHASHES, QUERYHASHES |\n                     [ QUERYHASHES ]\n\n    QUERYHASH  : { }        |\n                 null       |\n                 undefined  |\n                 { QUERIES }\n\n    QUERIES    : QUERY          |\n                 QUERIES, QUERY\n\n    QUERY      : SIMPLE_QUERY |\n                 MULTI_QUERY\n\n    SIMPLE_QUERY : \"field\" : \"value\"\n\n    MULTI_QUERY  : \"field\" : [ \"value1\", ... ]\n\n    BASE       : url string (may contain a query string already)\n\n"
+        "desc": "###Notes:\n\n*urlspec* can be a simple string or an (arbitrarily nested) array composed\nof one base strings, and optionally a number of path strings and/or a\nnumber of QUERYHASH objects (as accepted by\n[http.constructQueryString](#http/constructQueryString)).\n\nInstead of passing an array, the individual array components can also\nbe passed as individual parameters to [http.constructURL](#http/constructURL).\nE.g. the following two calls are equivalent:\n\n     http.constructURL(\"foo\", \"bar\", \"baz\");\n     // is equivalent to\n     http.constructURL([\"foo\", \"bar\", \"baz\"]);\n\nBase & path strings will be concatenated in such a way that there is\nexactly one '/' character between each component.\n\nThe base string may contain a '?' character. In this case no path strings\nshould be given, but query hashes can be specified and will be appended\ncorrectly (using '&' instead of '?').\n\n###Examples:\n\n    http.constructURL(\"foo.txt\"); // -> \"foo.txt\"\n\n    http.constructURL(\"foo\", \"bar\", \"foo.txt\"); // -> \"foo/bar/foo.txt\"\n\n    http.constructURL(\"foo/\", \"/bar/\"); // -> \"foo/bar/\"\n\n    http.constructURL(\"foo?a=b\"); // -> \"foo?a=b\"\n\n    http.constructURL(\"foo?a=b\", {b:1}); // -> \"foo?a=b&b=1\"\n\n    http.constructURL(\"foo?a=b\", {b:[1,2]}); // -> \"foo?a=b&b=1&b=2\"\n\n    http.constructURL(\"foo?a=b\", [{b:[1,2]}]); // -> \"foo?a=b&b=1&b=2\"\n\n    http.constructURL([\"http://foo\", {bar:\"x\", zz:\"w\"}, {foo:[1,2,3]}]);\n    // -> \"http://foo?bar=x&zz=w&foo=1&foo=2&foo=3\"\n\n    http.constructURL([[\"http://foo\", {bar:\"x\", zz:\"w\"}], [{foo:[1,2,3]}]]);\n    // -> \"http://foo?bar=x&zz=w&foo=1&foo=2&foo=3\"\n\nFull syntax for *urlspec*:\n\n    URLSPEC   : arbitrarily nested array\n                [ BASESTR , PATHSTR* , QUERYHASH* ]\n\n    BASESTR   : string with url base (e.g. \"http://onilabs.com/foo\")\n\n    PATHSTR   : string with directory component\n\n    QUERYHASH : { QUERY* } | undefined\n\n    QUERY      : SIMPLE_QUERY | MULTI_QUERY\n\n    SIMPLE_QUERY : \"field\" : \"value\"\n\n    MULTI_QUERY  : \"field\" : [ \"value1\", ... ]\n"
+      },
+      "parseURL": {
+        "type": "function",
+        "summary": "Parses the given URL into components.",
+        "param": [
+          {
+            "type": "String",
+            "name": "url",
+            "summary": "URL to parse."
+          }
+        ],
+        "return": {
+          "type": "Object",
+          "desc": "Parsed URL as described at <http://stevenlevithan.com/demo/parseuri/js/> (using 'strict' mode)."
+        },
+        "desc": "Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.\n"
+      },
+      "isSameOrigin": {
+        "type": "function",
+        "summary": "Checks if the given URLs have matching authority parts.",
+        "param": [
+          {
+            "type": "String",
+            "name": "url1",
+            "summary": "First URL."
+          },
+          {
+            "type": "String",
+            "name": "url2",
+            "summary": "Second URL."
+          }
+        ],
+        "desc": "If either URL is missing an authority part (i.e. it is a relative URL),\nthe function returns true as well.\n"
+      },
+      "canonicalizeURL": {
+        "type": "function",
+        "summary": "Convert relative to absolute URLs and collapse '.' and '..' path\ncomponents.",
+        "param": [
+          {
+            "type": "String",
+            "name": "url",
+            "summary": "URL to canonicalize."
+          },
+          {
+            "type": "String",
+            "name": "base",
+            "summary": "URL which will be taken as a base if *url* is relative."
+          }
+        ],
+        "return": {
+          "type": "String",
+          "desc": "Canonicalized URL."
+        },
+        "desc": "###Examples:\n\n    http.canonicalizeURL(\"/foo/bar.txt\", \"http://a.b/c/d/baz.txt\");\n    // --> \"http://a.b/foo/bar.txt\"\n\n    http.canonicalizeURL(\"foo/bar.txt\", \"http://a.b/c/d/baz.txt\");\n    // --> \"http://a.b/c/d/foo/bar.txt\"\n\n    http.canonicalizeURL(\"././foo/./bar.txt\", \"http://a.b/c/d/\");\n    // --> \"http://a.b/c/d/foo/bar.txt\"\n\n    http.canonicalizeURL(\".././foo/../bar.txt\", \"http://a.b/c/d/\");\n    // --> \"http://a.b/c/bar.txt\"\n\n"
+      },
+      "isCORSCapable": {
+        "type": "function",
+        "summary": "Checks if this browser can perform cross-origin requests to CORS-capable\nservers (see <http://www.w3.org/TR/cors/>)",
+        "return": {
+          "type": "Boolean"
+        }
       },
       "xhr": {
         "type": "function",
@@ -708,18 +942,18 @@ apicb({
             "summary": "Password for authentication."
           },
           {
+            "type": "String",
+            "name": "mime",
+            "summary": "Override mime type."
+          },
+          {
             "type": "Boolean",
             "name": "throwing",
             "def": "true",
             "summary": "Throw exception on error."
-          },
-          {
-            "type": "XMLHttpRequest",
-            "name": "req",
-            "summary": "XMLHttpRequest object to (re-)use for this request."
           }
         ],
-        "desc": "If the request is unsuccessful, and the call is configured to throw\nexceptions (setting {\"throwing\":true}; the default), an exception will\nbe thrown which has a 'status' member set to the request status, and a\n'req' member set to the XMLHttpRequest object.\n\n*This request does **not** work cross-domain.*\n\n###Example:\n\n    try { \n      alert(http.xhr(\"foo.txt\").responseText);\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
+        "desc": "### Cross-site requests:\n\nThe success of cross-site requests depends on whether the\nserver allows the access (see <http://www.w3.org/TR/cors/>) and on whether\nthe browser is capable of issuing cross-site requests. This can be checked with\n[http.isCORSCapable](#http/isCORSCapable).\n\nThe standard XMLHttpRequest can handle cross-site requests on compatible\nbrowsers (any recent Chrome, Safari, Firefox). On IE8+, [http.xhr](#http/xhr) will\nautomatically fall back to using MS's XDomainRequest object for\ncross-site requests. \n\n### Request failure:\n\nIf the request is unsuccessful, and the call is configured to throw\nexceptions (setting {\"throwing\":true}; the default), an exception will\nbe thrown which has a 'status' member set to the request status, and a\n'req' member set to the XMLHttpRequest object.\n\n###Example:\n\n    try { \n      alert(http.xhr(\"foo.txt\").responseText);\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
       },
       "get": {
         "type": "function",
@@ -740,7 +974,7 @@ apicb({
           "type": "String"
         },
         "shortcut": "xhr",
-        "desc": "An alias for\n\n    http.xhr(url,settings).responseText\n\n*This request does **not** work cross-domain.*\n\n### Example:\n\n`console.log(\n  require(\"http\").get(\"data.txt\")\n);`\n\n### Example: timeout\n\n`var http = require(\"http\");\nwaitfor {\n  var data = http.get(\"data.txt\");\n} or {\n  hold(1000);\n}\nif (!data) {\n  throw \"Server too slow...\";\n}`\n"
+        "desc": "An alias for\n\n    http.xhr(url,settings).responseText\n\n### Example:\n\n`console.log(\n  require(\"http\").get(\"data.txt\")\n);`\n\n### Example: timeout\n\n`var http = require(\"http\");\nwaitfor {\n  var data = http.get(\"data.txt\");\n} or {\n  hold(1000);\n}\nif (!data) {\n  throw \"Server too slow...\";\n}`\n"
       },
       "post": {
         "type": "function",
@@ -766,7 +1000,7 @@ apicb({
           "type": "String"
         },
         "shortcut": "xhr",
-        "desc": "*This request does **not** work cross-domain.*\n\n### Example:    \n`var http = require(\"http\");\nvar response = http.post(\"/service\", \"some raw data\");\nconsole.log(\"server replied:\", response)`\n\n### Example: posting data in the url, not the body\n`var http = require(\"http\");\nvar rv = http.post(\"/service\", null,\n                   { query: {\n                          name: \"ford\",\n                          lastname: \"prefect\"\n                            }\n                   });\n// sends an HTTP POST to /service \n// with payload: name=ford&lastname=prefect\nconsole.log(require(\"json\").parse(rv).id);`\n"
+        "desc": "### Example:    \n`var http = require(\"http\");\nvar response = http.post(\"/service\", \"some raw data\");\nconsole.log(\"server replied:\", response)`\n\n### Example: posting data in the url, not the body\n`var http = require(\"http\");\nvar rv = http.post(\"/service\", null,\n                   { query: {\n                          name: \"ford\",\n                          lastname: \"prefect\"\n                            }\n                   });\n// sends an HTTP POST to /service \n// with payload: name=ford&lastname=prefect\nconsole.log(require(\"json\").parse(rv).id);`\n"
       },
       "json": {
         "type": "function",
@@ -787,7 +1021,7 @@ apicb({
         "return": {
           "type": "Object"
         },
-        "desc": "*This request does **not** work cross-domain.*\n\n### Example:\n`var http = require(\"http\");\nvar animals = http.json(\"/animals.php?type=cats\").animals;\nfor (var i = 0, cat; cat = animals[i]; i++) {\n  console.log(cat.name);\n}`\n"
+        "desc": "### Example:\n`var http = require(\"http\");\nvar animals = http.json(\"/animals.php?type=cats\").animals;\nfor (var i = 0, cat; cat = animals[i]; i++) {\n  console.log(cat.name);\n}`\n"
       },
       "xml": {
         "type": "function",
@@ -808,7 +1042,7 @@ apicb({
           "type": "Object"
         },
         "shortcut": "xhr",
-        "desc": "An alias for\n\n    http.xhr(url,settings).responseXML\n\n*This request does **not** work cross-domain.*\n\n### Example:\n\n`var http = require(\"http\");\nvar root = http.xml(\"data.xml\").documentElement;\nconsole.log(\"Items in document: \", root.children.length)`\n"
+        "desc": "An alias for\n\n    http.xhr(url,settings).responseXML\n\n### Example:\n\n`var http = require(\"http\");\nvar root = http.xml(\"data.xml\").documentElement;\nconsole.log(\"Items in document: \", root.children.length)`\n"
       },
       "jsonp": {
         "type": "function",
@@ -852,7 +1086,7 @@ apicb({
             "summary": "Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*."
           }
         ],
-        "desc": "*This request **works** cross-domain.*\n\n### Example:\n\n`var http = require(\"http\");\nvar url = \"http://api.flickr.com/services/feeds/photos_public.gne?\" +\n          \"tags=cat&tagmode=any&format=json\";\nvar data = http.jsonp(url, {cbfield:\"jsoncallback\"});\nfor (var i = 0, item; item = data.items[i]; i++) {\n   c.log(\"src=\", item.media.m);\n};`\n"
+        "desc": "### Example:\n\n`var http = require(\"http\");\nvar url = \"http://api.flickr.com/services/feeds/photos_public.gne?\" +\n          \"tags=cat&tagmode=any&format=json\";\nvar data = http.jsonp(url, {cbfield:\"jsoncallback\"});\nfor (var i = 0, item; item = data.items[i]; i++) {\n   c.log(\"src=\", item.media.m);\n};`\n"
       },
       "script": {
         "type": "function",
@@ -864,12 +1098,11 @@ apicb({
             "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
           }
         ],
-        "desc": "*This request **works** cross-domain.*\n\nIt is safe to call this function simultaneously from several strata,\neven for the same URL: The given URL will only be loaded **once**, and\nall callers will block until it is loaded.\n\n### Example:\n\n`var http = require(\"http\");\nhttp.script(\"http://code.jquery.com/jquery.js\");\njQuery(\"body\").css({background:\"red\"});`\n"
+        "desc": "It is safe to call this function simultaneously from several strata,\neven for the same URL: The given URL will only be loaded **once**, and\nall callers will block until it is loaded.\n\nIf a browser supports the error event for script tags, \nthis function will throw if it fails to load the URL.\n\n### Example:\n\n`var http = require(\"http\");\nhttp.script(\"http://code.jquery.com/jquery.js\");\njQuery(\"body\").css({background:\"red\"});`\n"
       }
     },
     "classes": {},
-    "summary": "The stratified functions defined in this API can be used to transmit data\nfrom/to servers without page refreshing. In addition to\n'ajax-style' interactions with the home domain of an app, these\nfunctions also form the basis of cross-domain access to many\npublic web APIs.",
-    "desc": "Note: functions that are marked not to work cross-domain might \nwork it if the browser has \nimplemented [access-control](http://www.w3.org/TR/access-control/).\n"
+    "summary": "The stratified functions defined in this API can be used to transmit data\nfrom/to servers without page refreshing. In addition to\n'ajax-style' interactions with the home domain of an app, these\nfunctions also form the basis of cross-domain access to many\npublic web APIs."
   },
   "jquery-binding": {
     "type": "module",

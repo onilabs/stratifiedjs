@@ -2,7 +2,7 @@
  * Oni Apollo 'google' module
  * Bindings to various Google webservices and APIs
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *

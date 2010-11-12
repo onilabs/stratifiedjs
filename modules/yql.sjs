@@ -2,7 +2,7 @@
  * Oni Apollo 'yql' module
  * Stratified wrapper for the YQL web service 
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *

@@ -2,7 +2,7 @@
  * Oni Apollo 'twitter' module
  * Stratified bindings to the Twitter API.
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *

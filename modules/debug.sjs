@@ -2,7 +2,7 @@
  * Oni Apollo 'console' module
  * SJS console 
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *
@@ -37,19 +37,26 @@
     c.log("Hello", document);
     c.warn("Oooh noo!");`
 */
-/**
-  @function console
-  @param    {optional Object} [settings]
-  @summary  Open a visual console optimized for StratifiedJS.
-  @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
-  @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null. 
-  @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
-  @return   {Console}
-*/
+
 var common = require('common');
 
 //----------------------------------------------------------------------
-// helpers
+// logging
+
+var logReceivers = [];
+
+/**
+  @function log
+  @summary Log the given object to all Stratfied JS consoles created with *receivelog* = *true*.
+  @param {Object} [obj] Object to log.
+*/
+exports.log = function() {
+  for (var i=0, c; (c = logReceivers[i]); ++i)
+    c.log.apply(c, arguments);
+};
+
+//----------------------------------------------------------------------
+// console helpers
 
 var fontStyle = "font:12px monospace;"
 var execStyle = "color:rgb(84,138,198);";
@@ -104,7 +111,7 @@ function has_props(obj) {
   return false;
 }
 
-function safeName (obj) {
+function to_safestring(obj) {
   var name;
   try { name = obj.toString(); if(name) return name; } catch(e) {}
   try { name = obj.tagName; if(name) return name; } catch(e) {}
@@ -121,15 +128,27 @@ function inspect_obj(obj, name) {
     name = "";
 
   var indent = name?"<span style='width:12px;height:12px;float:left;'></span>":"";
-  if (typeof obj == "function") return makeDiv(indent+name + "<span style='"+systemStyle+"'>function</span>"); //XXX
-  if (obj == undefined) return makeDiv(indent+name + "<span style='"+systemStyle+"'>undefined</span>"); //XXX
-  if (!has_props(obj) || typeof obj == "string") {
-    return makeDiv(indent+name + (obj ? common.sanitize(safeName(obj)) : obj), "white-space:pre;");
+  if (typeof obj == "function")
+    return makeDiv(indent+name + "<span style='"+systemStyle+"'>function</span>"); //XXX
+  if (obj == undefined) // this catches 'null' too
+    return makeDiv(indent+name + "<span style='"+systemStyle+"'>"+obj+"</span>");
+  if (typeof obj == "string")
+    return makeDiv(indent+name + '"'+common.sanitize(obj)+'"', "white-space:pre;");
+  if (!has_props(obj)) {
+    var objdesc;
+    if (common.isArray(obj))
+      objdesc = "[]";
+    else if (obj)
+      objdesc = common.sanitize(to_safestring(obj));
+    else
+      objdesc = obj;
+    return makeDiv(indent+name + objdesc, "white-space:pre;");
   }
   // else 
-  var objdesc = safeName(obj);
+  var objdesc = to_safestring(obj);
   var m = objdesc.match(/\[object (\w+)\]/);
   if (m) objdesc = m[1];
+  if (common.isArray(obj)) objdesc = "["+objdesc+"]";
   var rv = makeDiv("\
 <div><span style='cursor:pointer'><span 
     style='margin:0 2px 0 -2px;background:url("+icons.treeclosed+") no-repeat 0px 2px;float:left;display:block;width:12px;height:12px'>\
@@ -162,6 +181,7 @@ function inspect_obj(obj, name) {
   return rv;
 }
 
+// for emulating position:fixed on webkit:
 function viewportStick(el, offset) {
   offset = offset || 0;
   el.style.position = "absolute";
@@ -173,6 +193,23 @@ function viewportStick(el, offset) {
 
 //----------------------------------------------------------------------
 // console/commandline
+
+
+/**
+  @class Console
+  @summary Stratified JavaScript console.
+  @desc
+     Use function [debug.console](#debug/console) to open a new Console object.
+
+  @function console
+  @param    {optional Object} [settings]
+  @summary  Open a Stratified JavaScript console.
+  @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
+  @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null. 
+  @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
+  @setting  {Boolean} [receivelog=true] Whether the console will display object logged to [debug.log](#debug/log).
+  @return   {Console}
+*/
 exports.console = function(opts) {  
   return new Console(opts);
 };
@@ -181,8 +218,12 @@ function Console(opts) {
   opts = common.mergeSettings({
     collapsed : true,
     height: 200,
-    fullscreen: isWebkitMobile ? true : false
+    fullscreen: isWebkitMobile ? true : false,
+    receivelog: true
   }, opts);
+
+  if (opts.receivelog)
+    logReceivers.push(this);
                               
   var div = document.createElement("div");
   var parent = opts.target ? document.getElementById(opts.target) : null;
@@ -239,37 +280,37 @@ z-index:9999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:
 Console.prototype = {
   _cmdloop: function() {
     waitfor {
-    using (var Q = require('dom').eventQueue(this.cmdline, 'keydown')) {
-      while (true) {
-        var key = Q.get().keyCode;
-//        this.log(key);
-        switch (key) {
-        case 10:
-        case 13:
-          if (!this.cmdline.value) continue;
-          this.exec(this.cmdline.value);
-          if (this.history.length > 50) this.history.shift();
-          this.history[this.history.length-1] = this.cmdline.value;
-          this.history_p = this.history.length;
-          this.history.push("");
-          if (window["sessionStorage"] && window["JSON"]) 
-            sessionStorage.history = JSON.stringify(this.history);
-          this.cmdline.value = "";
-          break;
-        case 38: // key up
-          if (this.history_p == 0) break;
-          if (this.history_p == this.history.length-1) // save current commandline
-            this.history[this.history_p] = this.cmdline.value;
-          this.cmdline.value = this.history[--this.history_p];
-          break;
-        case 40: // key down
-          if (this.history_p == this.history.length-1) break;
-          // should we save the changes?
-          this.cmdline.value = this.history[++this.history_p];
-          break;
+      using (var Q = require('dom').eventQueue(this.cmdline, 'keydown')) {
+        while (true) {
+          var key = Q.get().keyCode;
+          //        this.log(key);
+          switch (key) {
+          case 10:
+          case 13:
+            if (!this.cmdline.value) continue;
+            this.exec(this.cmdline.value);
+            if (this.history.length > 50) this.history.shift();
+            this.history[this.history.length-1] = this.cmdline.value;
+            this.history_p = this.history.length;
+            this.history.push("");
+            if (window["sessionStorage"] && window["JSON"]) 
+              sessionStorage.history = JSON.stringify(this.history);
+            this.cmdline.value = "";
+            break;
+          case 38: // key up
+            if (this.history_p == 0) break;
+            if (this.history_p == this.history.length-1) // save current commandline
+              this.history[this.history_p] = this.cmdline.value;
+            this.cmdline.value = this.history[--this.history_p];
+            break;
+          case 40: // key down
+            if (this.history_p == this.history.length-1) break;
+            // should we save the changes?
+            this.cmdline.value = this.history[++this.history_p];
+            break;
+          }
         }
       }
-    }
     } 
     and {
       while(true) {
@@ -280,8 +321,9 @@ Console.prototype = {
           this.collapse();
         }
         or {
-          require('dom').waitforEvent(this.output, "click");
-          this.focus();
+          var ev = require('dom').waitforEvent(this.output, "click");
+          if (require('dom').eventTarget(ev) == this.output)
+            this.focus();
         }
         or {
           require('dom').waitforEvent(this.clearbutton, "click");
@@ -290,40 +332,37 @@ Console.prototype = {
       };
     }
     and {
-    if (!isWebkitMobile) hold();
-    using (var Q2 = require('dom').eventQueue(document.getElementsByTagName("body")[0], 'touchmove touchend')) {
-      while(true) {
-        viewportStick(this.summonbutton);
-        Q2.get();
-      };
-    }
+      if (isWebkitMobile) {
+        // emulate position:fixed on webkit:
+        using (var Q2 = require('dom').eventQueue(document.getElementsByTagName("body")[0], 'touchmove touchend')) {
+          while(true) {
+            viewportStick(this.summonbutton);
+            Q2.get();
+          };
+        }
+      }
     }
     and {
-      var lasty;
-      while(true) {
-        var e = require('dom').waitforEvent(document.getElementsByTagName("body")[0], 'mousedown mousemove mouseup');
-        switch (e.type) {
-          case "mousedown":
-          if (e.target == this.resizehandle || e.srcElement == this.resizehandle) {
-            document.documentElement.style.webkitUserSelect = "none";
-            lasty = e.pageY || e.clientY;
-          }   
-          break;
-          case "mousemove":
-          if (lasty != undefined) {
-                        //demo.log(lasty);
-            var h = lasty - (e.pageY || e.clientY) + parseInt(this.root.style.height.split("px")[0]);
-            if (h > 70) {
-              this.root.style.height = h + "px";
-              lasty = e.pageY || e.clientY;
+      while (true) {
+        var ev = require('dom').waitforEvent(this.resizehandle,"mousedown");
+        var lasty = ev.clientY;
+        document.documentElement.style.webkitUserSelect = "none";
+        waitfor {
+          require('dom').waitforEvent(document, "mouseup");
+        }
+        or {
+          using (var mm = require('dom').eventQueue(document, "mousemove")) {
+            while (1) {
+              var ev = mm.get();
+              var h = lasty - ev.clientY + this.root.clientHeight;
+              if (h > 70) {
+                this.root.style.height = h + "px";
+                lasty = ev.clientY;
+              }
             }
           }
-          break;
-          case "mouseup":
-          document.documentElement.style.webkitUserSelect = "auto";
-          lasty = undefined;
-          break;
         }
+        document.documentElement.style.webkitUserSelect = "auto";
       }
     }
   },
@@ -336,7 +375,11 @@ Console.prototype = {
       this.output.scrollTop = this.output.scrollHeight;
     }
   },
-  
+
+  /**
+    @function Console.collapse
+    @summary Collapses the console.
+   */
   collapse : function () {
     this.root.style.display = "none";
     this.summonbutton.style.visibility = "visible";
@@ -347,12 +390,21 @@ Console.prototype = {
     });
   },
   
+  /**
+    @function Console.expand
+    @summary Restores a collapsed console.
+   */
   expand : function () {
     this.root.style.display = "block";
     this.summonbutton.style.visibility = "hidden";
     this.focus();
   },
 
+  /**
+    @function Console.exec
+    @summary Execute the given commandline in this console.
+    @param {String} [cl] Commandline string.
+   */
   exec: function(cl) {
     var e = document.createElement("div");
     setStyle(e, fontStyle+"background:#fff url("+icons.arrowdark+") 6px 6px no-repeat;line-height:15px;border-bottom: 1px solid #eee; padding: 5px 15px 4px 20px");
@@ -386,7 +438,7 @@ Console.prototype = {
         me.output.scrollTop = me.output.scrollHeight;
     });
   },
-  
+
   _log: function(args, color) {
     //var s = Array.prototype.splice.call(args, 0).join(", ");
     var e = document.createElement("div");
@@ -398,26 +450,63 @@ Console.prototype = {
     }
     this._append(e);
   },
+  /**
+    @function Console.log
+    @summary Log the given object to the console.
+    @param {Object} [obj] Object to log.
+   */
   log : function() {
     this._log(arguments);
   },
+  /**
+    @function Console.warn
+    @summary Write a warning to the console.
+    @param {String} [str] Warning string.
+   */
   warn: function() {
     this._log(arguments, "darkorange");
   },
+  /**
+    @function Console.error
+    @summary Write an error to the console.
+    @param {String} [str] Error string.
+   */
   error: function() {
     this._log(arguments, "red");
   },
   
+  /**
+    @function Console.clear
+    @summary Clear the console.
+   */
   clear : function() {
     this.output.innerHTML = "";
   },
+
+  /**
+    @function Console.focus
+    @summary Focus the console.
+   */
+  focus: function() { try { this.cmdline.focus(); } catch(e) {/* let this one slip */ } },
   
-  focus: function() { this.cmdline.focus(); },
-  
-  close: function() {
-    //this.cmdloop_stratum.abort();
+  /**
+    @function Console.shutdown
+    @summary Shutdown this console.
+   */
+  shutdown: function() {
+    for (var i=0, r; r=logReceivers[i]; ++i)
+      if (r == this) {
+        logReceivers.splice(i, 1);
+        break;
+      }
+    // XXX this.cmdloop_stratum.abort();
     this.root.parentNode.removeChild(this.root);
   },
   
-  __finally__: function() { this.close(); }
+  /**
+    @function  Console.__finally__
+    @summary   Calls [Console.shutdown](#debug/Console/shutdown).
+               Allows Console to be used a 'using' construct.
+   */
+  __finally__: function() { this.shutdown(); }
 };

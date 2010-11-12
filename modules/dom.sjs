@@ -2,7 +2,7 @@
  * Oni Apollo 'dom' module
  * DOM utilities
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *
@@ -50,19 +50,108 @@ function elementsFromSelector(selector) {
   return elems;
 }
 
+/*
+  @function addListener
+  @summary Cross-platform event helper. Adds event listener.
+  @param {DOMElement} [elem] DOM element to set handler on.
+  @param {String} [type] Event type (e.g. 'click', 'mousemove').
+  @param {Function} [handler] Handler function.
+*/
 function addListener(elem, type, handler) {
   if (elem.addEventListener)
     elem.addEventListener(type, handler, false);
   else // IE
     elem.attachEvent("on"+type, handler);
 }
+exports.addListener = addListener;
 
+
+/*
+  @function removeListener
+  @summary Cross-platform event helper. Removes event listener.
+  @param {DOMElement} [elem] DOM element to remove handler from.
+  @param {String} [type] Event type (e.g. 'click', 'mousemove').
+  @param {Function} [handler] Handler function.
+*/
 function removeListener(elem, type, handler) {
   if (elem.removeEventListener)
     elem.removeEventListener(type, handler, false);
   else // IE
     elem.detachEvent("on"+type, handler);
 }
+exports.removeListener = removeListener;
+
+/*
+  @function  eventTarget
+  @summary Cross-platform event helper. Retrieves event target.
+  @param {DOMEvent} [ev] DOM event object.
+  @return {DOMElement} Event target (ev.srcElement on IE, ev.target elsewhere)
+*/
+exports.eventTarget = function(ev) {
+  return ev.target || ev.srcElement;
+};
+
+/*
+  @function pageX
+  @summary Cross-platform event helper. Returns page coordinate of event.
+  @param {DOMEvent} [ev] DOM event object.
+  @return {Integer}
+*/
+exports.pageX = function(ev) {
+//  if (ev.touches) ev = ev.touches[0];
+  if (ev.pageX !== undefined) return ev.pageX;
+  return ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+};
+
+/*
+  @function pageY
+  @summary Cross-platform event helper. Returns page coordinate of event.
+  @param {DOMEvent} [ev] DOM event object.
+  @return {Integer}
+*/
+exports.pageY = function(ev) {
+//  if (ev.touches) ev = ev.touches[0];
+  if (ev.pageY !== undefined) return ev.pageY;
+  return ev.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+};
+
+/*
+  @function preventDefault
+  @summary Cross-platform event helper. Cancels default action of given event.
+  @param {DOMEvent} [ev] DOM event object.
+*/
+exports.preventDefault = function(ev) {
+  if (ev.preventDefault) {
+    ev.preventDefault();
+  }
+  else {
+    // IE
+    ev.returnValue = false;
+  }
+};
+
+
+/*
+  @function stopEvent
+  @summary Cross-platform event helper. Cancels propagation, bubbeling and default action of given event.
+  @param {DOMEvent} [ev] DOM event object.
+*/
+exports.stopEvent = function(ev) {
+  if (ev.preventDefault) {
+    ev.preventDefault();
+  }
+  else {
+    // IE
+    ev.returnValue = false;
+  }
+  if (ev.stopPropagation) {
+    ev.stopPropagation();
+  }
+  else {
+    // IE
+    ev.cancelBubble = true;
+  }
+};
 
 //----------------------------------------------------------------------
 
@@ -75,7 +164,12 @@ function removeListener(elem, type, handler) {
              events will be passed. [waitforEvent](#dom/waitforEvent)
              continues listening for events and won't return until the filter
              returns a value != true.
-  @return    {DOMEvent} Event object associated with the event that was triggered.
+  @param     {optional Function} [eventTransformer] Function through which an
+             event will be passed before passing the return value on to
+             *filter* and/or returning it from *waitforEvent*.
+  @return    {DOMEvent | Object} Event object associated with the event that
+             was triggered. This will be the original DOMEvent, or a return
+             value from *eventTransformer*.
   @desc
     `var e = dom.waitforEvent("myid", "click");
     alert(e.currentTarget);`
@@ -90,7 +184,7 @@ function removeListener(elem, type, handler) {
     sometimes desirable and sometimes isn't). See
     [dom.eventQueue](#dom/eventQueue) for an alternative.
 */
-exports.waitforEvent = function(selector, events, filter) {
+exports.waitforEvent = function(selector, events, filter, eventTransformer) {
   var elems = elementsFromSelector(selector);
   var elem_count = elems.length;
   
@@ -100,6 +194,8 @@ exports.waitforEvent = function(selector, events, filter) {
   waitfor(var rv = null) {
     function handleEvent(e) {
       // XXX on IE we should maybe clone events here.
+      if (eventTransformer)
+        e = eventTransformer(e);
       if (filter && !filter(e)) return;
       resume(e);
     }
@@ -133,6 +229,9 @@ exports.waitforEvent = function(selector, events, filter) {
   @param     {optional Function} [filter] Function through which received
              events will be passed. An event 'e' will only be put into the queue
              if 'filter(e)==true'.
+  @param     {optional Function} [eventTransformer] Function through which an
+             event will be passed before passing the return value on to
+             *filter* and/or entering it into the queue.
   @desc
     The returned [EventQueue](#dom/EventQueue) object proceeds to listen for
     events immediately in the background, and continues to do so until
@@ -154,20 +253,22 @@ exports.waitforEvent = function(selector, events, filter) {
     [__finally__](#dom/EventQueue/__finally__) method when the 'using' code
     block is exited.
 */
-exports.eventQueue = function(selector, events, filter) {
-  return (new EventQueue(selector, events, filter));
+exports.eventQueue = function(selector, events, filter, eventTransformer) {
+  return (new EventQueue(selector, events, filter, eventTransformer));
 };
 
-function EventQueue(selector, events, filter)
+function EventQueue(selector, events, filter, eventTransformer)
 {
   // XXX we queue up 100 events max. Does this need to be configurable?
   var capacity = 100;
-  this._queue = new (require("cutil").Queue)(capacity);
+  this._queue = new (require("cutil").Queue)(capacity, true);
   this.elems = elementsFromSelector(selector);
   this.events = events.split(" ");
 
   var me = this;
   this._handleEvent = function(e) {
+    if (eventTransformer)
+      e = eventTransformer(e);
     // XXX on IE we should maybe clone events here already; in case filter blocks
     if (filter && !filter(e)) return;
     if (me._queue.size == capacity) {
@@ -178,6 +279,8 @@ function EventQueue(selector, events, filter)
     if (__oni_rt.UA == "msie") {
       // XXX IE hack:
       // We need to clone the event, or it won't make it to the other side.
+      // XXX Unfortunately this also means that setting cancelBubble/returnValue
+      // will not work 'on the other side'.
       var orig_g = e;
       e = {};
       for (var p in orig_g)
@@ -205,7 +308,8 @@ EventQueue.prototype = {
     @function  EventQueue.get
     @summary   Retrieve the next event from the queue; blocks if the queue is empty.
                Safe to be called from multiple strata concurrently.
-    @return {DOMEvent} DOMEvent retrieved from head of queue.
+    @return {DOMEvent | Object} DOMEvent (or object returned from *eventTransformer*)
+                                retrieved from head of queue.
    */
   get: function() {
     return this._queue.get();

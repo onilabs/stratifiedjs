@@ -2,7 +2,7 @@
  * Oni Apollo 'cutil' module
  * Utility functions and constructs for concurrent stratified programming
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *
@@ -176,16 +176,18 @@ function waitforFirstArgs(f, args, this_obj) {
   @summary  Constructor for a Semaphore object.
   @return   {Semaphore}
   @param    {Integer} [permits] Number of permits available to be handed out.
+  @param    {Boolean} [sync=false] Toggles synchronous behaviour (see [Semaphore.release](#cutil/Semaphore/release))
   @desc
     Example:
     `var S = new (cutil.Semaphore)(10);`
 */
-function Semaphore(permits) {
+function Semaphore(permits, sync) {
   /**
     @variable Semaphore.permits
     @summary  Number of free permits currently available to be handed out.
    */
   this.permits = permits;
+  this.sync = sync;
   this.queue = [];
   var me = this;
   this._permit = { __finally__: function() { me.release(); } };
@@ -234,8 +236,16 @@ Semaphore.prototype = {
       If upon releasing a permit, there are other strata
       waiting for a permit (by blocking in
       [Semaphore.acquire](#cutil/Semaphore/acquire)),
-      the oldest one will be handed the permit and resumed
-      after [Semaphore.release](#cutil/Semaphore/release) returns.
+      the oldest one will be handed the permit and resumed.
+
+      The sequencing of resumption is determined by the Semaphore
+      constructor flag 'sync':
+
+      If sync is false, the pending stratum will be resumed
+      *after* [Semaphore.release](#cutil/Semaphore/release) returns.
+
+      If sync is true, the pending stratum will be resumed *before*
+      [Semaphore.release](#cutil/Semaphore/release) returns.
 
       Calls to [Semaphore.release](#cutil/Semaphore/release) are usually
       paired with calls to [Semaphore.acquire](#cutil/Semaphore/acquire).
@@ -243,12 +253,18 @@ Semaphore.prototype = {
       for an alternative to doing this manually.
    */
   release : function() {
-    var me = this;
-    spawn(function() {
-      ++me.permits;
-      if (me.queue.length) me.queue.shift()();
-    });
-  }
+    if (this.sync) {
+      ++this.permits;
+      if (this.queue.length) this.queue.shift()();
+    }
+    else {
+      var me = this;
+      spawn(function() {
+        ++me.permits;
+        if (me.queue.length) me.queue.shift()();
+      });
+    }
+  },
 };
 
 /**
@@ -288,6 +304,33 @@ exports.makeRateLimitedFunction = function(f, max_cps) {
   }, 1);
 };
 
+/**
+  @function makeExclusiveFunction
+  @summary  A wrapper for limiting the number of concurrent executions of a function to one. 
+            Instead of potentially waiting for the previous execution to end, like makeBoundedFunction, it will cancel it.
+  @return   {Function} The wrapped function.
+  @param    {Function} [f] The function to wrap.
+*/
+exports.makeExclusiveFunction = function(f) {
+  var executing = false, cancel;
+  return function() {
+    if (executing) cancel();
+    waitfor {
+      executing = true;
+      return f.apply(this, arguments);
+    }
+    or {
+      waitfor() {
+        cancel = resume;
+      }
+    }
+    finally {
+      executing = false;
+    }
+  }
+}
+
+
 
 /**
   @class   Queue
@@ -296,12 +339,13 @@ exports.makeRateLimitedFunction = function(f, max_cps) {
   @summary Constructor for a bounded FIFO queue datastructure.
   @param   {Integer} [capacity] Maximum number of items to which the queue will
            be allowed to grow.
+  @param   {Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [Semaphore](#cutil/Semaphore))
   @return  {Queue}
 */
-function Queue(capacity) {
+function Queue(capacity, sync) {
   this.items = [];
-  this.S_nonfull  = new Semaphore(capacity);
-  this.S_nonempty = new Semaphore(0);
+  this.S_nonfull  = new Semaphore(capacity, sync);
+  this.S_nonempty = new Semaphore(0, sync);
 }
 exports.Queue = Queue;
 Queue.prototype = {

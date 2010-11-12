@@ -2,7 +2,7 @@
  * Oni Apollo 'jquery-binding' module
  * Stratified bindings for jquery 
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *
@@ -159,6 +159,9 @@ exports.load = function (opts) {
     var version = opts.version || "1.4.2";
     var url = opts.url || "http://ajax.googleapis.com/ajax/libs/jquery/"+version+"/jquery.min.js";
     require("http").script(url);
+    // wait for jquery to be initialized (crucial on IE):
+    while (!window.$)
+      hold(10);
   }
 };
 

@@ -2,7 +2,7 @@
  * Oni Apollo 'http' module
  * Stratified XHR and JSONP request methods
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *
@@ -36,11 +36,6 @@
              'ajax-style' interactions with the home domain of an app, these
              functions also form the basis of cross-domain access to many
              public web APIs.
-
-  @desc
-    Note: functions that are marked not to work cross-domain might 
-    work it if the browser has 
-    implemented [access-control](http://www.w3.org/TR/access-control/).
 */
 
 var common = require("common");
@@ -51,16 +46,30 @@ var common = require("common");
 /**
   @function  constructQueryString
   @summary Build a URL query string.
-  @param {QUERYHASHARR} [hashes] Object(s) with key/value pairs. See below for full syntax.
+  @param {QUERYHASHARR} [hashes] Object(s) with key/value pairs.
+         See below for full syntax.
   @return {String}
   @desc
+    ###Notes:
+
     *hashes* can be a simple object with key/values or an arbitrarily nested
     array of (arrays of) key/value objects.
 
-    Furthermore, if the value in a key/value pair is an array [a,b,c], then
+    Instead of passing an array, the individual array components can also
+    be passed as individual parameters to [http.constructURL](#http/constructURL).
+    E.g. the following two calls are equivalent:
+
+         http.constructQueryString({a:1}, {b:1});
+         // is equivalent to
+         http.constructQueryString([{a:1}, {b:1}]);
+
+
+    If the value in a key/value pair is an array [a,b,c], then
     a key=value query will be encoded for each of the array elements.
 
     ###Examples:
+
+        http.constructQueryString({a:1}, {b:1}); // -> "a=1&b=1"
 
         http.constructQueryString({a:1,b:"foo&bar"}); // -> "a=1&b=foo%26bar"
 
@@ -69,68 +78,56 @@ var common = require("common");
 
     Full syntax for *hashes*:
 
-        QUERYHASHARR :  QUERYHASH       |
-                        [ QUERYHASHES ]
+        QUERYHASHARR :  arbitraily nested array of [ QUERYHASH* ]
 
-        QUERYHASHES  :  QUERYHASH                |
-                        QUERYHASHES, QUERYHASHES |
-                        [ QUERYHASHES ]
+        QUERYHASH : { QUERY* } | undefined
 
-        QUERYHASH    : { }        |
-                       null       |
-                       undefined  |
-                       { QUERIES }
-
-        QUERIES      : QUERY          |
-                       QUERIES, QUERY
-
-        QUERY        : SIMPLE_QUERY |
-                       MULTI_QUERY
+        QUERY      : SIMPLE_QUERY | MULTI_QUERY
 
         SIMPLE_QUERY : "field" : "value"
 
         MULTI_QUERY  : "field" : [ "value1", ... ]
 
 */
-
-function constructQueryString(hashes) {
-  var parts = [];
-  if (common.isArray(hashes)) {
-    for (var i=0; i<hashes.length; ++i) {
-      var part = constructQueryString(hashes[i]);
-      if (part.length)
-        parts.push(part);
-    }
-  }
-  else {
-    for (var q in hashes) {
-      var l = encodeURIComponent(q) + "=";
-      var val = hashes[q];
-      if (!common.isArray(val))
-        parts.push(l + encodeURIComponent(val));
-      else {
-        for (var i=0; i<val.length; ++i)
-          parts.push(l + encodeURIComponent(val[i]));
-      }
-    }
-  }
-  return parts.join("&");
-}
-exports.constructQueryString = constructQueryString;
+// see apollo/src/apollo-js-bootstrap.js
+exports.constructQueryString = __oni_rt.constructQueryString;
 
 /**
   @function constructURL
   @summary Build a URL string.
-  @param {URLSPEC} [urlspec] String and optional query hashes. See below for full syntax.
+  @param {URLSPEC} [urlspec] Base string and optional path strings
+                   and query hashes. See below for full syntax.
   @return {String}
   @desc
+    ###Notes:
+
     *urlspec* can be a simple string or an (arbitrarily nested) array composed
-    of a base string and a number of QUERYHASHES (as accepted by
+    of one base strings, and optionally a number of path strings and/or a
+    number of QUERYHASH objects (as accepted by
     [http.constructQueryString](#http/constructQueryString)).
+
+    Instead of passing an array, the individual array components can also
+    be passed as individual parameters to [http.constructURL](#http/constructURL).
+    E.g. the following two calls are equivalent:
+
+         http.constructURL("foo", "bar", "baz");
+         // is equivalent to
+         http.constructURL(["foo", "bar", "baz"]);
+
+    Base & path strings will be concatenated in such a way that there is
+    exactly one '/' character between each component.
+
+    The base string may contain a '?' character. In this case no path strings
+    should be given, but query hashes can be specified and will be appended
+    correctly (using '&' instead of '?').
 
     ###Examples:
 
         http.constructURL("foo.txt"); // -> "foo.txt"
+
+        http.constructURL("foo", "bar", "foo.txt"); // -> "foo/bar/foo.txt"
+
+        http.constructURL("foo/", "/bar/"); // -> "foo/bar/"
 
         http.constructURL("foo?a=b"); // -> "foo?a=b"
 
@@ -148,76 +145,100 @@ exports.constructQueryString = constructQueryString;
 
     Full syntax for *urlspec*:
 
-        URLSPEC   :  BASE                     |
-                     BASE, QUERYHASHES        |
-                     [ URLSPEC ]
+        URLSPEC   : arbitrarily nested array
+                    [ BASESTR , PATHSTR* , QUERYHASH* ]
 
-        QUERYHASHES   :  QUERYHASH                |
-                         QUERYHASHES, QUERYHASHES |
-                         [ QUERYHASHES ]
+        BASESTR   : string with url base (e.g. "http://onilabs.com/foo")
 
-        QUERYHASH  : { }        |
-                     null       |
-                     undefined  |
-                     { QUERIES }
+        PATHSTR   : string with directory component
 
-        QUERIES    : QUERY          |
-                     QUERIES, QUERY
+        QUERYHASH : { QUERY* } | undefined
 
-        QUERY      : SIMPLE_QUERY |
-                     MULTI_QUERY
+        QUERY      : SIMPLE_QUERY | MULTI_QUERY
 
         SIMPLE_QUERY : "field" : "value"
 
         MULTI_QUERY  : "field" : [ "value1", ... ]
-
-        BASE       : url string (may contain a query string already)
-  
 */
-function constructURL(url_spec /* ,query_hashes, ... */) {
-  var base;
-  var qparts = [];
-  if (!common.isArray(url_spec))
-    base = url_spec;
-  else {
-    if (common.isArray(url_spec[0]))
-      base = constructURL(url_spec[0]);
-    else
-      base = url_spec[0];
-    for (var hs = 1; hs<url_spec.length; ++hs) {
-      var part = constructQueryString(url_spec[hs]);
-      if (part.length)
-        qparts.push(part);
-    }
-  }
-  for (var q = 1; q<arguments.length; ++q) {
-    var part = constructQueryString(arguments[q]);
-    if (part.length)
-      qparts.push(part);
-  }
-  var query = qparts.join("&");
-  if (query.length) {
-    if (base.indexOf("?") != -1)
-      base += "&";
-    else
-      base += "?";
-    base += query;
-  }
-  return base;
-}
-exports.constructURL = constructURL;
+// see apollo/src/apollo-js-bootstrap.js
+exports.constructURL = __oni_rt.constructURL;
+
+/**
+  @function parseURL
+  @summary Parses the given URL into components.
+  @param {String} [url] URL to parse.
+  @return {Object} Parsed URL as described at <http://stevenlevithan.com/demo/parseuri/js/> (using 'strict' mode).
+  @desc
+     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
+*/
+// see apollo/src/apollo-js-bootstrap.js
+exports.parseURL = __oni_rt.parseURL;
+
+/**
+  @function isSameOrigin
+  @summary Checks if the given URLs have matching authority parts.
+  @param {String} [url1] First URL.
+  @param {String} [url2] Second URL.
+  @desc
+    If either URL is missing an authority part (i.e. it is a relative URL),
+    the function returns true as well.
+*/
+// see apollo/src/apollo-js-bootstrap.js
+exports.isSameOrigin = __oni_rt.isSameOrigin;
+
+/**
+  @function canonicalizeURL
+  @summary Convert relative to absolute URLs and collapse '.' and '..' path
+           components.
+  @param {String} [url] URL to canonicalize.
+  @param {String} [base] URL which will be taken as a base if *url* is relative.
+  @return {String} Canonicalized URL.
+  @desc
+    ###Examples:
+
+        http.canonicalizeURL("/foo/bar.txt", "http://a.b/c/d/baz.txt");
+        // --> "http://a.b/foo/bar.txt"
+
+        http.canonicalizeURL("foo/bar.txt", "http://a.b/c/d/baz.txt");
+        // --> "http://a.b/c/d/foo/bar.txt"
+
+        http.canonicalizeURL("././foo/./bar.txt", "http://a.b/c/d/");
+        // --> "http://a.b/c/d/foo/bar.txt"
+
+        http.canonicalizeURL(".././foo/../bar.txt", "http://a.b/c/d/");
+        // --> "http://a.b/c/bar.txt"
+
+*/
+// see apollo/src/apollo-js-bootstrap.js
+exports.canonicalizeURL = __oni_rt.canonicalizeURL;
 
 //----------------------------------------------------------------------
 // XHR
 
-function createXMLHttpRequest() {
-  try {
-    return new XMLHttpRequest();
-  } catch(e) {}
-  try {
-    return new ActiveXObject("Msxml2.XMLHTTP");
-  } catch(e) {}
-  throw "XMLHttpRequest not supported by your browser";
+/**
+  @function isCORSCapable
+  @summary Checks if this browser can perform cross-origin requests to CORS-capable
+           servers (see <http://www.w3.org/TR/cors/>)
+  @return {Boolean}
+*/
+exports.isCORSCapable = function() {
+  return __oni_rt.getXHRCaps().CORS;
+};
+
+
+// create request object appropriate for browser & origin of request/document:
+function openRequest(method, url, username, password) {
+  var caps = __oni_rt.getXHRCaps();
+  if (!caps.XDR || exports.isSameOrigin(url, document.location)) {
+    var req = caps.XHR_ctor();
+    req.open(method, url, true, username, password);
+  }
+  else {
+    // A cross-site request on IE, where we have to use XDR instead of XHR:
+    req = new XDomainRequest();
+    req.open(method, url);
+  }
+  return req;
 }
 
 /**
@@ -232,15 +253,27 @@ function createXMLHttpRequest() {
   @setting {Object} [headers] Hash of additional request headers.
   @setting {String} [username] Username for authentication.
   @setting {String} [password] Password for authentication.
+  @setting {String} [mime] Override mime type.
   @setting {Boolean} [throwing=true] Throw exception on error.
-  @setting {XMLHttpRequest} [req] XMLHttpRequest object to (re-)use for this request.
   @desc
+    ### Cross-site requests:
+
+    The success of cross-site requests depends on whether the
+    server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
+    the browser is capable of issuing cross-site requests. This can be checked with
+    [http.isCORSCapable](#http/isCORSCapable).
+
+    The standard XMLHttpRequest can handle cross-site requests on compatible
+    browsers (any recent Chrome, Safari, Firefox). On IE8+, [http.xhr](#http/xhr) will
+    automatically fall back to using MS's XDomainRequest object for
+    cross-site requests. 
+
+    ### Request failure:
+
     If the request is unsuccessful, and the call is configured to throw
     exceptions (setting {"throwing":true}; the default), an exception will
     be thrown which has a 'status' member set to the request status, and a
     'req' member set to the XMLHttpRequest object.
-
-    *This request does **not** work cross-domain.*
 
     ###Example:
 
@@ -252,50 +285,8 @@ function createXMLHttpRequest() {
         }
 
 */
-function xhr(url, settings) {
-  var opts = common.mergeSettings({
-    method   : "GET",
-//    query    : undefined,
-    body     : null,
-//    headers  : undefined,
-//    user     : undefined,
-//    password : undefined,
-    throwing   : true,
-//    req      : null
-  }, settings);
-  url = constructURL(url, opts.query);
-  var req = opts.req;
-  if (!req)
-    req = createXMLHttpRequest();
-  req.open(opts.method, url, true, opts.username, opts.password);
-  waitfor() {
-    req.onreadystatechange = function(evt) {
-      if (req.readyState != 4)
-        return;
-      else
-        resume();
-    };
-    if (opts.headers)
-      for (var h in opts.headers)
-        req.setRequestHeader(h, opts.headers[h]);
-    req.send(opts.body);
-  }
-  retract {
-    req.abort();
-  }
-
-  if (opts.throwing) {
-    // file urls will return a success code '0', not '2'!
-    if (!(req.status.toString().charAt(0) in {'0':1,'2':1})) {
-      var err = new Error(req.statusText+" ("+req.status+")");
-      err.status = req.status;
-      err.req = req;
-      throw err;
-    }
-  }
-  return req;
-}
-exports.xhr = xhr;
+// see apollo/src/apollo-sjs-bootstrap.sjs
+exports.xhr = __oni_rt.xhr;
 
 
 /**
@@ -309,8 +300,6 @@ exports.xhr = xhr;
     An alias for
 
         http.xhr(url,settings).responseText
-
-    *This request does **not** work cross-domain.*
 
     ### Example:
     
@@ -330,10 +319,9 @@ exports.xhr = xhr;
       throw "Server too slow...";
     }`
 */
-function get(/*url,settings*/) {
-  return xhr.apply(this, arguments).responseText;
+exports.get = function(/*url,settings*/) {
+  return __oni_rt.xhr.apply(this, arguments).responseText;
 };
-exports.get = get;
 
 /** 
   @function  post
@@ -344,8 +332,6 @@ exports.get = get;
   @return    {String} 
   @shortcut  xhr
   @desc
-    *This request does **not** work cross-domain.*
-
     ### Example:    
     `var http = require("http");
     var response = http.post("/service", "some raw data");
@@ -364,7 +350,7 @@ exports.get = get;
     console.log(require("json").parse(rv).id);`
 */
 exports.post = function(url, body, settings) {
-  return xhr(url, [{method:"POST", body:body}, settings]).responseText;
+  return __oni_rt.xhr(url, [{method:"POST", body:body}, settings]).responseText;
 };
 
 
@@ -376,8 +362,6 @@ exports.post = function(url, body, settings) {
   @shortcut  get
   @return    {Object}
   @desc
-    *This request does **not** work cross-domain.*
-
     ### Example:
     `var http = require("http");
     var animals = http.json("/animals.php?type=cats").animals;
@@ -386,7 +370,7 @@ exports.post = function(url, body, settings) {
     }`
 */
 exports.json = function(/*url, settings*/) {
-  return require("json").parse(get.apply(this, arguments));
+  return __oni_rt.parseJSON(exports.get.apply(this, arguments));
 };
 
 /**
@@ -401,8 +385,6 @@ exports.json = function(/*url, settings*/) {
 
         http.xhr(url,settings).responseXML
 
-    *This request does **not** work cross-domain.*
-
     ### Example:
 
     `var http = require("http");
@@ -410,7 +392,8 @@ exports.json = function(/*url, settings*/) {
     console.log("Items in document: ", root.children.length)`
 */
 exports.xml = function(/* url, settings */) {
-  return xhr.apply(this, arguments).responseXML;
+  // XXX need to emulate responseXML for XDR
+  return __oni_rt.xhr.apply(this, arguments).responseXML;
 };
 
 //----------------------------------------------------------------------
@@ -427,8 +410,6 @@ exports.xml = function(/* url, settings */) {
   @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
   @setting {String} [forcecb] Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*.
   @desc
-    *This request **works** cross-domain.*
-
     ### Example:
 
     `var http = require("http");
@@ -447,7 +428,7 @@ exports.jsonp = function(url, settings) {
 //    forcecb : undefined,
   }, settings);
 
-  url = constructURL(url, opts.query);
+  url = __oni_rt.constructURL(url, opts.query);
   if (opts.iframe || opts.forcecb)
     return jsonp_iframe(url, opts);
   else
@@ -458,7 +439,7 @@ function jsonp_iframe(url, opts) {
   var cb = opts.forcecb || "R";
   var cb_query = {};
   cb_query[opts.cbfield] = cb;
-  url = constructURL(url, cb_query);
+  url = __oni_rt.constructURL(url, cb_query);
   var iframe = document.createElement("iframe");
   document.getElementsByTagName("head")[0].appendChild(iframe);
   var doc = iframe.contentWindow.document
@@ -488,7 +469,7 @@ function jsonp_indoc(url, opts) {
   var cb = "cb" + (jsonp_req_count++);
   var cb_query = {};
   cb_query[opts.cbfield] = jsonp_cb_obj + "." + cb;
-  url = constructURL(url, cb_query);
+  url = __oni_rt.constructURL(url, cb_query);
   var elem = document.createElement("script");
   elem.setAttribute("src", url);
   elem.setAttribute("async", "async"); //XXX ?
@@ -513,7 +494,6 @@ function jsonp_indoc(url, opts) {
   at summary Load a CSS file into the current document.
   at param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
   at desc
-    *This request **works** cross-domain.*
 */
 // XXX should be more robust: http://yui.yahooapis.com/2.8.1/build/get/get.js
 /*
@@ -535,11 +515,12 @@ var _loadedScripts = {};
   @summary   Load and execute a plain JavaScript file.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
   @desc
-    *This request **works** cross-domain.*
-
     It is safe to call this function simultaneously from several strata,
     even for the same URL: The given URL will only be loaded **once**, and
     all callers will block until it is loaded.
+    
+    If a browser supports the error event for script tags, 
+    this function will throw if it fails to load the URL.
 
     ### Example:
 
@@ -548,13 +529,16 @@ var _loadedScripts = {};
     jQuery("body").css({background:"red"});`
 */
 exports.script = function(/*url, queries*/) {
-  var url = constructURL(arguments);
+  var url = __oni_rt.constructURL(arguments);
   if (_loadedScripts[url])
   return;
   var hook = _pendingScripts[url];
   if (hook != null) {
-    waitfor() {
+    waitfor(var error) {
       hook.push(resume);
+    }
+    if (error) {
+      throw error;
     }
     //    retract {
     // XXX could remove resume function from hook here
@@ -565,9 +549,13 @@ exports.script = function(/*url, queries*/) {
     waitfor() {
       var elem = document.createElement("script");
       var hook = [];
+      var error;
       _pendingScripts[url] = hook;
       
       function listener(e) {
+        if (e.type == "error") {
+          error = "Could not load script: '" + url + "'."
+        }
         resume();
       }
       
@@ -579,8 +567,10 @@ exports.script = function(/*url, queries*/) {
         }
       }
       
-      if (elem.addEventListener)
+      if (elem.addEventListener) {
         elem.addEventListener("load", listener, false);
+        elem.addEventListener("error", listener, false);
+      }
       else {
         // IE
         elem.attachEvent("onreadystatechange", listenerIE);
@@ -594,15 +584,22 @@ exports.script = function(/*url, queries*/) {
       _pendingScripts[url] = null;
     }
     finally {
-      if (elem.removeEventListener)
-      elem.removeEventListener("load", listener, false);
-      else
-      elem.detachEvent("onreadystatechange", listenerIE);
+      if (elem.removeEventListener) {
+        elem.removeEventListener("load", listener, false);
+        elem.removeEventListener("error", listener, false);
+      }
+      else {
+        elem.detachEvent("onreadystatechange", listenerIE);
+      }
     }
 
     _pendingScripts[url] = null;
     _loadedScripts[url] = true;
-    for (var i = 0; i < hook.length; ++i)
-    hook[i]();
+    for (var i = 0; i < hook.length; ++i) {
+      hook[i](error);
+    }
+    if (error) {
+      throw error;
+    }
   }
 };

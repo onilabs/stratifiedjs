@@ -2,7 +2,7 @@
  * Oni Apollo 'lastfm' module
  * Bindings to the lastfm API 
  *
- * Part of the Oni Apollo client-side SJS library
+ * Part of the Oni Apollo Standard Module Library
  * 0.9.2+
  * http://onilabs.com/apollo
  *
