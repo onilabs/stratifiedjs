@@ -430,36 +430,10 @@ exports.jsonp = function(url, settings) {
 
   url = __oni_rt.constructURL(url, opts.query);
   if (opts.iframe || opts.forcecb)
-    return jsonp_iframe(url, opts);
+    return __oni_rt.jsonp_iframe(url, opts);
   else
     return jsonp_indoc(url, opts); 
 };
-
-function jsonp_iframe(url, opts) {
-  var cb = opts.forcecb || "R";
-  var cb_query = {};
-  cb_query[opts.cbfield] = cb;
-  url = __oni_rt.constructURL(url, cb_query);
-  var iframe = document.createElement("iframe");
-  document.getElementsByTagName("head")[0].appendChild(iframe);
-  var doc = iframe.contentWindow.document
-  waitfor (var rv) {
-    doc.open();
-    iframe.contentWindow[cb] = resume;
-    // This hold(0) is required in case the script is cached and loads
-    // synchronously. Alternatively we could spawn() this code:
-    hold(0);
-    doc.write("\x3Cscript type='text/javascript' src=\""+url+"\">\x3C/script>");
-    doc.close();
-  }
-  finally {
-    iframe.parentNode.removeChild(iframe);
-  }
-  // This hold(0) is required to prevent a security (cross-domain)
-  // error under FF, if the code continues with loading another iframe:
-  hold(0);
-  return rv; 
-}
 
 var jsonp_req_count = 0;
 var jsonp_cb_obj = "_oni_jsonpcb";

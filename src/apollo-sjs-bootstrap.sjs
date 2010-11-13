@@ -102,6 +102,33 @@ __oni_rt.xhr = function xhr(url, settings) {
   return req;
 };
 
+// used by apollo/modules/http.sjs:jsonp & require mechanism, below:
+__oni_rt.jsonp_iframe = function(url, opts) {
+  var cb = opts.forcecb || "R";
+  var cb_query = {};
+  if (opts.cbfield)
+    cb_query[opts.cbfield] = cb;
+  url = __oni_rt.constructURL(url, cb_query);
+  var iframe = document.createElement("iframe");
+  document.getElementsByTagName("head")[0].appendChild(iframe);
+  var doc = iframe.contentWindow.document;
+  waitfor (var rv) {
+    doc.open();
+    iframe.contentWindow[cb] = resume;
+    // This hold(0) is required in case the script is cached and loads
+    // synchronously. Alternatively we could spawn() this code:
+    hold(0);
+    doc.write("\x3Cscript type='text/javascript' src=\""+url+"\">\x3C/script>");
+    doc.close();
+  }
+  finally {
+    iframe.parentNode.removeChild(iframe);
+  }
+  // This hold(0) is required to prevent a security (cross-domain)
+  // error under FF, if the code continues with loading another iframe:
+  hold(0);
+  return rv; 
+};
 
 //----------------------------------------------------------------------
 // $eval
@@ -212,7 +239,17 @@ __oni_rt.requireInner = function(modulespec, require_obj, default_hub, loader) {
           // a remote module
           loaded_from = __oni_rt.constructURL(window.require.hubs[hub] || hub,
                                               module+".sjs");
-          src = __oni_rt.xhr(loaded_from, {mime:"text/plain"}).responseText;
+          if (__oni_rt.getXHRCaps().CORS ||
+              __oni_rt.isSameOrigin(loaded_from, document.location))
+            src = __oni_rt.xhr(loaded_from, {mime:"text/plain"}).responseText;
+          else {
+            // browser is not CORS capable. Attempt modp:
+            loaded_from += "!modp";
+            src = __oni_rt.jsonp_iframe(loaded_from,
+                                        {forcecb:"module",
+                                         cbfield:null});
+          }
+              
         }
         var f = $eval("(function(exports, require){"+src+"})",
                       "module '"+canonical_name+"'");
