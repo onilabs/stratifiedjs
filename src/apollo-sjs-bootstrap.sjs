@@ -181,64 +181,82 @@ __oni_rt.pendingLoads = {};
 // require.alias, require.path are different for each
 // module. makeRequire is a helper to construct a suitable require
 // function that has access to these variables:
-__oni_rt.makeRequire = function(hub, module) {
+__oni_rt.makeRequire = function(loader) {
   // make properties of this require function accessible in requireInner:
-  var rf = function(modulespec) {
-    return __oni_rt.requireInner(modulespec, rf, hub, module || "[toplevel]");
+  var rf = function(module) {
+    return __oni_rt.requireInner(module, rf, loader);
   };
   rf.path = ".";
   rf.alias = {};
   return rf;
 }
 
-// helper returning [hub,module] for a given modulespec, aliashash
-__oni_rt.resolveHubModule = function(modulespec, aliases) {
-  var MS = /^(?:(?:([^:]+)|<(.+)>):)?([^:]+)$/;
-  var matches = MS.exec(modulespec);
-  if (!matches) throw "Invalid modules name '"+modulespec+"'";
-  var rv = [matches[1] || matches[2], matches[3]];
-  var alias;
-  var level = 10;
-  while (rv[0] && (alias = aliases[rv[0]])) {
-    if (--level == 0) throw "Too much aliasing in modulename '"+modulespec+"'";
-    if ((matches = MS.exec(alias)) && matches[1]) {
-      // alias is of the form 'hub:moduleprefix':
-      rv = [matches[1] || matches[2], __oni_rt.constructURL(matches[3], rv[1])];
-    }
-    else {
-      // alias is of the form 'hub':
-      rv[0] = alias;
+// helper to resolve aliases
+__oni_rt.resolveAliases = function(module, aliases) {
+  var ALIAS_REST = /^([^:]+):(.*)$/;
+  var alias_rest, alias;
+  var rv = module;
+  var level = 10; // we allow 10 levels of aliasing
+  while ((alias_rest=ALIAS_REST.exec(rv)) &&
+         (alias=aliases[alias_rest[1]])) {
+    if (--level == 0)
+      throw "Too much aliasing in modulename '"+module+"'";
+    rv = alias + alias_rest[2];
+  }
+  return rv;
+};
+
+// helper to resolve hubs
+__oni_rt.resolveHubs = function(module, hubs) {
+  var rv = module;
+  var level = 10; // we allow 10 levels of indirection
+  for (var i=0,hub; hub=hubs[i++]; ) {
+    if (rv.indexOf(hub[0]) == 0) {
+      // we've got a match
+      rv = hub[1] + rv.substring(hub[0].length);
+      i=0; // start resolution from beginning again
+      if (--level == 0)
+        throw "Too much indirection in hub resolution for module '"+module+"'";
     }
   }
-  rv[1] = __oni_rt.canonicalizeURL(rv[1], null);
   return rv;
 };
 
 // requireInner: workhorse for require
-__oni_rt.requireInner = function(modulespec, require_obj, default_hub, loader) {
-  var hub_module = __oni_rt.resolveHubModule(modulespec, require_obj.alias);
-  var hub = hub_module[0] || default_hub || window.require.path;
-  var module = hub_module[1];
-  var canonical_name = "<" + hub + ">" + ":" + module;
+__oni_rt.requireInner = function(module, require_obj, loader) {
+  var path;
+  // apply path if module is relative
+  if (module.indexOf(":") == -1) {
+    path = __oni_rt.constructURL(require_obj.path, module);
+    path = __oni_rt.canonicalizeURL(path, loader ? loader : document.location);
+  }
+  else
+    path = module;
+
+  loader = loader || "[toplevel]";
+  
+  // apply local aliases
+  path = __oni_rt.resolveAliases(path, require_obj.alias);
+  // apply global aliases
+  path = __oni_rt.resolveHubs(path, window.require.hubs);
   
   var descriptor, exception;
-  if (!(descriptor = window.require.modules[canonical_name])) {
+  if (!(descriptor = window.require.modules[path])) {
     // we don't have this module cached -> load it
-    var pendingHook = __oni_rt.pendingLoads[canonical_name];
+    var pendingHook = __oni_rt.pendingLoads[path];
     if (!pendingHook) {
-      pendingHook = __oni_rt.pendingLoads[canonical_name] = [];
+      pendingHook = __oni_rt.pendingLoads[path] = [];
       var src, loaded_from;
       try {
-        if (canonical_name in __oni_rt.modsrc) {
+        if (path in __oni_rt.modsrc) {
           // a built-in module
-          loaded_from = "built-in";
-          src = __oni_rt.modsrc[canonical_name];
-          delete __oni_rt.modsrc[canonical_name];
+          loaded_from = "[builtin]";
+          src = __oni_rt.modsrc[path];
+          delete __oni_rt.modsrc[path];
         }
         else {
           // a remote module
-          loaded_from = __oni_rt.constructURL(window.require.hubs[hub] || hub,
-                                              module+".sjs");
+          loaded_from = path + ".sjs";
           if (__oni_rt.getXHRCaps().CORS ||
               __oni_rt.isSameOrigin(loaded_from, document.location))
             src = __oni_rt.xhr(loaded_from, {mime:"text/plain"}).responseText;
@@ -252,14 +270,14 @@ __oni_rt.requireInner = function(modulespec, require_obj, default_hub, loader) {
               
         }
         var f = $eval("(function(exports, require){"+src+"})",
-                      "module '"+canonical_name+"'");
+                      "module '"+path+"'");
         var exports = {};
-        f(exports, __oni_rt.makeRequire(hub, canonical_name));
+        f(exports, __oni_rt.makeRequire(path));
         // It is important that we only set window.require.modules[module]
         // AFTER f finishes, because f might block, and we might get
         // reentrant calls to require() asking for the module that is
         // still being constructed.
-        descriptor = window.require.modules[canonical_name] =
+        descriptor = window.require.modules[path] =
           { exports: exports,
             loaded_from: loaded_from,
             loaded_by:   loader,
@@ -268,9 +286,9 @@ __oni_rt.requireInner = function(modulespec, require_obj, default_hub, loader) {
       }
       catch (e) {
         exception = e;
-        delete window.require.modules[canonical_name];
+        delete window.require.modules[path];
       }
-      delete __oni_rt.pendingLoads[canonical_name];
+      delete __oni_rt.pendingLoads[path];
       
       for (var i=0; i<pendingHook.length; ++i)
         pendingHook[i](descriptor, exception);
@@ -284,7 +302,7 @@ __oni_rt.requireInner = function(modulespec, require_obj, default_hub, loader) {
     }
   }
   if (exception) {
-    var mes = "Cannot load module '"+canonical_name+"'. "+
+    var mes = "Cannot load module '"+path+"'. "+
       "(Underlying exception: "+exception+")";
     throw new Error(mes);
   }
@@ -298,10 +316,9 @@ __oni_rt.requireInner = function(modulespec, require_obj, default_hub, loader) {
 };
 
 // global require function:
-var require = __oni_rt.makeRequire(require);
+var require = __oni_rt.makeRequire();
 
-require.hubs = {};
-require.hubs.apollo = "http://code.onilabs.com/apollo/0.9.2+/modules/"; 
+require.hubs = [ ["apollo:", "http://code.onilabs.com/apollo/0.9.2+/modules/" ] ];
 require.modules = {};
 
 // require.APOLLO_LOAD_PATH: path where this oni-apollo.js lib was
