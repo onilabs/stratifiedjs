@@ -186,7 +186,7 @@ __oni_rt.makeRequire = function(loader) {
   var rf = function(module) {
     return __oni_rt.requireInner(module, rf, loader);
   };
-  rf.path = ".";
+  rf.path = ""; // default path is empty
   rf.alias = {};
   return rf;
 }
