@@ -1,4 +1,4 @@
-apicb({
+modules({
   "base64": {
     "type": "module",
     "children": {
