@@ -227,7 +227,10 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
   var path;
   // apply path if module is relative
   if (module.indexOf(":") == -1) {
-    path = __oni_rt.constructURL(require_obj.path, module);
+    if (require_obj.path && require_obj.path.length)
+      path = __oni_rt.constructURL(require_obj.path, module);
+    else
+      path = module;
     path = __oni_rt.canonicalizeURL(path, loader ? loader : document.location);
   }
   else
