@@ -3,7 +3,7 @@
  * Stratified wrapper for the YQL web service 
  *
  * Part of the Oni Apollo Standard Module Library
- * 0.9.2+
+ * 0.10.0
  * http://onilabs.com/apollo
  *
  *

@@ -2,7 +2,7 @@
  * Oni Apollo JS bootstrap code
  *
  * Part of the Oni Apollo Cross-Browser StratifiedJS Runtime
- * 0.9.2+
+ * 0.10.0
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com

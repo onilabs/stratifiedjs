@@ -3,7 +3,7 @@
  * Stratified bindings for jquery 
  *
  * Part of the Oni Apollo Standard Module Library
- * 0.9.2+
+ * 0.10.0
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
