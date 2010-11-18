@@ -3,7 +3,7 @@
  * Bindings to various Google webservices and APIs
  *
  * Part of the Oni Apollo Standard Module Library
- * 0.10.0
+ * 0.10.0+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
