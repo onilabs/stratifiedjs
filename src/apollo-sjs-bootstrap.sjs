@@ -259,7 +259,16 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
         }
         else {
           // a remote module
-          loaded_from = path + ".sjs";
+          var matches = /.*\.(js|sjs)$/.exec(path);
+          var jsmodule = false;
+          if (matches) {
+            // the extension was set explicitly
+            loaded_from = path;
+            if (matches[1] == "js")
+              jsmodule = true;
+          }
+          else
+            loaded_from = path + ".sjs";
           if (__oni_rt.getXHRCaps().CORS ||
               __oni_rt.isSameOrigin(loaded_from, document.location))
             src = __oni_rt.xhr(loaded_from, {mime:"text/plain"}).responseText;
@@ -272,10 +281,17 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
           }
               
         }
-        var f = $eval("(function(exports, require){"+src+"})",
-                      "module '"+path+"'");
+        var f;
         var exports = {};
-        f(exports, __oni_rt.makeRequire(path));
+        if (jsmodule) {
+          f = window.eval("(function(exports){"+src+"})");
+          f(exports);
+        }
+        else {
+          f = $eval("(function(exports, require){"+src+"})",
+                    "module '"+path+"'");
+          f(exports, __oni_rt.makeRequire(path));
+        }
         // It is important that we only set window.require.modules[module]
         // AFTER f finishes, because f might block, and we might get
         // reentrant calls to require() asking for the module that is
