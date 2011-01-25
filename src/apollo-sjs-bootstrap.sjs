@@ -348,9 +348,7 @@ require.APOLLO_LOAD_PATH = "";
 // script loading:
 
 __oni_rt.runScripts = function() {
-  var scripts = document.getElementsByTagNameNS ?
-    document.getElementsByTagNameNS("*","script") :
-    document.getElementsByTagName("script");
+  var scripts = document.getElementsByTagName("script");
   
   // if there is something like a require('google').load() call in
   // one of the scripts, our 'scripts' variable will change. In some
@@ -373,9 +371,11 @@ __oni_rt.runScripts = function() {
   for (var i=0; i<ss.length; ++i) {
     var s = ss[i];
     var m = s.getAttribute("module");
+    // textContent is for XUL compatibility:
+    var content = s.textContent || s.innerHTML;
     if (m)
-      __oni_rt.modsrc[m] = s.innerHTML;
+      __oni_rt.modsrc[m] = content;
     else
-      $eval(s.innerHTML, "inline script "+(i+1));
+      $eval(content, "inline script "+(i+1));
   }
 };
