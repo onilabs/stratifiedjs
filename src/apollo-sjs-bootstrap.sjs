@@ -348,7 +348,10 @@ require.APOLLO_LOAD_PATH = "";
 // script loading:
 
 __oni_rt.runScripts = function() {
-  var scripts = document.getElementsByTagName("script");
+  var scripts = document.getElementsByTagNameNS ?
+    document.getElementsByTagNameNS("*","script") :
+    document.getElementsByTagName("script");
+  
   // if there is something like a require('google').load() call in
   // one of the scripts, our 'scripts' variable will change. In some
   // circumstances this can lead to scripts being executed twice. To
@@ -359,7 +362,7 @@ __oni_rt.runScripts = function() {
   var ss = [];
   for (var i=0; i<scripts.length; ++i) {
     var matches;
-    if (scripts[i].type == "text/sjs") {
+    if (scripts[i].getAttribute("type") == "text/sjs") {
       var s = scripts[i];
       ss.push(s);
     }
