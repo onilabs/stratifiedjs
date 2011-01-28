@@ -152,7 +152,7 @@ if (__oni_rt.UA == "msie" && window.execScript) {
         __oni_rt.IE_resume[rc]=resume;
         var js = __oni_rt.c1.compile(
           "try{"+code+
-            "\n}catchall(rv) { spawn((function(){hold(0);__oni_rt.IE_resume["+rc+"](rv[0],rv[1]);})()) }", {filename:filename});
+            "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume["+rc+"](rv[0],rv[1])) }", {filename:filename});
         window.execScript(js);
       }
       if (isexception) throw rv;
@@ -243,87 +243,78 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
   // apply global aliases
   path = __oni_rt.resolveHubs(path, window.require.hubs);
   
-  var descriptor, exception;
+  var descriptor;
   if (!(descriptor = window.require.modules[path])) {
     // we don't have this module cached -> load it
     var pendingHook = __oni_rt.pendingLoads[path];
     if (!pendingHook) {
-      pendingHook = __oni_rt.pendingLoads[path] = [];
-      var src, loaded_from;
-      try {
-        if (path in __oni_rt.modsrc) {
-          // a built-in module
-          loaded_from = "[builtin]";
-          src = __oni_rt.modsrc[path];
-          delete __oni_rt.modsrc[path];
-        }
-        else {
-          // a remote module
-          var matches = /.*\.(js|sjs)$/.exec(path);
-          var jsmodule = false;
-          if (matches) {
-            // the extension was set explicitly
-            loaded_from = path;
-            if (matches[1] == "js")
-              jsmodule = true;
+      pendingHook = __oni_rt.pendingLoads[path] = spawn (function() {
+        var src, loaded_from;
+        try {
+          if (path in __oni_rt.modsrc) {
+            // a built-in module
+            loaded_from = "[builtin]";
+            src = __oni_rt.modsrc[path];
+            delete __oni_rt.modsrc[path];
           }
-          else
-            loaded_from = path + ".sjs";
-          if (__oni_rt.getXHRCaps().CORS ||
-              __oni_rt.isSameOrigin(loaded_from, document.location))
-            src = __oni_rt.xhr(loaded_from, {mime:"text/plain"}).responseText;
           else {
-            // browser is not CORS capable. Attempt modp:
-            loaded_from += "!modp";
-            src = __oni_rt.jsonp_iframe(loaded_from,
-                                        {forcecb:"module",
-                                         cbfield:null});
-          }
+            // a remote module
+            var matches = /.*\.(js|sjs)$/.exec(path);
+            var jsmodule = false;
+            if (matches) {
+              // the extension was set explicitly
+              loaded_from = path;
+              if (matches[1] == "js")
+                jsmodule = true;
+            }
+            else
+              loaded_from = path + ".sjs";
+            if (__oni_rt.getXHRCaps().CORS ||
+                __oni_rt.isSameOrigin(loaded_from, document.location))
+              src = __oni_rt.xhr(loaded_from, {mime:"text/plain"}).responseText;
+            else {
+              // browser is not CORS capable. Attempt modp:
+              loaded_from += "!modp";
+              src = __oni_rt.jsonp_iframe(loaded_from,
+                                          {forcecb:"module",
+                                           cbfield:null});
+            }
               
+          }
+          var f;
+          var exports = {};
+          if (jsmodule) {
+            f = window.eval("(function(exports){"+src+"})");
+            f(exports);
+          }
+          else {
+            f = $eval("(function(exports, require){"+src+"})",
+                      "module '"+path+"'");
+            f(exports, __oni_rt.makeRequire(path));
+          }
+          // It is important that we only set window.require.modules[module]
+          // AFTER f finishes, because f might block, and we might get
+          // reentrant calls to require() asking for the module that is
+          // still being constructed.
+          descriptor = window.require.modules[path] =
+            { exports: exports,
+              loaded_from: loaded_from,
+              loaded_by:   loader,
+              required_by: {}
+            };
         }
-        var f;
-        var exports = {};
-        if (jsmodule) {
-          f = window.eval("(function(exports){"+src+"})");
-          f(exports);
+        catch (e) {
+          var mes = "Cannot load module '"+path+"'. "+
+            "(Underlying exception: "+e+")";
+          throw new Error(mes);
         }
-        else {
-          f = $eval("(function(exports, require){"+src+"})",
-                    "module '"+path+"'");
-          f(exports, __oni_rt.makeRequire(path));
+        finally {
+          delete __oni_rt.pendingLoads[path];
         }
-        // It is important that we only set window.require.modules[module]
-        // AFTER f finishes, because f might block, and we might get
-        // reentrant calls to require() asking for the module that is
-        // still being constructed.
-        descriptor = window.require.modules[path] =
-          { exports: exports,
-            loaded_from: loaded_from,
-            loaded_by:   loader,
-            required_by: {}
-          };
-      }
-      catch (e) {
-        exception = e;
-        delete window.require.modules[path];
-      }
-      delete __oni_rt.pendingLoads[path];
-      
-      for (var i=0; i<pendingHook.length; ++i)
-        pendingHook[i](descriptor, exception);
+        return descriptor;
+      })();
     }
-    else {
-      // there is already a pending load for this module; add ourselves
-      // to the hook:
-      waitfor(descriptor, exception) {
-        pendingHook.push(resume);
-      }
-    }
-  }
-  if (exception) {
-    var mes = "Cannot load module '"+path+"'. "+
-      "(Underlying exception: "+exception+")";
-    throw new Error(mes);
+    var descriptor = pendingHook.waitforValue();
   }
   
   if (!descriptor.required_by[loader])
