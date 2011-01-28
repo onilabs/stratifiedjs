@@ -253,17 +253,8 @@ Semaphore.prototype = {
       for an alternative to doing this manually.
    */
   release : function() {
-    if (this.sync) {
-      ++this.permits;
-      if (this.queue.length) this.queue.shift()();
-    }
-    else {
-      var me = this;
-      spawn(function() {
-        ++me.permits;
-        if (me.queue.length) me.queue.shift()();
-      });
-    }
+    spawn ((this.sync ? null : hold(0)), ++this.permits,
+           (this.queue.length ? this.queue.shift()() : null))
   },
 };
 

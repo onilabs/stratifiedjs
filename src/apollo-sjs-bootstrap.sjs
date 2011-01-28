@@ -152,7 +152,7 @@ if (__oni_rt.UA == "msie" && window.execScript) {
         __oni_rt.IE_resume[rc]=resume;
         var js = __oni_rt.c1.compile(
           "try{"+code+
-            "\n}catchall(rv) { spawn(function(){__oni_rt.IE_resume["+rc+"](rv[0],rv[1]);}) }", {filename:filename});
+            "\n}catchall(rv) { spawn((function(){hold(0);__oni_rt.IE_resume["+rc+"](rv[0],rv[1]);})()) }", {filename:filename});
         window.execScript(js);
       }
       if (isexception) throw rv;

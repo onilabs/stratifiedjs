@@ -155,7 +155,7 @@ function inspect_obj(obj, name) {
     </span>"+name+"<span style='"+systemStyle+"'>"+common.sanitize(objdesc)+"</span>\
   </span>
 </div>");
-  spawn(function() {
+  spawn((function() {
     var toggle = rv.firstChild.firstChild;
     while (true) {
       require('dom').waitforEvent(toggle, 'click');
@@ -177,7 +177,7 @@ function inspect_obj(obj, name) {
       rv.removeChild(children);
       children = null;
     }
-  });
+  })());
   return rv;
 }
 
@@ -261,7 +261,7 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
   this.clearbutton = div.getElementsByTagName("a")[1];
   this.resizehandle = div.getElementsByTagName("span")[0];
   this.cmdline = div.getElementsByTagName("input")[0];
-  this.cmdloop_stratum = spawn(common.bind(this._cmdloop, this));
+  this.cmdloop_stratum = spawn this._cmdloop();
   this.history = (window["sessionStorage"] && window["JSON"] && window.sessionStorage.history) ? 
                  JSON.parse(sessionStorage.history) : [""];
   this.history_p = this.history.length -1;
@@ -383,11 +383,8 @@ Console.prototype = {
   collapse : function () {
     this.root.style.display = "none";
     this.summonbutton.style.visibility = "visible";
-    var me = this;
-    spawn(function() {
-      require('dom').waitforEvent(me.summonbutton, "click");
-      me.expand();
-    });
+    spawn (require('dom').waitforEvent(this.summonbutton, "click"),
+           this.expand());
   },
   
   /**
@@ -411,7 +408,7 @@ Console.prototype = {
     e.innerHTML = "<div style='"+execStyle+";margin-bottom:2px;white-space:pre;'>"+common.sanitize(cl)+"</div>";
     this._append(e);
     var me = this;
-    spawn(function() {
+    spawn((function() {
       var result = document.createElement('div');
       waitfor {
         try {
@@ -436,7 +433,7 @@ Console.prototype = {
       e.appendChild(result);
       if (!me.flipmode) 
         me.output.scrollTop = me.output.scrollHeight;
-    });
+    })());
   },
 
   _log: function(args, color) {
