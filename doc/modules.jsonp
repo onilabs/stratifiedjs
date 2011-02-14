@@ -465,7 +465,7 @@ modules({
           },
           "__finally__": {
             "type": "function",
-            "summary": "Calls [Console.shutdown](#debug/Console/shutdown).\nAllows Console to be used a 'using' construct."
+            "summary": "Calls [Console.shutdown](#debug/Console/shutdown).\nAllows Console to be used in a 'using' construct."
           }
         },
         "summary": "Stratified JavaScript console.",

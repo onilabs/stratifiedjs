@@ -503,7 +503,7 @@ Console.prototype = {
   /**
     @function  Console.__finally__
     @summary   Calls [Console.shutdown](#debug/Console/shutdown).
-               Allows Console to be used a 'using' construct.
+               Allows Console to be used in a 'using' construct.
    */
   __finally__: function() { this.shutdown(); }
 };
