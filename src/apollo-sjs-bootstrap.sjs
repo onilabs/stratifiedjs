@@ -282,26 +282,27 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
               
           }
           var f;
-          var exports = {};
+          var descriptor = {
+            id: path,
+            exports: {},
+            loaded_from: loaded_from,
+            loaded_by: loader,
+            required_by: {}
+          };
           if (jsmodule) {
-            f = window.eval("(function(exports){"+src+"})");
-            f(exports);
+            f = window.eval("(function(module, exports){"+src+"})");
+            f(descriptor, descriptor.exports);
           }
           else {
-            f = $eval("(function(exports, require){"+src+"})",
+            f = $eval("(function(module, exports, require){"+src+"})",
                       "module '"+path+"'");
-            f(exports, __oni_rt.makeRequire(path));
+            f(descriptor, descriptor.exports, __oni_rt.makeRequire(path));
           }
           // It is important that we only set window.require.modules[module]
           // AFTER f finishes, because f might block, and we might get
           // reentrant calls to require() asking for the module that is
           // still being constructed.
-          descriptor = window.require.modules[path] =
-            { exports: exports,
-              loaded_from: loaded_from,
-              loaded_by:   loader,
-              required_by: {}
-            };
+          window.require.modules[path] = descriptor;
         }
         catch (e) {
           var mes = "Cannot load module '"+path+"'. "+
