@@ -290,7 +290,7 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
             required_by: {}
           };
           if (jsmodule) {
-            f = window.eval("(function(module, exports){"+src+"})");
+            f = new Function("module", "exports", src);
             f(descriptor, descriptor.exports);
           }
           else {
