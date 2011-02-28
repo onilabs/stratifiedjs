@@ -2,7 +2,7 @@
  * Oni Apollo SJS bootstrap code
  *
  * Part of the Oni Apollo Cross-Browser StratifiedJS Runtime
- * 0.11.0
+ * 0.11.0+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
@@ -331,7 +331,7 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
 // global require function:
 var require = __oni_rt.makeRequire();
 
-require.hubs = [ ["apollo:", "http://code.onilabs.com/apollo/0.11.0/modules/" ] ];
+require.hubs = [ ["apollo:", "http://code.onilabs.com/apollo/0.11.0+/modules/" ] ];
 require.modules = {};
 
 // require.APOLLO_LOAD_PATH: path where this oni-apollo.js lib was
