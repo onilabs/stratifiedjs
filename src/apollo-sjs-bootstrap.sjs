@@ -144,15 +144,16 @@ if (__oni_rt.UA == "msie" && window.execScript) {
   __oni_rt.IE_resume_counter = 0;
   __oni_rt.IE_resume = {};
   
-  $eval = function(code, filename) {
-    filename = filename || "'$eval code'";
+  $eval = function(code, settings) {
+    var filename = (settings && settings.filename) || "'$eval code'";
+    var mode = (settings && settings.mode) || "balanced";
     try {
       waitfor(var rv, isexception) {
         var rc = ++__oni_rt.IE_resume_counter;
         __oni_rt.IE_resume[rc]=resume;
         var js = __oni_rt.c1.compile(
           "try{"+code+
-            "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume["+rc+"](rv[0],rv[1])) }", {filename:filename});
+            "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume["+rc+"](rv[0],rv[1])) }", {filename:filename, mode:mode});
         window.execScript(js);
       }
       if (isexception) throw rv;
@@ -165,9 +166,10 @@ if (__oni_rt.UA == "msie" && window.execScript) {
 }
 else {
   // normal, sane eval
-  $eval = function(code, filename) {
-    filename = filename || "'$eval code'";
-    var js = __oni_rt.c1.compile(code, {filename:filename});
+  $eval = function(code, settings) {
+    var filename = (settings && settings.filename) || "'$eval code'";
+    var mode = (settings && settings.mode) || "balanced";
+    var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
     return window.eval(js);
   };
 }
@@ -295,7 +297,7 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
           }
           else {
             f = $eval("(function(module, exports, require){"+src+"})",
-                      "module '"+path+"'");
+                      {filename:"module '"+path+"'"});
             f(descriptor, descriptor.exports, __oni_rt.makeRequire(path));
           }
           // It is important that we only set window.require.modules[module]
@@ -368,6 +370,6 @@ __oni_rt.runScripts = function() {
     if (m)
       __oni_rt.modsrc[m] = content;
     else
-      $eval(content, "inline script "+(i+1));
+      $eval(content, {filename:"inline script "+(i+1)});
   }
 };

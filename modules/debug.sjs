@@ -412,7 +412,7 @@ Console.prototype = {
       var result = document.createElement('div');
       waitfor {
         try {
-          result = inspect_obj($eval(cl, "commandline"));
+          result = inspect_obj($eval(cl, {filename:"commandline"}));
         }
         catch(ex) {
           setStyle(result, 'color:red;');
