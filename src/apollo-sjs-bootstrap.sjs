@@ -183,10 +183,10 @@ __oni_rt.pendingLoads = {};
 // require.alias, require.path are different for each
 // module. makeRequire is a helper to construct a suitable require
 // function that has access to these variables:
-__oni_rt.makeRequire = function(loader) {
+__oni_rt.makeRequire = function(parent) {
   // make properties of this require function accessible in requireInner:
   var rf = function(module) {
-    return __oni_rt.requireInner(module, rf, loader);
+    return __oni_rt.requireInner(module, rf, parent);
   };
   rf.path = ""; // default path is empty
   rf.alias = {};
@@ -210,22 +210,102 @@ __oni_rt.resolveAliases = function(module, aliases) {
 
 // helper to resolve hubs
 __oni_rt.resolveHubs = function(module, hubs) {
-  var rv = module;
-  var level = 10; // we allow 10 levels of indirection
+  var path = module;
+  var loader = __oni_rt.default_loader;
+  var level = 10; // we allow 10 levels of rewriting indirection
   for (var i=0,hub; hub=hubs[i++]; ) {
-    if (rv.indexOf(hub[0]) == 0) {
+    if (path.indexOf(hub[0]) == 0) {
       // we've got a match
-      rv = hub[1] + rv.substring(hub[0].length);
-      i=0; // start resolution from beginning again
-      if (--level == 0)
-        throw "Too much indirection in hub resolution for module '"+module+"'";
+      if (typeof hub[1] == "string") {
+        path = hub[1] + path.substring(hub[0].length);
+        i=0; // start resolution from beginning again
+        if (--level == 0)
+          throw "Too much indirection in hub resolution for module '"+module+"'";
+      }
+      else {
+        // assert(typeof hub[1] == "function")
+        loader = hub[1];
+        // that's it; no more indirection
+        break;
+      }
     }
   }
-  return rv;
+  return {path:path, loader:loader};
+};
+
+// default module loader
+__oni_rt.default_loader = function(path) {
+  var matches = /.*\.(js|sjs)$/.exec(path);
+  var is_js = false, src;
+  if (matches) {
+    // the extension was set explicitly
+    if (matches[1] == "js")
+      is_js = true;
+  }
+  else
+    path += ".sjs";
+  if (__oni_rt.getXHRCaps().CORS ||
+      __oni_rt.isSameOrigin(path, document.location))
+    src = __oni_rt.xhr(path, {mime:"text/plain"}).responseText;
+  else {
+    // browser is not CORS capable. Attempt modp:
+    path += "!modp";
+    src = __oni_rt.jsonp_iframe(path,
+                                {forcecb:"module",
+                                 cbfield:null});
+  }
+  return { src: src, loaded_from: path, is_js: is_js };
+};
+
+// loader that loads directly from github
+__oni_rt.github_loader = function(path) {
+  var user, repo, tag;
+  try {
+    [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
+  } catch(e) { throw "Malformed module id '"+path+"'"; }
+  var is_js = false;
+  var matches = /.*\.(js|sjs)$/.exec(path);
+  if (matches) {
+    // the extension was set explicitly
+    if (matches[1] == "js")
+      is_js = true;
+  }
+  else
+    path += ".sjs";
+
+  var github_api = "http://github.com/api/v2/json/";
+  var github_opts = {cbfield:"callback"};
+  // XXX maybe some caching here
+  // XXX use in-doc jsonp request
+  var tree_sha;
+  waitfor {
+    (tree_sha = __oni_rt.jsonp_iframe([github_api, 'repos/show/', user, repo, '/tags'],
+                                      github_opts).tags[tag]) || hold();
+  }
+  or {
+    (tree_sha = __oni_rt.jsonp_iframe([github_api, 'repos/show/', user, repo, '/branches'],
+                                      github_opts).branches[tag]) || hold();
+  }
+  or {
+    hold(5000);
+    throw new Error("Github timeout");
+  }
+
+  waitfor {
+  var src = __oni_rt.jsonp_iframe([github_api, 'blob/show/', user, repo, tree_sha, path],
+                                  github_opts).blob.data;
+  }
+  or {
+    hold(5000);
+    throw new Error("Github timeout");
+  }
+  
+  return { src: src, loaded_from: "http://github.com/"+user+"/"+repo+"/blob/"+tree_sha+"/"+path,
+           is_js: is_js };
 };
 
 // requireInner: workhorse for require
-__oni_rt.requireInner = function(module, require_obj, loader) {
+__oni_rt.requireInner = function(module, require_obj, parent) {
   var path;
   // apply path if module is relative
   if (module.indexOf(":") == -1) {
@@ -233,17 +313,18 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
       path = __oni_rt.constructURL(require_obj.path, module);
     else
       path = module;
-    path = __oni_rt.canonicalizeURL(path, loader ? loader : document.location);
+    path = __oni_rt.canonicalizeURL(path, parent ? parent : document.location);
   }
   else
     path = module;
 
-  loader = loader || "[toplevel]";
+  parent = parent || "[toplevel]";
   
   // apply local aliases
   path = __oni_rt.resolveAliases(path, require_obj.alias);
   // apply global aliases
-  path = __oni_rt.resolveHubs(path, window.require.hubs);
+  var loader;
+  ({path,loader}) = __oni_rt.resolveHubs(path, window.require.hubs);
   
   var descriptor;
   if (!(descriptor = window.require.modules[path])) {
@@ -251,47 +332,27 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
     var pendingHook = __oni_rt.pendingLoads[path];
     if (!pendingHook) {
       pendingHook = __oni_rt.pendingLoads[path] = spawn (function() {
-        var src, loaded_from;
+        var src, loaded_from, is_js = false;
         try {
           if (path in __oni_rt.modsrc) {
             // a built-in module
             loaded_from = "[builtin]";
             src = __oni_rt.modsrc[path];
             delete __oni_rt.modsrc[path];
+            // xxx support plain js modules for built-ins?
           }
           else {
-            // a remote module
-            var matches = /.*\.(js|sjs)$/.exec(path);
-            var jsmodule = false;
-            if (matches) {
-              // the extension was set explicitly
-              loaded_from = path;
-              if (matches[1] == "js")
-                jsmodule = true;
-            }
-            else
-              loaded_from = path + ".sjs";
-            if (__oni_rt.getXHRCaps().CORS ||
-                __oni_rt.isSameOrigin(loaded_from, document.location))
-              src = __oni_rt.xhr(loaded_from, {mime:"text/plain"}).responseText;
-            else {
-              // browser is not CORS capable. Attempt modp:
-              loaded_from += "!modp";
-              src = __oni_rt.jsonp_iframe(loaded_from,
-                                          {forcecb:"module",
-                                           cbfield:null});
-            }
-              
+            ({src, loaded_from, is_js}) = loader(path);
           }
           var f;
           var descriptor = {
             id: path,
             exports: {},
             loaded_from: loaded_from,
-            loaded_by: loader,
+            loaded_by: parent,
             required_by: {}
           };
-          if (jsmodule) {
+          if (is_js) {
             f = new Function("module", "exports", src);
             f(descriptor, descriptor.exports);
           }
@@ -320,10 +381,10 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
     var descriptor = pendingHook.waitforValue();
   }
   
-  if (!descriptor.required_by[loader])
-    descriptor.required_by[loader] = 1;
+  if (!descriptor.required_by[parent])
+    descriptor.required_by[parent] = 1;
   else
-    ++descriptor.required_by[loader];
+    ++descriptor.required_by[parent];
   
   return descriptor.exports;  
 };
@@ -331,7 +392,10 @@ __oni_rt.requireInner = function(module, require_obj, loader) {
 // global require function:
 var require = __oni_rt.makeRequire();
 
-require.hubs = [ ["apollo:", "http://code.onilabs.com/apollo/0.11.0+/modules/" ] ];
+require.hubs = [
+  ["apollo:", "http://code.onilabs.com/apollo/0.11.0+/modules/" ],
+  ["github:", __oni_rt.github_loader ]
+];
 require.modules = {};
 
 // require.APOLLO_LOAD_PATH: path where this oni-apollo.js lib was
