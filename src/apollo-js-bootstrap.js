@@ -285,9 +285,15 @@ if (!__oni_rt.xhr) {
   
   //----------------------------------------------------------------------
   // load inline SJS code:
-  
-  if (window.addEventListener)
-    window.addEventListener("load", __oni_rt.runScripts, true);
-  else
-    window.attachEvent("onload", __oni_rt.runScripts);
+
+  if (document.readyState === "complete") {
+    __oni_rt.runScripts();
+  }
+  else {
+    // XXX maybe use DOMContentLoaded here, if available
+    if (window.addEventListener)
+      window.addEventListener("load", __oni_rt.runScripts, true);
+    else
+      window.attachEvent("onload", __oni_rt.runScripts);
+  }
 }
