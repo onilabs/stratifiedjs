@@ -286,14 +286,16 @@ if (!__oni_rt.xhr) {
   //----------------------------------------------------------------------
   // load inline SJS code:
 
-  if (document.readyState === "complete") {
-    __oni_rt.runScripts();
-  }
-  else {
-    // XXX maybe use DOMContentLoaded here, if available
-    if (window.addEventListener)
-      window.addEventListener("load", __oni_rt.runScripts, true);
-    else
-      window.attachEvent("onload", __oni_rt.runScripts);
+  if (!window.__oni_rt_no_script_load) {
+    if (document.readyState === "complete") {
+      __oni_rt.runScripts();
+    }
+    else {
+      // XXX maybe use DOMContentLoaded here, if available
+      if (window.addEventListener)
+        window.addEventListener("load", __oni_rt.runScripts, true);
+      else
+        window.attachEvent("onload", __oni_rt.runScripts);
+    }
   }
 }
