@@ -390,7 +390,7 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
 };
 
 // global require function:
-var require = __oni_rt.makeRequire();
+var require = __oni_rt.makeRequire(window.__oni_rt_require_base);
 
 require.hubs = [
   ["apollo:", "http://code.onilabs.com/apollo/0.11.0+/modules/" ],
