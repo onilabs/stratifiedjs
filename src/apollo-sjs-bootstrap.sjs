@@ -235,15 +235,6 @@ __oni_rt.resolveHubs = function(module, hubs) {
 
 // default module loader
 __oni_rt.default_loader = function(path) {
-  var matches = /.*\.(js|sjs)$/.exec(path);
-  var is_js = false, src;
-  if (matches) {
-    // the extension was set explicitly
-    if (matches[1] == "js")
-      is_js = true;
-  }
-  else
-    path += ".sjs";
   if (__oni_rt.getXHRCaps().CORS ||
       __oni_rt.isSameOrigin(path, document.location))
     src = __oni_rt.xhr(path, {mime:"text/plain"}).responseText;
@@ -254,7 +245,7 @@ __oni_rt.default_loader = function(path) {
                                 {forcecb:"module",
                                  cbfield:null});
   }
-  return { src: src, loaded_from: path, is_js: is_js };
+  return { src: src, loaded_from: path };
 };
 
 // loader that loads directly from github
@@ -263,16 +254,7 @@ __oni_rt.github_loader = function(path) {
   try {
     [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
   } catch(e) { throw "Malformed module id '"+path+"'"; }
-  var is_js = false;
-  var matches = /.*\.(js|sjs)$/.exec(path);
-  if (matches) {
-    // the extension was set explicitly
-    if (matches[1] == "js")
-      is_js = true;
-  }
-  else
-    path += ".sjs";
-
+  
   var github_api = "http://github.com/api/v2/json/";
   var github_opts = {cbfield:"callback"};
   // XXX maybe some caching here
@@ -300,8 +282,10 @@ __oni_rt.github_loader = function(path) {
     throw new Error("Github timeout");
   }
   
-  return { src: src, loaded_from: "http://github.com/"+user+"/"+repo+"/blob/"+tree_sha+"/"+path,
-           is_js: is_js };
+  return {
+    src: src,
+    loaded_from: "http://github.com/"+user+"/"+repo+"/blob/"+tree_sha+"/"+path
+  };
 };
 
 // requireInner: workhorse for require
@@ -318,7 +302,15 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
   else
     path = module;
 
-  parent = parent || "[toplevel]";
+  if (parent == window.__oni_rt_require_base)
+    parent = "[toplevel]";
+
+  // apply default extension; determine if path points to js file
+  var matches, is_js = false;
+  if (!(matches=/.*\.(js|sjs)$/.exec(path)))
+    path += ".sjs";
+  else if (matches[1] == "js")
+    is_js = true;
   
   // apply local aliases
   path = __oni_rt.resolveAliases(path, require_obj.alias);
@@ -332,7 +324,7 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
     var pendingHook = __oni_rt.pendingLoads[path];
     if (!pendingHook) {
       pendingHook = __oni_rt.pendingLoads[path] = spawn (function() {
-        var src, loaded_from, is_js = false;
+        var src, loaded_from;
         try {
           if (path in __oni_rt.modsrc) {
             // a built-in module
@@ -342,7 +334,7 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
             // xxx support plain js modules for built-ins?
           }
           else {
-            ({src, loaded_from, is_js}) = loader(path);
+            ({src, loaded_from}) = loader(path);
           }
           var f;
           var descriptor = {
