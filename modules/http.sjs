@@ -420,48 +420,7 @@ exports.xml = function(/* url, settings */) {
        c.log("src=", item.media.m);
     };`
 */
-exports.jsonp = function(url, settings) {
-  var opts = common.mergeSettings({
-    iframe : false,
-//    query : undefined,
-    cbfield : "callback",
-//    forcecb : undefined,
-  }, settings);
-
-  url = __oni_rt.constructURL(url, opts.query);
-  if (opts.iframe || opts.forcecb)
-    return __oni_rt.jsonp_iframe(url, opts);
-  else
-    return jsonp_indoc(url, opts); 
-};
-
-var jsonp_req_count = 0;
-var jsonp_cb_obj = "_oni_jsonpcb";
-function jsonp_indoc(url, opts) {
-  if (!window[jsonp_cb_obj])
-    window[jsonp_cb_obj] = {};
-  var cb = "cb" + (jsonp_req_count++);
-  var cb_query = {};
-  cb_query[opts.cbfield] = jsonp_cb_obj + "." + cb;
-  url = __oni_rt.constructURL(url, cb_query);
-  var elem = document.createElement("script");
-  elem.setAttribute("src", url);
-  elem.setAttribute("async", "async"); //XXX ?
-  elem.setAttribute("type", "text/javascript");
-  waitfor (var rv) {
-    window[jsonp_cb_obj][cb] = resume;
-    document.getElementsByTagName("head")[0].appendChild(elem);
-
-    require("dom").waitforEvent(elem, "error");
-    // this line never reached unless there is an error
-    throw new Error("Could not complete JSONP request to '"+url+"'");
-  }
-  finally {
-    elem.parentNode.removeChild(elem);
-    delete window[jsonp_cb_obj][cb];
-  }
-  return rv;
-}
+exports.jsonp = require('sjs:__sys').jsonp;
 
 /**
   at function css
