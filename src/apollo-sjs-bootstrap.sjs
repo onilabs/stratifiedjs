@@ -385,6 +385,7 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
 var require = __oni_rt.makeRequire(window.__oni_rt_require_base);
 
 require.hubs = [
+  ["sjs:__sys.sjs", "__builtin:__sys_xbrowser.sjs" ],
   ["apollo:", "http://code.onilabs.com/apollo/0.11.0+/modules/" ],
   ["github:", __oni_rt.github_loader ]
 ];
