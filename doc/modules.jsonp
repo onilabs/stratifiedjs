@@ -769,7 +769,7 @@ modules({
             "summary": "Language of *txt* (default: \"en\")."
           }
         ],
-        "desc": "Currently only works in Chrome and Safari.\n\nNote that the API is limited to inputs of ~100 characters and is heavily\nrate-limited.\n"
+        "desc": "Currently only works in Safari.\n\nNote that the API is limited to inputs of ~100 characters and is heavily\nrate-limited.\n\nIt also doesn't work in browsers that send a Referer header with\nthe request (Chrome).\n"
       },
       "load": {
         "type": "function",

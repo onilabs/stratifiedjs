@@ -132,34 +132,33 @@ exports.dictionaryLookup = function (word, settings) {
   @param {String} [txt] Text to speak.
   @param {optional String} [language] Language of *txt* (default: "en").
   @desc
-    Currently only works in Chrome and Safari.
+    Currently only works in Safari.
 
     Note that the API is limited to inputs of ~100 characters and is heavily
     rate-limited.
+
+    It also doesn't work in browsers that send a Referer header with
+    the request (Chrome).
 */
 function speak(txt, language) {
   language = language || "en";
   var txt = encodeURIComponent(txt);
   try {
     var a = new Audio("http://translate.google.com/translate_tts?q="+txt+"&tl="+language);
-    try {
-      waitfor(var ok) {
-        var r = resume;
-        a.addEventListener("canplaythrough", r, true);
-        hold(2000); // after 2s, we time out
-        r(false);
-      }
+    waitfor(var ok) {
+      var r = resume;
+      a.addEventListener("canplaythrough", r, true);
+      hold(2000); // after 2s, we time out
+      r(false);
     }
     finally {
       a.removeEventListener("canplaythrough", r, true);
     }
     if (!ok) throw new Error("Error playing back audio.");
-    try {
-      waitfor() {
-        var r = resume;
-        a.addEventListener("ended", r, true);
-        a.play(); 
-      }
+    waitfor() {
+      var r = resume;
+      a.addEventListener("ended", r, true);
+      a.play(); 
     }
     finally {
       a.removeEventListener("ended", r, true);
