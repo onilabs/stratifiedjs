@@ -129,7 +129,7 @@ function inspect_obj(obj, name) {
 
   var indent = name?"<span style='width:12px;height:12px;float:left;'></span>":"";
   if (typeof obj == "function")
-    return makeDiv(indent+name + "<span style='"+systemStyle+"'>function "+common.sanitize(obj.name)+"</span>");
+    return makeDiv(indent+name + "<span style='"+systemStyle+"'>function "+common.sanitize(obj.name || "anonymous")+"</span>");
   if (obj == undefined) // this catches 'null' too
     return makeDiv(indent+name + "<span style='"+systemStyle+"'>"+obj+"</span>");
   if (typeof obj == "string")
@@ -147,10 +147,7 @@ function inspect_obj(obj, name) {
   // else 
   var objdesc; 
   if (common.isArray(obj)) {
-    if (obj.length)
-      objdesc = "[<"+obj.length+">]";
-    else 
-      objdesc = "[]";
+    objdesc = "[<"+obj.length+">]";
   }
   else {
     objdesc = to_safestring(obj);
@@ -424,7 +421,10 @@ Console.prototype = {
         }
         catch(ex) {
           setStyle(result, 'color:red;');
-          result.innerHTML = common.sanitize(ex ? ex.toString() : "");
+          // *sigh* IE6's Error.toString just prints '[object Error]'. hack:
+          var message = ex ? ex.toString() : "<Error>";
+          if (message == "[object Error]") message = ex.message || "<Error>";
+          result.innerHTML = common.sanitize(message);
         }
       }
       or {
