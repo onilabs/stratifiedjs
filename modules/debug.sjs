@@ -6,7 +6,7 @@
  * 0.11.0+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -129,7 +129,7 @@ function inspect_obj(obj, name) {
 
   var indent = name?"<span style='width:12px;height:12px;float:left;'></span>":"";
   if (typeof obj == "function")
-    return makeDiv(indent+name + "<span style='"+systemStyle+"'>function</span>"); //XXX
+    return makeDiv(indent+name + "<span style='"+systemStyle+"'>function "+common.sanitize(obj.name)+"</span>");
   if (obj == undefined) // this catches 'null' too
     return makeDiv(indent+name + "<span style='"+systemStyle+"'>"+obj+"</span>");
   if (typeof obj == "string")
@@ -145,10 +145,18 @@ function inspect_obj(obj, name) {
     return makeDiv(indent+name + objdesc, "white-space:pre;");
   }
   // else 
-  var objdesc = to_safestring(obj);
-  var m = objdesc.match(/\[object (\w+)\]/);
-  if (m) objdesc = m[1];
-  if (common.isArray(obj)) objdesc = "["+objdesc+"]";
+  var objdesc; 
+  if (common.isArray(obj)) {
+    if (obj.length)
+      objdesc = "[<"+obj.length+">]";
+    else 
+      objdesc = "[]";
+  }
+  else {
+    objdesc = to_safestring(obj);
+    var m = objdesc.match(/\[object (\w+)\]/);
+    if (m) objdesc = m[1];
+  }
   var rv = makeDiv("\
 <div><span style='cursor:pointer'><span 
     style='margin:0 2px 0 -2px;background:url("+icons.treeclosed+") no-repeat 0px 2px;float:left;display:block;width:12px;height:12px'>\
