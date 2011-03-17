@@ -6,7 +6,7 @@
  * 0.11.0+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -42,7 +42,7 @@ function elementsFromSelector(selector) {
   // at the moment we only do simple, single element selectors
   if (typeof selector === "string")
     elems = [document.getElementById(selector)];
-  else if (require("common").isArray(selector))
+  else if (Array.isArray(selector))
     elems = selector;
   else
     elems = [selector];

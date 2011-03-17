@@ -6,7 +6,7 @@
  * 0.11.0+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -35,8 +35,6 @@
              concurrent stratified programming.
 */
 
-var common = require('common');
-
 /**
   @function waitforAll
   @summary  Execute a number of functions on separate strata and wait for all
@@ -56,12 +54,12 @@ var common = require('common');
 */
 exports.waitforAll = function waitforAll(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (common.isArray(funcs)) {
+  if (Array.isArray(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforAllFuncs(funcs, args, this_obj);
   }
-  else if (common.isArray(args)) {
+  else if (Array.isArray(args)) {
     if (!args.length) return;
     //...else
     return waitforAllArgs(funcs, args, this_obj);
@@ -122,12 +120,12 @@ function waitforAllArgs(f, args, this_obj) {
 */
 exports.waitforFirst = function waitforFirst(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (common.isArray(funcs)) {
+  if (Array.isArray(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforFirstFuncs(funcs, args, this_obj);
   }
-  else if (common.isArray(args)) {
+  else if (Array.isArray(args)) {
     if (!args.length) return;
     //...else
     return waitforFirstArgs(funcs, args, this_obj);

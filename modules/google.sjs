@@ -6,7 +6,7 @@
  * 0.11.0+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -33,7 +33,6 @@
   @module    google
   @summary   Bindings to various Google Webservices and APIs 
 */
-var common = require("common");
 var http = require("http");
 
 /**
@@ -97,7 +96,7 @@ exports.siteSearch = function (q, site, settings) {
 exports.translate = function(text, to, /* [opt] */ from, /* [opt] */ extra) {
   from = from || ""; // "" == autodetect
   var langpair;
-  if (common.isArray(to)) {
+  if (Array.isArray(to)) {
     langpair = [];
     for (var i=0; i<to.length; ++i)
       langpair.push(from + "|" + to[i]);

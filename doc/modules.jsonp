@@ -48,7 +48,8 @@ modules({
         "return": {
           "type": "Function",
           "desc": "Bound function"
-        }
+        },
+        "desc": "Deprecated - use Function.prototype.bind instead\n"
       },
       "isArray": {
         "type": "function",
@@ -62,7 +63,8 @@ modules({
         ],
         "return": {
           "type": "Boolean"
-        }
+        },
+        "desc": "Deprecated - use Array.isArray instead\n"
       },
       "flatten": {
         "type": "function",
@@ -1064,12 +1066,6 @@ modules({
         },
         "setting": [
           {
-            "type": "Boolean",
-            "name": "iframe",
-            "def": "false",
-            "summary": "Perform the request in a temporary iframe."
-          },
-          {
             "type": "QUERYHASHARR",
             "name": "query",
             "summary": "Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString)."
@@ -1083,7 +1079,7 @@ modules({
           {
             "type": "String",
             "name": "forcecb",
-            "summary": "Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*."
+            "summary": "Force the name of the callback to the given string."
           }
         ],
         "desc": "### Example:\n\n`var http = require(\"http\");\nvar url = \"http://api.flickr.com/services/feeds/photos_public.gne?\" +\n          \"tags=cat&tagmode=any&format=json\";\nvar data = http.jsonp(url, {cbfield:\"jsoncallback\"});\nfor (var i = 0, item; item = data.items[i]; i++) {\n   c.log(\"src=\", item.media.m);\n};`\n"

@@ -127,32 +127,36 @@ function inspect_obj(obj, name) {
   else
     name = "";
 
-  var indent = name?"<span style='width:12px;height:12px;float:left;'></span>":"";
+  var indent = name ? "<span style='width:12px;height:12px;float:left;'></span>" : "";
+  var objdesc;
   if (typeof obj == "function")
-    return makeDiv(indent+name + "<span style='"+systemStyle+"'>function "+common.sanitize(obj.name || "anonymous")+"</span>");
-  if (obj == undefined) // this catches 'null' too
+    objdesc = "function "+common.sanitize(obj.name || "")+"() {...}";
+  else if (obj == undefined) // this catches 'null' too
     return makeDiv(indent+name + "<span style='"+systemStyle+"'>"+obj+"</span>");
-  if (typeof obj == "string")
+  else if (typeof obj == "string")
     return makeDiv(indent+name + '"'+common.sanitize(obj)+'"', "white-space:pre;");
+
   if (!has_props(obj)) {
-    var objdesc;
-    if (common.isArray(obj))
-      objdesc = "[]";
-    else if (obj)
-      objdesc = common.sanitize(to_safestring(obj));
-    else
-      objdesc = obj;
+    if (!objdesc) {
+      if (Array.isArray(obj))
+        objdesc = "[]";
+      else if (obj)
+        objdesc = common.sanitize(to_safestring(obj));
+      else
+        objdesc = obj;
+    }
     return makeDiv(indent+name + objdesc, "white-space:pre;");
   }
-  // else 
-  var objdesc; 
-  if (common.isArray(obj)) {
-    objdesc = "[<"+obj.length+">]";
-  }
-  else {
-    objdesc = to_safestring(obj);
-    var m = objdesc.match(/\[object (\w+)\]/);
-    if (m) objdesc = m[1];
+  // else
+  if (!objdesc) {
+    if (Array.isArray(obj)) {
+      objdesc = "[<"+obj.length+">]";
+    }
+    else {
+      objdesc = to_safestring(obj);
+      var m = objdesc.match(/\[object (\w+)\]/);
+      if (m) objdesc = m[1];
+    }
   }
   var rv = makeDiv("\
 <div><span style='cursor:pointer'><span 
@@ -165,8 +169,7 @@ function inspect_obj(obj, name) {
     while (true) {
       require('dom').waitforEvent(toggle, 'click');
       var children = makeDiv(null, "margin-left:15px");
-      var props = [];
-      for (var p in obj) props.push(p);
+      var props = Object.keys(obj);
       props.sort();
       for (var i = 0, p; p = props[i]; ++i) {
         try {
