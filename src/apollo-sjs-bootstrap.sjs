@@ -102,34 +102,6 @@ __oni_rt.xhr = function xhr(url, settings) {
   return req;
 };
 
-// used by apollo/modules/http.sjs:jsonp & require mechanism, below:
-__oni_rt.jsonp_iframe = function(url, opts) {
-  var cb = opts.forcecb || "R";
-  var cb_query = {};
-  if (opts.cbfield)
-    cb_query[opts.cbfield] = cb;
-  url = __oni_rt.constructURL(url, cb_query);
-  var iframe = document.createElement("iframe");
-  document.getElementsByTagName("head")[0].appendChild(iframe);
-  var doc = iframe.contentWindow.document;
-  waitfor (var rv) {
-    doc.open();
-    iframe.contentWindow[cb] = resume;
-    // This hold(0) is required in case the script is cached and loads
-    // synchronously. Alternatively we could spawn() this code:
-    hold(0);
-    doc.write("\x3Cscript type='text/javascript' src=\""+url+"\">\x3C/script>");
-    doc.close();
-  }
-  finally {
-    iframe.parentNode.removeChild(iframe);
-  }
-  // This hold(0) is required to prevent a security (cross-domain)
-  // error under FF, if the code continues with loading another iframe:
-  hold(0);
-  return rv; 
-};
-
 //----------------------------------------------------------------------
 // $eval
 var $eval;
@@ -241,9 +213,9 @@ __oni_rt.default_loader = function(path) {
   else {
     // browser is not CORS capable. Attempt modp:
     path += "!modp";
-    src = __oni_rt.jsonp_iframe(path,
-                                {forcecb:"module",
-                                 cbfield:null});
+    src = require('__builtin:__sys_xbrowser').jsonp(path,
+                                                    {forcecb:"module",
+                                                     cbfield:null});
   }
   return { src: src, loaded_from: path };
 };
@@ -258,15 +230,15 @@ __oni_rt.github_loader = function(path) {
   var github_api = "http://github.com/api/v2/json/";
   var github_opts = {cbfield:"callback"};
   // XXX maybe some caching here
-  // XXX use in-doc jsonp request
   var tree_sha;
+  var sys = require('__builtin:__sys_xbrowser');
   waitfor {
-    (tree_sha = __oni_rt.jsonp_iframe([github_api, 'repos/show/', user, repo, '/tags'],
-                                      github_opts).tags[tag]) || hold();
+    (tree_sha = sys.jsonp([github_api, 'repos/show/', user, repo, '/tags'],
+                          github_opts).tags[tag]) || hold();
   }
   or {
-    (tree_sha = __oni_rt.jsonp_iframe([github_api, 'repos/show/', user, repo, '/branches'],
-                                      github_opts).branches[tag]) || hold();
+    (tree_sha = sys.jsonp([github_api, 'repos/show/', user, repo, '/branches'],
+                          github_opts).branches[tag]) || hold();
   }
   or {
     hold(5000);
@@ -274,8 +246,8 @@ __oni_rt.github_loader = function(path) {
   }
 
   waitfor {
-  var src = __oni_rt.jsonp_iframe([github_api, 'blob/show/', user, repo, tree_sha, path],
-                                  github_opts).blob.data;
+  var src = sys.jsonp([github_api, 'blob/show/', user, repo, tree_sha, path],
+                      github_opts).blob.data;
   }
   or {
     hold(5000);
