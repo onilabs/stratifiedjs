@@ -131,3 +131,52 @@ function jsonp_iframe(url, opts) {
   hold(0);
   return rv; 
 };
+
+/**
+  @function isCORSCapable
+  @summary Checks if we can perform cross-origin requests to CORS-capable
+           servers (see <http://www.w3.org/TR/cors/>)
+  @return {Boolean}
+*/
+exports.isCORSCapable = function() {
+  return __oni_rt.getXHRCaps().CORS;
+};
+
+
+/**
+   @function request
+   @summary Performs a HTTP request.
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {optional Object} [settings] Hash of settings (or array of hashes)
+   @return {String}
+   @setting {String} [method="GET"] Request method.
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {String} [body] Request body.
+   @setting {Object} [headers] Hash of additional request headers.
+   @setting {String} [username] Username for authentication.
+   @setting {String} [password] Password for authentication.
+   @setting {String} [mime] Override mime type.
+   @setting {Boolean} [throwing=true] Throw exception on error.
+   @desc
+     ### Cross-site requests:
+
+     The success of cross-site requests depends on whether the
+     server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
+     the we are capable of issuing cross-site requests. This can be checked with
+     [__sys.isCORSCapable](#__sys/isCORSCapable).
+
+     For the apollo-xbrowser implementation, the standard
+     XMLHttpRequest can handle cross-site requests on compatible
+     browsers (any recent Chrome, Safari, Firefox). On IE8+,
+     [__sys.request](#__sys/request) will automatically fall back to using MS's
+     XDomainRequest object for cross-site requests.
+
+     ### Request failure:
+
+     If the request is unsuccessful, and the call is configured to
+     throw exceptions (setting {"throwing":true}; the default), an
+     exception will be thrown which has a 'status' member set to the
+     request status. If the call is configured to not throw, an empty
+     string will be returned.  
+*/
+exports.request = __oni_rt.xhr;

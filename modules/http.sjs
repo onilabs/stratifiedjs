@@ -1,12 +1,12 @@
 /*
  * Oni Apollo 'http' module
- * Stratified XHR and JSONP request methods
+ * Stratified HTTP request methods
  *
  * Part of the Oni Apollo Standard Module Library
  * 0.11.0+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -38,7 +38,7 @@
              public web APIs.
 */
 
-var common = require("common");
+var sys = require('sjs:__sys');
 
 //----------------------------------------------------------------------
 // url functions
@@ -213,93 +213,79 @@ exports.isSameOrigin = __oni_rt.isSameOrigin;
 exports.canonicalizeURL = __oni_rt.canonicalizeURL;
 
 //----------------------------------------------------------------------
-// XHR
+
+exports.xhr = function() { throw "http.xhr() is obsolete. Please use http.request()"; };
+exports.xml = function() { throw "http.xml() is obsolete."; };
 
 /**
   @function isCORSCapable
-  @summary Checks if this browser can perform cross-origin requests to CORS-capable
+  @summary Checks if we can perform cross-origin requests to CORS-capable
            servers (see <http://www.w3.org/TR/cors/>)
   @return {Boolean}
 */
-exports.isCORSCapable = function() {
-  return __oni_rt.getXHRCaps().CORS;
-};
+exports.isCORSCapable = sys.isCORSCapable();
 
-
-// create request object appropriate for browser & origin of request/document:
-function openRequest(method, url, username, password) {
-  var caps = __oni_rt.getXHRCaps();
-  if (!caps.XDR || exports.isSameOrigin(url, document.location)) {
-    var req = caps.XHR_ctor();
-    req.open(method, url, true, username, password);
-  }
-  else {
-    // A cross-site request on IE, where we have to use XDR instead of XHR:
-    req = new XDomainRequest();
-    req.open(method, url);
-  }
-  return req;
-}
 
 /**
-  @function xhr
-  @summary Performs an XMLHttpRequest.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes)
-  @return {XMLHttpRequest object}
-  @setting {String} [method="GET"] Request method.
-  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
-  @setting {String} [body] Request body.
-  @setting {Object} [headers] Hash of additional request headers.
-  @setting {String} [username] Username for authentication.
-  @setting {String} [password] Password for authentication.
-  @setting {String} [mime] Override mime type.
-  @setting {Boolean} [throwing=true] Throw exception on error.
-  @desc
-    ### Cross-site requests:
+   @function request
+   @summary Performs a HTTP request.
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {optional Object} [settings] Hash of settings (or array of hashes)
+   @return {String}
+   @setting {String} [method="GET"] Request method.
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {String} [body] Request body.
+   @setting {Object} [headers] Hash of additional request headers.
+   @setting {String} [username] Username for authentication.
+   @setting {String} [password] Password for authentication.
+   @setting {String} [mime] Override mime type.
+   @setting {Boolean} [throwing=true] Throw exception on error.
+   @desc
+     ### Cross-site requests:
 
-    The success of cross-site requests depends on whether the
-    server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
-    the browser is capable of issuing cross-site requests. This can be checked with
-    [http.isCORSCapable](#http/isCORSCapable).
+     The success of cross-site requests depends on whether the
+     server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
+     the we are capable of issuing cross-site requests. This can be checked with
+     [__sys.isCORSCapable](#__sys/isCORSCapable).
 
-    The standard XMLHttpRequest can handle cross-site requests on compatible
-    browsers (any recent Chrome, Safari, Firefox). On IE8+, [http.xhr](#http/xhr) will
-    automatically fall back to using MS's XDomainRequest object for
-    cross-site requests. 
+     For the apollo-xbrowser implementation, the standard
+     XMLHttpRequest can handle cross-site requests on compatible
+     browsers (any recent Chrome, Safari, Firefox). On IE8+,
+     [http.request](#http/request) will automatically fall back to using MS's
+     XDomainRequest object for cross-site requests.
 
-    ### Request failure:
+     ### Request failure:
 
-    If the request is unsuccessful, and the call is configured to throw
-    exceptions (setting {"throwing":true}; the default), an exception will
-    be thrown which has a 'status' member set to the request status, and a
-    'req' member set to the XMLHttpRequest object.
+     If the request is unsuccessful, and the call is configured to
+     throw exceptions (setting {"throwing":true}; the default), an
+     exception will be thrown which has a 'status' member set to the
+     request status. If the call is configured to not throw, an empty
+     string will be returned.
 
-    ###Example:
+     ### Example:
 
-        try { 
-          alert(http.xhr("foo.txt").responseText);
-        }
-        catch (e) {
-          alert("Error! Status="+e.status);
-        }
+         try { 
+           alert(http.request("foo.txt"));
+         }
+         catch (e) {
+           alert("Error! Status="+e.status);
+         }
 
 */
-// see apollo/src/apollo-sjs-bootstrap.sjs
-exports.xhr = __oni_rt.xhr;
+exports.request = sys.request;
 
 
 /**
   @function  get
   @summary   Perform a HTTP GET request and return the response text.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr).
+  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.request](#http/request).
   @return    {String}
-  @shortcut  xhr
+  @shortcut  request
   @desc
     An alias for
 
-        http.xhr(url,settings).responseText
+        http.request(url,settings)
 
     ### Example:
     
@@ -319,18 +305,16 @@ exports.xhr = __oni_rt.xhr;
       throw "Server too slow...";
     }`
 */
-exports.get = function(/*url,settings*/) {
-  return __oni_rt.xhr.apply(this, arguments).responseText;
-};
+exports.get = exports.request;
 
 /** 
   @function  post
   @summary   Perform a HTTP POST request and return the response text.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
   @param     {String|null} [body] Request body.
-  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr).
+  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.request](#http/request).
   @return    {String} 
-  @shortcut  xhr
+  @shortcut  request
   @desc
     ### Example:    
     `var http = require("http");
@@ -350,7 +334,7 @@ exports.get = function(/*url,settings*/) {
     console.log(require("json").parse(rv).id);`
 */
 exports.post = function(url, body, settings) {
-  return __oni_rt.xhr(url, [{method:"POST", body:body}, settings]).responseText;
+  return __oni_rt.request(url, [{method:"POST", body:body}, settings]);
 };
 
 
@@ -358,7 +342,7 @@ exports.post = function(url, body, settings) {
   @function  json
   @summary   Perform a HTTP GET request and parse the response text as a JSON object.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr).
+  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.request](#http/request).
   @shortcut  get
   @return    {Object}
   @desc
@@ -371,29 +355,6 @@ exports.post = function(url, body, settings) {
 */
 exports.json = function(/*url, settings*/) {
   return __oni_rt.parseJSON(exports.get.apply(this, arguments));
-};
-
-/**
-  @function  xml
-  @summary   Perform a HTTP GET request and return the response XML.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr).
-  @return    {Object}
-  @shortcut  xhr
-  @desc
-    An alias for
-
-        http.xhr(url,settings).responseXML
-
-    ### Example:
-
-    `var http = require("http");
-    var root = http.xml("data.xml").documentElement;
-    console.log("Items in document: ", root.children.length)`
-*/
-exports.xml = function(/* url, settings */) {
-  // XXX need to emulate responseXML for XDR
-  return __oni_rt.xhr.apply(this, arguments).responseXML;
 };
 
 //----------------------------------------------------------------------
@@ -419,7 +380,7 @@ exports.xml = function(/* url, settings */) {
        c.log("src=", item.media.m);
     };`
 */
-exports.jsonp = require('sjs:__sys').jsonp;
+exports.jsonp = sys.jsonp;
 
 /**
   at function css

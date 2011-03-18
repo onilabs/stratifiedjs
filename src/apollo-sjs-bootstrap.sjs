@@ -32,7 +32,51 @@
 //----------------------------------------------------------------------
 // sjs library functions required by bootstrap code
 
-// mirrored by apollo/modules/http.sjs:xhr
+/**
+  @function xhr
+  @summary Performs an XMLHttpRequest.
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+  @param {optional Object} [settings] Hash of settings (or array of hashes)
+  @return {String}
+  @setting {String} [method="GET"] Request method.
+  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+  @setting {String} [body] Request body.
+  @setting {Object} [headers] Hash of additional request headers.
+  @setting {String} [username] Username for authentication.
+  @setting {String} [password] Password for authentication.
+  @setting {String} [mime] Override mime type.
+  @setting {Boolean} [throwing=true] Throw exception on error.
+  @desc
+    ### Cross-site requests:
+
+    The success of cross-site requests depends on whether the
+    server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
+    the browser is capable of issuing cross-site requests. This can be checked with
+    [http.isCORSCapable](#http/isCORSCapable).
+
+    The standard XMLHttpRequest can handle cross-site requests on compatible
+    browsers (any recent Chrome, Safari, Firefox). On IE8+, xhr will
+    automatically fall back to using MS's XDomainRequest object for
+    cross-site requests. 
+
+    ### Request failure:
+
+    If the request is unsuccessful, and the call is configured to
+    throw exceptions (setting {"throwing":true}; the default), an
+    exception will be thrown which has a 'status' member set to the
+    request status. If the call is configured to not throw, an empty
+    string will be returned.
+
+    ###Example:
+
+        try { 
+          alert(http.xhr("foo.txt"));
+        }
+        catch (e) {
+          alert("Error! Status="+e.status);
+        }
+
+*/
 __oni_rt.xhr = function xhr(url, settings) {
   var opts = __oni_rt.accuSettings({},
                                    [
@@ -85,21 +129,22 @@ __oni_rt.xhr = function xhr(url, settings) {
     req.abort();
   }
 
-  if (opts.throwing) {
-    // file urls will return a success code '0', not '2'!
-    if (error ||
-        (req.status !== undefined && // req.status is undefined for IE XDR objs
-         !(req.status.toString().charAt(0) in {'0':1,'2':1}))) {
+  // file urls will return a success code '0', not '2'!
+  if (error ||
+      (req.status !== undefined && // req.status is undefined for IE XDR objs
+       !(req.status.toString().charAt(0) in {'0':1,'2':1}))) {
+    if (opts.throwing) {
       var txt = "Failed " + opts.method + " request to '"+url+"'";
       if (req.statusText) txt += ": "+req.statusText;
       if (req.status) txt += " ("+req.status+")";
       var err = new Error(txt);
       err.status = req.status;
-      err.req = req;
       throw err;
     }
+    else
+      return "";
   }
-  return req;
+  return req.responseText;
 };
 
 //----------------------------------------------------------------------
@@ -209,7 +254,7 @@ __oni_rt.resolveHubs = function(module, hubs) {
 __oni_rt.default_loader = function(path) {
   if (__oni_rt.getXHRCaps().CORS ||
       __oni_rt.isSameOrigin(path, document.location))
-    src = __oni_rt.xhr(path, {mime:"text/plain"}).responseText;
+    src = __oni_rt.xhr(path, {mime:"text/plain"});
   else {
     // browser is not CORS capable. Attempt modp:
     path += "!modp";

@@ -902,14 +902,14 @@ modules({
       },
       "isCORSCapable": {
         "type": "function",
-        "summary": "Checks if this browser can perform cross-origin requests to CORS-capable\nservers (see <http://www.w3.org/TR/cors/>)",
+        "summary": "Checks if we can perform cross-origin requests to CORS-capable\nservers (see <http://www.w3.org/TR/cors/>)",
         "return": {
           "type": "Boolean"
         }
       },
-      "xhr": {
+      "request": {
         "type": "function",
-        "summary": "Performs an XMLHttpRequest.",
+        "summary": "Performs a HTTP request.",
         "param": [
           {
             "type": "URLSPEC",
@@ -923,7 +923,7 @@ modules({
           }
         ],
         "return": {
-          "type": "XMLHttpRequest object"
+          "type": "String"
         },
         "setting": [
           {
@@ -969,7 +969,7 @@ modules({
             "summary": "Throw exception on error."
           }
         ],
-        "desc": "### Cross-site requests:\n\nThe success of cross-site requests depends on whether the\nserver allows the access (see <http://www.w3.org/TR/cors/>) and on whether\nthe browser is capable of issuing cross-site requests. This can be checked with\n[http.isCORSCapable](#http/isCORSCapable).\n\nThe standard XMLHttpRequest can handle cross-site requests on compatible\nbrowsers (any recent Chrome, Safari, Firefox). On IE8+, [http.xhr](#http/xhr) will\nautomatically fall back to using MS's XDomainRequest object for\ncross-site requests. \n\n### Request failure:\n\nIf the request is unsuccessful, and the call is configured to throw\nexceptions (setting {\"throwing\":true}; the default), an exception will\nbe thrown which has a 'status' member set to the request status, and a\n'req' member set to the XMLHttpRequest object.\n\n###Example:\n\n    try { \n      alert(http.xhr(\"foo.txt\").responseText);\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
+        "desc": "### Cross-site requests:\n\nThe success of cross-site requests depends on whether the\nserver allows the access (see <http://www.w3.org/TR/cors/>) and on whether\nthe we are capable of issuing cross-site requests. This can be checked with\n[__sys.isCORSCapable](#__sys/isCORSCapable).\n\nFor the apollo-xbrowser implementation, the standard\nXMLHttpRequest can handle cross-site requests on compatible\nbrowsers (any recent Chrome, Safari, Firefox). On IE8+,\n[http.request](#http/request) will automatically fall back to using MS's\nXDomainRequest object for cross-site requests.\n\n### Request failure:\n\nIf the request is unsuccessful, and the call is configured to\nthrow exceptions (setting {\"throwing\":true}; the default), an\nexception will be thrown which has a 'status' member set to the\nrequest status. If the call is configured to not throw, an empty\nstring will be returned.\n\n### Example:\n\n    try { \n      alert(http.request(\"foo.txt\"));\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
       },
       "get": {
         "type": "function",
@@ -983,14 +983,14 @@ modules({
           {
             "type": "optional Object",
             "name": "settings",
-            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
+            "summary": "Hash of settings (or array of hashes) as accepted by [http.request](#http/request)."
           }
         ],
         "return": {
           "type": "String"
         },
-        "shortcut": "xhr",
-        "desc": "An alias for\n\n    http.xhr(url,settings).responseText\n\n### Example:\n\n`console.log(\n  require(\"http\").get(\"data.txt\")\n);`\n\n### Example: timeout\n\n`var http = require(\"http\");\nwaitfor {\n  var data = http.get(\"data.txt\");\n} or {\n  hold(1000);\n}\nif (!data) {\n  throw \"Server too slow...\";\n}`\n"
+        "shortcut": "request",
+        "desc": "An alias for\n\n    http.request(url,settings)\n\n### Example:\n\n`console.log(\n  require(\"http\").get(\"data.txt\")\n);`\n\n### Example: timeout\n\n`var http = require(\"http\");\nwaitfor {\n  var data = http.get(\"data.txt\");\n} or {\n  hold(1000);\n}\nif (!data) {\n  throw \"Server too slow...\";\n}`\n"
       },
       "post": {
         "type": "function",
@@ -1009,13 +1009,13 @@ modules({
           {
             "type": "optional Object",
             "name": "settings",
-            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
+            "summary": "Hash of settings (or array of hashes) as accepted by [http.request](#http/request)."
           }
         ],
         "return": {
           "type": "String"
         },
-        "shortcut": "xhr",
+        "shortcut": "request",
         "desc": "### Example:    \n`var http = require(\"http\");\nvar response = http.post(\"/service\", \"some raw data\");\nconsole.log(\"server replied:\", response)`\n\n### Example: posting data in the url, not the body\n`var http = require(\"http\");\nvar rv = http.post(\"/service\", null,\n                   { query: {\n                          name: \"ford\",\n                          lastname: \"prefect\"\n                            }\n                   });\n// sends an HTTP POST to /service \n// with payload: name=ford&lastname=prefect\nconsole.log(require(\"json\").parse(rv).id);`\n"
       },
       "json": {
@@ -1030,7 +1030,7 @@ modules({
           {
             "type": "optional Object",
             "name": "settings",
-            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
+            "summary": "Hash of settings (or array of hashes) as accepted by [http.request](#http/request)."
           }
         ],
         "shortcut": "get",
@@ -1038,27 +1038,6 @@ modules({
           "type": "Object"
         },
         "desc": "### Example:\n`var http = require(\"http\");\nvar animals = http.json(\"/animals.php?type=cats\").animals;\nfor (var i = 0, cat; cat = animals[i]; i++) {\n  console.log(cat.name);\n}`\n"
-      },
-      "xml": {
-        "type": "function",
-        "summary": "Perform a HTTP GET request and return the response XML.",
-        "param": [
-          {
-            "type": "URLSPEC",
-            "name": "url",
-            "summary": "Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))"
-          },
-          {
-            "type": "optional Object",
-            "name": "settings",
-            "summary": "Hash of settings (or array of hashes) as accepted by [http.xhr](#http/xhr)."
-          }
-        ],
-        "return": {
-          "type": "Object"
-        },
-        "shortcut": "xhr",
-        "desc": "An alias for\n\n    http.xhr(url,settings).responseXML\n\n### Example:\n\n`var http = require(\"http\");\nvar root = http.xml(\"data.xml\").documentElement;\nconsole.log(\"Items in document: \", root.children.length)`\n"
       },
       "jsonp": {
         "type": "function",
