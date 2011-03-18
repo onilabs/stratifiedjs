@@ -30,124 +30,6 @@
  */
 
 //----------------------------------------------------------------------
-// sjs library functions required by bootstrap code
-
-/**
-  @function xhr
-  @summary Performs an XMLHttpRequest.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes)
-  @return {String}
-  @setting {String} [method="GET"] Request method.
-  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
-  @setting {String} [body] Request body.
-  @setting {Object} [headers] Hash of additional request headers.
-  @setting {String} [username] Username for authentication.
-  @setting {String} [password] Password for authentication.
-  @setting {String} [mime] Override mime type.
-  @setting {Boolean} [throwing=true] Throw exception on error.
-  @desc
-    ### Cross-site requests:
-
-    The success of cross-site requests depends on whether the
-    server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
-    the browser is capable of issuing cross-site requests. This can be checked with
-    [http.isCORSCapable](#http/isCORSCapable).
-
-    The standard XMLHttpRequest can handle cross-site requests on compatible
-    browsers (any recent Chrome, Safari, Firefox). On IE8+, xhr will
-    automatically fall back to using MS's XDomainRequest object for
-    cross-site requests. 
-
-    ### Request failure:
-
-    If the request is unsuccessful, and the call is configured to
-    throw exceptions (setting {"throwing":true}; the default), an
-    exception will be thrown which has a 'status' member set to the
-    request status. If the call is configured to not throw, an empty
-    string will be returned.
-
-    ###Example:
-
-        try { 
-          alert(http.xhr("foo.txt"));
-        }
-        catch (e) {
-          alert("Error! Status="+e.status);
-        }
-
-*/
-__oni_rt.xhr = function xhr(url, settings) {
-  var opts = __oni_rt.accuSettings({},
-                                   [
-                                     {
-                                       method   : "GET",
-                                       //    query    : undefined,
-                                       body     : null,
-                                       //    headers  : undefined,
-                                       //    username : undefined,
-                                       //    password : undefined,
-                                       throwing   : true
-                                     },
-                                     settings
-                                   ]);
-  url = __oni_rt.constructURL(url, opts.query);
-
-  var caps = __oni_rt.getXHRCaps();
-  if (!caps.XDR || __oni_rt.isSameOrigin(url, document.location)) {
-    var req = caps.XHR_ctor();
-    req.open(opts.method, url, true, opts.username || "", opts.password || "");
-  }
-  else {
-    // A cross-site request on IE, where we have to use XDR instead of XHR:
-    req = new XDomainRequest();
-    req.open(opts.method, url);
-  }
-  
-  waitfor(var error) {
-    if (req.onerror !== undefined) {
-      req.onload = function() { resume(); };
-      req.onerror = function() { resume(true); };
-    }
-    else { // IE
-      req.onreadystatechange = function(evt) {
-        if (req.readyState != 4)
-          return;
-        else
-          resume();
-      };
-    }
-
-    if (opts.headers)
-      for (var h in opts.headers)
-        req.setRequestHeader(h, opts.headers[h]);
-    if (opts.mime && req.overrideMimeType)
-      req.overrideMimeType(opts.mime);
-    req.send(opts.body);
-  }
-  retract {
-    req.abort();
-  }
-
-  // file urls will return a success code '0', not '2'!
-  if (error ||
-      (req.status !== undefined && // req.status is undefined for IE XDR objs
-       !(req.status.toString().charAt(0) in {'0':1,'2':1}))) {
-    if (opts.throwing) {
-      var txt = "Failed " + opts.method + " request to '"+url+"'";
-      if (req.statusText) txt += ": "+req.statusText;
-      if (req.status) txt += " ("+req.status+")";
-      var err = new Error(txt);
-      err.status = req.status;
-      throw err;
-    }
-    else
-      return "";
-  }
-  return req.responseText;
-};
-
-//----------------------------------------------------------------------
 // $eval
 var $eval;
 
@@ -254,13 +136,13 @@ __oni_rt.resolveHubs = function(module, hubs) {
 __oni_rt.default_loader = function(path) {
   if (__oni_rt.getXHRCaps().CORS ||
       __oni_rt.isSameOrigin(path, document.location))
-    src = __oni_rt.xhr(path, {mime:"text/plain"});
+    src = __oni_rt.sys.request(path, {mime:"text/plain"});
   else {
     // browser is not CORS capable. Attempt modp:
     path += "!modp";
-    src = require('__builtin:__sys_xbrowser').jsonp(path,
-                                                    {forcecb:"module",
-                                                     cbfield:null});
+    src = __oni_rt.sys.jsonp(path,
+                             {forcecb:"module",
+                              cbfield:null});
   }
   return { src: src, loaded_from: path };
 };
@@ -276,14 +158,13 @@ __oni_rt.github_loader = function(path) {
   var github_opts = {cbfield:"callback"};
   // XXX maybe some caching here
   var tree_sha;
-  var sys = require('__builtin:__sys_xbrowser');
   waitfor {
-    (tree_sha = sys.jsonp([github_api, 'repos/show/', user, repo, '/tags'],
-                          github_opts).tags[tag]) || hold();
+    (tree_sha = __oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/tags'],
+                                   github_opts).tags[tag]) || hold();
   }
   or {
-    (tree_sha = sys.jsonp([github_api, 'repos/show/', user, repo, '/branches'],
-                          github_opts).branches[tag]) || hold();
+    (tree_sha = __oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/branches'],
+                                   github_opts).branches[tag]) || hold();
   }
   or {
     hold(5000);
@@ -291,8 +172,8 @@ __oni_rt.github_loader = function(path) {
   }
 
   waitfor {
-  var src = sys.jsonp([github_api, 'blob/show/', user, repo, tree_sha, path],
-                      github_opts).blob.data;
+  var src = __oni_rt.sys.jsonp([github_api, 'blob/show/', user, repo, tree_sha, path],
+                               github_opts).blob.data;
   }
   or {
     hold(5000);
@@ -402,7 +283,7 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
 var require = __oni_rt.makeRequire(window.__oni_rt_require_base);
 
 require.hubs = [
-  ["sjs:__sys.sjs", "__builtin:__sys_xbrowser.sjs" ],
+  ["sjs:__sys.sjs", "__builtin:__sys.sjs" ],
   ["apollo:", "http://code.onilabs.com/apollo/0.11.0+/modules/" ],
   ["github:", __oni_rt.github_loader ]
 ];
@@ -412,9 +293,16 @@ require.modules = {};
 // loaded from, or "" if it can't be resolved:
 require.APOLLO_LOAD_PATH = "";
 
+// as final step, load our sys module; we use it in the require
+// mechanism (but hopefully not to load the sys module itself, or
+// we'll recurse forever!)
+__oni_rt.sys = require('__builtin:__sys');
+
 //----------------------------------------------------------------------
 // script loading:
 
+// this will be called when the document is loaded for the first time;
+// see end of apollo-js-bootstrap.js:
 __oni_rt.runScripts = function() {
   var scripts = document.getElementsByTagName("script");
   

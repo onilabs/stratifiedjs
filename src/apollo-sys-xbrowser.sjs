@@ -179,4 +179,72 @@ exports.isCORSCapable = function() {
      request status. If the call is configured to not throw, an empty
      string will be returned.  
 */
-exports.request = __oni_rt.xhr;
+exports.request = function(url, settings) {
+  var opts = __oni_rt.accuSettings({},
+                                   [
+                                     {
+                                       method   : "GET",
+                                       //    query    : undefined,
+                                       body     : null,
+                                       //    headers  : undefined,
+                                       //    username : undefined,
+                                       //    password : undefined,
+                                       throwing   : true
+                                     },
+                                     settings
+                                   ]);
+  url = __oni_rt.constructURL(url, opts.query);
+
+  var caps = __oni_rt.getXHRCaps();
+  if (!caps.XDR || __oni_rt.isSameOrigin(url, document.location)) {
+    var req = caps.XHR_ctor();
+    req.open(opts.method, url, true, opts.username || "", opts.password || "");
+  }
+  else {
+    // A cross-site request on IE, where we have to use XDR instead of XHR:
+    req = new XDomainRequest();
+    req.open(opts.method, url);
+  }
+  
+  waitfor(var error) {
+    if (req.onerror !== undefined) {
+      req.onload = function() { resume(); };
+      req.onerror = function() { resume(true); };
+    }
+    else { // IE
+      req.onreadystatechange = function(evt) {
+        if (req.readyState != 4)
+          return;
+        else
+          resume();
+      };
+    }
+
+    if (opts.headers)
+      for (var h in opts.headers)
+        req.setRequestHeader(h, opts.headers[h]);
+    if (opts.mime && req.overrideMimeType)
+      req.overrideMimeType(opts.mime);
+    req.send(opts.body);
+  }
+  retract {
+    req.abort();
+  }
+
+  // file urls will return a success code '0', not '2'!
+  if (error ||
+      (req.status !== undefined && // req.status is undefined for IE XDR objs
+       !(req.status.toString().charAt(0) in {'0':1,'2':1}))) {
+    if (opts.throwing) {
+      var txt = "Failed " + opts.method + " request to '"+url+"'";
+      if (req.statusText) txt += ": "+req.statusText;
+      if (req.status) txt += " ("+req.status+")";
+      var err = new Error(txt);
+      err.status = req.status;
+      throw err;
+    }
+    else
+      return "";
+  }
+  return req.responseText;
+};

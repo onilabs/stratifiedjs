@@ -29,7 +29,7 @@
  *
  */
 
-if (!__oni_rt.xhr) {
+if (!__oni_rt.sys) {
 
   //----------------------------------------------------------------------
   // js library functions required by bootstrap code

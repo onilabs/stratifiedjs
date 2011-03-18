@@ -334,7 +334,7 @@ exports.get = exports.request;
     console.log(require("json").parse(rv).id);`
 */
 exports.post = function(url, body, settings) {
-  return __oni_rt.request(url, [{method:"POST", body:body}, settings]);
+  return sys.request(url, [{method:"POST", body:body}, settings]);
 };
 
 
