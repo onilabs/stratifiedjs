@@ -36,7 +36,8 @@ if (!__oni_rt.xhr) {
   // XXX some|all of this should move into apollo-sys-xbrowser.sjs
 
   __oni_rt.isArrayOrArguments = function(obj) {
-    return Array.isArray(obj) || !!(obj && hasOwnProperty.call(obj, 'callee'));
+    return Array.isArray(obj) || 
+      !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee'));
   };
 
   // mirrored by apollo/modules/common.sjs:flatten
