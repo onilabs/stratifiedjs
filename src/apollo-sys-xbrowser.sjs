@@ -83,8 +83,18 @@ function jsonp_indoc(url, opts) {
     window[jsonp_cb_obj][cb] = resume;
     document.getElementsByTagName("head")[0].appendChild(elem);
 
-    // XXX this should not load an external module
-    require("apollo:dom").waitforEvent(elem, "error");
+    waitfor() {
+      if (elem.addEventListener)
+        elem.addEventListener("error", resume, false);
+      else // IE
+        elem.attachEvent("onerror", resume);
+    }
+    finally {
+      if (elem.removeEventListener)
+        elem.removeEventListener("error", resume, false);
+      else // IE
+        elem.detachEvent("onerror", resume);
+    }
     // this line never reached unless there is an error
     throw new Error("Could not complete JSONP request to '"+url+"'");
   }
@@ -95,7 +105,7 @@ function jsonp_indoc(url, opts) {
   return rv;
 }
 
-__oni_rt.jsonp_iframe = function(url, opts) {
+function jsonp_iframe(url, opts) {
   var cb = opts.forcecb || "R";
   var cb_query = {};
   if (opts.cbfield)
