@@ -30,15 +30,23 @@
  */
 
 /**
-  @function  jsonp
-  @summary   Perform a cross-domain capable JSONP-style request. 
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes)
-  @return    {Object}
-  @setting {Boolean} [iframe=false] Perform the request in a temporary iframe.
-  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
-  @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
-  @setting {String} [forcecb] Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*.  
+   @function isArrayOrArguments
+   @summary  Tests if an object is an array or arguments object.
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+*/
+exports.isArrayOrArguments = __oni_rt.isArrayOrArguments;
+
+/**
+   @function  jsonp
+   @summary   Perform a cross-domain capable JSONP-style request. 
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {optional Object} [settings] Hash of settings (or array of hashes)
+   @return    {Object}
+   @setting {Boolean} [iframe=false] Perform the request in a temporary iframe.
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
+   @setting {String} [forcecb] Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*.  
 */
 exports.jsonp = function(url, settings) {
   var opts = __oni_rt.accuSettings({}, [

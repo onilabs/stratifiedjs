@@ -64,7 +64,21 @@ modules({
         "return": {
           "type": "Boolean"
         },
-        "desc": "Deprecated - use Array.isArray instead\n"
+        "desc": "Deprecated - use [common.isArrayOrArguments](#common/isArrayOrArguments)\n"
+      },
+      "isArrayOrArguments": {
+        "type": "function",
+        "summary": "Tests if an object is an array or arguments object.",
+        "param": [
+          {
+            "type": "anything",
+            "name": "testObj",
+            "summary": "Object to test."
+          }
+        ],
+        "return": {
+          "type": "Boolean"
+        }
       },
       "flatten": {
         "type": "function",
@@ -704,7 +718,7 @@ modules({
           "type": "Object",
           "desc": "The query result."
         },
-        "desc": "See [http.search](#google/search)\n"
+        "desc": "See [google.search](#google/search)\n"
       },
       "translate": {
         "type": "function",

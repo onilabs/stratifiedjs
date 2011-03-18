@@ -53,9 +53,17 @@ exports.bind = function(f, thisObj) {
   @param    {anything} [testObj] Object to test.
   @return   {Boolean}
   @desc
-    Deprecated - use Array.isArray instead
+    Deprecated - use [common.isArrayOrArguments](#common/isArrayOrArguments)
 */
 exports.isArray = Array.isArray;
+
+/**
+   @function isArrayOrArguments
+   @summary  Tests if an object is an array or arguments object.
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+*/
+exports.isArrayOrArguments = require('sjs:__sys').isArrayOrArguments;
 
 /**
   @function flatten

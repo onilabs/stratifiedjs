@@ -54,12 +54,12 @@
 */
 exports.waitforAll = function waitforAll(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (Array.isArray(funcs)) {
+  if (require('sjs:__sys').isArrayOrArguments(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforAllFuncs(funcs, args, this_obj);
   }
-  else if (Array.isArray(args)) {
+  else if (require('sjs:__sys').isArrayOrArguments(args)) {
     if (!args.length) return;
     //...else
     return waitforAllArgs(funcs, args, this_obj);
@@ -120,12 +120,12 @@ function waitforAllArgs(f, args, this_obj) {
 */
 exports.waitforFirst = function waitforFirst(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (Array.isArray(funcs)) {
+  if (require('sjs:__sys').isArrayOrArguments(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforFirstFuncs(funcs, args, this_obj);
   }
-  else if (Array.isArray(args)) {
+  else if (require('sjs:__sys').isArrayOrArguments(args)) {
     if (!args.length) return;
     //...else
     return waitforFirstArgs(funcs, args, this_obj);

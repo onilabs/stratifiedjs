@@ -64,7 +64,7 @@ exports.search = search;
              key/value query parameters.
   @return    {Object} The query result.
   @desc
-    See [http.search](#google/search)
+    See [google.search](#google/search)
 */
 exports.siteSearch = function (q, site, settings) {
   q = q || "";
@@ -96,7 +96,7 @@ exports.siteSearch = function (q, site, settings) {
 exports.translate = function(text, to, /* [opt] */ from, /* [opt] */ extra) {
   from = from || ""; // "" == autodetect
   var langpair;
-  if (Array.isArray(to)) {
+  if (require('sjs:__sys').isArrayOrArguments(to)) {
     langpair = [];
     for (var i=0; i<to.length; ++i)
       langpair.push(from + "|" + to[i]);

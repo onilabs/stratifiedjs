@@ -35,13 +35,17 @@ if (!__oni_rt.xhr) {
   // js library functions required by bootstrap code
   // XXX some|all of this should move into apollo-sys-xbrowser.sjs
 
+  __oni_rt.isArrayOrArguments = function(obj) {
+    return Array.isArray(obj) || !!(obj && hasOwnProperty.call(obj, 'callee'));
+  };
+
   // mirrored by apollo/modules/common.sjs:flatten
   __oni_rt.flatten = function(arr, rv) {
     var rv = rv || [];
     var l=arr.length;
     for (var i=0; i<l; ++i) {
       var elem = arr[i];
-      if (Array.isArray(elem))
+      if (__oni_rt.isArrayOrArguments(elem))
         __oni_rt.flatten(elem, rv);
       else
         rv.push(elem);
@@ -73,7 +77,7 @@ if (!__oni_rt.xhr) {
       for (var q in hash) {
         var l = encodeURIComponent(q) + "=";
         var val = hash[q];
-        if (!Array.isArray(val))
+        if (!__oni_rt.isArrayOrArguments(val))
           parts.push(l + encodeURIComponent(val));
         else {
           for (var i=0; i<val.length; ++i)
