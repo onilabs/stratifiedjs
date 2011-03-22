@@ -176,7 +176,7 @@ modules({
             "summary": "'this' object on which *funcs* will be executed."
           }
         ],
-        "desc": "If *funcs* is an array of functions, each of the functions will\nbe executed on a separate stratum, with 'this' set to *this_obj* and\nthe first argument set to *args*.\n\nIf *funcs* is a single function and *args* is an array, *funcs* will be\ncalled *args.length* times on separate strata with its first argument set\nto a different elements of *args* in each stratum.\n"
+        "desc": "If *funcs* is an array of functions, each of the functions will\nbe executed on a separate stratum, with 'this' set to *this_obj* and\nthe first argument set to *args*.\n\nIf *funcs* is a single function and *args* is an array, *funcs*\nwill be called *args.length* times on separate strata with its\nfirst argument set to a different elements of *args*, the second\nargument set to the index of the element in *args*, and the the\nthird argument set to the *args*.  \n"
       },
       "waitforFirst": {
         "type": "function",
@@ -202,7 +202,7 @@ modules({
             "summary": "'this' object on which *funcs* will be executed."
           }
         ],
-        "desc": "If *funcs* is an array of functions, each of the functions will\nbe executed on a separate stratum, with 'this' set to *this_obj* and\nthe first argument set to *args*.\n\nIf *funcs* is a single function and *args* is an array, *funcs* will be\ncalled *args.length* times on separate strata with its first argument set\nto a different elements of *args* in each stratum.\n"
+        "desc": "If *funcs* is an array of functions, each of the functions will\nbe executed on a separate stratum, with 'this' set to *this_obj* and\nthe first argument set to *args*.\n\nIf *funcs* is a single function and *args* is an array, *funcs*\nwill be called *args.length* times on separate strata with its\nfirst argument set to a different elements of *args*, the second\nargument set to the index of the element in *args*, and the the\nthird argument set to the *args*.  \n"
       },
       "makeBoundedFunction": {
         "type": "function",

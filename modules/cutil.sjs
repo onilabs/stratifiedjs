@@ -35,6 +35,8 @@
              concurrent stratified programming.
 */
 
+var sys = require('sjs:__sys');
+
 /**
   @function waitforAll
   @summary  Execute a number of functions on separate strata and wait for all
@@ -48,21 +50,23 @@
     be executed on a separate stratum, with 'this' set to *this_obj* and
     the first argument set to *args*.
 
-    If *funcs* is a single function and *args* is an array, *funcs* will be
-    called *args.length* times on separate strata with its first argument set
-    to a different elements of *args* in each stratum.
+    If *funcs* is a single function and *args* is an array, *funcs*
+    will be called *args.length* times on separate strata with its
+    first argument set to a different elements of *args*, the second
+    argument set to the index of the element in *args*, and the the
+    third argument set to the *args*.  
 */
 exports.waitforAll = function waitforAll(funcs, args, this_obj) {
-  this_obj = this_obj || this;
-  if (require('sjs:__sys').isArrayOrArguments(funcs)) {
+  this_obj = this_obj || null;
+  if (sys.isArrayOrArguments(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforAllFuncs(funcs, args, this_obj);
   }
-  else if (require('sjs:__sys').isArrayOrArguments(args)) {
+  else if (sys.isArrayOrArguments(args)) {
     if (!args.length) return;
     //...else
-    return waitforAllArgs(funcs, args, this_obj);
+    return waitforAllArgs(funcs, args, 0, args.length, this_obj);
   }
   // else
   throw new Error("waitforAll: argument error; either funcs or args needs to be an array");
@@ -84,18 +88,18 @@ function waitforAllFuncs(funcs, args, this_obj) {
   }
 };
 
-function waitforAllArgs(f, args, this_obj) {
-  if (args.length == 1)
-    f.call(this_obj, args[0]);
+function waitforAllArgs(f, args, i, l, this_obj) {
+  if (l == 1)
+    f.call(this_obj, args[i], i, args);
   else {
     // build a binary recursion tree, so that we don't blow the stack easily
     // XXX we should really have waitforAll as a language primitive
-    var split = Math.floor(args.length/2);
+    var split = Math.floor(l/2);
     waitfor {
-      waitforAllArgs(f, args.slice(0,split), this_obj);
+      waitforAllArgs(f, args, i, split, this_obj);
     }
     and {
-      waitforAllArgs(f, args.slice(split), this_obj);
+      waitforAllArgs(f, args, i+split, l-split, this_obj);
     }
   }
 }
@@ -114,21 +118,23 @@ function waitforAllArgs(f, args, this_obj) {
     be executed on a separate stratum, with 'this' set to *this_obj* and
     the first argument set to *args*.
 
-    If *funcs* is a single function and *args* is an array, *funcs* will be
-    called *args.length* times on separate strata with its first argument set
-    to a different elements of *args* in each stratum.
+    If *funcs* is a single function and *args* is an array, *funcs*
+    will be called *args.length* times on separate strata with its
+    first argument set to a different elements of *args*, the second
+    argument set to the index of the element in *args*, and the the
+    third argument set to the *args*.  
 */
 exports.waitforFirst = function waitforFirst(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (require('sjs:__sys').isArrayOrArguments(funcs)) {
+  if (sys.isArrayOrArguments(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforFirstFuncs(funcs, args, this_obj);
   }
-  else if (require('sjs:__sys').isArrayOrArguments(args)) {
+  else if (sys.isArrayOrArguments(args)) {
     if (!args.length) return;
     //...else
-    return waitforFirstArgs(funcs, args, this_obj);
+    return waitforFirstArgs(funcs, args, 0, args.length, this_obj);
   }
   // else
   throw new Error("waitforFirst: argument error; either funcs or args needs to be an array");
@@ -151,18 +157,18 @@ function waitforFirstFuncs(funcs, args, this_obj) {
   }
 };
 
-function waitforFirstArgs(f, args, this_obj) {
-  if (args.length == 1)
-    return f.call(this_obj, args[0]);
+function waitforFirstArgs(f, args, i, l, this_obj) {
+  if (l == 1)
+    return f.call(this_obj, args[i], i, args);
   else {
     // build a binary recursion tree, so that we don't blow the stack easily
     // XXX we should really have waitforFirst as a language primitive
-    var split = Math.floor(args.length/2);    
+    var split = Math.floor(l/2);    
     waitfor {
-      return waitforFirstArgs(f, args.slice(0,split), this_obj);
+      return waitforFirstArgs(f, args, i, split, this_obj);
     }
     or {
-      return waitforFirstArgs(f, args.slice(split), this_obj);
+      return waitforFirstArgs(f, args, i+split, l-split, this_obj);
     }
   }
 };
