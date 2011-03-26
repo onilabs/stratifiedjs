@@ -2,7 +2,7 @@
  * Oni Apollo SJS cross-browser system module ('sjs:__sys')
  *
  * Part of the Oni Apollo Cross-Browser StratifiedJS Runtime
- * 0.11+
+ * 0.12.0
  * http://onilabs.com/apollo
  *
  * (c) 2011 Oni Labs, http://onilabs.com
