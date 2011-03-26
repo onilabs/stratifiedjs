@@ -2,7 +2,7 @@
  * Oni Apollo SJS bootstrap code
  *
  * Part of the Oni Apollo Cross-Browser StratifiedJS Runtime
- * 0.11.0+
+ * 0.11+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
@@ -293,7 +293,7 @@ var require = __oni_rt.makeRequire(window.__oni_rt_require_base);
 
 require.hubs = [
   ["sjs:__sys.sjs", "__builtin:__sys.sjs" ],
-  ["apollo:", "http://code.onilabs.com/apollo/0.11.0+/modules/" ],
+  ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
   ["github:", __oni_rt.github_loader ]
 ];
 require.modules = {};
