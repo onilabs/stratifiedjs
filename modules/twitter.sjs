@@ -48,13 +48,36 @@ var common = require("common");
     Twitter &#0064;Anywhere library.
 
     *initAnywhere* returns the **Twitter API Client** object (the object named
-    **T** in the &#0064;Anywhere docs).
+    **T** in the &#0064;Anywhere docs). 
 
     Two extra functions will be installed on the API Client:
 
-    - *call(method, params)*: make a (stratified) call to the RESTful Twitter API (see <http://dev.twitter.com/doc>).
+    - *call(method, params)*: make a (stratified) call to the RESTful Twitter API (see <http://dev.twitter.com/doc>). See also example below.
 
-    - *waitforEvent(event)*: wait for an &#0064;Anywhere event, such as e.g. "authComplete"
+    - *waitforEvent(event)*: wait for an &#0064;Anywhere event, such as e.g. "authComplete".
+
+    ###Typical usage
+
+    See <http://fatc.onilabs.com> for a complete example of how to use
+    this API. The idea is to use the &#0064;Anywhere API for
+    authentication to Twitter and the use *call* to make calls
+    directly to the RESTful Twitter API, rather than going through the
+    &#0064;Anywhere abstractions.
+
+    ###Example
+
+        var T = require('apollo:twitter').initAnywhere({id:MY_API_KEY});
+        T("#login").connectButton(); // show twitter connect button
+        if (!T.isConnected()) 
+          T.waitforEvent("authComplete");
+        ...
+        var profile = T.call("users/show", {user_id: T.currentUser.id});
+        ...
+        var tweets = T.call("statuses/home_timeline", {count:30});
+        ...
+        var tweet = T.call("favorites/create/:id", [ SOME_TWEET_ID ]);
+        ...
+
 */
 exports.initAnywhere = function(settings) {
   settings = common.mergeSettings(
