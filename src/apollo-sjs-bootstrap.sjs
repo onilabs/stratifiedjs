@@ -158,6 +158,15 @@ __oni_rt.github_loader = function(path) {
   var github_opts = {cbfield:"callback"};
   // XXX maybe some caching here
   var tree_sha;
+  /* XXX we really want the parallel-or operator here (|@|) to recode this as:
+ 
+  var tree_sha = 
+    (__oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/tags'], 
+                        github_opts).tags 
+     |@| 
+     __oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/branches'],
+                        github_opts).branches)[tag];
+  */
   waitfor {
     (tree_sha = __oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/tags'],
                                    github_opts).tags[tag]) || hold();
