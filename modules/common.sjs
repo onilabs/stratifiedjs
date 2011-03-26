@@ -3,7 +3,7 @@
  * Common JS utility functions 
  *
  * Part of the Oni Apollo Standard Module Library
- * 0.11+
+ * 0.12+
  * http://onilabs.com/apollo
  *
  * (c) 2010-2011 Oni Labs, http://onilabs.com

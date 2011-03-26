@@ -1,6 +1,6 @@
 /*
  * Oni Apollo Cross-Browser StratifiedJS Runtime
- * 0.11+
+ * 0.12+
  * http://onilabs.com/apollo
  *
  * (c) 2010 Oni Labs, http://onilabs.com
