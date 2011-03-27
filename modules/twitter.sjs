@@ -52,7 +52,10 @@ var common = require("common");
 
     Two extra functions will be installed on the API Client:
 
-    - *call(method, params)*: make a (stratified) call to the RESTful Twitter API (see <http://dev.twitter.com/doc>). See also example below.
+    - *call(method, params)*: make a (stratified) call to the RESTful
+    Twitter API (see <http://dev.twitter.com/doc>). If the call fails,
+    *call* throws an exception with 'detail' member that contains more
+    information about the error.  See also example below.
 
     - *waitforEvent(event)*: wait for an &#0064;Anywhere event, such as e.g. "authComplete".
 
@@ -123,7 +126,11 @@ exports.initAnywhere = function(settings) {
         error: function(rv) { resume(rv, false); } 
       });
     }
-    if (!success) throw (rv ? rv : "twitter request error");
+    if (!success) {
+      var e = new Error("twitter request error");
+      e.detail = rv;
+      throw e;
+    }
     return rv;
   };
   
