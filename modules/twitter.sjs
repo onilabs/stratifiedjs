@@ -78,7 +78,13 @@ var common = require("common");
         ...
         var tweets = T.call("statuses/home_timeline", {count:30});
         ...
-        var tweet = T.call("favorites/create/:id", [ SOME_TWEET_ID ]);
+        try {
+          var tweet = T.call("favorites/create/:id", [ SOME_TWEET_ID ]);
+        }
+        catch (e) {
+          console.log(e);
+          console.log(e.detail);
+        }
         ...
 
 */
