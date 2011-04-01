@@ -2,7 +2,7 @@
  * Oni Apollo JS bootstrap code
  *
  * Part of the Oni Apollo Cross-Browser StratifiedJS Runtime
- * 0.12.0
+ * 0.12.1
  * http://onilabs.com/apollo
  *
  * (c) 2010-2011 Oni Labs, http://onilabs.com
@@ -273,21 +273,5 @@ if (!__oni_rt.sys) {
   
   window.eval(__oni_rt.c1.compile(__oni_rt.src_bootstrap,
                                   {filename:"apollo-sjs-bootstrap.sjs"}));
-  delete __oni_rt.src_bootstrap;
-  
-  //----------------------------------------------------------------------
-  // load inline SJS code:
-
-  if (!window.__oni_rt_no_script_load) {
-    if (document.readyState === "complete") {
-      __oni_rt.runScripts();
-    }
-    else {
-      // XXX maybe use DOMContentLoaded here, if available
-      if (window.addEventListener)
-        window.addEventListener("load", __oni_rt.runScripts, true);
-      else
-        window.attachEvent("onload", __oni_rt.runScripts);
-    }
-  }
+  delete __oni_rt.src_bootstrap;  
 }
