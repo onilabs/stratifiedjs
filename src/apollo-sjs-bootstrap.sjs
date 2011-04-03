@@ -310,37 +310,48 @@ __oni_rt.sys = require('__builtin:__sys');
 //----------------------------------------------------------------------
 // script loading:
 
-// this will be called when the document is loaded for the first time;
-// see end of apollo-js-bootstrap.js:
-__oni_rt.runScripts = function() {
-  var scripts = document.getElementsByTagName("script");
-  
-  // if there is something like a require('google').load() call in
-  // one of the scripts, our 'scripts' variable will change. In some
-  // circumstances this can lead to scripts being executed twice. To
-  // prevent this, we select text/sjs scripts and eval them in two passes:
-  
-  // this doesn't work on IE: ("JScript object expected")
-  //var ss = Array.prototype.slice.call(scripts, 0);
-  var ss = [];
-  for (var i=0; i<scripts.length; ++i) {
-    var matches;
-    if (scripts[i].getAttribute("type") == "text/sjs") {
-      var s = scripts[i];
-      ss.push(s);
+if (!window.__oni_rt_no_script_load) {
+  __oni_rt.runScripts = function() {
+    var scripts = document.getElementsByTagName("script");
+    
+    // if there is something like a require('google').load() call in
+    // one of the scripts, our 'scripts' variable will change. In some
+    // circumstances this can lead to scripts being executed twice. To
+    // prevent this, we select text/sjs scripts and eval them in two passes:
+    
+    // this doesn't work on IE: ("JScript object expected")
+    //var ss = Array.prototype.slice.call(scripts, 0);
+    var ss = [];
+    for (var i=0; i<scripts.length; ++i) {
+      var matches;
+      if (scripts[i].getAttribute("type") == "text/sjs") {
+        var s = scripts[i];
+        ss.push(s);
+      }
+      else if ((matches = /(.*)oni-apollo.js$/.exec(scripts[i].src)))
+        require.APOLLO_LOAD_PATH = matches[1];
     }
-    else if ((matches = /(.*)oni-apollo.js$/.exec(scripts[i].src)))
-      require.APOLLO_LOAD_PATH = matches[1];
+    
+    for (var i=0; i<ss.length; ++i) {
+      var s = ss[i];
+      var m = s.getAttribute("module");
+      // textContent is for XUL compatibility:
+      var content = s.textContent || s.innerHTML;
+      if (m)
+        __oni_rt.modsrc[m] = content;
+      else
+        $eval(content, {filename:"inline script "+(i+1)});
+    }
+  };
+
+  if (document.readyState === "complete") {
+    __oni_rt.runScripts();
   }
-  
-  for (var i=0; i<ss.length; ++i) {
-    var s = ss[i];
-    var m = s.getAttribute("module");
-    // textContent is for XUL compatibility:
-    var content = s.textContent || s.innerHTML;
-    if (m)
-      __oni_rt.modsrc[m] = content;
+  else {
+    // XXX maybe use DOMContentLoaded here, if available
+    if (window.addEventListener)
+      window.addEventListener("load", __oni_rt.runScripts, true);
     else
-      $eval(content, {filename:"inline script "+(i+1)});
+      window.attachEvent("onload", __oni_rt.runScripts);
   }
-};
+}

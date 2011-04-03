@@ -275,19 +275,4 @@ if (!__oni_rt.sys) {
                                   {filename:"apollo-sjs-bootstrap.sjs"}));
   delete __oni_rt.src_bootstrap;
   
-  //----------------------------------------------------------------------
-  // load inline SJS code:
-
-  if (!window.__oni_rt_no_script_load) {
-    if (document.readyState === "complete") {
-      __oni_rt.runScripts();
-    }
-    else {
-      // XXX maybe use DOMContentLoaded here, if available
-      if (window.addEventListener)
-        window.addEventListener("load", __oni_rt.runScripts, true);
-      else
-        window.attachEvent("onload", __oni_rt.runScripts);
-    }
-  }
 }
