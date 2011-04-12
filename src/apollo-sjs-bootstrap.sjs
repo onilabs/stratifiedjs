@@ -44,7 +44,7 @@ if (__oni_rt.UA == "msie" && window.execScript) {
   __oni_rt.IE_resume = {};
   
   $eval = function(code, settings) {
-    var filename = (settings && settings.filename) || "'$eval code'";
+    var filename = (settings && settings.filename) || "'$eval_code'";
     var mode = (settings && settings.mode) || "balanced";
     try {
       waitfor(var rv, isexception) {
@@ -66,7 +66,7 @@ if (__oni_rt.UA == "msie" && window.execScript) {
 else {
   // normal, sane eval
   $eval = function(code, settings) {
-    var filename = (settings && settings.filename) || "'$eval code'";
+    var filename = (settings && settings.filename) || "'$eval_code'";
     var mode = (settings && settings.mode) || "balanced";
     var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
     return window.eval(js);
@@ -337,10 +337,14 @@ if (!window.__oni_rt_no_script_load) {
       var m = s.getAttribute("module");
       // textContent is for XUL compatibility:
       var content = s.textContent || s.innerHTML;
+      if (__oni_rt.UA == "msie") {
+        // special casing for IE: remove spurious CRLF at beginning of content
+        content = content.replace(/\r\n/, "");
+      }
       if (m)
         __oni_rt.modsrc[m] = content;
       else
-        $eval(content, {filename:"inline script "+(i+1)});
+        $eval(content, {filename:"inline_script"+(i+1)});
     }
   };
 
