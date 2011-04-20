@@ -1,11 +1,11 @@
 /*
- * Oni Apollo SJS bootstrap code
+ * Oni Apollo SJS system module ('sjs:__sys') common part
  *
- * Part of the Oni Apollo Cross-Browser StratifiedJS Runtime
+ * Part of the Oni Apollo StratifiedJS Runtime
  * 0.12+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -31,29 +31,28 @@
 
 //----------------------------------------------------------------------
 // $eval
-var $eval;
 
-if (__oni_rt.UA == "msie" && window.execScript) {
+if (__oni_rt.UA == "msie" && __oni_rt.G.execScript) {
   // IE hack. On IE, 'eval' doesn't fill the global scope.
   // And execScript doesn't return a value :-(
   // We use waitfor/resume & catchall foo to get things working anyway.
   // Note: it is important to check for msie above. Other browsers (chrome)
   // implement execScript too, and we don't want them to take this suboptimal
   // path.
-  __oni_rt.IE_resume_counter = 0;
+  var IE_resume_counter = 0;
   __oni_rt.IE_resume = {};
   
-  $eval = function(code, settings) {
+  __oni_rt.G.$eval = function(code, settings) {
     var filename = (settings && settings.filename) || "'$eval_code'";
     var mode = (settings && settings.mode) || "balanced";
     try {
       waitfor(var rv, isexception) {
-        var rc = ++__oni_rt.IE_resume_counter;
+        var rc = ++IE_resume_counter;
         __oni_rt.IE_resume[rc]=resume;
         var js = __oni_rt.c1.compile(
           "try{"+code+
             "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume["+rc+"](rv[0],rv[1])) }", {filename:filename, mode:mode});
-        window.execScript(js);
+        __oni_rt.G.execScript(js);
       }
       if (isexception) throw rv;
     }
@@ -65,27 +64,27 @@ if (__oni_rt.UA == "msie" && window.execScript) {
 }
 else {
   // normal, sane eval
-  $eval = function(code, settings) {
+  __oni_rt.G.$eval = function(code, settings) {
     var filename = (settings && settings.filename) || "'$eval_code'";
     var mode = (settings && settings.mode) || "balanced";
     var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
-    return window.eval(js);
+    return __oni_rt.G.eval(js);
   };
 }
 
 //----------------------------------------------------------------------
 // require mechanism
 
-__oni_rt.pendingLoads = {};
+var pendingLoads = {};
 
 
 // require.alias, require.path are different for each
 // module. makeRequire is a helper to construct a suitable require
 // function that has access to these variables:
-__oni_rt.makeRequire = function(parent) {
+function makeRequire(parent) {
   // make properties of this require function accessible in requireInner:
   var rf = function(module) {
-    return __oni_rt.requireInner(module, rf, parent);
+    return requireInner(module, rf, parent);
   };
   rf.path = ""; // default path is empty
   rf.alias = {};
@@ -93,7 +92,7 @@ __oni_rt.makeRequire = function(parent) {
 }
 
 // helper to resolve aliases
-__oni_rt.resolveAliases = function(module, aliases) {
+function resolveAliases(module, aliases) {
   var ALIAS_REST = /^([^:]+):(.*)$/;
   var alias_rest, alias;
   var rv = module;
@@ -105,12 +104,12 @@ __oni_rt.resolveAliases = function(module, aliases) {
     rv = alias + alias_rest[2];
   }
   return rv;
-};
+}
 
 // helper to resolve hubs
-__oni_rt.resolveHubs = function(module, hubs) {
+function resolveHubs(module, hubs) {
   var path = module;
-  var loader = __oni_rt.default_loader;
+  var loader = default_loader;
   var level = 10; // we allow 10 levels of rewriting indirection
   for (var i=0,hub; hub=hubs[i++]; ) {
     if (path.indexOf(hub[0]) == 0) {
@@ -130,12 +129,12 @@ __oni_rt.resolveHubs = function(module, hubs) {
     }
   }
   return {path:path, loader:loader};
-};
+}
 
 // default module loader
-__oni_rt.default_loader = function(path) {
-  if (__oni_rt.getXHRCaps().CORS ||
-      __oni_rt.isSameOrigin(path, document.location))
+function default_loader(path) {
+  if (__oni_rt.sys.getXHRCaps().CORS ||
+      __oni_rt.sys.isSameOrigin(path, document.location))
     src = __oni_rt.sys.request(path, {mime:"text/plain"});
   else {
     // browser is not CORS capable. Attempt modp:
@@ -145,10 +144,10 @@ __oni_rt.default_loader = function(path) {
                               cbfield:null});
   }
   return { src: src, loaded_from: path };
-};
+}
 
 // loader that loads directly from github
-__oni_rt.github_loader = function(path) {
+function github_loader(path) {
   var user, repo, tag;
   try {
     [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
@@ -181,8 +180,8 @@ __oni_rt.github_loader = function(path) {
   }
 
   waitfor {
-  var src = __oni_rt.sys.jsonp([github_api, 'blob/show/', user, repo, tree_sha, path],
-                               github_opts).blob.data;
+    var src = __oni_rt.sys.jsonp([github_api, 'blob/show/', user, repo, tree_sha, path],
+                                 github_opts).blob.data;
   }
   or {
     hold(5000);
@@ -193,23 +192,23 @@ __oni_rt.github_loader = function(path) {
     src: src,
     loaded_from: "http://github.com/"+user+"/"+repo+"/blob/"+tree_sha+"/"+path
   };
-};
+}
 
 // requireInner: workhorse for require
-__oni_rt.requireInner = function(module, require_obj, parent) {
+function requireInner(module, require_obj, parent) {
   var path;
   // apply path if module is relative
   if (module.indexOf(":") == -1) {
     if (require_obj.path && require_obj.path.length)
-      path = __oni_rt.constructURL(require_obj.path, module);
+      path = __oni_rt.sys.constructURL(require_obj.path, module);
     else
       path = module;
-    path = __oni_rt.canonicalizeURL(path, parent ? parent : document.location);
+    path = __oni_rt.sys.canonicalizeURL(path, parent ? parent : document.location);
   }
   else
     path = module;
 
-  if (parent == window.__oni_rt_require_base)
+  if (parent == __oni_rt.G.__oni_rt_require_base)
     parent = "[toplevel]";
 
   // apply default extension; determine if path points to js file
@@ -220,17 +219,17 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
     is_js = true;
   
   // apply local aliases
-  path = __oni_rt.resolveAliases(path, require_obj.alias);
+  path = resolveAliases(path, require_obj.alias);
   // apply global aliases
   var loader;
-  ({path,loader}) = __oni_rt.resolveHubs(path, window.require.hubs);
+  ({path,loader}) = resolveHubs(path, __oni_rt.G.require.hubs);
   
   var descriptor;
-  if (!(descriptor = window.require.modules[path])) {
+  if (!(descriptor = __oni_rt.G.require.modules[path])) {
     // we don't have this module cached -> load it
-    var pendingHook = __oni_rt.pendingLoads[path];
+    var pendingHook = pendingLoads[path];
     if (!pendingHook) {
-      pendingHook = __oni_rt.pendingLoads[path] = spawn (function() {
+      pendingHook = pendingLoads[path] = spawn (function() {
         var src, loaded_from;
         try {
           if (path in __oni_rt.modsrc) {
@@ -258,13 +257,13 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
           else {
             f = $eval("(function(module, exports, require){"+src+"})",
                       {filename:"module '"+path+"'"});
-            f(descriptor, descriptor.exports, __oni_rt.makeRequire(path));
+            f(descriptor, descriptor.exports, makeRequire(path));
           }
-          // It is important that we only set window.require.modules[module]
+          // It is important that we only set __oni_rt.G.require.modules[module]
           // AFTER f finishes, because f might block, and we might get
           // reentrant calls to require() asking for the module that is
           // still being constructed.
-          window.require.modules[path] = descriptor;
+          __oni_rt.G.require.modules[path] = descriptor;
         }
         catch (e) {
           var mes = "Cannot load module '"+path+"'. "+
@@ -272,7 +271,7 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
           throw new Error(mes);
         }
         finally {
-          delete __oni_rt.pendingLoads[path];
+          delete pendingLoads[path];
         }
         return descriptor;
       })();
@@ -286,15 +285,15 @@ __oni_rt.requireInner = function(module, require_obj, parent) {
     ++descriptor.required_by[parent];
   
   return descriptor.exports;  
-};
+}
 
 // global require function:
-var require = __oni_rt.makeRequire(window.__oni_rt_require_base);
+__oni_rt.G.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
 
 require.hubs = [
   ["sjs:__sys.sjs", "__builtin:__sys.sjs" ],
   ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
-  ["github:", __oni_rt.github_loader ]
+  ["github:", github_loader ]
 ];
 require.modules = {};
 
@@ -302,60 +301,11 @@ require.modules = {};
 // loaded from, or "" if it can't be resolved:
 require.APOLLO_LOAD_PATH = "";
 
-// as final step, load our sys module; we use it in the require
+// Now load our sys module; we use it in the require
 // mechanism (but hopefully not to load the sys module itself, or
 // we'll recurse forever!)
 __oni_rt.sys = require('__builtin:__sys');
 
-//----------------------------------------------------------------------
-// script loading:
+// As a final step, perform any one-time initialization (such as loading scripts):
+__oni_rt.sys.init();
 
-if (!window.__oni_rt_no_script_load) {
-  __oni_rt.runScripts = function() {
-    var scripts = document.getElementsByTagName("script");
-    
-    // if there is something like a require('google').load() call in
-    // one of the scripts, our 'scripts' variable will change. In some
-    // circumstances this can lead to scripts being executed twice. To
-    // prevent this, we select text/sjs scripts and eval them in two passes:
-    
-    // this doesn't work on IE: ("JScript object expected")
-    //var ss = Array.prototype.slice.call(scripts, 0);
-    var ss = [];
-    for (var i=0; i<scripts.length; ++i) {
-      var matches;
-      if (scripts[i].getAttribute("type") == "text/sjs") {
-        var s = scripts[i];
-        ss.push(s);
-      }
-      else if ((matches = /(.*)oni-apollo.js$/.exec(scripts[i].src)))
-        require.APOLLO_LOAD_PATH = matches[1];
-    }
-    
-    for (var i=0; i<ss.length; ++i) {
-      var s = ss[i];
-      var m = s.getAttribute("module");
-      // textContent is for XUL compatibility:
-      var content = s.textContent || s.innerHTML;
-      if (__oni_rt.UA == "msie") {
-        // special casing for IE: remove spurious CRLF at beginning of content
-        content = content.replace(/\r\n/, "");
-      }
-      if (m)
-        __oni_rt.modsrc[m] = content;
-      else
-        $eval(content, {filename:"inline_script"+(i+1)});
-    }
-  };
-
-  if (document.readyState === "complete") {
-    __oni_rt.runScripts();
-  }
-  else {
-    // XXX maybe use DOMContentLoaded here, if available
-    if (window.addEventListener)
-      window.addEventListener("load", __oni_rt.runScripts, true);
-    else
-      window.attachEvent("onload", __oni_rt.runScripts);
-  }
-}

@@ -1,7 +1,9 @@
 /*
- * Oni Apollo SJS cross-browser system module ('sjs:__sys')
+ * Oni Apollo SJS system module ('sjs:__sys') host environment specific part:
+ * Cross-browser version
  *
- * Part of the Oni Apollo Cross-Browser StratifiedJS Runtime
+ *
+ * Part of the Oni Apollo StratifiedJS Runtime
  * 0.12+
  * http://onilabs.com/apollo
  *
@@ -30,12 +32,232 @@
  */
 
 /**
+   @object global
+   @summary Global object (i.e. window or global, depending on host environment)
+*/
+exports.global = __oni_rt.G;
+
+/**
    @function isArrayOrArguments
    @summary  Tests if an object is an array or arguments object.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isArrayOrArguments = __oni_rt.isArrayOrArguments;
+exports.isArrayOrArguments = function(obj) {
+  return Array.isArray(obj) || 
+    !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee'));
+};
+
+/**
+  @function flatten
+  @summary Create a recursively flattened version of an array.
+  @param   {Array} [arr] The array to flatten.
+  @return  {Array} Flattend version of *arr*, consisting of the elements
+                   of *arr*, but with elements that are arrays replaced by
+                   their elements (recursively).
+  @desc
+    See modules/common.sjs:flatten
+*/
+exports.flatten = function(arr, rv) {
+  var rv = rv || [];
+  var l=arr.length;
+  for (var i=0; i<l; ++i) {
+    var elem = arr[i];
+    if (exports.isArrayOrArguments(elem))
+      exports.flatten(elem, rv);
+    else
+      rv.push(elem);
+  }
+  return rv;
+};
+
+
+/**
+   @function accuSettings
+   @desc 
+     See modules/common.sjs:mergeSettings
+*/
+exports.accuSettings = function(accu, hashes) {
+  hashes = exports.flatten(hashes);
+  var hl = hashes.length;
+  for (var h=0; h<hl; ++h) {
+    var hash = hashes[h];
+    for (var o in hash)
+      accu[o] = hash[o];
+  }
+  return accu;
+};
+
+/**
+  @function parseURL
+  @summary Parses the given URL into components.
+  @param {String} [url] URL to parse.
+  @return {Object} Parsed URL as described at <http://stevenlevithan.com/demo/parseuri/js/> (using 'strict' mode).
+  @desc
+     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
+*/
+/*
+  Implementation is taken from
+  parseUri 1.2.2
+  (c) Steven Levithan <stevenlevithan.com>
+  MIT License
+  http://blog.stevenlevithan.com/archives/parseuri
+*/
+exports.parseURL = function(str) {
+  var o = exports.parseURL.options,
+  m = o.parser.exec(str),
+  uri = {},
+  i = 14;
+  
+  while (i--) uri[o.key[i]] = m[i] || "";
+  
+  uri[o.q.name] = {};
+  uri[o.key[12]].replace(o.q.parser, function($0, $1, $2) {
+    if ($1) uri[o.q.name][$1] = $2;
+  });
+  
+  return uri;
+};
+exports.parseURL.options = {
+	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+	q:   {
+		name:   "queryKey",
+		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+	},
+  // We're only using the 'strict' mode parser:
+	parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/
+};
+
+
+/**
+  @function  constructQueryString
+  @summary Build a URL query string.
+  @param {QUERYHASHARR} [hashes] Object(s) with key/value pairs.
+         See below for full syntax.
+  @return {String}
+  @desc
+    See [http.constructQueryString](#http/constructQueryString)
+*/
+exports.constructQueryString = function(/*hashes*/) {
+  var hashes = exports.flatten(arguments);
+  var hl = hashes.length;
+  var parts = [];
+  for (var h=0; h<hl; ++h) {
+    var hash = hashes[h];
+    for (var q in hash) {
+      var l = encodeURIComponent(q) + "=";
+      var val = hash[q];
+      if (!exports.isArrayOrArguments(val))
+        parts.push(l + encodeURIComponent(val));
+      else {
+        for (var i=0; i<val.length; ++i)
+          parts.push(l + encodeURIComponent(val[i]));
+      }
+    }
+  }
+  return parts.join("&");
+};
+
+/**
+  @function constructURL
+  @summary Build a URL string.
+  @param {URLSPEC} [urlspec] Base string and optional path strings
+                   and query hashes. See docs in http module for full syntax.
+  @return {String}
+*/
+exports.constructURL = function(/* url_spec */) {
+  var url_spec = exports.flatten(arguments);
+  var l = url_spec.length;
+  var rv = url_spec[0];
+  
+  // path components:
+  for (var i=1; i<l; ++i) {
+    var comp = url_spec[i];
+    if (typeof comp != "string") break;
+    if (rv.charAt(rv.length-1) != "/") rv += "/";
+    rv += comp.charAt(0) == "/" ? comp.substr(1) :comp;
+  }
+  
+  // query string:
+  var qparts = [];
+  for (;i<l;++i) {
+    var part = exports.constructQueryString(url_spec[i]);
+    if (part.length)
+      qparts.push(part);
+  }
+  var query = qparts.join("&");
+  if (query.length) {
+    if (rv.indexOf("?") != -1)
+      rv += "&";
+    else
+      rv += "?";
+    rv += query;
+  }
+  return rv;
+};
+
+/**
+  @function isSameOrigin
+  @summary Checks if the given URLs have matching authority parts.
+  @param {String} [url1] First URL.
+  @param {String} [url2] Second URL.
+*/
+exports.isSameOrigin = function(url1, url2) {
+  var a1 = exports.parseURL(url1).authority;
+  if (!a1) return true;
+  var a2 = exports.parseURL(url2).authority;
+  return  !a2 || (a1 == a2);
+};
+
+
+/**
+  @function canonicalizeURL
+  @summary Convert relative to absolute URLs and collapse '.' and '..' path
+           components.
+  @param {String} [url] URL to canonicalize.
+  @param {String} [base] URL which will be taken as a base if *url* is relative.
+  @return {String} Canonicalized URL.
+*/
+exports.canonicalizeURL = function(url, base) {
+  var a = exports.parseURL(url);
+  
+  // convert relative->absolute:
+  if (!a.protocol && base) {
+    base = exports.parseURL(base);
+    a.protocol = base.protocol;
+    if (!a.authority) {
+      a.authority = base.authority;
+      if (!a.directory.length || a.directory.charAt(0) != '/') {
+        // a is relative to base.directory
+        a.directory = base.directory + a.directory;
+      }
+    }
+  }
+  
+  // collapse "." & "..":
+  var pin = a.directory.split("/");
+  var l = pin.length;
+  var pout = [];
+  for (var i=0; i<l; ++i) {
+    var c = pin[i];
+    if (c == ".") continue;
+    if (c == ".." && pout.length>1)
+      pout.pop();
+    else
+      pout.push(c);
+  }
+  a.directory = pout.join("/");
+  
+  // build return value:
+  var rv = "";
+  if (a.protocol) rv += a.protocol + ":";
+  if (a.authority) rv += "//" + a.authority;
+  rv += a.directory + a.file;
+  if (a.query) rv += "?" + a.query;
+  if (a.anchor) rv += "#" + a.anchor;
+  return rv;
+};
+
 
 /**
    @function  jsonp
@@ -49,7 +271,7 @@ exports.isArrayOrArguments = __oni_rt.isArrayOrArguments;
    @setting {String} [forcecb] Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*.  
 */
 exports.jsonp = function(url, settings) {
-  var opts = __oni_rt.accuSettings({}, [
+  var opts = exports.accuSettings({}, [
     {
       iframe : false,
       //    query : undefined,
@@ -59,7 +281,7 @@ exports.jsonp = function(url, settings) {
     settings
   ]);
 
-  url = __oni_rt.constructURL(url, opts.query);
+  url = exports.constructURL(url, opts.query);
   if (opts.iframe || opts.forcecb)
     return jsonp_iframe(url, opts);
   else
@@ -74,7 +296,7 @@ function jsonp_indoc(url, opts) {
   var cb = "cb" + (jsonp_req_count++);
   var cb_query = {};
   cb_query[opts.cbfield] = jsonp_cb_obj + "." + cb;
-  url = __oni_rt.constructURL(url, cb_query);
+  url = exports.constructURL(url, cb_query);
   var elem = document.createElement("script");
   elem.setAttribute("src", url);
   elem.setAttribute("async", "async"); //XXX ?
@@ -110,7 +332,7 @@ function jsonp_iframe(url, opts) {
   var cb_query = {};
   if (opts.cbfield)
     cb_query[opts.cbfield] = cb;
-  url = __oni_rt.constructURL(url, cb_query);
+  url = exports.constructURL(url, cb_query);
   var iframe = document.createElement("iframe");
   document.getElementsByTagName("head")[0].appendChild(iframe);
   var doc = iframe.contentWindow.document;
@@ -132,6 +354,45 @@ function jsonp_iframe(url, opts) {
   return rv; 
 };
 
+    
+var XHR_caps;
+var activex_xhr_ver;
+// construct/retrieve xhr caps.
+exports.getXHRCaps = function() {
+  if (!XHR_caps) {
+    XHR_caps = {};
+    // set xhr ctor:
+    if (__oni_rt.G.XMLHttpRequest)
+      XHR_caps.XHR_ctor = function() { return new XMLHttpRequest(); };
+    else
+      XHR_caps.XHR_ctor = function() {
+        if (activex_xhr_ver !== undefined)
+          return new ActiveXObject(activex_xhr_ver);    
+        for (var v in
+             { "MSXML2.XMLHTTP.6.0":1,
+               "MSXML2.XMLHTTP.3.0":1,
+               "MSXML2.XMLHTTP":1
+             }) {
+          try {
+            var req = new ActiveXObject(v);
+            activex_xhr_ver = v;
+            return req;
+          }
+          catch (e) {}
+        }
+        throw new Error("Browser does not support XMLHttpRequest");
+      };
+    
+    // determine CORS caps:
+    XHR_caps.XHR_CORS = ("withCredentials" in XHR_caps.XHR_ctor());
+    if (!XHR_caps.XHR_CORS)
+      XHR_caps.XDR = (__oni_rt.G.XDomainRequest !== undefined);
+    XHR_caps.CORS = XHR_caps.XHR_CORS || XHR_caps.XDR;
+  }
+  return XHR_caps;
+};
+
+
 /**
   @function isCORSCapable
   @summary Checks if we can perform cross-origin requests to CORS-capable
@@ -139,7 +400,7 @@ function jsonp_iframe(url, opts) {
   @return {Boolean}
 */
 exports.isCORSCapable = function() {
-  return __oni_rt.getXHRCaps().CORS;
+  return exports.getXHRCaps().CORS;
 };
 
 
@@ -180,7 +441,7 @@ exports.isCORSCapable = function() {
      string will be returned.  
 */
 exports.request = function(url, settings) {
-  var opts = __oni_rt.accuSettings({},
+  var opts = exports.accuSettings({},
                                    [
                                      {
                                        method   : "GET",
@@ -193,10 +454,10 @@ exports.request = function(url, settings) {
                                      },
                                      settings
                                    ]);
-  url = __oni_rt.constructURL(url, opts.query);
+  url = exports.constructURL(url, opts.query);
 
-  var caps = __oni_rt.getXHRCaps();
-  if (!caps.XDR || __oni_rt.isSameOrigin(url, document.location)) {
+  var caps = exports.getXHRCaps();
+  if (!caps.XDR || exports.isSameOrigin(url, document.location)) {
     var req = caps.XHR_ctor();
     req.open(opts.method, url, true, opts.username || "", opts.password || "");
   }
@@ -248,3 +509,61 @@ exports.request = function(url, settings) {
   }
   return req.responseText;
 };
+
+
+// 1-time init function that will be called when the system is fully bootstrapped
+exports.init = function() {
+  //----------------------------------------------------------------------
+  // script loading:
+
+  if (!__oni_rt.G.__oni_rt_no_script_load) {
+    function runScripts() {
+      var scripts = document.getElementsByTagName("script");
+      
+      // if there is something like a require('google').load() call in
+      // one of the scripts, our 'scripts' variable will change. In some
+      // circumstances this can lead to scripts being executed twice. To
+      // prevent this, we select text/sjs scripts and eval them in two passes:
+      
+      // this doesn't work on IE: ("JScript object expected")
+      //var ss = Array.prototype.slice.call(scripts, 0);
+      var ss = [];
+      for (var i=0; i<scripts.length; ++i) {
+        var matches;
+        if (scripts[i].getAttribute("type") == "text/sjs") {
+          var s = scripts[i];
+          ss.push(s);
+        }
+        else if ((matches = /(.*)oni-apollo.js$/.exec(scripts[i].src)))
+          __oni_rt.G.require.APOLLO_LOAD_PATH = matches[1];
+      }
+      
+      for (var i=0; i<ss.length; ++i) {
+        var s = ss[i];
+        var m = s.getAttribute("module");
+        // textContent is for XUL compatibility:
+        var content = s.textContent || s.innerHTML;
+        if (__oni_rt.UA == "msie") {
+          // special casing for IE: remove spurious CRLF at beginning of content
+          content = content.replace(/\r\n/, "");
+        }
+        if (m)
+          __oni_rt.modsrc[m] = content;
+        else
+          $eval(content, {filename:"inline_script"+(i+1)});
+      }
+    };
+    
+    if (document.readyState === "complete") {
+      runScripts();
+    }
+    else {
+      // XXX maybe use DOMContentLoaded here, if available
+      if (__oni_rt.G.addEventListener)
+        __oni_rt.G.addEventListener("load", runScripts, true);
+      else
+        __oni_rt.G.attachEvent("onload", runScripts);
+    }
+  }
+};
+

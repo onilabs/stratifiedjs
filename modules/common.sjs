@@ -79,8 +79,7 @@ exports.isArrayOrArguments = require('sjs:__sys').isArrayOrArguments;
          var b = require('common').flatten(a);
          // b is now [1,2,3,4,5,6,7,8,9,10]
 */
-// see apollo/src/apollo-js-bootstrap.js
-exports.flatten = __oni_rt.flatten;
+exports.flatten = require('sjs:__sys').flatten;
 
 /**
   @function supplant
@@ -155,6 +154,6 @@ exports.sanitize = function(str) {
         SETTINGSHASH    : { key: value, ... } | undefined
 */
 exports.mergeSettings = function(/*settings-hash,...*/) {
-  return __oni_rt.accuSettings({}, arguments);
+  return require('sjs:__sys').accuSettings({}, arguments);
 }
 

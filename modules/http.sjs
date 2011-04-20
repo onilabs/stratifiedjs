@@ -89,8 +89,7 @@ var sys = require('sjs:__sys');
         MULTI_QUERY  : "field" : [ "value1", ... ]
 
 */
-// see apollo/src/apollo-js-bootstrap.js
-exports.constructQueryString = __oni_rt.constructQueryString;
+exports.constructQueryString = sys.constructQueryString;
 
 /**
   @function constructURL
@@ -160,8 +159,7 @@ exports.constructQueryString = __oni_rt.constructQueryString;
 
         MULTI_QUERY  : "field" : [ "value1", ... ]
 */
-// see apollo/src/apollo-js-bootstrap.js
-exports.constructURL = __oni_rt.constructURL;
+exports.constructURL = sys.constructURL;
 
 /**
   @function parseURL
@@ -171,8 +169,7 @@ exports.constructURL = __oni_rt.constructURL;
   @desc
      Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
 */
-// see apollo/src/apollo-js-bootstrap.js
-exports.parseURL = __oni_rt.parseURL;
+exports.parseURL = sys.parseURL;
 
 /**
   @function isSameOrigin
@@ -183,8 +180,7 @@ exports.parseURL = __oni_rt.parseURL;
     If either URL is missing an authority part (i.e. it is a relative URL),
     the function returns true as well.
 */
-// see apollo/src/apollo-js-bootstrap.js
-exports.isSameOrigin = __oni_rt.isSameOrigin;
+exports.isSameOrigin = sys.isSameOrigin;
 
 /**
   @function canonicalizeURL
@@ -209,8 +205,7 @@ exports.isSameOrigin = __oni_rt.isSameOrigin;
         // --> "http://a.b/c/bar.txt"
 
 */
-// see apollo/src/apollo-js-bootstrap.js
-exports.canonicalizeURL = __oni_rt.canonicalizeURL;
+exports.canonicalizeURL = sys.canonicalizeURL;
 
 //----------------------------------------------------------------------
 
@@ -353,8 +348,35 @@ exports.post = function(url, body, settings) {
       console.log(cat.name);
     }`
 */
+
+// helper taken from jquery
+function parseJSON(data) {
+  if (typeof data !== "string" || !data) {
+    return null;
+  }
+  
+  // Make sure leading/trailing whitespace is removed (IE can't handle it)
+  data = data.replace(/^(\s|\u00A0)+|(\s|\u00A0)+$/g, "");
+  
+  // Make sure the incoming data is actual JSON
+  // Logic borrowed from http://json.org/json2.js
+	if ( /^[\],:{}\s]*$/.test(data.replace(/\\(?:[\"\\\/bfnrt]|u[0-9a-fA-F]{4})/g, "@")
+		                        .replace(/\"[^\"\\\n\r]*\"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, "]")
+		                        .replace(/(?:^|:|,)(?:\s*\[)+/g, "")) ) {
+    
+    // Try to use the native JSON parser first
+    return sys.global.JSON && sys.global.JSON.parse ?
+      sys.global.JSON.parse(data) :
+      (new Function("return " + data))();
+    
+  }
+  else
+    throw "Invalid JSON";
+};
+
+
 exports.json = function(/*url, settings*/) {
-  return __oni_rt.parseJSON(exports.get.apply(this, arguments));
+  return parseJSON(exports.get.apply(this, arguments));
 };
 
 //----------------------------------------------------------------------
@@ -422,7 +444,7 @@ var _loadedScripts = {};
     jQuery("body").css({background:"red"});`
 */
 exports.script = function(/*url, queries*/) {
-  var url = __oni_rt.constructURL(arguments);
+  var url = sys.constructURL(arguments);
   if (_loadedScripts[url])
   return;
   var hook = _pendingScripts[url];
