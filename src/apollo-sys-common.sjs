@@ -29,6 +29,292 @@
  *
  */
 
+/*
+
+   The system module is spread over two parts: the 'common' part, and the
+   'hostenv' specific part. 
+   hostenv is one of : 'xbrowser' | 'nodejs' 
+
+   The hostenv-specific file must provide the following functions:
+
+   jsonp_hostenv
+   isCORSCapable_hostenv
+   request_hostenv
+
+   (we also export these for use by other libraries; see below for signatures)
+
+*/
+
+
+//----------------------------------------------------------------------
+// helper functions that we use internally and export for use by other
+// libraries; accessible through require('sjs:__sys')
+
+/**
+   @object global
+   @summary Global object (i.e. window or global, depending on host environment)
+*/
+exports.global = __oni_rt.G;
+
+/**
+   @function isArrayOrArguments
+   @summary  Tests if an object is an array or arguments object.
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+*/
+exports.isArrayOrArguments = function(obj) {
+  return Array.isArray(obj) || 
+    !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee'));
+};
+
+/**
+  @function flatten
+  @summary Create a recursively flattened version of an array.
+  @param   {Array} [arr] The array to flatten.
+  @return  {Array} Flattend version of *arr*, consisting of the elements
+                   of *arr*, but with elements that are arrays replaced by
+                   their elements (recursively).
+  @desc
+    See modules/common.sjs:flatten
+*/
+exports.flatten = function(arr, rv) {
+  var rv = rv || [];
+  var l=arr.length;
+  for (var i=0; i<l; ++i) {
+    var elem = arr[i];
+    if (exports.isArrayOrArguments(elem))
+      exports.flatten(elem, rv);
+    else
+      rv.push(elem);
+  }
+  return rv;
+};
+
+/**
+   @function accuSettings
+   @desc 
+     See modules/common.sjs:mergeSettings
+*/
+exports.accuSettings = function(accu, hashes) {
+  hashes = exports.flatten(hashes);
+  var hl = hashes.length;
+  for (var h=0; h<hl; ++h) {
+    var hash = hashes[h];
+    for (var o in hash)
+      accu[o] = hash[o];
+  }
+  return accu;
+};
+
+
+/**
+  @function parseURL
+  @summary Parses the given URL into components.
+  @param {String} [url] URL to parse.
+  @return {Object} Parsed URL as described at <http://stevenlevithan.com/demo/parseuri/js/> (using 'strict' mode).
+  @desc
+     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
+*/
+/*
+  Implementation is taken from
+  parseUri 1.2.2
+  (c) Steven Levithan <stevenlevithan.com>
+  MIT License
+  http://blog.stevenlevithan.com/archives/parseuri
+*/
+exports.parseURL = function(str) {
+  var o = exports.parseURL.options,
+  m = o.parser.exec(str),
+  uri = {},
+  i = 14;
+  
+  while (i--) uri[o.key[i]] = m[i] || "";
+  
+  uri[o.q.name] = {};
+  uri[o.key[12]].replace(o.q.parser, function($0, $1, $2) {
+    if ($1) uri[o.q.name][$1] = $2;
+  });
+  
+  return uri;
+};
+exports.parseURL.options = {
+	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+	q:   {
+		name:   "queryKey",
+		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+	},
+  // We're only using the 'strict' mode parser:
+	parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/
+};
+
+/**
+  @function  constructQueryString
+  @summary Build a URL query string.
+  @param {QUERYHASHARR} [hashes] Object(s) with key/value pairs.
+         See below for full syntax.
+  @return {String}
+  @desc
+    See [http.constructQueryString](#http/constructQueryString)
+*/
+exports.constructQueryString = function(/*hashes*/) {
+  var hashes = exports.flatten(arguments);
+  var hl = hashes.length;
+  var parts = [];
+  for (var h=0; h<hl; ++h) {
+    var hash = hashes[h];
+    for (var q in hash) {
+      var l = encodeURIComponent(q) + "=";
+      var val = hash[q];
+      if (!exports.isArrayOrArguments(val))
+        parts.push(l + encodeURIComponent(val));
+      else {
+        for (var i=0; i<val.length; ++i)
+          parts.push(l + encodeURIComponent(val[i]));
+      }
+    }
+  }
+  return parts.join("&");
+};
+
+/**
+  @function constructURL
+  @summary Build a URL string.
+  @param {URLSPEC} [urlspec] Base string and optional path strings
+                   and query hashes. See docs in http module for full syntax.
+  @return {String}
+*/
+exports.constructURL = function(/* url_spec */) {
+  var url_spec = exports.flatten(arguments);
+  var l = url_spec.length;
+  var rv = url_spec[0];
+  
+  // path components:
+  for (var i=1; i<l; ++i) {
+    var comp = url_spec[i];
+    if (typeof comp != "string") break;
+    if (rv.charAt(rv.length-1) != "/") rv += "/";
+    rv += comp.charAt(0) == "/" ? comp.substr(1) :comp;
+  }
+  
+  // query string:
+  var qparts = [];
+  for (;i<l;++i) {
+    var part = exports.constructQueryString(url_spec[i]);
+    if (part.length)
+      qparts.push(part);
+  }
+  var query = qparts.join("&");
+  if (query.length) {
+    if (rv.indexOf("?") != -1)
+      rv += "&";
+    else
+      rv += "?";
+    rv += query;
+  }
+  return rv;
+};
+
+/**
+  @function isSameOrigin
+  @summary Checks if the given URLs have matching authority parts.
+  @param {String} [url1] First URL.
+  @param {String} [url2] Second URL.
+*/
+exports.isSameOrigin = function(url1, url2) {
+  var a1 = exports.parseURL(url1).authority;
+  if (!a1) return true;
+  var a2 = exports.parseURL(url2).authority;
+  return  !a2 || (a1 == a2);
+};
+
+
+/**
+  @function canonicalizeURL
+  @summary Convert relative to absolute URLs and collapse '.' and '..' path
+           components.
+  @param {String} [url] URL to canonicalize.
+  @param {String} [base] URL which will be taken as a base if *url* is relative.
+  @return {String} Canonicalized URL.
+*/
+exports.canonicalizeURL = function(url, base) {
+  var a = exports.parseURL(url);
+  
+  // convert relative->absolute:
+  if (!a.protocol && base) {
+    base = exports.parseURL(base);
+    a.protocol = base.protocol;
+    if (!a.authority) {
+      a.authority = base.authority;
+      if (!a.directory.length || a.directory.charAt(0) != '/') {
+        // a is relative to base.directory
+        a.directory = base.directory + a.directory;
+      }
+    }
+  }
+  
+  // collapse "." & "..":
+  var pin = a.directory.split("/");
+  var l = pin.length;
+  var pout = [];
+  for (var i=0; i<l; ++i) {
+    var c = pin[i];
+    if (c == ".") continue;
+    if (c == ".." && pout.length>1)
+      pout.pop();
+    else
+      pout.push(c);
+  }
+  a.directory = pout.join("/");
+  
+  // build return value:
+  var rv = "";
+  if (a.protocol) rv += a.protocol + ":";
+  if (a.authority) rv += "//" + a.authority;
+  rv += a.directory + a.file;
+  if (a.query) rv += "?" + a.query;
+  if (a.anchor) rv += "#" + a.anchor;
+  return rv;
+};
+
+/**
+   @function  jsonp
+   @summary   Perform a cross-domain capable JSONP-style request. 
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {optional Object} [settings] Hash of settings (or array of hashes)
+   @return    {Object}
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
+   @setting {String} [forcecb] Force the name of the callback to the given string. 
+*/
+exports.jsonp = jsonp_hostenv; // to be implemented in hostenv-specific part
+
+
+/**
+  @function isCORSCapable
+  @summary Checks if we can perform cross-origin requests to CORS-capable
+           servers (see <http://www.w3.org/TR/cors/>)
+  @return {Boolean}
+*/
+exports.isCORSCapable = isCORSCapable_hostenv; // to be implemented in hostenv-specific part
+
+
+/**
+   @function request
+   @summary Performs a HTTP request.
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {optional Object} [settings] Hash of settings (or array of hashes)
+   @return {String}
+   @setting {String} [method="GET"] Request method.
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {String} [body] Request body.
+   @setting {Object} [headers] Hash of additional request headers.
+   @setting {String} [username] Username for authentication.
+   @setting {String} [password] Password for authentication.
+   @setting {String} [mime] Override mime type.
+   @setting {Boolean} [throwing=true] Throw exception on error.
+*/
+exports.request = request_hostenv;
+
 //----------------------------------------------------------------------
 // $eval
 
@@ -133,15 +419,15 @@ function resolveHubs(module, hubs) {
 
 // default module loader
 function default_loader(path) {
-  if (__oni_rt.sys.getXHRCaps().CORS ||
-      __oni_rt.sys.isSameOrigin(path, document.location))
-    src = __oni_rt.sys.request(path, {mime:"text/plain"});
+  if (isCORSCapable_hostenv() ||
+      exports.isSameOrigin(path, document.location))
+    src = request_hostenv(path, {mime:"text/plain"});
   else {
     // browser is not CORS capable. Attempt modp:
     path += "!modp";
-    src = __oni_rt.sys.jsonp(path,
-                             {forcecb:"module",
-                              cbfield:null});
+    src = jsonp_hostenv(path,
+                        {forcecb:"module",
+                         cbfield:null});
   }
   return { src: src, loaded_from: path };
 }
@@ -160,19 +446,19 @@ function github_loader(path) {
   /* XXX we really want the parallel-or operator here (|@|) to recode this as:
  
   var tree_sha = 
-    (__oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/tags'], 
-                        github_opts).tags 
+    (jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'], 
+                   github_opts).tags 
      |@| 
-     __oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/branches'],
-                        github_opts).branches)[tag];
+     jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
+                   github_opts).branches)[tag];
   */
   waitfor {
-    (tree_sha = __oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/tags'],
-                                   github_opts).tags[tag]) || hold();
+    (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'],
+                              github_opts).tags[tag]) || hold();
   }
   or {
-    (tree_sha = __oni_rt.sys.jsonp([github_api, 'repos/show/', user, repo, '/branches'],
-                                   github_opts).branches[tag]) || hold();
+    (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
+                              github_opts).branches[tag]) || hold();
   }
   or {
     hold(5000);
@@ -180,8 +466,8 @@ function github_loader(path) {
   }
 
   waitfor {
-    var src = __oni_rt.sys.jsonp([github_api, 'blob/show/', user, repo, tree_sha, path],
-                                 github_opts).blob.data;
+    var src = jsonp_hostenv([github_api, 'blob/show/', user, repo, tree_sha, path],
+                            github_opts).blob.data;
   }
   or {
     hold(5000);
@@ -200,10 +486,10 @@ function requireInner(module, require_obj, parent) {
   // apply path if module is relative
   if (module.indexOf(":") == -1) {
     if (require_obj.path && require_obj.path.length)
-      path = __oni_rt.sys.constructURL(require_obj.path, module);
+      path = exports.constructURL(require_obj.path, module);
     else
       path = module;
-    path = __oni_rt.sys.canonicalizeURL(path, parent ? parent : document.location);
+    path = exports.canonicalizeURL(path, parent ? parent : document.location);
   }
   else
     path = module;
@@ -291,7 +577,6 @@ function requireInner(module, require_obj, parent) {
 __oni_rt.G.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
 
 require.hubs = [
-  ["sjs:__sys.sjs", "__builtin:__sys.sjs" ],
   ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
   ["github:", github_loader ]
 ];
@@ -301,11 +586,10 @@ require.modules = {};
 // loaded from, or "" if it can't be resolved:
 require.APOLLO_LOAD_PATH = "";
 
-// Now load our sys module; we use it in the require
-// mechanism (but hopefully not to load the sys module itself, or
-// we'll recurse forever!)
-__oni_rt.sys = require('__builtin:__sys');
-
-// As a final step, perform any one-time initialization (such as loading scripts):
-__oni_rt.sys.init();
-
+__oni_rt.G.require.modules['sjs:__sys.sjs'] = {
+  id: 'sys:__sys.sjs',
+  exports: exports,
+  loaded_from: "[builtin]",
+  loaded_by: "[toplevel]",
+  required_by: { "[toplevel]":1 }
+};
