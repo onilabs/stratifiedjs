@@ -38,7 +38,7 @@
    The hostenv-specific file must provide the following functions:
 
    jsonp_hostenv
-   isCORSCapable_hostenv
+   getXDomainCaps_hostenv
    request_hostenv
 
    (we also export these for use by other libraries; see below for signatures)
@@ -290,12 +290,11 @@ exports.jsonp = jsonp_hostenv; // to be implemented in hostenv-specific part
 
 
 /**
-  @function isCORSCapable
-  @summary Checks if we can perform cross-origin requests to CORS-capable
-           servers (see <http://www.w3.org/TR/cors/>)
-  @return {Boolean}
+   @function getXDomainCaps
+   @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')
+   @return {String}
 */
-exports.isCORSCapable = isCORSCapable_hostenv; // to be implemented in hostenv-specific part
+exports.getXDomainCaps = getXDomainCaps_hostenv; // to be implemented in hostenv-specific part
 
 
 /**
@@ -419,7 +418,7 @@ function resolveHubs(module, hubs) {
 
 // default module loader
 function default_loader(path) {
-  if (isCORSCapable_hostenv() ||
+  if (getXDomainCaps_hostenv() != 'none' ||
       exports.isSameOrigin(path, document.location))
     src = request_hostenv(path, {mime:"text/plain"});
   else {

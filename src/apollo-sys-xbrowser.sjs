@@ -172,22 +172,19 @@ function getXHRCaps() {
     XHR_caps.XHR_CORS = ("withCredentials" in XHR_caps.XHR_ctor());
     if (!XHR_caps.XHR_CORS)
       XHR_caps.XDR = (__oni_rt.G.XDomainRequest !== undefined);
-    XHR_caps.CORS = XHR_caps.XHR_CORS || XHR_caps.XDR;
+    XHR_caps.CORS = (XHR_caps.XHR_CORS || XHR_caps.XDR) ? "CORS" : "none";
   }
   return XHR_caps;
 }
 
-
 /**
-  @function isCORSCapable_hostenv
-  @summary Checks if we can perform cross-origin requests to CORS-capable
-           servers (see <http://www.w3.org/TR/cors/>)
-  @return {Boolean}
+   @function getXDomainCaps_hostenv
+   @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')
+   @return {String}
 */
-function isCORSCapable_hostenv() {
+function getXDomainCaps_hostenv() {
   return getXHRCaps().CORS;
 };
-
 
 /**
    @function request_hostenv
@@ -204,15 +201,17 @@ function isCORSCapable_hostenv() {
    @setting {String} [mime] Override mime type.
    @setting {Boolean} [throwing=true] Throw exception on error.
    @desc
-     ### Cross-site requests:
+     ### Cross-domain requests:
 
-     The success of cross-site requests depends on whether the
-     server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
-     the we are capable of issuing cross-site requests. This can be checked with
-     [__sys.isCORSCapable](#__sys/isCORSCapable).
+     The success of cross-domain requests depends on the cross-domain
+     capabilities of the host environment, see
+     [__sys.getXDomainCaps](#__sys/getXDomainCaps). If this function
+     returns "CORS" then success of cross-domain requests depends on
+     whether the server allows the access (see
+     <http://www.w3.org/TR/cors/>).
 
-     For the apollo-xbrowser implementation, the standard
-     XMLHttpRequest can handle cross-site requests on compatible
+     In the xbrowser host environment, the standard
+     XMLHttpRequest can handle cross-domain requests on compatible
      browsers (any recent Chrome, Safari, Firefox). On IE8+,
      [__sys.request](#__sys/request) will automatically fall back to using MS's
      XDomainRequest object for cross-site requests.

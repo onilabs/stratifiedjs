@@ -213,12 +213,13 @@ exports.xhr = function() { throw "http.xhr() is obsolete. Please use http.reques
 exports.xml = function() { throw "http.xml() is obsolete."; };
 
 /**
-  @function isCORSCapable
-  @summary Checks if we can perform cross-origin requests to CORS-capable
-           servers (see <http://www.w3.org/TR/cors/>)
-  @return {Boolean}
+   @function getXDomainCaps_hostenv
+   @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')
+   @return {String}
+   @desc
+     See also [http.request](#http/request).
 */
-exports.isCORSCapable = sys.isCORSCapable();
+exports.getXDomainCaps = sys.getXDomainCaps;
 
 
 /**
@@ -238,16 +239,20 @@ exports.isCORSCapable = sys.isCORSCapable();
    @desc
      ### Cross-site requests:
 
-     The success of cross-site requests depends on whether the
-     server allows the access (see <http://www.w3.org/TR/cors/>) and on whether
-     the we are capable of issuing cross-site requests. This can be checked with
-     [__sys.isCORSCapable](#__sys/isCORSCapable).
+     The success of cross-domain requests depends on the cross-domain
+     capabilities of the host environment, see
+     [http.getXDomainCaps](#http/getXDomainCaps). If this function
+     returns "CORS" then success of cross-domain requests depends on
+     whether the server allows the access (see
+     <http://www.w3.org/TR/cors/>).
 
-     For the apollo-xbrowser implementation, the standard
-     XMLHttpRequest can handle cross-site requests on compatible
+     In the xbrowser host environment, the standard
+     XMLHttpRequest can handle cross-domain requests on compatible
      browsers (any recent Chrome, Safari, Firefox). On IE8+,
      [http.request](#http/request) will automatically fall back to using MS's
      XDomainRequest object for cross-site requests.
+
+     In the nodejs host environment, we can always perform cross-domain requests
 
      ### Request failure:
 

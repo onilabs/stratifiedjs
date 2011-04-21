@@ -900,12 +900,13 @@ modules({
         },
         "desc": "###Examples:\n\n    http.canonicalizeURL(\"/foo/bar.txt\", \"http://a.b/c/d/baz.txt\");\n    // --> \"http://a.b/foo/bar.txt\"\n\n    http.canonicalizeURL(\"foo/bar.txt\", \"http://a.b/c/d/baz.txt\");\n    // --> \"http://a.b/c/d/foo/bar.txt\"\n\n    http.canonicalizeURL(\"././foo/./bar.txt\", \"http://a.b/c/d/\");\n    // --> \"http://a.b/c/d/foo/bar.txt\"\n\n    http.canonicalizeURL(\".././foo/../bar.txt\", \"http://a.b/c/d/\");\n    // --> \"http://a.b/c/bar.txt\"\n\n"
       },
-      "isCORSCapable": {
+      "getXDomainCaps_hostenv": {
         "type": "function",
-        "summary": "Checks if we can perform cross-origin requests to CORS-capable\nservers (see <http://www.w3.org/TR/cors/>)",
+        "summary": "Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')",
         "return": {
-          "type": "Boolean"
-        }
+          "type": "String"
+        },
+        "desc": "See also [http.request](#http/request).\n"
       },
       "request": {
         "type": "function",
@@ -969,7 +970,7 @@ modules({
             "summary": "Throw exception on error."
           }
         ],
-        "desc": "### Cross-site requests:\n\nThe success of cross-site requests depends on whether the\nserver allows the access (see <http://www.w3.org/TR/cors/>) and on whether\nthe we are capable of issuing cross-site requests. This can be checked with\n[__sys.isCORSCapable](#__sys/isCORSCapable).\n\nFor the apollo-xbrowser implementation, the standard\nXMLHttpRequest can handle cross-site requests on compatible\nbrowsers (any recent Chrome, Safari, Firefox). On IE8+,\n[http.request](#http/request) will automatically fall back to using MS's\nXDomainRequest object for cross-site requests.\n\n### Request failure:\n\nIf the request is unsuccessful, and the call is configured to\nthrow exceptions (setting {\"throwing\":true}; the default), an\nexception will be thrown which has a 'status' member set to the\nrequest status. If the call is configured to not throw, an empty\nstring will be returned.\n\n### Example:\n\n    try { \n      alert(http.request(\"foo.txt\"));\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
+        "desc": "### Cross-site requests:\n\nThe success of cross-domain requests depends on the cross-domain\ncapabilities of the host environment, see\n[http.getXDomainCaps](#http/getXDomainCaps). If this function\nreturns \"CORS\" then success of cross-domain requests depends on\nwhether the server allows the access (see\n<http://www.w3.org/TR/cors/>).\n\nIn the xbrowser host environment, the standard\nXMLHttpRequest can handle cross-domain requests on compatible\nbrowsers (any recent Chrome, Safari, Firefox). On IE8+,\n[http.request](#http/request) will automatically fall back to using MS's\nXDomainRequest object for cross-site requests.\n\nIn the nodejs host environment, we can always perform cross-domain requests\n\n### Request failure:\n\nIf the request is unsuccessful, and the call is configured to\nthrow exceptions (setting {\"throwing\":true}; the default), an\nexception will be thrown which has a 'status' member set to the\nrequest status. If the call is configured to not throw, an empty\nstring will be returned.\n\n### Example:\n\n    try { \n      alert(http.request(\"foo.txt\"));\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
       },
       "get": {
         "type": "function",
