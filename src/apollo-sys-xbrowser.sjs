@@ -179,12 +179,27 @@ function getXHRCaps() {
 
 /**
    @function getXDomainCaps_hostenv
-   @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')
+   @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'*')
    @return {String}
 */
 function getXDomainCaps_hostenv() {
   return getXHRCaps().CORS;
-};
+}
+
+/**
+   @function resolveRelReqURL_hostenv
+   @summary Resolve a relative URL to an absolute one (for the require-mechanism)
+   @param {String} [url_string] Relative URL to be converted
+   @param {Object} [req_obj] require-object
+   @param {parent} [parent] Module parent (possibly undefined if loading from top-level)
+   @return {String} Absolute URL
+*/
+function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
+  if (req_obj.path && req_obj.path.length)
+    url_string = exports.constructURL(req_obj.path, url_string);
+  return exports.canonicalizeURL(url_string, parent ? parent : document.location.href);
+}
+
 
 /**
    @function request_hostenv
@@ -294,6 +309,24 @@ function request_hostenv(url, settings) {
   return req.responseText;
 }
 
+//----------------------------------------------------------------------
+// initial list of hubs:
+
+function getHubs_hostenv() {
+  return [
+    ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
+    ["github:", github_loader ],
+    ["http:", http_loader ],
+    ["https:", http_loader ]
+  ];
+}
+
+
+//----------------------------------------------------------------------
+// exports into global scope:
+
+__oni_rt.G.require = __oni_rt.sys.require;
+
 
 //----------------------------------------------------------------------
 // script loading:
@@ -332,7 +365,7 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
       if (m)
         __oni_rt.modsrc[m] = content;
       else
-        $eval(content, {filename:"inline_script"+(i+1)});
+        exports.eval(content, {filename:"inline_script"+(i+1)});
     }
   };
   

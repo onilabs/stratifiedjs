@@ -420,7 +420,7 @@ Console.prototype = {
       var result = document.createElement('div');
       waitfor {
         try {
-          result = inspect_obj($eval(cl, {filename:"commandline"}));
+          result = inspect_obj(require('sjs:__sys').eval(cl, {filename:"commandline"}));
         }
         catch(ex) {
           setStyle(result, 'color:red;');

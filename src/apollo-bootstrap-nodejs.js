@@ -1,11 +1,13 @@
 /*
- * Oni Apollo JS bootstrap code
+ * Oni Apollo JS bootstrap code, hostenv-specific part
+ *
+ * NodeJS-based ('nodejs') version
  *
  * Part of the Oni Apollo StratifiedJS Runtime
  * 0.12+
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -29,20 +31,24 @@
  *
  */
 
-if (!__oni_rt.sys) {
-  
-  //----------------------------------------------------------------------
-  // Install SJS system module ('sjs:__sys'). Bootstrapping will be
-  // run from there.
-  // The system module is spread over two parts: the 'common' part, and the
-  // 'hostenv' specific part. 
-  // hostenv is one of : 'xbrowser' | 'nodejs' 
-  __oni_rt.G.eval("(function(exports) {"+
-                  __oni_rt.c1.compile(__oni_rt.modsrc['sjs:__sys_common.sjs'],
-                                      {filename:"apollo-sys-common.sjs"})+"\n"+
-                  __oni_rt.c1.compile(__oni_rt.modsrc['sjs:__sys_'+__oni_rt.hostenv+'.sjs'],
-                                      {filename:"apollo-sys-"+__oni_rt.hostenv+".sjs"})+
-                 "})({})");
-  delete __oni_rt.modsrc['sjs:__sys_common.sjs'];
-  delete __oni_rt.modsrc['sjs:__sys_'+__oni_rt.hostenv+'.sjs']; 
-}
+//----------------------------------------------------------------------
+// Install SJS system module ('sjs:__sys'). Bootstrapping will be
+// run from there.
+// The system module is spread over two parts: the 'common' part, and the
+// 'hostenv' specific part. 
+// hostenv is one of : 'xbrowser' | 'nodejs' 
+var rt = global.__oni_rt;
+
+// save the require function that loaded us:
+global.__oni_rt.nodejs_require = require;
+
+var sys = rt.G.eval("(function(exports) {"+
+                    rt.c1.compile(rt.modsrc['sjs:__sys_common.sjs'],
+                                  {filename:"apollo-sys-common.sjs"})+"\n"+
+                    rt.c1.compile(rt.modsrc['sjs:__sys_'+rt.hostenv+'.sjs'],
+                                              {filename:"apollo-sys-"+rt.hostenv+".sjs"})+
+                          "})");
+sys(exports);
+delete rt.modsrc['sjs:__sys_common.sjs'];
+delete rt.modsrc['sjs:__sys_'+rt.hostenv+'.sjs']; 
+

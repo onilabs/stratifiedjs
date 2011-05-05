@@ -40,11 +40,16 @@
    jsonp_hostenv
    getXDomainCaps_hostenv
    request_hostenv
+   resolveRelReqURL_hostenv
+   getHubs_hostenv
 
-   (we also export these for use by other libraries; see below for signatures)
+   (we also export some of these for use by other libraries; see below for signatures)
+
+   
 
 */
 
+__oni_rt.sys = exports;
 
 //----------------------------------------------------------------------
 // helper functions that we use internally and export for use by other
@@ -291,7 +296,7 @@ exports.jsonp = jsonp_hostenv; // to be implemented in hostenv-specific part
 
 /**
    @function getXDomainCaps
-   @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')
+   @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'*')
    @return {String}
 */
 exports.getXDomainCaps = getXDomainCaps_hostenv; // to be implemented in hostenv-specific part
@@ -309,13 +314,12 @@ exports.getXDomainCaps = getXDomainCaps_hostenv; // to be implemented in hostenv
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
-   @setting {String} [mime] Override mime type.
    @setting {Boolean} [throwing=true] Throw exception on error.
 */
 exports.request = request_hostenv;
 
 //----------------------------------------------------------------------
-// $eval
+// stratified eval
 
 if (__oni_rt.UA == "msie" && __oni_rt.G.execScript) {
   // IE hack. On IE, 'eval' doesn't fill the global scope.
@@ -327,9 +331,9 @@ if (__oni_rt.UA == "msie" && __oni_rt.G.execScript) {
   var IE_resume_counter = 0;
   __oni_rt.IE_resume = {};
   
-  __oni_rt.G.$eval = function(code, settings) {
-    var filename = (settings && settings.filename) || "'$eval_code'";
-    var mode = (settings && settings.mode) || "balanced";
+  exports.eval = function(code, settings) {
+    var filename = (settings && settings.filename) || "'sjs_eval_code'";
+    var mode = (settings && settings.mode) || "normal";
     try {
       waitfor(var rv, isexception) {
         var rc = ++IE_resume_counter;
@@ -349,9 +353,9 @@ if (__oni_rt.UA == "msie" && __oni_rt.G.execScript) {
 }
 else {
   // normal, sane eval
-  __oni_rt.G.$eval = function(code, settings) {
-    var filename = (settings && settings.filename) || "'$eval_code'";
-    var mode = (settings && settings.mode) || "balanced";
+  exports.eval = function(code, settings) {
+    var filename = (settings && settings.filename) || "'sjs_eval_code'";
+    var mode = (settings && settings.mode) || "normal";
     var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
     return __oni_rt.G.eval(js);
   };
@@ -368,8 +372,21 @@ var pendingLoads = {};
 // function that has access to these variables:
 function makeRequire(parent) {
   // make properties of this require function accessible in requireInner:
-  var rf = function(module) {
-    return requireInner(module, rf, parent);
+  var rf = function(module, settings) {
+    var opts = exports.accuSettings({},
+                                    [settings]);
+    if (opts.callback) {
+      (spawn (function() {
+        try { 
+          opts.callback(undefined, requireInner(module, rf, parent, settings)); 
+        }
+        catch(e) { 
+          opts.callback(e); return 1;
+        }
+      })());
+    }
+    else
+      return requireInner(module, rf, parent, opts);
   };
   rf.path = ""; // default path is empty
   rf.alias = {};
@@ -417,12 +434,20 @@ function resolveHubs(module, hubs) {
 }
 
 // default module loader
-function default_loader(path) {
+function default_src_loader(path) {
+  throw new Error("Don't know how to load module at "+path);
+}
+
+function default_loader(path, parent) {
+  return getNativeModule(path, parent, default_src_loader);
+}
+
+function http_src_loader(path) {
   if (getXDomainCaps_hostenv() != 'none' ||
       exports.isSameOrigin(path, document.location))
     src = request_hostenv(path, {mime:"text/plain"});
   else {
-    // browser is not CORS capable. Attempt modp:
+    // hostenv is xdomain-restricted and not CORS capable. Attempt modp:
     path += "!modp";
     src = jsonp_hostenv(path,
                         {forcecb:"module",
@@ -431,8 +456,12 @@ function default_loader(path) {
   return { src: src, loaded_from: path };
 }
 
+function http_loader(path, parent) {
+  return getNativeModule(path, parent, http_src_loader);
+}
+
 // loader that loads directly from github
-function github_loader(path) {
+function github_src_loader(path) {
   var user, repo, tag;
   try {
     [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
@@ -479,23 +508,12 @@ function github_loader(path) {
   };
 }
 
-// requireInner: workhorse for require
-function requireInner(module, require_obj, parent) {
-  var path;
-  // apply path if module is relative
-  if (module.indexOf(":") == -1) {
-    if (require_obj.path && require_obj.path.length)
-      path = exports.constructURL(require_obj.path, module);
-    else
-      path = module;
-    path = exports.canonicalizeURL(path, parent ? parent : document.location);
-  }
-  else
-    path = module;
+function github_loader(path, parent) {
+  return getNativeModule(path, parent, github_src_loader);
+}
 
-  if (parent == __oni_rt.G.__oni_rt_require_base)
-    parent = "[toplevel]";
 
+function getNativeModule(path, parent, src_loader) {
   // apply default extension; determine if path points to js file
   var matches, is_js = false;
   if (!(matches=/.*\.(js|sjs)$/.exec(path)))
@@ -503,14 +521,8 @@ function requireInner(module, require_obj, parent) {
   else if (matches[1] == "js")
     is_js = true;
   
-  // apply local aliases
-  path = resolveAliases(path, require_obj.alias);
-  // apply global aliases
-  var loader;
-  ({path,loader}) = resolveHubs(path, __oni_rt.G.require.hubs);
-  
   var descriptor;
-  if (!(descriptor = __oni_rt.G.require.modules[path])) {
+  if (!(descriptor = exports.require.modules[path])) {
     // we don't have this module cached -> load it
     var pendingHook = pendingLoads[path];
     if (!pendingHook) {
@@ -525,7 +537,7 @@ function requireInner(module, require_obj, parent) {
             // xxx support plain js modules for built-ins?
           }
           else {
-            ({src, loaded_from}) = loader(path);
+            ({src, loaded_from}) = src_loader(path);
           }
           var f;
           var descriptor = {
@@ -540,20 +552,15 @@ function requireInner(module, require_obj, parent) {
             f(descriptor, descriptor.exports);
           }
           else {
-            f = $eval("(function(module, exports, require){"+src+"})",
-                      {filename:"module '"+path+"'"});
+            f = exports.eval("(function(module, exports, require){"+src+"})",
+                             {filename:"module '"+path+"'"});
             f(descriptor, descriptor.exports, makeRequire(path));
           }
-          // It is important that we only set __oni_rt.G.require.modules[module]
+          // It is important that we only set exports.require.modules[module]
           // AFTER f finishes, because f might block, and we might get
           // reentrant calls to require() asking for the module that is
           // still being constructed.
-          __oni_rt.G.require.modules[path] = descriptor;
-        }
-        catch (e) {
-          var mes = "Cannot load module '"+path+"'. "+
-            "(Underlying exception: "+e+")";
-          throw new Error(mes);
+          exports.require.modules[path] = descriptor;
         }
         finally {
           delete pendingLoads[path];
@@ -572,20 +579,44 @@ function requireInner(module, require_obj, parent) {
   return descriptor.exports;  
 }
 
-// global require function:
-__oni_rt.G.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
+// requireInner: workhorse for require
+function requireInner(module, require_obj, parent, settings) {
+  try {
+    // apply local aliases:
+    var path = resolveAliases(module, require_obj.alias);
+    
+    // apply hostenv-specific resolution if path is scheme-less
+    if (path.indexOf(":") == -1)
+      path = resolveRelReqURL_hostenv(path, require_obj, parent);
+    
+    if (parent == __oni_rt.G.__oni_rt_require_base)
+      parent = "[toplevel]";
+    
+    // apply global aliases
+    var loader;
+    ({path,loader}) = resolveHubs(path, exports.require.hubs);
+    
+    // now perform the load:
+    return loader(path, parent);
+  }
+  catch (e) {
+    var mes = "Cannot load module '"+module+"'. "+
+      "(Underlying exception: "+e+")";
+    throw new Error(mes);
+  }
+}
 
-require.hubs = [
-  ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
-  ["github:", github_loader ]
-];
-require.modules = {};
+// top-level require function:
+exports.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
+
+exports.require.hubs = getHubs_hostenv();
+exports.require.modules = {};
 
 // require.APOLLO_LOAD_PATH: path where this oni-apollo.js lib was
 // loaded from, or "" if it can't be resolved:
-require.APOLLO_LOAD_PATH = "";
+exports.require.APOLLO_LOAD_PATH = "";
 
-__oni_rt.G.require.modules['sjs:__sys.sjs'] = {
+exports.require.modules['sjs:__sys.sjs'] = {
   id: 'sys:__sys.sjs',
   exports: exports,
   loaded_from: "[builtin]",
