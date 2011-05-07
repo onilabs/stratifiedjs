@@ -303,8 +303,7 @@ function nodejs_loader(path, parent) {
 
 function getHubs_hostenv() {
   return  [
-   ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
- //    ["apollo:", "nodejs:apollo/" ],
+    ["apollo:", "file:"+__oni_rt.nodejs_apollo_lib_dir ],
     ["github:", github_loader ],
     ["http:", http_loader ],
     ["https:", http_loader ],

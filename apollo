@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+
+var path = require('path');
+var fs   = require('fs');
+var apollo_home  = path.dirname(fs.realpathSync(__filename));
+
+function usage() {
+  process.stdout.write("Usage: apollo [options] [script.sjs]\n\n");
+  process.stdout.write("Options:\n");
+  process.stdout.write("  -h, --help        display this help message\n");
+  process.stdout.write("\nFor more information, please see http://onilabs.com/apollo.\n");
+}
+
+var script;
+
+for (var i=2; i<process.argv.length; ++i) {
+  var flag = process.argv[i];
+  console.log(flag);
+  switch (flag) {
+  case "-h":
+  case "--help":
+    return usage();
+    break;
+  default:
+    if (flag[0] == '-') {
+      process.stdout.write("Unknown flag '"+flag+"'\n");
+      return usage();
+    }
+    if (i != process.argv.length-1) {
+      return usage();
+    }
+    script = path.join(process.cwd(), flag);
+  }
+}
+
+if (script)
+  require(apollo_home + '/oni-apollo-node').require(script);
+else
+  require(apollo_home + '/oni-apollo-node').require('apollo:node-repl', { 
+    callback: function(err, m) {if (err) throw err; m.runREPL();}
+  });

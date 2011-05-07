@@ -1,9 +1,8 @@
 /*
- * Oni Apollo JS bootstrap code, hostenv-specific part
+ * Oni Apollo 'node-utils' module
+ * Stratified utilities for interfacing with plain nodejs code
  *
- * NodeJS-based ('nodejs') version
- *
- * Part of the Oni Apollo StratifiedJS Runtime
+ * Part of the Oni Apollo Standard Module Library
  * 0.12+
  * http://onilabs.com/apollo
  *
@@ -30,29 +29,51 @@
  * THE SOFTWARE.
  *
  */
+/**
+  @module    node-utils
+*/
 
-//----------------------------------------------------------------------
-// Install SJS system module ('sjs:__sys'). Bootstrapping will be
-// run from there.
-// The system module is spread over two parts: the 'common' part, and the
-// 'hostenv' specific part. 
-// hostenv is one of : 'xbrowser' | 'nodejs' 
-var rt = global.__oni_rt;
+exports.waitforEvent = function(emitter, event) {
+  waitfor (var rv) {
+    function listener(x) { resume(arguments); }
+    emitter.on(event, listener);
+  }
+  finally {
+    emitter.removeListener(event, listener);
+  }
+  return rv;
+};
 
-// save some environment info:
-var path = require('path');
-var fs = require('fs');
+exports.eventQueue = function(emitter, event) {
+  return (new EventQueue(emitter, event));
+};
 
-global.__oni_rt.nodejs_require = require;
-global.__oni_rt.nodejs_apollo_lib_dir = path.join(path.dirname(fs.realpathSync(__filename)), 'modules/');
+function EventQueue(emitter, event) {
+  // XXX we queue up to 100 events max. Does this need to be configurable?
+  var capacity = 100;
+  this._queue = new (require("./cutil").Queue)(capacity, true);
+  this.emitter = emitter;
+  this.event = event;
 
-var sys = rt.G.eval("(function(exports) {"+
-                    rt.c1.compile(rt.modsrc['sjs:__sys_common.sjs'],
-                                  {filename:"apollo-sys-common.sjs"})+"\n"+
-                    rt.c1.compile(rt.modsrc['sjs:__sys_'+rt.hostenv+'.sjs'],
-                                              {filename:"apollo-sys-"+rt.hostenv+".sjs"})+
-                          "})");
-sys(exports);
-delete rt.modsrc['sjs:__sys_common.sjs'];
-delete rt.modsrc['sjs:__sys_'+rt.hostenv+'.sjs']; 
+  var me = this;
+  this._handleEvent = function() {
+    me._queue.put(Array.prototype.slice.call(arguments, 0));
+  };
+  emitter.on(event, this._handleEvent);
+}
 
+EventQueue.prototype = {
+  count: function() { 
+    return this._queue.count();
+  },
+
+  get: function() {
+    return this._queue.get();
+  },
+
+  stop: function() {
+    this.emitter.removeListener(this.event, this._handleEvent);
+  },
+
+  __finally__: function() { this.stop(); }
+};
