@@ -56,8 +56,14 @@ __oni_rt.sys = exports;
 // libraries; accessible through require('sjs:__sys')
 
 /**
-   @object getGlobal
-   @summary access global object (i.e. window or global, depending on host environment)
+   @object hostenv
+   @summary Host environment that we're running in (currently one of 'nodejs' or 'xbrowser') 
+*/
+exports.hostenv = __oni_rt.hostenv;
+
+/**
+   @function getGlobal
+   @summary returns global object (i.e. window or global, depending on host environment)
 */
 exports.getGlobal = function() { return __oni_rt.G; };
 
