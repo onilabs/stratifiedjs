@@ -56,10 +56,10 @@ __oni_rt.sys = exports;
 // libraries; accessible through require('sjs:__sys')
 
 /**
-   @object global
-   @summary Global object (i.e. window or global, depending on host environment)
+   @object getGlobal
+   @summary access global object (i.e. window or global, depending on host environment)
 */
-exports.global = __oni_rt.G;
+exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
    @function isArrayOrArguments

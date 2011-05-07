@@ -259,7 +259,7 @@ exports.eventQueue = function(selector, events, filter, eventTransformer) {
 
 function EventQueue(selector, events, filter, eventTransformer)
 {
-  // XXX we queue up 100 events max. Does this need to be configurable?
+  // XXX we queue up to 100 events max. Does this need to be configurable?
   var capacity = 100;
   this._queue = new (require("cutil").Queue)(capacity, true);
   this.elems = elementsFromSelector(selector);

@@ -370,8 +370,9 @@ function parseJSON(data) {
 		                        .replace(/(?:^|:|,)(?:\s*\[)+/g, "")) ) {
     
     // Try to use the native JSON parser first
-    return sys.global.JSON && sys.global.JSON.parse ?
-      sys.global.JSON.parse(data) :
+    var global = sys.getGlobal();
+    return global.JSON && global.JSON.parse ?
+      global.JSON.parse(data) :
       (new Function("return " + data))();
     
   }

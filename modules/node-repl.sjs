@@ -57,7 +57,7 @@ exports.runREPL = function() {
 
   // XXX repl will be operating on global scope; place our 'require'
   // function there:
-  sys.global.require = sys.require;
+  sys.getGlobal().require = sys.require;
 
   var stdin = process.openStdin();
 
