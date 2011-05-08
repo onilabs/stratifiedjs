@@ -76,7 +76,7 @@ exports.isArrayOrArguments = require('sjs:__sys').isArrayOrArguments;
      ###Example:
 
          var a = [1,2,[3,4,[5,6]],[[7,8]],[9],10];
-         var b = require('common').flatten(a);
+         var b = require('apollo:common').flatten(a);
          // b is now [1,2,3,4,5,6,7,8,9,10]
 */
 exports.flatten = require('sjs:__sys').flatten;
@@ -155,5 +155,4 @@ exports.sanitize = function(str) {
 */
 exports.mergeSettings = function(/*settings-hash,...*/) {
   return require('sjs:__sys').accuSettings({}, arguments);
-}
-
+};

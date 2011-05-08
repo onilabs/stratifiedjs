@@ -31,11 +31,7 @@
  */
 /**
   @module    http
-  @summary   The stratified functions defined in this API can be used to transmit data
-             from/to servers without page refreshing. In addition to
-             'ajax-style' interactions with the home domain of an app, these
-             functions also form the basis of cross-domain access to many
-             public web APIs.
+  @summary   Stratified HTTP request methods
 */
 
 var sys = require('sjs:__sys');
@@ -213,7 +209,7 @@ exports.xhr = function() { throw "http.xhr() is obsolete. Please use http.reques
 exports.xml = function() { throw "http.xml() is obsolete."; };
 
 /**
-   @function getXDomainCaps_hostenv
+   @function getXDomainCaps
    @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')
    @return {String}
    @desc
@@ -290,12 +286,12 @@ exports.request = sys.request;
     ### Example:
     
     `console.log(
-      require("http").get("data.txt")
+      require("apollo:http").get("data.txt")
     );`
     
     ### Example: timeout
     
-    `var http = require("http");
+    `var http = require("apollo:http");
     waitfor {
       var data = http.get("data.txt");
     } or {
@@ -317,12 +313,12 @@ exports.get = exports.request;
   @shortcut  request
   @desc
     ### Example:    
-    `var http = require("http");
+    `var http = require("apollo:http");
     var response = http.post("/service", "some raw data");
     console.log("server replied:", response)`
     
     ### Example: posting data in the url, not the body
-    `var http = require("http");
+    `var http = require("apollo:http");
     var rv = http.post("/service", null,
                        { query: {
                               name: "ford",
@@ -331,7 +327,6 @@ exports.get = exports.request;
                        });
     // sends an HTTP POST to /service 
     // with payload: name=ford&lastname=prefect
-    console.log(require("json").parse(rv).id);`
 */
 exports.post = function(url, body, settings) {
   return sys.request(url, [{method:"POST", body:body}, settings]);
@@ -347,7 +342,7 @@ exports.post = function(url, body, settings) {
   @return    {Object}
   @desc
     ### Example:
-    `var http = require("http");
+    `var http = require("apollo:http");
     var animals = http.json("/animals.php?type=cats").animals;
     for (var i = 0, cat; cat = animals[i]; i++) {
       console.log(cat.name);
@@ -400,7 +395,7 @@ exports.json = function(/*url, settings*/) {
   @desc
     ### Example:
 
-    `var http = require("http");
+    `var http = require("apollo:http");
     var url = "http://api.flickr.com/services/feeds/photos_public.gne?" +
               "tags=cat&tagmode=any&format=json";
     var data = http.jsonp(url, {cbfield:"jsoncallback"});
@@ -410,117 +405,3 @@ exports.json = function(/*url, settings*/) {
 */
 exports.jsonp = sys.jsonp;
 
-/**
-  at function css
-  at summary Load a CSS file into the current document.
-  at param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  at desc
-*/
-// XXX should be more robust: http://yui.yahooapis.com/2.8.1/build/get/get.js
-/*
-exports.css = function (url) {
-  var url = constructURL(arguments);
-  var elem = document.createElement("link");
-  elem.setAttribute("rel", "stylesheet");
-  elem.setAttribute("type", "text/css");
-  elem.setAttribute("href", "url");
-  document.getElementsByTagName("head")[0].appendChild(elem);
-};
-*/
-
-var _pendingScripts = {};
-var _loadedScripts = {};
-
-/**
-  @function  script
-  @summary   Load and execute a plain JavaScript file.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @desc
-    It is safe to call this function simultaneously from several strata,
-    even for the same URL: The given URL will only be loaded **once**, and
-    all callers will block until it is loaded.
-    
-    If a browser supports the error event for script tags, 
-    this function will throw if it fails to load the URL.
-
-    ### Example:
-
-    `var http = require("http");
-    http.script("http://code.jquery.com/jquery.js");
-    jQuery("body").css({background:"red"});`
-*/
-exports.script = function(/*url, queries*/) {
-  var url = sys.constructURL(arguments);
-  if (_loadedScripts[url])
-  return;
-  var hook = _pendingScripts[url];
-  if (hook != null) {
-    waitfor(var error) {
-      hook.push(resume);
-    }
-    if (error) {
-      throw error;
-    }
-    //    retract {
-    // XXX could remove resume function from hook here
-    //    }
-  }
-  else {
-    // we're the initial requester
-    waitfor() {
-      var elem = document.createElement("script");
-      var hook = [];
-      var error;
-      _pendingScripts[url] = hook;
-      
-      function listener(e) {
-        if (e.type == "error") {
-          error = "Could not load script: '" + url + "'."
-        }
-        resume();
-      }
-      
-      function listenerIE(e) {
-        if (e.srcElement.readyState == "loaded" ||
-            e.srcElement.readyState == "complete") {
-          hold(0);
-          resume();
-        }
-      }
-      
-      if (elem.addEventListener) {
-        elem.addEventListener("load", listener, false);
-        elem.addEventListener("error", listener, false);
-      }
-      else {
-        // IE
-        elem.attachEvent("onreadystatechange", listenerIE);
-      }
-      
-      // kick off the load:
-      document.getElementsByTagName("head")[0].appendChild(elem);
-      elem.src = url;
-    }
-    retract {
-      _pendingScripts[url] = null;
-    }
-    finally {
-      if (elem.removeEventListener) {
-        elem.removeEventListener("load", listener, false);
-        elem.removeEventListener("error", listener, false);
-      }
-      else {
-        elem.detachEvent("onreadystatechange", listenerIE);
-      }
-    }
-
-    _pendingScripts[url] = null;
-    _loadedScripts[url] = true;
-    for (var i = 0; i < hook.length; ++i) {
-      hook[i](error);
-    }
-    if (error) {
-      throw error;
-    }
-  }
-};

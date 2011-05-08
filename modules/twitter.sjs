@@ -1,12 +1,12 @@
 /*
  * Oni Apollo 'twitter' module
- * Stratified bindings to the Twitter API.
+ * Stratified bindings to the client-side Twitter API.
  *
  * Part of the Oni Apollo Standard Module Library
  * 0.12+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -31,10 +31,16 @@
  */
 /**
   @module    twitter
-  @summary   Stratified bindings to the Twitter API.
+  @summary   Stratified bindings to the client-side Twitter API.
+  @hostenv   xbrowser
 */
-var http = require("http");
-var common = require("common");
+
+var sys = require('sjs:__sys');
+if (require('sjs:__sys').hostenv != 'xbrowser') 
+  throw new Error('the twitter module only runs in an xbrowser environment');
+
+var http = require("./http");
+var common = require("./common");
 
 /**
   @function initAnywhere
@@ -93,7 +99,7 @@ exports.initAnywhere = function(settings) {
     { v : "1" },
     settings);
   if (!window['twttr'])
-    require("http").script([
+    require("./dom").script([
       "http://platform.twitter.com/anywhere.js", settings
     ]);
   

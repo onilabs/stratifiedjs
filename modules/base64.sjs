@@ -1,6 +1,6 @@
 /*
  * Oni Apollo 'base64' module
- * Stratified wrapper for the YQL web service 
+ * base64 encoding and decoding
  *
  * Part of the Oni Apollo Standard Module Library
  * 0.12+
@@ -28,39 +28,41 @@
 
 var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-var ua = navigator.userAgent.toLowerCase();
-if (ua.indexOf(" chrome/") >= 0 || ua.indexOf(" firefox/") >= 0 || ua.indexOf(' gecko/') >= 0) {
-	var StringMaker = function () {
-		this.str = "";
-		this.length = 0;
-		this.append = function (s) {
-			this.str += s;
-			this.length += s.length;
-		};
-		this.prepend = function (s) {
-			this.str = s + this.str;
-			this.length += s.length;
-		};
-		this.toString = function () {
-			return this.str;
-		};
-	}
-} else {
-	var StringMaker = function () {
-		this.parts = [];
-		this.length = 0;
-		this.append = function (s) {
-			this.parts.push(s);
-			this.length += s.length;
-		};
-		this.prepend = function (s) {
-			this.parts.unshift(s);
-			this.length += s.length;
-		};
-		this.toString = function () {
-			return this.parts.join('');
-		};
-	}
+var StringMaker = function () {
+	this.str = "";
+	this.length = 0;
+	this.append = function (s) {
+		this.str += s;
+		this.length += s.length;
+	};
+	this.prepend = function (s) {
+		this.str = s + this.str;
+		this.length += s.length;
+	};
+	this.toString = function () {
+		return this.str;
+	};
+}
+
+if (require('sjs:__sys').hostenv == 'xbrowser') {
+  var ua = navigator.userAgent.toLowerCase();
+  if (!(ua.indexOf(" chrome/") >= 0 || ua.indexOf(" firefox/") >= 0 || ua.indexOf(' gecko/') >= 0)) {
+	  var StringMaker = function () {
+		  this.parts = [];
+		  this.length = 0;
+		  this.append = function (s) {
+			  this.parts.push(s);
+			  this.length += s.length;
+		  };
+		  this.prepend = function (s) {
+			  this.parts.unshift(s);
+			  this.length += s.length;
+		  };
+		  this.toString = function () {
+			  return this.parts.join('');
+		  };
+	  }
+  }
 }
 
 /**
@@ -72,7 +74,7 @@ exports.encode = function (input) {
 	var chr1, chr2, chr3;
 	var enc1, enc2, enc3, enc4;
 	var i = 0;
- 
+  
 	while (i < input.length) {
 		chr1 = input.charCodeAt(i++);
 		chr2 = input.charCodeAt(i++);
@@ -107,7 +109,7 @@ exports.decode = function (input) {
  
 	// remove all characters that are not A-Z, a-z, 0-9, +, /, or =
 	input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
- 
+  
 	while (i < input.length) {
 		enc1 = keyStr.indexOf(input.charAt(i++));
 		enc2 = keyStr.indexOf(input.charAt(i++));

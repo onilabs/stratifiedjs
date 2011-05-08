@@ -6,7 +6,7 @@
  * 0.12+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -35,7 +35,7 @@
    @summary A wrapper around the Last.fm API
    @desc
      This module uses the JSONP interface of [the Last.fm API](http://www.last.fm/api).
-     `var lastfm = require("lastfm");
+     `var lastfm = require("apollo:lastfm");
      lastfm.key = "somekey...";
      var tracks = lastfm.get({
        method: "user.getrecenttracks", 
@@ -47,7 +47,7 @@
      `
     
 */
-var http = require("http");
+var http = require("./http");
 var defaultKey = "b25b959554ed76058ac220b7b2e0a026";
 
 /**
@@ -64,7 +64,7 @@ exports.key = defaultKey;
   @param      {optional Object} [params] Object with key/value pairs describing the request parameters.
   @return     {Object}
   @desc
-    `var name = require("lastfm").get({
+    `var name = require("apollo:lastfm").get({
       method: "user.getinfo", 
       user: "rj"
     }).realname;`

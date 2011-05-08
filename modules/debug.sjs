@@ -1,6 +1,6 @@
 /*
- * Oni Apollo 'console' module
- * SJS console 
+ * Oni Apollo 'debug' module
+ * SJS xbrowser console and logging 
  *
  * Part of the Oni Apollo Standard Module Library
  * 0.12+
@@ -31,14 +31,18 @@
  */
 /**
   @module  debug
-  @summary A module containing StratifiedJS debug tools.
+  @summary Client-side stratified debugging tools
+  @hostenv xbrowser
   @desc
-    `var c = require("debug").console();
+    `var c = require("apollo:debug").console();
     c.log("Hello", document);
     c.warn("Oooh noo!");`
 */
 
-var common = require('common');
+if (require('sjs:__sys').hostenv != 'xbrowser') 
+  throw new Error('the debug module only runs in an xbrowser environment');
+
+var common = require('./common');
 
 //----------------------------------------------------------------------
 // logging
@@ -167,7 +171,7 @@ function inspect_obj(obj, name) {
   spawn((function() {
     var toggle = rv.firstChild.firstChild;
     while (true) {
-      require('dom').waitforEvent(toggle, 'click');
+      require('./dom').waitforEvent(toggle, 'click');
       var children = makeDiv(null, "margin-left:15px");
       var props = Object.keys(obj);
       props.sort();
@@ -180,7 +184,7 @@ function inspect_obj(obj, name) {
       }
       rv.appendChild(children);
       toggle.firstChild.style.backgroundImage = "url("+icons.treeopen+")";
-      require('dom').waitforEvent(toggle, 'click');
+      require('./dom').waitforEvent(toggle, 'click');
       toggle.firstChild.style.backgroundImage = "url("+icons.treeclosed+")";
       rv.removeChild(children);
       children = null;
@@ -288,7 +292,7 @@ z-index:9999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:
 Console.prototype = {
   _cmdloop: function() {
     waitfor {
-      using (var Q = require('dom').eventQueue(this.cmdline, 'keydown')) {
+      using (var Q = require('./dom').eventQueue(this.cmdline, 'keydown')) {
         while (true) {
           var key = Q.get().keyCode;
           //        this.log(key);
@@ -325,16 +329,16 @@ Console.prototype = {
         // Can't wait for click on this.root here, because of
         // Android bug http://code.google.com/p/android/issues/detail?id=8575
         waitfor {
-          require('dom').waitforEvent(this.closebutton, "click");
+          require('./dom').waitforEvent(this.closebutton, "click");
           this.collapse();
         }
         or {
-          var ev = require('dom').waitforEvent(this.output, "click");
-          if (require('dom').eventTarget(ev) == this.output)
+          var ev = require('./dom').waitforEvent(this.output, "click");
+          if (require('./dom').eventTarget(ev) == this.output)
             this.focus();
         }
         or {
-          require('dom').waitforEvent(this.clearbutton, "click");
+          require('./dom').waitforEvent(this.clearbutton, "click");
           this.clear();
         }
       };
@@ -342,7 +346,7 @@ Console.prototype = {
     and {
       if (isWebkitMobile) {
         // emulate position:fixed on webkit:
-        using (var Q2 = require('dom').eventQueue(document.getElementsByTagName("body")[0], 'touchmove touchend')) {
+        using (var Q2 = require('./dom').eventQueue(document.getElementsByTagName("body")[0], 'touchmove touchend')) {
           while(true) {
             viewportStick(this.summonbutton);
             Q2.get();
@@ -352,14 +356,14 @@ Console.prototype = {
     }
     and {
       while (true) {
-        var ev = require('dom').waitforEvent(this.resizehandle,"mousedown");
+        var ev = require('./dom').waitforEvent(this.resizehandle,"mousedown");
         var lasty = ev.clientY;
         document.documentElement.style.webkitUserSelect = "none";
         waitfor {
-          require('dom').waitforEvent(document, "mouseup");
+          require('./dom').waitforEvent(document, "mouseup");
         }
         or {
-          using (var mm = require('dom').eventQueue(document, "mousemove")) {
+          using (var mm = require('./dom').eventQueue(document, "mousemove")) {
             while (1) {
               var ev = mm.get();
               var h = lasty - ev.clientY + this.root.clientHeight;
@@ -391,7 +395,7 @@ Console.prototype = {
   collapse : function () {
     this.root.style.display = "none";
     this.summonbutton.style.visibility = "visible";
-    spawn (require('dom').waitforEvent(this.summonbutton, "click"),
+    spawn (require('./dom').waitforEvent(this.summonbutton, "click"),
            this.expand());
   },
   
@@ -434,7 +438,7 @@ Console.prototype = {
         try {
           e.firstChild.innerHTML += "<a title='Cancel this stratum' style='text-decoration:underline;cursor:pointer;float:right'>abort</a>";
           var b = e.firstChild.lastChild;
-          require('dom').waitforEvent(b, "click");
+          require('./dom').waitforEvent(b, "click");
           result.innerHTML = "<span style='color:red'>Aborted</span>";
         }
         finally {

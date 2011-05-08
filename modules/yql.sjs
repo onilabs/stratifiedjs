@@ -6,7 +6,7 @@
  * 0.12+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -35,15 +35,14 @@
              which enables you to access Internet data with SQL-like commands.
   @desc
     
-        var yql = require("yql");
+        var yql = require("apollo:yql");
         var q = "select * from html where url=&#0064;url and xpath='//h1'";
         var rv = yql.query(q, {url:"http://www.onilabs.com"});
-        c.log(rv.results.h1);
 
     See the [query](#yql/query) function for more examples.
 */
 
-var http = require("http");
+var http = require("./http");
 
 /**
   @function  query
@@ -58,14 +57,14 @@ var http = require("http");
 
     ### HTML selector Example
 
-        var yql = require("yql");
+        var yql = require("apollo:yql");
         var q = "select * from html where url=&#0064;url and xpath='//h1'";
         var rv = yql.query(q, {url:"http://www.onilabs.com"});
         c.log(rv.results.h1);
 
     ### Cross-domain XML Example
 
-        var yql = require("yql");
+        var yql = require("apollo:yql");
         var q = "select * from xml where url=&#0064;url";
         var rv = yql.query(q, {
           url:"http://www.weather.gov/xml/current_obs/OOUH1.xml"
@@ -101,7 +100,7 @@ exports.query = function (statement, params) {
   @desc
     This is a convenience wrapper for [the feed table](http://developer.yahoo.com/yql/console/#h=desc%20feed).
 
-    `var yql = require("yql");
+    `var yql = require("apollo:yql");
     var rv = yql.getFeed("http://planet.mozilla.org/atom.xml"});
     console.log(rv[0].title);`
 */
@@ -117,7 +116,7 @@ exports.getFeed = function(url) {
   @shortcut  query
   @desc
     This is a convenience wrapper for [the xml table](http://developer.yahoo.com/yql/console/#h=desc%20xml).
-    `var yql = require("yql");
+    `var yql = require("apollo:yql");
     var xmlUrl = "http://www.weather.gov/xml/current_obs/OOUH1.xml";
     var honoluluWeather = yql.getXML(xmlUrl).current_observation;
     console.log(honoluluWeather.temp_c);`
@@ -153,14 +152,15 @@ exports.getDataURI = function(url) {
   @return    {string}
 */
 exports.getFile = function(url) {
-  return require("base64").decode(exports.getDataURI(url).split("base64,")[1]);
+  return require("./base64").decode(exports.getDataURI(url).split("base64,")[1]);
 };
 
 /*
   var title = y.cssGet("http://www.croczilla.com/stratified", "h1").h1.content;
-*/
+
 exports.cssGet = function() {
   var rv = exports.query("select * from data.html.cssselect where url=@url and css=@css", 
                          {url:arguments[0],css:arguments[1]}, {communitytables:true}).results;
   return rv ? rv.results : null;
 };
+*/

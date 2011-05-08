@@ -6,7 +6,7 @@
  * 0.12+
  * http://onilabs.com/apollo
  *
- * (c) 2010 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -31,12 +31,13 @@
  */
 /**
   @module     jquery-binding
+  @hostenv    xbrowser
   @summary    A convenience module used to load and extend jQuery to make use of StratifiedJS features.
   @desc 
     By default [install](#jquery-binding/install) will load jQuery from
     a CDN and add stratified versions ($+fnname) of the most common [jQuery functions](http://api.jquery.com/category/events/).
 
-        require("jquery-binding").install();
+        require("apollo:jquery-binding").install();
         
         while (true) {
           $("a").$click();
@@ -158,7 +159,7 @@ exports.load = function (opts) {
   if (!window["jQuery"]) {
     var version = opts.version || "1.4.2";
     var url = opts.url || "http://ajax.googleapis.com/ajax/libs/jquery/"+version+"/jquery.min.js";
-    require("http").script(url);
+    require("./dom").script(url);
     // wait for jquery to be initialized (crucial on IE):
     while (!window.$)
       hold(10);

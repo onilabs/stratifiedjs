@@ -32,7 +32,12 @@
 /**
   @module    dom
   @summary   Utilities for interacting with the DOM
+  @hostenv   xbrowser
 */
+
+var sys = require('sjs:__sys');
+if (require('sjs:__sys').hostenv != 'xbrowser') 
+  throw new Error('the dom module only runs in an xbrowser environment');
 
 //------------------------------------------------------------
 // event helpers
@@ -42,7 +47,7 @@ function elementsFromSelector(selector) {
   // at the moment we only do simple, single element selectors
   if (typeof selector === "string")
     elems = [document.getElementById(selector)];
-  else if (require('sjs:__sys').isArrayOrArguments(selector))
+  else if (sys.isArrayOrArguments(selector))
     elems = selector;
   else
     elems = [selector];
@@ -176,7 +181,7 @@ exports.stopEvent = function(ev) {
 
     ### Keep observing events in an event loop:
 
-    `while (require('dom').waitforEvent("myid", "mouseover")) {
+    `while (require('apollo:dom').waitforEvent("myid", "mouseover")) {
       console.log("mouseover!");
     }`
 
@@ -241,7 +246,7 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
     [__finally__](#dom/EventQueue/__finally__) method, it can be used in a
     'using' block:
 
-    `using (var Q = require('dom').eventQueue(elem,"click")) {
+    `using (var Q = require('apollo:dom').eventQueue(elem,"click")) {
       while (true) {
         var ev = Q.get();
         ...
@@ -261,7 +266,7 @@ function EventQueue(selector, events, filter, eventTransformer)
 {
   // XXX we queue up to 100 events max. Does this need to be configurable?
   var capacity = 100;
-  this._queue = new (require("cutil").Queue)(capacity, true);
+  this._queue = new (require("./cutil").Queue)(capacity, true);
   this.elems = elementsFromSelector(selector);
   this.events = events.split(" ");
 
@@ -338,6 +343,126 @@ EventQueue.prototype = {
    */
   __finally__: function() { this.stop(); }
 };
+
+
+//----------------------------------------------------------------------
+
+
+var _pendingScripts = {};
+var _loadedScripts = {};
+
+/**
+  @function  script
+  @summary   Load and execute a plain JavaScript file.
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+  @desc
+    It is safe to call this function simultaneously from several strata,
+    even for the same URL: The given URL will only be loaded **once**, and
+    all callers will block until it is loaded.
+    
+    If a browser supports the error event for script tags, 
+    this function will throw if it fails to load the URL.
+
+    ### Example:
+
+    `var dom = require("apollo:dom");
+    dom.script("http://code.jquery.com/jquery.js");
+    jQuery("body").css({background:"red"});`
+*/
+exports.script = function(/*url, queries*/) {
+  var url = sys.constructURL(arguments);
+  if (_loadedScripts[url])
+  return;
+  var hook = _pendingScripts[url];
+  if (hook != null) {
+    waitfor(var error) {
+      hook.push(resume);
+    }
+    if (error) {
+      throw error;
+    }
+    //    retract {
+    // XXX could remove resume function from hook here
+    //    }
+  }
+  else {
+    // we're the initial requester
+    waitfor() {
+      var elem = document.createElement("script");
+      var hook = [];
+      var error;
+      _pendingScripts[url] = hook;
+      
+      function listener(e) {
+        if (e.type == "error") {
+          error = "Could not load script: '" + url + "'."
+        }
+        resume();
+      }
+      
+      function listenerIE(e) {
+        if (e.srcElement.readyState == "loaded" ||
+            e.srcElement.readyState == "complete") {
+          hold(0);
+          resume();
+        }
+      }
+      
+      if (elem.addEventListener) {
+        elem.addEventListener("load", listener, false);
+        elem.addEventListener("error", listener, false);
+      }
+      else {
+        // IE
+        elem.attachEvent("onreadystatechange", listenerIE);
+      }
+      
+      // kick off the load:
+      document.getElementsByTagName("head")[0].appendChild(elem);
+      elem.src = url;
+    }
+    retract {
+      _pendingScripts[url] = null;
+    }
+    finally {
+      if (elem.removeEventListener) {
+        elem.removeEventListener("load", listener, false);
+        elem.removeEventListener("error", listener, false);
+      }
+      else {
+        elem.detachEvent("onreadystatechange", listenerIE);
+      }
+    }
+
+    _pendingScripts[url] = null;
+    _loadedScripts[url] = true;
+    for (var i = 0; i < hook.length; ++i) {
+      hook[i](error);
+    }
+    if (error) {
+      throw error;
+    }
+  }
+};
+
+/**
+  at function css
+  at summary Load a CSS file into the current document.
+  at param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+  at desc
+*/
+// XXX should be more robust: http://yui.yahooapis.com/2.8.1/build/get/get.js
+/*
+exports.css = function (url) {
+  var url = constructURL(arguments);
+  var elem = document.createElement("link");
+  elem.setAttribute("rel", "stylesheet");
+  elem.setAttribute("type", "text/css");
+  elem.setAttribute("href", "url");
+  document.getElementsByTagName("head")[0].appendChild(elem);
+};
+*/
+
 
 //----------------------------------------------------------------------
 

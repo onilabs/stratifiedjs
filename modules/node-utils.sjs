@@ -31,8 +31,20 @@
  */
 /**
   @module    node-utils
+  @summary   Stratified utilities for interfacing with plain nodejs code
+  @hostenv   nodejs
 */
 
+if (require('sjs:__sys').hostenv != 'nodejs') 
+  throw new Error('node-utils only runs in a nodejs environment');
+
+/**
+`   @function waitforEvent
+   @summary Blocks until the specified event is triggered on the given event emitter
+   @param   {EventEmitter} [emitter] NodeJS event emitter
+   @param   {String} [event] Event to listen for
+   @return  {Array} arguments array returned by the emitter into event listener
+*/
 exports.waitforEvent = function(emitter, event) {
   waitfor (var rv) {
     function listener(x) { resume(arguments); }
@@ -44,6 +56,39 @@ exports.waitforEvent = function(emitter, event) {
   return rv;
 };
 
+/**
+  @class EventQueue
+  @summary Listens for specified events and stores them in a queue.
+  @desc
+     Use function [node-utils.eventQueue](#node-utils/eventQueue) to construct a new
+     EventQueue object.
+
+  @function  eventQueue
+  @summary Constructs a new EventQueue object.
+  @return  {EventQueue}
+  @param   {EventEmitter} [emitter] NodeJS event emitter
+  @param   {String} [event] Event to listen for
+  @desc
+    The returned [EventQueue](#node-utils/EventQueue) object proceeds to listen for
+    events immediately in the background, and continues to do so until
+    [EventQueue.stop](#node-utils/EventQueue/stop) is called.
+
+    Alternatively, as [EventQueue](#node-utils/EventQueue) implements a
+    [__finally__](#node-utils/EventQueue/__finally__) method, it can be used in a
+    'using' block:
+
+    `using (var Q = require('node-utils').eventQueue(emitter, event)) {
+      while (true) {
+        var data = Q.get();
+        ...
+      }
+    }`
+
+    Here the 'using' construct will automatically call the
+    [EventQueue](#node-utils/EventQueue)'s
+    [__finally__](#node-utils/EventQueue/__finally__) method when the 'using' code
+    block is exited.
+*/
 exports.eventQueue = function(emitter, event) {
   return (new EventQueue(emitter, event));
 };
@@ -63,17 +108,43 @@ function EventQueue(emitter, event) {
 }
 
 EventQueue.prototype = {
+  /**
+    @function EventQueue.count
+    @summary  Returns current number of events in the queue.
+    @return   {Integer}
+   */
   count: function() { 
     return this._queue.count();
   },
 
+  /**
+    @function  EventQueue.get
+    @summary   Retrieve the next event from the queue; blocks if the queue is empty.
+               Safe to be called from multiple strata concurrently.
+    @return {Array} event data retrieved from head of queue.
+   */
   get: function() {
     return this._queue.get();
   },
 
+  /**
+    @function  EventQueue.stop
+    @summary   Stop listening for events.
+    @desc
+       See 'More information' section under [node-utils.eventQueue](#node-utils/eventQueue)
+       for an alternative to calling [EventQueue.stop](#node-utils/EventQueue/stop)
+       manually.
+   */
   stop: function() {
     this.emitter.removeListener(this.event, this._handleEvent);
   },
 
+  /**
+    @function  EventQueue.__finally__
+    @summary   Calls [EventQueue.stop](#node-utils/EventQueue/stop).
+               Allows EventQueue to be used a 'using' construct.
+    @desc
+       See 'More information' section under [node-utils.eventQueue](#node-utils/eventQueue).
+   */
   __finally__: function() { this.stop(); }
 };

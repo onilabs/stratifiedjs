@@ -31,7 +31,7 @@
  */
 /**
   @module    google
-  @summary   Bindings to various Google Webservices and APIs 
+  @summary   Bindings to various Google webservices and APIs 
 */
 var http = require("./http");
 
@@ -47,7 +47,7 @@ var http = require("./http");
     See <http://code.google.com/apis/ajaxsearch/documentation/reference.html#_intro_fonje>.
 
     Example:
-    `var s = require("google").search("Onilabs", {start:4});
+    `var s = require("apollo:google").search("Onilabs", {start:4});
     console.log(s.responseData.results[0].url); // first result`
 */
 function search(q, settings) {
@@ -126,6 +126,7 @@ exports.dictionaryLookup = function (word, settings) {
 
 /**
   @function speak
+  @hostenv  xbrowser
   @summary **Experimental** API using the **unofficial** Google TTS service to
     speak a phrase.
   @param {String} [txt] Text to speak.
@@ -173,11 +174,12 @@ exports.speak = speak;
 // helper to check if google api is installed
 function ensureAPI() {
   if (window["google"] && window.google.load) return;
-  http.script("http://www.google.com/jsapi");
+  require('./dom').script("http://www.google.com/jsapi");
 }
 
 /**
   @function  load
+  @hostenv   xbrowser
   @summary   Loads a JavaScript Google AJAX Module.
   @param     {String} [moduleName] A string representing a module.
   @param     {optional String} [moduleVersion] The module version to load.
@@ -186,7 +188,7 @@ function ensureAPI() {
      See <http://code.google.com/apis/ajax/documentation/#GoogleLoad>
 
      Example:
-     `require('google').load("language", "1");
+     `require('apollo:google').load("language", "1");
      if (google.language.isFontRenderingSupported("hi"))
        ...`
 */

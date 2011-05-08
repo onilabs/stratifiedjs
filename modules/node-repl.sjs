@@ -1,6 +1,6 @@
 /*
  * Oni Apollo 'node-repl' module
- * read-eval-print loop for nodejs-based apollo
+ * Read-eval-print loop for nodejs-based apollo
  *
  * Part of the Oni Apollo Standard Module Library
  * 0.12+
@@ -31,14 +31,16 @@
  */
 /**
   @module  node-repl
-  @summary stratified read-eval-print loop for nodejs-based apollo
-  @desc
-    write me
+  @summary Stratified read-eval-print loop for nodejs-based apollo
+  @hostenv nodejs
 */
+
+var sys = require('sjs:__sys');
+if (sys.hostenv != 'nodejs') 
+  throw new Error('node-repl only runs in a nodejs environment');
 
 var common = require('./common');
 var nutil = require('./node-utils');
-var sys = require('sjs:__sys');
 var util = require('util');
 
 var disableColors = true;
@@ -52,6 +54,10 @@ if (process.platform != 'win32') {
 // one global repl interface
 var itf;
 
+/**
+   @function runREPL
+   @summary Runs a stdin/stdout read-eval-print-loop.
+*/
 exports.runREPL = function() {
   if (itf) throw new Error("REPL already running");
 
