@@ -16,6 +16,7 @@
 <script type="text/sjs">
 var jspath = "";
 var http = require("apollo:http");
+var dom = require("apollo:dom");
 require("apollo:jquery-binding").install({
   url: jspath + "jquery-1.4.1.min.js"
 });
@@ -26,10 +27,10 @@ try {
       var modules = http.jsonp("modules.jsonp", {forcecb: "modules"});
     }
     and {
-      http.script(jspath + "jquery.ba-hashchange.js");
+      dom.script(jspath + "jquery.ba-hashchange.js");
     }
     and {
-      http.script(jspath + "showdown.js?6");
+      dom.script(jspath + "showdown.js?6");
     }
   }
   or {
@@ -79,6 +80,7 @@ function buildFunctionHtml(href) {
   
   var html = [];
   html.push("<h2>"+functionname+"</h2>");
+  if (fn.hostenv) html.push("<div class='hostenv'><b>Note:</b> This function only works in the '"+fn.hostenv+"' version of Apollo.</div>");
   if (fn.summary) 
     html.push("\
       <div class='desc'>"+ 
@@ -175,6 +177,8 @@ function buildModuleHtml(href) {
   if (name && !module) {
     return "<h2>Module not found</h2>";
   }
+
+  if (module.hostenv) html.push("<div class='hostenv'><b>Note:</b> This module only works in the '"+module.hostenv+"' version of Apollo.</div>");
 
   if (module.summary) html.push("<div class='desc'>" + markdown(module.summary) + "</div>");
    

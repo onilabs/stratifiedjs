@@ -82,3 +82,5 @@ pre, .longdesc code {
 .longdesc p { margin: 0; }
 
 #index .toggle { width: 0.4em; display:none;}
+
+.hostenv { color: red }
