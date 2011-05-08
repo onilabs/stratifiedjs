@@ -1,5 +1,5 @@
-Oni Apollo - Multiplatform StratifiedJS implementation
-======================================================
+Oni Apollo - Multi-Platform StratifiedJS Implementation
+=======================================================
 
 Oni Apollo is a [StratifiedJS](http://stratifiedjs.org) implementation + a supporting set of modules. It runs server-side (based on Node.JS) as well as client-side (cross-browser).
 
