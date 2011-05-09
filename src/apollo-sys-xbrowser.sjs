@@ -203,7 +203,7 @@ function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
 
 /**
    @function request_hostenv
-   @summary Performs a HTTP request.
+   @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
    @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return {String}
@@ -216,6 +216,19 @@ function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
    @setting {String} [mime] Override mime type.
    @setting {Boolean} [throwing=true] Throw exception on error.
    @desc
+     ### Limitations:
+
+     This method exposes similar functionality to that provided by browsers' 
+     [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest), and as such has
+     a number of limitations:
+
+     * It is only safe for transferring textual data (UTF8-encoded by default).
+
+     * Redirects will automatically be followed, and there is no way to discover
+       the value of the final URL in a redirection chain.
+
+     * Cross-origin restrictions might apply; see below.
+
      ### Cross-domain requests:
 
      The success of cross-domain requests depends on the cross-domain

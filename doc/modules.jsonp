@@ -895,7 +895,7 @@ modules({
       },
       "request": {
         "type": "function",
-        "summary": "Performs a HTTP request.",
+        "summary": "Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.",
         "param": [
           {
             "type": "URLSPEC",
@@ -955,7 +955,7 @@ modules({
             "summary": "Throw exception on error."
           }
         ],
-        "desc": "### Cross-site requests:\n\nThe success of cross-domain requests depends on the cross-domain\ncapabilities of the host environment, see\n[http.getXDomainCaps](#http/getXDomainCaps). If this function\nreturns \"CORS\" then success of cross-domain requests depends on\nwhether the server allows the access (see\n<http://www.w3.org/TR/cors/>).\n\nIn the xbrowser host environment, the standard\nXMLHttpRequest can handle cross-domain requests on compatible\nbrowsers (any recent Chrome, Safari, Firefox). On IE8+,\n[http.request](#http/request) will automatically fall back to using MS's\nXDomainRequest object for cross-site requests.\n\nIn the nodejs host environment, we can always perform cross-domain requests\n\n### Request failure:\n\nIf the request is unsuccessful, and the call is configured to\nthrow exceptions (setting {\"throwing\":true}; the default), an\nexception will be thrown which has a 'status' member set to the\nrequest status. If the call is configured to not throw, an empty\nstring will be returned.\n\n### Example:\n\n    try { \n      alert(http.request(\"foo.txt\"));\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
+        "desc": "### Limitations:\n\nThis method exposes similar functionality to that provided by browsers' \n[XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest), and as such has\na number of limitations:\n\n* It is only safe for transferring textual data (UTF8-encoded by default).\n\n* Redirects will automatically be followed, and there is no way to discover\n  the value of the final URL in a redirection chain.\n\n* Cross-origin restrictions might apply; see below.\n\n### Cross-site requests:\n\nThe success of cross-domain requests depends on the cross-domain\ncapabilities of the host environment, see\n[http.getXDomainCaps](#http/getXDomainCaps). If this function\nreturns \"CORS\" then success of cross-domain requests depends on\nwhether the server allows the access (see\n<http://www.w3.org/TR/cors/>).\n\nIn the xbrowser host environment, the standard\nXMLHttpRequest can handle cross-domain requests on compatible\nbrowsers (any recent Chrome, Safari, Firefox). On IE8+,\n[http.request](#http/request) will automatically fall back to using MS's\nXDomainRequest object for cross-site requests.\n\nIn the nodejs host environment, we can always perform cross-domain requests\n\n### Request failure:\n\nIf the request is unsuccessful, and the call is configured to\nthrow exceptions (setting {\"throwing\":true}; the default), an\nexception will be thrown which has a 'status' member set to the\nrequest status. If the call is configured to not throw, an empty\nstring will be returned.\n\n### Example:\n\n    try { \n      alert(http.request(\"foo.txt\"));\n    }\n    catch (e) {\n      alert(\"Error! Status=\"+e.status);\n    }\n\n"
       },
       "get": {
         "type": "function",
@@ -1065,7 +1065,7 @@ modules({
       }
     },
     "classes": {},
-    "summary": "Stratified HTTP request methods"
+    "summary": "Simple HTTP request methods "
   },
   "jquery-binding": {
     "type": "module",

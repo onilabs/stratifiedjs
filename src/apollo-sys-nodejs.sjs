@@ -147,7 +147,7 @@ function readStream(stream) {
 
 /**
    @function request
-   @summary Performs a HTTP request.
+   @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
    @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return {String}
@@ -236,7 +236,7 @@ function request_hostenv(url, settings) {
   }
   
   // XXX support for returning streambuffer
-  response.setEncoding('ascii');
+  response.setEncoding('utf8');
   response.data = "";
   var data;
   while (data = readStream(response)) {
