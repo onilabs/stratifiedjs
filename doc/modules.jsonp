@@ -1404,5 +1404,12 @@ modules({
     "classes": {},
     "summary": "Stratified wrapper of nodejs http functionality",
     "hostenv": "nodejs"
+  },
+  "node-fs": {
+    "type": "module",
+    "children": {},
+    "classes": {},
+    "summary": "Stratified wrapper of nodejs filesystem functionality. TO BE DOCUMENTED",
+    "hostenv": "nodejs"
   }
 });

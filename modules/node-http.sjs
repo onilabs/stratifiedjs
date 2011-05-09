@@ -58,12 +58,11 @@ function receiveBody(request) {
       }
     }
   }
-  
 }
 
-// helper to handle a request
+// helper to receive a body before handling a request
 function handleRequest(connectionHandler, request, response) {
-  receiveBody(request);
+  receiveBody(request); 
   connectionHandler(request, response);
 }
 
@@ -72,9 +71,7 @@ function handleRequest(connectionHandler, request, response) {
    @summary Run a simple HTTP server. To be documented.
 */
 exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
-  var server = builtin_http.createServer(function(request, response) {
-    handleRequest(connectionHandler, request, response);
-  });
+  var server = builtin_http.createServer(connectionHandler);
   try {
     server.listen(port, host);
     hold();
