@@ -40,7 +40,7 @@ if (sys.hostenv != 'nodejs')
   throw new Error('node-repl only runs in a nodejs environment');
 
 var common = require('./common');
-var nutil = require('./node-utils');
+var events = require('./node-events');
 var util = require('util');
 
 var disableColors = true;
@@ -69,7 +69,7 @@ exports.runREPL = function() {
 
   try {
     itf = require('readline').createInterface(stdin, process.stdout);
-    using (var lines = nutil.eventQueue(itf, 'line')) {
+    using (var lines = events.eventQueue(itf, 'line')) {
       while (1) {
         switchPrompt('input');
         itf.prompt();
@@ -77,10 +77,10 @@ exports.runREPL = function() {
           var cl = lines.get()[0];
         }
         or {
-          nutil.waitforEvent(itf, "SIGINT");
+          events.waitforEvent(itf, "SIGINT");
           write("<^C again to quit>");
           itf.prompt();
-          nutil.waitforEvent(itf, "SIGINT");
+          events.waitforEvent(itf, "SIGINT");
           return;
         }
         switchPrompt('busy');
@@ -104,7 +104,7 @@ function evalCommandLine(cl) {
   }
   or {
     // when the user enters CTRL-C, we push into background:
-    nutil.waitforEvent(itf, "SIGINT");
+    events.waitforEvent(itf, "SIGINT");
     trackInBackground(stratum);
   }
 }

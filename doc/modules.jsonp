@@ -1313,7 +1313,7 @@ modules({
     "summary": "Stratified read-eval-print loop for nodejs-based apollo",
     "hostenv": "nodejs"
   },
-  "node-utils": {
+  "node-events": {
     "type": "module",
     "children": {
       "waitforEvent": {
@@ -1354,7 +1354,7 @@ modules({
             "summary": "Event to listen for"
           }
         ],
-        "desc": "The returned [EventQueue](#node-utils/EventQueue) object proceeds to listen for\nevents immediately in the background, and continues to do so until\n[EventQueue.stop](#node-utils/EventQueue/stop) is called.\n\nAlternatively, as [EventQueue](#node-utils/EventQueue) implements a\n[__finally__](#node-utils/EventQueue/__finally__) method, it can be used in a\n'using' block:\n\n`using (var Q = require('node-utils').eventQueue(emitter, event)) {\n  while (true) {\n    var data = Q.get();\n    ...\n  }\n}`\n\nHere the 'using' construct will automatically call the\n[EventQueue](#node-utils/EventQueue)'s\n[__finally__](#node-utils/EventQueue/__finally__) method when the 'using' code\nblock is exited.\n"
+        "desc": "The returned [EventQueue](#node-events/EventQueue) object proceeds to listen for\nevents immediately in the background, and continues to do so until\n[EventQueue.stop](#node-events/EventQueue/stop) is called.\n\nAlternatively, as [EventQueue](#node-events/EventQueue) implements a\n[__finally__](#node-events/EventQueue/__finally__) method, it can be used in a\n'using' block:\n\n`using (var Q = require('node-events').eventQueue(emitter, event)) {\n  while (true) {\n    var data = Q.get();\n    ...\n  }\n}`\n\nHere the 'using' construct will automatically call the\n[EventQueue](#node-events/EventQueue)'s\n[__finally__](#node-events/EventQueue/__finally__) method when the 'using' code\nblock is exited.\n"
       }
     },
     "classes": {
@@ -1378,19 +1378,31 @@ modules({
           "stop": {
             "type": "function",
             "summary": "Stop listening for events.",
-            "desc": "See 'More information' section under [node-utils.eventQueue](#node-utils/eventQueue)\nfor an alternative to calling [EventQueue.stop](#node-utils/EventQueue/stop)\nmanually.\n"
+            "desc": "See 'More information' section under [node-events.eventQueue](#node-events/eventQueue)\nfor an alternative to calling [EventQueue.stop](#node-events/EventQueue/stop)\nmanually.\n"
           },
           "__finally__": {
             "type": "function",
-            "summary": "Calls [EventQueue.stop](#node-utils/EventQueue/stop).\nAllows EventQueue to be used a 'using' construct.",
-            "desc": "See 'More information' section under [node-utils.eventQueue](#node-utils/eventQueue).\n"
+            "summary": "Calls [EventQueue.stop](#node-events/EventQueue/stop).\nAllows EventQueue to be used a 'using' construct.",
+            "desc": "See 'More information' section under [node-events.eventQueue](#node-events/eventQueue).\n"
           }
         },
         "summary": "Listens for specified events and stores them in a queue.",
-        "desc": "Use function [node-utils.eventQueue](#node-utils/eventQueue) to construct a new\nEventQueue object.\n\n"
+        "desc": "Use function [node-events.eventQueue](#node-events/eventQueue) to construct a new\nEventQueue object.\n\n"
       }
     },
-    "summary": "Stratified utilities for interfacing with plain nodejs code",
+    "summary": "Stratified wrapper for nodejs events",
+    "hostenv": "nodejs"
+  },
+  "node-http": {
+    "type": "module",
+    "children": {
+      "runSimpleServer": {
+        "type": "function",
+        "summary": "Run a simple HTTP server. To be documented."
+      }
+    },
+    "classes": {},
+    "summary": "Stratified wrapper of nodejs http functionality",
     "hostenv": "nodejs"
   }
 });

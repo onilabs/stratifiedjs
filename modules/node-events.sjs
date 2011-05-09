@@ -1,6 +1,6 @@
 /*
- * Oni Apollo 'node-utils' module
- * Stratified utilities for interfacing with plain nodejs code
+ * Oni Apollo 'node-events' module
+ * Stratified wrapper for nodejs events
  *
  * Part of the Oni Apollo Standard Module Library
  * 0.12+
@@ -30,13 +30,13 @@
  *
  */
 /**
-  @module    node-utils
-  @summary   Stratified utilities for interfacing with plain nodejs code
+  @module    node-events
+  @summary   Stratified wrapper for nodejs events
   @hostenv   nodejs
 */
 
 if (require('sjs:__sys').hostenv != 'nodejs') 
-  throw new Error('node-utils only runs in a nodejs environment');
+  throw new Error('node-events only runs in a nodejs environment');
 
 /**
 `   @function waitforEvent
@@ -60,7 +60,7 @@ exports.waitforEvent = function(emitter, event) {
   @class EventQueue
   @summary Listens for specified events and stores them in a queue.
   @desc
-     Use function [node-utils.eventQueue](#node-utils/eventQueue) to construct a new
+     Use function [node-events.eventQueue](#node-events/eventQueue) to construct a new
      EventQueue object.
 
   @function  eventQueue
@@ -69,15 +69,15 @@ exports.waitforEvent = function(emitter, event) {
   @param   {EventEmitter} [emitter] NodeJS event emitter
   @param   {String} [event] Event to listen for
   @desc
-    The returned [EventQueue](#node-utils/EventQueue) object proceeds to listen for
+    The returned [EventQueue](#node-events/EventQueue) object proceeds to listen for
     events immediately in the background, and continues to do so until
-    [EventQueue.stop](#node-utils/EventQueue/stop) is called.
+    [EventQueue.stop](#node-events/EventQueue/stop) is called.
 
-    Alternatively, as [EventQueue](#node-utils/EventQueue) implements a
-    [__finally__](#node-utils/EventQueue/__finally__) method, it can be used in a
+    Alternatively, as [EventQueue](#node-events/EventQueue) implements a
+    [__finally__](#node-events/EventQueue/__finally__) method, it can be used in a
     'using' block:
 
-    `using (var Q = require('node-utils').eventQueue(emitter, event)) {
+    `using (var Q = require('node-events').eventQueue(emitter, event)) {
       while (true) {
         var data = Q.get();
         ...
@@ -85,8 +85,8 @@ exports.waitforEvent = function(emitter, event) {
     }`
 
     Here the 'using' construct will automatically call the
-    [EventQueue](#node-utils/EventQueue)'s
-    [__finally__](#node-utils/EventQueue/__finally__) method when the 'using' code
+    [EventQueue](#node-events/EventQueue)'s
+    [__finally__](#node-events/EventQueue/__finally__) method when the 'using' code
     block is exited.
 */
 exports.eventQueue = function(emitter, event) {
@@ -131,8 +131,8 @@ EventQueue.prototype = {
     @function  EventQueue.stop
     @summary   Stop listening for events.
     @desc
-       See 'More information' section under [node-utils.eventQueue](#node-utils/eventQueue)
-       for an alternative to calling [EventQueue.stop](#node-utils/EventQueue/stop)
+       See 'More information' section under [node-events.eventQueue](#node-events/eventQueue)
+       for an alternative to calling [EventQueue.stop](#node-events/EventQueue/stop)
        manually.
    */
   stop: function() {
@@ -141,10 +141,10 @@ EventQueue.prototype = {
 
   /**
     @function  EventQueue.__finally__
-    @summary   Calls [EventQueue.stop](#node-utils/EventQueue/stop).
+    @summary   Calls [EventQueue.stop](#node-events/EventQueue/stop).
                Allows EventQueue to be used a 'using' construct.
     @desc
-       See 'More information' section under [node-utils.eventQueue](#node-utils/eventQueue).
+       See 'More information' section under [node-events.eventQueue](#node-events/eventQueue).
    */
   __finally__: function() { this.stop(); }
 };
