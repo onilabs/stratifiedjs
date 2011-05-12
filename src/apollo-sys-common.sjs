@@ -449,6 +449,7 @@ function default_loader(path, parent) {
 }
 
 function http_src_loader(path) {
+  var src;
   if (getXDomainCaps_hostenv() != 'none' ||
       exports.isSameOrigin(path, document.location))
     src = request_hostenv(path, {mime:"text/plain"});
