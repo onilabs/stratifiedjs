@@ -38,6 +38,8 @@
 if (require('sjs:__sys').hostenv != 'nodejs') 
   throw new Error('node-events only runs in a nodejs environment');
 
+var cutil = require('./cutil');
+
 /**
 `   @function waitforEvent
    @summary Blocks until the specified event is triggered on the given event emitter
@@ -96,7 +98,7 @@ exports.eventQueue = function(emitter, event) {
 function EventQueue(emitter, event) {
   // XXX we queue up to 100 events max. Does this need to be configurable?
   var capacity = 100;
-  this._queue = new (require("./cutil").Queue)(capacity, true);
+  this._queue = new (cutil.Queue)(capacity, true);
   this.emitter = emitter;
   this.event = event;
 
