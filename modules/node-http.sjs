@@ -45,25 +45,32 @@ var events = require('./node-events');
 // helper to receive a (smallish, <10MB) utf8 request body (if any) and store it 
 // on request.body
 function receiveBody(request) {
-  request.setEncoding('utf8');
-  request.body = "";
+  __js request.setEncoding('utf8');
+  __js request.body = "";
   waitfor {
-    events.waitforEvent(request, 'end');
+    waitfor() { __js request.on('end', resume); }
   }
   or {
-    using (var dataQueue = events.eventQueue(request, 'data')) {
-      while (1) { 
-        request.body += dataQueue.get()[0];
-        if (request.body.length > 1024*1024*10) throw "Request body too large";
-      }
+    while (1) { 
+      request.body += events.waitforEvent(request, 'data')[0];
+      __js if (request.body.length > 1024*1024*10) throw "Request body too large";
     }
   }
 }
 
 // helper to receive a body before handling a request
 function handleRequest(connectionHandler, request, response) {
-  receiveBody(request); 
-  connectionHandler(request, response);
+  waitfor {
+    receiveBody(request); 
+    connectionHandler(request, response);
+  }
+  or {
+    events.waitforEvent(request, 'close');
+    throw "Connection closed";
+  }
+  catch (e) {
+    console.log("exception thrown by connection handler: "+e.toString());
+  }
 }
 
 /**
@@ -71,7 +78,9 @@ function handleRequest(connectionHandler, request, response) {
    @summary Run a simple HTTP server. To be documented.
 */
 exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
-  var server = builtin_http.createServer(connectionHandler);
+  var server = builtin_http.createServer(function(req, res) { 
+    __js handleRequest(connectionHandler, req, res);
+  });
   try {
     server.listen(port, host);
     hold();
