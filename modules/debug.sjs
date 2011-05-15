@@ -274,8 +274,15 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
   this.resizehandle = div.getElementsByTagName("span")[0];
   this.cmdline = div.getElementsByTagName("input")[0];
   this.cmdloop_stratum = spawn this._cmdloop();
-  this.history = (window["sessionStorage"] && window["JSON"] && window.sessionStorage.history) ? 
+  try {
+    this.history = (window["sessionStorage"] && window["JSON"] && window.sessionStorage.history) ? 
                  JSON.parse(sessionStorage.history) : [""];
+  }
+  catch (e) {
+    // when accessing sessionStorage.history from a file url we get 
+    // NS_ERROR_DOM_NOT_SUPPORTED_ERR on FF
+    this.history = [""];
+  }
   this.history_p = this.history.length -1;
   this.summonbutton = makeDiv("<div style='background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#eee));'><a title='Open Apollo Console' style='display:block;padding: 2px 8px 3px 10px;background:url("+icons.arrowblue+") no-repeat 10px 6px;width: 8px;height:17px'></a></div>", "\
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
