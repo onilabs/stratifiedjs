@@ -281,6 +281,7 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
   catch (e) {
     // when accessing sessionStorage.history from a file url we get 
     // NS_ERROR_DOM_NOT_SUPPORTED_ERR on FF
+    this.sessionStorageBroken = true;
     this.history = [""];
   }
   this.history_p = this.history.length -1;
@@ -312,7 +313,7 @@ Console.prototype = {
             this.history[this.history.length-1] = this.cmdline.value;
             this.history_p = this.history.length;
             this.history.push("");
-            if (window["sessionStorage"] && window["JSON"]) 
+            if (!sessionStorageBroken && window["sessionStorage"] && window["JSON"]) 
               sessionStorage.history = JSON.stringify(this.history);
             this.cmdline.value = "";
             break;
