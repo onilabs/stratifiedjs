@@ -313,7 +313,7 @@ Console.prototype = {
             this.history[this.history.length-1] = this.cmdline.value;
             this.history_p = this.history.length;
             this.history.push("");
-            if (!sessionStorageBroken && window["sessionStorage"] && window["JSON"]) 
+            if (!this.sessionStorageBroken && window["sessionStorage"] && window["JSON"]) 
               sessionStorage.history = JSON.stringify(this.history);
             this.cmdline.value = "";
             break;
