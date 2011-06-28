@@ -463,10 +463,11 @@ ph_if.prototype.val = function() {
     var c = this.c ? this.c.v() : "0";
     if (this.t.is_nblock) {
       // half-nblock encoding
-      rv = "function(arguments){if("+this.t.nb()+
-           ")return __oni_rt.exnm("+c+",arguments,this,'"+this.file+"');";
+      // XXX get rid of arguments
+      rv = "function(arguments, __oni_env){if("+this.t.nb()+
+           ")return __oni_rt.ex("+c+",__oni_env);";
       if (this.a)
-        rv += "else return __oni_rt.exnm("+this.a.v()+",arguments,this,'"+this.file+"');";
+        rv += "else return __oni_rt.ex("+this.a.v()+",__oni_env);";
       return rv+"}";
     }
     else {
@@ -477,6 +478,10 @@ ph_if.prototype.val = function() {
       return rv + ")";
     }
 };
+
+/*
+  __oni_rt.Try(flags,try_node,catch_func(env,v),finally_node,retract_node)
+*/
 
 #define GEN_TRY(block, crf, pctx) \
   return new ph_try(block, crf, pctx);
@@ -493,9 +498,9 @@ ph_try.prototype.val = function() {
     rv+=","+tb;
     if (this.crf[0]) {
       var cb = this.crf[0][1].v();
-      rv += ",function(arguments,"+this.crf[0][0]+"){";
+      rv += ",function(__oni_env,"+this.crf[0][0]+"){";
       if (cb.length)
-        rv += "return __oni_rt.exnm("+cb+",arguments,this,'"+this.file+"')";
+        rv += "return __oni_rt.ex("+cb+",__oni_env)";
       rv +="}";
     }
     else
@@ -566,6 +571,16 @@ ph_return.prototype.val = function() {
     var v = this.exp ? ","+this.exp.v() : "";
     return "__oni_rt.Scall("+this.line+",__oni_rt.Return"+v+")";
   }
+
+#define GEN_COLLAPSE(pctx) return new ph_collapse(pctx);
+
+function ph_collapse(pctx) {
+  this.line = pctx.line;
+}
+ph_collapse.prototype = new ph(WHENDEBUG("ph_collapse"));
+ph_collapse.prototype.val = function() {
+  return "__oni_rt.Collapse("+this.line+")";
+};
 
 #define GEN_BREAK(lbl, pctx)                    \
   return new ph_cfe("b", lbl);
@@ -668,16 +683,14 @@ function ph_for_in(lhs, obj, body, pctx) {
 ph_for_in.prototype = new ph(WHENDEBUG("ph_for_in"));
 ph_for_in.prototype.val = function() {
     var rv = "__oni_rt.ForIn("+this.obj.v();
-    rv += ",function(arguments, _oniY) { return __oni_rt.exnm(__oni_rt.Seq("+SEQ_FLAG_NONE+",";
+    rv += ",function(__oni_env, _oniY) { return __oni_rt.ex(__oni_rt.Seq("+SEQ_FLAG_NONE+",";
     // XXX this is the wrong pctx!!
     rv += (new ph_assign_op(this.lhs, "=",
                             new ph_identifier("_oniY", this.pctx),
                             this.pctx)).v();
     if (this.body)
       rv += ","+this.body.v();
-    // XXX wrong pctx (doesn't matter for filename; but we need to change this
-    // when we fix the ref above 
-    return rv + "), arguments, this,'"+this.pctx.fn+"')})";
+    return rv + "), __oni_env)})";
 };
 
 #define GEN_WITH(exp, body, pctx) return new ph_with(exp, body, pctx);
@@ -691,10 +704,13 @@ function ph_with(exp, body, pctx) {
 ph_with.prototype = new ph(WHENDEBUG("ph_with"));
 ph_with.prototype.nblock_val = function() { return "with("+this.exp.nb()+")"+this.body.nb(); };
 ph_with.prototype.val = function() {
-    // XXX support proper arguments object; need to add parameter to fcall
-    // XXX check 'this' argument
-    var rv = "__oni_rt.Scall("+this.line+",__oni_rt.With,"+this.exp.v()+", function(arguments, _oniZ){with (_oniZ) return __oni_rt.exnm("+this.body.v()+",arguments,this,'"+this.file+"')})";
-    return rv;
+  // XXX support proper arguments object; need to add parameter to fcall
+  // XXX check 'this' argument
+  var rv = "__oni_rt.Sc("+this.line+",__oni_rt.With,"+this.exp.v()+
+    ",__oni_rt.Lit(function(__oni_env,__oni_z){with(__oni_z) return __oni_rt.ex("+
+    this.body.v()+",__oni_env)}))";
+
+  return rv;
 };
 
 
@@ -1269,7 +1285,7 @@ function gen_suspend(has_var, decls, block, crf, pctx) {
 }
 
 function gen_suspend_inner(decls, block, crf, pctx) {
-  // do we need to wrap the suspend?
+  // if we've got a catch, retract or finally, we need to wrap the suspend:
   var wrapped = (crf[0] || crf[1] || crf[2]);
   var rv = new ph_suspend(decls, block, wrapped, pctx);
   if (wrapped)
@@ -1285,17 +1301,14 @@ function ph_suspend(decls, block, wrapped, pctx) {
 }
 ph_suspend.prototype = new ph(WHENDEBUG("ph_suspend"));
 ph_suspend.prototype.val = function() {
-  var rv = "__oni_rt.Suspend(function(arguments, ";
-  if (this.wrapped) // fill in resume variable in outer wrapper
+  var rv = "__oni_rt.Suspend(function(__oni_env,";
+  if (this.wrapped) // 'resume' is declared in outer wrapper
     rv += "_oniX){resume=_oniX;";
   else
     rv +="resume){";
   var b = this.block.v();
-  // XXX should we use __oni_rt.exnm here? Should we disallow
-  // return/break/etc in waitfor() ? (which is effectively the case
-  // if we use 'exec' instead of 'exnm')
   if (b.length)
-    rv += "return __oni_rt.exec("+b+",arguments,this,'"+this.file+"')";
+    rv += "return __oni_rt.ex("+b+",__oni_env)";
   rv += "}, function() {";
   for (var i=0; i<this.decls.length;++i) {
     var name = this.decls[i][0];
@@ -1314,9 +1327,9 @@ function ph_suspend_wrapper(code, pctx) {
 }
 ph_suspend_wrapper.prototype = new ph(WHENDEBUG("ph_suspend_wrapper"));
 ph_suspend_wrapper.prototype.val = function() {
-  // XXX could improve on the way we pull in 'arguments'
-  return "__oni_rt.Scall("+this.line+",function(arguments){var resume; return __oni_rt.exnm("+
-    this.code+",arguments, this,'"+this.file+"')}, function(a){return a;})"; // XXX Nb
+  // XXX get rid of arguments
+  return "function(arguments, __oni_env){var resume;"+
+    "return __oni_rt.ex("+this.code+",__oni_env)}";
 };
 
 
@@ -1346,23 +1359,21 @@ function ph_using(lhs, exp, body, pctx) {
   if (lhs)
     this.assign2 = new ph_assign_op(lhs, "=",
                                     new ph_identifier("_oniW",pctx), pctx);
-  this.line = exp.line;
-  this.file = pctx.fn;
 }
+/*
+  using(lhs=A) { body } -> f(args){var _oniW; ex(Seq(a1,a2,Try(body,f(){_oniW.final})))}
+
+*/
 ph_using.prototype = new ph(WHENDEBUG("ph_using"));
 ph_using.prototype.val = function() {
-  // Note the way we pull in the 'arguments' object here, to allow the
-  // assignment "arguments[xx]=...". XXX could improve on this
-  var rv = "__oni_rt.Scall(";
-  rv += this.line+",";
-  rv += "function(arguments){var _oniW; return __oni_rt.exnm(__oni_rt.Seq("+SEQ_FLAG_NONE+",";
-  rv += this.assign1.v() +",";
+  // XXX get rid of arguments
+  var rv = "function(arguments, __oni_env){var _oniW;"+
+    "return __oni_rt.ex(__oni_rt.Seq("+SEQ_FLAG_NONE+","+
+    this.assign1.v()+",";
   if (this.assign2)
-    rv += this.assign2.v() + ",";
-  
-  rv += "__oni_rt.Try("+TRY_FLAG_NONE+","+ this.body.v();
-  rv += ",0,function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},0)"; // XXXX Nb
-  rv += "),arguments,this,'"+this.file+"')},function(a){return a;})"; // XXXX Nb
+    rv += this.assign2.v()+",";
+  rv += "__oni_rt.Try("+TRY_FLAG_NONE+","+this.body.v()+",0,"+
+    "function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},0)),__oni_env)}";
   return rv;
 };
 #endif // SJS_USING

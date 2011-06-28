@@ -161,6 +161,7 @@ GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)
 BEGIN_SUSPEND_BLOCK(pctx)
 END_SUSPEND_BLOCK(pctx)
 GEN_SUSPEND(has_var, decls, block, crf, pctx)
+GEN_COLLAPSE(pctx)
   crf: see GEN_TRY
 GEN_TRY(block, crf, pctx) 
     crf is [ [catch_id,catch_block,catchall?]|null, retract_block|null, finally_block|null ]
@@ -605,7 +606,7 @@ S(",").ifx(BP_COMMA, true);
 function validatePropertyName(token) {
   var id = token.id;
   if (id != "<id>" && id != "<string>" && id != "<number>")
-    throw "Invalid object literal syntax; property name expected, but saw "+prop;
+    throw "Invalid object literal syntax; property name expected, but saw "+token;
 }
 
 function parseBlock(pctx) {
@@ -739,6 +740,10 @@ S("this", TOKENIZER_OP).exs(function(pctx, st) { GEN_THIS(pctx) });
 S("true", TOKENIZER_OP).exs(function(pctx, st) { GEN_TRUE(pctx) });
 S("false", TOKENIZER_OP).exs(function(pctx, st) { GEN_FALSE(pctx) });
 S("null", TOKENIZER_OP).exs(function(pctx, st) { GEN_NULL(pctx) });
+
+#ifdef SJS
+S("collapse", TOKENIZER_OP).exs(function(pctx, st) { GEN_COLLAPSE(pctx) });
+#endif
 
 function isStmtTermination(token) {
   return token.id == ";" || token.id == "}" || token.id == "<eof>";

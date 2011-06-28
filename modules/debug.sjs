@@ -69,7 +69,7 @@ var icons = {
   arrowblue:  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAMCAYAAACwXJejAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHNJREFUeNpiYCAFuLfdUcAlxwRVEACk7gPpBJyKgEAASs8HKuxHV8SIZB3ItPlQDQt2VqkkYiiCKjQAUvuhCg8AcSBQ8QcmNJORHf8Bm3UJUOsY0K2D+a4ASUEjsgIQYIHSB6DGFwIVLMAXmAIMlACAAAMAwjQlc6knNh8AAAAASUVORK5CYII=",
   arrowdark:  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAMCAYAAACwXJejAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHNJREFUeNpiYCAFzJw5UwGXHBNUQQCQug+kE3AqAgIBKD0fqLAfXREjknUg0+ZDNSxIT09PxFAEVWgApPZDFR4A4kCg4g9MaCYjO/4DNusSoNYxoFsH810BkoJGZAUgwAKlD0CNLwQqWIAvMAUYKAEAAQYAh/Ul+0ewq2IAAAAASUVORK5CYII=",
   clear:      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAKZJREFUeNpiYCARMCJzZs6cmQCk8oHYACp0AYgnpqenL8DQAFQ8H0gl4DB4AVBTIojBhGQyTPEHIFYEYkEgboSKJUDVQDRAnQFTLADE60EcoKkNSJrykTXA3GwIdTeIvx9oKkjzBGQ1TGhuBdngiKwJaiMcMCGFBggUAJ2Bruk8shqYholQuh7ojAYoOxDJT3A15AUrNERAAolIzoM5IxGmmCwAEGAA1RE0WajjFisAAAAASUVORK5CYII=",
-  collapse:   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAGJJREFUeNpiYCARMIKImTNnNgCpegJqG9PT0xuYgIoFiFDMAFPDgiwCNIERm0qgof9hbCagog+k+IGJVE+z4LD6AtBmQ1JsMCDKSbg8jS0e/hPjfpCBMBsaiVDfyEAOAAgwANi1GX1uUGWvAAAAAElFTkSuQmCC",
+  shut:   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAGJJREFUeNpiYCARMIKImTNnNgCpegJqG9PT0xuYgIoFiFDMAFPDgiwCNIERm0qgof9hbCagog+k+IGJVE+z4LD6AtBmQ1JsMCDKSbg8jS0e/hPjfpCBMBsaiVDfyEAOAAgwANi1GX1uUGWvAAAAAElFTkSuQmCC",
   treeclosed: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAFhJREFUeNpiYCAVNDQ07AdiBVzyTEhsByC+D1TcD8QC+BTCQAFUQwGyICOS1f+xaHoAxIlAuQNMxPqBBYf4ByBuBJo0AZ/CCVBFH3CZeADqngcMlACAAAMAv7Icc+yXbNgAAAAASUVORK5CYII=",
   treeopen:   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAF5JREFUeNpiYKA2YGxoaEgA0vNxyH8AYkOgmgdMQGIBkHMBh8KJIEUgBhNUoBCLogdARQ0wDlghkH8ASG1AU4iimQmHxAGg5g1YFULd0ojLKSxo/AlQTRfIDkeAAAMAtK4cNkAjG14AAAAASUVORK5CYII="
 };
@@ -260,7 +260,7 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
 </div>\
 <div style='height:20px;position:absolute;left:0;right:0;"+(this.flipmode?"top:0;":"bottom:0;")+"background: #fcfcfc url("+icons.arrowblue+") 6px 4px no-repeat;'>\
   <div style='z-index:99999;height:20px;position:absolute;right:0;'>
-    <a title='Hide console' style='cursor:pointer;background:url("+icons.collapse+") no-repeat 4px 4px; width:12px;height:12px; padding: 4px; display:block;float:left'></a>
+    <a title='Hide console' style='cursor:pointer;background:url("+icons.shut+") no-repeat 4px 4px; width:12px;height:12px; padding: 4px; display:block;float:left'></a>
     <a title='Clear console' style='cursor:pointer;background:url("+icons.clear+") no-repeat 4px 4px; width:12px;height:12px; padding: 4px; display:block;float:left'></a>
   </div>
   <div style='height:20px;position:absolute;left:0; "+((!isIE || isIE>7)?"right:40px;":"")+"padding:0 0 0 20px'>\
@@ -294,7 +294,7 @@ z-index:9999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:
     this.closebutton.parentNode.removeChild(this.closebutton);
   }
   if (opts.collapsed) {
-    this.collapse();
+    this.shut();
   }
 }
 Console.prototype = {
@@ -338,7 +338,7 @@ Console.prototype = {
         // Android bug http://code.google.com/p/android/issues/detail?id=8575
         waitfor {
           require('./dom').waitforEvent(this.closebutton, "click");
-          this.collapse();
+          this.shut();
         }
         or {
           var ev = require('./dom').waitforEvent(this.output, "click");
@@ -397,10 +397,10 @@ Console.prototype = {
   },
 
   /**
-    @function Console.collapse
+    @function Console.shut
     @summary Collapses the console.
    */
-  collapse : function () {
+  shut : function () {
     this.root.style.display = "none";
     this.summonbutton.style.visibility = "visible";
     spawn (require('./dom').waitforEvent(this.summonbutton, "click"),

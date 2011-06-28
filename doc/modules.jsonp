@@ -415,7 +415,7 @@ modules({
     "classes": {
       "Console": {
         "children": {
-          "collapse": {
+          "shut": {
             "type": "function",
             "summary": "Collapses the console."
           },
