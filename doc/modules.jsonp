@@ -258,6 +258,22 @@ modules({
             "summary": "The function to wrap."
           }
         ]
+      },
+      "makeDeferredFunction": {
+        "type": "function",
+        "summary": "A wrapper for implementing the 'deferred pattern' on a function (see \n[ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern)).",
+        "param": [
+          {
+            "type": "Function",
+            "name": "f",
+            "summary": "The function to wrap."
+          }
+        ],
+        "return": {
+          "type": "Function",
+          "desc": "The wrapped function."
+        },
+        "desc": "When the wrapped function is called, it returns a 'deferred object' which \nimplements the methods 'then' and 'cancel', as described in \n[ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern). With these methods, plain JS code can be made to wait for\nfor the execution of asynchronous SJS code.\n"
       }
     },
     "classes": {

@@ -325,6 +325,36 @@ exports.makeExclusiveFunction = function(f) {
   }
 }
 
+/**
+   @function makeDeferredFunction
+   @summary  A wrapper for implementing the 'deferred pattern' on a function (see 
+             [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern)).
+   @param    {Function} [f] The function to wrap.
+   @return   {Function} The wrapped function.
+   @desc
+     When the wrapped function is called, it returns a 'deferred object' which 
+     implements the methods 'then' and 'cancel', as described in 
+     [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern). With these methods, plain JS code can be made to wait for
+     for the execution of asynchronous SJS code.
+*/
+exports.makeDeferredFunction = function(f) {
+  return function() {
+    var stratum = spawn f.apply(this, arguments);
+    var deferred = {
+      then : function(callback, errback) {
+        spawn (function() {
+          try { callback(stratum.waitforValue()); }
+          catch (e) { if (errback) errback(e); }
+        })();
+        return deferred;
+      },
+      cancel : function() {
+        stratum.abort();
+      }
+    };
+    return deferred;
+  }
+};
 
 
 /**
