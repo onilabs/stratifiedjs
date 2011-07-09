@@ -35,8 +35,8 @@
   @hostenv   xbrowser
 */
 
-var sys = require('sjs:__sys');
-if (require('sjs:__sys').hostenv != 'xbrowser') 
+var sys = require('sjs:apollo-sys');
+if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('the dom module only runs in an xbrowser environment');
 
 //------------------------------------------------------------

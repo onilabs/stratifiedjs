@@ -96,7 +96,7 @@ exports.siteSearch = function (q, site, settings) {
 exports.translate = function(text, to, /* [opt] */ from, /* [opt] */ extra) {
   from = from || ""; // "" == autodetect
   var langpair;
-  if (require('sjs:__sys').isArrayOrArguments(to)) {
+  if (require('sjs:apollo-sys').isArrayOrArguments(to)) {
     langpair = [];
     for (var i=0; i<to.length; ++i)
       langpair.push(from + "|" + to[i]);

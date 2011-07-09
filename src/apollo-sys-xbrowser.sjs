@@ -1,5 +1,5 @@
 /*
- * Oni Apollo SJS system module ('sjs:__sys') hostenv-specific part
+ * Oni Apollo system module ('sjs:apollo-sys') hostenv-specific part
  *
  * Cross-browser ('xbrowser') version
  *
@@ -233,16 +233,16 @@ function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
 
      The success of cross-domain requests depends on the cross-domain
      capabilities of the host environment, see
-     [__sys.getXDomainCaps](#__sys/getXDomainCaps). If this function
+     [apollo-sys.getXDomainCaps](#apollo-sys/getXDomainCaps). If this function
      returns "CORS" then success of cross-domain requests depends on
      whether the server allows the access (see
      <http://www.w3.org/TR/cors/>).
 
-     In the xbrowser host environment, the standard
-     XMLHttpRequest can handle cross-domain requests on compatible
-     browsers (any recent Chrome, Safari, Firefox). On IE8+,
-     [__sys.request](#__sys/request) will automatically fall back to using MS's
-     XDomainRequest object for cross-site requests.
+     In the xbrowser host environment, the standard XMLHttpRequest can
+     handle cross-domain requests on compatible browsers (any recent
+     Chrome, Safari, Firefox). On IE8+,
+     [apollo-sys.request](#apollo-sys/request) will automatically fall
+     back to using MS's XDomainRequest object for cross-site requests.
 
      ### Request failure:
 

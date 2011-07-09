@@ -35,7 +35,7 @@
              concurrent stratified programming.
 */
 
-var sys = require('sjs:__sys');
+var sys = require('sjs:apollo-sys');
 
 /**
   @function waitforAll

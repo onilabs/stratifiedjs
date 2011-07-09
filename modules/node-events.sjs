@@ -35,7 +35,7 @@
   @hostenv   nodejs
 */
 
-if (require('sjs:__sys').hostenv != 'nodejs') 
+if (require('sjs:apollo-sys').hostenv != 'nodejs') 
   throw new Error('node-events only runs in a nodejs environment');
 
 var cutil = require('./cutil');

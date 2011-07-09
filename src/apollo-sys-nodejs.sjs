@@ -1,5 +1,5 @@
 /*
- * Oni Apollo SJS system module ('sjs:__sys') hostenv-specific part
+ * Oni Apollo system module ('sjs:apollo-sys') hostenv-specific part
  *
  * NodeJS-based ('nodejs') version
  *

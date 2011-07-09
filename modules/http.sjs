@@ -34,7 +34,7 @@
   @summary   Simple HTTP request methods 
 */
 
-var sys = require('sjs:__sys');
+var sys = require('sjs:apollo-sys');
 
 //----------------------------------------------------------------------
 // url functions

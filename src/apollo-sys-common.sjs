@@ -1,5 +1,5 @@
 /*
- * Oni Apollo SJS system module ('sjs:__sys') common part
+ * Oni Apollo system module ('sjs:apollo-sys') common part
  *
  * Part of the Oni Apollo StratifiedJS Runtime
  * 0.12+
@@ -53,7 +53,7 @@ __oni_rt.sys = exports;
 
 //----------------------------------------------------------------------
 // helper functions that we use internally and export for use by other
-// libraries; accessible through require('sjs:__sys')
+// libraries; accessible through require('sjs:apollo-sys')
 
 /**
    @object hostenv
@@ -623,8 +623,8 @@ exports.require.modules = {};
 // loaded from, or "" if it can't be resolved:
 exports.require.APOLLO_LOAD_PATH = "";
 
-exports.require.modules['sjs:__sys.sjs'] = {
-  id: 'sys:__sys.sjs',
+exports.require.modules['sjs:apollo-sys.sjs'] = {
+  id: 'sjs:apollo-sys.sjs',
   exports: exports,
   loaded_from: "[builtin]",
   loaded_by: "[toplevel]",

@@ -39,7 +39,7 @@
     c.warn("Oooh noo!");`
 */
 
-if (require('sjs:__sys').hostenv != 'xbrowser') 
+if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('the debug module only runs in an xbrowser environment');
 
 var common = require('./common');
@@ -432,7 +432,7 @@ Console.prototype = {
       var result = document.createElement('div');
       waitfor {
         try {
-          result = inspect_obj(require('sjs:__sys').eval(cl, {filename:"commandline"}));
+          result = inspect_obj(require('sjs:apollo-sys').eval(cl, {filename:"commandline"}));
         }
         catch(ex) {
           setStyle(result, 'color:red;');

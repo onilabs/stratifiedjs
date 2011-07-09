@@ -44,7 +44,7 @@ var StringMaker = function () {
 	};
 }
 
-if (require('sjs:__sys').hostenv == 'xbrowser') {
+if (require('sjs:apollo-sys').hostenv == 'xbrowser') {
   var ua = navigator.userAgent.toLowerCase();
   if (!(ua.indexOf(" chrome/") >= 0 || ua.indexOf(" firefox/") >= 0 || ua.indexOf(' gecko/') >= 0)) {
 	  var StringMaker = function () {

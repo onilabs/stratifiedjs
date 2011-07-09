@@ -35,7 +35,7 @@
   @hostenv nodejs
 */
 
-var sys = require('sjs:__sys');
+var sys = require('sjs:apollo-sys');
 if (sys.hostenv != 'nodejs') 
   throw new Error('node-repl only runs in a nodejs environment');
 
@@ -97,7 +97,7 @@ exports.runREPL = function() {
 };
 
 function evalCommandLine(cl) {
-  var stratum = spawn require('sjs:__sys').eval(cl, {filename:'repl'});
+  var stratum = spawn require('sjs:apollo-sys').eval(cl, {filename:'repl'});
 
   waitfor {
     try { writeVal(stratum.waitforValue()); } catch(e) { writeErr(e); }
