@@ -372,7 +372,6 @@ else {
 
 var pendingLoads = {};
 
-
 // require.alias, require.path are different for each
 // module. makeRequire is a helper to construct a suitable require
 // function that has access to these variables:
@@ -384,7 +383,7 @@ function makeRequire(parent) {
     if (opts.callback) {
       (spawn (function() {
         try { 
-          opts.callback(undefined, requireInner(module, rf, parent, settings)); 
+          opts.callback(undefined, requireInner(module, rf, parent, opts)); 
         }
         catch(e) { 
           opts.callback(e); return 1;
@@ -415,9 +414,10 @@ function resolveAliases(module, aliases) {
 }
 
 // helper to resolve hubs
-function resolveHubs(module, hubs) {
+function resolveHubs(module, hubs, opts) {
   var path = module;
-  var loader = default_loader;
+  var loader = opts.loader || default_loader;
+  var src = opts.src || default_src_loader;
   var level = 10; // we allow 10 levels of rewriting indirection
   for (var i=0,hub; hub=hubs[i++]; ) {
     if (path.indexOf(hub[0]) == 0) {
@@ -428,15 +428,17 @@ function resolveHubs(module, hubs) {
         if (--level == 0)
           throw "Too much indirection in hub resolution for module '"+module+"'";
       }
-      else {
-        // assert(typeof hub[1] == "function")
-        loader = hub[1];
+      else if (typeof hub[1] == "object") {
+        if (hub[1].src) src = hub[1].src;
+        if (hub[1].loader) loader = hub[1].loader;
         // that's it; no more indirection
         break;
       }
+      else 
+        throw "Unexpected value for require.hubs element '"+hub[0]+"'"
     }
   }
-  return {path:path, loader:loader};
+  return {path:path, loader:loader, src:src};
 }
 
 // default module loader
@@ -444,8 +446,8 @@ function default_src_loader(path) {
   throw new Error("Don't know how to load module at "+path);
 }
 
-function default_loader(path, parent) {
-  return getNativeModule(path, parent, default_src_loader);
+function default_loader(path, parent, src) {
+  return getNativeModule(path, parent, src);
 }
 
 function http_src_loader(path) {
@@ -461,10 +463,6 @@ function http_src_loader(path) {
                          cbfield:null});
   }
   return { src: src, loaded_from: path };
-}
-
-function http_loader(path, parent) {
-  return getNativeModule(path, parent, http_src_loader);
 }
 
 // loader that loads directly from github
@@ -515,11 +513,6 @@ function github_src_loader(path) {
   };
 }
 
-function github_loader(path, parent) {
-  return getNativeModule(path, parent, github_src_loader);
-}
-
-
 function getNativeModule(path, parent, src_loader) {
   // apply default extension; determine if path points to js file
   var matches, is_js = false;
@@ -535,47 +528,54 @@ function getNativeModule(path, parent, src_loader) {
     if (!pendingHook) {
       pendingHook = pendingLoads[path] = spawn (function() {
         var src, loaded_from;
-        try {
-          if (path in __oni_rt.modsrc) {
-            // a built-in module
-            loaded_from = "[builtin]";
-            src = __oni_rt.modsrc[path];
-            delete __oni_rt.modsrc[path];
-            // xxx support plain js modules for built-ins?
-          }
-          else {
-            ({src, loaded_from}) = src_loader(path);
-          }
-          var f;
-          var descriptor = {
-            id: path,
-            exports: {},
-            loaded_from: loaded_from,
-            loaded_by: parent,
-            required_by: {}
-          };
-          if (is_js) {
-            f = new Function("module", "exports", src);
-            f(descriptor, descriptor.exports);
-          }
-          else {
-            f = exports.eval("(function(module, exports, require){"+src+"})",
-                             {filename:"module '"+path+"'"});
-            f(descriptor, descriptor.exports, makeRequire(path));
-          }
-          // It is important that we only set exports.require.modules[module]
-          // AFTER f finishes, because f might block, and we might get
-          // reentrant calls to require() asking for the module that is
-          // still being constructed.
-          exports.require.modules[path] = descriptor;
+        if (typeof src_loader === "string") {
+          src = src_loader;
+          loaded_from = "[src string]";
         }
-        finally {
-          delete pendingLoads[path];
+        else if (path in __oni_rt.modsrc) {
+          // a built-in module
+          loaded_from = "[builtin]";
+          src = __oni_rt.modsrc[path];
+          delete __oni_rt.modsrc[path];
+          // xxx support plain js modules for built-ins?
         }
+        else {
+          ({src, loaded_from}) = src_loader(path);
+        }
+        var f;
+        var descriptor = {
+          id: path,
+          exports: {},
+          loaded_from: loaded_from,
+          loaded_by: parent,
+          required_by: {}
+        };
+        if (is_js) {
+          f = new Function("module", "exports", src);
+          f(descriptor, descriptor.exports);
+        }
+        else {
+          f = exports.eval("(function(module, exports, require){"+src+"})",
+                           {filename:"module '"+path+"'"});
+          f(descriptor, descriptor.exports, makeRequire(path));
+        }
+        // It is important that we only set exports.require.modules[module]
+        // AFTER f finishes, because f might block, and we might get
+        // reentrant calls to require() asking for the module that is
+        // still being constructed.
+        exports.require.modules[path] = descriptor;
+
         return descriptor;
       })();
     }
-    var descriptor = pendingHook.waitforValue();
+    try {
+      var descriptor = pendingHook.waitforValue();
+    }
+    finally {
+      // last one cleans up
+      if (pendingHook.waiting() == 0)
+        delete pendingLoads[path];
+    }
   }
   
   if (!descriptor.required_by[parent])
@@ -587,7 +587,7 @@ function getNativeModule(path, parent, src_loader) {
 }
 
 // requireInner: workhorse for require
-function requireInner(module, require_obj, parent, settings) {
+function requireInner(module, require_obj, parent, opts) {
   try {
     // apply local aliases:
     var path = resolveAliases(module, require_obj.alias);
@@ -600,11 +600,11 @@ function requireInner(module, require_obj, parent, settings) {
       parent = "[toplevel]";
     
     // apply global aliases
-    var loader;
-    ({path,loader}) = resolveHubs(path, exports.require.hubs);
+    var loader, src;
+    ({path,loader, src}) = resolveHubs(path, exports.require.hubs, opts);
     
     // now perform the load:
-    return loader(path, parent);
+    return loader(path, parent, src);
   }
   catch (e) {
     var mes = "Cannot load module '"+module+"'. "+

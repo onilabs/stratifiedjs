@@ -255,12 +255,8 @@ function file_src_loader(path) {
   return { src: data, loaded_from: path };
 }
 
-function file_loader(path, parent) {
-  return getNativeModule(path, parent, file_src_loader);
-}
-
 // load a builtin nodejs module:
-function nodejs_loader(path, parent) {
+function nodejs_loader(path, parent /*, src*/) {
 
   // strip off 'nodejs:'
   path = path.substr(7);
@@ -304,11 +300,11 @@ function nodejs_loader(path, parent) {
 function getHubs_hostenv() {
   return  [
     ["apollo:", "file:"+__oni_rt.nodejs_apollo_lib_dir ],
-    ["github:", github_loader ],
-    ["http:", http_loader ],
-    ["https:", http_loader ],
-    ["file:", file_loader ],
-    ["nodejs:", nodejs_loader ]
+    ["github:", {src:github_src_loader} ],
+    ["http:", {src: http_src_loader} ],
+    ["https:", {src: http_src_loader} ],
+    ["file:", {src: file_src_loader} ],
+    ["nodejs:", {loader: nodejs_loader} ]
   ];
 }
 

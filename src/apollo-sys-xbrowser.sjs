@@ -328,9 +328,9 @@ function request_hostenv(url, settings) {
 function getHubs_hostenv() {
   return [
     ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
-    ["github:", github_loader ],
-    ["http:", http_loader ],
-    ["https:", http_loader ]
+    ["github:", {src:github_src_loader} ],
+    ["http:",  {src:http_src_loader} ],
+    ["https:", {src:http_src_loader} ]
   ];
 }
 
