@@ -288,7 +288,7 @@ function nodejs_loader(path, parent /*, src*/) {
       // now try .sjs
       resolved = __oni_rt.nodejs_require('module')._resolveFilename(path+".sjs", mockModule)[1];
       // ok, success. load as a file module:
-      return file_loader("file:"+resolved, parent);
+      return default_loader("file:"+resolved, parent, file_src_loader);
     }
     catch (e) {}
   }
