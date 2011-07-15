@@ -42,6 +42,7 @@
    request_hostenv
    resolveRelReqURL_hostenv
    getHubs_hostenv
+   getExtensions_hostenv
 
    (we also export some of these for use by other libraries; see below for signatures)
 
@@ -395,6 +396,20 @@ function makeRequire(parent) {
   };
   rf.path = ""; // default path is empty
   rf.alias = {};
+
+  // install shared properties:
+  if (exports.require) {
+    rf.hubs = exports.require.hubs;
+    rf.modules = exports.require.modules;
+    rf.extensions = exports.require.extensions;
+  }
+  else {
+    // we're the root
+    rf.hubs = getHubs_hostenv();
+    rf.modules = {};
+    // module compiler functions indexed by extension:
+    rf.extensions = getExtensions_hostenv(); 
+  }
   return rf;
 }
 
@@ -494,7 +509,7 @@ function github_src_loader(path) {
                               github_opts).branches[tag]) || hold();
   }
   or {
-    hold(5000);
+    hold(10000);
     throw new Error("Github timeout");
   }
 
@@ -503,7 +518,7 @@ function github_src_loader(path) {
                             github_opts).blob.data;
   }
   or {
-    hold(5000);
+    hold(10000);
     throw new Error("Github timeout");
   }
   
@@ -514,12 +529,20 @@ function github_src_loader(path) {
 }
 
 function getNativeModule(path, parent, src_loader) {
-  // apply default extension; determine if path points to js file
-  var matches, is_js = false;
-  if (!(matches=/.*\.(js|sjs)$/.exec(path)))
+  // determine compiler function based on extension:
+  var extension;
+  var matches = /.+\.([^\.\/]+)$/.exec(path);
+  if (!matches) {
+    // apply default extension:
+    extension = "sjs";
     path += ".sjs";
-  else if (matches[1] == "js")
-    is_js = true;
+  }
+  else
+    extension = matches[1];
+
+  var compile = exports.require.extensions[extension];
+  if (!compile) 
+    throw "Unknown type '"+extension+"'";
   
   var descriptor;
   if (!(descriptor = exports.require.modules[path])) {
@@ -542,27 +565,20 @@ function getNativeModule(path, parent, src_loader) {
         else {
           ({src, loaded_from}) = src_loader(path);
         }
-        var f;
         var descriptor = {
           id: path,
           exports: {},
           loaded_from: loaded_from,
           loaded_by: parent,
-          required_by: {}
+          required_by: {},
+          require: makeRequire(path)
         };
-        if (is_js) {
-          f = new Function("module", "exports", src);
-          f(descriptor, descriptor.exports);
-        }
-        else {
-          f = exports.eval("(function(module, exports, require){"+src+"})",
-                           {filename:"module '"+path+"'"});
-          f(descriptor, descriptor.exports, makeRequire(path));
-        }
-        // It is important that we only set exports.require.modules[module]
-        // AFTER f finishes, because f might block, and we might get
-        // reentrant calls to require() asking for the module that is
-        // still being constructed.
+        compile(src, descriptor);
+        // It is important that we only set
+        // exports.require.modules[module] AFTER compilation, because
+        // the compilation might block, and we might get reentrant
+        // calls to require() asking for the module that is still
+        // being constructed.
         exports.require.modules[path] = descriptor;
 
         return descriptor;
@@ -615,9 +631,6 @@ function requireInner(module, require_obj, parent, opts) {
 
 // top-level require function:
 exports.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
-
-exports.require.hubs = getHubs_hostenv();
-exports.require.modules = {};
 
 // require.APOLLO_LOAD_PATH: path where this oni-apollo.js lib was
 // loaded from, or "" if it can't be resolved:

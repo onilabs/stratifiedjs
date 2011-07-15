@@ -252,7 +252,7 @@ function file_src_loader(path) {
     __oni_rt.nodejs_require('fs').readFile(path.substr(5), resume);
   }
   if (err) throw err;
-  return { src: data, loaded_from: path };
+  return { src: data.toString(), loaded_from: path };
 }
 
 // load a builtin nodejs module:
@@ -262,10 +262,10 @@ function nodejs_loader(path, parent /*, src*/) {
   path = path.substr(7);
 
   // resolve using node's require mechanism in this order:
-  //    native nodejs module, sjs module, other module
+  //  native nodejs module, apollo-native module (based on known extensions), other nodejs module
 
   var base;
-  if (!parent || !(/^file:/(parent))) {
+  if (!parent || !(/^file:/.exec(parent))) {
     base = process.cwd();
   }
   else
@@ -283,7 +283,8 @@ function nodejs_loader(path, parent /*, src*/) {
   catch (e) {}
 
   // if the url doesn't have an extension, try .sjs (even if we already resolved a module):
-  if (!/.+\..+/.exec(path)) {
+  var matches;
+  if (!(matches = /.+\.([^\.\/]+)$/.exec(path))) {
     try {
       // now try .sjs
       resolved = __oni_rt.nodejs_require('module')._resolveFilename(path+".sjs", mockModule)[1];
@@ -291,6 +292,11 @@ function nodejs_loader(path, parent /*, src*/) {
       return default_loader("file:"+resolved, parent, file_src_loader);
     }
     catch (e) {}
+  }
+  else if (resolved && matches[1]!="js") {
+    // see if this is an apollo-known extension (but NOT js!)
+    if (exports.require.extensions[matches[1]]) // yup; load as apollo-native module
+      return default_loader("file:"+resolved, parent, file_src_loader);
   }
 
   if (resolved == "") throw new Error("nodejs module at '"+path+"' not found");
@@ -308,4 +314,19 @@ function getHubs_hostenv() {
   ];
 }
 
+function getExtensions_hostenv() {
+  return {
+    // normal sjs modules
+    'sjs': function(src, descriptor) {
+      var f = exports.eval("(function(module,exports,require){"+src+"})",
+                           {filename:"module '"+descriptor.id+"'"});
+      f(descriptor, descriptor.exports, descriptor.require);
+    },
+    // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
+    'js': function(src, descriptor) {
+      var f = new Function("module", "exports", src);
+      f.apply(descriptor.exports, [descriptor, descriptor.exports]);
+    }
+  };
+}
 

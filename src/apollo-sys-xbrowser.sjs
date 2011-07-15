@@ -323,7 +323,7 @@ function request_hostenv(url, settings) {
 }
 
 //----------------------------------------------------------------------
-// initial list of hubs:
+// initial list of hubs and extensions:
 
 function getHubs_hostenv() {
   return [
@@ -334,6 +334,21 @@ function getHubs_hostenv() {
   ];
 }
 
+function getExtensions_hostenv() {
+  return {
+    // normal sjs modules
+    'sjs': function(src, descriptor) {
+      var f = exports.eval("(function(module,exports,require){"+src+"})",
+                           {filename:"module '"+descriptor.id+"'"});
+      f(descriptor, descriptor.exports, descriptor.require);
+    },
+    // plain non-sjs js modules
+    'js': function(src, descriptor) {
+      var f = new Function("module", "exports", src);
+      f.apply(descriptor.exports, [descriptor, descriptor.exports]);
+    }
+  };
+}
 
 //----------------------------------------------------------------------
 // exports into global scope:
