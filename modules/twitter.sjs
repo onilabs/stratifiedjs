@@ -162,7 +162,7 @@ exports.initAnywhere = function(settings) {
   @return    {Object}
 */
 exports.getProfile = function(id) {
-  return http.jsonp("http://api.twitter.com/1/users/show/" + id + ".json");
+  return http.jsonp(["http://api.twitter.com/1/users/show.json", {user_id:id}]);
 };
 
 /**
