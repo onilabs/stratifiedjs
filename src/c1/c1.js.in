@@ -22,14 +22,77 @@
 
 /*
 
- This parser needs to be preprocessed with CPP (the C preprocessor) and a 'kernel'
- file to yield the desired compiler. There are currently three kernels:
+ *** OVERVIEW ***
+
+ This parser needs to be preprocessed with CPP (the C preprocessor)
+ and a 'kernel' file to yield a full compiler. There are currently
+ three kernels, each implementing a different compiler:
  
   kernel-js.js.in    : plain JS compiler (just for sanity checking)
   kernel-jsmin.js.in : JS/SJS minifier/stringifier
   kernel-sjs.js.in   : SJS compiler (targetting apollo vm)
 
-Preprocessor flags: (also valid in kernel files)
+ Which kernel file is included is determined by preprocessor flags;
+ see below.
+
+ For each JS construct, the parser makes a macro call, e.g. GEN_WHILE
+ for a 'while' statement. The actual macro implementations are in the
+ kernel files - see the full list of macros that kernel files need to
+ implement below.
+
+ This somewhat weird arrangement is so that we can build different
+ compilers from the same parser source, but we don't have to build a
+ generic AST. A generic AST (like e.g. Narcissus produces it) needs to
+ be retraversed to do something useful with it, whereas with the macro
+ approach we can perform syntax-directed translation tasks at the same
+ time as parsing the source. We could use function calls instead of
+ macros, but macros lead to smaller source and faster compilers.
+
+ Most of the macros are expected to return a "parse value" for the
+ given construct (this can be a syntax tree node, a string, nothing,
+ or whatever). The parser feeds the parse values of expressions to the
+ enclosing expression. The ultimate result of the compilation is
+ whatever END_SCRIPT() returns. E.g. the following program:
+
+  1 + 2
+
+ would generate something like the following sequence of macro calls:
+
+  BEGIN_SCRIPT(context)
+  GEN_LITERAL("number", "1", ctx) // remember return value as 'A'
+  GEN_LITERAL("number", "2", ctx) // remember return value as 'B'
+  GEN_INFIX_OP(A, '+', B, ctx) // remember return value as 'C'
+  GEN_EXP_STMT(C, ctx) // remember return value as 'D'
+  ADD_SCRIPT_STMT(D, ctx)
+  END_SCRIPT(ctx) // return value is the result of compilation
+
+ The best way to understand how the macros fit together is to look at
+ kernel-js.js.in.
+
+ * INTERNALS
+
+ As a parsing technique, we first tokenize the stream using two big
+ context-sensitve regular expressions (TOKENIZER_SA and
+ TOKENIZER_OP). The tokenizer switches between these two, depending on
+ whether we're in a 'statement/argument' position, or in an 'operator'
+ position - this is required because in JavaScript certain constructs
+ have different meanings in different contexts. E.g. a '/' can be the
+ start of a regular expression (in a "statement/argument" position) or
+ a division operator (in an "operator position").
+
+ Next, we use the "Pratt parsing technique"
+ (http://en.wikipedia.org/wiki/Pratt_parser). This is a version of
+ recursive descent parsing where we encode operator precedence
+ information directly into semantic tokens (see 'SemanticToken' class,
+ below). A good introduction to Pratt parsing for JS is at
+ http://javascript.crockford.com/tdop/tdop.html. What Douglas
+ Crockford calls 'lbp', 'nud', and 'led', we call 'excbp', 'expsf' and
+ 'excf', respectively.
+
+
+ *** PREPROCESSOR FLAGS ***
+
+(These flags are also valid in kernel files)
 
 one of these required:
    #define C1_KERNEL_JS
@@ -63,7 +126,7 @@ for C1_KERNEL_SJS:  OBSOLETE! VERBOSE EXCEPTIONS ARE ALWAYS USED NOW, NOT
 
 /*
 
-Macros to be implemented by kernel files:
+ *** MACROS TO BE IMPLEMENTED BY KERNEL FILES ***
 
 Misc:
 =====

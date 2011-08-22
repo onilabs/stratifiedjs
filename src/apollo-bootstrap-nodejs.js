@@ -52,7 +52,12 @@ var sys = rt.G.eval("(function(exports) {"+
                     rt.c1.compile(rt.modsrc['sjs:apollo-sys-'+rt.hostenv+'.sjs'],
                                               {filename:"apollo-sys-"+rt.hostenv+".sjs"})+
                           "})");
+
+// In the nodejs environment, apollo-bootstrap is loaded as a nodejs
+// module, with 'exports', etc. Install the sys module on our
+// 'exports':
 sys(exports);
+
 delete rt.modsrc['sjs:apollo-sys-common.sjs'];
 delete rt.modsrc['sjs:apollo-sys-'+rt.hostenv+'.sjs']; 
 
