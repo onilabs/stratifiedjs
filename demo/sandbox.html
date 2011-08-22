@@ -4,14 +4,14 @@
   <script src="../oni-apollo.js"></script> 
   <script type="text/sjs">
 
-var console = require('apollo:debug').console({target:"container", 
-                                               collapsed:false});
+var c= require('apollo:debug').console({target:"container", 
+                                        collapsed:false});
 var cmd = document.location.getParameter ? 
   document.location.getParameter('cmd') :
   require('apollo:http').parseURL(document.location).queryKey.cmd;
-if (cmd) console.exec(decodeURIComponent(cmd));
+if (cmd) c.exec(decodeURIComponent(cmd));
 
-console.focus();
+c.focus();
 
   </script>
   </head>
