@@ -1255,6 +1255,51 @@ modules({
     "summary": "Stratified bindings to the client-side Twitter API.",
     "hostenv": "xbrowser"
   },
+  "freebase": {
+    "type": "module",
+    "children": {
+      "mqlread": {
+        "type": "function",
+        "summary": "See [freebase mqlread docs](http://freebase.com/docs/web_services/mqlread)",
+        "param": [
+          {
+            "type": "Object",
+            "name": "query",
+            "summary": "MQL query object"
+          },
+          {
+            "type": "optional Object",
+            "name": "envelope_props",
+            "summary": "Hash of envelope parameters"
+          }
+        ],
+        "return": {
+          "type": "Object"
+        }
+      },
+      "search": {
+        "type": "function",
+        "summary": "See [freebase api/service/search](http://freebase.com/docs/web_services/search)",
+        "param": [
+          {
+            "type": "String",
+            "name": "query",
+            "summary": "Search string"
+          },
+          {
+            "type": "optional Object",
+            "name": "props",
+            "summary": "Hash of additional query parameters"
+          }
+        ],
+        "return": {
+          "type": "Object"
+        }
+      }
+    },
+    "classes": {},
+    "summary": "Bindings to the [Freebase](http://freebase.com) API"
+  },
   "yql": {
     "type": "module",
     "children": {
