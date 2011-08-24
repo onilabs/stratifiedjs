@@ -20,7 +20,7 @@ oni-apollo-node.js, 'apollo' executable
 ---------------------------------------
 
 - Server-side StratifiedJS runtime for NodeJS.
-- If you've got NodeJS installed, just run 'apollo' to get a serverside SJS REPL.
+- If you've got NodeJS installed, just run `apollo` to get a serverside SJS REPL.
 - See also this [Apollo Google Group post](https://groups.google.com/forum/#!topic/oni-apollo/ZDkxczAZcgw)
 
 modules/
@@ -46,8 +46,8 @@ Everything is already pre-built.
 No need to compile anything unless you change something in the src/
 directory. In that case, you can use the src/build/make-apollo tool to
 reassemble oni-apollo.js and oni-apollo-node.js. The build process
-should work on most unixy environment out of the box (in particular it
-requires CPP - the C preprocessor).
+should work on most unixy environments out of the box (in particular
+it requires CPP - the C preprocessor).
 
 
 How to run/install
@@ -55,7 +55,7 @@ How to run/install
 
 No need to install anything.
 
-For server-side use, you can just execute the 'apollo' executable
+For server-side use, you can just execute the `apollo` executable
 (provided you have nodejs installed). 
 
 Alternatively you can install with npm (see the package.json script).
@@ -65,7 +65,7 @@ as described at [onilabs.com/docs](http://onilabs.com/docs).
 
 Note that if you load standard library modules using code such as
 
-  var http = require('apollo:http');
+    var http = require('apollo:http');
 
 the module will be loaded from its canonical location at
 code.onilabs.com (again as described at
@@ -73,10 +73,10 @@ code.onilabs.com (again as described at
 standard library modules yourself you can reconfigure the 'apollo hub'
 location using code such as this:
 
-  require.hubs.unshift( 
-    ["apollo:", 
-     "http://code.mydomain.com/apollo-mirror/modules/"] 
-    ]);
-  // all modules addressed as 'apollo:' will now be loaded from the
-  // location above.
+    require.hubs.unshift( 
+      ["apollo:", 
+       "http://code.mydomain.com/apollo-mirror/modules/"] 
+      ]);
+    // all modules addressed as 'apollo:' will now be loaded from the
+    // location above.
 
