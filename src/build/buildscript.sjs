@@ -1,6 +1,7 @@
 // Apollo build tool
 
 var fs = require('apollo:node-fs');
+var common = require('apollo:common');
 var builders = {}, pseudos = {};
 
 //----------------------------------------------------------------------
@@ -17,7 +18,6 @@ function usage() {
 }
 
 function main() {
-
   for (var i=1; i<process.argv.length; ++i) {
     var flag = process.argv[i];
     switch(flag) {
@@ -300,7 +300,7 @@ function replacements_from_config(target) {
 // high-level builders
 
 function MINIFY(target, source, flags) {
-  flags = flags || {};
+  flags = common.mergeSettings({keeplines:true}, flags);
   BUILD(
     target,
     function() {
@@ -316,6 +316,7 @@ function MINIFY(target, source, flags) {
 }
 
 function STRINGIFY(target, source, flags) {
+  flags = common.mergeSettings({keeplines:true}, flags);
   BUILD(
     target,
     function() {
