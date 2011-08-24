@@ -326,6 +326,8 @@ function request_hostenv(url, settings) {
 
 function getHubs_hostenv() {
   return [
+    // <xbrowser-apollo-hub> below will be replaced with the
+    // corresponding value in src/build/config.json at build time
     ["apollo:", "<xbrowser-apollo-hub>" ],
     ["github:", {src:github_src_loader} ],
     ["http:",  {src:http_src_loader} ],
