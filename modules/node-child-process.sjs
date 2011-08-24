@@ -1,6 +1,6 @@
 /*
- * Oni Apollo 'freebase' module
- * Bindings to various Google webservices and APIs
+ * Oni Apollo 'node-events' module
+ * Stratified wrapper for nodejs events
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: <unstable>
@@ -30,37 +30,32 @@
  *
  */
 /**
-  @module    freebase
-  @summary   Bindings to the [Freebase](http://freebase.com) API
+  @module    node-child-process
+  @summary   Stratified wrapper of nodejs's child_process lib
+  @hostenv   nodejs
 */
-var http = require("./http");
-var sys = require("sjs:apollo-sys");
 
-var api_base = "http://api.freebase.com/api/service/"; // XXX do we want https?
+if (require('sjs:apollo-sys').hostenv != 'nodejs') 
+  throw new Error('node-events only runs in a nodejs environment');
 
-/**
-   @function mqlread
-   @summary See [freebase mqlread docs](http://freebase.com/docs/web_services/mqlread)
-   @param {Object} [query] MQL query object
-   @param {optional Object} [envelope_props] Hash of envelope parameters
-   @return {Object} 
-*/
-function mqlread(query, envelope_props) {
-  return http.jsonp([api_base, "mqlread", 
-                     {query: JSON.stringify(sys.accuSettings({query:query},
-                                                             [envelope_props]))}]);
-}
-exports.mqlread = mqlread;
+var child_process = require('child_process');
 
 /**
-  @function search
-  @summary See [freebase api/service/search](http://freebase.com/docs/web_services/search)
-  @param {String} [query] Search string
-  @param {optional Object} [props] Hash of additional query parameters
-  @return {Object}
+   @function exec
+   @summary Execute a child process and return output
+   @param {String} [command] Command to execute
+   @param {Object} [optional options] Hash of options (see nodejs's child-process.exec docs) 
+   @return {Object} Object with 'stdout' and 'stderr' members
 */
-function search(query, props) {
-  return http.jsonp([api_base,"search",{query:query},props]);
-}
-exports.search = search;
+exports.exec = function(command, options) {
+  waitfor(var err, stdout, stderr) {
+    var child = child_process.exec(command, options, resume);
+  }
+  retract {
+    // XXX support signals other than SIGTERM
+    child.kill();
+  }
+  if (err) throw err;
+  return { stdout: stdout, stderr: stderr };
+};
 

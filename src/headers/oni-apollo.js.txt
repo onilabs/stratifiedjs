@@ -1,13 +1,11 @@
 /*
- * Oni Apollo JS bootstrap code, hostenv-specific part
- *
- * Cross-browser ('xbrowser') version
- *
- * Part of the Oni Apollo StratifiedJS Runtime
- * 0.12+
+ * Oni Apollo StratifiedJS Runtime
+ * Client-side Cross-Browser implementation
+ * 
+ * Version: < >
  * http://onilabs.com/apollo
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2010-2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -30,24 +28,3 @@
  * THE SOFTWARE.
  *
  */
-
-if (!__oni_rt.sys) {
-  
-  //----------------------------------------------------------------------
-  // Install SJS system module ('sjs:apollo-sys'). Bootstrapping will be
-  // run from there.
-  // The system module is spread over two parts: the 'common' part, and the
-  // 'hostenv' specific part. 
-  // hostenv is one of : 'xbrowser' | 'nodejs' 
-  __oni_rt.G.eval("(function(exports) {"+
-                  __oni_rt.c1.compile(__oni_rt.modsrc['sjs:apollo-sys-common.sjs'],
-                                      {filename:"apollo-sys-common.sjs"})+"\n"+
-                  __oni_rt.c1.compile(__oni_rt.modsrc['sjs:apollo-sys-'+__oni_rt.hostenv+'.sjs'],
-                                      {filename:"apollo-sys-"+__oni_rt.hostenv+".sjs"})+
-                 "})({})");
-  delete __oni_rt.modsrc['sjs:apollo-sys-common.sjs'];
-  delete __oni_rt.modsrc['sjs:apollo-sys-'+__oni_rt.hostenv+'.sjs']; 
-}
-
-
-

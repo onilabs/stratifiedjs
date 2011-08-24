@@ -2,7 +2,6 @@
  * Oni Apollo JS bootstrap code, common part
  *
  * Part of the Oni Apollo StratifiedJS Runtime
- * 0.12+
  * http://onilabs.com/apollo
  *
  * (c) 2010-2011 Oni Labs, http://onilabs.com

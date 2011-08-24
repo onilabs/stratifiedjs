@@ -3,7 +3,7 @@
  * Stratified wrapper for nodejs events
  *
  * Part of the Oni Apollo Standard Module Library
- * 0.12+
+ * Version: <unstable>
  * http://onilabs.com/apollo
  *
  * (c) 2011 Oni Labs, http://onilabs.com
@@ -41,7 +41,7 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
 var cutil = require('./cutil');
 
 /**
-`   @function waitforEvent
+   @function waitforEvent
    @summary Blocks until the specified event is triggered on the given event emitter
    @param   {EventEmitter} [emitter] NodeJS event emitter
    @param   {String} [event] Event to listen for

@@ -3,7 +3,7 @@
  * DOM utilities
  *
  * Part of the Oni Apollo Standard Module Library
- * 0.12+
+ * Version: <unstable>
  * http://onilabs.com/apollo
  *
  * (c) 2010-2011 Oni Labs, http://onilabs.com

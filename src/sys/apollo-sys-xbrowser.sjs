@@ -4,7 +4,6 @@
  * Cross-browser ('xbrowser') version
  *
  * Part of the Oni Apollo StratifiedJS Runtime
- * 0.12+
  * http://onilabs.com/apollo
  *
  * (c) 2011 Oni Labs, http://onilabs.com
@@ -327,7 +326,7 @@ function request_hostenv(url, settings) {
 
 function getHubs_hostenv() {
   return [
-    ["apollo:", "http://code.onilabs.com/apollo/unstable/modules/" ],
+    ["apollo:", "<xbrowser-apollo-hub>" ],
     ["github:", {src:github_src_loader} ],
     ["http:",  {src:http_src_loader} ],
     ["https:", {src:http_src_loader} ]

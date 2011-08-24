@@ -4,7 +4,6 @@
  * NodeJS-based ('nodejs') version
  *
  * Part of the Oni Apollo StratifiedJS Runtime
- * 0.12+
  * http://onilabs.com/apollo
  *
  * (c) 2011 Oni Labs, http://onilabs.com
@@ -251,7 +250,15 @@ function file_src_loader(path) {
     // asynchronously load file at path (removing 'file:' prefix first):
     __oni_rt.nodejs_require('fs').readFile(path.substr(5), resume);
   }
-  if (err) throw err;
+  if (err) {
+    // XXX this is a hack to allow us to load sjs scripts without .sjs extension, 
+    // e.g. hash-bang scripts
+    var matches;
+    if ((matches = /(.*)\.sjs$/.exec(path))) 
+      return file_src_loader(matches[1]);
+    else
+      throw err;
+  }
   return { src: data.toString(), loaded_from: path };
 }
 
