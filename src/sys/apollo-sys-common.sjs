@@ -280,7 +280,10 @@ exports.canonicalizeURL = function(url, base) {
   // build return value:
   var rv = "";
   if (a.protocol) rv += a.protocol + ":";
-  if (a.authority) rv += "//" + a.authority;
+  if (a.authority)
+    rv += "//" + a.authority;
+  else if (a.protocol == "file") // file urls have an implied authority 'localhost'
+    rv += "//";
   rv += a.directory + a.file;
   if (a.query) rv += "?" + a.query;
   if (a.anchor) rv += "#" + a.anchor;
