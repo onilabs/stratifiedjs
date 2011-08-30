@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 test('force extension/sjs', "a=1&b=2", function() {
   return require('http.sjs').constructQueryString({a:1},{b:2});
 });

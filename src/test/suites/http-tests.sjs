@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 //----------------------------------------------------------------------
 // constructQueryString/constructURL
 

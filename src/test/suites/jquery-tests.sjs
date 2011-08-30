@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 test('install from google', true, function () {
   
   require("jquery-binding").install();

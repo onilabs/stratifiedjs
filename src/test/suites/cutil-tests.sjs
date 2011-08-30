@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 test('waitforAll funcs', 3, function() {
   var x = 0;
   function one() { hold(Math.random()*100); ++x; }

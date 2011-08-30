@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 function synthesizeClick() {
   if (document.createEvent) {
     var click = document.createEvent("MouseEvents");

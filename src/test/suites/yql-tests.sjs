@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 var yql=require('yql');
 
 test("query", "JavaScript + structured concurrency", function() {

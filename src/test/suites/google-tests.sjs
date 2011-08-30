@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 var g = require('google');
 
 test('search', true, function() {

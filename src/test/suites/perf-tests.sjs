@@ -1,3 +1,4 @@
+var test = require('file:testutil').test;
 
 function testJsonpRequest(opts) {
     return require("http").jsonp("data/returnJsonp.template", [{query: {data:"bananas"}},opts]);
