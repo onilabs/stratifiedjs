@@ -1,6 +1,6 @@
 {
   /* Version number which will be inserted into oni-apollo.js,
-     oni-apollo-node.js and all files under modules/: */
+     oni-apollo-node.js and all files under modules/ and rocket-modules/ : */
   "version" : "unstable",
 
   /* Version number which will be inserted into package.json: */

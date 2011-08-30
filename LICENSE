@@ -25,7 +25,8 @@ stated, licensing is as follows:
 - The server-side Node.JS-based StratifiedJS runtime
   (oni-apollo-node.js) is licensed under the GPL v2.
 
-
+- The Oni Rocket Web Application Server modules (src/rocket-modules/*)
+  are licensed under the GPL v2.
 
 
 

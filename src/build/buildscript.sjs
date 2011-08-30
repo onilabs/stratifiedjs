@@ -169,6 +169,13 @@ function build_deps() {
                 replacements_from_config("modules/"+modules[i]);
               }
             }
+            modules = fs.readdir("rocket-modules");
+            for (var i=0; i<modules.length; ++i) {
+              if (/.+\.sjs$/.test(modules[i])) {
+                log('Replacing version in rocket-modules/'+modules[i]);
+                replacements_from_config("rocket-modules/"+modules[i]);
+              }
+            }
             log('Replacing version in package.json');
             replacements_from_config('package.json');
           },
