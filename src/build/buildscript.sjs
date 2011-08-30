@@ -312,7 +312,7 @@ function MINIFY(target, source, flags) {
     target,
     function() {
       var src = fs.readFile(source).toString();
-      var c = require('file:./tmp/c1jsmin.js');
+      var c = require('../../tmp/c1jsmin.js');
       var out = c.compile(src, flags);
       var pre = flags.pre || "";
       var post = flags.post || "";
@@ -328,7 +328,7 @@ function STRINGIFY(target, source, flags) {
     target,
     function() {
       var src = fs.readFile(source).toString();
-      var c = require('file:./tmp/c1jsstr.js');
+      var c = require('../../tmp/c1jsstr.js');
       var out = c.compile(src, flags);
       var pre = flags.pre || "";
       var post = flags.post || "";
