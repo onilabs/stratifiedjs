@@ -120,7 +120,7 @@ var PublicFileFormatMap = new BaseFileFormatMap();
 var pathMap = [
   {
     // main server root
-    pattern: /\/foo(\/.*)?$/,
+    pattern: /(\/.*)$/,
     handler: serverfs.createMappedDirectoryHandler(
       root,
       PublicFileFormatMap,
@@ -164,8 +164,6 @@ function requestHandler(req, res) {
     }
     else
       throw "Unknown method";
-//    res.write("method: "+req.method+"\n");
-//    res.end(require('util').inspect(req.parsedUrl));
   }
   catch (e) { 
     res.writeHead(400);
@@ -173,11 +171,3 @@ function requestHandler(req, res) {
   }   
 }
 
-function generateDirHTML(arr) {
-  var rv = "<html><body><h1>Files:</h1>";
-  for (var i=0; i<arr.length; ++i) {
-    if (fs.isFile(arr[i]))
-      rv += "<a href='"+arr[i]+"'>"+arr[i]+"</a><br>";
-  }
-  return rv + "</body></html>";
-}
