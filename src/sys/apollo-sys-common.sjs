@@ -637,10 +637,6 @@ function requireInner(module, require_obj, parent, opts) {
 // top-level require function:
 exports.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
 
-// require.APOLLO_LOAD_PATH: path where this oni-apollo.js lib was
-// loaded from, or "" if it can't be resolved:
-exports.require.APOLLO_LOAD_PATH = "";
-
 exports.require.modules['sjs:apollo-sys.sjs'] = {
   id: 'sjs:apollo-sys.sjs',
   exports: exports,

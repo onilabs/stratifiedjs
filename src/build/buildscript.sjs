@@ -296,11 +296,11 @@ function replacements_from_config(target) {
   var config = get_config();
   var src = fs.readFile(target).toString();
 
-  src = src.replace(/Version: <[^>]*>/g, "Version: <"+config.version+">");
-  src = src.replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
-  src = src.replace(/<xbrowser-apollo-hub>/g, config.xbrowser_apollo_hub);
+  var repl = src.replace(/Version: <[^>]*>/g, "Version: <"+config.version+">")
+                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
 
-  fs.writeFile(target, src);
+  if (repl != src)
+    fs.writeFile(target, repl);
 }
 
 //----------------------------------------------------------------------
