@@ -1,6 +1,6 @@
 {
   "name": "apollo",
-  "description": "StratifiedJS-on-NodeJS",
+  "description": "StratifiedJS Framework",
   "author": "Alexander Fritze <alex@onilabs.com>",
   "version" : "999.0.0-unstable",
   "homepage": "http://onilabs.com/apollo",
@@ -10,6 +10,6 @@
   },
   "keywords": ["stratifiedjs", "async", "language"],
   "main": "oni-apollo-node",
-  "bin": { "apollo": "apollo" },
+  "bin": { "apollo": "apollo", "rocket": "rocket" },
   "engines": { "node": ">=0.4.1" }
 }

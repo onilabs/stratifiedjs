@@ -43,7 +43,7 @@ function usage() {
 
 //----------------------------------------------------------------------
 
-var root = fs.realpath(path.dirname(process.argv[0])+"/../");
+var root = http.canonicalizeURL('../', module.id).substr(7);
 var port = "7070";
 var host = "localhost";
 
