@@ -183,7 +183,7 @@ exports.isSameOrigin = sys.isSameOrigin;
   @summary Convert relative to absolute URLs and collapse '.' and '..' path
            components.
   @param {String} [url] URL to canonicalize.
-  @param {String} [base] URL which will be taken as a base if *url* is relative.
+  @param {optional String} [base] URL which will be taken as a base if *url* is relative.
   @return {String} Canonicalized URL.
   @desc
     ###Examples:
