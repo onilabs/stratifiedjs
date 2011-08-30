@@ -1,0 +1,115 @@
+<html>
+  <head>
+    <script src="../oni-apollo.js"></script>
+    <script src="../firebug-lite-sjs.js"></script>
+    <script type="text/sjs">
+
+      var MAX_FRAGMENT_LENGTH=85;
+      var MAX_RETRIES=3;
+      function speak(txt, language) {
+        while (txt.length) {
+          var fragment;
+          if (txt.length < MAX_FRAGMENT_LENGTH) {
+            fragment = txt;
+            txt = "";
+          }
+          else {
+            fragment = txt.substring(0,MAX_FRAGMENT_LENGTH);
+            // try to find a better place to chop the text up:
+            var chop = fragment.lastIndexOf(". ");
+            if (chop < 3) chop = fragment.lastIndexOf(":");
+            if (chop < 3) chop = fragment.lastIndexOf(";");
+            if (chop < 3) chop = fragment.lastIndexOf(",");
+            if (chop < 3) chop = fragment.lastIndexOf(" ");
+            if (chop >= 3) fragment = fragment.substring(0, chop);
+            txt = txt.substring(fragment.length);
+          }
+          for (var retry=0; retry<MAX_RETRIES; ++retry) {
+            try {
+              speak_phrase(fragment, language);
+            }
+            catch(e) {
+              // speak_phrase has a 2s delay, so that's the maximum rate we retry at
+              // console.log('retry');
+              continue;
+            }
+            break;
+          }
+          if (retry == MAX_RETRIES)
+            throw "Error playing back audio (maybe rate-limited?)";
+        }
+      }
+
+      // limited to ~ 100 characters
+      function speak_phrase(txt, language) {
+        language = language || "en";
+        var txt = encodeURIComponent(txt);
+        try {
+          var a = new Audio("http://translate.google.com/translate_tts?q="+txt+"&tl="+language);
+          try {
+            waitfor(var ok) {
+              var r = resume;
+              a.addEventListener("canplaythrough", r, true);
+              hold(2000); // after 2s, we time out
+              r(false);
+            }
+          }
+          finally {
+            a.removeEventListener("canplaythrough", r, true);
+          }
+          if (!ok) throw new Error("Error playing back audio.");
+          try {
+            waitfor() {
+              var r = resume;
+              a.addEventListener("ended", r, true);
+              a.play(); 
+            }
+          }
+          finally {
+            a.removeEventListener("ended", r, true);
+          }
+        }
+        finally {
+          // does this help gc at all?
+          delete a;
+        }
+      }
+
+
+      //----------------------------------------------------------------------
+      speak("Hello, stratified world!");
+
+      function speak_a_tweet() {
+        waitfor {
+          var r = require("twitter").search("news&cb="+Math.random()).results;
+        }
+        or {
+          hold(2000);
+          r = [];
+        }
+        var txt = "No news";
+        for (var i=0; i<r.length; ++i)
+          if (r[i].iso_language_code == "en") {
+            txt = r[i].text;
+            break;
+          }
+        document.getElementById("tweet").innerText = txt;
+        txt = txt.replace(/#/g, " hash ").replace(/http:\/\/[^ )]*/g,"").replace(/RT/g, "retweet").replace("/@/g", " at ").replace(/&quot;/, "\"");
+        try {
+          speak(txt);
+        }
+        catch (e) {
+          document.getElementById("tweet").innerText = e;
+        }
+      }
+
+    </script>
+  </head>
+  <body>
+    <h1>Google Text to speech</h1>
+    Type "speak(txt, [lang])" in firebug lite!<br>
+    Only works in chrome/safari!<br>
+    <button onclick="speak_a_tweet();">Speak-a-tweet</button>
+    <div id="tweet"></div>
+  </body>
+</html>

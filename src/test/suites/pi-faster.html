@@ -1,0 +1,53 @@
+<html>
+  <head>
+  <script type="text/javascript" src="../oni-apollo.js"></script>
+  <script type="text/sjs">
+  
+function dump(x) {
+  document.getElementById('output').innerHTML += x;
+}
+
+function printNumbers(n) {
+  hold(0);
+  var s = "" + n;
+  while (s.length < 4)
+    s = "0" + s;
+  dump(s + " ");
+}
+
+function calculatePi(d) {
+  d = Math.floor(d/4)*14;
+  var carry = 0;
+  var arr = [];
+  var sum;
+  var i, j;
+  for (i = d; i > 0; i -= 14) {
+    sum = piLoop(i, arr);
+    printNumbers(Math.floor(carry + sum/10000));
+    carry = sum % 10000;
+  }
+}
+
+var startTime = new Date();
+calculatePi(1000);
+dump("<div>DONE ("+(new Date()-startTime)+"ms)</div>");
+
+</script>
+<script type="text/javascript">
+function piLoop(i, arr) {
+  var sum = 0;
+  for (var j=i; j>0; --j) {
+    sum = sum * j + 10000 * (arr[j] === undefined ? 2000 : arr[j]);
+    arr[j] = sum % (j * 2 -1);
+    sum = Math.floor(sum/(j * 2 - 1));
+  }
+  return sum;
+}
+</script>
+  </head>
+  <body>
+  <h2>Calculate Pi using Apollo/SJS - inner loop in straight JS</h2>
+    <div id="output">
+    </div>
+  </body>
+</html>

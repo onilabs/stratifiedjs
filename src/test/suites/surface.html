@@ -1,0 +1,209 @@
+<html>
+  <head>
+    <script type="text/javascript" src="../oni-apollo.js"></script>
+    <script type="text/sjs">
+//require.path = "/modules/";
+var s = require('surface');
+//var c = require('debug').console();
+
+//s.loadCSS('surface');
+/*s.addCSS("
+* { font-size:50px !important; }
+body { background-color: yellow; }
+");
+*/
+
+var appbox = s.VBox({ style:"border:10px solid grey; background-color:yellow;-overflow-x:hidden;"});
+s.surface.append(appbox);
+
+function test(name, ui) {
+  appbox.append(s.Label({style:"margin-top:5px;margin-left:3px;font-family:sans-serif"}, name+":"));
+  var inner = s.VBox({style:"border:1px solid blue;margin:5px;margin-bottom:10px;"},
+                     ui);
+  appbox.append(inner);
+  return inner;
+}
+
+// testcase 1
+test("testcase 1",
+     s.Label("- This is quite a longish label which should not reflow ever. If it does then something is broken badly."));
+
+// testcase 2
+var inner = test("testcase 2",
+                 s.Label({name:"removed"}, "- You shouldn't see this."));
+inner.select('removed').removeFromParent();
+if (inner.select('removed').length != 0)
+  inner.append(s.Label("- Testcase 2 failed"));
+else
+  inner.append(s.Label("- Testcase 2 succeeded"));
+
+// testcase 3 (empty box padding)
+test("3. empty box padding", s.HBox({style:"border:1px solid black;background:green;padding:20px"}));
+
+// testcase 4a (empty html element padding)
+test("4a. empty html element padding",
+     s.Html({style:"border:1px solid black;background:red;padding:20px"}));
+
+// testcase 4b (html element padding)
+test("4b. html element padding", s.Html({style:"border:1px solid black;background:red;padding:20px"}, "surrounded by padding"));
+
+// testcase 5 (textinput sizing)
+var inputs = test("5. textinput sizing",
+     s.VBox(
+       s.VBox(s.HBox({w:"*"},s.Html("<input type='text' value='unstyled'></input>"),
+                     s.Html("<input type='text' value='unstyled'></input>"),
+                     s.TextInput({w:"5*"},"unstyled")
+               ),
+         s.Label({name:"out", style:"font-family:sans-serif;font-size:15px;"}),
+         s.TextInput({w:"*", name:"in"}, "stretched w, live")
+       ),
+       s.HBox(s.TextInput("unstyled"), s.TextInput("unstyled")),
+       s.TextInput("unstyled"),
+       s.Html("<input style='border:2px solid green;padding:10px;' type='text' value='border+padding'></input>"),
+       s.TextInput({style:"border:2px solid green;padding:10px;"},
+                   "border+padding"),
+       s.Html("<input style='margin:11px;' type='text' value='margin'></input>"),
+       s.TextInput({style:"margin:11px;"},"margin"),
+       s.Html("<input style='margin:11px;padding:4px;' type='text' value='margin+padding'></input>"),
+       s.TextInput({style:"margin:11px;padding:4px;"},"margin+padding"),
+       s.Html("<input style='margin:11px;padding:4px;border:7px solid grey;' type='text' value='margin+padding+border'></input>"),
+       s.TextInput({style:"margin:11px;padding:4px;border:7px solid grey;"},
+                   "margin+padding+border")
+     ));
+
+spawn(function() {
+  var inp = inputs.select("in");
+  var out = inputs.select("out");
+  using(var q = inp.eventQueue("keyup keypress")) {
+    while (1) {
+      q.get();
+      out.setValue(inp.getValue());
+    }
+  }
+});
+
+// testcase 6 (button sizing)
+test("6. button sizing",
+     s.VBox(
+       s.VBox(
+         s.HBox(s.Html("<button>unstyled</button>"),
+                s.Html("<button >unstyled</button>"),
+                s.Button("unstyled")
+               ),
+         s.Button({w:"*"}, "stretched w")
+       ),
+       s.HBox(s.Button("unstyled"), s.Button("unstyled")),
+       s.Button("unstyled"),
+       s.Html("<button style='border:2px solid green;padding:10px;'>border+padding</button>"),
+       s.Button({style:"border:2px solid green;padding:10px;"},
+                   "border+padding"),
+       s.Html("<button style='margin:11px;'>margin</button>"),
+       s.Button({style:"margin:11px;"},"margin"),
+       s.Html("<button style='margin:11px;padding:10px;'>margin+padding</button>"),
+       s.Button({style:"margin:11px;padding:10px;"},"margin+padding"),
+       s.Html("<button style='margin:11px;padding:4px;border:7px solid grey;'>margin+padding+border</button>"),
+       s.Button({style:"margin:11px;padding:4px;border:7px solid grey;"},
+                "margin+padding+border")
+     ));
+
+
+// testcase 7
+var typeA  = { classname:"A", value:"A"};
+var typeA2 = { classname:"A2", value:"A2"};
+var typeB = { classname:"B", value:"B"};
+var typeB2 = { name:"B2", value:"B2"};
+var button_container = test("7. select/waitforEvent",
+                            s.VBox(
+                              s.HBox(s.Button(typeA), s.Button(typeA2), s.Button(typeB), s.Button(typeB2)),
+                              s.HBox(s.Button(typeA), s.Button(typeA2), s.Button(typeB), s.Button(typeB2))));
+spawn(function() {
+  while (1) {
+    var ee;
+    waitfor {
+      ee = button_container.select(".A, .A2").event("click");
+    }
+    or {
+      ee = button_container.select(".B, B2").event("click");
+    }
+    alert("You clicked '"+ee.targetObj.getValue()+"'");
+    button_container.select("B2").setValue("foobar");
+  }
+});
+
+
+// testcase 8
+
+var stack = test("8. Stack",
+                 s.Stack({w:300, h:100, style:"border:10px solid green;margin:10px;"},
+                         s.Button({value:"This is a button"}),
+                         s.Button({x:20, y:10, value:"This is a another button"}),
+                         s.HBox({w:"*",y:30,h:20, name:"slider", style:"background-color:red"},
+                                s.Filler(),
+                                s.VBox({w:20,h:"*", name:"dragger", style:"background-color:black"})),
+                         s.HBox({h:"*",x:150,w:20, name:"slider2", style:"background-color:blue"})
+                        ));
+
+
+function dragloop(startelem, dragelem, update) {
+  if (!update) update = function(ee, dx, dy, elem) {
+    elem.move(ee.x - dx, ee.y - dy);    
+  };
+  while (1) {
+    var ee = startelem.event("mousedown touchstart", function(e) {
+      require('dom').stopEvent(e.nativeEvent); return true; });
+    waitfor {
+      require('surface').surface.event("mouseup touchend");
+    }
+    or {
+      require('surface').surface.event("selectstart", function(ev) {
+        require('dom').stopEvent(ev.nativeEvent); });
+    }
+    or {
+      dragelem.raise();
+      var offsetX = ee.x - dragelem.getX();
+      var offsetY = ee.y - dragelem.getY();
+      using (var q = require('surface').surface.eventQueue("mousemove touchmove")) {
+        while (1) {
+          update(q.get(), offsetX, offsetY, dragelem);
+        }
+      }
+    }
+  }
+}
+
+
+spawn(function() {
+  while (1) {
+    var ee = stack.select('dragger').event("mousedown touchstart", function(e) { require('dom').stopEvent(e.nativeEvent); return true;});
+    waitfor {
+      require('dom').waitforEvent(document, "mouseup touchend");
+    }
+    or {
+      s.surface.event("selectstart", function(ev) {  require('dom').stopEvent(ev.nativeEvent); });
+    }
+    or {
+      var slider = stack.select('slider');
+      slider.raise();
+      var offset = ee.y - slider.getY();
+      using (var q = s.surface.eventQueue("mousemove touchmove")) {
+        while (1) {
+          var ee = q.get();
+          slider.move(slider.getX(), ee.y - offset);
+        }
+      }
+    }
+  }
+  
+});
+
+
+spawn(function() {
+  dragloop(stack.select('slider2'), stack.select('slider2'));  
+});
+
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
+
