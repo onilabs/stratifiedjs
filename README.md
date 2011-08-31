@@ -83,7 +83,7 @@ the module will be requested from
 
 This location can only be inferred if you load oni-apollo.js in the
 'normal' way. If you rename oni-apollo.js to something else, or you
-don't load it through a <script> tag, you'll need to manually
+don't load it through a &lt;script> tag, you'll need to manually
 configure the 'apollo' hub before you can make calls such as
 `require('apollo:http')`.
 
