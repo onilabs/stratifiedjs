@@ -1,3 +1,5 @@
+var isBrowser = exports.isBrowser = require("sjs:apollo-sys").hostenv == 'xbrowser';
+
 var _currentRunner = null;
 function currentRunner() {
   if(!_currentRunner) {

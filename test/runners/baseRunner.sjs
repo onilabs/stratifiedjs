@@ -103,7 +103,6 @@ BaseRunner.prototype.success = function() {
  * it's been created. Currently used to declare a test as either
  * browser-only or server (node) only.
  */
-var isBrowser = require("sjs:apollo-sys").hostenv == 'xbrowser';
 var TestWrapper = function(func) {
   this.func = func;
 };
@@ -111,12 +110,12 @@ TestWrapper.prototype.skip = function(reason) {
   this.func.skipTest = reason || "pending";
 };
 TestWrapper.prototype.browserOnly = function() {
-  if(!isBrowser) {
+  if(!testUtil.isBrowser) {
     this.skip("browser only");
   }
 };
 TestWrapper.prototype.serverOnly = function() {
-  if(isBrowser) {
+  if(testUtil.isBrowser) {
     this.skip("server only");
   }
 };
