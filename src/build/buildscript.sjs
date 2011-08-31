@@ -1,61 +1,28 @@
 // Apollo build tool
+/*
+ 
+  A dependency-driven, parallel buildscript for building apollo.
+  Like SCons, but simpler, smaller, concurrent (== faster).
+
+*/
 
 var fs = require('apollo:node-fs');
 var common = require('apollo:common');
-var builders = {}, pseudos = {};
 
 //----------------------------------------------------------------------
-
-function usage() {
-  process.stdout.write("Oni Apollo build tool\n\n");
-  process.stdout.write("Usage: make-apollo [options] [target]\n\n");
-  process.stdout.write("Options:\n");
-  process.stdout.write("  -h, --help         display this help message\n");
-  process.stdout.write("\nTargets:\n");
-  process.stdout.write("  clean              clean temporaries\n");
-  process.stdout.write("  build              full build (default)\n");
-  process.stdout.write("\n");
-}
-
-function main() {
-  for (var i=1; i<process.argv.length; ++i) {
-    var flag = process.argv[i];
-    switch(flag) {
-    case "-h":
-    case "--help":
-      return usage();
-      break;
-    default:
-      if (i !== process.argv.length-1) return usage();
-      return build_target(flag);
-    }
-  }
-  return build_target("build");
-}
-
-main();
-
-//----------------------------------------------------------------------
-
-function build_target(target) {
-  // make sure we're in the right path:
-  var apollo_home = require('path').dirname(fs.realpath(process.argv[0]))+"/../../";
-  process.chdir(apollo_home);
-  
-  // make sure there's a tmp dir:
-  if (!fs.isDirectory("tmp")) {
-    log("Executing 'mkdir tmp'");
-    fs.mkdir("tmp",0777);
-  }
-
-  try {
-    build_deps();
-    builders[target]();
-  }
-  catch(e) { process.stdout.write("\nBUILD ERROR\n"); }
-}
+// BUILD DEPENDENCIES
 
 function build_deps() {
+
+  //----------------------------------------------------------------------
+  // top-level targets:
+
+  PSEUDO("clean");
+  BUILD("clean", ["rm -rf tmp", function() { log('all done')}]); 
+
+  PSEUDO("build");
+  BUILD("build", function() { log('all done') }, ["oni-apollo.js", "oni-apollo-node.js", "tmp/version_stamp"]);
+
   // XXX figure out how to get in settings for debug mode (keeplines, etc)
 
   //----------------------------------------------------------------------
@@ -183,22 +150,106 @@ function build_deps() {
         ],
         ["src/build/config.json"]);
 
-  //----------------------------------------------------------------------
-  // top-level targets:
+}
 
-  PSEUDO("clean");
-  BUILD("clean", ["rm -rf tmp", function() { log('all done')}]); 
+//----------------------------------------------------------------------
+// specialized build tasks
 
-  PSEUDO("build");
-  BUILD("build", function() { log('all done') }, ["oni-apollo.js", "oni-apollo-node.js", "tmp/version_stamp"]);
+var config;
+function get_config() {
+  if (!config)
+    config = eval("("+fs.readFile("src/build/config.json")+")");
+  
+  return config;
+}
+
+function replacements_from_config(target) {
+  var config = get_config();
+  var src = fs.readFile(target).toString();
+
+  var repl = src.replace(/Version: <[^>]*>/g, "Version: <"+config.version+">")
+                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
+
+  if (repl != src)
+    fs.writeFile(target, repl);
+}
+
+//----------------------------------------------------------------------
+// high-level builders
+
+function MINIFY(target, source, flags) {
+  flags = common.mergeSettings({keeplines:true}, flags);
+  BUILD(
+    target,
+    function() {
+      var src = fs.readFile(source).toString();
+      var c = require('../../tmp/c1jsmin.js');
+      var out = c.compile(src, flags);
+      var pre = flags.pre || "";
+      var post = flags.post || "";
+      fs.writeFile(target, pre + out + post);
+      return target;
+    },
+    [source, "tmp/c1jsmin.js"]);
+}
+
+function STRINGIFY(target, source, flags) {
+  flags = common.mergeSettings({keeplines:true}, flags);
+  BUILD(
+    target,
+    function() {
+      var src = fs.readFile(source).toString();
+      var c = require('../../tmp/c1jsstr.js');
+      var out = c.compile(src, flags);
+      var pre = flags.pre || "";
+      var post = flags.post || "";
+      fs.writeFile(target, pre + out + post);
+      return target;
+    },
+    [source, "tmp/c1jsstr.js"]);
+}
+
+// CPP: run C preprocessor
+function CPP(target, defs, deps) {
+  var cmd = "cpp -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers ";
+  BUILD(target, cmd + defs + " $0 $TARGET", deps);
+}
+
+//----------------------------------------------------------------------
+// BUILD & PSEUDO:
+
+var builders = {}, pseudos = {};
+
+// BUILD: "builder construction function"
+// Sets task and dependencies for a given target.
+// task can be a shell command or a function
+function BUILD(target, task, deps) {
+  deps = deps || [];
+  // builders are dependent on the buildscript itself:
+  if (target !== "src/build/buildscript.sjs")
+    deps.push("src/build/buildscript.sjs");
+  
+  var stratum;
+  builders[target] = function() {
+    if (!stratum) {
+      stratum = spawn _run_builder(target, task, deps);
+    }
+    return stratum.waitforValue();
+  }
+}
+
+// PSEUDO: Mark given target as a pseudo-target; i.e. there is no
+// corresponding disk file for it.
+function PSEUDO(target) {
+  pseudos[target] = true;
 }
 
 
-
-
 //----------------------------------------------------------------------
+// implementation helpers: 
 
 function log(s) { process.stdout.write(s+"\n"); }
+
 
 function timestamp(target, istarget) {
   if (!pseudos[target]) {
@@ -266,79 +317,52 @@ function _run_task(target, task, deps) {
     throw new Error("Unknown task type in builder '"+target+"'");    
 }
 
-function BUILD(target, task, deps) {
-  deps = deps || [];
-  var stratum;
-  builders[target] = function() {
-    if (!stratum) {
-      stratum = spawn _run_builder(target, task, deps);
-    }
-    return stratum.waitforValue();
+// Build the given target:
+function build_target(target) {
+  // make sure we're in the right path:
+  var apollo_home = require('path').dirname(fs.realpath(process.argv[0]))+"/../../";
+  process.chdir(apollo_home);
+  
+  // make sure there's a tmp dir:
+  if (!fs.isDirectory("tmp")) {
+    log("Executing 'mkdir tmp'");
+    fs.mkdir("tmp",0777);
+  }
+
+  try {
+    build_deps();
+    builders[target]();
+  }
+  catch(e) { process.stdout.write("\nBUILD ERROR\n"); }
+}
+
+//----------------------------------------------------------------------
+// main:
+
+function usage() {
+  process.stdout.write("Oni Apollo build tool\n\n");
+  process.stdout.write("Usage: make-apollo [options] [target]\n\n");
+  process.stdout.write("Options:\n");
+  process.stdout.write("  -h, --help         display this help message\n");
+  process.stdout.write("\nTargets:\n");
+  process.stdout.write("  clean              clean temporaries\n");
+  process.stdout.write("  build              full build (default)\n");
+  process.stdout.write("\n");
+}
+
+for (var i=1; i<process.argv.length; ++i) {
+  var flag = process.argv[i];
+  switch(flag) {
+  case "-h":
+  case "--help":
+    return usage();
+    break;
+  default:
+    if (i !== process.argv.length-1) return usage();
+    return build_target(flag);
   }
 }
 
-function PSEUDO(target) {
-  pseudos[target] = true;
-}
+build_target("build");
 
-//----------------------------------------------------------------------
-// specialized build tasks
 
-var config;
-function get_config() {
-  if (!config)
-    config = eval("("+fs.readFile("src/build/config.json")+")");
-  
-  return config;
-}
-
-function replacements_from_config(target) {
-  var config = get_config();
-  var src = fs.readFile(target).toString();
-
-  var repl = src.replace(/Version: <[^>]*>/g, "Version: <"+config.version+">")
-                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
-
-  if (repl != src)
-    fs.writeFile(target, repl);
-}
-
-//----------------------------------------------------------------------
-// high-level builders
-
-function MINIFY(target, source, flags) {
-  flags = common.mergeSettings({keeplines:true}, flags);
-  BUILD(
-    target,
-    function() {
-      var src = fs.readFile(source).toString();
-      var c = require('../../tmp/c1jsmin.js');
-      var out = c.compile(src, flags);
-      var pre = flags.pre || "";
-      var post = flags.post || "";
-      fs.writeFile(target, pre + out + post);
-      return target;
-    },
-    [source, "tmp/c1jsmin.js"]);
-}
-
-function STRINGIFY(target, source, flags) {
-  flags = common.mergeSettings({keeplines:true}, flags);
-  BUILD(
-    target,
-    function() {
-      var src = fs.readFile(source).toString();
-      var c = require('../../tmp/c1jsstr.js');
-      var out = c.compile(src, flags);
-      var pre = flags.pre || "";
-      var post = flags.post || "";
-      fs.writeFile(target, pre + out + post);
-      return target;
-    },
-    [source, "tmp/c1jsstr.js"]);
-}
-
-function CPP(target, defs, deps) {
-  var cmd = "cpp -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers ";
-  BUILD(target, cmd + defs + " $0 $TARGET", deps);
-}
