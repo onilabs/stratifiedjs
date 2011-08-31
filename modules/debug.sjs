@@ -135,7 +135,7 @@ function inspect_obj(obj, name) {
   var objdesc;
   if (typeof obj == "function")
     objdesc = "function "+common.sanitize(obj.name || "")+"() {...}";
-  else if (obj == undefined) // this catches 'null' too
+  else if (obj == undefined || obj === true || obj === false) // this catches 'null' too
     return makeDiv(indent+name + "<span style='"+systemStyle+"'>"+obj+"</span>");
   else if (typeof obj == "string")
     return makeDiv(indent+name + '"'+common.sanitize(obj)+'"', "white-space:pre;");
@@ -145,7 +145,7 @@ function inspect_obj(obj, name) {
       if (Array.isArray(obj))
         objdesc = "[]";
       else if (obj)
-        objdesc = common.sanitize(to_safestring(obj));
+        objdesc = "{}"; /* common.sanitize(to_safestring(obj)); */
       else
         objdesc = obj;
     }
