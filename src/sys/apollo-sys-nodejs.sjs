@@ -247,8 +247,8 @@ function request_hostenv(url, settings) {
 
 function file_src_loader(path) {
   waitfor (var err, data) {
-    // asynchronously load file at path (removing 'file:' prefix first):
-    __oni_rt.nodejs_require('fs').readFile(path.substr(5), resume);
+    // asynchronously load file at path (removing 'file://' prefix first):
+    __oni_rt.nodejs_require('fs').readFile(path.substr(7), resume);
   }
   if (err) {
     // XXX this is a hack to allow us to load sjs scripts without .sjs extension, 

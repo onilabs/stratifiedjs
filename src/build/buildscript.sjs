@@ -169,6 +169,13 @@ function build_deps() {
                 replacements_from_config("modules/"+modules[i]);
               }
             }
+            modules = fs.readdir("rocket-modules");
+            for (var i=0; i<modules.length; ++i) {
+              if (/.+\.sjs$/.test(modules[i])) {
+                log('Replacing version in rocket-modules/'+modules[i]);
+                replacements_from_config("rocket-modules/"+modules[i]);
+              }
+            }
             log('Replacing version in package.json');
             replacements_from_config('package.json');
           },
@@ -289,11 +296,11 @@ function replacements_from_config(target) {
   var config = get_config();
   var src = fs.readFile(target).toString();
 
-  src = src.replace(/Version: <[^>]*>/g, "Version: <"+config.version+">");
-  src = src.replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
-  src = src.replace(/<xbrowser-apollo-hub>/g, config.xbrowser_apollo_hub);
+  var repl = src.replace(/Version: <[^>]*>/g, "Version: <"+config.version+">")
+                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
 
-  fs.writeFile(target, src);
+  if (repl != src)
+    fs.writeFile(target, repl);
 }
 
 //----------------------------------------------------------------------
@@ -305,7 +312,7 @@ function MINIFY(target, source, flags) {
     target,
     function() {
       var src = fs.readFile(source).toString();
-      var c = require('file:./tmp/c1jsmin.js');
+      var c = require('../../tmp/c1jsmin.js');
       var out = c.compile(src, flags);
       var pre = flags.pre || "";
       var post = flags.post || "";
@@ -321,7 +328,7 @@ function STRINGIFY(target, source, flags) {
     target,
     function() {
       var src = fs.readFile(source).toString();
-      var c = require('file:./tmp/c1jsstr.js');
+      var c = require('../../tmp/c1jsstr.js');
       var out = c.compile(src, flags);
       var pre = flags.pre || "";
       var post = flags.post || "";

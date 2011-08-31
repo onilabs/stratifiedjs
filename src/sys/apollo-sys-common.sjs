@@ -244,7 +244,7 @@ exports.isSameOrigin = function(url1, url2) {
   @summary Convert relative to absolute URLs and collapse '.' and '..' path
            components.
   @param {String} [url] URL to canonicalize.
-  @param {String} [base] URL which will be taken as a base if *url* is relative.
+  @param {optional String} [base] URL which will be taken as a base if *url* is relative.
   @return {String} Canonicalized URL.
 */
 exports.canonicalizeURL = function(url, base) {
@@ -621,6 +621,9 @@ function requireInner(module, require_obj, parent, opts) {
     var loader, src;
     ({path,loader, src}) = resolveHubs(path, exports.require.hubs, opts);
     
+    // make sure the path has '.' and '..' collapsed:
+    path = exports.canonicalizeURL(path);
+
     // now perform the load:
     return loader(path, parent, src);
   }
@@ -633,10 +636,6 @@ function requireInner(module, require_obj, parent, opts) {
 
 // top-level require function:
 exports.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
-
-// require.APOLLO_LOAD_PATH: path where this oni-apollo.js lib was
-// loaded from, or "" if it can't be resolved:
-exports.require.APOLLO_LOAD_PATH = "";
 
 exports.require.modules['sjs:apollo-sys.sjs'] = {
   id: 'sjs:apollo-sys.sjs',

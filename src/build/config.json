@@ -1,12 +1,8 @@
 {
   /* Version number which will be inserted into oni-apollo.js,
-     oni-apollo-node.js and all files under modules/: */
+     oni-apollo-node.js and all files under modules/ and rocket-modules/ : */
   "version" : "unstable",
 
   /* Version number which will be inserted into package.json: */
-  "npm_version" : "999.0.0-unstable",
-
-  /* Location of canonical 'apollo:' hub in oni-apollo.js. Substitutes
-     src/sys/apollo-sys-xbrowser's "<xbrowser-apollo-hub>". */
-  "xbrowser_apollo_hub" : "http://code.onilabs.com/apollo/unstable/modules/"
+  "npm_version" : "999.0.0-unstable"
 }

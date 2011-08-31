@@ -325,10 +325,23 @@ function request_hostenv(url, settings) {
 // initial list of hubs and extensions:
 
 function getHubs_hostenv() {
+  // determine location of oni-apollo.js script:
+  var scripts = document.getElementsByTagName("script"),matches;
+  var location;
+  for (var i=0; i<scripts.length; ++i) {
+    if ((matches = /(.*)oni-apollo.js$/.exec(scripts[i].src))) {
+      location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
+      break;
+    }
+  }
+  
   return [
-    // <xbrowser-apollo-hub> below will be replaced with the
-    // corresponding value in src/build/config.json at build time
-    ["apollo:", "<xbrowser-apollo-hub>" ],
+    ["apollo:", location ? 
+                  location : 
+                  { src: function(path) { 
+                      throw new Error("Can't load module '"+path+
+                                      "': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load oni-apollo.js in the normal way through a <script> element."); }
+                  } ],
     ["github:", {src:github_src_loader} ],
     ["http:",  {src:http_src_loader} ],
     ["https:", {src:http_src_loader} ]
@@ -373,13 +386,10 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
     //var ss = Array.prototype.slice.call(scripts, 0);
     var ss = [];
     for (var i=0; i<scripts.length; ++i) {
-      var matches;
       if (scripts[i].getAttribute("type") == "text/sjs") {
         var s = scripts[i];
         ss.push(s);
       }
-      else if ((matches = /(.*)oni-apollo.js$/.exec(scripts[i].src)))
-        __oni_rt.G.require.APOLLO_LOAD_PATH = matches[1];
     }
     
     for (var i=0; i<ss.length; ++i) {
