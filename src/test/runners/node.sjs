@@ -1,7 +1,7 @@
 var BaseRunner = require("./baseRunner").BaseRunner;
 
-//TODO: this only works by renaming .js -> .sjs. That can't be right...
-var term = require("./terminal");
+//TODO: make a plain .js import
+var term = require("../lib/terminal.sjs");
 
 var NodeRunner = exports.NodeRunner = function() {
   this.init.apply(this, arguments);
