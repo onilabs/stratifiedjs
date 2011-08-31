@@ -167,7 +167,7 @@ function replacements_from_config(target) {
   var config = get_config();
   var src = fs.readFile(target).toString();
 
-  var repl = src.replace(/Version: <[^>]*>/g, "Version: <"+config.version+">")
+  var repl = src.replace(/Version: '[^']*'/g, "Version: '"+config.version+"'")
                 .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
 
   if (repl != src)

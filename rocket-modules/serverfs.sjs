@@ -3,7 +3,7 @@
  * Server filesystem module
  *
  * Part of Oni Apollo
- * Version: <unstable>
+ * Version: 'unstable'
  * http://onilabs.com/apollo
  *
  * (c) 2011 Oni Labs, http://onilabs.com

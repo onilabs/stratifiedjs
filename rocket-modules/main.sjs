@@ -3,7 +3,7 @@
  * Main application module
  *
  * Part of Oni Apollo
- * Version: <unstable>
+ * Version: 'unstable'
  * http://onilabs.com/apollo
  *
  * (c) 2011 Oni Labs, http://onilabs.com
@@ -140,7 +140,7 @@ and {
   print("");
   print("   ^    Oni Rocket Server");
   print("  | |");
-  print("  |O|   * Version: <unstable>");
+  print("  |O|   * Version: 'unstable'");
   print("  | |");
   print(" | _ |  * Launched with root directory");
   print("/_| |_\\   '"+root+"'");
