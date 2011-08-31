@@ -3,7 +3,7 @@
  * base64 encoding and decoding
  *
  * Part of the Oni Apollo Standard Module Library
- * Version: <unstable>
+ * Version: 'unstable'
  * http://onilabs.com/apollo
  *
  *

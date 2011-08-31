@@ -19,9 +19,14 @@ oni-apollo.js
 oni-apollo-node.js, 'apollo' executable
 ---------------------------------------
 
-- Server-side StratifiedJS runtime for NodeJS.
-- If you've got NodeJS installed, just run `apollo` to get a serverside SJS REPL.
-- See also this [Apollo Google Group post](https://groups.google.com/forum/#!topic/oni-apollo/ZDkxczAZcgw)
+ - Server-side StratifiedJS runtime for NodeJS.
+ - If you've got NodeJS installed, just run `apollo` to get a serverside SJS REPL.
+ - See also this [Apollo Google Group post](https://groups.google.com/forum/#!topic/oni-apollo/ZDkxczAZcgw)
+
+rocket, rocket-modules/
+-----------------------
+
+ - A simple web server
 
 modules/
 --------
@@ -56,22 +61,33 @@ How to run/install
 No need to install anything.
 
 For server-side use, you can just execute the `apollo` executable
-(provided you have nodejs installed). 
+(provided you have nodejs installed).
 
 Alternatively you can install with npm (see the package.json script).
 
 For client-side use, just include the oni-apollo.js file in your html,
 as described at [onilabs.com/docs](http://onilabs.com/docs).
 
-Note that if you load standard library modules using code such as
+
+Considerations for client-side use
+----------------------------------
+
+Note that, by default, if you load standard library modules using code
+such as
 
     var http = require('apollo:http');
 
-the module will be loaded from its canonical location at
-code.onilabs.com (again as described at
-[onilabs.com/docs](http://onilabs.com/docs)). If you want to serve the
-standard library modules yourself you can reconfigure the 'apollo hub'
-location using code such as this:
+the module will be requested from 
+
+    LOCATION_WHERE_ONI_APOLLO_JS_WAS_LOADED_FROM/modules
+
+This location can only be inferred if you load oni-apollo.js in the
+'normal' way. If you rename oni-apollo.js to something else, or you
+don't load it through a &lt;script> tag, you'll need to manually
+configure the 'apollo' hub before you can make calls such as
+`require('apollo:http')`.
+
+To (re-)configure the 'apollo hub', you can use code such as this:
 
     require.hubs.unshift( 
       ["apollo:", 
@@ -79,4 +95,11 @@ location using code such as this:
       ]);
     // all modules addressed as 'apollo:' will now be loaded from the
     // location above.
+
+Note that many browsers can only load modules over http. You can use
+`rocket` to serve up the apollo directory locally. Alternatively,
+you can serve oni-apollo.js and the modules/ directory with a
+different web server, or load oni-apollo.js & modules/ from
+http://code.onilabs.com/ as described at
+[onilabs.com/docs](http://onilabs.com/docs).
 
