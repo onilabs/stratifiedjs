@@ -1,7 +1,6 @@
 var BaseRunner = require("./baseRunner").BaseRunner;
 
-//TODO: make a plain .js import
-var term = require("../lib/terminal.sjs");
+var term = require("../lib/terminal.js");
 
 var NodeRunner = exports.NodeRunner = function() {
   this.init.apply(this, arguments);
