@@ -1,5 +1,5 @@
 var c = require('apollo:common');
-var test = require('file:testutil').test;
+var test = require('../testUtil').test;
 
 test('bind', 44, function() {
   var A = {x:44};

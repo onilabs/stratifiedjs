@@ -1,7 +1,9 @@
-var test = require('file:testutil').test;
+var testUtil = require('../testUtil');
+var test = testUtil.test;
+var time = testUtil.time;
 
 function testJsonpRequest(opts) {
-    return require("http").jsonp("data/returnJsonp.template", [{query: {data:"bananas"}},opts]);
+    return require("apollo:http").jsonp("data/returnJsonp.template", [{query: {data:"bananas"}},opts]);
 }
 
 time("10 sequential jsonp in-doc requests",

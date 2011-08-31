@@ -1,4 +1,7 @@
-var test = require('file:testutil').test;
+var testUtil = require('../testUtil');
+var test = testUtil.test;
+var testParity = testUtil.testParity;
+
 testParity("9+6", function() { return 9 + 6; });
 testParity("9-6", function() { return 9 - 6; });
 testParity("false && true", function() { return false && true; });

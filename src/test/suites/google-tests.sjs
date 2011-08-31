@@ -1,5 +1,5 @@
-var test = require('file:testutil').test;
-var g = require('google');
+var test = require('../testUtil').test;
+var g = require('apollo:google');
 
 test('search', true, function() {
   var results = g.search("croczilla");

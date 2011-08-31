@@ -1,4 +1,6 @@
-var test = require('file:testutil').test;
+var test = require('../testUtil').test;
+//TODO: skip on node?
+var dom = require('apollo:dom');
 function synthesizeClick() {
   if (document.createEvent) {
     var click = document.createEvent("MouseEvents");
@@ -11,7 +13,7 @@ function synthesizeClick() {
 
 test('waitforEvent', true, function() {
   waitfor {
-    require('dom').waitforEvent(document, 'click');
+    dom.waitforEvent(document, 'click');
     return true;
   }
   or {
@@ -28,7 +30,7 @@ test('waitforEvent', true, function() {
 
 test('eventQueue', true, function() {
   waitfor {
-    using (var Q = require('dom').eventQueue(document, "click")) {
+    using (var Q = dom.eventQueue(document, "click")) {
       for (var i=0; i<10; ++i) {
         hold(Math.random()*100);
         Q.get();
@@ -48,7 +50,7 @@ test('eventQueue', true, function() {
 });
 
 test('cookies', true, function() {
-  var dom = require('dom');
+  var dom = dom;
   var data = "  "+Math.random()+"\n\n\tfoo";
   dom.setCookie("testcookie", data);
   hold(100);

@@ -1,7 +1,7 @@
-var test = require('file:testutil').test;
+var test = require('../testUtil').test;
+
 test('install from google', true, function () {
-  
-  require("jquery-binding").install();
+  require("apollo:jquery-binding").install();
   return window.$ == window.jQuery && window.jQuery != null;
 });
 

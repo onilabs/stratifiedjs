@@ -1,62 +1,64 @@
-var test = require('file:testutil').test;
+var test = require('../testUtil').test;
+var cutil = require("apollo:cutil");
+
 test('waitforAll funcs', 3, function() {
   var x = 0;
   function one() { hold(Math.random()*100); ++x; }
-  require("cutil").waitforAll([one, one, one]);
+  cutil.waitforAll([one, one, one]);
   return x;
 });
 
 test('waitforAll funcs + arg', 3, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a[1]; }
-  require("cutil").waitforAll([one, one, one], [2,1,3]);
+  cutil.waitforAll([one, one, one], [2,1,3]);
   return x;
 });
 
 test('waitforAll args', 6, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a; }
-  require("cutil").waitforAll(one, [1,2,3]);
+  cutil.waitforAll(one, [1,2,3]);
   return x;
 });
 
 test('waitforAll args 2nd par', 3, function() {
   var x = 0;
   function one(a,i) { hold(Math.random()*100); x+=i; }
-  require("cutil").waitforAll(one, [5,6,7]);
+  cutil.waitforAll(one, [5,6,7]);
   return x;
 });
 
 test('waitforAll args 2nd+3rd par', 18, function() {
   var x = 0;
   function one(a,i,arr) { hold(Math.random()*100); x+=arr[i]; }
-  require("cutil").waitforAll(one, [5,6,7]);
+  cutil.waitforAll(one, [5,6,7]);
   return x;
 });
 
 test('waitforFirst funcs', 1, function() {
   var x = 0;
   function one() { hold(Math.random()*100); ++x; }
-  require("cutil").waitforFirst([one, one, one]);
+  cutil.waitforFirst([one, one, one]);
   return x;
 });
 
 test('waitforFirst funcs + arg', 3, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a[1]; }
-  require("cutil").waitforFirst([one, one, one], [3,3,3]);
+  cutil.waitforFirst([one, one, one], [3,3,3]);
   return x;
 });
 
 test('waitforFirst args', 6, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a; }
-  require("cutil").waitforFirst(one, [6,6,6]);
+  cutil.waitforFirst(one, [6,6,6]);
   return x;
 });
 
 test('Semaphore: blocking on acquire', 1, function() {
-  var S = new (require("cutil").Semaphore)(1);
+  var S = new (cutil.Semaphore)(1);
   S.acquire();
   waitfor {
     S.acquire();
@@ -69,7 +71,7 @@ test('Semaphore: blocking on acquire', 1, function() {
 });
 
 test('Semaphore: block/resume on acquire', 1, function() {
-  var S = new (require("cutil").Semaphore)(1);
+  var S = new (cutil.Semaphore)(1);
   S.acquire();
   waitfor {
     S.acquire();
@@ -85,7 +87,7 @@ test('Semaphore: block/resume on acquire', 1, function() {
 test('makeBoundedFunction 1', 3, function() {
   var x = 0;
   function f() { ++x; hold(100); }
-  var g = require('cutil').makeBoundedFunction(f, 3);
+  var g = cutil.makeBoundedFunction(f, 3);
   waitfor { g(); } and { g(); } and { g(); } and { g(); } and { g(); }
   and {
     return x;
@@ -95,14 +97,14 @@ test('makeBoundedFunction 1', 3, function() {
 test('makeBoundedFunction 2', 0, function() {
   var x = 0;
   function f() { ++x; if (x>3) throw new Error(x); hold(10); --x; }
-  var g = require('cutil').makeBoundedFunction(f, 3);
+  var g = cutil.makeBoundedFunction(f, 3);
   waitfor { g(); } and { g(); } and { g(); } and { g(); } and { g(); }
   return x;
 });
 
 test('Queue: producer/consumer', 1000, function() {
   var rv = 0;
-  var q = new (require('cutil').Queue)(100);
+  var q = new (cutil.Queue)(100);
   waitfor {
     for (var i=0; i<1000; ++i)
       q.put(1);
@@ -116,7 +118,7 @@ test('Queue: producer/consumer', 1000, function() {
 
 test('Queue: producer/consumer (async get)', 100, function() {
   var rv = 0;
-  var q = new (require('cutil').Queue)(10);
+  var q = new (cutil.Queue)(10);
   waitfor {
     for (var i=0; i<100; ++i)
       q.put(1);
@@ -131,7 +133,7 @@ test('Queue: producer/consumer (async get)', 100, function() {
 });
 
 test('Queue: producer/consumer blocking', 100, function() {
-  var q = new (require('cutil').Queue)(100);
+  var q = new (cutil.Queue)(100);
   waitfor {
     waitfor {
       for (var i=0; i<1000; ++i)
@@ -151,7 +153,7 @@ test('Queue: producer/consumer blocking', 100, function() {
 
 test('Queue: producer/consumer (async put)', 100, function() {
   var rv = 0;
-  var q = new (require('cutil').Queue)(10);
+  var q = new (cutil.Queue)(10);
   waitfor {
     for (var i=0; i<100; ++i) {
       hold(0);
@@ -168,7 +170,7 @@ test('Queue: producer/consumer (async put)', 100, function() {
 
 test('Queue: producer/consumer (async put/get)', 100, function() {
   var rv = 0;
-  var q = new (require('cutil').Queue)(10);
+  var q = new (cutil.Queue)(10);
   waitfor {
     for (var i=0; i<100; ++i) {
       hold(0);

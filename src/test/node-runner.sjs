@@ -2,38 +2,50 @@
 
 var path = require('path');
 var fs   = require('fs');
+var sys = require("sys");
 var args = process.argv.slice(1);
+var http = require("apollo:http");
+var base = path.dirname(http.parseURL(module.id).relative);
+
+var runOpts = {
+  verbose: false
+}
+//TODO: proper optparse
+if (args[0] == '-v') {
+  args.shift();
+  runOpts.verbose = true;
+}
+
 //TODO: __filename not defined for SJS?
 // var base = path.dirname(fs.realpathSync(__filename));
-var base = ".";
 var suite_dir = path.join(base, "suites");
-var sys = require("sys");
 
 var is_sjs_file = function(fname){
-	return path.extname(fname) == ".sjs";
+  return path.extname(fname) == ".sjs";
 };
 
 var path_to_test = function(fname) {
-	return path.normalize(path.join(suite_dir, fname));
+  return path.normalize(path.join(suite_dir, fname));
 };
 var test_files;
 if(args.length > 0) {
-	test_files = args;
+  var cwd = process.cwd();
+  sys.puts(cwd);
+  test_files = args.map(function(arg) { sys.puts(arg); return path.resolve(cwd, arg); });
 } else {
-	test_files = fs.readdirSync(suite_dir).filter(is_sjs_file).map(path_to_test).sort();
+  test_files = fs.readdirSync(suite_dir).filter(is_sjs_file).map(path_to_test).sort();
 }
-sys.puts("test files: " + test_files);
+sys.puts("test files: " + test_files.map(path.basename));
 
-require.path = "../../modules/"; // XXX does this do anything for .sjs requires?
-var testUtil = require("file:testutil");
+var NodeRunner = require("./runners/node").NodeRunner;
 
-var suite = new test_helpers.NodeSuite();
+var runner = new NodeRunner(runOpts);
 
-var cutil = require("apollo:cutil");
+//TODO: needs a sequantialMap operation (waitForAll does it in parallel, which breaks
+// filename-association because it uses global state).
 for(var i=0; i<test_files.length; i++) {
-	suite.load(test_files[i]);
+  runner.load(test_files[i]);
 }
-// cutil.waitforAll(suite.load, test_files, suite);
-suite.run();
-suite.report();
-// TODO: exit process with correct status
+runner.run();
+runner.report();
+process.exit(runner.success() ? 0 : 1);

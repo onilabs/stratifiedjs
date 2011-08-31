@@ -1,5 +1,5 @@
-var test = require('file:testutil').test;
-var yql=require('yql');
+var test = require('../testUtil').test;
+var yql=require('apollo:yql');
 
 test("query", "JavaScript + structured concurrency", function() {
   var rv = yql.query("select * from html where url=@url and xpath='//h1'",
