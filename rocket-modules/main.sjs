@@ -73,7 +73,7 @@ for (var i=1; i<process.argv.length; ++i) {
 
 // helper filter to wrap a file in a jsonp response:
 function json2jsonp(src, req) {
-  var callback = req.uri.queryKey['callback'];
+  var callback = req.parsedUrl.queryKey['callback'];
   if (!callback) callback = "callback";
   return callback + "(" + src + ")";
 }

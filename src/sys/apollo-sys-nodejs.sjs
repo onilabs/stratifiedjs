@@ -331,8 +331,8 @@ function getExtensions_hostenv() {
     },
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
     'js': function(src, descriptor) {
-      var f = new Function("module", "exports", src);
-      f.apply(descriptor.exports, [descriptor, descriptor.exports]);
+      var f = new Function("module", "exports", "require", src);
+      f.apply(descriptor.exports, [descriptor, descriptor.exports, descriptor.require]);
     }
   };
 }
