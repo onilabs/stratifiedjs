@@ -1,4 +1,3 @@
-var testCounter = exports.testCounter = 0;
 var _currentRunner = null;
 function currentRunner() {
   if(!_currentRunner) {
@@ -13,15 +12,11 @@ var setRunner = exports.setRunner = function(runner) {
 
 exports.test = function test(name, expected, f) {
   currentRunner().addCase(name, function() {
-    try {
-      var a = f();
-    } catch (e) {
-      var error = e;
-    }
+    var a = f();
     if (a === expected)
       this.addSuccess(name, a);
     else
-      this.addFailure(name, a + (error?" (Exception: "+error+")":""), expected);
+      this.addFailure(name, a, expected);
   });
 }
 

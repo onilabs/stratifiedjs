@@ -1,31 +1,16 @@
-var testUtil = require("../testUtil");
+var BaseRunner = require("./baseRunner").BaseRunner;
 
 //TODO: this only works by renaming .js -> .sjs. That can't be right...
 var term = require("./terminal");
 
-var NodeRunner = exports.NodeRunner = function NodeRunner(opts) {
-  this.testCounter = 0;
-  this.testGroups = [];
-  this.verbose = opts.verbose;
-
-  this.numFailure = 0;
-  this.numSuccess = 0;
-  this.numError = 0;
+var NodeRunner = exports.NodeRunner = function() {
+  this.init.apply(this, arguments);
 };
+
+NodeRunner.prototype = new BaseRunner();
+NodeRunner.prototype.super = new BaseRunner();
+
 NodeRunner.prototype.puts = function(s) { process.stderr.write(s + "\n"); };
-
-NodeRunner.prototype.addSuccess = function() {
-  ++this.numSuccess;
-  this.dumpSuccess.apply(this,arguments);
-};
-NodeRunner.prototype.addFailure = function() {
-  ++this.numFailure;
-  this.dumpFailure.apply(this,arguments);
-};
-NodeRunner.prototype.addError = function() {
-  ++this.numError;
-  this.dumpError.apply(this,arguments);
-};
 
 NodeRunner.prototype.dumpSuccess = function(name, a) {
   if(!this.verbose) return;
@@ -37,24 +22,6 @@ NodeRunner.prototype.dumpFailure = function(name, actual, expected) {
 NodeRunner.prototype.dumpError = function(name, e) {
   this.dumpResult("%yERROR:%n", name + ": " + e);
 };
-NodeRunner.prototype.load = function(filename) {
-  testUtil.setRunner(this);
-  var fileCases = [];
-  this.addCase = function(name, f) {
-    fileCases.push([name, f]);
-  };
-  try {
-    if(this.verbose) this.puts("requiring: " + filename);
-    result = require(filename);
-  } catch (e) {
-    fileCases.push(["(load error)", function() { throw e; }]);
-  }
-  if(fileCases.length > 0) {
-    this.testGroups.push([filename, fileCases]);
-  }
-  this.addCase = NodeRunner.prototype.addCase;
-};
-
 NodeRunner.prototype.dumpResult = function(status, message) {
   if(this.newGroup) {
     this.puts("\n - " + this.newGroup);
@@ -63,31 +30,6 @@ NodeRunner.prototype.dumpResult = function(status, message) {
   this.puts("   " + term._colorize(status) + " " + message);
 };
 
-NodeRunner.prototype.startGroup = function(name) {
-  this.newGroup = name;
-};
-
-//TODO: share this impl? allow parallel tests?
-NodeRunner.prototype.run = function() {
-  this.testCounter = 0;
-  for(var i=0; i<this.testGroups.length; i++) {
-    var group = this.testGroups[i];
-    var filename = group[0];
-    var tests = group[1];
-    this.startGroup(filename);
-    for(var j=0; j<tests.length; j++) {
-      var test = tests[j];
-      var testName = test[0];
-      var testFn = test[1];
-      ++this.testCounter;
-      try{
-        testFn.call(this);
-      } catch (e) {
-        this.addError(testName, e);
-      }
-    }
-  }
-};
 
 NodeRunner.prototype.report = function() {
   var summary = "--------------\n";
@@ -97,12 +39,9 @@ NodeRunner.prototype.report = function() {
     summary += term._colorize(", %y" + this.numError + " errors%n");
   }
   if(this.numFailure > 0) {
-    summary += term._colorize(", %r" + this.numFailure + " failures%n.");
+    summary += term._colorize(", %r" + this.numFailure + " failures%n");
   }
+  summary += ".";
   this.puts(summary);
 };
 
-
-NodeRunner.prototype.success = function() {
-  return (this.numError + this.numFailure) == 0;
-};
