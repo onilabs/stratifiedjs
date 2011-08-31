@@ -81,13 +81,11 @@ pn.appendChild(select);
 
 while (true) {
   waitfor {
-    console.log("running: " + currentSuite);
     runSuite(currentSuite);
     hold();
   }
   or {
     require('apollo:dom').waitforEvent("select", "change");
-    console.log("running tests!");
     currentSuite = document.getElementById("select").value;
   }
 }
