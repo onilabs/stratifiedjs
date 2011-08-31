@@ -12,15 +12,17 @@ NodeRunner.prototype.super = new BaseRunner();
 
 NodeRunner.prototype.puts = function(s) { process.stderr.write(s + "\n"); };
 
-NodeRunner.prototype.dumpSuccess = function(name, a) {
-  if(!this.verbose) return;
-  this.dumpResult("%gOK:%n", name);
+NodeRunner.prototype.dumpSuccess = function(msg) {
+  this.dumpResult("%gOK:   %n", msg);
 };
-NodeRunner.prototype.dumpFailure = function(name, actual, expected) {
-  this.dumpResult("%rFAILURE:%n", name + ", expected " + expected + " but got " + actual);
+NodeRunner.prototype.dumpSkip = function(msg) {
+  this.dumpResult("%bSKIP: %n", msg);
 };
-NodeRunner.prototype.dumpError = function(name, e) {
-  this.dumpResult("%yERROR:%n", name + ": " + e);
+NodeRunner.prototype.dumpFailure = function(msg) {
+  this.dumpResult("%rFAIL: %n", msg);
+};
+NodeRunner.prototype.dumpError = function(msg) {
+  this.dumpResult("%yERROR:%n", msg);
 };
 NodeRunner.prototype.dumpResult = function(status, message) {
   if(this.newGroup) {

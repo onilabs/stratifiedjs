@@ -1,4 +1,5 @@
-var test = require('../testUtil').test;
+var testUtil = require('../testUtil');
+var test = testUtil.test;
 var g = require('apollo:google');
 
 test('search', true, function() {
@@ -23,5 +24,4 @@ test('translate', "hallo", function() {
 test('load', true, function() {
   g.load("language", "1");
   return google.language.isFontRenderingSupported("hi");
-});
-
+}).browserOnly();

@@ -11,45 +11,47 @@ var setRunner = exports.setRunner = function(runner) {
 }
 
 exports.test = function test(name, expected, f) {
-  currentRunner().addCase(name, function() {
-    var a = f();
-    if (a === expected)
-      this.addSuccess(name, a);
+  return currentRunner().addCase(name, function() {
+    var actual = f();
+    if (actual === expected)
+      this.addSuccess(name, actual);
     else
-      this.addFailure(name, a, expected);
+      this.addFailure(name, expected, actual);
   });
 }
 
-exports.testParity = function testParity(exp, f) {
-  currentRunner().addCase(exp, function() {
+exports.testParity = function testParity(expr, f) {
+  return currentRunner().addCase(expr, function() {
+    var expected;
     try {
-      var a = eval(exp);
+      expected = eval(expr);
     }
     catch (e) {
-      a = e;
+      expected = e;
     }
+    var actual;
     try {
-      var b = f();
+      actual = f();
     }
     catch (e) {
-      b = e;
+      actual = e;
     }
-    if (a === b)
-      this.addSuccess(exp, a);
+    if (actual === expected)
+      this.addSuccess(expr, actual);
     else
-      this.addFailure(exp, a, b);
+      this.addFailure(expr, expected, actual);
   });
 }
 
 exports.time = function time(name, f) {
-  currentRunner().addCase(name, function() {
+  return currentRunner().addCase(name, function() {
     try {
       var start = new Date();
       f();
       var duration = (new Date()) - start;
     }
     catch (e) {
-      this.addFailure(name, e, "success");
+      this.addFailure(name, "success", e);
       return;
     }
     this.addSuccess(name, duration + "ms");

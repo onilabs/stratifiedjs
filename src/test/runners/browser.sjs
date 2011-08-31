@@ -22,15 +22,20 @@ BrowserRunner.prototype.result = function(status, message) {
   node.setAttribute("class", "test " + "test-" + status);
   this.output().appendChild(node);
 };
-BrowserRunner.prototype.dumpSuccess = function(name, result) {
-  this.result('success', name);
+
+BrowserRunner.prototype.dumpSkip = function(msg) {
+  this.result('skip', msg);
 };
-BrowserRunner.prototype.dumpFailure = function(name, expected, actual) {
-  this.result('failure', name + ": expected " + expected + ", but got " + actual);
+BrowserRunner.prototype.dumpSuccess = function(msg) {
+  this.result('success', msg);
 };
-BrowserRunner.prototype.dumpError = function(name, e) {
-  this.result('error', name + ": " + e);
+BrowserRunner.prototype.dumpFailure = function(msg) {
+  this.result('failure', msg);
 };
+BrowserRunner.prototype.dumpError = function(msg) {
+  this.result('error', msg);
+};
+
 BrowserRunner.prototype.reset = function() {
   this.super.reset.apply(this, arguments);
   this.updateProgress();

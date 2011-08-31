@@ -18,18 +18,23 @@ BaseRunner.prototype.reset = function() {
   this.init(this.opts);
 }
 
-BaseRunner.prototype.addSuccess = function() {
+BaseRunner.prototype.addSkip = function(name, reason) {
   ++this.numSuccess;
   if(!this.verbose) return;
-  this.dumpSuccess.apply(this,arguments);
+  this.dumpSkip(name + " (" + reason + ")");
 };
-BaseRunner.prototype.addFailure = function() {
+BaseRunner.prototype.addSuccess = function(name, result) {
+  ++this.numSuccess;
+  if(!this.verbose) return;
+  this.dumpSuccess(name + ": " + result);
+};
+BaseRunner.prototype.addFailure = function(name, expected, actual) {
   ++this.numFailure;
-  this.dumpFailure.apply(this,arguments);
+  this.dumpFailure(name + ": expected " + expected + " but got " + actual);
 };
-BaseRunner.prototype.addError = function() {
+BaseRunner.prototype.addError = function(name, e) {
   ++this.numError;
-  this.dumpError.apply(this,arguments);
+  this.dumpError(name + ": " + e);
 };
 
 BaseRunner.prototype.startGroup = function(name) {
@@ -58,6 +63,10 @@ BaseRunner.prototype.run = function() {
       var testName = test[0];
       var testFn = test[1];
       ++this.testCounter;
+      if(testFn.skipTest) {
+        this.addSkip(testName, testFn.skipTest);
+        continue;
+      }
       try{
         testFn.call(this);
       } catch (e) {
@@ -88,11 +97,36 @@ BaseRunner.prototype.success = function() {
   return this.unsuccessfulTestCount() == 0;
 };
 
+
+/* TestWrapper:
+ * the return vale from addCase(), allows modifying a test after
+ * it's been created. Currently used to declare a test as either
+ * browser-only or server (node) only.
+ */
+var isBrowser = require("sjs:apollo-sys").hostenv == 'xbrowser';
+var TestWrapper = function(func) {
+  this.func = func;
+};
+TestWrapper.prototype.skip = function(reason) {
+  this.func.skipTest = reason || "pending";
+};
+TestWrapper.prototype.browserOnly = function() {
+  if(!isBrowser) {
+    this.skip("browser only");
+  }
+};
+TestWrapper.prototype.serverOnly = function() {
+  if(isBrowser) {
+    this.skip("server only");
+  }
+};
+
 BaseRunner.prototype.load = function(filename) {
   testUtil.setRunner(this);
   var fileCases = [];
   this.addCase = function(name, f) {
     fileCases.push([name, f]);
+    return new TestWrapper(f);
   };
   try {
     result = require(filename);
