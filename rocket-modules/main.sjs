@@ -166,8 +166,14 @@ function requestHandler(req, res) {
       throw "Unknown method";
   }
   catch (e) { 
-    res.writeHead(400);
-    res.end(e.toString());
+    try {
+      res.writeHead(400);
+      res.end(e.toString());
+    } catch (writeErr) {
+      process.stderr.write(writeErr + "\n");
+      // throw the original exception, it's more important
+      throw e;
+    }
   }   
 }
 

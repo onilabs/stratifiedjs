@@ -23,6 +23,7 @@
 
 var fs = require('apollo:node-fs');
 var path = require('path');
+var common = require('apollo:common');
 
 // this is the configurable part of the filesystem:
 var staticPathMap = [];
@@ -106,93 +107,135 @@ exports.handle_post = function(request, response) {
 // filesystem
 
 // helper for listing directories
-function listDirectory(request, response, root, branch) {
+function listDirectory(request, response, root, branch, format, formats) {
   
+  var listing = {
+    path: branch,
+    directories: [],
+    files: []
+  };
   
-  var resp = "<h1>" + branch + "</h1>";
-
-  // maybe generate ".."
-  var matches;
-  if ((matches = /^(.*\/)[^\/]*\/$/.exec(request.parsedUrl.path)))
-    resp += "<a href='"+request.parsedUrl.protocol+"://"+
-    request.parsedUrl.authority+matches[1]+
-    "'>../</a><br>";
+  // add ".." unless we're listing the root
+  if(branch != '/') {
+    listing.directories.push("..");
+  }
 
   var files = fs.readdir(root + branch);
   for (var i=0; i<files.length; ++i) {
     var filename = files[i];
     var path = root + branch + filename;
+
     if (fs.isDirectory(path)) {
-      resp += "<a href='"+request.parsedUrl.protocol+"://"+
-        request.parsedUrl.authority+request.parsedUrl.path+filename+"/'>"+
-        filename+"/</a><br>";
+      listing.directories.push(filename);
     }
     else if (fs.isFile(path)) {
-      resp += "<a href='"+request.parsedUrl.protocol+"://"+
-        request.parsedUrl.authority+request.parsedUrl.path+filename+
-        "'>"+filename+"</a> (";
       var size = fs.stat(path).size;
-      if (size < 1024)
-        resp += size + " B)<br>";
-      else if (size < 1024 * 1024)
-        resp += Math.round(size/1024*10)/10+ " kB)<br>";
-      else 
-        resp += Math.round(size/1024/1024*10)/10+ " MB)<br>";
+      listing.files.push({name: filename, size: size});
     }
   }
-
-  response.writeHead(200, { "Content-Type":"text/html"});
-  response.end(resp);
+  return formatResponse(
+      { data: listing,
+        extension: "/",
+        requestedFormat: format,
+        defaultFormats: defaultDirectoryListingFormats
+      },
+      request, response, formats);
 }
 
-// attempts to serve the file; returns 'false' if not found
-function serveFile(request, response, filespec, formats) {
-  var matches = filespec.match(/^([^\!]*)(?:\!(.*))?$/);
-  if (!matches) return false;
-  var file = matches[1];
-  var format = matches[2] ? matches[2] : "none";
-  
-  if (!fs.isFile(file)) return false;
-  
-  var ext = path.extname(file).slice(1);
-  var fdesc = formats[ext];
-  if (!fdesc) fdesc = formats["*"];
-  if (!fdesc) {
-    console.log("Don't know how to serve file with extension '"+ext+"'");
-    // don't know how to serve this file... XXX should we generate an error?
-    return false;
-  }
-  var formatdesc = fdesc[format];
-  if (!formatdesc) {
-    console.log("Can't serve file with extension '"+ext+"' in format '"+format+"'");
-    // can't serve the requested format... XXX should we generate an error?
-    return false;
-  }
-  
-  // ok, looks like we know how to serve this file
-  if (!formatdesc.filter) {
-/* XXX
-    // stream file
-    var stream = filesystem.openFile(file);
-    var buf;
-    while ((buf = stream.read(1024)))
-      c.writeBodyChunk(buf);
-    c.writeEndChunk();
-*/
+function directoryListingToJSON(dir, response) {
+  return JSON.stringify(dir, null, 2);
+};
+function directoryListingToHtml(dir, response) {
+  //XXX should this preserve !format fragment when linking to other directories?
+  var header = "<h1>Contents of " + dir.path + "</h1>";
+  var folderList = dir.directories.map(function(d) {
+    //XXX xml escaping!
+    return "<li><a href=\"" + d + "/\">" + d + "/</a></li>";
+  });
+  var fileList = dir.files.map(function(f) {
+    var size = f.size;
+    var sizeDesc = null;
+    if (size < 1024)
+      sizeDesc = size + " B";
+    else if (size < 1024 * 1024)
+      sizeDesc = Math.round(size/1024*10)/10+ " kB";
+    else
+      sizeDesc = Math.round(size/1024/1024*10)/10+ " MB";
+    return "<li><a href=\"" + f.name + "\">" + f.name + "</a>(" + sizeDesc + ")</li>";
+  });
+  return header + "<ul>" + folderList.join("\n") + fileList.join("\n") + "</ul>";
+};
 
-    var f = fs.readFile(file);
-    response.writeHead(200, formatdesc.mime ? {"Content-Type":formatdesc.mime} : {});
-    response.end(f);
+// Used as a default, overrideable by specifying
+// something for "/" in formats
+var defaultDirectoryListingFormats = {
+  "/": { none: { mime: "text/html",
+               filter: directoryListingToHtml },
+         json: { mime: 'application/json',
+               filter: directoryListingToJSON }}
+};
+
+
+
+//----------------------------------------------------------------------
+// formatResponse:
+// takes an `item`, a request, a response and a
+// formats object, and may write the item to the
+// response. Returns whether the item was written.
+//
+// An item must contain the following keys:
+//  - extension
+//  - data
+//  - requestedFormat
+// It may also contain defaultFormats, for use when
+// the server has no configured format for the given
+// extension / format.
+//
+// XXX find a way to do this by streaming
+// instead of passing data around
+// (filters might need to become stream handlers)
+function formatResponse(item, request, response, formats) {
+  var data = item.data;
+  var extension = item.extension;
+  var format = item.requestedFormat;
+  var defaultFormats = item.defaultFormats;
+
+  formats = common.mergeSettings(defaultFormats, formats);
+  var filedesc = formats[extension] || formats["*"];
+  if (!filedesc) {
+    console.log("Don't know how to serve item with extension '"+extension+"'");
+    // XXX should we generate an error?
+    return false;
   }
-  else {
-    // read in whole file, send through filter
-    // XXX find a way to do this by streaming
-    var f = fs.readFile(file);
-    response.writeHead(200, formatdesc.mime ? {"Content-Type":formatdesc.mime} : {});
-    response.end(formatdesc.filter(f, request));
+
+  var formatdesc = filedesc[format];
+  if (!formatdesc) {
+    console.log("Can't serve item with extension '"+extension+"' in format '"+format+"'");
+    // XXX should we generate an error?
+    return false;
   }
+
+  var contentHeader = formatdesc.mime ? {"Content-Type":formatdesc.mime} : {};
+  response.writeHead(200, contentHeader);
+  if(formatdesc.filter) {
+    data = formatdesc.filter(data, request);
+  }
+  response.end(data);
   return true;
-} 
+};
+
+// attempts to serve the file; returns 'false' if not found
+function serveFile(request, response, filePath, format, formats) {
+  if (!fs.isFile(filePath)) return false;
+  
+  var ext = path.extname(filePath).slice(1);
+  return formatResponse(
+      { data: fs.readFile(filePath),
+        extension: ext,
+        requestedFormat: format
+      },
+      request, response, formats);
+}
 
 // Maps a directory on disk into the server fs.
 // - The 'pattern' regex under which the handler will be filed needs to
@@ -205,31 +248,42 @@ function createMappedDirectoryHandler(root, formats, flags)
 {
   function handle_get(request, response, matches) {
     
-    var file = matches[1] ? root + matches[1] : root;
+    var relativePath = matches[1] || "/";
+    var pathAndFormat = relativePath.split("!");
+    relativePath = pathAndFormat[0];
+    var format   = pathAndFormat[1] || "none";
+
+    var file = relativePath ? root + relativePath : root;
     
     if (fs.isDirectory(file)) {
       // make sure we have a canonical url with '/' at the
       // end. otherwise relative links will break:
-      if (request.parsedUrl.path[request.parsedUrl.path.length-1] != "/") {
-        writeRedirectResponse(response, request.parsedUrl.source+"/");
+      if (file[file.length-1] != "/") {
+        // XXX this wll lose any format given
+        // (and we don't want to append '!none' if no format was given)
+        var newUrl = relativePath + "/";
+        writeRedirectResponse(response, newUrl);
         return;
       }
       var served = false;
       if (flags.mapIndexToDir)
-        served = serveFile(request, response, file + "/index.html", formats);
+        served = serveFile(request, response, file + "/index.html", format, formats);
       if (!served) {
-        if (flags.allowDirListing)
-          listDirectory(request, response, root, matches[1] ? matches[1] : "/");
-        else {
-          console.log("Dir '"+file+"' not found");
-          writeErrorResponse(response, 404, "Not Found", "File not found");
+        if(flags.allowDirListing)
+          served = listDirectory(request, response, root, relativePath, format, formats);
+        if(!served) {
+          console.log("Could not render '"+file+"' in the requested format");
+          writeErrorResponse(response, 406, "Not Acceptable", "Could not find an appropriate representation");
         }
+      } else {
+        console.log("Dir '"+file+"' not found");
+        writeErrorResponse(response, 404, "Not Found", "File not found");
       }
     }
     else {
       // normal file
       try {
-        if (!serveFile(request, response, file, formats)) {
+        if (!serveFile(request, response, file, format, formats)) {
           console.log("File '"+file+"' not found");
           writeErrorResponse(response, 404, "Not Found",
                              "File '"+matches[1]+"' not found");

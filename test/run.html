@@ -20,21 +20,11 @@
   <script type="text/javascript" src="../../oni-apollo.js"></script>
   <script type="text/sjs">
 
-  //TODO: get directory listing in JSON?
-  var http = require("apollo:http");
-  var suite_dir = http.canonicalizeURL("suites/", document.location);
-  var suites = [
-    "sjs-testsuite.sjs",
-    "require-tests.sjs",
-    "cutil-tests.sjs",
-    "http-tests.sjs",
-    "jquery-tests.sjs",
-    "dom-tests.sjs",
-    "google-tests.sjs",
-    "common-tests.sjs",
-    "yql-tests.sjs",
-    "perf-tests.sjs"
-    ]; //.map(function(filename) { return suite_dir + filename; });
+var http = require("apollo:http");
+var suite_dir = http.canonicalizeURL("suites/", document.location);
+var is_sjs_file = function(fname) { return fname.match(/\.sjs$/); }
+var get_filename = function(file) { return file.name; }
+var suites = http.json(suite_dir + "!json").files.map(get_filename).filter(is_sjs_file);
 
 var BrowserRunner = require("./runners/browser").BrowserRunner;
 var runner = new BrowserRunner({verbose:true});
