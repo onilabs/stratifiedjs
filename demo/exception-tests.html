@@ -63,7 +63,7 @@
     </p>
     <button onclick='throwError()'>1: throwError
     JS->SJS->uncaught</button> (Not working correctly on IE and Chrome, see comment above)<br/>
-    <button onclick='try { throwError()} catch(e) { if (e.message !="foo") throw "Oops, message augmented:"+e.message; throw new Error(e.message + " (in "+e.fileName+":"+e.lineNumber+")");}'>2: throwError JS->SJS->catch/rethrow JS</button> (Should work on all browsers)<br/>
+    <button onclick='try { throwError()} catch(e) { if (e.message !="foo") throw "Oops, message augmented:"+e.message; throw new Error(e.message + " (in "+e.file+":"+e.line+")");}'>2: throwError JS->SJS->catch/rethrow JS</button> (Should work on all browsers)<br/>
     <button onclick='throwErrorAsync()'>3: throwError JS -> async SJS -> uncaught</button> (Should work on all browsers)<br/>
     <button id="button2">4: spawned throwError SJS -> uncaught</button> (Should work on all browsers)<br/>
     <button id="button3">5: throwError SJS -> uncaught</button> (Should work on all browsers)<br/>
