@@ -118,20 +118,20 @@ function listDirectory(request, response, root, branch) {
     request.parsedUrl.authority+matches[1]+
     "'>../</a><br>";
 
-  var files = fs.readdir(root + branch);
+  var files = fs.readdir(path.join(root, branch));
   for (var i=0; i<files.length; ++i) {
     var filename = files[i];
-    var path = root + branch + filename;
-    if (fs.isDirectory(path)) {
+    var filepath = path.join(root, branch, filename);
+    if (fs.isDirectory(filepath)) {
       resp += "<a href='"+request.parsedUrl.protocol+"://"+
         request.parsedUrl.authority+request.parsedUrl.path+filename+"/'>"+
         filename+"/</a><br>";
     }
-    else if (fs.isFile(path)) {
+    else if (fs.isFile(filepath)) {
       resp += "<a href='"+request.parsedUrl.protocol+"://"+
         request.parsedUrl.authority+request.parsedUrl.path+filename+
         "'>"+filename+"</a> (";
-      var size = fs.stat(path).size;
+      var size = fs.stat(filepath).size;
       if (size < 1024)
         resp += size + " B)<br>";
       else if (size < 1024 * 1024)
@@ -205,7 +205,7 @@ function createMappedDirectoryHandler(root, formats, flags)
 {
   function handle_get(request, response, matches) {
     
-    var file = matches[1] ? root + matches[1] : root;
+    var file = matches[1] ? path.join(root,matches[1]) : root;
     
     if (fs.isDirectory(file)) {
       // make sure we have a canonical url with '/' at the
