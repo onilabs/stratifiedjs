@@ -13,8 +13,9 @@ function usage() {
 
 function execSJScript(url) {
   if (url.indexOf(":") == -1) {
-    // scheme-less; we assume its a file
-    url = "file:" + url;
+    // scheme-less; we assume its a file.
+    // Note that file: URLs *must* be absolute paths.
+    url = "file://" + fs.realpathSync(url);
   }
   require(apollo_home + '/oni-apollo-node').require(url, { 
     // we provide a callback to prevent nodejs from showing a useless
