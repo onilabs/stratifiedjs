@@ -162,9 +162,18 @@ testParity("var a={x:1}; delete a.x; a.x === undefined",
 // delete on 'window'. That's ok by the standard (window is a 'host
 // object'), so to test deletion we create an intermediate object
 // "deletetest":
-window.deletetest = {};
-window.deletetest.x = 3;
-test("delete scoping", true, function() { if (!window.deletetest.x) return 2; delete deletetest.x; try { return deletetest.x===undefined ? true:deletetest.x; } catch(e) { return true }; });
+var global = require("sjs:apollo-sys").getGlobal();
+test("delete scoping", true, function() {
+  global.deletetest = {};
+  global.deletetest.x = 3;
+  if (!global.deletetest.x) return "global not set!";
+  delete deletetest.x;
+  try {
+    return deletetest.x===undefined ? true:deletetest.x;
+  } catch(e) {
+    return true
+  };
+});
 
 /*XXX
 test("single line ml strings", true, function() {
@@ -655,8 +664,8 @@ test("regex parser bug", "http://foo", function() {
 });
 
 test("incorrectly calling function with 'this' object bug", true, function() {
-  if (window !== this) throw "Incorrect this object to begin with";
-  var a = { foo : function() { return (function(){return this == window;})()  } };
+  if (global !== this) throw "Incorrect this object to begin with";
+  var a = { foo : function() { return (function(){return this == global;})()  } };
   return a.foo();
 });
 
