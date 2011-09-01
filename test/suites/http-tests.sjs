@@ -84,6 +84,19 @@ test('canonicalizeURL(".././foo/../bar.txt", "http://a.b/c/d/")',
        return http.canonicalizeURL(".././foo/../bar.txt", "http://a.b/c/d/");
      });
 
+// file:// URLs must be absolute
+test('parseURL("file://foo/bar") throws an exception',
+     "Invalid URL: file://foo/bar",
+     function() {
+       return http.parseURL("file://foo/bar");
+     });
+
+test('canonicalizeURL("./bar.txt", "file://foo.txt")',
+     "Invalid URL: file://foo.txt",
+     function() {
+       return http.canonicalizeURL("./bar.txt", "file://foo.txt");
+     });
+
 //----------------------------------------------------------------------
 // request
 
