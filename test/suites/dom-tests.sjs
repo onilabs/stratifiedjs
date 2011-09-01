@@ -1,5 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
+var relativeURL = require("../lib/testContext").relativeURL;
+
 if(testUtil.isBrowser) {
   var dom = require('apollo:dom');
   function synthesizeClick() {
@@ -51,7 +53,6 @@ if(testUtil.isBrowser) {
   });
 
   test('cookies', true, function() {
-    var dom = dom;
     var data = "  "+Math.random()+"\n\n\tfoo";
     dom.setCookie("testcookie", data);
     hold(100);
@@ -61,4 +62,33 @@ if(testUtil.isBrowser) {
     if (dom.getCookie("testcookie") != "") throw "Can't clear cookie";
     return true;
   });
+
+  var webserverJsonpTimeout = 5000;
+
+  test("dom.script", 77, function() {
+    waitfor {
+      waitfor {
+        dom.script(relativeURL("data/testscript.js"));
+      }
+      and {
+        dom.script(relativeURL("data/testscript.js"));
+      }
+    }
+    or { hold(webserverJsonpTimeout); return "timeout"; }
+    // testscript_var should have been set by the testscript
+    return testscript_var;
+  });
+
+  test("dom.script throwing", true, function() {
+    waitfor {
+      try {
+        dom.script(relativeURL("data/nonexistant.js"));
+      }
+      catch (e) {
+      }
+    }
+    or { hold(webserverJsonpTimeout); return "timeout"; }
+    return true;
+  });
+
 }
