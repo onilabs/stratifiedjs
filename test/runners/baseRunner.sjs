@@ -122,6 +122,8 @@ TestWrapper.prototype.serverOnly = function() {
 
 BaseRunner.prototype.load = function(filename) {
   testUtil.setRunner(this);
+  // ensure the module actually gets reloaded
+  delete require.modules[filename];
   var fileCases = [];
   this.addCase = function(name, f) {
     fileCases.push([name, f]);
