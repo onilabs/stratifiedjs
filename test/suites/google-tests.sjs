@@ -17,9 +17,11 @@ test('siteSearch(., {start:4})', true, function() {
   return results.responseData.results[0].url != null;
 });
 
-test('translate', "hallo", function() {
-  return g.translate("hello", "de").responseData.translatedText;
-});
+test('translate', "Hallo", function() {
+  var response = g.translate("hello", "de");
+  if (!response.responseData) return response.responseDetails;
+  return response.responseData.translatedText;
+}).browserOnly();
 
 test('load', true, function() {
   g.load("language", "1");
