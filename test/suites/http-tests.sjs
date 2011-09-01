@@ -1,4 +1,5 @@
-var testUtil = require('../testUtil');
+var testUtil = require('../lib/testUtil');
+var relativeURL = require("../lib/testContext").relativeURL;
 var test = testUtil.test;
 var http = require('apollo:http');
 //----------------------------------------------------------------------
@@ -100,15 +101,6 @@ test('canonicalizeURL("./bar.txt", "file://foo.txt")',
 
 //----------------------------------------------------------------------
 // request
-
-//TODO: is this needed in other tests? Can we not hardcode the server path?
-var baseURL = "http://localhost:7070/test/run.sjs";
-var relativeURL = function(relativePath) {
-  if(testUtil.isBrowser) return relativePath;
-
-  // node can't resolve relative paths, assume server location:
-  return http.canonicalizeURL(relativePath, baseURL);
-};
 
 test('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {
   return http.request([relativeURL("data/returnQuery.template"), {a:1,b:2}]);

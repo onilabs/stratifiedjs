@@ -1,4 +1,4 @@
-var testUtil = require('../testUtil');
+var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 if(testUtil.isBrowser) {
   var dom = require('apollo:dom');

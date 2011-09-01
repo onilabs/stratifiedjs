@@ -1,4 +1,4 @@
-var test = require('../testUtil').test;
+var test = require('../lib/testUtil').test;
 var yql=require('apollo:yql');
 
 test("query", "JavaScript + structured concurrency", function() {

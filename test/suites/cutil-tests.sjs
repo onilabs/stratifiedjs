@@ -1,4 +1,4 @@
-var test = require('../testUtil').test;
+var test = require('../lib/testUtil').test;
 var cutil = require("apollo:cutil");
 
 test('waitforAll funcs', 3, function() {

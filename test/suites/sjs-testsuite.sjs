@@ -1,4 +1,4 @@
-var testUtil = require('../testUtil');
+var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var testParity = testUtil.testParity;
 

@@ -1,4 +1,4 @@
-var testUtil = require("../testUtil");
+var testUtil = require("../lib/testUtil");
 var BaseRunner = exports.BaseRunner = function() {
 };
 

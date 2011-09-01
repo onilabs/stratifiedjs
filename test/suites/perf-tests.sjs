@@ -1,9 +1,10 @@
-var testUtil = require('../testUtil');
+var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var time = testUtil.time;
+var relativeURL = require("../lib/testContext").relativeURL;
 
 function testJsonpRequest(opts) {
-    return require("apollo:http").jsonp("data/returnJsonp.template", [{query: {data:"bananas"}},opts]);
+    return require("apollo:http").jsonp(relativeURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]);
 }
 
 time("10 sequential jsonp in-doc requests",

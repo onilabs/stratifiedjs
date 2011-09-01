@@ -1,4 +1,6 @@
-var test = require('../testUtil').test;
+var test = require('../lib/testUtil').test;
+var global = require("sjs:apollo-sys").getGlobal();
+
 test('force extension/sjs', "a=1&b=2", function() {
   return require('apollo:http.sjs').constructQueryString({a:1},{b:2});
 });
@@ -8,5 +10,5 @@ test('force extension/js', 42, function() {
 });
 
 test('"this" object in modules', this, function() {
-  return require('../data/testmodule.js').bar.apply(window);
+  return require('../data/testmodule.js').bar.apply(global);
 });
