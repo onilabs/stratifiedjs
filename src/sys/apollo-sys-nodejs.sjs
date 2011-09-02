@@ -177,15 +177,19 @@ function request_hostenv(url, settings) {
   var url_string = exports.constructURL(url, opts.query);
   // XXX ok, it sucks that we have to take this URL apart again :-/
   var url = exports.parseURL(url_string);
-  var secure = (url.protocol == "https");
+  var protocol = url.protocol;
+  if(!(protocol === 'http' || protocol === 'https')) {
+    throw('Unsupported protocol: ' + protocol);
+  }
+  var secure = (protocol == "https");
   var port = url.port || (secure ? 443 : 80);
 
   if (!opts.headers['Host'])
     opts.headers.Host = url.authority;
-  var request = __oni_rt.nodejs_require(secure ? 'https' : 'http').request({
+  var request = __oni_rt.nodejs_require(protocol).request({
     method: opts.method,
-    host: url.host, 
-    port: port, 
+    host: url.host,
+    port: port,
     path: url.relative || '/',
     headers: opts.headers
   });

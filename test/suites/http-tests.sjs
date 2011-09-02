@@ -86,33 +86,27 @@ test('canonicalizeURL(".././foo/../bar.txt", "http://a.b/c/d/")',
        return http.canonicalizeURL(".././foo/../bar.txt", "http://a.b/c/d/");
      });
 
-// file:// URLs must be absolute
-test('parseURL("file://foo/bar") throws an exception',
-     "Invalid URL: file://foo/bar",
-     function() {
-       return http.parseURL("file://foo/bar");
-     });
-
-test('canonicalizeURL("./bar.txt", "file://foo.txt")',
-     "Invalid URL: file://foo.txt",
-     function() {
-       return http.canonicalizeURL("./bar.txt", "file://foo.txt");
-     });
+test('node.js request fails on non-http URLs', 'Unsupported protocol: file', function() {
+  try {
+    http.request('file:///');
+    return "no error";
+  } catch(e) { return e; }
+}).serverOnly();
 
 //----------------------------------------------------------------------
 // request
 
 test('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {
   return http.request([getHttpURL("data/returnQuery.template"), {a:1,b:2}]);
-});
+}).skip("requires template filter");
 
 test('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {
   return http.request([getHttpURL("data/returnQuery.template"), {a:1,b:2}]);
-});
+}).skip("requires template filter");
 
 test('request("data/returnQuery.template", {query:{a:1,b:2}})', "a=1&b=2", function() {
   return http.request(getHttpURL("data/returnQuery.template"), {query:{a:1,b:2}});
-});
+}).skip("requires template filter");
 
 test('request("no_such_url", {throwing:false})', "", function() {
   return http.request(getHttpURL("no_such_url"), {throwing:false});
@@ -127,11 +121,11 @@ test('try {request("no_such_url")}catch(e){}', "404", function() {
 
 test('get(["data/returnQuery.template", {a: 1, b: 2}])', "a=1&b=2", function () {
   return http.get([getHttpURL("data/returnQuery.template"), {a: 1, b: 2}]);
-});
+}).skip("requires template filter");
 
 test('get(["data/returnQuery.template", { a: 1 }, {b: 2}])', "a=1&b=2", function () {
   return http.get([getHttpURL("data/returnQuery.template"), { a: 1 }, {b: 2}]);
-});
+}).skip("requires template filter");
 
 test('try {get("invalid_url")}catch(e){}', "404", function() {
   try {return http.get(getHttpURL("invalid_url"));}catch(e) { return e.status.toString(); }
@@ -162,7 +156,7 @@ test('json("data/data.json")', 1, function () {
 
 test('xml("data/data.xml")', "1", function () {
  return http.xml(getHttpURL("data/data.xml")).getElementsByTagName("leaf")[0].getAttribute("value");
-});
+}).skip("http.xml is obsolete");
 
 //----------------------------------------------------------------------
 // jsonp
@@ -181,15 +175,15 @@ function testJsonpRequest(opts) {
 
 test("jsonp", "bananas", function () {
   return testJsonpRequest();
-});
+}).skip("requires template filter");
 
 test("jsonp in iframe", "bananas", function () {
   return testJsonpRequest({iframe:true});
-});
+}).skip("requires template filter");
 
 test("jsonp forcecb", "bananas", function () {
   return testJsonpRequest({forcecb:"foobar"});
-});
+}).skip("requires template filter");
 
 test("jsonp/indoc bad url should throw", "notfound", function () {
   waitfor {
