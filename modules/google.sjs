@@ -81,8 +81,11 @@ exports.siteSearch = function (q, site, settings) {
   @param     {optional Object} [extra] A hash of key/value pairs to append to the request.
   @return    {Object} A ['Language Detection Result'](http://code.google.com/apis/ajaxlanguage/documentation/reference.html#detectResult)
   @desc
-    Uses the RESTful Google Translation API.
-    See <http://code.google.com/apis/ajaxlanguage/documentation/reference.html#_intro_fonje>
+    Uses the RESTful Google Translation API v2
+    See <http://code.google.com/apis/language/translate/overview.html>
+
+    Note that as of August 2011, the Google Translate API is a paid service, so it
+    requires an API key.
 
     Note that Google places a limit of ~2000 characters on request
     URIs. This limits the number of characters that can be translated by
@@ -104,7 +107,7 @@ exports.translate = function(text, to, /* [opt] */ from, /* [opt] */ extra) {
   else
     langpair = from + "|" + to;
   return http.jsonp(["http://ajax.googleapis.com/ajax/services/language/translate",
-                     { q : text, v : "1.0", langpair: langpair },
+                     { q : text, v : "2.0", langpair: langpair },
                      extra]);
 };
 

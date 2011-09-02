@@ -224,35 +224,3 @@ test("http.jsonp iframe cache issue", true, function () {
   var b = twitterSearchIframe();
   return (a != "timeout") && (b != "timeout");
 });
-
-//----------------------------------------------------------------------
-// script
-
-//XXX http.script has been removed. delete these tests if they aren't needed
-test("http.script", 77, function() {
-  waitfor {
-    waitfor {
-      require("sys").puts(http.script);
-      http.script(getHttpURL("data/testscript.js"));
-    }
-    and {
-      http.script(getHttpURL("data/testscript.js"));
-    }
-  }
-  or { hold(webserverJsonpTimeout); return "timeout"; }
-  // testscript_var should have been set by the testscript
-  return testscript_var;
-}).skip("http.script no longer exists");
-
-test("http.script throwing", true, function() {
-  waitfor {
-    try {
-      http.script(getHttpURL("data/nonexistant.js"));
-    }
-    catch (e) {
-    }
-  }
-  or { hold(webserverJsonpTimeout); return "timeout"; }
-  // testscript_var should have been set by the testscript
-  return true;
-}).skip("http.script no longer exists");

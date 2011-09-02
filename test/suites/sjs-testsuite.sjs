@@ -634,7 +634,7 @@ test("arguments modification (var assign)", 6, function() {
 
 test("regex apply (shouldn't work on IE)", "foo", function() {
   var a = { x: "abcfoobar"}; return /(foo)/(a.x)[1];
-});
+}).skip("using regexps as functions is non-standard JS");
 
 test("catch scope in waitfor/resume", 1, function() {
   try {
