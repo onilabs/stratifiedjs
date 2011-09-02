@@ -1,5 +1,5 @@
 var testUtil = require('../lib/testUtil');
-var relativeURL = require("../lib/testContext").relativeURL;
+var getHttpURL = require("../lib/testContext").getHttpURL;
 var test = testUtil.test;
 var http = require('apollo:http');
 //----------------------------------------------------------------------
@@ -103,49 +103,49 @@ test('canonicalizeURL("./bar.txt", "file://foo.txt")',
 // request
 
 test('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {
-  return http.request([relativeURL("data/returnQuery.template"), {a:1,b:2}]);
+  return http.request([getHttpURL("data/returnQuery.template"), {a:1,b:2}]);
 });
 
 test('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {
-  return http.request([relativeURL("data/returnQuery.template"), {a:1,b:2}]);
+  return http.request([getHttpURL("data/returnQuery.template"), {a:1,b:2}]);
 });
 
 test('request("data/returnQuery.template", {query:{a:1,b:2}})', "a=1&b=2", function() {
-  return http.request(relativeURL("data/returnQuery.template"), {query:{a:1,b:2}});
+  return http.request(getHttpURL("data/returnQuery.template"), {query:{a:1,b:2}});
 });
 
 test('request("no_such_url", {throwing:false})', "", function() {
-  return http.request(relativeURL("no_such_url"), {throwing:false});
+  return http.request(getHttpURL("no_such_url"), {throwing:false});
 });
 
 test('try {request("no_such_url")}catch(e){}', "404", function() {
-  try {return http.request(relativeURL("no_such_url"));}catch(e) { return e.status.toString(); }
+  try {return http.request(getHttpURL("no_such_url"));}catch(e) { return e.status.toString(); }
 });
 
 //----------------------------------------------------------------------
 // get
 
 test('get(["data/returnQuery.template", {a: 1, b: 2}])', "a=1&b=2", function () {
-  return http.get([relativeURL("data/returnQuery.template"), {a: 1, b: 2}]);
+  return http.get([getHttpURL("data/returnQuery.template"), {a: 1, b: 2}]);
 });
 
 test('get(["data/returnQuery.template", { a: 1 }, {b: 2}])', "a=1&b=2", function () {
-  return http.get([relativeURL("data/returnQuery.template"), { a: 1 }, {b: 2}]);
+  return http.get([getHttpURL("data/returnQuery.template"), { a: 1 }, {b: 2}]);
 });
 
 test('try {get("invalid_url")}catch(e){}', "404", function() {
-  try {return http.get(relativeURL("invalid_url"));}catch(e) { return e.status.toString(); }
+  try {return http.get(getHttpURL("invalid_url"));}catch(e) { return e.status.toString(); }
 });
 
 //----------------------------------------------------------------------
 // post
 
 test("http.post", "a=1&b=2", function () {
-  return http.post(relativeURL("/post_echo"), "a=1&b=2");
+  return http.post(getHttpURL("/post_echo"), "a=1&b=2");
 });
 
 test("http.post 2", "a=1&b=b&c=3", function () {
-  return http.post(relativeURL("/post_echo"),
+  return http.post(getHttpURL("/post_echo"),
                               http.constructQueryString([{a:1,b:"b"},
                                                                     {c:3}]));
 });
@@ -154,14 +154,14 @@ test("http.post 2", "a=1&b=b&c=3", function () {
 // json
 
 test('json("data/data.json")', 1, function () {
-  return http.json(relativeURL("data/data.json")).doc[0].value;
+  return http.json(getHttpURL("data/data.json")).doc[0].value;
 });
 
 //----------------------------------------------------------------------
 // xml
 
 test('xml("data/data.xml")', "1", function () {
- return http.xml(relativeURL("data/data.xml")).getElementsByTagName("leaf")[0].getAttribute("value");
+ return http.xml(getHttpURL("data/data.xml")).getElementsByTagName("leaf")[0].getAttribute("value");
 });
 
 //----------------------------------------------------------------------
@@ -171,7 +171,7 @@ var webserverJsonpTimeout = 5000;
 
 function testJsonpRequest(opts) {
   waitfor {
-    return http.jsonp(relativeURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]).data;
+    return http.jsonp(getHttpURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]).data;
   }
   or {
     hold(webserverJsonpTimeout);
@@ -233,10 +233,10 @@ test("http.script", 77, function() {
   waitfor {
     waitfor {
       require("sys").puts(http.script);
-      http.script(relativeURL("data/testscript.js"));
+      http.script(getHttpURL("data/testscript.js"));
     }
     and {
-      http.script(relativeURL("data/testscript.js"));
+      http.script(getHttpURL("data/testscript.js"));
     }
   }
   or { hold(webserverJsonpTimeout); return "timeout"; }
@@ -247,7 +247,7 @@ test("http.script", 77, function() {
 test("http.script throwing", true, function() {
   waitfor {
     try {
-      http.script(relativeURL("data/nonexistant.js"));
+      http.script(getHttpURL("data/nonexistant.js"));
     }
     catch (e) {
     }

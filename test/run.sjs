@@ -38,6 +38,9 @@ var NodeRunner = require("./runners/node").NodeRunner;
 
 var runner = new NodeRunner(runOpts);
 
+//TODO: start rocket on a non-default port specifically for these tests
+require('./lib/testContext').setBaseURL('http://localhost:7070/test/');
+
 //TODO: needs a sequantialMap operation (waitForAll does it in parallel, which breaks
 // filename-association because it uses global state).
 for(var i=0; i<test_files.length; i++) {
