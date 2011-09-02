@@ -1,4 +1,4 @@
 #!/bin/bash
 
 APOLLO_BIN=`dirname $0`
-$APOLLO_BIN/apollo "apollo:../rocket-modules/main.sjs" "$@"
+exec $APOLLO_BIN/apollo "apollo:../rocket-modules/main.sjs" "$@"

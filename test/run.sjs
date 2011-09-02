@@ -38,14 +38,34 @@ var NodeRunner = require("./runners/node").NodeRunner;
 
 var runner = new NodeRunner(runOpts);
 
-//TODO: start rocket on a non-default port specifically for these tests
-require('./lib/testContext').setBaseURL('http://localhost:7070/test/');
+//TODO: could be runnable in-process with require, except rocket uses ARGV
+var rocket_ctrl = require('./lib/rocket_ctrl');
+var rocket_port = '7071'
+var rocket_root = path.join(base, "..");
+var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
+require('./lib/testContext').setBaseURL(rocket_base_url);
+var exitStatus = 2;
 
-//TODO: needs a sequantialMap operation (waitForAll does it in parallel, which breaks
-// filename-association because it uses global state).
-for(var i=0; i<test_files.length; i++) {
-  runner.load(test_files[i]);
+waitfor {
+  if(!rocket_ctrl.is_running(rocket_port)) {
+    rocket_ctrl.run(rocket_port, rocket_root);
+  } else {
+    sys.puts("using existing rocket instance on port " + rocket_port);
+    // nothing to wait for
+    hold();
+  }
+} or {
+  rocket_ctrl.wait_until_running(rocket_port);
+
+  //TODO: needs a sequantialMap operation (waitForAll does it in parallel, which breaks
+  // filename-association because it uses global state).
+  for(var i=0; i<test_files.length; i++) {
+    runner.load(test_files[i]);
+  }
+  runner.run();
+  runner.report();
+  exitStatus = runner.success() ? 0 : 1;
+} finally {
+  rocket_ctrl.kill();
 }
-runner.run();
-runner.report();
-process.exit(runner.success() ? 0 : 1);
+process.exit(exitStatus);
