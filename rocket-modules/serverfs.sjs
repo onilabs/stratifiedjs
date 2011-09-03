@@ -275,9 +275,6 @@ function createMappedDirectoryHandler(root, formats, flags)
           console.log("Could not render '"+file+"' in the requested format");
           writeErrorResponse(response, 406, "Not Acceptable", "Could not find an appropriate representation");
         }
-      } else {
-        console.log("Dir '"+file+"' not found");
-        writeErrorResponse(response, 404, "Not Found", "File not found");
       }
     }
     else {
