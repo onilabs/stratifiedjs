@@ -158,8 +158,8 @@ function build_deps() {
 var config;
 function get_config() {
   if (!config)
-    config = eval("("+fs.readFile("src/build/config.json")+")");
-  
+    config = require('apollo:docutil').parseCommentedJSON(
+      fs.readFile("src/build/config.json"));
   return config;
 }
 
