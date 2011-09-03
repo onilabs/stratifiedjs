@@ -1039,27 +1039,46 @@ function parseCRF(pctx) {
   return rv;
 }
 
+#ifdef SJS
+S("try").stmt(function(pctx) {
+  scan(pctx, "{");
+  var block = parseBlock(pctx);
+  var op = pctx.token.value; // XXX maybe use proper syntax token
+  if (op != "and" && op != "or") {
+    // conventional 'try'
+    var crf = parseCRF(pctx);
+    if (!crf[0] && !crf[1] && !crf[2])
+      throw "Missing 'catch', 'finally' or 'retract' after 'try'";
+    GEN_TRY(block, crf, pctx)
+  }
+  else {
+    var blocks = [block];
+    do {
+      scan(pctx);
+      scan(pctx, "{");
+      blocks.push(parseBlock(pctx));
+    } while (pctx.token.value == op);
+    var crf = parseCRF(pctx);
+    GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)
+  }
+});
+#else
 S("try").stmt(function(pctx) {
   scan(pctx, "{");
   var block = parseBlock(pctx);
   var crf = parseCRF(pctx);
-#ifdef SJS
-  if (!crf[0] && !crf[1] && !crf[2])
-    throw "Missing 'catch', 'finally' or 'retract' after 'try'";
-#else
   if (!crf[0] && !crf[2])
     throw "Missing 'catch' or 'finally' after 'try'";
-#endif
   GEN_TRY(block, crf, pctx)
 });
+#endif
 
 #ifdef SJS
 S("waitfor").stmt(function(pctx) {
   if (pctx.token.id == "{") {
-    // and/or form
+    // DEPRECATED and/or forms
     scan(pctx, "{");
-    var blocks = [];
-    blocks.push(parseBlock(pctx));
+    var blocks = [parseBlock(pctx)];
     var op = pctx.token.value; // XXX maybe use syntax token
     if (op != "and" && op != "or") throw "Missing 'and' or 'or' after 'waitfor' block";
     do {

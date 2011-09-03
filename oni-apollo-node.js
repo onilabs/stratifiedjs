@@ -31,6 +31,8 @@ global.__oni_rt={};(function(exports){function augmented_message(e){
 
 
 
+
+
 return e.message+" (in "+e.file+(e.line?":"+e.line:"")+")";
 
 }
@@ -1830,6 +1832,8 @@ exports.UA=UA;
 exports.G=global;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx){
+
+
 
 
 
@@ -3681,18 +3685,31 @@ return rv;
 S("try").stmt(function(pctx){scan(pctx,"{");
 
 var block=parseBlock(pctx);
+var op=pctx.token.value;
+if(op!="and"&&op!="or"){
+
 var crf=parseCRF(pctx);
 if(!crf[0]&&!crf[1]&&!crf[2])throw "Missing 'catch', 'finally' or 'retract' after 'try'";
 
 return new ph_try(block,crf,pctx);
+}else{
+
+var blocks=[block];
+do {
+scan(pctx);
+scan(pctx,"{");
+blocks.push(parseBlock(pctx));
+}while(pctx.token.value==op);
+var crf=parseCRF(pctx);
+return gen_waitfor_andor(op,blocks,crf,pctx);
+}
 });
 
 S("waitfor").stmt(function(pctx){if(pctx.token.id=="{"){
 
 
 scan(pctx,"{");
-var blocks=[];
-blocks.push(parseBlock(pctx));
+var blocks=[parseBlock(pctx)];
 var op=pctx.token.value;
 if(op!="and"&&op!="or")throw "Missing 'and' or 'or' after 'waitfor' block";
 do {
