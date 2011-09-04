@@ -65,7 +65,5 @@ waitfor {
   runner.run();
   runner.report();
   exitStatus = runner.success() ? 0 : 1;
-} finally {
-  rocket_ctrl.kill();
 }
 process.exit(exitStatus);

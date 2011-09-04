@@ -1,6 +1,5 @@
 var sys = require('sys');
 var http = require('apollo:http');
-var rocket = null;
 
 var is_running = exports.is_running = function(port) {
   var base_url = 'http://localhost:' + port + '/';
@@ -17,9 +16,8 @@ var is_running = exports.is_running = function(port) {
 };
 
 var run = exports.run = function(port, basedir) {
-  if(rocket != null) throw "rocket already launched!";
   var child_process = require("child_process");
-  rocket = child_process['spawn'](basedir + "/rocket", ['--port', port], {
+  var rocket = child_process['spawn'](basedir + "/rocket", ['--port', port], {
     cwd: basedir,
     customFds: [-1, -1, 2]
   });
@@ -35,6 +33,9 @@ var run = exports.run = function(port, basedir) {
     hold();
   } retract {
     rocket.removeListener('exit', exitHandler);
+    if(rocket != null) {
+      kill(rocket);
+    }
   }
 };
 
@@ -50,8 +51,7 @@ var wait_until_running = exports.wait_until_running = function(port) {
   }
 };
 
-var kill = exports.kill = function() {
-  if(rocket == null) return;
+var kill = function(rocket) {
   waitfor {
     waitfor() {
       rocket.on('exit', resume);
