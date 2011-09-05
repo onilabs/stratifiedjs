@@ -211,8 +211,9 @@ function STRINGIFY(target, source, flags) {
 
 // CPP: run C preprocessor
 function CPP(target, defs, deps) {
-  var cmd = "cpp -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers ";
-  BUILD(target, cmd + defs + " $0 $TARGET", deps);
+  var cmd = "cpp -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers";
+  var extraflags = process.env['APOLLO_CFLAGS'] || '';
+  BUILD(target, cmd + " " + extraflags + " " + defs + " $0 $TARGET", deps);
 }
 
 //----------------------------------------------------------------------

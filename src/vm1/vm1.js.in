@@ -344,11 +344,9 @@ function EF_Seq(ndata, env) {
   this.sc = NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_SHORTCIRCUIT_OR |
                                  NDATA_SEQ_FLAG_SHORTCIRCUIT_AND); 
 }
+setEFProto(EF_Seq.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Seq.prototype={});
 EF_Seq.prototype.type = "Seq";
-#else
-setEFProto(EF_Seq.prototype={});
 #endif
 EF_Seq.prototype.cont = function(idx, val) {
   if (is_ef(val)) {
@@ -597,11 +595,9 @@ function EF_Fcall(ndata, env) {
   this.i = NDATA_L_INDEX;
   this.pars = [];
 }
+setEFProto(EF_Fcall.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Fcall.prototype={});
 EF_Fcall.prototype.type = "Fcall";
-#else
-setEFProto(EF_Fcall.prototype={});
 #endif
 
 EF_Fcall.prototype.cont = function(idx, val) {
@@ -809,11 +805,9 @@ function EF_If(ndata, env) {
   this.ndata = ndata;
   this.env = env;
 }
-#ifdef DEBUG_VM
-setEFProto(EF_If={});
-EF_If.prototype.type = "If";
-#else
 setEFProto(EF_If.prototype={});
+#ifdef DEBUG_VM
+EF_If.prototype.type = "If";
 #endif
 
 EF_If.prototype.cont = function(idx, val) {
@@ -880,11 +874,9 @@ function EF_Switch(ndata, env) {
   this.env = env;
   this.phase = 0;
 }
+setEFProto(EF_Switch.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Switch.prototype={});
 EF_Switch.prototype.type = "Switch";
-#else
-setEFProto(EF_Switch.prototype={});
 #endif
 
 // XXX hmm, should switch really swallow 'continue'??
@@ -981,11 +973,9 @@ function EF_Try(ndata, env) {
   this.env = env;
   this.state = 0;
 }
+setEFProto(EF_Try.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Try.prototype={});
 EF_Try.prototype.type = "Try";
-#else
-setEFProto(EF_Try.prototype={});
 #endif
 
 EF_Try.prototype.cont = function(idx, val) {
@@ -1123,11 +1113,9 @@ function EF_Loop(ndata, env) {
   this.ndata = ndata;
   this.env = env;
 }
+setEFProto(EF_Loop.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Loop.prototype={});
 EF_Loop.prototype.type = "Loop";
-#else
-setEFProto(EF_Loop.prototype={});
 #endif
 
 EF_Loop.prototype.cont = function(idx, val) {
@@ -1226,11 +1214,9 @@ function EF_ForIn(ndata, env) {
   this.ndata = ndata;
   this.env = env;
 }
+setEFProto(EF_ForIn.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_ForIn.prototype={});
 EF_ForIn.prototype.type = "ForIn";
-#else
-setEFProto(EF_ForIn.prototype={});
 #endif
 
 EF_ForIn.prototype.cont = function(idx, val) {
@@ -1355,11 +1341,9 @@ function EF_Par(ndata, env) {
   this.pending = 0;
   this.children = new Array(this.ndata.length);
 }
+setEFProto(EF_Par.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Par.prototype={});
 EF_Par.prototype.type = "Par";
-#else
-setEFProto(EF_Par.prototype={});
 #endif
 
 EF_Par.prototype.cont = function(idx, val) {
@@ -1502,11 +1486,9 @@ function EF_Alt(ndata, env) {
   this.pending = 0;
   this.children = new Array(this.ndata.length);
 }
+setEFProto(EF_Alt.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Alt.prototype={});
 EF_Alt.prototype.type = "Alt";
-#else
-setEFProto(EF_Alt.prototype={});
 #endif
 
 EF_Alt.prototype.cont = function(idx, val) {
@@ -1726,11 +1708,9 @@ function EF_Suspend(ndata, env) {
   this.ndata = ndata;
   this.env = env;
 }
+setEFProto(EF_Suspend.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Suspend.prototype={});
 EF_Suspend.prototype.type = "Suspend";
-#else
-setEFProto(EF_Suspend.prototype={});
 #endif
 
 EF_Suspend.prototype.cont = function(idx, val) {
@@ -1898,11 +1878,9 @@ function EF_Spawn(ndata, env, notifyAsync, notifyVal) {
   this.notifyAsync = notifyAsync;
   this.notifyVal = notifyVal;
 }
+setEFProto(EF_Spawn.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Spawn.prototype={});
 EF_Spawn.prototype.type = "Spawn";
-#else
-setEFProto(EF_Spawn.prototype={});
 #endif
 
 EF_Spawn.prototype.cont = function(idx, val) {
@@ -1923,11 +1901,9 @@ function EF_SpawnWaitFrame(waitarr) {
   this.waitarr = waitarr;
   waitarr.push(this);
 }
+setEFProto(EF_SpawnWaitFrame.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_SpawnWaitFrame.prototype={});
 EF_SpawnWaitFrame.prototype.type = "Spawn";
-#else
-setEFProto(EF_SpawnWaitFrame.prototype={});
 #endif
 EF_SpawnWaitFrame.prototype.quench = function() {};
 EF_SpawnWaitFrame.prototype.abort = function() {
@@ -2019,11 +1995,9 @@ function EF_Collapse(ndata, env) {
   this.ndata = ndata;
   this.env = env;
 }
+setEFProto(EF_Collapse.prototype={});
 #ifdef DEBUG_VM
-setEFProto(EF_Collapse.prototype={});
 EF_Collapse.prototype.type = "Collapse";
-#else
-setEFProto(EF_Collapse.prototype={});
 #endif
 
 // mark us as a collapse frame
