@@ -8,6 +8,7 @@
 
 var fs = require('apollo:node-fs');
 var common = require('apollo:common');
+var sys = require('sys');
 
 //----------------------------------------------------------------------
 // BUILD DEPENDENCIES
@@ -22,6 +23,9 @@ function build_deps() {
 
   PSEUDO("build");
   BUILD("build", function() { log('all done') }, ["oni-apollo.js", "oni-apollo-node.js", "tmp/version_stamp"]);
+
+  PSEUDO("compiler");
+  BUILD("compiler", function() { log('all done') }, ["tmp/c1.js", "tmp/vm1node.js"]);
 
   // XXX figure out how to get in settings for debug mode (keeplines, etc)
 
@@ -334,7 +338,7 @@ function build_target(target) {
     build_deps();
     builders[target]();
   }
-  catch(e) { process.stdout.write("\nBUILD ERROR\n"); }
+  catch(e) { process.stdout.write("\nBUILD ERROR\n"); process.exit(1); }
 }
 
 //----------------------------------------------------------------------
@@ -351,19 +355,28 @@ function usage() {
   process.stdout.write("\n");
 }
 
-for (var i=1; i<process.argv.length; ++i) {
-  var flag = process.argv[i];
-  switch(flag) {
-  case "-h":
-  case "--help":
-    return usage();
-    break;
-  default:
-    if (i !== process.argv.length-1) return usage();
-    return build_target(flag);
+function process_args() {
+  var targets = [];
+  for (var i=1; i<process.argv.length; ++i) {
+    var flag = process.argv[i];
+    switch(flag) {
+    case "-h":
+    case "--help":
+      return usage();
+      process.exit(0);
+      break;
+    default:
+      return process.argv.slice(i);
+      break;
+    }
   }
+  return ["build"];
 }
 
-build_target("build");
-
+var targets = process_args();
+for(var i=0; i<targets.length; i++) {
+  var target = targets[i];
+  sys.puts("\nBuilding target: " + target);
+  build_target(target);
+}
 
