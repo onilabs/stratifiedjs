@@ -44,18 +44,125 @@ var child_process = require('child_process');
    @function exec
    @summary Execute a child process and return output
    @param {String} [command] Command to execute
-   @param {Object} [optional options] Hash of options (see nodejs's child-process.exec docs) 
+   @param {Object} [optional options] Hash of options (see nodejs's child-process.exec docs)
    @return {Object} Object with 'stdout' and 'stderr' members
+   @desc
+      If the child process exits abnormally (exit code != 0), an
+      `Error` will be thrown with `code` and `status` signal set to
+      the exit code and signal that terminated the process (if any).
+      Upon `retract`, the child process will be killed (with SIGTERM).
 */
 exports.exec = function(command, options) {
   waitfor(var err, stdout, stderr) {
     var child = child_process.exec(command, options, resume);
   }
   retract {
-    // XXX support signals other than SIGTERM
-    child.kill();
+    kill(child);
   }
   if (err) throw err;
   return { stdout: stdout, stderr: stderr };
+};
+
+
+/**
+   @function run
+   @summary Execute a child process and return output
+   @param {Array} [optional args] Array of command-line arguments
+   @param {Object} [optional options] Hash of options (see nodejs's child-process.spawn docs)
+   @return {Object} Object with 'stdout' and 'stderr' members
+   @desc
+      This function is just like `exec`, but takes an array of arguments instead
+      of a string. Notably, this ensures that arguments containing whitespace are not
+      interpreted as multiple arguments.
+
+      Note that the `options` hash are used as options to the underlying `child_process.spawn`
+      function, *not* to `child_process.exec`.
+*/
+exports.run = function(command, args, options) {
+  var stdout = [], stderr = [];
+  function appendTo(buffer) {
+    return function(data) { buffer.push(data); }
+  };
+
+  var child = exports.launch(command, args, options);
+  if(child.stdout) child.stdout.on('data', appendTo(stdout));
+  if(child.stderr) child.stderr.on('data', appendTo(stderr));
+  try {
+    exports.wait(child);
+  } retract {
+    kill(child);
+  }
+  return {stdout: stdout.join(''), stderr: stderr.join('')};
+};
+
+//TODO is `launch` too similar to `run`? maybe `popen` or even `fork`?
+/**
+   @function launch
+   @summary Launch a child process
+   @param {String} [command] Command to launch
+   @param {Array} [optional args] Array of command-line arguments
+   @param {Object} [optional options] Hash of options (see nodejs's child-process.spawn docs)
+   @return {Object} The child process
+   @desc
+     This function wraps the `spawn` function of node's child_process module, but
+     is called `launch` to avoid confusion with the SJS `spawn` construct.
+
+     The returned process will not yet have started - you will typically want to set
+     up event handlers on the child and then call `wait(child)`.
+*/
+exports.launch = function(command, args, options) {
+  return child_process['spawn'](command, args, options);
+};
+
+/**
+   @function wait
+   @summary Wait for a child process to finish
+   @param {Object} [child] The child process object obtailed from `run`.
+   @desc
+      If the child process exits abnormally (exit code != 0), an
+      `Error` will be thrown with `code` and `signal` properties set as per `exec`.
+*/
+exports.wait = function(child) {
+  waitfor(var code, signal) {
+    child.on('exit', resume);
+  } retract {
+    child.removeListener('exit', resume);
+  }
+  if(code != 0) {
+    var err = new Error('child process exited with nonzero exit status: ' + code);
+    err.code = code;
+    err.signal = signal;
+    throw err;
+  }
+};
+
+/**
+   @function kill
+   @summary Kill a child process
+   @param {Array} [command] Command to execute
+   @param {Object} [optional options] Options, described below
+   @desc
+      If `options.signal` is set to a signal name (a string), that signal will be used
+      instead of the default 'SIGTERM'.
+
+      If `options.wait` is false, `kill` will return immediately (the process
+      may not actually have ended).
+*/
+var kill = exports.kill = function(child, options) {
+  function kill() {
+    child.kill(options && options.signal);
+  }
+
+  if(options && options.wait === false) {
+    kill();
+  } else {
+    waitfor() {
+      child.on('exit', resume);
+      kill();
+      hold();
+    } finally {
+      child.removeListener('exit', resume);
+    }
+  }
 };
 

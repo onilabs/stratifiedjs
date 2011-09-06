@@ -1,4 +1,5 @@
 var isBrowser = exports.isBrowser = require("sjs:apollo-sys").hostenv == 'xbrowser';
+var _ = require("../lib/underscore.js");
 
 var _currentRunner = null;
 function currentRunner() {
@@ -15,7 +16,7 @@ var setRunner = exports.setRunner = function(runner) {
 exports.test = function test(name, expected, f) {
   return currentRunner().addCase(name, function() {
     var actual = f();
-    if (actual === expected)
+    if (_.isEqual(actual, expected))
       this.addSuccess(name, actual);
     else
       this.addFailure(name, expected, actual);
@@ -38,7 +39,7 @@ exports.testParity = function testParity(expr, f) {
     catch (e) {
       actual = e;
     }
-    if (actual === expected)
+    if (_.isEqual(actual, expected))
       this.addSuccess(expr, actual);
     else
       this.addFailure(expr, expected, actual);

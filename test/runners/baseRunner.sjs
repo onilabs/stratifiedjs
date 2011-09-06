@@ -18,6 +18,13 @@ BaseRunner.prototype.reset = function() {
   this.init(this.opts);
 }
 
+var tryStringify = function(obj) {
+  try {
+    obj = JSON.stringify(obj);
+  } catch(e) { }
+  return obj;
+};
+
 BaseRunner.prototype.addSkip = function(name, reason) {
   ++this.numSuccess;
   if(!this.verbose) return;
@@ -26,11 +33,11 @@ BaseRunner.prototype.addSkip = function(name, reason) {
 BaseRunner.prototype.addSuccess = function(name, result) {
   ++this.numSuccess;
   if(!this.verbose) return;
-  this.dumpSuccess(name + ": " + result);
+  this.dumpSuccess(name + ": " + tryStringify(result));
 };
 BaseRunner.prototype.addFailure = function(name, expected, actual) {
   ++this.numFailure;
-  this.dumpFailure(name + ": expected " + expected + " but got " + actual);
+  this.dumpFailure(name + ": expected " + tryStringify(expected) + " but got " + tryStringify(actual));
 };
 BaseRunner.prototype.addError = function(name, e) {
   ++this.numError;
