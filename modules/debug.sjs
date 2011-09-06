@@ -139,6 +139,8 @@ function inspect_obj(obj, name) {
     return makeDiv(indent+name + "<span style='"+systemStyle+"'>"+obj+"</span>");
   else if (typeof obj == "string")
     return makeDiv(indent+name + '"'+common.sanitize(obj)+'"', "white-space:pre;");
+  else if (typeof obj == "number")
+    return makeDiv(indent+name+obj, "white-space:pre;");
 
   if (!has_props(obj)) {
     if (!objdesc) {
