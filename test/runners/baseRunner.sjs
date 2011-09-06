@@ -130,6 +130,8 @@ TestWrapper.prototype.serverOnly = function() {
 BaseRunner.prototype.load = function(filename) {
   testUtil.setRunner(this);
   // ensure the module actually gets reloaded
+  // XXX this won't work unless 'filename' is fully resolved to an absolute URL
+  // XXX replace with require(., {reload:true}) mechanism when we have it.
   delete require.modules[filename];
   var fileCases = [];
   this.addCase = function(name, f) {
