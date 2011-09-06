@@ -446,6 +446,25 @@ exports.script = function(/*url, queries*/) {
 };
 
 /**
+   @function addCSS
+   @summary Programatically add CSS to current document
+   @param {String} CSS code.
+   @desc
+     Borrowed from [tomhoppe.com](http://www.tomhoppe.com/index.php/2008/03/dynamically-adding-css-through-javascript/)
+*/
+exports.addCSS = function(cssCode) {
+  var styleElement = document.createElement("style");
+  styleElement.type = "text/css";
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = cssCode;
+  } 
+  else {
+    styleElement.appendChild(document.createTextNode(cssCode));
+  }
+  document.getElementsByTagName("head")[0].appendChild(styleElement);
+}
+
+/**
   at function css
   at summary Load a CSS file into the current document.
   at param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
