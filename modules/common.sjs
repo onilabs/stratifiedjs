@@ -95,7 +95,7 @@ exports.flatten = require('sjs:apollo-sys').flatten;
 */
 exports.supplant = function(str, o) {
   if (!o || !str) return str;
-  return str.replace(/{([^{}]*)}/g,
+  return str.replace(/{([^{} ]*)}/g,
     function(a, b) {
       var r = o[b];
       return r !== undefined ? r: a;
