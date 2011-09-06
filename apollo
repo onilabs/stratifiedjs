@@ -3,11 +3,13 @@
 var path = require('path');
 var fs   = require('fs');
 var apollo_home  = path.dirname(fs.realpathSync(__filename));
+var apollo_node = require(apollo_home + '/oni-apollo-node');
 
 function usage() {
   process.stdout.write("Usage: apollo [options] [script.sjs [arguments]]\n\n");
   process.stdout.write("Options:\n");
   process.stdout.write("  -h, --help        display this help message\n");
+  process.stdout.write("  -d, --dev         load development mode (src/build/devmode.sjs)\n");
   process.stdout.write("\nFor more information, please see http://bit.ly/jOy4Ms\n");
 }
 
@@ -17,7 +19,7 @@ function execSJScript(url) {
     // Note that file: URLs *must* be absolute paths.
     url = "file://" + fs.realpathSync(url);
   }
-  require(apollo_home + '/oni-apollo-node').require(url, { 
+  apollo_node.require(url, { 
     // we provide a callback to prevent nodejs from showing a useless
     // call stack when there is an error:
     callback: function(err) {
@@ -27,12 +29,27 @@ function execSJScript(url) {
   });
 }
 
+var beforeRepl = null;
+
 for (var i=2; i<process.argv.length; ++i) {
   var flag = process.argv[i];
   switch (flag) {
   case "-h":
   case "--help":
     return usage();
+    break;
+  case "-d":
+  case "--dev":
+    beforeRepl = function(next) {
+      apollo_node.require("./src/build/devmode", {callback:
+        function(err, devmode) {
+          if(err) throw err;
+          process.stdout.write("devmode loaded (try `dev.eval` and `dev.build`)\n");
+          apollo_node.getGlobal().dev = devmode;
+          return next();
+        }
+      });
+    }
     break;
   default:
     if (flag[0] == '-') {
@@ -48,7 +65,18 @@ for (var i=2; i<process.argv.length; ++i) {
 
 process.ARGV = process.argv = process.argv.slice(1); // remove 'node' from argv
 
+var runRepl = function() {
+  apollo_node.require('apollo:node-repl', {
+    callback: function(err, m) {
+      if (err) throw err;
+      m.runREPL();
+    }
+  });
+};
+
 // Drop into REPL:
-require(apollo_home + '/oni-apollo-node').require('apollo:node-repl', { 
-  callback: function(err, m) {if (err) throw err; m.runREPL();}
-});
+if(beforeRepl) {
+  beforeRepl(runRepl);
+} else {
+  runrepl();
+}
