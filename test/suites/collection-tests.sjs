@@ -7,7 +7,7 @@ var collection = require('apollo:collection');
 // to effectively reverse the return order
 // when run multiple times in parallel.
 var withDecreasingTimeout = function(fn) {
-  var amount = 200;
+  var amount = 100;
   return function() {
     hold(amount-=20);
     return fn.apply(this, arguments);
@@ -29,6 +29,40 @@ test('each is run in parallel', [3,2,1], function() {
     withDecreasingTimeout(function(elem) { res.push(elem); }));
   return res;
 });
+
+test('each aborts early', [3,2], function() {
+  var checked = [];
+  collection.each([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      checked.push(elem);
+      if(elem == 2) {
+        throw collection.stopIteration;
+      }
+    }));
+  return checked;
+});
+
+test('eachSeq aborts early', [1,2], function() {
+  var checked = [];
+  collection.eachSeq([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      checked.push(elem);
+      if(elem == 2) {
+        throw collection.stopIteration;
+      }
+    }));
+  return checked;
+});
+
+test('each / eachSeq don\'t swallow all exceptions (only stopIteration)', 'expected error', function() {
+  try {
+    collection.each([1,2,3], function() { throw new Error("expected error"); });
+    return "no error thrown!"
+  } catch (e) {
+    return e.message;
+  }
+});
+
 
 test('map', {order: [3,2,1], result: [2,4,6]}, function() {
   var order = [];
@@ -77,15 +111,6 @@ test('find and findSeq return undefined if not found', [undefined, undefined], f
   return [collection.find(c, fn), collection.findSeq(c, fn)];
 });
 
-test('find / findSeq don\'t swallow all exceptions', 'expected error', function() {
-  try {
-    collection.find([1,2,3], function() { throw new Error("expected error"); });
-    return "no error thrown!"
-  } catch (e) {
-    return e.message;
-  }
-});
-
 test('filterSeq', {checked: [1,2,3], result: [1,3]}, function() {
   var checked = [];
   var result = collection.filterSeq([1,2,3],
@@ -120,11 +145,93 @@ test('reduce1 fails on empty array', 'reduce1 on empty collection', function() {
   }
 });
 
-test('`this` binding for all functions').skip();
+test('any returns early', {checked: [3, 2], result: true}, function() {
+  var checked = [];
+  var result = collection.any([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      checked.push(elem);
+      return elem == 2;
+    }));
+  return {checked:checked, result:result};
+});
+test('anySeq returns early', {checked: [1, 2], result: true}, function() {
+  var checked = [];
+  var result = collection.anySeq([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      checked.push(elem);
+      return elem == 2;
+    }));
+  return {checked:checked, result:result};
+});
 
-test('any').skip();
-test('anySeq').skip();
+test('any* returns false when there is no match', [false, false], function() {
+  var c = [1,2,3];
+  var fn = function() { return false; };
+  return [collection.any(c, fn), collection.anySeq(c, fn)];
+});
 
-test('all').skip();
-test('allSeq').skip();
+test('all returns early', {checked: [3, 2], result: false}, function() {
+  var checked = [];
+  var result = collection.all([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      checked.push(elem);
+      return elem != 2;
+    }));
+  return {checked:checked, result:result};
+});
 
+test('allSeq returns early', {checked: [1, 2], result: false}, function() {
+  var checked = [];
+  var result = collection.allSeq([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      checked.push(elem);
+      return elem != 2;
+    }));
+  return {checked:checked, result:result};
+});
+
+test('all* returns true when all match', [true, true], function() {
+  var c = [1,2,3];
+  var fn = function() { return true; };
+  return [collection.all(c, fn), collection.allSeq(c, fn)];
+});
+
+
+// all the `this` binding tests
+var testThis = function(fnName /*, otherArgs */) {
+  var _arguments = arguments;
+  test('`this` binding for ' + fnName, 'this', function() {
+    var expectedThis = 'this';
+    var actualThis = 'not set';
+    var cb = function() {
+      // javascript promotion messes with strings as `this`, so we coerce them back to strings
+      actualThis = this + '';
+      return null;
+    };
+
+    var args = Array.prototype.slice.call(_arguments, 1);
+    // first arg is always collection
+    args.unshift([1,2,3]);
+
+    // after otherArgs, add callacbk and this_obj:
+    args.push(cb);
+    args.push(expectedThis);
+    collection[fnName].apply(null, args);
+    return actualThis;
+  });
+};
+
+testThis('each');
+testThis('eachSeq');
+testThis('map');
+testThis('mapSeq');
+testThis('find');
+testThis('findSeq');
+testThis('filter');
+testThis('filterSeq');
+testThis('reduce', 0);
+testThis('reduce1');
+testThis('any');
+testThis('anySeq');
+testThis('all');
+testThis('allSeq');

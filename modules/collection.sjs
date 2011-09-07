@@ -48,18 +48,34 @@
 //indirection of all the waitFor branches?
 
 var cutil = require('apollo:cutil');
+var stopIteration = exports.stopIteration = new Error("stopIteration");
 
 exports.identity = function(a) { return a; }
 
+var withIterationCancellation = function(fn) {
+  try {
+    return fn();
+  } catch (e) {
+    if(e === stopIteration) {
+      return undefined;
+    }
+    throw e;
+  }
+};
+
 exports.each = function(collection, fn, this_obj) {
-  return cutil.waitforAll(fn, collection, this_obj);
+  withIterationCancellation(function() {
+    cutil.waitforAll(fn, collection, this_obj);
+  });
 };
 
 exports.eachSeq = function(collection, fn, this_obj) {
-  for(var i=0; i<collection.length; i++) {
-    var elem = collection[i];
-    fn.call(this_obj, collection[i], i);
-  }
+  withIterationCancellation(function() {
+    for(var i=0; i<collection.length; i++) {
+      var elem = collection[i];
+      fn.call(this_obj, collection[i], i);
+    }
+  });
 };
 
 // Most functions in this module have a `seq` and `par` version depending on
@@ -85,20 +101,13 @@ exports.map    = seqAndParMap[1];
 var seqAndParFind = seqAndParVersions(function(each) {
   return function(collection, fn, this_obj) {
     var found = undefined;
-    var stop = new Error('stopIteration');
-    try {
-      each(collection, function(elem) {
-        if(fn.apply(this_obj, arguments)) {
-          found = elem;
-          throw stop;
-        }
-      });
-    } catch (e) {
-      if(e === stop) {
-        return found;
+    each(collection, function(elem) {
+      if(fn.apply(this_obj, arguments)) {
+        found = elem;
+        throw stopIteration;
       }
-      throw e;
-    }
+    });
+    return found;
   };
 });
 exports.findSeq = seqAndParFind[0];
@@ -116,7 +125,7 @@ exports.filterSeq = function(collection, fn, this_obj) {
 
 exports.filter = function(collection, fn, this_obj) {
   // make an ordered list of [Bool] in parallel
-  var include = exports.map(collection, fn);
+  var include = exports.map(collection, fn, this_obj);
   // and use that to filter sequentially
   res = [];
   exports.eachSeq(collection, function(elem, idx) {
@@ -125,17 +134,45 @@ exports.filter = function(collection, fn, this_obj) {
   return res;
 };
 
-exports.reduce = function(collection, initial, fn) {
+exports.reduce = function(collection, initial, fn, this_obj) {
   var accum = initial;
   exports.each(collection, function(elem) {
-    accum = fn(accum, elem);
+    accum = fn.call(this_obj, accum, elem);
   });
   return accum;
 };
 
-exports.reduce1 = function(collection, fn) {
+exports.reduce1 = function(collection, fn, this_obj) {
   if(collection.length == 0) throw new Error("reduce1 on empty collection");
-  return exports.reduce(collection.slice(1), collection[0], fn);
+  return exports.reduce(collection.slice(1), collection[0], fn, this_obj);
 };
 
-//TODO: all, allSeq, any, anySeq
+var seqAndParAll = seqAndParVersions(function(each) {
+  return function(collection, fn, this_obj) {
+    var ok = true;
+    each(collection, function() {
+      if(!fn.apply(this_obj, arguments)) {
+        ok = false;
+        throw stopIteration;
+      }
+    });
+    return ok;
+  };
+});
+exports.allSeq = seqAndParAll[0];
+exports.all    = seqAndParAll[1];
+
+var seqAndParAny = seqAndParVersions(function(each) {
+  return function(collection, fn, this_obj) {
+    var ok = false;
+    each(collection, function() {
+      if(fn.apply(this_obj, arguments)) {
+        ok = true;
+        throw stopIteration;
+      }
+    });
+    return ok;
+  };
+});
+exports.anySeq = seqAndParAny[0];
+exports.any    = seqAndParAny[1];
