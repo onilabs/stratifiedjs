@@ -1,4 +1,3 @@
-var c = require('apollo:common');
 var testUtil = require('../lib/testUtil')
 var test = testUtil.test;
 var child_process = require('apollo:node-child-process');
