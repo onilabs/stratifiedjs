@@ -1,6 +1,6 @@
 /*
  * Oni Apollo 'collection' module
- * Utility functions and constructs for concurrent stratified programming
+ * Utility functions for processing collections
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
@@ -47,6 +47,7 @@
 //for non-blocking functions, is it better to use *Seq versions to save the
 //indirection of all the waitFor branches?
 
+var sys = require('sjs:apollo-sys');
 var cutil = require('apollo:cutil');
 var stopIteration = exports.stopIteration = new Error("stopIteration");
 
@@ -63,20 +64,90 @@ var withIterationCancellation = function(fn) {
   }
 };
 
+
 exports.each = function(collection, fn, this_obj) {
+  var keys = exports.keys(collection);
+  var iterations = [];
+  var iteration = function(key) {
+    // make a function that will perform this iteration
+    return function() {
+      fn.call(this_obj, collection[key], key);
+    }
+  };
+
+  for(var i=0; i<keys.length; i++) {
+    var key = keys[i];
+    iterations.push(iteration(key));
+  }
   withIterationCancellation(function() {
-    cutil.waitforAll(fn, collection, this_obj);
+    //TODO: pass in a list of strata instead of functions?
+    cutil.waitforAll(iterations);
   });
 };
-
 exports.eachSeq = function(collection, fn, this_obj) {
   withIterationCancellation(function() {
-    for(var i=0; i<collection.length; i++) {
-      var elem = collection[i];
-      fn.call(this_obj, collection[i], i);
+    var keys = exports.keys(collection);
+    for(var i=0; i<keys.length; i++) {
+      var key = keys[i];
+      var elem = collection[key];
+      fn.call(this_obj, collection[key], key);
     }
   });
 };
+
+
+// -------------------------------------------------------------
+// object-specific helpers
+
+exports.keys = function(obj) {
+  var keys = [];
+  if(sys.isArrayOrArguments(obj)) {
+    for(var i=0; i<obj.length; i++) {
+      keys.push(i);
+    }
+  } else {
+    for(var k in obj) {
+      if(!obj.hasOwnProperty(k)) continue;
+      keys.push(k);
+    }
+  }
+  return keys;
+};
+
+exports.toArray = function(array_or_arguments) {
+  if(array_or_arguments instanceof Array) {
+    return array_or_arguments;
+  }
+  return Array.prototype.slice.call(array_or_arguments);
+};
+
+exports.values = function(obj) {
+  var result = [];
+  exports.eachSeq(obj, function(v) {
+    result.push(v);
+  });
+  return result;
+};
+
+exports.items = function(obj) {
+  var result = [];
+  exports.eachSeq(obj, function(v,k) {
+    result.push([k,v]);
+  });
+  return result;
+};
+
+
+// for accumulating results, we start with an empty object of the same
+// type as the collection (i.e object or array)
+var emptyObj = function(collection) {
+  if(sys.isArrayOrArguments(collection)) {
+    return [];
+  } else {
+    return {};
+  }
+};
+
 
 // Most functions in this module have a `seq` and `par` version depending on
 // which base iterator is used. This helper calls a function-generator
@@ -88,7 +159,7 @@ var seqAndParVersions = function(generator) {
 
 var seqAndParMap = seqAndParVersions(function(each) {
   return function(collection, fn, this_obj) {
-    var res = [];
+    var res = emptyObj(collection);
     each(collection, function(obj, idx) {
       res[idx] = fn.apply(this_obj, arguments);
     });
@@ -98,43 +169,82 @@ var seqAndParMap = seqAndParVersions(function(each) {
 exports.mapSeq = seqAndParMap[0];
 exports.map    = seqAndParMap[1];
 
-var seqAndParFind = seqAndParVersions(function(each) {
-  return function(collection, fn, this_obj) {
-    var found = undefined;
-    each(collection, function(elem) {
+// there are 4 versions of `find`, based on whether they are
+// parallel and whether they return the key or value:
+(function() {
+  var generateFind = function(each, return_fn) {
+    return function(collection, fn, this_obj) {
+      var found = undefined;
+      each(collection, function(elem) {
+        if(fn.apply(this_obj, arguments)) {
+          found = arguments;
+          throw stopIteration;
+        }
+      });
+      if(found === undefined) return undefined;
+      return return_fn(found);
+    };
+  };
+  var getFirst = function(a) { return a[0]; };
+  var getSecond = function(a) { return a[1]; };
+
+  exports.findSeq    = generateFind(exports.eachSeq, getFirst);
+  exports.find       = generateFind(exports.each,    getFirst);
+  exports.findKeySeq = generateFind(exports.eachSeq, getSecond);
+  exports.findKey    = generateFind(exports.each,    getSecond);
+})();
+
+// filter uses a generic and parallelizeable part (filterItems) and then
+// combines the results with array or object-specific functions
+(function() {
+  var KEY = 0;
+  var VALUE = 1;
+  var filterItems = function(each, collection, fn, this_obj) {
+    var result = [];
+    each(collection, function(val, key) {
       if(fn.apply(this_obj, arguments)) {
-        found = elem;
-        throw stopIteration;
+        result.push([key, val]);
       }
     });
-    return found;
+    return result;
   };
-});
-exports.findSeq = seqAndParFind[0];
-exports.find    = seqAndParFind[1];
 
-exports.filterSeq = function(collection, fn, this_obj) {
-  var res = [];
-  exports.eachSeq(collection, function(elem) {
-    if(fn.apply(this_obj, arguments)) {
-      res.push(elem);
+  var concatArrayItems = function(items) {
+    var result = [];
+    for(var i=0; i<items.length; i++) {
+      result.push(items[i][VALUE]);
     }
-  });
-  return res;
-};
+    return result;
+  };
 
-exports.filter = function(collection, fn, this_obj) {
-  // make an ordered list of [Bool] in parallel
-  var include = exports.map(collection, fn, this_obj);
-  // and use that to filter sequentially
-  res = [];
-  exports.eachSeq(collection, function(elem, idx) {
-    if(include[idx]) res.push(elem);
+  var concatObjectItems = function(items) {
+    var result = {};
+    for(var i=0; i<items.length; i++) {
+      result[items[i][KEY]] = items[i][VALUE];
+    }
+    return result;
+  };
+
+  var seqAndParFilter = seqAndParVersions(function(each) {
+    return function(collection, fn, this_obj) {
+      // build an unordered set of items
+      var items = filterItems(each, collection, fn, this_obj);
+      // and combine
+      if(sys.isArrayOrArguments(collection)) {
+        items.sort();
+        return concatArrayItems(items);
+      } else {
+        return concatObjectItems(items);
+      }
+    };
   });
-  return res;
-};
+  exports.filterSeq = seqAndParFilter[0];
+  exports.filter    = seqAndParFilter[1];
+})();
+
 
 exports.reduce = function(collection, initial, fn, this_obj) {
+  if(!sys.isArrayOrArguments(collection)) throw new Error("reduce on non-array");
   var accum = initial;
   exports.each(collection, function(elem) {
     accum = fn.call(this_obj, accum, elem);

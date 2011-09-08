@@ -13,10 +13,20 @@ var setRunner = exports.setRunner = function(runner) {
   _currentRunner = runner;
 }
 
+var eq = function(a, b) {
+  // the check for both consistenly being an array or not is to work around
+  // a weird edge case in _.isEqual that can compare objects and arrays as
+  // equal, causing false positives.
+  //  - see https://github.com/documentcloud/underscore/issues/291
+  var sameArrayness = (a instanceof Array) === (b instanceof Array);
+  return (sameArrayness && _.isEqual(a, b));
+};
+
 exports.test = function test(name, expected, f) {
   return currentRunner().addCase(name, function() {
     var actual = f();
-    if (_.isEqual(actual, expected))
+
+    if (eq(actual, expected))
       this.addSuccess(name, actual);
     else
       this.addFailure(name, expected, actual);
@@ -39,7 +49,7 @@ exports.testParity = function testParity(expr, f) {
     catch (e) {
       actual = e;
     }
-    if (_.isEqual(actual, expected))
+    if (eq(actual, expected))
       this.addSuccess(expr, actual);
     else
       this.addFailure(expr, expected, actual);

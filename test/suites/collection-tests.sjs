@@ -16,11 +16,78 @@ var withDecreasingTimeout = function(fn) {
 
 test('identity(1)', 1, function() { return collection.identity(1); });
 
+test('toArray on an array does nothing', true, function() {
+  var a = [1,2,3];
+  return a === collection.toArray(a);
+});
+
+test('toArray on `arguments`', {wasArray: false, isArray: true, value: [1,2,3]}, function() {
+  var args = null;
+  (function() {
+    args = arguments;
+  })(1,2,3);
+  var arr = collection.toArray(args);
+  return {
+    wasArray: args instanceof Array,
+    isArray: arr instanceof Array,
+    value: arr
+  }
+});
+
+test('items() on an object', [['a',1], ['b',2], ['c',3]], function() {
+  var obj = {a: 1, b:2, c:3};
+  var keys = collection.items(obj);
+  keys.sort(); // ensure ordering
+  return keys;
+});
+
+test('items() on an array', [[0,'zero'],[1,'one'],[2,'two']], function() {
+  return collection.items(['zero','one','two']);
+});
+
+test('keys() on an object', ['a','b','c'], function() {
+  var obj = {a: 1, b:2, c:3};
+  var keys = collection.keys(obj);
+  keys.sort(); // ensure ordering
+  return keys;
+});
+
+test('keys() on an array', [0,1,2], function() {
+  return collection.keys(["one", "two", "three"]);
+});
+
+test('values() on an object', ['one', 'two'], function() {
+  var vals = collection.values({k1: 'one', k2: 'two'});
+  vals.sort();
+  return vals;
+});
+
 test('eachSeq is ordered', [1,2,3], function() {
   var res = [];
   collection.eachSeq([1,2,3],
     withDecreasingTimeout(function(elem) { res.push(elem); }));
   return res;
+});
+
+test('each supports object properties', {key1: 2, key2: 4}, function() {
+  items = {};
+  collection.eachSeq({key1: 1, key2: 2}, function(v, k) {
+    items[k] = v * 2;
+  });
+  return items;
+});
+
+test('each ignores prototype properties', {"instance":2}, function() {
+  items = {};
+  var Obj = function() {
+  };
+  Obj.prototype.parent = 2;
+  var obj = new Obj();
+  obj.instance = 1;
+  collection.eachSeq(obj, function(v, k) {
+    items[k] = v * 2;
+  });
+  return items;
 });
 
 test('each is run in parallel', [3,2,1], function() {
@@ -84,6 +151,9 @@ test('mapSeq', {order: [1,2,3], result: [2,4,6]}, function() {
   return {order: order, result: result};
 });
 
+test('map on an object', {one: 2}, function() {
+  return collection.mapSeq({one:1}, function(n) { return n * 2; });
+});
 
 test('findSeq returns early', {checked: [1,2], result: 2}, function() {
   var order = [];
@@ -105,10 +175,26 @@ test('find returns early', {checked: [3,2], result: 2}, function() {
   return {checked: order, result: result};
 });
 
-test('find and findSeq return undefined if not found', [undefined, undefined], function() {
+test('find* return undefined if not found',
+    [undefined, undefined, undefined, undefined],
+    function() {
   var fn = function() { return false; };
   var c = [1,2,3];
-  return [collection.find(c, fn), collection.findSeq(c, fn)];
+  return [
+    collection.find(c, fn),
+    collection.findSeq(c, fn),
+    collection.findKey(c, fn),
+    collection.findKeySeq(c, fn)
+  ];
+});
+
+test('findKey on an array', 1, function() {
+  return collection.findKeySeq(['zero','one','two'],
+    function(el) { return el == 'one' });
+});
+test('findKey on an object', 'foo', function() {
+  return collection.findKeySeq({foo:1, bar:2},
+    function(el) { return el == 1 });
 });
 
 test('filterSeq', {checked: [1,2,3], result: [1,3]}, function() {
@@ -131,11 +217,33 @@ test('filter', {checked: [3,2,1], result: [1,3]}, function() {
   return {checked:checked, result:result};
 });
 
+test('filterSeq on an object', {include:true}, function() {
+  return collection.filterSeq({include: true, exclude: false},
+    function(v, k) {
+      return k == 'include';
+    });
+});
+
+test('filter on an object', {include:true}, function() {
+  return collection.filter({include: true, exclude: false},
+    function(v, k) {
+      return k == 'include';
+    });
+});
+
 test('reduce', 6, function() {
   return collection.reduce([1,2,3], 0, function(accum, el) { return accum + el; });
 });
 test('reduce1', 6, function() {
   return collection.reduce1([1,2,3], function(accum, el) { return accum + el; });
+});
+
+test('reduce fails on an object', 'reduce on non-array', function() {
+  try {
+    return collection.reduce(0, {one: 1}, function() { return 'should not be run'; });
+  } catch(e) {
+    return e.message;
+  }
 });
 test('reduce1 fails on empty array', 'reduce1 on empty collection', function() {
   try {
@@ -235,3 +343,5 @@ testThis('any');
 testThis('anySeq');
 testThis('all');
 testThis('allSeq');
+testThis('findKey');
+testThis('findKeySeq');
