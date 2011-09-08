@@ -38,16 +38,21 @@
     
     On node.js, all log messages will be sent to `process.stderr`.
 
-    In a browserenvironment, logging events will be sent to the
+    In a browser environment, logging events will be sent to the
     global `console` object, when defined. If your browser has
     no native `console` object, no logging will occur. In that
     case, you may want to use a tool like Firebug Lite
     (http://getfirebug.com/firebuglite) to emulate a console.
+
+    Note that where possible, an appropriate `console` method
+    will be used. e.g if you use logging.error() and your console
+    has an `error` method, it will be used. This can be useful for
+    browsers that distinguish errors by color, for example. If
+    no specific `error` method is available, `log` will be used instead.
 */
 
 var common = require('apollo:common');
 var sys = require('sjs:apollo-sys');
-
 
 /**
   @constant DEBUG
@@ -76,7 +81,7 @@ exports.WARN = 20;
 exports.ERROR = 10;
 /**
   @constant OFF
-  @summary constant used to disable all logging
+  @summary constant used to disable all logging (except `print`)
 */
 exports.OFF = 0;
 
