@@ -1,6 +1,7 @@
 var testUtil = require('../lib/testUtil')
 var test = testUtil.test;
 var collection = require('apollo:collection');
+var par = collection.par;
 
 // return a function that sleeps for a smaller increment
 // each time it's called (and then calls the wrapped function),
@@ -62,16 +63,16 @@ test('values() on an object', ['one', 'two'], function() {
   return vals;
 });
 
-test('eachSeq is ordered', [1,2,3], function() {
+test('each is ordered', [1,2,3], function() {
   var res = [];
-  collection.eachSeq([1,2,3],
+  collection.each([1,2,3],
     withDecreasingTimeout(function(elem) { res.push(elem); }));
   return res;
 });
 
 test('each supports object properties', {key1: 2, key2: 4}, function() {
   items = {};
-  collection.eachSeq({key1: 1, key2: 2}, function(v, k) {
+  collection.each({key1: 1, key2: 2}, function(v, k) {
     items[k] = v * 2;
   });
   return items;
@@ -84,41 +85,17 @@ test('each ignores prototype properties', {"instance":2}, function() {
   Obj.prototype.parent = 2;
   var obj = new Obj();
   obj.instance = 1;
-  collection.eachSeq(obj, function(v, k) {
+  collection.each(obj, function(v, k) {
     items[k] = v * 2;
   });
   return items;
 });
 
-test('each is run in parallel', [3,2,1], function() {
+test('par each is run in parallel', [3,2,1], function() {
   var res = [];
-  collection.each([1,2,3],
+  par.each([1,2,3],
     withDecreasingTimeout(function(elem) { res.push(elem); }));
   return res;
-});
-
-test('each aborts early', [3,2], function() {
-  var checked = [];
-  collection.each([1,2,3],
-    withDecreasingTimeout(function(elem) {
-      checked.push(elem);
-      if(elem == 2) {
-        throw collection.stopIteration;
-      }
-    }));
-  return checked;
-});
-
-test('eachSeq aborts early', [1,2], function() {
-  var checked = [];
-  collection.eachSeq([1,2,3],
-    withDecreasingTimeout(function(elem) {
-      checked.push(elem);
-      if(elem == 2) {
-        throw collection.stopIteration;
-      }
-    }));
-  return checked;
 });
 
 test('each / eachSeq don\'t swallow all exceptions (only stopIteration)', 'expected error', function() {
@@ -131,7 +108,17 @@ test('each / eachSeq don\'t swallow all exceptions (only stopIteration)', 'expec
 });
 
 
-test('map', {order: [3,2,1], result: [2,4,6]}, function() {
+test('par map', {order: [3,2,1], result: [2,4,6]}, function() {
+  var order = [];
+  var result = par.map([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      order.push(elem);
+      return elem * 2;
+    }));
+  return {order: order, result: result};
+});
+
+test('map', {order: [1,2,3], result: [2,4,6]}, function() {
   var order = [];
   var result = collection.map([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -141,23 +128,13 @@ test('map', {order: [3,2,1], result: [2,4,6]}, function() {
   return {order: order, result: result};
 });
 
-test('mapSeq', {order: [1,2,3], result: [2,4,6]}, function() {
-  var order = [];
-  var result = collection.mapSeq([1,2,3],
-    withDecreasingTimeout(function(elem) {
-      order.push(elem);
-      return elem * 2;
-    }));
-  return {order: order, result: result};
-});
-
 test('map on an object', {one: 2}, function() {
-  return collection.mapSeq({one:1}, function(n) { return n * 2; });
+  return collection.map({one:1}, function(n) { return n * 2; });
 });
 
-test('findSeq returns early', {checked: [1,2], result: 2}, function() {
+test('find returns early', {checked: [1,2], result: 2}, function() {
   var order = [];
-  var result = collection.findSeq([1,2,3],
+  var result = collection.find([1,2,3],
     withDecreasingTimeout(function(elem) {
       order.push(elem);
       return elem == 2;
@@ -165,9 +142,9 @@ test('findSeq returns early', {checked: [1,2], result: 2}, function() {
   return {checked: order, result: result};
 });
 
-test('find returns early', {checked: [3,2], result: 2}, function() {
+test('par find returns early', {checked: [3,2], result: 2}, function() {
   var order = [];
-  var result = collection.find([1,2,3],
+  var result = par.find([1,2,3],
     withDecreasingTimeout(function(elem) {
       order.push(elem);
       return elem == 2;
@@ -181,33 +158,23 @@ test('find* return undefined if not found',
   var fn = function() { return false; };
   var c = [1,2,3];
   return [
+    par.find(c, fn),
     collection.find(c, fn),
-    collection.findSeq(c, fn),
-    collection.findKey(c, fn),
-    collection.findKeySeq(c, fn)
+    par.findKey(c, fn),
+    collection.findKey(c, fn)
   ];
 });
 
 test('findKey on an array', 1, function() {
-  return collection.findKeySeq(['zero','one','two'],
+  return collection.findKey(['zero','one','two'],
     function(el) { return el == 'one' });
 });
 test('findKey on an object', 'foo', function() {
-  return collection.findKeySeq({foo:1, bar:2},
+  return collection.findKey({foo:1, bar:2},
     function(el) { return el == 1 });
 });
 
-test('filterSeq', {checked: [1,2,3], result: [1,3]}, function() {
-  var checked = [];
-  var result = collection.filterSeq([1,2,3],
-    withDecreasingTimeout(function(elem) {
-      checked.push(elem);
-      return elem != 2;
-    }));
-  return {checked:checked, result:result};
-});
-
-test('filter', {checked: [3,2,1], result: [1,3]}, function() {
+test('filter', {checked: [1,2,3], result: [1,3]}, function() {
   var checked = [];
   var result = collection.filter([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -217,15 +184,25 @@ test('filter', {checked: [3,2,1], result: [1,3]}, function() {
   return {checked:checked, result:result};
 });
 
-test('filterSeq on an object', {include:true}, function() {
-  return collection.filterSeq({include: true, exclude: false},
+test('par filter', {checked: [3,2,1], result: [1,3]}, function() {
+  var checked = [];
+  var result = par.filter([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      checked.push(elem);
+      return elem != 2;
+    }));
+  return {checked:checked, result:result};
+});
+
+test('filter on an object', {include:true}, function() {
+  return collection.filter({include: true, exclude: false},
     function(v, k) {
       return k == 'include';
     });
 });
 
-test('filter on an object', {include:true}, function() {
-  return collection.filter({include: true, exclude: false},
+test('par filter on an object', {include:true}, function() {
+  return par.filter({include: true, exclude: false},
     function(v, k) {
       return k == 'include';
     });
@@ -253,18 +230,18 @@ test('reduce1 fails on empty array', 'reduce1 on empty collection', function() {
   }
 });
 
-test('any returns early', {checked: [3, 2], result: true}, function() {
+test('par any returns early', {checked: [3, 2], result: true}, function() {
   var checked = [];
-  var result = collection.any([1,2,3],
+  var result = par.any([1,2,3],
     withDecreasingTimeout(function(elem) {
       checked.push(elem);
       return elem == 2;
     }));
   return {checked:checked, result:result};
 });
-test('anySeq returns early', {checked: [1, 2], result: true}, function() {
+test('any returns early', {checked: [1, 2], result: true}, function() {
   var checked = [];
-  var result = collection.anySeq([1,2,3],
+  var result = collection.any([1,2,3],
     withDecreasingTimeout(function(elem) {
       checked.push(elem);
       return elem == 2;
@@ -275,12 +252,12 @@ test('anySeq returns early', {checked: [1, 2], result: true}, function() {
 test('any* returns false when there is no match', [false, false], function() {
   var c = [1,2,3];
   var fn = function() { return false; };
-  return [collection.any(c, fn), collection.anySeq(c, fn)];
+  return [collection.any(c, fn), collection.any(c, fn)];
 });
 
-test('all returns early', {checked: [3, 2], result: false}, function() {
+test('par all returns early', {checked: [3, 2], result: false}, function() {
   var checked = [];
-  var result = collection.all([1,2,3],
+  var result = par.all([1,2,3],
     withDecreasingTimeout(function(elem) {
       checked.push(elem);
       return elem != 2;
@@ -288,9 +265,9 @@ test('all returns early', {checked: [3, 2], result: false}, function() {
   return {checked:checked, result:result};
 });
 
-test('allSeq returns early', {checked: [1, 2], result: false}, function() {
+test('all returns early', {checked: [1, 2], result: false}, function() {
   var checked = [];
-  var result = collection.allSeq([1,2,3],
+  var result = collection.all([1,2,3],
     withDecreasingTimeout(function(elem) {
       checked.push(elem);
       return elem != 2;
@@ -301,12 +278,12 @@ test('allSeq returns early', {checked: [1, 2], result: false}, function() {
 test('all* returns true when all match', [true, true], function() {
   var c = [1,2,3];
   var fn = function() { return true; };
-  return [collection.all(c, fn), collection.allSeq(c, fn)];
+  return [collection.all(c, fn), par.all(c, fn)];
 });
 
 
 // all the `this` binding tests
-var testThis = function(fnName /*, otherArgs */) {
+var testThis = function(base, fnName /*, otherArgs */) {
   var _arguments = arguments;
   test('`this` binding for ' + fnName, 'this', function() {
     var expectedThis = 'this';
@@ -317,31 +294,31 @@ var testThis = function(fnName /*, otherArgs */) {
       return null;
     };
 
-    var args = Array.prototype.slice.call(_arguments, 1);
+    var args = Array.prototype.slice.call(_arguments, 2);
     // first arg is always collection
     args.unshift([1,2,3]);
 
     // after otherArgs, add callacbk and this_obj:
     args.push(cb);
     args.push(expectedThis);
-    collection[fnName].apply(null, args);
+    base[fnName].apply(null, args);
     return actualThis;
   });
 };
 
-testThis('each');
-testThis('eachSeq');
-testThis('map');
-testThis('mapSeq');
-testThis('find');
-testThis('findSeq');
-testThis('filter');
-testThis('filterSeq');
-testThis('reduce', 0);
-testThis('reduce1');
-testThis('any');
-testThis('anySeq');
-testThis('all');
-testThis('allSeq');
-testThis('findKey');
-testThis('findKeySeq');
+testThis(collection, 'each');
+testThis(par, 'each');
+testThis(collection, 'map');
+testThis(par, 'map');
+testThis(collection, 'find');
+testThis(par, 'find');
+testThis(collection, 'filter');
+testThis(collection, 'any');
+testThis(par, 'any');
+testThis(collection, 'all');
+testThis(par, 'all');
+testThis(collection, 'findKey');
+testThis(par, 'findKey');
+
+testThis(collection, 'reduce', 0);
+testThis(collection, 'reduce1');

@@ -106,11 +106,11 @@ exports.getLevel = function() { return currentLevel; }
 
 /**
   @function setLevel
+  @param {Integer} [level] the desired log level (typically one of DEBUG, VERBOSE, INFO, etc).
   @summary Set the current logging level
   @desc
     This is a global setting, so it will affect all `logging`
     performed throughout the current apollo runtime.
-  @param {Integer} [level] the desired log level (typically one of DEBUG, VERBOSE, INFO, etc).
 */
 exports.setLevel = function(lvl) {
   if(lvl === undefined) {
@@ -121,6 +121,7 @@ exports.setLevel = function(lvl) {
 
 /**
   @function setFormat
+  @param {String} [newFormat] the new format string.
   @summary Set the output format of log messages
   @desc
     The default format is "{level}: {message}"
@@ -128,7 +129,6 @@ exports.setLevel = function(lvl) {
 
     Currently the only keys available for a format to include are
     `level` and `message`.
-  @param {String} [newFormat] the new format string. Substitutions
 */
 exports.setFormat = function(fmt) { currentFormat = fmt; };
 
