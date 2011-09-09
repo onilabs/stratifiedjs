@@ -1,8 +1,8 @@
 <link href="modules.css" rel="stylesheet" type="text/css" media="screen,projection" />
 <div id="banner">
-    <h1>Apollo 0.12+ Standard Module Library</h1>
+    <h1>Apollo Standard Module Library</h1>
     <p  class="subh1">
-      Canonical URL: http://code.onilabs.com/apollo/unstable/modules
+  Version 'unstable'<br>Canonical URL: http://code.onilabs.com/apollo/unstable/modules
     </p>
 </div>
 <div class="row clearfix lastrow" style="min-height:700px">
@@ -15,16 +15,27 @@
 <script src="../oni-apollo.js"></script>
 <script type="text/sjs">
 var jspath = "";
+var collection = require('apollo:collection');
+var seq = collection;
+var par = collection.par;
+var docutil = require('apollo:docutil');
 var http = require("apollo:http");
 var dom = require("apollo:dom");
 require("apollo:jquery-binding").install({
   url: jspath + "jquery-1.4.1.min.js"
 });
 
+function getModuleDocs(module) {
+  if (!module.symbols)
+    docs.modules[module.name] = docutil.parseModuleDocs(http.get(["../modules/",module.name+".sjs"]), module);
+
+}
+
 try {
   waitfor {
     waitfor {
-      var modules = http.jsonp("modules.jsonp", {forcecb: "modules"});
+      var docs = docutil.parseSJSLibDocs(http.get("../modules/sjs-lib-index.txt"));
+      seq.map(docs.modules, getModuleDocs); // XXX obviously we want to do this lazily
     }
     and {
       dom.script(jspath + "jquery.ba-hashchange.js");
@@ -54,6 +65,13 @@ var markdown = function () {
   if (showdown) {
     return function(s) {
       if (!s) return "";
+
+      // strip leading space before passing through showdown:
+      var matches = /^([ \t]+)/.exec(s);
+      if (matches) {
+        s = s.replace(new RegExp("^[ \\t]{"+matches[1].length+"}", "mg"), "");
+      }
+
       return (showdown.makeHtml(s));
     }
   } else {
@@ -65,8 +83,8 @@ function buildFunctionHtml(href) {
   href = href.split("/");
   var modulename = parentname = href[0];
   var functionname = href[1];
-  var module = modules[modulename];
-  var fn = module.children[functionname];
+  var module = docs.modules[modulename];
+  var fn = module.symbols[functionname];
   var classname = null;
   if (href.length == 2 && !fn) {
     // probably a Class
@@ -75,7 +93,7 @@ function buildFunctionHtml(href) {
   if (href.length == 3) {
     classname = parentname = href[1];
     functionname = href[2];
-    fn = module.classes[classname].children[functionname];
+    fn = module.classes[classname].symbols[functionname];
   }
   
   var html = [];
@@ -97,7 +115,7 @@ function buildFunctionHtml(href) {
     html.push("(<span style='color:#555'>");
     var rv = "";
     if (fn["return"]) {
-      var type = fn["return"].type;
+      var type = fn["return"].valtype;
       if (module.classes[type]) {
         type = "<a href='#"+modulename + "/" + type+"'>"+ type + "</a>";
       }
@@ -105,8 +123,8 @@ function buildFunctionHtml(href) {
     }
     if ("param" in fn) for (var i = 0, p; p = fn["param"][i]; i++) {
       var pname = p.name;
-      if (p.type) if (p.type.indexOf("undefined") != -1 || 
-        p.type.indexOf("optional") == 0) pname = "<span style='color:#888'>[" + pname + "]</span>";
+      if (p.valtype) if (p.valtype.indexOf("undefined") != -1 || 
+        p.valtype.indexOf("optional") == 0) pname = "<span style='color:#888'>[" + pname + "]</span>";
       html.push( (i != 0 ? ", " : "") + pname);
     }
     html.push("</span>)"+rv);
@@ -118,7 +136,7 @@ function buildFunctionHtml(href) {
     html.push("\
       <tr>
         <td class='fnname'><p>"+p.name +"</p></td>
-        <td>"+ "<span class='type'>" + p.type + "</span>" + markdown(p.summary)+"</td>
+        <td>"+ "<span class='type'>" + p.valtype + "</span>" + markdown(p.summary)+"</td>
       </tr>");
   }
   html.push("</table>");
@@ -130,7 +148,7 @@ function buildFunctionHtml(href) {
         <tr>
           <td class='fnname'><p>"+p.name+"</p></td>
           <td class='desc'>
-            <span class='type'>" + p.type + "</span>" + 
+            <span class='type'>" + p.valtype + "</span>" + 
             (p.def ? ("<span class='defaultvalue'>Default: " +p.def + "</span>"):"")+
             markdown(p.summary)+"
           </td>
@@ -143,7 +161,7 @@ function buildFunctionHtml(href) {
     html.push("\
       <h3>Return value</h3><table cellspacing='0'>
       <tr>
-        <td class='fnname'><p>"+fn["return"].type+"</p></td>
+        <td class='fnname'><p>"+fn["return"].valtype+"</p></td>
         <td class='desc'>
           "+markdown(fn["return"].desc)+"
         </td>
@@ -167,12 +185,12 @@ function buildModuleHtml(href) {
   if (href.length >= 2) {
     var className = href[1];
     html.push("<h2>The " + className + " class</h2>");
-    var module = modules[name].classes[className];
+    var module = docs.modules[name].classes[className];
     name = name + "/" + className;
   }
   else {
     html.push("<h2>The " + name + " module</h2>");
-    var module = modules[name];
+    var module = docs.modules[name];
   }
   if (name && !module) {
     return "<h2>Module not found</h2>";
@@ -184,8 +202,8 @@ function buildModuleHtml(href) {
    
   var functions_html = []; 
   functions_html.push("<h3>Functions</h3><table cellspacing='0'>");
-  for (var childname in module.children) {
-    var child = module.children[childname];
+  for (var childname in module.symbols) {
+    var child = module.symbols[childname];
     if (child.type != "function") continue;
     functions_html.push("\
       <tr>
@@ -200,8 +218,8 @@ function buildModuleHtml(href) {
   
   var variables_html = [];
   variables_html.push("<h3>Variables</h3><table cellspacing='0'>");
-  for (var childname in module.children) {
-    var child = module.children[childname];
+  for (var childname in module.symbols) {
+    var child = module.symbols[childname];
     if (child.type != "variable") continue;
     variables_html.push("\
       <tr>
@@ -242,10 +260,10 @@ function buildModuleHtml(href) {
 function buildIndexHtml () {
   var html = [];
   html.push("<h2>Modules</h2><ul class='moduleindex'>");
-  for (var modulename in modules) {
-    var module = modules[modulename];
+  for (var modulename in docs.modules) {
+    var module = docs.modules[modulename];
     html.push("<li><h3><a class='apilink' href='#" + modulename + "'>" + modulename + "</a></h3><ul style='display:none'>");
-    for (var childname in module.children) {
+    for (var childname in module.symbols) {
       html.push("<li><a class='apilink' href='#" + modulename + "/" + childname + "'>"+""+ childname +"</a></li>");
     }
     for (var childname in module.classes) {

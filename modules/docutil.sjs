@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -30,10 +30,12 @@
  *
  */
 /**
-   @module    docutil
-   @summary   Utility functions for extracting JS-style comments from source code.
-   @limitations Will not work on old browsers without JSON support (IE6,7).
+   @module  docutil
+   @summary Utility functions for extracting JS-style comments from source code.
+   @desc    Work-in-progress
 */
+
+var common = require('apollo:common');
 
 // comment regexps for parseSource
 var PAT_NBCOMMENT = "\\/\\/.*|#!.*";
@@ -89,10 +91,145 @@ var parseSource = exports.parseSource = function(src, handle_comment, handle_cod
    @function parseCommentedJSON
    @summary  Like JSON.parse, but allows comments in JSON file.
    @param {String} [src] JSON string with comments allowed
+   @desc
+     Note: Will not work on old browsers without JSON support (IE6,7).
 */
 exports.parseCommentedJSON = function(src) {
   // collect uncommented src:
   var json = "";
   parseSource(src,null,function(x) { json += x; });
+
   return JSON.parse(json);
+};
+
+/**
+   @function extractDocComments
+   @summary Extract documentation comments from SJS source.
+   @param   {String} [src] SJS source string
+   @return {Array}
+   @desc TODO: document markup format
+*/
+var extractDocComments = exports.extractDocComments = function(src) {
+  var comments = [];
+  
+  parseSource(src, function(c) {
+    var matches;
+    // extract only comments beginning with '/**'
+    if (!(matches = /^\/\*\*((?:.|\n|\r)*)\*\/$/.exec(c))) return;
+    comments.push(matches[1]);
+  });
+    
+  return comments;
+};
+
+/**
+   @function extractDocFields
+   @summary Extract documentation fields from documentation string array.
+   @param   {Array} [docs] SJS documents strings
+   @return {Array}
+   @desc TODO: document markup format
+*/
+var fieldRE = /@([a-z]+)[\t ]*\n?((?:.|\n+[\n\r\t ]*[^@\r\t\n ])*)/g;
+
+var extractDocFields = exports.extractDocFields = function(docs) {
+  var fields = [], matches;
+  for (var i = 0; i<docs.length; ++i) {
+    var doc = docs[i];
+    while ((matches = fieldRE.exec(doc)))
+      fields.push([matches[1], matches[2]]);
+  }
+  return fields;
+};
+
+/**
+   @function parseSJSLibDocs
+   @summary TODO: document me
+*/
+exports.parseSJSLibDocs = function(src) {
+  var lib = { type: "lib", modules: {} };
+  var fields = extractDocFields([src]);
+  var prop, value, matches;
+  for (var i=0; i<fields.length; ++i) {
+    [prop,value] = fields[i];
+    switch (prop) {
+    case "module":
+      if (!(matches = /^([^ \t]+)(?:[ \t]+(.+))?$/.exec(value))) break;
+      lib.modules[matches[1]] = {type:"module", name:matches[1], summary:matches[2]};
+      break;
+    default:
+      lib[prop] = value;
+    }
+  }
+  return lib;
+};
+
+/**
+   @function parseModuleDocs
+   @summary TODO: document me
+*/
+
+// param: @param {type} [name=default] description
+var paramRE = /^(?:\{([^\}]+)\})?(?:[\t ]*\[([^\]=]+)(?:\=([^\]]+))?\])?(?:[\t ]*\n?\r?(.(?:.|\n|\r)*))?$/;
+var paramType = 1, paramName = 2, paramDefault = 3, paramDescription = 4;
+
+exports.parseModuleDocs = function(src, module) {
+  var module = common.mergeSettings({ type: "module", symbols: {}, classes: {} },
+                                    module);
+  var curr = module; // 'curr' determines where 'param', 'return', 'setting' are appended to
+  var fields = extractDocFields(extractDocComments(src));
+
+  for (var i=0; i<fields.length; ++i) {
+    var prop, value;
+    [prop,value] = fields[i];
+    switch (prop) {
+    case "class":
+      curr = { name: value, symbols: {} };
+      module.classes[value] = curr;
+      break;
+    case "function":
+    case "variable":
+      // append to module or class depending on name
+      var matches = /([^.]+)\.(.+)/.exec(value);
+      // class member?
+      if (matches && module.classes[matches[1]]) {
+        //if (!module.classes[matches[1]])
+        //  module.classes[matches[1]] = { name:matches[1], symbols:{}};
+        curr = module.classes[matches[1]].symbols[matches[2]] = { name: matches[2], type: prop };
+      }
+      else if (module.classes[value]) {
+        // constructor
+        curr = module.classes[value].symbols[value] = { name: value, type: prop };
+      }
+      else {
+        // top-level symbol
+        curr= module.symbols[value] = { name: value, type: prop };
+      }
+      break;
+    case "param":
+    case "setting":
+      // these get parsed & put into arrays on curr
+      var matches = paramRE.exec(value);
+      if (!curr[prop]) curr[prop] = [];
+      curr[prop].push({
+        type: prop,
+        name: matches[paramName],
+        valtype: matches[paramType], // value type
+        defval: matches[paramDefault],
+        summary: matches[paramDescription]
+      });
+      break;
+    case "return":
+      var matches = paramRE.exec(value);
+      curr[prop] = {
+        type: prop,
+        valtype: matches[paramType],
+        summary: matches[paramDescription]
+      };
+      break;
+    default:
+      curr[prop] = value;
+    }
+  }
+  
+  return module;
 };

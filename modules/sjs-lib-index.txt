@@ -1,0 +1,24 @@
+@lib     Apollo Standard Module Libary
+@summary The Apollo Standard Library
+@desc
+  This is the Apollo Standard Library. 
+
+@module base64 
+@module collection
+@module common
+@module cutil
+@module debug
+@module docutil
+@module dom
+@module freebase
+@module google
+@module http
+@module jquery-binding
+@module lastfm
+@module node-child-process
+@module node-events
+@module node-fs
+@module node-http
+@module node-repl
+@module twitter
+@module yql

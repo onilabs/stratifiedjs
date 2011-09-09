@@ -71,10 +71,23 @@ a.apilink { display:block; }
 .defaultvalue { color: #777; display: block; }
 .type { color: #777; display: block; float:right; margin: 3px 0 0 20px; }
 .shortcut { color: #777; display: block; float:right; margin-left:20px; }
-pre, .longdesc code {
-  display: block;
+code {
   white-space: pre;
   border: 1px solid #eaeaea; background: #fdfdfd; 
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+pre code {
+    border :none;
+    padding: 0px;
+}
+
+pre {
+  line-height: 1.3em;
+  border: 1px solid #eaeaea; background: #fdfdfd; 
+  display: block;
+  white-space: pre;
   padding: 10px 10px 10px 15px;
   margin: 15px 0 15px 0;
 }
