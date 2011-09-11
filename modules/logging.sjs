@@ -55,32 +55,32 @@ var common = require('apollo:common');
 var sys = require('sjs:apollo-sys');
 
 /**
-  @constant DEBUG
+  @variable DEBUG
   @summary debug log level constant
 */
 exports.DEBUG = 50;
 /**
-  @constant VERBOSE
+  @variable VERBOSE
   @summary verbose log level constant
 */
 exports.VERBOSE = 40;
 /**
-  @constant INFO
+  @variable INFO
   @summary info log level constant
 */
 exports.INFO = 30;
 /**
-  @constant WARN
+  @variable WARN
   @summary warning log level constant
 */
 exports.WARN = 20;
 /**
-  @constant ERROR
+  @variable ERROR
   @summary error log level constant
 */
 exports.ERROR = 10;
 /**
-  @constant OFF
+  @variable OFF
   @summary constant used to disable all logging (except `print`)
 */
 exports.OFF = 0;
@@ -124,8 +124,8 @@ exports.setLevel = function(lvl) {
   @param {String} [newFormat] the new format string.
   @summary Set the output format of log messages
   @desc
-    The default format is "{level}: {message}"
-    substitutions will be performed using `common.supplant()`.
+    The default format is `"{level}: {message}"`, substitutions
+    will be performed using [`common.supplant()`](#common/supplant).
 
     Currently the only keys available for a format to include are
     `level` and `message`.
@@ -176,7 +176,7 @@ var printfn = function(lvl, preferred_console_method) {
   @desc
     Does not format the message in any way, unlike other `log` methods.
   @param    {String} [message]
-  @param    {optional Object} [obj] an optional object to print - see the `obj` paramater in `debug()` for details.
+  @param    {optional Object} [obj] an optional object to print - see the `obj` paramater in [`debug()`](#logging/debug) for details.
 */
 exports.print = function() { getPrinter('log').apply(null, arguments); };
 
@@ -184,7 +184,7 @@ exports.print = function() { getPrinter('log').apply(null, arguments); };
   @function debug
   @summary  Print the given message to the console when the current log level is DEBUG or higher
   @param    {String} [message] The message to log
-  @param    {optional Object} [values] Values to be substituted into the message (see `common.supplant` for the syntax).
+  @param    {optional Object} [values] Values to be substituted into the message (see [`common.supplant`](#common/supplant) for the syntax).
   @param    {optional Object} [obj] An additional object to pass through to the underlying log method.
             In the node.js environment, the object will be dumped as a JSON string.
             In a browser, this may show an expandable view of the object.
@@ -194,7 +194,7 @@ exports.debug = printfn(exports.DEBUG, 'debug');
 /**
   @function verbose
   @summary  Print the given message to the console when the current log level is VERBOSE or higher.
-            The arguments are interpreted as for `debug()`.
+            The arguments are interpreted as for [`debug()`](#logging/debug).
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -204,7 +204,7 @@ exports.verbose = printfn(exports.VERBOSE, 'debug');
 /**
   @function info
   @summary  Print the given message to the console when the current log level is INFO or higher.
-            The arguments are interpreted as for `debug()`.
+            The arguments are interpreted as for [`debug()`](#logging/debug).
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -214,7 +214,7 @@ exports.info = printfn(exports.INFO,'info');
 /**
   @function warn
   @summary  Print the given message to the console when the current log level is WARN or higher.
-            The arguments are interpreted as for `debug()`.
+            The arguments are interpreted as for [`debug()`](#logging/debug).
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -223,7 +223,7 @@ exports.warn = printfn(exports.WARN,'warn');
 /**
   @function error
   @summary  Print the given message to the console when the current log level is ERROR or higher.
-            The arguments are interpreted as for `debug()`.
+            The arguments are interpreted as for [`debug()`](#logging/debug).
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -243,9 +243,9 @@ exports.error = printfn(exports.ERROR,'error');
 
     Example usage:
 
-    using(logging.logContext({level:logging.WARN}) {
-      // some code that logs too much at INFO level
-    }
+        using(logging.logContext({level:logging.WARN}) {
+          // some code that logs too much at INFO level
+        }
   @param    {Object} [settings] Settings for the context. Valid keys are `level` and `format`.
 */
 exports.logContext = function(settings) {

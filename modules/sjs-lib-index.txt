@@ -15,6 +15,7 @@
 @module http
 @module jquery-binding
 @module lastfm
+@module logging
 @module node-child-process
 @module node-events
 @module node-fs

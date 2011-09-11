@@ -81,84 +81,8 @@ var cutil = require('apollo:cutil');
 var stopIteration = exports.stopIteration = new Error("stopIteration");
 var par = exports.par = {};
 
-/**
-  @function identity
-  @param    [argument]
-  @summary  Returns whatever argument it receives, unmodified.
-  @desc
-    Mostly useful as a test function given to `find`, `all`, etc.
-*/
-exports.identity = function(a) { return a; }
-
-var withIterationCancellation = function(fn) {
-  try {
-    return fn();
-  } catch (e) {
-    if(e === stopIteration) {
-      return undefined;
-    }
-    throw e;
-  }
-};
-
-
-/**
-  @function each
-  @param    {Object | Array} [collection]
-  @param    {Function} [fn] the iterator
-  @param    {optional Object} [this_obj]
-  @summary  Iterate over each element in a list or property in an object.
-  @desc
-    Calls the iterator once per item in the given
-    collection, with arguments (item, index).
-
-    When `collection` is an object, iterator is called once for each
-    of the object's own properties. In this case `value` is the
-    value of the property and `index` is the property's name.
-*/
-exports.each = function(collection, fn, this_obj) {
-  withIterationCancellation(function() {
-    var keys = exports.keys(collection);
-    for(var i=0; i<keys.length; i++) {
-      var key = keys[i];
-      var elem = collection[key];
-      fn.call(this_obj, collection[key], key);
-    }
-  });
-};
-
-
-/**
-  @function par.each
-  @param    {Object | Array} [collection]
-  @param    {Function} [fn] the iterator
-  @param    {optional Object} [this_obj]
-  @summary  Parallel version of `each`
-*/
-exports.par.each = function(collection, fn, this_obj) {
-  var keys = exports.keys(collection);
-  var iterations = [];
-  var iteration = function(key) {
-    // make a function that will perform this iteration
-    return function() {
-      fn.call(this_obj, collection[key], key);
-    }
-  };
-
-  for(var i=0; i<keys.length; i++) {
-    var key = keys[i];
-    iterations.push(iteration(key));
-  }
-  withIterationCancellation(function() {
-    //TODO: pass in a list of strata instead of functions?
-    cutil.waitforAll(iterations);
-  });
-};
-
-
 // -------------------------------------------------------------
 // object-specific helpers
-
 
 /**
   @function keys
@@ -215,14 +139,17 @@ exports.values = function(obj) {
   @param    {Object | Array} [obj]
   @return   {Array}  [items] A list of [key, value] pairs.
   @summary  Returns an array containing the [key, value] pairs of `obj`'s properties.
-  @desc     Object properties are returned in no consistent order.
-            Array properties are returned ordered. e.g:
+  @desc
+    Object properties are returned in no consistent order.
+    Array properties are returned ordered.
+    
+    e.g:
 
-            collection.items(['zero', 'one'])
-            => [[0, 'zero'], [1,'one']]
+        collection.items(['zero', 'one'])
+        => [[0, 'zero'], [1,'one']]
 
-            collection.items({k1:'v1', k2:'v2'})
-            => [['k1', 'v1'], ['k2','v2']]
+        collection.items({k1:'v1', k2:'v2'})
+        => [['k1', 'v1'], ['k2','v2']]
 */
 exports.items = function(obj) {
   var result = [];
@@ -230,6 +157,82 @@ exports.items = function(obj) {
     result.push([k,v]);
   });
   return result;
+};
+
+
+
+/**
+  @function identity
+  @param    [argument]
+  @summary  Returns whatever argument it receives, unmodified.
+  @desc
+    Mostly useful as a pass-through test function given to `find`, `all`, etc.
+*/
+exports.identity = function(a) { return a; }
+
+var withIterationCancellation = function(fn) {
+  try {
+    return fn();
+  } catch (e) {
+    if(e === stopIteration) {
+      return undefined;
+    }
+    throw e;
+  }
+};
+
+
+/**
+  @function each
+  @param    {Object | Array} [collection]
+  @param    {Function} [fn] the iterator
+  @param    {optional Object} [this_obj] the object on which `fn` will be executed
+  @summary  Iterate over each element in a list or property in an object.
+  @desc
+    Calls the iterator once per item in the given
+    collection, with arguments `(item, index)`.
+
+    When `collection` is an object, iterator is called once for each
+    of the object's own properties. In this case `value` is the
+    value of the property and `index` is the property's name.
+*/
+exports.each = function(collection, fn, this_obj) {
+  withIterationCancellation(function() {
+    var keys = exports.keys(collection);
+    for(var i=0; i<keys.length; i++) {
+      var key = keys[i];
+      var elem = collection[key];
+      fn.call(this_obj, collection[key], key);
+    }
+  });
+};
+
+
+/**
+  @function par.each
+  @param    {Object | Array} [collection]
+  @param    {Function} [fn] the iterator
+  @param    {optional Object} [this_obj] the object on which `fn` will be executed
+  @summary  Parallel version of [`each`](#collection/each)
+*/
+exports.par.each = function(collection, fn, this_obj) {
+  var keys = exports.keys(collection);
+  var iterations = [];
+  var iteration = function(key) {
+    // make a function that will perform this iteration
+    return function() {
+      fn.call(this_obj, collection[key], key);
+    }
+  };
+
+  for(var i=0; i<keys.length; i++) {
+    var key = keys[i];
+    iterations.push(iteration(key));
+  }
+  withIterationCancellation(function() {
+    //TODO: pass in a list of strata instead of functions?
+    cutil.waitforAll(iterations);
+  });
 };
 
 
@@ -266,7 +269,7 @@ var seqAndParMap = seqAndParVersions(function(each) {
   @function map
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the transform function
-  @param    {optional Object} [this_obj]
+  @param    {optional Object} [this_obj] the object on which `fn` will be executed
   @summary  Apply a function to each item in a collection and return the results
   @desc
     Produces a new collection by applying the transformation `fn` to each
@@ -276,15 +279,16 @@ var seqAndParMap = seqAndParVersions(function(each) {
     will replace `val` in the returned collection.
 
     e.g:
-    collection.each([1,2,3], function(item) {
-      return item + 1;
-    });
-    => [2,3,4]
 
-    collection.each({foo: 1, bar:2}, function(item) {
-      return item + 1;
-    });
-    => {foo: 2, bar:3}
+        collection.each([1,2,3], function(item) {
+          return item + 1;
+        });
+        => [2,3,4]
+
+        collection.each({foo: 1, bar:2}, function(item) {
+          return item + 1;
+        });
+        => {foo: 2, bar:3}
 */
 exports.map     = seqAndParMap[0];
 
@@ -293,7 +297,7 @@ exports.map     = seqAndParMap[0];
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the transform function
   @param    {optional Object} [this_obj]
-  @summary  Parallel version of `map`
+  @summary  Parallel version of [`map`](#collection/map)
 */
 exports.par.map = seqAndParMap[1];
 
@@ -320,7 +324,7 @@ exports.par.map = seqAndParMap[1];
     @function find
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
-    @param    {optional Object} [this_obj]
+    @param    {optional Object} [this_obj] the object on which `fn` will be executed
     @summary  Find and return the first matching element
     @desc
       Returns the first item in the collection for which
@@ -334,8 +338,8 @@ exports.par.map = seqAndParMap[1];
     @function par.find
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
-    @param    {optional Object} [this_obj]
-    @summary  Parallel version of `find`
+    @param    {optional Object} [this_obj] the object on which `fn` will be executed
+    @summary  Parallel version of [`find`](#collection/find)
     @desc
       Unlike sequential find, this will return _any_ matching
       element rather than the first.
@@ -346,10 +350,10 @@ exports.par.map = seqAndParMap[1];
     @function findKey
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
-    @param    {optional Object} [this_obj]
+    @param    {optional Object} [this_obj] the object on which `fn` will be executed
     @summary  Find the key of the first matching object
     @desc
-      Operates exactly like `find`, but returns you the key (index)
+      Operates exactly like [`find`](#collection/find), but returns you the key (index)
       of the first matching item instead of its value.
 
       Returns `undefined` when no match is found.
@@ -360,10 +364,10 @@ exports.par.map = seqAndParMap[1];
     @function par.findKey
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
-    @param    {optional Object} [this_obj]
-    @summary  Parallel version of findKey
+    @param    {optional Object} [this_obj] the object on which `fn` will be executed
+    @summary  Parallel version of [`findKey`](#collection/findKey)
     @desc
-      Unlike sequential findKey, this will return _any_ matching
+      Unlike sequential `findKey`, this will return _any_ matching
       element's key rather than the first.
   */
   exports.par.findKey = generateFind(exports.par.each , getSecond);
@@ -418,7 +422,7 @@ exports.par.map = seqAndParMap[1];
     @function filter
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
-    @param    {optional Object} [this_obj]
+    @param    {optional Object} [this_obj] the object on which `fn` will be executed
     @summary  Return all items that satisfy `test`
     @desc
       Returns a collection containing only the items in the original
@@ -431,8 +435,8 @@ exports.par.map = seqAndParMap[1];
     @function par.filter
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
-    @param    {optional Object} [this_obj]
-    @summary  Parallel version of filter.
+    @param    {optional Object} [this_obj] the object on which `fn` will be executed
+    @summary  Parallel version of [`filter`](#collection/filter).
     @desc
       Note that even though `test` will be called in parallel,
       the result will maintain the same ordering as the
@@ -447,7 +451,7 @@ exports.par.map = seqAndParMap[1];
   @param    {Object | Array} [collection]
   @param    {Object} [initial] the initial value
   @param    {Function} [fn] the reducer function
-  @param    {optional Object} [this_obj]
+  @param    {optional Object} [this_obj] the object on which `fn` will be executed
   @summary  Cumulatively combine elements in an array.
   @desc
     Also known as `foldl` or `inject`.
@@ -476,8 +480,8 @@ exports.reduce = function(collection, initial, fn, this_obj) {
   @function reduce1
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the reducer function
-  @param    {optional Object} [this_obj]
-  @summary  `reduce` for a non-empty list
+  @param    {optional Object} [this_obj] the object on which `fn` will be executed
+  @summary  [`reduce`](#collection/reduce) for a non-empty list
   @desc
     calls `reduce`, using the first element of `collection` as
     the initial value, and the remaining elements as the collection
@@ -507,7 +511,7 @@ var seqAndParAll = seqAndParVersions(function(each) {
   @function all
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
-  @param    {optional Object} [this_obj]
+  @param    {optional Object} [this_obj] the object on which `fn` will be executed
   @summary  Return whether all items in a collection satisfy the test function
   @desc
     Returns `true` if `test(item, key)` returns truthy for all items in the
@@ -519,9 +523,7 @@ exports.all     = seqAndParAll[0];
   @param    {Object | Array} [collection]
   @param    {Function} [fn] The test function
   @param    {optional Object} [this_obj]
-  @summary  Return whether all items in a collection satisfy the test function
-  @desc
-    Parallel version of `all`.
+  @summary  Parallel version of [`all`](#collection/all).
 */
 exports.par.all = seqAndParAll[1];
 
@@ -549,4 +551,12 @@ var seqAndParAny = seqAndParVersions(function(each) {
     collection, `false` otherwise.
 */
 exports.any     = seqAndParAny[0];
+
+/**
+  @function par.any
+  @param    {Object | Array} [collection]
+  @param    {Function} [test] The test function
+  @param    {optional Object} [this_obj]
+  @summary  Parallel version of [`any`](#collection/any).
+*/
 exports.par.any = seqAndParAny[1];
