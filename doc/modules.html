@@ -104,7 +104,7 @@ function buildFunctionHtml(href) {
       <div class='desc'>"+ 
         (0&&fn.shortcut? ("<span class='shortcut'> &#8658; shortcut for 
          <a href='#" + parentname + "/" + fn.shortcut + "'>"+ fn.shortcut +"()</a></span> ") : "")  
-        +markdown(fn.summary)+"
+        +formatSummary(fn)+"
       </div>");
 
   html.push("\
@@ -177,6 +177,15 @@ function buildFunctionHtml(href) {
   return html.join("");
 }
 
+function formatSummary(obj) {
+  var result = markdown(obj.summary);
+  if(obj.deprecated) {
+    result += "<div class='deprecated'>" + markdown("**Deprecated:** " + obj.deprecated);
+  }
+  return result;
+};
+
+
 function buildModuleHtml(href) {
   var html = [];
   href = href.split("/");
@@ -210,9 +219,10 @@ function buildModuleHtml(href) {
         <td class='fnname'>
           <p><a class='apilink' href='#" + name + "/" + childname + "'>"+childname+"</a></p>
         </td>
-        <td>"+markdown(child.summary)+"</td>
+        <td>"+formatSummary(child)+"</td>
       </tr>");
   }
+
   functions_html.push("</table>");
   if (functions_html.length > 2) html = html.concat(functions_html);
   

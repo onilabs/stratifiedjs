@@ -40,8 +40,7 @@
   @param   {Function} [f] Function to bind to *thisObj*
   @param   {Object} [thisObj] 'this' object to bind *f* to
   @return  {Function} Bound function
-  @desc
-    Deprecated - use Function.prototype.bind instead
+  @deprecated use Function.prototype.bind instead
 */
 exports.bind = function(f, thisObj) {
   return function() { return f.apply(thisObj, arguments); };
@@ -52,8 +51,7 @@ exports.bind = function(f, thisObj) {
   @summary  Tests if an object is an array.
   @param    {anything} [testObj] Object to test.
   @return   {Boolean}
-  @desc
-    Deprecated - use [common.isArrayOrArguments](#common/isArrayOrArguments)
+  @deprecated use [common.isArrayOrArguments](#common/isArrayOrArguments)
 */
 exports.isArray = Array.isArray;
 

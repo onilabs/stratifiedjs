@@ -96,4 +96,4 @@ pre {
 
 #index .toggle { width: 0.4em; display:none;}
 
-.hostenv { color: red }
+.hostenv, .deprecated { color: #b44 }
