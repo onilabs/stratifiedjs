@@ -42,3 +42,43 @@ test('enabled levels at INFO', {DEBUG: false, VERBOSE:false, INFO:true, WARN:tru
   }
   return enabled;
 });
+
+//--------------------------------------------------------------------------------
+test('logging to debug.console objects',
+    {log1: ["INFO: message 1"],
+     log2: ["INFO: message 1", "INFO: message 2"],
+     nologs: []
+    }, function() {
+  var debug = require('apollo:debug');
+  function mkConsole(receivelog) {
+    var c = debug.console({receivelog: receivelog});
+    // make a console that records log messages
+    c.loggedMessages = [];
+    c.log = function(msg) {
+      this.loggedMessages.push(msg);
+    };
+    return c;
+  };
+
+  var noLogging = mkConsole(false);
+  var logging1 = mkConsole(true);
+  var logging2 = mkConsole(true);
+
+  logging.info("message 1");
+
+  logging1.shutdown();
+
+  logging.info("message 2");
+
+  logging2.shutdown();
+
+  logging.info("message 3 - should appear in browser console");
+
+  noLogging.shutdown();
+
+  return {
+    log1: logging1.loggedMessages,
+    log2: logging2.loggedMessages,
+    nologs: noLogging.loggedMessages
+  };
+}).browserOnly();

@@ -36,19 +36,20 @@
     This module exposes a simple logging API, and is useable
     across environments.
     
-    On node.js, all log messages will be sent to `process.stderr`.
-
-    In a browser environment, logging events will be sent to the
-    global `console` object, when defined. If your browser has
-    no native `console` object, no logging will occur. In that
-    case, you may want to use a tool like Firebug Lite
-    (http://getfirebug.com/firebuglite) to emulate a console.
+    Logging events will be sent to the global `console`
+    object, when defined. If your browser has no native
+    `console` object, no logging will occur. In that case,
+    you can either use a tool like Firebug Lite
+    (http://getfirebug.com/firebuglite) to emulate a console,
+    or create an apollo console using the [debug](#debug)
+    module.
 
     Note that where possible, an appropriate `console` method
-    will be used. e.g if you use logging.error() and your console
-    has an `error` method, it will be used. This can be useful for
-    browsers that distinguish errors by color, for example. If
-    no specific `error` method is available, `log` will be used instead.
+    will be used. e.g if you use logging.error() and your
+    console has an `error` method, it will be used. This can
+    be useful for browsers that distinguish errors by color,
+    for example. If no specific `error` method is available,
+    `log` will be used instead.
 */
 
 var common = require('apollo:common');
@@ -263,36 +264,49 @@ exports.logContext = function(settings) {
   return ret;
 }
 
+/**
+  @function setConsole
+  @param    {optional Object} [console] the new `console` object
+  @summary  Override the `console` object that this module will print to
+  @desc
+    This method is used by the [debug](#debug) module to redirect logging
+    to any console created with `receivelog = true`.
+
+    If `console` is null or not provided, the global `console` object will
+    be used instead.
+*/
+exports.setConsole = function(console) {
+  consoleOverride = console;
+  // clear printer cache so that getPrinter() will use the new console
+  printerCache = {};
+};
 
 // -------------------------------------------------------------
 // helpers to construct & cache printer objects for each
 // possible preferred_console_method
-var printers = {};
+var printerCache = {};
+var consoleOverride = null;
+
 var getPrinter = function(preferred_console_method) {
   // only generate the printer once per preferred_console_method,
   // and cache it for further use
-  if (!printers[preferred_console_method]) {
-    printers[preferred_console_method] = makePrinter(preferred_console_method);
+  if (!printerCache[preferred_console_method]) {
+    printerCache[preferred_console_method] = makePrinter(preferred_console_method);
   }
-  return printers[preferred_console_method];
+  return printerCache[preferred_console_method];
+};
+
+var getConsole = function() {
+  if(consoleOverride) {
+    return consoleOverride;
+  }
+  return sys.getGlobal().console;
 };
 
 var makePrinter = function(preferred_console_method) {
   // find a print function for the preferred_console_method,
   // falling back to whatever we can get
-  if(sys.hostenv == 'nodejs') {
-    return function(str, obj) {
-      process.stderr.write(str + '\n');
-      if(obj !== undefined) {
-        try {
-          obj = JSON.stringify(obj, null, 2);
-        } catch (e) { /* can't stringify */ }
-        process.stderr.write(obj + '\n');
-      }
-    }
-  }
-
-  var c = sys.getGlobal().console;
+  var c = getConsole();
   if(c) {
     if(c[preferred_console_method]) {
       return function() { c[preferred_console_method].apply(c, arguments); };

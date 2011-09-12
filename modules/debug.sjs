@@ -34,29 +34,54 @@
   @summary Client-side stratified debugging tools
   @hostenv xbrowser
   @desc
-    `var c = require("apollo:debug").console();
-    c.log("Hello", document);
-    c.warn("Oooh noo!");`
+    sample usage:
+
+        var c = require("apollo:debug").console();
+        c.log("Hello", document);
+        c.warn("Oooh noo!");
 */
 
 if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('the debug module only runs in an xbrowser environment');
 
 var common = require('./common');
+var collection = require('apollo:collection');
 
 //----------------------------------------------------------------------
 // logging
 
 var logReceivers = [];
 
+function installLogger(logger) {
+  var logging = require('apollo:logging');
+  logReceivers.push(logger);
+  if(logReceivers.length == 1) { // this is the first logger
+    logging.setConsole({log: printToLoggers});
+  }
+};
+
+function uninstallLogger(logger) {
+  var idx = collection.findKey(logReceivers, function(r) { return r == logger; });
+  if(idx === undefined) return; // logger was never installed
+  logReceivers.splice(idx, 1);
+
+  if(logReceivers.length == 0) { // last logger removed
+    var logging = require('apollo:logging');
+    logging.setConsole();
+  }
+};
+
 /**
   @function log
   @summary Log the given object to all Stratfied JS consoles created with *receivelog* = *true*.
   @param {Object} [obj] Object to log.
+  @deprecated since 0.13 - use the functions in the [`logging`](#logging) module instead.
 */
-exports.log = function() {
-  for (var i=0, c; (c = logReceivers[i]); ++i)
-    c.log.apply(c, arguments);
+var printToLoggers = exports.log = function() {
+  var logArgs = arguments;
+  collection.each(logReceivers, function(c) {
+    c.log.apply(c, logArgs);
+  });
 };
 
 //----------------------------------------------------------------------
@@ -221,7 +246,7 @@ function viewportStick(el, offset) {
   @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
   @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null. 
   @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
-  @setting  {Boolean} [receivelog=true] Whether the console will display object logged to [debug.log](#debug/log).
+  @setting  {Boolean} [receivelog=true] Whether the console will act as an output for messages from the [logging](#logging) module.
   @return   {Console}
 */
 exports.console = function(opts) {  
@@ -236,8 +261,7 @@ function Console(opts) {
     receivelog: true
   }, opts);
 
-  if (opts.receivelog)
-    logReceivers.push(this);
+  if (opts.receivelog) installLogger(this);
                               
   var div = document.createElement("div");
   var parent = opts.target ? document.getElementById(opts.target) : null;
@@ -516,11 +540,7 @@ Console.prototype = {
     @summary Shutdown this console.
    */
   shutdown: function() {
-    for (var i=0, r; r=logReceivers[i]; ++i)
-      if (r == this) {
-        logReceivers.splice(i, 1);
-        break;
-      }
+    uninstallLogger(this);
     // XXX this.cmdloop_stratum.abort();
     this.root.parentNode.removeChild(this.root);
   },
