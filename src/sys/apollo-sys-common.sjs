@@ -258,7 +258,7 @@ exports.canonicalizeURL = function(url, base) {
       a.authority = base.authority;
       if (!a.directory.length || a.directory.charAt(0) != '/') {
         // a is relative to base.directory
-        a.directory = base.directory + a.directory;
+        a.directory = (base.directory || "/") + a.directory;
       }
     }
   }

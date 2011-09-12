@@ -86,6 +86,12 @@ test('canonicalizeURL(".././foo/../bar.txt", "http://a.b/c/d/")',
        return http.canonicalizeURL(".././foo/../bar.txt", "http://a.b/c/d/");
      });
 
+test('canonicalizeURL("foo/bar.txt", "http://www.noendingslash")',
+    "http://www.noendingslash/foo/bar.txt",
+    function() {
+      return http.canonicalizeURL("foo/bar.txt", "http://www.noendingslash");
+    });
+
 test('node.js request fails on non-http URLs', 'Unsupported protocol: file', function() {
   try {
     http.request('file:///');
