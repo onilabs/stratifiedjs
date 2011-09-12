@@ -41,7 +41,19 @@ if(!testUtil.isBrowser) {
     return events;
   });
 
-  test('wait() throws error with exit code', '1', function() {
+  test('wait() throws error with exit code', {events: [], code: 1}, function() {
+    var events = [];
+    var child = child_process.launch('bash', ['-c', 'exit 1']);
+    try {
+      child_process.wait(child);
+      events.push('wait returned');
+    } catch (e) {
+      return {events: events, code: e.code};
+    }
+    return {events: events, error: 'no error'};
+  });
+
+  test('wait() throws error with signal', {events: [], signal: 'SIGTERM'}, function() {
     var events = [];
     var child = child_process.launch('sleep', ['0.5']);
     try {
@@ -50,10 +62,11 @@ if(!testUtil.isBrowser) {
     } or {
       hold(250);
       child_process.kill(child);
+      events.push('child killed');
     } catch (e) {
-      return e.code;
+      return {events: events, signal: e.signal};
     }
-    return 'no error';
+    return {events: events, error: 'no error'};
   });
   
 
