@@ -114,7 +114,7 @@ exports.getLevel = function() { return currentLevel; }
 */
 exports.setLevel = function(lvl) {
   if(lvl === undefined) {
-    throw "Invalid level: " + lvl;
+    throw new Error("Invalid level: " + lvl);
   }
   currentLevel = lvl;
 };
@@ -151,7 +151,7 @@ exports.formatMessage = function(lvl, message, vals) {
 };
 
 exports.log = function(lvl, message, vals, obj, preferred_console_method) {
-  if(!message) throw "Please supply both a level and a message";
+  if(!message) throw new Error("Please supply both a level and a message");
   if(!exports.isEnabled(lvl)) return;
   var str = exports.formatMessage(lvl, message, vals);
 
