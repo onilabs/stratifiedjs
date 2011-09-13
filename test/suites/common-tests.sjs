@@ -28,7 +28,16 @@ test('supplant', "Hello world 1", function() {
   return c.supplant("Hello {who} {version}", {who:"world", version:1});
 });
 
-test('supplant', "No substitution found for \"who\"", function() {
+test('supplant evaluates functions', "Hello world 2", function() {
+  var ctx = {
+    who: "world",
+    version: 1,
+    nextVersion: function() { return this.version + 1; }
+  };
+  return c.supplant("Hello {who} {nextVersion}", ctx);
+});
+
+test('supplant strictness', "No substitution found for \"who\"", function() {
   try {
     return c.supplant("Hello {who}", {version:1});
   } catch (e) {

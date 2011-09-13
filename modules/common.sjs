@@ -99,6 +99,7 @@ exports.supplant = function(str, o) {
     function(text, key) {
       var replacement = o[key];
       if(replacement === undefined) throw new Error("No substitution found for \"" + key + "\"");
+      if(replacement instanceof Function) { replacement = replacement.call(o); };
       return replacement;
     }
   );
