@@ -28,6 +28,14 @@ test('supplant', "Hello world 1", function() {
   return c.supplant("Hello {who} {version}", {who:"world", version:1});
 });
 
+test('supplant', "No substitution found for \"who\"", function() {
+  try {
+    return c.supplant("Hello {who}", {version:1});
+  } catch (e) {
+    return e.message;
+  }
+});
+
 test('sanitize', "abc&amp;foo;def&gt;ght&lt;", function() {
   return c.sanitize("abc&foo;def>ght<");
 });

@@ -86,17 +86,20 @@ exports.flatten = require('sjs:apollo-sys').flatten;
   @param    {Object} [replacements] Hash of key/value pairs that will be replaced in *template*.
   @return   {String} String with placeholders replaced by variables.
   @desc
+    An error will be thrown if any substitution can't be found
+    
     ###Example:
 
         var rv = common.supplant("Hello {who}", { who: "world"});
         // rv will equal "Hello world"
 */
+//XXX how should you escape {foo}? {{foo}}? \{foo\}?
 exports.supplant = function(str, o) {
-  if (!o || !str) return str;
   return str.replace(/{([^{} ]*)}/g,
-    function(a, b) {
-      var r = o[b];
-      return r !== undefined ? r: a;
+    function(text, key) {
+      var replacement = o[key];
+      if(replacement === undefined) throw new Error("No substitution found for \"" + key + "\"");
+      return replacement;
     }
   );
 };
