@@ -100,7 +100,7 @@ function getXDomainCaps_hostenv() {
 */
 function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
   if (/^\.?\.?\//.exec(url_string))
-    return exports.canonicalizeURL(url_string, parent ? parent : "file:"+process.cwd()+"/");
+    return exports.canonicalizeURL(url_string, parent ? parent : "file://"+process.cwd()+"/");
   else
     return "nodejs:"+url_string;
 }
@@ -271,7 +271,6 @@ function nodejs_loader(path, parent /*, src*/) {
 
   // strip off 'nodejs:'
   path = path.substr(7);
-
   // resolve using node's require mechanism in this order:
   //  native nodejs module, apollo-native module (based on known extensions), other nodejs module
 
@@ -292,7 +291,6 @@ function nodejs_loader(path, parent /*, src*/) {
     if (resolved.indexOf('.') == -1) return __oni_rt.nodejs_require(resolved); // native module
   }
   catch (e) {}
-
   // if the url doesn't have an extension, try .sjs (even if we already resolved a module):
   var matches;
   if (!(matches = /.+\.([^\.\/]+)$/.exec(path))) {
@@ -300,14 +298,14 @@ function nodejs_loader(path, parent /*, src*/) {
       // now try .sjs
       resolved = __oni_rt.nodejs_require('module')._resolveFilename(path+".sjs", mockModule)[1];
       // ok, success. load as a file module:
-      return default_loader("file:"+resolved, parent, file_src_loader);
+      return default_loader("file://"+resolved, parent, file_src_loader);
     }
     catch (e) {}
   }
   else if (resolved && matches[1]!="js") {
     // see if this is an apollo-known extension (but NOT js!)
     if (exports.require.extensions[matches[1]]) // yup; load as apollo-native module
-      return default_loader("file:"+resolved, parent, file_src_loader);
+      return default_loader("file://"+resolved, parent, file_src_loader);
   }
 
   if (resolved == "") throw new Error("nodejs module at '"+path+"' not found");
@@ -316,7 +314,7 @@ function nodejs_loader(path, parent /*, src*/) {
 
 function getHubs_hostenv() {
   return  [
-    ["apollo:", "file:"+__oni_rt.nodejs_apollo_lib_dir ],
+    ["apollo:", "file://"+__oni_rt.nodejs_apollo_lib_dir ],
     ["github:", {src:github_src_loader} ],
     ["http:", {src: http_src_loader} ],
     ["https:", {src: http_src_loader} ],
