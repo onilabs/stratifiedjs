@@ -8,10 +8,10 @@ function testJsonpRequest(opts) {
 }
 
 time("10 sequential jsonp in-doc requests",
-     function() {  for (var i=0;i<10;++i) { testJsonpRequest({iframe:false,query:{cb:Math.random()}}) } });
+     function() {  for (var i=0;i<10;++i) { testJsonpRequest({iframe:false,query:{cb:Math.random()}}) } }).skip("machinery for this test is not in place atm");
 
 time("10 sequential jsonp iframe requests",
-     function() {  for (var i=0;i<10;++i) { testJsonpRequest({iframe:true,query:{cb:Math.random()}}) } });
+     function() {  for (var i=0;i<10;++i) { testJsonpRequest({iframe:true,query:{cb:Math.random()}}) } }).skip("machinery for this test is not in place atm");
 
 var iter;
 eval("iter = function(f,reps) { for (var i=0; i<reps; ++i) f(); }");

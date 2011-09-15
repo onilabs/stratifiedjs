@@ -1,8 +1,9 @@
 var testUtil = require('../lib/testUtil')
 var test = testUtil.test;
-var child_process = require('apollo:node-child-process');
 
 if(!testUtil.isBrowser) {
+  var child_process = require('apollo:node-child-process');
+
   //-------------------------------------------------------------
   // exec (simple string)
   test('exec("echo 1")', {stdout: '1\n', stderr: ''}, function() {

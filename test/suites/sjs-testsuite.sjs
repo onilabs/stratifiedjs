@@ -126,7 +126,7 @@ test("return from catch", 1, function() { try { throw "error not caught!"; } cat
 
 test("eval scoping 1", 1, function() { var xx = 0; eval("xx=1"); return xx; }); 
 
-test("eval scoping 2", 1, function() { eval("var xyyyy=1"); if (this.xyyyy != undefined) return -1; try { return xyyyy; } catch (e) { return e } }); 
+test("eval scoping 2", 1, function() { eval("var xyyyy=1"); if (this.xyyyy != undefined) return -1; try { return xyyyy; } catch (e) { return e.toString(); } }); 
 
 
 // XXX This test fails in normal & optimize modes on IE (but not in
