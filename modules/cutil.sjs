@@ -36,6 +36,7 @@
 */
 
 var sys  = require('sjs:apollo-sys');
+var coll = require('./collection');
 
 /**
   @function waitforAll
