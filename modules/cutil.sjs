@@ -35,143 +35,20 @@
              concurrent stratified programming.
 */
 
-var sys = require('sjs:apollo-sys');
+var sys  = require('sjs:apollo-sys');
 
 /**
   @function waitforAll
-  @summary  Execute a number of functions on separate strata and wait for all
-            of them to finish, or, execute a single function with different
-            arguments on separate strata and wait for all executions to finish.
-  @param    {Function | Array} [funcs] Function or array of functions.
-  @param    {optional Object | Array} [args] Argument or array of arguments.
-  @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
-  @desc
-    If *funcs* is an array of functions, each of the functions will
-    be executed on a separate stratum, with 'this' set to *this_obj* and
-    the first argument set to *args*.
-
-    If *funcs* is a single function and *args* is an array, *funcs*
-    will be called *args.length* times on separate strata with its
-    first argument set to a different elements of *args*, the second
-    argument set to the index of the element in *args*, and the the
-    third argument set to the *args*.  
+  @deprecated Use [collection.par.waitforAll](#collection/par.waitforAll)
 */
-exports.waitforAll = function waitforAll(funcs, args, this_obj) {
-  this_obj = this_obj || null;
-  if (sys.isArrayOrArguments(funcs)) {
-    if (!funcs.length) return;
-    //...else
-    return waitforAllFuncs(funcs, args, this_obj);
-  }
-  else if (sys.isArrayOrArguments(args)) {
-    if (!args.length) return;
-    //...else
-    return waitforAllArgs(funcs, args, 0, args.length, this_obj);
-  }
-  // else
-  throw new Error("waitforAll: argument error; either funcs or args needs to be an array");
-};
-
-function waitforAllFuncs(funcs, args, this_obj) {
-  if (funcs.length == 1)
-    funcs[0].call(this_obj, args);
-  else {
-    // build a binary recursion tree, so that we don't blow the stack easily
-    // XXX we should really have waitforAll as a language primitive
-    var split = Math.floor(funcs.length/2);
-    waitfor {
-      waitforAllFuncs(funcs.slice(0,split), args, this_obj);
-    }
-    and {
-      waitforAllFuncs(funcs.slice(split), args, this_obj);
-    }
-  }
-};
-
-function waitforAllArgs(f, args, i, l, this_obj) {
-  if (l == 1)
-    f.call(this_obj, args[i], i, args);
-  else {
-    // build a binary recursion tree, so that we don't blow the stack easily
-    // XXX we should really have waitforAll as a language primitive
-    var split = Math.floor(l/2);
-    waitfor {
-      waitforAllArgs(f, args, i, split, this_obj);
-    }
-    and {
-      waitforAllArgs(f, args, i+split, l-split, this_obj);
-    }
-  }
-}
+exports.waitforAll = coll.par.waitforAll;
 
 /**
   @function waitforFirst
-  @summary  Execute a number of functions on separate strata and wait for the first
-            of them to finish, or, execute a single function with different
-            arguments on separate strata and wait for the first execution to finish.
-  @return   {value} Return value of function execution that finished first.
-  @param    {Function | Array} [funcs] Function or array of functions.
-  @param    {optional Object | Array} [args] Argument or array of arguments.
-  @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
-  @desc
-    If *funcs* is an array of functions, each of the functions will
-    be executed on a separate stratum, with 'this' set to *this_obj* and
-    the first argument set to *args*.
-
-    If *funcs* is a single function and *args* is an array, *funcs*
-    will be called *args.length* times on separate strata with its
-    first argument set to a different elements of *args*, the second
-    argument set to the index of the element in *args*, and the the
-    third argument set to the *args*.  
+  @deprecated Use [collection.par.waitforFirst](#collection/par.waitforFirst)
 */
-exports.waitforFirst = function waitforFirst(funcs, args, this_obj) {
-  this_obj = this_obj || this;
-  if (sys.isArrayOrArguments(funcs)) {
-    if (!funcs.length) return;
-    //...else
-    return waitforFirstFuncs(funcs, args, this_obj);
-  }
-  else if (sys.isArrayOrArguments(args)) {
-    if (!args.length) return;
-    //...else
-    return waitforFirstArgs(funcs, args, 0, args.length, this_obj);
-  }
-  // else
-  throw new Error("waitforFirst: argument error; either funcs or args needs to be an array");
-};
+exports.waitforFirst = coll.par.waitforFirst;
 
-
-function waitforFirstFuncs(funcs, args, this_obj) {
-  if (funcs.length == 1)
-    return funcs[0].call(this_obj, args);
-  else {
-    // build a binary recursion tree, so that we don't blow the stack easily
-    // XXX we should really have waitforFirst as a language primitive
-    var split = Math.floor(funcs.length/2);    
-    waitfor {
-      return waitforFirstFuncs(funcs.slice(0,split), args, this_obj);
-    }
-    or {
-      return waitforFirstFuncs(funcs.slice(split), args, this_obj);
-    }
-  }
-};
-
-function waitforFirstArgs(f, args, i, l, this_obj) {
-  if (l == 1)
-    return f.call(this_obj, args[i], i, args);
-  else {
-    // build a binary recursion tree, so that we don't blow the stack easily
-    // XXX we should really have waitforFirst as a language primitive
-    var split = Math.floor(l/2);    
-    waitfor {
-      return waitforFirstArgs(f, args, i, split, this_obj);
-    }
-    or {
-      return waitforFirstArgs(f, args, i+split, l-split, this_obj);
-    }
-  }
-};
 
 /**
   @class    Semaphore
@@ -356,6 +233,55 @@ exports.makeDeferredFunction = function(f) {
   }
 };
 
+/**
+   @function makeMemoizedFunction
+   @summary  A wrapper for implementing a memoized version of a function.
+   @param    {Function} [f] The function to wrap.
+   @return   {Function} The wrapped function.
+   @desc
+     The wrapped function `g = makeMemoizedFunction(f)` stores values that have
+     been previously computed by `f` in the hash `g.db`, indexed by the first 
+     argument. If `g` is called multiple times with the same argument `X`, only the 
+     first invocation will call `f(X)` and store the resulting value under 
+     `g.db[X]`. Subsequent invocations to `g(X)` will read the value for `X` from 
+     `g.db[X]`.
+
+     It is safe to concurrently call `g` from multiple strata concurrently: 
+     If a call `g(X)` is already in progress (blocked in `f(X)`), while 
+     another call `g(X)` is being made, the second (and any subsequent) call 
+     will not cause `f(X)` to be called again. Instead, these subsequent 
+     calls will wait for the first invocation of `f(X)`.
+
+     `g` implements the following retraction semantics: A pending invocation of 
+     `f(X)` will be aborted if and only if every `g(X)` call waiting for 
+     `f(X)` to finish has been aborted (i.e. noone is interested in the value 
+     for `X` at the moment).
+*/
+exports.makeMemoizedFunction = function(f) {
+  var lookups_in_progress = {};
+
+  var memoizer = function(key) {
+    var rv = memoizer.db[key];
+    if (rv !== undefined) return rv;
+    // else...
+    if (!lookups_in_progress[key])
+      lookups_in_progress[key] = spawn (function(args) {
+        return memoizer.db[key] = f.apply(this, args);
+      })(arguments);
+    try {
+      return lookups_in_progress[key].waitforValue();
+    }
+    finally {
+      if (lookups_in_progress[key].waiting() == 0) {
+        lookups_in_progress[key].abort();
+        delete lookups_in_progress[key];
+      }
+    }
+  };
+
+  memoizer.db = {};
+  return memoizer;
+};
 
 /**
   @class   Queue
@@ -406,3 +332,4 @@ Queue.prototype = {
     return item;
   }
 };
+

@@ -77,7 +77,6 @@
 */
 
 var sys = require('sjs:apollo-sys');
-var cutil = require('apollo:cutil');
 var stopIteration = exports.stopIteration = new Error("stopIteration");
 var par = exports.par = {};
 
@@ -207,6 +206,142 @@ exports.each = function(collection, fn, this_obj) {
   });
 };
 
+/**
+  @function par.waitforAll
+  @summary  Execute a number of functions on separate strata and wait for all
+            of them to finish, or, execute a single function with different
+            arguments on separate strata and wait for all executions to finish.
+  @param    {Function | Array} [funcs] Function or array of functions.
+  @param    {optional Object | Array} [args] Argument or array of arguments.
+  @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
+  @desc
+    If *funcs* is an array of functions, each of the functions will
+    be executed on a separate stratum, with 'this' set to *this_obj* and
+    the first argument set to *args*.
+
+    If *funcs* is a single function and *args* is an array, *funcs*
+    will be called *args.length* times on separate strata with its
+    first argument set to a different elements of *args*, the second
+    argument set to the index of the element in *args*, and the the
+    third argument set to the *args*.  
+*/
+exports.par.waitforAll = function waitforAll(funcs, args, this_obj) {
+  this_obj = this_obj || null;
+  if (sys.isArrayOrArguments(funcs)) {
+    if (!funcs.length) return;
+    //...else
+    return waitforAllFuncs(funcs, args, this_obj);
+  }
+  else if (sys.isArrayOrArguments(args)) {
+    if (!args.length) return;
+    //...else
+    return waitforAllArgs(funcs, args, 0, args.length, this_obj);
+  }
+  // else
+  throw new Error("waitforAll: argument error; either funcs or args needs to be an array");
+};
+
+function waitforAllFuncs(funcs, args, this_obj) {
+  if (funcs.length == 1)
+    funcs[0].call(this_obj, args);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforAll as a language primitive
+    var split = Math.floor(funcs.length/2);
+    waitfor {
+      waitforAllFuncs(funcs.slice(0,split), args, this_obj);
+    }
+    and {
+      waitforAllFuncs(funcs.slice(split), args, this_obj);
+    }
+  }
+};
+
+function waitforAllArgs(f, args, i, l, this_obj) {
+  if (l == 1)
+    f.call(this_obj, args[i], i, args);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforAll as a language primitive
+    var split = Math.floor(l/2);
+    waitfor {
+      waitforAllArgs(f, args, i, split, this_obj);
+    }
+    and {
+      waitforAllArgs(f, args, i+split, l-split, this_obj);
+    }
+  }
+}
+
+/**
+  @function par.waitforFirst
+  @summary  Execute a number of functions on separate strata and wait for the first
+            of them to finish, or, execute a single function with different
+            arguments on separate strata and wait for the first execution to finish.
+  @return   {value} Return value of function execution that finished first.
+  @param    {Function | Array} [funcs] Function or array of functions.
+  @param    {optional Object | Array} [args] Argument or array of arguments.
+  @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
+  @desc
+    If *funcs* is an array of functions, each of the functions will
+    be executed on a separate stratum, with 'this' set to *this_obj* and
+    the first argument set to *args*.
+
+    If *funcs* is a single function and *args* is an array, *funcs*
+    will be called *args.length* times on separate strata with its
+    first argument set to a different elements of *args*, the second
+    argument set to the index of the element in *args*, and the the
+    third argument set to the *args*.  
+*/
+exports.par.waitforFirst = function waitforFirst(funcs, args, this_obj) {
+  this_obj = this_obj || this;
+  if (sys.isArrayOrArguments(funcs)) {
+    if (!funcs.length) return;
+    //...else
+    return waitforFirstFuncs(funcs, args, this_obj);
+  }
+  else if (sys.isArrayOrArguments(args)) {
+    if (!args.length) return;
+    //...else
+    return waitforFirstArgs(funcs, args, 0, args.length, this_obj);
+  }
+  // else
+  throw new Error("waitforFirst: argument error; either funcs or args needs to be an array");
+};
+
+
+function waitforFirstFuncs(funcs, args, this_obj) {
+  if (funcs.length == 1)
+    return funcs[0].call(this_obj, args);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforFirst as a language primitive
+    var split = Math.floor(funcs.length/2);    
+    waitfor {
+      return waitforFirstFuncs(funcs.slice(0,split), args, this_obj);
+    }
+    or {
+      return waitforFirstFuncs(funcs.slice(split), args, this_obj);
+    }
+  }
+};
+
+function waitforFirstArgs(f, args, i, l, this_obj) {
+  if (l == 1)
+    return f.call(this_obj, args[i], i, args);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforFirst as a language primitive
+    var split = Math.floor(l/2);    
+    waitfor {
+      return waitforFirstArgs(f, args, i, split, this_obj);
+    }
+    or {
+      return waitforFirstArgs(f, args, i+split, l-split, this_obj);
+    }
+  }
+};
+
 
 /**
   @function par.each
@@ -231,7 +366,7 @@ exports.par.each = function(collection, fn, this_obj) {
   }
   withIterationCancellation(function() {
     //TODO: pass in a list of strata instead of functions?
-    cutil.waitforAll(iterations);
+    exports.par.waitforAll(iterations);
   });
 };
 

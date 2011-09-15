@@ -185,3 +185,61 @@ test('Queue: producer/consumer (async put/get)', 100, function() {
   }
   return rv;
 });
+
+test('makeMemoizedFunction 1', 1, function() {
+  var c = 0;
+  var f = cutil.makeMemoizedFunction(function(x) {
+    if (x == 42) ++c;
+    return x;
+  });
+  f(42);
+  f(10);
+  f(42);
+  f(32);
+  return c;
+});
+
+test('makeMemoizedFunction 2', 3, function() {
+  var c = 0;
+  var f = cutil.makeMemoizedFunction(function(x) {
+    hold(100);
+    ++c;
+    return x;
+  });
+  waitfor {
+    f(42);
+  }
+  and {
+    f(10);
+  }
+  and {
+    f(42);
+  }
+  and {
+    f(32);
+  }
+  and {
+    f(10);
+  }
+  f(10);
+  f(42);
+  return c;
+});
+
+test('makeMemoizedFunction retraction', 2, function() {
+  var c = 0;
+  var f = cutil.makeMemoizedFunction(function(x) {
+    ++c;
+    hold(100);
+    return x;
+  });
+  waitfor {
+    f(42);
+    f(42);
+  }
+  or {
+    /* */
+  }
+  f(42);
+  return c;
+});
