@@ -140,6 +140,59 @@ Semaphore.prototype = {
   },
 };
 
+
+/**
+  @class    Event
+  @summary  A simple event object
+  @function Event
+  @summary  Constructor for an Event object.
+*/
+var Event = exports.Event = function Event() {
+  this.waiting = [];
+  this.clear();
+};
+
+/**
+  @function  Event.wait
+  @summary   Block until this event is set.
+  @desc
+    If the event has already been set, this function returns immediately.
+*/
+Event.prototype.wait = function wait() {
+  if (this.isSet) return;
+  waitfor() {
+    this.waiting.push(resume);
+  } retract {
+    for (var i=0; this.waiting[i] != resume; ++i) /**/;
+    this.waiting.splice(i, 1);
+  }
+};
+
+/**
+  @function  Event.set
+  @summary   Trigger (set) this event
+  @desc
+    This will resume all strata that are waiting on this event object.
+*/
+Event.prototype.set = function set() {
+  if(this.isSet) return; // noop
+  var waiting = this.waiting;
+  this.waiting = [];
+  this.isSet = true;
+  spawn(coll.par.each(waiting, function(resume) { resume(); }));
+};
+
+/**
+  @function  Event.clear
+  @summary   Un-set (clear) this event
+  @desc
+    Once cleared, the event can be waited upon and triggered again with
+    `wait` and `set`.
+*/
+Event.prototype.clear = function clear() {
+  this.isSet = false;
+};
+
 /**
   @function makeBoundedFunction
   @summary  A wrapper for limiting the number of concurrent executions of a function.

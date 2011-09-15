@@ -84,6 +84,54 @@ test('Semaphore: block/resume on acquire', 1, function() {
   }
 });
 
+test('Event: block/resume', 1, function() {
+  var e = new cutil.Event();
+  waitfor {
+    e.wait();
+    return 1;
+  } or {
+    e.set();
+    hold(100);
+    return 2;
+  }
+});
+
+test('Event: not blocking if already set', 1, function() {
+  var e = new cutil.Event();
+  e.set();
+  waitfor {
+    e.wait();
+    return 1;
+  } or {
+    return 2;
+  }
+});
+
+test('Event: retract from wait()', [], function() {
+  var e = new cutil.Event();
+  waitfor {
+    e.wait();
+  } or {
+    hold(100);
+  }
+  return e.waiting;
+});
+
+test('Event: clearing and re-setting', 1, function() {
+  var e = new cutil.Event();
+  waitfor {
+    e.wait();
+    e.clear();
+    e.wait();
+    return 1;
+  } or {
+    e.set();
+    hold(100);
+    e.set();
+    return 2;
+  }
+});
+
 test('makeBoundedFunction 1', 3, function() {
   var x = 0;
   function f() { ++x; hold(100); }
