@@ -448,7 +448,7 @@ exports.script = function(/*url, queries*/) {
 /**
    @function addCSS
    @summary Programatically add CSS to current document
-   @param {String} CSS code.
+   @param {String} [cssCode] CSS code.
    @desc
      Borrowed from [tomhoppe.com](http://www.tomhoppe.com/index.php/2008/03/dynamically-adding-css-through-javascript/)
 */
