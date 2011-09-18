@@ -56,16 +56,17 @@
     function you pass in may be called for items in any order, and
     the execution of multiple calls will be interleaved where possible.
 
-    ### A note on pure javascript libraries:
+    ### A note on pure JavaScript libraries:
 
-    It's worth noting that while pure Javascript collection libraries can
-    be used in stratified javascript, many of the results will not
-    be as expected due to the nature of the SJS compiler.
-    Specifically, any time a suspending SJS function is called from
-    plain javascript, the computation will not complete, and the return
+    It's worth noting that while pure JavaScript collection libraries
+    can be used in stratified JavaScript, many of the results will not
+    be as expected due to the fact that pure JavaScript cannot itself
+    suspend.  Specifically, any time a suspending SJS function is
+    called from plain JavaScript, the SJS computation will not
+    complete before control is returned to JavaScript, and the return
     value will be unintelligible.
 
-    Practically speaking, this means that any pure javascript function
+    Practically speaking, this means that any pure JavaScript function
     which takes an iteration function will not work correctly in the
     presence of a suspended computation. This includes functions like
     `map`, `each`, etc. whenever the provided function does not
