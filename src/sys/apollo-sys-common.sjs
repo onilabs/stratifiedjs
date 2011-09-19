@@ -386,11 +386,12 @@ function makeRequire(parent) {
     if (opts.callback) {
       (spawn (function() {
         try { 
-          opts.callback(undefined, requireInner(module, rf, parent, opts)); 
+          var rv = requireInner(module, rf, parent, opts);
         }
         catch(e) { 
           opts.callback(e); return 1;
         }
+        opts.callback(undefined, rv);
       })());
     }
     else
