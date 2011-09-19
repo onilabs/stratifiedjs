@@ -362,7 +362,7 @@ function process_args() {
     switch(flag) {
     case "-h":
     case "--help":
-      return usage();
+      usage();
       process.exit(0);
       break;
     default:
