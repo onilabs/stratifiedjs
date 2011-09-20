@@ -17,7 +17,7 @@ testParity("var i=10, x=0; while(i++<20) x+=i; x;",
      function() { var i=10, x=0; while(i++<20) x+=i; return x; });
 testParity("~1", function() { return ~1; });
 testParity("+'-1'", function() { return +'-1'; });
-// interestingly, normal JS also fails this test: testParity("+'foo'", function() { return +'foo'; });
+testParity("+'foo'", function() { return +'foo'; }).skip("normal JS also fails this test");
 testParity("-(1+2)", function() { return -(1+2); });
 testParity("(function() { if(1>=2) return 5; else if (1<=2) return 3; else return 2; })()",
            function() { if(1>=2) return 5; else if (1<=2) return 3; else return 2; });

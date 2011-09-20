@@ -26,6 +26,17 @@ if(!testUtil.isBrowser) {
     return child_process.run('bash', ['-c', 'echo 2 >&2']).stderr;
   });
 
+  test('run returns stdout / stderr', {"code":1,"signal":null,"stdout":"out\n","stderr":"err\n"}, function() {
+    var coll = require('apollo:collection');
+    try{
+      return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']);
+    } catch(e) {
+      return coll.filter(e, function(val, key) {
+        return ['stdout', 'stderr', 'code', 'signal'].indexOf(key) !== -1;
+      });
+    }
+  });
+
   //-------------------------------------------------------------
   // wait
   test('wait()', ['time passed', 'wait returned'], function() {
@@ -42,9 +53,9 @@ if(!testUtil.isBrowser) {
     return events;
   });
 
-  test('wait() throws error with exit code', {events: [], code: 1}, function() {
+  test('wait() throws error with exit code', {events: [], code: 123}, function() {
     var events = [];
-    var child = child_process.launch('bash', ['-c', 'exit 1']);
+    var child = child_process.launch('bash', ['-c', 'exit 123']);
     try {
       child_process.wait(child);
       events.push('wait returned');
@@ -102,6 +113,6 @@ if(!testUtil.isBrowser) {
       hold();
     }
     return events;
-  });
+  }).skip("inconsistent results - nodejs issue?");
 
 }

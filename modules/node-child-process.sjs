@@ -74,6 +74,9 @@ exports.exec = function(command, options) {
       This function is just like `exec`, but takes an array of arguments instead
       of a string. Notably, this ensures that arguments containing whitespace are not
       interpreted as multiple arguments.
+      
+      When the command fails, any `stderr` and `stdout` output that was captured so far is
+      added to the exception thrown (accessible by the `stderr` and `stdout` properties).
 
       Note that the `options` hash are used as options to the underlying `child_process.spawn`
       function, *not* to `child_process.exec`.
@@ -87,12 +90,19 @@ exports.run = function(command, args, options) {
   var child = exports.launch(command, args, options);
   if(child.stdout) child.stdout.on('data', appendTo(stdout));
   if(child.stderr) child.stderr.on('data', appendTo(stderr));
+  function join(arr) { return arr.join(''); };
+
   try {
     exports.wait(child);
+  } catch(e) {
+    // annotate error with stdout / err info
+    e.stdout = join(stdout);
+    e.stderr = join(stderr);
+    throw e;
   } retract {
     kill(child);
   }
-  return {stdout: stdout.join(''), stderr: stderr.join('')};
+  return {stdout: join(stdout), stderr: join(stderr)};
 };
 
 //TODO is `launch` too similar to `run`? maybe `popen` or even `fork`?
