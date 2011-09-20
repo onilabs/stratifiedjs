@@ -6,77 +6,114 @@ var apollo_home  = path.dirname(fs.realpathSync(__filename));
 var apollo_node = require(apollo_home + '/oni-apollo-node');
 
 function usage() {
-  process.stdout.write("Usage: apollo [options] [script.sjs [arguments]]\n\n");
-  process.stdout.write("Options:\n");
-  process.stdout.write("  -h, --help        display this help message\n");
-  process.stdout.write("  -d, --dev         load development mode (src/build/devmode.sjs)\n");
-  process.stdout.write("\nFor more information, please see http://bit.ly/jOy4Ms\n");
+  return (
+    "Usage: apollo [options] [script.sjs [arguments]]\n\n" +
+    "Options:\n" +
+    "  -h, --help        display this help message\n" +
+    "  -d, --dev         load development mode (src/build/devmode.sjs)\n" +
+    "  -e, --eval STR    evaluate STR\n" +
+    "\nFor more information, please see http://bit.ly/jOy4Ms");
 }
 
-function execSJScript(url) {
-  if (url.indexOf(":") == -1) {
-    // scheme-less; we assume its a file.
-    // Note that file: URLs *must* be absolute paths.
-    url = "file://" + fs.realpathSync(url);
-  }
-  apollo_node.require(url, { 
-    // we provide a callback to prevent nodejs from showing a useless
-    // call stack when there is an error:
-    callback: function(err) {
-      if (err)
-        console.log(err.toString());
+
+// -------------------- possible runner functions: --------------------
+
+function runSJScript(url) {
+  return function() {
+    if (url.indexOf(":") == -1) {
+      // scheme-less; we assume its a file.
+      // Note that file: URLs *must* be absolute paths.
+      url = "file://" + fs.realpathSync(url);
     }
-  });
+    apollo_node.require(url, {
+      // we provide a callback to prevent nodejs from showing a useless
+      // call stack when there is an error:
+      callback: function(err) {
+        if (err)
+          console.log(err.toString());
+      }
+    });
+  };
 }
 
-var beforeRepl = null;
-
-for (var i=2; i<process.argv.length; ++i) {
-  var flag = process.argv[i];
-  switch (flag) {
-  case "-h":
-  case "--help":
-    return usage();
-    break;
-  case "-d":
-  case "--dev":
-    beforeRepl = function(next) {
-      apollo_node.require("./src/build/devmode", {callback:
-        function(err, devmode) {
-          if(err) throw err;
-          process.stdout.write("devmode loaded (try `dev.eval` and `dev.build`)\n");
-          apollo_node.getGlobal().dev = devmode;
-          return next();
+function runRepl(beforeHook) {
+  return function() {
+    var runRepl = function() {
+      apollo_node.require('apollo:node-repl', {
+        callback: function(err, m) {
+          if (err) throw err;
+          m.runREPL();
         }
       });
-    }
-    break;
-  default:
-    if (flag[0] == '-') {
-      process.stdout.write("Unknown flag '"+flag+"'\n");
-      return usage();
-    }
-    // we assume 'flag' is a script. remove everything up to now from
-    // path and exec it:
-    process.ARGV = process.argv = process.argv.slice(i);
-    return execSJScript(flag);
-  }
-}
+    };
 
-process.ARGV = process.argv = process.argv.slice(1); // remove 'node' from argv
+    // Drop into REPL:
+    if(beforeHook) {
+      beforeHook(runRepl);
+    } else {
+      runRepl();
+    }
+  };
+};
 
-var runRepl = function() {
-  apollo_node.require('apollo:node-repl', {
-    callback: function(err, m) {
-      if (err) throw err;
-      m.runREPL();
+function loadDevExtensions(next) {
+  apollo_node.require("./src/build/devmode", {callback:
+    function(err, devmode) {
+      if(err) throw err;
+      process.stdout.write("devmode loaded (try `dev.eval` and `dev.build`)\n");
+      apollo_node.getGlobal().dev = devmode;
+      return next();
     }
   });
 };
 
-// Drop into REPL:
-if(beforeRepl) {
-  beforeRepl(runRepl);
-} else {
-  runRepl();
+function runEval(str) {
+  return function() {
+    // XXX eval'd code will be operating on global scope; place apollo's 'require' function there:
+    apollo_node.getGlobal().require = apollo_node.require;
+    return apollo_node.eval(str);
+  };
+};
+
+// -------------------- process options & run --------------------
+
+process.ARGV = process.argv = process.argv.slice(1); // remove 'node' from argv
+// default run function - execute REPL with no hooks
+var run = runRepl(null);
+
+function processArgs() {
+  for (var i=1; i<process.argv.length; ++i) {
+    var flag = process.argv[i];
+    switch (flag) {
+    case "-h":
+    case "--help":
+      throw new Error(usage());
+    case "-d":
+    case "--dev":
+      run = runRepl(loadDevExtensions);
+      break;
+    case '-e':
+    case '--eval':
+      ++i;
+      var str = process.argv[i];
+      run = runEval(str);
+      break;
+    default:
+      if (flag[0] == '-') {
+        throw new Error("Unknown flag '"+flag+"'\n" + usage());
+      }
+      // we assume 'flag' is a script. remove everything up to now from
+      // path and exec it:
+      process.ARGV = process.argv = process.argv.slice(i);
+      run = runSJScript(flag);
+      return; // stop processing args
+    }
+  }
 }
+try {
+  processArgs();
+} catch(e) {
+  process.stderr.write(e.message + "\n");
+  process.exit(1);
+}
+return run();
