@@ -312,52 +312,8 @@ function nodejs_loader(path, parent /*, src*/) {
   return __oni_rt.nodejs_require(resolved);
 }
 
-//XXX should this be on-demand rather than at startup?
-function getHubs_hostenv_dynamic() {
-  var dynamicHubs = [];
-  var hub_path = process.env['APOLLO_HUB_PATH'];
-  if(hub_path) {
-    function makePlaceholder(prefix, path) {
-      var placeholderHub = [prefix + ':', {loader:
-          function() {
-            var require = exports.require;
-            var placeholderIdx = require.hubs.indexOf(placeholderHub);
-            // remove this placeholder from require.hubs
-            require.hubs.splice(placeholderIdx, 1);
-            require('nodejs:' + path); // note: nodejs: scheme resolves .sjs as well as .js
-            // and replay the require call
-            return require.apply(null, arguments);
-          }
-        }
-      ];
-      return placeholderHub;
-    };
-
-    var fs = __oni_rt.nodejs_require('fs');
-    var path = __oni_rt.nodejs_require('path');
-
-    var dirs = hub_path.split(':');
-    for(var i=0; i<dirs.length; i++) {
-      var basepath = dirs[i];
-      try {
-        var contents = fs.readdirSync(basepath);
-      } catch(e) {
-        continue;
-      }
-      for (var j=0; j<contents.length; j++) {
-        var filename = contents[j];
-        var basename = filename.match(/^(.*)\.s?js$/);
-        if(basename) {
-          dynamicHubs.push(makePlaceholder(basename[1].toString(), path.join(basepath, filename)));
-        }
-      }
-    }
-  }
-  return dynamicHubs;
-};
-
 function getHubs_hostenv() {
-  var builtinHubs =  [
+  return [
     ["apollo:", "file://"+__oni_rt.nodejs_apollo_lib_dir ],
     ["github:", {src:github_src_loader} ],
     ["http:", {src: http_src_loader} ],
@@ -365,7 +321,6 @@ function getHubs_hostenv() {
     ["file:", {src: file_src_loader} ],
     ["nodejs:", {loader: nodejs_loader} ]
   ];
-  return getHubs_hostenv_dynamic().concat(builtinHubs);
 }
 
 function getExtensions_hostenv() {
@@ -383,4 +338,23 @@ function getExtensions_hostenv() {
     }
   };
 }
+
+//----------------------------------------------------------------------
+// Called once apollo itself is initialized.
+// Loads any user-defined init scripts from $APOLLO_INIT.
+function init_hostenv() {
+  var init_path = process.env['APOLLO_INIT'];
+  if(init_path) {
+    var files = init_path.split(':');
+    for(var i=0; i<files.length; i++) {
+      var path = files[i];
+      try {
+        exports.require('nodejs:' + path); // note: nodejs: scheme resolves .sjs as well as .js
+      } catch(e) {
+        console.error("Error loading init script at " + path + ": " + e);
+        throw e;
+      }
+    }
+  }
+};
 
