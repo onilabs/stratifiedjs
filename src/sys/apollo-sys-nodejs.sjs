@@ -106,17 +106,16 @@ function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
 }
 
 
-// helper that we should expose to external libs somehow XXX.
 // reads data from a stream; returns null if the stream has ended;
 // throws if there is an error
-function readStream(stream) {
+var readStream = exports.readStream = function readStream(stream) {
   //XXX 2.X doesn't implement readable on some streams (http
   //responses, maybe others), so we gotto be careful what exactly we
   //test here:
   if (stream.readable === false) return null;
   var data = null;
   
-//  stream.resume();
+ stream.resume();
   waitfor {
     waitfor (var exception) {
       stream.on('error', resume);
@@ -137,7 +136,7 @@ function readStream(stream) {
     }
   }
   finally {
-//    stream.pause();
+   stream.pause();
   }
   
   return data;
