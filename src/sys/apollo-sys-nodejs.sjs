@@ -345,11 +345,14 @@ function getExtensions_hostenv() {
 function init_hostenv() {
   var init_path = process.env['APOLLO_INIT'];
   if(init_path) {
+    var node_fs = __oni_rt.nodejs_require('fs');
     var files = init_path.split(':');
     for(var i=0; i<files.length; i++) {
       var path = files[i];
+      if(!path) continue;
       try {
-        exports.require('nodejs:' + path); // note: nodejs: scheme resolves .sjs as well as .js
+        path = node_fs.realpathSync(path); // file:// URIs need an absolute path
+        exports.require('file://' + path);
       } catch(e) {
         console.error("Error loading init script at " + path + ": " + e);
         throw e;
