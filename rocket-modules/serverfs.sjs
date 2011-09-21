@@ -135,8 +135,9 @@ function listDirectory(request, response, root, branch, format, formats) {
       listing.files.push({name: filename, size: size});
     }
   }
+  var listingJson = JSON.stringify(listing);
   return formatResponse(
-      { input: new stream.ReadableStringStream(listing),
+      { input: new stream.ReadableStringStream(listingJson),
         extension: "/",
         requestedFormat: format,
         defaultFormats: defaultDirectoryListingFormats
@@ -145,12 +146,12 @@ function listDirectory(request, response, root, branch, format, formats) {
 }
 
 function directoryListingToJSON(src, dest) {
-  var dir = stream.read(src);
-  dest.write(JSON.stringify(dir, null, 2));
+  // directory listing currently comes as JSON
+  stream.pump(src, dest);
 };
 
 function directoryListingToHtml(src, dest) {
-  var dir = stream.readAll(src);
+  var dir = JSON.parse(stream.readAll(src));
   //XXX should this preserve !format fragment when linking to other directories?
   var header = "<h1>Contents of " + dir.path + "</h1>";
   var folderList = dir.directories.map(function(d) {

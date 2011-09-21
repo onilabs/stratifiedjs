@@ -39,11 +39,6 @@ exports.readAll = function(stream) {
   while((data = exports.read(stream)) !== null) {
     result.push(data);
   }
-
-  // XXX this allows us to sneak arbitrary objects (not strings / buffers)
-  // into the stream API, but that's questionable behaviour:
-  if(result.length == 1) { return result[0]; }
-
   return result.join('');
 };
 
