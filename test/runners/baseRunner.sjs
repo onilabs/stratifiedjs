@@ -74,8 +74,11 @@ BaseRunner.prototype.run = function() {
         this.addSkip(testName, testFn.skipTest);
         continue;
       }
-      try{
+      try {
         testFn.call(this);
+      } or {
+        hold(10000);
+        throw new Error("Test didn't complete after 10s");
       } catch (e) {
         this.addError(testName, e);
       }

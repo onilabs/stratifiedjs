@@ -72,15 +72,18 @@ for (var i=1; i<process.argv.length; ++i) {
 // File format filter maps
 
 // helper filter to wrap a file in a jsonp response:
-function json2jsonp(src, req) {
+function json2jsonp(src, dest, req) {
   var callback = req.parsedUrl.queryKey['callback'];
   if (!callback) callback = "callback";
-  return callback + "(" + src + ")";
+  dest.write(callback + "(");
+  stream.pump(src, dest);
+  dest.write(")");
 }
 
 // filter that wraps a module as 'modp':
-function modp(src) {
-  return "module("+require("../tmp/c1jsstr.js").compile(src, {keeplines:true})+");";
+function modp(src, dest) {
+  src = stream.readAll(src);
+  dest.write("module("+require("../tmp/c1jsstr.js").compile(src, {keeplines:true})+");");
 }
 
 function BaseFileFormatMap() { }
@@ -166,7 +169,7 @@ function requestHandler(req, res) {
     else
       throw "Unknown method";
   }
-  catch (e) { 
+  catch (e) {
     try {
       res.writeHead(400);
       res.end(e.toString());
@@ -175,6 +178,6 @@ function requestHandler(req, res) {
       // throw the original exception, it's more important
       throw e;
     }
-  }   
+  }
 }
 

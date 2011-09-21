@@ -24,6 +24,8 @@
 var fs = require('apollo:node-fs');
 var path = require('path');
 var common = require('apollo:common');
+var stream = require('apollo:node-stream');
+var logging = require('apollo:logging');
 
 // this is the configurable part of the filesystem:
 var staticPathMap = [];
@@ -134,7 +136,7 @@ function listDirectory(request, response, root, branch, format, formats) {
     }
   }
   return formatResponse(
-      { data: listing,
+      { input: new stream.ReadableStringStream(listing),
         extension: "/",
         requestedFormat: format,
         defaultFormats: defaultDirectoryListingFormats
@@ -142,10 +144,13 @@ function listDirectory(request, response, root, branch, format, formats) {
       request, response, formats);
 }
 
-function directoryListingToJSON(dir, response) {
-  return JSON.stringify(dir, null, 2);
+function directoryListingToJSON(src, dest) {
+  var dir = stream.read(src);
+  dest.write(JSON.stringify(dir, null, 2));
 };
-function directoryListingToHtml(dir, response) {
+
+function directoryListingToHtml(src, dest) {
+  var dir = stream.readAll(src);
   //XXX should this preserve !format fragment when linking to other directories?
   var header = "<h1>Contents of " + dir.path + "</h1>";
   var folderList = dir.directories.map(function(d) {
@@ -163,7 +168,7 @@ function directoryListingToHtml(dir, response) {
       sizeDesc = Math.round(size/1024/1024*10)/10+ " MB";
     return "<li><a href=\"" + f.name + "\">" + f.name + "</a>(" + sizeDesc + ")</li>";
   });
-  return header + "<ul>" + folderList.join("\n") + fileList.join("\n") + "</ul>";
+  dest.write(header + "<ul>" + folderList.join("\n") + fileList.join("\n") + "</ul>");
 };
 
 // Used as a default, overrideable by specifying
@@ -185,17 +190,13 @@ var defaultDirectoryListingFormats = {
 //
 // An item must contain the following keys:
 //  - extension
-//  - data
+//  - input (a stream of data)
 //  - requestedFormat
 // It may also contain defaultFormats, for use when
 // the server has no configured format for the given
 // extension / format.
-//
-// XXX find a way to do this by streaming
-// instead of passing data around
-// (filters might need to become stream handlers)
 function formatResponse(item, request, response, formats) {
-  var data = item.data;
+  var input = item.input;
   var extension = item.extension;
   var format = item.requestedFormat;
   var defaultFormats = item.defaultFormats;
@@ -218,9 +219,11 @@ function formatResponse(item, request, response, formats) {
   var contentHeader = formatdesc.mime ? {"Content-Type":formatdesc.mime} : {};
   response.writeHead(200, contentHeader);
   if(formatdesc.filter) {
-    data = formatdesc.filter(data, request);
+    formatdesc.filter(input, response, request);
+  } else {
+    stream.pump(input, response);
   }
-  response.end(data);
+  response.end();
   return true;
 };
 
@@ -230,7 +233,7 @@ function serveFile(request, response, filePath, format, formats) {
   
   var ext = path.extname(filePath).slice(1);
   return formatResponse(
-      { data: fs.readFile(filePath),
+      { input: require('fs').createReadStream(filePath),
         extension: ext,
         requestedFormat: format
       },
