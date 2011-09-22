@@ -369,6 +369,10 @@ function getExtensions_hostenv() {
 
 __oni_rt.G.require = __oni_rt.sys.require;
 
+//----------------------------------------------------------------------
+// the init function serves no useful purpose in the xbrowser environment,
+// all initialization is done below
+hostenv_init = function(){};
 
 //----------------------------------------------------------------------
 // script loading:

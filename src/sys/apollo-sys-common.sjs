@@ -42,6 +42,7 @@
    resolveRelReqURL_hostenv
    getHubs_hostenv
    getExtensions_hostenv
+   init_hostenv
 
    (we also export some of these for use by other libraries; see below for signatures)
 
@@ -645,3 +646,8 @@ exports.require.modules['sjs:apollo-sys.sjs'] = {
   loaded_by: "[toplevel]",
   required_by: { "[toplevel]":1 }
 };
+
+exports.init = function(cb) {
+  init_hostenv();
+  cb();
+}

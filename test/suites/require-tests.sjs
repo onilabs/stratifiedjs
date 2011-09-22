@@ -17,7 +17,6 @@ test('"this" object in modules', this, function() {
 });
 
 var apollo_path = path.join(http.parseURL(module.id).path, '../../../apollo');
-var hubs_path = path.join(http.parseURL(module.id).path, '../../data/hubs');
 
 test('apollo -e', {stdout: 'hi\n', stderr: ''}, function() {
   var child_process = require('apollo:node-child-process');
@@ -26,15 +25,17 @@ test('apollo -e', {stdout: 'hi\n', stderr: ''}, function() {
   });
 }).serverOnly();
 
-test('hub resolution via $APOLLO_HUB_PATH', {stdout: 'HELLO!\n', stderr: ''}, function() {
+test('hub resolution via $APOLLO_INIT', {stdout: 'HELLO!\n', stderr: ''}, function() {
+  var hub_path = path.join(http.parseURL(module.id).path, '../../data/literal-hub.sjs');
   var child_process = require('apollo:node-child-process');
   var script = 'require("sys").puts(require("literal:exports.hello=\'HELLO!\'").hello);';
   try {
     var result = child_process.run(apollo_path, ['-e', script], {
-      env: common.mergeSettings(process.env, {APOLLO_HUB_PATH: hubs_path})
+      env: common.mergeSettings(process.env, {APOLLO_INIT: hub_path})
     });
     return result;
   } catch(e) {
-    return JSON.stringify(e);
+    console.log(e.stderr);
+    return e;
   }
 }).serverOnly();

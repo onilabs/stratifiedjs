@@ -2,7 +2,7 @@
 
 var path = require('path');
 var fs   = require('fs');
-var apollo_home  = path.dirname(fs.realpathSync(__filename));
+var apollo_home = path.dirname(fs.realpathSync(__filename));
 var apollo_node = require(apollo_home + '/oni-apollo-node');
 
 function usage() {
@@ -77,11 +77,10 @@ function runEval(str) {
 
 // -------------------- process options & run --------------------
 
-process.ARGV = process.argv = process.argv.slice(1); // remove 'node' from argv
-// default run function - execute REPL with no hooks
-var run = runRepl(null);
-
 function processArgs() {
+  // default run function - execute REPL with no hooks
+  var run = runRepl(null);
+
   for (var i=1; i<process.argv.length; ++i) {
     var flag = process.argv[i];
     switch (flag) {
@@ -106,14 +105,22 @@ function processArgs() {
       // path and exec it:
       process.ARGV = process.argv = process.argv.slice(i);
       run = runSJScript(flag);
-      return; // stop processing args
+      return run;
     }
   }
+  return run;
 }
-try {
-  processArgs();
-} catch(e) {
-  process.stderr.write(e.message + "\n");
-  process.exit(1);
-}
-return run();
+
+function main() {
+  process.ARGV = process.argv = process.argv.slice(1); // remove 'node' from argv
+
+  try {
+    var run = processArgs();
+  } catch(e) {
+    process.stderr.write(e.message + "\n");
+    process.exit(1);
+  }
+  return run();
+};
+
+apollo_node.init(main);
