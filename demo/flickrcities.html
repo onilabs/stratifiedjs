@@ -9,7 +9,6 @@
     
 var flickr_api_key = "f466505f8da02b23cc0eb8a7b1d27afa";
 
-var logging = require('apollo:logging');
 require("apollo:jquery-binding").install();
 var r = require("apollo:common").supplant;
 var yql = require("apollo:yql");
@@ -24,7 +23,6 @@ waitfor {
     "select title from html " +
     "where url='http://en.wikipedia.org/wiki/List_of_cities_proper_by_population' " +
     "and xpath='//table/tr/td[2]/a'");
-  logging.debug("yql cities results: ", null, rv);
   cities = rv.results.a;
 }
 or {
@@ -50,7 +48,6 @@ function loadPhotos(city, page) {
   var q = "select * from flickr.photos.search(@begin, @amount) " +
     "where text=@city and sort='relevance' and extras='url_m' and api_key='" + flickr_api_key + "'";
   var rv = yql.query(q, {begin: page * per_page, amount: per_page, city:city});
-  logging.debug("yql results for city {city}:", {city:city}, rv);
   var photos = rv.results ? rv.results.photo: [];
   for (var i = 0, photo; photo = photos[i]; ++i) {
     more.before(r("
