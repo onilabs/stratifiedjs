@@ -30,7 +30,13 @@ waitfor {
 or {
   $("#more h2").html("Just show Chicago");
   more.$click();
-  cities = [{
+  throw "user can't wait!";
+}
+catch(e) {
+  // Either the user cancelled (throwing a "user can't wait" exception)
+  // or there was an error with the request.
+  // We'll just populate the list of cities with one city and continue:
+  var cities = [{
     title: "Chicago"
   }];
 }
