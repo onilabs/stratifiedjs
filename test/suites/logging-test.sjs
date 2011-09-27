@@ -33,7 +33,7 @@ test('custom format', 'custom: msg // INFO', function() {
   }
 });
 
-test('defining a custom field function', 'INFO: MESSAGE!', function() {
+test('defining a custom field function', 'INFO: message!', function() {
   logging.defineField('excited_message', function() {
     return this.message + '!';
   });
