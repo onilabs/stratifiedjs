@@ -246,7 +246,7 @@ function viewportStick(el, offset) {
   @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
   @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null. 
   @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
-  @setting  {Boolean} [receivelog=true] Whether the console will act as an output for messages from the [logging::] module.
+  @setting  {Boolean} [receivelog=false] Whether the console will act as an output for messages from the [logging::] module.
   @return   {::Console}
 */
 exports.console = function(opts) {  
@@ -258,7 +258,7 @@ function Console(opts) {
     collapsed : true,
     height: 200,
     fullscreen: isWebkitMobile ? true : false,
-    receivelog: true
+    receivelog: false
   }, opts);
 
   if (opts.receivelog) installLogger(this);
