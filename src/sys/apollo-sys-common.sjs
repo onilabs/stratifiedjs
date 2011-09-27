@@ -328,6 +328,37 @@ exports.getXDomainCaps = getXDomainCaps_hostenv; // to be implemented in hostenv
 */
 exports.request = request_hostenv;
 
+/**
+  @function makeMemoizedFunction
+  @desc
+    See modules/cutil.sjs:makeMemoizedFunction
+*/
+exports.makeMemoizedFunction = function(f, keyfn) {
+  var lookups_in_progress = {};
+
+  var memoizer = function() {
+    var key = keyfn ? keyfn.apply(this,arguments) : arguments[0];
+    var rv = memoizer.db[key];
+    if (rv !== undefined) return rv;
+    if (!lookups_in_progress[key])
+      lookups_in_progress[key] = spawn (function(args) {
+        return memoizer.db[key] = f.apply(this, args);
+      })(arguments);
+    try {
+      return lookups_in_progress[key].waitforValue();
+    }
+    finally {
+      if (lookups_in_progress[key].waiting() == 0) {
+        lookups_in_progress[key].abort();
+        delete lookups_in_progress[key];
+      }
+    }
+  };
+
+  memoizer.db = {};
+  return memoizer;
+};
+
 //----------------------------------------------------------------------
 // stratified eval
 
@@ -484,6 +515,43 @@ function http_src_loader(path) {
   return { src: src, loaded_from: path };
 }
 
+
+var github_api = "http://github.com/api/v2/json/";
+var github_opts = {cbfield:"callback"};
+// Resolve a github repo location (user, repo, tag) into a tree_sha for direct lookup.
+// Cached for the duration of the current runtime.
+var resolve_github_repo = exports.makeMemoizedFunction(
+  function resolve(user, repo, tag) {
+    var tree_sha;
+    /* XXX we really want the parallel-or operator here (|@|) to recode this as:
+  
+    var tree_sha = 
+      (jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'], 
+                    github_opts).tags 
+      |@| 
+      jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
+                    github_opts).branches)[tag];
+    */
+    waitfor {
+      (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'],
+                                github_opts).tags[tag]) || hold();
+    }
+    or {
+      (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
+                                github_opts).branches[tag]) || hold();
+    }
+    or {
+      hold(10000);
+      throw new Error("Github timeout");
+    }
+    return tree_sha;
+  },
+
+  function key(user, repo, tag) {
+    return user + '/' + repo + '/' + tag;
+  }
+);
+
 // loader that loads directly from github
 function github_src_loader(path) {
   var user, repo, tag;
@@ -491,31 +559,7 @@ function github_src_loader(path) {
     [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
   } catch(e) { throw "Malformed module id '"+path+"'"; }
   
-  var github_api = "http://github.com/api/v2/json/";
-  var github_opts = {cbfield:"callback"};
-  // XXX maybe some caching here
-  var tree_sha;
-  /* XXX we really want the parallel-or operator here (|@|) to recode this as:
- 
-  var tree_sha = 
-    (jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'], 
-                   github_opts).tags 
-     |@| 
-     jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
-                   github_opts).branches)[tag];
-  */
-  waitfor {
-    (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'],
-                              github_opts).tags[tag]) || hold();
-  }
-  or {
-    (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
-                              github_opts).branches[tag]) || hold();
-  }
-  or {
-    hold(10000);
-    throw new Error("Github timeout");
-  }
+  var tree_sha = resolve_github_repo(user, repo, tag);
 
   waitfor {
     var src = jsonp_hostenv([github_api, 'blob/show/', user, repo, tree_sha, path],

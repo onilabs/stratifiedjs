@@ -274,6 +274,22 @@ test('makeMemoizedFunction 2', 3, function() {
   return c;
 });
 
+test('makeMemoizedFunction with custom key', 2, function() {
+  var c = 0;
+  var f = cutil.makeMemoizedFunction(function(x) {
+    if (x == 42) ++c;
+    return x;
+  }, function(a, b) {
+    return b;
+  });
+  results = [];
+  f(42, 1);
+  f(42, 2);
+  f(42, 2);
+  return c;
+});
+
+
 test('makeMemoizedFunction retraction', 2, function() {
   var c = 0;
   var f = cutil.makeMemoizedFunction(function(x) {

@@ -291,14 +291,19 @@ exports.makeDeferredFunction = function(f) {
    @function makeMemoizedFunction
    @summary  A wrapper for implementing a memoized version of a function.
    @param    {Function} [f] The function to wrap.
+   @param    {optional Function} [key] The key function to use.
    @return   {Function} The wrapped function.
    @desc
      The wrapped function `g = makeMemoizedFunction(f)` stores values that have
-     been previously computed by `f` in the hash `g.db`, indexed by the first 
-     argument. If `g` is called multiple times with the same argument `X`, only the 
+     been previously computed by `f` in the hash `g.db`, indexed by key. 
+     If `g` is called multiple times with the same argument `X`, only the 
      first invocation will call `f(X)` and store the resulting value under 
      `g.db[X]`. Subsequent invocations to `g(X)` will read the value for `X` from 
      `g.db[X]`.
+
+     If `keyfn` is provided, it is called with the same arguments as the function 
+     itself, and its return value becomes the key for this call. If `keyfn` is 
+     omitted, the first argument to the function is used as the key.
 
      It is safe to concurrently call `g` from multiple strata concurrently: 
      If a call `g(X)` is already in progress (blocked in `f(X)`), while 
@@ -311,31 +316,7 @@ exports.makeDeferredFunction = function(f) {
      `f(X)` to finish has been aborted (i.e. noone is interested in the value 
      for `X` at the moment).
 */
-exports.makeMemoizedFunction = function(f) {
-  var lookups_in_progress = {};
-
-  var memoizer = function(key) {
-    var rv = memoizer.db[key];
-    if (rv !== undefined) return rv;
-    // else...
-    if (!lookups_in_progress[key])
-      lookups_in_progress[key] = spawn (function(args) {
-        return memoizer.db[key] = f.apply(this, args);
-      })(arguments);
-    try {
-      return lookups_in_progress[key].waitforValue();
-    }
-    finally {
-      if (lookups_in_progress[key].waiting() == 0) {
-        lookups_in_progress[key].abort();
-        delete lookups_in_progress[key];
-      }
-    }
-  };
-
-  memoizer.db = {};
-  return memoizer;
-};
+exports.makeMemoizedFunction = sys.makeMemoizedFunction;
 
 /**
   @class   Queue
