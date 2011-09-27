@@ -153,7 +153,7 @@ exports.parseSJSLibDocs = function(src) {
     [prop,value] = fields[i];
     switch (prop) {
     case "module":
-      if (!(matches = /^([^ \t]+)(?:[ \t]+(.+))?$/.exec(value))) break;
+      if (!(matches = /^([^ \t]+)(?:[ \t]+(.+))?[ \t]*$/.exec(value))) break;
       lib.modules[matches[1]] = {type:"module", name:matches[1], summary:matches[2]};
       break;
     default:
@@ -183,7 +183,7 @@ exports.parseModuleDocs = function(src, module) {
     [prop,value] = fields[i];
     switch (prop) {
     case "class":
-      curr = { name: value, symbols: {} };
+      curr = { type: "class", name: value, symbols: {} };
       module.classes[value] = curr;
       break;
     case "function":

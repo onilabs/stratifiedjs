@@ -40,13 +40,13 @@ var coll = require('./collection');
 
 /**
   @function waitforAll
-  @deprecated Use [collection.par.waitforAll](#collection/par.waitforAll)
+  @deprecated Use [collection::par.waitforAll]
 */
 exports.waitforAll = coll.par.waitforAll;
 
 /**
   @function waitforFirst
-  @deprecated Use [collection.par.waitforFirst](#collection/par.waitforFirst)
+  @deprecated Use [collection::par.waitforFirst]
 */
 exports.waitforFirst = coll.par.waitforFirst;
 
@@ -56,9 +56,9 @@ exports.waitforFirst = coll.par.waitforFirst;
   @summary  A counting semaphore.
   @function Semaphore
   @summary  Constructor for a Semaphore object.
-  @return   {Semaphore}
+  @return   {::Semaphore}
   @param    {Integer} [permits] Number of permits available to be handed out.
-  @param    {Boolean} [sync=false] Toggles synchronous behaviour (see [Semaphore.release](#cutil/Semaphore/release))
+  @param    {Boolean} [sync=false] Toggles synchronous behaviour (see [::Semaphore::release])
   @desc
     Example:
     `var S = new (cutil.Semaphore)(10);`
@@ -83,19 +83,16 @@ Semaphore.prototype = {
     @return   {Permit} An object with a *__finally__* method, which will release
               the semaphore.
     @desc
-      Calls to [Semaphore.acquire](#cutil/Semaphore/acquire)
-      usually need to be paired up with calls
-      to [Semaphore.release](#cutil/Semaphore/release).
-      Instead of doing this manually,
-      [Semaphore.acquire](#cutil/Semaphore/acquire) can be used in a
-      'using' block:
+      Calls to [::Semaphore::acquire] usually need to be paired up
+      with calls to [::Semaphore::release]. Instead of doing this
+      manually, [::Semaphore::acquire] can be used in a 'using' block:
 
       `using (mySemaphore.acquire()) {
         ...
       }`
 
       Here the 'using' construct will automatically call the permit's
-      *__finally__* method when the code block is left.
+      `__finally__` method when the code block is left.
    */
   acquire: function() {
     if (this.permits <= 0) {
@@ -117,21 +114,21 @@ Semaphore.prototype = {
     @desc
       If upon releasing a permit, there are other strata
       waiting for a permit (by blocking in
-      [Semaphore.acquire](#cutil/Semaphore/acquire)),
+      [::Semaphore::acquire]),
       the oldest one will be handed the permit and resumed.
 
       The sequencing of resumption is determined by the Semaphore
       constructor flag 'sync':
 
       If sync is false, the pending stratum will be resumed
-      *after* [Semaphore.release](#cutil/Semaphore/release) returns.
+      *after* [::Semaphore::release] returns.
 
       If sync is true, the pending stratum will be resumed *before*
-      [Semaphore.release](#cutil/Semaphore/release) returns.
+      [::Semaphore::release] returns.
 
-      Calls to [Semaphore.release](#cutil/Semaphore/release) are usually
-      paired with calls to [Semaphore.acquire](#cutil/Semaphore/acquire).
-      See documentation for [Semaphore.acquire](#cutil/Semaphore/acquire)
+      Calls to [::Semaphore::release] are usually
+      paired with calls to [::Semaphore::acquire].
+      See documentation for [::Semaphore::acquire]
       for an alternative to doing this manually.
    */
   release : function() {
@@ -264,7 +261,7 @@ exports.makeExclusiveFunction = function(f) {
    @return   {Function} The wrapped function.
    @desc
      When the wrapped function is called, it returns a 'deferred object' which 
-     implements the methods 'then' and 'cancel', as described in 
+     implements the methods `then` and `cancel`, as described in 
      [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern). With these methods, plain JS code can be made to wait for
      for the execution of asynchronous SJS code.
 */
@@ -325,8 +322,8 @@ exports.makeMemoizedFunction = sys.makeMemoizedFunction;
   @summary Constructor for a bounded FIFO queue datastructure.
   @param   {Integer} [capacity] Maximum number of items to which the queue will
            be allowed to grow.
-  @param   {Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [Semaphore](#cutil/Semaphore))
-  @return  {Queue}
+  @param   {optional Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [::Semaphore]).
+  @return  {::Queue}
 */
 function Queue(capacity, sync) {
   this.items = [];

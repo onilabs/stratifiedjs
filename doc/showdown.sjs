@@ -1,4 +1,12 @@
+// showdown.sjs - modularized version of John Fraser's showdown.js;
+// see original Copyright below.
 //
+// **************************************************
+// Oni Labs modifications tagged with "ONILABS"
+// **************************************************
+//
+
+
 // showdown.js -- A javascript port of Markdown.
 //
 // Copyright (c) 2007 John Fraser.
@@ -67,10 +75,6 @@
 //
 // Modifications are tagged with "GFM"
 // **************************************************
-
-// **************************************************
-// Oni Labs modifications tagged with "ONILABS"
-// **************************************************
 //
 // Showdown namespace
 //
@@ -97,8 +101,10 @@ var g_html_blocks;
 // (see _ProcessListItems() for details):
 var g_list_level = 0;
 
+// *** ONILABS : added g_resolveLink
+var g_resolveLink;
 
-this.makeHtml = function(text) {
+this.makeHtml = function(text, resolveLink) {
 //
 // Main function. The order in which other subs are called here is
 // essential. Link and image substitutions need to happen before
@@ -113,6 +119,9 @@ this.makeHtml = function(text) {
 	g_urls = new Array();
 	g_titles = new Array();
 	g_html_blocks = new Array();
+
+  // *** ONILABS:
+  g_resolveLink = resolveLink;
 
 	// attacklab: Replace ~ with ~T
 	// This lets us use tilde as an escape char to avoid md5 hashes
@@ -575,29 +584,37 @@ var writeAnchorTag = function(wholeMatch,m1,m2,m3,m4,m5,m6,m7) {
 	var link_id	 = m3.toLowerCase();
 	var url		= m4;
 	var title	= m7;
+  var resolved;
 
 	if (url == "") {
-		if (link_id == "") {
-			// lower-case and turn embedded newlines into spaces
-			link_id = link_text.toLowerCase().replace(/ ?\n/g," ");
-		}
-		url = "#"+link_id;
-
-		if (g_urls[link_id] != undefined) {
-			url = g_urls[link_id];
-			if (g_titles[link_id] != undefined) {
-				title = g_titles[link_id];
-			}
-		}
-		else {
-			if (whole_match.search(/\(\s*\)$/m)>-1) {
-				// Special case for explicit empty url
-				url = "";
-			} else {
-				return whole_match;
-			}
-		}
-	}
+    if (g_resolveLink && (resolved = g_resolveLink(link_id || link_text))) {
+      // *** ONILABS: resolveLink processing 
+      url = resolved[0];
+      link_text = resolved[1];
+    }
+    else {
+		  if (link_id == "") {
+			  // lower-case and turn embedded newlines into spaces
+			  link_id = link_text.toLowerCase().replace(/ ?\n/g," ");
+		  }
+		  url = "#"+link_id;
+      
+		  if (g_urls[link_id] != undefined) {
+			  url = g_urls[link_id];
+			  if (g_titles[link_id] != undefined) {
+				  title = g_titles[link_id];
+			  }
+		  }
+		  else {
+			  if (whole_match.search(/\(\s*\)$/m)>-1) {
+				  // Special case for explicit empty url
+				  url = "";
+			  } else {
+				  return whole_match;
+			  }
+		  }
+	  }
+  }
 
 	url = escapeCharacters(url,"*_");
 	var result = "<a href=\"" + url + "\"";
@@ -1045,11 +1062,12 @@ var _EncodeCode = function(text) {
 var _DoItalicsAndBold = function(text) {
 
 	// <strong> must go first:
-	text = text.replace(/(\*\*|__)(?=\S)([^\r]*?\S[*_]*)\1/g,
+  // *** ONILABS - no bold for '__XXX__' 
+	text = text.replace(/(\*\*)(?=\S)([^\r]*?\S[*_]*)\1/g,
 		"<strong>$2</strong>");
 
 	text = text.replace(/(\w)_(\w)/g, "$1~E95E$2") // ** GFM **  "~E95E" == escaped "_"
-	text = text.replace(/(\*|_)(?=\S)([^\r]*?\S)\1/g,
+	text = text.replace(/(\*)(?=\S)([^\r]*?\S)\1/g, // *** ONILABS - no replacing of '__'
 		"<em>$2</em>");
 
 	return text;
@@ -1363,3 +1381,20 @@ var escapeCharacters_callback = function(wholeMatch,m1) {
 }
 
 } // end of Showdown.converter
+
+// ** ONILABS
+
+var converter = new Showdown.converter();
+
+exports.makeHTML = function(s, resolveLink) {
+  if (!s) return "";
+  
+  // if first line is indented, strip that much space from all lines
+  // before passing through showdown:
+  var matches = /^([ \t]+)/.exec(s);
+  if (matches) {
+    s = s.replace(new RegExp("^[ \\t]{"+matches[1].length+"}", "mg"), "");
+  }
+
+  return converter.makeHtml(s, resolveLink);
+}

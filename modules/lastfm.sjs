@@ -35,16 +35,16 @@
    @summary A wrapper around the Last.fm API
    @desc
      This module uses the JSONP interface of [the Last.fm API](http://www.last.fm/api).
-     `var lastfm = require("apollo:lastfm");
-     lastfm.key = "somekey...";
-     var tracks = lastfm.get({
-       method: "user.getrecenttracks", 
-       user: "rj"
-     }).track;
-     for (var i = 0; i < tracks.length; i++) {
-       console.log(tracks[i].name);
-     }
-     `
+
+         var lastfm = require("apollo:lastfm");
+         lastfm.key = "somekey...";
+         var tracks = lastfm.get({
+           method: "user.getrecenttracks", 
+           user: "rj"
+         }).track;
+         for (var i = 0; i < tracks.length; i++) {
+           console.log(tracks[i].name);
+         }
     
 */
 var http = require("./http");
@@ -64,10 +64,12 @@ exports.key = defaultKey;
   @param      {optional Object} [params] Object with key/value pairs describing the request parameters.
   @return     {Object}
   @desc
-    `var name = require("apollo:lastfm").get({
-      method: "user.getinfo", 
-      user: "rj"
-    }).realname;`
+    ###Example
+
+        var name = require("apollo:lastfm").get({
+          method: "user.getinfo", 
+          user: "rj"
+        }).realname;
 */
 exports.get = function () {
   if (!exports.key) {

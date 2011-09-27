@@ -39,7 +39,7 @@
         var q = "select * from html where url=&#0064;url and xpath='//h1'";
         var rv = yql.query(q, {url:"http://www.onilabs.com"});
 
-    See the [query](#yql/query) function for more examples.
+    See the [::query] function for more examples.
 */
 
 var http = require("./http");
@@ -149,7 +149,7 @@ exports.getDataURI = function(url) {
   @desc
     This is a convenience wrapper for [the data.uri table](http://developer.yahoo.com/yql/console/#h=desc%20data.uri).
   @param     {String} [url] A string containing the URL of the requested file.
-  @return    {string}
+  @return    {String}
 */
 exports.getFile = function(url) {
   return require("./base64").decode(exports.getDataURI(url).split("base64,")[1]);

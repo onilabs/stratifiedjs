@@ -34,7 +34,7 @@
   @hostenv    xbrowser
   @summary    A convenience module used to load and extend jQuery to make use of StratifiedJS features.
   @desc 
-    By default [install](#jquery-binding/install) will load jQuery from
+    By default [::install] will load jQuery from
     a CDN and add stratified versions ($+fnname) of the most common [jQuery functions](http://api.jquery.com/category/events/).
 
         require("apollo:jquery-binding").install();
@@ -59,7 +59,7 @@
 
     <table cellspacing=0>
       <tr><td style='width:13em'>jQuery</td><td>
-      get, post, getJSON, getScript <br/>though we recommend the <a href="#http">http</a> module for these
+      get, post, getJSON, getScript <br/>though we recommend the http module for these
       </td></tr>
       <tr><td>jQuery.fn</td><td>
       animate, show, hide, load, bind, live

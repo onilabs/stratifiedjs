@@ -75,7 +75,7 @@ function uninstallLogger(logger) {
   @function log
   @summary Log the given object to all Stratfied JS consoles created with *receivelog* = *true*.
   @param {Object} [obj] Object to log.
-  @deprecated since 0.13 - use the functions in the [`logging`](#logging) module instead.
+  @deprecated since 0.13 - use the functions in the [logging::] module instead.
 */
 var printToLoggers = exports.log = function() {
   var logArgs = arguments;
@@ -238,7 +238,7 @@ function viewportStick(el, offset) {
   @class Console
   @summary Stratified JavaScript console.
   @desc
-     Use function [debug.console](#debug/console) to open a new Console object.
+     Use function [::console] to open a new Console object.
 
   @function console
   @param    {optional Object} [settings]
@@ -246,8 +246,8 @@ function viewportStick(el, offset) {
   @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
   @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null. 
   @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
-  @setting  {Boolean} [receivelog=true] Whether the console will act as an output for messages from the [logging](#logging) module.
-  @return   {Console}
+  @setting  {Boolean} [receivelog=true] Whether the console will act as an output for messages from the [logging::] module.
+  @return   {::Console}
 */
 exports.console = function(opts) {  
   return new Console(opts);
@@ -547,7 +547,7 @@ Console.prototype = {
   
   /**
     @function  Console.__finally__
-    @summary   Calls [Console.shutdown](#debug/Console/shutdown).
+    @summary   Calls [::Console::shutdown].
                Allows Console to be used in a 'using' construct.
    */
   __finally__: function() { this.shutdown(); }

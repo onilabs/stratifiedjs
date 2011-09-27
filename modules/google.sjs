@@ -64,7 +64,7 @@ exports.search = search;
              key/value query parameters.
   @return    {Object} The query result.
   @desc
-    See [google.search](#google/search)
+    See [::search].
 */
 exports.siteSearch = function (q, site, settings) {
   q = q || "";

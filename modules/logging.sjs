@@ -41,7 +41,7 @@
     `console` object, no logging will occur. In that case,
     you can either use a tool like Firebug Lite
     (http://getfirebug.com/firebuglite) to emulate a console,
-    or create an apollo console using the [debug](#debug)
+    or create an apollo console using the [debug::]
     module.
 
     Note that where possible, an appropriate `console` method
@@ -133,7 +133,7 @@ exports.setLevel = function(lvl) {
   @summary Set the output format of log messages
   @desc
     The default format is `"{level}: {message}"`, substitutions
-    will be performed using [`common.supplant()`](#common/supplant).
+    will be performed using [common::supplant].
 
     Currently the only keys available for a format to include are
     `level` and `message`.
@@ -219,7 +219,7 @@ var printfn = function(lvl, preferred_console_method) {
   @desc
     Does not format the message in any way, unlike other `log` methods.
   @param    {String} [message]
-  @param    {optional Object} [obj] an optional object to print - see the `obj` paramater in [`debug()`](#logging/debug) for details.
+  @param    {optional Object} [obj] an optional object to print - see the `obj` paramater in [::debug] for details.
 */
 exports.print = function() { getPrinter('log').apply(null, arguments); };
 
@@ -227,7 +227,7 @@ exports.print = function() { getPrinter('log').apply(null, arguments); };
   @function debug
   @summary  Print the given message to the console when the current log level is DEBUG or higher
   @param    {String} [message] The message to log
-  @param    {optional Object} [values] Values to be substituted into the message (see [`common.supplant`](#common/supplant) for the syntax).
+  @param    {optional Object} [values] Values to be substituted into the message (see [common::supplant] for the syntax).
   @param    {optional Object} [obj] An additional object to pass through to the underlying log method.
             In the node.js environment, the object will be dumped as a JSON string.
             In a browser, this may show an expandable view of the object.
@@ -237,7 +237,7 @@ exports.debug = printfn(exports.DEBUG, 'debug');
 /**
   @function verbose
   @summary  Print the given message to the console when the current log level is VERBOSE or higher.
-            The arguments are interpreted as for [`debug()`](#logging/debug).
+            The arguments are interpreted as for [::debug].
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -247,7 +247,7 @@ exports.verbose = printfn(exports.VERBOSE, 'debug');
 /**
   @function info
   @summary  Print the given message to the console when the current log level is INFO or higher.
-            The arguments are interpreted as for [`debug()`](#logging/debug).
+            The arguments are interpreted as for [::debug].
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -257,7 +257,7 @@ exports.info = printfn(exports.INFO,'info');
 /**
   @function warn
   @summary  Print the given message to the console when the current log level is WARN or higher.
-            The arguments are interpreted as for [`debug()`](#logging/debug).
+            The arguments are interpreted as for [::debug].
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -266,7 +266,7 @@ exports.warn = printfn(exports.WARN,'warn');
 /**
   @function error
   @summary  Print the given message to the console when the current log level is ERROR or higher.
-            The arguments are interpreted as for [`debug()`](#logging/debug).
+            The arguments are interpreted as for [::debug].
   @param    {String} [message]
   @param    {optional Object} [values]
   @param    {optional Object} [obj]
@@ -311,7 +311,7 @@ exports.logContext = function(settings) {
   @param    {optional Object} [console] the new `console` object
   @summary  Override the `console` object that this module will print to
   @desc
-    This method is used by the [debug](#debug) module to redirect logging
+    This method is used by the [debug::] module to redirect logging
     to any console created with `receivelog = true`.
 
     If `console` is null or not provided, the global `console` object will

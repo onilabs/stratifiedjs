@@ -349,7 +349,7 @@ function waitforFirstArgs(f, args, i, l, this_obj) {
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the iterator
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
-  @summary  Parallel version of [`each`](#collection/each)
+  @summary  Parallel version of [::each]
 */
 exports.par.each = function(collection, fn, this_obj) {
   var keys = exports.keys(collection);
@@ -433,7 +433,7 @@ exports.map     = seqAndParMap[0];
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the transform function
   @param    {optional Object} [this_obj]
-  @summary  Parallel version of [`map`](#collection/map)
+  @summary  Parallel version of [::map]
 */
 exports.par.map = seqAndParMap[1];
 
@@ -475,7 +475,7 @@ exports.par.map = seqAndParMap[1];
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
     @param    {optional Object} [this_obj] the object on which `fn` will be executed
-    @summary  Parallel version of [`find`](#collection/find)
+    @summary  Parallel version of [::find]
     @desc
       Unlike sequential find, this will return _any_ matching
       element rather than the first.
@@ -489,7 +489,7 @@ exports.par.map = seqAndParMap[1];
     @param    {optional Object} [this_obj] the object on which `fn` will be executed
     @summary  Find the key of the first matching object
     @desc
-      Operates exactly like [`find`](#collection/find), but returns you the key (index)
+      Operates exactly like [::find], but returns you the key (index)
       of the first matching item instead of its value.
 
       Returns `undefined` when no match is found.
@@ -501,7 +501,7 @@ exports.par.map = seqAndParMap[1];
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
     @param    {optional Object} [this_obj] the object on which `fn` will be executed
-    @summary  Parallel version of [`findKey`](#collection/findKey)
+    @summary  Parallel version of [::findKey]
     @desc
       Unlike sequential `findKey`, this will return _any_ matching
       element's key rather than the first.
@@ -572,7 +572,7 @@ exports.par.map = seqAndParMap[1];
     @param    {Object | Array} [collection]
     @param    {Function} [fn] the test function
     @param    {optional Object} [this_obj] the object on which `fn` will be executed
-    @summary  Parallel version of [`filter`](#collection/filter).
+    @summary  Parallel version of [::filter]
     @desc
       Note that even though `test` will be called in parallel,
       the result will maintain the same ordering as the
@@ -617,7 +617,7 @@ exports.reduce = function(collection, initial, fn, this_obj) {
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the reducer function
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
-  @summary  [`reduce`](#collection/reduce) for a non-empty list
+  @summary  [::reduce] for a non-empty list
   @desc
     calls `reduce`, using the first element of `collection` as
     the initial value, and the remaining elements as the collection
@@ -659,7 +659,7 @@ exports.all     = seqAndParAll[0];
   @param    {Object | Array} [collection]
   @param    {Function} [fn] The test function
   @param    {optional Object} [this_obj]
-  @summary  Parallel version of [`all`](#collection/all).
+  @summary  Parallel version of [::all]
 */
 exports.par.all = seqAndParAll[1];
 
@@ -693,6 +693,6 @@ exports.any     = seqAndParAny[0];
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
   @param    {optional Object} [this_obj]
-  @summary  Parallel version of [`any`](#collection/any).
+  @summary  Parallel version of [::any]
 */
 exports.par.any = seqAndParAny[1];

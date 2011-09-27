@@ -52,7 +52,7 @@ var sys = require('sjs:apollo-sys');
     array of (arrays of) key/value objects.
 
     Instead of passing an array, the individual array components can also
-    be passed as individual parameters to [http.constructURL](#http/constructURL).
+    be passed as individual parameters to [::constructURL].
     E.g. the following two calls are equivalent:
 
          http.constructQueryString({a:1}, {b:1});
@@ -99,10 +99,10 @@ exports.constructQueryString = sys.constructQueryString;
     *urlspec* can be a simple string or an (arbitrarily nested) array composed
     of one base strings, and optionally a number of path strings and/or a
     number of QUERYHASH objects (as accepted by
-    [http.constructQueryString](#http/constructQueryString)).
+    [::constructQueryString]).
 
     Instead of passing an array, the individual array components can also
-    be passed as individual parameters to [http.constructURL](#http/constructURL).
+    be passed as individual parameters to [::constructURL].
     E.g. the following two calls are equivalent:
 
          http.constructURL("foo", "bar", "baz");
@@ -213,7 +213,7 @@ exports.xml = function() { throw "http.xml() is obsolete."; };
    @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'any')
    @return {String}
    @desc
-     See also [http.request](#http/request).
+     See also [::request].
 */
 exports.getXDomainCaps = sys.getXDomainCaps;
 
@@ -221,11 +221,11 @@ exports.getXDomainCaps = sys.getXDomainCaps;
 /**
    @function request
    @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return {String}
    @setting {String} [method="GET"] Request method.
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [::constructQueryString].
    @setting {String} [body] Request body.
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.
@@ -250,7 +250,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
 
      The success of cross-domain requests depends on the cross-domain
      capabilities of the host environment, see
-     [http.getXDomainCaps](#http/getXDomainCaps). If this function
+     [::getXDomainCaps]. If this function
      returns "CORS" then success of cross-domain requests depends on
      whether the server allows the access (see
      <http://www.w3.org/TR/cors/>).
@@ -258,7 +258,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
      In the xbrowser host environment, the standard
      XMLHttpRequest can handle cross-domain requests on compatible
      browsers (any recent Chrome, Safari, Firefox). On IE8+,
-     [http.request](#http/request) will automatically fall back to using MS's
+     [::request] will automatically fall back to using MS's
      XDomainRequest object for cross-site requests.
 
      In the nodejs host environment, we can always perform cross-domain requests
@@ -287,8 +287,8 @@ exports.request = sys.request;
 /**
   @function  get
   @summary   Perform a HTTP GET request and return the response text.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.request](#http/request).
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
+  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [::request].
   @return    {String}
   @shortcut  request
   @desc
@@ -319,9 +319,9 @@ exports.get = exports.request;
 /** 
   @function  post
   @summary   Perform a HTTP POST request and return the response text.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
   @param     {String|null} [body] Request body.
-  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.request](#http/request).
+  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [::request].
   @return    {String} 
   @shortcut  request
   @desc
@@ -349,8 +349,8 @@ exports.post = function(url, body, settings) {
 /**
   @function  json
   @summary   Perform a HTTP GET request and parse the response text as a JSON object.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
-  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [http.request](#http/request).
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
+  @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [::request].
   @shortcut  get
   @return    {Object}
   @desc
@@ -399,10 +399,10 @@ exports.json = function(/*url, settings*/) {
 /**
   @function  jsonp
   @summary   Perform a cross-domain capable JSONP-style request. 
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
   @param {optional Object} [settings] Hash of settings (or array of hashes)
   @return    {Object}
-  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [::constructQueryString].
   @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
   @setting {String} [forcecb] Force the name of the callback to the given string.
   @desc

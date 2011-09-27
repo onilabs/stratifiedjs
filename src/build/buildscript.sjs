@@ -135,7 +135,7 @@ function build_deps() {
           function() {
             var modules = fs.readdir("modules");
             for (var i=0; i<modules.length; ++i) {
-              if (/.+\.sjs$/.test(modules[i])) {
+              if (/.+\.(sjs|txt)$/.test(modules[i])) {
                 log('Replacing version in modules/'+modules[i]);
                 replacements_from_config("modules/"+modules[i]);
               }
@@ -172,7 +172,9 @@ function replacements_from_config(target) {
   var src = fs.readFile(target).toString();
 
   var repl = src.replace(/Version: '[^']*'/g, "Version: '"+config.version+"'")
-                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"');
+                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"')
+                .replace(/Apollo '[^']*' Standard Module Library/g, 
+                         "Apollo '"+config.version+"' Standard Module Library");
 
   if (repl != src)
     fs.writeFile(target, repl);

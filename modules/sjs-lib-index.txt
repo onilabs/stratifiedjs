@@ -1,9 +1,11 @@
-@lib     Apollo Standard Module Libary
-@summary The Apollo Standard Library
+@lib     Apollo 'unstable' Standard Module Library
+@summary A collection of modules for client and server-side stratified programming.
 @desc
-  This is the Apollo Standard Library. 
+    The Apollo Standard Module Library provides a collection of
+    StratifiedJS modules useful for webapp development.
 
-@module base64 
+
+@module base64
 @module collection
 @module common
 @module cutil
@@ -20,7 +22,8 @@
 @module node-events
 @module node-fs
 @module node-http
-@module node-stream
 @module node-repl
+@module node-stream
 @module twitter
+@module ui
 @module yql

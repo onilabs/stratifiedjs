@@ -57,7 +57,7 @@ __oni_rt.sys = exports;
 // libraries; accessible through require('sjs:apollo-sys')
 
 /**
-   @object hostenv
+   @variable hostenv
    @summary Host environment that we're running in (currently one of 'nodejs' or 'xbrowser') 
 */
 exports.hostenv = __oni_rt.hostenv;

@@ -166,7 +166,7 @@ exports.stopEvent = function(ev) {
   @param     {String | DOMElement} [selector] Id of DOM element or DOM element on which to wait for the given *events*.
   @param     {String} [events] String containing one or more space-separated DOM event names. E.g.: "click mouseover".
   @param     {optional Function} [filter] Function through which received
-             events will be passed. [waitforEvent](#dom/waitforEvent)
+             events will be passed. [::waitforEvent]
              continues listening for events and won't return until the filter
              returns a value != true.
   @param     {optional Function} [eventTransformer] Function through which an
@@ -176,18 +176,20 @@ exports.stopEvent = function(ev) {
              was triggered. This will be the original DOMEvent, or a return
              value from *eventTransformer*.
   @desc
-    `var e = dom.waitforEvent("myid", "click");
-    alert(e.currentTarget);`
+    **Example:**
 
-    ### Keep observing events in an event loop:
+        var e = dom.waitforEvent("myid", "click");
+        alert(e.currentTarget);`
 
-    `while (require('apollo:dom').waitforEvent("myid", "mouseover")) {
-      console.log("mouseover!");
-    }`
+    **Keep observing events in an event loop:**
+
+        while (require('apollo:dom').waitforEvent("myid", "mouseover")) {
+          console.log("mouseover!");
+        }
 
     Note that this type of event loop can lose events (which is
     sometimes desirable and sometimes isn't). See
-    [dom.eventQueue](#dom/eventQueue) for an alternative.
+    [::eventQueue] for an alternative.
 */
 exports.waitforEvent = function(selector, events, filter, eventTransformer) {
   var elems = elementsFromSelector(selector);
@@ -223,12 +225,12 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
   @class EventQueue
   @summary Listens for specified events and stores them in a queue.
   @desc
-     Use function [dom.eventQueue](#dom/eventQueue) to construct a new
+     Use function [::eventQueue] to construct a new
      EventQueue object.
 
   @function  eventQueue
   @summary Constructs a new EventQueue object.
-  @return  {EventQueue}
+  @return  {::EventQueue}
   @param     {String | DOMElement} [selector] Id of DOM element or DOM element on which to listen for the given *events*.
   @param     {String} [events] A string containing one or more space-separated DOM event names. e.g: "click mouseover".
   @param     {optional Function} [filter] Function through which received
@@ -238,24 +240,23 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
              event will be passed before passing the return value on to
              *filter* and/or entering it into the queue.
   @desc
-    The returned [EventQueue](#dom/EventQueue) object proceeds to listen for
+    The returned [::EventQueue] object proceeds to listen for
     events immediately in the background, and continues to do so until
-    [EventQueue.stop](#dom/EventQueue/stop) is called.
+    [::EventQueue::stop] is called.
 
-    Alternatively, as [EventQueue](#dom/EventQueue) implements a
-    [__finally__](#dom/EventQueue/__finally__) method, it can be used in a
+    Alternatively, because [::EventQueue] implements a
+    [::EventQueue::__finally__] method, it can be used in a
     'using' block:
 
-    `using (var Q = require('apollo:dom').eventQueue(elem,"click")) {
-      while (true) {
-        var ev = Q.get();
-        ...
-      }
-    }`
+        using (var Q = require('apollo:dom').eventQueue(elem,"click")) {
+          while (true) {
+            var ev = Q.get();
+            ...
+          }
+        }
 
-    Here the 'using' construct will automatically call the
-    [EventQueue](#dom/EventQueue)'s
-    [__finally__](#dom/EventQueue/__finally__) method when the 'using' code
+    Here the `using` construct will automatically call
+    [::EventQueue::__finally__] when the `using` code
     block is exited.
 */
 exports.eventQueue = function(selector, events, filter, eventTransformer) {
@@ -324,8 +325,8 @@ EventQueue.prototype = {
     @function  EventQueue.stop
     @summary   Stop listening for events.
     @desc
-       See 'More information' section under [dom.eventQueue](#dom/eventQueue)
-       for an alternative to calling [EventQueue.stop](#dom/EventQueue/stop)
+       See 'More information' section under [::eventQueue]
+       for an alternative to calling [::EventQueue::stop]
        manually.
    */
   stop: function() {
@@ -336,10 +337,10 @@ EventQueue.prototype = {
   
   /**
     @function  EventQueue.__finally__
-    @summary   Calls [EventQueue.stop](#dom/EventQueue/stop).
-               Allows EventQueue to be used a 'using' construct.
+    @summary   Calls [::EventQueue::stop]
+               Allows EventQueue to be used a `using` construct.
     @desc
-       See 'More information' section under [dom.eventQueue](#dom/eventQueue).
+       See 'More information' section under [::eventQueue].
    */
   __finally__: function() { this.stop(); }
 };
@@ -354,7 +355,7 @@ var _loadedScripts = {};
 /**
   @function  script
   @summary   Load and execute a plain JavaScript file.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http::constructURL])
   @desc
     It is safe to call this function simultaneously from several strata,
     even for the same URL: The given URL will only be loaded **once**, and
@@ -365,9 +366,9 @@ var _loadedScripts = {};
 
     ### Example:
 
-    `var dom = require("apollo:dom");
-    dom.script("http://code.jquery.com/jquery.js");
-    jQuery("body").css({background:"red"});`
+        var dom = require("apollo:dom");
+        dom.script("http://code.jquery.com/jquery.js");
+        jQuery("body").css({background:"red"});
 */
 exports.script = function(/*url, queries*/) {
   var url = sys.constructURL(arguments);
@@ -467,7 +468,7 @@ exports.addCSS = function(cssCode) {
 /**
   at function css
   at summary Load a CSS file into the current document.
-  at param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+  at param {URLSPEC} [url] Request URL (in the same format as accepted by [http::constructURL])
   at desc
 */
 // XXX should be more robust: http://yui.yahooapis.com/2.8.1/build/get/get.js

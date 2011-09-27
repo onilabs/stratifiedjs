@@ -62,33 +62,32 @@ exports.waitforEvent = function(emitter, event) {
   @class EventQueue
   @summary Listens for specified events and stores them in a queue.
   @desc
-     Use function [node-events.eventQueue](#node-events/eventQueue) to construct a new
+     Use function [::eventQueue] to construct a new
      EventQueue object.
 
   @function  eventQueue
   @summary Constructs a new EventQueue object.
-  @return  {EventQueue}
+  @return  {::EventQueue}
   @param   {EventEmitter} [emitter] NodeJS event emitter
   @param   {String} [event] Event to listen for
   @desc
-    The returned [EventQueue](#node-events/EventQueue) object proceeds to listen for
+    The returned [::EventQueue] object proceeds to listen for
     events immediately in the background, and continues to do so until
-    [EventQueue.stop](#node-events/EventQueue/stop) is called.
+    [::EventQueue::stop] is called.
 
-    Alternatively, as [EventQueue](#node-events/EventQueue) implements a
-    [__finally__](#node-events/EventQueue/__finally__) method, it can be used in a
-    'using' block:
+    Alternatively, because [::EventQueue] implements a
+    [::EventQueue::__finally__] method, it can be used in a
+    `using` block:
 
-    `using (var Q = require('node-events').eventQueue(emitter, event)) {
-      while (true) {
-        var data = Q.get();
-        ...
-      }
-    }`
+        using (var Q = require('apollo:node-events').eventQueue(emitter, event)) {
+          while (true) {
+            var data = Q.get();
+            ...
+          }
+        }
 
-    Here the 'using' construct will automatically call the
-    [EventQueue](#node-events/EventQueue)'s
-    [__finally__](#node-events/EventQueue/__finally__) method when the 'using' code
+    Here the `using` construct will automatically call
+    [::EventQueue::__finally__] when the `using` code
     block is exited.
 */
 exports.eventQueue = function(emitter, event) {
@@ -133,8 +132,8 @@ EventQueue.prototype = {
     @function  EventQueue.stop
     @summary   Stop listening for events.
     @desc
-       See 'More information' section under [node-events.eventQueue](#node-events/eventQueue)
-       for an alternative to calling [EventQueue.stop](#node-events/EventQueue/stop)
+       See 'More information' section under [::eventQueue]
+       for an alternative to calling [::EventQueue::stop]
        manually.
    */
   stop: function() {
@@ -143,10 +142,10 @@ EventQueue.prototype = {
 
   /**
     @function  EventQueue.__finally__
-    @summary   Calls [EventQueue.stop](#node-events/EventQueue/stop).
-               Allows EventQueue to be used a 'using' construct.
+    @summary   Calls [::EventQueue::stop].
+               Allows EventQueue to be used a `using` construct.
     @desc
-       See 'More information' section under [node-events.eventQueue](#node-events/eventQueue).
+       See 'More information' section under [::eventQueue].
    */
   __finally__: function() { this.stop(); }
 };
