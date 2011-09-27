@@ -106,6 +106,13 @@ var currentFormat = "{level}: {message}";
 exports.getLevel = function() { return currentLevel; }
 
 /**
+  @function getFormat
+  @summary Get the current log message format
+  @return {String} [format] the currently active log message format
+*/
+exports.getFormat = function() { return currentFormat; }
+
+/**
   @function setLevel
   @param {Integer} [level] the desired log level (typically one of DEBUG, VERBOSE, INFO, etc).
   @summary Set the current logging level
@@ -130,8 +137,39 @@ exports.setLevel = function(lvl) {
 
     Currently the only keys available for a format to include are
     `level` and `message`.
+    
+    You can add your own fields using [`defineField`](#logging/defineField).
 */
-exports.setFormat = function(fmt) { currentFormat = fmt; };
+exports.setFormat = function(fmt) {
+  currentFormat = fmt;
+};
+
+/**
+  @function defineField
+  @param {String} [name] the field name
+  @param {Function} [fn] the function which will return the field value
+  @summary Define a new custom field to be used in the logging format string
+  @desc
+    After defining a field here, it can be used in [`setFormat`](#logging/setFormat).
+
+    The function cannot be passed arguments, but will be called with `this` as the
+    current set of field values.
+    
+    e.g:
+
+        logging.defineField('excited_message', function() {
+          return this.message + '!!!';
+        });
+        logging.setFormat('{level}: {excited_message}');
+        logging.info("here goes");
+
+        >>> INFO: here goes!!!
+*/
+customFormatFields = null;
+exports.defineField = function(key, val) {
+  customFormatFields = customFormatFields || {};
+  customFormatFields[key] = val;
+};
 
 /**
   @function isEnabled
@@ -144,10 +182,14 @@ exports.formatMessage = function(lvl, message, vals) {
   if(vals) {
     message = common.supplant(message, vals);
   }
-  var str = common.supplant(currentFormat, {
+  var fields = {
     level: exports.levelNames[lvl],
     message: message
-  });
+  };
+  if(customFormatFields) {
+    fields = common.mergeSettings(customFormatFields, fields);
+  }
+  var str = common.supplant(currentFormat, fields);
   return str;
 };
 

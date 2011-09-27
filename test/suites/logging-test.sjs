@@ -33,6 +33,15 @@ test('custom format', 'custom: msg // INFO', function() {
   }
 });
 
+test('defining a custom field function', 'INFO: MESSAGE!', function() {
+  logging.defineField('excited_message', function() {
+    return this.message + '!';
+  });
+  using(logging.logContext({format: '{level}: {excited_message}'})) {
+    return logging.formatMessage(logging.INFO, 'message');
+  }
+});
+
 test('enabled levels at INFO', {DEBUG: false, VERBOSE:false, INFO:true, WARN:true, ERROR:true}, function() {
   var levels = ['DEBUG', 'VERBOSE', 'INFO', 'WARN', 'ERROR'];
   var enabled = {};
