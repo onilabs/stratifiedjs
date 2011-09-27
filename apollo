@@ -29,8 +29,10 @@ function runSJScript(url) {
       // we provide a callback to prevent nodejs from showing a useless
       // call stack when there is an error:
       callback: function(err) {
-        if (err)
+        if (err) {
           console.log(err.toString());
+          process.exit(1);
+        }
       }
     });
   };
