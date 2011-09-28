@@ -1,6 +1,6 @@
 /*
  * Oni Apollo 'http' module
- * Simple HTTP request methods
+ * Functions for performing HTTP requests and working with URLs
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
@@ -31,7 +31,7 @@
  */
 /**
   @module    http
-  @summary   Simple HTTP request methods 
+  @summary   Functions for performing HTTP requests and working with URLs.
 */
 
 var sys = require('sjs:apollo-sys');
