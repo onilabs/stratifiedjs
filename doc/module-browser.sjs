@@ -88,7 +88,7 @@ var getLibDocs = exports.getLibDocs = cutil.makeMemoizedFunction(function(libpat
 });
 
 var getModuleDocs = cutil.makeMemoizedFunction(function(modulepath) {
-  try { console.log('getting '+modulepath);
+  try { 
     if (modulepath.charAt(modulepath.length-1) == '/') return null;
     var docs = docutil.parseModuleDocs(http.get(modulepath + ".sjs"));
     return docs;

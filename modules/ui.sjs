@@ -101,6 +101,27 @@ function ui_supplant(replacements) {
 };
 
 /**
+   @function forEachContentNode
+*/
+function forEachContentNode(domparent, f) {
+  if (document.createNodeIterator) {
+    var iter = document.createNodeIterator(domparent, 
+                                           NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT,
+                                           null, false);
+    var node;
+    while ((node = iter.nextNode()))
+      f(node);
+  }
+  else {
+    // IE8 and below
+    f(domparent);
+    var children = domparent.childNodes;
+    for (var i=0; i<children.length; ++i)
+      forEachContentNode(children[i], f);
+  }
+}
+
+/**
    @function makeView
 */
 var makeView = exports.makeView = function(html_template) {
@@ -122,11 +143,8 @@ var makeView = exports.makeView = function(html_template) {
 
   // collect all templates (potentially slow)
   var templates = [];  
-  var iter = document.createNodeIterator(holder, 
-                                         NodeFilter.SHOW_ELEMENT|
-                                         NodeFilter.SHOW_TEXT, null, false); 
-  var node, matches; 
-  while ((node=iter.nextNode())) {
+  forEachContentNode(holder, function(node) {
+    var matches; 
     if (node.attributes) {
       for (var i=0; i<node.attributes.length; ++i) {
         if ((matches = node.attributes[i].value.match(/{[^\}]*}/g))) {
@@ -145,7 +163,7 @@ var makeView = exports.makeView = function(html_template) {
                       vars: coll.map(matches, stripFirstLast)
                      });
     }
-  }
+  });
 
   return { 
     top      : children,
