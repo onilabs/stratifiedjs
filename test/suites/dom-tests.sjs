@@ -1,6 +1,6 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
-var relativeURL = require("../lib/testContext").relativeURL;
+var relativeURL = require("../lib/testContext").getHttpURL;
 
 if(testUtil.isBrowser) {
   var dom = require('apollo:dom');
