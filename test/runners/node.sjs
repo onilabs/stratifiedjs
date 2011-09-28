@@ -7,7 +7,7 @@ var NodeRunner = exports.NodeRunner = function() {
 };
 
 NodeRunner.prototype = new BaseRunner();
-NodeRunner.prototype.super = new BaseRunner();
+NodeRunner.prototype._super = new BaseRunner();
 
 NodeRunner.prototype.puts = function(s) { process.stderr.write(s + "\n"); };
 

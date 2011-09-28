@@ -6,7 +6,7 @@ var BrowserRunner = exports.BrowserRunner = function() {
 
 BrowserRunner.prototype = new BaseRunner();
 ///XXX surely there's a better way to get at `super` methods?
-BrowserRunner.prototype.super = new BaseRunner();
+BrowserRunner.prototype._super = new BaseRunner();
 
 BrowserRunner.prototype.output = function() {
   return document.getElementById("output");
@@ -37,7 +37,7 @@ BrowserRunner.prototype.dumpError = function(msg) {
 };
 
 BrowserRunner.prototype.reset = function() {
-  this.super.reset.apply(this, arguments);
+  this._super.reset.apply(this, arguments);
   this.updateProgress();
   this.output().innerHTML = "";
 };
@@ -64,10 +64,10 @@ BrowserRunner.prototype.updateProgress = function() {
 
 BrowserRunner.prototype.load = function(src) {
   this.status().innerText = "loading: " + src;
-  this.super.load.apply(this, arguments);
+  this._super.load.apply(this, arguments);
 };
 
 BrowserRunner.prototype.run = function() {
   this.status().innerText = "running tests...";
-  this.super.run.apply(this, arguments);
+  this._super.run.apply(this, arguments);
 };
