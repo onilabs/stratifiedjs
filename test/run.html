@@ -21,10 +21,13 @@
   <script type="text/sjs">
 
 var http = require("apollo:http");
+var coll = require("apollo:collection");
 var suite_dir = http.canonicalizeURL("suites/", document.location);
 var is_sjs_file = function(fname) { return fname.match(/\.sjs$/); }
 var get_filename = function(file) { return file.name; }
-var suites = http.json(suite_dir + "!json").files.map(get_filename).filter(is_sjs_file);
+var suites = coll.filter(coll.map(http.json(suite_dir + "!json").files, 
+                                  get_filename), 
+                         is_sjs_file);
 
 var BrowserRunner = require("./runners/browser").BrowserRunner;
 var runner = new BrowserRunner({verbose:true});
