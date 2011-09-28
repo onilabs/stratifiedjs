@@ -31,6 +31,8 @@ global.__oni_rt={};(function(exports){function augmented_message(e){
 
 
 
+
+
 return e.message+" (in "+e.file+(e.line?":"+e.line:"")+")";
 
 }
@@ -1830,6 +1832,8 @@ exports.UA=UA;
 exports.G=global;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx){
+
+
 
 
 
@@ -3767,6 +3771,39 @@ if(pctx.allow_nblock)--pctx.nb_ctx;
 body.is_nblock=pctx.allow_nblock;return body;
 });
 
+
+
+S("abstract");
+S("boolean");
+S("byte");
+S("char");
+S("class");
+S("const");
+S("debugger");
+S("double");
+S("enum");
+S("export");
+S("extends");
+S("final");
+S("float");
+S("goto");
+S("implements");
+S("import");
+S("int");
+S("interface");
+S("long");
+S("native");
+S("package");
+S("private");
+S("protected");
+S("public");
+S("short");
+S("static");
+S("super");
+S("synchronized");
+S("throws");
+S("transient");
+S("volatile");
 
 
 
