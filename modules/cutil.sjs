@@ -173,7 +173,7 @@ Event.prototype.wait = function wait() {
 
 /**
   @function  Event.set
-  @param     {optional Object} the value to set
+  @param     {optional Object} [value] the value to set
   @summary   Trigger (set) this event
   @desc
     Does nothing if this event is already set. Otherwise, this will

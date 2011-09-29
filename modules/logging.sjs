@@ -138,7 +138,7 @@ exports.setLevel = function(lvl) {
     Currently the only keys available for a format to include are
     `level` and `message`.
     
-    You can add your own fields using [`defineField`](#logging/defineField).
+    You can add your own fields using [::defineField]
 */
 exports.setFormat = function(fmt) {
   currentFormat = fmt;
@@ -150,7 +150,7 @@ exports.setFormat = function(fmt) {
   @param {Function} [fn] the function which will return the field value
   @summary Define a new custom field to be used in the logging format string
   @desc
-    After defining a field here, it can be used in [`setFormat`](#logging/setFormat).
+    After defining a field here, it can be used in [::setFormat].
 
     The function cannot be passed arguments, but will be called with `this` as the
     current set of field values.
