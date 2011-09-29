@@ -439,7 +439,7 @@ function makeSymbolView(location) {
       symbols[s.type].push(
         common.supplant(
           "<tr>
-             <td><a href='#{path}{module}::{class}::{symbol}'>{symbol}</a></td>
+             <td class='mb-td-symbol'><a href='#{path}{module}::{class}::{symbol}'>{symbol}</a></td>
              <td>{summary}</td>
            </tr>",
           { path: location.path, module:location.module, 'class': docs.name, 
