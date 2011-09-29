@@ -22,11 +22,11 @@
 
     By default, the `apollo:` scheme resolves to
 
-        http://code.onilabs.com/apollo/APOLLO_MAJOR_VERSION/modules/ 
+        http:// [Path where 'oni-apollo.js' was loaded from] /modules/
 
     on the client-side, and to 
 
-        file://PATH_TO_APOLLO_EXECUTABLE/modules/
+        file:// [Path to 'apollo' executable] /modules/
 
     on the server.
 
