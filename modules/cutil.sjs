@@ -160,15 +160,15 @@ var Event = exports.Event = function Event() {
     If the event has already been set, this function returns immediately.
 */
 Event.prototype.wait = function wait() {
+  var result = this.value;
   if (!this.isSet) {
-    waitfor() {
+    waitfor(result) {
       this.waiting.push(resume);
     } retract {
-      for (var i=0; this.waiting[i] != resume; ++i) /**/;
-      this.waiting.splice(i, 1);
+      coll.remove(this.waiting, resume, null);
     }
   }
-  return this.value;
+  return result;
 };
 
 /**
@@ -181,6 +181,9 @@ Event.prototype.wait = function wait() {
 
     If `val` is provided, it will become this event's value (and
     will be the return value of all outstanding `wait()` calls).
+
+    Note that all waiting strata will be resumed only after the current
+    strata suspends.
 */
 Event.prototype.set = function set(value) {
   if(this.isSet) return; // noop
@@ -188,7 +191,10 @@ Event.prototype.set = function set(value) {
   this.waiting = [];
   this.isSet = true;
   this.value = value;
-  spawn(coll.par.each(waiting, function(resume) { resume(); }));
+  spawn (function() {
+    hold(0);
+    coll.par.each(waiting, function(resume) { resume(value); });
+  })();
 };
 
 /**

@@ -128,6 +128,7 @@ test('Event: clearing and re-setting', 1, function() {
     e.set();
     hold(100);
     e.set();
+    hold(0);
     return 2;
   }
 });
@@ -147,6 +148,21 @@ test('Event: setting with a value', ["result!", "result!", "result!"], function(
     hold(100);
     e.set("result!");
     hold();
+  }
+  return results;
+});
+
+test('Event: resume() actions happen only after the current strata suspends', ["one", "two", "two"], function() {
+  var e = new cutil.Event();
+  var results = [];
+  try {
+    results.push(e.wait());
+    results.push(e.wait());
+    results.push(e.wait());
+  } and {
+    e.set("one");
+    e.clear();
+    e.set("two");
   }
   return results;
 });
