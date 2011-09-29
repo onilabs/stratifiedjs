@@ -143,6 +143,10 @@ Semaphore.prototype = {
   @summary  A simple event object
   @function Event
   @summary  Constructor for an Event object.
+  @variable Event.isSet
+  @summary  (Boolean) whether the event is currently set
+  @variable Event.value
+  @summary  the currently set value, or `undefined` if the event is not set
 */
 var Event = exports.Event = function Event() {
   this.waiting = [];
@@ -151,31 +155,39 @@ var Event = exports.Event = function Event() {
 
 /**
   @function  Event.wait
-  @summary   Block until this event is set.
+  @summary   Block until this event is set, and return the event's `value`.
   @desc
     If the event has already been set, this function returns immediately.
 */
 Event.prototype.wait = function wait() {
-  if (this.isSet) return;
-  waitfor() {
-    this.waiting.push(resume);
-  } retract {
-    for (var i=0; this.waiting[i] != resume; ++i) /**/;
-    this.waiting.splice(i, 1);
+  if (!this.isSet) {
+    waitfor() {
+      this.waiting.push(resume);
+    } retract {
+      for (var i=0; this.waiting[i] != resume; ++i) /**/;
+      this.waiting.splice(i, 1);
+    }
   }
+  return this.value;
 };
 
 /**
   @function  Event.set
+  @param     {optional Object} the value to set
   @summary   Trigger (set) this event
   @desc
-    This will resume all strata that are waiting on this event object.
+    Does nothing if this event is already set. Otherwise, this will
+    resume all strata that are waiting on this event object.
+
+    If `val` is provided, it will become this event's value (and
+    will be the return value of all outstanding `wait()` calls).
 */
-Event.prototype.set = function set() {
+Event.prototype.set = function set(value) {
   if(this.isSet) return; // noop
   var waiting = this.waiting;
   this.waiting = [];
   this.isSet = true;
+  this.value = value;
   spawn(coll.par.each(waiting, function(resume) { resume(); }));
 };
 
@@ -188,6 +200,7 @@ Event.prototype.set = function set() {
 */
 Event.prototype.clear = function clear() {
   this.isSet = false;
+  this.value = undefined;
 };
 
 /**

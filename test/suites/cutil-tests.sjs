@@ -132,6 +132,25 @@ test('Event: clearing and re-setting', 1, function() {
   }
 });
 
+test('Event: setting with a value', ["result!", "result!", "result!"], function() {
+  var e = new cutil.Event();
+  var results = [];
+  waitfor {
+    waitfor {
+      results.push(e.wait());
+    } and {
+      results.push(e.wait());
+      e.set("ignored result (already set)");
+      results.push(e.wait());
+    }
+  } or {
+    hold(100);
+    e.set("result!");
+    hold();
+  }
+  return results;
+});
+
 test('makeBoundedFunction 1', 3, function() {
   var x = 0;
   function f() { ++x; hold(100); }
