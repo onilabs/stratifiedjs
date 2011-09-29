@@ -14,7 +14,7 @@ oni-apollo.js
 
  - Client-side cross-browser StratifiedJS runtime.
  - ~15kB gzipped, MIT-licensed.
- - For more information please read the docs at [onilabs.com/docs](http://onilabs.com/docs).
+ - For more information please read the docs at [onilabs.com/apollo](http://onilabs.com/apollo).
 
 oni-apollo-node.js, 'apollo' executable
 ---------------------------------------
@@ -66,7 +66,7 @@ For server-side use, you can just execute the `apollo` executable
 Alternatively you can install with npm (see the package.json script).
 
 For client-side use, just include the oni-apollo.js file in your html,
-as described at [onilabs.com/docs](http://onilabs.com/docs).
+as described at [onilabs.com/apollo](http://onilabs.com/apollo).
 
 
 Considerations for client-side use
@@ -96,10 +96,10 @@ To (re-)configure the 'apollo hub', you can use code such as this:
     // all modules addressed as 'apollo:' will now be loaded from the
     // location above.
 
-Note that many browsers can only load modules over http. You can use
-`rocket` to serve up the apollo directory locally. Alternatively,
-you can serve oni-apollo.js and the modules/ directory with a
-different web server, or load oni-apollo.js & modules/ from
-http://code.onilabs.com/ as described at
-[onilabs.com/docs](http://onilabs.com/docs).
+Note that many browsers cannot load modules over the `file:`
+protocol. You can use `rocket` to serve up the apollo directory
+locally. Alternatively, you can serve oni-apollo.js and the modules/
+directory with a different web server, or load oni-apollo.js &
+modules/ from http://code.onilabs.com/ as described at
+[onilabs.com/apollo](http://onilabs.com/apollo).
 
