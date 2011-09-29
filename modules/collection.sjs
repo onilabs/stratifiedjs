@@ -509,6 +509,52 @@ exports.par.map = seqAndParMap[1];
   exports.par.findKey = generateFind(exports.par.each , getSecond);
 })();
 
+
+/**
+  @function remove
+  @param    {Object | Array} [collection]
+  @param    {Object} [item] the item to remove
+  @param    {optional Object} [default] The default object to return if `item` is not found.
+  @summary  Remove an item from an array, or a key from an object. Returns the item removed.
+  @desc
+    Items are removed from arrays using `splice`, and from objects using `delete`.
+    `arguments` objects have no `splice` method, so they are treated as objects.
+
+    If the item or key is not present in the collection, an error will be raised unless
+    you pass anything other than `undefined` as the `default` argument - in which case
+    it wll be returned.
+
+    Only the first matching item will be removed from an array. Array items are
+    checked for equality using `indexOf` - if you need deeper equality checking
+    or want to delete all matching objects, you may want to use `filter` instead.
+*/
+exports.remove = function(collection, item, _default) {
+  var ensurePresent = _default === undefined;
+  var key;
+  var isArray = Array.isArray(collection);
+  if(isArray) {
+    key = collection.indexOf(item);
+  } else {
+    key = item;
+  }
+  if(!(key in collection)) {
+    if(ensurePresent) {
+      var err = new Error("Could not find item \"" + item + "\" to remove");
+      err.item = item;
+      err.collection = collection;
+      throw err;
+    }
+    return _default;
+  }
+  var result = collection[key];
+  if(isArray) {
+    collection.splice(key, 1);
+  } else {
+    delete collection[key];
+  }
+  return result;
+};
+
 // filter uses a generic and parallelizeable part (filterItems) and then
 // combines the results with array or object-specific functions
 (function() {

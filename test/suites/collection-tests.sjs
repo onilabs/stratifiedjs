@@ -208,6 +208,69 @@ test('par filter on an object', {include:true}, function() {
     });
 });
 
+test('remove on array', ["one", "two"], function() {
+  var a = ["one", "two", "three"];
+  collection.remove(a, 'three');
+  return a;
+});
+
+test('remove on array returns value', 'one', function() {
+  var a = ["one", "two", "three"];
+  return collection.remove(a, 'one');
+});
+
+test('remove on array throws when item not found', {message: "Could not find item \"unknown\" to remove", collection: ["one","two","three"], item:'unknown'} , function() {
+  var a = ["one", "two", "three"];
+  try {
+    collection.remove(a, 'unknown');
+    return "unexpected success";
+  } catch (e) {
+    return {message:e.message, collection:e.collection, item:e.item};
+  }
+});
+
+test('remove on array returns the default when provided', 'not found' , function() {
+  var a = [1,2,3];
+  return collection.remove(a, 'unknown', 'not found');
+});
+
+test('remove on arguments is treated as object, not array', {1:"one", 2:"two"} , function() {
+  var a = (function() { return arguments; })("zero", "one","two");
+  collection.remove(a, 0);
+  try {
+    collection.remove(a, "two");
+  } catch(e) {
+    return JSON.parse(JSON.stringify(a)); // equality doesn't seem to work with `arguments` object
+  }
+  return "Should have failed!";
+});
+
+test('remove on object', {key1: 'val1'}, function() {
+  var a = {key1: 'val1', key2: 'val2'};
+  collection.remove(a, 'key2');
+  return a;
+});
+
+test('remove on object returns value', 'val1', function() {
+  var a = {key1: 'val1', key2: 'val2'};
+  return collection.remove(a, 'key1');
+});
+
+test('remove on object throws when key not found', {message: "Could not find item \"unknown\" to remove", collection: {'a':'A'}, item:'unknown'} , function() {
+  var a = {'a':'A'};
+  try {
+    collection.remove(a, 'unknown');
+    return "unexpected success";
+  } catch (e) {
+    return {message:e.message, collection:e.collection, item:e.item};
+  }
+});
+
+test('remove on object returns default when provided', false , function() {
+  var a = {key1: 'val', key2: 'val2'};
+  return collection.remove(a, 'unknown', false);
+});
+
 test('reduce', 6, function() {
   return collection.reduce([1,2,3], 0, function(accum, el) { return accum + el; });
 });
