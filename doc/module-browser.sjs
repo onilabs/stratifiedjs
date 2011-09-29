@@ -294,7 +294,7 @@ function makeErrorView(location, txt) {
     or { 
       dom.waitforEvent(view.elems.go, "click");
     }
-    window.location.hash = "#"+view.elems.url.value;
+    window.location.replace("#"+view.elems.url.value);
   };
 
   return view;
@@ -472,7 +472,7 @@ function makeLibView(location) {
 // we parse this into {path, module, classname, symbol}
 function parseLocation(default_location) {
   if (!window.location.hash)
-    window.location.hash = "#"+default_location;
+    window.location.replace("#"+default_location);
   var matches = /#(.*\/)([^:#]*)(?:\:\:([^:]*)(?:\:\:(.*))?)?/.exec(window.location.hash);
   if (!matches) return { path: "", module: "", classname: "", symbol: "" };
   return { 
