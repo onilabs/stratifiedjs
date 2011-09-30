@@ -46,9 +46,10 @@ var http = require("./http");
     Uses the RESTful Google search API.
     See <http://code.google.com/apis/ajaxsearch/documentation/reference.html#_intro_fonje>.
 
-    Example:
-    `var s = require("apollo:google").search("Onilabs", {start:4});
-    console.log(s.responseData.results[0].url); // first result`
+    **Example:**
+    
+        var s = require("apollo:google").search("Onilabs", {start:4});
+        console.log(s.responseData.results[0].url); // first result
 */
 function search(q, settings) {
   return http.jsonp(["http://ajax.googleapis.com/ajax/services/search/web", {v: "1.0", q : q }, settings]);
@@ -91,9 +92,10 @@ exports.siteSearch = function (q, site, settings) {
     URIs. This limits the number of characters that can be translated by
     the API in one go.
     
-    Example:
-    `var t = google.translate("hello", "de");
-    console.log(t.translation, t.detectedSourceLanguage); // hallo, en`
+    **Example:**
+
+        var t = google.translate("hello", "de");
+        console.log(t.translation, t.detectedSourceLanguage); // hallo, en
 
 */
 exports.translate = function(text, to, /* [opt] */ from, /* [opt] */ extra) {
@@ -190,10 +192,11 @@ function ensureAPI() {
   @desc
      See <http://code.google.com/apis/ajax/documentation/#GoogleLoad>
 
-     Example:
-     `require('apollo:google').load("language", "1");
-     if (google.language.isFontRenderingSupported("hi"))
-       ...`
+     **Example:**
+
+         require('apollo:google').load("language", "1");
+         if (google.language.isFontRenderingSupported("hi"))
+           ...
 */
 exports.load = function(moduleName, moduleVersion, settings) {
   ensureAPI();

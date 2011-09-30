@@ -292,27 +292,25 @@ exports.request = sys.request;
   @return    {String}
   @shortcut  request
   @desc
-    An alias for
-
-        http.request(url,settings)
+    An alias for `http.request(url,settings)`.
 
     ### Example:
     
-    `console.log(
-      require("apollo:http").get("data.txt")
-    );`
+        console.log(
+          require("apollo:http").get("data.txt")
+        );
     
     ### Example: timeout
     
-    `var http = require("apollo:http");
-    waitfor {
-      var data = http.get("data.txt");
-    } or {
-      hold(1000);
-    }
-    if (!data) {
-      throw "Server too slow...";
-    }`
+        var http = require("apollo:http");
+        waitfor {
+          var data = http.get("data.txt");
+        } or {
+          hold(1000);
+        }
+        if (!data) {
+          throw "Server too slow...";
+        }
 */
 exports.get = exports.request;
 
@@ -325,21 +323,23 @@ exports.get = exports.request;
   @return    {String} 
   @shortcut  request
   @desc
-    ### Example:    
-    `var http = require("apollo:http");
-    var response = http.post("/service", "some raw data");
-    console.log("server replied:", response)`
+    ### Example:
+    
+        var http = require("apollo:http");
+        var response = http.post("/service", "some raw data");
+        console.log("server replied:", response);
     
     ### Example: posting data in the url, not the body
-    `var http = require("apollo:http");
-    var rv = http.post("/service", null,
-                       { query: {
-                              name: "ford",
-                              lastname: "prefect"
-                                }
-                       });
-    // sends an HTTP POST to /service 
-    // with payload: name=ford&lastname=prefect
+
+        var http = require("apollo:http");
+        var rv = http.post("/service", null,
+                           { query: {
+                                  name: "ford",
+                                  lastname: "prefect"
+                                    }
+                           });
+        // sends an HTTP POST to /service 
+        // with payload: name=ford&lastname=prefect
 */
 exports.post = function(url, body, settings) {
   return sys.request(url, [{method:"POST", body:body}, settings]);
@@ -355,11 +355,12 @@ exports.post = function(url, body, settings) {
   @return    {Object}
   @desc
     ### Example:
-    `var http = require("apollo:http");
-    var animals = http.json("/animals.php?type=cats").animals;
-    for (var i = 0, cat; cat = animals[i]; i++) {
-      console.log(cat.name);
-    }`
+    
+        var http = require("apollo:http");
+        var animals = http.json("/animals.php?type=cats").animals;
+        for (var i = 0, cat; cat = animals[i]; i++) {
+          console.log(cat.name);
+        }
 */
 
 // helper taken from jquery
@@ -408,13 +409,13 @@ exports.json = function(/*url, settings*/) {
   @desc
     ### Example:
 
-    `var http = require("apollo:http");
-    var url = "http://api.flickr.com/services/feeds/photos_public.gne?" +
-              "tags=cat&tagmode=any&format=json";
-    var data = http.jsonp(url, {cbfield:"jsoncallback"});
-    for (var i = 0, item; item = data.items[i]; i++) {
-       c.log("src=", item.media.m);
-    };`
+        var http = require("apollo:http");
+        var url = "http://api.flickr.com/services/feeds/photos_public.gne?" +
+                  "tags=cat&tagmode=any&format=json";
+        var data = http.jsonp(url, {cbfield:"jsoncallback"});
+        for (var i = 0, item; item = data.items[i]; i++) {
+           c.log("src=", item.media.m);
+        };
 */
 exports.jsonp = sys.jsonp;
 

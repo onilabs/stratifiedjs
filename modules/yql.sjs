@@ -47,7 +47,6 @@ var http = require("./http");
 /**
   @function  query
   @summary   Execute a [YQL query](http://developer.yahoo.com/yql/guide/yql_overview_guide.html) on the Yahoo Web Service.  
-             *This request **works** cross-domain.*
   @param     {String} [statement] YQL query.
   @param     {optional Object} [parameters]  Key-value hash of parameters for the query.
   @return    {Object} The query result.
@@ -93,16 +92,15 @@ exports.query = function (statement, params) {
 /**
   @function  getFeed
   @summary   Load a feed through the Yahoo Web Service.  
-             *This request **works** cross-domain.*
   @shortcut  query
   @param     {String} [url] A string containing the URL of the requested Atom feed.
   @return    {Array} An array of Atom entries
   @desc
     This is a convenience wrapper for [the feed table](http://developer.yahoo.com/yql/console/#h=desc%20feed).
 
-    `var yql = require("apollo:yql");
-    var rv = yql.getFeed("http://planet.mozilla.org/atom.xml"});
-    console.log(rv[0].title);`
+        var yql = require("apollo:yql");
+        var rv = yql.getFeed("http://planet.mozilla.org/atom.xml"});
+        console.log(rv[0].title);`
 */
 exports.getFeed = function(url) {
   var q = "select * from atom where url=@url";
@@ -112,7 +110,6 @@ exports.getFeed = function(url) {
 /*
   @function  getXML
   @summary   Loads an XML document through the Yahoo Web Service.  
-             *This request **works** cross-domain.*
   @shortcut  query
   @desc
     This is a convenience wrapper for [the xml table](http://developer.yahoo.com/yql/console/#h=desc%20xml).
@@ -131,7 +128,6 @@ exports.getXML = function(url) {
 /*
   @function  getDataURI
   @summary   Returns any file smaller than 25kb through the Yahoo Web Service as a data URI.
-             *This request **works** cross-domain.*
   @shortcut  query
   @param     {String} [url] A string containing the URL of the requested file.
   @return    {Array} An array of Atom entries
@@ -144,7 +140,6 @@ exports.getDataURI = function(url) {
 /**
   @function  getFile
   @summary   Returns any file smaller than 25kb through the Yahoo Web Service as a string.  
-             *This request **works** cross-domain.*
   @shortcut  query
   @desc
     This is a convenience wrapper for [the data.uri table](http://developer.yahoo.com/yql/console/#h=desc%20data.uri).
