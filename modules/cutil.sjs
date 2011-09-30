@@ -138,26 +138,22 @@ Semaphore.prototype = {
 };
 
 
+// TODO: pause / resume, in line with node events?
+// TODO: wrap node's EventEmitters to provide the same API? e.g
+//       var dataEvent = new NodeEvents.Event(someEventEmitter, 'data');
 /**
   @class    Event
-  @summary  A simple event object
+  @summary  An event that can be waited upon and emitted multiple times.
   @function Event
   @summary  Constructor for an Event object.
-  @variable Event.isSet
-  @summary  (Boolean) whether the event is currently set
-  @variable Event.value
-  @summary  the currently set value, or `undefined` if the event is not set
 */
 var Event = exports.Event = function Event() {
   this.waiting = [];
-  this.clear();
 };
 
 /**
   @function  Event.wait
-  @summary   Block until this event is set, and return the event's `value`.
-  @desc
-    If the event has already been set, this function returns immediately.
+  @summary   Block until this event is next emitted, and return the emitted value (if given).
 */
 Event.prototype.wait = function wait() {
   var result = this.value;
@@ -172,42 +168,81 @@ Event.prototype.wait = function wait() {
 };
 
 /**
-  @function  Event.set
-  @param     {optional Object} [value] the value to set
-  @summary   Trigger (set) this event
+  @function  Event.emit
+  @param     {optional Object} [value]
+  @summary   Emit event with optional `value`
   @desc
-    Does nothing if this event is already set. Otherwise, this will
-    resume all strata that are waiting on this event object.
+    Resumes all strata that are waiting on this event object.
 
-    If `val` is provided, it will become this event's value (and
-    will be the return value of all outstanding `wait()` calls).
-
-    Note that all waiting strata will be resumed only after the current
-    stratum suspends.
+    If `val` is provided, it will be the return value of all
+    outstanding `wait()` calls.
 */
-Event.prototype.set = function set(value) {
-  if(this.isSet) return; // noop
+Event.prototype.emit = function emit(value) {
+  if(this.waiting.length == 0) return;
   var waiting = this.waiting;
   this.waiting = [];
-  this.isSet = true;
-  this.value = value;
-  spawn (function() {
-    hold(0);
-    coll.par.each(waiting, function(resume) { resume(value); });
-  })();
+  spawn(coll.par.each(waiting, function(resume) { resume(value); }));
+};
+
+
+/**
+  @class    Condition
+  @summary  A single condition value that can be waited upon, set and cleared.
+  @function Condition
+  @summary  Constructor for a Condition object.
+  @variable Condition.isSet
+  @summary  (Boolean) whether the condition is currently set
+  @variable Condition.value
+  @summary  the currently set value, or `undefined` if the condition is not set
+*/
+var Condition = exports.Condition = function Condition() {
+  this._ev = new Event();
+  this.clear();
 };
 
 /**
-  @function  Event.clear
-  @summary   Un-set (clear) this event
+  @function  Condition.wait
+  @summary   Block until this condition is set, and return the condition's `value`.
   @desc
-    Once cleared, the event can be waited upon and triggered again with
+    If the condition has already been set, this function returns immediately.
+*/
+Condition.prototype.wait = function wait() {
+  if (!this.isSet) {
+    this.value = this._ev.wait();
+  }
+  return this.value;
+};
+
+/**
+  @function  Condition.set
+  @param     {optional Object} [value] the value to set
+  @summary   Trigger (set) this condition
+  @desc
+    Does nothing if this condition is already set. Otherwise, this will
+    resume all strata that are waiting on this condition object.
+
+    If `val` is provided, it will become this condition's value (and
+    will be the return value of all outstanding `wait()` calls).
+*/
+Condition.prototype.set = function set(value) {
+  if(this.isSet) return; // noop
+  this.isSet = true;
+  this.value = value;
+  this._ev.emit(value);
+};
+
+/**
+  @function  Condition.clear
+  @summary   Un-set (clear) this condition
+  @desc
+    Once cleared, the condition can be waited upon and triggered again with
     `wait` and `set`.
 */
-Event.prototype.clear = function clear() {
+Condition.prototype.clear = function clear() {
   this.isSet = false;
   this.value = undefined;
 };
+
 
 /**
   @function makeBoundedFunction

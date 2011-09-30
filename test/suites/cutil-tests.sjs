@@ -90,19 +90,8 @@ test('Event: block/resume', 1, function() {
     e.wait();
     return 1;
   } or {
-    e.set();
+    e.emit();
     hold(100);
-    return 2;
-  }
-});
-
-test('Event: not blocking if already set', 1, function() {
-  var e = new cutil.Event();
-  e.set();
-  waitfor {
-    e.wait();
-    return 1;
-  } or {
     return 2;
   }
 });
@@ -117,55 +106,67 @@ test('Event: retract from wait()', [], function() {
   return e.waiting;
 });
 
-test('Event: clearing and re-setting', 1, function() {
-  var e = new cutil.Event();
-  waitfor {
-    e.wait();
-    e.clear();
-    e.wait();
-    return 1;
-  } or {
-    e.set();
-    hold(100);
-    e.set();
-    hold(0);
-    return 2;
-  }
-});
-
-test('Event: setting with a value', ["result!", "result!", "result!"], function() {
+test('Event: setting with a value', ["first", "second"], function() {
   var e = new cutil.Event();
   var results = [];
   waitfor {
-    waitfor {
-      results.push(e.wait());
-    } and {
-      results.push(e.wait());
-      e.set("ignored result (already set)");
-      results.push(e.wait());
-    }
+    results.push(e.wait());
+    results.push(e.wait());
   } or {
+    e.emit("first");
     hold(100);
-    e.set("result!");
+    e.emit("second");
     hold();
   }
   return results;
 });
 
-test('Event: resume() actions happen only after the current strata suspends', ["one", "two", "two"], function() {
-  var e = new cutil.Event();
+test('Condition: not blocking if already set', 1, function() {
+  var c = new cutil.Condition();
+  c.set();
+  waitfor {
+    c.wait();
+    return 1;
+  } or {
+    return 2;
+  }
+});
+
+test('Condition: clearing and re-setting', 1, function() {
+  var c = new cutil.Condition();
+  waitfor {
+    c.wait();
+    c.clear();
+    c.wait();
+    return 1;
+  } or {
+    c.set();
+    hold(100);
+    c.set();
+    hold(0);
+    return 2;
+  }
+});
+
+test('Condition: setting with a value', ["result!", "result!", "result!"], function() {
+  var c = new cutil.Condition();
   var results = [];
-  try {
-    results.push(e.wait());
-    results.push(e.wait());
-    results.push(e.wait());
-  } and {
-    e.set("one");
-    e.clear();
-    e.set("two");
+  waitfor {
+    waitfor {
+      results.push(c.wait());
+    } and {
+      results.push(c.wait());
+      c.set("ignored result (already set)");
+      results.push(c.wait());
+    }
+  } or {
+    hold(100);
+    c.set("result!");
+    hold();
   }
   return results;
 });
+
 
 test('makeBoundedFunction 1', 3, function() {
   var x = 0;
