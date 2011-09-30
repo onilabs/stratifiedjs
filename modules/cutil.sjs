@@ -183,7 +183,7 @@ Event.prototype.wait = function wait() {
     will be the return value of all outstanding `wait()` calls).
 
     Note that all waiting strata will be resumed only after the current
-    strata suspends.
+    stratum suspends.
 */
 Event.prototype.set = function set(value) {
   if(this.isSet) return; // noop
