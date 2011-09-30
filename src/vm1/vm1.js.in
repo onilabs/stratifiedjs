@@ -1925,9 +1925,11 @@ function I_spawn(ndata, env) {
       ef.abort();
       async = false;
       val =  new CFException("t",
-                             new Error("aborted"),
+                             new Error("stratum aborted"),
                              NDATA_SPAWN_LINE(),
                              env.file);
+      while (waitarr.length)
+        waitarr.shift().cont(val);
     },
     waitforValue : function() {
       if (!async) { picked_up=true; return val; }

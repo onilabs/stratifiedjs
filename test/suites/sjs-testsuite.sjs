@@ -761,29 +761,6 @@ test('spawn/waitforValue/throw', 30, function() {
   return x;
 });
 
-test('spawn/waitforValue/abort', [
-  'first: waiting on stratum',
-  'second: aborting stratum',
-  'error: (XXX what is the error message for an aborted stratum?)'], function() {
-  var log = [];
-  var s = spawn(hold());
-  waitfor {
-    log.push("first: waiting on stratum");
-    try {
-      s.waitforValue();
-    } catch(e) {
-      log.push("error: " + e);
-    }
-    log.push("first: wait returned normally");
-  } or {
-    log.push("second: aborting stratum");
-    s.abort();
-    hold(1000);
-    log.push("waitforValue() didn't return");
-  }
-  return log;
-});
-
 // ecma 262-5 13.2.2:9
 testParity("var x = function() { return {a:1}}; x.prototype.a=2; (new x()).a;", function() { var x = function() { return {a:1}}; x.prototype.a=2; return (new x()).a; });
 testParity("var x = function() { return 1}; x.prototype.a=2; (new x()).a;", function() { var x = function() { return 1}; x.prototype.a=2; return (new x()).a; });
@@ -1176,3 +1153,27 @@ test("complex collapse abort 2", 126,
        }
        return a;
      });
+
+test('spawn/waitforValue/abort', [
+  'first: waiting on stratum',
+  'second: aborting stratum',
+  'error: stratum aborted'], function() {
+  var log = [];
+  var s = spawn(hold());
+  waitfor {
+    log.push("first: waiting on stratum");
+    try {
+      s.waitforValue();
+      log.push("first: wait returned normally");
+    } catch(e) {
+      log.push("error: " + e.message);
+    }
+  } or {
+    log.push("second: aborting stratum");
+    s.abort();
+    hold(1000);
+    log.push("waitforValue() didn't return");
+  }
+  return log;
+});
+

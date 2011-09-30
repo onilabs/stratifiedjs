@@ -1657,9 +1657,11 @@ if(!async)return;
 ef.quench();
 ef.abort();
 async=false;
-val=new CFException("t",new Error("aborted"),ndata[0],env.file);
+val=new CFException("t",new Error("stratum aborted"),ndata[0],env.file);
 
 
+
+while(waitarr.length)waitarr.shift().cont(val);
 
 },waitforValue:function(){
 if(!async){
