@@ -1,8 +1,8 @@
 {
   /* Version number which will be inserted into oni-apollo.js,
      oni-apollo-node.js and all files under modules/ and rocket-modules/ : */
-  "version" : "unstable",
+  "version" : "0.13.1",
 
   /* Version number which will be inserted into package.json: */
-  "npm_version" : "999.0.0-unstable"
+  "npm_version" : "0.13.1"
 }

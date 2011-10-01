@@ -2,7 +2,7 @@
  * Oni Apollo StratifiedJS Runtime
  * Server-side NodeJS-based implementation
  *
- * Version: 'unstable'
+ * Version: '0.13.1'
  * http://onilabs.com/apollo
  *
  * (c) 2011 Oni Labs, http://onilabs.com
