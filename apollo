@@ -8,11 +8,12 @@ var apollo_node = require(apollo_home + '/oni-apollo-node');
 function usage() {
   return (
     "Usage: apollo [options] [script.sjs [arguments]]\n\n" +
+    "Without a script.sjs argument, you get dropped into a stratified REPL\n\n" +
     "Options:\n" +
     "  -h, --help        display this help message\n" +
     "  -d, --dev         load development mode (src/build/devmode.sjs)\n" +
     "  -e, --eval STR    evaluate STR\n" +
-    "\nFor more information, please see http://bit.ly/jOy4Ms");
+    "\nDocumentation is at http://onilabs.com/apollo");
 }
 
 
