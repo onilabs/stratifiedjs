@@ -4,6 +4,12 @@
     line-height: 1.8em;
 }
 
+.mb-warning {
+    padding: 5px;
+    color: #000;
+    background-color: #f0da79;
+}
+
 .mb-top h1 {
     color: #222;
     font-size: 24px;
@@ -44,6 +50,8 @@
 }
 
 .mb-main {
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
     width:600px;
     float:left;
     margin-right:10px;
@@ -104,7 +112,7 @@
 }
 
 .mb-banner {
-    min-height:130px;
+    min-height:115px;
     padding-bottom: 6px;
 }
 
