@@ -47,16 +47,31 @@ exports.run = function(default_location, dom_parent) {
     while (1) {
       try {
         try {
-          banner_view.update(location);
+          try {
+            banner_view.update(location);
+          }
+          and {
+            index_view.update(location);
+          }
+          and {
+            var mainView = makeMainView(location);
+          }
         }
-        and {
-          index_view.update(location);
-        }
-        and {
-          doMainView(location, top_view.elems.main);
+        or {
+          // display a 'loading...' dialog after 300ms
+          hold(300);
+          doLoadingDialog(top_view.elems.main);
+          // if the loading dialog returns, it means the user wants to 'retry':
+          continue;
         }
         catch (e) {
           doInternalErrorDialog(e.toString(), top_view.elems.banner);
+        }
+        using(mainView.show(top_view.elems.main)) {
+          if (mainView.run) 
+            mainView.run();
+          else
+            hold();
         }
       }
       or {
@@ -104,7 +119,7 @@ var getModuleDocs = cutil.makeMemoizedFunction(function(modulepath) {
 function makeBannerView() {
   var view = ui.makeView(
 "<a href='#{path}'><h1>{title}</h1>
-<div>Location: {path}</div></a>
+<div>{path}</div></a>
 <div name='details'></div>");
   view.supplant({path: "", title: "Oni Apollo Documentation Browser"});
   var current_location = {}, sub_view;
@@ -237,11 +252,28 @@ Please also hit the 'retry' button and see if this fixes things:
 }
 
 //----------------------------------------------------------------------
+// Loading dialog:
+
+// Displays a 'Loading...' and then, after 4 seconds, a Retry button.
+// Only returns when the Retry button is pressed.
+
+function doLoadingDialog(domparent) {
+  using(ui.makeView("<span class='mb-warning'> Loading... </span>").show(domparent)) {
+    hold(4000);
+  }
+  var view = ui.makeView(
+    "<span class='mb-warning'> Still Loading... 
+     <a name='retry' href='javascript:void(0)'>Retry</a> </span>");
+  using(view.show(domparent)) {
+    dom.waitforEvent(view.elems.retry, 'click');
+  }
+}
+
+//----------------------------------------------------------------------
 // Main View:
 
-function doMainView(location, domparent) {
+function makeMainView(location) {
   // figure out which view to display: module view, symbol view, lib view or error view
-
   var view;
   try {
     if (!location.module) {
@@ -259,13 +291,7 @@ function doMainView(location, domparent) {
     // make an error view
     view  = makeErrorView(location, e);
   }
-    
-  using(view.show(domparent)) {
-    if (view.run) 
-      view.run();
-    else
-      hold();
-  }
+  return view;
 }
 
 //----------------------------------------------------------------------
