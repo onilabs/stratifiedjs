@@ -86,6 +86,6 @@ exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
     hold();
   }
   finally {
-    server.close();
+    try { server.close(); } catch(e) { }
   }
 };
