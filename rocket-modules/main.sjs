@@ -36,7 +36,7 @@ function usage() {
   print("Options:");
   print("  -h, --help         display this help message");
   print("      --port PORT    server port (default: "+port+")");
-  print("      --host IPADDR  server host (default: "+host+")");
+  print("      --host IPADDR  server host (default: "+host+"; use 'any' for INADDR_ANY)");
   print("      --root DIR     server root (default: "+root+")");
   print("");
 }
@@ -59,6 +59,7 @@ for (var i=1; i<process.argv.length; ++i) {
     break;
   case "--host":
     host = process.argv[++i];
+    if (host == "any") host = undefined;
     break;
   case "--root":
     root = process.argv[++i];
@@ -136,6 +137,7 @@ var pathMap = [
 
 //----------------------------------------------------------------------
 
+
 waitfor {
   serverfs.setStaticPathMap(pathMap);
   require('apollo:node-http').runSimpleServer(requestHandler, port, host);
@@ -149,7 +151,7 @@ and {
   print(" | _ |  * Launched with root directory");
   print("/_| |_\\   '"+root+"'");
   print(" |||||");
-  print("  |||   * Running on http://"+host+":"+port+"/");
+  print("  |||   * Running on http://"+(host ? host : "INADDR_ANY")+":"+port+"/");
   print("  |||");
   print("   |");
 }
