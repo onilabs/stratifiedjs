@@ -27,6 +27,7 @@ var http = require('apollo:http');
 var serverfs = require('./serverfs');
 var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };
+var stream = require('apollo:node-stream');
 
 //----------------------------------------------------------------------
 
