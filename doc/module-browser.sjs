@@ -1,11 +1,29 @@
 
-var http = require('apollo:http');
-var dom = require('apollo:dom');
-var ui = require('apollo:ui');
-var cutil = require('apollo:cutil');
-var coll = require('apollo:collection');
-var docutil = require('apollo:docutil');
-var common = require('apollo:common');
+waitfor {
+  var http = require('apollo:http');
+}
+and {
+  var dom = require('apollo:dom');
+}
+and {
+  var ui = require('apollo:ui');
+}
+and {
+  var cutil = require('apollo:cutil');
+}
+and {
+  var coll = require('apollo:collection');
+}
+and {
+  var docutil = require('apollo:docutil');
+}
+and {
+  var common = require('apollo:common');
+}
+and {
+  // preload:
+  spawn require('./showdown');
+}
 
 //----------------------------------------------------------------------
 // style
