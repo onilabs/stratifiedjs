@@ -39,6 +39,8 @@ function usage() {
   print("      --port PORT    server port (default: "+port+")");
   print("      --host IPADDR  server host (default: "+host+"; use 'any' for INADDR_ANY)");
   print("      --root DIR     server root (default: "+root+")");
+  print("      --cors         allow full cross-origin access (adds ");
+  print("                     'Access-Control-Allow-Origin: *' headers)");
   print("");
 }
 
@@ -47,6 +49,7 @@ function usage() {
 var root = http.canonicalizeURL('../', module.id).substr(7);
 var port = "7070";
 var host = "localhost";
+var cors = false;
 
 for (var i=1; i<process.argv.length; ++i) {
   var flag = process.argv[i];
@@ -64,6 +67,9 @@ for (var i=1; i<process.argv.length; ++i) {
     break;
   case "--root":
     root = process.argv[++i];
+    break;
+  case "--cors":
+    cors = true;
     break;
   default:
     return usage();
@@ -163,6 +169,8 @@ function requestHandler(req, res) {
   try {
     req.parsedUrl = http.parseURL("http://"+req.headers.host+req.url);
     res.setHeader("Server", "OniRocket"); // XXX version
+    if (cors)
+      res.setHeader("Access-Control-Allow-Origin", "*");
     if (req.method == "GET") {
       if (!serverfs.handle_get(req, res)) throw "Unknown request";
     }
@@ -177,6 +185,7 @@ function requestHandler(req, res) {
       res.writeHead(400);
       res.end(e.toString());
     } catch (writeErr) {
+      // ending up here means that we probably already sent headers to the clients...
       process.stderr.write(writeErr + "\n");
       // throw the original exception, it's more important
       throw e;
