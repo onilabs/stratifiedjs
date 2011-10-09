@@ -104,9 +104,9 @@ exports.write = function(dest, data/*, ...*/) {
 /**
   @function pump
   @summary  Keep writing data from `src` into `dest` until `src` ends.
-  @param    {Stream} [src] the source stresm
+  @param    {Stream} [src] the source stream
   @param    {String} [dest] the destination stream
-  @param    {option Function} [fn] the processing function
+  @param    {optional Function} [fn] the processing function
   @desc
     This function will not return until the `src` stream has ended,
     although it will not send `end` to `dest`.
