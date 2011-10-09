@@ -75,8 +75,45 @@ function handleRequest(connectionHandler, request, response) {
 
 /**
    @function runSimpleServer
-   @summary Run a simple HTTP server. To be documented.
-*/
+   @summary Run a simple HTTP server.
+   @param {Function} [connectionHandler] Function to be invoked for each request
+   @param {Integer} [port] Port to listen on
+   @param {optional String} [host] IP address to listen on. (If not specified, the server will
+                                   listen on all IP addresses, i.e. INADDR_ANY.)
+   @desc
+     `runSimpleServer` will start a HTTP server on the given
+     `host:port` and **block until aborted**, or throw an exception if the
+     server cannot be started.
+
+     For an incoming request `req` (see [nodejs
+     http.ServerRequest](http://nodejs.org/docs/v0.5.8/api/http.html#http.ServerRequest)),
+     `runSimpleServer` will first receive any request body (utf8
+     assumed and up to a maximum size of 10MB - larger requests will
+     be ignored). The request body will be stored on `req.body`, and
+     `connectionHandler` will be called with arguments `(req,resp)`. 
+     For details about `resp` see [nodejs
+     http.ServerResponse](http://nodejs.org/docs/v0.5.8/api/http.html#http.ServerResponse).
+
+     When `runSimpleServer` is aborted, the underlying [nodejs
+     http.Server](http://nodejs.org/docs/v0.5.8/api/http.html#http.Server)
+     will be closed. This will make it stop new connections, but
+     existing connections might not be closed.
+
+     **Example:**
+
+         function echo(req, resp) {
+           resp.end(require('util').inspect(req));
+         }
+
+         // Run server for 60s:
+         waitfor {
+           require('apollo:node-http').runSimpleServer(echo, 12345);
+         }
+         or { 
+           hold(60*1000);
+         }
+         console.log('Server stopped');
+ */
 exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
   var server = builtin_http.createServer(function(req, res) { 
     __js handleRequest(connectionHandler, req, res);
