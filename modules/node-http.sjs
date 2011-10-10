@@ -96,7 +96,7 @@ function handleRequest(connectionHandler, request, response) {
 
      When `runSimpleServer` is aborted, the underlying [nodejs
      http.Server](http://nodejs.org/docs/v0.5.8/api/http.html#http.Server)
-     will be closed. This will make it stop new connections, but
+     will be closed. This will make it stop accepting new connections, but
      existing connections might not be closed.
 
      **Example:**
