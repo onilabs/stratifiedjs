@@ -14,12 +14,7 @@ var setRunner = exports.setRunner = function(runner) {
 }
 
 var eq = function(a, b) {
-  // the check for both consistenly being an array or not is to work around
-  // a weird edge case in _.isEqual that can compare objects and arrays as
-  // equal, causing false positives.
-  //  - see https://github.com/documentcloud/underscore/issues/291
-  var sameArrayness = (a instanceof Array) === (b instanceof Array);
-  return (sameArrayness && _.isEqual(a, b));
+  return (_.isEqual(a, b));
 };
 
 exports.test = function test(name, expected, f) {
