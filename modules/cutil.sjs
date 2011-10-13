@@ -356,7 +356,7 @@ exports.makeDeferredFunction = function(f) {
      itself, and its return value becomes the key for this call. If `keyfn` is 
      omitted, the first argument to the function is used as the key.
 
-     It is safe to concurrently call `g` from multiple strata concurrently: 
+     It is safe to call `g` concurrently from multiple strata: 
      If a call `g(X)` is already in progress (blocked in `f(X)`), while 
      another call `g(X)` is being made, the second (and any subsequent) call 
      will not cause `f(X)` to be called again. Instead, these subsequent 

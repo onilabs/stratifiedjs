@@ -519,12 +519,15 @@ function parseLocation(default_location) {
     window.location.replace("#"+default_location);
   var matches = /#(.*\/)([^:#]*)(?:\:\:([^:]*)(?:\:\:(.*))?)?/.exec(window.location.hash);
   if (!matches) return { path: "", module: "", classname: "", symbol: "" };
-  return { 
+  var loc = { 
     path: http.canonicalizeURL(matches[1], window.location.href), // XXX want resolution like in require here
     module: matches[2],
     classname: matches[4] ? matches[3] : null,
     symbol: matches[4] ? matches[4] : matches[3]
   };
+  // we don't want .sjs extensions in module names:
+  if (/\.sjs$/.test(loc.module)) loc.module = loc.module.substr(0,loc.module.length-4);
+  return loc;
 }
 
 function parentPath(path) {

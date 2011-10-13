@@ -212,9 +212,12 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
         addListener(elems[j], events[i], handleEvent);
   }
   finally {
-    for (var i = 0; i < event_count; ++i )
-      for (var j = 0; j < elem_count; ++j )
-        removeListener(elems[j], events[i], handleEvent);
+    try {
+      for (var i = 0; i < event_count; ++i )
+        for (var j = 0; j < elem_count; ++j )
+          removeListener(elems[j], events[i], handleEvent);
+    }
+    catch(e) {/* ignore errors */}
   }
   return rv;
 };

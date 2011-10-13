@@ -266,7 +266,7 @@ function file_src_loader(path) {
 }
 
 // load a builtin nodejs module:
-function nodejs_loader(path, parent /*, src*/) {
+function nodejs_loader(path, parent, dummy_src, opts) {
 
   // strip off 'nodejs:'
   path = path.substr(7);
@@ -314,7 +314,7 @@ function nodejs_loader(path, parent /*, src*/) {
 function getHubs_hostenv() {
   return [
     ["apollo:", "file://"+__oni_rt.nodejs_apollo_lib_dir ],
-    ["github:", {src:github_src_loader} ],
+    ["github:", {src: github_src_loader} ],
     ["http:", {src: http_src_loader} ],
     ["https:", {src: http_src_loader} ],
     ["file:", {src: file_src_loader} ],

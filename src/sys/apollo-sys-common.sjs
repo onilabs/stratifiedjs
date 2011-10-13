@@ -27,26 +27,26 @@
  * THE SOFTWARE.
  *
  */
+/**
+   @module apollo-sys-common
+   @summary 'common' part of built-in Apollo system module
+   @desc
 
-/*
-
-   The system module is spread over two parts: the 'common' part, and the
-   'hostenv' specific part. 
-   hostenv is one of : 'xbrowser' | 'nodejs' 
+   The apollo system module, accessible as
+   `require('sjs:apollo-sys')`, is spread over two parts: the 'common'
+   part, and the 'hostenv' specific part (where hostenv currently is
+   one of 'xbrowser' or 'nodejs' - see [apollo-sys-xbrowser::] and
+   [apollo-sys-nodejs::])
 
    The hostenv-specific file must provide the following functions:
 
-   jsonp_hostenv
-   getXDomainCaps_hostenv
-   request_hostenv
-   resolveRelReqURL_hostenv
-   getHubs_hostenv
-   getExtensions_hostenv
-   init_hostenv
-
-   (we also export some of these for use by other libraries; see below for signatures)
-
-   
+   * jsonp_hostenv
+   * getXDomainCaps_hostenv
+   * request_hostenv
+   * resolveRelReqURL_hostenv
+   * getHubs_hostenv
+   * getExtensions_hostenv
+   * init_hostenv
 
 */
 
@@ -87,7 +87,7 @@ exports.isArrayOrArguments = function(obj) {
                    of *arr*, but with elements that are arrays replaced by
                    their elements (recursively).
   @desc
-    See modules/common.sjs:flatten
+    See [../../modules/common::flatten]
 */
 exports.flatten = function(arr, rv) {
   var rv = rv || [];
@@ -104,8 +104,8 @@ exports.flatten = function(arr, rv) {
 
 /**
    @function accuSettings
-   @desc 
-     See modules/common.sjs:mergeSettings
+   @summary 
+     See [../../modules/common::mergeSettings]
 */
 exports.accuSettings = function(accu, hashes) {
   hashes = exports.flatten(hashes);
@@ -163,10 +163,9 @@ exports.parseURL.options = {
   @function  constructQueryString
   @summary Build a URL query string.
   @param {QUERYHASHARR} [hashes] Object(s) with key/value pairs.
-         See below for full syntax.
   @return {String}
   @desc
-    See [http.constructQueryString](#http/constructQueryString)
+    See [../../modules/http::constructQueryString]
 */
 exports.constructQueryString = function(/*hashes*/) {
   var hashes = exports.flatten(arguments);
@@ -192,7 +191,7 @@ exports.constructQueryString = function(/*hashes*/) {
   @function constructURL
   @summary Build a URL string.
   @param {URLSPEC} [urlspec] Base string and optional path strings
-                   and query hashes. See docs in http module for full syntax.
+                   and query hashes. See [../../modules/http::constructURL] for full syntax.
   @return {String}
 */
 exports.constructURL = function(/* url_spec */) {
@@ -330,8 +329,8 @@ exports.request = request_hostenv;
 
 /**
   @function makeMemoizedFunction
-  @desc
-    See modules/cutil.sjs:makeMemoizedFunction
+  @summary
+    See [../../modules/cutil::makeMemoizedFunction]
 */
 exports.makeMemoizedFunction = function(f, keyfn) {
   var lookups_in_progress = {};
@@ -496,8 +495,8 @@ function default_src_loader(path) {
   throw new Error("Don't know how to load module at "+path);
 }
 
-function default_loader(path, parent, src) {
-  return getNativeModule(path, parent, src);
+function default_loader(path, parent, src, opts) {
+  return getNativeModule(path, parent, src, opts);
 }
 
 function http_src_loader(path) {
@@ -576,7 +575,7 @@ function github_src_loader(path) {
   };
 }
 
-function getNativeModule(path, parent, src_loader) {
+function getNativeModule(path, parent, src_loader, opts) {
   // determine compiler function based on extension:
   var extension;
   var matches = /.+\.([^\.\/]+)$/.exec(path);
@@ -671,7 +670,7 @@ function requireInner(module, require_obj, parent, opts) {
     path = exports.canonicalizeURL(path);
 
     // now perform the load:
-    return loader(path, parent, src);
+    return loader(path, parent, src, opts);
   }
   catch (e) {
     var mes = "Cannot load module '"+module+"'. "+
