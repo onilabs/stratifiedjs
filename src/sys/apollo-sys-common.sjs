@@ -428,6 +428,12 @@ function makeRequire(parent) {
     else
       return requireInner(module, rf, parent, opts);
   };
+
+  rf.resolve = function(module, settings) {
+    var opts = exports.accuSettings({}, [settings]);
+    return resolve(module, rf, parent, opts);
+  };
+
   rf.path = ""; // default path is empty
   rf.alias = {};
 
@@ -487,6 +493,7 @@ function resolveHubs(module, hubs, opts) {
         throw "Unexpected value for require.hubs element '"+hub[0]+"'"
     }
   }
+
   return {path:path, loader:loader, src:src};
 }
 
@@ -520,7 +527,7 @@ var github_opts = {cbfield:"callback"};
 // Resolve a github repo location (user, repo, tag) into a tree_sha for direct lookup.
 // Cached for the duration of the current runtime.
 var resolve_github_repo = exports.makeMemoizedFunction(
-  function resolve(user, repo, tag) {
+  function(user, repo, tag) {
     var tree_sha;
     /* XXX we really want the parallel-or operator here (|@|) to recode this as:
   
@@ -577,15 +584,7 @@ function github_src_loader(path) {
 
 function getNativeModule(path, parent, src_loader, opts) {
   // determine compiler function based on extension:
-  var extension;
-  var matches = /.+\.([^\.\/]+)$/.exec(path);
-  if (!matches) {
-    // apply default extension:
-    extension = "sjs";
-    path += ".sjs";
-  }
-  else
-    extension = matches[1];
+  var extension = /.+\.([^\.\/]+)$/.exec(path)[1]
 
   var compile = exports.require.extensions[extension];
   if (!compile) 
@@ -649,28 +648,41 @@ function getNativeModule(path, parent, src_loader, opts) {
   return descriptor.exports;  
 }
 
+// resolve module id to {path,loader,src}
+function resolve(module, require_obj, parent, opts) {
+  // apply local aliases:
+  var path = resolveAliases(module, require_obj.alias);
+  
+  // apply hostenv-specific resolution if path is scheme-less
+  if (path.indexOf(":") == -1)
+    path = resolveRelReqURL_hostenv(path, require_obj, parent);
+  
+  if (parent == __oni_rt.G.__oni_rt_require_base)
+    parent = "[toplevel]";
+  
+  // apply global aliases
+  var resolveSpec = resolveHubs(path, exports.require.hubs, opts);
+  
+  // XXX hack - this should go into something like a loader.resolve() function
+  if (resolveSpec.loader == default_loader) {
+    // native modules are compiled based on extension:
+    if (!/\.[^\.\/]+$/.test(resolveSpec.path))
+      resolveSpec.path += ".sjs";
+  }
+
+  // make sure the path has '.' and '..' collapsed:
+  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path);  
+
+  return resolveSpec;
+}
+
 // requireInner: workhorse for require
 function requireInner(module, require_obj, parent, opts) {
   try {
-    // apply local aliases:
-    var path = resolveAliases(module, require_obj.alias);
-    
-    // apply hostenv-specific resolution if path is scheme-less
-    if (path.indexOf(":") == -1)
-      path = resolveRelReqURL_hostenv(path, require_obj, parent);
-    
-    if (parent == __oni_rt.G.__oni_rt_require_base)
-      parent = "[toplevel]";
-    
-    // apply global aliases
-    var loader, src;
-    ({path,loader, src}) = resolveHubs(path, exports.require.hubs, opts);
-    
-    // make sure the path has '.' and '..' collapsed:
-    path = exports.canonicalizeURL(path);
+    var resolveSpec = resolve(module, require_obj, parent, opts);
 
     // now perform the load:
-    return loader(path, parent, src, opts);
+    return resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
   }
   catch (e) {
     var mes = "Cannot load module '"+module+"'. "+
