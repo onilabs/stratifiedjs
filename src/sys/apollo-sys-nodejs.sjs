@@ -136,7 +136,8 @@ var readStream = exports.readStream = function readStream(stream) {
     }
   }
   finally {
-   stream.pause();
+    if (stream.readable)
+      stream.pause();
   }
   
   return data;

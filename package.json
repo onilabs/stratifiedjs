@@ -2,7 +2,7 @@
   "name": "apollo",
   "description": "StratifiedJS Framework",
   "author": "Alexander Fritze <alex@onilabs.com>",
-  "version" : "0.13.1",
+  "version" : "0.13.2",
   "homepage": "http://onilabs.com/apollo",
   "repository":   {
     "type": "git",

@@ -2,7 +2,7 @@
  * Oni Apollo StratifiedJS Runtime
  * Client-side Cross-Browser implementation
  * 
- * Version: '0.13.1'
+ * Version: '0.13.2'
  * http://onilabs.com/apollo
  *
  * (c) 2010-2011 Oni Labs, http://onilabs.com
