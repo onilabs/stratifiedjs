@@ -63,3 +63,10 @@ function calculatePi(d) {
 
 time("pi to 500 digits", function() { calculatePi(500); });
 
+time("coll.each(arr*100)*100)", function() { 
+  var coll = require('apollo:collection');
+  var arr = [];
+  for (var i=0; i<100; ++i) arr.push(i);
+  var accu = 0;
+  coll.each(arr, function() { coll.each(arr, function(v) { accu += v; }) });
+});

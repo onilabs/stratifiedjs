@@ -53,7 +53,7 @@ test('keys() on an object', ['a','b','c'], function() {
   return keys;
 });
 
-test('keys() on an array', [0,1,2], function() {
+test('keys() on an array', ['0','1','2'], function() {
   return collection.keys(["one", "two", "three"]);
 });
 
@@ -184,7 +184,7 @@ test('filter', {checked: [1,2,3], result: [1,3]}, function() {
   return {checked:checked, result:result};
 });
 
-test('par filter', {checked: [3,2,1], result: [1,3]}, function() {
+test('par filter', {checked: [3,2,1], result: [3,1]}, function() {
   var checked = [];
   var result = par.filter([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -278,12 +278,8 @@ test('reduce1', 6, function() {
   return collection.reduce1([1,2,3], function(accum, el) { return accum + el; });
 });
 
-test('reduce fails on an object', 'reduce on non-array', function() {
-  try {
-    return collection.reduce(0, {one: 1}, function() { return 'should not be run'; });
-  } catch(e) {
-    return e.message;
-  }
+test('reduce on an object', 6, function() {
+  return collection.reduce({one: 1, two: 2, three: 3}, 0, function(accum, el) { return accum + el; });
 });
 test('reduce1 fails on empty array', 'reduce1 on empty collection', function() {
   try {
