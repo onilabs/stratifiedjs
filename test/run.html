@@ -24,11 +24,13 @@
 var http = require("apollo:http");
 var coll = require("apollo:collection");
 var suite_dir = http.canonicalizeURL("suites/", document.location);
-var is_sjs_file = function(fname) { return fname.match(/\.sjs$/); }
-var get_filename = function(file) { return file.name; }
-var suites = coll.filter(coll.map(http.json(suite_dir + "!json").files, 
-                                  get_filename), 
-                         is_sjs_file);
+var suites = [];
+coll.map(http.get(suite_dir + "testsuite-index.txt").split('\n'),
+         function(suite_desc) {
+           suite_desc = suite_desc.split(" ");
+           if (suite_desc[1] && suite_desc[1].indexOf("xbrowser") !== -1)
+             suites.push(suite_desc[0]);
+         });
 
 var BrowserRunner = require("./runners/browser").BrowserRunner;
 var runner = new BrowserRunner({verbose:true});
