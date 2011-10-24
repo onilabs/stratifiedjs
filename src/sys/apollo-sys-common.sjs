@@ -667,7 +667,8 @@ function resolve(module, require_obj, parent, opts) {
   // XXX hack - this should go into something like a loader.resolve() function
   if (resolveSpec.loader == default_loader) {
     // native modules are compiled based on extension:
-    if (!/\.[^\.\/]+$/.test(resolveSpec.path))
+    var matches = /.+\.([^\.\/]+)$/.exec(resolveSpec.path);
+    if (!matches || !exports.require.extensions[matches[1]])
       resolveSpec.path += ".sjs";
   }
 
