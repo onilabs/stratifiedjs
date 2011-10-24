@@ -258,8 +258,11 @@ function file_src_loader(path) {
     // XXX this is a hack to allow us to load sjs scripts without .sjs extension, 
     // e.g. hash-bang scripts
     var matches;
-    if ((matches = /(.*)\.sjs$/.exec(path))) 
-      return file_src_loader(matches[1]);
+    if ((matches = /(.*)\.sjs$/.exec(path))) {
+      try {
+        return file_src_loader(matches[1]);
+      } catch (e) { throw err + "\nand then\n"+e; }
+    }
     else
       throw err;
   }
