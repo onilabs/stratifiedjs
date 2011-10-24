@@ -260,10 +260,11 @@ exports.canonicalizeURL = function(url, base) {
       // a is relative to base.directory
       a.directory = (base.directory || "/") + a.directory;
     }
-    if (!a.protocol)
+    if (!a.protocol) {
       a.protocol = base.protocol;
-    if (!a.authority)
-      a.authority = base.authority;
+      if (!a.authority)
+        a.authority = base.authority;
+    }
   }
   
   // collapse "." & "..":
