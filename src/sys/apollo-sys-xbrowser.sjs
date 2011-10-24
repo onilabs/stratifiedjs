@@ -186,17 +186,27 @@ function getXDomainCaps_hostenv() {
 }
 
 /**
-   @function resolveRelReqURL_hostenv
+   @function getTopReqParent_hostenv
+   @summary Return top-level require parent (for converting relative urls in absolute ones)
+*/
+var req_base;
+function getTopReqParent_hostenv() {
+  if (!req_base) req_base = document.location.href;
+  return req_base;
+}
+
+/**
+   @function resolveSchemelessURL_hostenv
    @summary Resolve a relative URL to an absolute one (for the require-mechanism)
    @param {String} [url_string] Relative URL to be converted
    @param {Object} [req_obj] require-object
    @param {parent} [parent] Module parent (possibly undefined if loading from top-level)
    @return {String} Absolute URL
 */
-function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
+function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
   if (req_obj.path && req_obj.path.length)
     url_string = exports.constructURL(req_obj.path, url_string);
-  return exports.canonicalizeURL(url_string, parent ? parent : document.location.href);
+  return exports.canonicalizeURL(url_string, parent);
 }
 
 

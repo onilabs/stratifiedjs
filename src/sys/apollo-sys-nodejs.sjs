@@ -91,16 +91,26 @@ function getXDomainCaps_hostenv() {
 }
 
 /**
-   @function resolveRelReqURL_hostenv
-   @summary Resolve a relative URL to an absolute one (for the require-mechanism)
-   @param {String} [url_string] Relative URL to be converted
+   @function getTopReqParent_hostenv
+   @summary Return top-level require parent (for converting relative urls in absolute ones)
+*/
+var req_base;
+function getTopReqParent_hostenv() {
+  if (!req_base) req_base = "file://"+process.cwd()+"/";
+  return req_base;
+}
+
+/**
+   @function resolveSchemelessURL_hostenv
+   @summary Resolve a scheme-less URL (for the require-mechanism)
+   @param {String} [url_string] Scheme-less URL to be converted
    @param {Object} [req_obj] require-object
    @param {String} [parent] parent url (possibly undefined if loading from top-level)
    @return {String} Absolute URL
 */
-function resolveRelReqURL_hostenv(url_string, req_obj, parent) {
+function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
   if (/^\.?\.?\//.exec(url_string))
-    return exports.canonicalizeURL(url_string, parent ? parent : "file://"+process.cwd()+"/");
+    return exports.canonicalizeURL(url_string, parent);
   else
     return "nodejs:"+url_string;
 }
@@ -278,12 +288,12 @@ function nodejs_loader(path, parent, dummy_src, opts) {
   //  native nodejs module, apollo-native module (based on known extensions), other nodejs module
 
   var base;
-  if (!parent || !(/^file:/.exec(parent))) {
-    base = process.cwd();
-  }
-  else
-    base = parent.substr(5);
+  if (!(/^file:/.exec(parent))) // e.g. we are being loaded from a http module
+    base = getTopReqParent_hostenv();
   
+  // strip 'file://'
+  base = parent.substr(7);
+
   var mockModule = { 
     paths: __oni_rt.nodejs_require('module')._nodeModulePaths(base) 
   };

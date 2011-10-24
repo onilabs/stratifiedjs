@@ -43,7 +43,8 @@
    * jsonp_hostenv
    * getXDomainCaps_hostenv
    * request_hostenv
-   * resolveRelReqURL_hostenv
+   * getTopReqParent_hostenv
+   * resolveSchemelessURL_hostenv
    * getHubs_hostenv
    * getExtensions_hostenv
    * init_hostenv
@@ -251,16 +252,18 @@ exports.canonicalizeURL = function(url, base) {
   var a = exports.parseURL(url);
   
   // convert relative->absolute:
-  if (!a.protocol && base) {
+  if (base) {
     base = exports.parseURL(base);
-    a.protocol = base.protocol;
-    if (!a.authority) {
-      a.authority = base.authority;
-      if (!a.directory.length || a.directory.charAt(0) != '/') {
-        // a is relative to base.directory
-        a.directory = (base.directory || "/") + a.directory;
-      }
+    if (!a.directory && !a.protocol)
+      a.directory = base.directory;
+    else if (a.directory && a.directory.charAt(0) != '/') {
+      // a is relative to base.directory
+      a.directory = (base.directory || "/") + a.directory;
     }
+    if (!a.protocol)
+      a.protocol = base.protocol;
+    if (!a.authority)
+      a.authority = base.authority;
   }
   
   // collapse "." & "..":
@@ -655,10 +658,7 @@ function resolve(module, require_obj, parent, opts) {
   
   // apply hostenv-specific resolution if path is scheme-less
   if (path.indexOf(":") == -1)
-    path = resolveRelReqURL_hostenv(path, require_obj, parent);
-  
-  if (parent == __oni_rt.G.__oni_rt_require_base)
-    parent = "[toplevel]";
+    path = resolveSchemelessURL_hostenv(path, require_obj, parent);
   
   // apply global aliases
   var resolveSpec = resolveHubs(path, exports.require.hubs, opts);
@@ -670,8 +670,11 @@ function resolve(module, require_obj, parent, opts) {
       resolveSpec.path += ".sjs";
   }
 
-  // make sure the path has '.' and '..' collapsed:
-  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path);  
+  // make sure we have an absolute url with '.' & '..' collapsed:
+  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent);  
+
+  if (parent == getTopReqParent_hostenv())
+    parent = "[toplevel]";
 
   return resolveSpec;
 }
@@ -692,7 +695,7 @@ function requireInner(module, require_obj, parent, opts) {
 }
 
 // top-level require function:
-exports.require = makeRequire(__oni_rt.G.__oni_rt_require_base);
+exports.require = makeRequire(getTopReqParent_hostenv());
 
 exports.require.modules['sjs:apollo-sys.sjs'] = {
   id: 'sjs:apollo-sys.sjs',
