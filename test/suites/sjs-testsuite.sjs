@@ -1177,3 +1177,9 @@ test('spawn/waitforValue/abort', [
   return log;
 });
 
+test("tail 'this' pointer in for-in", 1, function() { 
+  var rv;
+  var a = { i:1, foo: function(o) { for (var x in o) { hold(0); rv = this.i; } } }; 
+  a.foo([2,3,4]); 
+  return rv;
+});
