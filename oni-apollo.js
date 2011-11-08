@@ -1119,9 +1119,7 @@ if(!this.remainingX.length){
 if(is_ef(val))val.swallow_bc=true;
 return this.returnToParent(val);
 }
-val=this.ndata[1].apply(this.env.tobj,[this.env.aobj,this.remainingX.shift()]);
-
-
+val=this.ndata[1](this.env,this.remainingX.shift());
 if(is_ef(val)){
 this.setChildFrame(val,2);
 return this;

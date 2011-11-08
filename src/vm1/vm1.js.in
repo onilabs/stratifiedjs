@@ -1292,9 +1292,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
           if (is_ef(val)) val.swallow_bc = true;
           return this.returnToParent(val);
         }
-        val = this.NDATA_FORIN_LOOPF().apply(this.env.tobj,
-                                             [this.env.aobj,
-                                              this.remainingX.shift()]);
+        val = this.NDATA_FORIN_LOOPF()(this.env, this.remainingX.shift());
         if (is_ef(val)) {
           this.setChildFrame(val, 2);
           return this;
