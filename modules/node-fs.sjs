@@ -215,7 +215,7 @@ exports.rmdir = function(path) {
    @summary To be documented
 */
 exports.mkdir = function(path, mode) {
-  waitfor (var err) { fs.mkdir(path, mode, resume); }
+  waitfor (var err) { fs.mkdir(path, mode===undefined ? 0777 : mode, resume); }
   if (err) throw err;
 };
 
@@ -337,6 +337,21 @@ exports.waitforChange = function(filename, interval /*=0*/) {
 
 //----------------------------------------------------------------------
 // high-level
+
+/**
+   @function exists
+   @summary To be documented
+*/
+exports.exists = function(path) {
+  try {
+    exports.stat(path);
+    return true;
+  }
+  catch (e) {
+    return false;
+  }
+};
+
 
 /**
    @function isFile
