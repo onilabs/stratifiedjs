@@ -128,7 +128,7 @@ function installPlugin($, prefix) {
   @setting   {Boolean} [autoload=true] Defines if jQuery should be loaded if 'window.jQuery' does not exist yet.
   @setting   {Boolean} [stratify=true] Defines if stratified jQuery wrappers/plugins should be installed. e.g. .click(callback) -> .$click().
   @setting   {String} [url=Google CDN] A string containing the URL to the jQuery library which will be loaded in case it doesn't exist yet and autoload is enabled. This can be a cross-domain or local URL.
-  @setting   {String} [version=1.4.2] A string defining the version of jQuery to load from Google's CDN in case the 'url' setting is not changed.
+  @setting   {String} [version=1.7.0] A string defining the version of jQuery to load from Google's CDN in case the 'url' setting is not changed.
   @XXXsetting   {Function} [prefix=$fnname] Every function's name that gets a stratified version is filtered through this.  function (name) { return "$"+name;}.
   @return    {jQuery} A jQuery object with the stratified plugin installed.
 */
@@ -157,7 +157,7 @@ exports.install = function (opts) {
 
 exports.load = function (opts) {
   if (!window["jQuery"]) {
-    var version = opts.version || "1.4.2";
+    var version = opts.version || "1.7.0";
     var url = opts.url || "http://ajax.googleapis.com/ajax/libs/jquery/"+version+"/jquery.min.js";
     require("./dom").script(url);
     // wait for jquery to be initialized (crucial on IE):
