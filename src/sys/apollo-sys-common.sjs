@@ -252,8 +252,8 @@ exports.canonicalizeURL = function(url, base) {
   var a = exports.parseURL(url);
   
   // convert relative->absolute:
-  if (base) {
-    base = exports.parseURL(base);
+  if (base && (base = exports.parseURL(base)) &&
+      (!a.protocol || a.protocol == base.protocol)) {
     if (!a.directory && !a.protocol)
       a.directory = base.directory;
     else if (a.directory && a.directory.charAt(0) != '/') {
