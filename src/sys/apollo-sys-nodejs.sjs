@@ -230,7 +230,12 @@ function request_hostenv(url, settings) {
         //console.log('redirect to ' + response.headers['location']);
         opts.headers.host = null;
         --opts.max_redirects;
-        return request_hostenv(response.headers['location'], opts);
+        // we use canonicalizeURL here, because some sites
+        // (e.g. dailymotion) use a relative url in the Location
+        // header (which is forbidden according to RFC1945)
+        return request_hostenv(
+          exports.canonicalizeURL(response.headers['location'],url_string), 
+          opts);
       }
       // else fall through
     default:
