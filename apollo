@@ -31,6 +31,8 @@ function runSJScript(url) {
       // call stack when there is an error:
       callback: function(err) {
         if (err) {
+          err = err.toString().replace(/^Error: Cannot load module/, "Error executing");
+          err = err.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
           console.log(err.toString());
           process.exit(1);
         }
