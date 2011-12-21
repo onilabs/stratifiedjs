@@ -175,7 +175,7 @@ function request_hostenv(url, settings) {
                                     { 
                                       method : "GET",
                                       // query : undefined
-                                      body : null,
+                                      // body : undefined,
                                       headers : {},
                                       // username : undefined
                                       // password : undefined
@@ -196,6 +196,8 @@ function request_hostenv(url, settings) {
 
   if (!opts.headers['Host'])
     opts.headers.Host = url.authority;
+  if (opts.body && !opts.headers['Transfer-Encoding'])
+    opts.headers['Transfer-Encoding'] = 'chunked';
   var request = __oni_rt.nodejs_require(protocol).request({
     method: opts.method,
     host: url.host,
@@ -203,7 +205,7 @@ function request_hostenv(url, settings) {
     path: url.relative || '/',
     headers: opts.headers
   });
-  request.end(); // XXX body
+  request.end(opts.body); 
 
   waitfor {
     waitfor (var err) {
@@ -243,6 +245,7 @@ function request_hostenv(url, settings) {
         var txt = "Failed " + opts.method + " request to '"+url_string+"'";
         txt += " ("+response.statusCode+")";
         var err = new Error(txt);
+        // XXX add status text
         err.status = response.statusCode;
         err.request = request;
         err.response = response;
