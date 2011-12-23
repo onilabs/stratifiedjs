@@ -224,6 +224,12 @@ function request_hostenv(url, settings) {
       request.removeListener('response', resume);
     }
   }
+  retract {
+    // XXX we need this dummy error listener to prevent nodejs from
+    // throwing a socket hangup exception to top level:
+    request.on('error', function(){}); 
+    request.abort();
+  }
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
     switch (response.statusCode) {
