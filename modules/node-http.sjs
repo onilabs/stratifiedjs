@@ -40,6 +40,8 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
 
 
 var builtin_http = require('http');
+var collection = require('./collection');
+var http = require('./http');
 var events = require('./node-events');
 
 // helper to receive a (smallish, <10MB) utf8 request body (if any) and store it 
@@ -126,3 +128,162 @@ exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
     try { server.close(); } catch(e) { }
   }
 };
+
+/* XXXX document me */
+
+function ServerRequest(req, res) {
+  this.request = req;
+  this.response = res;
+  // XXX https
+  this.url = http.parseURL(http.canonicalizeURL(req.url, 'http://'+req.headers.host));
+  // XXX other encodings
+  req.setEncoding('utf8');
+  // receive a (smallish, <10MB) utf8 request body (if any):
+  this.body = "";
+  waitfor {
+    waitfor() { __js req.on('end', resume); hold(1000);}
+  }
+  or {
+    while (1) {
+      this.body += events.waitforEvent(req, 'data')[0];
+      if (this.body.length > 1024*1024*10) {
+        // close the socket, lest the client send us even more data:
+        req.destroy();
+        throw "Request body too large";
+      }
+    }
+  }
+}
+
+
+
+/* XXXX document me */
+exports.server = function server(port, /* opt */ host) {
+  return new Server(port, host);
+};
+
+function Server(port, host) {
+  var capacity = 100; // XXX does this need to be configurable??
+  var me = this;
+  this._queue = new (require('./cutil').Queue)(capacity, true);
+  this._server = builtin_http.createServer(
+    function(req, res) {
+      if (me._queue.size == capacity) {
+        // XXX 
+        throw new Error("dropping request");
+      }
+      me._queue.put(new ServerRequest(req, res));
+    });
+  this._server.listen(port, host);
+}              
+                     
+Server.prototype.count = function() { return this._queue.count(); };
+
+Server.prototype.address = function() { return this._server.address(); };
+
+Server.prototype.get = function() { return this._queue.get(); };
+
+Server.prototype.stop = function() { this._server.close(); };
+
+Server.prototype.__finally__ = function() { this.stop(); };
+
+
+/* XXXX document me */
+
+exports.router = function router(port, /* opt */ host) {
+  return new Router(port, host);
+};
+
+function Router(routes, port, host) {
+  this.routes = routes || [];
+  var me = this;
+  this._server = builtin_http.createServer(
+    function(req, res) {
+      waitfor {
+        // if the request is closed, we automatically abort any route
+        // currently in progress
+        events.waitforEvent(req, 'close');        
+        console.log('connection closed');
+      }
+      or {
+        var sr = new ServerRequest(req, res);
+        console.log(sr.url.path);
+//        console.log(sr.request.headers);
+        var matches;
+        var route = collection.find(me.routes, function (r) {
+          if (typeof r[0] == 'string') {
+            if (r[0] != sr.url.path) return false;
+            matches = [r[0]];
+            return true;
+          }
+          else if (typeof r[0] == 'object' && r[0].exec) {
+            // regexp match
+            return (matches = r[0].exec(sr.url.path));
+          }
+        });
+        if (route) {
+          // execute route:
+          var result = route[1](sr, matches);
+          if (!sr.response.finished) 
+            sr.response.end(result);
+        }
+        else {
+          // Not found
+          sr.response.writeHead(404);
+          sr.response.end();
+        }
+        
+      }
+      catch (e) {
+        if (!isHTMLStatusCodeException(e)) { 
+          console.log('Error in request handler for '+req.url+': '+e);
+          if (!res.finished && res.connection.writable) {
+            if (!res._headerSent) 
+              res.writeHead(500);
+            res.end();
+          }
+        }
+        else {
+          if (!res.finished && res.connection.writable) {
+            if (!res._headerSent) 
+              res.writeHead(statusCodeFromException(e), reasonPhraseFromException(e));
+            else 
+            console.log("Can't send error code "+statusCodeFromException(e)+" - header already sent.");              
+            res.end();
+          }
+          else {
+            console.log("Can't send error code "+statusCodeFromException(e)+" - connection is not writable");
+          }
+        }
+      }
+    });
+  waitfor () {
+    this._server.listen(port, host, resume);
+  }
+}
+
+// We allow handlers to throw html status code numbers or [code, reason-phrase] arrays
+function isHTMLStatusCodeException(x) {
+  return (typeof x == 'number') || (Array.isArray(x) && typeof x[0] == 'number');
+}
+function statusCodeFromException(x) {
+  return typeof x == 'number' ? x : x[0];
+}
+function reasonPhraseFromException(x) {
+  return typeof x == 'number' ? undefined : x[1];
+}
+ 
+
+Router.prototype.address = function() { return this._server.address(); };
+
+Router.prototype.stop = function() { 
+  // XXX even after we stop the server, any open connections will
+  // still be serviced. Make sure we send 400's:
+  this.routes = [];
+  try {  
+    this._server.close(); 
+  }
+  catch(e) {} 
+};
+
+Router.prototype.__finally__ = function() { this.stop(); };
