@@ -7,15 +7,38 @@ var args = process.argv.slice(1);
 var http = require("apollo:http");
 var base = path.dirname(http.parseURL(module.id).relative);
 var suite_dir = path.join(base, "suites");
+var cwd = process.cwd();
+var print = function(s) { process.stdout.write(s+"\n") };
+
+function usage() {
+  print("Usage: test/run.sjs [options] [testfile...]");
+  print("");
+  print("Options:");
+  print("  -h, --help         display this help message");
+  print("  -v                 verbose output");
+  print("");
+}
 
 var runOpts = {
   verbose: false
-}
+};
+var test_files = [];
+
 //TODO: proper optparse
-var verboseIndex = args.indexOf("-v");
-if(verboseIndex !== -1) {
-  args.splice(verboseIndex, 1);
-  runOpts.verbose = true;
+for (var i=1; i<process.argv.length; ++i) {
+  var flag = process.argv[i];
+  switch (flag) {
+  case "-h":
+  case "--help":
+    usage();
+    process.exit(1);
+    break;
+  case "-v":
+    runOpts.verbose = true;
+    break;
+  default:
+    test_files.push(path.resolve(cwd, flag));
+  }
 }
 
 var is_sjs_file = function(fname){
@@ -26,13 +49,8 @@ var path_to_test = function(fname) {
   return path.normalize(path.join(suite_dir, fname));
 };
 
-var test_files;
-if(args.length > 0) {
-  var cwd = process.cwd();
-  test_files = args.map(function(arg) { return path.resolve(cwd, arg); });
-} else {
+if (!test_files.length)
   test_files = fs.readdirSync(suite_dir).filter(is_sjs_file).map(path_to_test).sort();
-}
 
 var NodeRunner = require("./runners/node").NodeRunner;
 
