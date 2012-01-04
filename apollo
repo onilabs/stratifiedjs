@@ -128,4 +128,8 @@ function main() {
   return run();
 };
 
+process.on('uncaughtException',function(error){
+  console.warn('Uncaught: '+error.toString());
+})
+
 apollo_node.init(main);
