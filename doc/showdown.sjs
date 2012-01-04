@@ -1,3 +1,4 @@
+__js {
 // showdown.sjs - modularized version of John Fraser's showdown.js;
 // see original Copyright below.
 //
@@ -67,7 +68,6 @@
 // Note: move the sample code to the bottom of this
 // file before uncommenting it.
 //
-
 
 // **************************************************
 // GitHub Flavored Markdown modifications by Tekkub
@@ -1397,4 +1397,6 @@ exports.makeHTML = function(s, resolveLink) {
   }
 
   return converter.makeHtml(s, resolveLink);
+}
+
 }
