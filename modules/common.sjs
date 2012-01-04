@@ -51,7 +51,7 @@ exports.bind = function(f, thisObj) {
   @summary  Tests if an object is an array.
   @param    {anything} [testObj] Object to test.
   @return   {Boolean}
-  @deprecated use [::isArrayOrArguments]
+  @deprecated use Array.isArray
 */
 exports.isArray = Array.isArray;
 
