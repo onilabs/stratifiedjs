@@ -278,6 +278,19 @@ Server.prototype.__finally__ = function() { this.stop(); };
  @param    {Integer} [port] Port to listen on (0 to automatically assign free port).
  @param    {optional String} [host] IP address to listen on. If not
            specified, the server will listen on all IP addresses, i.e. INADDR_ANY.
+ @desc
+   **Example:**
+   
+       using (var router = require('apollo:node-http').router(
+                [ ['/ping', function(r) { hold(1000); return 'pong'; }],
+                  [/.*$/,   function(r) { return r.url.path; }] ],
+                8090)) {
+         console.log('Listening on '+router.address().port);
+         waitfor() {
+           router.routes.unshift(['/stop', resume]);
+         }
+         console.log('Stopping router');
+       }
  */
 
 exports.router = function router(routes, port, /* opt */ host) {
@@ -296,8 +309,8 @@ function Router(routes, port, host) {
   this._server = builtin_http.createServer(
     function(req, res) {
       waitfor {
-        // if the request is closed, we automatically abort any route
-        // currently in progress
+        // if the connection is closed, we automatically abort any
+        // route currently in progress
         events.waitforEvent(req, 'close');        
         console.log('connection closed');
       }
@@ -318,15 +331,24 @@ function Router(routes, port, host) {
           }
         });
         if (route) {
-          // execute route:
-          var result = route[1](sr, matches);
+          var handler;
+          if (typeof route[1] == 'object') {
+            if (route[1].hasOwnProperty(sr.request.method))
+              handler = route[1][sr.request.method];
+          }
+          else if (sr.request.method == "GET")
+            handler = route[1];
+          if (!handler)
+            throw 405; // 'method not allowed'
+
+          // execute handler:
+          var result = handler(sr, matches);
           if (!sr.response.finished) 
             sr.response.end(result);
         }
         else {
           // Not found
-          sr.response.writeHead(404);
-          sr.response.end();
+          throw 404;
         }
         
       }
