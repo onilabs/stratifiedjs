@@ -340,8 +340,8 @@ EventQueue.prototype = {
   
   /**
     @function  EventQueue.__finally__
-    @summary   Calls [::EventQueue::stop]
-               Allows EventQueue to be used a `using` construct.
+    @summary   Calls [::EventQueue::stop].
+               Allows EventQueue to be used in a `using` construct.
     @desc
        See 'More information' section under [::eventQueue].
    */

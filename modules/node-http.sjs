@@ -1,12 +1,12 @@
 /*
  * Oni Apollo 'node-http' module
- * Stratified wrapper of nodejs http functionality
+ * HTTP server functionality
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2012 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -31,7 +31,7 @@
  */
 /**
   @module    node-http
-  @summary   Stratified wrapper of nodejs http functionality
+  @summary   HTTP server functionality
   @hostenv   nodejs
 */
 
@@ -77,6 +77,7 @@ function handleRequest(connectionHandler, request, response) {
 
 /**
    @function runSimpleServer
+   @deprecated Use [::server] or [::router] instead.
    @summary Run a simple HTTP server.
    @param {Function} [connectionHandler] Function to be invoked for each request
    @param {Integer} [port] Port to listen on
@@ -88,16 +89,16 @@ function handleRequest(connectionHandler, request, response) {
      server cannot be started.
 
      For an incoming request `req` (see [nodejs
-     http.ServerRequest](http://nodejs.org/docs/v0.5.8/api/http.html#http.ServerRequest)),
+     http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest)),
      `runSimpleServer` will first receive any request body (utf8
      assumed and up to a maximum size of 10MB - larger requests will
      be ignored). The request body will be stored on `req.body`, and
      `connectionHandler` will be called with arguments `(req,resp)`. 
      For details about `resp` see [nodejs
-     http.ServerResponse](http://nodejs.org/docs/v0.5.8/api/http.html#http.ServerResponse).
+     http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse).
 
      When `runSimpleServer` is aborted, the underlying [nodejs
-     http.Server](http://nodejs.org/docs/v0.5.8/api/http.html#http.Server)
+     http.Server](http://nodejs.org/docs/latest/api/http.html#http.Server)
      will be closed. This will make it stop accepting new connections, but
      existing connections might not be closed.
 
@@ -129,15 +130,36 @@ exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
   }
 };
 
-/* XXXX document me */
-
+/**
+ @class ServerRequest
+ @summary Incoming HTTP request. 
+ @desc
+    - Request body size is limited to 10MB.
+    - Request body 'utf8' encoding is implied. 
+*/
 function ServerRequest(req, res) {
+  /**
+   @variable ServerRequest.request
+   @summary [NodeJS http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest) object
+   */
   this.request = req;
+  /**
+   @variable ServerRequest.response
+   @summary [NodeJS http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse) object
+   */
   this.response = res;
+  /**
+   @variable ServerRequest.url
+   @summary Full canonicalized request URL object in the format as returned by [http::parseURL].
+   */
   // XXX https
   this.url = http.parseURL(http.canonicalizeURL(req.url, 'http://'+req.headers.host));
   // XXX other encodings
   req.setEncoding('utf8');
+  /**
+   @variable ServerRequest.body
+   @summary Request body (utf8 string, possibly empty)
+   */
   // receive a (smallish, <10MB) utf8 request body (if any):
   this.body = "";
   waitfor {
@@ -155,9 +177,36 @@ function ServerRequest(req, res) {
   }
 }
 
+/**
+ @class Server
+ @summary HTTP server
+ @desc
+   Use function [::server] to construct a new Server object. 
 
+ @function server
+ @summary Constructs a new [::Server] object.
+ @return {::Server}
+ @param {Integer} [port] Port to listen on (0 to automatically assign free port).
+ @param {optional String} [host] IP address to listen on. If not
+ specified, the server will listen on all IP addresses, i.e. INADDR_ANY.
+ @desc
+   The server starts listening for connections immediately, and continues to do so 
+   until [::Server::stop] is called.
 
-/* XXXX document me */
+   As an alternative to calling [::Server::stop] manually, the lifetime of 
+   a [::Server] can be managed with a 'using' block:
+
+       using (var S = require('apollo:node-http').server(8080)) {
+         while (true) {
+           var request = S.get();
+           ...
+         }
+       }
+
+    Here the `using` construct will automatically call
+    [::Server::__finally__] when the `using` code
+    block is exited.
+ */
 exports.server = function server(port, /* opt */ host) {
   return new Server(port, host);
 };
@@ -174,27 +223,74 @@ function Server(port, host) {
       }
       me._queue.put(new ServerRequest(req, res));
     });
-  this._server.listen(port, host);
-}              
-                     
+  waitfor() {
+    this._server.listen(port, host, resume);
+  }
+}     
+
+/**
+ @function Server.count
+ @summary  Returns current number of pending requests.
+ @return   {Integer}
+ */
 Server.prototype.count = function() { return this._queue.count(); };
 
+/**
+ @function Server.address
+ @summary  Returns the address that the server is listening on.
+ @return {Object} Bound address in the form 
+                  {address: IP_String, family: FAMILY_Int, port: PORT_Int}.
+*/
 Server.prototype.address = function() { return this._server.address(); };
 
+/**
+ @function Server.get
+ @summary  Wait for a request.
+ @return   {::ServerRequest}
+ */
 Server.prototype.get = function() { return this._queue.get(); };
 
+/**
+ @function Server.stop
+ @summary  Stop listening for new connections. Unbind port.
+ @desc
+   Note that calling [::Server::stop] does not abort pending connections.
+ */
 Server.prototype.stop = function() { this._server.close(); };
 
+/**
+ @function Server.__finally__
+ @summary Calls [::Server::stop].
+          Allows [::Server] to be managed by a `using` construct. 
+*/
 Server.prototype.__finally__ = function() { this.stop(); };
 
 
-/* XXXX document me */
+/**
+ @class Router
+ @summary HTTP path router
+ @desc
+   Use function [::router] to construct a new Router object.
 
-exports.router = function router(port, /* opt */ host) {
-  return new Router(port, host);
+ @function router
+ @summary  Constructs a new [::Router] object.
+ @param    {Array} [routes] Array of routes; see [::Router.routes] for format
+ @param    {Integer} [port] Port to listen on (0 to automatically assign free port).
+ @param    {optional String} [host] IP address to listen on. If not
+           specified, the server will listen on all IP addresses, i.e. INADDR_ANY.
+ */
+
+exports.router = function router(routes, port, /* opt */ host) {
+  return new Router(routes, port, host);
 };
 
 function Router(routes, port, host) {
+  /**
+   @variable Router.routes
+   @summary  Array of routes
+   @desc
+     TODO: document format
+   */
   this.routes = routes || [];
   var me = this;
   this._server = builtin_http.createServer(
@@ -273,9 +369,20 @@ function reasonPhraseFromException(x) {
   return typeof x == 'number' ? undefined : x[1];
 }
  
-
+/**
+ @function Router.address
+ @summary  Returns the address that the server is listening on.
+ @return {Object} Bound address in the form 
+                  {address: IP_String, family: FAMILY_Int, port: PORT_Int}.
+*/
 Router.prototype.address = function() { return this._server.address(); };
 
+/**
+ @function Router.stop
+ @summary  Stop listening for new connections. Unbind port.
+ @desc
+   Note that calling [::Router::stop] does not abort pending connections.
+ */
 Router.prototype.stop = function() { 
   // XXX even after we stop the server, any open connections will
   // still be serviced. Make sure we send 400's:
@@ -286,4 +393,9 @@ Router.prototype.stop = function() {
   catch(e) {} 
 };
 
+/**
+ @function Router.__finally__
+ @summary Calls [::Router::stop].
+          Allows [::Router] to be managed by a `using` construct. 
+*/
 Router.prototype.__finally__ = function() { this.stop(); };
