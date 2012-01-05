@@ -59,15 +59,18 @@ var SOURCE_SPLITTER = new RegExp(PAT_COMMENT + "|(" +
 
 function dummy(x) {};
 
+function trimTrailingSpace(str) {
+  return str.replace(/\s+$/,'');
+}
+
 /**
    @function  parseSource
-   @summary   Parse SJS into a comments and code
+   @summary   Parse SJS into comments and code
    @param     {String} [src] Source to parse.
-   @param     {optional Function} [handle_comment] Function that will be executed for each 
-              comment encountered.
-   @param     {optional Function} [handle_code] Function that will be executed for each piece
-              of code encountered between comments.
-       
+   @param     {optional Function} [handle_comment] Function that will be
+              executed for each comment encountered.
+   @param     {optional Function} [handle_code] Function that will be executed 
+              for each piece of code encountered between comments.
 */
 var parseSource = exports.parseSource = function(src, handle_comment, handle_code) {
   handle_comment = handle_comment || dummy;
@@ -136,7 +139,7 @@ var extractDocFields = exports.extractDocFields = function(docs) {
   for (var i = 0; i<docs.length; ++i) {
     var doc = docs[i];
     while ((matches = fieldRE.exec(doc)))
-      fields.push([matches[1], matches[2]]);
+      fields.push([matches[1], trimTrailingSpace(matches[2])]);
   }
   return fields;
 };
