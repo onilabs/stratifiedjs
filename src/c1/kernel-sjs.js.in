@@ -41,14 +41,26 @@
 //----------------------------------------------------------------------
 // helpers:
 
-// fexp_ctx > 0 makes this a 'function expression context', where
+// fscoped_ctx > 0 makes this a 'function expression context', where
 // function declarations automatically become scoped like function
 // expressions. This is required within waitfor() {}
-function push_decl_scope(pctx) {
-  pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0});
+
+// for blocklambda support, we have another two flags for decl_scopes:
+// bl=true means that this is a block lambda scope
+// target=true mean that this scope is being targetted by cfxs from 
+// blocklambdas and needs to fill in its execution frame info in __oni_ef
+function push_decl_scope(pctx, bl) {
+  pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0, bl:bl});
+  if (bl) {
+    var prev = pctx.decl_scopes[pctx.decl_scopes.length-2];
+    if (!prev.bl && !prev.target) {
+      prev.target = true;
+      prev.vars.push('__oni_ef');
+    }
+  }
 }
-function pop_decl_scope(pctx) {
-  var decls = pctx.decl_scopes.pop();
+
+function collect_decls(decls) {
   var rv = "";
   if (decls.vars.length)
     rv += "var "+decls.vars.join(",")+";";
@@ -197,14 +209,21 @@ function add_stmt(stmt, pctx) {
     seq.push(stmt);
 }
 
+// helper that returns the execution function to use, depending on
+// whether the scope is a target
+function exfunc(target, tail) {
+  var rv = target ? "__oni_rt.exseqt(__oni_ef={}," : "__oni_rt.exseq(";
+  return rv + tail;
+}
+
 #define END_SCRIPT(pctx) return end_script(pctx);
 function end_script(pctx) {
-  var rv = "";
-  rv += pop_decl_scope(pctx);
-  rv += pop_stmt_scope(pctx,
-                       "__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_NONE,
-                       "])");
-  
+  var decls = pctx.decl_scopes.pop();
+  var rv = collect_decls(decls) +
+    pop_stmt_scope(pctx,
+                   exfunc(decls.target,
+                          "this.arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_NONE),
+                   "])");
   return rv;
 }
 
@@ -305,9 +324,10 @@ ph_switch.prototype.val = function() {
 #define ADD_FBODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
 
 #define END_FBODY(pctx)                                                 \
-  return pop_decl_scope(pctx) +                                         \
-  pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING, \
-                 "])");
+  var decls = pctx.decl_scopes.pop();                                   \
+  return collect_decls(decls) +                                         \
+    pop_stmt_scope(pctx, "return "+exfunc(decls.target,"arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING), \
+    "])");
 
 #define GEN_FUN_EXP(fname, pars, body, pctx) return new ph_fun_exp(fname, pars, body, pctx);
 function ph_fun_exp(fname, pars, body, pctx) {
@@ -1383,6 +1403,22 @@ ph_using.prototype.val = function() {
 #define GEN___JS(body, pctx) body.is_nblock=pctx.allow_nblock; return body;
 #endif // SJS___JS
 
+
+#ifdef SJS_BLOCKLAMBDA
+#define BEGIN_BLAMBDABODY(pctx)                       \
+  push_decl_scope(pctx, true);                        \
+  push_stmt_scope(pctx);
+
+#define ADD_BLAMBDABODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
+
+#define END_BLAMBDABODY(pctx)                                                 \
+  var decls = pctx.decl_scopes.pop();                                   \
+  return collect_decls(decls) +                                         \
+  pop_stmt_scope(pctx, "return __oni_rt.exbl(__oni_ef,["+SEQ_FLAG_NONE, \
+                 "])");
+
+#define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_fun_exp("", pars, body, pctx);
+#endif // SJS_BLOCKLAMBDA
                            
 //----------------------------------------------------------------------
 // TODO:

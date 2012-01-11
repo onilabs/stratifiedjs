@@ -184,38 +184,6 @@ var EF_Proto = {
     }
     else // sync context
       return val;
-  },
-
-  returnToParent2: function(val) {
-    if (is_cfx(val)) {
-      if (val.type == "r" && this.swallow_r)
-        val = val.val;
-      if (this.swallow_bc && (val.type == "b" || val.type == "c"))
-        val = val.val;
-    }
-    else if (this.swallow_r) {
-      if (is_ef(val))
-        val.swallow_r = true; // pass down flag to child
-      else
-        val = undefined; // only 'return' returns a value to the parent
-    }
-#ifdef DEBUG_VM
-    if (this.parent && !this.async) LOG(this+": parent but not async")
-    if (this.async && !this.parent) LOG(this+": async without parent waiting")
-#endif
-    if (this.async) {
-      if (this.parent)
-        this.parent.cont(this.parent_idx, val);
-      else // noone waiting for result; make sure exceptions get reported
-        if (is_cfx(val)) {
-          // Chrome's console exception reporting mechanism doesn't
-          // respect user-supplied toString. To get linenumbers we
-          // throw with an augmented message here:
-          val.mapToJS(true);
-        }
-    }
-    else
-      return val;
   }
 };
 //EF_Proto.__proto__ = null;
@@ -250,7 +218,7 @@ function execIN(node, env) {
 }
 exports.ex = execIN;
 
-// create a seq and exec it. map extensions.
+// create a seq and exec it. map exceptions.
 // short for __oni_rt.exec(__oni_rt.Seq(...), aobj, thisobj, file)
 exports.exseq = function(aobj,tobj,file, args) {
   var rv = I_seq(args, new Env(aobj,tobj,file));
@@ -258,6 +226,24 @@ exports.exseq = function(aobj,tobj,file, args) {
     return rv.mapToJS();
   return rv;
 };
+
+// like exseq, but for a 'targetted' execution frame (for blocklambda support)
+// main difference is that we fill efinfo here.
+exports.exseqt = function(efinfo, aobj, tobj, file, args) {
+  var env = new Env(aobj,tobj,file);
+  var seq = new EF_Seq(args, env);
+  env.ef = seq; // XXX can we do this?
+  efinfo.env = env;
+  var rv = seq.cont(1);
+  if (is_cfx(rv))
+    return rv.mapToJS();
+  return rv;
+}; 
+
+// execute a blocklambda
+exports.exbl = function(efinfo, args) {
+  return I_seq(args, efinfo.env);
+}
 
 //   exec: instruction executor function
 //   returns IN constructor function which returns a instruction object

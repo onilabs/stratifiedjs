@@ -148,34 +148,6 @@ val.mapToJS(true);
 }else return val;
 
 
-},returnToParent2:function(val){
-
-if((val&&val.__oni_cfx)){
-
-if(val.type=="r"&&this.swallow_r)val=val.val;
-
-if(this.swallow_bc&&(val.type=="b"||val.type=="c"))val=val.val;
-
-}else if(this.swallow_r){
-
-if(is_ef(val))val.swallow_r=true;else val=undefined;
-
-
-
-}
-if(this.async){
-if(this.parent)this.parent.cont(this.parent_idx,val);else if((val&&val.__oni_cfx)){
-
-
-
-
-
-
-val.mapToJS(true);
-}
-}else return val;
-
-
 }};
 
 
@@ -217,6 +189,24 @@ exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new Env(aobj,tobj,
 if((rv&&rv.__oni_cfx))return rv.mapToJS();
 
 return rv;
+};
+
+
+
+exports.exseqt=function(efinfo,aobj,tobj,file,args){var env=new Env(aobj,tobj,file);
+
+var seq=new EF_Seq(args,env);
+env.ef=seq;
+efinfo.env=env;
+var rv=seq.cont(1);
+if((rv&&rv.__oni_cfx))return rv.mapToJS();
+
+return rv;
+};
+
+
+exports.exbl=function(efinfo,args){return I_seq(args,efinfo.env);
+
 };
 
 
@@ -1832,7 +1822,7 @@ exports.UA=UA;
 
 exports.G=global;
 
-exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx){
+exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
 
 
 
@@ -1854,12 +1844,25 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
-pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0});
 
+
+
+
+
+
+pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl});
+
+if(bl){
+var prev=pctx.decl_scopes[pctx.decl_scopes.length-2];
+if(!prev.bl&&!prev.target){
+prev.target=true;
+prev.vars.push('__oni_ef');
 }
-function pop_decl_scope(pctx){var decls=pctx.decl_scopes.pop();
+}
+}
 
-var rv="";
+function collect_decls(decls){var rv="";
+
 if(decls.vars.length)rv+="var "+decls.vars.join(",")+";";
 
 rv+=decls.funs;
@@ -2003,10 +2006,17 @@ last.pushStmt(stmt);
 
 }
 
-function end_script(pctx){var rv="";
 
-rv+=pop_decl_scope(pctx);
-rv+=pop_stmt_scope(pctx,"__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+0,"])");
+
+function exfunc(target,tail){var rv=target?"__oni_rt.exseqt(__oni_ef={},":"__oni_rt.exseq(";
+
+return rv+tail;
+}
+
+function end_script(pctx){var decls=pctx.decl_scopes.pop();
+
+var rv=collect_decls(decls)+pop_stmt_scope(pctx,exfunc(decls.target,"this.arguments,this,'"+pctx.fn+"',["+0),"])");
+
 
 
 
@@ -3066,6 +3076,11 @@ return rv;
 
 
 
+
+
+
+
+
 function Hash(){}
 Hash.prototype={lookup:function(key){
 return this["$"+key]},put:function(key,val){
@@ -3361,10 +3376,44 @@ scan(pctx,"}");
 return pop_block(pctx);
 }
 
+function parseBlockLambdaBody(pctx){push_decl_scope(pctx,true);
+push_stmt_scope(pctx);
+while(pctx.token.id!="}"){
+var stmt=parseStmt(pctx);
+add_stmt(stmt,pctx);;
+}
+scan(pctx,"}");
+var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exbl(__oni_ef,["+0,"])");
+}
+function parseBlockLambda(start,pctx){var token=scan(pctx);
+
+var pars=[];
+
+if(start=="|"){
+while(token.id!="|"){
+if(pars.length)token=scan(pctx,",");
+
+if(token.id!="<id>")throw "Expected parameter name but found '"+token+"'";
+
+pars.push(token.value);
+token=scan(pctx);
+}
+scan(pctx,"|");
+}
+var body=parseBlockLambdaBody(pctx);
+return new ph_fun_exp("",pars,body,pctx);
+}
+
 S("{").exs(function(pctx,st){
+var start=pctx.token.id;
+
+if(start=="|"||start=="||"){
+
+return parseBlockLambda(start,pctx);
+}else{
+
 
 var props=[];
-
 while(pctx.token.id!="}"){
 if(props.length)scan(pctx,",");
 var prop=pctx.token;
@@ -3386,6 +3435,15 @@ props.push(["pat",prop.value,pctx.line]);
 }
 scan(pctx,"}",TOKENIZER_OP);
 return new ph_obj_lit(props,pctx);
+}
+}).exc(260,function(l,pctx,st){
+
+var start=pctx.token.id;
+
+if(start!="|"&&start!="||")throw "Unexpected token '"+pctx.token+"' - was expecting '|' or '||'";
+
+var args=[parseBlockLambda(start,pctx)];
+return new ph_fun_call(l,args,pctx);;
 }).stmt(parseBlock);
 
 
@@ -3412,20 +3470,20 @@ var stmt=parseStmt(pctx);
 add_stmt(stmt,pctx);
 }
 scan(pctx,"}");
-return pop_decl_scope(pctx)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+1,"])");
+var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return "+exfunc(decls.target,"arguments,this,'"+pctx.fn+"',["+1),"])");
 }
 
 
 
-function parseFunctionInner(pctx,pars){var par=scan(pctx,"(");
+function parseFunctionInner(pctx,pars){var token=scan(pctx,"(");
 
-while(pctx.token.id!=")"){
-if(pars.length)par=scan(pctx,",");
+while(token.id!=")"){
+if(pars.length)token=scan(pctx,",");
 
-if(par.id!="<id>")throw "Expected parameter name; found '"+par+"'";
+if(token.id!="<id>")throw "Expected parameter name but found '"+token+"'";
 
-scan(pctx);
-pars.push(par.value);
+pars.push(token.value);
+token=scan(pctx);
 }
 scan(pctx,")");
 return parseFunctionBody(pctx);

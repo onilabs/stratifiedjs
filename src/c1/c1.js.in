@@ -107,6 +107,7 @@ general:
    #define SJS_USING: parse SJS's "using" keyword
    #define SJS___JS: parse SJS's "__js" keyword
    #define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
+   #define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
 
 for C1_KERNEL_JSMIN:
    #define STRINGIFY  : encodes minified js/sjs as a string.
@@ -151,6 +152,11 @@ END_BLOCK(pctx)
 BEGIN_CASE_CLAUSE(cexp, pctx)
 ADD_CASE_CLAUSE_STMT(stmt, pctx)
 END_CASE_CLAUSE(pctx)
+
+- if #defined SJS_BLOCKLAMBDA is set:
+BEGIN_BLAMBDABODY(pctx)
+ADD_BLAMBDABODY_STMT(stmt, pctx)
+END_BLAMBDABODY(pctx)
 
 Statements:
 ===========
@@ -229,35 +235,49 @@ GEN_TRY(block, crf, pctx)
     crf is [ [catch_id,catch_block,catchall?]|null, retract_block|null, finally_block|null ]
     (instead of the non-SJS version above)
 
-if #define SJS_USING is set:
+- if #define SJS_USING is set:
 
 GEN_USING(isvar, vname, exp, body, pctx)
 
-if #defined SJS___JS is set:
+- if #defined SJS___JS is set:
+
 BEGIN___JS_BLOCK(pctx)
 END___JS_BLOCK(pctx)
 GEN___JS(body, pctx)
 
+- if #defined SJS_BLOCKLAMBDA is set:
+GEN_BLOCKLAMBDA(pars, body, pctx)
+
 */
 
 #if defined(C1_KERNEL_JS)
+
 #include "kernel-js.js.in"
+
 #elif defined(C1_KERNEL_SJS)
+
 #define SJS 1
 #define MULTILINE_STRINGS 1
 #define SJS_USING 1
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
+#define SJS_BLOCKLAMBDA 1
 #include "kernel-sjs.js.in"
+
 #elif defined(C1_KERNEL_JSMIN)
+
 #define SJS 1
 #define MULTILINE_STRINGS 1
 #define SJS_USING 1
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
+#define SJS_BLOCKLAMBDA 1
 #include "kernel-jsmin.js.in"
+
 #else
+
 #error "no kernel defined"
+
 #endif
 
 //----------------------------------------------------------------------
@@ -474,6 +494,7 @@ BP  P  A    Operator      Operand Types                  Operation Performed
        L     .            MemberExp Identifier        
        R     new          MemberExp Arguments        
 260  2 L     ( )          CallExpression Arguments       Function Call
+       L     { }          CallExpression BlockArguments  Block Lambda Call
   (    L     []           CallExpression Expression        )
   (    L     .            CallExpression Identifier        )
 250  3 n/a   ++           LeftHandSideExp                PostfixIncrement
@@ -681,57 +702,108 @@ function parseBlock(pctx) {
   END_BLOCK(pctx)
 }
 
+#ifdef SJS_BLOCKLAMBDA
+function parseBlockLambdaBody(pctx) {
+  BEGIN_BLAMBDABODY(pctx)
+  while (pctx.token.id != "}") {
+    var stmt = parseStmt(pctx);
+    ADD_BLAMBDABODY_STMT(stmt, pctx);
+  }
+  scan(pctx, "}");
+  END_BLAMBDABODY(pctx)
+}
+function parseBlockLambda(start, pctx) {
+  var token = scan(pctx);
+  var pars = [];
+  // collect parameters
+  if (start == "|") {
+    while (token.id != "|") {
+      if (pars.length) 
+        token = scan(pctx, ",");
+      if (token.id != "<id>")
+        throw "Expected parameter name but found '"+token+"'";
+      pars.push(token.value); 
+      token = scan(pctx); // consume parameter
+    }
+    scan(pctx, "|");
+  }
+  var body = parseBlockLambdaBody(pctx);
+  GEN_BLOCKLAMBDA(pars, body, pctx)  
+}
+#endif // SJS_BLOCKLAMBDA
+
 S("{").
-  // object literal:
   exs(function(pctx, st) {
-    var props = [];
-    while (pctx.token.id != "}") {
-      if (props.length) scan(pctx, ",");
-      var prop = pctx.token;
-      if (prop.id == "}")
-        break; // allows trailing ','
-      validatePropertyName(prop);
-      scan(pctx);
-      if (pctx.token.id == ":") {
-        // 'normal' property
+#ifdef SJS_BLOCKLAMBDA
+    var start = pctx.token.id;
+    if (start == "|" || start == "||") {
+      // block lambda
+      return parseBlockLambda(start, pctx);
+    }
+    else {
+#endif // SJS_BLOCKLAMBDA
+      // object literal:
+      var props = [];
+      while (pctx.token.id != "}") {
+        if (props.length) scan(pctx, ",");
+        var prop = pctx.token;
+        if (prop.id == "}")
+          break; // allows trailing ','
+        validatePropertyName(prop);
         scan(pctx);
-        var exp = parseExp(pctx, BP_COMMA); // only parse up to comma
-        props.push(["prop",prop.value,exp]);
-      }
+        if (pctx.token.id == ":") {
+          // 'normal' property
+          scan(pctx);
+          var exp = parseExp(pctx, BP_COMMA); // only parse up to comma
+          props.push(["prop",prop.value,exp]);
+        }
 #ifdef ECMA_GETTERS_SETTERS
-      else if (prop.value == "get") {
-        // property getter
-        prop = pctx.token;
-        validatePropertyName(prop);
-        scan(pctx);
-        scan(pctx, "(");
-        scan(pctx, ")");
-        var body = parseFunctionBody(pctx);
-        props.push(["get", prop.value, body]);
-      }
-      else if (prop.value == "set") {
-        // property setter
-        prop = pctx.token;
-        validatePropertyName(prop);
-        scan(pctx);
-        var pars = [];
-        var body = parseFunctionInner(pctx, pars);
-        if (pars.length != 1)
-          throw "Exactly one parameter expected in property setter definition";
-        props.push(["set", prop.value, pars[0], body]);
-      }
+        else if (prop.value == "get") {
+          // property getter
+          prop = pctx.token;
+          validatePropertyName(prop);
+          scan(pctx);
+          scan(pctx, "(");
+          scan(pctx, ")");
+          var body = parseFunctionBody(pctx);
+          props.push(["get", prop.value, body]);
+        }
+        else if (prop.value == "set") {
+          // property setter
+          prop = pctx.token;
+          validatePropertyName(prop);
+          scan(pctx);
+          var pars = [];
+          var body = parseFunctionInner(pctx, pars);
+          if (pars.length != 1)
+            throw "Exactly one parameter expected in property setter definition";
+          props.push(["set", prop.value, pars[0], body]);
+        }
 #endif // ECMA_GETTERS_SETTERS
 #ifdef SJS_DESTRUCTURE
-      else if (pctx.token.id == "}" || pctx.token.id == ",") {
-        props.push(["pat", prop.value, pctx.line]);
-      }
+        else if (pctx.token.id == "}" || pctx.token.id == ",") {
+          props.push(["pat", prop.value, pctx.line]);
+        }
 #endif // SJS_DESTRUCTURE
-      else
-        throw "Unexpected token '"+pctx.token+"'";
+        else
+          throw "Unexpected token '"+pctx.token+"'";
+      }
+      scan(pctx, "}", TOKENIZER_OP); // note the special tokenizer case here
+      GEN_OBJ_LIT(props, pctx)
+#ifdef SJS_BLOCKLAMBDA
     }
-    scan(pctx, "}", TOKENIZER_OP); // note the special tokenizer case here
-    GEN_OBJ_LIT(props, pctx)
+#endif // SJS_BLOCKLAMBDA
   }).
+#ifdef SJS_BLOCKLAMBDA
+  // block lambda call:
+  exc(260, function(l, pctx, st) {
+    var start = pctx.token.id;
+    if (start != "|" && start != "||")
+      throw "Unexpected token '"+pctx.token+"' - was expecting '|' or '||'";
+    var args = [parseBlockLambda(start, pctx)];
+    GEN_FUN_CALL(l, args, pctx);
+  }).
+#endif // SJS_BLOCKLAMBD
   // block:
   stmt(parseBlock);
 
@@ -763,14 +835,14 @@ function parseFunctionBody(pctx) {
 // inner function parsing helper: scans everything from '(' onwards;
 // returns pars in inout var, and body as rv
 function parseFunctionInner(pctx, pars) {
-  var par = scan(pctx, "(");
-  while (pctx.token.id != ")") {
+  var token = scan(pctx, "(");
+  while (token.id != ")") {
     if (pars.length)
-      par = scan(pctx, ",");
-    if (par.id != "<id>")
-      throw "Expected parameter name; found '"+par+"'";
-    scan(pctx); // consume par
-    pars.push(par.value);
+      token = scan(pctx, ",");
+    if (token.id != "<id>")
+      throw "Expected parameter name but found '"+token+"'";
+    pars.push(token.value);
+    token = scan(pctx); // consume parameter
   }
   scan(pctx, ")");
   return parseFunctionBody(pctx);

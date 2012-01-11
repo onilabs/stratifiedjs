@@ -120,6 +120,16 @@ function gen_block(code) {
     rv = "default:";                              \
   return rv + scope.stmts.join("");
 
+#define BEGIN_BLAMBDABODY(pctx)                       \
+  push_scope(pctx);
+
+#define ADD_BLAMBDABODY_STMT(stmt, pctx)              \
+  top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
+
+#define END_BLAMBDABODY(pctx)                           \
+  return pop_scope(pctx).stmts.join("");
+
+
 //----------------------------------------------------------------------
 // statements:
 #define GEN_EMPTY_STMT(pctx) return ";";
@@ -373,15 +383,14 @@ function gen_prefix_op(id, right, pctx) {
 
 #define GEN_COLLAPSE(pctx) return "collapse";
 
-#ifdef SJS_USING
 #define GEN_USING(has_var, lhs, exp, body, pctx)  \
   var rv = "using(";                              \
   if (has_var) rv += "var ";                      \
   if (lhs) rv += lhs + "=";                       \
   rv += exp + ")";                                \
   return rv + body;
-#endif // SJS_USING
 
-#ifdef SJS___JS
 #define GEN___JS(body, pctx) return body;
-#endif
+
+#define GEN_BLOCKLAMBDA(pars, body, pctx) \
+  return "{|"+pars.join(",")+"| "+body+"}";
