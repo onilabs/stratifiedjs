@@ -1183,3 +1183,15 @@ test("'this' pointer in async for-in bug", 1212331, function() {
   a.foo([2,3,4]); 
   return rv;
 });
+
+test("({|| 1})()", 1, function() { return ({|| 1})() });
+test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
+     function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) });
+function accu3(f) {
+  var rv = 0;
+  for (var i=1;i<4;++i) rv += f(i);
+  return rv;
+}
+test("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } });
+test("accu3 { |x| if (x==2) return x; }", 2,
+     function() { accu3 { |x| if (x==2) return x; } });
