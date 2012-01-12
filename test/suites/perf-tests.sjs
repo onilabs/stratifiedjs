@@ -39,9 +39,9 @@ function small_addendum() {
 }
 
 time("baseline small * 1000000", function() { bl_1(); });
-time("small function *   10000", function() { iter(small, 10000); });
+time("small function *  100000", function() { iter(small, 100000); });
 time("baseline small+addendum * 1000000", function() { bl_2(); });
-time("small+addendum function *   10000", function() { iter(small_addendum,10000); });
+time("small+addendum function *  100000", function() { iter(small_addendum,100000); });
 
 function calculatePi(d) {
   d = Math.floor(d/4)*14;
@@ -61,12 +61,12 @@ function calculatePi(d) {
   }
 }
 
-time("pi to 500 digits", function() { calculatePi(500); });
+time("pi to 700 digits", function() { calculatePi(700); });
 
-time("coll.each(arr*100)*100)", function() { 
+time("coll.each(arr*200)*200)", function() { 
   var coll = require('apollo:collection');
   var arr = [];
-  for (var i=0; i<100; ++i) arr.push(i);
+  for (var i=0; i<200; ++i) arr.push(i);
   var accu = 0;
   coll.each(arr, function() { coll.each(arr, function(v) { accu += v; }) });
 });

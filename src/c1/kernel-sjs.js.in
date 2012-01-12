@@ -338,6 +338,8 @@ function ph_fun_exp(fname, pars, body, pctx) {
   // Here, x() returns 'undefined' (because of the function name 'y'
   // somehow shadowing the variable 'y')
   
+  // See also http://kangax.github.com/nfe/
+
   // Mostly this is a pathological case, but it is also the kind of
   // pattern that fscoped functions appear in, so we encode these
   // without names. (see gen_fun_decl below). We could code *ALL* fun
