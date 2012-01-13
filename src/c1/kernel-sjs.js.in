@@ -48,15 +48,13 @@
 // for blocklambda support, we have another two flags for decl_scopes:
 // bl=true means that this is a block lambda scope
 // target=true mean that this scope is being targetted by cfxs from 
-// blocklambdas and needs to fill in its execution frame info in __oni_ef
+// blocklambdas and can't be tail-optimized
 function push_decl_scope(pctx, bl) {
   pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0, bl:bl});
   if (bl) {
     var prev = pctx.decl_scopes[pctx.decl_scopes.length-2];
-    if (!prev.bl && !prev.target) {
+    if (!prev.bl)
       prev.target = true;
-      prev.vars.push('__oni_ef');
-    }
   }
 }
 
@@ -209,20 +207,12 @@ function add_stmt(stmt, pctx) {
     seq.push(stmt);
 }
 
-// helper that returns the execution function to use, depending on
-// whether the scope is a target
-function exfunc(target, tail) {
-  var rv = target ? "__oni_rt.exseqt(__oni_ef={}," : "__oni_rt.exseq(";
-  return rv + tail;
-}
-
 #define END_SCRIPT(pctx) return end_script(pctx);
 function end_script(pctx) {
   var decls = pctx.decl_scopes.pop();
   var rv = collect_decls(decls) +
     pop_stmt_scope(pctx,
-                   exfunc(decls.target,
-                          "this.arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_NONE),
+                   "__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_NONE,
                    "])");
   return rv;
 }
@@ -326,7 +316,7 @@ ph_switch.prototype.val = function() {
 #define END_FBODY(pctx)                                                 \
   var decls = pctx.decl_scopes.pop();                                   \
   return collect_decls(decls) +                                         \
-    pop_stmt_scope(pctx, "return "+exfunc(decls.target,"arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING), \
+    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING, \
     "])");
 
 #define GEN_FUN_EXP(fname, pars, body, pctx) return new ph_fun_exp(fname, pars, body, pctx);
@@ -1416,8 +1406,8 @@ ph_using.prototype.val = function() {
 #define END_BLAMBDABODY(pctx)                                                 \
   var decls = pctx.decl_scopes.pop();                                   \
   return collect_decls(decls) +                                         \
-  pop_stmt_scope(pctx, "return __oni_rt.exbl(__oni_ef,["+SEQ_FLAG_NONE, \
-                 "])");
+    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING, \
+    "])");
 
 #define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_fun_exp("", pars, body, pctx);
 #endif // SJS_BLOCKLAMBDA

@@ -193,24 +193,6 @@ return rv;
 
 
 
-exports.exseqt=function(efinfo,aobj,tobj,file,args){var env=new Env(aobj,tobj,file);
-
-var seq=new EF_Seq(args,env);
-env.ef=seq;
-efinfo.env=env;
-var rv=seq.cont(1);
-if((rv&&rv.__oni_cfx))return rv.mapToJS();
-
-return rv;
-};
-
-
-exports.exbl=function(efinfo,args){return I_seq(args,efinfo.env);
-
-};
-
-
-
 function makeINCtor(exec){return function(){
 return {exec:exec,ndata:arguments,__oni_dis:token_dis};
 
@@ -1854,10 +1836,8 @@ pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl});
 
 if(bl){
 var prev=pctx.decl_scopes[pctx.decl_scopes.length-2];
-if(!prev.bl&&!prev.target){
-prev.target=true;
-prev.vars.push('__oni_ef');
-}
+if(!prev.bl)prev.target=true;
+
 }
 }
 
@@ -2006,17 +1986,9 @@ last.pushStmt(stmt);
 
 }
 
-
-
-function exfunc(target,tail){var rv=target?"__oni_rt.exseqt(__oni_ef={},":"__oni_rt.exseq(";
-
-return rv+tail;
-}
-
 function end_script(pctx){var decls=pctx.decl_scopes.pop();
 
-var rv=collect_decls(decls)+pop_stmt_scope(pctx,exfunc(decls.target,"this.arguments,this,'"+pctx.fn+"',["+0),"])");
-
+var rv=collect_decls(decls)+pop_stmt_scope(pctx,"__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+0,"])");
 
 
 
@@ -2102,6 +2074,8 @@ return "__oni_rt.Switch("+this.exp.v()+","+clauses+")";
 
 
 function ph_fun_exp(fname,pars,body,pctx){this.is_nblock=pctx.allow_nblock;
+
+
 
 
 
@@ -3383,7 +3357,7 @@ var stmt=parseStmt(pctx);
 add_stmt(stmt,pctx);;
 }
 scan(pctx,"}");
-var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exbl(__oni_ef,["+0,"])");
+var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+1,"])");
 }
 function parseBlockLambda(start,pctx){var token=scan(pctx);
 
@@ -3470,7 +3444,7 @@ var stmt=parseStmt(pctx);
 add_stmt(stmt,pctx);
 }
 scan(pctx,"}");
-var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return "+exfunc(decls.target,"arguments,this,'"+pctx.fn+"',["+1),"])");
+var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+1,"])");
 }
 
 

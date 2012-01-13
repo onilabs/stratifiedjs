@@ -227,24 +227,6 @@ exports.exseq = function(aobj,tobj,file, args) {
   return rv;
 };
 
-// like exseq, but for a 'targetted' execution frame (for blocklambda support)
-// main difference is that we fill efinfo here.
-exports.exseqt = function(efinfo, aobj, tobj, file, args) {
-  var env = new Env(aobj,tobj,file);
-  var seq = new EF_Seq(args, env);
-  env.ef = seq; // XXX can we do this?
-  efinfo.env = env;
-  var rv = seq.cont(1);
-  if (is_cfx(rv))
-    return rv.mapToJS();
-  return rv;
-}; 
-
-// execute a blocklambda
-exports.exbl = function(efinfo, args) {
-  return I_seq(args, efinfo.env);
-}
-
 //   exec: instruction executor function
 //   returns IN constructor function which returns a instruction object
 function makeINCtor(exec) {
