@@ -67,3 +67,20 @@ exports.time = function time(name, f) {
   });
 }
 
+exports.testCompilation = function testCompilation(name, src) {
+  return currentRunner().addCase(name, function() {
+    try {
+      var insize = src.length;
+      var start = new Date();
+      for (var i=0; i<10; ++i)
+        var outsize = __oni_rt.c1.compile(src).length;
+      var duration = (new Date()) - start;
+    }
+    catch (e) {
+      this.addFailure(name, "success", e);
+      return;
+    }
+    this.addSuccess("Compiling "+name, "in: " + insize + " byte, out: " + outsize + " byte, duration(*10): " + duration + "ms");
+    hold(0);
+  });
+}

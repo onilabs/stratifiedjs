@@ -1,10 +1,13 @@
+var http = require('apollo:http');
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var time = testUtil.time;
+var testCompilation = testUtil.testCompilation;
+
 var getHttpURL = require("../lib/testContext").getHttpURL;
 
 function testJsonpRequest(opts) {
-    return require("apollo:http").jsonp(getHttpURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]);
+    return http.jsonp(getHttpURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]);
 }
 
 time("10 sequential jsonp in-doc requests",
@@ -70,3 +73,10 @@ time("coll.each(arr*200)*200)", function() {
   var accu = 0;
   coll.each(arr, function() { coll.each(arr, function(v) { accu += v; }) });
 });
+
+testCompilation("collection module", 
+                http.get("http://code.onilabs.com/apollo/latest/modules/collection.sjs"));
+testCompilation("debug module", 
+                http.get("http://code.onilabs.com/apollo/latest/modules/debug.sjs"));
+testCompilation("http module", 
+                http.get("http://code.onilabs.com/apollo/latest/modules/http.sjs"));
