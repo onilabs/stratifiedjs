@@ -155,7 +155,7 @@ function begin_script(pctx) {
       var rv = "__oni_rt.Nb(function(arguments){";
       if (r) rv += "return ";
       rv += v;
-      return rv + "},"+l+")";
+      return rv + "},"+(l||0)+")";
     };
   }
   
@@ -731,6 +731,7 @@ ph_with.prototype.val = function() {
 #define GEN_LITERAL(type, value, pctx) return new ph_literal(value, pctx, type);
 function ph_literal(value, pctx, type) {
   this.value = value;
+  this.line  = pctx.line;
   if (type == "<regex>")
     this.esc_lit = true;
 }
