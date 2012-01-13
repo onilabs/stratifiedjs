@@ -82,6 +82,7 @@ function pop_stmt_scope(pctx, pre, post) {
         rv += pre;
       for (var i=0; i<seq.length; ++i) {
         var v = seq[i].v();
+        LOG('POP('+v+')');
         if (v.length) {
           if (i || pre) rv += ",";
           rv += v;
@@ -380,6 +381,20 @@ ph_nblock_seq.prototype.pushStmt = function(stmt) {
  this.stmts.push(stmt);
  if (this.line === undefined) this.line = this.stmts[0].line;
 };
+
+/* 
+   If we only have one child, then sometimes its v() expression is more 
+   consise than wrapping by Nb() (as ph_nblock does). E.g. function expressions
+   can be expressed by Lit(...).
+   In practice its not worth it (it's a very uncommon pattern)
+
+ph_nblock_seq.prototype.v = function(accept_list) {
+  if (this.stmts.length == 1) 
+    return this.stmts[0].v(accept_list);
+  else
+    return ph.prototype.v.call(this, accept_list);  
+};
+*/
 ph_nblock_seq.prototype.nblock_val = function() {
     var rv = "";
     for (var i=0; i<this.stmts.length-1; ++i) {
@@ -413,7 +428,7 @@ function ph_exp_stmt(exp, pctx) {
 ph_exp_stmt.prototype = new ph(WHENDEBUG("ph_exp_stmt"));
 ph_exp_stmt.prototype.is_value = true;
 ph_exp_stmt.prototype.nblock_val = function() { return this.exp.nb()+";"; };
-ph_exp_stmt.prototype.val = function() { return this.exp.v(); }
+ph_exp_stmt.prototype.v = function(accept_list) { return this.exp.v(accept_list); }
 
 #define GEN_VAR_DECL(decls, pctx) return gen_var_decl(decls, pctx);
 //XXX this is really hacky and suboptimal
@@ -1075,7 +1090,7 @@ function ph_group(e, pctx) {
 ph_group.prototype = new ph(WHENDEBUG("ph_group"));
 ph_group.prototype.is_value = true;
 ph_group.prototype.nblock_val = function() { return "("+this.e.nb()+")"; };
-ph_group.prototype.val = function() { return this.e.v(); };
+ph_group.prototype.v = function(accept_list) { return this.e.v(accept_list); };
 #ifdef SJS_DESTRUCTURE
 ph_group.prototype.destruct = function(dpath,drefs) { return this.e.destruct(dpath,drefs); };
 #endif
