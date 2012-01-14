@@ -139,26 +139,6 @@ function begin_script(pctx) {
     pctx.allow_nblock = true;
     pctx.full_nblock = false;    
   }
-
-  // customize code generators:
-  if (pctx.full_nblock) {
-    nblock_val_to_val = function(v,r,l) {
-      var rv = "function(arguments){";
-      if (r) rv += "return ";
-      rv += v;
-      return rv+"}";
-    };
-  }
-  else {
-    // in non-full-nblock mode, to get linenumber support, we wrap
-    // nblocks in __oni_rt.Nb's:
-    nblock_val_to_val = function(v,r,l) {
-      var rv = "__oni_rt.Nb(function(arguments){";
-      if (r) rv += "return ";
-      rv += v;
-      return rv + "},"+(l||0)+")";
-    };
-  }
   
   if (pctx.scopes !== undefined)
     throw "Internal parser error: Nested script";
@@ -241,7 +221,11 @@ function pop_block(pctx) {
 
 //----------------------------------------------------------------------
 
-var nblock_val_to_val; // set in begin_script
+function nblock_val_to_val(v,r,l) {
+  var rv = "__oni_rt.Nb(function(arguments){";
+  if (r) rv += "return ";
+  return rv + v + "},"+(l||0)+")";
+}
 
 function ph() {
 }
@@ -490,11 +474,11 @@ ph_if.prototype.val = function() {
     if (this.t.is_nblock) {
       // half-nblock encoding
       // XXX get rid of arguments
-      rv = "function(arguments, __oni_env){if("+this.t.nb()+
+      rv = "__oni_rt.Nb(function(arguments, __oni_env){if("+this.t.nb()+
            ")return __oni_rt.ex("+c+",__oni_env);";
       if (this.a)
         rv += "else return __oni_rt.ex("+this.a.v()+",__oni_env);";
-      return rv+"}";
+      return rv+"},"+this.line+")";
     }
     else {
       // test is blocking -> full blocking encoding
@@ -1074,8 +1058,8 @@ ph_idx_accessor.prototype.val = function() {
 };
 ph_idx_accessor.prototype.ref = function() {
     if (this.is_nblock) //XXX Nb
-      return "(function(arguments){return ["+this.l.nb()+","+
-             this.idxexp.nb()+"]})";
+      return "__oni_rt.Nb(function(arguments){return ["+this.l.nb()+","+
+             this.idxexp.nb()+"]},"+this.line+")";
     else
       return "__oni_rt.Scall("+this.line+",function(l, idx){return [l, idx];},"+
              this.l.v()+","+this.idxexp.v()+")";
@@ -1356,8 +1340,8 @@ function ph_suspend_wrapper(code, pctx) {
 ph_suspend_wrapper.prototype = new ph(WHENDEBUG("ph_suspend_wrapper"));
 ph_suspend_wrapper.prototype.val = function() {
   // XXX get rid of arguments
-  return "function(arguments, __oni_env){var resume;"+
-    "return __oni_rt.ex("+this.code+",__oni_env)}";
+  return "__oni_rt.Nb(function(arguments, __oni_env){var resume;"+
+    "return __oni_rt.ex("+this.code+",__oni_env)},"+this.line+")";
 };
 
 
@@ -1380,6 +1364,7 @@ function gen_using(has_var, lhs, exp, body, pctx) {
 }
 
 function ph_using(lhs, exp, body, pctx) {
+  this.line = pctx.line;
   // XXX figure out a better way of handling empty bodies
   this.body = body || new ph_literal(0,pctx);
   this.assign1 = new ph_assign_op(new ph_identifier("_oniW",pctx),
@@ -1395,13 +1380,13 @@ function ph_using(lhs, exp, body, pctx) {
 ph_using.prototype = new ph(WHENDEBUG("ph_using"));
 ph_using.prototype.val = function() {
   // XXX get rid of arguments
-  var rv = "function(arguments, __oni_env){var _oniW;"+
+  var rv = "__oni_rt.Nb(function(arguments, __oni_env){var _oniW;"+
     "return __oni_rt.ex(__oni_rt.Seq("+SEQ_FLAG_NONE+","+
     this.assign1.v()+",";
   if (this.assign2)
     rv += this.assign2.v()+",";
   rv += "__oni_rt.Try("+TRY_FLAG_NONE+","+this.body.v()+",0,"+
-    "function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},0)),__oni_env)}";
+    "function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},0)),__oni_env)},"+this.line+")";
   return rv;
 };
 #endif // SJS_USING
