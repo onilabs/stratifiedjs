@@ -327,7 +327,7 @@ function ph_fun_exp(fname, pars, body, pctx) {
 ph_fun_exp.prototype = new ph(WHENDEBUG("ph_fun_exp"));
 //ph_fun_exp.prototype.is_literal = true; funs are special kinds of literals; we override 'v' instead:
 ph_fun_exp.prototype.v = function() {
-  return "__oni_rt.Lit("+this.code+")";
+  return this.code;
 };
 ph_fun_exp.prototype.nblock_val = function() { return this.code; };
 
@@ -368,8 +368,8 @@ ph_nblock_seq.prototype.pushStmt = function(stmt) {
 
 /* 
    If we only have one child, then sometimes its v() expression is more 
-   consise than wrapping by Nb() (as ph_nblock does). E.g. function expressions
-   can be expressed by Lit(...).
+   consise than wrapping by Nb() (as ph_nblock does). E.g. literals can be 
+   expressed verbatim.
    In practice it's not worth it (it's a very uncommon pattern)
 
 ph_nblock_seq.prototype.v = function(accept_list) {
@@ -717,8 +717,8 @@ ph_with.prototype.val = function() {
   // XXX support proper arguments object; need to add parameter to fcall
   // XXX check 'this' argument
   var rv = "__oni_rt.Sc("+this.line+",__oni_rt.With,"+this.exp.v()+
-    ",__oni_rt.Lit(function(__oni_env,__oni_z){with(__oni_z) return __oni_rt.ex("+
-    this.body.v()+",__oni_env)}))";
+    ",function(__oni_env,__oni_z){with(__oni_z) return __oni_rt.ex("+
+    this.body.v()+",__oni_env)})";
 
   return rv;
 };
@@ -731,17 +731,11 @@ ph_with.prototype.val = function() {
 function ph_literal(value, pctx, type) {
   this.value = value;
   this.line  = pctx.line;
-  if (type == "<regex>")
-    this.esc_lit = true;
 }
 ph_literal.prototype = new ph(WHENDEBUG("ph_literal"));
 ph_literal.prototype.is_nblock = true;
 //ph_literal.prototype.is_literal = true;
-ph_literal.prototype.v = function() {
-  if (this.esc_lit)
-    return "__oni_rt.Lit("+this.value+")";
-  return this.value;
-};
+ph_literal.prototype.v = function() { return this.value; };
 ph_literal.prototype.nblock_val = function() { return this.value; };
 #ifdef SJS_DESTRUCTURE
 ph_literal.prototype.destruct = function() { if (this.value != "") throw "invalid pattern"; return "";};
@@ -916,7 +910,6 @@ function gen_identifier(value, pctx) {
   if (value == "hold") {
     // stratified 'hold' operator
     var rv = new ph_literal('__oni_rt.Hold', pctx);
-    rv.esc_lit = true;
     rv.is_id = true;
     return rv;
   }

@@ -228,14 +228,6 @@ exports.Nb=makeINCtor(I_nblock);
 
 
 
-function I_lit(ndata,env){return ndata[0]}
-
-exports.Lit=makeINCtor(I_lit);
-
-
-
-
-
 
 
 
@@ -2095,7 +2087,7 @@ this.code="function "+fname+"("+pars.join(",")+"){"+body+"}";
 }
 ph_fun_exp.prototype=new ph("ph_fun_exp");
 
-ph_fun_exp.prototype.v=function(){return "__oni_rt.Lit("+this.code+")";
+ph_fun_exp.prototype.v=function(){return this.code;
 
 };
 ph_fun_exp.prototype.nblock_val=function(){return this.code};
@@ -2444,7 +2436,7 @@ this.is_nblock=pctx.allow_nblock&&exp.is_nblock&&body.is_nblock;
 }
 ph_with.prototype=new ph("ph_with");
 ph_with.prototype.nblock_val=function(){return "with("+this.exp.nb()+")"+this.body.nb()};
-ph_with.prototype.val=function(){var rv="__oni_rt.Sc("+this.line+",__oni_rt.With,"+this.exp.v()+",__oni_rt.Lit(function(__oni_env,__oni_z){with(__oni_z) return __oni_rt.ex("+this.body.v()+",__oni_env)}))";
+ph_with.prototype.val=function(){var rv="__oni_rt.Sc("+this.line+",__oni_rt.With,"+this.exp.v()+",function(__oni_env,__oni_z){with(__oni_z) return __oni_rt.ex("+this.body.v()+",__oni_env)})";
 
 
 
@@ -2461,17 +2453,11 @@ return rv;
 function ph_literal(value,pctx,type){this.value=value;
 
 this.line=pctx.line;
-if(type=="<regex>")this.esc_lit=true;
-
 }
 ph_literal.prototype=new ph("ph_literal");
 ph_literal.prototype.is_nblock=true;
 
-ph_literal.prototype.v=function(){if(this.esc_lit)return "__oni_rt.Lit("+this.value+")";
-
-
-return this.value;
-};
+ph_literal.prototype.v=function(){return this.value};
 ph_literal.prototype.nblock_val=function(){return this.value};
 ph_literal.prototype.destruct=function(){if(this.value!="")throw "invalid pattern";return ""};
 
@@ -2623,7 +2609,6 @@ function gen_identifier(value,pctx){if(value=="hold"){
 
 
 var rv=new ph_literal('__oni_rt.Hold',pctx);
-rv.esc_lit=true;
 rv.is_id=true;
 return rv;
 }

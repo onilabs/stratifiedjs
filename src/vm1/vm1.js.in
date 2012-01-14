@@ -262,15 +262,6 @@ function I_nblock(ndata, env) {
 exports.Nb = makeINCtor(I_nblock);
 
 //----------------------------------------------------------------------
-// Lit : instruction node for literals 
-
-// structure of ndata array:
-#define NDATA_LIT_DATA() ndata[0]
-function I_lit(ndata, env) { return NDATA_LIT_DATA(); }
-
-exports.Lit = makeINCtor(I_lit);
-
-//----------------------------------------------------------------------
 // Seq : instruction node for sequential execution of child nodes
 
 // ndata[0] contains flags.
