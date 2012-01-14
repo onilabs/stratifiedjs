@@ -200,6 +200,19 @@ function execIN(node, env) {
   // as a performance optimization, we allow literals instead of
   // nodes:
   if (typeof node == "function") {
+    /* this code gets hit by the following blocking val encodings:
+
+      * nblock->val in full_nblock (optimize) mode (i.e. no linenumbers)
+      
+      * 'if', when the test expression is nblock
+      
+      * nblocking 'idx' expression used as reference ('ref()')
+
+      * 'suspend wrapper' (suspend + try)
+
+      * 'using' 
+
+     */
     try {
       // XXX we really want just 'node(env)' here
       return node.call(env.tobj, env.aobj, env);

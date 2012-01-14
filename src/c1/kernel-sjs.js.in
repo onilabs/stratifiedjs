@@ -386,7 +386,7 @@ ph_nblock_seq.prototype.pushStmt = function(stmt) {
    If we only have one child, then sometimes its v() expression is more 
    consise than wrapping by Nb() (as ph_nblock does). E.g. function expressions
    can be expressed by Lit(...).
-   In practice its not worth it (it's a very uncommon pattern)
+   In practice it's not worth it (it's a very uncommon pattern)
 
 ph_nblock_seq.prototype.v = function(accept_list) {
   if (this.stmts.length == 1) 
@@ -1312,7 +1312,8 @@ function gen_suspend(has_var, decls, block, crf, pctx) {
 }
 
 function gen_suspend_inner(decls, block, crf, pctx) {
-  // if we've got a catch, retract or finally, we need to wrap the suspend:
+  // if we've got a catch, retract or finally, we need to wrap the
+  // suspend, to extend the scope of 'resume' to the other clauses
   var wrapped = (crf[0] || crf[1] || crf[2]);
   var rv = new ph_suspend(decls, block, wrapped, pctx);
   if (wrapped)
@@ -1346,7 +1347,7 @@ ph_suspend.prototype.val = function() {
   return rv;
 };
 
-
+// a wrapper for suspend, to extend the scope of the 'resume' function
 function ph_suspend_wrapper(code, pctx) {
   this.code = code;
   this.line = pctx.line; // XXX is this the correct line?
