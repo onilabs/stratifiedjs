@@ -77,7 +77,7 @@ function pop_stmt_scope(pctx, pre, post) {
   var seq = pctx.stmt_scopes.pop().seq;
   var rv = "";
   if (seq.length) {
-    if (pctx.nb_ctx == 0) {
+    if (pctx.js_ctx == 0) {
       if (pre)
         rv += pre;
       for (var i=0; i<seq.length; ++i) {
@@ -144,8 +144,8 @@ function begin_script(pctx) {
     throw "Internal parser error: Nested script";
   pctx.decl_scopes = [];
   pctx.stmt_scopes = [];
-  // nb_ctx > 0 makes it a noblocking context (i.e. __js {...}):
-  pctx.nb_ctx = 0;
+  // js_ctx > 0 makes it a noblocking js context (i.e. __js {...}):
+  pctx.js_ctx = 0;
 
   push_decl_scope(pctx);
   push_stmt_scope(pctx);
@@ -175,7 +175,7 @@ function add_stmt(stmt, pctx) {
   
   // 'normal' statement
   var seq = top_stmt_scope(pctx).seq;
-  if (stmt.is_nblock && pctx.nb_ctx==0) {
+  if (stmt.is_nblock && pctx.js_ctx==0) {
     // collect nblocks, but only in a non-nblock context
     var last = seq.length ? seq[seq.length-1] : null;
     if (!last || !last.is_nblock_seq) {
@@ -222,7 +222,7 @@ function pop_block(pctx) {
 //----------------------------------------------------------------------
 
 function nblock_val_to_val(v,r,l) {
-  var rv = "__oni_rt.Nb(function(arguments){";
+  var rv = "__oni_rt.Nb(function(__oni_env){";
   if (r) rv += "return ";
   return rv + v + "},"+(l||0)+")";
 }
@@ -473,8 +473,7 @@ ph_if.prototype.val = function() {
     var c = this.c ? this.c.v() : "0";
     if (this.t.is_nblock) {
       // half-nblock encoding
-      // XXX get rid of arguments
-      rv = "__oni_rt.Nb(function(arguments, __oni_env){if("+this.t.nb()+
+      rv = "__oni_rt.Nb(function(__oni_env){if("+this.t.nb()+
            ")return __oni_rt.ex("+c+",__oni_env);";
       if (this.a)
         rv += "else return __oni_rt.ex("+this.a.v()+",__oni_env);";
@@ -558,13 +557,13 @@ function ph_return(exp, pctx) {
   this.line = pctx.line;
   this.exp = exp;
   //XXX this is a bit fragile; need a new pctx flag for 'throwing'/'nonthrowing' context
-  this.nb_ctx = pctx.nb_ctx;
+  this.js_ctx = pctx.js_ctx;
   this.is_nblock = pctx.allow_nblock && (exp ? exp.is_nblock : true);
 }
 ph_return.prototype = new ph(WHENDEBUG("ph_return"));
 ph_return.prototype.nblock_val = function() {
   var rv;
-  if (this.nb_ctx) {
+  if (this.js_ctx) {
     // XXX this form of nblock_val only works in an nblock context!!!!!
     rv = "return";
     if (this.exp) rv += " "+this.exp.nb()+";";
@@ -832,7 +831,6 @@ ph_assign_op.prototype.val = function() {
       // 'normal' assignment; left is an id or a ref that we can
       // use as nblock_val.
 
-      // XXX Need to handle special case of "arguments = XXX"
       rv = "__oni_rt.Scall("+this.line+",function(_oniX){return "+
         this.left.nb()+this.id+"_oniX;},"+this.right.v()+
         ")";
@@ -902,7 +900,6 @@ ph_postfix_op.prototype.val = function() {
     return rv;
 };
 
-#ifdef SJS
 #define GEN_IDENTIFIER(value, pctx) return gen_identifier(value, pctx);
 function gen_identifier(value, pctx) {
   // special case built-in stratified functions here:
@@ -913,13 +910,14 @@ function gen_identifier(value, pctx) {
     rv.is_id = true;
     return rv;
   }
+  else if (value == "arguments") {
+    return new ph_arguments(pctx);
+  }
 
   // default:
   return new ph_identifier(value, pctx);
 }
-#else
-#define GEN_IDENTIFIER(value, pctx) return new ph_identifier(value, pctx);
-#endif
+
 function ph_identifier(value, pctx) {
   this.value = value;
   this.line = pctx.line;
@@ -929,15 +927,44 @@ ph_identifier.prototype.is_nblock = true;
 ph_identifier.prototype.is_id = true;
 ph_identifier.prototype.is_value = true;
 ph_identifier.prototype.nblock_val = function() { return this.value; };
-ph_identifier.prototype.val = function() { return nblock_val_to_val(this.value, true, this.line) };
 #ifdef SJS_DESTRUCTURE
 ph_identifier.prototype.destruct = function(dpath) {
   return this.value + "=" + dpath + ";";
 };
 #endif
 
-//XXX not quite correct. is_id should be 'false' for 'this'
-#define GEN_THIS(pctx) return new ph_identifier('this', pctx);
+function ph_arguments(pctx) {
+  this.js_ctx = pctx.js_ctx;
+  this.line = pctx.line;
+}
+ph_arguments.prototype = new ph(WHENDEBUG("ph_arguments"));
+ph_arguments.prototype.is_nblock = true;
+ph_arguments.prototype.is_id = true;
+ph_arguments.prototype.is_value = true;
+ph_arguments.prototype.nblock_val = function() { 
+  if (this.js_ctx)
+    return "arguments"; 
+  else
+    return "(__oni_env.aobj)";
+};
+
+function ph_this(pctx) {
+  this.js_ctx = pctx.js_ctx;
+  this.line = pctx.line;
+}
+ph_this.prototype = new ph(WHENDEBUG("ph_this"));
+ph_this.prototype.is_nblock = true;
+ph_this.prototype.is_id = true; // ?? not sure
+ph_this.prototype.is_value = true;
+ph_this.prototype.nblock_val = function() { 
+  if (this.js_ctx)
+    return "this"; 
+  else
+    return "__oni_env.tobj";
+};
+
+
+#define GEN_THIS(pctx) return new ph_literal('this', pctx);
 
 #define GEN_TRUE(pctx) return new ph_literal('true', pctx);
 
@@ -1050,8 +1077,8 @@ ph_idx_accessor.prototype.val = function() {
     this.l.v()+","+this.idxexp.v()+")";
 };
 ph_idx_accessor.prototype.ref = function() {
-    if (this.is_nblock) //XXX Nb
-      return "__oni_rt.Nb(function(arguments){return ["+this.l.nb()+","+
+    if (this.is_nblock)
+      return "__oni_rt.Nb(function(__oni_env){return ["+this.l.nb()+","+
              this.idxexp.nb()+"]},"+this.line+")";
     else
       return "__oni_rt.Scall("+this.line+",function(l, idx){return [l, idx];},"+
@@ -1332,8 +1359,7 @@ function ph_suspend_wrapper(code, pctx) {
 }
 ph_suspend_wrapper.prototype = new ph(WHENDEBUG("ph_suspend_wrapper"));
 ph_suspend_wrapper.prototype.val = function() {
-  // XXX get rid of arguments
-  return "__oni_rt.Nb(function(arguments, __oni_env){var resume;"+
+  return "__oni_rt.Nb(function(__oni_env){var resume;"+
     "return __oni_rt.ex("+this.code+",__oni_env)},"+this.line+")";
 };
 
@@ -1372,8 +1398,7 @@ function ph_using(lhs, exp, body, pctx) {
 */
 ph_using.prototype = new ph(WHENDEBUG("ph_using"));
 ph_using.prototype.val = function() {
-  // XXX get rid of arguments
-  var rv = "__oni_rt.Nb(function(arguments, __oni_env){var _oniW;"+
+  var rv = "__oni_rt.Nb(function(__oni_env){var _oniW;"+
     "return __oni_rt.ex(__oni_rt.Seq("+SEQ_FLAG_NONE+","+
     this.assign1.v()+",";
   if (this.assign2)
@@ -1385,8 +1410,8 @@ ph_using.prototype.val = function() {
 #endif // SJS_USING
 
 #ifdef SJS___JS
-#define BEGIN___JS_BLOCK(pctx) if (pctx.allow_nblock) ++pctx.nb_ctx;
-#define END___JS_BLOCK(pctx) if (pctx.allow_nblock) --pctx.nb_ctx;
+#define BEGIN___JS_BLOCK(pctx) if (pctx.allow_nblock) ++pctx.js_ctx;
+#define END___JS_BLOCK(pctx) if (pctx.allow_nblock) --pctx.js_ctx;
 #define GEN___JS(body, pctx) body.is_nblock=pctx.allow_nblock; return body;
 #endif // SJS___JS
 

@@ -624,7 +624,7 @@ test("arguments modification (idx)", 6, function() {
   return (function() { arguments['x']=5; return arguments['x']+arguments[1]; })(0,1,2,3,4);
 });
 
-test("arguments modification (assign)", 6, function() {
+test("arguments modification (assign)", 5, function() {
   return (function() { arguments=5; return arguments; })(0,1,2,3,4);
 });
 

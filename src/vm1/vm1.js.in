@@ -253,7 +253,7 @@ function Env(aobj, tobj, file) {
 #define NDATA_NBLOCK_LINENO() ndata[1]
 function I_nblock(ndata, env) {
   try {
-    return (NDATA_NBLOCK_JSFUNC()).call(env.tobj, env.aobj, env);
+    return (NDATA_NBLOCK_JSFUNC()).call(env.tobj, env);
   }
   catch (e) {
     return new CFException("t", e, NDATA_NBLOCK_LINENO(), env.file);
