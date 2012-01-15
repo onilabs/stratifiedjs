@@ -3025,7 +3025,7 @@ ph_using.prototype.val=function(){var rv="__oni_rt.Nb(function(__oni_env){var _o
 
 if(this.assign2)rv+=this.assign2.v()+",";
 
-rv+="__oni_rt.Try("+0+","+this.body.v()+",0,"+"function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},0)),__oni_env)},"+this.line+")";
+rv+="__oni_rt.Try("+0+","+this.body.v()+",0,"+"__oni_rt.Nb(function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},"+this.line+"),0)),__oni_env)},"+this.line+")";
 
 return rv;
 };
