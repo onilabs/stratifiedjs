@@ -2544,7 +2544,7 @@ rv.is_id=true;
 return rv;
 }else if(value=="arguments"){
 
-return new ph_arguments(pctx);
+return new ph_envobj('arguments','aobj',pctx);
 }
 
 
@@ -2564,36 +2564,22 @@ ph_identifier.prototype.destruct=function(dpath){return this.value+"="+dpath+";"
 
 };
 
-function ph_arguments(pctx){this.js_ctx=pctx.js_ctx;
+function ph_envobj(name,ename,pctx){this.js_ctx=pctx.js_ctx;
 
 this.line=pctx.line;
+this.name=name;
+this.ename=ename;
 }
-ph_arguments.prototype=new ph("ph_arguments");
-ph_arguments.prototype.is_nblock=true;
-ph_arguments.prototype.is_id=true;
-ph_arguments.prototype.is_value=true;
-ph_arguments.prototype.nblock_val=function(){if(this.js_ctx)return "arguments";else return "this.aobj";
+ph_envobj.prototype=new ph("ph_envobj");
+ph_envobj.prototype.is_nblock=true;
+ph_envobj.prototype.is_id=true;
+ph_envobj.prototype.is_value=true;
+ph_envobj.prototype.nblock_val=function(){if(this.js_ctx)return this.name;else return "this."+this.ename;
 
 
 
 
 };
-
-function ph_this(pctx){this.js_ctx=pctx.js_ctx;
-
-this.line=pctx.line;
-}
-ph_this.prototype=new ph("ph_this");
-ph_this.prototype.is_nblock=true;
-ph_this.prototype.is_id=true;
-ph_this.prototype.is_value=true;
-ph_this.prototype.nblock_val=function(){if(this.js_ctx)return "this";else return "this.tobj";
-
-
-
-
-};
-
 
 
 
@@ -3464,7 +3450,7 @@ if(pctx.log)process.stderr.write('fun_decl'+' ');
 return gen_fun_decl(fname,pars,body,pctx);
 });
 
-S("this",TOKENIZER_OP).exs(function(pctx,st){if(pctx.log)process.stderr.write('this'+' ');return new ph_this(pctx)});
+S("this",TOKENIZER_OP).exs(function(pctx,st){if(pctx.log)process.stderr.write('this'+' ');return new ph_envobj('this','tobj',pctx)});
 S("true",TOKENIZER_OP).exs(function(pctx,st){if(pctx.log)process.stderr.write('true'+' ');return new ph_literal('true',pctx)});
 S("false",TOKENIZER_OP).exs(function(pctx,st){if(pctx.log)process.stderr.write('false'+' ');return new ph_literal('false',pctx)});
 S("null",TOKENIZER_OP).exs(function(pctx,st){if(pctx.log)process.stderr.write('null'+' ');return new ph_literal('null',pctx)});

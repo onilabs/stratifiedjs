@@ -910,7 +910,7 @@ function gen_identifier(value, pctx) {
     return rv;
   }
   else if (value == "arguments") {
-    return new ph_arguments(pctx);
+    return new ph_envobj('arguments', 'aobj', pctx);
   }
 
   // default:
@@ -932,38 +932,24 @@ ph_identifier.prototype.destruct = function(dpath) {
 };
 #endif
 
-function ph_arguments(pctx) {
+function ph_envobj(name, ename, pctx) {
   this.js_ctx = pctx.js_ctx;
   this.line = pctx.line;
+  this.name = name;
+  this.ename = ename; // name in the env object
 }
-ph_arguments.prototype = new ph(WHENDEBUG("ph_arguments"));
-ph_arguments.prototype.is_nblock = true;
-ph_arguments.prototype.is_id = true;
-ph_arguments.prototype.is_value = true;
-ph_arguments.prototype.nblock_val = function() { 
+ph_envobj.prototype = new ph(WHENDEBUG("ph_envobj"));
+ph_envobj.prototype.is_nblock = true;
+ph_envobj.prototype.is_id = true;
+ph_envobj.prototype.is_value = true;
+ph_envobj.prototype.nblock_val = function() { 
   if (this.js_ctx)
-    return "arguments"; 
+    return this.name; 
   else
-    return "this.aobj";
+    return "this."+this.ename;
 };
 
-function ph_this(pctx) {
-  this.js_ctx = pctx.js_ctx;
-  this.line = pctx.line;
-}
-ph_this.prototype = new ph(WHENDEBUG("ph_this"));
-ph_this.prototype.is_nblock = true;
-ph_this.prototype.is_id = true; // ?? not sure
-ph_this.prototype.is_value = true;
-ph_this.prototype.nblock_val = function() { 
-  if (this.js_ctx)
-    return "this"; 
-  else
-    return "this.tobj";
-};
-
-
-#define GEN_THIS(pctx) return new ph_this(pctx);
+#define GEN_THIS(pctx) return new ph_envobj('this', 'tobj', pctx);
 
 #define GEN_TRUE(pctx) return new ph_literal('true', pctx);
 
