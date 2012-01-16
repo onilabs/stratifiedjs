@@ -208,7 +208,7 @@ exports.ex = execIN;
 // create a seq and exec it. map exceptions.
 // short for __oni_rt.exec(__oni_rt.Seq(...), aobj, thisobj, file)
 exports.exseq = function(aobj,tobj,file, args) {
-  var rv = I_seq(args, new Env(aobj,tobj,file));
+  var rv = (new EF_Seq(args, new Env(aobj,tobj,file))).cont(1);
   if (is_cfx(rv))
     return rv.mapToJS();
   return rv;

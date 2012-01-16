@@ -171,7 +171,7 @@ exports.ex=execIN;
 
 
 
-exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new Env(aobj,tobj,file));
+exports.exseq=function(aobj,tobj,file,args){var rv=(new EF_Seq(args,new Env(aobj,tobj,file))).cont(1);
 
 if((rv&&rv.__oni_cfx))return rv.mapToJS();
 
