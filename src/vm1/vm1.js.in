@@ -245,15 +245,15 @@ function Env(aobj, tobj, file) {
 }
 
 //----------------------------------------------------------------------
-// Nblock : instruction node for non-blocking javascript code 
-
+// Nb : instruction node for non-blocking, argument-less javascript code 
+// Calls the given function with 'this' set to current environment.
 
 // structure of ndata array:
 #define NDATA_NBLOCK_JSFUNC() ndata[0]
 #define NDATA_NBLOCK_LINENO() ndata[1]
 function I_nblock(ndata, env) {
   try {
-    return (NDATA_NBLOCK_JSFUNC()).call(env.tobj, env);
+    return (NDATA_NBLOCK_JSFUNC()).call(env);
   }
   catch (e) {
     return new CFException("t", e, NDATA_NBLOCK_LINENO(), env.file);
@@ -359,80 +359,9 @@ function I_seq(ndata, env) {
 exports.Seq = makeINCtor(I_seq);
 
 //----------------------------------------------------------------------
-// Scall : simple function call
-
-// structure of ndata array:
-#define NDATA_SCALL_LINE() ndata[0]
-#define NDATA_SCALL_L() ndata[1]
-#define NDATA_SCALL_ARGS_OFFSET 2
-// ndata[NDATA_SCALL_ARGS_OFFSET..end] : scall args
-
-/*
-  continuation index:
-   0 : start
-   1 : returning from args evaluation
-*/
-
-function EF_Scall(ndata, env) {
-  this.ndata = ndata;
-  this.env = env;
-  this.i = NDATA_SCALL_ARGS_OFFSET;
-  this.pars = [];
-}
-setEFProto(EF_Scall.prototype={});
-
-EF_Scall.prototype.cont = function(idx, val) {
-  if (is_ef(val)) {
-    this.setChildFrame(val, idx);
-  }
-  else if (is_cfx(val)) {
-    return this.returnToParent(val);
-  }
-  else {
-    if (idx == 1) {
-      // handle a result that has been passed in
-      this.pars.push(val);
-    }
-    var rv;
-    while (this.i<this.ndata.length) {
-      rv = execIN(this.ndata[this.i], this.env);
-      ++this.i;
-      if (is_cfx(rv)) return this.returnToParent(rv);
-      if (is_ef(rv)) {
-        this.setChildFrame(rv, 1);
-        return this;
-      }
-      this.pars.push(rv);
-    }
-    
-    // alright, we've got the pars, let's do the call:
-    try {
-        rv = this.NDATA_SCALL_L().apply(this.env.tobj, this.pars);
-    }
-    catch (e) {
-      // XXX not sure if we should amend this
-      // exception as it might have been thrown by JS code.
-      // The *pragmatic* thing seems to be to annotate.
-//      rv = new CFException("t", e, "passthrough");
-      rv = new CFException("t", e,
-                           this.NDATA_SCALL_LINE(),
-                           this.env.file);
-    }
-    return this.returnToParent(rv);
-  }
-};
-
-function I_scall(ndata, env) {
-  return (new EF_Scall(ndata, env)).cont(0);
-}
-
-exports.Scall = makeINCtor(I_scall);
-
-
-//----------------------------------------------------------------------
 // Sc : simple strict function call
 //
-// executes SC_L(env, [arg1, arg2, ...]) where arg1..n are strictly
+// executes env.SC_L(arg1, arg2, ...) where arg1..n are strictly
 // evaluated instruction nodes
 
 
@@ -482,7 +411,7 @@ EF_Sc.prototype.cont = function(idx, val) {
     
     // alright, we've got the pars, let's do the call:
     try {
-        rv = this.NDATA_SC_L()(this.env, this.pars);
+        rv = this.NDATA_SC_L().apply(this.env, this.pars);
     }
     catch (e) {
       rv = new CFException("t", e,
@@ -498,8 +427,6 @@ function I_sc(ndata, env) {
 }
 
 exports.Sc = makeINCtor(I_sc);
-
-
 
 //----------------------------------------------------------------------
 // Fcall : instruction node for calling a function 
@@ -2017,8 +1944,8 @@ exports.Return = function(exp) {
   return new CFException("r", exp);
 };
 
-exports.With = function(env, args) {
-  return args[1](env, args[0]);
+exports.With = function(exp, bodyf) {
+  return bodyf(this, exp);
 };
 
 exports.infix = {
