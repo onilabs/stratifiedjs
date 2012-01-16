@@ -1184,6 +1184,36 @@ test("'this' pointer in async for-in bug", 1212331, function() {
   return rv;
 });
 
+test("tail recursion", 1, function() {
+  
+  function r(level) {
+    hold(0);
+    if (level)
+      r(level-1);
+    else return 1;
+  }
+
+  return r(100000);
+}).serverOnly(); // browser hold(0) is too slow
+
+test("waitfor/and tail recursion", 1, function() {
+  
+  function r(level) {
+    hold(0);
+    waitfor {
+      var x = level;
+    }
+    and {
+      if (level)
+        r(level-1);
+      else
+        return 1;
+    }
+  }
+
+  return r(100000);
+}).serverOnly(); // browser hold(0) is too slow
+
 test("({|| 1})()", 1, function() { return ({|| 1})() });
 test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
      function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) });

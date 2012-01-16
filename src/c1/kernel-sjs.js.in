@@ -552,7 +552,7 @@ ph_throw.prototype.val = function() {
 
 
 #define GEN_RETURN(exp, pctx) return new ph_return(exp, pctx);
-// XXX could encode this without fcall
+// XXX should find a tail-safe way of encoding this
 function ph_return(exp, pctx) {
   this.line = pctx.line;
   this.exp = exp;
