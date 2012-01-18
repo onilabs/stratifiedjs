@@ -8,7 +8,7 @@
 
 var fs = require('apollo:node-fs');
 var common = require('apollo:common');
-var sys = require('sys');
+var util = require('util');
 
 //----------------------------------------------------------------------
 // BUILD DEPENDENCIES
@@ -378,7 +378,7 @@ function process_args() {
 var targets = process_args();
 for(var i=0; i<targets.length; i++) {
   var target = targets[i];
-  sys.puts("\nBuilding target: " + target);
+  util.puts("\nBuilding target: " + target);
   build_target(target);
 }
 
