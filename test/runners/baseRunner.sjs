@@ -19,6 +19,7 @@ BaseRunner.prototype.reset = function() {
 }
 
 var tryStringify = function(obj) {
+  if (obj instanceof Error) return obj.toString();
   try {
     obj = JSON.stringify(obj);
   } catch(e) { }
