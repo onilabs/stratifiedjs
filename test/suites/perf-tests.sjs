@@ -66,8 +66,8 @@ function calculatePi(d) {
 
 time("pi to 700 digits", function() { calculatePi(700); });
 
+var coll = require('apollo:collection');
 time("coll.each(arr*200)*200)", function() { 
-  var coll = require('apollo:collection');
   var arr = [];
   for (var i=0; i<200; ++i) arr.push(i);
   var accu = 0;
@@ -80,3 +80,14 @@ testCompilation("debug module",
                 http.get("http://code.onilabs.com/apollo/latest/modules/debug.sjs"));
 testCompilation("http module", 
                 http.get("http://code.onilabs.com/apollo/latest/modules/http.sjs"));
+
+
+var arr = [];
+for (var i=0; i<10000;++i)
+  arr.push(i);
+
+function alt_test() {
+  coll.par.waitforFirst(function(a) { if(a==arr.length-1) return; hold(); }, arr);
+  return 1;
+}
+time("waitforFirst/10000", alt_test);

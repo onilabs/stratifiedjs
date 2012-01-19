@@ -1184,6 +1184,62 @@ test("'this' pointer in async for-in bug", 1212331, function() {
   return rv;
 });
 
+test("({|| 1})()", 1, function() { return ({|| 1})() });
+test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
+     function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) });
+function accu3(f) {
+  var rv = 0;
+  for (var i=1;i<4;++i) rv += f(i);
+  return rv;
+}
+test("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } });
+test("accu3 { |x| if (x==2) return x; }", 2,
+     function() { accu3 { |x| if (x==2) return x; } });
+
+test("waitfor { ({|| return 1; })() } or { hold() }", 1, function() {
+  waitfor {
+    ({|| return 1; })() 
+  }
+  or {
+    hold();
+  }
+});
+test("waitfor { hold(10); ({|x| hold(10); return 1; })((hold(10),1)) } or { hold() }", 1, function() {
+  waitfor {
+    hold(10);
+    ({|x| hold(10); return x; })((hold(10),1)) 
+  }
+  or {
+    hold();
+  }
+});
+
+test("nested {|| return}", 2, function() {
+
+  var x = 0;
+
+  function b(f) {
+    try {
+      for (var i=0; i<10; ++i) {
+        f(i);
+      }
+      return 20;
+    }
+    finally {
+      if (i==5) x=1;
+    }
+    return 30;
+  }
+  
+  function c() {
+    b { |x| 
+        if (x == 5) return 1; 
+      }
+  }
+  var d = c();
+  return d + x;
+});
+
 test("tail recursion", 1, function() {
   
   function r(level) {
@@ -1213,15 +1269,3 @@ test("waitfor/and tail recursion", 1, function() {
 
   return r(100000);
 }).serverOnly(); // browser hold(0) is too slow
-
-test("({|| 1})()", 1, function() { return ({|| 1})() });
-test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
-     function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) });
-function accu3(f) {
-  var rv = 0;
-  for (var i=1;i<4;++i) rv += f(i);
-  return rv;
-}
-test("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } });
-test("accu3 { |x| if (x==2) return x; }", 2,
-     function() { accu3 { |x| if (x==2) return x; } });

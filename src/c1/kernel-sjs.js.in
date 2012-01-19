@@ -21,18 +21,20 @@
 
 #ifdef DEBUG_C1
 // XXX figure out why normal CPP stringification is screwed
-#define assert(X) if(!(X)) { throw new Error("Assertion failed: " + "X" ); }
+#define ASSERT(X) if(!(X)) { throw new Error("Assertion failed: " + "X" ); }
 #define WHENDEBUG(X) X
 #else
-#define assert(X)
+#define ASSERT(X)
 #define WHENDEBUG(X)
 #endif
 
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE NDATA_SEQ_FLAG_'s in vm1.js.in
 #define SEQ_FLAG_NONE 0
-#define SEQ_FLAG_RETURNING 1
+#define SEQ_FLAG_FUNCTION 1
 #define SEQ_FLAG_SHORTCIRCUIT_OR 2
 #define SEQ_FLAG_SHORTCIRCUIT_AND 4
+#define SEQ_FLAG_NOTAILCALL 8
+#define SEQ_FLAG_UNRETURNABLE 16
 
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE NDATA_TRY_FLAG_'s in vm1.js.in
 #define TRY_FLAG_NONE 0
@@ -47,14 +49,14 @@
 
 // for blocklambda support, we have another two flags for decl_scopes:
 // bl=true means that this is a block lambda scope
-// target=true mean that this scope is being targetted by cfxs from 
+// notail=true mean that this scope is being targetted by returns from 
 // blocklambdas and can't be tail-optimized
 function push_decl_scope(pctx, bl) {
   pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0, bl:bl});
   if (bl) {
     var prev = pctx.decl_scopes[pctx.decl_scopes.length-2];
     if (!prev.bl)
-      prev.target = true;
+      prev.notail = true;
   }
 }
 
@@ -193,7 +195,7 @@ function end_script(pctx) {
   var decls = pctx.decl_scopes.pop();
   var rv = collect_decls(decls) +
     pop_stmt_scope(pctx,
-                   "__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_NONE,
+                   "__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+(SEQ_FLAG_UNRETURNABLE|SEQ_FLAG_NOTAILCALL),
                    "])");
   return rv;
 }
@@ -300,8 +302,10 @@ ph_switch.prototype.val = function() {
 
 #define END_FBODY(pctx)                                                 \
   var decls = pctx.decl_scopes.pop();                                   \
+  var flags = SEQ_FLAG_FUNCTION;                                        \
+    if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                     \
   return collect_decls(decls) +                                         \
-    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING, \
+    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+flags, \
     "])");
 
 #define GEN_FUN_EXP(fname, pars, body, pctx) return new ph_fun_exp(fname, pars, body, pctx);
@@ -438,11 +442,11 @@ ph_var_decl.prototype = new ph(WHENDEBUG("ph_var_decl"));
 ph_var_decl.prototype.is_var_decl = true;
 ph_var_decl.prototype.decl = function() { return this.d[0]; };
 ph_var_decl.prototype.nblock_val = function() {
-    assert(!this.is_empty);
+    ASSERT(!this.is_empty)
     return this.d[0]+"="+this.d[1].nb()+";";
 };
 ph_var_decl.prototype.val = function() {
-    assert(!this.is_empty);
+    ASSERT(!this.is_empty)
     // XXX Need to handle special case of "var arguments = XXX"
     return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0]+
       "=_oniX;},"+this.d[1].v()+")";
@@ -570,7 +574,7 @@ ph_return.prototype.nblock_val = function() {
   }
   else {
     // we're nblock, but not in an nblock ctx; need to throw
-    rv = "return __oni_rt.CFE('r'";
+    rv = "return __oni_rt.CFER(this";
     if (this.exp) rv += ","+this.exp.nb();
     rv += ");";
   }
@@ -1274,7 +1278,7 @@ ph_par_alt.prototype.val = function() {
   var rv = "__oni_rt.";
   if (this.op == "and")
     rv += "Par(";
-  else // assert(this.op == "or")
+  else // ASSERT(this.op == "or")
     rv += "Alt(";
   for (var i=0; i<this.blocks.length; ++i) {
     var b = this.blocks[i].v();
@@ -1411,10 +1415,17 @@ ph_using.prototype.val = function() {
 #define END_BLAMBDABODY(pctx)                                                 \
   var decls = pctx.decl_scopes.pop();                                   \
   return collect_decls(decls) +                                         \
-    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING, \
+    pop_stmt_scope(pctx, "return __oni_rt.exbl(this,["+SEQ_FLAG_NONE, \
     "])");
 
-#define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_fun_exp("", pars, body, pctx);
+#define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_blocklambda(pars, body, pctx);
+
+function ph_blocklambda(pars, body, pctx) {
+  this.code = "__oni_rt.Bl(function("+pars.join(",")+"){"+body+"})";
+}
+ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));
+ph_blocklambda.prototype.val = function() { return this.code; };
+
 #endif // SJS_BLOCKLAMBDA
                            
 //----------------------------------------------------------------------

@@ -42,11 +42,16 @@ OBSOLETE FLAGS:
 #define ASYNC_RESUME  : obsolete asynchronous resume code path
 
 */
-
+#define DEBUG_VM 1
 #ifdef DEBUG_VM
 #define LOG(x) console.log(x);
+// XXX figure out why normal CPP stringification is screwed
+#define ASSERT(X) if(!(X)) { throw new Error("Assertion failed: " + "X" ); }
+#define WHENDEBUG(X) X
 #else
+#define ASSERT(X)
 #define LOG(x)
+#define WHENDEBUG(X)
 #endif
 
 //----------------------------------------------------------------------
@@ -88,6 +93,17 @@ function CFException(type, value, line, file) {
   this.val = value;
 }
 exports.CFE = function(type, value) { return new CFException(type, value); };
+exports.CFER = function(env, value) { 
+  var e = new CFException('r', value);
+  if (env.fef) {
+    // we're returning to a lexical function container (usually from blocklambdas)
+    if (env.fef.unreturnable) // the function is not active anymore!
+      throw new TypeError("Unexpected return to inactive function");
+    //WHENDEBUG(console.log('tagged return!!');)
+    e.fef = env.fef;
+  }
+  return e;
+}
 
 var CFETypes = { r:"return", b:"break", c:"continue"};
 CFException.prototype = {
@@ -102,8 +118,10 @@ CFException.prototype = {
     if (this.type == "t") {
       throw (augment_mes && this.val.file) ? new Error(augmented_message(this.val)) : this.val;
     }
-    else
+    else if (!this.fef)
       throw this.toString();
+    else
+      return this;
   }
 };
 
@@ -156,8 +174,10 @@ var EF_Proto = {
       val = val.val;
     else if (this.swallow_r) {
       if (is_cfx(val)) {
-        if (val.type == "r")
-          val = val.val;
+        if (val.type == "r") {
+          if (!val.fef || val.fef == this) 
+            val = val.val;
+        }
         else if (val.type == "b" || val.type == "c") {
           // catching break/continue at function boundary
           // XXX linenumber (and maybe even filename) are wrong!! We mustn't take them from the environment
@@ -170,10 +190,24 @@ var EF_Proto = {
       else
         val = undefined; // only 'return' returns a value to parent
     }
-    
+  
+    // Mark this frame as unreturnable. This is used by
+    // blocklambdas to determine if the lexical function container is
+    // still alive.
+    this.unreturnable = true;
+
+    // a little cleanup which might aid GC:
+    this.env = undefined;
+
     if (this.async) {
-      if (this.parent)
+      if (this.parent) {
         this.parent.cont(this.parent_idx, val);
+        // remove parent to aid gc; we can only do this if val != this
+        // (par and alt call through returnToParent via abortInner, which in the 
+        // async case returns their own EF)
+        // XXX empirically this doesn't seem to help much 
+        // if (val !== this) this.parent = undefined;
+      }
       else // noone waiting for result; make sure exceptions get reported
         if (is_cfx(val)) {
           // Chrome's console exception reporting mechanism doesn't
@@ -205,7 +239,7 @@ function execIN(node, env) {
 }
 exports.ex = execIN;
 
-// create a seq and exec it. map exceptions.
+// function bodies: create a seq and exec it. map exceptions.
 // short for __oni_rt.exec(__oni_rt.Seq(...), aobj, thisobj, file)
 exports.exseq = function(aobj,tobj,file, args) {
   var rv = (new EF_Seq(args, new Env(aobj,tobj,file))).cont(1);
@@ -213,6 +247,16 @@ exports.exseq = function(aobj,tobj,file, args) {
     return rv.mapToJS();
   return rv;
 };
+
+// block lambda bodies: create a seq and exec it. don't map exceptions.
+// short for __oni_rt.exec(__oni_rt.Seq(...), env)
+exports.exbl = function(env, args) {
+  var rv = (new EF_Seq(args, env)).cont(1);
+//  if (is_cfx(rv))
+//    return rv.mapToJS();
+  return rv;
+};
+
 
 //   exec: instruction executor function
 //   returns IN constructor function which returns a instruction object
@@ -233,7 +277,9 @@ function makeINCtor(exec) {
   {
     aobj: 'arguments' object,
     tobj: 'this' object,
-    file: filename
+    file: filename,
+    fef: function execution frame (only for non-tail-called functions that
+         might be targetted by blocklambdas; see EF_Seq)
   }
 
 */
@@ -242,6 +288,12 @@ function Env(aobj, tobj, file) {
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
+}
+
+function inheritEnv(e) {
+  function s() {};
+  s.prototype = e;
+  return new s();
 }
 
 //----------------------------------------------------------------------
@@ -262,15 +314,29 @@ function I_nblock(ndata, env) {
 exports.Nb = makeINCtor(I_nblock);
 
 //----------------------------------------------------------------------
+// Bl : instruction node for block lambdas
+
+// structure of ndata array:
+#define NDATA_BLOCKLAMBDA_JSFUNC() ndata[0]
+function I_blocklambda(ndata, env) {
+  ASSERT(env.fef)
+  return (function() { return (NDATA_BLOCKLAMBDA_JSFUNC()).apply(env, arguments); });
+}
+exports.Bl = makeINCtor(I_blocklambda);
+
+//----------------------------------------------------------------------
 // Seq : instruction node for sequential execution of child nodes
 
 // ndata[0] contains flags.
 #define NDATA_SEQ_FLAGS() ndata[0]
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE SEQ_FLAG_'s in kernel-sjs.js.in
 #define NDATA_SEQ_FLAG_NONE 0
-#define NDATA_SEQ_FLAG_RETURNING 1
+#define NDATA_SEQ_FLAG_FUNCTION 1
 #define NDATA_SEQ_FLAG_SHORTCIRCUIT_OR 2
 #define NDATA_SEQ_FLAG_SHORTCIRCUIT_AND 4
+#define NDATA_SEQ_FLAG_NOTAILCALL 8
+#define NDATA_SEQ_FLAG_UNRETURNABLE 16
+
 // ndata[1..end] contains sequence of instruction nodes
 
 /*
@@ -282,13 +348,21 @@ exports.Nb = makeINCtor(I_nblock);
 function EF_Seq(ndata, env) {
   this.ndata = ndata;
   this.env = env;
-  
+
+  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) 
+    env.fef = this; // note down function execution frame in environment
+
+  this.tailcall = !(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
+  //WHENDEBUG(if (!this.tailcall) console.log("no tailcall!!");)
   // do we 'catch' returns? (also implies that we're catching stray break/continue)
-  this.swallow_r = NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_RETURNING;
+  this.swallow_r = NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION;
   
   // short-circuited?:
   this.sc = NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_SHORTCIRCUIT_OR |
                                  NDATA_SEQ_FLAG_SHORTCIRCUIT_AND); 
+
+  // is this a top-level seq (one that can't be return'ed to?)
+  this.unreturnable = NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_UNRETURNABLE;
 }
 setEFProto(EF_Seq.prototype={});
 #ifdef DEBUG_VM
@@ -324,7 +398,7 @@ EF_Seq.prototype.cont = function(idx, val) {
         }
         break;
       }
-      if (++idx == this.ndata.length || is_cfx(val)) {
+      if ((++idx == this.ndata.length && this.tailcall) || is_cfx(val)) {
         // tail call optimization: 
         break;
       }
@@ -939,10 +1013,10 @@ EF_Try.prototype.quench = function() {
 EF_Try.prototype.abort = function() {
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
-  delete this.parent;
+  this.parent = undefined;
+  ASSERT(this.aborted != true) // sanity check; aborted before
   this.aborted = true;
-  // assert (this.aborted != true) // sanity check; aborted before
-  // assert (this.state != 3); // sanity check; aborted before
+  ASSERT(this.state != 3) // sanity check; aborted before
   if (this.state != 4) { // don't abort finally block
     var val = this.child_frame.abort();
     if (is_ef(val)) {
@@ -1295,11 +1369,11 @@ EF_Par.prototype.quench = function() {
 EF_Par.prototype.abort = function() {
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
-  delete this.parent;
+  this.parent = undefined;
   if (this.aborted) {
     // we already aborted internally.
     // can delete pendingCFE; our caller is not interested in it
-    delete this.pendingCFE;
+    this.pendingCFE = undefined;
     return this;
   }
   return this.abortInner();
@@ -1373,6 +1447,7 @@ EF_Alt.prototype.cont = function(idx, val) {
         // create a new environment for 'collapse' support
         // XXX it sucks that we have to create a new environment for each branch here 
         var env = new Env(this.env.aobj, this.env.tobj, this.env.file);
+        env.fef = this.env.fef;
         env.fold = this;
         env.branch = i;
         val = execIN(this.ndata[i], env);
@@ -1410,7 +1485,7 @@ EF_Alt.prototype.cont = function(idx, val) {
         if (this.pending == 1) {
           // only our collapsing branch is left; continue with it
           cf = this.collapsing.cf;
-          delete this.collapsing;
+          this.collapsing = undefined;
           cf.cont(1);
         }
         return;
@@ -1448,9 +1523,9 @@ EF_Alt.prototype.quench = function(except) {
 };
 
 EF_Alt.prototype.abort = function() {
-  delete this.parent;
+  this.parent = undefined;
   if (this.aborted) {
-    delete this.pendingRV;
+    this.pendingRV = undefined;
     return this;
   }
   return this.abortInner();
@@ -1462,7 +1537,7 @@ EF_Alt.prototype.abortInner = function() {
   if (this.collapsing) {
     // we're being aborted after a collapse; just need to abort the collapsing branch
     var branch = this.collapsing.branch;
-    delete this.collapsing;
+    this.collapsing = undefined;
     var val = this.children[branch].abort();
     if (is_ef(val)) // need to wait
       this.setChildFrame(val, branch);
@@ -1586,7 +1661,7 @@ EF_Suspend.prototype.type = "Suspend";
 
 EF_Suspend.prototype.cont = function(idx, val) {
   if (is_ef(val)) {
-    // assert(idx == 1 || idx == 3) (others shouldn't rebase)
+    ASSERT(idx == 1 || idx == 3) //(others shouldn't rebase)
     this.setChildFrame(val, idx);
   }
   else {
@@ -1628,7 +1703,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
     if (this.returning) {
       //      LOG('reentrant cb')
       if (is_ef(val)) {
-        // assert (!this.child_frame)
+        ASSERT(!this.child_frame)
         // processing up to here has been synchronous; we still need to abort
         this.setChildFrame(val, /* not relevant */null);
         this.quench();
@@ -1941,7 +2016,9 @@ exports.Obj = function(/*args*/) {
 };
 
 exports.Return = function(exp) {
-  return new CFException("r", exp);
+//  var e = new CFException("r", exp);
+//  return e;
+  return exports.CFER(this, exp);
 };
 
 exports.With = function(exp, bodyf) {
