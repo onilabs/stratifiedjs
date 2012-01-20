@@ -91,16 +91,16 @@ function CFException(type, value, line, file) {
       value.toString = CFException_toString;    
   }
   this.val = value;
+  // this.ef = undefined;  // 'execution frame' tag for targetted return/break/continue
 }
-exports.CFE = function(type, value) { return new CFException(type, value); };
 exports.CFER = function(env, value) { 
   var e = new CFException('r', value);
-  if (env.fef) {
+  if (env.ref) {
     // we're returning to a lexical function container (usually from blocklambdas)
-    if (env.fef.unreturnable) // the function is not active anymore!
-      throw new TypeError("Unexpected return to inactive function");
+    if (env.ref.unreturnable) // the function is not active anymore!
+      throw new TypeError(e.toString());
     //WHENDEBUG(console.log('tagged return!!');)
-    e.fef = env.fef;
+    e.ef = env.ref;
   }
   return e;
 }
@@ -118,7 +118,7 @@ CFException.prototype = {
     if (this.type == "t") {
       throw (augment_mes && this.val.file) ? new Error(augmented_message(this.val)) : this.val;
     }
-    else if (!this.fef)
+    else if (!this.ef)
       throw this.toString();
     else
       return this;
@@ -175,14 +175,8 @@ var EF_Proto = {
     else if (this.swallow_r) {
       if (is_cfx(val)) {
         if (val.type == "r") {
-          if (!val.fef || val.fef == this) 
+          if (!val.ef || val.ef == this) 
             val = val.val;
-        }
-        else if (val.type == "b" || val.type == "c") {
-          // catching break/continue at function boundary
-          // XXX linenumber (and maybe even filename) are wrong!! We mustn't take them from the environment
-          // XXX in fact, we should statically catch these errors
-          val = new CFException("t", new Error(val.toString()), 0, this.env.file);
         }
       }
       else if (is_ef(val))
@@ -278,22 +272,25 @@ function makeINCtor(exec) {
     aobj: 'arguments' object,
     tobj: 'this' object,
     file: filename,
-    fef: function execution frame (only for non-tail-called functions that
+    ref: function execution frame (only for non-tail-called functions that
          might be targetted by blocklambdas; see EF_Seq)
+    bef: 'break' execution frame
+    cef: 'continue' execution frame
   }
 
 */
 
-function Env(aobj, tobj, file) { 
+function Env(aobj, tobj, file, ref, bef, cef) { 
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
+  this.ref = ref;
+  this.bef = bef;
+  this.cef = cef;
 }
 
-function inheritEnv(e) {
-  function s() {};
-  s.prototype = e;
-  return new s();
+function copyEnv(e) {
+  return new Env(e.aobj, e.tobj, e.file, e.ref, e.bef, e.cef);  
 }
 
 //----------------------------------------------------------------------
@@ -319,7 +316,7 @@ exports.Nb = makeINCtor(I_nblock);
 // structure of ndata array:
 #define NDATA_BLOCKLAMBDA_JSFUNC() ndata[0]
 function I_blocklambda(ndata, env) {
-  ASSERT(env.fef)
+  ASSERT(env.ref)
   return (function() { return (NDATA_BLOCKLAMBDA_JSFUNC()).apply(env, arguments); });
 }
 exports.Bl = makeINCtor(I_blocklambda);
@@ -350,7 +347,7 @@ function EF_Seq(ndata, env) {
   this.env = env;
 
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) 
-    env.fef = this; // note down function execution frame in environment
+    env.ref = this; // note down function execution frame in environment
 
   this.tailcall = !(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
   //WHENDEBUG(if (!this.tailcall) console.log("no tailcall!!");)
@@ -818,17 +815,14 @@ phase 2: (executing clause code)
 
 function EF_Switch(ndata, env) {
   this.ndata = ndata;
-  this.env = env;
+  this.env = copyEnv(env);
+  this.env.bef = this;
   this.phase = 0;
 }
 setEFProto(EF_Switch.prototype={});
 #ifdef DEBUG_VM
 EF_Switch.prototype.type = "Switch";
 #endif
-
-// XXX hmm, should switch really swallow 'continue'??
-// Maybe we need separate flags for b and c.
-EF_Switch.prototype.swallow_bc = true;
 
 EF_Switch.prototype.cont = function(idx, val) {
   switch (this.phase) {
@@ -869,6 +863,9 @@ EF_Switch.prototype.cont = function(idx, val) {
       return this;
     }
     if (is_cfx(val)) {
+      if (val.type == "b" && (!val.ef  || val.ef == this)) {
+        val = val.val;
+      }
       return this.returnToParent(val);
     }
     val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][1], this.env);
@@ -1058,7 +1055,8 @@ exports.Try = makeINCtor(I_try);
 
 function EF_Loop(ndata, env) {
   this.ndata = ndata;
-  this.env = env;
+  this.env = copyEnv(env);
+  this.env.bef = this.env.cef = this;
 }
 setEFProto(EF_Loop.prototype={});
 #ifdef DEBUG_VM
@@ -1097,15 +1095,17 @@ EF_Loop.prototype.cont = function(idx, val) {
         while (1) {
           if (idx > 2) {
             if (is_cfx(val)) {
-              if (val.type == "b") {
-                // break
-                val = undefined;
-              }
-              else if (val.type == "c") {
-                // continue
-                val = undefined;
-                // break out of the loop; pick up again at increment:
-                break;
+              if (!val.ef || val.ef == this) {
+                if (val.type == "b") {
+                  // break statement
+                  val = undefined;
+                }
+                else if (val.type == "c") {
+                  // continue statement
+                  val = undefined;
+                  // break out of the loop; pick up again at increment:
+                  break;
+                }
               }
               return this.returnToParent(val);
             }
@@ -1159,7 +1159,8 @@ exports.Loop = makeINCtor(I_loop);
 
 function EF_ForIn(ndata, env) {
   this.ndata = ndata;
-  this.env = env;
+  this.env = copyEnv(env);
+  this.env.bef = this.env.cef = this;
 }
 setEFProto(EF_ForIn.prototype={});
 #ifdef DEBUG_VM
@@ -1187,14 +1188,16 @@ EF_ForIn.prototype.cont = function(idx, val) {
         if (this.remainingX === undefined) {
           val = this.NDATA_FORIN_LOOPF()(this.env,x);
           if (is_cfx(val)) {
-            if (val.type == "b") {
-              // break
-              val = undefined;
-            }
-            else if (val.type == "c") {
-              // continue
-              val = undefined;
-              continue;
+            if (!val.ef || val.ef == this) {
+              if (val.type == "b") {
+                // break statement
+                val = undefined;
+              }
+              else if (val.type == "c") {
+                // continue
+                val = undefined;
+                continue;
+              }
             }
             return this.returnToParent(val);
           }
@@ -1222,16 +1225,18 @@ EF_ForIn.prototype.cont = function(idx, val) {
       while (1) {
         // returning from evaluation of loop
         if (is_cfx(val)) {
-          if (val.type == "b") {
-            // break
-            val = undefined;
+          if (!val.ef || val.ef == this) {
+            if (val.type == "b") {
+              // break
+              val = undefined;
+            }
+            else if (val.type == "c") {
+              // continue
+              val = undefined;
+              if (this.remainingX.length)
+                continue;
+            }            
           }
-          else if (val.type == "c") {
-            // continue
-            val = undefined;
-            if (this.remainingX.length)
-              continue;
-          }            
           return this.returnToParent(val);
         }
         if (!this.remainingX.length) {
@@ -1264,7 +1269,11 @@ exports.ForIn = makeINCtor(I_forin);
 #define NDATA_CFE_LBL() ndata[1]
 
 function I_cfe(ndata, env) {
-  return new CFException(NDATA_CFE_TYPE(), NDATA_CFE_LBL());
+  var e = new CFException(NDATA_CFE_TYPE(), NDATA_CFE_LBL());
+  e.ef = env[NDATA_CFE_TYPE() + 'ef'];
+  if (e.ef && e.ef.unreturnable) // the return frame is inactive!
+    e = new CFException("t", new TypeError(e.toString()), 0, env.file);
+  return e;
 }
 
 exports.Cfe = makeINCtor(I_cfe);
@@ -1446,8 +1455,8 @@ EF_Alt.prototype.cont = function(idx, val) {
       for (var i=0; i<this.ndata.length; ++i) {
         // create a new environment for 'collapse' support
         // XXX it sucks that we have to create a new environment for each branch here 
-        var env = new Env(this.env.aobj, this.env.tobj, this.env.file);
-        env.fef = this.env.fef;
+        var env = copyEnv(this.env);
+        env.ref = this.env.ref;
         env.fold = this;
         env.branch = i;
         val = execIN(this.ndata[i], env);

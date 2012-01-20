@@ -63,16 +63,16 @@ if(!value.hasOwnProperty('toString'))value.toString=CFException_toString;
 
 }
 this.val=value;
+
 }
-exports.CFE=function(type,value){return new CFException(type,value)};
 exports.CFER=function(env,value){var e=new CFException('r',value);
 
-if(env.fef){
+if(env.ref){
 
-if(env.fef.unreturnable)throw new TypeError("Unexpected return to inactive function");
+if(env.ref.unreturnable)throw new TypeError(e.toString());
 
 
-e.fef=env.fef;
+e.ef=env.ref;
 }
 return e;
 };
@@ -89,7 +89,7 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 if(this.type=="t"){
 
 throw (augment_mes&&this.val.file)?new Error(augmented_message(this.val)):this.val;
-}else if(!this.fef)throw this.toString();else return this;
+}else if(!this.ef)throw this.toString();else return this;
 
 
 
@@ -143,14 +143,8 @@ if(this.swallow_bc&&(val&&val.__oni_cfx)&&(val.type=="b"||val.type=="c"))val=val
 
 if((val&&val.__oni_cfx)){
 if(val.type=="r"){
-if(!val.fef||val.fef==this)val=val.val;
+if(!val.ef||val.ef==this)val=val.val;
 
-}else if(val.type=="b"||val.type=="c"){
-
-
-
-
-val=new CFException("t",new Error(val.toString()),0,this.env.file);
 }
 }else if(is_ef(val))val.swallow_r=true;else val=undefined;
 
@@ -242,16 +236,17 @@ return {exec:exec,ndata:arguments,__oni_dis:token_dis};
 
 
 
-function Env(aobj,tobj,file){this.aobj=aobj;
+function Env(aobj,tobj,file,ref,bef,cef){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
+this.ref=ref;
+this.bef=bef;
+this.cef=cef;
 }
 
-function inheritEnv(e){function s(){
-};
-s.prototype=e;
-return new s();
+function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.ref,e.bef,e.cef);
+
 }
 
 
@@ -273,8 +268,8 @@ exports.Nb=makeINCtor(I_nblock);
 
 
 
-function I_blocklambda(ndata,env){if(!(env.fef)){
-throw new Error("Assertion failed: "+"env.fef")}
+function I_blocklambda(ndata,env){if(!(env.ref)){
+throw new Error("Assertion failed: "+"env.ref")}
 return (function(){return (ndata[0]).apply(env,arguments)});
 }
 exports.Bl=makeINCtor(I_blocklambda);
@@ -293,7 +288,7 @@ function EF_Seq(ndata,env){this.ndata=ndata;
 
 this.env=env;
 
-if(ndata[0]&8)env.fef=this;
+if(ndata[0]&8)env.ref=this;
 
 
 this.tailcall=!(ndata[0]&8);
@@ -695,15 +690,12 @@ exports.Default=Default;
 
 function EF_Switch(ndata,env){this.ndata=ndata;
 
-this.env=env;
+this.env=copyEnv(env);
+this.env.bef=this;
 this.phase=0;
 }
 setEFProto(EF_Switch.prototype={});
 EF_Switch.prototype.type="Switch";
-
-
-
-EF_Switch.prototype.swallow_bc=true;
 
 EF_Switch.prototype.cont=function(idx,val){switch(this.phase){case 0:
 
@@ -744,6 +736,9 @@ this.setChildFrame(val,idx);
 return this;
 }
 if((val&&val.__oni_cfx)){
+if(val.type=="b"&&(!val.ef||val.ef==this)){
+val=val.val;
+}
 return this.returnToParent(val);
 }
 val=execIN(this.ndata[1][idx][1],this.env);
@@ -905,7 +900,8 @@ exports.Try=makeINCtor(I_try);
 
 function EF_Loop(ndata,env){this.ndata=ndata;
 
-this.env=env;
+this.env=copyEnv(env);
+this.env.bef=this.env.cef=this;
 }
 setEFProto(EF_Loop.prototype={});
 EF_Loop.prototype.type="Loop";
@@ -942,6 +938,7 @@ return this.returnToParent(val);
 while(1){
 if(idx>2){
 if((val&&val.__oni_cfx)){
+if(!val.ef||val.ef==this){
 if(val.type=="b"){
 
 val=undefined;
@@ -951,6 +948,7 @@ val=undefined;
 val=undefined;
 
 break;
+}
 }
 return this.returnToParent(val);
 }
@@ -997,7 +995,8 @@ exports.Loop=makeINCtor(I_loop);
 
 function EF_ForIn(ndata,env){this.ndata=ndata;
 
-this.env=env;
+this.env=copyEnv(env);
+this.env.bef=this.env.cef=this;
 }
 setEFProto(EF_ForIn.prototype={});
 EF_ForIn.prototype.type="ForIn";
@@ -1023,6 +1022,7 @@ for(var x in val){
 if(this.remainingX===undefined){
 val=this.ndata[1](this.env,x);
 if((val&&val.__oni_cfx)){
+if(!val.ef||val.ef==this){
 if(val.type=="b"){
 
 val=undefined;
@@ -1031,6 +1031,7 @@ val=undefined;
 
 val=undefined;
 continue;
+}
 }
 return this.returnToParent(val);
 }
@@ -1058,6 +1059,7 @@ if(idx==2){
 while(1){
 
 if((val&&val.__oni_cfx)){
+if(!val.ef||val.ef==this){
 if(val.type=="b"){
 
 val=undefined;
@@ -1067,6 +1069,7 @@ val=undefined;
 val=undefined;
 if(this.remainingX.length)continue;
 
+}
 }
 return this.returnToParent(val);
 }
@@ -1097,8 +1100,12 @@ exports.ForIn=makeINCtor(I_forin);
 
 
 
-function I_cfe(ndata,env){return new CFException(ndata[0],ndata[1]);
+function I_cfe(ndata,env){var e=new CFException(ndata[0],ndata[1]);
 
+e.ef=env[ndata[0]+'ef'];
+if(e.ef&&e.ef.unreturnable)e=new CFException("t",new TypeError(e.toString()),0,env.file);
+
+return e;
 }
 
 exports.Cfe=makeINCtor(I_cfe);
@@ -1268,8 +1275,8 @@ if(idx==-1){
 for(var i=0;i<this.ndata.length;++i){
 
 
-var env=new Env(this.env.aobj,this.env.tobj,this.env.file);
-env.fef=this.env.fef;
+var env=copyEnv(this.env);
+env.ref=this.env.ref;
 env.fold=this;
 env.branch=i;
 val=execIN(this.ndata[i],env);

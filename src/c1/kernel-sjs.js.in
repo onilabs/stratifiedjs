@@ -573,7 +573,7 @@ ph_return.prototype.nblock_val = function() {
     if (this.exp) rv += " "+this.exp.nb()+";";
   }
   else {
-    // we're nblock, but not in an nblock ctx; need to throw
+    // we're nblock, but not in an nblock ctx; need to create a CFE:
     rv = "return __oni_rt.CFER(this";
     if (this.exp) rv += ","+this.exp.nb();
     rv += ");";

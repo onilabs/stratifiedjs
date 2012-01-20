@@ -1240,6 +1240,43 @@ test("nested {|| return}", 2, function() {
   return d + x;
 });
 
+test("{ || break; }", 5, function() {
+  for (var i=0; i<10; ++i) {
+    ({ || if (i==5) break; })()
+  }
+  return i;
+});
+
+test("nested {|| break}", 2, function() {
+
+  var x = 0;
+
+  function b(f) {
+    try {
+      for (var i=0; i<10; ++i) {
+        f(i);
+      }
+      return 20;
+    }
+    finally {
+      if (i==5) x=1;
+    }
+    return 30;
+  }
+  
+  function c() {
+    for (var i=1; i<10; ++i) {
+      b { |x| 
+          if (x == 5) break; 
+        }
+    }
+    return i;
+  }
+  var d = c();
+  return d + x;
+});
+
+
 test("tail recursion", 1, function() {
   
   function r(level) {
