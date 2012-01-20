@@ -1103,7 +1103,8 @@ exports.ForIn=makeINCtor(I_forin);
 function I_cfe(ndata,env){var e=new CFException(ndata[0],ndata[1]);
 
 e.ef=env[ndata[0]+'ef'];
-if(e.ef&&e.ef.unreturnable)e=new CFException("t",new TypeError(e.toString()),0,env.file);
+if(!e.ef||e.ef.unreturnable)e=new CFException("t",new TypeError(e.toString()),0,env.file);
+
 
 return e;
 }
