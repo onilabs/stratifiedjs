@@ -1276,6 +1276,52 @@ test("nested {|| break}", 2, function() {
   return d + x;
 });
 
+// the following four 'break' edge cases used to be problematic when we had
+// tail-called EF_Switch and EF_ForIn:
+
+test("break/switch edge case", 1, function() {
+  switch (1) {
+  case 1:
+    hold(0);
+    break;
+  }
+  return 1;
+});
+
+
+test("{|| break}/switch edge case", 1, function() {
+  while (1) {
+    var a = {||break };
+    switch (1) {
+    case 1:
+      hold(0);
+      a();
+    }
+    return 2;
+  }
+  return 1;
+});
+
+test("break/for-in edge case", 1, function() {
+  for (x in [1]) {
+    hold(0);
+    break;
+  }
+  return 1;
+});
+
+test("{|| break}/for-in edge case", 1, function() {
+  while (1) {
+    var a = {||break };
+    for (x in [1]) {
+      hold(0);
+      a();
+    }
+    return 2;
+  }
+  return 1;
+});
+
 
 test("tail recursion", 1, function() {
   

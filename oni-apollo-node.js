@@ -127,10 +127,7 @@ return this.child_frame.abort();
 
 },returnToParent:function(val){
 
-if(this.swallow_bc&&(val&&val.__oni_cfx)&&(val.type=="b"||val.type=="c"))val=val.val;else if(this.swallow_r){
-
-
-
+if(this.swallow_r){
 
 if((val&&val.__oni_cfx)){
 if(val.type=="r"){
@@ -713,7 +710,7 @@ val=execIN(this.ndata[1][idx][0],this.env);
 this.phase=2;
 val=0;
 case 2:
-while(idx<this.ndata[1].length){
+while(true){
 if(is_ef(val)){
 this.setChildFrame(val,idx);
 return this;
@@ -724,12 +721,12 @@ val=val.val;
 }
 return this.returnToParent(val);
 }
+if(idx>=this.ndata[1].length){
+return this.returnToParent(val);
+}
 val=execIN(this.ndata[1][idx][1],this.env);
 ++idx;
 }
-
-if(is_ef(val))val.swallow_bc=true;
-return this.returnToParent(val);
 default:
 throw "Invalid phase in Switch SJS node";
 }
@@ -1025,15 +1022,9 @@ if(is_ef(val))this.remainingX=[];
 
 }
 if(is_ef(val)){
-
-if(!this.remainingX.length){
-val.swallow_bc=true;
-return this.returnToParent(val);
-}else{
-
+if(!this.remainingX)this.remainingX=[];
 this.setChildFrame(val,2);
 return this;
-}
 }
 
 return this.returnToParent(val);
@@ -1056,16 +1047,14 @@ if(this.remainingX.length)continue;
 }
 return this.returnToParent(val);
 }
-if(!this.remainingX.length){
-
-if(is_ef(val))val.swallow_bc=true;
-return this.returnToParent(val);
-}
-val=this.ndata[1](this.env,this.remainingX.shift());
 if(is_ef(val)){
 this.setChildFrame(val,2);
 return this;
 }
+if(!this.remainingX.length){
+return this.returnToParent(val);
+}
+val=this.ndata[1](this.env,this.remainingX.shift());
 
 }
 }
