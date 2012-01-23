@@ -21,18 +21,20 @@
 
 #ifdef DEBUG_C1
 // XXX figure out why normal CPP stringification is screwed
-#define assert(X) if(!(X)) { throw new Error("Assertion failed: " + "X" ); }
+#define ASSERT(X) if(!(X)) { throw new Error("Assertion failed: " + "X" ); }
 #define WHENDEBUG(X) X
 #else
-#define assert(X)
+#define ASSERT(X)
 #define WHENDEBUG(X)
 #endif
 
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE NDATA_SEQ_FLAG_'s in vm1.js.in
 #define SEQ_FLAG_NONE 0
-#define SEQ_FLAG_RETURNING 1
+#define SEQ_FLAG_FUNCTION 1
 #define SEQ_FLAG_SHORTCIRCUIT_OR 2
 #define SEQ_FLAG_SHORTCIRCUIT_AND 4
+#define SEQ_FLAG_NOTAILCALL 8
+#define SEQ_FLAG_UNRETURNABLE 16
 
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE NDATA_TRY_FLAG_'s in vm1.js.in
 #define TRY_FLAG_NONE 0
@@ -41,14 +43,24 @@
 //----------------------------------------------------------------------
 // helpers:
 
-// fexp_ctx > 0 makes this a 'function expression context', where
+// fscoped_ctx > 0 makes this a 'function expression context', where
 // function declarations automatically become scoped like function
 // expressions. This is required within waitfor() {}
-function push_decl_scope(pctx) {
-  pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0});
+
+// for blocklambda support, we have another two flags for decl_scopes:
+// bl=true means that this is a block lambda scope
+// notail=true mean that this scope is being targetted by returns from 
+// blocklambdas and can't be tail-optimized
+function push_decl_scope(pctx, bl) {
+  pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0, bl:bl});
+  if (bl) {
+    var prev = pctx.decl_scopes[pctx.decl_scopes.length-2];
+    if (!prev.bl)
+      prev.notail = true;
+  }
 }
-function pop_decl_scope(pctx) {
-  var decls = pctx.decl_scopes.pop();
+
+function collect_decls(decls) {
   var rv = "";
   if (decls.vars.length)
     rv += "var "+decls.vars.join(",")+";";
@@ -67,11 +79,12 @@ function pop_stmt_scope(pctx, pre, post) {
   var seq = pctx.stmt_scopes.pop().seq;
   var rv = "";
   if (seq.length) {
-    if (pctx.nb_ctx == 0) {
+    if (pctx.js_ctx == 0) {
       if (pre)
         rv += pre;
       for (var i=0; i<seq.length; ++i) {
         var v = seq[i].v();
+        LOG('POP('+v+')');
         if (v.length) {
           if (i || pre) rv += ",";
           rv += v;
@@ -128,33 +141,13 @@ function begin_script(pctx) {
     pctx.allow_nblock = true;
     pctx.full_nblock = false;    
   }
-
-  // customize code generators:
-  if (pctx.full_nblock) {
-    nblock_val_to_val = function(v,r,l) {
-      var rv = "function(arguments){";
-      if (r) rv += "return ";
-      rv += v;
-      return rv+"}";
-    };
-  }
-  else {
-    // in non-full-nblock mode, to get linenumber support, we wrap
-    // nblocks in __oni_rt.Nb's:
-    nblock_val_to_val = function(v,r,l) {
-      var rv = "__oni_rt.Nb(function(arguments){";
-      if (r) rv += "return ";
-      rv += v;
-      return rv + "},"+l+")";
-    };
-  }
   
   if (pctx.scopes !== undefined)
     throw "Internal parser error: Nested script";
   pctx.decl_scopes = [];
   pctx.stmt_scopes = [];
-  // nb_ctx > 0 makes it a noblocking context (i.e. __js {...}):
-  pctx.nb_ctx = 0;
+  // js_ctx > 0 makes it a noblocking js context (i.e. __js {...}):
+  pctx.js_ctx = 0;
 
   push_decl_scope(pctx);
   push_stmt_scope(pctx);
@@ -184,7 +177,7 @@ function add_stmt(stmt, pctx) {
   
   // 'normal' statement
   var seq = top_stmt_scope(pctx).seq;
-  if (stmt.is_nblock && pctx.nb_ctx==0) {
+  if (stmt.is_nblock && pctx.js_ctx==0) {
     // collect nblocks, but only in a non-nblock context
     var last = seq.length ? seq[seq.length-1] : null;
     if (!last || !last.is_nblock_seq) {
@@ -199,12 +192,11 @@ function add_stmt(stmt, pctx) {
 
 #define END_SCRIPT(pctx) return end_script(pctx);
 function end_script(pctx) {
-  var rv = "";
-  rv += pop_decl_scope(pctx);
-  rv += pop_stmt_scope(pctx,
-                       "__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_NONE,
-                       "])");
-  
+  var decls = pctx.decl_scopes.pop();
+  var rv = collect_decls(decls) +
+    pop_stmt_scope(pctx,
+                   "__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+(SEQ_FLAG_UNRETURNABLE|SEQ_FLAG_NOTAILCALL),
+                   "])");
   return rv;
 }
 
@@ -231,7 +223,11 @@ function pop_block(pctx) {
 
 //----------------------------------------------------------------------
 
-var nblock_val_to_val; // set in begin_script
+function nblock_val_to_val(v,r,l) {
+  var rv = "__oni_rt.Nb(function(){";
+  if (r) rv += "return ";
+  return rv + v + "},"+(l||0)+")";
+}
 
 function ph() {
 }
@@ -305,9 +301,12 @@ ph_switch.prototype.val = function() {
 #define ADD_FBODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
 
 #define END_FBODY(pctx)                                                 \
-  return pop_decl_scope(pctx) +                                         \
-  pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+SEQ_FLAG_RETURNING, \
-                 "])");
+  var decls = pctx.decl_scopes.pop();                                   \
+  var flags = SEQ_FLAG_FUNCTION;                                        \
+    if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                     \
+  return collect_decls(decls) +                                         \
+    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+flags, \
+    "])");
 
 #define GEN_FUN_EXP(fname, pars, body, pctx) return new ph_fun_exp(fname, pars, body, pctx);
 function ph_fun_exp(fname, pars, body, pctx) {
@@ -318,6 +317,8 @@ function ph_fun_exp(fname, pars, body, pctx) {
   // Here, x() returns 'undefined' (because of the function name 'y'
   // somehow shadowing the variable 'y')
   
+  // See also http://kangax.github.com/nfe/
+
   // Mostly this is a pathological case, but it is also the kind of
   // pattern that fscoped functions appear in, so we encode these
   // without names. (see gen_fun_decl below). We could code *ALL* fun
@@ -330,7 +331,7 @@ function ph_fun_exp(fname, pars, body, pctx) {
 ph_fun_exp.prototype = new ph(WHENDEBUG("ph_fun_exp"));
 //ph_fun_exp.prototype.is_literal = true; funs are special kinds of literals; we override 'v' instead:
 ph_fun_exp.prototype.v = function() {
-  return "__oni_rt.Lit("+this.code+")";
+  return this.code;
 };
 ph_fun_exp.prototype.nblock_val = function() { return this.code; };
 
@@ -368,6 +369,20 @@ ph_nblock_seq.prototype.pushStmt = function(stmt) {
  this.stmts.push(stmt);
  if (this.line === undefined) this.line = this.stmts[0].line;
 };
+
+/* 
+   If we only have one child, then sometimes its v() expression is more 
+   consise than wrapping by Nb() (as ph_nblock does). E.g. literals can be 
+   expressed verbatim.
+   In practice it's not worth it (it's a very uncommon pattern)
+
+ph_nblock_seq.prototype.v = function(accept_list) {
+  if (this.stmts.length == 1) 
+    return this.stmts[0].v(accept_list);
+  else
+    return ph.prototype.v.call(this, accept_list);  
+};
+*/
 ph_nblock_seq.prototype.nblock_val = function() {
     var rv = "";
     for (var i=0; i<this.stmts.length-1; ++i) {
@@ -401,7 +416,7 @@ function ph_exp_stmt(exp, pctx) {
 ph_exp_stmt.prototype = new ph(WHENDEBUG("ph_exp_stmt"));
 ph_exp_stmt.prototype.is_value = true;
 ph_exp_stmt.prototype.nblock_val = function() { return this.exp.nb()+";"; };
-ph_exp_stmt.prototype.val = function() { return this.exp.v(); }
+ph_exp_stmt.prototype.v = function(accept_list) { return this.exp.v(accept_list); }
 
 #define GEN_VAR_DECL(decls, pctx) return gen_var_decl(decls, pctx);
 //XXX this is really hacky and suboptimal
@@ -427,13 +442,13 @@ ph_var_decl.prototype = new ph(WHENDEBUG("ph_var_decl"));
 ph_var_decl.prototype.is_var_decl = true;
 ph_var_decl.prototype.decl = function() { return this.d[0]; };
 ph_var_decl.prototype.nblock_val = function() {
-    assert(!this.is_empty);
+    ASSERT(!this.is_empty)
     return this.d[0]+"="+this.d[1].nb()+";";
 };
 ph_var_decl.prototype.val = function() {
-    assert(!this.is_empty);
+    ASSERT(!this.is_empty)
     // XXX Need to handle special case of "var arguments = XXX"
-    return "__oni_rt.Scall("+this.line+",function(_oniX){return "+this.d[0]+
+    return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0]+
       "=_oniX;},"+this.d[1].v()+")";
 }; 
 
@@ -462,12 +477,11 @@ ph_if.prototype.val = function() {
     var c = this.c ? this.c.v() : "0";
     if (this.t.is_nblock) {
       // half-nblock encoding
-      // XXX get rid of arguments
-      rv = "function(arguments, __oni_env){if("+this.t.nb()+
-           ")return __oni_rt.ex("+c+",__oni_env);";
+      rv = "__oni_rt.Nb(function(){if("+this.t.nb()+
+           ")return __oni_rt.ex("+c+",this);";
       if (this.a)
-        rv += "else return __oni_rt.ex("+this.a.v()+",__oni_env);";
-      return rv+"}";
+        rv += "else return __oni_rt.ex("+this.a.v()+",this);";
+      return rv+"},"+this.line+")";
     }
     else {
       // test is blocking -> full blocking encoding
@@ -537,30 +551,30 @@ ph_throw.prototype.nblock_val = function() {
 ph_throw.prototype.val = function() {
     // XXX having line encoded twice here kinda sucks
     // XXX encoding of filename sucks too 
-    return "__oni_rt.Scall("+this.line+",__oni_rt.Throw,"+this.exp.v()+","+this.line+",'"+this.file+"')";
+    return "__oni_rt.Sc("+this.line+",__oni_rt.Throw,"+this.exp.v()+","+this.line+",'"+this.file+"')";
 }
 
 
 #define GEN_RETURN(exp, pctx) return new ph_return(exp, pctx);
-// XXX could encode this without fcall
+// XXX should find a tail-safe way of encoding this
 function ph_return(exp, pctx) {
   this.line = pctx.line;
   this.exp = exp;
   //XXX this is a bit fragile; need a new pctx flag for 'throwing'/'nonthrowing' context
-  this.nb_ctx = pctx.nb_ctx;
+  this.js_ctx = pctx.js_ctx;
   this.is_nblock = pctx.allow_nblock && (exp ? exp.is_nblock : true);
 }
 ph_return.prototype = new ph(WHENDEBUG("ph_return"));
 ph_return.prototype.nblock_val = function() {
   var rv;
-  if (this.nb_ctx) {
+  if (this.js_ctx) {
     // XXX this form of nblock_val only works in an nblock context!!!!!
     rv = "return";
     if (this.exp) rv += " "+this.exp.nb()+";";
   }
   else {
-    // we're nblock, but not in an nblock ctx; need to throw
-    rv = "return __oni_rt.CFE('r'";
+    // we're nblock, but not in an nblock ctx; need to create a CFE:
+    rv = "return __oni_rt.CFER(this";
     if (this.exp) rv += ","+this.exp.nb();
     rv += ");";
   }
@@ -568,7 +582,7 @@ ph_return.prototype.nblock_val = function() {
 };
 ph_return.prototype.val = function() {
     var v = this.exp ? ","+this.exp.v() : "";
-    return "__oni_rt.Scall("+this.line+",__oni_rt.Return"+v+")";
+    return "__oni_rt.Sc("+this.line+",__oni_rt.Return"+v+")";
   }
 
 #define GEN_COLLAPSE(pctx) return new ph_collapse(pctx);
@@ -703,11 +717,10 @@ function ph_with(exp, body, pctx) {
 ph_with.prototype = new ph(WHENDEBUG("ph_with"));
 ph_with.prototype.nblock_val = function() { return "with("+this.exp.nb()+")"+this.body.nb(); };
 ph_with.prototype.val = function() {
-  // XXX support proper arguments object; need to add parameter to fcall
   // XXX check 'this' argument
   var rv = "__oni_rt.Sc("+this.line+",__oni_rt.With,"+this.exp.v()+
-    ",__oni_rt.Lit(function(__oni_env,__oni_z){with(__oni_z) return __oni_rt.ex("+
-    this.body.v()+",__oni_env)}))";
+    ",function(__oni_env,__oni_z){with(__oni_z) return __oni_rt.ex("+
+    this.body.v()+",__oni_env)})";
 
   return rv;
 };
@@ -719,17 +732,12 @@ ph_with.prototype.val = function() {
 #define GEN_LITERAL(type, value, pctx) return new ph_literal(value, pctx, type);
 function ph_literal(value, pctx, type) {
   this.value = value;
-  if (type == "<regex>")
-    this.esc_lit = true;
+  this.line  = pctx.line;
 }
 ph_literal.prototype = new ph(WHENDEBUG("ph_literal"));
 ph_literal.prototype.is_nblock = true;
 //ph_literal.prototype.is_literal = true;
-ph_literal.prototype.v = function() {
-  if (this.esc_lit)
-    return "__oni_rt.Lit("+this.value+")";
-  return this.value;
-};
+ph_literal.prototype.v = function() { return this.value; };
 ph_literal.prototype.nblock_val = function() { return this.value; };
 #ifdef SJS_DESTRUCTURE
 ph_literal.prototype.destruct = function() { if (this.value != "") throw "invalid pattern"; return "";};
@@ -764,7 +772,7 @@ ph_infix_op.prototype.val = function() {
       return "__oni_rt.Seq("+SEQ_FLAG_SHORTCIRCUIT_AND+","+this.left.v()+","+this.right.v()+")";
     }
     else
-      return "__oni_rt.Scall("+this.line+",__oni_rt.infix['"+this.id+"'],"+this.left.v()+","+this.right.v()+")";
+      return "__oni_rt.Sc("+this.line+",__oni_rt.infix['"+this.id+"'],"+this.left.v()+","+this.right.v()+")";
 };
 
 #define GEN_ASSIGN_OP(left, id, right, pctx) return new ph_assign_op(left, id, right, pctx);
@@ -806,7 +814,7 @@ ph_assign_op.prototype.val = function() {
     }
 #ifdef SJS_DESTRUCTURE
     else if (this.dest) {
-      rv = "__oni_rt.Scall("+this.line+",function(_oniX";
+      rv = "__oni_rt.Sc("+this.line+",function(_oniX";
       try {
         var drefs = [], body = this.left.destruct("_oniX", drefs);
         for (var i=1; i<=drefs.length; ++i)
@@ -826,14 +834,13 @@ ph_assign_op.prototype.val = function() {
       // 'normal' assignment; left is an id or a ref that we can
       // use as nblock_val.
 
-      // XXX Need to handle special case of "arguments = XXX"
-      rv = "__oni_rt.Scall("+this.line+",function(_oniX){return "+
+      rv = "__oni_rt.Sc("+this.line+",function(_oniX){return "+
         this.left.nb()+this.id+"_oniX;},"+this.right.v()+
         ")";
     }
     else {
       // reference assignment
-      rv = "__oni_rt.Scall("+this.line+",function(l, r){return l[0][l[1]]"+
+      rv = "__oni_rt.Sc("+this.line+",function(l, r){return l[0][l[1]]"+
         this.id+"r;},"+this.left.ref()+","+this.right.v()+")";
     }
     return rv;
@@ -861,12 +868,12 @@ ph_prefix_op.prototype.val = function() {
     // by the catchall clause below.
     rv = nblock_val_to_val(this.nb(), true, this.line);
   } else if (this.right.is_ref) {
-    rv = "__oni_rt.Scall("+this.line+",function(r){return "+this.id+" r[0][r[1]]},"+
+    rv = "__oni_rt.Sc("+this.line+",function(r){return "+this.id+" r[0][r[1]]},"+
       this.right.ref()+")";
   }
   else {
     // 'generic' non-ref case (e.g. "typeof a()" )
-    rv = "__oni_rt.Scall("+this.line+",function(r){return "+this.id+" r},"+
+    rv = "__oni_rt.Sc("+this.line+",function(r){return "+this.id+" r},"+
       this.right.v()+")";
   }
   return rv;
@@ -890,13 +897,12 @@ ph_postfix_op.prototype.val = function() {
       rv = nblock_val_to_val(this.nb(), true, this.line);
     }
     else if (this.left.is_ref) {
-      rv = "__oni_rt.Scall("+this.line+",function(l){return l[0][l[1]]"+this.id+"},"+
+      rv = "__oni_rt.Sc("+this.line+",function(l){return l[0][l[1]]"+this.id+"},"+
         this.left.ref()+")";
     }
     return rv;
 };
 
-#ifdef SJS
 #define GEN_IDENTIFIER(value, pctx) return gen_identifier(value, pctx);
 function gen_identifier(value, pctx) {
   // special case built-in stratified functions here:
@@ -904,17 +910,17 @@ function gen_identifier(value, pctx) {
   if (value == "hold") {
     // stratified 'hold' operator
     var rv = new ph_literal('__oni_rt.Hold', pctx);
-    rv.esc_lit = true;
     rv.is_id = true;
     return rv;
+  }
+  else if (value == "arguments") {
+    return new ph_envobj('arguments', 'aobj', pctx);
   }
 
   // default:
   return new ph_identifier(value, pctx);
 }
-#else
-#define GEN_IDENTIFIER(value, pctx) return new ph_identifier(value, pctx);
-#endif
+
 function ph_identifier(value, pctx) {
   this.value = value;
   this.line = pctx.line;
@@ -924,15 +930,30 @@ ph_identifier.prototype.is_nblock = true;
 ph_identifier.prototype.is_id = true;
 ph_identifier.prototype.is_value = true;
 ph_identifier.prototype.nblock_val = function() { return this.value; };
-ph_identifier.prototype.val = function() { return nblock_val_to_val(this.value, true, this.line) };
 #ifdef SJS_DESTRUCTURE
 ph_identifier.prototype.destruct = function(dpath) {
   return this.value + "=" + dpath + ";";
 };
 #endif
 
-//XXX not quite correct. is_id should be 'false' for 'this'
-#define GEN_THIS(pctx) return new ph_identifier('this', pctx);
+function ph_envobj(name, ename, pctx) {
+  this.js_ctx = pctx.js_ctx;
+  this.line = pctx.line;
+  this.name = name;
+  this.ename = ename; // name in the env object
+}
+ph_envobj.prototype = new ph(WHENDEBUG("ph_envobj"));
+ph_envobj.prototype.is_nblock = true;
+ph_envobj.prototype.is_id = true;
+ph_envobj.prototype.is_value = true;
+ph_envobj.prototype.nblock_val = function() { 
+  if (this.js_ctx)
+    return this.name; 
+  else
+    return "this."+this.ename;
+};
+
+#define GEN_THIS(pctx) return new ph_envobj('this', 'tobj', pctx);
 
 #define GEN_TRUE(pctx) return new ph_literal('true', pctx);
 
@@ -1006,12 +1027,12 @@ ph_dot_accessor.prototype.is_ref = true;
 ph_dot_accessor.prototype.is_value = true;
 ph_dot_accessor.prototype.nblock_val = function() { return this.l.nb() + "." + this.name };
 ph_dot_accessor.prototype.val = function() {
-    return "__oni_rt.Scall("+this.line+",function(l){return l."+this.name+";},"+
+    return "__oni_rt.Sc("+this.line+",function(l){return l."+this.name+";},"+
     this.l.v()+")";
 };
 ph_dot_accessor.prototype.ref = function() {
     // XXX nblock special casing
-    return "__oni_rt.Scall("+this.line+",function(l){return [l,'"+this.name+"'];},"+
+    return "__oni_rt.Sc("+this.line+",function(l){return [l,'"+this.name+"'];},"+
     this.l.v()+")";
 };
 #ifdef SJS_DESTRUCTURE
@@ -1041,15 +1062,15 @@ ph_idx_accessor.prototype.nblock_val = function() {
     return this.l.nb() + "[" + this.idxexp.nb() + "]";
 };
 ph_idx_accessor.prototype.val = function() {
-    return "__oni_rt.Scall("+this.line+",function(l, idx){return l[idx];},"+
+    return "__oni_rt.Sc("+this.line+",function(l, idx){return l[idx];},"+
     this.l.v()+","+this.idxexp.v()+")";
 };
 ph_idx_accessor.prototype.ref = function() {
-    if (this.is_nblock) //XXX Nb
-      return "(function(arguments){return ["+this.l.nb()+","+
-             this.idxexp.nb()+"]})";
+    if (this.is_nblock)
+      return "__oni_rt.Nb(function(){return ["+this.l.nb()+","+
+             this.idxexp.nb()+"]},"+this.line+")";
     else
-      return "__oni_rt.Scall("+this.line+",function(l, idx){return [l, idx];},"+
+      return "__oni_rt.Sc("+this.line+",function(l, idx){return [l, idx];},"+
              this.l.v()+","+this.idxexp.v()+")";
 };
 
@@ -1062,7 +1083,7 @@ function ph_group(e, pctx) {
 ph_group.prototype = new ph(WHENDEBUG("ph_group"));
 ph_group.prototype.is_value = true;
 ph_group.prototype.nblock_val = function() { return "("+this.e.nb()+")"; };
-ph_group.prototype.val = function() { return this.e.v(); };
+ph_group.prototype.v = function(accept_list) { return this.e.v(accept_list); };
 #ifdef SJS_DESTRUCTURE
 ph_group.prototype.destruct = function(dpath,drefs) { return this.e.destruct(dpath,drefs); };
 #endif
@@ -1085,7 +1106,7 @@ ph_arr_lit.prototype.nblock_val = function() {
     return rv + "]";
 };
 ph_arr_lit.prototype.val = function() {
-    var rv = "__oni_rt.Scall("+this.line+",__oni_rt.Arr";
+    var rv = "__oni_rt.Sc("+this.line+",__oni_rt.Arr";
     for (var i=0; i<this.elements.length; ++i) {
       rv += ","+this.elements[i].v();
     }
@@ -1144,7 +1165,7 @@ ph_obj_lit.prototype.val = function() {
     // We stow the ids as an array in the first parameter, and the
     // vals in the remaining pars. Encoded in this flat way, the vals
     // get executed correctly.
-    var rv = "__oni_rt.Scall("+this.line+",__oni_rt.Obj, [";
+    var rv = "__oni_rt.Sc("+this.line+",__oni_rt.Obj, [";
     for (var i=0; i<this.props.length; ++i) {
       if (i) rv += ",";
 #ifdef SJS_DESTRUCTURE
@@ -1257,7 +1278,7 @@ ph_par_alt.prototype.val = function() {
   var rv = "__oni_rt.";
   if (this.op == "and")
     rv += "Par(";
-  else // assert(this.op == "or")
+  else // ASSERT(this.op == "or")
     rv += "Alt(";
   for (var i=0; i<this.blocks.length; ++i) {
     var b = this.blocks[i].v();
@@ -1284,7 +1305,8 @@ function gen_suspend(has_var, decls, block, crf, pctx) {
 }
 
 function gen_suspend_inner(decls, block, crf, pctx) {
-  // if we've got a catch, retract or finally, we need to wrap the suspend:
+  // if we've got a catch, retract or finally, we need to wrap the
+  // suspend, to extend the scope of 'resume' to the other clauses
   var wrapped = (crf[0] || crf[1] || crf[2]);
   var rv = new ph_suspend(decls, block, wrapped, pctx);
   if (wrapped)
@@ -1318,7 +1340,7 @@ ph_suspend.prototype.val = function() {
   return rv;
 };
 
-
+// a wrapper for suspend, to extend the scope of the 'resume' function
 function ph_suspend_wrapper(code, pctx) {
   this.code = code;
   this.line = pctx.line; // XXX is this the correct line?
@@ -1326,9 +1348,8 @@ function ph_suspend_wrapper(code, pctx) {
 }
 ph_suspend_wrapper.prototype = new ph(WHENDEBUG("ph_suspend_wrapper"));
 ph_suspend_wrapper.prototype.val = function() {
-  // XXX get rid of arguments
-  return "function(arguments, __oni_env){var resume;"+
-    "return __oni_rt.ex("+this.code+",__oni_env)}";
+  return "__oni_rt.Nb(function(){var resume;"+
+    "return __oni_rt.ex("+this.code+",this)},"+this.line+")";
 };
 
 
@@ -1351,6 +1372,7 @@ function gen_using(has_var, lhs, exp, body, pctx) {
 }
 
 function ph_using(lhs, exp, body, pctx) {
+  this.line = pctx.line;
   // XXX figure out a better way of handling empty bodies
   this.body = body || new ph_literal(0,pctx);
   this.assign1 = new ph_assign_op(new ph_identifier("_oniW",pctx),
@@ -1365,24 +1387,46 @@ function ph_using(lhs, exp, body, pctx) {
 */
 ph_using.prototype = new ph(WHENDEBUG("ph_using"));
 ph_using.prototype.val = function() {
-  // XXX get rid of arguments
-  var rv = "function(arguments, __oni_env){var _oniW;"+
+  var rv = "__oni_rt.Nb(function(){var _oniW;"+
     "return __oni_rt.ex(__oni_rt.Seq("+SEQ_FLAG_NONE+","+
     this.assign1.v()+",";
   if (this.assign2)
     rv += this.assign2.v()+",";
   rv += "__oni_rt.Try("+TRY_FLAG_NONE+","+this.body.v()+",0,"+
-    "function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},0)),__oni_env)}";
+    "__oni_rt.Nb(function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},"+this.line+"),0)),this)},"+this.line+")";
   return rv;
 };
 #endif // SJS_USING
 
 #ifdef SJS___JS
-#define BEGIN___JS_BLOCK(pctx) if (pctx.allow_nblock) ++pctx.nb_ctx;
-#define END___JS_BLOCK(pctx) if (pctx.allow_nblock) --pctx.nb_ctx;
+#define BEGIN___JS_BLOCK(pctx) if (pctx.allow_nblock) ++pctx.js_ctx;
+#define END___JS_BLOCK(pctx) if (pctx.allow_nblock) --pctx.js_ctx;
 #define GEN___JS(body, pctx) body.is_nblock=pctx.allow_nblock; return body;
 #endif // SJS___JS
 
+
+#ifdef SJS_BLOCKLAMBDA
+#define BEGIN_BLAMBDABODY(pctx)                       \
+  push_decl_scope(pctx, true);                        \
+  push_stmt_scope(pctx);
+
+#define ADD_BLAMBDABODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
+
+#define END_BLAMBDABODY(pctx)                                                 \
+  var decls = pctx.decl_scopes.pop();                                   \
+  return collect_decls(decls) +                                         \
+    pop_stmt_scope(pctx, "return __oni_rt.exbl(this,["+SEQ_FLAG_NONE, \
+    "])");
+
+#define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_blocklambda(pars, body, pctx);
+
+function ph_blocklambda(pars, body, pctx) {
+  this.code = "__oni_rt.Bl(function("+pars.join(",")+"){"+body+"})";
+}
+ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));
+ph_blocklambda.prototype.val = function() { return this.code; };
+
+#endif // SJS_BLOCKLAMBDA
                            
 //----------------------------------------------------------------------
 // TODO:

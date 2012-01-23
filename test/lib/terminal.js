@@ -24,7 +24,7 @@ SOFTWARE.
 Originally from: https://github.com/mattijs/node-terminal
 */
 
-var sys = require('sys');
+var util = require('util');
     
 // Terminal object
 // Allows for controlling the terminal by outputting control characters
@@ -102,7 +102,7 @@ var terminal = {
     // Print a terminal color command. This uses the `_color` function to 
     // retreive the color command.
     color: function(color) {
-        sys.print(this._color(color));
+        util.print(this._color(color));
         return this;
     },
     
@@ -200,13 +200,13 @@ var terminal = {
     
     // This uses the `_colorize` function to __print__ a colorized message.
     colorize: function(message) {
-        sys.print(this._colorize(message));
+        util.print(this._colorize(message));
         return this;
     },
     
     // Write a message in the terminal
     write: function(message) {
-        sys.print(message);
+        util.print(message);
         return this;
     },
     
@@ -214,7 +214,7 @@ var terminal = {
     nl: function(n) {
         n = n || 1;
         for (var i = 0; i < n; i++) {
-            sys.print('\n');
+            util.print('\n');
         }
         return this;
     },
@@ -232,43 +232,43 @@ var terminal = {
             command += ';' + ++y ;
         }
         
-        sys.print(command + 'H');
+        util.print(command + 'H');
         return this;
     },
     
     // Move the terminal cursor up `x` positions
     up: function(x) {
-        sys.print(this.escape + '[' + x + 'A');
+        util.print(this.escape + '[' + x + 'A');
         return this;
     },
     
     // Move the terminal cursor down x positions
     down: function(x) {
-        sys.print(this.escape + '[' + x + 'B');
+        util.print(this.escape + '[' + x + 'B');
         return this;
     },
     
     // Move the terminal cursor `p` positions right
     right: function(p) {
-        sys.print(this.escape + '[' + p + 'C');
+        util.print(this.escape + '[' + p + 'C');
         return this;
     },
     
     // Move the terminal cursor `p` positions left
     left: function(p) {
-        sys.print(this.escape + '[' + p + 'D');
+        util.print(this.escape + '[' + p + 'D');
         return this;
     },
     
     // Clear all characters from the terminal screen
     clear: function() {
-        sys.print(this.escape + '[2J');
+        util.print(this.escape + '[2J');
         return this;
     },
     
     // Clear the line the cursor is at
     clearLine: function() {
-        sys.print(this.escape + '[2K');
+        util.print(this.escape + '[2K');
         return this;
     },
     

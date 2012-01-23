@@ -624,7 +624,7 @@ test("arguments modification (idx)", 6, function() {
   return (function() { arguments['x']=5; return arguments['x']+arguments[1]; })(0,1,2,3,4);
 });
 
-test("arguments modification (assign)", 6, function() {
+test("arguments modification (assign)", 5, function() {
   return (function() { arguments=5; return arguments; })(0,1,2,3,4);
 });
 
@@ -1183,3 +1183,172 @@ test("'this' pointer in async for-in bug", 1212331, function() {
   a.foo([2,3,4]); 
   return rv;
 });
+
+test("({|| 1})()", 1, function() { return ({|| 1})() });
+test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
+     function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) });
+function accu3(f) {
+  var rv = 0;
+  for (var i=1;i<4;++i) rv += f(i);
+  return rv;
+}
+test("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } });
+test("accu3 { |x| if (x==2) return x; }", 2,
+     function() { accu3 { |x| if (x==2) return x; } });
+
+test("waitfor { ({|| return 1; })() } or { hold() }", 1, function() {
+  waitfor {
+    ({|| return 1; })() 
+  }
+  or {
+    hold();
+  }
+});
+test("waitfor { hold(10); ({|x| hold(10); return 1; })((hold(10),1)) } or { hold() }", 1, function() {
+  waitfor {
+    hold(10);
+    ({|x| hold(10); return x; })((hold(10),1)) 
+  }
+  or {
+    hold();
+  }
+});
+
+test("nested {|| return}", 2, function() {
+
+  var x = 0;
+
+  function b(f) {
+    try {
+      for (var i=0; i<10; ++i) {
+        f(i);
+      }
+      return 20;
+    }
+    finally {
+      if (i==5) x=1;
+    }
+    return 30;
+  }
+  
+  function c() {
+    b { |x| 
+        if (x == 5) return 1; 
+      }
+  }
+  var d = c();
+  return d + x;
+});
+
+test("{ || break; }", 5, function() {
+  for (var i=0; i<10; ++i) {
+    ({ || if (i==5) break; })()
+  }
+  return i;
+});
+
+test("nested {|| break}", 2, function() {
+
+  var x = 0;
+
+  function b(f) {
+    try {
+      for (var i=0; i<10; ++i) {
+        f(i);
+      }
+      return 20;
+    }
+    finally {
+      if (i==5) x=1;
+    }
+    return 30;
+  }
+  
+  function c() {
+    for (var i=1; i<10; ++i) {
+      b { |x| 
+          if (x == 5) break; 
+        }
+    }
+    return i;
+  }
+  var d = c();
+  return d + x;
+});
+
+// the following four 'break' edge cases used to be problematic when we had
+// tail-called EF_Switch and EF_ForIn:
+
+test("break/switch edge case", 1, function() {
+  switch (1) {
+  case 1:
+    hold(0);
+    break;
+  }
+  return 1;
+});
+
+
+test("{|| break}/switch edge case", 1, function() {
+  while (1) {
+    var a = {||break };
+    switch (1) {
+    case 1:
+      hold(0);
+      a();
+    }
+    return 2;
+  }
+  return 1;
+});
+
+test("break/for-in edge case", 1, function() {
+  for (x in [1]) {
+    hold(0);
+    break;
+  }
+  return 1;
+});
+
+test("{|| break}/for-in edge case", 1, function() {
+  while (1) {
+    var a = {||break };
+    for (x in [1]) {
+      hold(0);
+      a();
+    }
+    return 2;
+  }
+  return 1;
+});
+
+
+test("tail recursion", 1, function() {
+  
+  function r(level) {
+    hold(0);
+    if (level)
+      r(level-1);
+    else return 1;
+  }
+
+  return r(100000);
+}).serverOnly(); // browser hold(0) is too slow
+
+test("waitfor/and tail recursion", 1, function() {
+  
+  function r(level) {
+    hold(0);
+    waitfor {
+      var x = level;
+    }
+    and {
+      if (level)
+        r(level-1);
+      else
+        return 1;
+    }
+  }
+
+  return r(100000);
+}).serverOnly(); // browser hold(0) is too slow

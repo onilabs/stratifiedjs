@@ -1,4 +1,4 @@
-var sys = require('sys');
+var util = require('util');
 var http = require('apollo:http');
 var common = require("apollo:common");
 
@@ -37,7 +37,7 @@ var wait_until_running = exports.wait_until_running = function(port) {
     }
   } or {
     hold(2000);
-    sys.puts("waiting for rocket startup on port " + port);
+    util.puts("waiting for rocket startup on port " + port);
     hold();
   }
 };

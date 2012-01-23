@@ -1,10 +1,13 @@
+var http = require('apollo:http');
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var time = testUtil.time;
+var testCompilation = testUtil.testCompilation;
+
 var getHttpURL = require("../lib/testContext").getHttpURL;
 
 function testJsonpRequest(opts) {
-    return require("apollo:http").jsonp(getHttpURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]);
+    return http.jsonp(getHttpURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]);
 }
 
 time("10 sequential jsonp in-doc requests",
@@ -39,9 +42,9 @@ function small_addendum() {
 }
 
 time("baseline small * 1000000", function() { bl_1(); });
-time("small function *   10000", function() { iter(small, 10000); });
+time("small function *  100000", function() { iter(small, 100000); });
 time("baseline small+addendum * 1000000", function() { bl_2(); });
-time("small+addendum function *   10000", function() { iter(small_addendum,10000); });
+time("small+addendum function *  100000", function() { iter(small_addendum,100000); });
 
 function calculatePi(d) {
   d = Math.floor(d/4)*14;
@@ -61,12 +64,30 @@ function calculatePi(d) {
   }
 }
 
-time("pi to 500 digits", function() { calculatePi(500); });
+time("pi to 700 digits", function() { calculatePi(700); });
 
-time("coll.each(arr*100)*100)", function() { 
-  var coll = require('apollo:collection');
+var coll = require('apollo:collection');
+time("coll.each(arr*200)*200)", function() { 
   var arr = [];
-  for (var i=0; i<100; ++i) arr.push(i);
+  for (var i=0; i<200; ++i) arr.push(i);
   var accu = 0;
   coll.each(arr, function() { coll.each(arr, function(v) { accu += v; }) });
 });
+
+testCompilation("collection module", 
+                http.get("http://code.onilabs.com/apollo/latest/modules/collection.sjs"));
+testCompilation("debug module", 
+                http.get("http://code.onilabs.com/apollo/latest/modules/debug.sjs"));
+testCompilation("http module", 
+                http.get("http://code.onilabs.com/apollo/latest/modules/http.sjs"));
+
+
+var arr = [];
+for (var i=0; i<10000;++i)
+  arr.push(i);
+
+function alt_test() {
+  coll.par.waitforFirst(function(a) { if(a==arr.length-1) return; hold(); }, arr);
+  return 1;
+}
+time("waitforFirst/10000", alt_test);

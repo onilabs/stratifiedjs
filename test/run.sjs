@@ -2,7 +2,7 @@
 
 var path = require('path');
 var fs   = require('fs');
-var sys = require("sys");
+var util = require("util");
 var args = process.argv.slice(1);
 var http = require("apollo:http");
 var base = path.dirname(http.parseURL(module.id).relative);
@@ -68,7 +68,7 @@ waitfor {
   if(!rocket_ctrl.is_running(rocket_port)) {
     rocket_ctrl.run(rocket_port, rocket_root);
   } else {
-    sys.puts("using existing rocket instance on port " + rocket_port);
+    util.puts("using existing rocket instance on port " + rocket_port);
     // nothing to wait for
     hold();
   }
