@@ -42,7 +42,7 @@ OBSOLETE FLAGS:
 #define ASYNC_RESUME  : obsolete asynchronous resume code path
 
 */
-#define DEBUG_VM 1
+/* #define DEBUG_VM 1 */
 #ifdef DEBUG_VM
 #define LOG(x) console.log(x);
 // XXX figure out why normal CPP stringification is screwed

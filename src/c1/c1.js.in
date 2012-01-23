@@ -117,7 +117,7 @@ for C1_KERNEL_SJS:  OBSOLETE! VERBOSE EXCEPTIONS ARE ALWAYS USED NOW, NOT
    #define VERBOSE_EXCEPTIONS: add lineNumber/fileName info to VM nodes.
    
 */
-#define DEBUG_C1
+/* #define DEBUG_C1 1 */
 #ifdef DEBUG_C1
 #define LOG(x) if (pctx.log) process.stderr.write(x+' ');
 #define LOGM(x) if (pctx.log) process.stderr.write(x+' ');
