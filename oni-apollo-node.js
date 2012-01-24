@@ -45,7 +45,7 @@ var token_oniE={};
 function CFException(type,value,line,file){this.type=type;
 
 
-if(type=="t"&&(value instanceof Error||(typeof value=="object"&&value.message))&&value._oniE!==token_oniE&&line!=="passthrough"){
+if(type=="t"&&(value instanceof Error||(typeof value=="object"&&value.message))&&value._oniE!==token_oniE){
 value._oniE=token_oniE;
 value.line=line;
 value.file=file||"unknown SJS source";
@@ -80,7 +80,7 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 if(this.type=="t"){
 
 throw (augment_mes&&this.val.file)?new Error(augmented_message(this.val)):this.val;
-}else if(!this.ef)throw this.toString();else return this;
+}else if(!this.ef)throw new Error(this.toString());else throw this;
 
 
 
@@ -202,7 +202,7 @@ return rv;
 
 exports.exbl=function(env,args){var rv=(new EF_Seq(args,env)).cont(1);
 
-
+if((rv&&rv.__oni_cfx))return rv.mapToJS();
 
 return rv;
 };
@@ -247,6 +247,7 @@ function I_nblock(ndata,env){try{
 return (ndata[0]).call(env);
 }catch(e){
 
+if((e&&e.__oni_cfx))return e;
 return new CFException("t",e,ndata[1],env.file);
 }
 }
@@ -597,7 +598,10 @@ rv=new CFException("i","Invalid Fcall mode");
 
 
 
-rv=new CFException("t",e,this.ndata[1],this.env.file);
+if((e&&e.__oni_cfx))rv=e;else rv=new CFException("t",e,this.ndata[1],this.env.file);
+
+
+
 
 
 }

@@ -1322,6 +1322,13 @@ test("{|| break}/for-in edge case", 1, function() {
   return 1;
 });
 
+test("{||} in JS forEach", 6, function() {
+  var sum = 0;
+  [1,2,3,4,5].forEach { |x| 
+    sum+=x; 
+    if(x==3) return sum; 
+  }
+});
 
 test("tail recursion", 1, function() {
   

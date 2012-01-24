@@ -82,7 +82,7 @@ var token_oniE = {}; // oni-modified exception
 function CFException(type, value, line, file) {
   this.type = type;
   // XXX checking for "value instanceof Error" alone doesn't work for some errors on firefox
-  if (type == "t" && (value instanceof Error || (typeof value == "object" && value.message)) && value._oniE !== token_oniE && line !== "passthrough") {
+  if (type == "t" && (value instanceof Error || (typeof value == "object" && value.message)) && value._oniE !== token_oniE) {
     value._oniE = token_oniE;
     value.line = line;
     value.file = file || "unknown SJS source";
@@ -119,9 +119,9 @@ CFException.prototype = {
       throw (augment_mes && this.val.file) ? new Error(augmented_message(this.val)) : this.val;
     }
     else if (!this.ef)
-      throw this.toString();
-    else
-      return this;
+      throw new Error(this.toString());
+    else // this is a 'b', 'c' or 'r' tunneling through a JS functions:
+      throw this;
   }
 };
 
@@ -243,8 +243,8 @@ exports.exseq = function(aobj,tobj,file, args) {
 // short for __oni_rt.exec(__oni_rt.Seq(...), env)
 exports.exbl = function(env, args) {
   var rv = (new EF_Seq(args, env)).cont(1);
-//  if (is_cfx(rv))
-//    return rv.mapToJS();
+  if (is_cfx(rv))
+    return rv.mapToJS();
   return rv;
 };
 
@@ -302,6 +302,7 @@ function I_nblock(ndata, env) {
     return (NDATA_NBLOCK_JSFUNC()).call(env);
   }
   catch (e) {
+    if (is_cfx(e)) return e; 
     return new CFException("t", e, NDATA_NBLOCK_LINENO(), env.file);
   }
 }
@@ -714,9 +715,12 @@ EF_Fcall.prototype.cont = function(idx, val) {
       // have been amended.
       // The *pragmatic* thing seems to be to annotate.
 //      rv = new CFException("t", e, "passthrough");
-      rv = new CFException("t", e,
-                           this.NDATA_FCALL_LINE(),
-                           this.env.file);
+      if (is_cfx(e))
+        rv = e;
+      else
+        rv = new CFException("t", e,
+                             this.NDATA_FCALL_LINE(),
+                             this.env.file);
     }
     return this.returnToParent(rv);
   }
