@@ -42,3 +42,8 @@ if (!testUtil.isBrowser) {
     }
   }).serverOnly();
 }
+
+test('export to "this"', 42, function() {
+  return require('../data/parent').export_to_this;
+});
+

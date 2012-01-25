@@ -617,7 +617,7 @@ function getNativeModule(path, parent, src_loader, opts) {
         }
         var descriptor = {
           id: path,
-          exports: {},
+          exports: opts.exports || {},
           loaded_from: loaded_from,
           loaded_by: parent,
           required_by: {},
