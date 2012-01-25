@@ -617,7 +617,7 @@ function getNativeModule(path, parent, src_loader, opts) {
         }
         var descriptor = {
           id: path,
-          exports: opts.exports || {},
+          exports: {},
           loaded_from: loaded_from,
           loaded_by: parent,
           required_by: {},
@@ -649,6 +649,9 @@ function getNativeModule(path, parent, src_loader, opts) {
   else
     ++descriptor.required_by[parent];
   
+  if (opts.copyTo)
+    exports.accuSettings(opts.copyTo, [descriptor.exports]);
+
   return descriptor.exports;  
 }
 
