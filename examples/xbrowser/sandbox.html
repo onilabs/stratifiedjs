@@ -6,6 +6,18 @@
 
 var c= require('apollo:debug').console({target:"container", 
                                         collapsed:false});
+
+function initLogging() {
+  if (window['console']) {
+    var old_log = console.log;
+    console.log = function() { c.log.apply(c, arguments); old_log.apply(console, arguments);  };
+  }
+  else {
+    window.console = c;
+  }
+}
+initLogging();
+
 var cmd = document.location.getParameter ? 
   document.location.getParameter('cmd') :
   require('apollo:http').parseURL(document.location).queryKey.cmd;
