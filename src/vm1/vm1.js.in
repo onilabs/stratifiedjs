@@ -27,6 +27,8 @@ Preprocessor flags:
 
 #define DEBUG_VM      : VM debugging
 
+#define HOTPATH       : don't build execution frames unless we have to
+
 OBSOLETE FLAGS:
     verbose exceptions are always on now; not predicated on this flag anymore:
 #define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
@@ -53,6 +55,9 @@ OBSOLETE FLAGS:
 #define LOG(x)
 #define WHENDEBUG(X)
 #endif
+
+// on firefox this seems to help, on v8 it doesn't :-/
+//#define HOTPATH 1
 
 //----------------------------------------------------------------------
 // Control Flow Exceptions
@@ -233,7 +238,8 @@ exports.ex = execIN;
 // function bodies: create a seq and exec it. map exceptions.
 // short for __oni_rt.exec(__oni_rt.Seq(...), aobj, thisobj, file)
 exports.exseq = function(aobj,tobj,file, args) {
-  var rv = (new EF_Seq(args, new Env(aobj,tobj,file))).cont(1);
+  var rv = I_seq(args, new Env(aobj,tobj,file));
+//  var rv = (new EF_Seq(args, new Env(aobj,tobj,file))).cont(1);
   if (is_cfx(rv))
     return rv.mapToJS();
   return rv;
@@ -242,7 +248,8 @@ exports.exseq = function(aobj,tobj,file, args) {
 // block lambda bodies: create a seq and exec it. don't map exceptions.
 // short for __oni_rt.exec(__oni_rt.Seq(...), env)
 exports.exbl = function(env, args) {
-  var rv = (new EF_Seq(args, env)).cont(1);
+  var rv = I_seq(args, env);
+//  var rv = (new EF_Seq(args, env)).cont(1);
   if (is_cfx(rv))
     return rv.mapToJS();
   return rv;
@@ -421,10 +428,52 @@ EF_Seq.prototype.abort = function() {
     return this.child_frame.abort();
 };
 
+#ifdef HOTPATH
+function I_seq(ndata, env) {
+  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL)
+    return (new EF_Seq(ndata, env)).cont(1);
+
+  var sc = NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_SHORTCIRCUIT_OR |
+                                NDATA_SEQ_FLAG_SHORTCIRCUIT_AND); 
+  var idx = 1;
+  var val;
+  var l = ndata.length;
+  while (idx<l) {
+    val = execIN(ndata[idx++], env);
+    if (is_cfx(val)) break;
+    if (is_ef(val)) {
+      // need to create an execution frame for ourselves... 
+      var ef = new EF_Seq(ndata, env);
+      ef.setChildFrame(val, idx);
+      return ef;
+    }
+    if (sc) {
+      if (sc == NDATA_SEQ_FLAG_SHORTCIRCUIT_OR) {
+        if (val) break; // returns val
+      }
+      else { // == NDATA_SEQ_FLAG_SHORTCIRCUIT_AND
+        if (!val) break; // returns val
+      }
+    }
+  }
+
+  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
+    if (is_cfx(val)) {
+      if (val.type == "r") {
+        if (!val.ef)
+          val = val.val;
+      }
+    }
+    else
+      val = undefined;
+  }
+  return val;
+}
+#else // !HOTPATH
 function I_seq(ndata, env) {
   return (new EF_Seq(ndata, env)).cont(1);
 }
-
+#endif // HOTPATH
 exports.Seq = makeINCtor(I_seq);
 
 //----------------------------------------------------------------------

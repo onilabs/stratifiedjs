@@ -42,6 +42,9 @@ var __oni_rt={};(function(exports){function augmented_message(e){
 
 
 
+
+
+
 return e.message+" (in "+e.file+(e.line?":"+e.line:"")+")";
 
 }
@@ -200,7 +203,8 @@ exports.ex=execIN;
 
 
 
-exports.exseq=function(aobj,tobj,file,args){var rv=(new EF_Seq(args,new Env(aobj,tobj,file))).cont(1);
+exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new Env(aobj,tobj,file));
+
 
 if((rv&&rv.__oni_cfx))return rv.mapToJS();
 
@@ -209,7 +213,8 @@ return rv;
 
 
 
-exports.exbl=function(env,args){var rv=(new EF_Seq(args,env)).cont(1);
+exports.exbl=function(env,args){var rv=I_seq(args,env);
+
 
 if((rv&&rv.__oni_cfx))return rv.mapToJS();
 
@@ -363,7 +368,6 @@ return this;
 function I_seq(ndata,env){return (new EF_Seq(ndata,env)).cont(1);
 
 }
-
 exports.Seq=makeINCtor(I_seq);
 
 
