@@ -436,7 +436,12 @@ function makeSymbolView(location) {
       signature += " <span class='mb-rv'>returns "+
         makeTypeHTML(docs['return'].valtype, location)+"</span>";
     }
+
+    if (docs.altsyntax)
+      signature += "<br>"+docs.altsyntax;
+
     ui.makeView("<h3>"+signature+"</h3>").show(view.elems.details);
+
 
     // function args details
     var args = coll.map(docs.param || [], function(p) {
