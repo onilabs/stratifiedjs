@@ -343,3 +343,28 @@ test('makeMemoizedFunction retraction', 2, function() {
   f(42);
   return c;
 });
+
+test('Semaphore.synchronize', 1, function() {
+  var S = new (cutil.Semaphore)(1);
+  var x = 0;
+  waitfor {
+    try {
+      S.synchronize { ||
+                      hold(100);
+                      x = 1;
+                      throw "foo";
+                    }
+    }
+    catch (e) {
+      hold();
+    }
+  }
+  or {
+    S.synchronize { ||
+                    x = 1/x;
+                  }
+  }
+  S.synchronize { ||
+                  return x;
+                }
+});

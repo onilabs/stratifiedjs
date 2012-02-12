@@ -84,14 +84,15 @@ Semaphore.prototype = {
               the semaphore.
     @desc
       Calls to [::Semaphore::acquire] usually need to be paired up
-      with calls to [::Semaphore::release]. Instead of doing this
-      manually, [::Semaphore::acquire] can be used in a 'using' block:
+      with calls to [::Semaphore::release]. Instead of ensuring this pairing 
+      manually, consider using [::Semaphore::synchronize], or the following 
+      deprecated `using` syntax:
 
-      `using (mySemaphore.acquire()) {
-        ...
-      }`
+          using (mySemaphore.acquire()) {
+            ...
+          }
 
-      Here the 'using' construct will automatically call the permit's
+      Here the `using` construct will automatically call the permit's
       `__finally__` method when the code block is left.
    */
   acquire: function() {
@@ -135,6 +136,32 @@ Semaphore.prototype = {
     spawn ((this.sync ? null : hold(0)), ++this.permits,
            (this.queue.length ? this.queue.shift()() : null))
   },
+
+  /**
+     @function Semaphore.synchronize
+     @altsyntax semaphore.synchronize { || ... some code ... }
+     @summary Acquire permit, execute function, and release permit.
+     @param {Function} [f] Argument-less function or block lambda to execute
+     @desc
+       `f` will be executed in a `try/finally` construct after the 
+       permit has been acquired. The permit will be released in
+       the `finally` clause, i.e. it is guaranteed to to be released
+       even if `f` throws an exception or is cancelled.
+
+       [::Semaphore::synchronize] is intended to be used with paren-free 
+       block lambda call syntax:
+
+           S.synchronize { || ... some code ... }
+   */
+  synchronize : function(f) {
+    this.acquire();
+    try {
+      f();
+    }
+    finally {
+      this.release();
+    }
+  }
 };
 
 
