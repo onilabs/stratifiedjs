@@ -139,7 +139,7 @@ var extractDocFields = exports.extractDocFields = function(docs) {
   for (var i = 0; i<docs.length; ++i) {
     var doc = docs[i];
     while ((matches = fieldRE.exec(doc)))
-      fields.push([matches[1], trimTrailingSpace(matches[2])]);
+      fields.push([matches[1], common.sanitize(trimTrailingSpace(matches[2]))]);
   }
   return fields;
 };
