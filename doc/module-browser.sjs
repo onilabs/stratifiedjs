@@ -423,7 +423,8 @@ function makeSymbolView(location) {
   
   if (docs.type == "function") {
     // function signature
-    var signature = docs.name+"(<span class='mb-arglist'>"+
+    var signature = location.classname ? location.classname.toLowerCase() + "." : "";
+    signature += docs.name+"(<span class='mb-arglist'>"+
       coll.map(docs.param || [], function(p) {
         var rv = p.name;
         if (p.valtype && p.valtype.indexOf("optional") != -1)
