@@ -1,0 +1,95 @@
+<html>
+  <head>
+
+    <script type="application/javascript">
+
+      //----------------------------------------------------------------------
+      // main program logic:
+
+      function main() {
+        doPrompt(function(digits) {
+          doCalculation(digits);
+          // call main() immediately to show new prompt while
+          // calculation is proceeding:
+          main();
+        });
+      }
+
+      //----------------------------------------------------------------------
+      // prompt for number of digits to calculate:
+
+      function doPrompt(callback) {
+        var div = createDiv("Calculate Pi to <input type='text' value='10000'/> "+
+                            "digits. <button>Start</button>");
+
+        function continuation() {
+          div.lastChild.removeEventListener('click', continuation, false);
+          var digits = div.querySelector('input').value;
+          document.body.removeChild(div);
+          callback(digits);
+        }
+
+        div.lastChild.addEventListener('click', continuation, false);
+      }
+
+      //----------------------------------------------------------------------
+      // perform a pi calculation; show cancel button and timer while busy
+
+      function doCalculation(digits) {
+        var div = createDiv("Calculating Pi to "+digits+
+                            " digits. <span></span> <button>Cancel</button>");
+
+        // display a timer every second:
+        var pending_timer;
+        function showTime() {
+          div.querySelector('span').innerHTML = Math.round((new Date() - start_time)/1000) + 's';
+          pending_timer = window.setTimeout(showTime, 1000);
+        }
+        var start_time = new Date();
+        showTime();
+        
+        // hook up cancel button:
+        function cancellation() {
+          div.lastChild.removeEventListener('click', cancellation, false);
+          pi_worker.terminate();
+          window.clearTimeout(pending_timer);
+          document.body.removeChild(div);
+        }
+        div.lastChild.addEventListener('click', cancellation, false);
+
+        // run the pi web worker:
+        var pi_worker = new Worker('worker_pi.js'); 
+        pi_worker.onmessage = function(m) {
+          div.lastChild.removeEventListener('click', cancellation, false);
+          window.clearTimeout(pending_timer);
+          div.innerHTML = "The first "+digits+" digits of Pi are: "+trim(m.data);
+        }
+        pi_worker.postMessage(digits);
+      }
+
+      //----------------------------------------------------------------------
+      // helper to create a div and append to document:
+
+      function createDiv(content) {
+        var div = document.createElement('div');
+        div.innerHTML = content;
+        document.body.appendChild(div);
+        return div;
+      }
+
+      //----------------------------------------------------------------------
+      // helper to trim digits from result so it looks nicer on screen:
+      function trim(s) {
+        if (s.length > 100)
+          s = s.substr(0, 20) + " <" +(s.length-60)+ " digits omitted> " +s.substr(-40);
+        return s;              
+      }
+      
+    </script>
+  </head>
+  <body style="font-family:sans-serif" onload="main()">
+    <h2>Orchestrating web workers</h2> 
+    <h3>Plain JavaScript version</h3>
+    <h3>See <a href="http://onilabs.com/blog/webworkers">this blog post</a></h3>
+  </body>
+</html>

@@ -2,18 +2,22 @@
   <head>
     <script src="../../../oni-apollo.js"></script>
     <script type="text/sjs">
-
       var dom = require('apollo:dom');
 
       //----------------------------------------------------------------------
       // main program logic:
 
       while (1) { 
-        var digits = showPrompt();
+        var digits = doPrompt();
+        // 'spawn' so that we go round loop and show new prompt while
+        // calculation is proceeding:
         spawn doCalculation(digits);
       }
 
-      function showPrompt() {
+      //----------------------------------------------------------------------
+      // prompt for number of digits to calculate:
+
+      function doPrompt() {
         var div = createDiv("Calculate Pi to <input type='text' value='10000'/> "+
                             "digits. <button>Start</button>");
         dom.waitforEvent(div.lastChild, 'click');
@@ -22,39 +26,48 @@
         return digits;
       }
 
+      //----------------------------------------------------------------------
+      // perform a pi calculation; show cancel button and timer while busy
+
       function doCalculation(digits) {
         var div = createDiv("Calculating Pi to "+digits+
-                            " digits. <button>Cancel</button>");
+                            " digits. <span></span> <button>Cancel</button>");
         waitfor {
-          // note how we use calcPi like a normal function here, even though 
-          // in the background it fires off a worker.
+          // calculate pi: note how we use calcPi like a normal function here
           div.innerHTML = "The first "+digits+" digits of Pi are: "+ trim(calcPi(digits));
         }
         or {
+          // display a timer every second:
+          var start_time = new Date();
+          while (1) {
+            div.querySelector('span').innerHTML = Math.round((new Date() - start_time)/1000) + 's';
+            hold(1000);
+          }
+        }
+        or {
+          // wait for click on cancel button:
           dom.waitforEvent(div.lastChild, 'click');
           document.body.removeChild(div);
         }
       }
 
       //----------------------------------------------------------------------
-      // Glue between worker and StratifiedJS:
-      
-      // make a blocking function out of our pi worker:
+      // glue to make a 'normal' blocking function out of our pi web worker:
+
       function calcPi(digits) {
         waitfor (var rv) {
           var worker = new Worker('worker_pi.js');
+          worker.onmessage = resume;
           worker.postMessage(digits);
-          worker.addEventListener('message', resume, false);
         }
         finally {
-          worker.removeEventListener('message', resume, false);
           worker.terminate();
         }
         return rv.data;
       }
 
       //----------------------------------------------------------------------
-      // helpers
+      // helper to create a div and append to document:
 
       function createDiv(content) {
         var div = document.createElement('div');
@@ -62,6 +75,9 @@
         document.body.appendChild(div);
         return div;
       }
+
+      //----------------------------------------------------------------------
+      // helper to trim digits from result so it looks nicer on screen:
 
       function trim(s) {
         if (s.length > 100)
@@ -72,7 +88,8 @@
     </script>
   </head>
   <body style="font-family:sans-serif">
-    <h2>Orchestrate web workers with StratifiedJS</h2>
-    <h3>Please 'View Source' for the code</h3>
+    <h2>Orchestrating web workers</h2> 
+    <h3>StratifiedJS version</h3>
+    <h3>See <a href="http://onilabs.com/blog/webworkers">this blog post</a></h3>
   </body>
 </html>

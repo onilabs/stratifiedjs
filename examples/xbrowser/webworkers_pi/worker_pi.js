@@ -2,11 +2,7 @@
 
 function calcPi(digits) {
   var d = Math.floor(digits/4+4)*14;
-  var rv = "";
-  var carry = 0;
-  var arr = [];
-  var sum;
-  var i, j;
+  var rv = "", carry = 0, arr = [], sum, i, j;
   for (i = d; i > 0; i -= 14) {
     sum = 0;
     for (j = i; j > 0; --j) {
@@ -23,6 +19,7 @@ function calcPi(digits) {
     rv = rv.substr(0,digits);
   // pass message with result to caller: 
   self.postMessage(rv);
+  self.close();
 }
 
-self.addEventListener('message', function(e) { calcPi(e.data); }, false);
+self.onmessage = function(e) { calcPi(e.data); };
