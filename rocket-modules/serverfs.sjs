@@ -137,7 +137,7 @@ function listDirectory(request, response, root, branch, format, formats) {
   }
   var listingJson = JSON.stringify(listing);
   return formatResponse(
-      { input: new stream.ReadableStringStream(listingJson),
+      { input: function() { return new stream.ReadableStringStream(listingJson) },
         extension: "/",
         requestedFormat: format,
         defaultFormats: defaultDirectoryListingFormats
@@ -218,11 +218,35 @@ function formatResponse(item, request, response, formats) {
   }
 
   var contentHeader = formatdesc.mime ? {"Content-Type":formatdesc.mime} : {};
-  response.writeHead(200, contentHeader);
   if(formatdesc.filter) {
-    formatdesc.filter(input, response, request);
+    response.writeHead(200, contentHeader);
+    formatdesc.filter(input(), response, request);
   } else {
-    stream.pump(input, response);
+    if (item.length) {
+      contentHeader["Content-Length"] = item.length;
+      contentHeader["Accept-Ranges"] = "bytes";
+    }
+    var range;
+    if (item.length && request.headers["range"] && 
+        (range=/^bytes=(\d*)-(\d*)$/.exec(request.headers["range"]))) {
+      // we honor simple range requests
+      var from = range[1] ? parseInt(range[1]) : 0;
+      var to = range[2] ? parseInt(range[2]) : item.length-1;
+      to = Math.min(to, item.length-1);
+      if (isNaN(from) || isNaN(to) || from<0 || to<from)
+        response.writeHead(416); // range not satisfiable
+      else {
+        contentHeader["Content-Length"] = (to-from+1);
+        contentHeader["Content-Range"] = "bytes "+from+"-"+to+"/"+item.length;
+        response.writeHead(206, contentHeader);
+        stream.pump(input({start:from, end:to}), response);
+      }
+    }
+    else {
+      // normal request
+      response.writeHead(200, contentHeader);
+      stream.pump(input(), response);
+    }
   }
   response.end();
   return true;
@@ -230,11 +254,19 @@ function formatResponse(item, request, response, formats) {
 
 // attempts to serve the file; returns 'false' if not found
 function serveFile(request, response, filePath, format, formats) {
-  if (!fs.isFile(filePath)) return false;
+  try {
+    var stat = fs.stat(filePath);
+  }
+  catch (e) {
+    return false;
+  }
+  if (!stat.isFile()) return false;
   
   var ext = path.extname(filePath).slice(1);
   return formatResponse(
-      { input: require('fs').createReadStream(filePath),
+      { input: function(opts) {
+          return require('fs').createReadStream(filePath, opts) },
+        length: stat.size,
         extension: ext,
         requestedFormat: format
       },

@@ -115,6 +115,7 @@ BaseFileFormatMap.prototype = {
   xml  : { none : { mime: "text/xml" },
            src  : { mime: "text/plain" }
          },
+  mp4  : { none : { mime: "video/mp4" } },
   svg  : { none : { mime: "image/svg+xml" } },
   txt  : { none : { mime: "text/plain" } },
   "*"  : { none : { /* serve without mimetype */ }
