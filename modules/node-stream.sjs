@@ -44,7 +44,7 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
   @summary  Read a single piece of data from `stream`.
   @param    {Stream} [stream] the stream to read from
   @desc
-    This function blocks until the first `data` event is recieved
+    This function blocks until the first `data` event is received
     on the stream, and returns that data. Returns `null` if the
     stream has ended.
 
