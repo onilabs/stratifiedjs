@@ -352,9 +352,16 @@ function getHubs_hostenv() {
                       throw new Error("Can't load module '"+path+
                                       "': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load oni-apollo.js in the normal way through a <script> element."); }
                   } ],
-    ["github:", {src:github_src_loader} ],
-    ["http:",  {src:http_src_loader} ],
-    ["https:", {src:http_src_loader} ]
+    ["github:",   {src:github_src_loader}],
+    ["http:",     {src:http_src_loader}],
+    ["https:",    {src:http_src_loader}],
+    // The following 3 schemes are for mobile support in conjunction with PhoneGap, 
+    // see https://groups.google.com/d/topic/oni-apollo/LN911J9OhWA/discussion
+    // (In theory, 'file:' also works for desktop browsers, but it's often restricted 
+    // by browsers for security reasons)
+    ["file:",     {src:http_src_loader}], // local file on Android
+    ["x-wmapp1:", {src:http_src_loader}], // Windows Phone 7 local path
+    ["local:",    {src:http_src_loader}]  // local file on BlackBerry
   ];
 }
 
