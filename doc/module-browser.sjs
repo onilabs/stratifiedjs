@@ -1,6 +1,6 @@
 
 waitfor {
-  var http = require('apollo:http');
+  var http = require('apollo:core/http');
 }
 and {
   var dom = require('apollo:dom');
@@ -9,7 +9,7 @@ and {
   var ui = require('apollo:ui');
 }
 and {
-  var cutil = require('apollo:cutil');
+  var cutil = require('apollo:core/cutil');
 }
 and {
   var coll = require('apollo:collection');
@@ -18,7 +18,7 @@ and {
   var docutil = require('apollo:docutil');
 }
 and {
-  var common = require('apollo:common');
+  var common = require('apollo:core/common');
 }
 and {
   // preload:
@@ -30,32 +30,28 @@ and {
 
 dom.addCSS(
 "
-.mb-index { float: left; }
+.xxmb-index { float: left; }
 .mb-type  { float: right; }
 ");
 
 //----------------------------------------------------------------------
 // main program loop
 
-exports.run = function(default_location, dom_parent) {
+exports.run = function(default_location, trail_parent, index_parent, main_parent) {
 
   // construct our main ui:
-  var top_view, index_view, banner_view;
+  var top_view, index_view, trail_view;
   top_view = ui.makeView(
-    "<div name='banner' class='mb-banner mb-top'></div>
-     <div class='mb-panes mb-top'>
-       <div name='index' class='mb-index'></div>
-       <div name='main' class='mb-main'></div>
-     </div>");
+    "<div class='mb-top mb-main' name='main'></div>");
 
-  using(top_view.show(dom_parent)) {
+  using(top_view.show(main_parent)) {
 
     // Our ui gets updated everytime the location.hash changes. We
-    // recreate the main view each time from scratch. The banner and
-    // index views get updated with update() calls.
+    // recreate the main view each time from scratch. The index &
+    // trail views get updated with update() calls.
 
-    (banner_view = makeBannerView()).show(top_view.elems.banner);
-    (index_view = makeIndexView()).show(top_view.elems.index);
+    (index_view = makeIndexView()).show(index_parent);
+    (trail_view = makeTrailView()).show(trail_parent);
 
     // main loop:
     // Note how the update() calls and the construction of the main view
@@ -63,10 +59,10 @@ exports.run = function(default_location, dom_parent) {
     // busy.
     var location = parseLocation(default_location);
     while (1) {
-      try {
-        try {
-          try {
-            banner_view.update(location);
+      waitfor {
+        waitfor {
+          waitfor {
+            trail_view.update(location);
           }
           and {
             index_view.update(location);
@@ -83,7 +79,7 @@ exports.run = function(default_location, dom_parent) {
           continue;
         }
         catch (e) {
-          doInternalErrorDialog(e.toString(), top_view.elems.banner);
+          doInternalErrorDialog(e.toString(), top_view.elems.main);
         }
         using(mainView.show(top_view.elems.main)) {
           if (mainView.run) 
@@ -110,15 +106,39 @@ exports.run = function(default_location, dom_parent) {
 // parsing of the docs happens here, client-side:
 
 
+/*
+  libpath -> null ||
+  { type: "lib", 
+    path: URLSTRING,
+    modules: {name1: {type:"module", name:name1, summary: STRING|null}, name2: ..., ...},
+    dirs: {name1: {type:"dir", name:name1, summary: STRING|null}, name2: ..., ...},
+    OPT lib: STRING, // short name
+    OPT summary: STRING,
+    OPT desc: STRING
+  }
+    
+*/
 var getLibDocs = exports.getLibDocs = cutil.makeMemoizedFunction(function(libpath) {
   try {
     var url = http.constructURL(libpath, "sjs-lib-index.txt");
-    return docutil.parseSJSLibDocs(http.get(url));
+    var docs = docutil.parseSJSLibDocs(http.get(url));
+    docs.path = libpath;
+    return docs;
   }
   catch (e) {
     return null;
   }
 });
+
+// retrieve documentation for lib at path, as well as parents
+function getPathDocs(libpath) {
+  var rv = getLibDocs(libpath);
+  var current = rv;
+  while (current && (libpath = parentPath(libpath))) {
+    current = current.parent = getLibDocs(libpath);
+  }
+  return rv;
+}
 
 var getModuleDocs = cutil.makeMemoizedFunction(function(modulepath) {
   try { 
@@ -132,45 +152,29 @@ var getModuleDocs = cutil.makeMemoizedFunction(function(modulepath) {
 });
 
 //----------------------------------------------------------------------
-// Banner View
+// Trail View
 
-function makeBannerView() {
+function makeTrailView() {
   var view = ui.makeView(
-"<a href='#{path}'><h1>{title}</h1>
-<div>{path}</div></a>
-<div name='details'></div>");
-  view.supplant({path: "", title: "Oni Apollo Documentation Browser"});
-  var current_location = {}, sub_view;
-
+    "<div class='mb-trail'>Oni Apollo Documentation Browser</div>");
   view.update = function(location) {
-    if ((current_location.path == location.path) &&
-        ((current_location.module == location.module) || sub_view)) 
-      return; 
-    // see if we're looking at a lib with documentation; set the banner accordingly:
-    var lib_docs = getLibDocs(location.path);
-    current_location = location;
-    if (sub_view) sub_view.hide();
-
-    if (lib_docs) {
-      view.supplant({
-        path: location.path,
-        title: (lib_docs.lib || "Unnamed Module Library")
-      });
-      (sub_view = ui.makeView(makeSummaryHTML(lib_docs, location))).show(view.elems.details);
+    var html = "";
+    var path_docs = getPathDocs(location.path);
+    if (path_docs) {
+      while (path_docs.parent) {
+        html = "&nbsp;<b>&gt;</b>&nbsp;<a href='#"+path_docs.path+"'>"+
+          topDir(path_docs.path) +"</a>" + html;
+        path_docs = path_docs.parent;
+      }
+      html = "<a href='#"+path_docs.path+"'>"+
+        (path_docs.lib || "Unnamed Module Collection") +"</a>" + html;
     }
-    else if (location.module) {
-      view.supplant({
-        path: location.path+location.module,
-        title: "Unindexed Module"
-      });
+    if (location.module) {
+      if (html.length) html += "&nbsp;<b>&gt;</b>&nbsp;"
+      html += "<a href='#"+location.path+location.module+"'>"+location.module+"</a>";
     }
-    else {
-      var path = location.path || 
-        (window.location.hash ? window.location.hash.substring(1) : "-")
-      view.supplant({path: path, title: "Unknown Library" });
-    };
-  }
-  
+    view.replace("<div class='mb-trail'>"+html+"</div>");
+  };
   return view;
 }
 
@@ -178,21 +182,27 @@ function makeBannerView() {
 // Index View
 
 function makeIndexView() {
-  var view = ui.makeView("<ul></ul>");
+  var view = ui.makeView(
+    "<div class='mb-index'>
+       <ul name='list'></ul>
+     </div>");
   var entries = {}, selection, current_location = {};
  
   view.update = function(location) { 
     if (location.path != current_location.path) {
       // we need to update all of our entries.
-      var lib_docs = getLibDocs(location.path);
+      var lib_docs = getPathDocs(location.path);
 
       // remove previous entries:
       coll.each(entries, function(e) { e.hide(); });
       entries = {}; selection = null;
 
       if (lib_docs) {
+        coll.each(lib_docs.dirs, function(ddocs, dir) {
+          (entries[dir] = makeIndexEntry(location, dir+"/")).show(view.elems.list);
+        });
         coll.each(lib_docs.modules, function(mdocs, module) {
-          (entries[module] = makeIndexEntry(location, module)).show(view.top[0]);
+          (entries[module] = makeIndexEntry(location, module)).show(view.elems.list);
         });
       }
       // else ... we didn't find any lib_docs; so no modules we can list
@@ -507,9 +517,11 @@ function makeSymbolView(location) {
 }
 
 function makeLibView(location) {
-  var docs = getLibDocs(location.path);
+  var docs = getPathDocs(location.path);
   if (!docs) throw "No module library at '"+location.path+"'";
-  return ui.makeView(docs.desc ? markup(docs.desc, location) : "No detailed description found");
+  return ui.makeView(docs.desc ? 
+                     ("<h2>"+(docs.lib ? docs.lib : "Unnamed Module Collection")+"</h2>\n"+markup(docs.desc, location)) : 
+                     "<h2>Unindexed Module Library</h2>");
 }
 
 //----------------------------------------------------------------------
@@ -537,8 +549,13 @@ function parseLocation(default_location) {
 }
 
 function parentPath(path) {
+  if (!http.parseURL(path).directory) return null;
   return http.canonicalizeURL(http.constructURL(path, "../"), 
                               window.location.href);
+}
+
+function topDir(path) {
+  return /([^\/]+)\/?$/.exec(path)[1];
 }
 
 function ensureSlash(path) {

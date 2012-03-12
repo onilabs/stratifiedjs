@@ -44,7 +44,7 @@
 if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('the debug module only runs in an xbrowser environment');
 
-var common = require('./common');
+var common = require('./core/common');
 var collection = require('apollo:collection');
 
 //----------------------------------------------------------------------

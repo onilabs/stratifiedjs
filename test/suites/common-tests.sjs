@@ -1,4 +1,4 @@
-var c = require('apollo:common');
+var c = require('apollo:core/common');
 var test = require('../lib/testUtil').test;
 
 test('bind', 44, function() {

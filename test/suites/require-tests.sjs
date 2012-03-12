@@ -1,11 +1,11 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var global = require("sjs:apollo-sys").getGlobal();
-var http = require('apollo:http');
-var common = require('apollo:common');
+var http = require('apollo:core/http');
+var common = require('apollo:core/common');
 
 test('force extension/sjs', "a=1&b=2", function() {
-  return require('apollo:http.sjs').constructQueryString({a:1},{b:2});
+  return require('apollo:core/http.sjs').constructQueryString({a:1},{b:2});
 });
 
 test('force extension/js', 42, function() {

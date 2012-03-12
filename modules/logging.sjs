@@ -52,7 +52,7 @@
     `log` will be used instead.
 */
 
-var common = require('apollo:common');
+var common = require('apollo:core/common');
 var sys = require('sjs:apollo-sys');
 
 /**

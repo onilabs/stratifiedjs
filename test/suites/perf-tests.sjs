@@ -1,4 +1,4 @@
-var http = require('apollo:http');
+var http = require('apollo:core/http');
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var time = testUtil.time;

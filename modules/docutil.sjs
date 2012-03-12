@@ -35,7 +35,7 @@
    @desc    Work-in-progress
 */
 
-var common = require('apollo:common');
+var common = require('apollo:core/common');
 
 // comment regexps for parseSource
 var PAT_NBCOMMENT = "\\/\\/.*|#!.*";
@@ -149,7 +149,7 @@ var extractDocFields = exports.extractDocFields = function(docs) {
    @summary TODO: document me
 */
 exports.parseSJSLibDocs = function(src) {
-  var lib = { type: "lib", modules: {} };
+  var lib = { type: "lib", dirs: {}, modules: {} };
   var fields = extractDocFields([src]);
   var prop, value, matches;
   for (var i=0; i<fields.length; ++i) {
@@ -158,6 +158,10 @@ exports.parseSJSLibDocs = function(src) {
     case "module":
       if (!(matches = /^([^ \t]+)(?:[ \t]+(.+))?[ \t]*$/.exec(value))) break;
       lib.modules[matches[1]] = {type:"module", name:matches[1], summary:matches[2]};
+      break;
+    case "dir":
+      if (!(matches = /^([^ \t]+)(?:[ \t]+(.+))?[ \t]*$/.exec(value))) break;
+      lib.dirs[matches[1]] = {type:"dir", name:matches[1]+"/", summary:matches[2]};
       break;
     default:
       lib[prop] = value;

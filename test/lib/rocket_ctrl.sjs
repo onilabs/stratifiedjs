@@ -1,6 +1,6 @@
 var util = require('util');
-var http = require('apollo:http');
-var common = require("apollo:common");
+var http = require('apollo:core/http');
+var common = require("apollo:core/common");
 
 var is_running = exports.is_running = function(port) {
   var base_url = 'http://localhost:' + port + '/';

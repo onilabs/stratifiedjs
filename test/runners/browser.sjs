@@ -1,4 +1,4 @@
-var common = require('apollo:common');
+var common = require('apollo:core/common');
 var BaseRunner = require("./baseRunner").BaseRunner;
 
 var BrowserRunner = exports.BrowserRunner = function() {

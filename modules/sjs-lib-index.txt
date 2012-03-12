@@ -1,8 +1,6 @@
 @lib     Oni Apollo 'unstable' Standard Module Library
 @summary A collection of modules for client and server-side stratified programming.
 @desc
-    ### The Oni Apollo Standard Module Library
-
     This Library is the standard collection of modules
     that comes with [Oni Apollo](http://onilabs.com/apollo).
 
@@ -10,15 +8,15 @@
     stable and fundamental modules include:
 
     * [collection::]: Functional tools for iterating and processing collections.
-    * [http::]: Functions for performing HTTP requests and working with URLs.  
-    * [cutil::]: Functions and constructs for concurrent stratified programming.
+    * [core/http::]: Functions for performing HTTP requests and working with URLs.  
+    * [core/cutil::]: Functions and constructs for concurrent stratified programming.
 
 
     ### Loading Standard Library Modules
 
     You can load modules from the Library by using the builtin `apollo:` scheme, e.g.:
 
-        var http = require('apollo:http');
+        var http = require('apollo:core/http');
 
     By default, the `apollo:` scheme resolves to
 
@@ -36,20 +34,18 @@
         require.hubs.unshift(["apollo:",
                               "http://mydomain.com/apollo-mirror/"]);
 
-        // all modules addresses as 'apollo:' will now be loaded from
+        // all modules addressed as 'apollo:' will now be loaded from
         // the location above.
     
+@dir core
 
 @module base64
 @module collection
-@module common
-@module cutil
 @module debug
 @module docutil
 @module dom
 @module freebase
 @module google
-@module http
 @module jquery-binding
 @module lastfm
 @module logging

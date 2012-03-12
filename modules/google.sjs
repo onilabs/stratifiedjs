@@ -33,7 +33,7 @@
   @module    google
   @summary   Bindings to various Google webservices and APIs 
 */
-var http = require("./http");
+var http = require("./core/http");
 
 /**
   @function  search

@@ -42,7 +42,7 @@
     See the [::query] function for more examples.
 */
 
-var http = require("./http");
+var http = require("./core/http");
 
 /**
   @function  query

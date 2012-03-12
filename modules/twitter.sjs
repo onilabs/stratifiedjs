@@ -39,8 +39,8 @@ var sys = require('sjs:apollo-sys');
 if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('the twitter module only runs in an xbrowser environment');
 
-var http = require("./http");
-var common = require("./common");
+var http = require("./core/http");
+var common = require("./core/common");
 
 /**
   @function initAnywhere

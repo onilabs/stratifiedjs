@@ -75,7 +75,7 @@ Considerations for client-side use
 Note that, by default, if you load standard library modules using code
 such as
 
-    var http = require('apollo:http');
+    var http = require('apollo:core/http');
 
 the module will be requested from 
 
@@ -85,7 +85,7 @@ This location can only be inferred if you load oni-apollo.js in the
 'normal' way. If you rename oni-apollo.js to something else, or you
 don't load it through a &lt;script> tag, you'll need to manually
 configure the 'apollo' hub before you can make calls such as
-`require('apollo:http')`.
+`require('apollo:core/http')`.
 
 To (re-)configure the 'apollo hub', you can use code such as this:
 

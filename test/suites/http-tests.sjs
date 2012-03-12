@@ -1,7 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var getHttpURL = require("../lib/testContext").getHttpURL;
 var test = testUtil.test;
-var http = require('apollo:http');
+var http = require('apollo:core/http');
 //----------------------------------------------------------------------
 // constructQueryString/constructURL
 

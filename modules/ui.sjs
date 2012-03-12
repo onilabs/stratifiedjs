@@ -35,7 +35,7 @@
    @hostenv   xbrowser
    @desc    Work-in-progress; to be documented
 */
-var common = require('apollo:common');
+var common = require('apollo:core/common');
 var coll = require('apollo:collection');
 
 /*
@@ -47,6 +47,7 @@ ui class:
   elems :   hash of elements indexed by 'name' attrib,
   templates: array of {elem, attrib, template, vars} objects
   supplant(replacements) -> self
+  replace(html_template) -> self
   show(opt uiparent) -> { __finally__ }
   hide() -> self
 }
@@ -63,6 +64,23 @@ function ui_hide() {
   coll.each(this.top, function(elem) {
     if (elem.parentNode) elem.parentNode.removeChild(elem);
   });
+  return this;
+}
+
+function ui_replace(html_template) {
+  var newView = makeView(html_template);
+  var parentNode = null;
+  coll.each(this.top, function(elem) { 
+    if (elem.parentNode) {
+      parentNode = elem.parentNode;
+      parentNode.removeChild(elem); 
+    }
+  });
+  this.top = newView.top;
+  this.elems = newView.elems;
+  this.templates = newView.templates;
+  if (parentNode) 
+    this.show(parentNode);
   return this;
 }
 
@@ -171,7 +189,8 @@ var makeView = exports.makeView = function(html_template) {
     templates: templates,
     supplant : ui_supplant,
     show     : ui_show,
-    hide     : ui_hide
+    hide     : ui_hide,
+    replace  : ui_replace
   };
 };
 

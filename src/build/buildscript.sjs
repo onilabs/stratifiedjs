@@ -7,7 +7,7 @@
 */
 
 var fs = require('apollo:node-fs');
-var common = require('apollo:common');
+var common = require('apollo:core/common');
 var util = require('util');
 
 //----------------------------------------------------------------------
@@ -272,7 +272,7 @@ function timestamp(target, istarget) {
 function _run_builder(target, task, deps) {
   // first run dependencies:
   if (deps.length) {
-    require('apollo:cutil').waitforAll(
+    require('apollo:core/cutil').waitforAll(
       function(dep) {
         if (builders[dep]) 
           builders[dep]();
@@ -306,7 +306,7 @@ function _run_builder(target, task, deps) {
 }
 
 function _run_task(target, task, deps) {
-  if (require('apollo:common').isArray(task)) {
+  if (require('apollo:core/common').isArray(task)) {
     for (var i=0; i<task.length; ++i)
       _run_task(target, task[i], deps);
   }

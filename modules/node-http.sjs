@@ -41,7 +41,7 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
 
 var builtin_http = require('http');
 var collection = require('./collection');
-var http = require('./http');
+var http = require('./core/http');
 var events = require('./node-events');
 
 // helper to receive a (smallish, <10MB) utf8 request body (if any) and store it 
@@ -214,7 +214,7 @@ exports.server = function server(port, /* opt */ host) {
 function Server(port, host) {
   var capacity = 100; // XXX does this need to be configurable??
   var me = this;
-  this._queue = new (require('./cutil').Queue)(capacity, true);
+  this._queue = new (require('./core/cutil').Queue)(capacity, true);
   this._server = builtin_http.createServer(
     function(req, res) {
       if (me._queue.size == capacity) {
