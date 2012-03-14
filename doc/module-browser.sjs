@@ -198,11 +198,14 @@ function makeIndexView() {
       entries = {}; selection = null;
 
       if (lib_docs) {
+        if (lib_docs.parent) {
+          (entries["../"] = makeIndexDirEntry(lib_docs.parent.path, "../")).show(view.elems.list);
+        }
         coll.each(lib_docs.dirs, function(ddocs, dir) {
-          (entries[dir] = makeIndexEntry(location, dir+"/")).show(view.elems.list);
+          (entries[dir] = makeIndexDirEntry(location.path+dir+"/", dir+"/")).show(view.elems.list);
         });
         coll.each(lib_docs.modules, function(mdocs, module) {
-          (entries[module] = makeIndexEntry(location, module)).show(view.elems.list);
+          (entries[module] = makeIndexModuleEntry(location, module)).show(view.elems.list);
         });
       }
       // else ... we didn't find any lib_docs; so no modules we can list
@@ -226,7 +229,7 @@ function makeIndexView() {
   return view;
 }
 
-function makeIndexEntry(location, module) {
+function makeIndexModuleEntry(location, module) {
   var view = ui.makeView(
     "<li>
        <h3><a href='#{path}{module}'>{module}</a></h3>
@@ -256,6 +259,20 @@ function makeIndexEntry(location, module) {
 
   return view;
 }
+
+function makeIndexDirEntry(path, dir) {
+  var view = ui.makeView(
+    "<li>
+       <h3><a href='#{path}'>{dir}</a></h3>
+     </li>");
+  view.supplant({path: path, dir: dir});
+
+  view.select = function() {};
+  view.deselect = function() {};
+
+  return view;
+}
+
 
 //----------------------------------------------------------------------
 // Internal error:
