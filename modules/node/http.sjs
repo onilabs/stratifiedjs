@@ -41,7 +41,7 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
 
 
 var builtin_http = require('http');
-var collection = require('../collection');
+var collection = require('../core/collection');
 var http = require('../core/http');
 var events = require('./events');
 

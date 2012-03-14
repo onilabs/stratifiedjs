@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'common' module
+ * Oni Apollo 'core/common' module
  * Common JS utility functions 
  *
  * Part of the Oni Apollo Standard Module Library

@@ -7,7 +7,7 @@
     The Library is still under heavy development. Some of the more
     stable and fundamental modules include:
 
-    * [collection::]: Functional tools for iterating and processing collections.
+    * [core/collection::]: Functional tools for iterating and processing collections.
     * [core/http::]: Functions for performing HTTP requests and working with URLs.  
     * [core/cutil::]: Functions and constructs for concurrent stratified programming.
 
@@ -41,7 +41,6 @@
 @dir node
 
 @module base64
-@module collection
 @module debug
 @module docutil
 @module dom

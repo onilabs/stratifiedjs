@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'collection' module
+ * Oni Apollo 'core/collection' module
  * Utility functions for processing collections
  *
  * Part of the Oni Apollo Standard Module Library
@@ -37,6 +37,7 @@
 /**
   @module  collection
   @summary Functional tools for iterating and processing collections (arrays or objects).
+  @home    apollo:core/collection
   @desc
     The collection module contains a number of building blocks common
     in functional programming and similar to libraries like

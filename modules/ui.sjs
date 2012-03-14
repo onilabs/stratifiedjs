@@ -36,7 +36,7 @@
    @desc    Work-in-progress; to be documented
 */
 var common = require('apollo:core/common');
-var coll = require('apollo:collection');
+var coll = require('apollo:core/collection');
 
 /*
 

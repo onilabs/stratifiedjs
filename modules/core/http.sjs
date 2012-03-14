@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'http' module
+ * Oni Apollo 'core/http' module
  * Functions for performing HTTP requests and working with URLs
  *
  * Part of the Oni Apollo Standard Module Library

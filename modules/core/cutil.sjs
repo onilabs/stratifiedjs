@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'cutil' module
+ * Oni Apollo 'core/cutil' module
  * Utility functions and constructs for concurrent stratified programming
  *
  * Part of the Oni Apollo Standard Module Library
@@ -37,7 +37,7 @@
 */
 
 var sys  = require('sjs:apollo-sys');
-var coll = require('../collection');
+var coll = require('./collection');
 
 /**
   @function waitforAll

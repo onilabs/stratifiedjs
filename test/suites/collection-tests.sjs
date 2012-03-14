@@ -1,6 +1,6 @@
 var testUtil = require('../lib/testUtil')
 var test = testUtil.test;
-var collection = require('apollo:collection');
+var collection = require('apollo:core/collection');
 var par = collection.par;
 
 // return a function that sleeps for a smaller increment

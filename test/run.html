@@ -22,7 +22,7 @@
   <script type="text/sjs">
 
 var http = require("apollo:core/http");
-var coll = require("apollo:collection");
+var coll = require("apollo:core/collection");
 var suite_dir = http.canonicalizeURL("suites/", document.location);
 var suites = [];
 coll.map(http.get(suite_dir + "testsuite-index.txt").split('\n'),
