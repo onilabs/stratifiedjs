@@ -12,7 +12,7 @@ and {
   var cutil = require('apollo:core/cutil');
 }
 and {
-  var coll = require('apollo:collection');
+  var coll = require('apollo:core/collection');
 }
 and {
   var docutil = require('apollo:docutil');
@@ -367,13 +367,13 @@ function makeModuleView(location) {
   if (!docs) throw "No module at '"+location.path + location.module+"'";
   var view = ui.makeView(
 "<h2>The {name} module</h2>
- <div class='mb-require'><code>var {varname} = require('{home}');</code></div>
+ <div class='mb-require'><code>require('{home}');</code></div>
  <div name='summary' class='mb-summary'></div>
  <div name='symbols'></div>
  <div name='desc'></div>
 ").supplant({
   name:    docs.module||location.module, 
-  varname: moduleVarName(docs.module||location.module),
+//  varname: moduleVarName(docs.module||location.module),
   home:    docs.home || (location.path+location.module) 
 });
 
@@ -426,7 +426,7 @@ function makeSymbolView(location) {
     view = ui.makeView(
       "<h2><a href='#{path}{module}'>{module}</a>::{name}</h2>"+
         (docs.type != "class" ?
-         "<div class='mb-require'><code>var {name} = require('{home}').{name};</code></div>" : "")+
+         "<div class='mb-require'><code>require('{home}').{name};</code></div>" : "")+
       "<div name='summary' class='mb-summary'></div>
        <div name='details'></div>
        <div name='desc'></div>
