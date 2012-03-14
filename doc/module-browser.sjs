@@ -567,13 +567,55 @@ function makeSymbolView(location) {
   return view;
 }
 
-function makeLibView(location) {
+function makeLibViewOld(location) {
   var docs = getPathDocs(location.path);
   if (!docs) throw "No module library at '"+location.path+"'";
   return ui.makeView(docs.desc ? 
                      ("<h2>"+(docs.lib ? docs.lib : "Unnamed Module Collection")+"</h2>\n"+markup(docs.desc, location)) : 
                      "<h2>Unindexed Module Library</h2>");
 }
+
+function makeLibView(location) {
+  var docs = getPathDocs(location.path);
+  if (!docs) throw "No module library at '"+location.path+"'";
+  var view = ui.makeView(
+"<h2>{name}</h2>
+ <div name='summary' class='mb-summary'></div>
+ <div name='dirs'></div>
+ <div name='modules'></div>
+ <div name='desc'></div>
+").supplant({
+  name: docs.lib ? docs.lib : "Unnamed Module Collection"});
+
+  ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
+  ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
+
+  // collect dirs & modules:
+  var dirs = coll.reduce(docs.dirs, "", {|p,d| p+common.supplant(
+    "<tr>
+      <td class='mb-td-symbol'><a href='#{path}{dir}'>{dir}</a></td>
+      <td>{summary}</td>
+     </tr>", 
+    { path: location.path, dir: d.name, summary: makeSummaryHTML(d, location) }) });
+
+  if (dirs.length) {
+    ui.makeView("<h3>Directories</h3><table>"+dirs+"</table>").show(view.elems.dirs);
+  }
+
+  var modules = coll.reduce(docs.modules, "", {|p,m| p+common.supplant(
+    "<tr>
+      <td class='mb-td-symbol'><a href='#{path}{module}'>{module}</a></td>
+      <td>{summary}</td>
+     </tr>", 
+    { path: location.path, module: m.name, summary: makeSummaryHTML(m, location) }) });
+
+  if (modules.length) {
+    ui.makeView("<h3>Modules</h3><table>"+modules+"</table>").show(view.elems.modules);
+  }
+
+  return view;
+}
+
 
 //----------------------------------------------------------------------
 // helpers

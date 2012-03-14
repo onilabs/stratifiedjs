@@ -32,6 +32,7 @@
 /**
   @module    http
   @summary   Functions for performing HTTP requests and working with URLs.
+  @home      apollo:core/http
 */
 
 var sys = require('sjs:apollo-sys');

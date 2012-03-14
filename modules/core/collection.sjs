@@ -386,12 +386,12 @@ function generateMap(each) {
 
     e.g:
 
-        collection.each([1,2,3], function(item) {
+        collection.map([1,2,3], function(item) {
           return item + 1;
         });
         => [2,3,4]
 
-        collection.each({foo: 1, bar:2}, function(item) {
+        collection.map({foo: 1, bar:2}, function(item) {
           return item + 1;
         });
         => {foo: 2, bar:3}

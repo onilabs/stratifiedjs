@@ -32,6 +32,7 @@
 /**
   @module    common
   @summary   Common JS utility functions
+  @home      apollo:core/common
 */
 
 /**

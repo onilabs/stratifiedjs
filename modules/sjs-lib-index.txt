@@ -37,8 +37,8 @@
         // all modules addressed as 'apollo:' will now be loaded from
         // the location above.
     
-@dir core
-@dir node
+@dir core Core modules
+@dir node NodeJS-related modules
 
 @module base64
 @module debug
