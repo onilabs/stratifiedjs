@@ -1036,7 +1036,8 @@ var _EncodeCode = function(text) {
 //
 	// Encode all ampersands; HTML entities are not
 	// entities within a Markdown code span.
-	text = text.replace(/&/g,"&amp;");
+  // *** ONILABS - oh yes, they are 
+	// text = text.replace(/&/g,"&amp;");
 
 	// Do the angle bracket song and dance:
 	text = text.replace(/</g,"&lt;");
