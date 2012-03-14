@@ -359,7 +359,7 @@ function makeErrorView(location, txt) {
 
 // helper to sanitize modulename into a valid variable name
 function moduleVarName(modulename) {
-  return modulename.replace('-', '_').replace('.', '_');
+  return modulename.replace(/-/g, '_').replace(/\./g, '_');
 }
 
 function makeModuleView(location) {

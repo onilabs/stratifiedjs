@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'node-repl' module
+ * Oni Apollo 'node/repl' module
  * Read-eval-print loop for nodejs-based apollo
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,17 +30,18 @@
  *
  */
 /**
-  @module  node-repl
+  @module  repl
   @summary Stratified read-eval-print loop for nodejs-based apollo
   @hostenv nodejs
+  @home    apollo:node/repl
 */
 
 var sys = require('sjs:apollo-sys');
 if (sys.hostenv != 'nodejs') 
-  throw new Error('node-repl only runs in a nodejs environment');
+  throw new Error('The node/repl module only runs in a nodejs environment');
 
-var common = require('./core/common');
-var events = require('./node-events');
+var common = require('../core/common');
+var events = require('./events');
 var util = require('util');
 
 var disableColors = true;

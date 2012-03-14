@@ -3,7 +3,7 @@ var test = testUtil.test;
 
 if(!testUtil.isBrowser) {
 
-  var s = require("apollo:node-stream");
+  var s = require("apollo:node/stream");
 
   // ReadableStringStream:
   test("ReadableStringStream emits data", "data", function() {

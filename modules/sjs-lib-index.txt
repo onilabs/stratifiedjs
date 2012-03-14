@@ -38,6 +38,7 @@
         // the location above.
     
 @dir core
+@dir node
 
 @module base64
 @module collection
@@ -49,12 +50,6 @@
 @module jquery-binding
 @module lastfm
 @module logging
-@module node-child-process
-@module node-events
-@module node-fs
-@module node-http
-@module node-repl
-@module node-stream
 @module twitter
 @module ui
 @module yql

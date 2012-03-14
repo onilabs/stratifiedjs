@@ -21,13 +21,13 @@
  *
  */
 
-var fs = require('apollo:node-fs');
+var fs = require('apollo:node/fs');
 var common = require('apollo:core/common');
 var http = require('apollo:core/http');
 var serverfs = require('./serverfs');
 var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };
-var stream = require('apollo:node-stream');
+var stream = require('apollo:node/stream');
 
 //----------------------------------------------------------------------
 
@@ -149,7 +149,7 @@ var pathMap = [
 
 waitfor {
   serverfs.setStaticPathMap(pathMap);
-  require('apollo:node-http').runSimpleServer(requestHandler, port, host);
+  require('apollo:node/http').runSimpleServer(requestHandler, port, host);
 }
 and {
   print("");

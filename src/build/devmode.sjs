@@ -6,7 +6,7 @@ var sys = require('sys');
 var http = require('apollo:core/http');
 var node_vm = require('vm');
 var common = require('apollo:core/common');
-var child_process = require('apollo:node-child-process');
+var child_process = require('apollo:node/child-process');
 var apollo_home = http.canonicalizeURL('../../', module.id);
 
 function load(name) {

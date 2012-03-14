@@ -21,7 +21,7 @@ if (!testUtil.isBrowser) {
   var apollo_path = path.join(http.parseURL(module.id).path, '../../../apollo');
   
   test('apollo -e', {stdout: 'hi\n', stderr: ''}, function() {
-    var child_process = require('apollo:node-child-process');
+    var child_process = require('apollo:node/child-process');
     return child_process.run(apollo_path, ['-e', 'require("util").puts("hi");'], {
       env: process.env
     });
@@ -29,7 +29,7 @@ if (!testUtil.isBrowser) {
   
   test('hub resolution via $APOLLO_INIT', {stdout: 'HELLO!\n', stderr: ''}, function() {
     var hub_path = path.join(http.parseURL(module.id).path, '../../data/literal-hub.sjs');
-    var child_process = require('apollo:node-child-process');
+    var child_process = require('apollo:node/child-process');
     var script = 'require("util").puts(require("literal:exports.hello=\'HELLO!\'").hello);';
     try {
       var result = child_process.run(apollo_path, ['-e', script], {

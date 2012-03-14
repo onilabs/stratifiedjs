@@ -6,7 +6,7 @@
 
 */
 
-var fs = require('apollo:node-fs');
+var fs = require('apollo:node/fs');
 var common = require('apollo:core/common');
 var util = require('util');
 
@@ -318,7 +318,7 @@ function _run_task(target, task, deps) {
     task = task.replace(/\$(\d+)/g, function(m,n) { return deps[n]; });
     task = task.replace(/\$TARGET/g, target);
     log("Executing '"+task+"'");
-    require('apollo:node-child-process').exec(task);
+    require('apollo:node/child-process').exec(task);
   }
   else 
     throw new Error("Unknown task type in builder '"+target+"'");    
