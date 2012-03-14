@@ -123,6 +123,12 @@ div.mb-summary {
     margin-bottom: 40px;
 }
 
+div.mb-require {
+    xborder-bottom: 1px solid #ddd;
+    padding-bottom: 15px;
+    xmargin-bottom: 15px;
+}
+
 span.mb-arglist {
     color: #555;
 }

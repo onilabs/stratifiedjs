@@ -205,7 +205,10 @@ exports.parseModuleDocs = function(src, module) {
       }
       else if (module.classes[value]) {
         // constructor
-        curr = module.classes[value].symbols[value] = { name: value, type: prop };
+        curr = module.classes[value].symbols[value] = { name: value, 
+                                                        type: "ctor", 
+                                                        "return": {type:"return", valtype:"::"+value}, 
+                                                        summary: "Constructor for a "+value+" object."};
       }
       else {
         // top-level symbol

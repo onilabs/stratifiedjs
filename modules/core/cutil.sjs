@@ -33,6 +33,7 @@
   @module    cutil
   @summary   The cutil module contains utility functions and constructs for
              concurrent stratified programming.
+  @home      apollo:core/cutil
 */
 
 var sys  = require('sjs:apollo-sys');
@@ -55,8 +56,6 @@ exports.waitforFirst = coll.par.waitforFirst;
   @class    Semaphore
   @summary  A counting semaphore.
   @function Semaphore
-  @summary  Constructor for a Semaphore object.
-  @return   {::Semaphore}
   @param    {Integer} [permits] Number of permits available to be handed out.
   @param    {Boolean} [sync=false] Toggles synchronous behaviour (see [::Semaphore::release])
   @desc
@@ -172,7 +171,6 @@ Semaphore.prototype = {
   @class    Event
   @summary  An event that can be waited upon and emitted multiple times.
   @function Event
-  @summary  Constructor for an Event object.
 */
 var Event = exports.Event = function Event() {
   this.waiting = [];
@@ -216,7 +214,7 @@ Event.prototype.emit = function emit(value) {
   @class    Condition
   @summary  A single condition value that can be waited upon, set and cleared.
   @function Condition
-  @summary  Constructor for a Condition object.
+
   @variable Condition.isSet
   @summary  (Boolean) whether the condition is currently set
   @variable Condition.value
@@ -404,7 +402,6 @@ exports.makeMemoizedFunction = sys.makeMemoizedFunction;
   @param   {Integer} [capacity] Maximum number of items to which the queue will
            be allowed to grow.
   @param   {optional Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [::Semaphore]).
-  @return  {::Queue}
 */
 function Queue(capacity, sync) {
   this.items = [];

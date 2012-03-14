@@ -30,7 +30,6 @@ and {
 
 dom.addCSS(
 "
-.xxmb-index { float: left; }
 .mb-type  { float: right; }
 ");
 
@@ -169,10 +168,11 @@ function makeTrailView() {
       html = "<a href='#"+path_docs.path+"'>"+
         (path_docs.lib || "Unnamed Module Collection") +"</a>" + html;
     }
-    if (location.module) {
+/*    if (location.module) {
       if (html.length) html += "&nbsp;<b>&gt;</b>&nbsp;"
       html += "<a href='#"+location.path+location.module+"'>"+location.module+"</a>";
     }
+*/
     view.replace("<div class='mb-trail'>"+html+"</div>");
   };
   return view;
@@ -357,15 +357,25 @@ function makeErrorView(location, txt) {
 //----------------------------------------------------------------------
 // Module View:
 
+// helper to sanitize modulename into a valid variable name
+function moduleVarName(modulename) {
+  return modulename.replace('-', '_').replace('.', '_');
+}
+
 function makeModuleView(location) {
   var docs = getModuleDocs(location.path + location.module);
   if (!docs) throw "No module at '"+location.path + location.module+"'";
   var view = ui.makeView(
 "<h2>The {name} module</h2>
+ <div class='mb-require'><code>var {varname} = require('{home}');</code></div>
  <div name='summary' class='mb-summary'></div>
  <div name='symbols'></div>
  <div name='desc'></div>
-").supplant({name: docs.module||location.module});
+").supplant({
+  name:    docs.module||location.module, 
+  varname: moduleVarName(docs.module||location.module),
+  home:    docs.home || (location.path+location.module) 
+});
 
   ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
@@ -398,11 +408,12 @@ function makeModuleView(location) {
 // Symbol View (showing details for a class or symbol):
 
 function makeSymbolView(location) {
-  var docs = getModuleDocs(location.path + location.module);
-  if (!docs) throw "No module at '"+location.path + location.module+"'";
+  var mdocs = getModuleDocs(location.path + location.module);
+  if (!mdocs) throw "No module at '"+location.path + location.module+"'";
   
+  var docs = mdocs;
   if (location.classname) {
-    if (!docs.classes || !(docs = docs.classes[location.classname])) 
+    if (!mdocs.classes || !(docs = mdocs.classes[location.classname])) 
       throw "Class '"+location.classname+"' not found in documentation";
   }
 
@@ -412,28 +423,49 @@ function makeSymbolView(location) {
 
   var view;
   if (!location.classname) {
-      view = ui.makeView(
-        "<h2><a href='#{path}{module}'>{module}</a>::{name}</h2>
-         <div name='summary' class='mb-summary'></div>
-         <div name='details'></div>
-         <div name='desc'></div>
-        ").supplant({path: location.path, module: location.module, name:location.symbol});
+    view = ui.makeView(
+      "<h2><a href='#{path}{module}'>{module}</a>::{name}</h2>"+
+        (docs.type != "class" ?
+         "<div class='mb-require'><code>var {name} = require('{home}').{name};</code></div>" : "")+
+      "<div name='summary' class='mb-summary'></div>
+       <div name='details'></div>
+       <div name='desc'></div>
+      ").supplant({
+        path: location.path, 
+        module: location.module, 
+        name:location.symbol,
+        home: mdocs.home || (location.path+location.module)});
   }
   else {
-      view = ui.makeView(
-        "<h2><a href='#{path}{module}'>{module}</a>::<a href='#{path}{module}::{class}'>{class}</a>::{name}</h2>
-         <div name='summary' class='mb-summary'></div>
-         <div name='details'></div>
-         <div name='desc'></div>
-        ").supplant({path:location.path, module:location.module, name:location.symbol, 'class':location.classname});
+    var template =         
+      "<h2><a href='#{path}{module}'>{module}</a>::<a href='#{path}{module}::{class}'>{class}</a>::{name}</h2>"+
+      (docs.type == "ctor" ? 
+       "<div class='mb-require'><code>var {name} = require('{home}').{name};</code></div>" : "")+
+      "<div name='summary' class='mb-summary'></div>
+       <div name='details'></div>
+       <div name='desc'></div>
+      ";
+    view = ui.makeView(template).supplant({
+      path:location.path, 
+      module:location.module, 
+      name:location.symbol, 
+      'class':location.classname,
+      home: mdocs.home || (location.path+location.module)});
   }
 
   ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
   
-  if (docs.type == "function") {
+  if (docs.type == "function" || docs.type == "ctor") {
     // function signature
-    var signature = location.classname ? location.classname.toLowerCase() + "." : "";
+    var signature;
+    if (docs.type == 'ctor')
+      signature = "new ";
+    else if (location.classname)
+      signature = location.classname.toLowerCase();
+    else
+      signature = "";
+
     signature += docs.name+"(<span class='mb-arglist'>"+
       coll.map(docs.param || [], function(p) {
         var rv = p.name;
@@ -494,7 +526,7 @@ function makeSymbolView(location) {
 
     // collect symbols
     var symbols = {};
-    coll.each(docs.symbols, function(s) {
+    coll.each(docs.symbols, function(s) { 
       if (!symbols[s.type]) symbols[s.type] = [];
       symbols[s.type].push(
         common.supplant(
@@ -506,6 +538,8 @@ function makeSymbolView(location) {
             symbol: s.name, summary: makeSummaryHTML(s, location) }));
     });
     
+    if (symbols['ctor'])
+      ui.makeView("<table>"+symbols['ctor'].join("")+"</table>").show(view.elems.details);
     if (symbols['function'])
       ui.makeView("<h3>Methods</h3><table>"+symbols['function'].join("")+"</table>").show(view.elems.details);
     if (symbols['variable'])
