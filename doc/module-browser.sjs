@@ -1,6 +1,6 @@
 
 waitfor {
-  var http = require('apollo:core/http');
+  var http = require('apollo:http');
 }
 and {
   var dom = require('apollo:xbrowser/dom');
@@ -9,16 +9,16 @@ and {
   var ui = require('apollo:ui');
 }
 and {
-  var cutil = require('apollo:core/cutil');
+  var cutil = require('apollo:cutil');
 }
 and {
-  var coll = require('apollo:core/collection');
+  var coll = require('apollo:collection');
 }
 and {
   var docutil = require('apollo:docutil');
 }
 and {
-  var common = require('apollo:core/common');
+  var common = require('apollo:common');
 }
 and {
   // preload:
@@ -155,7 +155,7 @@ var getModuleDocs = cutil.makeMemoizedFunction(function(modulepath) {
 
 function makeTrailView() {
   var view = ui.makeView(
-    "<div class='mb-trail'>Oni Apollo Documentation Browser</div>");
+    "<div class='mb-top mb-trail'>Oni Apollo Documentation Browser</div>");
   view.update = function(location) {
     var html = "";
     var path_docs = getPathDocs(location.path);
@@ -173,7 +173,7 @@ function makeTrailView() {
       html += "<a href='#"+location.path+location.module+"'>"+location.module+"</a>";
     }
 */
-    view.replace("<div class='mb-trail'>"+html+"</div>");
+    view.replace("<div class='mb-top mb-trail'>"+html+"</div>");
   };
   return view;
 }
@@ -183,7 +183,7 @@ function makeTrailView() {
 
 function makeIndexView() {
   var view = ui.makeView(
-    "<div class='mb-index'>
+    "<div class='mb-top mb-index'>
        <ul name='list'></ul>
      </div>");
   var entries = {}, selection, current_location = {};
@@ -198,6 +198,7 @@ function makeIndexView() {
       entries = {}; selection = null;
 
       if (lib_docs) {
+        (entries["./"] = makeIndexDirEntry(lib_docs.path, "./")).show(view.elems.list);
         if (lib_docs.parent) {
           (entries["../"] = makeIndexDirEntry(lib_docs.parent.path, "../")).show(view.elems.list);
         }

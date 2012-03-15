@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'core/http' module
+ * Oni Apollo 'http' module
  * Functions for performing HTTP requests and working with URLs
  *
  * Part of the Oni Apollo Standard Module Library
@@ -31,8 +31,8 @@
  */
 /**
   @module    http
-  @summary   Functions for performing HTTP requests and working with URLs.
-  @home      apollo:core/http
+  @summary   Functions for performing HTTP requests and working with URLs
+  @home      apollo:http
 */
 
 var sys = require('sjs:apollo-sys');
@@ -298,12 +298,12 @@ exports.request = sys.request;
     ### Example:
     
         console.log(
-          require("apollo:core/http").get("data.txt")
+          require("apollo:http").get("data.txt")
         );
     
     ### Example: timeout
     
-        var http = require("apollo:core/http");
+        var http = require("apollo:http");
         waitfor {
           var data = http.get("data.txt");
         } or {
@@ -326,13 +326,13 @@ exports.get = exports.request;
   @desc
     ### Example:
     
-        var http = require("apollo:core/http");
+        var http = require("apollo:http");
         var response = http.post("/service", "some raw data");
         console.log("server replied:", response);
     
     ### Example: posting data in the url, not the body
 
-        var http = require("apollo:core/http");
+        var http = require("apollo:http");
         var rv = http.post("/service", null,
                            { query: {
                                   name: "ford",
@@ -357,7 +357,7 @@ exports.post = function(url, body, settings) {
   @desc
     ### Example:
     
-        var http = require("apollo:core/http");
+        var http = require("apollo:http");
         var animals = http.json("/animals.php?type=cats").animals;
         for (var i = 0, cat; cat = animals[i]; i++) {
           console.log(cat.name);
@@ -410,7 +410,7 @@ exports.json = function(/*url, settings*/) {
   @desc
     ### Example:
 
-        var http = require("apollo:core/http");
+        var http = require("apollo:http");
         var url = "http://api.flickr.com/services/feeds/photos_public.gne?" +
                   "tags=cat&tagmode=any&format=json";
         var data = http.jsonp(url, {cbfield:"jsoncallback"});

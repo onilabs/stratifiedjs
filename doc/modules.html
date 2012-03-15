@@ -3,38 +3,42 @@
   <head>
     <link href="modules.css" rel="stylesheet" type="text/css" media="screen,projection" />
     <style type="text/css">
-      html, body { height:100%; font-family:sans-serif; margin:0px; padding:0; border:0; overflow:hidden;}
-      #header { position:absolute; width:100%; height:100px; top:0; background-color:blue }
-      #main {
-        position:absolute;
-        width:100%;
-        xxmin-height:100%;
-        xxheight:100%;
-        xvertical-align:bottom;
-        xxbackground-color:red;
-        xxoverflow:hidden;
-        top: 100px;
-        bottom: 0;
-      }
-      #left { 
-        position:absolute;
+      document,html { font-family:sans-serif; overflow:hidden; padding:0;margin:0; }
+      #trail { 
+        position: absolute;
+        line-height:41px;
         left:0;
-        top:0;
-        height:100%;
-        width:190px; 
-        padding:0px;
-        xpadding-right:20px; 
-        overflow-y: scroll; 
-        xxmax-height:100%; 
-        xxmargin:100px auto -100px; 
+        top:0px; 
+        height:41px;
+        width:100%; 
+        background-color:rgba(180,180,180,0.7);
+        border:none;
+        z-index:1; /* lift us on top, so that no gaps appear when zooming chrome */
+        border-bottom: 1px solid #909090;
       }
-      #right { 
-      float:right;
-        position:absolute;
-        overflow-y: scroll; 
-        xxmax-height:100%; 
-        xxmargin:100px auto 0px; 
-        left:190px;
+      #main-container {
+        padding:0;
+        position: absolute;
+        width:100%;
+        top:41px; 
+        bottom:0;
+        left:0;
+      }
+      #left {
+        background-color: rgb(240,240,240);
+        position: absolute;
+        overflow-y: scroll;
+        left:0px;
+        top:0px;
+        height:100%;
+        padding:0;
+        width:210px;
+      }
+      #right {
+        position: absolute;
+        overflow-y: scroll;
+        background-color: rgb(255,255,255);
+        left:210px;
         height:100%;
         top:0px;
         right:0px;
@@ -43,16 +47,20 @@
     <script src="../oni-apollo.js"></script>
     <script type="text/sjs">
       var browser = require('./module-browser');
-      document.getElementById("left").innerHTML = "";
-      browser.run("../modules/", document.getElementById('left'), document.getElementById('right'));
+      document.getElementById("right").innerHTML = "";
+      browser.run("../modules/", 
+                  document.getElementById('trail'),
+                  document.getElementById('left'), 
+                  document.getElementById('right'));
     </script>
   </head>
   <body>
-    <div id="header">MODULE BROWSER</div>
-    <div id="main" style="xtext-align:center;">    
-    <div id="left">
-      Loading...
+    <div id='trail'></div>
+    <div id='main-container'>
+      <div id='left'></div>
+      <div id="right">
+        <div style="text-align:center">Loading...</div>
+      </div>
     </div>
-    <div id="right"></div>
   </body>
 </html>

@@ -45,8 +45,8 @@
 if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('The xbrowser/console module only runs in an xbrowser environment');
 
-var common = require('../core/common');
-var collection = require('../core/collection');
+var common = require('../common');
+var collection = require('../collection');
 
 //----------------------------------------------------------------------
 // logging

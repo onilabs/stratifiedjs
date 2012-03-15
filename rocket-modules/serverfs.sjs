@@ -23,7 +23,7 @@
 
 var fs = require('apollo:nodejs/fs');
 var path = require('path');
-var common = require('apollo:core/common');
+var common = require('apollo:common');
 var stream = require('apollo:nodejs/stream');
 var logging = require('apollo:logging');
 

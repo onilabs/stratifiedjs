@@ -271,7 +271,7 @@ function EventQueue(selector, events, filter, eventTransformer)
 {
   // XXX we queue up to 100 events max. Does this need to be configurable?
   var capacity = 100;
-  this._queue = new (require("../core/cutil").Queue)(capacity, true);
+  this._queue = new (require("../cutil").Queue)(capacity, true);
   this.elems = elementsFromSelector(selector);
   this.events = events.split(" ");
 

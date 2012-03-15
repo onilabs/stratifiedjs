@@ -27,7 +27,7 @@ if(!testUtil.isBrowser) {
   });
 
   test('run returns stdout / stderr', {"code":1,"signal":null,"stdout":"out\n","stderr":"err\n"}, function() {
-    var coll = require('apollo:core/collection');
+    var coll = require('apollo:collection');
     try{
       return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']);
     } catch(e) {

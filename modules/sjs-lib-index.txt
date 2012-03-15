@@ -9,16 +9,16 @@
     and organization of modules might change from one release to the
     next. Some of the more stable and fundamental modules include:
 
-    * [core/collection::]: Functional tools for iterating and processing collections.
-    * [core/http::]: Functions for performing HTTP requests and working with URLs.  
-    * [core/cutil::]: Functions and constructs for concurrent stratified programming.
+    * [collection::]: Functional tools for iterating and processing collections
+    * [http::]: Functions for performing HTTP requests and working with URLs
+    * [cutil::]: Functions and constructs for concurrent stratified programming
 
 
     ### Loading Standard Library Modules
 
     You can load modules from the Library by using the builtin `apollo:` scheme, e.g.:
 
-        var http = require('apollo:core/http');
+        var http = require('apollo:http');
 
     By default, the `apollo:` scheme resolves to
 
@@ -39,13 +39,16 @@
         // all modules addressed as 'apollo:' will now be loaded from
         // the location above.
     
-@dir core     Core modules
 @dir nodejs   NodeJS-related modules
 @dir xbrowser Modules with basic cross-browser functionality
 @dir webapi   Bindings to popular web apis
 
 @module base64          Base64 encoding and decoding
+@module collection      Functions for iterating and processing collections (arrays or objects)
+@module common          Common JS utility functions
+@module cutil           Functions and constructs for concurrent stratified programming
 @module docutil         Utilities for extracting documentation from StratifiedJS modules (Work in progress)
+@module http            Functions for performing HTTP requests and working with URLs
 @module jquery-binding  Stratified bindings to [jquery](http://jquery.com) (client-side only)
 @module logging         Simple cross-environment logging framework
 @module ui              Functions for constructing HTML UIs (Work in progress; client-side only)

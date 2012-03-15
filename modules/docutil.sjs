@@ -36,7 +36,7 @@
    @desc    Work-in-progress
 */
 
-var common = require('apollo:core/common');
+var common = require('apollo:common');
 
 // comment regexps for parseSource
 var PAT_NBCOMMENT = "\\/\\/.*|#!.*";

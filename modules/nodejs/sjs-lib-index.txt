@@ -1,0 +1,11 @@
+@lib     Oni Apollo 'unstable' Standard Module Library - NodeJS Modules
+@desc
+    Collection of nodejs-related modules.
+
+@module child-process
+@module events
+@module fs
+@module http
+@module repl
+@module stream
+

@@ -20,7 +20,7 @@ initLogging();
 
 var cmd = document.location.getParameter ? 
   document.location.getParameter('cmd') :
-  require('apollo:core/http').parseURL(document.location).queryKey.cmd;
+  require('apollo:http').parseURL(document.location).queryKey.cmd;
 if (cmd) c.exec(decodeURIComponent(cmd));
 
 c.focus();

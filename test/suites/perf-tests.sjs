@@ -1,4 +1,4 @@
-var http = require('apollo:core/http');
+var http = require('apollo:http');
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var time = testUtil.time;
@@ -66,7 +66,7 @@ function calculatePi(d) {
 
 time("pi to 700 digits", function() { calculatePi(700); });
 
-var coll = require('apollo:core/collection');
+var coll = require('apollo:collection');
 time("coll.each(arr*200)*200)", function() { 
   var arr = [];
   for (var i=0; i<200; ++i) arr.push(i);

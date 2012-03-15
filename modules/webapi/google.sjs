@@ -34,7 +34,7 @@
   @summary   Bindings to various Google webservices and APIs 
   @home      apollo:webapi/google
 */
-var http = require("../core/http");
+var http = require("../http");
 
 /**
   @function  search

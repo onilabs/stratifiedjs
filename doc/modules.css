@@ -1,8 +1,3 @@
-.mb-top {
-    padding: 15px;
-    min-width:600px;
-}
-
 .mb-top, .mb-top table {
     font: 13px sans-serif;
     color: #444;
@@ -51,13 +46,8 @@
 }
 
 .mb-main {
-    xpadding-top: 15px;
-    xborder-top: 1px solid #ddd;
+    padding: 15px;
     min-width:600px;
-    xpadding-right:10px;
-    xfloat:left;
-    xmargin-right:10px;
-    xxmin-height: 400px;
 }
 
 .mb-error {
@@ -75,6 +65,7 @@
 }
 
 .mb-trail {
+  line-height: inherit;
   margin-left: 20px;
   font-size: 20px;
   text-overflow:ellipsis;

@@ -34,7 +34,7 @@
   @summary   Bindings to the [Freebase](http://freebase.com) API
   @home      apollo:webapi/freeebase
 */
-var http = require("../core/http");
+var http = require("../http");
 var sys = require("sjs:apollo-sys");
 
 var api_base = "http://api.freebase.com/api/service/"; // XXX do we want https?

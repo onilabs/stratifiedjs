@@ -43,7 +43,7 @@
     See the [::query] function for more examples.
 */
 
-var http = require("../core/http");
+var http = require("../http");
 
 /**
   @function  query

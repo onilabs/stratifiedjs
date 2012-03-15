@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'core/common' module
+ * Oni Apollo 'common' module
  * Common JS utility functions 
  *
  * Part of the Oni Apollo Standard Module Library
@@ -32,7 +32,7 @@
 /**
   @module    common
   @summary   Common JS utility functions
-  @home      apollo:core/common
+  @home      apollo:common
 */
 
 /**
@@ -75,7 +75,7 @@ exports.isArrayOrArguments = require('sjs:apollo-sys').isArrayOrArguments;
      ###Example:
 
          var a = [1,2,[3,4,[5,6]],[[7,8]],[9],10];
-         var b = require('apollo:core/common').flatten(a);
+         var b = require('apollo:common').flatten(a);
          // b is now [1,2,3,4,5,6,7,8,9,10]
 */
 exports.flatten = require('sjs:apollo-sys').flatten;

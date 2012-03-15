@@ -1,0 +1,5 @@
+@lib     Oni Apollo 'unstable' Standard Module Library - Xbrowser Modules
+@summary Basic cross-browser functionality
+
+@module console
+@module dom

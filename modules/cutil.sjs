@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'core/cutil' module
+ * Oni Apollo 'cutil' module
  * Utility functions and constructs for concurrent stratified programming
  *
  * Part of the Oni Apollo Standard Module Library
@@ -31,9 +31,8 @@
  */
 /**
   @module    cutil
-  @summary   The cutil module contains utility functions and constructs for
-             concurrent stratified programming.
-  @home      apollo:core/cutil
+  @summary   Utility functions and constructs for concurrent stratified programming
+  @home      apollo:cutil
 */
 
 var sys  = require('sjs:apollo-sys');

@@ -22,8 +22,8 @@
  */
 
 var fs = require('apollo:nodejs/fs');
-var common = require('apollo:core/common');
-var http = require('apollo:core/http');
+var common = require('apollo:common');
+var http = require('apollo:http');
 var serverfs = require('./serverfs');
 var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };

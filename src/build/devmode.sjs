@@ -3,9 +3,9 @@
 // change without affecting the full apollo runtime.
 
 var sys = require('sys');
-var http = require('apollo:core/http');
+var http = require('apollo:http');
 var node_vm = require('vm');
-var common = require('apollo:core/common');
+var common = require('apollo:common');
 var child_process = require('apollo:nodejs/child-process');
 var apollo_home = http.canonicalizeURL('../../', module.id);
 
