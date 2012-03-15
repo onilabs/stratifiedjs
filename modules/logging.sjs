@@ -32,6 +32,7 @@
 /**
   @module    logging
   @summary   Simple cross-environment logging framework
+  @home      apollo:logging
   @desc
     This module exposes a simple logging API, and is useable
     across environments.
@@ -41,7 +42,7 @@
     `console` object, no logging will occur. In that case,
     you can either use a tool like Firebug Lite
     (http://getfirebug.com/firebuglite) to emulate a console,
-    or create an apollo console using the [debug::]
+    or create an apollo console using the [xbrowser/console::]
     module.
 
     Note that where possible, an appropriate `console` method
@@ -311,7 +312,7 @@ exports.logContext = function(settings) {
   @param    {optional Object} [console] the new `console` object
   @summary  Override the `console` object that this module will print to
   @desc
-    This method is used by the [debug::] module to redirect logging
+    This method is used by the [xbrowser/console::] module to redirect logging
     to any console created with `receivelog = true`.
 
     If `console` is null or not provided, the global `console` object will

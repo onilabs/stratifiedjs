@@ -32,6 +32,7 @@
 /**
    @module  ui
    @summary Functions for constructing HTML UIs
+   @home    apollo:ui
    @hostenv   xbrowser
    @desc    Work-in-progress; to be documented
 */

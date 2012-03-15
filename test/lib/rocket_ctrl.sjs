@@ -17,7 +17,7 @@ var is_running = exports.is_running = function(port) {
 };
 
 var run = exports.run = function(port, basedir) {
-  var child_process = require("apollo:node/child-process");
+  var child_process = require("apollo:nodejs/child-process");
   try {
     child_process.run(basedir + "/rocket", ['--port', port], {
       cwd: basedir,

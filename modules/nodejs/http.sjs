@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'node/http' module
+ * Oni Apollo 'nodejs/http' module
  * HTTP server functionality
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,14 +30,14 @@
  *
  */
 /**
-  @module    http
+  @module    nodejs/http
   @summary   HTTP server functionality
+  @home      apollo:nodejs/http
   @hostenv   nodejs
-  @home      apollo:node/http
 */
 
 if (require('sjs:apollo-sys').hostenv != 'nodejs') 
-  throw new Error('The node/http module only runs in a nodejs environment');
+  throw new Error('The nodejs/http module only runs in a nodejs environment');
 
 
 var builtin_http = require('http');
@@ -111,7 +111,7 @@ function handleRequest(connectionHandler, request, response) {
 
          // Run server for 60s:
          waitfor {
-           require('apollo:node/http').runSimpleServer(echo, 12345);
+           require('apollo:nodejs/http').runSimpleServer(echo, 12345);
          }
          or { 
            hold(60*1000);
@@ -197,7 +197,7 @@ function ServerRequest(req, res) {
    As an alternative to calling [::Server::stop] manually, the lifetime of 
    a [::Server] can be managed with a 'using' block:
 
-       using (var S = require('apollo:node/http').server(8080)) {
+       using (var S = require('apollo:nodejs/http').server(8080)) {
          while (true) {
            var request = S.get();
            ...
@@ -282,7 +282,7 @@ Server.prototype.__finally__ = function() { this.stop(); };
  @desc
    **Example:**
    
-       using (var router = require('apollo:node/http').router(
+       using (var router = require('apollo:nodejs/http').router(
                 [ ['/ping', function(r) { hold(1000); return 'pong'; }],
                   [/.*$/,   function(r) { return r.url.path; }] ],
                 8090)) {

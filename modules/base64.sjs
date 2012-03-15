@@ -18,6 +18,7 @@
 /**
   @module    base64
   @summary   base64 encoding and decoding
+  @home      apollo:base64
   @desc
     ###Notice from the original code:
 

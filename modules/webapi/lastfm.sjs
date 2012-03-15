@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'lastfm' module
+ * Oni Apollo 'webapi/lastfm' module
  * Bindings to the lastfm API 
  *
  * Part of the Oni Apollo Standard Module Library
@@ -31,12 +31,13 @@
  */
 
  /**
-   @module  lastfm
+   @module  webapi/lastfm
    @summary A wrapper around the Last.fm API
+   @home    apollo:webapi/lastfm
    @desc
      This module uses the JSONP interface of [the Last.fm API](http://www.last.fm/api).
 
-         var lastfm = require("apollo:lastfm");
+         var lastfm = require("apollo:webapi/lastfm");
          lastfm.key = "somekey...";
          var tracks = lastfm.get({
            method: "user.getrecenttracks", 
@@ -47,7 +48,7 @@
          }
     
 */
-var http = require("./core/http");
+var http = require("../core/http");
 var defaultKey = "b25b959554ed76058ac220b7b2e0a026";
 
 /**
@@ -66,7 +67,7 @@ exports.key = defaultKey;
   @desc
     ###Example
 
-        var name = require("apollo:lastfm").get({
+        var name = require("apollo:webapi/lastfm").get({
           method: "user.getinfo", 
           user: "rj"
         }).realname;
@@ -76,7 +77,7 @@ exports.get = function () {
     throw "No Last.fm API key supplied";
   }
   if (exports.key == defaultKey) {
-    //require("console").warn() ??
+    //require("../xbrowser/console").warn() ??
     //using lastfm's demo key
   }
   if (typeof arguments[0] == "string") {

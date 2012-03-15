@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'node/events' module
+ * Oni Apollo 'nodejs/events' module
  * Stratified wrapper for nodejs events
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,14 +30,14 @@
  *
  */
 /**
-  @module    events
+  @module    nodejs/events
   @summary   Stratified wrapper for nodejs events
   @hostenv   nodejs
-  @home      apollo:node/events
+  @home      apollo:nodejs/events
 */
 
 if (require('sjs:apollo-sys').hostenv != 'nodejs') 
-  throw new Error('The node/events module only runs in a nodejs environment');
+  throw new Error('The nodejs/events module only runs in a nodejs environment');
 
 var cutil = require('../core/cutil');
 
@@ -80,7 +80,7 @@ exports.waitforEvent = function(emitter, event) {
     [::EventQueue::__finally__] method, it can be used in a
     `using` block:
 
-        using (var Q = require('apollo:node/events').eventQueue(emitter, event)) {
+        using (var Q = require('apollo:nodejs/events').eventQueue(emitter, event)) {
           while (true) {
             var data = Q.get();
             ...

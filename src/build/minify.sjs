@@ -8,6 +8,6 @@ function usage() {
 
 if (process.argv.length !== 2) usage();
 
-var src = require('apollo:node/fs').readFile(process.argv[1]);
+var src = require('apollo:nodejs/fs').readFile(process.argv[1]);
 var compiler = require('../../tmp/c1jsmin.js');
 process.stdout.write(compiler.compile(src, {}));

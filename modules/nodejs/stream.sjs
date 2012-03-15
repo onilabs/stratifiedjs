@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'node/stream' module
+ * Oni Apollo 'nodejs/stream' module
  * Stratified helpers for dealing nodejs's async streams
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,14 +30,14 @@
  *
  */
 /**
-  @module    stream
+  @module    nodejs/stream
   @summary   Stratified helpers for dealing nodejs's async streams
+  @home      apollo:nodejs/stream
   @hostenv   nodejs
-  @home      apollo:node/stream
 */
 
 if (require('sjs:apollo-sys').hostenv != 'nodejs')
-  throw new Error('The node/stream module only runs in a nodejs environment');
+  throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
 
 /**

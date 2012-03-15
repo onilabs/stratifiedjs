@@ -1,6 +1,6 @@
 /*
- * Oni Apollo 'freebase' module
- * Bindings to various Google webservices and APIs
+ * Oni Apollo 'webapi/freebase' module
+ * Bindings to the Freebase API
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
@@ -30,10 +30,11 @@
  *
  */
 /**
-  @module    freebase
+  @module    webapi/freebase
   @summary   Bindings to the [Freebase](http://freebase.com) API
+  @home      apollo:webapi/freeebase
 */
-var http = require("./core/http");
+var http = require("../core/http");
 var sys = require("sjs:apollo-sys");
 
 var api_base = "http://api.freebase.com/api/service/"; // XXX do we want https?

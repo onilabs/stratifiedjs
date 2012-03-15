@@ -81,7 +81,7 @@ while (true) {
     hold();
   }
   or {
-    require('apollo:dom').waitforEvent("select", "change");
+    require('apollo:xbrowser/dom').waitforEvent("select", "change");
     currentSuite = document.getElementById("select").value;
   }
 }

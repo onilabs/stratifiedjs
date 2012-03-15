@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'node/child-process' module
+ * Oni Apollo 'nodejs/child-process' module
  * Stratified wrapper for nodejs events
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,14 +30,14 @@
  *
  */
 /**
-  @module    child-process
+  @module    nodejs/child-process
   @summary   Stratified wrapper of nodejs's child_process lib
   @hostenv   nodejs
-  @home      apollo:node/child-process
+  @home      apollo:nodejs/child-process
 */
 
 if (require('sjs:apollo-sys').hostenv != 'nodejs') 
-  throw new Error('The node/events module only runs in a nodejs environment');
+  throw new Error('The nodejs/events module only runs in a nodejs environment');
 
 var child_process = require('child_process');
 

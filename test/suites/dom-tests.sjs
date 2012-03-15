@@ -3,7 +3,7 @@ var test = testUtil.test;
 var relativeURL = require("../lib/testContext").getHttpURL;
 
 if(testUtil.isBrowser) {
-  var dom = require('apollo:dom');
+  var dom = require('apollo:xbrowser/dom');
   function synthesizeClick() {
     if (document.createEvent) {
       var click = document.createEvent("MouseEvents");

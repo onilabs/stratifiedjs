@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'node/fs' module
+ * Oni Apollo 'nodejs/fs' module
  * Stratified wrapper of nodejs filesystem functionality
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,14 +30,14 @@
  *
  */
 /**
-  @module    fs
+  @module    nodejs/fs
   @summary   Stratified wrapper of [nodejs filesystem functionality](http://nodejs.org/docs/v0.5.8/api/fs.html)
   @hostenv   nodejs
-  @home      apollo:node/fs
+  @home      apollo:nodejs/fs
 */
 
 if (require('sjs:apollo-sys').hostenv != 'nodejs') 
-  throw new Error('The node/fs module only runs in a nodejs environment');
+  throw new Error('The nodejs/fs module only runs in a nodejs environment');
 
 
 var fs = require('fs'); // builtin fs

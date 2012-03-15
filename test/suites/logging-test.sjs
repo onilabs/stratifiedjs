@@ -58,7 +58,7 @@ test('logging to debug.console objects',
      log2: ["INFO: message 1", "INFO: message 2"],
      nologs: []
     }, function() {
-  var debug = require('apollo:debug');
+  var debug = require('apollo:xbrowser/console');
   function mkConsole(receivelog) {
     var c = debug.console({receivelog: receivelog});
     // make a console that records log messages

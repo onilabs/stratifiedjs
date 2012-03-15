@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'dom' module
+ * Oni Apollo 'xbrowser/dom' module
  * DOM utilities
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,8 +30,9 @@
  *
  */
 /**
-  @module    dom
+  @module    xbrowser/dom
   @summary   Utilities for interacting with the DOM
+  @home      apollo:/xbrowser/dom
   @hostenv   xbrowser
 */
 
@@ -183,7 +184,7 @@ exports.stopEvent = function(ev) {
 
     **Keep observing events in an event loop:**
 
-        while (require('apollo:dom').waitforEvent("myid", "mouseover")) {
+        while (require('apollo:xbrowser/dom').waitforEvent("myid", "mouseover")) {
           console.log("mouseover!");
         }
 
@@ -251,7 +252,7 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
     [::EventQueue::__finally__] method, it can be used in a
     'using' block:
 
-        using (var Q = require('apollo:dom').eventQueue(elem,"click")) {
+        using (var Q = require('apollo:xbrowser/dom').eventQueue(elem,"click")) {
           while (true) {
             var ev = Q.get();
             ...
@@ -270,7 +271,7 @@ function EventQueue(selector, events, filter, eventTransformer)
 {
   // XXX we queue up to 100 events max. Does this need to be configurable?
   var capacity = 100;
-  this._queue = new (require("./core/cutil").Queue)(capacity, true);
+  this._queue = new (require("../core/cutil").Queue)(capacity, true);
   this.elems = elementsFromSelector(selector);
   this.events = events.split(" ");
 
@@ -369,7 +370,7 @@ var _loadedScripts = {};
 
     ### Example:
 
-        var dom = require("apollo:dom");
+        var dom = require("apollo:xbrowser/dom");
         dom.script("http://code.jquery.com/jquery.js");
         jQuery("body").css({background:"red"});
 */

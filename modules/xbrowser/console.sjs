@@ -1,6 +1,6 @@
 /*
- * Oni Apollo 'debug' module
- * SJS xbrowser console and logging 
+ * Oni Apollo 'xbrowser/console' module
+ * SJS cross-browser console 
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
@@ -30,22 +30,23 @@
  *
  */
 /**
-  @module  debug
-  @summary Client-side stratified debugging tools
+  @module  xbrowser/console
+  @summary Cross-browser StratifiedJS console
+  @home    apollo:xbrowser/console
   @hostenv xbrowser
   @desc
     sample usage:
 
-        var c = require("apollo:debug").console();
+        var c = require("apollo:xbrowser/console").console();
         c.log("Hello", document);
         c.warn("Oooh noo!");
 */
 
 if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
-  throw new Error('the debug module only runs in an xbrowser environment');
+  throw new Error('The xbrowser/console module only runs in an xbrowser environment');
 
-var common = require('./core/common');
-var collection = require('apollo:core/collection');
+var common = require('../core/common');
+var collection = require('../core/collection');
 
 //----------------------------------------------------------------------
 // logging
@@ -53,7 +54,7 @@ var collection = require('apollo:core/collection');
 var logReceivers = [];
 
 function installLogger(logger) {
-  var logging = require('apollo:logging');
+  var logging = require('../logging');
   logReceivers.push(logger);
   if(logReceivers.length == 1) { // this is the first logger
     logging.setConsole({log: printToLoggers});
@@ -66,7 +67,7 @@ function uninstallLogger(logger) {
   logReceivers.splice(idx, 1);
 
   if(logReceivers.length == 0) { // last logger removed
-    var logging = require('apollo:logging');
+    var logging = require('../logging');
     logging.setConsole();
   }
 };
@@ -238,13 +239,13 @@ function viewportStick(el, offset) {
   @class Console
   @summary Stratified JavaScript console.
   @desc
-     Use function [::console] to open a new Console object.
+     Use function [::console] to create a Console object.
 
   @function console
   @param    {optional Object} [settings]
-  @summary  Open a Stratified JavaScript console.
+  @summary  Create a Stratified JavaScript console and attach to DOM.
   @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
-  @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null. 
+  @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null). 
   @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
   @setting  {Boolean} [receivelog=false] Whether the console will act as an output for messages from the [logging::] module.
   @return   {::Console}

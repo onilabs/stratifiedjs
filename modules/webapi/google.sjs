@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'google' module
+ * Oni Apollo 'webapi/google' module
  * Bindings to various Google webservices and APIs
  *
  * Part of the Oni Apollo Standard Module Library
@@ -30,10 +30,11 @@
  *
  */
 /**
-  @module    google
+  @module    webapi/google
   @summary   Bindings to various Google webservices and APIs 
+  @home      apollo:webapi/google
 */
-var http = require("./core/http");
+var http = require("../core/http");
 
 /**
   @function  search
@@ -48,7 +49,7 @@ var http = require("./core/http");
 
     **Example:**
     
-        var s = require("apollo:google").search("Onilabs", {start:4});
+        var s = require("apollo:webapi/google").search("Onilabs", {start:4});
         console.log(s.responseData.results[0].url); // first result
 */
 function search(q, settings) {
@@ -179,7 +180,7 @@ exports.speak = speak;
 // helper to check if google api is installed
 function ensureAPI() {
   if (window["google"] && window.google.load) return;
-  require('./dom').script("http://www.google.com/jsapi");
+  require('../xbrowser/dom').script("http://www.google.com/jsapi");
 }
 
 /**
@@ -194,7 +195,7 @@ function ensureAPI() {
 
      **Example:**
 
-         require('apollo:google').load("language", "1");
+         require('apollo:webapi/google').load("language", "1");
          if (google.language.isFontRenderingSupported("hi"))
            ...
 */

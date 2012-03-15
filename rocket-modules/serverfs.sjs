@@ -21,10 +21,10 @@
  *
  */
 
-var fs = require('apollo:node/fs');
+var fs = require('apollo:nodejs/fs');
 var path = require('path');
 var common = require('apollo:core/common');
-var stream = require('apollo:node/stream');
+var stream = require('apollo:nodejs/stream');
 var logging = require('apollo:logging');
 
 // this is the configurable part of the filesystem:
