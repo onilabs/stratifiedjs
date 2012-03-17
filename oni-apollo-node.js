@@ -2027,13 +2027,31 @@ ph_block.prototype.val=function(accept_list){return this.seq.length?(accept_list
 
 
 
+
+
 function ph_switch(exp,clauses){this.exp=exp;
 
 this.clauses=clauses;
 }
 ph_switch.prototype=new ph();
-ph_switch.prototype.val=function(){var clauses="["+this.clauses.join(",")+"]";
+ph_switch.prototype.nblock_val=function(){var rv="switch("+this.exp.nb()+"){";
 
+
+for(var i=0,l=this.clauses.length;i<l;++i){
+var clause=this.clauses[i];
+rv+=(clause[0]?"case "+clause[0].nb()+":":"default:")+clause[1].nb();
+}
+return rv+"}";
+};
+ph_switch.prototype.val=function(){var clauses="[";
+
+
+for(var i=0,l=this.clauses.length;i<l;++i){
+var clause=this.clauses[i];
+if(i)clauses+=",";
+clauses+="["+(clause[0]?clause[0].v():"__oni_rt.Default")+","+clause[1].v()+"]";
+}
+clauses+="]";
 return "__oni_rt.Switch("+this.exp.v()+","+clauses+")";
 };
 
@@ -2217,6 +2235,18 @@ this.crf=crf;
 this.file=pctx.fn;
 }
 ph_try.prototype=new ph();
+ph_try.prototype.nblock_val=function(){var rv="try{"+this.block.nb()+"}";
+
+
+if(this.crf[0]){
+if(this.crf[0][2])throw "catchall statement not allowed in __js block";
+rv+="catch("+this.crf[0][0]+"){"+this.crf[0][1].nb()+"}";
+}
+if(this.crf[1])throw "retract statement not allowed in __js block";
+if(this.crf[2])rv+="finally{"+this.crf[2].nb()+"}";
+
+return rv;
+};
 ph_try.prototype.val=function(){var tb=this.block.v();
 
 if(!tb.length)tb="0";
@@ -2280,7 +2310,8 @@ ph_return.prototype.nblock_val=function(){var rv;
 if(this.js_ctx){
 
 rv="return";
-if(this.exp)rv+=" "+this.exp.nb()+";";
+if(this.exp)rv+=" "+this.exp.nb();
+rv+=";";
 }else{
 
 
@@ -2312,6 +2343,13 @@ function ph_cfe(f,lbl){this.f=f;
 this.lbl=lbl;
 }
 ph_cfe.prototype=new ph();
+ph_cfe.prototype.nblock_val=function(){var rv=(this.f=="b"?"break":"continue");
+
+
+
+if(this.lbl)rv+=" "+this.lbl;
+return rv+";";
+};
 ph_cfe.prototype.val=function(){var l=this.lbl?'"'+this.lbl+'"':"";
 
 var rv='__oni_rt.Cfe("'+this.f+'"';
@@ -2328,7 +2366,7 @@ if(decls)rv=gen_var_compound(decls,pctx);else rv=new ph_compound_stmt(pctx);
 
 
 
-if(init_exp)rv.stmts.push(init_exp);
+if(init_exp)rv.stmts.push(new ph_exp_stmt(init_exp,pctx));
 
 rv.stmts.push(new ph_loop(0,test_exp,body,inc_exp));
 
@@ -2349,12 +2387,17 @@ this.inc_exp=inc_exp;
 this.body=body;
 }
 ph_loop.prototype=new ph();
-ph_loop.prototype.nblock_val=function(){if(this.init_state==2)throw "Can't encode do-while loops as __js yet";
+ph_loop.prototype.nblock_val=function(){if(this.init_state==2){
 
-if(this.test_exp&&this.inc_exp){
+
+
+return "do{"+this.body.nb()+"}while("+this.test_exp.nb()+");";
+}else if(this.test_exp&&this.inc_exp){
+
 return "for(;"+this.test_exp.nb()+";"+this.inc_exp.nb()+"){"+this.body.nb()+"}";
 
 }else if(this.test_exp){
+
 
 return "while("+this.test_exp.nb()+"){"+this.body.nb()+"}";
 }else throw "Can't encode this loop as __js yet";
@@ -2391,6 +2434,10 @@ this.body=body;
 this.pctx=pctx;
 }
 ph_for_in.prototype=new ph();
+ph_for_in.prototype.nblock_val=function(){return "for("+this.lhs.nb()+" in "+this.obj.nb()+"){"+this.body.nb()+"}";
+
+
+};
 ph_for_in.prototype.val=function(){var rv="__oni_rt.ForIn("+this.obj.v();
 
 rv+=",function(__oni_env, _oniY) { return __oni_rt.ex(__oni_rt.Seq("+0+",";
@@ -3687,7 +3734,7 @@ var stmt=parseStmt(pctx);
 
 add_stmt(stmt,pctx);
 }
-clauses.push((function(pctx){var cexp=top_stmt_scope(pctx).exp;var block=pop_block(pctx);return "["+(cexp?cexp.v():"__oni_rt.Default")+","+block.v()+"]"})(pctx));
+clauses.push((function(pctx){return [top_stmt_scope(pctx).exp,pop_block(pctx)]})(pctx));
 }
 scan(pctx,"}");
 

@@ -276,9 +276,13 @@ ph_block.prototype.val = function(accept_list) {
   add_stmt(stmt, pctx);
 
 #define END_CASE_CLAUSE(pctx)                                   \
+  return [top_stmt_scope(pctx).exp, pop_block(pctx)];
+
+/*
   var cexp = top_stmt_scope(pctx).exp;                          \
   var block = pop_block(pctx);                                  \
   return "["+(cexp ? cexp.v() : "__oni_rt.Default")+","+block.v()+"]";
+*/
 
 #define GEN_SWITCH return new ph_switch(exp, clauses);
 function ph_switch(exp, clauses) {
@@ -286,10 +290,26 @@ function ph_switch(exp, clauses) {
   this.clauses = clauses;
 }
 ph_switch.prototype = new ph(WHENDEBUG("ph_switch"));
+ph_switch.prototype.nblock_val = function() {
+  // this is (currently) only called in a forced non-blocking context (__js):
+  var rv = "switch("+this.exp.nb()+"){";
+  for (var i=0,l=this.clauses.length; i<l; ++i) {
+    var clause = this.clauses[i];
+    rv += (clause[0] ? "case "+clause[0].nb()+":" : "default:") + clause[1].nb();
+  }
+  return rv + "}";
+};
 ph_switch.prototype.val = function() {
-    var clauses = "["+this.clauses.join(",")+"]";
-    return "__oni_rt.Switch("+this.exp.v()+","+clauses+")";
-}
+//    var clauses = "["+this.clauses.join(",")+"]";
+  var clauses="[";
+  for (var i=0,l=this.clauses.length; i<l; ++i) {
+    var clause = this.clauses[i];
+    if (i) clauses += ",";
+    clauses += "["+(clause[0] ? clause[0].v() : "__oni_rt.Default")+","+clause[1].v()+"]";
+  }
+  clauses+="]";  
+  return "__oni_rt.Switch("+this.exp.v()+","+clauses+")";
+};
 
 //----------------------------------------------------------------------
 // functions:
@@ -504,6 +524,18 @@ function ph_try(block, crf, pctx) {
   this.file = pctx.fn;
 }
 ph_try.prototype = new ph(WHENDEBUG("ph_try"));
+ph_try.prototype.nblock_val = function() {
+  // this is currently only called in a forced (__js) non-blocking context
+  var rv = "try{"+this.block.nb()+"}";
+  if (this.crf[0]) {
+    if (this.crf[0][2]) throw "catchall statement not allowed in __js block";
+    rv += "catch("+this.crf[0][0]+"){"+this.crf[0][1].nb()+"}";
+  }
+  if (this.crf[1]) throw "retract statement not allowed in __js block";
+  if (this.crf[2])
+    rv += "finally{"+this.crf[2].nb()+"}";
+  return rv;
+};
 ph_try.prototype.val = function() {
     var tb = this.block.v();
     if (!tb.length) tb = "0";
@@ -568,9 +600,10 @@ ph_return.prototype = new ph(WHENDEBUG("ph_return"));
 ph_return.prototype.nblock_val = function() {
   var rv;
   if (this.js_ctx) {
-    // XXX this form of nblock_val only works in an nblock context!!!!!
+    // XXX this form of nblock_val only works in a non-throwing nblock context!!!!!
     rv = "return";
-    if (this.exp) rv += " "+this.exp.nb()+";";
+    if (this.exp) rv += " "+this.exp.nb();
+    rv += ";";
   }
   else {
     // we're nblock, but not in an nblock ctx; need to create a CFE:
@@ -607,13 +640,20 @@ function ph_cfe(f, lbl) {
   this.lbl = lbl;
 }
 ph_cfe.prototype = new ph(WHENDEBUG("ph_cfe"));
+ph_cfe.prototype.nblock_val = function() {
+  // this only gets called when nblock is forced (__js), and it only
+  // works in a non-throwing nblock context!
+  var rv = (this.f=="b" ? "break" : "continue");
+  if (this.lbl) rv += " "+this.lbl;
+  return rv+";";
+};
 ph_cfe.prototype.val = function() {
-    var l = this.lbl ? '"'+this.lbl+'"' : "";
-    var rv = '__oni_rt.Cfe("'+this.f+'"';
-    if (this.lbl)
-      rv += ',"'+this.lbl+'"';
-    return rv + ")";
-  }
+  var l = this.lbl ? '"'+this.lbl+'"' : "";
+  var rv = '__oni_rt.Cfe("'+this.f+'"';
+  if (this.lbl)
+    rv += ',"'+this.lbl+'"';
+  return rv + ")";
+};
 
 #define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx) \
 return gen_for(init_exp, decls, test_exp, inc_exp, body, pctx);
@@ -626,7 +666,7 @@ function gen_for(init_exp, decls, test_exp, inc_exp, body, pctx) {
     else
       rv = new ph_compound_stmt(pctx);
     if (init_exp)
-      rv.stmts.push(init_exp);
+      rv.stmts.push(new ph_exp_stmt(init_exp, pctx));
     rv.stmts.push(new ph_loop(0,test_exp, body, inc_exp));
     //XXX suboptimal
     rv = rv.toBlock();
@@ -651,12 +691,17 @@ function ph_loop(init_state, test_exp, body, inc_exp) {
 }
 ph_loop.prototype = new ph(WHENDEBUG("ph_loop"));
 ph_loop.prototype.nblock_val = function() {
-  if (this.init_state == 2) throw "Can't encode do-while loops as __js yet";
-  if (this.test_exp && this.inc_exp) {
+  // this is currently only called in a forced (__js) nblock context
+  if (this.init_state == 2) {
+    // do-while loop
+    return "do{"+this.body.nb()+"}while("+this.test_exp.nb()+");";
+  }
+  else if (this.test_exp && this.inc_exp) {
     return "for(;"+this.test_exp.nb()+";"+this.inc_exp.nb()+
           "){"+this.body.nb()+"}";
   }
   else if (this.test_exp) {
+    // while loop
     return "while("+this.test_exp.nb()+"){"+this.body.nb()+"}";
   }
   else throw "Can't encode this loop as __js yet";
@@ -694,6 +739,10 @@ function ph_for_in(lhs, obj, body, pctx) {
   this.pctx = pctx;
 }
 ph_for_in.prototype = new ph(WHENDEBUG("ph_for_in"));
+ph_for_in.prototype.nblock_val = function() {
+  // this is currently only called for forced (__js) nblock contexts
+  return "for("+this.lhs.nb()+" in "+this.obj.nb()+"){"+this.body.nb()+"}";
+};
 ph_for_in.prototype.val = function() {
     var rv = "__oni_rt.ForIn("+this.obj.v();
     rv += ",function(__oni_env, _oniY) { return __oni_rt.ex(__oni_rt.Seq("+SEQ_FLAG_NONE+",";

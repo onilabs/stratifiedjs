@@ -1359,3 +1359,26 @@ test("waitfor/and tail recursion", 1, function() {
 
   return r(100000);
 }).serverOnly(); // browser hold(0) is too slow
+
+test("__js { var i,a=0; for(i=0;i<10;++i) ++a; }", 10, 
+     function() { __js { var i,a=0; for(i=0;i<10;++i) ++a; } return a; });
+
+test("__js try/catch", 10,
+     function() { var a=0; __js { try { throw 10; } catch(e) { a=e } } return a;});
+
+test("__js do/while", 10,
+     function() { var a= 0,i=10; __js { do{ a+=1; }while(--i); } return a; });
+
+test("__js switch/case", 3,
+     function() { var a=0,i=3;
+                  __js {
+                    switch(i) {
+                    case 1: a=1; break;
+                    case 2: a=2; break;
+                    case 3: a=2;
+                    default:
+                      a+=1;
+                    }
+                  }
+                  return a;
+                });
