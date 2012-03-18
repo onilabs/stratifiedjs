@@ -1,0 +1,753 @@
+/*
+ * Oni Apollo 'numeric' module
+ * Functions for numeric linear algebra computations 
+ *
+ * Part of the Oni Apollo Standard Module Library
+ * Version: 'unstable'
+ * http://onilabs.com/apollo
+ *
+ * (c) 2012 Oni Labs, http://onilabs.com
+ *
+ * This file is derived from the "Numeric Javascript" project (http://www.numericjs.com), 
+ * which is licensed under the terms of the MIT License.
+ *
+ * Original License Text:
+ *
+ * Numeric Javascript
+ * Copyright (C) 2011 by Sébastien Loisel
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+/**
+  @module    numeric
+  @summary   Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
+  @home      apollo:numeric
+  @desc      
+             This module tracks the [numericjs.com](http://numericjs.com) library by Sébastien Loisel -
+             a high-performance ([compared to competing JS libs](http://numericjs.com/benchmark.html)) linear algebra library for manipulating matrices, 
+             solving linear problems, finding eigenvalues and solving optimization problems.
+
+             For more information see the [original numericjs documentation](http://www.numericjs.com/documentation.html).
+*/
+/**
+  @function abs
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise absolute value
+
+  @function acos
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise inverse cosine
+
+  @function add
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary Pointwise sum `X+Y`
+
+  @function addeq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise sum `X+=Y`
+  @desc     Mutates `X` to contain the pointwise sum `X+Y`
+
+  @function all
+  @param    {Array|Number} [X]
+  @return   {Boolean}
+  @summary  True if all the components of `X` are `==true`
+
+  @function and
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary Pointwise logical 'and' `X&&Y`
+
+  @function andeq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise binary 'and' `X&=Y`
+  @desc     Mutates `X` to contain the pointwise binary 'and' `X&Y`
+
+  @function any
+  @param    {Array|Number} [X]
+  @return   {Boolean}
+  @summary True if any or more of the components of `X` are `==true`
+
+  @function asin
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise inverse sine
+
+  @function atan
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise inverse tangent function
+
+  @function atan2
+  @param    {Array|Number} [Y]
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise [atan2](http://en.wikipedia.org/wiki/Atan2) function
+
+  @function band
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise binary 'and' `X&Y`
+
+  @function bench
+  @param    {Function} [f] Function to time
+  @return   {Number} Function calls per second
+  @summary  Benchmarks function execution time
+  @desc
+    Determines the number of executions of `f` that can be performed over an interval of around 30ms.
+    
+    ### Notes:
+
+    * `f` must be a *non-blocking* function
+
+  @function bnot
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise binary negation `~X`
+
+  @function bor
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise binary or `X|Y`
+
+  @function bxor
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary Pointwise binary xor `X^Y`
+
+  @function cLU
+  @param    {Array} [A] Matrix in coordinate encoding
+  @return   {Object} `{L: lower_matrix, U: upper_matrix}`
+  @summary  Coordinate matrix LU decomposition
+
+  @function cLUsolve
+  @param    {Object} [LU] LU decomposition as obtained by [::cLU]
+  @param    {Array}  [b]
+  @return   {Array}
+  @summary  Coordinate matrix LU solve
+
+  @function cdelsq
+  @param    {Array} [grid]
+  @return   {Array}
+  @summary  Coordinate matrix Laplacian
+
+  @function cdotMV
+  @param    {Array} [A] Matrix in coordinate encoding
+  @param    {Array} [v] Vector 
+  @return   {Array} `A 'dot' v`
+  @summary  Coordinate matrix-vector product
+
+  @function ceil
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `Math.ceil()`
+
+  @function cgrid
+  @param    {Number} [n]
+  @param    {optional String|Function} [shape]
+  @return   {Array}
+  @summary  Coordinate grid for [::cdelsq]
+
+  @function clone
+  @param    {Array} [X]
+  @return   {Array}
+  @summary  Deep copy of Array
+
+  @function cos
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise cosine function
+
+  @function det
+  @param    {Array} [A] A square matrix
+  @return   {Number}
+  @summary  Determinant of a matrix
+
+  @function diag
+  @param    {Array} [d] Vector with diagonal elements
+  @return   {Array} Matrix with diagonal elements taken from `d`
+  @summary  Create a diagonal matrix
+
+  @function dim
+  @param    {Array} [X]
+  @return   {Array} Vector with dimensions of `X`
+  @summary  Get array dimensions
+  @desc
+     Example:
+
+         dim([[1,2],[3,4],[5,6]]); // => [3,2]
+
+  @function div
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise division `X/Y`
+
+  @function diveq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise X/=Y
+
+  @function dopri
+  @param    {Number} [x0]
+  @param    {Number} [x1]
+  @param    {Number|Array} [Y0] Initial value at x0; can be vector-valued
+  @param    {Function} [F] Function to calculate `Y'=F(x,Y)`
+  @param    {optional Number} [tol=1e-6] Tolerance
+  @param    {optional} [maxit] Maximum number of iterations
+  @param    {optional Function} [event] Event function of form `function(x,Y){.}`
+  @return   {::Dopri}
+  @summary  Numerical integration of ODE using Dormand-Prince RK method
+  @desc     
+            ### Example:
+            
+                // Solve y'=y, y(0)=1 at x=1:
+                dopri(0, 1, 1, {|x,y| y}).at(1)
+                // => 2.718 
+
+            ### Notes: 
+
+            * `F` (and `event`, if provided) must be a *non-blocking* function.
+
+            * Integration stops if the `event` function (if provided) goes from negative to positive.
+
+  @class    Dopri
+  @summary  Class of return value of [::dopri] function
+
+  @variable Dopri.x
+  @summary  Vector of x values of the solution
+  @desc See [::Dopri::y]
+
+  @variable Dopri.y
+  @summary  Vector of y values of the solution
+  @desc See [::Dopri::x]
+
+  @function Dopri.at
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Evaluate the ODE solution at particular points
+
+  @function dot
+  @param    {Array} [X] matrix or vector
+  @param    {Array} [Y] matrix or vector
+  @return   {Array}
+  @summary  matrix-matrix, matrix-vector or vector-matrix product
+
+  @function eig
+  @param    {Array} [A] Square matrix
+  @return   {Object} `{lambda:eigenvalues, E:eigenvectors}`
+  @summary  Eigenvalues and eigenvectors
+  @desc
+            ### Notes:
+
+            * Eigenvalues & eigenvectors will be returned as complex numbers (type [::T]).
+
+
+  @variable epsilon
+  @summary  Epsilon used in various algorithms (default: 2.220446049250313e-16)
+
+  @function eq
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise comparison `X === Y`
+
+  @function exp
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `Math.exp()`
+
+  @function floor
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Poinwise `Math.floor()`
+
+  @function geq
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise comparison `X>=Y`
+
+  @function getBlock
+  @summary Extract a block from a matrix
+
+  @function getDiag
+  @param    {Array} [A]
+  @return   {Array} Vector with diagonal elements of `A`
+  @summary  Get the diagonal of a matrix
+
+  @function gt
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise comparision `X>Y`
+
+  @function identity
+  @param    {Number} [d] 
+  @return   {Array} Identity matrix of dimension `d`
+  @summary  Identity matrix
+
+  @function imageURL
+  @param    {Array} [rgb] Vector of 3 (R,G,B) matrices
+  @return   {URL} Image URL, e.g. for insertion into in `<img>` element 
+  @summary  Encode a matrix as an image URL
+
+  @function inv
+  @param    {Array} [A] Invertible matrix
+  @return   {Array} 
+  @summary  Matrix inverse
+
+  @function isFinite
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `isFinite()`
+
+  @function isNaN
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `isNaN()`
+
+  @variable largeArray
+  @summary  Don't [::prettyPrint] arrays larger than this
+
+  @function leq
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary Pointwise comparision `X<=Y`
+
+  @function linspace
+  @param    {Number} [a] Start of interval
+  @param    {Number} [b] End of interval
+  @param    {optional Number} [n] Number of divisions (Default: `Math.round(b-a)+1`)
+  @return   {Array} Vector of `n` evenly spaced values in interval [`a`,`b`] 
+  @summary  Generate evenly spaced values
+
+  @function log
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `Math.log()`
+
+  @function lshift
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary Pointwise left shift `X<<Y`
+
+  @function lshifteq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise left shift `X<<=Y`
+
+  @function lt
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise comparision `X<Y`
+
+  @function mapreduce
+  @param    {String} [body]  String containing computation body
+  @param    {String} [init]  Initial value for `accum`
+  @return   {Function} Generated pointwise map-reduce function
+  @summary  Make a pointwise map-reduce function
+  @desc
+    ### Example: 
+
+    Create a function like [::sum]
+   
+        var sum = mapreduce('accum += xi', '0');
+        sum([[1,2,3],[4,5,6]]); // => 21
+
+    See also [::pointwise]
+
+  @function mod
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary Pointwise remainder `X%Y`
+
+  @function modeq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise remainder `X%=Y`
+  @desc     Mutates `X` to contain the pointwise remainder `X%Y`
+
+  @function mul
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array}
+  @summary  Pointwise product `X*Y`
+
+  @function neg
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise negation `-X`
+
+  @function neq
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise comparison `X!==Y`
+
+  @function norm2
+  @param    {Array} [X]
+  @return   {Array}
+  @summary  Square root of the sum of the squares of entries of `X`
+
+  @function norm2Squared
+  @param    {Array} [X]
+  @return   {Array}
+  @summary  Sum of squares of entries of `X`
+
+  @function norminf
+  @param    {Array} [X]
+  @return   {Array}
+  @summary  Largest modulus entry of `X`
+
+  @function not
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise logical negation `!X`
+
+  @function or
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise logical or `X||Y`
+
+  @function oreq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise binary or `X|=Y`
+  @desc     Mutates `X` to contain the pointwise binary or `X|Y`
+
+  @function parseCSV
+  @param    {String} [data] CSV data
+  @return   {Array} 
+  @summary  Parse a CSV file into an array
+
+  @function parseDate
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `Date.parse()`
+
+  @function parseFloat
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `parseFloat()`
+
+  @function pointwise
+  @param    {Array} [params] Array of parameter strings, e.g. `['x[i]','y[i]']`
+  @param    {String} [body]  String containing computation body, e.g. `'ret[i] = x[i]+y[i];'`
+  @param    {optional String} [setup] Optional string that will be pasted at start of generated function.
+  @return   {Function} Generated pointwise function
+  @summary  Create a pointwise function
+  @desc
+    ### Example: 
+
+    Create a pointwise sum function (like [::add])
+   
+        var add = pointwise(['x[i]','y[i]'], 'ret[i] = x[i]+y[i];');
+        add([1,2], [3,4]); // => [4,6]
+
+    See also [::mapreduce]
+
+  @function pow
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise `Math.pow()`
+
+  @variable precision
+  @summary  Number of digits to prettyPrint (default: 4)
+
+  @function prettyPrint
+  @param    {Object} [x]
+  @return   {String} formatted String representation of `x`
+  @summary  Format object, arrays and numbers for easy comprehension
+
+  @function random
+  @param    {Array} [d] Vector with dimensions of array to create
+  @return   {Array} Array with dimensions `d`, filled with random numbers
+  @summary  Create an array of random numbers
+
+  @function rep
+  @param    {Array}  [d]   Vector with dimensions of array to create
+  @param    {Object} [val] Value to duplicate into returned array
+  @return   {Array} Array with dimensions `d`, filled with `val`
+  @summary  Create an array by duplicating values
+
+  @function round
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary Pointwise `Math.round()`
+
+  @function rrshift
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise `X>>>Y`
+
+  @function rrshifteq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise `X>>>=Y`
+
+  @function rshift
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary  Pointwise `X>>Y`
+
+  @function rshifteq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise `X>>=Y`
+
+  @function sLUP
+  @param    {Array} [A] (sparse) matrix
+  @return   {Object} `{L: lower_matrix, U: upper_matrix, P, Pinv}`  
+  @summary Sparse LUP decomposition with pivoting
+
+  @function sLUPsolve
+  @param    {Object} [LUP] LUP decomposition as obtained by [::sLUP]
+  @param    {Array}  [b]
+  @return   {Array}
+  @summary Sparse LUP solve
+
+  @function same
+  @param    {Array} [X]
+  @param    {Array} [Y]
+  @return   {Boolean}
+  @summary  `X` and `Y` are entrywise identical
+
+  @function sclone
+  @param    {Array} [X]
+  @return   {Array} Copy of `X`
+  @summary Clone a sparse matrix
+
+  @function sdiag
+  @param    {Array} [d] Vector with diagonal elements
+  @return   {Array} Sparse matrix with diagonal elements taken from `d`
+  @summary Create a sparse diagonal matrix
+
+  @function sdim
+  @param    {Array} [X] Sparse array
+  @return   {Array} Vector with dimensions of `X`
+  @summary Dimensions of sparse array
+
+  @function sdot
+  @param   {Array} [X] Sparse matrix or vector
+  @param   {Array} [Y] Sparse matrix or vector
+  @return  {Array}
+  @summary Sparse matrix-matrix, matrix-vector, vector-matrix or vector-vector product.
+
+  @function seedrandom.seedrandom
+  @param    {optional String} [s] seed (default is to derive seed from local data)
+  @summary  Seed the 'seedrandom' RC4 pseudo-random number generator
+  @desc Based on David Bau's [seedrandom.js](http://davidbau.com/archives/2010/01/30/random_seeds_coded_hints_and_quintillions.html)
+
+  @function seedrandom.random
+  @return   {Number} Pseudo-random number 
+  @summary  Generate an RC4-based pseudo-random number
+  @desc Based on David Bau's [seedrandom.js](http://davidbau.com/archives/2010/01/30/random_seeds_coded_hints_and_quintillions.html)
+
+  @function setBlock
+  @summary Set a block of a matrix
+
+  @function sgather
+  @param    {Array} [A] Sparse matrix
+  @return   {Array} Matrix `A` in coordinate encoding form
+  @summary  Convert a sparse matrix into coordinate encoding
+
+  @function sidentity
+  @param    {Number} [d] 
+  @return   {Array} Sparse identity matrix of dimension `d`
+  @summary Sparse identity matrix
+
+  @function sin
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise sine function
+
+  @function solveQP
+  @summary Solve a quadratic programming problem
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @function spline
+  @return   {::Spline}
+  @summary  Create a [::Spline] object
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @class   Spline
+  @summary Return type of [::spline] function
+
+  @function Spline.at
+  @summary Evaluate the Spline at a point
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @function Spline.diff
+  @summary Differentiate the Spline
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @function Spline.roots
+  @summary Find all the roots of the Spline
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @function sqrt
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number} 
+  @summary  Pointwise `Math.sqrt()`
+
+  @function sscatter
+  @param    {Array} [A] Coordinate-encoded matrix
+  @return   {Array} Matrix `A` in sparse form
+  @summary  Convert a coordinate-encoded matrix into sparse form
+
+  @function stranspose
+  @param    {Array} [A] Sparse matrix
+  @return   {Array} Transposed sparse matrix
+  @summary  Sparse matrix transpose
+
+  @function sub
+  @param    {Array|Number} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array|Number}
+  @summary Pointwise difference `X-Y`
+
+  @function subeq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise difference `X-=Y`
+
+  @function sum
+  @param    {Array} [X]
+  @return   {Array}
+  @summary  Sum of all entries of `X`
+
+  @function svd
+  @summary Singular value decomposition
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @function t
+  @return   {::T}
+  @summary Create a tensor type [::T] (may be complex-valued)
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @class T
+  @summary Tensor class
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+  
+  @function T.NUMERICFUN
+  @summary Supported NUMERICFUN are: abs, add, cos, diag, div, dot, exp, getBlock, getDiag, inv, log, mul, neg, norm2, setBlock, sin, sub, transpose
+
+  @function T.conj
+  @summary Pointwise complex conjugate
+
+  @function T.fft
+  @summary Fast Fourier transform
+
+  @function T.get
+  @summary Read an entry
+
+  @function T.getRow
+  @summary Get a row
+
+  @function T.getRows
+  @summary Get a range of rows
+
+  @function T.ifft
+  @summary Inverse FFT
+
+  @function T.reciprocal
+  @summary Pointwise 1/z
+
+  @function T.set
+  @summary Set an entry
+
+  @function T.setRow
+  @summary Set a row
+
+  @function T.setRows
+  @summary Set a range of rows
+
+  @function T.transjugate
+  @summary The conjugate-transpose of a matrix
+
+  @function tan
+  @param    {Array|Number} [X]
+  @return   {Array|Number}
+  @summary  Pointwise tangent function
+
+  @function tensor
+  @param    {Array} [x] Vector
+  @param    {Array} [y] Vector
+  @return   {Array} Matrix 
+  @summary  Tensor product ret[i][j] = x[i]*y[j]
+
+  @function toCSV
+  @param    {Array} [A]
+  @return   CSV encoding of `A`
+  @summary  Make a CSV file
+
+  @function transpose
+  @param    {Array} [A] Matrix
+  @return   {Array} Transposed matrix
+  @summary Matrix transpose
+
+  @function uncmin
+  @summary Unconstrained optimization
+  @desc See [numericjs documentation](http://www.numericjs.com/documentation.html)
+
+  @variable version
+  @summary  Version string for the numeric library
+
+  @function xoreq
+  @param    {Array} [X]
+  @param    {Array|Number} [Y]
+  @return   {Array} X
+  @summary  Mutating pointwise binary xor `X^=Y`
+  @desc     Mutates `X` to contain the pointwise binary xor `X^Y`
+
+*/
+
+/** 
+  turn off docs from this point onwards:
+  @docsoff
+*/
+__js {

@@ -22,7 +22,10 @@ function build_deps() {
   BUILD("clean", ["rm -rf tmp", function() { log('all done')}]); 
 
   PSEUDO("build");
-  BUILD("build", function() { log('all done') }, ["oni-apollo.js", "oni-apollo-node.js", "tmp/version_stamp"]);
+  BUILD("build", function() { log('all done') }, ["oni-apollo.js", 
+                                                  "oni-apollo-node.js",
+                                                  "modules/numeric.sjs",
+                                                  "tmp/version_stamp"]);
 
   PSEUDO("compiler");
   BUILD("compiler", function() { log('all done') }, ["tmp/c1.js", "tmp/vm1node.js"]);
@@ -126,6 +129,24 @@ function build_deps() {
          "tmp/apollo-bootstrap-common.js.min",
          "tmp/apollo-bootstrap-nodejs.js.min",
          "src/build/config.json"]);
+
+  //----------------------------------------------------------------------
+  // standard module library:
+  // (many of the modules don't need to be built from source; they just
+  //  live under the apollo/modules directory directly.)
+
+  // numeric module
+  BUILD("modules/numeric.sjs",
+        ["cat $0 $1 $2 $3 $4 $5 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/numeric/src/apollo-module-header.txt",
+         "src/deps/numeric/src/numeric.js", 
+         "src/deps/numeric/src/seedrandom.js",
+         "src/deps/numeric/src/quadprog.js", 
+         "src/deps/numeric/src/svd.js",
+         "src/deps/numeric/src/apollo-module-footer.txt"]
+       );
 
   //----------------------------------------------------------------------
   // version stamping for module files and package.json:
@@ -236,6 +257,11 @@ function BUILD(target, task, deps) {
   if (target !== "src/build/buildscript.sjs")
     deps.push("src/build/buildscript.sjs");
   
+  // We only want to execute the builder once and return the memoized
+  // result on subsequent invocations. By utilizing a stratum and
+  // waitforValue(), we can additionally ensure that these semantics
+  // also work when the builder is called concurrently, which it is
+  // still running:
   var stratum;
   builders[target] = function() {
     if (!stratum) {
