@@ -486,7 +486,7 @@ function makeSymbolView(location) {
     if (docs.type == 'ctor')
       signature = "new ";
     else if (location.classname)
-      signature = location.classname.toLowerCase();
+      signature = location.classname.toLowerCase()+".";
     else
       signature = "";
 
