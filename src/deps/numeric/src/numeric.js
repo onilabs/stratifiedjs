@@ -1,9 +1,14 @@
-var numeric = (typeof exports === "undefined")?(function numeric() {}):(exports);
+var numeric = exports;
 
-numeric.version = "1.0.0";
+// numeric generates many functions dynamically, and this leads to
+// scope problems.  As a quick-and-dirty workaround for Apollo, we
+// reflect the numeric object into the global scope as '__numeric':
+require('sjs:apollo-sys').getGlobal().__numeric = numeric;
+
+__numeric.version = "1.0.0";
 
 // 1. Utility functions
-numeric.bench = function bench (f,interval) {
+__numeric.bench = function bench (f,interval) {
     var t1,t2,n,i;
     if(typeof interval === "undefined") { interval = 15; }
     n = 1;
@@ -21,10 +26,10 @@ numeric.bench = function bench (f,interval) {
     return 1000*(3*n-1)/(t2-t1);
 }
 
-numeric.precision = 4;
-numeric.largeArray = 50;
+__numeric.precision = 4;
+__numeric.largeArray = 50;
 
-numeric.prettyPrint = function(x) {
+__numeric.prettyPrint = function(x) {
     function fmtnum(x) {
         if(x === 0) { return '0'; }
         if(isNaN(x)) { return 'NaN'; }
@@ -32,8 +37,8 @@ numeric.prettyPrint = function(x) {
         if(isFinite(x)) {
             var scale = Math.floor(Math.log(x) / Math.log(10));
             var normalized = x / Math.pow(10,scale);
-            var basic = normalized.toPrecision(numeric.precision);
-            if(parseFloat(basic) === 10) { scale++; normalized = 1; basic = normalized.toPrecision(numeric.precision); }
+            var basic = normalized.toPrecision(__numeric.precision);
+            if(parseFloat(basic) === 10) { scale++; normalized = 1; basic = normalized.toPrecision(__numeric.precision); }
             return parseFloat(basic).toString()+'e'+scale.toString();
         }
         return 'Infinity';
@@ -41,16 +46,16 @@ numeric.prettyPrint = function(x) {
     var ret = [];
     function foo(x) {
         var k;
-        if(typeof x === "undefined") { ret.push(Array(numeric.precision+8).join(' ')); return false; }
+        if(typeof x === "undefined") { ret.push(Array(__numeric.precision+8).join(' ')); return false; }
         if(typeof x === "string") { ret.push('"'+x+'"'); return false; }
         if(typeof x === "boolean") { ret.push(x.toString()); return false; }
         if(typeof x === "number") {
             var a = fmtnum(x);
-            var b = x.toPrecision(numeric.precision);
+            var b = x.toPrecision(__numeric.precision);
             var c = parseFloat(x.toString()).toString();
             var d = [a,b,c,parseFloat(b).toString(),parseFloat(c).toString()];
             for(k=1;k<d.length;k++) { if(d[k].length < a.length) a = d[k]; }
-            ret.push(Array(numeric.precision+8-a.length).join(' ')+a);
+            ret.push(Array(__numeric.precision+8-a.length).join(' ')+a);
             return false;
         }
         if(x === null) { ret.push("null"); return false; }
@@ -69,7 +74,7 @@ numeric.prettyPrint = function(x) {
             return true;
         }
         if(x instanceof Array) {
-            if(x.length > numeric.largeArray) { ret.push('...Large Array...'); return true; }
+            if(x.length > __numeric.largeArray) { ret.push('...Large Array...'); return true; }
             var flag = false;
             ret.push('[');
             for(k=0;k<x.length;k++) { if(k>0) { ret.push(','); if(flag) ret.push('\n '); } flag = foo(x[k]); }
@@ -86,7 +91,7 @@ numeric.prettyPrint = function(x) {
     return ret.join('');
 }
 
-numeric.parseDate = function parseDate(d) {
+__numeric.parseDate = function parseDate(d) {
     function foo(d) {
         if(typeof d === 'string') { return Date.parse(d.replace(/-/g,'/')); }
         if(!(d instanceof Array)) { throw new Error("parseDate: parameter must be arrays of strings"); }
@@ -97,7 +102,7 @@ numeric.parseDate = function parseDate(d) {
     return foo(d);
 }
 
-numeric.parseFloat = function parseFloat_(d) {
+__numeric.parseFloat = function parseFloat_(d) {
     function foo(d) {
         if(typeof d === 'string') { return parseFloat(d); }
         if(!(d instanceof Array)) { throw new Error("parseFloat: parameter must be arrays of strings"); }
@@ -108,7 +113,7 @@ numeric.parseFloat = function parseFloat_(d) {
     return foo(d);
 }
 
-numeric.parseCSV = function parseCSV(t) {
+__numeric.parseCSV = function parseCSV(t) {
     var foo = t.split('\n');
     var j,k;
     var ret = [];
@@ -131,8 +136,8 @@ numeric.parseCSV = function parseCSV(t) {
     return ret;
 }
 
-numeric.toCSV = function toCSV(A) {
-    var s = numeric.dim(A);
+__numeric.toCSV = function toCSV(A) {
+    var s = __numeric.dim(A);
     var i,j,m,n,row,ret;
     m = s[0];
     n = s[1];
@@ -145,14 +150,14 @@ numeric.toCSV = function toCSV(A) {
     return ret.join('\n')+'\n';
 }
 
-numeric.getURL = function getURL(url) {
+__numeric.getURL = function getURL(url) {
     var client = new XMLHttpRequest();
     client.open("GET",url,false);
     client.send();
     return client;
 }
 
-numeric.imageURL = function imageURL(img) {
+__numeric.imageURL = function imageURL(img) {
     function base64(A) {
         var n = A.length, i,x,y,z,p,q,r,s;
         var key = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
@@ -295,20 +300,20 @@ numeric.imageURL = function imageURL(img) {
 }
 
 // 2. Linear algebra with Arrays.
-numeric._dim = function _dim(x) {
+__numeric._dim = function _dim(x) {
     var ret = [];
     while(typeof x === "object") { ret.push(x.length); x = x[0]; }
     return ret;
 }
 
-numeric.dim = function dim(x) {
+__numeric.dim = function dim(x) {
     var y,z;
     if(typeof x === "object") {
         y = x[0];
         if(typeof y === "object") {
             z = y[0];
             if(typeof z === "object") {
-                return numeric._dim(x);
+                return __numeric._dim(x);
             }
             return [x.length,y.length];
         }
@@ -317,10 +322,10 @@ numeric.dim = function dim(x) {
     return [];
 }
 
-numeric.mapreduce = function mapreduce(body,init) {
+__numeric.mapreduce = function mapreduce(body,init) {
     return Function('x','accum','_s','_k',
             'if(typeof accum === "undefined") accum = '+init+';\n'+
-            'if(typeof _s === "undefined") _s = numeric.dim(x);\n'+
+            'if(typeof _s === "undefined") _s = __numeric.dim(x);\n'+
             'if(typeof _k === "undefined") _k = 0;\n'+
             'var _n = _s[_k];\n'+
             'var i,xi;\n'+
@@ -345,7 +350,7 @@ numeric.mapreduce = function mapreduce(body,init) {
 }
 
 
-numeric.same = function same(x,y) {
+__numeric.same = function same(x,y) {
     var i,n;
     if(!(x instanceof Array) || !(y instanceof Array)) { return false; }
     n = x.length;
@@ -358,7 +363,7 @@ numeric.same = function same(x,y) {
     return true;
 }
 
-numeric.rep = function rep(s,v,k) {
+__numeric.rep = function rep(s,v,k) {
     if(typeof k === "undefined") { k=0; }
     var n = s[k], ret = Array(n), i;
     if(k === s.length-1) {
@@ -366,16 +371,16 @@ numeric.rep = function rep(s,v,k) {
         if(i===-1) { ret[0] = v; }
         return ret;
     }
-    for(i=n-1;i>=0;i--) { ret[i] = numeric.rep(s,v,k+1); }
+    for(i=n-1;i>=0;i--) { ret[i] = __numeric.rep(s,v,k+1); }
     return ret;
 }
 
-numeric.dotMMbig = function dotMMbig(x,y) {
+__numeric.dotMMbig = function dotMMbig(x,y) {
     var i,j,k,p,q,r,ret,foo,bar,woo,i0,k0,p0,r0,s1,s2,s3,baz,accum;
-    var dotVV = numeric.dotVV,min = Math.min;
+    var dotVV = __numeric.dotVV,min = Math.min;
     p = x.length; q = y.length; r = y[0].length;
     ret = Array(p);
-    woo = numeric.transpose(y);
+    woo = __numeric.transpose(y);
     for(i0=0;i0<p;i0+=4) {
         p0 = min(i0+4,p);
         for(i=i0;i<p0;i++) { ret[i] = Array(r); }
@@ -393,7 +398,7 @@ numeric.dotMMbig = function dotMMbig(x,y) {
     return ret;
 }
 
-numeric.dotMMsmall = function dotMMsmall(x,y) {
+__numeric.dotMMsmall = function dotMMsmall(x,y) {
     var i,j,k,p,q,r,ret,foo,bar,woo,i0,k0,p0,r0;
     p = x.length; q = y.length; r = y[0].length;
     ret = Array(p);
@@ -413,14 +418,14 @@ numeric.dotMMsmall = function dotMMsmall(x,y) {
     }
     return ret;
 }
-numeric.dotMV = function dotMV(x,y) {
+__numeric.dotMV = function dotMV(x,y) {
     var p = x.length, q = y.length,i;
-    var ret = Array(p), dotVV = numeric.dotVV;
+    var ret = Array(p), dotVV = __numeric.dotVV;
     for(i=p-1;i>=0;i--) { ret[i] = dotVV(x[i],y); }
     return ret;
 }
 
-numeric.dotVM = function dotVM(x,y) {
+__numeric.dotVM = function dotVM(x,y) {
     var i,j,k,p,q,r,ret,foo,bar,woo,i0,k0,p0,r0,s1,s2,s3,baz,accum;
     p = x.length; q = y[0].length;
     ret = Array(q);
@@ -436,7 +441,7 @@ numeric.dotVM = function dotVM(x,y) {
     return ret;
 }
 
-numeric.dotVV = function dotVV(x,y) {
+__numeric.dotVV = function dotVV(x,y) {
     var i,n=x.length,i1,ret = x[n-1]*y[n-1];
     for(i=n-2;i>=1;i-=2) {
         i1 = i-1;
@@ -446,23 +451,23 @@ numeric.dotVV = function dotVV(x,y) {
     return ret;
 }
 
-numeric.dot = function dot(x,y) {
-    var d = numeric.dim;
+__numeric.dot = function dot(x,y) {
+    var d = __numeric.dim;
     switch(d(x).length*1000+d(y).length) {
     case 2002:
-        if(y.length < 40) return numeric.dotMMsmall(x,y);
-        else return numeric.dotMMbig(x,y);
-    case 2001: return numeric.dotMV(x,y);
-    case 1002: return numeric.dotVM(x,y);
-    case 1001: return numeric.dotVV(x,y);
-    case 1000: return numeric.mulVS(x,y);
-    case 1: return numeric.mulSV(x,y);
+        if(y.length < 40) return __numeric.dotMMsmall(x,y);
+        else return __numeric.dotMMbig(x,y);
+    case 2001: return __numeric.dotMV(x,y);
+    case 1002: return __numeric.dotVM(x,y);
+    case 1001: return __numeric.dotVV(x,y);
+    case 1000: return __numeric.mulVS(x,y);
+    case 1: return __numeric.mulSV(x,y);
     case 0: return x*y;
     default: throw new Error('numeric.dot only works on vectors and matrices');
     }
 }
 
-numeric.diag = function diag(d) {
+__numeric.diag = function diag(d) {
     var i,i1,j,n = d.length, A = Array(n), Ai;
     for(i=n-1;i>=0;i--) {
         Ai = Array(n);
@@ -482,7 +487,7 @@ numeric.diag = function diag(d) {
     }
     return A;
 }
-numeric.getDiag = function(A) {
+__numeric.getDiag = function(A) {
     var n = Math.min(A.length,A[0].length),i,ret = Array(n);
     for(i=n-1;i>=1;--i) {
         ret[i] = A[i][i];
@@ -495,8 +500,8 @@ numeric.getDiag = function(A) {
     return ret;
 }
 
-numeric.identity = function identity(n) { return numeric.diag(numeric.rep([n],1)); }
-numeric.pointwise = function pointwise(params,body,setup) {
+__numeric.identity = function identity(n) { return __numeric.diag(__numeric.rep([n],1)); }
+__numeric.pointwise = function pointwise(params,body,setup) {
     if(typeof setup === "undefined") { setup = ""; }
     var fun = [];
     var k;
@@ -511,7 +516,7 @@ numeric.pointwise = function pointwise(params,body,setup) {
     fun[params.length] = '_s';
     fun[params.length+1] = '_k';
     fun[params.length+2] = (
-            'if(typeof _s === "undefined") _s = numeric.dim('+thevec+');\n'+
+            'if(typeof _s === "undefined") _s = __numeric.dim('+thevec+');\n'+
             'if(typeof _k === "undefined") _k = 0;\n'+
             'var _n = _s[_k];\n'+
             'var i, ret = Array(_n);\n'+
@@ -538,18 +543,18 @@ numeric.pointwise = function pointwise(params,body,setup) {
     return Function.apply(null,fun);
 }
 
-numeric._biforeach = (function _biforeach(x,y,s,k,f) {
+__numeric._biforeach = (function _biforeach(x,y,s,k,f) {
     if(k === s.length-1) { f(x,y); return; }
     var i,n=s[k];
     for(i=n-1;i>=0;i--) { _biforeach(x[i],y[i],s,k+1,f); }
 });
 
-numeric.anyV = numeric.mapreduce('if(xi) return true;','false');
-numeric.allV = numeric.mapreduce('if(!xi) return false;','true');
-numeric.any = function(x) { if(typeof x.length === "undefined") return x; return numeric.anyV(x); }
-numeric.all = function(x) { if(typeof x.length === "undefined") return x; return numeric.allV(x); }
+__numeric.anyV = __numeric.mapreduce('if(xi) return true;','false');
+__numeric.allV = __numeric.mapreduce('if(!xi) return false;','true');
+__numeric.any = function(x) { if(typeof x.length === "undefined") return x; return __numeric.anyV(x); }
+__numeric.all = function(x) { if(typeof x.length === "undefined") return x; return __numeric.allV(x); }
 
-numeric.ops2 = {
+__numeric.ops2 = {
         add: '+',
         sub: '-',
         mul: '*',
@@ -570,7 +575,7 @@ numeric.ops2 = {
         rshift: '>>',
         rrshift: '>>>'
 };
-numeric.opseq = {
+__numeric.opseq = {
         addeq: '+=',
         subeq: '-=',
         muleq: '*=',
@@ -583,9 +588,9 @@ numeric.opseq = {
         oreq: '|=',
         xoreq: '^='
 };
-numeric.mathfuns = ['abs','acos','asin','atan','ceil','cos',
+__numeric.mathfuns = ['abs','acos','asin','atan','ceil','cos',
                     'exp','floor','log','round','sin','sqrt','tan'];
-numeric.ops1 = {
+__numeric.ops1 = {
         neg: '-',
         not: '!',
         bnot: '~'
@@ -593,15 +598,15 @@ numeric.ops1 = {
 
 (function () {
     var i,o;
-    for(i in numeric.ops2) {
-        if(numeric.ops2.hasOwnProperty(i)) {
-            o = numeric.ops2[i];
-            numeric[i+'VV'] = numeric.pointwise(['x[i]','y[i]'],'ret[i] = x[i] '+o+' y[i];');
-            numeric[i+'SV'] = numeric.pointwise(['x','y[i]'],'ret[i] = x '+o+' y[i];');
-            numeric[i+'VS'] = numeric.pointwise(['x[i]','y'],'ret[i] = x[i] '+o+' y;');
-            numeric[i] = Function(
+    for(i in __numeric.ops2) {
+        if(__numeric.ops2.hasOwnProperty(i)) {
+            o = __numeric.ops2[i];
+            __numeric[i+'VV'] = __numeric.pointwise(['x[i]','y[i]'],'ret[i] = x[i] '+o+' y[i];');
+            __numeric[i+'SV'] = __numeric.pointwise(['x','y[i]'],'ret[i] = x '+o+' y[i];');
+            __numeric[i+'VS'] = __numeric.pointwise(['x[i]','y'],'ret[i] = x[i] '+o+' y;');
+            __numeric[i] = Function(
                     'var n = arguments.length, i, x = arguments[0], y;\n'+
-                    'var VV = numeric.'+i+'VV, VS = numeric.'+i+'VS, SV = numeric.'+i+'SV;\n'+
+                    'var VV = __numeric.'+i+'VV, VS = __numeric.'+i+'VS, SV = __numeric.'+i+'SV;\n'+
                     'for(i=1;i!==n;++i) { \n'+
                     '  y = arguments[i];'+
                     '  if(typeof x === "object") {\n'+
@@ -610,74 +615,74 @@ numeric.ops1 = {
                     '  } else if(typeof y === "object") x = SV(x,y);\n'+
                     '  else x = x '+o+' y;\n'+
                     '}\nreturn x;\n');
-            numeric[o] = numeric[i];
+            __numeric[o] = __numeric[i];
         }
     }
-    for(i in numeric.ops1) {
-        if(numeric.ops1.hasOwnProperty(i)) {
-            o = numeric.ops1[i];
-            numeric[i+'V'] = numeric.pointwise(['x[i]'],'ret[i] = '+o+'x[i];');
-            numeric[i] = Function('x','if(typeof x === "object") return numeric.'+i+'V(x);\nreturn '+o+'(x);');
+    for(i in __numeric.ops1) {
+        if(__numeric.ops1.hasOwnProperty(i)) {
+            o = __numeric.ops1[i];
+            __numeric[i+'V'] = __numeric.pointwise(['x[i]'],'ret[i] = '+o+'x[i];');
+            __numeric[i] = Function('x','if(typeof x === "object") return __numeric.'+i+'V(x);\nreturn '+o+'(x);');
         }
     }
-    for(i=0;i<numeric.mathfuns.length;i++) {
-        o = numeric.mathfuns[i];
-        numeric[o+'V'] = numeric.pointwise(['x[i]'],'ret[i] = fun(x[i]);','var fun = Math.'+o+';');
-        numeric[o] = Function('x','if(typeof x === "object") return numeric.'+o+'V(x);\nreturn Math.'+o+'(x);');
+    for(i=0;i<__numeric.mathfuns.length;i++) {
+        o = __numeric.mathfuns[i];
+        __numeric[o+'V'] = __numeric.pointwise(['x[i]'],'ret[i] = fun(x[i]);','var fun = Math.'+o+';');
+        __numeric[o] = Function('x','if(typeof x === "object") return __numeric.'+o+'V(x);\nreturn Math.'+o+'(x);');
     }
-    numeric.isNaNV = numeric.pointwise(['x[i]'],'ret[i] = isNaN(x[i]);');
-    numeric.isNaN = function isNaN(x) { if(typeof x === "object") return numeric.isNaNV(x); return isNaN(x); }
-    numeric.isFiniteV = numeric.pointwise(['x[i]'],'ret[i] = isFinite(x[i]);');
-    numeric.isFinite = function isNaN(x) { if(typeof x === "object") return numeric.isFiniteV(x); return isFinite(x); }
-    for(i in numeric.opseq) {
-        if(numeric.opseq.hasOwnProperty(i)) {
-            numeric[i+'S'] = Function('x','y',
+    __numeric.isNaNV = __numeric.pointwise(['x[i]'],'ret[i] = isNaN(x[i]);');
+    __numeric.isNaN = function isNaN(x) { if(typeof x === "object") return __numeric.isNaNV(x); return isNaN(x); }
+    __numeric.isFiniteV = __numeric.pointwise(['x[i]'],'ret[i] = isFinite(x[i]);');
+    __numeric.isFinite = function isNaN(x) { if(typeof x === "object") return __numeric.isFiniteV(x); return isFinite(x); }
+    for(i in __numeric.opseq) {
+        if(__numeric.opseq.hasOwnProperty(i)) {
+            __numeric[i+'S'] = Function('x','y',
                     'var n = x.length, i;\n'+
-                    'for(i=n-1;i>=0;i--) x[i] '+numeric.opseq[i]+' y;');
-            numeric[i+'V'] = Function('x','y',
+                    'for(i=n-1;i>=0;i--) x[i] '+__numeric.opseq[i]+' y;');
+            __numeric[i+'V'] = Function('x','y',
                     'var n = x.length, i;\n'+
-                    'for(i=n-1;i>=0;i--) x[i] '+numeric.opseq[i]+' y[i];');
-            numeric[i] = Function('x','y',
-                    'var s = numeric.dim(x);\n'+
-                    'if(typeof y === "number") { numeric._biforeach(x,y,s,0,numeric.'+i+'S); return x; }\n'+
-                    'numeric._biforeach(x,y,s,0,numeric.'+i+'V);\n'+
+                    'for(i=n-1;i>=0;i--) x[i] '+__numeric.opseq[i]+' y[i];');
+            __numeric[i] = Function('x','y',
+                    'var s = __numeric.dim(x);\n'+
+                    'if(typeof y === "number") { __numeric._biforeach(x,y,s,0,__numeric.'+i+'S); return x; }\n'+
+                    '__numeric._biforeach(x,y,s,0,__numeric.'+i+'V);\n'+
                     'return x;');
-            numeric[numeric.opseq[i]] = numeric[i];
+            __numeric[__numeric.opseq[i]] = __numeric[i];
         }
     }
 }());
 
-numeric.atan2VV = numeric.pointwise(['x[i]','y[i]'],'ret[i] = atan2(x[i],y[i]);','var atan2 = Math.atan2;');
-numeric.atan2VS = numeric.pointwise(['x[i]','y'],'ret[i] = atan2(x[i],y);','var atan2 = Math.atan2;');
-numeric.atan2SV = numeric.pointwise(['x','y[i]'],'ret[i] = atan2(x,y[i]);','var atan2 = Math.atan2;');
-numeric.atan2 = function atan2(x,y) {
+__numeric.atan2VV = __numeric.pointwise(['x[i]','y[i]'],'ret[i] = atan2(x[i],y[i]);','var atan2 = Math.atan2;');
+__numeric.atan2VS = __numeric.pointwise(['x[i]','y'],'ret[i] = atan2(x[i],y);','var atan2 = Math.atan2;');
+__numeric.atan2SV = __numeric.pointwise(['x','y[i]'],'ret[i] = atan2(x,y[i]);','var atan2 = Math.atan2;');
+__numeric.atan2 = function atan2(x,y) {
     if(typeof x === "object") {
-        if(typeof y === "object") return numeric.atan2VV(x,y);
-        return numeric.atan2VS(x,y);
+        if(typeof y === "object") return __numeric.atan2VV(x,y);
+        return __numeric.atan2VS(x,y);
     }
-    if (typeof y === "object") return numeric.atan2SV(x,y);
+    if (typeof y === "object") return __numeric.atan2SV(x,y);
     return Math.atan2(x,y);
 }
 
-numeric.powVV = numeric.pointwise(['x[i]','y[i]'],'ret[i] = pow(x[i],y[i]);','var pow = Math.pow;');
-numeric.powVS = numeric.pointwise(['x[i]','y'],'ret[i] = pow(x[i],y);','var pow = Math.pow;');
-numeric.powSV = numeric.pointwise(['x','y[i]'],'ret[i] = pow(x,y[i]);','var pow = Math.pow;');
-numeric.pow = function pow(x,y) {
+__numeric.powVV = __numeric.pointwise(['x[i]','y[i]'],'ret[i] = pow(x[i],y[i]);','var pow = Math.pow;');
+__numeric.powVS = __numeric.pointwise(['x[i]','y'],'ret[i] = pow(x[i],y);','var pow = Math.pow;');
+__numeric.powSV = __numeric.pointwise(['x','y[i]'],'ret[i] = pow(x,y[i]);','var pow = Math.pow;');
+__numeric.pow = function pow(x,y) {
     if(typeof x === "object") {
-        if(typeof y === "object") return numeric.powVV(x,y);
-        return numeric.powVS(x,y);
+        if(typeof y === "object") return __numeric.powVV(x,y);
+        return __numeric.powVS(x,y);
     }
-    if (typeof y === "object") return numeric.powSV(x,y);
+    if (typeof y === "object") return __numeric.powSV(x,y);
     return Math.pow(x,y);
 }
 
-numeric.clone = numeric.pointwise(['x[i]'],'ret[i] = x[i];');
+__numeric.clone = __numeric.pointwise(['x[i]'],'ret[i] = x[i];');
 
-numeric.inv = function inv(x) {
-    var s = numeric.dim(x), abs = Math.abs;
+__numeric.inv = function inv(x) {
+    var s = __numeric.dim(x), abs = Math.abs;
     if(s.length !== 2 || s[0] !== s[1]) { throw new Error('numeric: inv() only works on square matrices'); }
-    var n = s[0], ret = numeric.identity(n),i,j,k,A = numeric.clone(x),Aj,Ai,Ij,Ii,alpha,temp,k0,k1,k2,k3;
-    var P = numeric.linspace(0,n-1), Q = numeric.rep([n],0);
+    var n = s[0], ret = __numeric.identity(n),i,j,k,A = __numeric.clone(x),Aj,Ai,Ij,Ii,alpha,temp,k0,k1,k2,k3;
+    var P = __numeric.linspace(0,n-1), Q = __numeric.rep([n],0);
     for(j=0;j<n-1;j++) {
         k=j;
         for(i=j+1;i<n;i++) { if(abs(A[i][j]) > abs(A[k][j])) { k = i; } }
@@ -732,10 +737,10 @@ numeric.inv = function inv(x) {
     return ret;
 }
 
-numeric.det = function det(x) {
-    var s = numeric.dim(x);
+__numeric.det = function det(x) {
+    var s = __numeric.dim(x);
     if(s.length !== 2 || s[0] !== s[1]) { throw new Error('numeric: det() only works on square matrices'); }
-    var n = s[0], ret = 1,i,j,k,A = numeric.clone(x),Aj,Ai,alpha,temp,k1,k2,k3;
+    var n = s[0], ret = 1,i,j,k,A = __numeric.clone(x),Aj,Ai,alpha,temp,k1,k2,k3;
     for(j=0;j<n-1;j++) {
         k=j;
         for(i=j+1;i<n;i++) { if(Math.abs(A[i][j]) > Math.abs(A[k][j])) { k = i; } }
@@ -760,7 +765,7 @@ numeric.det = function det(x) {
     return ret*A[j][j];
 }
 
-numeric.transpose = function transpose(x) {
+__numeric.transpose = function transpose(x) {
     var i,j,m = x.length,n = x[0].length, ret=Array(n),A0,A1,Bj;
     for(j=0;j<n;j++) ret[j] = Array(m);
     for(i=m-1;i>=1;i-=2) {
@@ -786,7 +791,7 @@ numeric.transpose = function transpose(x) {
     }
     return ret;
 }
-numeric.negtranspose = function negtranspose(x) {
+__numeric.negtranspose = function negtranspose(x) {
     var i,j,m = x.length,n = x[0].length, ret=Array(n),A0,A1,Bj;
     for(j=0;j<n;j++) ret[j] = Array(m);
     for(i=m-1;i>=1;i-=2) {
@@ -813,7 +818,7 @@ numeric.negtranspose = function negtranspose(x) {
     return ret;
 }
 
-numeric._random = function _random(s,k) {
+__numeric._random = function _random(s,k) {
     var i,n=s[k],ret=Array(n), rnd;
     if(k === s.length-1) {
         rnd = Math.random;
@@ -827,16 +832,16 @@ numeric._random = function _random(s,k) {
     for(i=n-1;i>=0;i--) ret[i] = _random(s,k+1);
     return ret;
 }
-numeric.random = function random(s) { return numeric._random(s,0); }
+__numeric.random = function random(s) { return __numeric._random(s,0); }
 
-numeric.norm2Squared = function norm2Squared(x) {}
-numeric.norm2Squared = numeric.mapreduce('accum += xi*xi;','0');
+__numeric.norm2Squared = function norm2Squared(x) {}
+__numeric.norm2Squared = __numeric.mapreduce('accum += xi*xi;','0');
 
-numeric.norm2 = function norm2(x) { return Math.sqrt(numeric.norm2Squared(x)); }
-numeric.norminf = numeric.mapreduce('accum = max(abs(xi),accum);','0; var max = Math.max, abs = Math.abs;');
-numeric.sum = numeric.mapreduce('accum += xi;','0');
+__numeric.norm2 = function norm2(x) { return Math.sqrt(__numeric.norm2Squared(x)); }
+__numeric.norminf = __numeric.mapreduce('accum = max(abs(xi),accum);','0; var max = Math.max, abs = Math.abs;');
+__numeric.sum = __numeric.mapreduce('accum += xi;','0');
 
-numeric.linspace = function linspace(a,b,n) {
+__numeric.linspace = function linspace(a,b,n) {
     if(typeof n === "undefined") n = Math.round(b-a)+1;
     var i,ret = Array(n);
     n--;
@@ -844,8 +849,8 @@ numeric.linspace = function linspace(a,b,n) {
     return ret;
 }
 
-numeric.getBlock = function getBlock(x,from,to) {
-    var s = numeric.dim(x);
+__numeric.getBlock = function getBlock(x,from,to) {
+    var s = __numeric.dim(x);
     function foo(x,k) {
         var i,a = from[k], n = to[k]-a, ret = Array(n);
         if(k === s.length-1) {
@@ -858,8 +863,8 @@ numeric.getBlock = function getBlock(x,from,to) {
     return foo(x,0);
 }
 
-numeric.setBlock = function setBlock(x,from,to,B) {
-    var s = numeric.dim(x);
+__numeric.setBlock = function setBlock(x,from,to,B) {
+    var s = __numeric.dim(x);
     function foo(x,y,k) {
         var i,a = from[k], n = to[k]-a;
         if(k === s.length-1) { for(i=n;i>=0;i--) { x[i+a] = y[i]; } }
@@ -869,9 +874,9 @@ numeric.setBlock = function setBlock(x,from,to,B) {
     return x;
 }
 
-numeric.tensor = function tensor(x,y) {
-    if(typeof x === "number" || typeof y === "number") return numeric.mul(x,y);
-    var s1 = numeric.dim(x), s2 = numeric.dim(y);
+__numeric.tensor = function tensor(x,y) {
+    if(typeof x === "number" || typeof y === "number") return __numeric.mul(x,y);
+    var s1 = __numeric.dim(x), s2 = __numeric.dim(y);
     if(s1.length !== 1 || s2.length !== 1) {
         throw new Error('numeric: tensor product is only defined for vectors');
     }
@@ -895,85 +900,85 @@ numeric.tensor = function tensor(x,y) {
 }
 
 // 3. The Tensor type T
-numeric.T = function T(x,y) { this.x = x; this.y = y; }
-numeric.t = function t(x,y) { return new numeric.T(x,y); }
+__numeric.T = function T(x,y) { this.x = x; this.y = y; }
+__numeric.t = function t(x,y) { return new __numeric.T(x,y); }
 
-numeric.Tbinop = function Tbinop(rr,rc,cr,cc,setup) {
-    var io = numeric.indexOf;
+__numeric.Tbinop = function Tbinop(rr,rc,cr,cc,setup) {
+    var io = __numeric.indexOf;
     if(typeof setup !== "string") {
         var k;
         setup = '';
-        for(k in numeric) {
-            if(numeric.hasOwnProperty(k) && (rr.indexOf(k)>=0 || rc.indexOf(k)>=0 || cr.indexOf(k)>=0 || cc.indexOf(k)>=0) && k.length>1) {
-                setup += 'var '+k+' = numeric.'+k+';\n';
+        for(k in __numeric) {
+            if(__numeric.hasOwnProperty(k) && (rr.indexOf(k)>=0 || rc.indexOf(k)>=0 || cr.indexOf(k)>=0 || cc.indexOf(k)>=0) && k.length>1) {
+                setup += 'var '+k+' = __numeric.'+k+';\n';
             }
         }
     }
     return Function(['y'],
             'var x = this;\n'+
-            'if(!(y instanceof numeric.T)) { y = new numeric.T(y); }\n'+
+            'if(!(y instanceof __numeric.T)) { y = new __numeric.T(y); }\n'+
             setup+'\n'+
             'if(x.y) {'+
             '  if(y.y) {'+
-            '    return new numeric.T('+cc+');\n'+
+            '    return new __numeric.T('+cc+');\n'+
             '  }\n'+
-            '  return new numeric.T('+cr+');\n'+
+            '  return new __numeric.T('+cr+');\n'+
             '}\n'+
             'if(y.y) {\n'+
-            '  return new numeric.T('+rc+');\n'+
+            '  return new __numeric.T('+rc+');\n'+
             '}\n'+
-            'return new numeric.T('+rr+');\n'
+            'return new __numeric.T('+rr+');\n'
     );
 }
 
-numeric.T.prototype.add = numeric.Tbinop(
+__numeric.T.prototype.add = __numeric.Tbinop(
         'add(x.x,y.x)',
         'add(x.x,y.x),y.y',
         'add(x.x,y.x),x.y',
         'add(x.x,y.x),add(x.y,y.y)');
-numeric.T.prototype.sub = numeric.Tbinop(
+__numeric.T.prototype.sub = __numeric.Tbinop(
         'sub(x.x,y.x)',
         'sub(x.x,y.x),neg(y.y)',
         'sub(x.x,y.x),x.y',
         'sub(x.x,y.x),sub(x.y,y.y)');
-numeric.T.prototype.mul = numeric.Tbinop(
+__numeric.T.prototype.mul = __numeric.Tbinop(
         'mul(x.x,y.x)',
         'mul(x.x,y.x),mul(x.x,y.y)',
         'mul(x.x,y.x),mul(x.y,y.x)',
         'sub(mul(x.x,y.x),mul(x.y,y.y)),add(mul(x.x,y.y),mul(x.y,y.x))');
 
-numeric.T.prototype.reciprocal = function reciprocal() {
-    var mul = numeric.mul, div = numeric.div;
+__numeric.T.prototype.reciprocal = function reciprocal() {
+    var mul = __numeric.mul, div = __numeric.div;
     if(this.y) {
-        var d = numeric.add(mul(this.x,this.x),mul(this.y,this.y));
-        return new numeric.T(div(this.x,d),div(numeric.neg(this.y),d));
+        var d = __numeric.add(mul(this.x,this.x),mul(this.y,this.y));
+        return new __numeric.T(div(this.x,d),div(__numeric.neg(this.y),d));
     }
     return new T(div(1,this.x));
 }
-numeric.T.prototype.div = function div(y) {
-    if(!(y instanceof numeric.T)) y = new numeric.T(y);
+__numeric.T.prototype.div = function div(y) {
+    if(!(y instanceof __numeric.T)) y = new __numeric.T(y);
     if(y.y) { return this.mul(y.reciprocal()); }
-    var div = numeric.div;
-    if(this.y) { return new numeric.T(div(this.x,y.x),div(this.y,y.x)); }
-    return new numeric.T(div(this.x,y.x));
+    var div = __numeric.div;
+    if(this.y) { return new __numeric.T(div(this.x,y.x),div(this.y,y.x)); }
+    return new __numeric.T(div(this.x,y.x));
 }
-numeric.T.prototype.dot = numeric.Tbinop(
+__numeric.T.prototype.dot = __numeric.Tbinop(
         'dot(x.x,y.x)',
         'dot(x.x,y.x),dot(x.x,y.y)',
         'dot(x.x,y.x),dot(x.y,y.x)',
         'sub(dot(x.x,y.x),dot(x.y,y.y)),add(dot(x.x,y.y),dot(x.y,y.x))'
         );
-numeric.T.prototype.transpose = function transpose() {
-    var t = numeric.transpose, x = this.x, y = this.y;
-    if(y) { return new numeric.T(t(x),t(y)); }
-    return new numeric.T(t(x));
+__numeric.T.prototype.transpose = function transpose() {
+    var t = __numeric.transpose, x = this.x, y = this.y;
+    if(y) { return new __numeric.T(t(x),t(y)); }
+    return new __numeric.T(t(x));
 }
-numeric.T.prototype.transjugate = function transjugate() {
-    var t = numeric.transpose, x = this.x, y = this.y;
-    if(y) { return new numeric.T(t(x),numeric.negtranspose(y)); }
-    return new numeric.T(t(x));
+__numeric.T.prototype.transjugate = function transjugate() {
+    var t = __numeric.transpose, x = this.x, y = this.y;
+    if(y) { return new __numeric.T(t(x),__numeric.negtranspose(y)); }
+    return new __numeric.T(t(x));
 }
-numeric.Tunop = function Tunop(r,c,s) {
+__numeric.Tunop = function Tunop(r,c,s) {
     if(typeof s !== "string") { s = ''; }
     return Function(
             'var x = this;\n'+
@@ -985,41 +990,41 @@ numeric.Tunop = function Tunop(r,c,s) {
     );
 }
 
-numeric.T.prototype.exp = numeric.Tunop(
-        'return new numeric.T(ex)',
-        'return new numeric.T(mul(cos(x.y),ex),mul(sin(x.y),ex))',
-        'var ex = numeric.exp(x.x), cos = numeric.cos, sin = numeric.sin, mul = numeric.mul;');
-numeric.T.prototype.conj = numeric.Tunop(
-        'return new numeric.T(x.x);',
-        'return new numeric.T(x.x,numeric.neg(x.y));');
-numeric.T.prototype.neg = numeric.Tunop(
-        'return new numeric.T(neg(x.x));',
-        'return new numeric.T(neg(x.x),neg(x.y));',
-        'var neg = numeric.neg;');
-numeric.T.prototype.sin = numeric.Tunop(
-        'return new numeric.T(numeric.sin(x.x))',
-        'return x.exp().sub(x.neg().exp()).div(new numeric.T(0,2));');
-numeric.T.prototype.cos = numeric.Tunop(
-        'return new numeric.T(numeric.cos(x.x))',
+__numeric.T.prototype.exp = __numeric.Tunop(
+        'return new __numeric.T(ex)',
+        'return new __numeric.T(mul(cos(x.y),ex),mul(sin(x.y),ex))',
+        'var ex = __numeric.exp(x.x), cos = __numeric.cos, sin = __numeric.sin, mul = __numeric.mul;');
+__numeric.T.prototype.conj = __numeric.Tunop(
+        'return new __numeric.T(x.x);',
+        'return new __numeric.T(x.x,__numeric.neg(x.y));');
+__numeric.T.prototype.neg = __numeric.Tunop(
+        'return new __numeric.T(neg(x.x));',
+        'return new __numeric.T(neg(x.x),neg(x.y));',
+        'var neg = __numeric.neg;');
+__numeric.T.prototype.sin = __numeric.Tunop(
+        'return new __numeric.T(__numeric.sin(x.x))',
+        'return x.exp().sub(x.neg().exp()).div(new __numeric.T(0,2));');
+__numeric.T.prototype.cos = __numeric.Tunop(
+        'return new __numeric.T(__numeric.cos(x.x))',
         'return x.exp().add(x.neg().exp()).div(2);');
-numeric.T.prototype.abs = numeric.Tunop(
-        'return new numeric.T(numeric.abs(x.x));',
-        'return new numeric.T(numeric.sqrt(numeric.add(mul(x.x,x.x),(x.y,x.y))));',
-        'var mul = numeric.mul;');
-numeric.T.prototype.log = numeric.Tunop(
-        'return new numeric.T(numeric.log(x.x));',
-        'var theta = new numeric.T(numeric.atan2(x.y,x.x)), r = x.abs();\n'+
-        'return new numeric.T(numeric.log(r.x),theta.x);');
-numeric.T.prototype.norm2 = numeric.Tunop(
-        'return numeric.norm2(x.x);',
-        'var f = numeric.norm2Squared;\n'+
+__numeric.T.prototype.abs = __numeric.Tunop(
+        'return new __numeric.T(__numeric.abs(x.x));',
+        'return new __numeric.T(__numeric.sqrt(__numeric.add(mul(x.x,x.x),(x.y,x.y))));',
+        'var mul = __numeric.mul;');
+__numeric.T.prototype.log = __numeric.Tunop(
+        'return new __numeric.T(__numeric.log(x.x));',
+        'var theta = new __numeric.T(__numeric.atan2(x.y,x.x)), r = x.abs();\n'+
+        'return new __numeric.T(__numeric.log(r.x),theta.x);');
+__numeric.T.prototype.norm2 = __numeric.Tunop(
+        'return __numeric.norm2(x.x);',
+        'var f = __numeric.norm2Squared;\n'+
         'return Math.sqrt(f(x.x)+f(x.y));');
-numeric.T.prototype.inv = function inv() {
+__numeric.T.prototype.inv = function inv() {
     var A = this;
-    if(typeof A.y === "undefined") { return new numeric.T(numeric.inv(A.x)); }
+    if(typeof A.y === "undefined") { return new __numeric.T(__numeric.inv(A.x)); }
     var n = A.x.length, i, j, k;
-    var Rx = numeric.identity(n),Ry = numeric.rep([n,n],0);
-    var Ax = numeric.clone(A.x), Ay = numeric.clone(A.y);
+    var Rx = __numeric.identity(n),Ry = __numeric.rep([n,n],0);
+    var Ax = __numeric.clone(A.x), Ay = __numeric.clone(A.y);
     var Aix, Aiy, Ajx, Ajy, Rix, Riy, Rjx, Rjy;
     var i,j,k,d,d1,ax,ay,bx,by,temp;
     for(i=0;i<n;i++) {
@@ -1078,9 +1083,9 @@ numeric.T.prototype.inv = function inv() {
             }
         }
     }
-    return new numeric.T(Rx,Ry);
+    return new __numeric.T(Rx,Ry);
 }
-numeric.T.prototype.get = function get(i) {
+__numeric.T.prototype.get = function get(i) {
     var x = this.x, y = this.y, k = 0, ik, n = i.length;
     if(y) {
         while(k<n) {
@@ -1089,16 +1094,16 @@ numeric.T.prototype.get = function get(i) {
             y = y[ik];
             k++;
         }
-        return new numeric.T(x,y);
+        return new __numeric.T(x,y);
     }
     while(k<n) {
         ik = i[k];
         x = x[ik];
         k++;
     }
-    return new numeric.T(x);
+    return new __numeric.T(x);
 }
-numeric.T.prototype.set = function set(i,v) {
+__numeric.T.prototype.set = function set(i,v) {
     var x = this.x, y = this.y, k = 0, ik, n = i.length, vx = v.x, vy = v.y;
     if(n===0) {
         if(vy) { this.y = vy; }
@@ -1109,7 +1114,7 @@ numeric.T.prototype.set = function set(i,v) {
     if(vy) {
         if(y) { /* ok */ }
         else {
-            y = numeric.rep(numeric.dim(x),0);
+            y = __numeric.rep(__numeric.dim(x),0);
             this.y = y;
         }
         while(k<n-1) {
@@ -1132,7 +1137,7 @@ numeric.T.prototype.set = function set(i,v) {
         }
         ik = i[k];
         x[ik] = vx;
-        if(vx instanceof Array) y[ik] = numeric.rep(numeric.dim(vx),0);
+        if(vx instanceof Array) y[ik] = __numeric.rep(__numeric.dim(vx),0);
         else y[ik] = 0;
         return this;
     }
@@ -1145,83 +1150,83 @@ numeric.T.prototype.set = function set(i,v) {
     x[ik] = vx;
     return this;
 }
-numeric.T.prototype.getRows = function getRows(i0,i1) {
+__numeric.T.prototype.getRows = function getRows(i0,i1) {
     var n = i1-i0+1, j;
     var rx = Array(n), ry, x = this.x, y = this.y;
     for(j=i0;j<=i1;j++) { rx[j-i0] = x[j]; }
     if(y) {
         ry = Array(n);
         for(j=i0;j<=i1;j++) { ry[j-i0] = y[j]; }
-        return new numeric.T(rx,ry);
+        return new __numeric.T(rx,ry);
     }
-    return new numeric.T(rx);
+    return new __numeric.T(rx);
 }
-numeric.T.prototype.setRows = function setRows(i0,i1,A) {
+__numeric.T.prototype.setRows = function setRows(i0,i1,A) {
     var j;
     var rx = this.x, ry = this.y, x = A.x, y = A.y;
     for(j=i0;j<=i1;j++) { rx[j] = x[j-i0]; }
     if(y) {
-        if(!ry) { ry = numeric.rep(numeric.dim(rx),0); this.y = ry; }
+        if(!ry) { ry = __numeric.rep(__numeric.dim(rx),0); this.y = ry; }
         for(j=i0;j<=i1;j++) { ry[j] = y[j-i0]; }
     } else if(ry) {
-        for(j=i0;j<=i1;j++) { ry[j] = numeric.rep([x[j-i0].length],0); }
+        for(j=i0;j<=i1;j++) { ry[j] = __numeric.rep([x[j-i0].length],0); }
     }
     return this;
 }
-numeric.T.prototype.getRow = function getRow(k) {
+__numeric.T.prototype.getRow = function getRow(k) {
     var x = this.x, y = this.y;
-    if(y) { return new numeric.T(x[k],y[k]); }
-    return new numeric.T(x[k]);
+    if(y) { return new __numeric.T(x[k],y[k]); }
+    return new __numeric.T(x[k]);
 }
-numeric.T.prototype.setRow = function setRow(i,v) {
+__numeric.T.prototype.setRow = function setRow(i,v) {
     var rx = this.x, ry = this.y, x = v.x, y = v.y;
     rx[i] = x;
     if(y) {
-        if(!ry) { ry = numeric.rep(numeric.dim(rx),0); this.y = ry; }
+        if(!ry) { ry = __numeric.rep(__numeric.dim(rx),0); this.y = ry; }
         ry[i] = y;
     } else if(ry) {
-        ry = numeric.rep([x.length],0);
+        ry = __numeric.rep([x.length],0);
     }
     return this;
 }
 
-numeric.T.prototype.getBlock = function getBlock(from,to) {
-    var x = this.x, y = this.y, b = numeric.getBlock;
-    if(y) { return new numeric.T(b(x,from,to),b(y,from,to)); }
-    return new numeric.T(b(x,from,to));
+__numeric.T.prototype.getBlock = function getBlock(from,to) {
+    var x = this.x, y = this.y, b = __numeric.getBlock;
+    if(y) { return new __numeric.T(b(x,from,to),b(y,from,to)); }
+    return new __numeric.T(b(x,from,to));
 }
-numeric.T.prototype.setBlock = function setBlock(from,to,A) {
-    if(!(A instanceof numeric.T)) A = new numeric.T(A);
-    var x = this.x, y = this.y, b = numeric.setBlock, Ax = A.x, Ay = A.y;
+__numeric.T.prototype.setBlock = function setBlock(from,to,A) {
+    if(!(A instanceof __numeric.T)) A = new __numeric.T(A);
+    var x = this.x, y = this.y, b = __numeric.setBlock, Ax = A.x, Ay = A.y;
     if(Ay) {
-        if(!y) { this.y = numeric.rep(numeric.dim(this),0); y = this.y; }
+        if(!y) { this.y = __numeric.rep(__numeric.dim(this),0); y = this.y; }
         b(x,from,to,Ax);
         b(y,from,to,Ay);
         return this;
     }
     b(x,from,to,Ax);
-    if(y) b(y,from,to,numeric.rep(numeric.dim(Ax),0));
+    if(y) b(y,from,to,__numeric.rep(__numeric.dim(Ax),0));
 }
-numeric.T.rep = function rep(s,v) {
-    var T = numeric.T;
+__numeric.T.rep = function rep(s,v) {
+    var T = __numeric.T;
     if(!(v instanceof T)) v = new T(v);
-    var x = v.x, y = v.y, r = numeric.rep;
+    var x = v.x, y = v.y, r = __numeric.rep;
     if(y) return new T(r(s,x),r(s,y));
     return new T(r(s,x));
 }
-numeric.T.diag = function diag(d) {
-    if(!(d instanceof numeric.T)) d = new numeric.T(d);
-    var x = d.x, y = d.y, diag = numeric.diag;
-    if(y) return new numeric.T(diag(x),diag(y));
-    return new numeric.T(diag(x));
+__numeric.T.diag = function diag(d) {
+    if(!(d instanceof __numeric.T)) d = new __numeric.T(d);
+    var x = d.x, y = d.y, diag = __numeric.diag;
+    if(y) return new __numeric.T(diag(x),diag(y));
+    return new __numeric.T(diag(x));
 }
-numeric.T.eig = function eig() {
+__numeric.T.eig = function eig() {
     if(this.y) { throw new Error('eig: not implemented for complex matrices.'); }
-    return numeric.eig(this.x);
+    return __numeric.eig(this.x);
 }
-numeric.T.identity = function identity(n) { return new numeric.T(numeric.identity(n)); }
-numeric.T.prototype.getDiag = function getDiag() {
-    var n = numeric;
+__numeric.T.identity = function identity(n) { return new __numeric.T(__numeric.identity(n)); }
+__numeric.T.prototype.getDiag = function getDiag() {
+    var n = __numeric;
     var x = this.x, y = this.y;
     if(y) { return new n.T(n.getDiag(x),n.getDiag(y)); }
     return new n.T(n.getDiag(x));
@@ -1229,133 +1234,133 @@ numeric.T.prototype.getDiag = function getDiag() {
 
 // 4. Eigenvalues of real matrices
 
-numeric.house = function house(x) {
-    var v = numeric.clone(x);
+__numeric.house = function house(x) {
+    var v = __numeric.clone(x);
     var s = x[0] >= 0 ? 1 : -1;
-    var alpha = s*numeric.norm2(x);
+    var alpha = s*__numeric.norm2(x);
     v[0] += alpha;
-    var foo = numeric.norm2(v);
+    var foo = __numeric.norm2(v);
     if(foo === 0) { /* this should not happen */ throw new Error('eig: internal error'); }
-    return numeric.div(v,foo);
+    return __numeric.div(v,foo);
 }
 
-numeric.toUpperHessenberg = function toUpperHessenberg(me) {
-    var s = numeric.dim(me);
+__numeric.toUpperHessenberg = function toUpperHessenberg(me) {
+    var s = __numeric.dim(me);
     if(s.length !== 2 || s[0] !== s[1]) { throw new Error('numeric: toUpperHessenberg() only works on square matrices'); }
-    var m = s[0], i,j,k,x,v,A = numeric.clone(me),B,C,Ai,Ci,Q = numeric.identity(m),Qi;
+    var m = s[0], i,j,k,x,v,A = __numeric.clone(me),B,C,Ai,Ci,Q = __numeric.identity(m),Qi;
     for(j=0;j<m-2;j++) {
         x = Array(m-j-1);
         for(i=j+1;i<m;i++) { x[i-j-1] = A[i][j]; }
-        v = numeric.house(x);
-        B = numeric.getBlock(A,[j+1,j],[m-1,m-1]);
-        C = numeric.tensor(v,numeric.dot(v,B));
+        v = __numeric.house(x);
+        B = __numeric.getBlock(A,[j+1,j],[m-1,m-1]);
+        C = __numeric.tensor(v,__numeric.dot(v,B));
         for(i=j+1;i<m;i++) { Ai = A[i]; Ci = C[i-j-1]; for(k=j;k<m;k++) Ai[k] -= 2*Ci[k-j]; }
-        B = numeric.getBlock(A,[0,j+1],[m-1,m-1]);
-        C = numeric.tensor(numeric.dot(B,v),v);
+        B = __numeric.getBlock(A,[0,j+1],[m-1,m-1]);
+        C = __numeric.tensor(__numeric.dot(B,v),v);
         for(i=0;i<m;i++) { Ai = A[i]; Ci = C[i]; for(k=j+1;k<m;k++) Ai[k] -= 2*Ci[k-j-1]; }
         B = Array(m-j-1);
         for(i=j+1;i<m;i++) B[i-j-1] = Q[i];
-        C = numeric.tensor(v,numeric.dot(v,B));
+        C = __numeric.tensor(v,__numeric.dot(v,B));
         for(i=j+1;i<m;i++) { Qi = Q[i]; Ci = C[i-j-1]; for(k=0;k<m;k++) Qi[k] -= 2*Ci[k]; }
     }
     return {H:A, Q:Q};
 }
 
-numeric.epsilon = 2.220446049250313e-16;
+__numeric.epsilon = 2.220446049250313e-16;
 
-numeric.QRFrancis = function(H,maxiter) {
+__numeric.QRFrancis = function(H,maxiter) {
     if(typeof maxiter === "undefined") { maxiter = 10000; }
-    H = numeric.clone(H);
-    var H0 = numeric.clone(H);
-    var s = numeric.dim(H),m=s[0],x,v,a,b,c,d,det,tr, Hloc, Q = numeric.identity(m), Qi, Hi, B, C, Ci,i,j,k,iter;
+    H = __numeric.clone(H);
+    var H0 = __numeric.clone(H);
+    var s = __numeric.dim(H),m=s[0],x,v,a,b,c,d,det,tr, Hloc, Q = __numeric.identity(m), Qi, Hi, B, C, Ci,i,j,k,iter;
     if(m<3) { return {Q:Q, B:[ [0,m-1] ]}; }
-    var epsilon = numeric.epsilon;
+    var epsilon = __numeric.epsilon;
     for(iter=0;iter<maxiter;iter++) {
         for(j=0;j<m-1;j++) {
             if(Math.abs(H[j+1][j]) < epsilon*(Math.abs(H[j][j])+Math.abs(H[j+1][j+1]))) {
-                var QH1 = numeric.QRFrancis(numeric.getBlock(H,[0,0],[j,j]),maxiter);
-                var QH2 = numeric.QRFrancis(numeric.getBlock(H,[j+1,j+1],[m-1,m-1]),maxiter);
+                var QH1 = __numeric.QRFrancis(__numeric.getBlock(H,[0,0],[j,j]),maxiter);
+                var QH2 = __numeric.QRFrancis(__numeric.getBlock(H,[j+1,j+1],[m-1,m-1]),maxiter);
                 B = Array(j+1);
                 for(i=0;i<=j;i++) { B[i] = Q[i]; }
-                C = numeric.dot(QH1.Q,B);
+                C = __numeric.dot(QH1.Q,B);
                 for(i=0;i<=j;i++) { Q[i] = C[i]; }
                 B = Array(m-j-1);
                 for(i=j+1;i<m;i++) { B[i-j-1] = Q[i]; }
-                C = numeric.dot(QH2.Q,B);
+                C = __numeric.dot(QH2.Q,B);
                 for(i=j+1;i<m;i++) { Q[i] = C[i-j-1]; }
-                return {Q:Q,B:QH1.B.concat(numeric.add(QH2.B,j+1))};
+                return {Q:Q,B:QH1.B.concat(__numeric.add(QH2.B,j+1))};
             }
         }
         a = H[m-2][m-2]; b = H[m-2][m-1];
         c = H[m-1][m-2]; d = H[m-1][m-1];
         tr = a+d;
         det = (a*d-b*c);
-        Hloc = numeric.getBlock(H, [0,0], [2,2]);
+        Hloc = __numeric.getBlock(H, [0,0], [2,2]);
         if(tr*tr>=4*det) {
             var s1,s2;
             s1 = 0.5*(tr+Math.sqrt(tr*tr-4*det));
             s2 = 0.5*(tr-Math.sqrt(tr*tr-4*det));
-            Hloc = numeric.add(numeric.sub(numeric.dot(Hloc,Hloc),
-                                           numeric.mul(Hloc,s1+s2)),
-                               numeric.diag(numeric.rep([3],s1*s2)));
+            Hloc = __numeric.add(__numeric.sub(__numeric.dot(Hloc,Hloc),
+                                           __numeric.mul(Hloc,s1+s2)),
+                               __numeric.diag(__numeric.rep([3],s1*s2)));
         } else {
-            Hloc = numeric.add(numeric.sub(numeric.dot(Hloc,Hloc),
-                                           numeric.mul(Hloc,tr)),
-                               numeric.diag(numeric.rep([3],det)));
+            Hloc = __numeric.add(__numeric.sub(__numeric.dot(Hloc,Hloc),
+                                           __numeric.mul(Hloc,tr)),
+                               __numeric.diag(__numeric.rep([3],det)));
         }
         x = [Hloc[0][0],Hloc[1][0],Hloc[2][0]];
-        v = numeric.house(x);
+        v = __numeric.house(x);
         B = [H[0],H[1],H[2]];
-        C = numeric.tensor(v,numeric.dot(v,B));
+        C = __numeric.tensor(v,__numeric.dot(v,B));
         for(i=0;i<3;i++) { Hi = H[i]; Ci = C[i]; for(k=0;k<m;k++) Hi[k] -= 2*Ci[k]; }
-        B = numeric.getBlock(H, [0,0],[m-1,2]);
-        C = numeric.tensor(numeric.dot(B,v),v);
+        B = __numeric.getBlock(H, [0,0],[m-1,2]);
+        C = __numeric.tensor(__numeric.dot(B,v),v);
         for(i=0;i<m;i++) { Hi = H[i]; Ci = C[i]; for(k=0;k<3;k++) Hi[k] -= 2*Ci[k]; }
         B = [Q[0],Q[1],Q[2]];
-        C = numeric.tensor(v,numeric.dot(v,B));
+        C = __numeric.tensor(v,__numeric.dot(v,B));
         for(i=0;i<3;i++) { Qi = Q[i]; Ci = C[i]; for(k=0;k<m;k++) Qi[k] -= 2*Ci[k]; }
         var J;
         for(j=0;j<m-2;j++) {
             for(k=j;k<=j+1;k++) {
                 if(Math.abs(H[k+1][k]) < epsilon*(Math.abs(H[k][k])+Math.abs(H[k+1][k+1]))) {
-                    var QH1 = numeric.QRFrancis(numeric.getBlock(H,[0,0],[k,k]),maxiter);
-                    var QH2 = numeric.QRFrancis(numeric.getBlock(H,[k+1,k+1],[m-1,m-1]),maxiter);
+                    var QH1 = __numeric.QRFrancis(__numeric.getBlock(H,[0,0],[k,k]),maxiter);
+                    var QH2 = __numeric.QRFrancis(__numeric.getBlock(H,[k+1,k+1],[m-1,m-1]),maxiter);
                     B = Array(k+1);
                     for(i=0;i<=k;i++) { B[i] = Q[i]; }
-                    C = numeric.dot(QH1.Q,B);
+                    C = __numeric.dot(QH1.Q,B);
                     for(i=0;i<=k;i++) { Q[i] = C[i]; }
                     B = Array(m-k-1);
                     for(i=k+1;i<m;i++) { B[i-k-1] = Q[i]; }
-                    C = numeric.dot(QH2.Q,B);
+                    C = __numeric.dot(QH2.Q,B);
                     for(i=k+1;i<m;i++) { Q[i] = C[i-k-1]; }
-                    return {Q:Q,B:QH1.B.concat(numeric.add(QH2.B,k+1))};
+                    return {Q:Q,B:QH1.B.concat(__numeric.add(QH2.B,k+1))};
                 }
             }
             J = Math.min(m-1,j+3);
             x = Array(J-j);
             for(i=j+1;i<=J;i++) { x[i-j-1] = H[i][j]; }
-            v = numeric.house(x);
-            B = numeric.getBlock(H, [j+1,j],[J,m-1]);
-            C = numeric.tensor(v,numeric.dot(v,B));
+            v = __numeric.house(x);
+            B = __numeric.getBlock(H, [j+1,j],[J,m-1]);
+            C = __numeric.tensor(v,__numeric.dot(v,B));
             for(i=j+1;i<=J;i++) { Hi = H[i]; Ci = C[i-j-1]; for(k=j;k<m;k++) Hi[k] -= 2*Ci[k-j]; }
-            B = numeric.getBlock(H, [0,j+1],[m-1,J]);
-            C = numeric.tensor(numeric.dot(B,v),v);
+            B = __numeric.getBlock(H, [0,j+1],[m-1,J]);
+            C = __numeric.tensor(__numeric.dot(B,v),v);
             for(i=0;i<m;i++) { Hi = H[i]; Ci = C[i]; for(k=j+1;k<=J;k++) Hi[k] -= 2*Ci[k-j-1]; }
             B = Array(J-j);
             for(i=j+1;i<=J;i++) B[i-j-1] = Q[i];
-            C = numeric.tensor(v,numeric.dot(v,B));
+            C = __numeric.tensor(v,__numeric.dot(v,B));
             for(i=j+1;i<=J;i++) { Qi = Q[i]; Ci = C[i-j-1]; for(k=0;k<m;k++) Qi[k] -= 2*Ci[k]; }
         }
     }
     throw new Error('numeric: eigenvalue iteration does not converge -- increase maxiter?');
 }
 
-numeric.eig = function eig(A,maxiter) {
-    var QH = numeric.toUpperHessenberg(A);
-    var QB = numeric.QRFrancis(QH.H,maxiter);
-    var T = numeric.T;
-    var n = A.length,i,k,flag = false,B = QB.B,H = numeric.dot(QB.Q,numeric.dot(QH.H,numeric.transpose(QB.Q)));
-    var Q = new T(numeric.dot(QB.Q,QH.Q)),Q0;
+__numeric.eig = function eig(A,maxiter) {
+    var QH = __numeric.toUpperHessenberg(A);
+    var QB = __numeric.QRFrancis(QH.H,maxiter);
+    var T = __numeric.T;
+    var n = A.length,i,k,flag = false,B = QB.B,H = __numeric.dot(QB.Q,__numeric.dot(QH.H,__numeric.transpose(QB.Q)));
+    var Q = new T(__numeric.dot(QB.Q,QH.Q)),Q0;
     var m = B.length,j;
     var a,b,c,d,p1,p2,disc,x,y,p,q,n1,n2;
     var sqrt = Math.sqrt;
@@ -1411,7 +1416,7 @@ numeric.eig = function eig(A,maxiter) {
             }
         }
     }
-    var R = Q.dot(A).dot(Q.transjugate()), n = A.length, E = numeric.T.identity(n);
+    var R = Q.dot(A).dot(Q.transjugate()), n = A.length, E = __numeric.T.identity(n);
     for(j=0;j<n;j++) {
         if(j>0) {
             for(k=j-1;k>=0;k--) {
@@ -1432,7 +1437,7 @@ numeric.eig = function eig(A,maxiter) {
 
 // 5. Real sparse linear algebra
 
-numeric.sdim = function dim(A,ret,k) {
+__numeric.sdim = function dim(A,ret,k) {
     if(typeof ret === "undefined") { ret = []; }
     if(typeof A !== "object") return ret;
     if(typeof k === "undefined") { k=0; }
@@ -1445,9 +1450,9 @@ numeric.sdim = function dim(A,ret,k) {
     return ret;
 };
 
-numeric.sclone = function clone(A,k,n) {
+__numeric.sclone = function clone(A,k,n) {
     if(typeof k === "undefined") { k=0; }
-    if(typeof n === "undefined") { n = numeric.sdim(A).length; }
+    if(typeof n === "undefined") { n = __numeric.sdim(A).length; }
     var i,ret = Array(A.length);
     if(k === n-1) {
         for(i in A) { if(A.hasOwnProperty(i)) ret[i] = A[i]; }
@@ -1459,7 +1464,7 @@ numeric.sclone = function clone(A,k,n) {
     return ret;
 }
 
-numeric.sdiag = function diag(d) {
+__numeric.sdiag = function diag(d) {
     var n = d.length,i,ret = Array(n),i1,i2,i3;
     for(i=n-1;i>=1;i-=2) {
         i1 = i-1;
@@ -1470,9 +1475,9 @@ numeric.sdiag = function diag(d) {
     return ret;
 }
 
-numeric.sidentity = function identity(n) { return numeric.sdiag(numeric.rep([n],1)); }
+__numeric.sidentity = function identity(n) { return __numeric.sdiag(__numeric.rep([n],1)); }
 
-numeric.stranspose = function transpose(A) {
+__numeric.stranspose = function transpose(A) {
     var ret = [], n = A.length, i,j,Ai;
     for(i in A) {
         if(!(A.hasOwnProperty(i))) continue;
@@ -1486,11 +1491,11 @@ numeric.stranspose = function transpose(A) {
     return ret;
 }
 
-numeric.sLUP = function LUP(A,tol) {
+__numeric.sLUP = function LUP(A,tol) {
     if(typeof tol === "undefined") { tol = 1; }
     var n = A.length, i,j,k;
-    var L = numeric.sidentity(n), U = numeric.sclone(A), UT = numeric.stranspose(U);
-    var P = numeric.linspace(0,n-1),Q = numeric.linspace(0,n-1);
+    var L = __numeric.sidentity(n), U = __numeric.sclone(A), UT = __numeric.stranspose(U);
+    var P = __numeric.linspace(0,n-1),Q = __numeric.linspace(0,n-1);
     var Ui, Uj, UTi, temp,alpha;
     var abs = Math.abs;
     for(i=0;i<n-1;i++) {
@@ -1532,8 +1537,8 @@ numeric.sLUP = function LUP(A,tol) {
     return {L:L, U:U, P:P, Pinv:Q};
 };
 
-numeric.sdotMM = function dotMM(A,B) {
-    var p = A.length, q = B.length, BT = numeric.stranspose(B), r = BT.length, Ai, BTk;
+__numeric.sdotMM = function dotMM(A,B) {
+    var p = A.length, q = B.length, BT = __numeric.stranspose(B), r = BT.length, Ai, BTk;
     var i,j,k,accum;
     var ret = Array(p),reti;
     for(i=p-1;i>=0;i--) {
@@ -1553,7 +1558,7 @@ numeric.sdotMM = function dotMM(A,B) {
     return ret;
 }
 
-numeric.sdotMV = function dotMV(A,x) {
+__numeric.sdotMV = function dotMV(A,x) {
     var p = A.length, Ai, i,j;
     var ret = Array(p), accum;
     for(i=p-1;i>=0;i--) {
@@ -1568,7 +1573,7 @@ numeric.sdotMV = function dotMV(A,x) {
     return ret;
 }
 
-numeric.sdotVM = function dotMV(x,A) {
+__numeric.sdotVM = function dotMV(x,A) {
     var i,j,Ai,alpha;
     var ret = [], accum;
     for(i in x) {
@@ -1584,26 +1589,26 @@ numeric.sdotVM = function dotMV(x,A) {
     return ret;
 }
 
-numeric.sdotVV = function dotVV(x,y) {
+__numeric.sdotVV = function dotVV(x,y) {
     var i,ret=0;
     for(i in x) { if(x[i] && y[i]) ret+= x[i]*y[i]; }
     return ret;
 }
 
-numeric.sdot = function dot(A,B) {
-    var m = numeric.sdim(A).length, n = numeric.sdim(B).length;
+__numeric.sdot = function dot(A,B) {
+    var m = __numeric.sdim(A).length, n = __numeric.sdim(B).length;
     var k = m*1000+n;
     switch(k) {
     case 0: return A*B;
-    case 1001: return numeric.sdotVV(A,B);
-    case 2001: return numeric.sdotMV(A,B);
-    case 1002: return numeric.sdotVM(A,B);
-    case 2002: return numeric.sdotMM(A,B);
+    case 1001: return __numeric.sdotVV(A,B);
+    case 2001: return __numeric.sdotMV(A,B);
+    case 1002: return __numeric.sdotVM(A,B);
+    case 2002: return __numeric.sdotMM(A,B);
     default: throw new Error('numeric.sdot not implemented for tensors of order '+m+' and '+n);
     }
 }
 
-numeric.sLUPsolve = function LUPsolve(lup,b) {
+__numeric.sLUPsolve = function LUPsolve(lup,b) {
     var L = lup.L, U = lup.U, P = lup.P;
     var n = L.length, i,j, ret = Array(n), accum, Ai,foo;
     for(i = 0;i<n;i++) {
@@ -1628,7 +1633,7 @@ numeric.sLUPsolve = function LUPsolve(lup,b) {
     return ret;
 }
 
-numeric.sscatter = function scatter(V) {
+__numeric.sscatter = function scatter(V) {
     var n = V[0].length, Vij, i, j, m = V.length, A = [], Aj;
     for(i=n-1;i>=0;--i) {
         if(!V[m-1][i]) continue;
@@ -1643,7 +1648,7 @@ numeric.sscatter = function scatter(V) {
     return A;
 }
 
-numeric.sgather = function gather(A,ret,k) {
+__numeric.sgather = function gather(A,ret,k) {
     if(typeof ret === "undefined") ret = [];
     if(typeof k === "undefined") k = [];
     var n,i,Ai;
@@ -1668,12 +1673,12 @@ numeric.sgather = function gather(A,ret,k) {
 }
 
 // 6. Coordinate matrices
-numeric.cLU = function LU(A) {
+__numeric.cLU = function LU(A) {
     var I = A[0], J = A[1], V = A[2];
     var p = I.length, m=0, i,j,k,a,b,c;
     for(i=0;i<p;i++) if(I[i]>m) m=I[i];
     m++;
-    var L = Array(m), U = Array(m), left = numeric.rep([m],Infinity), right = numeric.rep([m],-Infinity);
+    var L = Array(m), U = Array(m), left = __numeric.rep([m],Infinity), right = __numeric.rep([m],-Infinity);
     var Ui, Uj,alpha;
     for(k=0;k<p;k++) {
         i = I[k];
@@ -1685,8 +1690,8 @@ numeric.cLU = function LU(A) {
     for(i=m-1;i>=1;i--) { if(left[i]<left[i-1]) left[i-1] = left[i]; }
     var countL = 0, countU = 0;
     for(i=0;i<m;i++) {
-        U[i] = numeric.rep([right[i]-left[i]+1],0);
-        L[i] = numeric.rep([i-left[i]],0);
+        U[i] = __numeric.rep([right[i]-left[i]+1],0);
+        L[i] = __numeric.rep([i-left[i]],0);
         countL += i-left[i]+1;
         countU += right[i]-i+1;
     }
@@ -1737,8 +1742,8 @@ numeric.cLU = function LU(A) {
     return {U:[Ui,Uj,Uv], L:[Li,Lj,Lv]};
 };
 
-numeric.cLUsolve = function LUsolve(lu,b) {
-    var L = lu.L, U = lu.U, ret = numeric.clone(b);
+__numeric.cLUsolve = function LUsolve(lu,b) {
+    var L = lu.L, U = lu.U, ret = __numeric.clone(b);
     var Li = L[0], Lj = L[1], Lv = L[2];
     var Ui = U[0], Uj = U[1], Uv = U[2];
     var p = Ui.length, q = Li.length;
@@ -1763,9 +1768,9 @@ numeric.cLUsolve = function LUsolve(lu,b) {
     return ret;
 };
 
-numeric.cgrid = function grid(n,shape) {
+__numeric.cgrid = function grid(n,shape) {
     if(typeof n === "number") n = [n,n];
-    var ret = numeric.rep(n,-1);
+    var ret = __numeric.rep(n,-1);
     var i,j,count;
     if(typeof shape !== "function") {
         switch(shape) {
@@ -1786,9 +1791,9 @@ numeric.cgrid = function grid(n,shape) {
     return ret;
 }
 
-numeric.cdelsq = function delsq(g) {
+__numeric.cdelsq = function delsq(g) {
     var dir = [[-1,0],[0,-1],[0,1],[1,0]];
-    var s = numeric.dim(g), m = s[0], n = s[1], i,j,k,p,q;
+    var s = __numeric.dim(g), m = s[0], n = s[1], i,j,k,p,q;
     var Li = [], Lj = [], Lv = [];
     for(i=1;i<m-1;i++) for(j=1;j<n-1;j++) {
         if(g[i][j]<0) continue;
@@ -1807,34 +1812,34 @@ numeric.cdelsq = function delsq(g) {
     return [Li,Lj,Lv];
 }
 
-numeric.cdotMV = function dotMV(A,x) {
+__numeric.cdotMV = function dotMV(A,x) {
     var ret, Ai = A[0], Aj = A[1], Av = A[2],k,p=Ai.length,N;
     N=0;
     for(k=0;k<p;k++) { if(Ai[k]>N) N = Ai[k]; }
     N++;
-    ret = numeric.rep([N],0);
+    ret = __numeric.rep([N],0);
     for(k=0;k<p;k++) { ret[Ai[k]]+=Av[k]*x[Aj[k]]; }
     return ret;
 }
 
 // 7. Splines
 
-numeric.Spline = function Spline(x,yl,yr,kl,kr) { this.x = x; this.yl = yl; this.yr = yr; this.kl = kl; this.kr = kr; }
-numeric.Spline.prototype._at = function _at(x1,p) {
+__numeric.Spline = function Spline(x,yl,yr,kl,kr) { this.x = x; this.yl = yl; this.yr = yr; this.kl = kl; this.kr = kr; }
+__numeric.Spline.prototype._at = function _at(x1,p) {
     var x = this.x;
     var yl = this.yl;
     var yr = this.yr;
     var kl = this.kl;
     var kr = this.kr;
     var x1,a,b,t;
-    var add = numeric.add, sub = numeric.sub, mul = numeric.mul;
+    var add = __numeric.add, sub = __numeric.sub, mul = __numeric.mul;
     a = sub(mul(kl[p],x[p+1]-x[p]),sub(yr[p+1],yl[p]));
     b = add(mul(kr[p+1],x[p]-x[p+1]),sub(yr[p+1],yl[p]));
     t = (x1-x[p])/(x[p+1]-x[p]);
     var s = t*(1-t);
     return add(add(add(mul(1-t,yl[p]),mul(t,yr[p+1])),mul(a,s*(1-t))),mul(b,s*t));
 }
-numeric.Spline.prototype.at = function at(x0) {
+__numeric.Spline.prototype.at = function at(x0) {
     if(typeof x0 === "number") {
         var x = this.x;
         var n = x.length;
@@ -1852,7 +1857,7 @@ numeric.Spline.prototype.at = function at(x0) {
     for(i=n-1;i!==-1;--i) ret[i] = this.at(x0[i]);
     return ret;
 }
-numeric.Spline.prototype.diff = function diff() {
+__numeric.Spline.prototype.diff = function diff() {
     var x = this.x;
     var yl = this.yl;
     var yr = this.yr;
@@ -1861,16 +1866,16 @@ numeric.Spline.prototype.diff = function diff() {
     var n = yl.length;
     var i,dx,dy;
     var zl = kl, zr = kr, pl = Array(n), pr = Array(n);
-    var add = numeric.add, mul = numeric.mul, div = numeric.div, sub = numeric.sub;
+    var add = __numeric.add, mul = __numeric.mul, div = __numeric.div, sub = __numeric.sub;
     for(i=n-1;i!==-1;--i) {
         dx = x[i+1]-x[i];
         dy = sub(yr[i+1],yl[i]);
         pl[i] = div(add(mul(dy, 6),mul(kl[i],-4*dx),mul(kr[i+1],-2*dx)),dx*dx);
         pr[i+1] = div(add(mul(dy,-6),mul(kl[i], 2*dx),mul(kr[i+1], 4*dx)),dx*dx);
     }
-    return new numeric.Spline(x,zl,zr,pl,pr);
+    return new __numeric.Spline(x,zl,zr,pl,pr);
 }
-numeric.Spline.prototype.roots = function roots() {
+__numeric.Spline.prototype.roots = function roots() {
     function sqr(x) { return x*x; }
     function heval(y0,y1,k0,k1,x) {
         var A = k0*2-(y1-y0);
@@ -1963,10 +1968,10 @@ numeric.Spline.prototype.roots = function roots() {
     if(typeof this.yl[0] === "number") return ret[0];
     return ret;
 }
-numeric.spline = function spline(x,y,k1,kn) {
+__numeric.spline = function spline(x,y,k1,kn) {
     var n = x.length, b = [], dx = [], dy = [];
     var i;
-    var sub = numeric.sub,mul = numeric.mul,add = numeric.add;
+    var sub = __numeric.sub,mul = __numeric.mul,add = __numeric.add;
     for(i=n-2;i>=0;i--) { dx[i] = x[i+1]-x[i]; dy[i] = sub(y[i+1],y[i]); }
     if(typeof k1 === "string" || typeof kn === "string") { 
         k1 = kn = "periodic";
@@ -2016,26 +2021,26 @@ numeric.spline = function spline(x,y,k1,kn) {
         T[2].push(1);
         break;
     }
-    if(typeof b[0] !== "number") b = numeric.transpose(b);
+    if(typeof b[0] !== "number") b = __numeric.transpose(b);
     else b = [b];
     var k = Array(b.length);
     if(typeof k1 === "string") {
         for(i=k.length-1;i!==-1;--i) {
-            k[i] = numeric.sLUPsolve(numeric.sLUP(numeric.sscatter(T)),b[i]);
+            k[i] = __numeric.sLUPsolve(__numeric.sLUP(__numeric.sscatter(T)),b[i]);
             k[i][n-1] = k[i][0];
         }
     } else {
         for(i=k.length-1;i!==-1;--i) {
-            k[i] = numeric.cLUsolve(numeric.cLU(T),b[i]);
+            k[i] = __numeric.cLUsolve(__numeric.cLU(T),b[i]);
         }
     }
     if(typeof y[0] === "number") k = k[0];
-    else k = numeric.transpose(k);
-    return new numeric.Spline(x,y,y,k,k);
+    else k = __numeric.transpose(k);
+    return new __numeric.Spline(x,y,y,k,k);
 }
 
 // 8. FFT
-numeric.fftpow2 = function fftpow2(x,y) {
+__numeric.fftpow2 = function fftpow2(x,y) {
     var n = x.length;
     if(n === 1) return;
     var cos = Math.cos, sin = Math.sin, i,j;
@@ -2063,7 +2068,7 @@ numeric.fftpow2 = function fftpow2(x,y) {
         y[i] = ye[j] + ci*yo[j] + si*xo[j];
     }
 }
-numeric._ifftpow2 = function _ifftpow2(x,y) {
+__numeric._ifftpow2 = function _ifftpow2(x,y) {
     var n = x.length;
     if(n === 1) return;
     var cos = Math.cos, sin = Math.sin, i,j;
@@ -2091,29 +2096,29 @@ numeric._ifftpow2 = function _ifftpow2(x,y) {
         y[i] = ye[j] + ci*yo[j] + si*xo[j];
     }
 }
-numeric.ifftpow2 = function ifftpow2(x,y) {
-    numeric._ifftpow2(x,y);
-    numeric.diveq(x,x.length);
-    numeric.diveq(y,y.length);
+__numeric.ifftpow2 = function ifftpow2(x,y) {
+    __numeric._ifftpow2(x,y);
+    __numeric.diveq(x,x.length);
+    __numeric.diveq(y,y.length);
 }
-numeric.convpow2 = function convpow2(ax,ay,bx,by) {
-    numeric.fftpow2(ax,ay);
-    numeric.fftpow2(bx,by);
+__numeric.convpow2 = function convpow2(ax,ay,bx,by) {
+    __numeric.fftpow2(ax,ay);
+    __numeric.fftpow2(bx,by);
     var i,n = ax.length,axi,bxi,ayi,byi;
     for(i=n-1;i!==-1;--i) {
         axi = ax[i]; ayi = ay[i]; bxi = bx[i]; byi = by[i];
         ax[i] = axi*bxi-ayi*byi;
         ay[i] = axi*byi+ayi*bxi;
     }
-    numeric.ifftpow2(ax,ay);
+    __numeric.ifftpow2(ax,ay);
 }
-numeric.T.prototype.fft = function fft() {
+__numeric.T.prototype.fft = function fft() {
     var x = this.x, y = this.y;
     var n = x.length, log = Math.log, log2 = log(2),
         p = Math.ceil(log(2*n-1)/log2), m = Math.pow(2,p);
-    var cx = numeric.rep([m],0), cy = numeric.rep([m],0), cos = Math.cos, sin = Math.sin;
+    var cx = __numeric.rep([m],0), cy = __numeric.rep([m],0), cos = Math.cos, sin = Math.sin;
     var k, c = (-3.141592653589793238462643383279502884197169399375105820/n),t;
-    var a = numeric.rep([m],0), b = numeric.rep([m],0),nhalf = Math.floor(n/2);
+    var a = __numeric.rep([m],0), b = __numeric.rep([m],0),nhalf = Math.floor(n/2);
     for(k=0;k<n;k++) a[k] = x[k];
     if(typeof y !== "undefined") for(k=0;k<n;k++) b[k] = y[k];
     cx[0] = 1;
@@ -2124,21 +2129,21 @@ numeric.T.prototype.fft = function fft() {
         cx[m-k] = cos(t);
         cy[m-k] = sin(t)
     }
-    var X = new numeric.T(a,b), Y = new numeric.T(cx,cy);
+    var X = new __numeric.T(a,b), Y = new __numeric.T(cx,cy);
     X = X.mul(Y);
-    numeric.convpow2(X.x,X.y,numeric.clone(Y.x),numeric.neg(Y.y));
+    __numeric.convpow2(X.x,X.y,__numeric.clone(Y.x),__numeric.neg(Y.y));
     X = X.mul(Y);
     X.x.length = n;
     X.y.length = n;
     return X;
 }
-numeric.T.prototype.ifft = function ifft() {
+__numeric.T.prototype.ifft = function ifft() {
     var x = this.x, y = this.y;
     var n = x.length, log = Math.log, log2 = log(2),
         p = Math.ceil(log(2*n-1)/log2), m = Math.pow(2,p);
-    var cx = numeric.rep([m],0), cy = numeric.rep([m],0), cos = Math.cos, sin = Math.sin;
+    var cx = __numeric.rep([m],0), cy = __numeric.rep([m],0), cos = Math.cos, sin = Math.sin;
     var k, c = (3.141592653589793238462643383279502884197169399375105820/n),t;
-    var a = numeric.rep([m],0), b = numeric.rep([m],0),nhalf = Math.floor(n/2);
+    var a = __numeric.rep([m],0), b = __numeric.rep([m],0),nhalf = Math.floor(n/2);
     for(k=0;k<n;k++) a[k] = x[k];
     if(typeof y !== "undefined") for(k=0;k<n;k++) b[k] = y[k];
     cx[0] = 1;
@@ -2149,9 +2154,9 @@ numeric.T.prototype.ifft = function ifft() {
         cx[m-k] = cos(t);
         cy[m-k] = sin(t)
     }
-    var X = new numeric.T(a,b), Y = new numeric.T(cx,cy);
+    var X = new __numeric.T(a,b), Y = new __numeric.T(cx,cy);
     X = X.mul(Y);
-    numeric.convpow2(X.x,X.y,numeric.clone(Y.x),numeric.neg(Y.y));
+    __numeric.convpow2(X.x,X.y,__numeric.clone(Y.x),__numeric.neg(Y.y));
     X = X.mul(Y);
     X.x.length = n;
     X.y.length = n;
@@ -2159,12 +2164,12 @@ numeric.T.prototype.ifft = function ifft() {
 }
 
 //9. Unconstrained optimization
-numeric.gradient = function gradient(f,x) {
+__numeric.gradient = function gradient(f,x) {
     var n = x.length;
     var f0 = f(x);
     var max = Math.max;
-    var i,x0 = numeric.clone(x),f1,f2, J = Array(n);
-    var div = numeric.div, sub = numeric.sub,errest,roundoff,max = Math.max,eps = 1e-3,abs = Math.abs, min = Math.min;
+    var i,x0 = __numeric.clone(x),f1,f2, J = Array(n);
+    var div = __numeric.div, sub = __numeric.sub,errest,roundoff,max = Math.max,eps = 1e-3,abs = Math.abs, min = Math.min;
     var t0,t1,t2,it=0,d1,d2,N;
     for(i=0;i<n;i++) {
         var h = max(1e-6*f0,1e-8);
@@ -2191,19 +2196,19 @@ numeric.gradient = function gradient(f,x) {
     return J;
 }
 
-numeric.uncmin = function uncmin(f,x0,tol,gradient,maxit,callback) {
-    var grad = numeric.gradient;
+__numeric.uncmin = function uncmin(f,x0,tol,gradient,maxit,callback) {
+    var grad = __numeric.gradient;
     if(typeof tol === "undefined") { tol = 1e-8; }
     if(typeof gradient === "undefined") gradient = function(x) { return grad(f,x); };
     if(typeof maxit === "undefined") maxit = 1000;
-    x0 = numeric.clone(x0);
+    x0 = __numeric.clone(x0);
     var n = x0.length;
     var f0 = f(x0),f1,df0;
-    var max = Math.max, norm2 = numeric.norm2;
-    tol = max(tol,numeric.epsilon);
-    var step,g0,g1,H1 = numeric.identity(n);
-    var dot = numeric.dot, inv = numeric.inv, sub = numeric.sub, add = numeric.add, ten = numeric.tensor, div = numeric.div, mul = numeric.mul;
-    var all = numeric.all, isfinite = numeric.isFinite, neg = numeric.neg;
+    var max = Math.max, norm2 = __numeric.norm2;
+    tol = max(tol,__numeric.epsilon);
+    var step,g0,g1,H1 = __numeric.identity(n);
+    var dot = __numeric.dot, inv = __numeric.inv, sub = __numeric.sub, add = __numeric.add, ten = __numeric.tensor, div = __numeric.div, mul = __numeric.mul;
+    var all = __numeric.all, isfinite = __numeric.isFinite, neg = __numeric.neg;
     var it=0,i,s,x1,y,Hy,Hs,ys,i0,t,nstep,t1,t2;
     var msg = "";
     g0 = gradient(x0);
@@ -2249,7 +2254,7 @@ numeric.uncmin = function uncmin(f,x0,tol,gradient,maxit,callback) {
 }
 
 // 10. Ode solver (Dormand-Prince)
-numeric.Dopri = function Dopri(x,y,f,ymid,iterations,msg,events) {
+__numeric.Dopri = function Dopri(x,y,f,ymid,iterations,msg,events) {
     this.x = x;
     this.y = y;
     this.f = f;
@@ -2258,7 +2263,7 @@ numeric.Dopri = function Dopri(x,y,f,ymid,iterations,msg,events) {
     this.events = events;
     this.message = msg;
 }
-numeric.Dopri.prototype._at = function _at(xi,j) {
+__numeric.Dopri.prototype._at = function _at(xi,j) {
     function sqr(x) { return x*x; }
     var sol = this;
     var xs = sol.x;
@@ -2269,7 +2274,7 @@ numeric.Dopri.prototype._at = function _at(xi,j) {
     var x0,x1,xh,y0,y1,yh,xi;
     var floor = Math.floor,h;
     var c = 0.5;
-    var add = numeric.add, mul = numeric.mul,sub = numeric.sub, p,q,w;
+    var add = __numeric.add, mul = __numeric.mul,sub = __numeric.sub, p,q,w;
     x0 = xs[j];
     x1 = xs[j+1];
     y0 = ys[j];
@@ -2290,7 +2295,7 @@ numeric.Dopri.prototype._at = function _at(xi,j) {
                            mul( p,w[3])),
                            mul( q,w[4]));
 }
-numeric.Dopri.prototype.at = function at(x) {
+__numeric.Dopri.prototype.at = function at(x) {
     var i,j,k,floor = Math.floor;
     if(typeof x !== "number") {
         var n = x.length, ret = Array(n);
@@ -2309,7 +2314,7 @@ numeric.Dopri.prototype.at = function at(x) {
     return this._at(x,i);
 }
 
-numeric.dopri = function dopri(x0,x1,y0,f,tol,maxit,event) {
+__numeric.dopri = function dopri(x0,x1,y0,f,tol,maxit,event) {
     if(typeof tol === "undefined") { tol = 1e-6; }
     if(typeof maxit === "undefined") { maxit = 1000; }
     var xs = [x0], ys = [y0], k1 = [f(x0,y0)], k2,k3,k4,k5,k6,k7, ymid = [];
@@ -2331,11 +2336,11 @@ numeric.dopri = function dopri(x0,x1,y0,f,tol,maxit,event) {
     var i = 0,er,j;
     var h = (x1-x0)/10;
     var it = 0;
-    var add = numeric.add, mul = numeric.mul, y1,erinf;
-    var max = Math.max, min = Math.min, abs = Math.abs, norminf = numeric.norminf,pow = Math.pow;
-    var any = numeric.any, lt = numeric.lt, and = numeric.and, sub = numeric.sub;
+    var add = __numeric.add, mul = __numeric.mul, y1,erinf;
+    var max = Math.max, min = Math.min, abs = Math.abs, norminf = __numeric.norminf,pow = Math.pow;
+    var any = __numeric.any, lt = __numeric.lt, and = __numeric.and, sub = __numeric.sub;
     var e0, e1, ev;
-    var ret = new numeric.Dopri(xs,ys,k1,ymid,-1,"");
+    var ret = new __numeric.Dopri(xs,ys,k1,ymid,-1,"");
     if(typeof event === "function") e0 = event(x0,y0);
     while(x0<x1 && it<maxit) {
         ++it;
