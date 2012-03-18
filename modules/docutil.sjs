@@ -136,11 +136,17 @@ var extractDocComments = exports.extractDocComments = function(src) {
 var fieldRE = /@([a-z]+)[\t ]*\n?((?:.|\n+[\n\r\t ]*[^@\r\t\n ])*)/g;
 
 var extractDocFields = exports.extractDocFields = function(docs) {
-  var fields = [], matches;
+  var fields = [], matches, docsoff = 0;
   for (var i = 0; i<docs.length; ++i) {
     var doc = docs[i];
-    while ((matches = fieldRE.exec(doc)))
-      fields.push([matches[1], common.sanitize(trimTrailingSpace(matches[2]))]);
+    while ((matches = fieldRE.exec(doc))) {
+      if (matches[1] == 'docson')
+        --docsoff;
+      else if (matches[1] == 'docsoff')
+        ++docsoff;
+      else if (docsoff<=0)
+        fields.push([matches[1], common.sanitize(trimTrailingSpace(matches[2]))]);
+    }
   }
   return fields;
 };
