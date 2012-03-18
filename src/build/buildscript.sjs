@@ -8,6 +8,7 @@
 
 var fs = require('apollo:nodejs/fs');
 var common = require('apollo:common');
+var collection = require('apollo:collection');
 var util = require('util');
 
 //----------------------------------------------------------------------
@@ -151,25 +152,31 @@ function build_deps() {
   //----------------------------------------------------------------------
   // version stamping for module files and package.json:
 
+  // helper to recursively read all files in given directory
+  function walkdir(path, cb) {
+  var files = fs.readdir(path);
+  collection.each(files, 
+                  { |f|
+                    if (fs.isDirectory(path+"/"+f))
+                      walkdir(path+"/"+f, cb);
+                    else
+                      cb(path+"/"+f);
+                  });
+  }
+
+
   BUILD("tmp/version_stamp",
         [
           function() {
-            var modules = fs.readdir("modules");
-            for (var i=0; i<modules.length; ++i) {
-              if (/.+\.(sjs|txt)$/.test(modules[i])) {
-                log('Replacing version in modules/'+modules[i]);
-                replacements_from_config("modules/"+modules[i]);
+            function replace_in(m) {
+              if (/.+\.(sjs|txt|json)$/.test(m)) {
+                log('Replacing version in '+m);
+                replacements_from_config(m);
               }
             }
-            modules = fs.readdir("rocket-modules");
-            for (var i=0; i<modules.length; ++i) {
-              if (/.+\.sjs$/.test(modules[i])) {
-                log('Replacing version in rocket-modules/'+modules[i]);
-                replacements_from_config("rocket-modules/"+modules[i]);
-              }
-            }
-            log('Replacing version in package.json');
-            replacements_from_config('package.json');
+            walkdir("modules", replace_in);
+            walkdir("rocket-modules", replace_in);
+            replace_in("package.json");
           },
           "touch $TARGET"
         ],
