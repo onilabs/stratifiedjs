@@ -341,7 +341,7 @@ function makeMainView(location) {
   }
   catch (e) {
     // make an error view
-    view  = makeErrorView(location, e);
+    view  = makeErrorView(location, 'Documentation Error: '+e);
   }
   return view;
 }
@@ -492,7 +492,7 @@ function makeSymbolView(location) {
 
     signature += docs.name+"(<span class='mb-arglist'>"+
       coll.map(docs.param || [], function(p) {
-        var rv = p.name;
+        var rv = p.name || '.';
         if (p.valtype && p.valtype.indexOf("optional") != -1)
           rv = "<span class='mb-optarg'>["+rv+"]</span>";
         return rv;
@@ -513,7 +513,7 @@ function makeSymbolView(location) {
     var args = coll.map(docs.param || [], function(p) {
       return common.supplant(
         "<tr><td class='mb-td-symbol'>{name}</td><td><span class='mb-type'>{type}</span>{def}{summary}</td></tr>",
-        { name:p.name, type:makeTypeHTML(p.valtype, location), 
+        { name:p.name||'.', type:makeTypeHTML(p.valtype, location), 
           def: p.defval? "<span class='mb-defval'>Default: "+p.defval+"</span>" : "",
           summary:makeSummaryHTML(p, location) });
     });
