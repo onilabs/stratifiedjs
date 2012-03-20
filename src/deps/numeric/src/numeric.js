@@ -1009,7 +1009,7 @@ __numeric.T.prototype.cos = __numeric.Tunop(
         'return x.exp().add(x.neg().exp()).div(2);');
 __numeric.T.prototype.abs = __numeric.Tunop(
         'return new __numeric.T(__numeric.abs(x.x));',
-        'return new __numeric.T(__numeric.sqrt(numeric.add(mul(x.x,x.x),mul(x.y,x.y))));',
+        'return new __numeric.T(__numeric.sqrt(__numeric.add(mul(x.x,x.x),mul(x.y,x.y))));',
         'var mul = __numeric.mul;');
 __numeric.T.prototype.log = __numeric.Tunop(
         'return new __numeric.T(__numeric.log(x.x));',
