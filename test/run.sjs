@@ -36,6 +36,11 @@ for (var i=1; i<process.argv.length; ++i) {
   case "-v":
     runOpts.verbose = true;
     break;
+  case "-n":
+  case "--name":
+    i += 1;
+    runOpts.testName = process.argv[i];
+    break;
   default:
     test_files.push(path.resolve(cwd, flag));
   }

@@ -70,6 +70,7 @@ BaseRunner.prototype.run = function() {
       var test = tests[j];
       var testName = test[0];
       var testFn = test[1];
+      if(this.opts.testName && testName != this.opts.testName) continue;
       ++this.testCounter;
       if(testFn.skipTest) {
         this.addSkip(testName, testFn.skipTest);
