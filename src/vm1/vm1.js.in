@@ -70,7 +70,8 @@ OBSOLETE FLAGS:
 }
 */
 
-#define is_cfx(obj) (obj && obj.__oni_cfx)
+//#define is_cfx(obj) (obj && obj.__oni_cfx)
+#define is_cfx(obj) (obj instanceof CFException)
 /*function is_cfx(obj) {
   return obj && obj.__oni_cfx;
 }*/
