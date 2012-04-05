@@ -43,6 +43,38 @@
 
 */
 
+//----------------------------------------------------------------------
+// determine where we've been loaded from; read in additional parameters
+// from <script> tag:
+
+
+var location;
+function determineLocation() {
+  if (!location) {
+    location = {};
+    var scripts = document.getElementsByTagName("script"), matches;
+    for (var i=0; i<scripts.length; ++i) {
+      if ((matches = /(.*)oni-apollo(.*).js$/.exec(scripts[i].src))) {
+        location.location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
+        location.requirePrefix = scripts[i].getAttribute("require-prefix");
+        break;
+      }
+    }
+  }
+  return location;
+}
+
+//----------------------------------------------------------------------
+// exports into global scope:
+
+if (determineLocation().requirePrefix) {
+  __oni_rt.G[determineLocation().requirePrefix] = {require: __oni_rt.sys.require};
+}
+else
+  __oni_rt.G.require = __oni_rt.sys.require;
+
+//----------------------------------------------------------------------
+
 /**
    @function  jsonp_hostenv
    @summary   Perform a cross-domain capable JSONP-style request. 
@@ -335,19 +367,9 @@ function request_hostenv(url, settings) {
 // initial list of hubs and extensions:
 
 function getHubs_hostenv() {
-  // determine location of oni-apollo.js script:
-  var scripts = document.getElementsByTagName("script"),matches;
-  var location;
-  for (var i=0; i<scripts.length; ++i) {
-    if ((matches = /(.*)oni-apollo.js$/.exec(scripts[i].src))) {
-      location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
-      break;
-    }
-  }
-  
   return [
-    ["apollo:", location ? 
-                  location : 
+    ["apollo:", determineLocation().location ? 
+                  determineLocation().location : 
                   { src: function(path) { 
                       throw new Error("Can't load module '"+path+
                                       "': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load oni-apollo.js in the normal way through a <script> element."); }
@@ -380,11 +402,6 @@ function getExtensions_hostenv() {
     }
   };
 }
-
-//----------------------------------------------------------------------
-// exports into global scope:
-
-__oni_rt.G.require = __oni_rt.sys.require;
 
 //----------------------------------------------------------------------
 // the init function serves no useful purpose in the xbrowser environment,
