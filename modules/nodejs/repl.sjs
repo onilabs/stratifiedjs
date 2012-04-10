@@ -92,8 +92,11 @@ exports.runREPL = function() {
   finally {
     abortBgStrata();
     write("");
-    itf.close();
-    stdin.destroy();
+    if(itf.close) {
+      itf.close(); 
+      stdin.destroy();
+    }
+    else itf.pause();
   }
 };
 

@@ -304,9 +304,10 @@ function nodejs_loader(path, parent, dummy_src, opts) {
   var base;
   if (!(/^file:/.exec(parent))) // e.g. we are being loaded from a http module
     base = getTopReqParent_hostenv();
-  
+  else 
+    base = parent;
   // strip 'file://'
-  base = parent.substr(7);
+  base = base.substr(7);
 
   var mockModule = { 
     paths: __oni_rt.nodejs_require('module')._nodeModulePaths(base) 
@@ -314,7 +315,7 @@ function nodejs_loader(path, parent, dummy_src, opts) {
 
   var resolved="";
   try {
-    resolved = __oni_rt.nodejs_require('module')._resolveFilename(path, mockModule)[1];
+    resolved = __oni_rt.nodejs_require('module')._resolveFilename(path, mockModule);
     if (resolved.indexOf('.') == -1) return __oni_rt.nodejs_require(resolved); // native module
   }
   catch (e) {}
@@ -323,7 +324,7 @@ function nodejs_loader(path, parent, dummy_src, opts) {
   if (!(matches = /.+\.([^\.\/]+)$/.exec(path))) {
     try {
       // now try .sjs
-      resolved = __oni_rt.nodejs_require('module')._resolveFilename(path+".sjs", mockModule)[1];
+      resolved = __oni_rt.nodejs_require('module')._resolveFilename(path+".sjs", mockModule);
       // ok, success. load as a file module:
       return default_loader("file://"+resolved, parent, file_src_loader);
     }
