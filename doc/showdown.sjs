@@ -166,6 +166,9 @@ this.makeHtml = function(text, resolveLink) {
 	// attacklab: Restore tildes
 	text = text.replace(/~T/g,"~");
 
+  // *** ONILABS: hackish fix for links of the form <http://foo> that got sanitized to &lt;http://foo&gt;
+  text = text.replace(/&lt;(https?\:\/\/[^"\s\&]*)&gt;/g,"$1"); 
+
   // ** GFM **  Auto-link URLs and emails
   text = text.replace(/https?\:\/\/[^"\s\<\>]*[^.,;'">\:\s\<\>\)\]\!]/g, function(wholeMatch,matchIndex){
     var left = text.slice(0, matchIndex), right = text.slice(matchIndex)
