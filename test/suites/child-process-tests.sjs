@@ -105,6 +105,7 @@ if(!testUtil.isBrowser) {
     child = child_process.launch('bash', ['-c', bash_exit_after(0.5)]);
     var events = [];
     try {
+      hold(100); // give process time to even start
       child_process.kill(child);
       events.push('kill returned');
     } or {
@@ -113,6 +114,6 @@ if(!testUtil.isBrowser) {
       hold();
     }
     return events;
-  }).skip("inconsistent results - nodejs issue?");
+  });
 
 }
