@@ -58,25 +58,21 @@
 
     ### jQuery functions that get a stratified version
 
-    <table cellspacing=0>
-      <tr><td style='width:13em'>jQuery</td><td>
-      get, post, getJSON, getScript <br/>though we recommend the http module for these
-      </td></tr>
-      <tr><td>jQuery.fn</td><td>
-      animate, show, hide, load, bind, live
-      </td></tr>
-      <tr><td>Events</td><td>
-      blur focus focusin focusout load resize scroll unload click dblclick
-      mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave
-      change select submit keydown keypress keyup error.
-      </td></tr>
-      <tr><td>Special cases</td><td>
-      $bind automatically calls unbind when the event happened<br/>
-      $bind has an alias: waitFor<br/>
-      $live automatically calls die when the event happened
-      </td></tr>
-    </table>
 
+      * **jQuery**: get, post, getJSON, getScript
+        (though we recommend using functions from the [http::] module for these)
+
+      * **jQuery.fn**: animate, show, hide, load, bind, live
+
+      * **Events**: blur, focus, focusin, focusout, load, resize, scroll, unload, click, dblclick,
+      mousedown, mouseup, mousemove, mouseover, mouseout, mouseenter, mouseleave,
+      change, select, submit, keydown, keypress, keyup, error.
+
+      * **Special cases**:
+
+         * $bind automatically calls unbind when the event happened.
+         * $bind has an alias: waitFor
+         * $live automatically calls die when the event happened
 */
 
 var jQuery;
