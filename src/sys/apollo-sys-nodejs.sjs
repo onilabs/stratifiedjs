@@ -316,6 +316,9 @@ function nodejs_loader(path, parent, dummy_src, opts) {
   var resolved="";
   try {
     resolved = __oni_rt.nodejs_require('module')._resolveFilename(path, mockModule);
+    // compatibility with older nodejs (e.g. v0.7.0):
+    if (resolved instanceof Array) resolved = resolved[1];
+
     if (resolved.indexOf('.') == -1) return __oni_rt.nodejs_require(resolved); // native module
   }
   catch (e) {}
@@ -325,6 +328,9 @@ function nodejs_loader(path, parent, dummy_src, opts) {
     try {
       // now try .sjs
       resolved = __oni_rt.nodejs_require('module')._resolveFilename(path+".sjs", mockModule);
+      // compatibility with older nodejs (e.g. v0.7.0):
+      if (resolved instanceof Array) resolved = resolved[1];
+
       // ok, success. load as a file module:
       return default_loader("file://"+resolved, parent, file_src_loader);
     }
