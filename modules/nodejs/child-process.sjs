@@ -41,6 +41,9 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
 
 var child_process = require('child_process');
 
+// event emitted by child processes when stdout/stderr have closed has changed in node v0.7.7:
+var STREAMS_CLOSED_SIGNAL = (parseFloat(/\d+\.(\d+\.\d+)/.exec(process.versions.node)[1]) > 7.6) ? 'close' : 'exit';
+
 /**
    @function exec
    @summary Execute a child process and return output
@@ -135,9 +138,9 @@ exports.launch = function(command, args, options) {
 */
 exports.wait = function(child) {
   waitfor(var code, signal) {
-    child.on('exit', resume);
+    child.on(STREAMS_CLOSED_SIGNAL, resume);
   } retract {
-    child.removeListener('exit', resume);
+    child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
   }
   if(code != 0) {
     var err = new Error('child process exited with nonzero exit status: ' + code);
@@ -168,11 +171,11 @@ var kill = exports.kill = function(child, options) {
     kill();
   } else {
     waitfor() {
-      child.on('exit', resume);
+      child.on(STREAMS_CLOSED_SIGNAL, resume);
       kill();
       hold();
     } finally {
-      child.removeListener('exit', resume);
+      child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
     }
   }
 };
