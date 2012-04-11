@@ -45,34 +45,33 @@ var common = require("../common");
 
 /**
   @function initAnywhere
-  @summary Load Twitter &#0064;Anywhere and install stratified functions for accessing the full RESTful Twitter API.
+  @summary Load Twitter @Anywhere and install stratified functions for accessing the full RESTful Twitter API.
   @param {optional Object} [settings] Hash of settings
   @return {Object} Twitter API Client object with stratified functions *call* and *waitforEvent*, see below.
   @setting {String} [v=1] Version of API to load.
   @setting {String} [id] API key.
   @desc
-    See <http://dev.twitter.com/anywhere/begin> for an introduction to the
-    Twitter &#0064;Anywhere library.
+    See https://dev.twitter.com/docs/anywhere/welcome for an introduction to the
+    Twitter @Anywhere library.
 
     *initAnywhere* returns the **Twitter API Client** object (the object named
-    **T** in the &#0064;Anywhere docs). 
+    **T** in the @Anywhere docs). 
 
     Two extra functions will be installed on the API Client:
 
     - *call(method, params)*: make a (stratified) call to the RESTful
-    Twitter API (see <http://dev.twitter.com/doc>). If the call fails,
+    Twitter API (see http://dev.twitter.com/doc). If the call fails,
     *call* throws an exception with 'detail' member that contains more
     information about the error.  See also example below.
 
-    - *waitforEvent(event)*: wait for an &#0064;Anywhere event, such as e.g. "authComplete".
+    - *waitforEvent(event)*: wait for an @Anywhere event, such as e.g. "authComplete".
 
     ###Typical usage
 
-    See <http://fatc.onilabs.com> for a complete example of how to use
-    this API. The idea is to use the &#0064;Anywhere API for
+    See http://fatc.onilabs.com for a complete example of how to use
+    this API. The idea is to use the @Anywhere API for
     authentication to Twitter and the use *call* to make calls
-    directly to the RESTful Twitter API, rather than going through the
-    &#0064;Anywhere abstractions.
+    directly to the RESTful Twitter API, rather than going through the @Anywhere abstractions.
 
     ###Example
 
