@@ -20,7 +20,7 @@ for (var i=0; i<sources.length; ++i) {
     continue;
   }
   console.log('Replacing directory '+fs.realpath(src.dir)+' with github repository at '+src.repo);
-  console.log('Sure you want to process? [y/N]');
+  console.log('Sure you want to proceed? [y/N]');
   if (read(process.stdin).toString().toLowerCase() != 'y\n') {
     console.log('Skipping '+fs.realpath(src.dir));
     continue;
