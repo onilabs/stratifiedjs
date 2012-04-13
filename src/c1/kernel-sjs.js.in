@@ -567,7 +567,11 @@ ph_try.prototype.val = function() {
     return rv+")";
 }
 
-#define GEN_EMPTY_STMT(pctx) return undefined;
+#define GEN_EMPTY_STMT(pctx) return ph_empty_stmt;
+var ph_empty_stmt = new ph(WHENDEBUG("ph_empty_stmt"));
+ph_empty_stmt.is_nblock = true;
+ph_empty_stmt.nblock_val = function() { return ';'; };
+ph_empty_stmt.v = function() { return '0'; };
 
 #define GEN_THROW(exp, pctx) return new ph_throw(exp, pctx);
 function ph_throw(exp, pctx) {
@@ -1476,12 +1480,22 @@ ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));
 ph_blocklambda.prototype.val = function() { return this.code; };
 
 #endif // SJS_BLOCKLAMBDA
-                           
-//----------------------------------------------------------------------
-// TODO:
 
-#define GEN_LBL_STMT(lbl, stmt, pctx) throw "labeled statements not implemented yet";
-/*
-#define GEN_LBL_STMT(lbl, stmt, pctx) return lbl+": "+stmt;
-*/
+#define GEN_LBL_STMT(lbl, stmt, pctx) return new ph_lbl_stmt(lbl, stmt);
+
+function ph_lbl_stmt(lbl, stmt) {
+  this.lbl = lbl;
+  this.stmt = stmt;
+}
+ph_lbl_stmt.prototype = new ph(WHENDEBUG("ph_lbl_stmt"));
+ph_lbl_stmt.prototype.nblock_val = function() {
+  // this only gets called when nblock is forced (__js)
+  return this.lbl+": "+this.stmt.nb();
+};
+ph_lbl_stmt.prototype.val = function() {
+  // TODO
+  throw "labeled statements not implemented yet";
+};
+
+
 
