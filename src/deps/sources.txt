@@ -1,0 +1,3 @@
+# numeric lib
+numeric/ git://github.com/sloisel/numeric.git 5441d192269f2a6b4d8e32aee32d676bb90a0b30
+
