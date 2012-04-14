@@ -3297,7 +3297,7 @@ scan(pctx);
 return new ph_dot_accessor(l,name,pctx);
 });
 
-S("new").exs(function(pctx,st){var exp=parseExp(pctx,0,"(");
+S("new").exs(function(pctx,st){var exp=parseExp(pctx,110,"(");
 
 var args=[];
 if(pctx.token.id=="("){

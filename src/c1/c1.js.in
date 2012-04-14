@@ -598,7 +598,7 @@ S(".").exc(270, function(l, pctx, st) {
 });
 
 S("new").exs(function(pctx, st) {
-  var exp = parseExp(pctx, 0, "(");
+  var exp = parseExp(pctx, BP_COMMA, "(");
   var args = [];
   if (pctx.token.id == "(") {
     scan(pctx); // swallow '('
