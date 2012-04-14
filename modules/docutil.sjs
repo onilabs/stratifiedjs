@@ -53,7 +53,7 @@ var PAT_ML_STRLIT = PAT_ML_STRLIT_SGL+"|"+PAT_ML_STRLIT_DBL;
 var PAT_COMMENT_SHADOW = PAT_REGEXLIT + "|" + PAT_ML_STRLIT;
 
 // safe, non-shadowing pattern:
-var PAT_SAFE = "[^\'\"^\\/]+|(?:\\/[^\/*])";
+var PAT_SAFE = "(?:[^\'\"^\\/]|(?:\\/[^\\/*]))+";
 
 var SOURCE_SPLITTER = new RegExp(PAT_COMMENT + "|(" + 
                                  PAT_COMMENT_SHADOW + "|" + PAT_SAFE + ")", "g");
