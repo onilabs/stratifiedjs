@@ -1,3 +1,6 @@
 # numeric lib
 numeric/ git://github.com/sloisel/numeric.git 5441d192269f2a6b4d8e32aee32d676bb90a0b30
 
+# Stanford JavaScript Crypto Library
+sjcl/ git://github.com/bitwiseshiftleft/sjcl.git 81c63557548ac4d5c9e9fae8e95ee7ffc3334c9d
+

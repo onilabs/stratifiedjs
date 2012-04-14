@@ -1,4 +1,4 @@
-This directory contains external source code imported from external projects, from which we build modules in the Standard Module Library (apollo/modules).
+This directory contains external source code imported from external projects, from which we build modules in the Standard Module Library (apollo/modules). See apollo/src/build/buildscript.sjs for how we we build modules from the code here.
 
 In order to simplify code management, we deliberately *don't* use git submodules, but have the relevant source code checked in directly into the apollo repository.
 
