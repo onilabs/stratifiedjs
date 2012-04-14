@@ -52,4 +52,5 @@
 @module jquery-binding  Stratified bindings to [jquery](http://jquery.com) (client-side only)
 @module logging         Simple cross-environment logging framework
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
+@module sjcl            Stanford JavaScript Crypto Library
 @module ui              Functions for constructing HTML UIs (Work in progress; client-side only)

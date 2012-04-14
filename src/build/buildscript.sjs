@@ -26,6 +26,7 @@ function build_deps() {
   BUILD("build", function() { log('all done') }, ["oni-apollo.js", 
                                                   "oni-apollo-node.js",
                                                   "modules/numeric.sjs",
+                                                  "modules/sjcl.sjs",
                                                   "tmp/version_stamp"]);
 
   PSEUDO("compiler");
@@ -147,6 +148,16 @@ function build_deps() {
          "src/deps/numeric/src/quadprog.js", 
          "src/deps/numeric/src/svd.js",
          "src/deps/numeric/src/apollo-module-footer.txt"]
+       );
+
+  // sjcl module
+  BUILD("modules/sjcl.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/sjcl/apollo-module-header.txt",
+         "src/deps/sjcl/sjcl.js",
+         "src/deps/sjcl/apollo-module-footer.txt"]
        );
 
   //----------------------------------------------------------------------
