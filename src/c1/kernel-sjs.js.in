@@ -157,7 +157,7 @@ function begin_script(pctx) {
 
 // add statement to the top decl & stmt scope:
 function add_stmt(stmt, pctx) {
-  if (!stmt) return; // empty statement
+  if (stmt == ph_empty_stmt) return; // empty statement
   if (stmt.is_compound_stmt) {
     // recursively unroll compound statement
     for (var i=0; i<stmt.stmts.length; ++i)
@@ -209,14 +209,18 @@ function end_script(pctx) {
 
 // XXX this is a bit of a mess
 function pop_block(pctx) {
-  if (top_stmt_scope(pctx).seq.length == 1) {
+  switch (top_stmt_scope(pctx).seq.length) {
+  case 1:
     var stmt = pctx.stmt_scopes.pop().seq[0];
     // ensure that it doesn't get declared again:
     stmt.is_var_decl = false;
     return stmt;
-  }
-  else
+  case 0:
+    pctx.stmt_scopes.pop();
+    return ph_empty_stmt;
+  default:
     return new ph_block(pop_stmt_scope(pctx));
+  }
 }
 #define END_BLOCK(pctx) return pop_block(pctx);
 
@@ -493,23 +497,23 @@ ph_if.prototype.nblock_val = function() {
 };
 
 ph_if.prototype.val = function() {
-    var rv;
-    var c = this.c ? this.c.v() : "0";
-    if (this.t.is_nblock) {
-      // half-nblock encoding
-      rv = "__oni_rt.Nb(function(){if("+this.t.nb()+
-           ")return __oni_rt.ex("+c+",this);";
-      if (this.a)
-        rv += "else return __oni_rt.ex("+this.a.v()+",this);";
-      return rv+"},"+this.line+")";
-    }
-    else {
-      // test is blocking -> full blocking encoding
-      rv = "__oni_rt.If("+this.t.v()+","+c;
-      if (this.a)
-        rv += ","+this.a.v();
-      return rv + ")";
-    }
+  var rv;
+  var c = this.c.v();
+  if (this.t.is_nblock) {
+    // half-nblock encoding
+    rv = "__oni_rt.Nb(function(){if("+this.t.nb()+
+      ")return __oni_rt.ex("+c+",this);";
+    if (this.a)
+      rv += "else return __oni_rt.ex("+this.a.v()+",this);";
+    return rv+"},"+this.line+")";
+  }
+  else {
+    // test is blocking -> full blocking encoding
+    rv = "__oni_rt.If("+this.t.v()+","+c;
+    if (this.a)
+      rv += ","+this.a.v();
+    return rv + ")";
+  }
 };
 
 /*
@@ -538,7 +542,6 @@ ph_try.prototype.nblock_val = function() {
 };
 ph_try.prototype.val = function() {
     var tb = this.block.v();
-    if (!tb.length) tb = "0";
     var rv = "__oni_rt.Try("+((this.crf[0] && this.crf[0][2])? TRY_FLAG_CATCHALL:TRY_FLAG_NONE);
     rv+=","+tb;
     if (this.crf[0]) {
@@ -553,7 +556,6 @@ ph_try.prototype.val = function() {
     
     if (this.crf[2]) {
       var fb = this.crf[2].v();
-      if (!fb.length) fb = "0";
         rv += ","+fb;
     }
     else
@@ -561,8 +563,7 @@ ph_try.prototype.val = function() {
 
     if (this.crf[1]) {
       var rb = this.crf[1].v();
-      if (rb.length) 
-        rv += ","+rb;
+      rv += ","+rb;
     }
     return rv+")";
 }
@@ -711,11 +712,11 @@ ph_loop.prototype.nblock_val = function() {
   else throw "Can't encode this loop as __js yet";
 };
 ph_loop.prototype.val = function() {
-    var test = this.test_exp ? this.test_exp.v() : "1";
-    // this.body.v(true) <-- means a list instead of Seq is acceptable
-    var body = this.body ? this.body.v(true) : "0"; 
-    return "__oni_rt.Loop("+this.init_state+","+test+","+
-           (this.inc_exp ? this.inc_exp.v() : "0") + "," +body +")";
+  var test = this.test_exp ? this.test_exp.v() : "1";
+  // this.body.v(true) <-- means a list instead of Seq is acceptable
+  var body = this.body.v(true); 
+  return "__oni_rt.Loop("+this.init_state+","+test+","+
+    (this.inc_exp ? this.inc_exp.v() : "0") + "," +body +")";
 };
 
 
@@ -1335,7 +1336,6 @@ ph_par_alt.prototype.val = function() {
     rv += "Alt(";
   for (var i=0; i<this.blocks.length; ++i) {
     var b = this.blocks[i].v();
-    if (!b.length) b="0"; //XXX
     if (i) rv+=",";
     rv += b;
   }
@@ -1426,8 +1426,7 @@ function gen_using(has_var, lhs, exp, body, pctx) {
 
 function ph_using(lhs, exp, body, pctx) {
   this.line = pctx.line;
-  // XXX figure out a better way of handling empty bodies
-  this.body = body || new ph_literal(0,pctx);
+  this.body = body;
   this.assign1 = new ph_assign_op(new ph_identifier("_oniW",pctx),
                                   "=", exp, pctx);
   if (lhs)
