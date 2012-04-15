@@ -393,8 +393,8 @@ function makeModuleView(location) {
 "<h2>The {name} module</h2>
  <div class='mb-require'><code>require('{home}');</code></div>
  <div name='summary' class='mb-summary'></div>
- <div name='symbols'></div>
  <div name='desc'></div>
+ <div name='symbols'></div>
 ").supplant({
   name:    docs.module||location.module, 
 //  varname: moduleVarName(docs.module||location.module),
@@ -589,9 +589,9 @@ function makeLibView(location) {
   var view = ui.makeView(
 "<h2>{name}</h2>
  <div name='summary' class='mb-summary'></div>
+ <div name='desc'></div>
  <div name='modules'></div>
  <div name='dirs'></div>
- <div name='desc'></div>
 ").supplant({
   name: docs.lib ? docs.lib : "Unnamed Module Collection"});
 
@@ -674,7 +674,7 @@ function makeSummaryHTML(obj, location) {
 }
 
 function makeDescriptionHTML(obj, location) {
-  var rv = obj.desc ? "<h3>More information</h3>"+markup(obj.desc, location) : "";
+  var rv = obj.desc ? "<h3>Description</h3>"+markup(obj.desc, location) : "";
   return rv;
 }
 
