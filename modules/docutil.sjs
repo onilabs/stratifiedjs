@@ -60,8 +60,8 @@ var SOURCE_SPLITTER = new RegExp(PAT_COMMENT + "|(" +
 
 function dummy(x) {};
 
-function trimTrailingSpace(str) {
-  return str.replace(/\s+$/,'');
+function trimLeadingNewlineAndTrailingSpace(str) {
+  return str.replace(/\s+$/,'').replace(/^\n/, '');
 }
 
 /**
@@ -133,7 +133,7 @@ var extractDocComments = exports.extractDocComments = function(src) {
    @return {Array}
    @desc TODO: document markup format
 */
-var fieldRE = /@([a-z]+)[\t ]*\n?((?:.|\n+[\n\r\t ]*[^@\r\t\n ])*)/g;
+var fieldRE = /@([a-z]+)[\t ]*((?:.|\n+[\n\r\t ]*[^@\r\t\n ])*)/g;
 
 var extractDocFields = exports.extractDocFields = function(docs) {
   var fields = [], matches, docsoff = 0;
@@ -144,8 +144,11 @@ var extractDocFields = exports.extractDocFields = function(docs) {
         --docsoff;
       else if (matches[1] == 'docsoff')
         ++docsoff;
-      else if (docsoff<=0)
-        fields.push([matches[1], common.sanitize(trimTrailingSpace(matches[2]))]);
+      else if (docsoff<=0) {
+        var val = common.sanitize(trimLeadingNewlineAndTrailingSpace(matches[2]));
+        if (!val.length) val = 'true';
+        fields.push([matches[1], val]);
+      }
     }
   }
   return fields;
@@ -183,7 +186,7 @@ exports.parseSJSLibDocs = function(src) {
 */
 
 // param: @param {type} [name=default] description
-var paramRE = /^(?:\{([^\}]+)\})?(?:[\t ]*\[([^\]=]+)(?:\=([^\]]+))?\])?(?:[\t ]*\n?\r?(.(?:.|\n|\r)*))?$/;
+var paramRE = /^(?:\{([^\}]+)\})?(?:[\t ]*\[([^\]=]+)(?:\=((?:[^\[\]]|\[[^\[\]]*\])+))?\])?(?:[\t ]*\n?\r?(.(?:.|\n|\r)*))?$/;
 var paramType = 1, paramName = 2, paramDefault = 3, paramDescription = 4;
 
 exports.parseModuleDocs = function(src, module) {
@@ -203,7 +206,7 @@ exports.parseModuleDocs = function(src, module) {
     case "function":
     case "variable":
       // append to module or class depending on name
-      var matches = /([^.]+)\.(.+)/.exec(value);
+      var matches = /(.+)\.([^.]+)/.exec(value);
       // class member?
       if (matches && module.classes[matches[1]]) {
         //if (!module.classes[matches[1]])

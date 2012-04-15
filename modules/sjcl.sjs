@@ -8,6 +8,14 @@
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *
+ *
+ *   ***********************************************************
+ *   *    DO NOT EDIT sjcl.sjs - IT IS A GENERATED FILE!       *
+ *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN   * 
+ *   *    apollo/src/build/make-apollo                         *
+ *   ***********************************************************
+ *
+ *
  * This file is derived from the "Stanford JavaScript Crypto Library" project 
  * (http://crypto.stanford.edu/sjcl/), 
  * which is available under the terms of the BSD License.
@@ -57,8 +65,345 @@
 
              For more information see the [original sjcl documentation](http://bitwiseshiftleft.github.com/sjcl/doc/).
 */
+
+/**
+   @function encrypt
+   @summary  Simple encryption function. Shorthand for [::json.encrypt].
+   @param    {String|::bitArray} [password] The password or key.
+   @param    {String} [plaintext] The data to encrypt.
+   @param    {optional Object} [params] The parameters including tag, iv and salt.
+   @param    {optional Object} [rp] A returned version with filled-in parameters.
+
+   @function decrypt
+   @summary  Simple decryption function. Shorthand for [::json.decrypt].
+   @param    {String|::bitArray} [password] The password or key.
+   @param    {String} [ciphertext] The ciphertext to decrypt.
+   @param    {optional Object} [params] Additional non-default paramters.
+   @param    {optional Object} [rp] A returned object with filled parameters.
+   @return   {String} The plaintext.
+*/
+
+/**
+   @class    bitArray
+   @summary  These objects are the currency accepted by sjcl's crypto functions.
+   @desc
+     Most of our crypto primitives operate on arrays of 4-byte words internally,
+     but many of them can take arguments that are not a multiple of 4 bytes.
+     This library encodes arrays of bits (whose size need not be a multiple of 8
+     bits) as arrays of 32-bit words.  The bits are packed, big-endian, into an
+     array of words, 32 bits at a time.  Since the words are double-precision
+     floating point numbers, they fit some extra data.  We use this (in a private,
+     possibly-changing manner) to encode the number of bits actually  present
+     in the last word of the array.
+
+     Because bitwise ops clear this out-of-band data, these arrays can be passed
+     to ciphers like AES which want arrays of words.
+     
+   @function bitArray.bitLength
+   @static
+   @summary  Find the length of an array in bits.
+   @param    {::bitArray} [a]
+   @return   {Number} The length of `a`, in bits.
+
+   @function bitArray.bitSlice
+   @static
+   @summary  Array slices in units of bits.
+   @param    {::bitArray} [a]
+   @param    {Number} [bstart] The offset to the start of the slice, in bits.
+   @param    {optional Number} [bend] The offset to the end of the slice, in bits. If this is undefined, slice until end of the array.
+   @return   {::bitArray} The requested slice.
+
+   @function bitArray.clamp
+   @static
+   @summary  Truncate an array.
+   @param    {::bitArray} [a]
+   @param    {Number} [len] The lenfth to truncate to, in bits.
+   @return   {::bitArray} A new array, truncated to len bits.
+
+   @function bitArray.concat
+   @static
+   @summary  Concatenate two bit arrays.
+   @param    {::bitArray} [a1]
+   @param    {::bitArray} [a2]
+   @return   {::bitArray} The concatenation of `a1` and `a2`.
+
+   @function bitArray.equal
+   @static
+   @summary  Compare two arrays for equality in a predictable amount of time.
+   @param    {::bitArray} [a]
+   @param    {::bitArray} [b]
+   @return   {Boolean} `true` if `a`==`b`; `false` otherwise.
+*/
+
+/**
+   @class    cipher.aes
+   @summary  Advanced Encryption Standard (low-level interface)
+   @desc
+     Schedule out an AES key for both encryption and decryption.  This
+     is a low-level class.  Use a cipher mode to do bulk encryption.
+   @function cipher.aes
+   @param    {Array} [key] The key as an array of 4, 6 or 8 words.
+
+   @function cipher.aes.decrypt
+   @summary  Decrypt an array of 4 big-endian words.
+   @param    {Array} [data] The ciphertext.
+   @return   {Array} The plaintext.
+
+   @function cipher.aes.encrypt
+   @summary  Decrypt an array of 4 big-endian words.
+   @param    {Array} [data] The ciphertext.
+   @return   {Array} The plaintext.
+
+*/
+
+/**
+   @function codec.base64.fromBits
+   @summary  Convert from a [::bitArray] to a base64 string.
+   @param    {::bitArray} [arr]
+   @param    {optional Boolean} [_noEquals] Pass `true` to prevent padding with `=`'s.
+   @return   {String} 
+
+   @function codec.base64.toBits
+   @summary  Convert from a base64 string to a [::bitArray].
+   @param    {String} [str]
+   @return   {::bitArray}
+
+   @function codec.hex.fromBits
+   @summary  Convert from a [::bitArray] to a hex string.
+   @param    {::bitArray} [arr]
+   @return   {String} 
+
+   @function codec.hex.toBits
+   @summary  Convert from a hex string to a [::bitArray].
+   @param    {String} [str]
+   @return   {::bitArray}
+
+   @function codec.utf8String.fromBits
+   @summary  Convert from a [::bitArray] to a UTF-8 string.
+   @param    {::bitArray} [arr]
+   @return   {String} 
+
+   @function codec.utf8String.toBits
+   @summary  Convert from a UTF-8 string to a [::bitArray].
+   @param    {String} [str]
+   @return   {::bitArray}
+*/
+
+/**
+   @class    hash.sha256
+   @summary  Context for a SHA-256 operation in progress.
+   @function hash.sha256
+   @param    [hash]
+
+   @function hash.sha256.hash
+   @static
+   @summary  Hash a string or an array of words.
+   @param    {::bitArray|String} [data]
+   @return   {::bitArray} The hash value, an array of 16 big-endian words.
+   
+   @variable hash.sha256.blockSize
+   @summary  The hash's block size, in bits. (Constant)
+
+   @function hash.sha256.finalize
+   @summary  Complete hashing and output the hash value.
+   @return   {::bitArray} The hash value, an array of 16 big-endian words.
+   
+   @function hash.sha256.reset
+   @summary  Reset the hash state.
+   @return   {::hash.sha256} this
+
+   @function hash.sha256.update
+   @summary  Input several words to the hash.
+   @param    {::bitArray|String} [data]
+   @return   {::hash.sha256} this
+
+*/
+
 /**
 
+   @variable json.defaults
+   @summary  Default values for encryption.
+
+   @function json.encode
+   @summary  Encode a flat structure into a JSON string.
+   @param    {Object} [obj] The structure to encode.
+   @return   {String} A JSON string.
+
+   @function json.decode
+   @summary  Decode a simple (flat) JSON string into a structure. The ciphertext, adata, salt and iv will be base64-decoded.
+   @param    {String} [str]
+   @return   {Object} The decoded structure.
+
+   @function json.encrypt
+   @summary  Simple encryption function.
+   @param    {String|::bitArray} [password] The password or key.
+   @param    {String} [plaintext] The data to encrypt.
+   @param    {optional Object} [params] The parameters including tag, iv and salt.
+   @param    {optional Object} [rp] A returned version with filled-in parameters.
+
+   @function json.decrypt
+   @summary  Simple decryption function.
+   @param    {String|::bitArray} [password] The password or key.
+   @param    {String} [ciphertext] The ciphertext to decrypt.
+   @param    {optional Object} [params] Additional non-default paramters.
+   @param    {optional Object} [rp] A returned object with filled parameters.
+   @return   {String} The plaintext.
+*/
+
+/**
+   @function misc.pbkdf
+   @summary Password-Based Key-Derivation Function, version 2.0. 
+   @param   {::bitArray|String} [password] The password.
+   @param   {::bitArray} [salt] The salt. Should have lots of entropy.
+   @param   {optional Number} [count=1000] The number of iterations. Higher numbers make the function slower but more secure.
+   @param   {optional Number} [length=output size of hash function] The length of the derived key. 
+   @param   {optional Object} [Prff=::misc.hmac] The pseudorandom function family.
+   @return {::bitArray} The derived key.
+   @desc
+            Generate keys from passwords using PBKDF2-HMAC-SHA256.
+            
+            This is the method specified by RSA's PKCS #5 standard.
+    
+
+   @function misc.cachedPbkdf2
+   @summary  Cached PBKDF2 key derivation
+   @param    {String} [password] The password.
+   @param    {Object} [obj] The derivation params (iteration count and optional salt).
+   @return   {Object} The derived data in key, the salt in salt.
+*/
+
+/**
+   @class    misc.hmac
+   @summary  HMAC with the specified hash function.
+   @function misc.hmac
+   @param    {::bitArray} [key] The key for the HMAC.
+   @param    {optional Object} [hash=::hash.sha256] The hash function to use.
+
+   @function misc.hmac.mac
+   @summary  HMAC with the specified hash function.
+   @param    {::bitArray|String} [data]
+   @return   {::bitArray}
+
+   @function misc.hmac.encrypt
+   @summary  Alias for [::misc.hmac.mac]
+   @param    {::bitArray|String} [data]
+   @return   {::bitArray}
+*/
+
+/**
+   @function mode.ccm.encrypt
+   @summary  Encrypt in CCM mode
+   @param    {Object} [prf] The pseudorandom function.  It must have a block size of 16 bytes.
+   @param    {::bitArray} [plaintext] The plaintext data.
+   @param    {::bitArray} [iv] The initialization value.
+   @param    {optional ::bitArray} [adata=[]] The authenticated data.
+   @param    {optional Number} [tlen=64] The desired tag length, in bits.
+   @return   {::bitArray} The encrypted data, an array of bytes.
+
+   @function mode.ccm.decrypt
+   @summary  Decrypt in CCM mode.
+   @param {Object} [prf] The pseudorandom function.  It must have a block size of 16 bytes.
+   @param {::bitArray} [ciphertext] The ciphertext data.
+   @param {::bitArray} [iv] The initialization value.
+   @param {optional ::bitArray} [adata=[]] The authenticated data.
+   @param {optional Number} [tlen=64] The desired tag length, in bits.
+   @return {::bitArray} The decrypted data.
+*/
+
+/**
+   @function mode.ocb2.encrypt
+   @summary Encrypt in OCB mode, version 2.0.
+   @param {Object} [prp] The block cipher.  It must have a block size of 16 bytes.
+   @param {::bitArray} [plaintext] The plaintext data.
+   @param {::bitArray} [iv] The initialization value.
+   @param {optional ::bitArray} [adata=[]] The authenticated data.
+   @param {optional Number} [tlen=64] The desired tag length, in bits.
+   @param {optional Boolean} [premac=false] Pass `true` if the authentication data is pre-macced with PMAC.
+   @return {::bitArray} The encrypted data, an array of bytes.
+
+   @function mode.ocb2.decrypt
+   @summary Decrypt in OCB mode.
+   @param {Object} [prp] The block cipher.  It must have a block size of 16 bytes.
+   @param {::bitArray} [ciphertext] The ciphertext data.
+   @param {::bitArray} [iv] The initialization value.
+   @param {optional ::bitArray} [adata=[]] The authenticated data.
+   @param {optional Number} [tlen=64] The desired tag length, in bits.
+   @param {optional Boolean} [premac=false] Pass `true` if the authentication data is pre-macced with PMAC.
+   @return {::bitArray} The decrypted data, an array of bytes.
+*/
+
+/**
+   @function random.randomWords
+   @summary  Generate several random words, and return them in an array.
+   @param    {Number} [nwords] The number of words to generate.
+   @return   {Array}
+   @desc
+     This random number generator is a derivative of Ferguson and Schneier's
+     generator Fortuna.  It collects entropy from various events into several
+     pools, implemented by streaming SHA-256 instances.  It differs from
+     ordinary Fortuna in a few ways, though.
+
+     Most importantly, it has an entropy estimator.  This is present because
+     there is a strong conflict here between making the generator available
+     as soon as possible, and making sure that it doesn't "run on empty".
+     In Fortuna, there is a saved state file, and the system is likely to have
+     time to warm up.
+
+     Second, because users are unlikely to stay on the page for very long,
+     and to speed startup time, the number of pools increases logarithmically:
+     a new pool is created when the previous one is actually used for a reseed.
+     This gives the same asymptotic guarantees as Fortuna, but gives more
+     entropy to early reseeds.
+
+     The entire mechanism here feels pretty klunky.  Furthermore, there are
+     several improvements that should be made, including support for
+     dedicated cryptographic functions that may be present in some browsers;
+     state files in local storage; cookies containing randomness; etc.  So
+     look for improvements in future versions.
+
+     ### Note: 
+
+     On recent webkit browsers, the random number generator now initializes 
+     itself from the cryptographically strong entropy provided by the browser
+     (crypto.getRandomValues).
+    
+
+   @function random.addEntropy
+   @summary  Add entropy to the pools.
+   @param {Number|Array|String} [data] The entropic value.  Should be a 32-bit integer, array of 32-bit integers, or string
+   @param {Number} [estimatedEntropy] The estimated entropy of data, in bits.
+   @param {String} [source] The source of the entropy, eg "mouse".
+   @desc For more information about the random number generator see [::random.randomWords].
+
+   @function random.isReady
+   @summary  Is the generator ready?
+   @desc For more information about the random number generator see [::random.randomWords].
+
+   @function random.getProgress
+   @summary  Get the generator's progress toward readiness, as a fraction.
+   @desc For more information about the random number generator see [::random.randomWords].
+
+   @function random.startCollectors
+   @hostenv  xbrowser
+   @summary  Start the built-in entropy collectors.
+   @desc For more information about the random number generator see [::random.randomWords].
+
+   @function random.stopCollectors
+   @hostenv xbrowser
+   @summary  Stop the built-in entropy collectors.
+   @desc For more information about the random number generator see [::random.randomWords].
+
+   @function random.addEventListener
+   @summary  Add an event listener for progress or seeded-ness
+   @param    {String} [event] Name of the event ("progress" or "seeded").
+   @param    {Function} [cb] Callback function to add.
+   @desc For more information about the random number generator see [::random.randomWords].
+
+   @function random.removeEventListener
+   @summary  Remove an event listener
+   @param    {String} [event] Name of the event ("progress" or "seeded").
+   @param    {Function} [cb] Callback function to remove.
+   @desc For more information about the random number generator see [::random.randomWords].
 */
 
 /** 

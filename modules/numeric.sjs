@@ -8,6 +8,14 @@
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *
+ *
+ *   ***********************************************************
+ *   *    DO NOT EDIT numeric.sjs - IT IS A GENERATED FILE!    *
+ *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN   * 
+ *   *    apollo/src/build/make-apollo                         *
+ *   ***********************************************************
+ *
+ *
  * This file is derived from the "Numeric Javascript" project (http://www.numericjs.com), 
  * which is licensed under the terms of the MIT License.
  *

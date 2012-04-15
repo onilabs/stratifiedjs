@@ -463,8 +463,8 @@ function makeSymbolView(location) {
   else {
     var template =         
       "<h2><a href='#{path}{module}'>{module}</a>::<a href='#{path}{module}::{class}'>{class}</a>::{name}</h2>"+
-      (docs.type == "ctor" ? 
-       "<div class='mb-require'><code>var {name} = require('{home}').{name};</code></div>" : "")+
+      (docs.type == "ctor" || docs['static'] ? 
+       "<div class='mb-require'><code>require('{home}').{name};</code></div>" : "")+
       "<div name='summary' class='mb-summary'></div>
        <div name='details'></div>
        <div name='desc'></div>
@@ -472,7 +472,7 @@ function makeSymbolView(location) {
     view = ui.makeView(template).supplant({
       path:location.path, 
       module:location.module, 
-      name:location.symbol, 
+      name: docs['static'] ? location.classname + "." + location.symbol : location.symbol, 
       'class':location.classname,
       home: mdocs.home || (location.path+location.module)});
   }
@@ -483,9 +483,7 @@ function makeSymbolView(location) {
   if (docs.type == "function" || docs.type == "ctor") {
     // function signature
     var signature;
-    if (docs.type == 'ctor')
-      signature = "new ";
-    else if (location.classname)
+    if (docs.type != 'ctor' && location.classname && !docs['static'])
       signature = location.classname.toLowerCase()+".";
     else
       signature = "";
@@ -498,6 +496,12 @@ function makeSymbolView(location) {
         return rv;
       }).join(", ")+
       "</span>)";
+    if (docs.type == 'ctor') {
+      if (signature.indexOf('.') != -1)
+        signature = '('+signature+')';
+      signature = "new "+signature;
+    }
+
     if (docs['return']) {
       signature += " <span class='mb-rv'>returns "+
         makeTypeHTML(docs['return'].valtype, location)+"</span>";
@@ -514,7 +518,7 @@ function makeSymbolView(location) {
       return common.supplant(
         "<tr><td class='mb-td-symbol'>{name}</td><td><span class='mb-type'>{type}</span>{def}{summary}</td></tr>",
         { name:p.name||'.', type:makeTypeHTML(p.valtype, location), 
-          def: p.defval? "<span class='mb-defval'>Default: "+p.defval+"</span>" : "",
+          def: p.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(p.defval,location)+"</span>" : "",
           summary:makeSummaryHTML(p, location) });
     });
     if (args.length)
@@ -525,7 +529,7 @@ function makeSymbolView(location) {
       return common.supplant(
         "<tr><td class='mb-td-symbol'>{name}</td><td><span class='mb-type'>{type}</span>{def}{summary}</td></tr>",
         { name: s.name, type: makeTypeHTML(s.valtype, location), 
-          def: s.defval? "<span class='mb-defval'>Default: "+s.defval+"</span>" : "",
+          def: s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "",
           summary: makeSummaryHTML(s, location)
         });
     });
@@ -551,8 +555,11 @@ function makeSymbolView(location) {
     // collect symbols
     var symbols = {};
     coll.each(docs.symbols, function(s) { 
-      if (!symbols[s.type]) symbols[s.type] = [];
-      symbols[s.type].push(
+      var type = s.type;
+      if (s['static'])
+        type = 'static-'+type;
+      if (!symbols[type]) symbols[type] = [];
+      symbols[type].push(
         common.supplant(
           "<tr>
              <td class='mb-td-symbol'><a href='#{path}{module}::{class}::{symbol}'>{symbol}</a></td>
@@ -564,6 +571,8 @@ function makeSymbolView(location) {
     
     if (symbols['ctor'])
       ui.makeView("<table>"+symbols['ctor'].join("")+"</table>").show(view.elems.details);
+    if (symbols['static-function'])
+      ui.makeView("<h3>Static Functions</h3><table>"+symbols['static-function'].join("")+"</table>").show(view.elems.details);
     if (symbols['function'])
       ui.makeView("<h3>Methods</h3><table>"+symbols['function'].join("")+"</table>").show(view.elems.details);
     if (symbols['variable'])
@@ -671,11 +680,13 @@ function makeDescriptionHTML(obj, location) {
 
 function makeTypeHTML(type, location) {
   if (!type) return "";
-  var resolved = resolveLink(type, location);
-  if (!resolved)
-    return type;
-  else
-    return "<a href='"+resolved[0]+"'>"+resolved[1]+"</a>";
+  type = type.split("|");
+  for (var i=0; i<type.length; ++i) {
+    var resolved = resolveLink(type[i].replace('optional ',''), location);
+    if (!resolved) continue;
+    type[i] = (type[i].indexOf('optional') != -1 ? "optional ":"") + "<a href='"+resolved[0]+"'>"+resolved[1]+"</a>";
+  }
+  return type.join("|");
 }
 
 function resolveLink(id, location) {
