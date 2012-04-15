@@ -1,10 +1,10 @@
 var test = require('../lib/testUtil').test;
 var yql=require('apollo:webapi/yql');
 
-test("query", "JavaScript + structured concurrency", function() {
+test("query", "Stratified", function() {
   var rv = yql.query("select * from html where url=@url and xpath='//h1'",
                      {url:"http://www.stratifiedjs.org"});
-  return rv.results.h1;
+  return rv.results.h1.content;
 });
 
 test("getFile", true, function() {

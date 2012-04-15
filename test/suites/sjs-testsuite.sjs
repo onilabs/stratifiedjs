@@ -116,7 +116,7 @@ test("suspended throw in if-altern", 1, function() { try { if(false) return 3; e
 
 test("empty strings", 0, function() { var a=""; return a.length; });
 
-test("sjs eval scoping 1", 1, function() { var xx = 0; require('sjs:apollo-sys').eval("xx=1"); return xx; }); 
+test("sjs eval scoping 1", 1, function() { var xx = 0; require('sjs:apollo-sys').eval("xx=1"); return xx; }).skip("SJS eval always operates in global scope (like window.eval)");
 
 test("sjs eval scoping 2", 1, function() { require('sjs:apollo-sys').eval("var yyy=1;"); return yyy; }); 
 
@@ -126,7 +126,7 @@ test("return from catch", 1, function() { try { throw "error not caught!"; } cat
 
 test("eval scoping 1", 1, function() { var xx = 0; eval("xx=1"); return xx; }); 
 
-test("eval scoping 2", 1, function() { eval("var xyyyy=1"); if (this.xyyyy != undefined) return -1; try { return xyyyy; } catch (e) { return e.toString(); } }); 
+test("eval scoping 2", 1, function() { eval("var xyyyy=1"); if (this.xyyyy != undefined) return -1; try { return xyyyy; } catch (e) { return e.toString(); } }).skip("edge case that we won't fix in VM1");
 
 
 // XXX This test fails in normal & optimize modes on IE (but not in
@@ -630,9 +630,9 @@ test("arguments modification (assign)", 5, function() {
 
 test("arguments modification (var assign)", 6, function() {
   return (function() { var arguments=5; return arguments; })(0,1,2,3,4);
-});
+}).skip("edge case that we won't fix in VM1");
 
-test("regex apply (shouldn't work on IE)", "foo", function() {
+test("regex apply (NON-STANDARD; NOT SUPPORTED ANYMORE)", "foo", function() {
   var a = { x: "abcfoobar"}; return /(foo)/(a.x)[1];
 }).skip("using regexps as functions is non-standard JS");
 
