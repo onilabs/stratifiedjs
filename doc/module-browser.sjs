@@ -484,11 +484,17 @@ function makeSymbolView(location) {
     // function signature
     var signature;
     if (docs.type != 'ctor' && location.classname && !docs['static'])
-      signature = location.classname.toLowerCase()+".";
-    else
-      signature = "";
+      signature = location.classname.toLowerCase()+"."+docs.name;
+    else {
+      signature = docs.name;
+      if (docs.type == 'ctor') {
+        if (signature.indexOf('.') != -1)
+          signature = '('+signature+')';
+        signature = "new "+signature;
+      }
+    }      
 
-    signature += docs.name+"(<span class='mb-arglist'>"+
+    signature += "(<span class='mb-arglist'>"+
       coll.map(docs.param || [], function(p) {
         var rv = p.name || '.';
         if (p.valtype && p.valtype.indexOf("optional") != -1)
@@ -496,11 +502,6 @@ function makeSymbolView(location) {
         return rv;
       }).join(", ")+
       "</span>)";
-    if (docs.type == 'ctor') {
-      if (signature.indexOf('.') != -1)
-        signature = '('+signature+')';
-      signature = "new "+signature;
-    }
 
     if (docs['return']) {
       signature += " <span class='mb-rv'>returns "+
