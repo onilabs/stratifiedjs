@@ -330,7 +330,7 @@ function _run_builder(target, task, deps) {
   var ts = timestamp(target, true);
   var dirty = (deps.length == 0);
   for (var i=0; i<deps.length; ++i) {
-    if (timestamp(deps[i]) > ts) {
+    if (timestamp(deps[i]) >= ts) {
 //      console.log('TARGET '+target+': '+deps[i]+' ('+timestamp(deps[i])+') >'+ts+' ('+i+')');
       dirty = true;
       break;
