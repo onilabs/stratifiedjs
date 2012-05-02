@@ -328,8 +328,8 @@ Hash.prototype = {
 #define PAT_STRLIT PAT_STRLIT_SGL|PAT_STRLIT_DBL
 
 #ifdef MULTILINE_STRINGS
-#define PAT_ML_STRLIT_SGL '(?:\\.|[^\\\'])*'
-#define PAT_ML_STRLIT_DBL "(?:\\.|[^\\\"])*"
+#define PAT_ML_STRLIT_SGL '(?:\\[^]|[^\\\'])*'
+#define PAT_ML_STRLIT_DBL "(?:\\[^]|[^\\\"])*"
 #define PAT_ML_STRLIT PAT_ML_STRLIT_SGL|PAT_ML_STRLIT_DBL
 #endif
 
