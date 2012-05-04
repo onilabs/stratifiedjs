@@ -53,6 +53,10 @@
 
 __oni_rt.sys = exports;
 
+// we don't want to rely on the global 'undefined' symbol; see
+// https://groups.google.com/d/msg/oni-apollo/fNMz2W8S5mU/sYCgrriYj1MJ
+var UNDEF; // == undefined
+
 //----------------------------------------------------------------------
 // helper functions that we use internally and export for use by other
 // libraries; accessible through require('sjs:apollo-sys')
@@ -342,7 +346,7 @@ exports.makeMemoizedFunction = function(f, keyfn) {
   var memoizer = function() {
     var key = keyfn ? keyfn.apply(this,arguments) : arguments[0];
     var rv = memoizer.db[key];
-    if (rv !== undefined) return rv;
+    if (typeof rv !== 'undefined') return rv;
     if (!lookups_in_progress[key])
       lookups_in_progress[key] = spawn (function(args) {
         return memoizer.db[key] = f.apply(this, args);
@@ -426,7 +430,7 @@ function makeRequire(parent) {
         catch(e) { 
           opts.callback(e); return 1;
         }
-        opts.callback(undefined, rv);
+        opts.callback(UNDEF, rv);
       })());
     }
     else

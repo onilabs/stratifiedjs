@@ -44,7 +44,7 @@ function top_scope(pctx) {
 
 function add_newlines(n,pctx) {
   if (!pctx.keeplines) return;
-  if (pctx.nls == undefined) pctx.nls = "";
+  if (typeof pctx.nls == 'undefined') pctx.nls = "";
 #ifdef STRINGIFY
   while (n--) pctx.nls += "\\n";
 #else
@@ -63,7 +63,7 @@ function flush_newlines(pctx) {
 // contexts:
 
 #define BEGIN_SCRIPT(pctx)                        \
-  if (pctx.scopes !== undefined)                  \
+  if (typeof pctx.scopes !== 'undefined')         \
     throw "Internal parser error: Nested script"; \
   pctx.scopes = [];                               \
   push_scope(pctx);

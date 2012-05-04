@@ -56,6 +56,10 @@ OBSOLETE FLAGS:
 #define WHENDEBUG(X)
 #endif
 
+// we don't want to rely on the global 'undefined' symbol; see
+// https://groups.google.com/d/msg/oni-apollo/fNMz2W8S5mU/sYCgrriYj1MJ
+var UNDEF; // == undefined
+
 // on firefox this seems to help, on v8 it doesn't :-/
 //#define HOTPATH 1
 
@@ -97,7 +101,7 @@ function CFException(type, value, line, file) {
       value.toString = CFException_toString;    
   }
   this.val = value;
-  // this.ef = undefined;  // 'execution frame' tag for targetted return/break/continue
+  // this.ef = UNDEF;  // 'execution frame' tag for targetted return/break/continue
 }
 exports.CFER = function(env, value) { 
   var e = new CFException('r', value);
@@ -185,7 +189,7 @@ var EF_Proto = {
       else if (is_ef(val))
         val.swallow_r = true; // pass down flag to child
       else
-        val = undefined; // only 'return' returns a value to parent
+        val = UNDEF; // only 'return' returns a value to parent
     }
   
     // Mark this frame as unreturnable. This is used by
@@ -194,7 +198,7 @@ var EF_Proto = {
     this.unreturnable = true;
 
     // a little cleanup which might aid GC:
-    this.env = undefined;
+    this.env = UNDEF;
 
     if (this.async) {
       if (this.parent) {
@@ -203,7 +207,7 @@ var EF_Proto = {
         // (par and alt call through returnToParent via abortInner, which in the 
         // async case returns their own EF)
         // XXX empirically this doesn't seem to help much 
-        // if (val !== this) this.parent = undefined;
+        // if (val !== this) this.parent = UNDEF;
       }
       else // noone waiting for result; make sure exceptions get reported
         if (is_cfx(val)) {
@@ -466,7 +470,7 @@ function I_seq(ndata, env) {
       }
     }
     else
-      val = undefined;
+      val = UNDEF;
   }
   return val;
 }
@@ -654,7 +658,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       break;
       case 1:
       // 'reference' call
-      if (this.l[0] === undefined) {
+      if (typeof this.l[0] === 'undefined') {
         rv = new CFException("t",
                              new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
@@ -1061,7 +1065,7 @@ EF_Try.prototype.quench = function() {
 EF_Try.prototype.abort = function() {
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
-  this.parent = undefined;
+  this.parent = UNDEF;
   ASSERT(this.aborted != true) // sanity check; aborted before
   this.aborted = true;
   ASSERT(this.state != 3) // sanity check; aborted before
@@ -1074,7 +1078,7 @@ EF_Try.prototype.abort = function() {
     }
     else {
       // attempt to execute retract/finally blocks synchronously:
-      if (this.cont(0, undefined) != this)
+      if (this.cont(0, UNDEF) != this)
         return;
       // ... else fall through. we need to block
     }
@@ -1149,11 +1153,11 @@ EF_Loop.prototype.cont = function(idx, val) {
               if (!val.ef || val.ef == this) {
                 if (val.type == "b") {
                   // break statement
-                  val = undefined;
+                  val = UNDEF;
                 }
                 else if (val.type == "c") {
                   // continue statement
-                  val = undefined;
+                  val = UNDEF;
                   // break out of the loop; pick up again at increment:
                   break;
                 }
@@ -1236,17 +1240,17 @@ EF_ForIn.prototype.cont = function(idx, val) {
       if (is_cfx(val))
         return this.returnToParent(val);
       for (var x in val) {
-        if (this.remainingX === undefined) {
+        if (typeof this.remainingX === 'undefined') {
           val = this.NDATA_FORIN_LOOPF()(this.env,x);
           if (is_cfx(val)) {
             if (!val.ef || val.ef == this) {
               if (val.type == "b") {
                 // break statement
-                val = undefined;
+                val = UNDEF;
               }
               else if (val.type == "c") {
                 // continue
-                val = undefined;
+                val = UNDEF;
                 continue;
               }
             }
@@ -1273,11 +1277,11 @@ EF_ForIn.prototype.cont = function(idx, val) {
           if (!val.ef || val.ef == this) {
             if (val.type == "b") {
               // break
-              val = undefined;
+              val = UNDEF;
             }
             else if (val.type == "c") {
               // continue
-              val = undefined;
+              val = UNDEF;
               if (this.remainingX.length)
                 continue;
             }            
@@ -1379,7 +1383,7 @@ EF_Par.prototype.cont = function(idx, val) {
     else {
       // returning from a suspension
       --this.pending;
-      this.children[idx] = undefined;
+      this.children[idx] = UNDEF;
       if (is_cfx(val) && !this.aborted) {
         // an exception aborts all other pending branches:
         this.pendingCFE = val;
@@ -1422,11 +1426,11 @@ EF_Par.prototype.quench = function() {
 EF_Par.prototype.abort = function() {
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
-  this.parent = undefined;
+  this.parent = UNDEF;
   if (this.aborted) {
     // we already aborted internally.
     // can delete pendingCFE; our caller is not interested in it
-    this.pendingCFE = undefined;
+    this.pendingCFE = UNDEF;
     return this;
   }
   return this.abortInner();
@@ -1444,7 +1448,7 @@ EF_Par.prototype.abortInner = function() {
         this.setChildFrame(val, i);
       else {
         --this.pending;
-        this.children[i] = undefined;
+        this.children[i] = UNDEF;
       }
     }
   if (!this.pending) // all done
@@ -1531,14 +1535,14 @@ EF_Alt.prototype.cont = function(idx, val) {
     else {
       // returning from a suspension. 
       --this.pending;
-      this.children[idx] = undefined;
+      this.children[idx] = UNDEF;
       if (this.collapsing) {
         // we're returning from an async abort after collapsing
         // (uncommon case; see comment below)
         if (this.pending == 1) {
           // only our collapsing branch is left; continue with it
           cf = this.collapsing.cf;
-          this.collapsing = undefined;
+          this.collapsing = UNDEF;
           cf.cont(1);
         }
         return;
@@ -1576,9 +1580,9 @@ EF_Alt.prototype.quench = function(except) {
 };
 
 EF_Alt.prototype.abort = function() {
-  this.parent = undefined;
+  this.parent = UNDEF;
   if (this.aborted) {
-    this.pendingRV = undefined;
+    this.pendingRV = UNDEF;
     return this;
   }
   return this.abortInner();
@@ -1590,13 +1594,13 @@ EF_Alt.prototype.abortInner = function() {
   if (this.collapsing) {
     // we're being aborted after a collapse; just need to abort the collapsing branch
     var branch = this.collapsing.branch;
-    this.collapsing = undefined;
+    this.collapsing = UNDEF;
     var val = this.children[branch].abort();
     if (is_ef(val)) // need to wait
       this.setChildFrame(val, branch);
     else {
       --this.pending;
-      this.children[branch] = undefined;
+      this.children[branch] = UNDEF;
     }
   }
   else {
@@ -1608,7 +1612,7 @@ EF_Alt.prototype.abortInner = function() {
           this.setChildFrame(val, i);
         else {
           --this.pending;
-          this.children[i] = undefined;
+          this.children[i] = UNDEF;
         }
       }
   }
@@ -1635,7 +1639,7 @@ EF_Alt.prototype.docollapse = function(branch, cf) {
         this.setChildFrame(val, i);
       else {
         --this.pending;
-        this.children[i] = undefined;
+        this.children[i] = UNDEF;
       }
     }
   }
@@ -1828,7 +1832,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
     // set values with return function:
     try {
       this.NDATA_SUSPEND_RETURNFUNC().apply(this.env, this.retvals);
-      val = undefined;
+      val = UNDEF;
     }
     catch (e) {
       val = new CFException("i", "Suspend: Return function threw ("+e+")");
@@ -2050,7 +2054,7 @@ exports.Hold = function(/*args*/) {
               quench: function() { sus = null; this.co.cancel(); }
 #endif
             };
-  sus.co = setTimeout(function() { if (sus && sus.parent) sus.parent.cont(sus.parent_idx, undefined); },
+  sus.co = setTimeout(function() { if (sus && sus.parent) sus.parent.cont(sus.parent_idx, UNDEF); },
                       arguments[0]);
   return sus;
 };

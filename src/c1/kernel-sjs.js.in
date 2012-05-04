@@ -142,7 +142,7 @@ function begin_script(pctx) {
     pctx.full_nblock = false;    
   }
   
-  if (pctx.scopes !== undefined)
+  if (typeof pctx.scopes !== 'undefined')
     throw "Internal parser error: Nested script";
   pctx.decl_scopes = [];
   pctx.stmt_scopes = [];
@@ -391,7 +391,7 @@ ph_nblock_seq.prototype.is_nblock = true;
 ph_nblock_seq.prototype.is_nblock_seq = true;
 ph_nblock_seq.prototype.pushStmt = function(stmt) {
  this.stmts.push(stmt);
- if (this.line === undefined) this.line = this.stmts[0].line;
+ if (typeof this.line === 'undefined') this.line = this.stmts[0].line;
 };
 
 /* 

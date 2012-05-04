@@ -182,7 +182,7 @@ function getXHRCaps() {
       XHR_caps.XHR_ctor = function() { return new XMLHttpRequest(); };
     else
       XHR_caps.XHR_ctor = function() {
-        if (activex_xhr_ver !== undefined)
+        if (typeof activex_xhr_ver !== 'undefined')
           return new ActiveXObject(activex_xhr_ver);    
         for (var v in
              { "MSXML2.XMLHTTP.6.0":1,
@@ -202,7 +202,7 @@ function getXHRCaps() {
     // determine CORS caps:
     XHR_caps.XHR_CORS = ("withCredentials" in XHR_caps.XHR_ctor());
     if (!XHR_caps.XHR_CORS)
-      XHR_caps.XDR = (__oni_rt.G.XDomainRequest !== undefined);
+      XHR_caps.XDR = (typeof __oni_rt.G.XDomainRequest !== 'undefined');
     XHR_caps.CORS = (XHR_caps.XHR_CORS || XHR_caps.XDR) ? "CORS" : "none";
   }
   return XHR_caps;
@@ -321,7 +321,7 @@ function request_hostenv(url, settings) {
   }
   
   waitfor(var error) {
-    if (req.onerror !== undefined) {
+    if (typeof req.onerror !== 'undefined') {
       req.onload = function() { resume(); };
       req.onerror = function() { resume(true); };
     }
@@ -347,7 +347,7 @@ function request_hostenv(url, settings) {
 
   // file urls will return a success code '0', not '2'!
   if (error ||
-      (req.status !== undefined && // req.status is undefined for IE XDR objs
+      (typeof req.status !== 'undefined' && // req.status is undefined for IE XDR objs
        !(req.status.toString().charAt(0) in {'0':1,'2':1}))) {
     if (opts.throwing) {
       var txt = "Failed " + opts.method + " request to '"+url+"'";
