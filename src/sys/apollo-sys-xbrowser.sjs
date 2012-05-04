@@ -54,7 +54,7 @@ function determineLocation() {
     location = {};
     var scripts = document.getElementsByTagName("script"), matches;
     for (var i=0; i<scripts.length; ++i) {
-      if ((matches = /(.*)oni-apollo(.*).js$/.exec(scripts[i].src))) {
+      if ((matches = /(.*)oni-apollo(.*).js(\?.*)?$/.exec(scripts[i].src))) {
         location.location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
         location.requirePrefix = scripts[i].getAttribute("require-prefix");
         break;
