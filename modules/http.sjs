@@ -268,8 +268,10 @@ exports.getXDomainCaps = sys.getXDomainCaps;
 
      If the request is unsuccessful, and the call is configured to
      throw exceptions (setting {"throwing":true}; the default), an
-     exception will be thrown which has a 'status' member set to the
-     request status. If the call is configured to not throw, an empty
+     exception will be thrown which has a `status` member set to the
+     request status and a `data` member which contains any response body that
+     the server might have sent.
+     If the call is configured to not throw, an empty
      string will be returned.
 
      ### Example:

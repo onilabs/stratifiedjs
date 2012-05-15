@@ -198,12 +198,16 @@ function request_hostenv(url, settings) {
     opts.headers.Host = url.authority;
   if (opts.body && !opts.headers['Transfer-Encoding'])
     opts.headers['Transfer-Encoding'] = 'chunked';
+  var auth;
+  if (typeof opts.username != 'undefined' && typeof opts.password != 'undefined')
+    auth = opts.username + ":" + opts.password;
   var request = __oni_rt.nodejs_require(protocol).request({
     method: opts.method,
     host: url.host,
     port: port,
     path: url.relative || '/',
-    headers: opts.headers
+    headers: opts.headers,
+    auth: auth
   });
   request.end(opts.body); 
 
@@ -255,6 +259,14 @@ function request_hostenv(url, settings) {
         err.status = response.statusCode;
         err.request = request;
         err.response = response;
+        // XXX support for returning streambuffer
+        response.setEncoding('utf8');
+        response.data = "";
+        var data;
+        while (data = readStream(response)) {
+          response.data += data;
+        }
+        err.data = response.data;
         throw err;
         }
       else

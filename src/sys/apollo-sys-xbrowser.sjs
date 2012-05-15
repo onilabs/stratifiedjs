@@ -355,6 +355,7 @@ function request_hostenv(url, settings) {
       if (req.status) txt += " ("+req.status+")";
       var err = new Error(txt);
       err.status = req.status;
+      err.data = req.responseText;
       throw err;
     }
     else
