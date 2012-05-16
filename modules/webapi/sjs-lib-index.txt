@@ -1,6 +1,7 @@
 @lib     Oni Apollo 'unstable' Standard Module Library - Web API Modules
 @summary Bindings to popular web apis
 
+@module asana
 @module freebase
 @module google
 @module lastfm
