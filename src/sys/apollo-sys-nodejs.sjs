@@ -185,6 +185,7 @@ function request_hostenv(url, settings) {
                                     settings
                                   ]);
   var url_string = exports.constructURL(url, opts.query);
+  //console.log('req '+url_string);
   // XXX ok, it sucks that we have to take this URL apart again :-/
   var url = exports.parseURL(url_string);
   var protocol = url.protocol;
@@ -196,8 +197,16 @@ function request_hostenv(url, settings) {
 
   if (!opts.headers['Host'])
     opts.headers.Host = url.authority;
-  if (opts.body && !opts.headers['Transfer-Encoding'])
-    opts.headers['Transfer-Encoding'] = 'chunked';
+  if (opts.body && !opts.headers['Transfer-Encoding']) {
+    // opts.headers['Transfer-Encoding'] = 'chunked';
+    // Some APIs (github, here's looking at you) don't accept chunked encoding, 
+    // so for maximum compatibility we determine the content length:
+    opts.body = new Buffer(opts.body);
+    opts.headers['Content-Length'] = opts.body.length;
+  }
+  else {
+    opts.headers['Content-Length'] = 0;
+  }
   var auth;
   if (typeof opts.username != 'undefined' && typeof opts.password != 'undefined')
     auth = opts.username + ":" + opts.password;
