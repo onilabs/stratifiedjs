@@ -141,14 +141,12 @@ BaseRunner.prototype.load = function(filename) {
     fileCases.push([name, f]);
     return new TestWrapper(f);
   };
-  try {
-    result = require(filename);
-  } catch (e) {
-    fileCases.push(["(load error)", function() { throw e; }]);
-  }
+  require(filename);
   if(fileCases.length > 0) {
     this.numTests += fileCases.length;
     this.testGroups.push([filename, fileCases]);
+  } else {
+    this.puts("Warning: no tests found in " + filename);
   }
   this.addCase = function() { throw "no test load in progress!"; };
 };
