@@ -42,7 +42,7 @@ if (sys.hostenv != 'nodejs')
 
 var common = require('../common');
 var events = require('./events');
-var util = require('util');
+var debug = require('../debug');
 
 var disableColors = true;
 if (process.platform != 'win32') {
@@ -201,5 +201,5 @@ function writeErr(e, id) {
 
 function writeVal(val, id) {
   if (val === undefined) return;
-  write(util.inspect(val, false, 2, itf.enabled && !disableColors), id);
+  write(debug.inspect(val, false, 2, itf.enabled && !disableColors), id);
 }

@@ -35,6 +35,8 @@
   @home      apollo:common
 */
 
+var str = require('apollo:string');
+
 /**
   @function bind
   @summary Bind a function to a given 'this' object.
@@ -82,50 +84,15 @@ exports.flatten = require('sjs:apollo-sys').flatten;
 
 /**
   @function supplant
-  @summary  Performs variable substitution on a string.
-  @param    {String} [template] A string holding variable names enclosed in **{ }** braces.
-  @param    {Object} [replacements] Hash of key/value pairs that will be replaced in *template*.
-  @return   {String} String with placeholders replaced by variables.
-  @desc
-    An error will be thrown if any substitution can't be found
-    
-    ###Example:
-
-        var rv = common.supplant("Hello {who}", { who: "world"});
-        // rv will equal "Hello world"
+  @deprecated Use [string::supplant]
 */
-//XXX how should you escape {foo}? {{foo}}? \{foo\}?
-exports.supplant = function(str, o) {
-  return str.replace(/{([^{} ]*)}/g,
-    function(text, key) {
-      var replacement = o[key];
-      if(replacement === undefined) throw new Error("No substitution found for \"" + key + "\"");
-      if(replacement instanceof Function) { replacement = replacement.call(o); };
-      return replacement;
-    }
-  );
-};
+exports.supplant = str.supplant;
 
 /**
   @function sanitize
-  @summary  Make a string safe for insertion into html.
-  @param    {String} [str] String to sanitize.
-  @return   {String} Sanitized string.
-  @desc
-    Returns sanitized string with **<**,**>**, and **&** replaced by their corresponding html entities.
-**/
-
-var replacements = {
-  '&':'&amp;',
-  '>':'&gt;',
-  '<':'&lt;'
-};
-
-exports.sanitize = function(str) {
-  return str.replace(/[<>&]/g, function(c) {
-    return replacements[c];
-  })
-};
+  @deprecated Use [string::sanitize]
+*/
+exports.sanitize = str.sanitize;
 
 /**
   @function mergeSettings
