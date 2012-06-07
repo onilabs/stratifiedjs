@@ -381,3 +381,9 @@ testThis(par, 'findKey');
 
 testThis(collection, 'reduce', 0);
 testThis(collection, 'reduce1');
+
+
+test("union", 3, function() {
+  var x={a:1},y={b:1},z={c:1};
+  return collection.union([x,z],[x,y,z]).length;
+});

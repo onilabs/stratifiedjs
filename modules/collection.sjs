@@ -183,6 +183,7 @@ exports.identity = function(a) { return a; }
     small to large indices.
 */
 exports.each = function(collection, fn, this_obj) {
+  if (!collection) return;
   if (sys.isArrayOrArguments(collection)) {
     for (var i=0,l=collection.length; i<l; ++i) 
       fn.call(this_obj, collection[i], i, collection);
@@ -731,3 +732,35 @@ exports.any     = generateAny(exports.findKey);
   @summary  Parallel version of [::any]
 */
 exports.par.any = generateAny(exports.par.findKey);
+
+
+/**
+  @function union
+  @param    {Array} [a] Set of unique elements
+  @param    {Array} [b] Set of unique elements
+  @return   {Array} New set containing union of sets `a` and `b`.
+  @summary  Union of `a` and `b`, with duplicate elements (under `===`) appearing only once.
+  @desc
+    ###Notes:
+
+    * This is a general, but naive implementation with a running time `O(size(a)*size(b))`.
+    For more specific datatypes (strings or numbers, or objects with unique id's) there are
+    more scalable algorithms.
+
+    * `a` and `b` are assumed to be sets, in the sense that they individually don't contain
+    duplicate elements.
+*/
+__js exports.union = function(a, b) {
+  var rv = a.slice();
+  var i=0;
+  outer:
+  for (; i<b.length; ++i) {
+    var e_b = b[i];
+    for (var j=0; j<a.length; ++j) {
+      if (a[j] === e_b) 
+        continue outer;
+    }
+    rv.push(e_b);
+  }
+  return rv;
+};
