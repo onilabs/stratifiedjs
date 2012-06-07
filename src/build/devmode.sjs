@@ -32,14 +32,7 @@ exports.build = function(debug) {
 // (*not* the currently active runtime)
 exports.eval = function eval(code, settings) {
   sys.puts("\n");
-  if(!settings) settings = {};
-  var filename = settings.filename || "'sjs_eval_code'";
-  var mode = settings.mode || "normal";
-  var c1 = load(settings.compiler || apollo_home + '/tmp/c1.js');
-  var vm = load(settings.vm || apollo_home + '/tmp/vm1node.js');
-
-  sys.puts("COMPILING (sjs): " + code);
-  var js = c1.compile(code, {filename:filename, mode:mode});
+  var js = exports.compile(code, settings);
   sys.puts("COMPILED (js)  : " + js);
   sys.puts('------------------------------------');
   var res = node_vm.runInNewContext(js, {
@@ -48,4 +41,16 @@ exports.eval = function eval(code, settings) {
   sys.puts('------------------------------------');
   sys.puts("result: " + res);
   return res;
+};
+
+exports.compile = function compile(code, settings) {
+  if(!settings) settings = {};
+  var filename = settings.filename || "'sjs_eval_code'";
+  var mode = settings.mode || "normal";
+  var c1 = load(settings.compiler || apollo_home + '/tmp/c1.js');
+  var vm = load(settings.vm || apollo_home + '/tmp/vm1node.js');
+
+  sys.puts("COMPILING (sjs): " + code);
+  var js = c1.compile(code, {filename:filename, mode:mode});
+  return js;
 };
