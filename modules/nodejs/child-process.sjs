@@ -42,7 +42,9 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
 var child_process = require('child_process');
 
 // event emitted by child processes when stdout/stderr have closed has changed in node v0.7.7:
-var STREAMS_CLOSED_SIGNAL = (parseFloat(/\d+\.(\d+\.\d+)/.exec(process.versions.node)[1]) > 7.6) ? 'close' : 'exit';
+var version = /(\d+)\.(\d+)\.(\d+)/.exec(process.versions.node);
+version = version[1]*1000000 + version[2]*1000+version[3];
+var STREAMS_CLOSED_SIGNAL = version>7006 ? 'close' : 'exit';
 
 /**
    @function exec
