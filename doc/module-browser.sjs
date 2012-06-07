@@ -463,7 +463,7 @@ function makeSymbolView(location) {
   else {
     var template =         
       "<h2><a href='#{path}{module}'>{module}</a>::<a href='#{path}{module}::{class}'>{class}</a>::{name}</h2>"+
-      (docs.type == "ctor" || docs['static'] ? 
+      (docs.type == "ctor" || docs['static'] || docs.type == "proto"? 
        "<div class='mb-require'><code>require('{home}').{name};</code></div>" : "")+
       "<div name='summary' class='mb-summary'></div>
        <div name='details'></div>
@@ -537,6 +537,19 @@ function makeSymbolView(location) {
     if (settings.length)
       ui.makeView("<h3>Settings</h3><table>"+settings.join("")+"</table>").show(view.elems.details);
 
+    // attribs (nearly identical to settings)
+    var attribs = coll.map(docs.attrib || [], function(s) {
+      return common.supplant(
+        "<tr><td class='mb-td-symbol'>{name}</td><td><span class='mb-type'>{type}</span>{def}{summary}</td></tr>",
+        { name: s.name, type: makeTypeHTML(s.valtype, location), 
+          def: s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "",
+          summary: makeSummaryHTML(s, location)
+        });
+    });
+    if (attribs.length)
+      ui.makeView("<h3>Attribs</h3><table>"+attribs.join("")+"</table>").show(view.elems.details);
+
+
     if (docs['return'] && docs['return'].summary) {
       ui.makeView(common.supplant(
         "<h3>Return Value</h3>
@@ -550,8 +563,13 @@ function makeSymbolView(location) {
                           
   }
   else if (docs.type == "class") {
-    ui.makeView("<h3>Class {name}</h3>").supplant(docs).show(view.elems.details);
-
+    var template; 
+    if (docs.inherit)
+      template = '<h3>Class {name} inherits '+makeTypeHTML(docs.inherit,location)+'</h3>';
+    else
+      template = "<h3>Class {name}</h3>";
+    ui.makeView(template).supplant(docs).show(view.elems.details);
+      
 
     // collect symbols
     var symbols = {};
@@ -572,6 +590,8 @@ function makeSymbolView(location) {
     
     if (symbols['ctor'])
       ui.makeView("<table>"+symbols['ctor'].join("")+"</table>").show(view.elems.details);
+    if (symbols['proto'])
+      ui.makeView("<table>"+symbols['proto'].join("")+"</table>").show(view.elems.details);
     if (symbols['static-function'])
       ui.makeView("<h3>Static Functions</h3><table>"+symbols['static-function'].join("")+"</table>").show(view.elems.details);
     if (symbols['function'])

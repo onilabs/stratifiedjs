@@ -192,7 +192,7 @@ var paramType = 1, paramName = 2, paramDefault = 3, paramDescription = 4;
 exports.parseModuleDocs = function(src, module) {
   var module = common.mergeSettings({ type: "module", symbols: {}, classes: {} },
                                     module);
-  var curr = module; // 'curr' determines where 'param', 'return', 'setting' are appended to
+  var curr = module; // 'curr' determines where 'param', 'return', 'setting', 'attrib' are appended to
   var fields = extractDocFields(extractDocComments(src));
 
   for (var i=0; i<fields.length; ++i) {
@@ -214,11 +214,20 @@ exports.parseModuleDocs = function(src, module) {
         curr = module.classes[matches[1]].symbols[matches[2]] = { name: matches[2], type: prop };
       }
       else if (module.classes[value]) {
-        // constructor
-        curr = module.classes[value].symbols[value] = { name: value, 
-                                                        type: "ctor", 
-                                                        "return": {type:"return", valtype:"::"+value}, 
-                                                        summary: "Constructor for a "+value+" object."};
+        if (prop == 'function') {
+          // constructor
+          curr = module.classes[value].symbols[value] = { name: value, 
+                                                          type: "ctor", 
+                                                          "return": {type:"return", valtype:"::"+value}, 
+                                                          summary: "Constructor for "+value+" object."};
+        }
+        else {
+          // prototype
+          curr = module.classes[value].symbols[value] = { name: value,
+                                                          type: "proto",
+                                                          summary: "Prototype for [::"+value+"] objects."};
+        }
+          
       }
       else {
         // top-level symbol
@@ -227,6 +236,7 @@ exports.parseModuleDocs = function(src, module) {
       break;
     case "param":
     case "setting":
+    case "attrib":
       // these get parsed & put into arrays on curr
       var matches = paramRE.exec(value);
       if (!curr[prop]) curr[prop] = [];
