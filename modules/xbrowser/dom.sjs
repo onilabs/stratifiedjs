@@ -56,7 +56,7 @@ function elementsFromSelector(selector) {
   return elems;
 }
 
-/*
+/**
   @function addListener
   @summary Cross-platform event helper. Adds event listener.
   @param {DOMElement} [elem] DOM element to set handler on.
@@ -72,7 +72,7 @@ function addListener(elem, type, handler) {
 exports.addListener = addListener;
 
 
-/*
+/**
   @function removeListener
   @summary Cross-platform event helper. Removes event listener.
   @param {DOMElement} [elem] DOM element to remove handler from.
@@ -87,7 +87,7 @@ function removeListener(elem, type, handler) {
 }
 exports.removeListener = removeListener;
 
-/*
+/**
   @function  eventTarget
   @summary Cross-platform event helper. Retrieves event target.
   @param {DOMEvent} [ev] DOM event object.
@@ -97,31 +97,35 @@ exports.eventTarget = function(ev) {
   return ev.target || ev.srcElement;
 };
 
-/*
+/**
   @function pageX
   @summary Cross-platform event helper. Returns page coordinate of event.
   @param {DOMEvent} [ev] DOM event object.
   @return {Integer}
+  @desc 
+     **Note:** Also works for touch events
 */
 exports.pageX = function(ev) {
-//  if (ev.touches) ev = ev.touches[0];
+  if (ev.touches) ev = ev.touches[0];
   if (ev.pageX !== undefined) return ev.pageX;
   return ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
 };
 
-/*
+/**
   @function pageY
   @summary Cross-platform event helper. Returns page coordinate of event.
   @param {DOMEvent} [ev] DOM event object.
   @return {Integer}
+  @desc 
+     **Note:** Also works for touch events
 */
 exports.pageY = function(ev) {
-//  if (ev.touches) ev = ev.touches[0];
+  if (ev.touches) ev = ev.touches[0];
   if (ev.pageY !== undefined) return ev.pageY;
   return ev.clientY + document.body.scrollTop + document.documentElement.scrollTop;
 };
 
-/*
+/**
   @function preventDefault
   @summary Cross-platform event helper. Cancels default action of given event.
   @param {DOMEvent} [ev] DOM event object.
@@ -137,7 +141,7 @@ exports.preventDefault = function(ev) {
 };
 
 
-/*
+/**
   @function stopEvent
   @summary Cross-platform event helper. Cancels propagation, bubbeling and default action of given event.
   @param {DOMEvent} [ev] DOM event object.
