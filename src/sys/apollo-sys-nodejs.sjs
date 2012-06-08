@@ -353,14 +353,14 @@ function nodejs_loader(path, parent, dummy_src, opts) {
       if (resolved instanceof Array) resolved = resolved[1];
 
       // ok, success. load as a file module:
-      return default_loader("file://"+resolved, parent, file_src_loader);
+      return default_loader("file://"+resolved, parent, file_src_loader, opts);
     }
     catch (e) {}
   }
   else if (resolved && matches[1]!="js") {
     // see if this is an apollo-known extension (but NOT js!)
     if (exports.require.extensions[matches[1]]) // yup; load as apollo-native module
-      return default_loader("file://"+resolved, parent, file_src_loader);
+      return default_loader("file://"+resolved, parent, file_src_loader, opts);
   }
 
   if (resolved == "") throw new Error("nodejs module at '"+path+"' not found");

@@ -17,11 +17,11 @@ test('"this" object in modules', this, function() {
 });
 
 if (!testUtil.isBrowser) {
+  var child_process = require('apollo:nodejs/child-process');
   var path = require('nodejs:path');
   var apollo_path = path.join(http.parseURL(module.id).path, '../../../apollo');
   
   test('apollo -e', {stdout: 'hi\n', stderr: ''}, function() {
-    var child_process = require('apollo:nodejs/child-process');
     return child_process.run(apollo_path, ['-e', 'require("util").puts("hi");'], {
       env: process.env
     });
@@ -29,11 +29,24 @@ if (!testUtil.isBrowser) {
   
   test('hub resolution via $APOLLO_INIT', {stdout: 'HELLO!\n', stderr: ''}, function() {
     var hub_path = path.join(http.parseURL(module.id).path, '../../data/literal-hub.sjs');
-    var child_process = require('apollo:nodejs/child-process');
     var script = 'require("util").puts(require("literal:exports.hello=\'HELLO!\'").hello);';
     try {
       var result = child_process.run(apollo_path, ['-e', script], {
         env: common.mergeSettings(process.env, {APOLLO_INIT: hub_path})
+      });
+      return result;
+    } catch(e) {
+      console.log(e.stderr);
+      return e;
+    }
+  }).serverOnly();
+
+  test('loading .sjs using NODE_PATH', {stdout: '42\n', stderr: ''}, function() {
+    var script = 'try{}or{}; require("util").puts(require("nodejs:child1.sjs").child1_function1());';
+    var data_dir = path.join(http.parseURL(module.id).path, '../../data');
+    try {
+      var result = child_process.run(apollo_path, ['-e', script], {
+        env: common.mergeSettings(process.env, {NODE_PATH: data_dir})
       });
       return result;
     } catch(e) {
