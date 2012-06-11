@@ -45,15 +45,23 @@ function log(x) {/*
 }
 
 var common = require('apollo:common');
-var coll = require('apollo:collection');
-var dom = require('apollo:xbrowser/dom');
+var coll   = require('apollo:collection');
+var dom    = require('apollo:xbrowser/dom');
+var debug  = require('apollo:debug');
+var func   = require('apollo:function');
 
 //----------------------------------------------------------------------
 // StyleElement: stylesheet conditioned on unique css classes
 
-var styleClassCounter = 0;
+/**
+   @class   StyleElement
+   @summary Object with style information to be applied to a [::UIElement]
+*/
 
-function StyleElement(content, global) {
+var StyleElement = {};
+
+var styleClassCounter = 0;
+StyleElement.init = function(content, global) {
   if (!global) {
     this.cssClass = "__oni"+(++styleClassCounter);
     content = content.replace(/\s*([^{]*)({[^}]+})/g, 
@@ -70,25 +78,46 @@ function StyleElement(content, global) {
   elem.innerHTML = content;
 
   this.refCount = 0;
-}
+};
 
-StyleElement.prototype = {};
-
-__js StyleElement.prototype.use = function() {
+__js StyleElement.use = function() {
   if (this.refCount++ == 0)
     document.head.appendChild(this.dompeer);
 };
-__js StyleElement.prototype.unuse = function() {
+__js StyleElement.unuse = function() {
   if (--this.refCount == 0)
     this.dompeer.parentNode.removeChild(this.dompeer);
 };
 
-// XXX deprecated:
-var Style = exports.Style = function(content) { return new StyleElement(content); };
-var GlobalStyle = exports.GlobalStyle = function(content) { return new StyleElement(content, true); };
-// new names:
-exports.CSS = Style;
-exports.GlobalCSS = GlobalStyle;
+/**
+   @function CSS
+   @summary  Create a local [::StyleElement] from CSS style rules
+   @param    [String] CSS style rules
+   @return   {::StyleElement}
+   @desc
+      Creates a [::StyleElement] that, when applied to a [::UIElement] `ui`, will be 
+      have its rules only applied to `ui` and descendents of `ui`.
+ */
+var CSS = exports.CSS = function(content) { 
+  var obj = Object.create(StyleElement);
+  obj.init(content); 
+  return obj;
+};
+
+/**
+   @function GlobalCSS
+   @summary  Create a global [::StyleElement] from CSS style rules
+   @param    [String] CSS style rules
+   @return   {::StyleElement}
+   @desc
+     Create a [::StyleElement] that, when applied to an [::UIElement], will have its rules 
+     applied globally to all elements in the webapp.
+*/
+var GlobalCSS = exports.GlobalCSS = function(content) { 
+  var obj = Object.create(StyleElement);
+  obj.init(content, true);
+  return obj;
+};
 
 //----------------------------------------------------------------------
 // DOM Measuring helpers
@@ -204,22 +233,61 @@ __js function makeConstrainedQuantity(entity, attribs) {
     dompeer:   root DOM element
     style:     ...
   }    
-
-  lifecycle:
-
-   detached --> attached --> displayed/enabled
-         [attached()]   enable()
-
-   detached <-- attached <-- displayed/enabled
-         [detached()]   disable()
-
 */
-function UIElement() {}
-UIElement.prototype = {};
+/**
+   @class    UIElement
+   @summary  Base class for UI elements
+   @variable UIElement
+*/
+var UIElement = exports.UIElement = {};
 
-UIElement.prototype.enable = function() {
-  if (this.isEnabled) throw new Error("UIElement already enabled");
-  this.isEnabled = true;
+/**
+   @function UIElement.init
+   @summary Called by constructor functions to initialize UIElement objects
+   @param   {Object} [attribs] Hash with attributes
+   @attrib  {optional Function} [run] Function that will be spawned when the element 
+               is engaged and aborted when the element is disenaged 
+               (see [::UIElement::engaged] & [::UIElement::disenaged]).
+               The function will be executed with `this` pointing to the UIElement.
+   @attrib  {optional ::StyleElement|Array} [style] [::StyleElement] 
+               (or array of elements) to apply to this UIElement.
+   @attrib  {optional String} [content] HTML content for this UIElement.
+*/
+UIElement.init = function(attribs) {
+  if (attribs.debug) {
+    this.debugtags = attribs.debug.tags || "";
+    this.debugid = attribs.debug.id || "DEBUG";
+  }
+  else {
+    this.debugtags = "";
+    this.debugid = "";
+  }
+  this.dompeer = document.createElement('surface-ui');
+  this.dompeer.setAttribute('style', 'display:block;visibility:hidden'); 
+  this.run = attribs.run;
+  this.style = attribs.style || [];
+  if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
+  coll.each(this.style, {|s| 
+                         if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); });
+  if (typeof attribs.content !== 'undefined')
+    this.dompeer.innerHTML = attribs.content;
+};
+
+/**
+   @function UIElement.debug
+   @summary Check if debugging is enabled for the given tag 
+   @param {String} [tag] Debugging tag
+   @return {Boolean} 
+*/
+UIElement.debug = function(tag) { return this.debugtags.indexOf(tag)!=-1; };
+
+/**
+   @function UIElement.engaged
+   @summary Called when this UIElement has been attached (directly or indirectly) to the global surface
+*/
+UIElement.engaged = function() {
+  if (this.isEngaged) throw new Error("UIElement already engaged");
+  this.isEngaged = true;
   coll.each(this.style, {|s| s.use() });
   this.dompeer.style.visibility = 'visible';
   if (this.run) {
@@ -227,44 +295,134 @@ UIElement.prototype.enable = function() {
   }
 };
 
-UIElement.prototype.disable = function() {
-  if (!this.isEnabled) throw new Error("UIElement already disabled");
+/**
+   @function UIElement.disengaged
+   @summary Called when this UIElement has become detached from the global surface
+*/
+UIElement.disengaged = function() {
+  if (!this.isEngaged) throw new Error("UIElement already disengaged");
   if (this.stratum) {
     this.stratum.abort();
     this.stratum = undefined;
   }
-  this.isEnabled = false;
+  this.isEngaged = false;
   this.dompeer.style.visibility = 'hidden';
   coll.each(this.style, {|s| s.unuse() });
 };
 
-UIElement.prototype.initUIElement = function(attribs) {
-  this.dompeer = document.createElement('surface-ui');
-  this.dompeer.setAttribute('style', 'display:block;visibility:hidden;position:absolute;');
-  this.run = attribs.run;
-  this.style = attribs.style || [];
-  if (this.style instanceof StyleElement) this.style = [this.style];
-  coll.each(this.style, {|s| 
-                         if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); });
-  if (typeof attribs.content !== 'undefined')
-    this.dompeer.innerHTML = attribs.content;
+/**
+   @function UIElement.attached
+   @summary Called when this UIElement has been attached to a container
+   @param   {::UIContainerElement} [parent]
+   @desc    Sets [::UIElement::parent]
+*/
+UIElement.attached = function(parent) {
+  this.parent = parent;
 };
 
-__js UIElement.prototype.place = function(x,y) {
+/**
+   @function UIElement.detached
+   @summary Called when this UIElement has been detached from a container
+   @desc    Clears [::UIElement::parent]
+*/
+UIElement.detached = function() {
+  this.parent = undefined;
+};
+
+/**
+   @variable UIElement.parent
+   @summary [::UIContainerElement] to which this UIElement is currently attached
+   @desc See [::UIElement::attached] and [::UIElement::detached]
+*/
+UIElement.parent = undefined;
+
+/**
+   UIElement::layout(layoutSpec) -> layoutSpec
+   @function UIElement.layout
+   @purevirtual
+   @summary Lay out this UIElement
+   @param {Object} [layout_spec] Object with layout specification; see below for description
+   @return {Object} layout_spec (potentially modified; see below)
+   @desc
+     `layout_spec` is an object which can take the following forms:
+
+      * **{ type: 'abs', w: integer|undefined, h: integer|undefined }**
+
+        The element is to be layed out absolutely. Fields `w` and `h`
+        specify the explicit width and/or height that the element should have.
+        If either or both are undefined, the undefined value(s) should be determined
+        implicitly and set in the layout_spec object before this is returned.
+
+        The position of the object will be set in (a) future call(s) to [::UIElement::place].
+
+      * **{ type: 'w', w: integer }**:
+
+        The element is to be layed out relatively. The width is given; the height should
+        be determined implicitly. If the element is a passive element 
+        (see [::UIElement::active]), it should set its width to '100%', rather than 
+        an absolute width: When the available width of the container changes later on,
+        passive elements will not receive layout calls.
+
+      * **{ type: 'h', h: integer }**:
+
+        The element is to be layed out relatively. The height is given; the width should
+        be determined implicitly. If the element is a passive element 
+        (see [::UIElement::active]), it should set its height to '100%', rather than 
+        an absolute height: When the available height of the container changes later on,
+        passive elements will not receive layout calls.
+
+      * **{ type: 'wh', w: integer, h: integer }**
+
+        The element is to be layed out absolutely. Width and height are given. 
+        If the element is a passive element (see [::UIElement::active]), it 
+        should set its width and height to '100%', rather absolute value: When the 
+        available width/height of the container changes later on,
+        passive elements will not receive layout calls.
+*/
+
+/**
+   @variable UIElement.active
+   @summary Flag that determines if element needs relayout when dimensions of container change
+   @desc 
+      `false` by default.
+
+      If this flag is `true` when a UIElement is added to a container, the container 
+      will relayout the element on size changes, even if the current layout mode is 
+      one of the relative positioning modes.
+*/
+UIElement.active = false;
+
+/**
+   @function UIElement.place
+   @summary  Place this UIElement
+   @param    {Integer} [x]
+   @param    {Integer} [y]
+   @desc
+      Called by containers to set the position of this element. Only called when the 
+      the layout mode is 'abs' (see [::UIElement::layout]).
+*/
+__js UIElement.place = function(x,y) {
   this.dompeer.style.left = x+"px";
   this.dompeer.style.top  = y+"px";
 };
 
-
-// returns [mw,mh]
-__js UIElement.prototype.getMargins = function() {
+/**
+   @function UIElement.getMargins
+   @summary  Retrieve total margin width and height in pixels
+   @return {Array} [ ] [mw,mh]
+*/
+__js UIElement.getMargins = function() {
   var elem = this.dompeer;
   return [parseInt(getStyle(elem, "marginLeft"))+parseInt(getStyle(elem, "marginRight")),
           parseInt(getStyle(elem, "marginTop"))+parseInt(getStyle(elem, "marginBottom"))];
 };
 
-// returns [pl,pr,pt,pb]
-__js UIElement.prototype.getPadding = function() {
+/**
+   @function UIElement.getPadding
+   @summary  Retrieve padding (left, right, top and bottom) in pixels
+   @return   {Array} [ ] [pl,pr,pt,pb]
+*/
+__js UIElement.getPadding = function() {
   var elem = this.dompeer;
   return [parseInt(getStyle(elem, "paddingLeft")),
           parseInt(getStyle(elem, "paddingRight")),
@@ -272,66 +430,127 @@ __js UIElement.prototype.getPadding = function() {
           parseInt(getStyle(elem, "paddingBottom"))];
 };
 
-// returns [bw,bh]
-__js UIElement.prototype.getBorders = function() {
+/**
+   @function UIElement.getBorders
+   @summary  Retrieve border width and height (including scrollbars if applicable) in pixels
+   @return   {Array} [ ] [bw,bh]
+*/
+__js UIElement.getBorders = function() {
   var elem = this.dompeer;
     // border sizes (including scrollbars):
   return [elem.offsetWidth-elem.clientWidth, elem.offsetHeight-elem.clientHeight];
-
-//  return [parseInt(getStyle(elem, "borderLeftWidth"))+parseInt(getStyle(elem, "borderRightWidth")),
-//          parseInt(getStyle(elem, "borderTopWidth"))+parseInt(getStyle(elem, "borderBottomWidth"))];
 };
 
-/*
 
-UIElement::layout(type, w, h) -> [w,h]
-type = relative: 'w' | 'h' | 'wh' | 
-       absolute: 'abs'
+//----------------------------------------------------------------------
+// UIContainerElement
 
-UIElement::active == true // <-- element needs relayout when dimensions of container change
-
+/**
+   @class   UIContainerElement
+   @summary Base class for UI containers
+   @inherit ::UIElement
+   @variable UIContainerElement
 */
+var UIContainerElement = exports.UIContainerElement = Object.create(UIElement);
+
+/**
+   @function UIContainerElement.init
+   @summary Called by constructor functions to initialize UIContainerElement objects
+   @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIElement::init]
+*/
+// XXX just inherit for now
+
+/**
+   @variable UIContainerElement.active
+   @summary see [::UIElement.active]
+   @desc 
+     Set to `true` for UIContainerElements
+*/
+UIContainerElement.active = true;
+
+/**
+   @function UIContainerElement.remove
+   @purevirtual
+   @summary Remove a UIElement from this container
+   @param {::UIElement} [child] The child to be removed
+*/
+
+//----------------------------------------------------------------------
+// ChildManagement mixin
+
+var ChildManagement = {
+  init: function(attribs) {
+    this.children = [];
+    coll.each(attribs.children,
+              { |c|
+                if (UIElement.isPrototypeOf(c))
+                  this.append(c);
+                else
+                  this.append(c[0],c[1]);
+              });
+  },
+  engaged: function() {
+    coll.each(this.children, { |c| c.elem.engaged() });
+  },
+
+  disengaged: function() {
+    coll.each(this.children, { |c| c.elem.disengaged() });
+  },
+  mixinto: function(target) {
+    target.init = func.seq(target.init, this.init);
+    target.engaged = func.seq(target.engaged, this.engaged);
+    target.disengaged = func.seq(target.disengaged, this.disengaged);
+  }
+};
 
 //----------------------------------------------------------------------
 // BoxElement
 
-// attribs.direction == 'w' for HBox, 'h' for VBox (default)
-function BoxElement(attribs) {
-  this.initUIElement(attribs);
-  this.direction = attribs.direction || 'h';
-  this.children  = [];
-  coll.each(attribs.children, 
-            { |c| 
-              if (c instanceof UIElement)
-                this.append(c);
-              else
-                this.append(c[0],c[1]);
-            });
-}
-var Box = exports.Box = function(attribs) { return new BoxElement(attribs); };
+/**
+   @class   BoxElement
+   @summary Box layout container
+   @inherit ::UIContainerElement
+   @variable BoxElement
+*/
+var BoxElement = exports.BoxElement = Object.create(UIContainerElement);
+
+var Box = exports.Box = function(attribs) { 
+  var obj = Object.create(BoxElement);
+  obj.init(attribs);
+  return obj;
+};
+
+/**
+   @function HBox
+   @summary Construct a horizontally-stacking [::BoxElement]
+   @param   [attribs] ...
+*/
 var HBox = exports.HBox = function(attribs) { 
-  return new BoxElement(common.mergeSettings(attribs, {direction:'w'}));
+  return Box(common.mergeSettings(attribs, {direction:'w'}));
 };
+/**
+   @function VBox
+   @summary Construct a vertically-stacking [::BoxElement]
+   @param   [attribs] ...
+*/
 var VBox = exports.VBox = function(attribs) { 
-  return new BoxElement(common.mergeSettings(attribs, {direction:'h'}));
+  return Box(common.mergeSettings(attribs, {direction:'h'}));
 }
 
+/**
+   @function BoxElement.init
+   @summary Called by constructor functions to initialize BoxElement objects
+   @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init]
+   @attrib {String} [direction='h'] 'w' for horizontal-stacking box, 'h' for vertically-stacking box
+ */
+BoxElement.init = function(attribs) {
+  UIContainerElement.init.apply(this, [attribs]);
+  this.direction = attribs.direction || 'h';
+}
 
-BoxElement.prototype = new UIElement;
+ChildManagement.mixinto(BoxElement);
 
-BoxElement.prototype.active = true;
-
-BoxElement.prototype.enable = function() {
-  UIElement.prototype.enable.apply(this, arguments);
-  coll.each(this.children, { |c| c.elem.enable() });
-};
-
-BoxElement.prototype.disable = function() {
-  UIElement.prototype.disable.apply(this, arguments);
-  coll.each(this.children, { |c| c.elem.disable() });
-};
-
-__js BoxElement.prototype.append = function(ui, attribs) {
+__js BoxElement.append = function(ui, attribs) {
   attribs || (attribs = {});
 //  attribs.w || (attribs.w = "*");
 //  attribs.h || (attribs.h = "*");
@@ -342,20 +561,19 @@ __js BoxElement.prototype.append = function(ui, attribs) {
     align: attribs.align || "<"
   });
   this.dompeer.appendChild(ui.dompeer);
-  ui.parent = this;
-  ui.parentIndex = this.children.length-1;
-  if (this.isEnabled)
-    ui.enable();
+  ui.attached(this);
+  if (this.isEngaged)
+    ui.engaged();
   this.invalidate(ui);
 };
 
-__js BoxElement.prototype.invalidate = function(child) {
+__js BoxElement.invalidate = function(child) {
   // XXX be more specific
   surface.scheduleLayout();
 };
 
-__js BoxElement.prototype.layoutBox = function(entity, avail, oentity, ostart,
-                                               centity, cavail, coentity, costart) {
+BoxElement.layoutBox = function(entity, avail, oentity, ostart,
+                                centity, cavail, coentity, costart) {
 //  console.log('layout '+entity+': '+avail+' '+centity+': '+cavail);
 
   // relaxation algorithm inspired by
@@ -441,8 +659,8 @@ __js BoxElement.prototype.layoutBox = function(entity, avail, oentity, ostart,
 
     // measure shrink-wrap if we need to:
     if (p.val == undefined || ((c.val == undefined )&& !cavail)) {
-      var dims = child.elem.layout(child.w.val, child.h.val);
-      child.w.val = dims[0]; child.h.val = dims[1]; 
+      var child_spec = child.elem.layout({type:'abs', w:child.w.val, h:child.h.val});
+      child.w.val = child_spec.w; child.h.val = child_spec.h; 
       child.layed_out = true;
     }
     else
@@ -460,7 +678,10 @@ __js BoxElement.prototype.layoutBox = function(entity, avail, oentity, ostart,
   // 2. distribute remaining space until none left, or until we run
   // out of flexible children:
 //  log("Remaining space: "+S);
-  while (S >= 0.1 && A.length > 0) {
+  while (S >= 1 && A.length > 0) {
+    if (this.debug('bld')) {
+      console.log(this.debugid+" bld: S:"+S+" A.l:"+A.length);
+    }
     // portion/flex to distribute:
     var P = S/F;
     var m = M; // m: level from which to distribute
@@ -470,7 +691,10 @@ __js BoxElement.prototype.layoutBox = function(entity, avail, oentity, ostart,
       var child = A[i];
       var l = child[entity];
       // level for this layout:
-      var level =  (P + m)*l.flex;
+      var level =  Math.floor((P + m)*l.flex);
+      if (this.debug('bld')) {
+        console.log(this.debugid+" bld: "+i+" level:"+level+" P:"+P );
+      }
       level = Math.min(l.max, level);
       if (level > l.val) {
         distributed += (level - l.val);
@@ -480,13 +704,38 @@ __js BoxElement.prototype.layoutBox = function(entity, avail, oentity, ostart,
       if (l.val >= l.max) {
         // max flex reached
         A.splice(i, 1);
+        --i;
         F -= l.flex;
       }
-      var min = l.val/l.flex;
-      if (min < M) M = min;
+      else {
+        if (this.debug('bld')) {
+          console.log(this.debugid+" bld: min:"+min );
+        }
+        var min = l.val/l.flex;
+        if (min < M) M = min;
+      }
     }
     if (distributed < 0.1) break;
     S -= distributed;
+  }
+  if (this.debug('bld')) {
+    console.log(this.debugid+" bld: S left at end of first round:"+S );
+  }
+  // add any leftover space to the last flexible element:
+  while (S >= 1 && A.length > 0) {
+    if (this.debug('bld')) {
+      console.log(this.debugid+" bld: distribute to last:"+S );
+    }
+    var last = A.length-1, child = A[last];
+    var l = child[entity];
+    l.val += S;
+    if (l.val > l.max) {
+      S = l.max - l.val;
+      l.val = l.max;
+      A.splice(last,1);
+    }
+    else
+      break;
   }
 
   // 3. adjust complementary dimensions:
@@ -505,7 +754,7 @@ __js BoxElement.prototype.layoutBox = function(entity, avail, oentity, ostart,
     var child = this.children[i];
     if (!child.layed_out) {
       child[entity].val = Math.round(child[entity].val);
-      child.elem.layout('abs', child.w.val, child.h.val);
+      child.elem.layout({type:'abs', w:child.w.val, h:child.h.val});
       child.layed_out = true;
     }
     // stack up in primary direction:
@@ -527,12 +776,20 @@ __js BoxElement.prototype.layoutBox = function(entity, avail, oentity, ostart,
   return entity == 'w' ? [avail,Sc] : [Sc,avail];
 };
 
-BoxElement.prototype.layout = function(type,w,h) {
+BoxElement.layout = function(layout_spec) {
   var margins = this.getMargins();
   var padding = this.getPadding();
   var borders = this.getBorders(); // including scrollbars
   var elem = this.dompeer;
   var style = elem.style;
+
+  if (layout_spec.type == "abs" || layout_spec.type == "wh")
+    style.position = "absolute";
+  else
+    style.position = "relative";
+
+  var w = layout_spec.w;
+  var h = layout_spec.h;
 
   if (typeof w != 'undefined')
     w -= (margins[0] + padding[0] + padding[1] + borders[0]);
@@ -546,159 +803,210 @@ BoxElement.prototype.layout = function(type,w,h) {
     [w,h] = this.layoutBox("h", h, "y", padding[2],
                            "w", w, "x", padding[0]);
   
-
-  style.width  = (w + padding[0] + padding[1] + borders[0]) + "px";
-  style.height = (h + padding[2] + padding[3] + borders[1]) + "px";  
-  return [w+margins[0]+padding[0]+padding[1]+borders[0],h+margins[1]+padding[2]+padding[3]+borders[1]];
-
+  switch (layout_spec.type) {
+  case 'wh':
+    style.top = "0px";
+    style.left = "0px";
+    style.width = "100%";
+    style.height = "100%";
+    break;
+  default:
+    style.width  = (w + padding[0] + padding[1] + borders[0]) + "px";
+    style.height = (h + padding[2] + padding[3] + borders[1]) + "px";  
+  }
+  layout_spec.w = w+margins[0]+padding[0]+padding[1]+borders[0];
+  if (this.debug("ow"))
+    console.log(this.debugid + " ow: "+layout_spec.w);
+  layout_spec.h = h+margins[1]+padding[2]+padding[3]+borders[1];
+  return layout_spec;
 };
 
 //----------------------------------------------------------------------
-function VScrollBoxElement(attribs) {
-  this.initUIElement(attribs);
-  this.children = [];
-  coll.each(attribs.children, { |c| this.append(c) });
-}
-var VScrollBox = exports.VScrollBox = function(attribs) { return new VScrollBoxElement(attribs); };
+/**
+   @class   VScrollBoxElement
+   @summary Vertically scrolling list
+   @inherit ::UIContainerElement
+   @variable VScrollBoxElement
+*/
+var VScrollBoxElement = exports.VScrollBoxElement = Object.create(UIContainerElement);
 
-VScrollBoxElement.prototype = new UIElement;
 
-VScrollBoxElement.prototype.active = true;
-
-VScrollBoxElement.prototype.enable = function() {
-  UIElement.prototype.enable.apply(this, arguments);
-  coll.each(this.children, { |c| c.elem.enable() });
+/**
+   @function VScrollBox
+   @summary  Construct a [::VScrollBox] object
+   @param    [attribs] ...
+*/
+var VScrollBox = exports.VScrollBox = function(attribs) { 
+  var obj = Object.create(VScrollBoxElement);
+  obj.init(attribs); 
+  return obj;
 };
 
-VScrollBoxElement.prototype.disable = function() {
-  UIElement.prototype.disable.apply(this, arguments);
-  coll.each(this.children, { |c| c.elem.disable() });
-};
+ChildManagement.mixinto(VScrollBoxElement);
 
-__js VScrollBoxElement.prototype.append = function(ui) {
-  this.children.push(ui);
+__js VScrollBoxElement.append = function(ui) {
+  this.children.push({elem:ui});
   this.dompeer.appendChild(ui.dompeer);
-  ui.parent = this;
-  ui.parentIndex = this.children.length-1;
-  if (this.isEnabled)
-    ui.enable();
- // XXX layout element
-  ui.layoutPassive("width");
+  ui.attached(this);
+  if (this.isEngaged) {
+    ui.engaged();
+    if (this.clientW !== undefined)
+      ui.layout({type:"w", "w":this.clientW});
+  }
 };
 
-__js VScrollBoxElement.prototype.invalidate = function(child) {
+__js VScrollBoxElement.invalidate = function(child) {
   // nothing to do
 };
 
-VScrollBoxElement.prototype.layout = function(type,w,h) {
-//  var margins = this.getMargins();
-//  var padding = this.getPadding();
-//  var borders = this.getBorders(); // including scrollbars
-  var elem = this.dompeer;
-  var style = elem.style;
+VScrollBoxElement.layout = function(layout_spec) {
+  HtmlFragmentElement.layout.apply(this, [layout_spec]);
+  // we always require a width; set one arbitrarily if we haven't got one:
+  if (layout_spec.w === undefined)
+    style.width = (layout_spec.w = 300)+'px';
 
-  // default sizes:
-  if (typeof w == 'undefined') w = 300;
-  if (typeof h == 'undefined') h = 500;
+  var first_layout = (this.clientW === undefined);
+  var margins = this.getMargins();
+  var padding = this.getPadding();
+  var borders = this.getBorders();
+  this.clientW = layout_spec.w - (margins[0] + padding[0] + padding[1] + borders[0]);
 
-  style.width  = w + "px";
-  style.height = h + "px";  
+  if (this.debug("iw"))
+    console.log(this.debugid + " iw: "+this.clientW);
 
-//  w -= (margins[0] + padding[0] + padding[1] + borders[0]);
-//  h -= (margins[1] + padding[2] + padding[3] + borders[1]);
+  var child_spec = {type:"w", "w":this.clientW};
+  if (first_layout)
+    coll.each(this.children, {|c| c.elem.layout(child_spec)});
+  else // only lay out active children:
+    coll.each(this.children, {|c| if (c.elem.active) c.elem.layout(child_spec)});
 
-//  this.w = 
+  return layout_spec;
 };
 
 
 //----------------------------------------------------------------------
 // HtmlFragmentElement
+/**
+   @class   HtmlFragmentElement
+   @summary Generic HTML UI element
+   @inherit ::UIElement
+   @variable HtmlFragmentElement
+*/
 
-function HtmlFragmentElement(attribs) {
-  this.initUIElement(attribs);
-}
-HtmlFragmentElement.prototype = new UIElement;
+var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UIElement);
 
-HtmlFragmentElement.prototype.layoutPassive = function(stretch) {
-  var elem = this.dompeer;
-  var style = elem.style;
-  style.position = "static";
-  style.display  = "table";
-  style[stretch] = "100%";
-};
-
-__js HtmlFragmentElement.prototype.layout = function(type,w,h) {
-  var margins = this.getMargins();
+__js HtmlFragmentElement.layout = function(layout_spec) {
   var elem = this.dompeer;
   var style = elem.style;
 
-  if (typeof w != 'undefined' && typeof h != 'undefined') {
-    // both w and h defined
-    style.width  = Math.max(0,w-margins[0]) + "px";
-    style.height = Math.max(0,h-margins[1]) + "px";
+  if (layout_spec.type == 'abs') {
+    var margins = this.getMargins();
+    if (typeof layout_spec.w != 'undefined' && typeof layout_spec.h != 'undefined') {
+      // both w and h defined
+      style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
+      style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
+    }
+    else {
+      // xxx chrome has a bug whereby absolutely positioned content doesn't obey 
+      // 'box-sizing: border-box'. we need to measure with static positioning:
+      style.position = "static";
+      var measure_display = "table";
+      if (typeof layout_spec.w == 'undefined' && typeof layout_spec.h == 'undefined') {
+        style.width   = "1px";
+        style.height  = "1px";
+        style.display = measure_display;
+        layout_spec.w = elem.offsetWidth + margins[0];
+        layout_spec.h = elem.offsetHeight + margins[1];
+        style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
+        style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
+      }
+      else if (typeof layout_spec.w != 'undefined' && typeof layout_spec.h == 'undefined') {
+        style.width   =  Math.max(0,layout_spec.w-margins[0]) + "px";
+        style.height  = "1px";
+        style.display = measure_display;
+        layout_spec.h = elem.offsetHeight + margins[1];
+        style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
+      }
+      else { //typeof layout_spec.w == 'undefined' && typeof layout_spec.h != 'undefined'
+        style.width   = "1px";
+        style.height  = Math.max(0,layout_spec.h-margins[1]) + "px";
+        style.display = measure_display;
+        layout_spec.w = elem.offsetWidth + margins[0];
+        style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
+      }
+    }
+    style.display  = "block";
+    style.position = "absolute";
   }
   else {
-    // xxx chrome has a bug whereby absolutely positioned content doesn't obey 
-    // box-sizing: border-box
-    var old_position = style.position;
-    style.position = "static";
-    var measure_display = "table";
-    if (typeof w == 'undefined' && typeof h == 'undefined') {
-      style.width   = "1px";
-      style.height  = "1px";
-      style.display = measure_display;
-      //hold(1000);
-      w = elem.offsetWidth + margins[0];
-      h = elem.offsetHeight + margins[1];
-      style.display = "block";
-      style.width  = Math.max(0,w-margins[0]) + "px";
-      style.height = Math.max(0,h-margins[1]) + "px";
+    if (layout_spec.type == 'w') {
+      style.display  = "table";
+      style.position = "static";
+      style.width  = "100%";
+      style.height = "";
     }
-    else if (typeof w != 'undefined' && typeof h == 'undefined') {
-      style.width   =  Math.max(0,w-margins[0]) + "px";
-      style.height  = "1px";
-      style.display = measure_display;
-      //hold(1000);
-      h = elem.offsetHeight + margins[1];
-      style.display = "block";
-      style.height = Math.max(0,h-margins[1]) + "px";
+    else if (layout_spec.type == 'h') {
+      style.display  = "table";
+      style.position = "static";
+      style.width  = "";
+      style.height = "100%";
     }
-    else { //if (typeof w == 'undefined' && typeof h != 'undefined') {
-      style.width   = "1px";
-      style.height  = Math.max(0,h-margins[1]) + "px";
-      style.display = measure_display;
-      //hold(1000);
-      w = elem.offsetWidth + margins[0];
+    else {
+      // 'wh'
       style.display = "block";
-      style.width  = Math.max(0,w-margins[0]) + "px";
+      style.position = "absolute";
+      style.left = "0px";
+      style.top = "0px";
+      style.width  = "100%";
+      style.height = "100%";
     }
-    //hold(1000);
-    style.position = old_position;
   }
-  return [w,h];
+  if (this.debug("ow"))
+    console.log(this.debugid + " ow: "+layout_spec.w);
+
+  return layout_spec;
 };
 
-exports.Html = function(attribs) { return new HtmlFragmentElement(attribs); };
+/**
+   @function Html
+   @summary Construct a [::HtmlFragmentElement]
+   @param   {Object} [attribs] Object with attributes
+   @attrib  {String} [content] HTML content
+   @return  {::HtmlFragmentElement}
+*/
+exports.Html = function(attribs) { 
+  var obj = Object.create(HtmlFragmentElement);
+  obj.init(attribs); 
+  return obj;
+};
 
 
 //----------------------------------------------------------------------
 
+/**
+   @variable surface
+   @summary  Root [::UIElement]
+*/
 var surface = exports.surface = Box({
   style: 
-  [ GlobalStyle('
+  [ GlobalCSS('
 body { overflow:hidden; margin:0px;}
 *  { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate}
 ')],
   run: function() {
     console.log('surface running ;-)');
     document.body.appendChild(this.dompeer);
+    var W,H;
     while (1) {
       using(var Q = dom.eventQueue(window, "resize")) {
         var w = document.documentElement.clientWidth;
         var h = document.documentElement.clientHeight;
-        this.dompeer.setAttribute('style', 'position:absolute;width:'+w+'px;height:'+h+'px;');
-        if (!this.layoutStratum) 
-          this.layout('wh',w,h);
+        // the W/H check is to debounce redundant resize events sent by e.g. chrome
+        if (!this.pendingLayout && (W!=w || H!=h)) { 
+          this.layout({type:'wh',w:w,h:h});
+          W = w;
+          H = h;
+        }
         Q.get();
       }
     }
@@ -707,10 +1015,12 @@ body { overflow:hidden; margin:0px;}
 });
 
 surface.scheduleLayout = function() {
-  if (this.layoutStratum) return;
-  this.layoutStratum = spawn (hold(0), this.layoutStratum = undefined, 
-                              this.layout(document.documentElement.clientWidth,document.documentElement.clientHeight));
+  if (this.pendingLayout) return;
+  this.pendingLayout = spawn (hold(0), this.pendingLayout = undefined, 
+                              this.layout({type: 'wh', 
+                                           w: document.documentElement.clientWidth,
+                                           h: document.documentElement.clientHeight}));
 };
 
-surface.enable();
+surface.engaged();
 
