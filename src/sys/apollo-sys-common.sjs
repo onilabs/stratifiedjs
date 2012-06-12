@@ -253,6 +253,13 @@ exports.isSameOrigin = function(url1, url2) {
   @return {String} Canonicalized URL.
 */
 exports.canonicalizeURL = function(url, base) {
+
+  if (__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32') {
+    // special case for mapping Windows paths in nodejs hostenv
+    url  = url.replace(/\\/g, "/");
+    base = base.replace(/\\/g, "/"); 
+  }
+
   var a = exports.parseURL(url);
   
   // convert relative->absolute:
