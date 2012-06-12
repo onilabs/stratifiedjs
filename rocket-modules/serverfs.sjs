@@ -290,7 +290,9 @@ function createMappedDirectoryHandler(root, formats, flags)
     var format   = pathAndFormat[1] || "none";
 
     var file = relativePath ? path.join(root, relativePath) : root;
-    
+    if (process.platform == "win32") {
+      file = file.replace(/\\/g, "/");
+    }
     if (fs.isDirectory(file)) {
       // make sure we have a canonical url with '/' at the
       // end. otherwise relative links will break:
