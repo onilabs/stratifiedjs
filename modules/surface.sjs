@@ -246,8 +246,8 @@ var UIElement = exports.UIElement = {};
    @summary Called by constructor functions to initialize UIElement objects
    @param   {Object} [attribs] Hash with attributes
    @attrib  {optional Function} [run] Function that will be spawned when the element 
-               is engaged and aborted when the element is disenaged 
-               (see [::UIElement::engaged] & [::UIElement::disenaged]).
+               is activated and aborted when the element is deactivated 
+               (see [::UIElement::activated] & [::UIElement::deactivated]).
                The function will be executed with `this` pointing to the UIElement.
    @attrib  {optional ::StyleElement|Array} [style] [::StyleElement] 
                (or array of elements) to apply to this UIElement.
@@ -264,6 +264,7 @@ UIElement.init = function(attribs) {
   }
   this.dompeer = document.createElement('surface-ui');
   this.dompeer.setAttribute('style', 'display:block;visibility:hidden'); 
+  this.dompeer.ui = this;
   this.run = attribs.run;
   this.style = attribs.style || [];
   if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
@@ -282,12 +283,12 @@ UIElement.init = function(attribs) {
 UIElement.debug = function(tag) { return this.debugtags.indexOf(tag)!=-1; };
 
 /**
-   @function UIElement.engaged
+   @function UIElement.activated
    @summary Called when this UIElement has been attached (directly or indirectly) to the global surface
 */
-UIElement.engaged = function() {
-  if (this.isEngaged) throw new Error("UIElement already engaged");
-  this.isEngaged = true;
+UIElement.activated = function() {
+  if (this.isActivated) throw new Error("UIElement already activated");
+  this.isActivated = true;
   coll.each(this.style, {|s| s.use() });
   this.dompeer.style.visibility = 'visible';
   if (this.run) {
@@ -296,16 +297,16 @@ UIElement.engaged = function() {
 };
 
 /**
-   @function UIElement.disengaged
+   @function UIElement.deactivated
    @summary Called when this UIElement has become detached from the global surface
 */
-UIElement.disengaged = function() {
-  if (!this.isEngaged) throw new Error("UIElement already disengaged");
+UIElement.deactivated = function() {
+  if (!this.isActivated) throw new Error("UIElement already deactivated");
   if (this.stratum) {
     this.stratum.abort();
     this.stratum = undefined;
   }
-  this.isEngaged = false;
+  this.isActivated = false;
   this.dompeer.style.visibility = 'hidden';
   coll.each(this.style, {|s| s.unuse() });
 };
@@ -335,6 +336,12 @@ UIElement.detached = function() {
    @desc See [::UIElement::attached] and [::UIElement::detached]
 */
 UIElement.parent = undefined;
+
+/**
+   @variable UIElement.parentSlot
+   @summary Slot for use by element's parent
+*/
+UIElement.parentSlot = undefined;
 
 /**
    UIElement::layout(layoutSpec) -> layoutSpec
@@ -458,7 +465,7 @@ var UIContainerElement = exports.UIContainerElement = Object.create(UIElement);
    @summary Called by constructor functions to initialize UIContainerElement objects
    @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIElement::init]
 */
-// XXX just inherit for now
+// nothing special for UIContainerElement... just inherit for now
 
 /**
    @variable UIContainerElement.active
@@ -489,17 +496,26 @@ var ChildManagement = {
                   this.append(c[0],c[1]);
               });
   },
-  engaged: function() {
-    coll.each(this.children, { |c| c.elem.engaged() });
+
+  remove: function(ui) {
+    coll.remove(this.children, ui);
+    this.dompeer.removeChild(ui.dompeer);
+    ui.detached();
   },
 
-  disengaged: function() {
-    coll.each(this.children, { |c| c.elem.disengaged() });
+  activated: function() {
+    coll.each(this.children, { |c| c.activated() });
   },
+
+  deactivated: function() {
+    coll.each(this.children, { |c| c.deactivated() });
+  },
+
   mixinto: function(target) {
     target.init = func.seq(target.init, this.init);
-    target.engaged = func.seq(target.engaged, this.engaged);
-    target.disengaged = func.seq(target.disengaged, this.disengaged);
+    target.remove = this.remove;
+    target.activated = func.seq(target.activated, this.activated);
+    target.deactivated = func.seq(target.deactivated, this.deactivated);
   }
 };
 
@@ -554,16 +570,16 @@ __js BoxElement.append = function(ui, attribs) {
   attribs || (attribs = {});
 //  attribs.w || (attribs.w = "*");
 //  attribs.h || (attribs.h = "*");
-  this.children.push({
-    elem: ui, 
+  ui.parentSlot = { 
     w: makeConstrainedQuantity("w", attribs),
     h: makeConstrainedQuantity("h", attribs),
     align: attribs.align || "<"
-  });
+  };
+  this.children.push(ui);
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
-  if (this.isEngaged)
-    ui.engaged();
+  if (this.isActivated)
+    ui.activated();
   this.invalidate(ui);
 };
 
@@ -627,7 +643,7 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
   // Sc (for non-primary flexibles), note M, and sum up F:
   for (var i=0; i<this.children.length; ++i) {
     var child = this.children[i];
-    var p = child[entity], c = child[centity];
+    var p = child.parentSlot[entity], c = child.parentSlot[centity];
     // set up initial dimensions:
 
     // primary dimension:
@@ -659,12 +675,13 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
 
     // measure shrink-wrap if we need to:
     if (p.val == undefined || ((c.val == undefined )&& !cavail)) {
-      var child_spec = child.elem.layout({type:'abs', w:child.w.val, h:child.h.val});
-      child.w.val = child_spec.w; child.h.val = child_spec.h; 
-      child.layed_out = true;
+      var child_spec = child.layout({type:'abs', w:child.parentSlot.w.val, h:child.parentSlot.h.val});
+      child.parentSlot.w.val = child_spec.w; 
+      child.parentSlot.h.val = child_spec.h; 
+      child.parentSlot.layed_out = true;
     }
     else
-      child.layed_out = false;
+      child.parentSlot.layed_out = false;
 
     // sum up Sc, Sp
     Sp += p.val;
@@ -689,7 +706,7 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
     M = 1e10; 
     for (var i=0; i<A.length; ++i) {
       var child = A[i];
-      var l = child[entity];
+      var l = child.parentSlot[entity];
       // level for this layout:
       var level =  Math.floor((P + m)*l.flex);
       if (this.debug('bld')) {
@@ -699,7 +716,7 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
       if (level > l.val) {
         distributed += (level - l.val);
         l.val = level;
-        child.layed_out = false; // need to re-layout
+        child.parentSlot.layed_out = false; // need to re-layout
       }
       if (l.val >= l.max) {
         // max flex reached
@@ -727,7 +744,7 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
       console.log(this.debugid+" bld: distribute to last:"+S );
     }
     var last = A.length-1, child = A[last];
-    var l = child[entity];
+    var l = child.parentSlot[entity];
     l.val += S;
     if (l.val > l.max) {
       S = l.max - l.val;
@@ -741,10 +758,10 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
   // 3. adjust complementary dimensions:
   for (i=0; i<B.length; ++i) {
     var child = B[i];
-    var c = child[centity];
+    var c = child.parentSlot[centity];
     if (c.val < Sc) {
       c.val = Math.min(Sc, c.max);
-      child.layed_out = false; // need to re-layout
+      child.parentSlot.layed_out = false; // need to re-layout
     }
   }
   
@@ -752,21 +769,21 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
   var offset = ostart;
   for (var i=0; i<this.children.length; ++i) {
     var child = this.children[i];
-    if (!child.layed_out) {
-      child[entity].val = Math.round(child[entity].val);
-      child.elem.layout({type:'abs', w:child.w.val, h:child.h.val});
-      child.layed_out = true;
+    if (!child.parentSlot.layed_out) {
+      child.parentSlot[entity].val = Math.round(child.parentSlot[entity].val);
+      child.layout({type:'abs', w:child.parentSlot.w.val, h:child.parentSlot.h.val});
+      child.parentSlot.layed_out = true;
     }
     // stack up in primary direction:
-    child[oentity] = offset;
-    if (child.align == "<")
-      child[coentity] = costart;
-    else if (child.align == ">")
-      child[coentity] = costart+Sc-child[centity].val;
+    child.parentSlot[oentity] = offset;
+    if (child.parentSlot.align == "<")
+      child.parentSlot[coentity] = costart;
+    else if (child.parentSlot.align == ">")
+      child.parentSlot[coentity] = costart+Sc-child.parentSlot[centity].val;
     else // align == "|"
-      child[coentity] = costart+(Sc-child[centity].val)/2;
-    child.elem.place(child.x, child.y);
-    offset += child[entity].val;
+      child.parentSlot[coentity] = costart+(Sc-child.parentSlot[centity].val)/2;
+    child.place(child.parentSlot.x, child.parentSlot.y);
+    offset += child.parentSlot[entity].val;
   }
 
   // 5. ALL DONE :-)  
@@ -845,11 +862,13 @@ var VScrollBox = exports.VScrollBox = function(attribs) {
 ChildManagement.mixinto(VScrollBoxElement);
 
 __js VScrollBoxElement.append = function(ui) {
-  this.children.push({elem:ui});
+  this.children.push(ui);
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
-  if (this.isEngaged) {
-    ui.engaged();
+  if (this.isActivated) {
+    if (this.debug('activated')) 
+      console.log(this.debugid+": activating "+ui);
+    ui.activated();
     if (this.clientW !== undefined)
       ui.layout({type:"w", "w":this.clientW});
   }
@@ -876,9 +895,9 @@ VScrollBoxElement.layout = function(layout_spec) {
 
   var child_spec = {type:"w", "w":this.clientW};
   if (first_layout)
-    coll.each(this.children, {|c| c.elem.layout(child_spec)});
+    coll.each(this.children, {|c| c.layout(child_spec)});
   else // only lay out active children:
-    coll.each(this.children, {|c| if (c.elem.active) c.elem.layout(child_spec)});
+    coll.each(this.children, {|c| if (c.active) c.layout(child_spec)});
 
   return layout_spec;
 };
@@ -1022,5 +1041,5 @@ surface.scheduleLayout = function() {
                                            h: document.documentElement.clientHeight}));
 };
 
-surface.engaged();
+surface.activated();
 
