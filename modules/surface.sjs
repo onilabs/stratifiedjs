@@ -31,18 +31,11 @@
  */
 /**
    @module  surface
-   @summary Modular HTML-based UIs
+   @summary Modular HTML-based UIs (unstable work-in-progress)
    @home    apollo:surface
    @hostenv xbrowser
    @desc    Work-in-progress; to be documented
 */
-
-function log(x) {/*
-  var div = document.createElement('div');
-  div.innerText = x;
-  document.body.appendChild(div);
-*/
-}
 
 var common = require('apollo:common');
 var coll   = require('apollo:collection');
@@ -694,7 +687,6 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
 
   // 2. distribute remaining space until none left, or until we run
   // out of flexible children:
-//  log("Remaining space: "+S);
   while (S >= 1 && A.length > 0) {
     if (this.debug('bld')) {
       console.log(this.debugid+" bld: S:"+S+" A.l:"+A.length);
@@ -960,13 +952,17 @@ __js HtmlFragmentElement.layout = function(layout_spec) {
   else {
     if (layout_spec.type == 'w') {
       style.display  = "table";
-      style.position = "static";
+      style.left = "0px";
+      style.top = "0px";
+      style.position = "relative";
       style.width  = "100%";
       style.height = "";
     }
     else if (layout_spec.type == 'h') {
       style.display  = "table";
-      style.position = "static";
+      style.left = "0px";
+      style.top = "0px";
+      style.position = "relative";
       style.width  = "";
       style.height = "100%";
     }
@@ -999,6 +995,70 @@ exports.Html = function(attribs) {
   return obj;
 };
 
+//----------------------------------------------------------------------
+// animation aperture:
+
+exports.Aperture = function(ui,f) {
+  var aperture = document.createElement('surface-aperture');
+  
+  var margins = ui.getMargins();
+  var w = ui.dompeer.offsetWidth;
+  var h = ui.dompeer.offsetHeight;
+  var oldWidth = ui.dompeer.style.width;
+  var oldHeight = ui.dompeer.style.height;
+  var oldPosition = ui.dompeer.style.position;
+  var oldTop = ui.dompeer.style.left;
+  var oldLeft = ui.dompeer.style.top;
+  var oldLayout = ui.layout;
+  
+  ui.layout = function(spec) {
+    spec.w = w; //+margin xx
+    spec.h = h; //+margin xx
+  };
+  
+  aperture.style.position = oldPosition;
+  aperture.style.top = oldTop;
+  aperture.style.left = oldLeft;
+  aperture.style.width  = w+'px'; //+margin XX
+  aperture.style.height = h+'px'; //+margin XX
+  
+  ui.dompeer.style.position = 'relative'; 
+  ui.dompeer.style.top = '0px';
+  ui.dompeer.style.left = '0px';
+  ui.dompeer.style.width = w+'px';
+  ui.dompeer.style.height = h+'px';
+  
+  ui.dompeer.parentNode.replaceChild(aperture, ui.dompeer);
+  aperture.appendChild(ui.dompeer);
+
+  var sizer = {
+    getWidth  : function() { return w; },
+    getHeight : function() { return h; },
+    setWidth : function(new_w) { 
+      w = new_w;
+      aperture.style.width = w+'px';
+      ui.parent.invalidate(ui);
+    },
+    setHeight : function(new_h) { 
+      h = new_h;
+      aperture.style.height = h+'px';
+      ui.parent.invalidate(ui);
+    }
+  };
+
+  try {
+    f(sizer);
+  }
+  finally {
+    ui.dompeer.style.position = oldPosition;
+    ui.dompeer.style.top = oldTop;
+    ui.dompeer.style.left = oldLeft;
+    ui.dompeer.style.width  = oldWidth;
+    ui.dompeer.style.height = oldHeight;
+    ui.layout = oldLayout;
+    aperture.parentNode.replaceChild(ui.dompeer, aperture);
+  }
+};
 
 //----------------------------------------------------------------------
 
@@ -1011,6 +1071,7 @@ var surface = exports.surface = Box({
   [ GlobalCSS('
 body { overflow:hidden; margin:0px;}
 *  { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate}
+surface-aperture { overflow:hidden; display:block; }
 ')],
   run: function() {
     console.log('surface running ;-)');
