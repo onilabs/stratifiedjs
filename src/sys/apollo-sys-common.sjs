@@ -537,63 +537,36 @@ function http_src_loader(path) {
 }
 
 
-var github_api = "http://github.com/api/v2/json/";
-var github_opts = {cbfield:"callback"};
-// Resolve a github repo location (user, repo, tag) into a tree_sha for direct lookup.
-// Cached for the duration of the current runtime.
-var resolve_github_repo = exports.makeMemoizedFunction(
-  function(user, repo, tag) {
-    var tree_sha;
-    /* XXX we really want the parallel-or operator here (|@|) to recode this as:
-  
-    var tree_sha = 
-      (jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'], 
-                    github_opts).tags 
-      |@| 
-      jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
-                    github_opts).branches)[tag];
-    */
-    waitfor {
-      (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/tags'],
-                                github_opts).tags[tag]) || hold();
-    }
-    or {
-      (tree_sha = jsonp_hostenv([github_api, 'repos/show/', user, repo, '/branches'],
-                                github_opts).branches[tag]) || hold();
-    }
-    or {
-      hold(10000);
-      throw new Error("Github timeout");
-    }
-    return tree_sha;
-  },
-
-  function key(user, repo, tag) {
-    return user + '/' + repo + '/' + tag;
-  }
-);
-
 // loader that loads directly from github
+// XXX the github API is now x-domain capable; at some point, when we
+// drop support for older browsers, we can get rid of jsonp here and
+// load via http.json
+var github_api = "https://api.github.com/";
+var github_opts = {cbfield:"callback"};
 function github_src_loader(path) {
   var user, repo, tag;
   try {
     [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
   } catch(e) { throw "Malformed module id '"+path+"'"; }
   
-  var tree_sha = resolve_github_repo(user, repo, tag);
+  var url = exports.constructURL(github_api, 'repos', user, repo, "contents", path,{ref:tag});
 
   waitfor {
-    var src = jsonp_hostenv([github_api, 'blob/show/', user, repo, tree_sha, path],
-                            github_opts).blob.data;
+    var data = jsonp_hostenv(url,github_opts).data;
   }
   or {
     hold(10000);
     throw new Error("Github timeout");
   }
+  if (data.message && !data.content)
+    throw new Error(data.message);
   
+  // XXX maybe we should move some string functions into apollo-sys-common
+  var str = exports.require('apollo:string');
+
   return {
-    src: src,
-    loaded_from: "http://github.com/"+user+"/"+repo+"/blob/"+tree_sha+"/"+path
+    src: str.utf8ToUtf16(str.base64ToOctets(data.content)),
+    loaded_from: url
   };
 }
 
