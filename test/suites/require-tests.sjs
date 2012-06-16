@@ -61,3 +61,12 @@ test('export to "this"', 42, function() {
   return require('../data/parent').export_to_this;
 });
 
+test('utf8 characters in modules: U+00E9', 233, function() {
+  var data = require('../data/utf8').test1();
+  return data.charCodeAt(data.length-1);
+});
+
+test('utf8 characters in modules: U+0192', 402, function() {
+  var data = require('../data/utf8').test2();
+  return data.charCodeAt(data.length-1);
+});
