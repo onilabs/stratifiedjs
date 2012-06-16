@@ -148,7 +148,8 @@ exports.getDataURI = function(url) {
   @return    {String}
 */
 exports.getFile = function(url) {
-  return require("../base64").decode(exports.getDataURI(url).split("base64,")[1]);
+  var str = require("../string");
+  return str.utf8ToUtf16(str.base64ToOctets(exports.getDataURI(url).split("base64,")[1]));
 };
 
 /*
