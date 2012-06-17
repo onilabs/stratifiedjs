@@ -3362,6 +3362,26 @@ args.push(parseExp(pctx,110));
 }
 scan(pctx,")");
 
+
+if(pctx.token.id=='{'){
+
+TOKENIZER_SA.lastIndex=pctx.lastIndex;
+while(1){
+var matches=TOKENIZER_SA.exec(pctx.src);
+if(matches&&(matches[4]=='|'||matches[4]=='||')){
+
+
+
+args.push(parseBlockLambda(scan(pctx).id,pctx));
+}else if(matches&&matches[1]){
+
+continue;
+}
+break;
+}
+}
+
+
 return new ph_fun_call(l,args,pctx);
 });
 

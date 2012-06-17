@@ -1382,3 +1382,35 @@ test("__js switch/case", 3,
                   }
                   return a;
                 });
+
+test("blocklambda pulled into argument list: f(a) {||...}", 43, function() {
+  function f(a,b) {
+    return b(a);
+  }
+
+  return f(42) { |x| x+1 };
+});
+
+test("blocklambda with newlines", 43, function() {
+  var a = 
+    {
+    
+        |x|
+        
+      x+1
+    };
+  return a(42);
+});
+
+test("blocklambda with newline pulled into argument list", 43, function() {
+  function f(a,b) {
+    return b(a);
+  }
+
+  var rv = f(42) 
+    { 
+        |x| x+1 
+    };
+
+  return rv;
+});

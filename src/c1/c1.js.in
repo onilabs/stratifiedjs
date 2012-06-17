@@ -628,6 +628,28 @@ S("(").
       args.push(parseExp(pctx, BP_COMMA)); // only parse up to comma
     }
     scan(pctx, ")");
+#ifdef SJS_BLOCKLAMBDA
+    // special case for blocklambdas: pull the blocklambda into the argument list
+    // f(a,b,c) {|..| ...} --> f(a,b,c,{|..| ...})
+    if (pctx.token.id == '{') {
+      // look ahead for '|' or '||'
+      TOKENIZER_SA.lastIndex = pctx.lastIndex;
+      while (1) {
+        var matches = TOKENIZER_SA.exec(pctx.src);
+        if (matches && 
+            (matches[SA_ARGSYMBOL_MATCH] == '|' ||
+             matches[SA_ARGSYMBOL_MATCH] == '||')) {
+          // ok, we've got a blocklambda -> pull it in
+          args.push(parseBlockLambda(scan(pctx).id, pctx));
+        }
+        else if (matches && matches[SA_NEWLINES_MATCH]) {
+          continue;
+        }
+        break;
+      }
+    }
+#endif
+
     LOGM('fun_call')
     GEN_FUN_CALL(l, args, pctx)
   });
