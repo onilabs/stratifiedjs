@@ -123,7 +123,8 @@ exports.supplant = function(str, o) {
          BMP this is equivalent to UTF-16 encoding.)
        * UTF-8 is mapped into JS strings as a sequence of octets, with the upper half
          of each 16-bit 'character' set to 0.
-
+       * See http://mathiasbynens.be/notes/javascript-encoding for a 
+         good discussion on JS string encoding.
 */
 exports.utf16ToUtf8 = function(s) {
   return unescape(encodeURIComponent(s));
@@ -142,6 +143,8 @@ exports.utf16ToUtf8 = function(s) {
          BMP this is equivalent to UTF-16 encoding.)
        * UTF-8 is mapped into JS strings as a sequence of octets, with the upper half
          of each 16-bit 'character' set to 0.
+       * See http://mathiasbynens.be/notes/javascript-encoding for a 
+         good discussion on JS string encoding.
 */
 exports.utf8ToUtf16 = function(s) {
   return decodeURIComponent(escape(s));
