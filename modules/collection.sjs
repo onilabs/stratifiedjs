@@ -82,7 +82,6 @@
 */
 
 var sys = require('sjs:apollo-sys');
-var stopIteration = {};
 var par = exports.par = {};
 
 // -------------------------------------------------------------
@@ -167,6 +166,7 @@ exports.identity = function(a) { return a; }
 
 /**
   @function each
+  @altsyntax each(collection) { | item, index, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the iterator
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -334,6 +334,7 @@ function waitforFirstArgs(f, args, i, l, this_obj) {
 
 /**
   @function par.each
+  @altsyntax alt.each(collection) { | item, index, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the iterator
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -374,6 +375,7 @@ function generateMap(each) {
 
 /**
   @function map
+  @altsyntax map(collection) { | value, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the transform function
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -392,15 +394,22 @@ function generateMap(each) {
         });
         => [2,3,4]
 
-        collection.map({foo: 1, bar:2}, function(item) {
+        collection.map([1,2,3]) { |item| item+1 }
+        => [2,3,4]
+
+        collection.map({foo:1, bar:2}, function(item) {
           return item + 1;
         });
-        => {foo: 2, bar:3}
+        => {foo:2, bar:3}
+
+        collection.map({foo:1, bar:2}) { |item| item+1 }
+        => {foo:2, bar:3}
 */
 exports.map     = generateMap(exports.each);
 
 /**
   @function par.map
+  @altsyntax par.map(collection) { | value, key, collection | ... }  
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the transform function
   @param    {optional Object} [this_obj]
@@ -415,30 +424,9 @@ exports.map     = generateMap(exports.each);
 */
 exports.par.map = generateMap(exports.par.each);
 
-// there are 4 versions of `find`, based on whether they are
-// parallel and whether they return the key or value:
-function generateFind(each, return_arg) {
-  return function(collection, fn, this_obj) {
-    var found = undefined;
-    try {
-      each(collection, function(elem) {
-        if(fn.apply(this_obj, arguments)) {
-          found = arguments;
-          throw stopIteration;
-        }
-      });
-    }
-    catch (e) { 
-      if (e === stopIteration)
-        return found[return_arg];
-      throw e;
-    }
-    return undefined;
-  };
-};
-
 /**
    @function find
+   @altsyntax find(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -449,10 +437,15 @@ function generateFind(each, return_arg) {
    
    Returns `undefined` when no match is found.
 */
-exports.find        = generateFind(exports.each     , 0);
+exports.find = function(collection, fn, this_obj) { 
+  exports.each(collection) { |item,key| 
+    if (fn.call(this_obj,item,key,collection)) return item; 
+  }
+};
 
 /**
    @function par.find
+   @altsyntax par.find(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -463,10 +456,15 @@ exports.find        = generateFind(exports.each     , 0);
      matching element in a *temporal* sense, but not necessarily the
      element at the smallest index in the collection.
 */
-exports.par.find    = generateFind(exports.par.each , 0);
+exports.par.find = function(collection, fn, this_obj) { 
+  exports.par.each(collection) { |item,key| 
+    if (fn.call(this_obj,item,key,collection)) return item; 
+  }
+};
 
 /**
    @function findKey
+   @altsyntax findKey(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -477,10 +475,15 @@ exports.par.find    = generateFind(exports.par.each , 0);
 
      Returns `undefined` when no match is found.
 */
-exports.findKey     = generateFind(exports.each     , 1);
+exports.findKey = function(collection, fn, this_obj) { 
+  exports.each(collection) { |item,key| 
+    if (fn.call(this_obj,item,key,collection)) return key; 
+  }
+};
 
 /**
    @function par.findKey
+   @altsyntax par.findKey(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -491,7 +494,11 @@ exports.findKey     = generateFind(exports.each     , 1);
 
      Returns `undefined` when no match is found.
 */
-exports.par.findKey = generateFind(exports.par.each , 1);
+exports.par.findKey = function(collection, fn, this_obj) { 
+  exports.par.each(collection) { |item,key| 
+    if (fn.call(this_obj,item,key,collection)) return key; 
+  }
+};
 
 /**
   @function remove
@@ -584,6 +591,7 @@ function generateFilter(each) {
 
 /**
    @function filter
+   @altsyntax filter(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -597,6 +605,7 @@ function generateFilter(each) {
 exports.filter     = generateFilter(exports.each);
 /**
    @function par.filter
+   @altsyntax par.filter(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -611,6 +620,7 @@ exports.par.filter = generateFilter(exports.par.each);
 
 /**
   @function reduce
+  @altsyntax reduce(collection, initial) { | accum, elem, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Object} [initial] the initial value
   @param    {Function} [fn] the reducer function
@@ -643,6 +653,7 @@ exports.reduce = function(collection, initial, fn, this_obj) {
 
 /**
   @function reduce1
+  @altsyntax reduce1(collection) { | accum, elem, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the reducer function
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -669,25 +680,9 @@ exports.reduce1 = function(collection, fn, this_obj) {
   return accum;
 };
 
-function generateAll(each) {
-  return function(collection, fn, this_obj) {
-    try {
-      each(collection, function() {
-        if(!fn.apply(this_obj, arguments)) {
-          throw stopIteration;
-        }
-      });
-    }
-    catch (e) {
-      if (e === stopIteration) return false;
-      throw e;
-    }
-    return true;
-  };
-}
-
 /**
   @function all
+  @altsyntax all(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -696,15 +691,27 @@ function generateAll(each) {
     Returns `true` if `test(item, key, collection)` returns truthy for all items in the
     collection, `false` otherwise.
 */
-exports.all     = generateAll(exports.each);
+exports.all = function(collection, test, this_obj) {
+  exports.each(collection) { |item,key|
+    if (!test.call(this_obj,item,key,collection)) return false;
+  }
+  return true;
+};
+
 /**
   @function par.all
+  @altsyntax par.all(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] The test function
   @param    {optional Object} [this_obj]
   @summary  Parallel version of [::all]
 */
-exports.par.all = generateAll(exports.par.each);
+exports.par.all = function(collection, test, this_obj) {
+  exports.par.each(collection) { |item,key|
+    if (!test.call(this_obj,item,key,collection)) return false;
+  }
+  return true;
+};
 
 function generateAny(find) {
   return function(collection, fn, this_obj) {
@@ -714,6 +721,7 @@ function generateAny(find) {
 
 /**
   @function any
+  @altsyntax any(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
   @param    {optional Object} [this_obj]
@@ -726,6 +734,7 @@ exports.any     = generateAny(exports.findKey);
 
 /**
   @function par.any
+  @altsyntax par.any(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
   @param    {optional Object} [this_obj]
