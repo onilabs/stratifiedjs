@@ -175,44 +175,6 @@ test("delete scoping", true, function() {
   };
 });
 
-/*XXX
-test("single line ml strings", true, function() {
-  var a = """
-The quick brown fox
-"""; XXX*/
-/*
-""" <-- to test that """ are not matched greedy
-*/ /*XXX
-  return a == "The quick brown fox";
-});
-
-test("multiline strings", true, function() {
-  var a = """
-The quick brown fox.
-Test
-""";
-  return a == "The quick brown fox.\nTest";
-});
-
-test("multiline string escaping", true, function() {
-  var a = """
-""
-''' """"""""
- """"
-""";
-  return a.length == 21;
-});
-
-test("multiline string replace", true, function() {
-  var a = """
-The quick brown fox.
-Test
-""".replace(/T/g, "t");
-  return a == "the quick brown fox.\ntest";
-});
-*/
-
-
 test("arguments property", 42, function() {
   return (function() { return arguments[0]; })(42);
 });
@@ -1413,4 +1375,29 @@ test("blocklambda with newline pulled into argument list", 43, function() {
     };
 
   return rv;
+});
+
+test("interpolating vs non-interpolating strings", true, function() {
+  a = "1
+\#{ #\{ # { #} #x
+
+2\n\nx
+
+ 3\
+4#";
+  b = '1
+\#{ #\{ # { #} #x
+
+2\n\nx
+
+ 3\
+4#';
+  return a === b;
+});
+
+test("string interpolation", true, function() {
+  function x() { hold(0); return 42; }
+  var a = "interpolated";
+  var x = "This is an #{ a } string #{ x()+1 } #{ '#{}' } #{ ({|| "#{1+1}"})() }#{3}";
+  return x === 'This is an interpolated string 43 #{} 23';
 });

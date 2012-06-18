@@ -108,6 +108,7 @@ general:
    #define SJS___JS: parse SJS's "__js" keyword
    #define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    #define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
+   #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
 
 for C1_KERNEL_JSMIN:
    #define STRINGIFY  : encodes minified js/sjs as a string.
@@ -264,6 +265,7 @@ GEN_BLOCKLAMBDA(pars, body, pctx)
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
+#define INTERPOLATING_STRINGS 1
 #include "kernel-sjs.js.in"
 
 #elif defined(C1_KERNEL_JSMIN)
@@ -274,6 +276,7 @@ GEN_BLOCKLAMBDA(pars, body, pctx)
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
+#define INTERPOLATING_STRINGS 1
 #include "kernel-jsmin.js.in"
 
 #else
@@ -315,7 +318,11 @@ Hash.prototype = {
 #define PAT_OPERATOR4 >>>=
 #define PAT_OPERATOR3 ===|!==|>>>|<<=|>>=
 #define PAT_OPERATOR2 ==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
+#ifdef INTERPOLATING_STRINGS
+#define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()\"]
+#else
 #define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()]
+#endif
 // XXX unicode
 #define PAT_IDENTIFIER [$_\w]+
 // symbols that can appear in an 'statement/argument position':
@@ -324,13 +331,21 @@ Hash.prototype = {
 #define PAT_SYMBOL PAT_OPERATOR4|PAT_OPERATOR3|PAT_ARGSYMBOL
 
 #define PAT_STRLIT_SGL '(?:\\.|[^\\\'\n])*'
+#ifdef INTERPOLATING_STRINGS
+#define PAT_STRLIT PAT_STRLIT_SGL
+#else
 #define PAT_STRLIT_DBL "(?:\\.|[^\\\"\n])*"
 #define PAT_STRLIT PAT_STRLIT_SGL|PAT_STRLIT_DBL
+#endif
 
 #ifdef MULTILINE_STRINGS
 #define PAT_ML_STRLIT_SGL '(?:\\(?:.|\n|\r)|[^\\\'])*'
+#ifdef INTERPOLATING_STRINGS
+#define PAT_ML_STRLIT PAT_ML_STRLIT_SGL
+#else
 #define PAT_ML_STRLIT_DBL "(?:\\(?:.|\n|\r)|[^\\\"])*"
 #define PAT_ML_STRLIT PAT_ML_STRLIT_SGL|PAT_ML_STRLIT_DBL
+#endif
 #endif
 
 #define PAT_INVALID \S+
@@ -354,11 +369,20 @@ var TOKENIZER_SA = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_NUMLIT)|(PAT_REGEXLIT)|(P
 #define SA_INVALID_MATCH 6
 #endif
 
-// tokenizer for tokens in an operator position::
+// tokenizer for tokens in an operator position:
 var TOKENIZER_OP = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_SYMBOL))/g;
 
 #define OP_NEWLINES_MATCH 1
 #define OP_SYMBOL_MATCH 2
+
+#ifdef INTERPOLATING_STRINGS
+// tokenizer for tokens in an interpolating string position:
+var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
+#define IS_CONTENT_MATCH 1
+#define IS_ESCAPED_NEWLINE_MATCH 2
+#define IS_NEWLINE_MATCH 3
+#define IS_OPERATOR_MATCH 4
+#endif
 
 //----------------------------------------------------------------------
 // Syntax Table
@@ -721,11 +745,20 @@ S("spawn").pre(115);
 
 S(",").ifx(BP_COMMA, true);
 
-// helper to check that token is a valid property name:
-function validatePropertyName(token) {
+// helper to parse a token into a valid property name:
+function parsePropertyName(token, pctx) {
   var id = token.id;
-  if (id != "<id>" && id != "<string>" && id != "<number>")
-    throw "Invalid object literal syntax; property name expected, but saw "+token;
+  if (id == "<id>" || id == "<string>" || id == "<number>")
+    return token.value;
+#ifdef INTERPOLATING_STRINGS
+  if (id == '"') {
+    if ((token = scan(pctx)).id != "<string>" ||
+        scan(pctx, undefined, TOKENIZER_IS).id != 'istr-"')
+      throw "Non-literal strings can't be used as propery names ("+token+")";
+    return token.value;
+  }
+#endif
+  throw "Invalid object literal syntax; property name expected, but saw "+token;
 }
 
 function parseBlock(pctx) {
@@ -792,40 +825,38 @@ S("{").
         var prop = pctx.token;
         if (prop.id == "}")
           break; // allows trailing ','
-        validatePropertyName(prop);
+        prop = parsePropertyName(prop, pctx);
         scan(pctx);
         if (pctx.token.id == ":") {
           // 'normal' property
           scan(pctx);
           var exp = parseExp(pctx, BP_COMMA); // only parse up to comma
-          props.push(["prop",prop.value,exp]);
+          props.push(["prop",prop,exp]);
         }
 #ifdef ECMA_GETTERS_SETTERS
-        else if (prop.value == "get") {
+        else if (prop == "get") {
           // property getter
-          prop = pctx.token;
-          validatePropertyName(prop);
+          prop = parsePropertyName(pctx.token, pctx);
           scan(pctx);
           scan(pctx, "(");
           scan(pctx, ")");
           var body = parseFunctionBody(pctx);
-          props.push(["get", prop.value, body]);
+          props.push(["get", prop, body]);
         }
-        else if (prop.value == "set") {
+        else if (prop == "set") {
           // property setter
-          prop = pctx.token;
-          validatePropertyName(prop);
+          prop = parsePropertyName(pctx.token, pctx);
           scan(pctx);
           var pars = [];
           var body = parseFunctionInner(pctx, pars);
           if (pars.length != 1)
             throw "Exactly one parameter expected in property setter definition";
-          props.push(["set", prop.value, pars[0], body]);
+          props.push(["set", prop, pars[0], body]);
         }
 #endif // ECMA_GETTERS_SETTERS
 #ifdef SJS_DESTRUCTURE
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
-          props.push(["pat", prop.value, pctx.line]);
+          props.push(["pat", prop, pctx.line]);
         }
 #endif // SJS_DESTRUCTURE
         else
@@ -927,6 +958,51 @@ S("null", TOKENIZER_OP).exs(function(pctx, st) { LOGM('null') GEN_NULL(pctx) });
 
 #ifdef SJS
 S("collapse", TOKENIZER_OP).exs(function(pctx, st) { LOGM('collapse') GEN_COLLAPSE(pctx) });
+#endif
+
+#ifdef INTERPOLATING_STRINGS
+function combineStringParts(a,b, pctx) {
+  LOGM('infix_op(string_combine)');
+  GEN_INFIX_OP(a, '+', b, pctx)
+}
+
+function parseGroupedExp(pctx) {
+  var exp = parseExp(pctx);
+  GEN_GROUP(exp, pctx)
+}
+
+S('"', TOKENIZER_IS).exs(function(pctx, st) {
+  var parts = [];
+  while (pctx.token.id != 'istr-"') {
+    switch (pctx.token.id) {
+    case "<string>":
+      parts.push(pctx.token.exsf(pctx));
+      break;
+    case 'istr-#{':
+      scan(pctx);
+      parts.push(parseGroupedExp(pctx));
+      break;
+    case "<eof>":
+      throw "Unterminated string";
+      break;
+    default:
+      throw "Internal parser error: Unknown token in string ("+pctx.token+")";
+    }
+    scan(pctx, undefined, TOKENIZER_IS);
+  }
+  if (parts.length == 0)
+    parts.push((new Literal("<string>", '""')).exsf(pctx));
+  scan(pctx);
+
+  var rv = parts[0];
+  if (parts.length == 1) return rv;
+  for (var i=1; i<parts.length; ++i)
+    rv = combineStringParts(rv, parts[i], pctx);
+  GEN_GROUP(rv, pctx)
+});
+
+S('istr-#{', TOKENIZER_SA);
+S('istr-"', TOKENIZER_OP);
 #endif
 
 function isStmtTermination(token) {
@@ -1504,6 +1580,26 @@ function scan(pctx, id, tokenizer) {
       }
       //print("op:"+pctx.token);
     }
+#ifdef INTERPOLATING_STRINGS
+    else if (tokenizer == TOKENIZER_IS) { 
+      // interpolating string tokenizer
+      if (matches[IS_CONTENT_MATCH])
+        pctx.token = new Literal("<string>", '"'+matches[IS_CONTENT_MATCH]+'"');
+      else if (matches[IS_ESCAPED_NEWLINE_MATCH]) {
+        ++pctx.line;
+        ++pctx.newline;
+        // go round loop again
+      }
+      else if (matches[IS_NEWLINE_MATCH]) {
+        ++pctx.line;
+        ++pctx.newline;
+        pctx.token = new Literal("<string>", '"\\n"');
+      }
+      else if (matches[IS_OPERATOR_MATCH]) {
+        pctx.token = ST.lookup("istr-"+matches[IS_OPERATOR_MATCH]);
+      }
+    }
+#endif
     else
       throw "Internal scanner error: no tokenizer";
   }
