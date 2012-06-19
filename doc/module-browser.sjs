@@ -533,7 +533,7 @@ function makeSymbolView(location) {
   else if (docs.type == "class") {
     var template; 
     if (docs.inherit)
-      template = '<h3>Class #{docs.name} inherits #{makeTypeHTML(docs.inherit,location)}</h3>';
+      template = "<h3>Class #{docs.name} inherits #{makeTypeHTML(docs.inherit,location)}</h3>";
     else
       template = "<h3>Class #{docs.name}</h3>";
     ui.makeView(template).show(view.elems.details);

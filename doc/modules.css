@@ -102,6 +102,10 @@
     color: #333;
 }
 
+.mb-top a > code {
+    border: 1px solid #eaeaea;
+}
+
 .mb-main > h2 > a {
     text-decoration:none;
 }
