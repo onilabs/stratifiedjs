@@ -1,5 +1,6 @@
 @lib     Oni Apollo 'unstable' Standard Module Library - Xbrowser Modules
 @summary Basic cross-browser functionality
 
-@module console
-@module dom
+@module console         Browser-based StratifiedJS console
+@module dom             Basic DOM functionality
+@module jquery-binding  Stratified bindings to [jquery](http://jquery.com) (client-side only)

@@ -43,7 +43,6 @@
 @dir xbrowser Modules with basic cross-browser functionality
 @dir webapi   Bindings to popular web apis
 
-@module base64          Base64 encoding and decoding
 @module collection      Functions for iterating and processing collections (arrays or objects)
 @module common          Common JS utility functions
 @module cutil           Functions and constructs for concurrent stratified programming
@@ -51,10 +50,9 @@
 @module docutil         Utilities for extracting documentation from StratifiedJS modules (Work in progress)
 @module function        Function composition helpers
 @module http            Functions for performing HTTP requests and working with URLs
-@module jquery-binding  Stratified bindings to [jquery](http://jquery.com) (client-side only)
 @module logging         Simple cross-environment logging framework
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
 @module sjcl            Stanford JavaScript Crypto Library
 @module string          Functions for working with strings
 @module surface         Scalable HTML-based UIs
-@module ui              Functions for constructing HTML UIs (Work in progress; client-side only)
+

@@ -2,10 +2,6 @@
  * Oni Apollo 'ui' module
  * Functions for constructing HTML UIs
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
- *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
@@ -32,7 +28,6 @@
 /**
    @module  ui
    @summary Functions for constructing HTML UIs
-   @home    apollo:ui
    @hostenv   xbrowser
    @desc    Work-in-progress; to be documented
 */

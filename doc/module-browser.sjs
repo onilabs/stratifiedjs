@@ -6,7 +6,7 @@ and {
   var dom = require('apollo:xbrowser/dom');
 }
 and {
-  var ui = require('apollo:ui');
+  var ui = require('./ui');
 }
 and {
   var cutil = require('apollo:cutil');

@@ -4,7 +4,7 @@ var test = testUtil.test;
 
 if(testUtil.isBrowser) {
   test('install from google', true, function () {
-    require("apollo:jquery-binding").install();
+    require("apollo:xbrowser/jquery-binding").install();
     return window.$ == window.jQuery && window.jQuery != null;
   });
 

@@ -33,12 +33,12 @@
   @module     jquery-binding
   @hostenv    xbrowser
   @summary    A convenience module used to load and extend jQuery to make use of StratifiedJS features.
-  @home       apollo:jquery-binding
+  @home       apollo:xbrowser/jquery-binding
   @desc 
     By default [::install] will load jQuery from
     a CDN and add stratified versions ($+fnname) of the most common [jQuery functions](http://api.jquery.com/category/events/).
 
-        require("apollo:jquery-binding").install();
+        require("apollo:xbrowser/jquery-binding").install();
         
         while (true) {
           $("a").$click();
@@ -156,7 +156,7 @@ exports.load = function (opts) {
   if (!window["jQuery"]) {
     var version = opts.version || "1.7.0";
     var url = opts.url || "http://ajax.googleapis.com/ajax/libs/jquery/"+version+"/jquery.min.js";
-    require("./xbrowser/dom").script(url);
+    require("./dom").script(url);
     // wait for jquery to be initialized (crucial on IE):
     while (!window.$)
       hold(10);
