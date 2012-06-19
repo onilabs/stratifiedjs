@@ -91,3 +91,33 @@ function alt_test() {
   return 1;
 }
 time("waitforFirst/10000", alt_test);
+
+time("tail recursion", function() {
+  
+  function r(level) {
+    hold(0);
+    if (level)
+      r(level-1);
+    else return 1;
+  }
+
+  return r(100000);
+}).serverOnly(); // browser hold(0) is too slow
+
+time("waitfor/and tail recursion", function() {
+  
+  function r(level) {
+    hold(0);
+    waitfor {
+      var x = level;
+    }
+    and {
+      if (level)
+        r(level-1);
+      else
+        return 1;
+    }
+  }
+
+  return r(100000);
+}).serverOnly(); // browser hold(0) is too slow

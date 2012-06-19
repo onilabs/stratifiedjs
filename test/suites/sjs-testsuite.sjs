@@ -1292,36 +1292,6 @@ test("{||} in JS forEach", 6, function() {
   }
 });
 
-test("tail recursion", 1, function() {
-  
-  function r(level) {
-    hold(0);
-    if (level)
-      r(level-1);
-    else return 1;
-  }
-
-  return r(100000);
-}).serverOnly(); // browser hold(0) is too slow
-
-test("waitfor/and tail recursion", 1, function() {
-  
-  function r(level) {
-    hold(0);
-    waitfor {
-      var x = level;
-    }
-    and {
-      if (level)
-        r(level-1);
-      else
-        return 1;
-    }
-  }
-
-  return r(100000);
-}).serverOnly(); // browser hold(0) is too slow
-
 test("__js { var i,a=0; for(i=0;i<10;++i) ++a; }", 10, 
      function() { __js { var i,a=0; for(i=0;i<10;++i) ++a; } return a; });
 
@@ -1400,4 +1370,83 @@ test("string interpolation", true, function() {
   var a = "interpolated";
   var x = "This is an #{ a } string #{ x()+1 } #{ '#{}' } #{ ({|| "#{1+1}"})() }#{3}";
   return x === 'This is an interpolated string 43 #{} 23';
+});
+
+test("complicated blocklambda return", 111, function() {
+  var rv = 0;
+
+  var signal;
+  function f(g) { 
+    waitfor() { signal = resume; }
+    try {
+      g();
+    }
+    finally {
+      rv += 10;
+    }
+    return 1000;
+  }
+  
+  waitfor {
+    rv += (function() {
+      try {
+        var x = f { || return 1; };
+      }
+      finally {
+        rv += 100;
+      }
+      return x;
+    })();
+  }
+  and {
+    hold(0);
+    signal();
+  }
+
+  return rv;
+});
+
+test("detached blocklambda return", 1, function() {
+  function f(g) {
+    spawn g();
+    return 10;
+  }
+  var rv = f { || return 1; };
+  hold(10);
+  return rv;
+});
+
+test("complex detached blocklambda return", 111, function() {
+  var rv = 0;
+
+  var signal;
+  function f(g) { 
+    waitfor() { signal = resume; }
+    try {
+      var S = spawn g();
+      hold(100);
+    }
+    finally {
+      rv += 10;
+    }
+    return 1000;
+  }
+  
+  waitfor {
+    rv += (function() {
+      try {
+        var x = f { || return 1; };
+      }
+      finally {
+        rv += 100;
+      }
+      return x;
+    })();
+  }
+  and {
+    hold(0);
+    signal();
+  }
+
+  return rv;  
 });
