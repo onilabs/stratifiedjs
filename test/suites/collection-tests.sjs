@@ -387,3 +387,11 @@ test("union", 3, function() {
   var x={a:1},y={b:1},z={c:1};
   return collection.union([x,z],[x,y,z]).length;
 });
+
+test("par.each(.) { |.| .}", 20, function() {
+  par.each([10,20,30]) { |x| 
+    hold(x); 
+    if(x==20) return 20; 
+  };
+});
+

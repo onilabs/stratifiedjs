@@ -1,4 +1,4 @@
-var common = require('apollo:common');
+var str = require('apollo:string');
 var BaseRunner = require("./baseRunner").BaseRunner;
 
 var BrowserRunner = exports.BrowserRunner = function() {
@@ -19,7 +19,7 @@ BrowserRunner.prototype.status = function() {
 BrowserRunner.prototype.result = function(status, message) {
   this.updateProgress();
   var node = document.createElement("div");
-  node.innerHTML = common.sanitize(this.pad(this.testCounter) + message);
+  node.innerHTML = str.sanitize(this.pad(this.testCounter) + message);
   node.setAttribute("class", "test " + "test-" + status);
   this.output().appendChild(node);
 };
@@ -54,7 +54,7 @@ BrowserRunner.prototype.report = function(src) {
     summary += (", " + this.numFailure + " failures");
   }
   summary += ".";
-  this.status().innerHTML = common.sanitize(summary);
+  this.status().innerHTML = str.sanitize(summary);
 };
 
 BrowserRunner.prototype.updateProgress = function() {
@@ -64,11 +64,11 @@ BrowserRunner.prototype.updateProgress = function() {
 };
 
 BrowserRunner.prototype.load = function(src) {
-  this.status().innerHTML = common.sanitize("loading: " + src);
+  this.status().innerHTML = str.sanitize("loading: " + src);
   this._super.load.apply(this, arguments);
 };
 
 BrowserRunner.prototype.run = function() {
-  this.status().innerHTML = common.sanitize("running tests...");
+  this.status().innerHTML = str.sanitize("running tests...");
   this._super.run.apply(this, arguments);
 };

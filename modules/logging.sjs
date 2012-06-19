@@ -53,7 +53,8 @@
     `log` will be used instead.
 */
 
-var common = require('apollo:common');
+var common = require('./common');
+var str = require('./string');
 var sys = require('sjs:apollo-sys');
 
 /**
@@ -134,7 +135,7 @@ exports.setLevel = function(lvl) {
   @summary Set the output format of log messages
   @desc
     The default format is `"{level}: {message}"`, substitutions
-    will be performed using [common::supplant].
+    will be performed using [string::supplant].
 
     Currently the only keys available for a format to include are
     `level` and `message`.
@@ -181,7 +182,7 @@ exports.isEnabled = function(lvl) { return currentLevel >= lvl; };
 
 exports.formatMessage = function(lvl, message, vals) {
   if(vals) {
-    message = common.supplant(message, vals);
+    message = str.supplant(message, vals);
   }
   var fields = {
     level: exports.levelNames[lvl],
@@ -190,18 +191,18 @@ exports.formatMessage = function(lvl, message, vals) {
   if(customFormatFields) {
     fields = common.mergeSettings(customFormatFields, fields);
   }
-  var str = common.supplant(currentFormat, fields);
-  return str;
+  var rv = str.supplant(currentFormat, fields);
+  return rv;
 };
 
 exports.log = function(lvl, message, vals, obj, preferred_console_method) {
   if(!message) throw new Error("Please supply both a level and a message");
   if(!exports.isEnabled(lvl)) return;
-  var str = exports.formatMessage(lvl, message, vals);
+  var s = exports.formatMessage(lvl, message, vals);
 
   // only pass the obj arg if it's defined,
   // otherwise the console will log an `undefined` obj
-  var args = [str];
+  var args = [s];
   if(obj !== undefined) {
     args.push(obj);
   }

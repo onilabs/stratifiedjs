@@ -67,3 +67,27 @@ test('base64ToOctets(octetsToBase64)', true, function() {
   return true;  
 });
 
+test('supplant', "Hello world 1", function() {
+  return str.supplant("Hello {who} {version}", {who:"world", version:1});
+});
+
+test('supplant evaluates functions', "Hello world 2", function() {
+  var ctx = {
+    who: "world",
+    version: 1,
+    nextVersion: function() { return this.version + 1; }
+  };
+  return str.supplant("Hello {who} {nextVersion}", ctx);
+});
+
+test('supplant strictness', "No substitution found for \"who\"", function() {
+  try {
+    return str.supplant("Hello {who}", {version:1});
+  } catch (e) {
+    return e.message;
+  }
+});
+
+test('sanitize', "abc&amp;foo;def&gt;ght&lt;", function() {
+  return str.sanitize("abc&foo;def>ght<");
+});

@@ -37,33 +37,6 @@
 */
 
 /**
-   @function format
-   @summary Format a string using the first argument as a printf-like format.
-   @param   {String} [format_string] Format string
-   @param   {optional Objects} [...] 
-   @desc
-      This function is an almost literal copy of the nodejs's [util.format](http://nodejs.org/api/util.html#util_util_format). 
-*/
-var formatRegExp = /%[sdj%]/g;
-exports.format = function(f) {
-  var i = 1;
-  var args = arguments;
-  var len = args.length;
-  var str = String(f).replace(formatRegExp, function(x) {
-    if (x === '%%') return '%';
-    if (i >= len) return x;
-    switch (x) {
-      case '%s': return String(args[i++]);
-      case '%d': return Number(args[i++]);
-      case '%j': return JSON.stringify(args[i++]);
-      default:
-        return x;
-    }
-  });
-  return str;
-};
-
-/**
   @function sanitize
   @summary  Make a string safe for insertion into html.
   @param    {String} [str] String to sanitize.
@@ -91,12 +64,20 @@ exports.sanitize = function(str) {
   @param    {Object} [replacements] Hash of key/value pairs that will be replaced in *template*.
   @return   {String} String with placeholders replaced by variables.
   @desc
-    An error will be thrown if any substitution can't be found
-    
-    ###Example:
+    ###Notes:
 
-        var rv = common.supplant("Hello {who}", { who: "world"});
+      * An error will be thrown if any substitution can't be found.
+      * Consider using SJS's builtin string interpolation functionality instead.
+
+    ###Example:
+        
+        var obj = { who: "world" };
+
+        var rv = common.supplant("Hello {who}", obj);
         // rv will equal "Hello world"
+        
+        // alternatively, this can be expressed with builtin string interpolation:
+        var rv = "Hello #{obj.who}";
 */
 //XXX how should you escape {foo}? {{foo}}? \{foo\}?
 exports.supplant = function(str, o) {

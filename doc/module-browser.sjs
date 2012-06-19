@@ -239,10 +239,9 @@ function makeIndexView() {
 function makeIndexModuleEntry(location, module) {
   var view = ui.makeView(
     "<li>
-       <h3><a href='#{path}{module}'>{module}</a></h3>
+       <h3><a href='##{location.path}#{module}'>#{module}</a></h3>
        <ul name='symbols'></ul>
      </li>");
-  view.supplant({path: location.path, module: module});
 
   var symbols_view;
 
@@ -253,9 +252,7 @@ function makeIndexModuleEntry(location, module) {
     var symbols_template = 
       coll.map(coll.values(common.mergeSettings(module_docs.symbols, module_docs.classes)), 
                function(symbol) {
-                 return common.supplant(
-                   "<li><a href='#{path}{module}::{symbolname}'>{symbolname}</a></li>",
-                   {path:location.path, module: module, symbolname:symbol.name})
+                 return "<li><a href='##{location.path}#{module}::#{symbol.name}'>#{symbol.name}</a></li>";
                }).join("");
     (symbols_view = ui.makeView(symbols_template)).show(view.elems.symbols);
   };
@@ -270,9 +267,8 @@ function makeIndexModuleEntry(location, module) {
 function makeIndexDirEntry(path, dir) {
   var view = ui.makeView(
     "<li>
-       <h3><a href='#{path}'>{dir}</a></h3>
+       <h3><a href='##{path}'>#{dir}</a></h3>
      </li>");
-  view.supplant({path: path, dir: dir});
 
   view.select = function() {};
   view.deselect = function() {};
@@ -287,11 +283,11 @@ function makeIndexDirEntry(path, dir) {
 function doInternalErrorDialog(txt, domparent) {
   var view = ui.makeView("
 <div class='mb-error'>
-<h1>:-(</h1><b>{txt}</b><br>You shouldn't have seen this error; please report to info@onilabs.com.<br>
+<h1>:-(</h1><b>#{txt}</b><br>You shouldn't have seen this error; please report to info@onilabs.com.<br>
 Please also hit the 'retry' button and see if this fixes things: 
 <button name='ok'>retry</button>
 </div>
-").supplant({txt:txt});
+");
   using (view.show(domparent)) {
     try {
       dom.waitforEvent(view.elems.ok, 'click');
@@ -352,7 +348,7 @@ function makeMainView(location) {
 function makeErrorView(location, txt) {
   var view = ui.makeView(
 "<h2>:-(</h2>
- <h3>{txt}</h3>
+ <h3>#{txt}</h3>
  <p>Were you looking for one of these:</p>
  <ul>
    <li><a href='http://code.onilabs.com/apollo/latest/doc/modules.html'>Latest Stable Apollo Standard Library Docs</a></li>
@@ -360,7 +356,7 @@ function makeErrorView(location, txt) {
  </ul>
  <p>Otherwise, please enter a URL pointing to a module library (a directory with a file 'sjs-lib-index.txt'), or an SJS module:</p>
 <input name='url' type='text' style='width:30em' value='http://'></input><button name='go'>Go</button>
-").supplant({txt:txt});
+");
 
   view.run = function() { 
     if (window.location.hash)
@@ -390,16 +386,12 @@ function makeModuleView(location) {
   var docs = getModuleDocs(location.path + location.module);
   if (!docs) throw "No module at '"+location.path + location.module+"'";
   var view = ui.makeView(
-"<h2>The {name} module</h2>
- <div class='mb-require'><code>require('{home}');</code></div>
+"<h2>The #{docs.module||location.module} module</h2>
+ <div class='mb-require'><code>require('#{docs.home||(location.path+location.module)}');</code></div>
  <div name='summary' class='mb-summary'></div>
  <div name='desc'></div>
  <div name='symbols'></div>
-").supplant({
-  name:    docs.module||location.module, 
-//  varname: moduleVarName(docs.module||location.module),
-  home:    docs.home || (location.path+location.module) 
-});
+");
 
   ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
@@ -409,13 +401,10 @@ function makeModuleView(location) {
   coll.each(common.mergeSettings(docs.symbols, docs.classes), function(s) {
     if (!symbols[s.type]) symbols[s.type] = [];
     symbols[s.type].push(
-      common.supplant(
         "<tr>
-           <td class='mb-td-symbol'><a href='#{path}{module}::{symbol}'>{symbol}</a></td>
-           <td>{summary}</td>
-         </tr>",
-        { path: location.path, module: location.module, 
-          symbol: s.name, summary: makeSummaryHTML(s, location) }));
+           <td class='mb-td-symbol'><a href='##{location.path}#{location.module}::#{s.name}'>#{s.name}</a></td>
+           <td>#{makeSummaryHTML(s,location)}</td>
+         </tr>");
   });
   
   if (symbols['function'])
@@ -448,33 +437,25 @@ function makeSymbolView(location) {
   var view;
   if (!location.classname) {
     view = ui.makeView(
-      "<h2><a href='#{path}{module}'>{module}</a>::{name}</h2>"+
+      "<h2><a href='##{location.path}#{location.module}'>#{location.module}</a>::#{location.symbol}</h2>"+
         (docs.type != "class" ?
-         "<div class='mb-require'><code>require('{home}').{name};</code></div>" : "")+
+         "<div class='mb-require'><code>require('#{mdocs.home||(location.path+location.module)}').#{location.symbol};</code></div>" : "")+
       "<div name='summary' class='mb-summary'></div>
        <div name='details'></div>
        <div name='desc'></div>
-      ").supplant({
-        path: location.path, 
-        module: location.module, 
-        name:location.symbol,
-        home: mdocs.home || (location.path+location.module)});
+    ");
   }
   else {
+    var name = docs['static'] ? location.classname + "." + location.symbol : location.symbol;
     var template =         
-      "<h2><a href='#{path}{module}'>{module}</a>::<a href='#{path}{module}::{class}'>{class}</a>::{name}</h2>"+
+      "<h2><a href='##{location.path}#{location.module}'>#{location.module}</a>::<a href='##{location.path}#{location.module}::#{location.classname}'>#{location.classname}</a>::#{name}</h2>"+
       (docs.type == "ctor" || docs['static'] || docs.type == "proto"? 
-       "<div class='mb-require'><code>require('{home}').{name};</code></div>" : "")+
+       "<div class='mb-require'><code>require('#{mdocs.home || (location.path+location.module)}').#{name};</code></div>" : "")+
       "<div name='summary' class='mb-summary'></div>
        <div name='details'></div>
        <div name='desc'></div>
       ";
-    view = ui.makeView(template).supplant({
-      path:location.path, 
-      module:location.module, 
-      name: docs['static'] ? location.classname + "." + location.symbol : location.symbol, 
-      'class':location.classname,
-      home: mdocs.home || (location.path+location.module)});
+    view = ui.makeView(template);
   }
 
   ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
@@ -516,59 +497,46 @@ function makeSymbolView(location) {
 
     // function args details
     var args = coll.map(docs.param || [], function(p) {
-      return common.supplant(
-        "<tr><td class='mb-td-symbol'>{name}</td><td><span class='mb-type'>{type}</span>{def}{summary}</td></tr>",
-        { name:p.name||'.', type:makeTypeHTML(p.valtype, location), 
-          def: p.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(p.defval,location)+"</span>" : "",
-          summary:makeSummaryHTML(p, location) });
+      var name = p.name||'.';
+      var def = p.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(p.defval,location)+"</span>" : "";
+      return "<tr><td class='mb-td-symbol'>#{name}</td><td><span class='mb-type'>#{makeTypeHTML(p.valtype,location)}</span>#{def}#{makeSummaryHTML(p,location)}</td></tr>";
     });
     if (args.length)
       ui.makeView("<table>"+args.join("")+"</table>").show(view.elems.details);
 
     // settings
     var settings = coll.map(docs.setting || [], function(s) {
-      return common.supplant(
-        "<tr><td class='mb-td-symbol'>{name}</td><td><span class='mb-type'>{type}</span>{def}{summary}</td></tr>",
-        { name: s.name, type: makeTypeHTML(s.valtype, location), 
-          def: s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "",
-          summary: makeSummaryHTML(s, location)
-        });
+      var def = s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "";
+      return "<tr><td class='mb-td-symbol'>#{s.name}</td><td><span class='mb-type'>#{makeTypeHTML(s.valtype, location)}</span>#{def}#{makeSummaryHTML(s, location)}</td></tr>";
     });
     if (settings.length)
       ui.makeView("<h3>Settings</h3><table>"+settings.join("")+"</table>").show(view.elems.details);
 
     // attribs (nearly identical to settings)
     var attribs = coll.map(docs.attrib || [], function(s) {
-      return common.supplant(
-        "<tr><td class='mb-td-symbol'>{name}</td><td><span class='mb-type'>{type}</span>{def}{summary}</td></tr>",
-        { name: s.name, type: makeTypeHTML(s.valtype, location), 
-          def: s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "",
-          summary: makeSummaryHTML(s, location)
-        });
+      var def = s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "";
+      return "<tr><td class='mb-td-symbol'>#{s.name}</td><td><span class='mb-type'>#{makeTypeHTML(s.valtype, location)}</span>#{def}#{makeSummaryHTML(s, location)}</td></tr>";
     });
     if (attribs.length)
       ui.makeView("<h3>Attribs</h3><table>"+attribs.join("")+"</table>").show(view.elems.details);
 
 
     if (docs['return'] && docs['return'].summary) {
-      ui.makeView(common.supplant(
+      ui.makeView(
         "<h3>Return Value</h3>
          <table><tr>
-           <td><span class='mb-type'>{type}</span>{summary}</td>
-         </tr></table>",
-        { type: makeTypeHTML(docs['return'].valtype, location),
-          summary : makeSummaryHTML(docs['return'], location)
-        })).show(view.elems.details);
+           <td><span class='mb-type'>#{makeTypeHTML(docs['return'].valtype, location)}</span>#{makeSummaryHTML(docs['return'], location)}</td>
+         </tr></table>").show(view.elems.details);
     }
                           
   }
   else if (docs.type == "class") {
     var template; 
     if (docs.inherit)
-      template = '<h3>Class {name} inherits '+makeTypeHTML(docs.inherit,location)+'</h3>';
+      template = '<h3>Class #{docs.name} inherits #{makeTypeHTML(docs.inherit,location)}</h3>';
     else
-      template = "<h3>Class {name}</h3>";
-    ui.makeView(template).supplant(docs).show(view.elems.details);
+      template = "<h3>Class #{docs.name}</h3>";
+    ui.makeView(template).show(view.elems.details);
       
 
     // collect symbols
@@ -579,13 +547,10 @@ function makeSymbolView(location) {
         type = 'static-'+type;
       if (!symbols[type]) symbols[type] = [];
       symbols[type].push(
-        common.supplant(
           "<tr>
-             <td class='mb-td-symbol'><a href='#{path}{module}::{class}::{symbol}'>{symbol}</a></td>
-             <td>{summary}</td>
-           </tr>",
-          { path: location.path, module:location.module, 'class': docs.name, 
-            symbol: s.name, summary: makeSummaryHTML(s, location) }));
+             <td class='mb-td-symbol'><a href='##{location.path}#{location.module}::#{docs.name}::#{s.name}'>#{s.name}</a></td>
+             <td>#{makeSummaryHTML(s, location)}</td>
+           </tr>");
     });
     
     if (symbols['ctor'])
@@ -608,35 +573,34 @@ function makeLibView(location) {
   var docs = getPathDocs(location.path);
   if (!docs) throw "No module library at '"+location.path+"'";
   var view = ui.makeView(
-"<h2>{name}</h2>
+"<h2>#{docs.lib ? docs.lib : "Unnamed Module Collection" }</h2>
  <div name='summary' class='mb-summary'></div>
  <div name='desc'></div>
  <div name='modules'></div>
  <div name='dirs'></div>
-").supplant({
-  name: docs.lib ? docs.lib : "Unnamed Module Collection"});
+");
 
   ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
 
   // collect modules & dirs:
-  var modules = coll.reduce(docs.modules, "", {|p,m| p+common.supplant(
+  var modules = coll.reduce(docs.modules, "", {|p,m| p+
     "<tr>
-      <td class='mb-td-symbol'><a href='#{path}{module}'>{module}</a></td>
-      <td>{summary}</td>
-     </tr>", 
-    { path: location.path, module: m.name, summary: makeSummaryHTML(m, location) }) });
+      <td class='mb-td-symbol'><a href='##{location.path}#{m.name}'>#{m.name}</a></td>
+      <td>#{makeSummaryHTML(m, location)}</td>
+     </tr>"
+  });
 
   if (modules.length) {
-    ui.makeView("<h3>Modules</h3><table>"+modules+"</table>").show(view.elems.modules);
+    ui.makeView("<h3>Modules</h3><table>#{modules}</table>").show(view.elems.modules);
   }
 
-  var dirs = coll.reduce(docs.dirs, "", {|p,d| p+common.supplant(
+  var dirs = coll.reduce(docs.dirs, "", {|p,d| p+
     "<tr>
-      <td class='mb-td-symbol'><a href='#{path}{dir}'>{dir}</a></td>
-      <td>{summary}</td>
-     </tr>", 
-    { path: location.path, dir: d.name, summary: makeSummaryHTML(d, location) }) });
+      <td class='mb-td-symbol'><a href='##{location.path}#{d.name}'>#{d.name}</a></td>
+      <td>#{makeSummaryHTML(d,location)}</td>
+     </tr>";
+   });
 
   if (dirs.length) {
     ui.makeView("<h3>Directories</h3><table>"+dirs+"</table>").show(view.elems.dirs);
@@ -690,7 +654,7 @@ function makeSummaryHTML(obj, location) {
     rv += "<div class='note'>" + 
     markup("**Deprecated:** "+obj.deprecated, location) + "</div>";
   if (obj.hostenv)
-    rv += common.supplant("<div class='note'><b>Note:</b> This {type} only works in the '{hostenv}' version of Apollo.</div>", obj);
+    rv += "<div class='note'><b>Note:</b> This #{obj.type} only works in the '#{obj.hostenv}' version of Apollo.</div>";
   return rv;
 }
 

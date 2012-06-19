@@ -11,7 +11,6 @@ var flickr_api_key = "f466505f8da02b23cc0eb8a7b1d27afa";
 
 var logging = require('apollo:logging');
 require("apollo:jquery-binding").install();
-var supplant = require("apollo:common").supplant;
 var yql = require("apollo:webapi/yql");
 var more = $("#more");
 
@@ -53,20 +52,14 @@ function loadPhotos(city, page) {
   logging.debug("yql results for city {city}:", {city:city}, rv);
   var photos = rv.results ? rv.results.photo: [];
   for (var i = 0, photo; photo = photos[i]; ++i) {
-    try {
-      more.before(supplant("
+    more.before("
             <div class='blob'>
-              <a target='_blank' href='http://www.flickr.com/photos/{owner}/{id}' 
-                class='img' style='background-image:url({url_m})'/>
-                <h3>{title}</h3>
+              <a target='_blank' href='http://www.flickr.com/photos/#{photo.owner}/#{photo.id}' 
+                class='img' style='background-image:url(#{photo.url_m})'/>
+                <h3>#{photo.title}</h3>
               </a>
             </div>
-            ", photo));
-    }
-    catch (e) {
-      // the photo data was malformed, causing 'supplant' to fail
-      // we'll just ignore this photo; often the 'url_m' is missing
-    }
+               ");
   }
 }
 

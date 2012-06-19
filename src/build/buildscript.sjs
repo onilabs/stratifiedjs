@@ -179,6 +179,7 @@ function build_deps() {
   BUILD("tmp/version_stamp",
         [
           function() {
+            log("* version stamping");
             function replace_in(m) {
               if (/.+\.(sjs|txt|json)$/.test(m)) {
                 log('Replacing version in '+m);
@@ -227,6 +228,7 @@ function MINIFY(target, source, flags) {
   BUILD(
     target,
     function() {
+      log("* Minifying "+target);
       var src = fs.readFile(source).toString();
       var c = require('../../tmp/c1jsmin.js');
       var out = c.compile(src, flags);
@@ -243,6 +245,7 @@ function STRINGIFY(target, source, flags) {
   BUILD(
     target,
     function() {
+      log("* Stringifying "+target);
       var src = fs.readFile(source).toString();
       var c = require('../../tmp/c1jsstr.js');
       var out = c.compile(src, flags);
@@ -278,7 +281,7 @@ function BUILD(target, task, deps) {
   // We only want to execute the builder once and return the memoized
   // result on subsequent invocations. By utilizing a stratum and
   // waitforValue(), we can additionally ensure that these semantics
-  // also work when the builder is called concurrently, which it is
+  // also work when the builder is called concurrently while it is
   // still running:
   var stratum;
   builders[target] = function() {
@@ -361,7 +364,7 @@ function _run_task(target, task, deps) {
     // do some replacements first:
     task = task.replace(/\$(\d+)/g, function(m,n) { return deps[n]; });
     task = task.replace(/\$TARGET/g, target);
-    log("Executing '"+task+"'");
+    log("* Executing shell command: '"+task+"'");
     require('apollo:nodejs/child-process').exec(task);
   }
   else 

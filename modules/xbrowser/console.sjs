@@ -46,6 +46,7 @@ if (require('sjs:apollo-sys').hostenv != 'xbrowser')
   throw new Error('The xbrowser/console module only runs in an xbrowser environment');
 
 var common = require('../common');
+var str = require('../string');
 var collection = require('../collection');
 
 //----------------------------------------------------------------------
@@ -153,18 +154,18 @@ function to_safestring(obj) {
 
 function inspect_obj(obj, name) {
   if (name)
-    name = "<span style='font-weight:normal'>"+common.sanitize(name) + ":</span> ";
+    name = "<span style='font-weight:normal'>"+str.sanitize(name) + ":</span> ";
   else
     name = "";
 
   var indent = name ? "<span style='width:12px;height:12px;float:left;'></span>" : "";
   var objdesc;
   if (typeof obj == "function")
-    objdesc = "function "+common.sanitize(obj.name || "")+"() {...}";
+    objdesc = "function "+str.sanitize(obj.name || "")+"() {...}";
   else if (obj == undefined || obj === true || obj === false) // this catches 'null' too
     return makeDiv(indent+name + "<span style='"+systemStyle+"'>"+obj+"</span>");
   else if (typeof obj == "string")
-    return makeDiv(indent+name + '"'+common.sanitize(obj)+'"', "white-space:pre;");
+    return makeDiv(indent+name + '"'+str.sanitize(obj)+'"', "white-space:pre;");
   else if (typeof obj == "number")
     return makeDiv(indent+name+obj, "white-space:pre;");
 
@@ -173,7 +174,7 @@ function inspect_obj(obj, name) {
       if (Array.isArray(obj))
         objdesc = "[]";
       else if (obj)
-        objdesc = "{}"; /* common.sanitize(to_safestring(obj)); */
+        objdesc = "{}"; /* str.sanitize(to_safestring(obj)); */
       else
         objdesc = obj;
     }
@@ -193,7 +194,7 @@ function inspect_obj(obj, name) {
   var rv = makeDiv("\
 <div><span style='cursor:pointer'><span 
     style='margin:0 2px 0 -2px;background:url("+icons.treeclosed+") no-repeat 0px 2px;float:left;display:block;width:12px;height:12px'>\
-    </span>"+name+"<span style='"+systemStyle+"'>"+common.sanitize(objdesc)+"</span>\
+    </span>"+name+"<span style='"+systemStyle+"'>"+str.sanitize(objdesc)+"</span>\
   </span>
 </div>");
   spawn((function() {
@@ -452,7 +453,7 @@ Console.prototype = {
   exec: function(cl) {
     var e = document.createElement("div");
     setStyle(e, fontStyle+"background:#fff url("+icons.arrowdark+") 6px 6px no-repeat;line-height:15px;border-bottom: 1px solid #eee; padding: 5px 15px 4px 20px");
-    e.innerHTML = "<div style='"+execStyle+";margin-bottom:2px;white-space:pre;'>"+common.sanitize(cl)+"</div>";
+    e.innerHTML = "<div style='"+execStyle+";margin-bottom:2px;white-space:pre;'>"+str.sanitize(cl)+"</div>";
     this._append(e);
     var me = this;
     spawn((function() {
@@ -466,7 +467,7 @@ Console.prototype = {
           // *sigh* IE6's Error.toString just prints '[object Error]'. hack:
           var message = ex ? ex.toString() : "<Error>";
           if (message == "[object Error]") message = ex.message || "<Error>";
-          result.innerHTML = common.sanitize(message);
+          result.innerHTML = str.sanitize(message);
         }
       }
       or {
@@ -491,7 +492,7 @@ Console.prototype = {
     var e = document.createElement("div");
     setStyle(e, fontStyle+"border-bottom: 1px solid #eee; padding: 6px 15px 4px 20px;" + 
                             (color ? ("color:" + color) : ""));
-//    e.innerHTML = common.sanitize(s.toString()); 
+//    e.innerHTML = str.sanitize(s.toString()); 
     for (var i = 0; i < args.length; ++i) {
       e.appendChild(inspect_obj(args[i]));
     }

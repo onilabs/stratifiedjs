@@ -36,7 +36,8 @@
    @desc    Work-in-progress
 */
 
-var common = require('apollo:common');
+var common = require('./common');
+var str = require('./string');
 
 // comment regexps for parseSource
 var PAT_NBCOMMENT = "\\/\\/.*|#!.*";
@@ -145,7 +146,7 @@ var extractDocFields = exports.extractDocFields = function(docs) {
       else if (matches[1] == 'docsoff')
         ++docsoff;
       else if (docsoff<=0) {
-        var val = common.sanitize(trimLeadingNewlineAndTrailingSpace(matches[2]));
+        var val = str.sanitize(trimLeadingNewlineAndTrailingSpace(matches[2]));
         if (!val.length) val = 'true';
         fields.push([matches[1], val]);
       }
