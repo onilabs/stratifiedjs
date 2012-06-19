@@ -643,7 +643,7 @@ BoxElement.layoutBox = function(entity, avail, oentity, ostart,
     if (p.flex > 0) { // flexible in primary direction
       p.val = p.min;
       if (avail) {
-        var min = p.val/=p.flex;
+        var min = p.val/p.flex;
         if (min < M) M = min;
         F += p.flex;
         A.push(child);
@@ -998,6 +998,10 @@ exports.Html = function(attribs) {
 //----------------------------------------------------------------------
 // animation aperture:
 
+/**
+   @function Aperture
+   @summary  XXX to be documented
+*/
 exports.Aperture = function(ui,f) {
   var aperture = document.createElement('surface-aperture');
   
@@ -1043,7 +1047,8 @@ exports.Aperture = function(ui,f) {
       h = new_h;
       aperture.style.height = h+'px';
       ui.parent.invalidate(ui);
-    }
+    },
+    style : aperture.style
   };
 
   try {
