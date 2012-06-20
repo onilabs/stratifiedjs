@@ -151,7 +151,7 @@ if(val.type=="r"){
 if(!val.ef||val.ef==this)val=val.val;
 
 }
-}else if(is_ef(val))val.swallow_r=true;else val=UNDEF;
+}else if(is_ef(val))val.swallow_r=this.swallow_r;else if(this.swallow_r!=2)val=UNDEF;
 
 
 
@@ -302,7 +302,11 @@ if(ndata[0]&8)env.ref=this;
 this.tailcall=!(ndata[0]&8);
 
 
+
+
 this.swallow_r=ndata[0]&1;
+if(ndata[0]&32)this.swallow_r=2;
+
 
 
 this.sc=ndata[0]&(2|4);
@@ -3534,6 +3538,9 @@ if(pctx.token.id==":"){
 scan(pctx);
 var exp=parseExp(pctx,110);
 props.push(["prop",prop,exp]);
+}else if(pctx.token.id=="("){
+
+props.push(["method",prop,parseMethod(pctx)]);
 }else if(pctx.token.id=="}"||pctx.token.id==","){
 
 props.push(["pat",prop,pctx.line]);
@@ -3572,7 +3579,7 @@ throw "Unexpected end of input (stmt)"});
 
 
 
-function parseFunctionBody(pctx){push_decl_scope(pctx);
+function parseFunctionBody(pctx,implicit_return){push_decl_scope(pctx);
 
 push_stmt_scope(pctx);
 scan(pctx,"{");
@@ -3583,12 +3590,12 @@ add_stmt(stmt,pctx);
 }
 scan(pctx,"}");
 
-var decls=pctx.decl_scopes.pop();var flags=1;if(decls.notail)flags+=8;return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+flags,"])");
+var decls=pctx.decl_scopes.pop();var flags=1;if(decls.notail)flags+=8;if(implicit_return)flags+=32;return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+flags,"])");
 }
 
 
 
-function parseFunctionInner(pctx,pars){var token=scan(pctx,"(");
+function parseFunctionInner(pctx,pars,implicit_return){var token=scan(pctx,"(");
 
 while(token.id!=")"){
 if(pars.length)token=scan(pctx,",");
@@ -3599,7 +3606,15 @@ pars.push(token.value);
 token=scan(pctx);
 }
 scan(pctx,")");
-return parseFunctionBody(pctx);
+return parseFunctionBody(pctx,implicit_return);
+}
+
+
+function parseMethod(pctx){var pars=[];
+
+var body=parseFunctionInner(pctx,pars,true);
+
+return new ph_fun_exp("",pars,body,pctx);
 }
 
 S("function").exs(function(pctx,st){

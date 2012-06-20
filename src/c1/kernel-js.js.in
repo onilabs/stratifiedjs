@@ -53,13 +53,13 @@ function top_scope(pctx) {
   return pop_scope(pctx).stmts.join("");
 
 
-#define BEGIN_FBODY(pctx)                       \
+#define BEGIN_FBODY(pctx,dummy)                    \
   push_scope(pctx);
 
 #define ADD_FBODY_STMT(stmt, pctx)              \
   top_scope(pctx).stmts.push(stmt);
 
-#define END_FBODY(pctx)                           \
+#define END_FBODY(pctx,dummy)                      \
   return "{"+pop_scope(pctx).stmts.join("")+"}";
 
 

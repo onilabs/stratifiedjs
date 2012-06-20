@@ -35,6 +35,7 @@
 #define SEQ_FLAG_SHORTCIRCUIT_AND 4
 #define SEQ_FLAG_NOTAILCALL 8
 #define SEQ_FLAG_UNRETURNABLE 16
+#define SEQ_FLAG_IMPLICIT_RETURN 32
 
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE NDATA_TRY_FLAG_'s in vm1.js.in
 #define TRY_FLAG_NONE 0
@@ -318,16 +319,17 @@ ph_switch.prototype.val = function() {
 //----------------------------------------------------------------------
 // functions:
 
-#define BEGIN_FBODY(pctx)                       \
+#define BEGIN_FBODY(pctx,dummy)                 \
   push_decl_scope(pctx);                        \
   push_stmt_scope(pctx);
 
 #define ADD_FBODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
 
-#define END_FBODY(pctx)                                                 \
+#define END_FBODY(pctx,implicit_return)                                 \
   var decls = pctx.decl_scopes.pop();                                   \
   var flags = SEQ_FLAG_FUNCTION;                                        \
     if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                     \
+    if (implicit_return) flags += SEQ_FLAG_IMPLICIT_RETURN;             \
   return collect_decls(decls) +                                         \
     pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+flags, \
     "])");

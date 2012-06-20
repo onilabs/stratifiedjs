@@ -187,8 +187,8 @@ var EF_Proto = {
         }
       }
       else if (is_ef(val))
-        val.swallow_r = true; // pass down flag to child
-      else
+        val.swallow_r = this.swallow_r; // pass down flag to child
+      else if (this.swallow_r != 2)
         val = UNDEF; // only 'return' returns a value to parent
     }
   
@@ -343,6 +343,7 @@ exports.Bl = makeINCtor(I_blocklambda);
 #define NDATA_SEQ_FLAG_SHORTCIRCUIT_AND 4
 #define NDATA_SEQ_FLAG_NOTAILCALL 8
 #define NDATA_SEQ_FLAG_UNRETURNABLE 16
+#define NDATA_SEQ_FLAG_IMPLICIT_RETURN 32 
 
 // ndata[1..end] contains sequence of instruction nodes
 
@@ -362,8 +363,12 @@ function EF_Seq(ndata, env) {
   this.tailcall = !(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
   //WHENDEBUG(if (!this.tailcall) console.log("no tailcall!!");)
   // do we 'catch' returns? (also implies that we're catching stray break/continue)
+  // swallow_r == true : 'catch' returns
+  // swallow_r == 2    : allow implicit returns (i.e. last expression returns result)
   this.swallow_r = NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION;
-  
+  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_IMPLICIT_RETURN)
+    this.swallow_r = 2;
+
   // short-circuited?:
   this.sc = NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_SHORTCIRCUIT_OR |
                                  NDATA_SEQ_FLAG_SHORTCIRCUIT_AND); 

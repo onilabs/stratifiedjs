@@ -109,6 +109,7 @@ general:
    #define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    #define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
+   #define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
 
 for C1_KERNEL_JSMIN:
    #define STRINGIFY  : encodes minified js/sjs as a string.
@@ -144,9 +145,12 @@ BEGIN_SCRIPT(pctx)
 ADD_SCRIPT_STMT(stmt, pctx)
 END_SCRIPT(pctx)
 
-BEGIN_FBODY(pctx)
+BEGIN_FBODY(pctx , implicit_return)
 ADD_FBODY_STMT(stmt, pctx)
-END_FBODY(pctx)
+END_FBODY(pctx , implicit_return)
+   'implicit_return' is a flag to indicate whether the function should return
+   the value of its last expression. It is only meaningful when 
+   'METHOD_DEFINITIONS' is turned on.
 
 BEGIN_BLOCK(pctx)
 ADD_BLOCK_STMT(stmt, pctx)
@@ -207,6 +211,8 @@ GEN_OBJ_LIT(props, pctx)
                    ["set", string|id, id, function_body]
           if SJS_DESTRUCTURE is defined, also: (destructure pattern)
                    ["pat", string|id, line]
+          if METHOD_DEFINITIONS is defined, also:
+                   ["method", string|id, function]
 GEN_ARR_LIT(elements, pctx)
 GEN_ELISION(pctx)
 GEN_DOT_ACCESSOR(l, name, pctx)
@@ -266,6 +272,7 @@ GEN_BLOCKLAMBDA(pars, body, pctx)
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define INTERPOLATING_STRINGS 1
+#define METHOD_DEFINITIONS 1
 #include "kernel-sjs.js.in"
 
 #elif defined(C1_KERNEL_JSMIN)
@@ -277,6 +284,7 @@ GEN_BLOCKLAMBDA(pars, body, pctx)
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define INTERPOLATING_STRINGS 1
+#define METHOD_DEFINITIONS 1
 #include "kernel-jsmin.js.in"
 
 #else
@@ -854,6 +862,11 @@ S("{").
           props.push(["set", prop, pars[0], body]);
         }
 #endif // ECMA_GETTERS_SETTERS
+#ifdef METHOD_DEFINITIONS
+        else if (pctx.token.id == "(") {
+          props.push(["method",prop,parseMethod(pctx)]);
+        }
+#endif // METHOD_DEFINITIONS
 #ifdef SJS_DESTRUCTURE
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
           props.push(["pat", prop, pctx.line]);
@@ -897,9 +910,9 @@ S("<eof>").
 // statements/misc
 
 // helper to parse a function body:
-function parseFunctionBody(pctx) {
+function parseFunctionBody(pctx, implicit_return) {
   LOGM('fbody<')
-  BEGIN_FBODY(pctx)
+  BEGIN_FBODY(pctx, implicit_return)
   scan(pctx, "{");
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
@@ -908,12 +921,12 @@ function parseFunctionBody(pctx) {
   }
   scan(pctx, "}");
   LOGM('>fbody')
-  END_FBODY(pctx)
+  END_FBODY(pctx, implicit_return)
 }
 
 // inner function parsing helper: scans everything from '(' onwards;
 // returns pars in inout var, and body as rv
-function parseFunctionInner(pctx, pars) {
+function parseFunctionInner(pctx, pars, implicit_return) {
   var token = scan(pctx, "(");
   while (token.id != ")") {
     if (pars.length)
@@ -924,8 +937,18 @@ function parseFunctionInner(pctx, pars) {
     token = scan(pctx); // consume parameter
   }
   scan(pctx, ")");
-  return parseFunctionBody(pctx);
+  return parseFunctionBody(pctx, implicit_return);
 }
+
+#ifdef METHOD_DEFINITIONS
+// parse an abbreviated-syntax method (as in { x() { ... }, y() { ... } })
+function parseMethod(pctx) {
+  var pars = [];
+  var body = parseFunctionInner(pctx, pars, true);
+  LOGM('method_exp()')
+  GEN_FUN_EXP("", pars, body, pctx)
+}
+#endif
 
 S("function").
   // expression function form ('function expression')
