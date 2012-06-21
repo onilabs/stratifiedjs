@@ -633,10 +633,7 @@ function getNativeModule(path, parent, src_loader, opts) {
   else
     ++descriptor.required_by[parent];
   
-  if (opts.copyTo)
-    exports.accuSettings(opts.copyTo, [descriptor.exports]);
-
-  return descriptor.exports;  
+  return descriptor.exports;
 }
 
 // resolve module id to {path,loader,src}
@@ -674,7 +671,11 @@ function requireInner(module, require_obj, parent, opts) {
     var resolveSpec = resolve(module, require_obj, parent, opts);
 
     // now perform the load:
-    return resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
+    module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
+    if (opts.copyTo) {
+      exports.accuSettings(opts.copyTo, [module]);
+    }
+    return module;
   }
   catch (e) {
     var mes = "Cannot load module '"+module+"'. "+

@@ -55,6 +55,12 @@ if (!testUtil.isBrowser) {
     var data_dir = path.join(http.parseURL(module.id).path, '../../data');
     return run_with_env(apollo_path, ['-e', script], {NODE_PATH: data_dir});
   }).serverOnly();
+
+  test('export to "this" (when requiring a nodeJS module)', {stdout: '42\n', stderr: ''}, function() {
+    var script = 'require("nodejs:testmodule", {copyTo: this}); require("util").puts(foo(1));';
+    var data_dir = path.join(http.parseURL(module.id).path, '../../data');
+    return run_with_env(apollo_path, ['-e', script], {NODE_PATH: data_dir});
+  }).serverOnly();
 }
 
 test('export to "this"', 42, function() {
