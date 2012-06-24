@@ -1450,3 +1450,7 @@ test("complex detached blocklambda return", 111, function() {
 
   return rv;  
 });
+
+test("comments across strings", 1, function() {
+  return /* " */ 2; /* " */1;
+});
