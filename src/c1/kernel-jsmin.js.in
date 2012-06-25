@@ -39,7 +39,7 @@ function top_scope(pctx) {
 // misc:
 
 // XXX our newline handling is really quite hackish :-(
-
+// XXX and it's completely broken by multiline strings atm :-(
 #define HANDLE_NEWLINES(n, pctx) add_newlines(n,pctx);
 
 function add_newlines(n,pctx) {
@@ -282,6 +282,34 @@ function gen_prefix_op(id, right, pctx) {
 #else
 #define GEN_LITERAL(type, value, pctx) return value;
 #endif
+
+#ifdef INTERPOLATING_STRINGS
+#define GEN_INTERPOLATING_STR(parts, pctx) return interpolating_string(parts);
+function interpolating_string(parts) {
+#ifdef STRINGIFY
+  var rv = '\\"';
+#else
+  var rv = '"';
+#endif
+  for (var i=0,l=parts.length;i<l;++i) {
+    var p = parts[i];
+    if (Array.isArray(p)) {
+      p = "#{"+p[0]+"}";
+    }
+#ifdef STRINGIFY
+    else {
+      p = p.replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"');
+    }
+#endif
+    rv += p;
+  }
+#ifdef STRINGIFY
+  return rv+'\\"';
+#else
+  return rv+'"';
+#endif
+}
+#endif // INTERPOLATING_STRINGS
 
 #define GEN_IDENTIFIER(value, pctx) return value;
 

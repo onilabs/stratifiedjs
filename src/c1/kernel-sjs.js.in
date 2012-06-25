@@ -831,6 +831,50 @@ ph_infix_op.prototype.val = function() {
       return "__oni_rt.Sc("+this.line+",__oni_rt.infix['"+this.id+"'],"+this.left.v()+","+this.right.v()+")";
 };
 
+
+#ifdef INTERPOLATING_STRINGS
+#define GEN_INTERPOLATING_STR(parts, pctx)  return new ph_interpolating_str(parts, pctx);
+function ph_interpolating_str(parts, pctx) {
+  this.is_nblock = pctx.allow_nblock;
+  this.line = pctx.line;
+  this.parts = parts;
+  for (var i=0,l=parts.length;i<l;++i) {
+    if (Array.isArray(parts[i]) && !parts[i][0].is_nblock) {
+      this.is_nblock = false;
+      break;
+    }
+  }
+}
+ph_interpolating_str.prototype = new ph(WHENDEBUG("ph_interpolating_str"));
+ph_interpolating_str.prototype.is_value = true;
+ph_interpolating_str.prototype.nblock_val = function() {
+  for (var i=0,l=this.parts.length;i<l;++i) {
+    var p = this.parts[i];
+    if (Array.isArray(p)) {
+      this.parts[i] = "("+p[0].nb()+")";
+    }
+    else {
+      this.parts[i] = '"'+p+'"';
+    }
+  }
+  return '('+this.parts.join('+')+')';
+};
+ph_interpolating_str.prototype.val = function() {
+  if (this.is_nblock) return nblock_val_to_val(this.nb(), true, this.line);
+  for (var i=0,l=this.parts.length;i<l;++i) {
+    var p = this.parts[i];
+    if (Array.isArray(p)) {
+      this.parts[i] = p[0].v();
+    }
+    else {
+      this.parts[i] = '"'+p+'"';
+    }
+  }
+  return '__oni_rt.Sc('+this.line+',__oni_rt.sum,'+this.parts.join(',')+')';
+};
+
+#endif // INTERPOLATING_STRINGS
+
 #define GEN_ASSIGN_OP(left, id, right, pctx) return new ph_assign_op(left, id, right, pctx);
 function ph_assign_op(left, id, right, pctx) {
   if (!left.is_ref && !left.is_id)

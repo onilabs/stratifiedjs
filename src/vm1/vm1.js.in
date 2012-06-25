@@ -2087,6 +2087,13 @@ exports.With = function(exp, bodyf) {
   return bodyf(this, exp);
 };
 
+exports.sum = function() {
+  var rv = '';
+  for (var i=0,l=arguments.length;i<l;++i)
+    rv += arguments[i];
+  return rv;
+};
+
 exports.infix = {
   '+':   function(a,b) { return a+b; },
   '-':   function(a,b) { return a-b; },

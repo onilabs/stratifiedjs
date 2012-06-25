@@ -48,6 +48,8 @@ var __oni_rt={};(function(exports){var UNDEF;
 
 
 
+
+
 function augmented_message(e){return e.message+" (in "+e.file+(e.line?":"+e.line:"")+")";
 
 }
@@ -1781,6 +1783,13 @@ exports.With=function(exp,bodyf){return bodyf(this,exp);
 
 };
 
+exports.sum=function(){var rv='';
+
+for(var i=0,l=arguments.length;i<l;++i)rv+=arguments[i];
+
+return rv;
+};
+
 exports.infix={'+':function(a,b){
 return a+b},'-':function(a,b){
 return a-b},'*':function(a,b){
@@ -1826,6 +1835,8 @@ exports.UA=UA;
 exports.G=window;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
+
+
 
 
 
@@ -2552,6 +2563,47 @@ return "__oni_rt.Seq("+4+","+this.left.v()+","+this.right.v()+")";
 
 
 };
+
+
+function ph_interpolating_str(parts,pctx){this.is_nblock=pctx.allow_nblock;
+
+this.line=pctx.line;
+this.parts=parts;
+for(var i=0,l=parts.length;i<l;++i){
+if(Array.isArray(parts[i])&&!parts[i][0].is_nblock){
+this.is_nblock=false;
+break;
+}
+}
+}
+ph_interpolating_str.prototype=new ph();
+ph_interpolating_str.prototype.is_value=true;
+ph_interpolating_str.prototype.nblock_val=function(){for(var i=0,l=this.parts.length;i<l;++i){
+
+var p=this.parts[i];
+if(Array.isArray(p)){
+this.parts[i]="("+p[0].nb()+")";
+}else{
+
+this.parts[i]='"'+p+'"';
+}
+}
+return '('+this.parts.join('+')+')';
+};
+ph_interpolating_str.prototype.val=function(){if(this.is_nblock)return nblock_val_to_val(this.nb(),true,this.line);
+
+for(var i=0,l=this.parts.length;i<l;++i){
+var p=this.parts[i];
+if(Array.isArray(p)){
+this.parts[i]=p[0].v();
+}else{
+
+this.parts[i]='"'+p+'"';
+}
+}
+return '__oni_rt.Sc('+this.line+',__oni_rt.sum,'+this.parts.join(',')+')';
+};
+
 
 function ph_assign_op(left,id,right,pctx){if(!left.is_ref&&!left.is_id){
 
@@ -3462,7 +3514,7 @@ if(id=='"'){
 if((token=scan(pctx)).id!="<string>"||scan(pctx,undefined,TOKENIZER_IS).id!='istr-"')throw "Non-literal strings can't be used as propery names ("+token+")";
 
 
-return token.value;
+return '"'+token.value+'"';
 }
 throw "Invalid object literal syntax; property name expected, but saw "+token;
 }
@@ -3644,26 +3696,31 @@ S("null",TOKENIZER_OP).exs(function(pctx,st){return new ph_literal('null',pctx)}
 
 S("collapse",TOKENIZER_OP).exs(function(pctx,st){return new ph_collapse(pctx)});
 
-function combineStringParts(a,b,pctx){;
-
-return new ph_infix_op(a,'+',b,pctx);
-}
-
-function parseGroupedExp(pctx){var exp=parseExp(pctx);
-
-return new ph_group(exp,pctx);
-}
-
-S('"',TOKENIZER_IS).exs(function(pctx,st){var parts=[];
+S('"',TOKENIZER_IS).exs(function(pctx,st){var parts=[],last=-1;
 
 while(pctx.token.id!='istr-"'){
 switch(pctx.token.id){case "<string>":
 
-parts.push(pctx.token.exsf(pctx));
+
+
+
+
+if(last!=-1&&typeof parts[last]=='string'){
+parts[last]+=pctx.token.value;
+}else{
+
+parts.push(pctx.token.value);
+++last;
+}
 break;
 case 'istr-#{':
 scan(pctx);
-parts.push(parseGroupedExp(pctx));
+
+
+
+
+parts.push([parseExp(pctx)]);
+++last;
 break;
 case "<eof>":
 throw "Unterminated string";
@@ -3673,15 +3730,18 @@ throw "Internal parser error: Unknown token in string ("+pctx.token+")";
 }
 scan(pctx,undefined,TOKENIZER_IS);
 }
-if(parts.length==0)parts.push((new Literal("<string>",'""')).exsf(pctx));
-
 scan(pctx);
 
-var rv=parts[0];
-if(parts.length==1)return rv;
-for(var i=1;i<parts.length;++i)rv=combineStringParts(rv,parts[i],pctx);
+if(last==-1){
+parts.push('');
+last=0;
+}
 
-return new ph_group(rv,pctx);
+if(last==0&&typeof parts[0]=='string'){
+var val='"'+parts[0]+'"';
+return new ph_literal(val,pctx,'<string>');
+}
+return new ph_interpolating_str(parts,pctx);
 });
 
 S('istr-#{',TOKENIZER_SA);
@@ -4235,7 +4295,7 @@ tokenizer=TOKENIZER_SA;
 }else if(tokenizer==TOKENIZER_IS){
 
 
-if(matches[1])pctx.token=new Literal("<string>",'"'+matches[1]+'"');else if(matches[2]){
+if(matches[1])pctx.token=new Literal("<string>",matches[1]);else if(matches[2]){
 
 
 ++pctx.line;
@@ -4245,7 +4305,7 @@ if(matches[1])pctx.token=new Literal("<string>",'"'+matches[1]+'"');else if(matc
 
 ++pctx.line;
 ++pctx.newline;
-pctx.token=new Literal("<string>",'"\\n"');
+pctx.token=new Literal("<string>",'\\n');
 }else if(matches[4]){
 
 pctx.token=ST.lookup("istr-"+matches[4]);

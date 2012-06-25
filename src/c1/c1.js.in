@@ -257,6 +257,9 @@ GEN___JS(body, pctx)
 - if #defined SJS_BLOCKLAMBDA is set:
 GEN_BLOCKLAMBDA(pars, body, pctx)
 
+- if #defined INTERPOLATING_STRINGS is set:
+GEN_INTERPOLATING_STR(parts, pctx)
+
 */
 
 #if defined(C1_KERNEL_JS)
@@ -763,7 +766,7 @@ function parsePropertyName(token, pctx) {
     if ((token = scan(pctx)).id != "<string>" ||
         scan(pctx, undefined, TOKENIZER_IS).id != 'istr-"')
       throw "Non-literal strings can't be used as propery names ("+token+")";
-    return token.value;
+    return '"'+token.value+'"';
   }
 #endif
   throw "Invalid object literal syntax; property name expected, but saw "+token;
@@ -984,26 +987,31 @@ S("collapse", TOKENIZER_OP).exs(function(pctx, st) { LOGM('collapse') GEN_COLLAP
 #endif
 
 #ifdef INTERPOLATING_STRINGS
-function combineStringParts(a,b, pctx) {
-  LOGM('infix_op(string_combine)');
-  GEN_INFIX_OP(a, '+', b, pctx)
-}
-
-function parseGroupedExp(pctx) {
-  var exp = parseExp(pctx);
-  GEN_GROUP(exp, pctx)
-}
-
 S('"', TOKENIZER_IS).exs(function(pctx, st) {
-  var parts = [];
+  var parts = [], last=-1;
   while (pctx.token.id != 'istr-"') {
     switch (pctx.token.id) {
     case "<string>":
-      parts.push(pctx.token.exsf(pctx));
+      // XXX not sure this retrospective collecting of adjacent
+      // strings makes sense here; maybe this should be built into the
+      // tokenization. (The problem is that the tokenizer splits
+      // strings on '\n')
+      if (last!=-1 && typeof parts[last] == 'string') {
+        parts[last] += pctx.token.value;
+      }
+      else {
+        parts.push(pctx.token.value);
+        ++last;
+      }
       break;
     case 'istr-#{':
       scan(pctx);
-      parts.push(parseGroupedExp(pctx));
+      // we push an array to distinguish from strings:
+      // (the kernel might generate a string for 'parseExp', which would leave
+      // no way to distinguish between expressions and literal parts of the string
+      // in GEN_INTERPOLATING_STR).
+      parts.push([parseExp(pctx)]); 
+      ++last;
       break;
     case "<eof>":
       throw "Unterminated string";
@@ -1013,15 +1021,18 @@ S('"', TOKENIZER_IS).exs(function(pctx, st) {
     }
     scan(pctx, undefined, TOKENIZER_IS);
   }
-  if (parts.length == 0)
-    parts.push((new Literal("<string>", '""')).exsf(pctx));
   scan(pctx);
 
-  var rv = parts[0];
-  if (parts.length == 1) return rv;
-  for (var i=1; i<parts.length; ++i)
-    rv = combineStringParts(rv, parts[i], pctx);
-  GEN_GROUP(rv, pctx)
+  if (last == -1) {
+    parts.push('');
+    last = 0;
+  }
+
+  if (last == 0 && typeof parts[0] == 'string') {
+    var val = '"'+parts[0]+'"';
+    GEN_LITERAL('<string>',val,pctx)
+  }
+  GEN_INTERPOLATING_STR(parts, pctx)
 });
 
 S('istr-#{', TOKENIZER_SA);
@@ -1607,7 +1618,7 @@ function scan(pctx, id, tokenizer) {
     else if (tokenizer == TOKENIZER_IS) { 
       // interpolating string tokenizer
       if (matches[IS_CONTENT_MATCH])
-        pctx.token = new Literal("<string>", '"'+matches[IS_CONTENT_MATCH]+'"');
+        pctx.token = new Literal("<string>", matches[IS_CONTENT_MATCH]);
       else if (matches[IS_ESCAPED_NEWLINE_MATCH]) {
         ++pctx.line;
         ++pctx.newline;
@@ -1616,7 +1627,7 @@ function scan(pctx, id, tokenizer) {
       else if (matches[IS_NEWLINE_MATCH]) {
         ++pctx.line;
         ++pctx.newline;
-        pctx.token = new Literal("<string>", '"\\n"');
+        pctx.token = new Literal("<string>", '\\n');
       }
       else if (matches[IS_OPERATOR_MATCH]) {
         pctx.token = ST.lookup("istr-"+matches[IS_OPERATOR_MATCH]);
