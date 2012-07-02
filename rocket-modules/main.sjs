@@ -173,7 +173,7 @@ function requestHandler(req, res) {
     res.setHeader("Server", "OniRocket"); // XXX version
     if (cors)
       res.setHeader("Access-Control-Allow-Origin", "*");
-    if (req.method == "GET") {
+    if (req.method == "GET" || req.method == "HEAD") {
       if (!serverfs.handle_get(req, res)) throw "Unknown request";
     }
     else if (req.method == "POST") {

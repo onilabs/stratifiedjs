@@ -221,7 +221,8 @@ function formatResponse(item, request, response, formats) {
   if(formatdesc.filter) {
     // XXX better not use file's etag here; but maybe pass it to the filter?
     response.writeHead(200, contentHeader);
-    formatdesc.filter(input(), response, request);
+    if (request.method == "GET") // as opposed to "HEAD"
+      formatdesc.filter(input(), response, request);
   } else {
     if (item.etag) {
       contentHeader["ETag"] = item.etag;
@@ -243,13 +244,15 @@ function formatResponse(item, request, response, formats) {
         contentHeader["Content-Length"] = (to-from+1);
         contentHeader["Content-Range"] = "bytes "+from+"-"+to+"/"+item.length;
         response.writeHead(206, contentHeader);
-        stream.pump(input({start:from, end:to}), response);
+        if (request.method == "GET") // as opposed to "HEAD"
+          stream.pump(input({start:from, end:to}), response);
       }
     }
     else {
       // normal request
       response.writeHead(200, contentHeader);
-      stream.pump(input(), response);
+      if (request.method == "GET") // as opposed to "HEAD"
+        stream.pump(input(), response);
     }
   }
   response.end();
@@ -314,7 +317,7 @@ function createMappedDirectoryHandler(root, formats, flags)
       // make sure we have a canonical url with '/' at the
       // end. otherwise relative links will break:
       if (file[file.length-1] != "/") {
-        // XXX this wll lose any format given
+        // XXX this will lose any format given
         // (and we don't want to append '!none' if no format was given)
         var newUrl = relativePath + "/";
         writeRedirectResponse(response, newUrl);
