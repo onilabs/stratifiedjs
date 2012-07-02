@@ -1232,7 +1232,7 @@ RootElement.layout = function(layout_spec) {
 
 /**
    @variable surface
-   @summary  Root [::UIElement]
+   @summary  The one and only instance of [::RootElement]
 */
 __js var surface = exports.surface = Object.create(RootElement);
 

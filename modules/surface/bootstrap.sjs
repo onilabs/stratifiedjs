@@ -2219,4 +2219,80 @@ input[type='submit'].btn.btn-mini {
 ");
 };
 
+
+//----------------------------------------------------------------------
+// port of labels-badges.less
+// LABELS & BADGES
+// ---------------
+
+__js var CSSLabelsBadges = exports.CSSLabelsBadges = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* LABELS & BADGES */
+/* --------------- */
+
+/* Base classes */
+.label,
+.badge {
+  font-size: #{scale(vars.baseFontSize(),.846)};
+  font-weight: bold;
+  line-height: 14px; /* ensure proper line-height if floated */
+  color: #{vars.white()};
+  vertical-align: baseline;
+  white-space: nowrap;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.25);
+  background-color: #{vars.grayLight()};
+}
+/* Set unique padding and border-radii */
+.label {
+  padding: 1px 4px 2px;
+  #{mixins.border_radius('3px')}
+}
+.badge {
+  padding: 1px 9px 2px;
+  #{mixins.border_radius('9px')}
+}
+
+/* Hover state, but only for links */
+a.label:hover,
+a.badge:hover {
+    color: #{vars.white()};
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Colors */
+/* Only give background-color difference to links (and to simplify, we don't qualifty with `a` but [href] attribute) */
+/* Important (red) */
+.label-important, .badge-important { background-color: #{vars.errorText()}; }
+.label-important[href],
+.badge-important[href] { background-color: #{ darken(vars.errorText(), .1) }; }
+/* Warnings (orange) */
+.label-warning, .badge-warning { background-color: #{vars.orange()}; }
+.label-warning[href], 
+.badge-warning[href] { background-color: #{darken(vars.orange(), .1)}; }
+  /* Success (green) */
+.label-success, .badge-success { background-color: #{vars.successText()}; }
+.label-success[href],
+.badge-success[href] { background-color: #{darken(vars.successText(), .1)}; }
+  /* Info (turquoise) */
+.label-info, .badge-info { background-color: #{vars.infoText()}; }
+.label-info[href], 
+.badge-info[href]  { background-color: #{darken(vars.infoText(), .1)}; }
+  /* Inverse (black) */
+.label-inverse, .badge-inverse { background-color: #{vars.grayDark()}; }
+.label-inverse[href], 
+.badge-inverse[href] { background-color: #{darken(vars.grayDark(), .1)}; }
+");
+};
+
+
+
+
+
+//----------------------------------------------------------------------
+
 console.log("bootstrap.sjs loading: #{(new Date())-tt}");
