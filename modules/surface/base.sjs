@@ -1,6 +1,6 @@
 /*
- * Oni Apollo 'surface' module
- * Modular HTML-based UIs
+ * Oni Apollo 'surface/base' module
+ * Lightweight cross-browser UI toolkit - Core functionality
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
@@ -30,21 +30,107 @@
  *
  */
 /**
-   @module  surface
-   @summary Modular HTML-based UIs (unstable work-in-progress)
-   @home    apollo:surface
+   @module  surface/base
+   @summary Lightweight cross-browser UI toolkit - Core functionality (unstable work-in-progress)
+   @home    apollo:surface/base
    @hostenv xbrowser
-   @desc    Work-in-progress; to be documented
+   @desc    Work-in-progress
 */
-
-var common = require('apollo:common');
-var coll   = require('apollo:collection');
-var dom    = require('apollo:xbrowser/dom');
-var debug  = require('apollo:debug');
-var func   = require('apollo:function');
-
+var tt = new Date();
+waitfor {
+  var common = require('../common');
+} 
+and {
+  var coll   = require('../collection');
+} 
+and {
+  var dom    = require('../xbrowser/dom');
+} 
+and {
+  var debug  = require('../debug');
+} 
+and {
+var func   = require('../function');
+}
+console.log("surface.sjs loading deps: #{(new Date())-tt}");
+tt = new Date();
 //----------------------------------------------------------------------
 // StyleElement: stylesheet conditioned on unique css classes
+
+
+/*
+A coarse CSS parser, parsing into an array BLOCK, which takes elements:
+   - "decl_str"
+   - [ "kw_or_selector", BLOCK ]
+*/
+var blockRE = /\s*((?:[^\"\'\{\}\;\/]|\/[^\*])*)(\"|\'|\/\*|\{|\}|\;)/g;
+var dstrRE = /(\"(?:[^\"]|\\\")*\")/g;
+var sstrRE = /(\'(?:[^\']|\\\')*\')/g;
+var commentRE = /\*\//g;
+var wsRE = /\s*$/g;
+
+__js function parseCSSBlocks(src) {
+  var index = 0;
+  function block() {
+    var matches, chunk = '', content = [];
+    // parse chunk up to next 'operator':  " OR ' OR /* OR { OR } OR ; 
+    blockRE.lastIndex = index;
+    while ((matches = blockRE.exec(src))) {
+      //console.log(matches);
+      index = blockRE.lastIndex;
+      if (matches[1]) chunk += matches[1];
+      switch (matches[2]) {
+      case '"':
+        dstrRE.lastIndex = index-1;
+        matches = dstrRE.exec(src);
+        if (!matches) throw new Error('Invalid CSS: Unterminated string');
+        chunk += matches[1];
+        index = dstrRE.lastIndex;
+        break;
+      case "'":
+        sstrRE.lastIndex = index-1;
+        matches = sstrRE.exec(src);
+        if (!matches) throw new Error('Invalid CSS: Unterminated string');
+        chunk += matches[1];
+        index = sstrRE.lastIndex;
+        break;
+      case '/*':
+        commentRE.lastIndex = index;
+        matches = commentRE.exec(src);
+        if (!matches) throw new Error('Invalid CSS: Unterminated comment');
+        // ignore comment
+        index = commentRE.lastIndex;
+        break;
+      case '{':
+        content.push([chunk, block()]);
+        if (src.charAt(index-1) != '}') throw new Error('Invalid CSS: Unterminated block');
+        chunk = '';
+        break;
+      case '}':
+        if (chunk.length) content.push(chunk);
+        return content;
+        break;
+      case ';':
+        content.push(chunk + ';');
+        chunk = '';
+        break;
+      }
+      blockRE.lastIndex = index;
+    }
+    if (chunk.length) throw new Error('Invalid CSS: Trailing content in block');
+    return content;
+  }
+  var rv = block();
+  if (index != src.length) {
+    // allow trailing whitespace:
+    wsRE.lastIndex = index;
+    if (wsRE.exec(src) == null)
+      throw new Error(
+        "Invalid CSS: Unparsable around '#{src.substr(Math.max(0,index-20), 40).replace(/\n/g,'\\n')}'"
+      );
+  }
+  return rv;
+}
 
 /**
    @class   StyleElement
@@ -54,17 +140,33 @@ var func   = require('apollo:function');
 var StyleElement = {};
 
 var styleClassCounter = 0;
-StyleElement.init = function(content, global) {
+__js StyleElement.init = function(content, global) {
   if (!global) {
-    this.cssClass = "__oni"+(++styleClassCounter);
-    content = content.replace(/\s*([^{]*)({[^}]+})/g, 
-                              { |str,p1,p2|
-                                (p1.charAt(0) == ':') ?
-                                "\n ."+this.cssClass+p1+p2
-                                :
-                                "\n ."+this.cssClass+" "+p1+p2;
-                              });
-//    content = content.replace(/(?:\s*)(:[^:{]+{[^}]+})/g, "\n ."+this.cssClass+"$1");
+    var cssClass = this.cssClass = "__oni"+(++styleClassCounter);
+    // fold cssClass into selectors:
+    var tt = new Date();
+    var blocks = parseCSSBlocks(content);
+    console.log("parse style=#{(new Date())-tt}ms");    
+
+    function processBlock(b,lvl) {
+      return coll.map(b, function(b) {
+        if (!Array.isArray(b))
+          return b; // a decl
+        else {
+          if (lvl) {
+            throw new Error("Invalid CSS: invalid nesting of '#{b[0]}{#{b[1].join(' ')}}'");
+          }
+          if (b[0].charAt(0) != '@') {
+            // fold cssClass into selector
+            b[0] = coll.map(b[0].split(','), function(s){ return ".#{cssClass} #{s}" }).join(',');
+          }
+          return "#{b[0]} { #{processBlock(b[1],lvl+1)} }";
+        }
+      }).join('\n');
+    }
+    tt = new Date();
+    content = processBlock(blocks, 0);
+    console.log("process style=#{(new Date())-tt}ms");
   }
   var elem = this.dompeer = document.createElement('style');
   elem.setAttribute('type', 'text/css');
@@ -91,7 +193,7 @@ __js StyleElement.unuse = function() {
       Creates a [::StyleElement] that, when applied to a [::UIElement] `ui`, will be 
       have its rules only applied to `ui` and descendents of `ui`.
  */
-var CSS = exports.CSS = function(content) { 
+__js var CSS = exports.CSS = function(content) { 
   var obj = Object.create(StyleElement);
   obj.init(content); 
   return obj;
@@ -106,7 +208,7 @@ var CSS = exports.CSS = function(content) {
      Create a [::StyleElement] that, when applied to an [::UIElement], will have its rules 
      applied globally to all elements in the webapp.
 */
-var GlobalCSS = exports.GlobalCSS = function(content) { 
+__js var GlobalCSS = exports.GlobalCSS = function(content) { 
   var obj = Object.create(StyleElement);
   obj.init(content, true);
   return obj;
@@ -141,9 +243,6 @@ __js {
     element.style.left = style;
     element.runtimeStyle.left = runtimeStyle;
     return value;
-  }
-
-  function setBaseIntrinsics(intrinsics, elem) {
   }
 }
 
@@ -246,7 +345,7 @@ var UIElement = exports.UIElement = {};
                (or array of elements) to apply to this UIElement.
    @attrib  {optional String} [content] HTML content for this UIElement.
 */
-UIElement.init = function(attribs) {
+__js UIElement.init = function(attribs) {
   if (attribs.debug) {
     this.debugtags = attribs.debug.tags || "";
     this.debugid = attribs.debug.id || "DEBUG";
@@ -261,8 +360,8 @@ UIElement.init = function(attribs) {
   this.run = attribs.run;
   this.style = attribs.style || [];
   if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
-  coll.each(this.style, {|s| 
-                         if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); });
+  coll.each(this.style, function(s) { 
+    if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); }, this);
   if (typeof attribs.content !== 'undefined')
     this.dompeer.innerHTML = attribs.content;
 };
@@ -375,7 +474,7 @@ UIElement.parentSlot = undefined;
 
         The element is to be layed out absolutely. Width and height are given. 
         If the element is a passive element (see [::UIElement::active]), it 
-        should set its width and height to '100%', rather absolute value: When the 
+        should set its width and height to '100%', rather than an absolute value: When the 
         available width/height of the container changes later on,
         passive elements will not receive layout calls.
 */
@@ -451,7 +550,7 @@ __js UIElement.getBorders = function() {
    @inherit ::UIElement
    @variable UIContainerElement
 */
-var UIContainerElement = exports.UIContainerElement = Object.create(UIElement);
+__js var UIContainerElement = exports.UIContainerElement = Object.create(UIElement);
 
 /**
    @function UIContainerElement.init
@@ -485,7 +584,7 @@ var ChildManagement = {
               { |c|
                 if (UIElement.isPrototypeOf(c))
                   this.append(c);
-                else
+                else // [child, attribs]
                   this.append(c[0],c[1]);
               });
   },
@@ -521,9 +620,9 @@ var ChildManagement = {
    @inherit ::UIContainerElement
    @variable BoxElement
 */
-var BoxElement = exports.BoxElement = Object.create(UIContainerElement);
+__js var BoxElement = exports.BoxElement = Object.create(UIContainerElement);
 
-var Box = exports.Box = function(attribs) { 
+__js var Box = exports.Box = function(attribs) { 
   var obj = Object.create(BoxElement);
   obj.init(attribs);
   return obj;
@@ -534,7 +633,7 @@ var Box = exports.Box = function(attribs) {
    @summary Construct a horizontally-stacking [::BoxElement]
    @param   [attribs] ...
 */
-var HBox = exports.HBox = function(attribs) { 
+__js var HBox = exports.HBox = function(attribs) { 
   return Box(common.mergeSettings(attribs, {direction:'w'}));
 };
 /**
@@ -542,7 +641,7 @@ var HBox = exports.HBox = function(attribs) {
    @summary Construct a vertically-stacking [::BoxElement]
    @param   [attribs] ...
 */
-var VBox = exports.VBox = function(attribs) { 
+__js var VBox = exports.VBox = function(attribs) { 
   return Box(common.mergeSettings(attribs, {direction:'h'}));
 }
 
@@ -559,7 +658,7 @@ BoxElement.init = function(attribs) {
 
 ChildManagement.mixinto(BoxElement);
 
-__js BoxElement.append = function(ui, attribs) {
+BoxElement.append = function(ui, attribs) {
   attribs || (attribs = {});
 //  attribs.w || (attribs.w = "*");
 //  attribs.h || (attribs.h = "*");
@@ -837,7 +936,7 @@ BoxElement.layout = function(layout_spec) {
    @inherit ::UIContainerElement
    @variable VScrollBoxElement
 */
-var VScrollBoxElement = exports.VScrollBoxElement = Object.create(UIContainerElement);
+__js var VScrollBoxElement = exports.VScrollBoxElement = Object.create(UIContainerElement);
 
 
 /**
@@ -904,7 +1003,7 @@ VScrollBoxElement.layout = function(layout_spec) {
    @variable HtmlFragmentElement
 */
 
-var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UIElement);
+__js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UIElement);
 
 __js HtmlFragmentElement.layout = function(layout_spec) {
   var elem = this.dompeer;
@@ -966,14 +1065,24 @@ __js HtmlFragmentElement.layout = function(layout_spec) {
       style.width  = "";
       style.height = "100%";
     }
-    else {
-      // 'wh'
+    else if (layout_spec.type == 'wh') {
       style.display = "block";
       style.position = "absolute";
       style.left = "0px";
       style.top = "0px";
       style.width  = "100%";
       style.height = "100%";
+    }
+    else if (layout_spec.type == 'flow') {
+      style.display = "inline-block";
+      style.position = "static";
+      style.left = undefined;
+      style.top = undefined;
+      style.width = undefined;
+      style.height = undefined;
+    }
+    else {
+      throw new Error("Layout type "+layout_spec.type+" unsupported for HtmlFragmentElement");
     }
   }
   if (this.debug("ow"))
@@ -1067,15 +1176,91 @@ exports.Aperture = function(ui,f) {
 
 //----------------------------------------------------------------------
 
+
+//----------------------------------------------------------------------
+// Root element
+
+/**
+   @class RootElement
+   @summary Root layout container
+   @inherit ::UIContainerElement
+   @desc
+     The `RootElement` lays out active and passive elements separately:
+
+       * active elements will be layed out as 'wh'
+
+       * passive elements will be layed out as 'flow'
+*/
+__js var RootElement = Object.create(UIContainerElement);
+
+__js RootElement.init = function(attribs) {
+  UIContainerElement.init.apply(this, [attribs]);
+};
+
+ChildManagement.mixinto(RootElement);
+
+RootElement.append = function(ui) {
+  this.children.push(ui);
+  this.dompeer.appendChild(ui.dompeer);
+  ui.attached(this);
+  if (this.isActivated)
+    ui.activated();
+  this.layoutChild(ui);
+};
+
+RootElement.invalidate = function(child) {
+//XXX nothing to do?
+};
+
+RootElement.layoutChild = function(child) {
+  if (child.active) {
+    //XXX
+  }
+  else {
+    child.layout({type:'flow'});
+  }
+};
+
+RootElement.layout = function(layout_spec) {
+  if (layout_spec.type != 'wh') throw new Error("Unexpected layout type for RootElement");
+  coll.each(this.children) { 
+    |c|
+    this.layoutChild(c);
+  }
+};
+
+
 /**
    @variable surface
    @summary  Root [::UIElement]
 */
-var surface = exports.surface = Box({
+__js var surface = exports.surface = Object.create(RootElement);
+
+surface.init({
+  style: 
+  [ GlobalCSS('
+/*body { overflow:hidden; margin:0px;}*/
+surface-ui, surface-aperture { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate}
+surface-aperture { overflow:hidden; display:block; }
+')],
+  run() {
+    document.body.appendChild(this.dompeer);
+    try {
+      hold();
+    }
+    finally {
+      document.body.removeChild(this.dompeer);
+    }
+  }
+});
+surface.activated();
+
+/*
+exports.surface = Box({
   style: 
   [ GlobalCSS('
 body { overflow:hidden; margin:0px;}
-*  { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate}
+surface-ui { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate}
 surface-aperture { overflow:hidden; display:block; }
 ')],
   run: function() {
@@ -1108,4 +1293,7 @@ surface.scheduleLayout = function() {
 };
 
 surface.activated();
+*/
 
+console.log("surface.sjs executing rest: #{(new Date())-tt}");
+//tt = new Date();

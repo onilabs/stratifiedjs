@@ -40,8 +40,9 @@
         // the location above.
     
 @dir nodejs   NodeJS-related modules
-@dir xbrowser Modules with basic cross-browser functionality
+@dir surface  Lightweight cross-browser UI toolkit
 @dir webapi   Bindings to popular web apis
+@dir xbrowser Modules with basic cross-browser functionality
 
 @module collection      Functions for iterating and processing collections (arrays or objects)
 @module common          Common JS utility functions
@@ -54,5 +55,5 @@
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
 @module sjcl            Stanford JavaScript Crypto Library
 @module string          Functions for working with strings
-@module surface         Scalable HTML-based UIs
+
 
