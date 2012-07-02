@@ -2219,6 +2219,202 @@ input[type='submit'].btn.btn-mini {
 ");
 };
 
+//----------------------------------------------------------------------
+// port of button-grous.less
+// BUTTON GROUPS
+// -------------
+
+__js var CSSButtonGroups = exports.CSSButtonGroups = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* Make the div behave like a button */
+.btn-group {
+  position: relative;
+}
+#{mixins.clearfix('.btn-group')} /* clears the floated buttons */
+#{mixins.ie7_restore_left_whitespace('.btn-group')}
+
+/* Space out series of button groups */
+.btn-group + .btn-group {
+  margin-left: 5px;
+}
+
+/* Optional: Group multiple button groups together for a toolbar */
+.btn-toolbar {
+  margin-top: #{scale(vars.baseLineHeight(), 1/2)};
+  margin-bottom: #{scale(vars.baseLineHeight(), 1/2)};
+}
+.btn-toolbar .btn-group {
+    display: inline-block;
+    #{mixins.ie7_inline_block()}
+}
+
+
+/* Float them, remove border radius, then re-add to first and last elements */
+.btn-group > .btn {
+  position: relative;
+  float: left;
+  margin-left: -1px;
+  #{mixins.border_radius('0')}
+}
+/* Set corners individual because sometimes a single button can be in a .btn-group and we need :first-child and :last-child to both match */
+.btn-group > .btn:first-child {
+  margin-left: 0;
+     -webkit-border-top-left-radius: 4px;
+         -moz-border-radius-topleft: 4px;
+             border-top-left-radius: 4px;
+  -webkit-border-bottom-left-radius: 4px;
+      -moz-border-radius-bottomleft: 4px;
+          border-bottom-left-radius: 4px;
+}
+/* Need .dropdown-toggle since :last-child doesn't apply given a .dropdown-menu immediately after it */
+.btn-group > .btn:last-child,
+.btn-group > .dropdown-toggle {
+     -webkit-border-top-right-radius: 4px;
+         -moz-border-radius-topright: 4px;
+             border-top-right-radius: 4px;
+  -webkit-border-bottom-right-radius: 4px;
+      -moz-border-radius-bottomright: 4px;
+          border-bottom-right-radius: 4px;
+}
+/* Reset corners for large buttons */
+.btn-group > .btn.large:first-child {
+  margin-left: 0;
+     -webkit-border-top-left-radius: 6px;
+         -moz-border-radius-topleft: 6px;
+             border-top-left-radius: 6px;
+  -webkit-border-bottom-left-radius: 6px;
+      -moz-border-radius-bottomleft: 6px;
+          border-bottom-left-radius: 6px;
+}
+.btn-group > .btn.large:last-child,
+.btn-group > .large.dropdown-toggle {
+     -webkit-border-top-right-radius: 6px;
+         -moz-border-radius-topright: 6px;
+             border-top-right-radius: 6px;
+  -webkit-border-bottom-right-radius: 6px;
+      -moz-border-radius-bottomright: 6px;
+          border-bottom-right-radius: 6px;
+}
+
+/* On hover/focus/active, bring the proper btn to front */
+.btn-group > .btn:hover,
+.btn-group > .btn:focus,
+.btn-group > .btn:active,
+.btn-group > .btn.active {
+  z-index: 2;
+}
+
+/* On active and open, don't show outline */
+.btn-group .dropdown-toggle:active,
+.btn-group.open .dropdown-toggle {
+  outline: 0;
+}
+
+
+
+/* Split button dropdowns */
+/* ---------------------- */
+
+/* Give the line between buttons some depth */
+.btn-group > .dropdown-toggle {
+  padding-left: 8px;
+  padding-right: 8px;
+  #{mixins.box_shadow('inset 1px 0 0 rgba(255,255,255,.125), inset 0 1px 0 rgba(255,255,255,.2), 0 1px 2px rgba(0,0,0,.05)')}
+  *padding-top: 4px;
+  *padding-bottom: 4px;
+}
+.btn-group > .btn-mini.dropdown-toggle {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+.btn-group > .btn-small.dropdown-toggle {
+  *padding-top: 4px;
+  *padding-bottom: 4px;
+}
+.btn-group > .btn-large.dropdown-toggle {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* The clickable button for toggling the menu */
+/* Remove the gradient and set the same inset shadow as the :active state */
+.btn-group.open .dropdown-toggle {
+    background-image: none;
+    #{mixins.box_shadow('inset 0 2px 4px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.05)')}
+}
+
+  /* Keep the hover's background when dropdown is open */
+.btn-group.open .btn.dropdown-toggle {
+    background-color: #{vars.btnBackgroundHighlight()};
+}
+.btn-group.open .btn-primary.dropdown-toggle {
+    background-color: #{vars.btnPrimaryBackgroundHighlight()};
+}
+.btn-group.open .btn-warning.dropdown-toggle {
+    background-color: #{vars.btnWarningBackgroundHighlight()};
+}
+.btn-group.open .btn-danger.dropdown-toggle {
+    background-color: #{vars.btnDangerBackgroundHighlight()};
+}
+.btn-group.open .btn-success.dropdown-toggle {
+    background-color: #{vars.btnSuccessBackgroundHighlight()};
+}
+.btn-group.open .btn-info.dropdown-toggle {
+    background-color: #{vars.btnInfoBackgroundHighlight()};
+}
+.btn-group.open .btn-inverse.dropdown-toggle {
+    background-color: #{vars.btnInverseBackgroundHighlight()};
+}
+
+
+/* Reposition the caret */
+.btn .caret {
+  margin-top: 7px;
+  margin-left: 0;
+}
+.btn:hover .caret,
+.open.btn-group .caret {
+  #{mixins.opacity(100)}
+}
+/* Carets in other button sizes */
+.btn-mini .caret {
+  margin-top: 5px;
+}
+.btn-small .caret {
+  margin-top: 6px;
+}
+.btn-large .caret {
+  margin-top: 6px;
+  border-left-width:  5px;
+  border-right-width: 5px;
+  border-top-width:   5px;
+}
+/* Upside down carets for .dropup */
+.dropup .btn-large .caret {
+  border-bottom: 5px solid #{vars.black()};
+  border-top: 0;
+}
+
+
+
+/* Account for other colors */
+.btn-primary .caret,
+.btn-warning .caret,
+.btn-danger .caret,
+.btn-info .caret,
+.btn-success .caret,
+.btn-inverse .caret {
+    border-top-color: #{vars.white()};
+    border-bottom-color: #{vars.white()};
+    #{mixins.opacity(75)}
+}
+");
+};
+
 
 //----------------------------------------------------------------------
 // port of labels-badges.less
