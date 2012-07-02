@@ -247,7 +247,7 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
    @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
    @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
-   @return {String}
+   @return {String|Object}
    @setting {String} [method="GET"] Request method.
    @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
    @setting {String} [body] Request body.
@@ -255,6 +255,7 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
    @setting {String} [mime] Override mime type.
+   @setting {String} [response='string'] whether to return the response text only ('string') or an object { responseText, getResponseHeader } 
    @setting {Boolean} [throwing=true] Throw exception on error.
    @desc
      ### Limitations:
@@ -303,7 +304,8 @@ function request_hostenv(url, settings) {
                                        //    headers  : undefined,
                                        //    username : undefined,
                                        //    password : undefined,
-                                       throwing   : true
+                                       response : 'string',
+                                       throwing : true
                                      },
                                      settings
                                    ]);
@@ -358,10 +360,20 @@ function request_hostenv(url, settings) {
       err.data = req.responseText;
       throw err;
     }
-    else
+    else if (opts.response == 'string'){
       return "";
+    }
+    // else fall through
   }
-  return req.responseText;
+  if (opts.response == 'string')
+    return req.responseText;
+  else {
+    // response == 'full'
+    return {
+      content: req.responseText,
+      getHeader(name) { req.getResponseHeader(name) }
+    };
+  }
 }
 
 //----------------------------------------------------------------------
@@ -392,8 +404,10 @@ function getExtensions_hostenv() {
   return {
     // normal sjs modules
     'sjs': function(src, descriptor) {
+      //var start = new Date();
       var f = exports.eval("(function(module,exports,require){"+src+"})",
                            {filename:"module '"+descriptor.id+"'"});
+      //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
       f(descriptor, descriptor.exports, descriptor.require);
     },
     // plain non-sjs js modules

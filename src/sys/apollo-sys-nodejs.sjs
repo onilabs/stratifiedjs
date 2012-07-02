@@ -159,13 +159,14 @@ var readStream = exports.readStream = function readStream(stream) {
    @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
    @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
-   @return {String}
+   @return {String|Object}
    @setting {String} [method="GET"] Request method.
    @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
    @setting {String} [body] Request body.
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
+   @setting {String} [response='string'] whether to return the response text only ('string') or an object { responseText, getResponseHeader } 
    @setting {Boolean} [throwing=true] Throw exception on error.
    @setting {Integer} [max_redirects=5] Maximum number of redirects to follow.
 */
@@ -179,6 +180,7 @@ function request_hostenv(url, settings) {
                                       headers : {},
                                       // username : undefined
                                       // password : undefined
+                                      response : 'string',
                                       throwing : true,
                                       max_redirects : 5
                                     },
@@ -278,8 +280,9 @@ function request_hostenv(url, settings) {
         err.data = response.data;
         throw err;
         }
-      else
+      else if (opts.response == 'string')
         return "";
+      // else fall through
     }
   }
   
@@ -291,7 +294,16 @@ function request_hostenv(url, settings) {
     response.data += data;
   }
 
-  return response.data;
+  if (opts.response == 'string')
+    return response.data;
+  else {
+    // response == 'full'
+    return {
+      content: response.data,
+      getHeader(name) { response.headers[name.toLowerCase()] }
+    };
+  }
+      
 };
 
 function file_src_loader(path) {
@@ -381,13 +393,13 @@ function getHubs_hostenv() {
 function getExtensions_hostenv() {
   return {
     // normal sjs modules
-    'sjs': function(src, descriptor) {
+    'sjs'(src, descriptor) {
       var f = exports.eval("(function(module,exports,require){"+src+"})",
                            {filename:"module '"+descriptor.id+"'"});
       f(descriptor, descriptor.exports, descriptor.require);
     },
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
-    'js': function(src, descriptor) {
+    'js'(src, descriptor) {
       var f = new Function("module", "exports", "require", src);
       f.apply(descriptor.exports, [descriptor, descriptor.exports, descriptor.require]);
     }

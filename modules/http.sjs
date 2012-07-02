@@ -224,7 +224,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
    @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
    @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
    @param {optional Object} [settings] Hash of settings (or array of hashes)
-   @return {String}
+   @return {String|Object}
    @setting {String} [method="GET"] Request method.
    @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [::constructQueryString].
    @setting {String} [body] Request body.
@@ -232,6 +232,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
    @setting {String} [mime] Override mime type.
+   @setting {String} [response='string'] whether to return the response text only ('string') or an object { content, getHeader } ('full') 
    @setting {Boolean} [throwing=true] Throw exception on error.
    @desc
      ### Limitations:

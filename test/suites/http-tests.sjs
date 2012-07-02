@@ -224,3 +224,11 @@ test("http.jsonp iframe cache issue", true, function () {
   var b = twitterSearchIframe();
   return (a != "timeout") && (b != "timeout");
 });
+
+//----------------------------------------------------------------------
+// full return objects:
+
+test('head request', 'text/plain', function() {
+  return http.request("http://code.onilabs.com/apollo/unstable/modules/http.sjs",
+                      { method: 'HEAD', response: 'full' }).getHeader('Content-Type');
+});
