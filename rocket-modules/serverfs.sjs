@@ -219,9 +219,13 @@ function formatResponse(item, request, response, formats) {
 
   var contentHeader = formatdesc.mime ? {"Content-Type":formatdesc.mime} : {};
   if(formatdesc.filter) {
+    // XXX better not use file's etag here; but maybe pass it to the filter?
     response.writeHead(200, contentHeader);
     formatdesc.filter(input(), response, request);
   } else {
+    if (item.etag) {
+      contentHeader["ETag"] = item.etag;
+    }
     if (item.length) {
       contentHeader["Content-Length"] = item.length;
       contentHeader["Accept-Ranges"] = "bytes";
@@ -262,15 +266,28 @@ function serveFile(request, response, filePath, format, formats) {
   }
   if (!stat.isFile()) return false;
   
+  var etag = "\"#{stat.mtime.getTime()}\"";
+  if (request.headers["if-none-match"]) {
+//    console.log("If-None-Matched: #{request.headers['if-none-match']}");
+    if (request.headers["if-none-match"] == etag) {
+//      console.log("Etag match!");
+      response.writeHead(304);
+      response.end();
+      return true;
+    }
+  }
+
   var ext = path.extname(filePath).slice(1);
   return formatResponse(
-      { input: function(opts) {
-          return require('fs').createReadStream(filePath, opts) },
-        length: stat.size,
-        extension: ext,
-        requestedFormat: format
-      },
-      request, response, formats);
+    { input: function(opts) {
+      // XXX hmm, might need to destroy this somewhere
+      return require('fs').createReadStream(filePath, opts) },
+      length: stat.size,
+      extension: ext,
+      requestedFormat: format,
+      etag: etag
+    },
+    request, response, formats);
 }
 
 // Maps a directory on disk into the server fs.
