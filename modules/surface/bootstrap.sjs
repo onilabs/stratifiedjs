@@ -761,10 +761,10 @@ __js var Mixins = exports.Mixins = function(vars) {
     },
 
     // Opacity
-      opacity(opacity) {
-        "opacity: #{opacity};
-         filter: \"alpha(opacity=#{opacity})\";"
-      },
+    opacity(opacity) {
+      "opacity: #{Math.round(opacity*100)/10000};
+       filter: alpha(opacity=#{opacity});"
+    },
 
     // BACKGROUNDS
     // --------------------------------------------------
@@ -814,6 +814,26 @@ __js var Mixins = exports.Mixins = function(vars) {
 
     // COMPONENT MIXINS
     // --------------------------------------------------
+
+    // Horizontal dividers
+    // -------------------------
+    // Dividers (basically an hr) within dropdowns and nav lists
+    nav_divider(top, bottom) {
+      top = top || '#e5e5e5',
+      bottom = bottom || vars.white(),
+      "/* IE7 needs a set width since we gave a height. Restricting just */
+       /* to IE7 to keep the 1px left/right space in other browsers. */
+       /* It is unclear where IE is getting the extra space that we need */
+       /* to negative-margin away, but so it goes. */
+       *width: 100%;
+       height: 1px;
+       margin: #{add(scale(vars.baseLineHeight(), 1/2), -1)} 1px; /* 8px 1px */
+       *margin: -5px 0 5px;
+       overflow: hidden;
+       background-color: #{top};
+       border-bottom: 1px solid #{bottom};"
+    },
+
 
     // Button backgrounds
     // ------------------
@@ -2415,6 +2435,161 @@ __js var CSSButtonGroups = exports.CSSButtonGroups = function() {
 ");
 };
 
+//----------------------------------------------------------------------
+// port of dropdowns.less
+// DROPDOWN MENUS
+// --------------
+
+__js var CSSDropdowns = exports.CSSDropdowns = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* Use the .menu class on any <li> element within the topbar or ul.tabs and you'll get some superfancy dropdowns */
+.dropup,
+.dropdown {
+  position: relative;
+}
+.dropdown-toggle {
+  /* The caret makes the toggle a bit too tall in IE7 */
+  *margin-bottom: -3px;
+}
+.dropdown-toggle:active,
+.open .dropdown-toggle {
+  outline: 0;
+}
+
+/* Dropdown arrow/caret */
+/* -------------------- */
+.caret {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  vertical-align: top;
+  border-top:   4px solid #{vars.black()};
+  border-right: 4px solid transparent;
+  border-left:  4px solid transparent;
+  content: '';
+  #{mixins.opacity(30)}
+}
+
+/* Place the caret */
+.dropdown .caret {
+  margin-top: 8px;
+  margin-left: 2px;
+}
+.dropdown:hover .caret,
+.open .caret {
+  #{mixins.opacity(100)}
+}
+
+/* The dropdown menu (ul) */
+/* ---------------------- */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: #{vars.zindexDropdown()};
+  display: none; /* none by default, but block on 'open' of the menu */
+  float: left;
+  min-width: 160px;
+  padding: 4px 0;
+  margin: 1px 0 0; /* override default ul */
+  list-style: none;
+  background-color: #{vars.dropdownBackground()};
+  border: 1px solid #ccc;
+  border: 1px solid rgba(0,0,0,.2);
+  *border-right-width: 2px;
+  *border-bottom-width: 2px;
+  #{mixins.border_radius('5px')}
+  #{mixins.box_shadow('0 5px 10px rgba(0,0,0,.2)')}
+  -webkit-background-clip: padding-box;
+     -moz-background-clip: padding;
+          background-clip: padding-box;
+}
+  /* Aligns the dropdown menu to right */
+.dropdown-menu.pull-right {
+    right: 0;
+    left: auto;
+}
+
+  /* Dividers (basically an hr) within the dropdown */
+.dropdown-menu .divider {
+    #{mixins.nav_divider(vars.dropdownDividerTop(), vars.dropdownDividerBottom())}
+}
+
+  /* Links within the dropdown menu */
+.dropdown-menu a {
+    display: block;
+    padding: 3px 15px;
+    clear: both;
+    font-weight: normal;
+    line-height: #{vars.baseLineHeight()};
+    color: #{vars.dropdownLinkColor()};
+    white-space: nowrap;
+}
+
+/* Hover state */
+/* ----------- */
+.dropdown-menu li > a:hover,
+.dropdown-menu .active > a,
+.dropdown-menu .active > a:hover {
+  color: #{vars.dropdownLinkColorHover()};
+  text-decoration: none;
+  background-color: #{vars.dropdownLinkBackgroundHover()};
+}
+
+/* Open state for the dropdown */
+/* --------------------------- */
+.open {
+  /* IE7's z-index only goes to the nearest positioned ancestor, which would */
+  /* make the menu appear below buttons that appeared later on the page */
+  *z-index: #{vars.zindexDropdown()};
+}
+.open > .dropdown-menu {
+    display: block;
+}
+
+/* Right aligned dropdowns */
+/* --------------------------- */
+.pull-right > .dropdown-menu {
+  right: 0;
+  left: auto;
+}
+
+/* Allow for dropdowns to go bottom up (aka, dropup-menu) */
+/* ------------------------------------------------------ */
+/* Just add .dropup after the standard .dropdown class and you're set, bro. */
+/* TODO: abstract this so that the navbar fixed styles are not placed here? */
+.dropup,
+.navbar-fixed-bottom .dropdown {
+}
+  /* Reverse the caret */
+.dropup .caret,
+.navbar-fixed-bottom .dropdown .caret {
+    border-top: 0;
+    border-bottom: 4px solid #{vars.black()};
+    content: '\2191';
+}
+  /* Different positioning for bottom up menu */
+.dropup .dropdown-menu,
+.navbar-fixed-bottom .dropdown .dropdown-menu {
+    top: auto;
+    bottom: 100%;
+    margin-bottom: 1px;
+}
+
+/* Typeahead */
+/* --------- */
+.typeahead {
+  margin-top: 2px; /* give it some space to breathe */
+  #{mixins.border_radius('4px')}
+}
+
+");
+
+};
 
 //----------------------------------------------------------------------
 // port of labels-badges.less
@@ -2487,6 +2662,47 @@ a.badge:hover {
 
 
 
+
+
+//----------------------------------------------------------------------
+// Mechanisms (inspired by the bootstrap plugins)
+
+var dom = require('../xbrowser/dom');
+
+var mechanism = exports.mechanism = {};
+
+// helpers
+function findNode(name, value, from_child, to_parent, exclude) {
+  while (from_child && from_child != exclude && 
+         from_child.dataset && from_child != to_parent) {
+    if (from_child.dataset[name] == value) return from_child;
+    from_child = from_child.parentNode;
+  }
+  return false;
+}
+
+mechanism.dropdowns = function() {
+  return function() {
+    var node, current;
+    using (var Q = dom.eventQueue(this.dompeer, 'click',
+                                  {|e| node = findNode('toggle', 'dropdown', e.target, this.dompeer, current)})) {
+      while (1) {
+        current = null;
+        var ev = Q.get();
+        dom.stopEvent(ev);
+        
+        current = node;
+        current.parentNode.classList.add('open');
+        try {
+          dom.waitforEvent(document, 'click');
+        }
+        finally {
+          current.parentNode.classList.remove('open');
+        }
+      }
+    }
+  }
+};
 
 
 //----------------------------------------------------------------------

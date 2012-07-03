@@ -375,6 +375,22 @@ __js UIElement.init = function(attribs) {
 UIElement.debug = function(tag) { return this.debugtags.indexOf(tag)!=-1; };
 
 /**
+   @function UIElement.select1
+   @summary Selects first matching DOM child
+   @param {String} CSS selector
+   @return {DOMElement|null}
+*/
+UIElement.select1 = function(selector) { return this.dompeer.querySelector(selector); };
+
+/**
+   @function UIElement.select
+   @summary Select all matching DOM children
+   @param {String} CSS selector
+   @return {NodeList}
+*/
+UIElement.select = function(selector) { return this.dompeer.querySelectorAll(selector); };
+
+/**
    @function UIElement.activated
    @summary Called when this UIElement has been attached (directly or indirectly) to the global surface
 */
