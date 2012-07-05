@@ -1090,7 +1090,7 @@ __js HtmlFragmentElement.layout = function(layout_spec) {
       style.height = "100%";
     }
     else if (layout_spec.type == 'flow') {
-      style.display = "inline-block";
+      style.display = "";
       style.position = "static";
       style.left = undefined;
       style.top = undefined;
