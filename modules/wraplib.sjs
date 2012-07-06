@@ -257,8 +257,6 @@ function generateWrapLib(debug, timeout) {
   return exports;
 };
 
-// generates and returns a debug version of this module
-
 /**
  * @function withDebug
  * @param {Number} [timeout] Timeout
