@@ -334,9 +334,17 @@ ph_switch.prototype.val = function() {
     pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+flags, \
     "])");
 
-#define GEN_FUN_EXP(fname, pars, body, pctx) return new ph_fun_exp(fname, pars, body, pctx);
-function ph_fun_exp(fname, pars, body, pctx) {
+#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return) return new ph_fun_exp(fname, pars, body, pctx, implicit_return);
+function ph_fun_exp(fname, pars, body, pctx, implicit_return) {
   this.is_nblock = pctx.allow_nblock;
+
+  // special case to allow method definition syntax in __js and get the 
+  // right return semantics.
+  // we expect the body to contain just one expression; everyhing else is 
+  // illegal in __js.
+  if (implicit_return && pctx.js_ctx)
+    body = "return "+body;
+
   // XXX gotto be careful here. Under some circumstances, IE doesn't
   // like fnames in function expressions:
   //  function x () { var y; function z() { y = function y() {}; } z(); return y; }

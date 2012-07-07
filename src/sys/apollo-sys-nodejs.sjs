@@ -407,6 +407,17 @@ function getExtensions_hostenv() {
 }
 
 //----------------------------------------------------------------------
+// eval_hostenv
+
+function eval_hostenv(code, settings) {
+  var filename = (settings && settings.filename) || "'sjs_eval_code'";
+  var mode = (settings && settings.mode) || "normal";
+  var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
+  return __oni_rt.G.eval(js);
+}
+
+
+//----------------------------------------------------------------------
 // Called once apollo itself is initialized.
 // Loads any user-defined init scripts from $APOLLO_INIT.
 function init_hostenv() {

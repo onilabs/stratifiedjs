@@ -237,7 +237,7 @@ function top_scope(pctx) {
 
 #define GEN_FUN_CALL(l, args, pctx) return l+"("+args.join(",")+")";
 
-#define GEN_FUN_EXP(fname, pars, body, pctx)            \
+#define GEN_FUN_EXP(fname, pars, body, pctx, dummy)            \
   return "function "+fname+"("+pars.join(",")+")"+body;
 
 #define GEN_CONDITIONAL(test, consequent, alternative, pctx) \

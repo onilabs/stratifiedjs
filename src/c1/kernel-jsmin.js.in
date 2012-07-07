@@ -370,7 +370,7 @@ function interpolating_string(parts) {
 
 #define GEN_FUN_CALL(l, args, pctx) return l+"("+args.join(",")+")";
 
-#define GEN_FUN_EXP(fname, pars, body, pctx)              \
+#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return)  \
   if (fname.length)                                       \
     return "function "+fname+"("+pars.join(",")+")"+body; \
   else                                                    \

@@ -47,6 +47,7 @@
    * resolveSchemelessURL_hostenv
    * getHubs_hostenv
    * getExtensions_hostenv
+   * eval_hostenv
    * init_hostenv
 
 */
@@ -376,45 +377,7 @@ exports.makeMemoizedFunction = function(f, keyfn) {
 //----------------------------------------------------------------------
 // stratified eval
 
-if (__oni_rt.UA == "msie" && __oni_rt.G.execScript) {
-  // IE hack. On IE, 'eval' doesn't fill the global scope.
-  // And execScript doesn't return a value :-(
-  // We use waitfor/resume & catchall foo to get things working anyway.
-  // Note: it is important to check for msie above. Other browsers (chrome)
-  // implement execScript too, and we don't want them to take this suboptimal
-  // path.
-  var IE_resume_counter = 0;
-  __oni_rt.IE_resume = {};
-  
-  exports.eval = function(code, settings) {
-    var filename = (settings && settings.filename) || "'sjs_eval_code'";
-    var mode = (settings && settings.mode) || "normal";
-    try {
-      waitfor(var rv, isexception) {
-        var rc = ++IE_resume_counter;
-        __oni_rt.IE_resume[rc]=resume;
-        var js = __oni_rt.c1.compile(
-          "try{"+code+
-            "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume["+rc+"](rv[0],rv[1])) }", {filename:filename, mode:mode});
-        __oni_rt.G.execScript(js);
-      }
-      if (isexception) throw rv;
-    }
-    finally {
-      delete __oni_rt.IE_resume[rc];
-    }
-    return rv;
-  };
-}
-else {
-  // normal, sane eval
-  exports.eval = function(code, settings) {
-    var filename = (settings && settings.filename) || "'sjs_eval_code'";
-    var mode = (settings && settings.mode) || "normal";
-    var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
-    return __oni_rt.G.eval(js);
-  };
-}
+exports.eval = eval_hostenv;
 
 //----------------------------------------------------------------------
 // require mechanism
@@ -648,16 +611,17 @@ function resolve(module, require_obj, parent, opts) {
   // apply global aliases
   var resolveSpec = resolveHubs(path, exports.require.hubs, opts);
   
+  // make sure we have an absolute url with '.' & '..' collapsed:
+  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent);  
+
   // XXX hack - this should go into something like a loader.resolve() function
-  if (resolveSpec.loader == default_loader) {
+  if (resolveSpec.loader == default_loader && 
+      resolveSpec.path.charAt(resolveSpec.path.length-1) != '/') {
     // native modules are compiled based on extension:
     var matches = /.+\.([^\.\/]+)$/.exec(resolveSpec.path);
     if (!matches || !exports.require.extensions[matches[1]])
       resolveSpec.path += ".sjs";
   }
-
-  // make sure we have an absolute url with '.' & '..' collapsed:
-  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent);  
 
   if (parent == getTopReqParent_hostenv())
     parent = "[toplevel]";
@@ -665,8 +629,20 @@ function resolve(module, require_obj, parent, opts) {
   return resolveSpec;
 }
 
+/**
+   @function resolve
+   @summary  Apollo's internal URL resolver
+*/
+exports.resolve = function(url, require_obj, parent, opts) {
+  require_obj = require_obj || exports.require;
+  parent = parent || getTopReqParent_hostenv();
+  opts = opts || {};
+  return resolve(url, require_obj, parent, opts);
+};
+
 // requireInner: workhorse for require
 function requireInner(module, require_obj, parent, opts) {
+  //var start = new Date();
   try {
     var resolveSpec = resolve(module, require_obj, parent, opts);
 
@@ -675,6 +651,7 @@ function requireInner(module, require_obj, parent, opts) {
     if (opts.copyTo) {
       exports.accuSettings(opts.copyTo, [module]);
     }
+    //console.log("require(#{resolveSpec.path}) = #{(new Date())-start} ms");
     return module;
   }
   catch (e) {

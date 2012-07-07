@@ -219,7 +219,8 @@ GEN_DOT_ACCESSOR(l, name, pctx)
 GEN_NEW(exp, args, pctx)
 GEN_IDX_ACCESSOR(l, idxexp, pctx)
 GEN_FUN_CALL(l, args, pctx)
-GEN_FUN_EXP(fname, pars, body, pctx)
+GEN_FUN_EXP(fname, pars, body, pctx, implicit_return)
+  -- see END_FBODY above for 'implicit_return'
 GEN_CONDITIONAL(test, consequent, alternative, pctx)
 GEN_GROUP(e, pctx)
 GEN_THIS(pctx)
@@ -949,7 +950,7 @@ function parseMethod(pctx) {
   var pars = [];
   var body = parseFunctionInner(pctx, pars, true);
   LOGM('method_exp()')
-  GEN_FUN_EXP("", pars, body, pctx)
+  GEN_FUN_EXP("", pars, body, pctx, true)
 }
 #endif
 
@@ -964,7 +965,7 @@ S("function").
     var pars = [];
     var body = parseFunctionInner(pctx, pars);
     LOGM('fun_exp('+(fname||'')+')')
-    GEN_FUN_EXP(fname, pars, body, pctx)
+    GEN_FUN_EXP(fname, pars, body, pctx, false)
   }).
   // statement function form ('function declaration')
   stmt(function(pctx) {
