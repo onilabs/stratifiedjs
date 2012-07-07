@@ -2661,7 +2661,374 @@ a.badge:hover {
 };
 
 
+//----------------------------------------------------------------------
+// port of navs.less
+// NAVIGATIONS
+// -----------
 
+__js var CSSNavs = exports.CSSNavs = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* BASE CLASS */
+/* ---------- */
+
+.nav {
+  margin-left: 0;
+  margin-bottom: #{vars.baseLineHeight()};
+  list-style: none;
+}
+
+/* Make links block level */
+.nav > li > a {
+  display: block;
+}
+.nav > li > a:hover {
+  text-decoration: none;
+  background-color: #{vars.grayLighter()};
+}
+
+/* Redeclare pull classes because of specifity */
+.nav > .pull-right {
+  float: right;
+}
+
+/* Nav headers (for dropdowns and lists) */
+.nav .nav-header {
+  display: block;
+  padding: 3px 15px;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: #{vars.baseLineHeight()};
+  color: #{vars.grayLight()};
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  text-transform: uppercase;
+}
+/* Space them out when they follow another list item (link) */
+.nav li + .nav-header {
+  margin-top: 9px;
+}
+
+
+/* NAV LIST */
+/* -------- */
+
+.nav-list {
+  padding-left: 15px;
+  padding-right: 15px;
+  margin-bottom: 0;
+}
+.nav-list > li > a,
+.nav-list .nav-header {
+  margin-left:  -15px;
+  margin-right: -15px;
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+}
+.nav-list > li > a {
+  padding: 3px 15px;
+}
+.nav-list > .active > a,
+.nav-list > .active > a:hover {
+  color: #{vars.white()};
+  text-shadow: 0 -1px 0 rgba(0,0,0,.2);
+  background-color: #{vars.linkColor()};
+}
+.nav-list [class^='icon-'] {
+  margin-right: 2px;
+}
+/* Dividers (basically an hr) within the dropdown */
+.nav-list .divider {
+  #{mixins.nav_divider()}
+}
+
+
+
+/* TABS AND PILLS */
+/* ------------- */
+
+/* Common styles */
+#{mixins.clearfix('.nav-tabs, .nav-pills')}
+.nav-tabs > li,
+.nav-pills > li {
+  float: left;
+}
+.nav-tabs > li > a,
+.nav-pills > li > a {
+  padding-right: 12px;
+  padding-left: 12px;
+  margin-right: 2px;
+  line-height: 14px; /* keeps the overall height an even number */
+}
+
+/* TABS */
+/* ---- */
+
+/* Give the tabs something to sit on */
+.nav-tabs {
+  border-bottom: 1px solid #ddd;
+}
+/* Make the list-items overlay the bottom border */
+.nav-tabs > li {
+  margin-bottom: -1px;
+}
+/* Actual tabs (as links) */
+.nav-tabs > li > a {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: #{vars.baseLineHeight()};
+  border: 1px solid transparent;
+  #{mixins.border_radius('4px 4px 0 0')}
+}
+.nav-tabs > li > a:hover {
+    border-color: #{vars.grayLighter()} #{vars.grayLighter()} #ddd;
+}
+
+/* Active state, and it's :hover to override normal :hover */
+.nav-tabs > .active > a,
+.nav-tabs > .active > a:hover {
+  color: #{vars.gray()};
+  background-color: #{vars.white()};
+  border: 1px solid #ddd;
+  border-bottom-color: transparent;
+  cursor: default;
+}
+
+
+/* PILLS */
+/* ----- */
+
+/* Links rendered as pills */
+.nav-pills > li > a {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  #{mixins.border_radius('5px')}
+}
+
+/* Active state */
+.nav-pills > .active > a,
+.nav-pills > .active > a:hover {
+  color: #{vars.white()};
+  background-color: #{vars.linkColor()};
+}
+
+
+
+/* STACKED NAV */
+/* ----------- */
+
+/* Stacked tabs and pills */
+.nav-stacked > li {
+  float: none;
+}
+.nav-stacked > li > a {
+  margin-right: 0; /* no need for the gap between nav items */
+}
+
+/* Tabs */
+.nav-tabs.nav-stacked {
+  border-bottom: 0;
+}
+.nav-tabs.nav-stacked > li > a {
+  border: 1px solid #ddd;
+  #{mixins.border_radius('0')}
+}
+.nav-tabs.nav-stacked > li:first-child > a {
+  #{mixins.border_radius('4px 4px 0 0')}
+}
+.nav-tabs.nav-stacked > li:last-child > a {
+  #{mixins.border_radius('0 0 4px 4px')}
+}
+.nav-tabs.nav-stacked > li > a:hover {
+  border-color: #ddd;
+  z-index: 2;
+}
+
+/* Pills */
+.nav-pills.nav-stacked > li > a {
+  margin-bottom: 3px;
+}
+.nav-pills.nav-stacked > li:last-child > a {
+  margin-bottom: 1px; /* decrease margin to match sizing of stacked tabs */
+}
+
+
+
+/* DROPDOWNS */
+/* --------- */
+
+.nav-tabs .dropdown-menu {
+  #{mixins.border_radius('0 0 5px 5px')} /* remove the top rounded corners here since there is a hard edge above the menu */
+}
+.nav-pills .dropdown-menu {
+  #{mixins.border_radius('4px')} /* make rounded corners match the pills */
+}
+
+/* Default dropdown links */
+/* ------------------------- */
+/* Make carets use linkColor to start */
+.nav-tabs .dropdown-toggle .caret,
+.nav-pills .dropdown-toggle .caret {
+  border-top-color: #{vars.linkColor()};
+  border-bottom-color: #{vars.linkColor()};
+  margin-top: 6px;
+}
+.nav-tabs .dropdown-toggle:hover .caret,
+.nav-pills .dropdown-toggle:hover .caret {
+  border-top-color: #{vars.linkColorHover()};
+  border-bottom-color: #{vars.linkColorHover()};
+}
+
+/* Active dropdown links */
+/* ------------------------- */
+.nav-tabs .active .dropdown-toggle .caret,
+.nav-pills .active .dropdown-toggle .caret {
+  border-top-color: #{vars.grayDark()};
+  border-bottom-color: #{vars.grayDark()};
+}
+
+/* Active:hover dropdown links */
+/* ------------------------- */
+.nav > .dropdown.active > a:hover {
+  color: #{vars.black()};
+  cursor: pointer;
+}
+
+/* Open dropdowns */
+/* ------------------------- */
+.nav-tabs .open .dropdown-toggle,
+.nav-pills .open .dropdown-toggle,
+.nav > li.dropdown.open.active > a:hover {
+  color: #{vars.white()};
+  background-color: #{vars.grayLight()};
+  border-color: #{vars.grayLight()};
+}
+.nav li.dropdown.open .caret,
+.nav li.dropdown.open.active .caret,
+.nav li.dropdown.open a:hover .caret {
+  border-top-color: #{vars.white()};
+  border-bottom-color: #{vars.white()};
+  #{mixins.opacity(100)}
+}
+
+/* Dropdowns in stacked tabs */
+.tabs-stacked .open > a:hover {
+  border-color: #{vars.grayLight()};
+}
+
+
+
+/* TABBABLE */
+/* -------- */
+
+
+/* COMMON STYLES */
+/* ------------- */
+
+/* Clear any floats */
+#{mixins.clearfix('.tabbable')}
+.tab-content {
+  overflow: auto; /* prevent content from running below tabs */
+}
+
+/* Remove border on bottom, left, right */
+.tabs-below > .nav-tabs,
+.tabs-right > .nav-tabs,
+.tabs-left > .nav-tabs {
+  border-bottom: 0;
+}
+
+/* Show/hide tabbable areas */
+.tab-content > .tab-pane,
+.pill-content > .pill-pane {
+  display: none;
+}
+.tab-content > .active,
+.pill-content > .active {
+  display: block;
+}
+
+
+/* BOTTOM */
+/* ------ */
+
+.tabs-below > .nav-tabs {
+  border-top: 1px solid #ddd;
+}
+.tabs-below > .nav-tabs > li {
+  margin-top: -1px;
+  margin-bottom: 0;
+}
+.tabs-below > .nav-tabs > li > a {
+  #{mixins.border_radius('0 0 4px 4px')}
+}
+.tabs-below > .nav-tabs > li > a:hover {
+    border-bottom-color: transparent;
+    border-top-color: #ddd;
+}
+
+.tabs-below > .nav-tabs > .active > a,
+.tabs-below > .nav-tabs > .active > a:hover {
+  border-color: transparent #ddd #ddd #ddd;
+}
+
+/* LEFT & RIGHT */
+/* ------------ */
+
+/* Common styles */
+.tabs-left > .nav-tabs > li,
+.tabs-right > .nav-tabs > li {
+  float: none;
+}
+.tabs-left > .nav-tabs > li > a,
+.tabs-right > .nav-tabs > li > a {
+  min-width: 74px;
+  margin-right: 0;
+  margin-bottom: 3px;
+}
+
+/* Tabs on the left */
+.tabs-left > .nav-tabs {
+  float: left;
+  margin-right: 19px;
+  border-right: 1px solid #ddd;
+}
+.tabs-left > .nav-tabs > li > a {
+  margin-right: -1px;
+  #{mixins.border_radius('4px 0 0 4px')}
+}
+.tabs-left > .nav-tabs > li > a:hover {
+  border-color: #{vars.grayLighter()} #ddd #{vars.grayLighter()} #{vars.grayLighter()};
+}
+.tabs-left > .nav-tabs .active > a,
+.tabs-left > .nav-tabs .active > a:hover {
+  border-color: #ddd transparent #ddd #ddd;
+  *border-right-color: #{vars.white()};
+}
+
+/* Tabs on the right */
+.tabs-right > .nav-tabs {
+  float: right;
+  margin-left: 19px;
+  border-left: 1px solid #ddd;
+}
+.tabs-right > .nav-tabs > li > a {
+  margin-left: -1px;
+  #{mixins.border_radius('0 4px 4px 0')}
+}
+.tabs-right > .nav-tabs > li > a:hover {
+  border-color: #{vars.grayLighter()} #{vars.grayLighter()} #{vars.grayLighter()} #ddd;
+}
+.tabs-right > .nav-tabs .active > a,
+.tabs-right > .nav-tabs .active > a:hover {
+  border-color: #ddd #ddd #ddd transparent;
+  *border-left-color: #{vars.white()};
+}
+");
+};
 
 
 //----------------------------------------------------------------------
@@ -2669,23 +3036,45 @@ a.badge:hover {
 
 var dom = require('../xbrowser/dom');
 
+// dom module backfill:
+
+// do a bottom-up DOM traversal beginning at element 'from' up to (exclusively) element(s) 'to'. 
+__js function traverseDOM(from, to, f) {
+  if (!Array.isArray(to)) to = [to];
+  while (from && to.indexOf(from) == -1) {
+    f(from);
+    from = from.parentNode;
+  }
+}
+
+function domFindData(name, value, from, to) {
+  traverseDOM(from, to) { |c| if (value.indexOf(c.dataset[name]) != -1) return c }
+  return null;
+}
+
+var matchesSelectorFunc = coll.find(['matchesSelector',
+                                     'webkitMatchesSelector',
+                                     'mozMatchesSelector',
+                                     'msMatchesSelector'], 
+                                    {|f| document.body[f] != undefined });
+
+function matchesSelector(elem, selector) {
+  return elem[matchesSelectorFunc](selector);
+}
+
+function domFind(selector, from, to) {
+  traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
+  return null;
+}
+
 var mechanism = exports.mechanism = {};
 
-// helpers
-function findNode(name, value, from_child, to_parent, exclude) {
-  while (from_child && from_child != exclude && 
-         from_child.dataset && from_child != to_parent) {
-    if (from_child.dataset[name] == value) return from_child;
-    from_child = from_child.parentNode;
-  }
-  return false;
-}
 
 mechanism.dropdowns = function() {
   return function() {
     var node, current;
     using (var Q = dom.eventQueue(this.dompeer, 'click',
-                                  {|e| node = findNode('toggle', 'dropdown', e.target, this.dompeer, current)})) {
+                                  {|e| node = domFindData('toggle', 'dropdown', e.target, [this.dompeer, current])})) {
       while (1) {
         current = null;
         var ev = Q.get();
@@ -2704,6 +3093,35 @@ mechanism.dropdowns = function() {
   }
 };
 
+mechanism.tabs = function() {
+  return function() {
+    var node;
+    using (var Q = dom.eventQueue(this.dompeer, 'click', 
+                                  {|e| node = domFindData('toggle', ['tab','pill'], e.target, this.dompeer)})) {
+      while (1) {
+        var ev = Q.get();
+        dom.stopEvent(ev);
+        // ev.target is the <a> we want to activate
+        var newTab = domFind('li', ev.target);
+        if (newTab.classList.contains('active')) continue;
+
+        var tabContainer = domFind('ul:not(.dropdown-menu)', ev.target);
+        // deactivate current tab...
+        var currentTab = tabContainer.querySelector('li.active');
+        currentTab.classList.remove('active');
+        // ... and activate  the new one
+        newTab.classList.add('active');
+
+        // now switch to new content:
+        var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('href'));
+
+        var oldContent = newContent.parentNode.querySelector('.active');
+        oldContent.classList.remove('active');
+        newContent.classList.add('active');
+      }
+    }
+  };
+};
 
 //----------------------------------------------------------------------
 
