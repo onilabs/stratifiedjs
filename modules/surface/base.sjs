@@ -1260,8 +1260,8 @@ surface.init({
   style: 
   [ GlobalCSS('
 /*body { overflow:hidden; margin:0px;}*/
-surface-ui, surface-aperture { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate}
-surface-aperture { overflow:hidden; display:block; }
+surface-ui, surface-aperture { display:block; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate;}
+surface-aperture { overflow:hidden; }
 ')],
   run() {
     document.body.appendChild(this.dompeer);
