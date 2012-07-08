@@ -3381,7 +3381,9 @@ __js function traverseDOM(from, to, f) {
 }
 
 function domFindData(name, value, from, to) {
-  traverseDOM(from, to) { |c| if (value.indexOf(c.dataset[name]) != -1) return c }
+// no 'dataset' property on IE9!
+//  traverseDOM(from, to) { |c| if (value.indexOf(c.dataset[name]) != -1) return c }
+  traverseDOM(from, to) { |c| if (c.getAttribute && (value.indexOf(c.getAttribute("data-#{name}")) != -1)) return c }
   return null;
 }
 
@@ -3405,18 +3407,24 @@ var mechanism = exports.mechanism = {};
 
 mechanism.dropdowns = function() {
   return function() {
-    var node, current;
-    using (var Q = dom.eventQueue(this.dompeer, 'click',
-                                  {|e| node = domFindData('toggle', 'dropdown', e.target, [this.dompeer, current])})) {
+    var current;
+    using (var Q = dom.eventQueue(this.dompeer, 'click', function (e){
+      if ((e.node = domFindData('toggle', 'dropdown', e.target, [this.dompeer, current]))) {
+        dom.preventDefault(e);
+        return true;
+      }
+      else
+        return false;
+    })) {
       while (1) {
         current = null;
         var ev = Q.get();
-        dom.stopEvent(ev);
         
-        current = node;
+        current = ev.node;
         current.parentNode.classList.add('open');
         try {
-          dom.waitforEvent(document, 'click');
+          hold(0); // asynchronize, so that we don't see the same event again
+          dom.waitforEvent(document.body, 'click');
         }
         finally {
           current.parentNode.classList.remove('open');
@@ -3428,12 +3436,16 @@ mechanism.dropdowns = function() {
 
 mechanism.tabs = function() {
   return function() {
-    var node;
-    using (var Q = dom.eventQueue(this.dompeer, 'click', 
-                                  {|e| node = domFindData('toggle', ['tab','pill'], e.target, this.dompeer)})) {
+    using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
+      if (domFindData('toggle', ['tab','pill'], e.target, this.dompeer)) {
+        dom.preventDefault(e);
+        return true;
+      }
+      else
+        return false;
+    })) {
       while (1) {
         var ev = Q.get();
-        dom.stopEvent(ev);
         // ev.target is the <a> we want to activate
         var newTab = domFind('li', ev.target);
         if (newTab.classList.contains('active')) continue;

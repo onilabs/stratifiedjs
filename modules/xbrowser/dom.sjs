@@ -34,11 +34,18 @@
   @summary   Utilities for interacting with the DOM
   @home      apollo:/xbrowser/dom
   @hostenv   xbrowser
+  @desc
+     Note: This module will automatically load the [dom-shim::] module on 
+     non-conformant browsers.
 */
 
 var sys = require('sjs:apollo-sys');
 if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('the dom module only runs in an xbrowser environment');
+
+// see if we need to load the shim:
+if (typeof document !== "undefined" && !("classList" in document.createElement("a")))
+  require('./dom-shim');
 
 //------------------------------------------------------------
 // event helpers
@@ -62,6 +69,8 @@ function elementsFromSelector(selector) {
   @param {DOMElement} [elem] DOM element to set handler on.
   @param {String} [type] Event type (e.g. 'click', 'mousemove').
   @param {Function} [handler] Handler function.
+  @desc
+     **Note**: The event listener will fire in the bubbling phase
 */
 function addListener(elem, type, handler) {
   if (elem.addEventListener)
@@ -266,6 +275,20 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
     Here the `using` construct will automatically call
     [::EventQueue::__finally__] when the `using` code
     block is exited.
+
+
+    ### Notes
+
+    * Because events might be held in the queue before they get handled, note that
+      calls that influence the internal handling of the event (such as [::stopEvent]), 
+      should be called from the `eventTransformer`, rather than after the event is 
+      retrieved from the queue using [::EventQueue::get]. 
+
+    * IE multiplexes all events onto a global event object. To ensure retrieved from the 
+      queue are the same events that were put in, the implementation clones events on
+      IE before entering them into the queue. This also means that calls such as 
+      [::stopEvent] will **never** work on IE if performed after [::EventQueue::get]. 
+      To have any effect, these call need to be performed from `eventTransformer`.
 */
 exports.eventQueue = function(selector, events, filter, eventTransformer) {
   return (new EventQueue(selector, events, filter, eventTransformer));
