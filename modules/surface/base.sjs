@@ -337,7 +337,8 @@ var UIElement = exports.UIElement = {};
    @function UIElement.init
    @summary Called by constructor functions to initialize UIElement objects
    @param   {Object} [attribs] Hash with attributes
-   @attrib  {optional Function} [run] Function that will be spawned when the element 
+   @attrib  {optional Function|Array} [run] Function or array of functions that will 
+               be spawned when the element 
                is activated and aborted when the element is deactivated 
                (see [::UIElement::activated] & [::UIElement::deactivated]).
                The function will be executed with `this` pointing to the UIElement.
@@ -400,7 +401,10 @@ UIElement.activated = function() {
   coll.each(this.style, {|s| s.use() });
   this.dompeer.style.visibility = 'visible';
   if (this.run) {
-    this.stratum = spawn this.run.apply(this);
+    if (Array.isArray(this.run))
+      this.stratum = spawn coll.par.waitforAll(this.run, undefined, this);
+    else
+      this.stratum = spawn this.run.apply(this);
   }
 };
 
