@@ -119,6 +119,7 @@ BaseFileFormatMap.prototype = {
   wav  : { none : { mime: "audio/wav" } },
   svg  : { none : { mime: "image/svg+xml" } },
   txt  : { none : { mime: "text/plain" } },
+  css  : { none : { mime: "text/css" }},
   "*"  : { none : { /* serve without mimetype */ }
          }
 };
