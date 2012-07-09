@@ -425,7 +425,10 @@ function interpolating_string(parts) {
   rv += exp + ")";                                \
   return rv + body;
 
-#define GEN___JS(body, pctx) return body;
+#define BEGIN___JS_BLOCK(pctx)
+#define END___JS_BLOCK(pctx)
+#define GEN___JS(body, pctx) return "__js "+body;
 
 #define GEN_BLOCKLAMBDA(pars, body, pctx) \
   return "{|"+pars.join(",")+"| "+body+"}";
+
