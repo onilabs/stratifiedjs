@@ -3407,24 +3407,34 @@ var mechanism = exports.mechanism = {};
 
 mechanism.dropdowns = function() {
   return function() {
-    var current;
+    var ignore = false;
     using (var Q = dom.eventQueue(this.dompeer, 'click', function (e){
-      if ((e.node = domFindData('toggle', 'dropdown', e.target, [this.dompeer, current]))) {
-        dom.preventDefault(e);
+      if ((e.node = domFindData('toggle', 'dropdown', e.target, this.dompeer))) {
+        dom.stopEvent(e);
+        if (ignore) { // see explanation below
+          ignore = false;
+          return false;
+        }          
         return true;
       }
       else
         return false;
     })) {
       while (1) {
-        current = null;
         var ev = Q.get();
-        
-        current = ev.node;
+        var current = ev.node;
         current.parentNode.classList.add('open');
         try {
-          hold(0); // asynchronize, so that we don't see the same event again
-          dom.waitforEvent(document.body, 'click');
+          ev = dom.waitforEvent(document.body, '!click');
+          if (domFindData('toggle', 'dropdown', ev.target, this.dompeer) == current) {
+            // we could stop the event here, to prevent the dropdown from reappearing, 
+            // but that is bad form: there might be other capturing listenern that 
+            // clear some state, so we should *never* stop events during the capturing
+            // phase
+            // dom.stopEvent(ev);
+            // Instead we set a flag that ignores the next event:
+            ignore = true;
+          }
         }
         finally {
           current.parentNode.classList.remove('open');
@@ -3438,7 +3448,7 @@ mechanism.tabs = function() {
   return function() {
     using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
       if (domFindData('toggle', ['tab','pill'], e.target, this.dompeer)) {
-        dom.preventDefault(e);
+        dom.stopEvent(e);
         return true;
       }
       else
@@ -3449,13 +3459,19 @@ mechanism.tabs = function() {
         // ev.target is the <a> we want to activate
         var newTab = domFind('li', ev.target);
         if (newTab.classList.contains('active')) continue;
-
         var tabContainer = domFind('ul:not(.dropdown-menu)', ev.target);
         // deactivate current tab...
         var currentTab = tabContainer.querySelector('li.active');
         currentTab.classList.remove('active');
         // ... and activate  the new one
         newTab.classList.add('active');
+
+        // special case for dropdowns within tabs:
+        var olddropdown = currentTab.querySelector('.dropdown-menu > .active');
+        if (olddropdown) 
+          olddropdown.classList.remove('active');
+        if (newTab.parentNode.classList.contains('dropdown-menu'))
+          domFind('li.dropdown', newTab).classList.add('active');
 
         // now switch to new content:
         var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('href'));

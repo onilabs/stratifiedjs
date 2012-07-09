@@ -70,12 +70,22 @@ function elementsFromSelector(selector) {
   @param {String} [type] Event type (e.g. 'click', 'mousemove').
   @param {Function} [handler] Handler function.
   @desc
-     **Note**: The event listener will fire in the bubbling phase
+     * By default the event listener will fire in the bubbling phase.
+     * On modern browsers (>IE8, FF, Safari, Chrome), to get the listener to fire during 
+       the capture phase, prefix the event name with '!':
+
+          `dom.addListener(elem, '!click', handler); // fires during capture phase`
+     
 */
 function addListener(elem, type, handler) {
+  var capture = false;
+  if (type.charAt(0) == "!") {
+    type = type.substr(1);
+    capture = true;
+  }
   if (elem.addEventListener)
-    elem.addEventListener(type, handler, false);
-  else // IE
+    elem.addEventListener(type, handler, capture);
+  else // <=IE8 XXX need capture backfill
     elem.attachEvent("on"+type, handler);
 }
 exports.addListener = addListener;
@@ -89,9 +99,14 @@ exports.addListener = addListener;
   @param {Function} [handler] Handler function.
 */
 function removeListener(elem, type, handler) {
+  var capture = false;
+  if (type.charAt(0) == "!") {
+    type = type.substr(1);
+    capture = true;
+  }
   if (elem.removeEventListener)
-    elem.removeEventListener(type, handler, false);
-  else // IE
+    elem.removeEventListener(type, handler, capture);
+  else // <=IE8 XXX need capture backfill
     elem.detachEvent("on"+type, handler);
 }
 exports.removeListener = removeListener;
@@ -178,7 +193,7 @@ exports.stopEvent = function(ev) {
   @function  waitforEvent
   @summary   Blocks until one of the specified DOM events is triggered on the specified element.
   @param     {String | DOMElement} [selector] Id of DOM element or DOM element on which to wait for the given *events*.
-  @param     {String} [events] String containing one or more space-separated DOM event names. E.g.: "click mouseover".
+  @param     {String} [events] String containing one or more space-separated DOM event names. E.g.: "click mouseover". Prefix event with '!' to listen for events during the capture phase (see notes for [::addListener]).
   @param     {optional Function} [filter] Function through which received
              events will be passed. [::waitforEvent]
              continues listening for events and won't return until the filter
@@ -249,7 +264,7 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
   @summary Constructs a new EventQueue object.
   @return  {::EventQueue}
   @param     {String | DOMElement} [selector] Id of DOM element or DOM element on which to listen for the given *events*.
-  @param     {String} [events] A string containing one or more space-separated DOM event names. e.g: "click mouseover".
+  @param     {String} [events] A string containing one or more space-separated DOM event names. e.g: "click mouseover". Prefix event with '!' to listen for events during the capture phase (see notes for [::addListener]).
   @param     {optional Function} [filter] Function through which received
              events will be passed. An event 'e' will only be put into the queue
              if 'filter(e)==true'.
