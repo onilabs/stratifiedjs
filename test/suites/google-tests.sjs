@@ -21,7 +21,7 @@ test('translate', "Hallo", function() {
   var response = g.translate("hello", "de");
   if (!response.responseData) return response.responseDetails;
   return response.responseData.translatedText;
-}).browserOnly();
+}).skip("translate is now a paid api");
 
 test('load', true, function() {
   g.load("language", "1");
