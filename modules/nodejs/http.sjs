@@ -73,6 +73,7 @@ function handleRequest(connectionHandler, request, response) {
   }
   catch (e) {
     console.log("exception thrown by connection handler: "+e.toString());
+    response.destroy(); // XXX is this the best cleanup we can do?
   }
 }
 
@@ -275,9 +276,9 @@ Server.prototype.__finally__ = function() { this.stop(); };
 
  @function router
  @summary  Constructs a new [::Router] object.
- @param    {Array} [routes] Array of routes; see [::Router.routes] for format
+ @param    {Array} [routes] Array of routes; see [::Router::routes] for format
  @param    {Integer} [port] Port to listen on (0 to automatically assign free port).
- @param    {optional String} [host] IP address to listen on. If not
+ @param    {optional String} [host='INADDR_ANY'] IP address to listen on. If not
            specified, the server will listen on all IP addresses, i.e. INADDR_ANY.
  @desc
    **Example:**
@@ -341,11 +342,22 @@ function Router(routes, port, host) {
             handler = route[1];
           if (!handler)
             throw 405; // 'method not allowed'
+          
+          // parse flags:
+          for (var i=2; i<route.length; ++i) {
+            switch(route[i]) {
+            case 'cors':
+              sr.response.setHeader("Access-Control-Allow-Origin", "*");
+              break;
+            default:
+              console.log('unknown flag '+route[i]+' on route '+route[0]+' ignored.');
+            }
+          }
 
           // execute handler:
           var result = handler(sr, matches);
           if (!sr.response.finished) 
-            sr.response.end(result);
+            sr.response.end(""+result);
         }
         else {
           // Not found
