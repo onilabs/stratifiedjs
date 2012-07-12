@@ -403,13 +403,7 @@ function getHubs_hostenv() {
 function getExtensions_hostenv() {
   return {
     // normal sjs modules
-    'sjs': function(src, descriptor) {
-      //var start = new Date();
-      var f = exports.eval("(function(module,exports,require){"+src+"})",
-                           {filename:"module '"+descriptor.id+"'"});
-      //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
-      f(descriptor, descriptor.exports, descriptor.require);
-    },
+    'sjs': default_compiler,
     // plain non-sjs js modules
     'js': function(src, descriptor) {
       var f = new Function("module", "exports", src);
@@ -425,7 +419,8 @@ function eval_hostenv(code, settings) {
   if (__oni_rt.UA == "msie" && __oni_rt.G.execScript)
     return eval_msie(code, settings);
 
-  var filename = (settings && settings.filename) || "'sjs_eval_code'";
+  var filename = (settings && settings.filename) || "sjs_eval_code";
+  filename = "'#{filename.replace(/\'/g,'\\\'')}'";
   var mode = (settings && settings.mode) || "normal";
   var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
   return __oni_rt.G.eval(js);
@@ -440,7 +435,8 @@ function eval_hostenv(code, settings) {
 var IE_resume_counter = 0;
 __oni_rt.IE_resume = {};
 function eval_msie(code, settings) {  
-  var filename = (settings && settings.filename) || "'sjs_eval_code'";
+  var filename = (settings && settings.filename) || "sjs_eval_code";
+  filename = "'#{filename.replace(/\'/g,'\\\'')}'";
   var mode = (settings && settings.mode) || "normal";
   try {
     waitfor(var rv, isexception) {

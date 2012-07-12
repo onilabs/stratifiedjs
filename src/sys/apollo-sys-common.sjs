@@ -480,60 +480,28 @@ function default_src_loader(path) {
   throw new Error("Don't know how to load module at "+path);
 }
 
-function default_loader(path, parent, src, opts) {
-  return getNativeModule(path, parent, src, opts);
-}
 
-function http_src_loader(path) {
-  var src;
-  if (getXDomainCaps_hostenv() != 'none' ||
-      exports.isSameOrigin(path, document.location))
-    src = request_hostenv(path, {mime:"text/plain"});
+var compiled_src_tag = /^\/\*\__oni_compiled_sjs_1\*\//;
+function default_compiler(src, descriptor) {
+  //var start = new Date();
+  var f;
+  if (compiled_src_tag.exec(src)) {
+    //console.log("#{descriptor.id} precompiled");
+    // great; src is already compiled
+    // XXX apparently eval is faster on FF, but eval is tricky with 
+    // precompiled code, because of IE, where we need execScript
+    f = new Function("module", "exports", "require", "__onimodulename", src);
+    f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}");
+  }
   else {
-    // hostenv is xdomain-restricted and not CORS capable. Attempt modp:
-    path += "!modp";
-    src = jsonp_hostenv(path,
-                        {forcecb:"module",
-                         cbfield:null});
+    f = exports.eval("(function(module,exports,require, __onimodulename){"+src+"\n})",
+                     {filename:"module #{descriptor.id}"});
+    f(descriptor, descriptor.exports, descriptor.require);
   }
-  return { src: src, loaded_from: path };
+  //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
 }
 
-
-// loader that loads directly from github
-// XXX the github API is now x-domain capable; at some point, when we
-// drop support for older browsers, we can get rid of jsonp here and
-// load via http.json
-var github_api = "https://api.github.com/";
-var github_opts = {cbfield:"callback"};
-function github_src_loader(path) {
-  var user, repo, tag;
-  try {
-    [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
-  } catch(e) { throw "Malformed module id '"+path+"'"; }
-  
-  var url = exports.constructURL(github_api, 'repos', user, repo, "contents", path,{ref:tag});
-
-  waitfor {
-    var data = jsonp_hostenv(url,github_opts).data;
-  }
-  or {
-    hold(10000);
-    throw new Error("Github timeout");
-  }
-  if (data.message && !data.content)
-    throw new Error(data.message);
-  
-  // XXX maybe we should move some string functions into apollo-sys-common
-  var str = exports.require('apollo:string');
-
-  return {
-    src: str.utf8ToUtf16(str.base64ToOctets(data.content)),
-    loaded_from: url
-  };
-}
-
-function getNativeModule(path, parent, src_loader, opts) {
+function default_loader(path, parent, src_loader, opts) {
   // determine compiler function based on extension:
   var extension = /.+\.([^\.\/]+)$/.exec(path)[1]
 
@@ -597,6 +565,55 @@ function getNativeModule(path, parent, src_loader, opts) {
     ++descriptor.required_by[parent];
   
   return descriptor.exports;
+}
+
+function http_src_loader(path) {
+  var src;
+  if (getXDomainCaps_hostenv() != 'none' ||
+      exports.isSameOrigin(path, document.location))
+    src = request_hostenv([path, {format:'compiled'}], {mime:'text/plain'});
+  else {
+    // hostenv is xdomain-restricted and not CORS capable. Attempt modp:
+    path += "!modp";
+    src = jsonp_hostenv(path,
+                        {forcecb:"module",
+                         cbfield:null});
+  }
+  return { src: src, loaded_from: path };
+}
+
+
+// loader that loads directly from github
+// XXX the github API is now x-domain capable; at some point, when we
+// drop support for older browsers, we can get rid of jsonp here and
+// load via http.json
+var github_api = "https://api.github.com/";
+var github_opts = {cbfield:"callback"};
+function github_src_loader(path) {
+  var user, repo, tag;
+  try {
+    [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
+  } catch(e) { throw "Malformed module id '"+path+"'"; }
+  
+  var url = exports.constructURL(github_api, 'repos', user, repo, "contents", path,{ref:tag});
+
+  waitfor {
+    var data = jsonp_hostenv(url,github_opts).data;
+  }
+  or {
+    hold(10000);
+    throw new Error("Github timeout");
+  }
+  if (data.message && !data.content)
+    throw new Error(data.message);
+  
+  // XXX maybe we should move some string functions into apollo-sys-common
+  var str = exports.require('apollo:string');
+
+  return {
+    src: str.utf8ToUtf16(str.base64ToOctets(data.content)),
+    loaded_from: url
+  };
 }
 
 // resolve module id to {path,loader,src}

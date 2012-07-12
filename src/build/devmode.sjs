@@ -45,7 +45,8 @@ exports.eval = function eval(code, settings) {
 
 exports.compile = function compile(code, settings) {
   if(!settings) settings = {};
-  var filename = settings.filename || "'sjs_eval_code'";
+  var filename = settings.filename || "sjs_eval_code";
+  filename = "'#{filename.replace(/\'/g,'\\\'')}'";
   var mode = settings.mode || "normal";
   var c1 = load(settings.compiler || apollo_home + '/tmp/c1.js');
   var vm = load(settings.vm || apollo_home + '/tmp/vm1node.js');

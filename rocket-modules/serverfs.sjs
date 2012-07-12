@@ -193,9 +193,11 @@ var defaultDirectoryListingFormats = {
 //  - extension
 //  - input (a stream of data)
 //  - requestedFormat
-// It may also contain defaultFormats, for use when
-// the server has no configured format for the given
-// extension / format.
+// Optionally:
+//  - defaultFormats, for use when
+//    the server has no configured format for the given
+//    extension / format.
+//  - etag: etag of the input stream
 function formatResponse(item, request, response, formats) {
   var input = item.input;
   var extension = item.extension;
@@ -205,28 +207,61 @@ function formatResponse(item, request, response, formats) {
   formats = common.mergeSettings(defaultFormats, formats);
   var filedesc = formats[extension] || formats["*"];
   if (!filedesc) {
-    console.log("Don't know how to serve item with extension '"+extension+"'");
+    console.log("Don't know how to serve item with extension '#{extension}'");
     // XXX should we generate an error?
     return false;
   }
 
-  var formatdesc = filedesc[format];
+  var formatdesc = filedesc[format.name];
+  if (!formatdesc && !format.mandatory)
+    formatdesc = filedesc["none"];
   if (!formatdesc) {
-    console.log("Can't serve item with extension '"+extension+"' in format '"+format+"'");
+    console.log("Can't serve item with extension '#{extension}' in format '#{format.name}'");
     // XXX should we generate an error?
     return false;
   }
 
+  // try to construct an etag, based on the file's & (potential) filter's etag:
+  var etag;
+  if (item.etag) {
+    if (formatdesc.filter && formatdesc.filterETag)
+      etag = "\"#{formatdesc.filterETag()}-#{item.etag}\"";
+    else if (!formatdesc.filter)
+      etag = item.etag;
+  }
+
+  // check for etag match
+  if (etag) {
+    if (request.headers["if-none-match"]) {
+//      console.log("If-None-Matched: #{request.headers['if-none-match']}");
+      if (request.headers["if-none-match"] == etag) {
+        console.log("#{request.url} #{etag} Not Modified!");
+        response.writeHead(304);
+        response.end();
+        return true;
+      }
+//      else {
+//        console.log("#{request.url} outdated");        
+//      }  
+    }
+//    else {
+//      console.log("#{request.url}: requested without etag");
+//    }
+  }
+//  else {
+//    console.log("no etag for #{request.url}");
+//  }
+
+  // construct header:
   var contentHeader = formatdesc.mime ? {"Content-Type":formatdesc.mime} : {};
+  if (etag)
+    contentHeader["ETag"] = etag;
+  
   if(formatdesc.filter) {
-    // XXX better not use file's etag here; but maybe pass it to the filter?
     response.writeHead(200, contentHeader);
     if (request.method == "GET") // as opposed to "HEAD"
       formatdesc.filter(input(), response, request);
   } else {
-    if (item.etag) {
-      contentHeader["ETag"] = item.etag;
-    }
     if (item.length) {
       contentHeader["Content-Length"] = item.length;
       contentHeader["Accept-Ranges"] = "bytes";
@@ -269,22 +304,14 @@ function serveFile(request, response, filePath, format, formats) {
   }
   if (!stat.isFile()) return false;
   
-  var etag = "\"#{stat.mtime.getTime()}\"";
-  if (request.headers["if-none-match"]) {
-//    console.log("If-None-Matched: #{request.headers['if-none-match']}");
-    if (request.headers["if-none-match"] == etag) {
-//      console.log("Etag match!");
-      response.writeHead(304);
-      response.end();
-      return true;
-    }
-  }
+  var etag = "#{stat.mtime.getTime()}";
 
   var ext = path.extname(filePath).slice(1);
   return formatResponse(
-    { input: function(opts) {
-      // XXX hmm, might need to destroy this somewhere
-      return require('fs').createReadStream(filePath, opts) },
+    { input(opts) {
+        // XXX hmm, might need to destroy this somewhere
+        require('fs').createReadStream(filePath, opts) 
+      },
       length: stat.size,
       extension: ext,
       requestedFormat: format,
@@ -307,7 +334,12 @@ function createMappedDirectoryHandler(root, formats, flags)
     var relativePath = matches[1] || "/";
     var pathAndFormat = relativePath.split("!");
     relativePath = pathAndFormat[0];
-    var format   = pathAndFormat[1] || "none";
+//    console.log(relativePath + " " +require('apollo:debug').inspect(request.parsedUrl));
+    var format;
+    if (pathAndFormat[1])
+      format = { name: pathAndFormat[1], mandatory: true };
+    else 
+      format = { name: request.parsedUrl.queryKey.format || "none" };
 
     var file = relativePath ? path.join(root, relativePath) : root;
     if (process.platform == "win32") {

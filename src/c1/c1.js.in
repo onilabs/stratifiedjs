@@ -1455,7 +1455,18 @@ function makeParserContext(src, settings) {
   return ctx;
 }
 
-// main entry point into parsing api
+/**
+   @function compile
+   @summary  main entry point into parsing api
+   @param    {String} [src]
+   @param    {optional Object} [settings] Hash of settings
+   @desc     
+      * Return value depends on compilation kernel
+      * In case of compilation error an exception will be thrown with an
+        object-type attribute `compileError` containing the following fields:
+          - message : Error string
+          - line    : Line number where error occurred
+*/
 function compile(src, settings) {
   // XXX The regexps of our lexer currently assume that there is never
   // a '//' comment on the last line of the source text. This will
@@ -1472,7 +1483,9 @@ function compile(src, settings) {
   catch (e) {
     var mes = e.mes || e;
     var line = e.line || pctx.line;
-    throw new Error("SJS syntax error "+(pctx.filename?"in "+pctx.filename+",": "at") +" line " + line + ": " + mes);
+    var exception = new Error("SJS syntax error "+(pctx.filename?"in "+pctx.filename+",": "at") +" line " + line + ": " + mes);
+    exception.compileError = {message: mes, line: line};
+    throw exception;
   }
 }
 exports.compile = compile;

@@ -119,14 +119,6 @@ function top_stmt_scope(pctx) {
   begin_script(pctx);
 
 function begin_script(pctx) {
-  
-  // XXX not sure this is the best place for this:
-  // we must prevent pctx.fn from containing single quotes,
-  // since we embed the value literally in single quotes into
-  // generated code.
-  if (pctx.filename)
-    pctx.fn = pctx.filename.replace(/\'/g,"\\\'");
-
   // decode code generation mode settings:
   switch(pctx.mode) {
   case "debug":
@@ -196,7 +188,8 @@ function end_script(pctx) {
   var decls = pctx.decl_scopes.pop();
   var rv = collect_decls(decls) +
     pop_stmt_scope(pctx,
-                   "__oni_rt.exseq(this.arguments,this,'"+pctx.fn+"',["+(SEQ_FLAG_UNRETURNABLE|SEQ_FLAG_NOTAILCALL),
+                   (pctx.globalReturn ? "return " : "") + 
+                   "__oni_rt.exseq(this.arguments,this,"+pctx.filename+",["+(SEQ_FLAG_UNRETURNABLE|SEQ_FLAG_NOTAILCALL),
                    "])");
   return rv;
 }
@@ -331,7 +324,7 @@ ph_switch.prototype.val = function() {
     if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                     \
     if (implicit_return) flags += SEQ_FLAG_IMPLICIT_RETURN;             \
   return collect_decls(decls) +                                         \
-    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,'"+pctx.fn+"',["+flags, \
+    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,"+pctx.filename+",["+flags, \
     "])");
 
 #define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return) return new ph_fun_exp(fname, pars, body, pctx, implicit_return);
@@ -493,7 +486,7 @@ function ph_if(t, c, a, pctx) {
   this.c = c;
   this.a = a;
   this.line = t.line;
-  this.file = pctx.fn;
+  this.file = pctx.filename;
   // XXX DEBUG|NDEBUG
   this.is_nblock = pctx.full_nblock &&
                    t.is_nblock && c.is_nblock && (!a || a.is_nblock)
@@ -535,7 +528,7 @@ ph_if.prototype.val = function() {
 function ph_try(block, crf, pctx) {
   this.block = block;
   this.crf = crf;
-  this.file = pctx.fn;
+  this.file = pctx.filename;
 }
 ph_try.prototype = new ph(WHENDEBUG("ph_try"));
 ph_try.prototype.nblock_val = function() {
@@ -588,7 +581,7 @@ ph_empty_stmt.v = function() { return '0'; };
 function ph_throw(exp, pctx) {
   this.exp = exp;
   this.line = exp.line;
-  this.file = pctx.fn;
+  this.file = pctx.filename;
   this.is_nblock = pctx.full_nblock && exp.is_nblock;
 }
 ph_throw.prototype = new ph(WHENDEBUG("ph_throw"));
@@ -598,7 +591,7 @@ ph_throw.prototype.nblock_val = function() {
 ph_throw.prototype.val = function() {
     // XXX having line encoded twice here kinda sucks
     // XXX encoding of filename sucks too 
-    return "__oni_rt.Sc("+this.line+",__oni_rt.Throw,"+this.exp.v()+","+this.line+",'"+this.file+"')";
+    return "__oni_rt.Sc("+this.line+",__oni_rt.Throw,"+this.exp.v()+","+this.line+","+this.file+")";
 }
 
 
@@ -775,7 +768,7 @@ function ph_with(exp, body, pctx) {
   this.exp = exp;
   this.body = body;
   this.line = this.exp.line;
-  this.file = pctx.fn;
+  this.file = pctx.filename;
   this.is_nblock = pctx.allow_nblock && exp.is_nblock && body.is_nblock;
 }
 ph_with.prototype = new ph(WHENDEBUG("ph_with"));
@@ -1425,7 +1418,7 @@ function ph_suspend(decls, block, wrapped, pctx) {
   this.decls = decls;
   this.block = block;
   this.wrapped = wrapped;
-  this.file = pctx.fn;
+  this.file = pctx.filename;
 }
 ph_suspend.prototype = new ph(WHENDEBUG("ph_suspend"));
 ph_suspend.prototype.val = function() {
@@ -1451,7 +1444,7 @@ ph_suspend.prototype.val = function() {
 function ph_suspend_wrapper(code, pctx) {
   this.code = code;
   this.line = pctx.line; // XXX is this the correct line?
-  this.file = pctx.fn;
+  this.file = pctx.filename;
 }
 ph_suspend_wrapper.prototype = new ph(WHENDEBUG("ph_suspend_wrapper"));
 ph_suspend_wrapper.prototype.val = function() {

@@ -94,6 +94,25 @@ function modp(src, dest) {
   dest.write("module("+require("../tmp/c1jsstr.js").compile(src, {keeplines:true})+");");
 }
 
+// filter that compiles sjs into '__oni_compiled_sjs_1' format:
+function sjscompile(src, dest, req) {
+  src = stream.readAll(src);
+  try {
+    src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
+  }
+  catch (e) {
+    console.log("sjscompiler: #{req.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
+    // communicate the compilation error to the caller in a little bit
+    // of a round-about way: We create a compiled SJS file that throws
+    // our compile error as an exception on execution
+    var error_message = 
+      "'SJS syntax error in \\''+__onimodulename+'\\' at line #{e.compileError.line}: #{e.compileError.message.toString().replace(/\'/g, '\\\'')}'";
+    src = __oni_rt.c1.compile("throw new Error(#{error_message});", {globalReturn:true, filename:"'compilation@rocket_server'"});
+  }
+
+  dest.write("/*__oni_compiled_sjs_1*/"+src);
+}
+
 function BaseFileFormatMap() { }
 BaseFileFormatMap.prototype = {
   html : { none : { mime: "text/html" },
@@ -107,10 +126,15 @@ BaseFileFormatMap.prototype = {
            jsonp: { mime: "text/javascript",
                     filter: json2jsonp }
          },
-  sjs  : { none : { mime: "text/plain" },
-           src  : { mime: "text/plain" },
-           modp : { mime: "text/javascript",
-                    filter: modp }
+  sjs  : { none     : { mime: "text/plain" }, 
+           compiled : { mime: "text/plain",
+                        filter: sjscompile,
+                        filterETag() { "c1" } 
+                      },
+           src      : { mime: "text/plain" },
+           modp     : { mime: "text/javascript",
+                        filter: modp
+                      }
          },
   xml  : { none : { mime: "text/xml" },
            src  : { mime: "text/plain" }

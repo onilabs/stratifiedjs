@@ -393,11 +393,7 @@ function getHubs_hostenv() {
 function getExtensions_hostenv() {
   return {
     // normal sjs modules
-    'sjs'(src, descriptor) {
-      var f = exports.eval("(function(module,exports,require){"+src+"})",
-                           {filename:"module '"+descriptor.id+"'"});
-      f(descriptor, descriptor.exports, descriptor.require);
-    },
+    'sjs': default_compiler,
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
     'js'(src, descriptor) {
       var f = new Function("module", "exports", "require", src);
@@ -410,7 +406,8 @@ function getExtensions_hostenv() {
 // eval_hostenv
 
 function eval_hostenv(code, settings) {
-  var filename = (settings && settings.filename) || "'sjs_eval_code'";
+  var filename = (settings && settings.filename) || "sjs_eval_code";
+  filename = "'#{filename.replace(/\'/g,'\\\'')}'";
   var mode = (settings && settings.mode) || "normal";
   var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
   return __oni_rt.G.eval(js);
