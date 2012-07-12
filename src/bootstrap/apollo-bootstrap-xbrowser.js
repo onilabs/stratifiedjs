@@ -40,9 +40,9 @@ if (!__oni_rt.sys) {
   // hostenv is one of : 'xbrowser' | 'nodejs' 
   __oni_rt.G.eval("(function(exports) {"+
                   __oni_rt.c1.compile(__oni_rt.modsrc['sjs:apollo-sys-common.sjs'],
-                                      {filename:"apollo-sys-common.sjs"})+"\n"+
+                                      {filename:"'apollo-sys-common.sjs'"})+"\n"+
                   __oni_rt.c1.compile(__oni_rt.modsrc['sjs:apollo-sys-'+__oni_rt.hostenv+'.sjs'],
-                                      {filename:"apollo-sys-"+__oni_rt.hostenv+".sjs"})+
+                                      {filename:"'apollo-sys-"+__oni_rt.hostenv+".sjs'"})+
                  "})({})");
   delete __oni_rt.modsrc['sjs:apollo-sys-common.sjs'];
   delete __oni_rt.modsrc['sjs:apollo-sys-'+__oni_rt.hostenv+'.sjs']; 

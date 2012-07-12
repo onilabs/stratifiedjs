@@ -47,9 +47,9 @@ global.__oni_rt.nodejs_apollo_lib_dir = path.join(path.dirname(fs.realpathSync(_
 
 var sys = rt.G.eval("(function(exports) {"+
                     rt.c1.compile(rt.modsrc['sjs:apollo-sys-common.sjs'],
-                                  {filename:"apollo-sys-common.sjs"})+"\n"+
+                                  {filename:"'apollo-sys-common.sjs'"})+"\n"+
                     rt.c1.compile(rt.modsrc['sjs:apollo-sys-'+rt.hostenv+'.sjs'],
-                                              {filename:"apollo-sys-"+rt.hostenv+".sjs"})+
+                                  {filename:"'apollo-sys-"+rt.hostenv+".sjs'"})+
                           "})");
 
 // In the nodejs environment, apollo-bootstrap is loaded as a nodejs
