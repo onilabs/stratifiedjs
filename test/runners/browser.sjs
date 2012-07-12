@@ -18,8 +18,18 @@ BrowserRunner.prototype.status = function() {
 
 BrowserRunner.prototype.result = function(status, message) {
   this.updateProgress();
+
+  if (this.newGroup) {
+    this.groupOffset = this.testCounter-1;
+    var node = document.createElement("div");
+    node.innerHTML = str.sanitize(this.newGroup);
+    node.setAttribute("class", "test file-header");
+    this.newGroup = null;
+    this.output().appendChild(node);
+  }
+
   var node = document.createElement("div");
-  node.innerHTML = str.sanitize(this.pad(this.testCounter) + message);
+  node.innerHTML = str.sanitize("#{this.pad(this.testCounter-this.groupOffset,5)} #{this.pad(status.toUpperCase(),8)} #{message}");
   node.setAttribute("class", "test " + "test-" + status);
   this.output().appendChild(node);
 };

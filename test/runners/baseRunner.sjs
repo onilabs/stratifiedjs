@@ -153,9 +153,9 @@ BaseRunner.prototype.load = function(filename) {
 };
 
 
-BaseRunner.prototype.pad = function pad (id) {
+BaseRunner.prototype.pad = function pad (str, l) {
   var rv="";
-  var l = 6 - (""+id).length;
+  l -= (""+str).length;
   for (;l--;) rv+=" ";
-  return id+rv;
+  return str+rv;
 }
