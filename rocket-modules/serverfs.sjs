@@ -227,15 +227,18 @@ function formatResponse(item, request, response, formats) {
     if (formatdesc.filter && formatdesc.filterETag)
       etag = "\"#{formatdesc.filterETag()}-#{item.etag}\"";
     else if (!formatdesc.filter)
-      etag = item.etag;
+      etag = "\"#{item.etag}\"";
   }
 
   // check for etag match
   if (etag) {
     if (request.headers["if-none-match"]) {
 //      console.log("If-None-Matched: #{request.headers['if-none-match']}");
-      if (request.headers["if-none-match"] == etag) {
-        console.log("#{request.url} #{etag} Not Modified!");
+      // XXX wrt '-gzip': Apache attaches this prefix to ETags. We remove it here
+      // if present, so that we can run rocket behind an Apache reverse proxy.
+      // Clearly this is hackish and not a good place for it :-/
+      if (request.headers["if-none-match"].replace(/-gzip$/,'') == etag) {
+//        console.log("#{request.url} #{etag} Not Modified!");
         response.writeHead(304);
         response.end();
         return true;
