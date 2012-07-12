@@ -353,10 +353,10 @@ var makePrinter = function(preferred_console_method) {
   var c = getConsole();
   if(c) {
     if(c[preferred_console_method]) {
-      return function() { c[preferred_console_method].apply(c, arguments); };
+      return Function.prototype.bind.call(c[preferred_console_method], c);
     }
     if(c.log) {
-      return function() { c.log.apply(c, arguments); };
+      return Function.prototype.bind.call(c.log, c);
     }
   }
   return function() {};
