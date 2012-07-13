@@ -79,5 +79,5 @@ test('utf8 characters in modules: U+0192', 402, function() {
 
 test('load module from github', '\u0192', function() {
   var data = require('github:onilabs/apollo/master/test/data/utf8').test2();
-  return data[data.length-1];
+  return data.charAt(data.length-1);
 });
