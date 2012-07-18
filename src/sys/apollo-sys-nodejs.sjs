@@ -124,8 +124,7 @@ var readStream = exports.readStream = function readStream(stream) {
   //test here:
   if (stream.readable === false) return null;
   var data = null;
-  
- stream.resume();
+
   waitfor {
     waitfor (var exception) {
       stream.on('error', resume);
@@ -144,6 +143,12 @@ var readStream = exports.readStream = function readStream(stream) {
     finally {
       stream.removeListener('data', resume);
     }
+  }
+  or {
+    // we resume *after* setting the data listener, just in case a 
+    // data event is coming synchronously after the resume
+    stream.resume();
+    hold();
   }
   finally {
     if (stream.readable)
