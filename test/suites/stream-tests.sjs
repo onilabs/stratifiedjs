@@ -35,4 +35,24 @@ if(!testUtil.isBrowser) {
     return data;
   });
 
+  test("WritableStringStream", "[data][end]", function() {
+    var stream = new s.WritableStringStream();
+    waitfor {
+      waitfor() { stream.on('end', resume); }
+    }
+    and {
+      stream.write('[data]');
+      stream.end('[end]');
+    }
+    return stream.data;
+  });
+
+  test("pump", "DATA", function() {
+    var src = new s.ReadableStringStream('data');
+    src.pause();
+    var dest = new s.WritableStringStream();
+    s.pump(src, dest, {|d| d.toUpperCase()});
+    return dest.data;
+  });
+
 }

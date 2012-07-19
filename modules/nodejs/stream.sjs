@@ -128,7 +128,7 @@ exports.pump = function(src, dest, fn) {
 
 /**
   @class    ReadableStringStream
-  @summary  An in-memory Stream wrapping a single String.
+  @summary  A readable in-memory Stream wrapping a single String.
   @desc
     This class is similar to StringIO in other languages,
     it allows the user to present a `String` as if it were a nodejs `Stream`.
@@ -138,7 +138,6 @@ exports.pump = function(src, dest, fn) {
 
   @function ReadableStringStream
   @summary  Constructor for a ReadableStringStream object.
-  @return   {ReadableStringStream}
   @param    {String} [data] The data for this stream to emit
 */
 var ReadableStringStream = exports.ReadableStringStream = function(data) {
@@ -177,3 +176,46 @@ ReadableStringStream.prototype.destroy = function() {
 ReadableStringStream.prototype.setEncoding = function() {
   throw new Error("Can't set encoding on ReadableStringStream");
 };
+
+/**
+   @class    WritableStringStream
+   @summary  A writable in-memory Stream wrapping a single String.
+   @desc
+     This class wraps a `String` with nodejs `Writable Stream` interface.
+
+     The data written to the stream can be retrieved from field 
+     [::WritableStringStream::data].
+
+   @function WritableStringStream
+   @summary  Constructor for a WritableStringStream object
+
+   @variable WritableStringStream.data
+   @summary  Data that has been written to the stream (String)
+
+*/
+var WritableStringStream = exports.WritableStringStream = function() {
+  this.data = "";
+};
+
+require('util').inherits(WritableStringStream, require('stream').Stream);
+
+
+/**
+   @function WritableStringStream.write
+   @param {Buffer|String} [data]
+*/
+WritableStringStream.prototype.write = function(data) {
+  if (data && data.length)
+    this.data += data.toString();
+  return true;
+};
+
+/**
+   @function WritableStringStream.end
+   @param {optional Buffer|String} [data]
+*/
+WritableStringStream.prototype.end = function(data) {
+  this.write(data);
+  this.emit('end');
+};
+
