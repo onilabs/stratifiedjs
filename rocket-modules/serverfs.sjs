@@ -262,8 +262,24 @@ function formatResponse(item, request, response, formats) {
   
   if(formatdesc.filter) {
     response.writeHead(200, contentHeader);
-    if (request.method == "GET") // as opposed to "HEAD"
-      formatdesc.filter(input(), response, request);
+    if (request.method == "GET") { // as opposed to "HEAD"
+      if (formatdesc.cache && etag) {
+        // check cache:
+        var cache_entry = formatdesc.cache.get(request.url);
+        if (!cache_entry || cache_entry.etag != etag) {
+          var data_stream = new (stream.WritableStringStream);
+          formatdesc.filter(input(), data_stream, request);
+          cache_entry = { etag: etag, data: data_stream.data };
+          console.log("populating cache #{request.url} length: #{cache_entry.data.length}");
+          formatdesc.cache.put(request.url, cache_entry, cache_entry.data.length);
+        }
+        // write to response stream:
+//        console.log("stream from cache #{request.url}");
+        stream.pump(new (stream.ReadableStringStream)(cache_entry.data), response);
+      }
+      else // no cache or no etag -> filter straight to response
+        formatdesc.filter(input(), response, request);
+    }
   } else {
     if (item.length) {
       contentHeader["Content-Length"] = item.length;

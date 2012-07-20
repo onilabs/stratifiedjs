@@ -95,7 +95,7 @@ function modp(src, dest) {
 }
 
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
-function sjscompile(src, dest, req) {
+function sjscompile(src, dest, req, etag) {
   src = stream.readAll(src);
   try {
     src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
@@ -113,6 +113,8 @@ function sjscompile(src, dest, req) {
   dest.write("/*__oni_compiled_sjs_1*/"+src);
 }
 
+var SJSCache = require('apollo:lru-cache').makeCache(10*1000*1000); // 10MB
+
 function BaseFileFormatMap() { }
 BaseFileFormatMap.prototype = {
   html : { none : { mime: "text/html" },
@@ -129,7 +131,16 @@ BaseFileFormatMap.prototype = {
   sjs  : { none     : { mime: "text/plain" }, 
            compiled : { mime: "text/plain",
                         filter: sjscompile,
-                        filterETag() { "c1" } 
+                        // filterETag() returns a tag that will be added onto 
+                        // the base file's modification date to derive an etag for
+                        // the filtered file.
+                        filterETag() { "c1" /* xxx could maybe derive this from some 
+                                               modification dates; now it needs to be 
+                                               changed manually when our compiler or 
+                                               compilation format changes */ },
+                        // cache is an lru-cache object which caches requests to filtered
+                        // files (requires presence of filterETag() ):
+                        cache: SJSCache
                       },
            src      : { mime: "text/plain" },
            modp     : { mime: "text/javascript",
