@@ -2,11 +2,12 @@ child-process-tests.sjs nodejs
 collection-tests.sjs xbrowser,nodejs
 common-tests.sjs xbrowser,nodejs
 cutil-tests.sjs xbrowser,nodejs
-dom-tests.sjs xbrowser,nodejs
+dom-tests.sjs xbrowser
 google-tests.sjs xbrowser,nodejs
 http-tests.sjs xbrowser,nodejs
-jquery-tests.sjs xbrowser,nodejs
+jquery-tests.sjs xbrowser
 logging-test.sjs xbrowser,nodejs
+lru-cache-tests.sjs xbrowser,nodejs
 perf-tests.sjs xbrowser,nodejs
 require-tests.sjs xbrowser,nodejs
 sjcl-tests.sjs xbrowser,nodejs

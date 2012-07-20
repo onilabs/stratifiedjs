@@ -52,6 +52,7 @@
 @module function        Function composition helpers
 @module http            Functions for performing HTTP requests and working with URLs
 @module logging         Simple cross-environment logging framework
+@module lru-cache       Least Recently Used Cache
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
 @module sjcl            Stanford JavaScript Crypto Library
 @module string          Functions for working with strings
