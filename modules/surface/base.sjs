@@ -159,8 +159,12 @@ __js StyleElement.init = function(content, global) {
           if (b[0].charAt(0) != '@') {
             // fold cssClass into selector
             b[0] = coll.map(b[0].split(','), function(s){ return ".#{cssClass} #{s}" }).join(',');
+            return "#{b[0]} { #{processBlock(b[1],lvl+1)} }";
           }
-          return "#{b[0]} { #{processBlock(b[1],lvl+1)} }";
+          else {
+            // '@'-rule (maybe a media query)
+            return "#{b[0]} { #{processBlock(b[1],lvl)} }";
+          }
         }
       }).join('\n');
     }
