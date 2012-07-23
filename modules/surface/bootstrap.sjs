@@ -258,8 +258,8 @@ function parseCssValue(css_val) {
 }
 
 function encodeCssValue(val) {
-  // we'll round to 2 decimals
-  val[0] = Math.round(val[0]*100)/100;
+  // we'll round to 5 decimals
+  val[0] = Math.round(val[0]*100000)/100000;
   return "#{val[0]}#{val[1]}";
 }
 
@@ -452,9 +452,12 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   gridColumnWidth()         { "60px" },
   gridGutterWidth()         { "20px" },
   gridRowWidth()            { add(scale(this.gridColumnWidth(), this.gridColumns()), 
-                                  scale(this.gridGutterWidth(), this.gridColumns()-1)) }
+                                  scale(this.gridGutterWidth(), this.gridColumns()-1)) },
 
-  
+  // Fluid grid
+  //--------------------------
+  fluidGridColumnWidth()    { "6.382978723%" },
+  fluidGridGutterWidth()    { "2.127659574%" }
 };
 
 
@@ -600,7 +603,7 @@ textarea {
 // Snippets of reusable CSS to develop faster and keep code readable
 
 __js var Mixins = exports.Mixins = function(vars) {
-  return {
+  var mixins = {
     
     // UTILITY MIXINS
     // --------------------------------------------------
@@ -709,6 +712,16 @@ __js var Mixins = exports.Mixins = function(vars) {
     // FORMS
     // --------------------------------------------------
 
+    // Block level inputs
+    input_block_level() {
+        "display: block;
+         width: 100%;
+         min-height: 28px;        /* Make inputs at least the height of their button counterpart */
+         #{this.box_sizing('border-box'); /* Makes inputs behave like true block-level elements */
+        "
+    },
+
+
     // Mixin for form field states
     formFieldState(selector, textColor, borderColor, backgroundColor) {
       textColor = textColor || '#555',
@@ -778,6 +791,14 @@ __js var Mixins = exports.Mixins = function(vars) {
     opacity(opacity) {
       "opacity: #{Math.round(opacity*100)/10000};
        filter: alpha(opacity=#{opacity});"
+    },
+
+    // Box sizing
+    box_sizing(boxmodel) {
+      "-webkit-box-sizing: #{boxmodel};
+       -moz-box-sizing: #{boxmodel};
+       -ms-box-sizing: #{boxmodel};
+       box-sizing: #{boxmodel};"
     },
 
     // BACKGROUNDS
@@ -871,6 +892,11 @@ __js var Mixins = exports.Mixins = function(vars) {
        }"
     },
 
+    // Grid System
+    // -----------
+
+    //XXX container-fixed
+
     // Table columns
     tableColumns(columnSpan) {
       columnSpan = columnSpan || 1,
@@ -880,8 +906,85 @@ __js var Mixins = exports.Mixins = function(vars) {
                     - 16) /* 16 is total padding on left and right of table cells */
                }
        margin-left: 0; /* undo default grid column styles */"
+    },
+
+    // Make a Grid
+    // Use .makeRow and .makeColumn to assign semantic layouts grid system behaviour
+    // XXX
+
+    // The Grid
+    grid : {
+      core: function(gridColumnWidth, gridGutterWidth) {
+        function span(columns) {
+          return "width: #{add(scale(gridColumnWidth,columns),scale(gridGutterWidth,columns-1))};";
+        }
+
+        function spans() {
+          var rv = "";
+          for (var i=1; i<=vars.gridColumns(); ++i)
+            rv += ".span#{i} { #{span(i)} }";
+          return rv;
+        }
+
+        function offset(columns) {
+          return "margin-left: #{add(scale(gridColumnWidth,columns),scale(gridGutterWidth,columns+1))};";
+        }
+
+        function offsets() {
+          var rv = "";
+          for (var i=1; i<=vars.gridColumns(); ++i)
+            rv += ".offset#{i} { #{offset(i)} }";
+          return rv;
+        }
+
+        return ".row { margin-left: #{scale(gridGutterWidth,-1)}; }
+                #{mixins.clearfix('.row')}
+                [class*='span'] {
+                  float: left;
+                  margin-left: #{gridGutterWidth};
+                }
+                /* Set the container width, and override it for 
+                   fixed navbars in media queries */
+                .container,
+                .navbar-fixed-top .container,
+                .navbar-fixed-bottom .container { #{span(vars.gridColumns()); }
+                
+                #{spans()}
+                #{offsets()}
+               ";
+      },
+      fluid: function(fluidGridColumnWidth, fluidGridGutterWidth) {
+        function span(columns) {
+          return "width: #{add(scale(fluidGridColumnWidth,columns),scale(fluidGridGutterWidth,columns-1))};";
+          // XXX IE7 *width: (@fluidGridColumnWidth * @columns) + (@fluidGridGutterWidth * (@columns - 1)) - (.5 / @gridRowWidth * 100 * 1%);
+          
+        }
+
+        function spans() {
+          var rv = "";
+          for (var i=1; i<=vars.gridColumns(); ++i)
+            rv += ".row-fluid .span#{i} { #{span(i)} }";
+          return rv;
+        }
+
+        return ".row-fluid { width: 100% }
+                #{mixins.clearfix('.row-fluid')}
+                .row-fluid [class*='span'] {
+                  #{mixins.input_block_level()}
+                  float: left;
+                  margin-left: #{fluidGridGutterWidth};
+                /* IE7XXX *margin-left: #XXX{add(fluidGridGutterWidth,scale('1%',-.5/#XXX{vars.gridRowWidth()}*100))}; */
+                }
+                .row-fluid [class*='span']:first-child {
+                  margin-left: 0;
+                }
+
+                #{spans()}
+               ";
+      }
     }
   };
+  return mixins;
 };
 
 //----------------------------------------------------------------------
@@ -919,6 +1022,25 @@ a:hover {
   color: #{vars.linkColorHover()};
   text-decoration: underline;
 }
+");
+};
+
+//----------------------------------------------------------------------
+// port of grid.less
+// 
+
+__js var CSSGrid = exports.CSSGrid = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* Fixed (940px) */
+#{mixins.grid.core(vars.gridColumnWidth(), vars.gridGutterWidth())}
+
+/* Fluid (940px) */
+#{mixins.grid.fluid(vars.fluidGridColumnWidth(), vars.fluidGridGutterWidth())} 
+
 ");
 };
 
