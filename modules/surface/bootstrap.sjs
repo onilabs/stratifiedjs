@@ -895,7 +895,15 @@ __js var Mixins = exports.Mixins = function(vars) {
     // Grid System
     // -----------
 
-    //XXX container-fixed
+    // Centered container element
+    container_fixed(selector) {
+      "#{selector} { 
+        margin-right: auto;
+        margin-left: auto;
+       }
+       #{this.clearfix(selector)}"
+    },
+
 
     // Table columns
     tableColumns(columnSpan) {
@@ -1289,6 +1297,13 @@ __js var CSSResponsive = exports.CSSResponsive = function() {
 
 }
 
+/* ---------------------------------------------------------------------- */
+/* RESPONSIVE NAVBAR  */
+/* ------------------ */
+/* From 979px and below, show a button to toggle navbar contents */
+/* responsive-navbar.less */
+/* XXX */
+
 ");
 };
 
@@ -1308,6 +1323,33 @@ __js var CSSGrid = exports.CSSGrid = function() {
 /* Fluid (940px) */
 #{mixins.grid.fluid(vars.fluidGridColumnWidth(), vars.fluidGridGutterWidth())} 
 
+");
+};
+
+//----------------------------------------------------------------------
+// port of layouts.less
+// 
+
+__js var CSSLayouts = exports.CSSLayouts = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* Layouts */
+/* Fixed-width and fluid (with sidebar) layouts */
+/* -------------------------------------------- */
+
+
+/* Container (centered, fixed-width layouts) */
+#{mixins.container_fixed('.container')}
+
+/* Fluid layouts (left aligned, with sidebar, min- & max-width content) */
+.container-fluid {
+  padding-right: #{vars.gridGutterWidth()};
+  padding-left: #{vars.gridGutterWidth()};
+}
+#{mixins.clearfix('.container-fluid')}
 ");
 };
 
