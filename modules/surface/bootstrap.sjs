@@ -981,6 +981,10 @@ __js var Mixins = exports.Mixins = function(vars) {
 
                 #{spans()}
                ";
+      },
+      input: function() {
+        // XXX write me
+        return "";
       }
     }
   };
@@ -1022,6 +1026,269 @@ a:hover {
   color: #{vars.linkColorHover()};
   text-decoration: underline;
 }
+");
+};
+
+//----------------------------------------------------------------------
+// port of responsive.less
+// Bootstrap Responsive v2.0.4
+
+__js var CSSResponsive = exports.CSSResponsive = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* ---------------------------------------------------------------------- */
+/* responsive-utilities.less */
+/* RESPONSIVE CLASSES */
+/* ------------------ */
+
+/* Hide from screenreaders and browsers */
+/* Credit: HTML5 Boilerplate */
+.hidden {
+  display: none;
+  visibility: hidden;
+}
+
+/* Visibility utilities */
+
+/* For desktops */
+.visible-phone     { display: none !important; }
+.visible-tablet    { display: none !important; }
+.visible-desktop   { } /* Don't set initially */
+.hidden-phone      { }
+.hidden-tablet     { }
+.hidden-desktop    { display: none !important; }
+
+/* Phones only */
+@media (max-width: 767px) {
+  /* Show */
+  .visible-phone     { display: inherit !important; } /* Use inherit to restore previous behavior */
+  /* Hide */
+  .hidden-phone      { display: none !important; }
+  /* Hide everything else */
+  .hidden-desktop    { display: inherit !important; }
+  .visible-desktop   { display: none !important; }
+}
+
+/* Tablets & small desktops only */
+@media (min-width: 768px) and (max-width: 979px) {
+  /* Show */
+  .visible-tablet    { display: inherit !important; }
+  /* Hide */
+  .hidden-tablet     { display: none !important; }
+  /* Hide everything else */
+  .hidden-desktop    { display: inherit !important; }
+  .visible-desktop   { display: none !important ; }
+}
+
+/* MEDIA QUERIES */
+/* ------------------ */
+/* ---------------------------------------------------------------------- */
+/* Phones to portrait tablets and narrow desktops */
+/* responsive-767px-max.less */
+/* UP TO LANDSCAPE PHONE */
+/* --------------------- */
+
+@media (max-width: 480px) {
+
+  /* Smooth out the collapsing/expanding nav */
+  .nav-collapse {
+    -webkit-transform: translate3d(0, 0, 0); /* activate the GPU */
+  }
+
+  /* Block level the page header small tag for readability */
+  .page-header h1 small {
+    display: block;
+    line-height: #{vars.baseLineHeight()};
+  }
+
+  /* Update checkboxes for iOS */
+  input[type='checkbox'],
+  input[type='radio'] {
+    border: 1px solid #ccc;
+  }
+
+  /* Remove the horizontal form styles */
+  .form-horizontal .control-group > label {
+    float: none;
+    width: auto;
+    padding-top: 0;
+    text-align: left;
+  }
+  /* Move over all input controls and content */
+  .form-horizontal .controls {
+    margin-left: 0;
+  }
+  /* Move the options list down to align with labels */
+  .form-horizontal .control-list {
+    padding-top: 0; /* has to be padding because margin collaspes */
+  }
+  /* Move over buttons in .form-actions to align with .controls */
+  .form-horizontal .form-actions {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  /* Modals */
+  .modal {
+    position: absolute;
+    top:   10px;
+    left:  10px;
+    right: 10px;
+    width: auto;
+    margin: 0;
+  }
+  .modal.fade.in { top: auto; }
+  .modal-header .close {
+    padding: 10px;
+    margin: -10px;
+  }
+
+  /* Carousel */
+  .carousel-caption {
+    position: static;
+  }
+
+}
+
+
+
+/* LANDSCAPE PHONE TO SMALL DESKTOP & PORTRAIT TABLET */
+/* -------------------------------------------------- */
+
+@media (max-width: 767px) {
+
+  /* Padding to set content in a bit */
+  @global {
+    body {
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+  }
+  /* Negative indent the now static 'fixed' navbar */
+  .navbar-fixed-top,
+  .navbar-fixed-bottom {
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+  /* Remove padding on container given explicit padding set on body */
+  .container-fluid {
+    padding: 0;
+  }
+
+  /* TYPOGRAPHY */
+  /* ---------- */
+  /* Reset horizontal dl */
+  .dl-horizontal dt {
+      float: none;
+      clear: none;
+      width: auto;
+      text-align: left;
+  }
+  .dl-horizontal dd {
+      margin-left: 0;
+  }
+
+  /* GRID & CONTAINERS */
+  /* ----------------- */
+  /* Remove width from containers */
+  .container {
+    width: auto;
+  }
+  /* Fluid rows */
+  .row-fluid {
+    width: 100%;
+  }
+  /* Undo negative margin on rows and thumbnails */
+  .row,
+  .thumbnails {
+    margin-left: 0;
+  }
+  /* Make all grid-sized elements block level again */
+  [class*='span'],
+  .row-fluid [class*='span'] {
+    float: none;
+    display: block;
+    width: auto;
+    margin-left: 0;
+  }
+
+  /* FORM FIELDS */
+  /* ----------- */
+  /* Make span* classes full width */
+  .input-large,
+  .input-xlarge,
+  .input-xxlarge,
+  input[class*='span'],
+  select[class*='span'],
+  textarea[class*='span'],
+  .uneditable-input {
+    .input-block-level();
+  }
+  /* But don't let it screw up prepend/append inputs */
+  .input-prepend input,
+  .input-append input,
+  .input-prepend input[class*='span'],
+  .input-append input[class*='span'] {
+    display: inline-block; /* redeclare so they don't wrap to new lines */
+    width: auto;
+  }
+
+}
+
+/* ---------------------------------------------------------------------- */
+/* Phones to portrait tablets and narrow desktops */
+/* responsive-768px-979px.less */
+/* PORTRAIT TABLET TO DEFAULT DESKTOP */
+/* ---------------------------------- */
+
+@media (min-width: 768px) and (max-width: 979px) {
+
+  /* Fixed grid */
+  #{mixins.grid.core('42px', '20px')}
+
+  /* Fluid grid */
+  #{mixins.grid.fluid('5.801104972%', '2.762430939%')}
+
+  /* Input grid */
+  #{mixins.grid.input('42px', '20px')}
+
+  /* No need to reset .thumbnails here since it's the same @gridGutterWidth */
+
+}
+
+/* ---------------------------------------------------------------------- */
+/* Large desktops */
+/* responsive-768px-979px.less */
+/* LARGE DESKTOP & UP */
+/* ------------------ */
+
+@media (min-width: 1200px) {
+
+  /* Fixed grid */
+  #{mixins.grid.core('70px', '30px')}
+
+  /* Fluid grid */
+  #{mixins.grid.fluid('5.982905983%', '2.564102564%')}
+
+  /* Input grid */
+  #{mixins.grid.input('70px', '30px')}
+
+  // Thumbnails
+  .thumbnails {
+    margin-left: -30px;
+  }
+  .thumbnails > li {
+    margin-left: 30px;
+  }
+  .row-fluid .thumbnails {
+    margin-left: 0;
+  }
+
+}
+
 ");
 };
 
@@ -1828,9 +2095,7 @@ textarea[class*='span'],
 /* GRID SIZING FOR INPUTS */
 /* ---------------------- */
 
-/* XXX
-#grid > .input(@gridColumnWidth, @gridGutterWidth);
-*/
+#{mixins.grid.input(vars.gridColumnWidth(), vars.gridGutterWidth())}
 
 
 /* DISABLED STATE */
