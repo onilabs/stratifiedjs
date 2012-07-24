@@ -148,7 +148,7 @@ __js StyleElement.init = function(content, global) {
     var blocks = parseCSSBlocks(content);
     console.log("parse style=#{(new Date())-tt}ms");    
 
-    function processBlock(b,lvl) {
+    function processBlock(b,lvl,cssClass) {
       return coll.map(b, function(b) {
         if (!Array.isArray(b))
           return b; // a decl
@@ -158,18 +158,22 @@ __js StyleElement.init = function(content, global) {
           }
           if (b[0].charAt(0) != '@') {
             // fold cssClass into selector
-            b[0] = coll.map(b[0].split(','), function(s){ return ".#{cssClass} #{s}" }).join(',');
-            return "#{b[0]} { #{processBlock(b[1],lvl+1)} }";
+            b[0] = coll.map(b[0].split(','), function(s){ return "#{cssClass} #{s}" }).join(',');
+            return "#{b[0]} { #{processBlock(b[1],lvl+1,cssClass)} }";
+          }
+          else if (b[0].indexOf('@global') == 0) {
+            // apply style globally (i.e. don't fold cssClass into selector)
+            return processBlock(b[1],lvl,'');
           }
           else {
-            // '@'-rule (maybe a media query)
-            return "#{b[0]} { #{processBlock(b[1],lvl)} }";
+            // generic '@'-rule (maybe a media query)
+            return "#{b[0]} { #{processBlock(b[1],lvl,cssClass)} }";
           }
         }
       }).join('\n');
     }
     tt = new Date();
-    content = processBlock(blocks, 0);
+    content = processBlock(blocks, 0, '.'+cssClass);
     console.log("process style=#{(new Date())-tt}ms");
   }
   var elem = this.dompeer = document.createElement('style');
