@@ -1456,7 +1456,7 @@ __js var CSSResponsive = exports.CSSResponsive = function() {
     float: none;
     margin-left: 0;
   }
-  /* Hide everything in the navbar save .brand and toggle button */ */
+  /* Hide everything in the navbar save .brand and toggle button */
   .nav-collapse,
   .nav-collapse.collapse {
     overflow: hidden;
@@ -1533,6 +1533,37 @@ __js var CSSLayouts = exports.CSSLayouts = function() {
   padding-left: #{vars.gridGutterWidth()};
 }
 #{mixins.clearfix('.container-fluid')}
+");
+};
+
+//----------------------------------------------------------------------
+// port of component-animations.less
+// COMPONENT ANIMATIONS
+// --------------------
+__js var CSSComponentAnimations = exports.CSSComponentAnimations = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+.fade {
+  opacity: 0;
+  #{mixins.transition('opacity .15s linear')}
+}
+.fade.in {
+    opacity: 1;
+}
+
+.collapse {
+  position: relative;
+  height:0;
+  overflow: hidden;
+  #{mixins.transition('height .35s ease')} 
+}
+.collapse.in {
+  height: auto;
+}
+
 ");
 };
 
@@ -4502,6 +4533,33 @@ mechanism.tabs = function() {
         var oldContent = newContent.parentNode.querySelector('.active');
         oldContent.classList.remove('active');
         newContent.classList.add('active');
+      }
+    }
+  };
+};
+
+mechanism.collapsing = function() {
+  return function() {
+    using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
+      if (e.node = domFindData('toggle', 'collapse', e.target, this.dompeer)) {
+        dom.stopEvent(e);
+        return true;
+      }
+      else
+        return false;
+    })) {
+      while (1) {
+        var ev = Q.get();
+        var targetSelector = ev.node.getAttribute('data-target');
+        var container = ev.node.parentNode;
+        var target = container.querySelector(targetSelector);
+        var forceUpdate = target.offsetHeight;
+        if (!target.classList.contains('collapse'))
+          target.classList.add('collapse');
+        else if (target.classList.contains('in'))
+          target.classList.remove('in');
+        else
+          target.classList.add('in');
       }
     }
   };
