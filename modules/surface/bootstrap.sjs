@@ -422,7 +422,25 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   // -------------------------
   hrBorder()                { this.grayLighter() },
 
-  // XXX SOME OMISSIONS
+  // Navbar
+  // -------------------------
+  navbarHeight()                    { '40px'},
+  navbarBackground()                { this.grayDarker() },
+  navbarBackgroundHighlight()       { this.grayDark() },
+  
+  navbarText()                      { this.grayLight() },
+  navbarLinkColor()                 { this.grayLight() },
+  navbarLinkColorHover()            { this.white() },
+  navbarLinkColorActive()           { this.navbarLinkColorHover() },
+  navbarLinkBackgroundHover()       { 'transparent' },
+  navbarLinkBackgroundActive()      { this.navbarBackground()},
+  
+  navbarSearchBackground()          { lighten(this.navbarBackground(), .25) },
+  navbarSearchBackgroundFocus()     { this.white() },
+  navbarSearchBorder()              { darken(this.navbarSearchBackground(), .30) },
+  navbarSearchPlaceholderColor()    { '#ccc' },
+  navbarBrandColor()                { this.navbarLinkColor() },
+
 
   // Form states and alerts
   // -------------------------
@@ -696,16 +714,16 @@ __js var Mixins = exports.Mixins = function(vars) {
          line-height: #{lineHeight||vars.baseLineHeight()};"
       },
       serif(size, weight, lineHeight) {
-        "#{this.font.family.serif()}
-         #{this.font.shorthand(size, weight, lineHeight)}"
+        "#{this.family.serif()}
+         #{this.shorthand(size, weight, lineHeight)}"
       },
       sans_serif(size, weight, lineHeight) {
-        "#{this.font.family.sans_serif()}
-         #{this.font.shorthand(size, weight, lineHeight)}"
+        "#{this.family.sans_serif()}
+         #{this.shorthand(size, weight, lineHeight)}"
       },
       monospace(size, weight, lineHeight) {
-        "#{this.font.family.monospace()}
-         #{this.font.shorthand(size, weight, lineHeight)}"
+        "#{this.family.monospace()}
+         #{this.shorthand(size, weight, lineHeight)}"
       }
     },
 
@@ -892,6 +910,15 @@ __js var Mixins = exports.Mixins = function(vars) {
        }"
     },
 
+    // Navbar vertical align
+    // -------------------------
+    // Vertically center elements in the navbar.
+    // Example: an element has a height of 30px, so write out `mixins.navbarVerticalAlign('30px');` to calculate the appropriate top margin.
+    navbarVerticalAlign(elementHeight) {
+      "margin-top: #{scale(add(vars.navbarHeight(), '-'+elementHeight), 1/2)};"
+    },
+
+
     // Grid System
     // -----------
 
@@ -922,6 +949,10 @@ __js var Mixins = exports.Mixins = function(vars) {
 
     // The Grid
     grid : {
+      coreSpan(columns) {
+        "width: #{add(scale(vars.gridColumnWidth(),columns),scale(vars.gridGutterWidth(),columns-1))};"
+      },
+
       core: function(gridColumnWidth, gridGutterWidth) {
         function span(columns) {
           return "width: #{add(scale(gridColumnWidth,columns),scale(gridGutterWidth,columns-1))};";
@@ -1302,7 +1333,159 @@ __js var CSSResponsive = exports.CSSResponsive = function() {
 /* ------------------ */
 /* From 979px and below, show a button to toggle navbar contents */
 /* responsive-navbar.less */
-/* XXX */
+/* TABLETS AND BELOW */
+/* ----------------- */
+@media (max-width: 979px) {
+
+  /* UNFIX THE TOPBAR */
+  /* ---------------- */
+  /* Remove any padding from the body */
+  body {
+    padding-top: 0;
+  }
+  /* Unfix the navbar */
+  .navbar-fixed-top,
+  .navbar-fixed-bottom {
+    position: static;
+  }
+  .navbar-fixed-top {
+    margin-bottom: #{vars.baseLineHeight()};
+  }
+  .navbar-fixed-bottom {
+    margin-top: #{vars.baseLineHeight()};
+  }
+  .navbar-fixed-top .navbar-inner,
+  .navbar-fixed-bottom .navbar-inner {
+    padding: 5px;
+  }
+  .navbar .container {
+    width: auto;
+    padding: 0;
+  }
+  /* Account for brand name */
+  .navbar .brand {
+    padding-left: 10px;
+    padding-right: 10px;
+    margin: 0 0 0 -5px;
+  }
+
+  /* COLLAPSIBLE NAVBAR */
+  /* ------------------ */
+  /* Nav collapse clears brand */
+  .nav-collapse {
+    clear: both;
+  }
+  /* Block-level the nav */
+  .nav-collapse .nav {
+    float: none;
+    margin: 0 0 #{scale(vars.baseLineHeight(), 1/2)};
+  }
+  .nav-collapse .nav > li {
+    float: none;
+  }
+  .nav-collapse .nav > li > a {
+    margin-bottom: 2px;
+  }
+  .nav-collapse .nav > .divider-vertical {
+    display: none;
+  }
+  .nav-collapse .nav .nav-header {
+    color: #{vars.navbarText()};
+    text-shadow: none;
+  }
+  /* Nav and dropdown links in navbar */
+  .nav-collapse .nav > li > a,
+  .nav-collapse .dropdown-menu a {
+    padding: 6px 15px;
+    font-weight: bold;
+    color: #{vars.navbarLinkColor()};
+    #{mixins.border_radius('3px')}
+  }
+  /* Buttons */
+  .nav-collapse .btn {
+    padding: 4px 10px 4px;
+    font-weight: normal;
+    #{mixins.border_radius('4px')}
+  }
+  .nav-collapse .dropdown-menu li + li a {
+    margin-bottom: 2px;
+  }
+  .nav-collapse .nav > li > a:hover,
+  .nav-collapse .dropdown-menu a:hover {
+    background-color: #{vars.navbarBackground()};
+  }
+  /* Buttons in the navbar */
+  .nav-collapse.in .btn-group {
+    margin-top: 5px;
+    padding: 0;
+  }
+  /* Dropdowns in the navbar */
+  .nav-collapse .dropdown-menu {
+    position: static;
+    top: auto;
+    left: auto;
+    float: none;
+    display: block;
+    max-width: none;
+    margin: 0 15px;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    #{mixins.border_radius('0')}
+    #{mixins.box_shadow('none')}
+  }
+  .nav-collapse .dropdown-menu:before,
+  .nav-collapse .dropdown-menu:after {
+    display: none;
+  }
+  .nav-collapse .dropdown-menu .divider {
+    display: none;
+  }
+  /* Forms in navbar */
+  .nav-collapse .navbar-form,
+  .nav-collapse .navbar-search {
+    float: none;
+    padding: #{scale(vars.baseLineHeight(), 1/2)} 15px;
+    margin: #{scale(vars.baseLineHeight(), 1/2)} 0;
+    border-top: 1px solid #{vars.navbarBackground()};
+    border-bottom: 1px solid #{vars.navbarBackground()};
+    #{mixins.box_shadow('inset 0 1px 0 rgba(255,255,255,.1), 0 1px 0 rgba(255,255,255,.1)')}
+  }
+  /* Pull right (secondary) nav content */
+  .navbar .nav-collapse .nav.pull-right {
+    float: none;
+    margin-left: 0;
+  }
+  /* Hide everything in the navbar save .brand and toggle button */ */
+  .nav-collapse,
+  .nav-collapse.collapse {
+    overflow: hidden;
+    height: 0;
+  }
+  /* Navbar button */
+  .navbar .btn-navbar {
+    display: block;
+  }
+
+  /* STATIC NAVBAR */
+  /* ------------- */
+  .navbar-static .navbar-inner {
+    padding-left:  10px;
+    padding-right: 10px;
+  }
+}
+
+
+/* DEFAULT DESKTOP */
+/* --------------- */
+
+/* Required to make the collapsing navbar work on regular desktops */
+@media (min-width: 980px) {
+  .nav-collapse.collapse {
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
 
 ");
 };
@@ -3470,6 +3653,378 @@ __js var CSSNavs = exports.CSSNavs = function() {
   border-color: #ddd #ddd #ddd transparent;
   *border-left-color: #{vars.white()};
 }
+");
+};
+
+//----------------------------------------------------------------------
+// port of navbar.less
+/* NAVBAR (FIXED AND STATIC) */
+/* ------------------------- */
+
+
+__js var CSSNavbar = exports.CSSNavbar = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* COMMON STYLES */
+/* ------------- */
+
+.navbar {
+  /* Fix for IE7's bad z-indexing so dropdowns don't appear below content that follows the navbar */
+  *position: relative;
+  *z-index: 2;
+
+  overflow: visible;
+  margin-bottom: #{vars.baseLineHeight()};
+}
+
+/* Gradient is applied to it's own element because overflow visible is not honored by IE when filter is present */
+.navbar-inner {
+  min-height: #{vars.navbarHeight()};
+  padding-left:  20px;
+  padding-right: 20px;
+  #{mixins.gradient.vertical(vars.navbarBackgroundHighlight(), vars.navbarBackground()) }
+  #{mixins.border_radius('4px')}
+  #{mixins.box_shadow('0 1px 3px rgba(0,0,0,.25), inset 0 -1px 0 rgba(0,0,0,.1)')}
+}
+
+/* Set width to auto for default container */
+/* We then reset it for fixed navbars in the #gridSystem mixin */
+.navbar .container {
+  width: auto;
+}
+
+/* Override the default collapsed state */
+.nav-collapse.collapse {
+  height: auto;
+}
+
+
+/* Brand, links, text, and buttons */
+.navbar {
+  color: #{vars.navbarText()};
+  /* Hover and active states */
+}
+.navbar .brand:hover {
+    text-decoration: none;
+}
+  /* Website or project name */
+.navbar .brand {
+    float: left;
+    display: block;
+    /* Vertically center the text given @navbarHeight */
+    /* @elementHeight: 20px; */
+    padding: #{add(scale(add(vars.navbarHeight(), '-20px'),1/2), -2)} 20px #{add(scale(add(vars.navbarHeight(), '-20px'),1/2), 2)};
+
+    margin-left: -20px; /* negative indent to left-align the text down the page */
+    font-size: 20px;
+    font-weight: 200;
+    line-height: 1;
+    color: #{vars.navbarBrandColor()};
+}
+  /* Plain text in topbar */
+.navbar .navbar-text {
+    margin-bottom: 0;
+    line-height: #{vars.navbarHeight()};
+}
+  /* Janky solution for now to account for links outside the .nav */
+.navbar .navbar-link {
+    color: #{vars.navbarLinkColor()};
+}
+.navbar .navbar-link:hover {
+      color: #{vars.navbarLinkColorHover()};
+}
+  /* Buttons in navbar */
+.navbar .btn,
+.navbar .btn-group {
+    #{mixins.navbarVerticalAlign('30px')} /* Vertically center in navbar */
+}
+ .navbar .btn-group .btn {
+    margin: 0; /* then undo the margin here so we don't accidentally double it */
+}
+
+/* Navbar forms */
+.navbar-form {
+  margin-bottom: 0; /* remove default bottom margin */
+}
+#{mixins.clearfix('.navbar-form')}
+
+.navbar-form input,
+.navbar-form select,
+.navbar-form .radio,
+.navbar-form .checkbox {
+    #{mixins.navbarVerticalAlign('30px')} /* Vertically center in navbar */
+}
+.navbar-form input,
+.navbar-form select {
+    display: inline-block;
+    margin-bottom: 0;
+}
+.navbar-form input[type='image'],
+.navbar-form input[type='checkbox'],
+.navbar-form input[type='radio'] {
+    margin-top: 3px;
+}
+.navbar-form .input-append,
+.navbar-form .input-prepend {
+    margin-top: 6px;
+    white-space: nowrap; /* preven two  items from separating within a .navbar-form that has .pull-left */
+}
+
+.navbar-form .input-append input,
+.navbar-form .input-prepend input {
+      margin-top: 0; /* remove the margin on top since it's on the parent */
+}
+
+/* Navbar search */
+.navbar-search {
+  position: relative;
+  float: left;
+  #{mixins.navbarVerticalAlign('28px')} /* Vertically center in navbar */
+  margin-bottom: 0;
+}
+.navbar-search .search-query {
+    padding: 4px 9px;
+    #{mixins.font.sans_serif('13px', 'normal', '1')}
+    color: #{vars.white()};
+    background-color: #{vars.navbarSearchBackground()};
+    border: 1px solid #{vars.navbarSearchBorder()};
+    #{mixins.box_shadow('inset 0 1px 2px rgba(0,0,0,.1), 0 1px 0 rgba(255,255,255,.15)')}
+    #{mixins.transition('none')}
+}
+#{mixins.placeholder('.navbar-search .search-query', vars.navbarSearchPlaceholderColor())}
+
+    /* Focus states (we use .focused since IE7-8 and down doesn't support :focus) */
+.navbar-search .search-query:focus,
+.navbar-search .search-query.focused {
+      padding: 5px 10px;
+      color: #{vars.grayDark()};
+      text-shadow: 0 1px 0 #{vars.white()};
+      background-color: #{vars.navbarSearchBackgroundFocus()};
+      border: 0;
+      #{mixins.box_shadow('0 0 3px rgba(0,0,0,.15)')}
+      outline: 0;
+}
+
+/* FIXED NAVBAR */
+/* ------------ */
+
+/* Shared (top/bottom) styles */
+.navbar-fixed-top,
+.navbar-fixed-bottom {
+  position: fixed;
+  right: 0;
+  left: 0;
+  z-index: #{vars.zindexFixedNavbar()};
+  margin-bottom: 0; /* remove 18px margin for static navbar */
+}
+.navbar-fixed-top .navbar-inner,
+.navbar-fixed-bottom .navbar-inner {
+  padding-left:  0;
+  padding-right: 0;
+  #{mixins.border_radius('0')}
+}
+
+.navbar-fixed-top .container,
+.navbar-fixed-bottom .container {
+  #{mixins.grid.coreSpan(vars.gridColumns())}
+}
+
+/* Fixed to top */
+.navbar-fixed-top {
+  top: 0;
+}
+
+/* Fixed to bottom */
+.navbar-fixed-bottom {
+  bottom: 0;
+}
+
+
+
+/* NAVIGATION */
+/* ---------- */
+
+.navbar .nav {
+  position: relative;
+  left: 0;
+  display: block;
+  float: left;
+  margin: 0 10px 0 0;
+}
+.navbar .nav.pull-right {
+  float: right; /* redeclare due to specificity */
+}
+.navbar .nav > li {
+  display: block;
+  float: left;
+}
+
+/* Links */
+.navbar .nav > li > a {
+  float: none;
+  /* Vertically center the text given @navbarHeight */
+  /* @elementHeight: 20px; */
+    padding: #{add(scale(add(vars.navbarHeight(), '-20px'),1/2), -1)} 10px #{add(scale(add(vars.navbarHeight(), '-20px'),1/2), 1)};
+  line-height: 19px;
+  color: #{vars.navbarLinkColor()};
+  text-decoration: none;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.25);
+}
+/* Buttons */
+.navbar .btn {
+  display: inline-block;
+  padding: 4px 10px 4px;
+  /* Vertically center the button given @navbarHeight */
+  /* @elementHeight: 28px; */
+  margin: #{add(scale(add(vars.navbarHeight(), '-28px'),1/2), -1)} 5px #{scale(add(vars.navbarHeight(), '-28px'),1/2)};
+  line-height: #{vars.baseLineHeight()};
+}
+.navbar .btn-group {
+  margin: 0;
+  /* Vertically center the button given @navbarHeight */
+  /* @elementHeight: 28px; */
+  padding: #{add(scale(add(vars.navbarHeight(), '-28px'),1/2), -1)} 5px #{scale(add(vars.navbarHeight(), '-28px'),1/2)};
+}
+/* Hover */
+.navbar .nav > li > a:hover {
+  background-color: #{vars.navbarLinkBackgroundHover()}; /* 'transparent' is default to differentiate :hover from .active */
+  color: #{vars.navbarLinkColorHover()};
+  text-decoration: none;
+}
+
+/* Active nav items */
+.navbar .nav .active > a,
+.navbar .nav .active > a:hover {
+  color: #{vars.navbarLinkColorActive()};
+  text-decoration: none;
+  background-color: #{vars.navbarLinkBackgroundActive()};
+}
+
+/* Dividers (basically a vertical hr) */
+.navbar .divider-vertical {
+  height: #{vars.navbarHeight()};
+  width: 1px;
+  margin: 0 9px;
+  overflow: hidden;
+  background-color: #{vars.navbarBackground()};
+  border-right: 1px solid #{vars.navbarBackgroundHighlight()};
+}
+
+/* Secondary (floated right) nav in topbar */
+.navbar .nav.pull-right {
+  margin-left: 10px;
+  margin-right: 0;
+}
+
+/* Navbar button for toggling navbar items in responsive layouts */
+/* These definitions need to come after '.navbar .btn' */
+.navbar .btn-navbar {
+  display: none;
+  float: right;
+  padding: 7px 10px;
+  margin-left: 5px;
+  margin-right: 5px;
+  #{mixins.box_shadow('inset 0 1px 0 rgba(255,255,255,.1), 0 1px 0 rgba(255,255,255,.075)')}
+}
+#{mixins.buttonBackground('.navbar .btn-navbar', vars.navbarBackgroundHighlight(), vars.navbarBackground())}
+
+.navbar .btn-navbar .icon-bar {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background-color: #f5f5f5;
+  #{mixins.border_radius('1px')}
+  #{mixins.box_shadow('0 1px 0 rgba(0,0,0,.25)')}
+}
+.btn-navbar .icon-bar + .icon-bar {
+  margin-top: 3px;
+}
+
+
+/* Dropdown menus */
+/* -------------- */
+
+/* Menu position and menu carets */
+.navbar .dropdown-menu:before {
+    content: '';
+    display: inline-block;
+    border-left:   7px solid transparent;
+    border-right:  7px solid transparent;
+    border-bottom: 7px solid #ccc;
+    border-bottom-color: #{vars.dropdownBorder()};
+    position: absolute;
+    top: -7px;
+    left: 9px;
+}
+.navbar .dropdown-menu:after {
+    content: '';
+    display: inline-block;
+    border-left:   6px solid transparent;
+    border-right:  6px solid transparent;
+    border-bottom: 6px solid #{vars.dropdownBackground()};
+    position: absolute;
+    top: -6px;
+    left: 10px;
+}
+
+/* Menu position and menu caret support for dropups via extra dropup class */
+.navbar-fixed-bottom .dropdown-menu:before {
+    border-top: 7px solid #ccc;
+    border-top-color: #{vars.dropdownBorder()};
+    border-bottom: 0;
+    bottom: -7px;
+    top: auto;
+}
+.navbar-fixed-bottom .dropdown-menu:after {
+    border-top: 6px solid #{vars.dropdownBackground()};
+    border-bottom: 0;
+    bottom: -6px;
+    top: auto;
+}
+
+/* Dropdown toggle caret */
+.navbar .nav li.dropdown .dropdown-toggle .caret,
+.navbar .nav li.dropdown.open .caret {
+  border-top-color: #{vars.white()};
+  border-bottom-color: #{vars.white()};
+}
+.navbar .nav li.dropdown.active .caret {
+  #{mixins.opacity(100)}
+}
+
+/* Remove background color from open dropdown */
+.navbar .nav li.dropdown.open > .dropdown-toggle,
+.navbar .nav li.dropdown.active > .dropdown-toggle,
+.navbar .nav li.dropdown.open.active > .dropdown-toggle {
+  background-color: transparent;
+}
+
+/* Dropdown link on hover */
+.navbar .nav li.dropdown.active > .dropdown-toggle:hover {
+  color: #{vars.white()};
+}
+
+/* Right aligned menus need alt position */
+/* TODO: rejigger this at some point to simplify the selectors */
+.navbar .pull-right .dropdown-menu,
+.navbar .dropdown-menu.pull-right {
+  left: auto;
+  right: 0;
+}
+.navbar .pull-right .dropdown-menu:before,
+.navbar .dropdown-menu.pull-right:before {
+    left: auto;
+    right: 12px;
+  }
+.navbar .pull-right .dropdown-menu:after, 
+.navbar .dropdown-menu.pull-right:after {
+    left: auto;
+    right: 13px;
+}
+
 ");
 };
 
