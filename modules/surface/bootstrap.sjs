@@ -4060,6 +4060,41 @@ __js var CSSNavbar = exports.CSSNavbar = function() {
 };
 
 //----------------------------------------------------------------------
+// port of breadcrumbs.less
+// BREADCRUMBS
+// -----------
+__js var CSSBreadcrumbs = exports.CSSBreadcrumbs = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+.breadcrumb {
+  padding: 7px 14px;
+  margin: 0 0 #{vars.baseLineHeight()};
+  list-style: none;
+  #{mixins.gradient.vertical(vars.white(), '#f5f5f5')}
+  border: 1px solid #ddd;
+  #{mixins.border_radius('3px')}
+  #{mixins.box_shadow('inset 0 1px 0 '+vars.white())}
+}
+.breadcrumb li {
+    display: inline-block;
+    #{mixins.ie7_inline_block()}
+    text-shadow: 0 1px 0 #{vars.white()};
+}
+.breadcrumb .divider {
+    padding: 0 5px;
+    color: #{vars.grayLight()};
+}
+.breadcrumb .active a {
+    color: #{vars.grayDark()};
+}
+");
+};
+
+
+//----------------------------------------------------------------------
 // port of Font Awesome's font-awesome.less (in lieu of Bootstrap's
 // sprites.less)
 
