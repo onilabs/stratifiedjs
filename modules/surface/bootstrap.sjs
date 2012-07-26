@@ -400,12 +400,12 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   // -------------------------
   // Used for a bird's eye view of components dependent on the z-axis
   // Try to avoid customizing these :)
-  zindexDropdown()          { '1000' },
-  zindexPopover()           { '1010' },
-  zindexTooltip()           { '1020' },
-  zindexFixedNavbar()       { '1030' },
-  zindexModalBackdrop()     { '1040' },
-  zindexModal()             { '1050' },
+  zindexDropdown()          { 1000 },
+  zindexPopover()           { 1010 },
+  zindexTooltip()           { 1020 },
+  zindexFixedNavbar()       { 1030 },
+  zindexModalBackdrop()     { 1040 },
+  zindexModal()             { 1050 },
 
   // Sprite icons path
   // -------------------------
@@ -812,6 +812,14 @@ __js var Mixins = exports.Mixins = function(vars) {
     },
 
     // XXX some omissions
+
+    // Background clipping
+    // Heads up: FF 3.6 and under need "padding" instead of "padding-box"
+    background_clip(clip) {
+      "-webkit-background-clip: #{clip};
+       -moz-background-clip: #{clip};
+       background-clip: #{clip};"
+    },
 
     // Background sizing
     background_size(size){
@@ -4413,6 +4421,105 @@ __js var CSSBreadcrumbs = exports.CSSBreadcrumbs = function() {
 ");
 };
 
+//----------------------------------------------------------------------
+// port of modals.less
+// MODALS
+// ------
+__js var CSSModals = exports.CSSModals = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* Recalculate z-index where appropriate */
+.modal-open .dropdown-menu {  z-index: #{vars.zindexDropdown() + vars.zindexModal()}; }
+.modal-open .dropdown.open { *z-index: #{vars.zindexDropdown() + vars.zindexModal()}; }
+.modal-open .popover       {  z-index: #{vars.zindexPopover()  + vars.zindexModal()}; }
+.modal-open .tooltip       {  z-index: #{vars.zindexTooltip()  + vars.zindexModal()}; }
+
+
+/* Background */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: #{vars.zindexModalBackdrop()};
+  background-color: #{vars.black()};
+}
+  /* Fade for backdrop */
+.modal-backdrop.fade { opacity: 0; }
+
+.modal-backdrop,
+.modal-backdrop.fade.in {
+  #{mixins.opacity(80)}
+}
+
+/* Base modal */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: #{vars.zindexModal()};
+  overflow: auto;
+  width: 560px;
+  margin: -250px 0 0 -280px;
+  background-color: #{vars.white()};
+  border: 1px solid #999;
+  border: 1px solid rgba(0,0,0,.3);
+  *border: 1px solid #999; /* IE6-7 */
+  #{mixins.border_radius('6px')}
+  #{mixins.box_shadow('0 3px 7px rgba(0,0,0,0.3)')}
+  #{mixins.background_clip('padding-box')}
+}
+.modal.fade {
+    #{mixins.transition('opacity .3s linear, top .3s ease-out')}
+    top: -25%;
+  }
+.modal.fade.in { top: 50%; }
+
+.modal-header {
+  padding: 9px 15px;
+  border-bottom: 1px solid #eee;
+}
+  /* Close icon */
+.modal-header .close { margin-top: 2px; }
+
+/* Body (where all modal content resides) */
+.modal-body {
+  overflow-y: auto;
+  max-height: 400px;
+  padding: 15px;
+}
+/* Remove bottom margin if need be */
+.modal-form {
+  margin-bottom: 0;
+}
+
+/* Footer (for actions) */
+.modal-footer {
+  padding: 14px 15px 15px;
+  margin-bottom: 0;
+  text-align: right; /* right align buttons */
+  background-color: #f5f5f5;
+  border-top: 1px solid #ddd;
+  #{mixins.border_radius('0 0 6px 6px')}
+  #{mixins.box_shadow('inset 0 1px 0 '+vars.white())}
+}
+#{mixins.clearfix('.modal-footer')} /* clear it in case folks use .pull-* classes on buttons */
+
+  /* Properly space out buttons */
+.modal-footer .btn + .btn {
+    margin-left: 5px;
+    margin-bottom: 0; /* account for input[type='submit'] which gets the bottom margin like all other inputs */
+}
+  /* but override that for button groups */
+.modal-footer .btn-group .btn + .btn {
+    margin-left: -1px;
+}
+");
+};
 
 //----------------------------------------------------------------------
 // port of Font Awesome's font-awesome.less (in lieu of Bootstrap's
