@@ -805,10 +805,14 @@ __js var Mixins = exports.Mixins = function(vars) {
        transition: #{transition};"
     },
 
-    // Opacity
-    opacity(opacity) {
-      "opacity: #{Math.round(opacity*100)/10000};
-       filter: alpha(opacity=#{opacity});"
+    // XXX some omissions
+
+    // Background sizing
+    background_size(size){
+      "-webkit-background-size: #{size};
+       -moz-background-size: #{size};
+       -o-background-size: #{size};
+       background-size: #{size};"
     },
 
     // Box sizing
@@ -817,6 +821,14 @@ __js var Mixins = exports.Mixins = function(vars) {
        -moz-box-sizing: #{boxmodel};
        -ms-box-sizing: #{boxmodel};
        box-sizing: #{boxmodel};"
+    },
+
+    // XXX some omissions
+    
+    // Opacity
+    opacity(opacity) {
+      "opacity: #{Math.round(opacity*100)/10000};
+       filter: alpha(opacity=#{opacity});"
     },
 
     // BACKGROUNDS
@@ -856,7 +868,18 @@ __js var Mixins = exports.Mixins = function(vars) {
          background-image: linear-gradient(top, #{startColor}, #{endColor}); /* The standard */
          background-repeat: repeat-x;
          filter: e(%(\"progid:DXImageTransform.Microsoft.gradient(startColorstr='%d', endColorstr='%d', GradientType=0)\",#{startColor},#{endColor})); /* IE9 and down */"
-      }
+      },
+      striped(color, angle) {
+        angle = angle || '-45deg',
+        "background-color: #{color};
+         background-image: -webkit-gradient(linear, 0 100%, 100% 0, color-stop(.25, rgba(255,255,255,.15)), color-stop(.25, transparent), color-stop(.5, transparent), color-stop(.5, rgba(255,255,255,.15)), color-stop(.75, rgba(255,255,255,.15)), color-stop(.75, transparent), to(transparent));
+         background-image: -webkit-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+         background-image: -moz-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+         background-image: -ms-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+         background-image: -o-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+         background-image: linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);"
+  }
+
     },
 
     // Reset filters for IE
@@ -3376,6 +3399,134 @@ a.thumbnail:hover {
   padding: 9px;
 }
 
+");
+};
+
+//----------------------------------------------------------------------
+// port of progess-bars.less
+// PROGRESS BARS
+// -------------
+
+__js var CSSProgressBars = exports.CSSProgressBars = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* ANIMATIONS */
+/* ---------- */
+
+@global {
+/* Webkit */
+@-webkit-keyframes __oni_bootstrap-progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+/* Firefox */
+@-moz-keyframes __oni_bootstrap-progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+/* IE9 */
+@-ms-keyframes __oni_bootstrap-progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+
+/* Opera */
+@-o-keyframes __oni_bootstrap-progress-bar-stripes {
+  from  { background-position: 0 0; }
+  to    { background-position: 40px 0; }
+}
+
+/* Spec */
+@keyframes __oni_bootstrap-progress-bar-stripes {
+  from  { background-position: 40px 0; }
+  to    { background-position: 0 0; }
+}
+}
+
+
+/* THE BARS */
+/* -------- */
+
+/* Outer container */
+.progress {
+  overflow: hidden;
+  height: 18px;
+  margin-bottom: 18px;
+  #{mixins.gradient.vertical('#f5f5f5', '#f9f9f9')}
+  #{mixins.box_shadow('inset 0 1px 2px rgba(0,0,0,.1)')}
+  #{mixins.border_radius('4px')}
+}
+
+/* Bar of progress */
+.progress .bar {
+  width: 0%;
+  height: 18px;
+  color: #{vars.white()};
+  font-size: 12px;
+  text-align: center;
+  text-shadow: 0 -1px 0 rgba(0,0,0,.25);
+  #{mixins.gradient.vertical('#149bdf', '#0480be')}
+  #{mixins.box_shadow('inset 0 -1px 0 rgba(0,0,0,.15)')}
+  #{mixins.box_sizing('border-box')}
+  #{mixins.transition('width .6s ease')}
+}
+
+/* Striped bars */
+.progress-striped .bar {
+  #{mixins.gradient.striped('#149bdf')}
+  #{mixins.background_size('40px 40px')}
+}
+
+/* Call animation for the active one */
+.progress.active .bar {
+  -webkit-animation: __oni_bootstrap-progress-bar-stripes 2s linear infinite;
+     -moz-animation: __oni_bootstrap-progress-bar-stripes 2s linear infinite;
+      -ms-animation: __oni_bootstrap-progress-bar-stripes 2s linear infinite;
+       -o-animation: __oni_bootstrap-progress-bar-stripes 2s linear infinite;
+          animation: __oni_bootstrap-progress-bar-stripes 2s linear infinite;
+}
+
+
+
+/* COLORS */
+/* ------ */
+
+/* Danger (red) */
+.progress-danger .bar {
+  #{mixins.gradient.vertical('#ee5f5b', '#c43c35')}
+}
+.progress-danger.progress-striped .bar {
+  #{mixins.gradient.striped('#ee5f5b') }
+}
+
+/* Success (green) */
+.progress-success .bar {
+  #{mixins.gradient.vertical('#62c462', '#57a957')}
+}
+.progress-success.progress-striped .bar {
+  #{mixins.gradient.striped('#62c462')}
+}
+
+/* Info (teal) */
+.progress-info .bar {
+  #{mixins.gradient.vertical('#5bc0de', '#339bb9')}
+}
+.progress-info.progress-striped .bar {
+  #{mixins.gradient.striped('#5bc0de')}
+}
+
+/* Warning (orange) */
+.progress-warning .bar {
+  #{mixins.gradient.vertical(lighten(vars.orange(), .15), vars.orange())}
+}
+.progress-warning.progress-striped .bar {
+  #{mixins.gradient.striped(lighten(vars.orange(), .15))}
+}
 ");
 };
 
