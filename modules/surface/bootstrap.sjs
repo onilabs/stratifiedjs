@@ -2926,7 +2926,7 @@ input[type='submit'].btn.btn-mini {
 };
 
 //----------------------------------------------------------------------
-// port of button-grous.less
+// port of button-groups.less
 // BUTTON GROUPS
 // -------------
 
@@ -3117,6 +3117,75 @@ __js var CSSButtonGroups = exports.CSSButtonGroups = function() {
     border-top-color: #{vars.white()};
     border-bottom-color: #{vars.white()};
     #{mixins.opacity(75)}
+}
+");
+};
+
+//----------------------------------------------------------------------
+// port of alerts.less
+// ALERT STYLES
+// ------------
+
+__js var CSSAlerts = exports.CSSAlerts = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+/* Base alert styles */
+.alert {
+  padding: 8px 35px 8px 14px;
+  margin-bottom: #{vars.baseLineHeight()};
+  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  background-color: #{vars.warningBackground()};
+  border: 1px solid #{vars.warningBorder()};
+  #{mixins.border_radius('4px')}
+  color: #{vars.warningText()};
+}
+.alert-heading {
+  color: inherit;
+}
+
+/* Adjust close link position */
+.alert .close {
+  position: relative;
+  top: -2px;
+  right: -21px;
+  line-height: 18px;
+}
+
+/* Alternate styles */
+/* ---------------- */
+
+.alert-success {
+  background-color: #{vars.successBackground()};
+  border-color: #{vars.successBorder()};  
+  color: #{vars.successText()};
+}
+.alert-danger,
+.alert-error {
+  background-color: #{vars.errorBackground()};
+  border-color: #{vars.errorBorder()};
+  color: #{vars.errorText()};
+}
+.alert-info {
+  background-color: #{vars.infoBackground()};
+  border-color: #{vars.infoBorder()};
+  color: #{vars.infoText()};
+}
+
+/* Block alerts */
+/* ------------------------ */
+.alert-block {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.alert-block > p,
+.alert-block > ul {
+  margin-bottom: 0;
+}
+.alert-block p + p {
+  margin-top: 5px;
 }
 ");
 };
@@ -4849,6 +4918,26 @@ mechanism.collapsing = function() {
       }
     }
   };
+};
+
+mechanism.alert = function() {
+  return function() {
+    using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
+      if (e.node = domFindData('dismiss', 'alert', e.target, this.dompeer)) {
+        dom.stopEvent(e);
+        return true;
+      }
+      else 
+        return false;
+    })) {
+      while (1) {
+        var ev = Q.get();
+        var target = domFind('.alert', ev.node);
+        //target.classList.remove('in');
+        target.parentNode.removeChild(target);
+      }
+    }
+  }
 };
 
 //----------------------------------------------------------------------
