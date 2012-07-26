@@ -5047,6 +5047,45 @@ mechanism.alert = function() {
   }
 };
 
+mechanism.modal = function() {
+  return function() {
+    while (1) {
+      var ev = dom.waitforEvent(this.dompeer, 'click', function(e) {
+        if (e.node = domFindData('toggle', 'modal', e.target, this.dompeer)) {
+          dom.stopEvent(e);
+          return true;
+        }
+        else
+          return false;
+      });
+      var modal = ev.node.parentNode.querySelector(ev.node.getAttribute('href'));
+      try {
+        var backdrop = document.createElement('div');
+        backdrop.classList.add('modal-backdrop');
+        this.dompeer.classList.add('modal-open');
+        this.dompeer.appendChild(backdrop);
+        modal.style.display = 'block';
+        modal.classList.add('in');
+        waitfor {
+          dom.waitforEvent(document, 'keyup', {|e| e.which == 27 });
+        }
+        or {
+          dom.waitforEvent(backdrop, 'click');
+        }
+        or {
+          dom.waitforEvent(modal, 'click', { |e| domFindData('dismiss', 'modal', e.target, modal) });
+        }
+      }
+      finally {
+        modal.style.display = '';
+        modal.classList.remove('in');
+        backdrop.parentNode.removeChild(backdrop);
+        this.dompeer.classList.remove('modal-open');
+      }
+    }
+  }
+};
+
 //----------------------------------------------------------------------
 
 console.log("bootstrap.sjs loading: #{(new Date())-tt}");
