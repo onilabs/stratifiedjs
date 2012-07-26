@@ -441,6 +441,12 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   navbarSearchPlaceholderColor()    { '#ccc' },
   navbarBrandColor()                { this.navbarLinkColor() },
 
+  // Hero unit
+  // -------------------------
+  heroUnitBackground()              { this.grayLighter() },
+  heroUnitHeadingColor()            { 'inherit' },
+  heroUnitLeadColor()               { 'inherit' },
+
 
   // Form states and alerts
   // -------------------------
@@ -3526,6 +3532,39 @@ __js var CSSProgressBars = exports.CSSProgressBars = function() {
 }
 .progress-warning.progress-striped .bar {
   #{mixins.gradient.striped(lighten(vars.orange(), .15))}
+}
+");
+};
+
+//----------------------------------------------------------------------
+// port of hero-unit.less
+// HERO UNIT
+// ---------
+
+__js var CSSHeroUnit = exports.CSSHeroUnit = function() {
+  var vars = defaultLookAndFeel;
+  var mixins = Mixins(vars);
+
+  // XXX cache
+  return surface.CSS("
+.hero-unit {
+  padding: 60px;
+  margin-bottom: 30px;
+  background-color: #{vars.heroUnitBackground()};
+  #{mixins.border_radius('6px')}
+}
+.hero-unit h1 {
+    margin-bottom: 0;
+    font-size: 60px;
+    line-height: 1;
+    color: #{vars.heroUnitHeadingColor()};
+    letter-spacing: -1px;
+}
+.hero-unit p {
+    font-size: 18px;
+    font-weight: 200;
+    line-height: #{scale(vars.baseLineHeight(), 1.5)};
+    color: #{vars.heroUnitLeadColor()};
 }
 ");
 };
