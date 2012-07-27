@@ -347,7 +347,7 @@ var UIElement = exports.UIElement = {};
    @param   {Object} [attribs] Hash with attributes
    @attrib  {optional Function|Array} [run] Function or array of functions that will 
                be spawned when the element 
-               is activated and aborted when the element is deactivated 
+               has been activated and aborted when the element is deactivated 
                (see [::UIElement::activated] & [::UIElement::deactivated]).
                The function will be executed with `this` pointing to the UIElement.
    @attrib  {optional ::StyleElement|Array} [style] [::StyleElement] 
@@ -400,13 +400,23 @@ UIElement.select1 = function(selector) { return this.dompeer.querySelector(selec
 UIElement.select = function(selector) { return this.dompeer.querySelectorAll(selector); };
 
 /**
+   @function UIElement.activate
+   @summary Called when this UIElement is about to be attached (directly or indirectly) 
+   to the global surface. When attaching to a container that is active, this method will 
+   (by design) be called before [::UIElement:attached] 
+*/
+UIElement.activate = function() {
+  if (this.isActivated) throw new Error("UIElement already activated");
+  coll.each(this.style, {|s| s.use() });
+};
+
+/**
    @function UIElement.activated
    @summary Called when this UIElement has been attached (directly or indirectly) to the global surface
 */
 UIElement.activated = function() {
   if (this.isActivated) throw new Error("UIElement already activated");
   this.isActivated = true;
-  coll.each(this.style, {|s| s.use() });
   this.dompeer.style.visibility = 'visible';
   if (this.run) {
     if (Array.isArray(this.run))
@@ -623,6 +633,10 @@ var ChildManagement = {
     ui.detached();
   },
 
+  activate: function() {
+    coll.each(this.children, { |c| c.activate() });
+  },
+
   activated: function() {
     coll.each(this.children, { |c| c.activated() });
   },
@@ -634,6 +648,7 @@ var ChildManagement = {
   mixinto: function(target) {
     target.init = func.seq(target.init, this.init);
     target.remove = this.remove;
+    target.activate = func.seq(target.activate, this.activate);
     target.activated = func.seq(target.activated, this.activated);
     target.deactivated = func.seq(target.deactivated, this.deactivated);
   }
@@ -696,6 +711,8 @@ BoxElement.append = function(ui, attribs) {
     align: attribs.align || "<"
   };
   this.children.push(ui);
+  if (this.isActivated)
+    ui.activate();
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
   if (this.isActivated)
@@ -982,6 +999,8 @@ ChildManagement.mixinto(VScrollBoxElement);
 
 __js VScrollBoxElement.append = function(ui) {
   this.children.push(ui);
+  if (this.isActivated)
+    ui.activate();
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
   if (this.isActivated) {
@@ -1229,6 +1248,8 @@ ChildManagement.mixinto(RootElement);
 
 RootElement.append = function(ui) {
   this.children.push(ui);
+  if (this.isActivated)
+    ui.activate();
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
   if (this.isActivated)
@@ -1281,6 +1302,7 @@ surface-aperture { overflow:hidden; }
     }
   }
 });
+surface.activate();
 surface.activated();
 
 /*
