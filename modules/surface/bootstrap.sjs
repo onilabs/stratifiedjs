@@ -53,9 +53,40 @@
      
 */
 
-var surface = require('./base');
+var base = require('./base');
 var coll = require('../collection');
 var tt = new Date();
+
+//----------------------------------------------------------------------
+
+/**
+   @variable surface
+   @summary  Copy of [base::surface] (the one and only instance of [base::RootElement])
+*/
+__js exports.surface = base.surface;
+
+/**
+   @function Html
+   @summary Create a [base::HtmlFragmentElement] with full [bootstrap::] 
+            styles and mechanisms applied.
+   @param {String} [content] HTML content
+   @return {::HtmlFragmentElement}
+*/
+exports.Html = function(content) {
+  return base.Html({
+    style:[
+      CSSReset(), CSSScaffolding(), CSSGrid(), CSSLayouts(),
+      CSSComponentAnimations(), CSSType(), CSSCode(), CSSTables(), CSSWells(),
+      CSSForms(), CSSButtons(), CSSButtonGroups(), CSSAlerts(), CSSDropdowns(),
+      CSSLabelsBadges(), CSSThumbnails(), CSSProgressBars(), CSSHeroUnit(),
+      CSSNavs(), CSSNavbar(), CSSBreadcrumbs(), CSSModals(), CSSFontAwesome(),
+      CSSClose(), CSSResponsive()],
+    content: content,
+    run: [mechanism.dropdowns(), mechanism.tabs(), mechanism.collapsing(),
+          mechanism.alert(), mechanism.modal()]
+  });
+};
+
 //----------------------------------------------------------------------
 // color arithmetic 
 
@@ -491,7 +522,7 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
 
 var CSSReset = exports.CSSReset = function() {
 //XXX cache
-  return surface.GlobalCSS("
+  return base.GlobalCSS("
 /* Display in IE6-9 and FF3  */
 /* ------------------------  */
 
@@ -1072,12 +1103,12 @@ __js var Mixins = exports.Mixins = function(vars) {
 // Basic and global styles for generating a grid system, structural
 // layout, and page templates
 
-__js var CSSScaffolding = exports.CSSScaffolding = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSScaffolding = exports.CSSScaffolding = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.GlobalCSS("
+  return base.GlobalCSS("
 /* Body reset */
 /* ---------- */
 
@@ -1109,16 +1140,17 @@ a:hover {
 // port of responsive.less
 // Bootstrap Responsive v2.0.4
 
-__js var CSSResponsive = exports.CSSResponsive = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSResponsive = exports.CSSResponsive = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* ---------------------------------------------------------------------- */
 /* responsive-utilities.less */
 /* RESPONSIVE CLASSES */
 /* ------------------ */
+/* XXX order matters! This needs to be included AFTER every other bootstrap stylesheet */
 
 /* Hide from screenreaders and browsers */
 /* Credit: HTML5 Boilerplate */
@@ -1531,12 +1563,12 @@ __js var CSSResponsive = exports.CSSResponsive = function() {
 // port of grid.less
 // 
 
-__js var CSSGrid = exports.CSSGrid = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSGrid = exports.CSSGrid = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Fixed (940px) */
 #{mixins.grid.core(vars.gridColumnWidth(), vars.gridGutterWidth())}
 
@@ -1550,12 +1582,12 @@ __js var CSSGrid = exports.CSSGrid = function() {
 // port of layouts.less
 // 
 
-__js var CSSLayouts = exports.CSSLayouts = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSLayouts = exports.CSSLayouts = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Layouts */
 /* Fixed-width and fluid (with sidebar) layouts */
 /* -------------------------------------------- */
@@ -1577,12 +1609,12 @@ __js var CSSLayouts = exports.CSSLayouts = function() {
 // port of component-animations.less
 // COMPONENT ANIMATIONS
 // --------------------
-__js var CSSComponentAnimations = exports.CSSComponentAnimations = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSComponentAnimations = exports.CSSComponentAnimations = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 .fade {
   opacity: 0;
   #{mixins.transition('opacity .15s linear')}
@@ -1609,12 +1641,12 @@ __js var CSSComponentAnimations = exports.CSSComponentAnimations = function() {
 // Headings, body text, lists, code, and more for a versatile and
 // durable typography system
 
-__js var CSSType = exports.CSSType = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSType = exports.CSSType = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* BODY TEXT */
 /* --------- */
 
@@ -1851,12 +1883,12 @@ cite {
 // port of code.less
 // Code typography styles for the <code> and <pre> elements
 
-__js var CSSCode = exports.CSSCode = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSCode = exports.CSSCode = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
   
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Inline and block code styles */
 code,
 pre {
@@ -1918,12 +1950,12 @@ pre code {
 // port of tables.less
 // Tables for, you guessed it, tabular data
 
-__js var CSSTables = exports.CSSTables = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSTables = exports.CSSTables = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
   
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* BASE TABLES */
 
 table {
@@ -2072,12 +2104,12 @@ table {
 // port of wells.less
 // WELLS
 
-__js var CSSWells = exports.CSSWells = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSWells = exports.CSSWells = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 .well {
   min-height: 20px;
   padding: 19px;
@@ -2110,12 +2142,12 @@ __js var CSSWells = exports.CSSWells = function() {
 // port of forms.less
 // Base styles for various input types, form layouts, and states
 
-__js var CSSForms = exports.CSSForms = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSForms = exports.CSSForms = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* GENERAL STYLES */
 /* -------------- */
 
@@ -2745,12 +2777,12 @@ legend + .control-group {
 // port of buttons.less
 // BUTTON STYLES
 
-__js var CSSButtons = exports.CSSButtons = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSButtons = exports.CSSButtons = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Base styles */
 /* -------------------------------------------------- */
 
@@ -2938,12 +2970,12 @@ input[type='submit'].btn.btn-mini {
 // BUTTON GROUPS
 // -------------
 
-__js var CSSButtonGroups = exports.CSSButtonGroups = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSButtonGroups = exports.CSSButtonGroups = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Make the div behave like a button */
 .btn-group {
   position: relative;
@@ -3134,12 +3166,12 @@ __js var CSSButtonGroups = exports.CSSButtonGroups = function() {
 // ALERT STYLES
 // ------------
 
-__js var CSSAlerts = exports.CSSAlerts = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSAlerts = exports.CSSAlerts = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Base alert styles */
 .alert {
   padding: 8px 35px 8px 14px;
@@ -3203,12 +3235,12 @@ __js var CSSAlerts = exports.CSSAlerts = function() {
 // DROPDOWN MENUS
 // --------------
 
-__js var CSSDropdowns = exports.CSSDropdowns = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSDropdowns = exports.CSSDropdowns = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Use the .menu class on any <li> element within the topbar or ul.tabs and you'll get some superfancy dropdowns */
 .dropup,
 .dropdown {
@@ -3359,12 +3391,12 @@ __js var CSSDropdowns = exports.CSSDropdowns = function() {
 // LABELS & BADGES
 // ---------------
 
-__js var CSSLabelsBadges = exports.CSSLabelsBadges = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSLabelsBadges = exports.CSSLabelsBadges = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* LABELS & BADGES */
 /* --------------- */
 
@@ -3429,12 +3461,12 @@ a.badge:hover {
 // ----------
 
 
-__js var CSSThumbnails = exports.CSSThumbnails = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSThumbnails = exports.CSSThumbnails = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Note: `.thumbnails` and `.thumbnails > li` are overriden in responsive files */
 
 /* Make wrapper ul behave like the grid */
@@ -3490,12 +3522,12 @@ a.thumbnail:hover {
 // PROGRESS BARS
 // -------------
 
-__js var CSSProgressBars = exports.CSSProgressBars = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSProgressBars = exports.CSSProgressBars = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* ANIMATIONS */
 /* ---------- */
 
@@ -3618,12 +3650,12 @@ __js var CSSProgressBars = exports.CSSProgressBars = function() {
 // HERO UNIT
 // ---------
 
-__js var CSSHeroUnit = exports.CSSHeroUnit = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSHeroUnit = exports.CSSHeroUnit = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 .hero-unit {
   padding: 60px;
   margin-bottom: 30px;
@@ -3651,12 +3683,12 @@ __js var CSSHeroUnit = exports.CSSHeroUnit = function() {
 // NAVIGATIONS
 // -----------
 
-__js var CSSNavs = exports.CSSNavs = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSNavs = exports.CSSNavs = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* BASE CLASS */
 /* ---------- */
 
@@ -4021,12 +4053,12 @@ __js var CSSNavs = exports.CSSNavs = function() {
 /* ------------------------- */
 
 
-__js var CSSNavbar = exports.CSSNavbar = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSNavbar = exports.CSSNavbar = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* COMMON STYLES */
 /* ------------- */
 
@@ -4391,12 +4423,12 @@ __js var CSSNavbar = exports.CSSNavbar = function() {
 // port of breadcrumbs.less
 // BREADCRUMBS
 // -----------
-__js var CSSBreadcrumbs = exports.CSSBreadcrumbs = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSBreadcrumbs = exports.CSSBreadcrumbs = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 .breadcrumb {
   padding: 7px 14px;
   margin: 0 0 #{vars.baseLineHeight()};
@@ -4425,12 +4457,12 @@ __js var CSSBreadcrumbs = exports.CSSBreadcrumbs = function() {
 // port of modals.less
 // MODALS
 // ------
-__js var CSSModals = exports.CSSModals = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSModals = exports.CSSModals = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 /* Recalculate z-index where appropriate */
 .modal-open .dropdown-menu {  z-index: #{vars.zindexDropdown() + vars.zindexModal()}; }
 .modal-open .dropdown.open { *z-index: #{vars.zindexDropdown() + vars.zindexModal()}; }
@@ -4525,14 +4557,14 @@ __js var CSSModals = exports.CSSModals = function() {
 // port of Font Awesome's font-awesome.less (in lieu of Bootstrap's
 // sprites.less)
 
-__js var CSSFontAwesome = exports.CSSFontAwesome = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSFontAwesome = exports.CSSFontAwesome = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   var fontPath = require('sjs:apollo-sys').resolve(vars.fontAwesomePath()).path;
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 @font-face {
   font-family: 'FontAwesome';
   src: url('#{fontPath}fontawesome-webfont.eot');
@@ -4844,12 +4876,12 @@ ul.icons li .icon-large:before {
 // CLOSE ICONS
 // -----------
 
-__js var CSSClose = exports.CSSClose = function() {
-  var vars = defaultLookAndFeel;
+__js var CSSClose = exports.CSSClose = function(lookAndFeel) {
+  var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
   // XXX cache
-  return surface.CSS("
+  return base.CSS("
 .close {
   float: right;
   font-size: 20px;
