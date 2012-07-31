@@ -612,6 +612,14 @@ UIContainerElement.active = true;
    @param {::UIElement} [child] The child to be removed
 */
 
+/**
+   @function UIContainerElement.append
+   @purevirtual
+   @summary Append a UIElement to this container
+   @param {::UIElement} [child] The child to be appended
+   @param {optional Object} [attribs] Optional layout attributes (see UIContainer subclasses)
+*/
+
 //----------------------------------------------------------------------
 // ChildManagement mixin
 
@@ -629,7 +637,9 @@ var ChildManagement = {
 
   remove: function(ui) {
     coll.remove(this.children, ui);
-    this.dompeer.removeChild(ui.dompeer);
+    ui.dompeer.parentNode.removeChild(ui.dompeer);
+    if (ui.isActivated)
+      ui.deactivated();
     ui.detached();
   },
 
@@ -1046,11 +1056,13 @@ VScrollBoxElement.layout = function(layout_spec) {
 /**
    @class   HtmlFragmentElement
    @summary Generic HTML UI element
-   @inherit ::UIElement
+   @inherit ::UIContainerElement
    @variable HtmlFragmentElement
 */
 
-__js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UIElement);
+__js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UIContainerElement);
+
+ChildManagement.mixinto(HtmlFragmentElement);
 
 __js HtmlFragmentElement.layout = function(layout_spec) {
   var elem = this.dompeer;
@@ -1137,6 +1149,42 @@ __js HtmlFragmentElement.layout = function(layout_spec) {
 
   return layout_spec;
 };
+
+HtmlFragmentElement.append = function(ui, insertionpoint) {
+  if (insertionpoint)
+    insertionpoint = this.select1(insertionpoint);
+  else
+    insertionpoint = this.dompeer;
+  this.children.push(ui);
+  if (this.isActivated)
+    ui.activate();
+  insertionpoint.appendChild(ui.dompeer);
+  ui.attached(this);
+  if (this.isActivated)
+    ui.activated();
+  this.invalidate(ui);
+};
+
+/**
+   @function HtmlFragmentElement.selectContainer
+   @summary Obtain a container to which [::UIElement] objects can be appended
+   @param {String} CSS selector
+   @return {::UIContainerElement}
+*/
+HtmlFragmentElement.selectContainer = function(selector) {
+  if (!this.insertionPoints) this.insertionPoints = {};
+  var ip = this.insertionPoints[selector];
+  if (!ip) {
+    ip = Object.create(this);
+    var parent = this;
+    ip.append = function(ui) { return parent.append(ui, selector); };
+    this.insertionPoints[selector] = ip;
+  }
+  
+  return ip;
+};
+
+HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
 
 /**
    @function Html
