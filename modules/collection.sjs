@@ -334,7 +334,7 @@ function waitforFirstArgs(f, args, i, l, this_obj) {
 
 /**
   @function par.each
-  @altsyntax alt.each(collection) { | item, index, collection | ... }
+  @altsyntax par.each(collection) { | item, index, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the iterator
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
