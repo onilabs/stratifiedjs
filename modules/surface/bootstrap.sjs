@@ -5053,12 +5053,16 @@ mechanism.collapsing = function() {
         var container = ev.node.parentNode;
         var target = container.querySelector(targetSelector);
         var forceUpdate = target.offsetHeight;
-        if (!target.classList.contains('collapse'))
-          target.classList.add('collapse');
-        else if (target.classList.contains('in'))
+//        if (!target.classList.contains('collapse'))
+//          target.classList.add('collapse');
+        if (target.classList.contains('in')) {
           target.classList.remove('in');
-        else
+          target.style.height = null;
+        }
+        else {
           target.classList.add('in');
+          target.style.height = 'auto';
+        }
       }
     }
   };
