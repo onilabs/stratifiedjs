@@ -345,11 +345,11 @@ var UIElement = exports.UIElement = {};
    @function UIElement.init
    @summary Called by constructor functions to initialize UIElement objects
    @param   {Object} [attribs] Hash with attributes
-   @attrib  {optional Function|Array} [run] Function or array of functions that will 
-               be spawned when the element 
-               has been activated and aborted when the element is deactivated 
+   @attrib  {optional Object} [mechanisms] Hash of functions that will 
+               be spawned when the element has been activated and aborted when 
+               the element is deactivated 
                (see [::UIElement::activated] & [::UIElement::deactivated]).
-               The function will be executed with `this` pointing to the UIElement.
+               XXX document reflection
    @attrib  {optional ::StyleElement|Array} [style] [::StyleElement] 
                (or array of elements) to apply to this UIElement.
    @attrib  {optional String} [content] HTML content for this UIElement.
@@ -366,14 +366,20 @@ __js UIElement.init = function(attribs) {
   this.dompeer = document.createElement('surface-ui');
   this.dompeer.setAttribute('style', 'display:block;visibility:hidden'); 
   this.dompeer.ui = this;
-  this.run = attribs.run;
+  this.mechanisms = attribs.mechanisms;
   this.style = attribs.style || [];
   if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
   coll.each(this.style, function(s) { 
     if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); }, this);
   if (typeof attribs.content !== 'undefined')
     this.dompeer.innerHTML = attribs.content;
+  this.api = {};
 };
+
+/**
+   @variable UIElement.api
+   @summary XXX to be documented
+*/
 
 /**
    @function UIElement.debug
@@ -418,12 +424,18 @@ UIElement.activated = function() {
   if (this.isActivated) throw new Error("UIElement already activated");
   this.isActivated = true;
   this.dompeer.style.visibility = 'visible';
-  if (this.run) {
-    if (Array.isArray(this.run))
-      this.stratum = spawn coll.par.waitforAll(this.run, undefined, this);
-    else
-      this.stratum = spawn this.run.apply(this);
+  if (this.mechanisms) {
+    this.stratum = spawn coll.par.each(this.mechanisms) { 
+      |f, name|
+      try { f(this, this.api[name] = {}); }
+      finally { delete this.api[name]; }
+    }
   }
+/*    if (Array.isArray(this.mechanisms))
+      this.stratum = spawn coll.par.waitforAll(this.mechanisms, undefined, this);
+    else
+      this.stratum = spawn this.mechanisms.apply(this); 
+  } */
 };
 
 /**
@@ -1340,15 +1352,15 @@ surface.init({
 surface-ui, surface-aperture { display:block; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate;}
 surface-aperture { overflow:hidden; }
 ')],
-  run() {
-    document.body.appendChild(this.dompeer);
+  mechanisms: { main: function(ui, api) {
+    document.body.appendChild(ui.dompeer);
     try {
       hold();
     }
     finally {
-      document.body.removeChild(this.dompeer);
+      document.body.removeChild(ui.dompeer);
     }
-  }
+  } }
 });
 surface.activate();
 surface.activated();

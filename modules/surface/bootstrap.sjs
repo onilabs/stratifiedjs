@@ -82,8 +82,13 @@ exports.Html = function(content) {
       CSSNavs(), CSSNavbar(), CSSBreadcrumbs(), CSSModals(), CSSFontAwesome(),
       CSSClose(), CSSResponsive()],
     content: content,
-    run: [mechanism.dropdowns(), mechanism.tabs(), mechanism.collapsing(),
-          mechanism.alert(), mechanism.modal()]
+    mechanisms: {
+      dropdowns: mechanism.dropdowns(), 
+      tabs: mechanism.tabs(), 
+      collapsing: mechanism.collapsing(),
+      alerts: mechanism.alert(), 
+      modal: mechanism.modal()
+    }
   });
 };
 
@@ -4954,10 +4959,10 @@ var mechanism = exports.mechanism = {};
 
 
 mechanism.dropdowns = function() {
-  return function() {
+  return function(ui, api) {
     var ignore = false;
-    using (var Q = dom.eventQueue(this.dompeer, 'click', function (e){
-      if ((e.node = domFindData('toggle', 'dropdown', e.target, this.dompeer))) {
+    using (var Q = dom.eventQueue(ui.dompeer, 'click', function (e){
+      if ((e.node = domFindData('toggle', 'dropdown', e.target, ui.dompeer))) {
         dom.stopEvent(e);
         if (ignore) { // see explanation below
           ignore = false;
@@ -4973,8 +4978,8 @@ mechanism.dropdowns = function() {
         var current = ev.node;
         current.parentNode.classList.add('open');
         try {
-          ev = dom.waitforEvent(document.body, '!click');
-          if (domFindData('toggle', 'dropdown', ev.target, this.dompeer) == current) {
+          ev = dom.waitforEvent(window, '!click');
+          if (domFindData('toggle', 'dropdown', ev.target, ui.dompeer) == current) {
             // we could stop the event here, to prevent the dropdown from reappearing, 
             // but that is bad form: there might be other capturing listenern that 
             // clear some state, so we should *never* stop events during the capturing
@@ -4993,9 +4998,9 @@ mechanism.dropdowns = function() {
 };
 
 mechanism.tabs = function() {
-  return function() {
-    using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
-      if (domFindData('toggle', ['tab','pill'], e.target, this.dompeer)) {
+  return function(ui, api) {
+    using (var Q = dom.eventQueue(ui.dompeer, 'click', function(e) {
+      if (domFindData('toggle', ['tab','pill'], e.target, ui.dompeer)) {
         dom.stopEvent(e);
         return true;
       }
@@ -5033,9 +5038,9 @@ mechanism.tabs = function() {
 };
 
 mechanism.collapsing = function() {
-  return function() {
-    using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
-      if (e.node = domFindData('toggle', 'collapse', e.target, this.dompeer)) {
+  return function(ui, api) {
+    using (var Q = dom.eventQueue(ui.dompeer, 'click', function(e) {
+      if (e.node = domFindData('toggle', 'collapse', e.target, ui.dompeer)) {
         dom.stopEvent(e);
         return true;
       }
@@ -5060,9 +5065,9 @@ mechanism.collapsing = function() {
 };
 
 mechanism.alert = function() {
-  return function() {
-    using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
-      if (e.node = domFindData('dismiss', 'alert', e.target, this.dompeer)) {
+  return function(ui, api) {
+    using (var Q = dom.eventQueue(ui.dompeer, 'click', function(e) {
+      if (e.node = domFindData('dismiss', 'alert', e.target, ui.dompeer)) {
         dom.stopEvent(e);
         return true;
       }
@@ -5080,10 +5085,10 @@ mechanism.alert = function() {
 };
 
 mechanism.modal = function() {
-  return function() {
+  return function(ui, api) {
     while (1) {
-      var ev = dom.waitforEvent(this.dompeer, 'click', function(e) {
-        if (e.node = domFindData('toggle', 'modal', e.target, this.dompeer)) {
+      var ev = dom.waitforEvent(ui.dompeer, 'click', function(e) {
+        if (e.node = domFindData('toggle', 'modal', e.target, ui.dompeer)) {
           dom.stopEvent(e);
           return true;
         }
@@ -5094,8 +5099,8 @@ mechanism.modal = function() {
       try {
         var backdrop = document.createElement('div');
         backdrop.classList.add('modal-backdrop');
-        this.dompeer.classList.add('modal-open');
-        this.dompeer.appendChild(backdrop);
+        ui.dompeer.classList.add('modal-open');
+        ui.dompeer.appendChild(backdrop);
         modal.style.display = 'block';
         modal.classList.add('in');
         waitfor {
@@ -5112,7 +5117,7 @@ mechanism.modal = function() {
         modal.style.display = '';
         modal.classList.remove('in');
         backdrop.parentNode.removeChild(backdrop);
-        this.dompeer.classList.remove('modal-open');
+        ui.dompeer.classList.remove('modal-open');
       }
     }
   }
