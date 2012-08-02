@@ -490,7 +490,7 @@ function makeSymbolView(location) {
     }
 
     if (docs.altsyntax)
-      signature += "<br>"+docs.altsyntax;
+      signature += "<br>"+docs.altsyntax.replace(/\[[^\]]+\]/g, "<span class='mb-optarg'>$&</span>");
 
     ui.makeView("<h3>"+signature+"</h3>").show(view.elems.details);
 
