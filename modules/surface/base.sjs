@@ -347,12 +347,53 @@ var UIElement = exports.UIElement = {};
    @param   {Object} [attribs] Hash with attributes
    @attrib  {optional Object} [mechanisms] Hash of functions that will 
                be spawned when the element has been activated and aborted when 
-               the element is deactivated 
+               the element is deactivated
                (see [::UIElement::activated] & [::UIElement::deactivated]).
-               XXX document reflection
+               See description below for more information.
    @attrib  {optional ::StyleElement|Array} [style] [::StyleElement] 
                (or array of elements) to apply to this UIElement.
    @attrib  {optional String} [content] HTML content for this UIElement.
+   @desc
+      ### Mechanisms
+      
+      A mechanism is a function that will be spawned automatically by 
+      [::UIElement::activated] and aborted (if it is still running) by
+      [::UIElement::deactivated].
+
+      A mechanism function has the signature `f(ui, api)`, where `ui` is
+      the [::UIElement] for which it has been activated, and `api` is an
+      empty object into which the mechanism can install functions that will
+      be reflected in [::UIElement::api] under the name of the mechanism. When
+      the mechanism exits (either on its own or by being aborted), the reflected
+      api will be removed.
+
+      **Example:**
+
+          var surface = require('apollo:surface/base');
+          var dom     = require('apollo:xbrowser/dom');
+ 
+          var elem = 
+            surface.Html({
+              ...,
+              mechanisms : { 
+                commands: function(ui, api) {
+                  api.get = { || 
+                    dom.waitforEvent(ui.dompeer, 'click', 
+                                     { |e| e.getAttribute('data-type') == 'command' })
+                  };
+                  hold();
+                }
+              }
+            });
+            
+          surface.withUI(surface.surface, elem) { ||
+            while (1) {
+              // process next click on element with data-type=='command':
+              var ev = elem.api.commands.get();
+              // ...
+            }
+          }
+
 */
 __js UIElement.init = function(attribs) {
   if (attribs.debug) {
@@ -378,7 +419,7 @@ __js UIElement.init = function(attribs) {
 
 /**
    @variable UIElement.api
-   @summary XXX to be documented
+   @summary API reflected by mechanisms. See [::UIElement::init] for more information.
 */
 
 /**
@@ -1404,6 +1445,31 @@ surface.scheduleLayout = function() {
 
 surface.activated();
 */
+
+//----------------------------------------------------------------------
+// utilities
+
+/**
+   @function withUI
+   @altsyntax withUI(container, ui, [append_attribs]) { || ... }
+   @summary Append a UI element to a container, perform a function, and remove the UI element
+   @param {::UIContainerElement} [container] The container
+   @param {::UIElement} [ui] UI element to append to `container`
+   @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
+   @param {Function} [f] Function to execute
+*/
+exports.withUI = function(container, ui /*, [append_attribs], f*/) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  var f = args.pop();
+  container.append.apply(container, args);
+  try {
+    f(ui);
+  }
+  finally {
+    container.remove(ui);
+  }
+}
+
 
 console.log("surface.sjs executing rest: #{(new Date())-tt}");
 //tt = new Date();
