@@ -5028,7 +5028,7 @@ mechanism.tabs = function() {
           domFind('li.dropdown', newTab).classList.add('active');
 
         // now switch to new content:
-        var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('href'));
+        var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('data-target') || ev.target.getAttribute('href'));
 
         var oldContent = newContent.parentNode.querySelector('.active');
         oldContent.classList.remove('active');
