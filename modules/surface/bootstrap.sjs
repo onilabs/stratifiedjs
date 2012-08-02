@@ -3771,7 +3771,8 @@ __js var CSSNavs = exports.CSSNavs = function(lookAndFeel) {
 /* ------------- */
 
 /* Common styles */
-#{mixins.clearfix('.nav-tabs, .nav-pills')}
+#{mixins.clearfix('.nav-tabs')}
+#{mixins.clearfix('.nav-pills')}
 .nav-tabs > li,
 .nav-pills > li {
   float: left;
