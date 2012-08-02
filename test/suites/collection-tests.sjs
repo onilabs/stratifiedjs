@@ -8,9 +8,9 @@ var par = collection.par;
 // to effectively reverse the return order
 // when run multiple times in parallel.
 var withDecreasingTimeout = function(fn) {
-  var amount = 100;
+  var amount = 200;
   return function() {
-    hold(amount-=20);
+    hold(amount-=40);
     return fn.apply(this, arguments);
   };
 };
