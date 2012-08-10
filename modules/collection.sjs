@@ -758,6 +758,10 @@ exports.par.any = generateAny(exports.par.findKey);
 
     * `a` and `b` are assumed to be sets, in the sense that they individually don't contain
     duplicate elements.
+
+    * The resulting set will be an Array beginning with all elements in `a` (in the same order
+    as they appeared in `a`) and continuing with all elements in `b` in not present in `a`. The
+    relative order of elements in `b` will be preserved.
 */
 __js exports.union = function(a, b) {
   var rv = a.slice();
