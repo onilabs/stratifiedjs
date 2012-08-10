@@ -73,14 +73,22 @@ __js exports.surface = base.surface;
    @return {::HtmlFragmentElement}
 */
 exports.Html = function(content) {
+  var lf = Object.create(defaultLookAndFeel);
+/*
+  lf.bodyBackground = { || "#2e2d35" };
+  lf.textColor = { || "#bba76b" };
+  lf.btnBackground = { || "#92978d" };
+  lf.btnBackgroundHighlight = { || darken(lf.btnBackground(), 0.1) };
+  lf.btnBorder = { || "#ff0000" };
+*/
   return base.Html({
     style:[
-      CSSReset(), CSSScaffolding(), CSSGrid(), CSSLayouts(),
-      CSSComponentAnimations(), CSSType(), CSSCode(), CSSTables(), CSSWells(),
-      CSSForms(), CSSButtons(), CSSButtonGroups(), CSSAlerts(), CSSDropdowns(),
-      CSSLabelsBadges(), CSSThumbnails(), CSSProgressBars(), CSSHeroUnit(),
-      CSSNavs(), CSSNavbar(), CSSBreadcrumbs(), CSSModals(), CSSFontAwesome(),
-      CSSClose(), CSSResponsive()],
+      CSSReset(lf), CSSScaffolding(lf), CSSGrid(lf), CSSLayouts(lf),
+      CSSComponentAnimations(lf), CSSType(lf), CSSCode(lf), CSSTables(lf), CSSWells(lf),
+      CSSForms(lf), CSSButtons(lf), CSSButtonGroups(lf), CSSAlerts(lf), CSSDropdowns(lf),
+      CSSLabelsBadges(lf), CSSThumbnails(lf), CSSProgressBars(lf), CSSHeroUnit(lf),
+      CSSNavs(lf), CSSNavbar(lf), CSSBreadcrumbs(lf), CSSModals(lf), CSSFontAwesome(lf),
+      CSSClose(lf), CSSResponsive(lf)],
     content: content,
     mechanisms: {
       dropdowns: mechanism.dropdowns(), 
@@ -2818,8 +2826,7 @@ __js var CSSButtons = exports.CSSButtons = function(lookAndFeel) {
 .btn:hover {
   color: #{vars.grayDark()};
   text-decoration: none;
-  background-color: #{darken(vars.white(), .1)};
-  *background-color: #{darken(vars.white(), .15)}; /* Buttons in IE7 don't get borders, so darken on hover */
+  background-color: #{vars.btnBackgroundHighlight()};
   background-position: 0 -15px;
 
   /* transition is only when going to hover, otherwise the background */
@@ -2835,8 +2842,7 @@ __js var CSSButtons = exports.CSSButtons = function(lookAndFeel) {
 /* Active state */
 .btn.active,
 .btn:active {
-  background-color: #{darken(vars.white(), .1)};
-  background-color: #{darken(vars.white(), .15)} \\9;
+  background-color: #{vars.btnBackgroundHighlight()};
   background-image: none;
   outline: 0;
   #{mixins.box_shadow('inset 0 2px 4px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.05)')}
@@ -5091,6 +5097,8 @@ mechanism.alert = function() {
 
 mechanism.modal = function() {
   return function(ui, api) {
+    // XXX should really only run one instance in each tree of ui components
+    // XXX or maybe get rid of it altogether
     while (1) {
       var ev = dom.waitforEvent(ui.dompeer, 'click', function(e) {
         if (e.node = domFindData('toggle', 'modal', e.target, ui.dompeer)) {

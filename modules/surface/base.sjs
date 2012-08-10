@@ -1204,14 +1204,17 @@ __js HtmlFragmentElement.layout = function(layout_spec) {
 };
 
 HtmlFragmentElement.append = function(ui, insertionpoint) {
-  if (insertionpoint)
-    insertionpoint = this.select1(insertionpoint);
+  var parent;
+  if (insertionpoint) {
+    parent = this.select1(insertionpoint);
+    if (!parent) throw new Error("Cannot find insertion point '#{insertionpoint}'");
+  }
   else
-    insertionpoint = this.dompeer;
+    parent = this.dompeer;
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
-  insertionpoint.appendChild(ui.dompeer);
+  parent.appendChild(ui.dompeer);
   ui.attached(this);
   if (this.isActivated)
     ui.activated();
@@ -1451,12 +1454,12 @@ surface.activated();
 
 /**
    @function withUI
-   @altsyntax withUI(container, ui, [append_attribs]) { || ... }
+   @altsyntax withUI(container, ui, [append_attribs]) { |ui| ... }
    @summary Append a UI element to a container, perform a function, and remove the UI element
    @param {::UIContainerElement} [container] The container
    @param {::UIElement} [ui] UI element to append to `container`
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
-   @param {Function} [f] Function to execute
+   @param {Function} [f] Function to execute; will be passed `ui` as parameter
 */
 exports.withUI = function(container, ui /*, [append_attribs], f*/) {
   var args = Array.prototype.slice.call(arguments, 1);
