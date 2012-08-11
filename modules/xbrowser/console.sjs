@@ -247,7 +247,7 @@ function viewportStick(el, offset) {
   @summary  Create a Stratified JavaScript console and attach to DOM.
   @setting  {Boolean} [collapsed=true] Show the summon button on the bottom left of the window.
   @setting  {Number} [height=200] Default height for the resizable console (only relevant for target:null). 
-  @setting  {String} [target=null] Id of parent DOM element. If null, a full-width resizable div will be appended to the document.
+  @setting  {String|DOMElement} [target=null] Parent DOM element (or id thereof). If null, a full-width resizable div will be appended to the document.
   @setting  {Boolean} [receivelog=false] Whether the console will act as an output for messages from the [logging::] module.
   @return   {::Console}
 */
@@ -266,7 +266,7 @@ function Console(opts) {
   if (opts.receivelog) installLogger(this);
                               
   var div = document.createElement("div");
-  var parent = opts.target ? document.getElementById(opts.target) : null;
+  var parent = opts.target ? (typeof(opts.target) == "string" ? document.getElementById(opts.target) : opts.target) : null;
   if (!parent) {
     parent = makeDiv(null, "position:fixed;bottom:0;left:0;width:100%;z-index:99999;"+
       (opts.fullscreen?"position:absolute;top:0;":"height:"+opts.height+"px;"));
