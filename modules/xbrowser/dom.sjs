@@ -533,6 +533,24 @@ exports.css = function (url) {
 
 //----------------------------------------------------------------------
 
+/**
+   @function traverseDOM
+   @altsyntax traverseDOM(from, to) { |e| ... }
+   @summary Do a bottom-up DOM traversal beginning at element `from` up to (exclusively) element(s) `to`.
+   @param {DOMNode} [from] DOM element at which to start traversal
+   @param {DOMNode} [to] DOM element at which to end traversal (exclusively)
+   @param {Function} [f] Function `f(elem)` to execute for each DOM node
+*/
+__js function traverseDOM(from, to, f) {
+  if (!Array.isArray(to)) to = [to];
+  while (from && to.indexOf(from) == -1) {
+    f(from);
+    from = from.parentNode;
+  }
+}
+exports.traverseDOM = traverseDOM;
+
+
 /** 
     @function matchesSelector
     @summary  Check if a given DOM element matches a CSS selector
@@ -546,12 +564,14 @@ var matchesSelectorFunc = coll.find(['matchesSelector',
                                      'msMatchesSelector'], 
                                     {|f| document.body[f] != undefined });
 
-function matchesSelector(elem, selector) {
+__js function matchesSelector(elem, selector) {
   return elem[matchesSelectorFunc](selector);
 }
 exports.matchesSelector = matchesSelectorFunc ? 
   matchesSelector : 
   require('./dom-shim').matchesSelector;
+
+
 
 //----------------------------------------------------------------------
 

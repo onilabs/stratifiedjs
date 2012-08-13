@@ -92,8 +92,6 @@ if(testUtil.isBrowser) {
     return true;
   });
 
-
-
   test("matchesSelector", true, function() {
     var elem = document.createElement('div');
     elem.innerHTML = "<div class='foo'><div id='bar'></div></div>";
@@ -105,6 +103,17 @@ if(testUtil.isBrowser) {
     elem.innerHTML = "<div class='foo'><div id='barx'></div></div>";
     return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
   });
+
+  test("traverseDOM", true, function() {
+    var elem = document.createElement('div');
+    elem.innerHTML = "<div data-x='foo'><div id='bar'></div></div>";
+    dom.traverseDOM(elem.firstChild.firstChild, elem) { 
+      |e|
+      if (e.hasAttribute('data-x')) return true;
+    }
+    return false;
+  });
+
 
 }
 

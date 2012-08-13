@@ -4931,34 +4931,15 @@ var dom = require('../xbrowser/dom');
 
 // dom module backfill:
 
-// do a bottom-up DOM traversal beginning at element 'from' up to (exclusively) element(s) 'to'. 
-__js function traverseDOM(from, to, f) {
-  if (!Array.isArray(to)) to = [to];
-  while (from && to.indexOf(from) == -1) {
-    f(from);
-    from = from.parentNode;
-  }
-}
-
 function domFindData(name, value, from, to) {
 // no 'dataset' property on IE9!
 //  traverseDOM(from, to) { |c| if (value.indexOf(c.dataset[name]) != -1) return c }
-  traverseDOM(from, to) { |c| if (c.getAttribute && (value.indexOf(c.getAttribute("data-#{name}")) != -1)) return c }
+  dom.traverseDOM(from, to) { |c| if (c.getAttribute && (value.indexOf(c.getAttribute("data-#{name}")) != -1)) return c }
   return null;
 }
 
-var matchesSelectorFunc = coll.find(['matchesSelector',
-                                     'webkitMatchesSelector',
-                                     'mozMatchesSelector',
-                                     'msMatchesSelector'], 
-                                    {|f| document.body[f] != undefined });
-
-function matchesSelector(elem, selector) {
-  return elem[matchesSelectorFunc](selector);
-}
-
 function domFind(selector, from, to) {
-  traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
+  dom.traverseDOM(from, to) { |c| if (dom.matchesSelector(c, selector)) return c }
   return null;
 }
 
