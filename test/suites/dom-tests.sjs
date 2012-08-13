@@ -114,6 +114,12 @@ if(testUtil.isBrowser) {
     return false;
   });
 
+  test("findNode", 'bar', function() {
+    var elem = document.createElement('div');
+    elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
+    var node = dom.findNode('.foo [data-x]',elem.firstChild.firstChild.firstChild, elem);
+    return node ? node.getAttribute('data-x') : null;
+  });
 
 }
 

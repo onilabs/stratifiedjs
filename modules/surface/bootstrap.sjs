@@ -4938,11 +4938,6 @@ function domFindData(name, value, from, to) {
   return null;
 }
 
-function domFind(selector, from, to) {
-  dom.traverseDOM(from, to) { |c| if (dom.matchesSelector(c, selector)) return c }
-  return null;
-}
-
 var mechanism = exports.mechanism = {};
 
 

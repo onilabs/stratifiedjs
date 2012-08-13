@@ -537,8 +537,8 @@ exports.css = function (url) {
    @function traverseDOM
    @altsyntax traverseDOM(from, to) { |e| ... }
    @summary Do a bottom-up DOM traversal beginning at element `from` up to (exclusively) element(s) `to`.
-   @param {DOMNode} [from] DOM element at which to start traversal
-   @param {DOMNode} [to] DOM element at which to end traversal (exclusively)
+   @param {DOMElement} [from] DOM element at which to start traversal
+   @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal (exclusively)
    @param {Function} [f] Function `f(elem)` to execute for each DOM node
 */
 __js function traverseDOM(from, to, f) {
@@ -572,6 +572,19 @@ exports.matchesSelector = matchesSelectorFunc ?
   require('./dom-shim').matchesSelector;
 
 
+/**
+   @findNode
+   @summary traverse DOM botton-up beginning at `from` up to (exclusively) element(s) `to` and return first element that matches `selector` or `null` if no such element is found
+   @param {String} [selector] CSS selector
+   @param {DOMElement} [from] DOM element at which to start traversal
+   @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal (exclusively)
+   @return {DOMElement|null}
+*/
+function findNode(selector, from, to) {
+  traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
+  return null;
+}
+exports.findNode= findNode;
 
 //----------------------------------------------------------------------
 
