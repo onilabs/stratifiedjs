@@ -4,14 +4,15 @@ var relativeURL = require("../lib/testContext").getHttpURL;
 
 if(testUtil.isBrowser) {
   var dom = require('apollo:xbrowser/dom');
-  function synthesizeClick() {
+  function synthesizeClick(elem) {
+    elem = elem || document;
     if (document.createEvent) {
       var click = document.createEvent("MouseEvents");
       click.initEvent("click", true, true);
-      document.dispatchEvent(click);
+      elem.dispatchEvent(click);
     }
     else // IE
-      document.fireEvent("onclick");
+      elem.fireEvent("onclick");
   }
 
   test('waitforEvent', true, function() {
@@ -91,4 +92,19 @@ if(testUtil.isBrowser) {
     return true;
   });
 
+
+
+  test("matchesSelector", true, function() {
+    var elem = document.createElement('div');
+    elem.innerHTML = "<div class='foo'><div id='bar'></div></div>";
+    return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
+  });
+
+  test("~matchesSelector", false, function() {
+    var elem = document.createElement('div');
+    elem.innerHTML = "<div class='foo'><div id='barx'></div></div>";
+    return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
+  });
+
 }
+

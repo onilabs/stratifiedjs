@@ -40,6 +40,11 @@
      * Polyfills implemented:
 
         * classList (by Eli Grey, in public domain, see [here](http://purl.eligrey.com/github/classList.js/blob/master/classList.js))
+
+
+     * Other compatibility functions (used by [dom::] module):
+
+        * matchesSelector (for IE<9)
 */
 
 var sys = require('sjs:apollo-sys');
@@ -188,3 +193,14 @@ if (objCtr.defineProperty) {
 }
 
 } // __js
+
+
+//----------------------------------------------------------------------
+// matchesSelector implementation for IE8
+
+exports.matchesSelector = function(elem, selector) {
+  var nodes = elem.parentNode.querySelectorAll(selector);
+  for (var i=0; i<nodes.length; ++i)
+    if (nodes[i] == this) return true;
+  return false;
+};

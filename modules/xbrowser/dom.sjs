@@ -43,6 +43,8 @@ var sys = require('sjs:apollo-sys');
 if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('the dom module only runs in an xbrowser environment');
 
+var coll = require('../collection');
+
 // see if we need to load the shim:
 if (typeof document !== "undefined" && !("classList" in document.createElement("a")))
   require('./dom-shim');
@@ -529,6 +531,27 @@ exports.css = function (url) {
 };
 */
 
+//----------------------------------------------------------------------
+
+/** 
+    @function matchesSelector
+    @summary  Check if a given DOM element matches a CSS selector
+    @param    {DOMElement} [elem] DOM element
+    @param    {String} [selector] CSS selector
+    @return   {Boolean} 
+*/
+var matchesSelectorFunc = coll.find(['matchesSelector',
+                                     'webkitMatchesSelector',
+                                     'mozMatchesSelector',
+                                     'msMatchesSelector'], 
+                                    {|f| document.body[f] != undefined });
+
+function matchesSelector(elem, selector) {
+  return elem[matchesSelectorFunc](selector);
+}
+exports.matchesSelector = matchesSelectorFunc ? 
+  matchesSelector : 
+  require('./dom-shim').matchesSelector;
 
 //----------------------------------------------------------------------
 
