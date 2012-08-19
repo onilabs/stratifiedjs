@@ -1,58 +1,116 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 
-if(!testUtil.isBrowser) {
+var s = require("apollo:stream");
 
-  var s = require("apollo:nodejs/stream");
+test("stream([1,2,3])", 6, function() {
+  var rv = 0;
+  s.stream([1,2,3]) { |x| rv += x }
+  return rv;
+});
 
-  // ReadableStringStream:
-  test("ReadableStringStream emits data", "data", function() {
-    var stream = new s.ReadableStringStream("data");
-    var data = '';
-    stream.on('data', function(newData) {
-      data += newData;
-    });
-    waitfor() {
-      stream.on('end', resume);
-    }
-    return data;
-  });
+test("collect(stream([1,2,3]))", "123", function() {
+  return s.collect(s.stream([1,2,3])).join('');
+});
 
-  test("ReadableStringStream supports pause/resume", "[pause] [resume] data", function() {
-    var stream = new s.ReadableStringStream("data");
-    stream.pause();
-    var data = '';
-    stream.on('data', function(newData) {
-      data += newData;
-    });
-    data += "[pause] ";
-    hold(100);
-    stream.resume();
-    data += "[resume] ";
-    waitfor() {
-      stream.on('end', resume);
-    }
-    return data;
-  });
+test("pick", "12", function() {
+  return s.collect(s.pick(2, s.stream([1,2,3]))).join('');
+});
 
-  test("WritableStringStream", "[data][end]", function() {
-    var stream = new s.WritableStringStream();
-    waitfor {
-      waitfor() { stream.on('end', resume); }
-    }
-    and {
-      stream.write('[data]');
-      stream.end('[end]');
-    }
-    return stream.data;
-  });
+test("integers()", "0123456789", function() {
+  return s.collect(s.pick(10, s.integers())).join('');
+});
+test("integers(1)", "123456789", function() {
+  return s.collect(s.pick(9, s.integers(1))).join('');
+});
 
-  test("pump", "DATA", function() {
-    var src = new s.ReadableStringStream('data');
-    src.pause();
-    var dest = new s.WritableStringStream();
-    s.pump(src, dest, {|d| d.toUpperCase()});
-    return dest.data;
-  });
+test("filter(.,.,.)", "024681012141618", function() {
+  var rv = "";
+  var i=10;
+  s.filter({|x| x%2==0},s.integers()) {
+    |x|
+    rv += x;
+    if (--i==0) return rv;
+  }
+});
 
-}
+test("filter(.,.)", "024681012141618", function() {
+  return s.collect(s.pick(10, s.filter({|x| x%2==0},s.integers()))).join('');
+});
+
+test("filter(.)", "024681012141618", function() {
+  var even = s.filter({|x| x%2==0});
+  return s.collect(s.pick(10, even(s.integers()))).join('');
+});
+
+test("map(.,.,.)", "0149162536496481", function() {
+  var rv = "";
+  var i=10;
+  s.map({|x| x*x},s.integers()) {
+    |x|
+    rv += x;
+    if (--i==0) return rv;
+  }
+});
+
+test("map(.,.)", "0149162536496481", function() {
+  return s.collect(s.pick(10, s.map({|x| x*x},s.integers()))).join('');
+});
+
+test("map(.)", "0149162536496481", function() {
+  var squared = s.map({|x| x*x});
+  return s.collect(s.pick(10, squared(s.integers()))).join('');
+});
+
+test("iterator(stream())", "012", function() {
+  var I = s.iterator(s.pick(3,s.integers()));
+  var rv = "";
+  while (I.hasMore())
+    rv += I.next();
+  return rv;
+});
+
+test("stream(iterator(.)), stream(iterator(.))", "012345", function() {
+  var I = s.iterator(s.integers());
+  var rv = "";
+
+  rv += s.collect(s.pick(3,s.stream(I))).join('');
+  rv += s.collect(s.pick(3,s.stream(I))).join('');
+
+  return rv;
+});
+
+test("S = stream(iterator(.)); S,S", "012345", function() {
+  var I = s.iterator(s.integers());
+  var rv = "";
+
+  var S = s.pick(3,s.stream(I));
+
+  rv += s.collect(S).join('');
+  rv += s.collect(S).join('');
+
+  return rv;
+});
+
+test("S = stream(iterator(.)); S,iterator.close(),S", "012", function() {
+  var I = s.iterator(s.integers());
+  var rv = "";
+
+  var S = s.pick(3,s.stream(I));
+
+  rv += s.collect(S).join('');
+  I.close();
+  rv += s.collect(S).join('');
+
+  return rv;
+});
+
+test("async iterator", "012345", function() {
+  var I = s.iterator(s.map({|x| hold(10),x},s.integers()));
+  var rv = "";
+
+  rv += s.collect(s.pick(3,s.stream(I))).join('');
+  rv += s.collect(s.pick(3,s.stream(I))).join('');
+
+  return rv;
+});

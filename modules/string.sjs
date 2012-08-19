@@ -52,6 +52,7 @@ var replacements = {
 };
 
 exports.sanitize = function(str) {
+  str = str === undefined ? "" : str.toString();
   return str.replace(/[<>&]/g, function(c) {
     return replacements[c];
   })

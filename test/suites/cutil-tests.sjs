@@ -368,3 +368,32 @@ test('Semaphore.synchronize', 1, function() {
                   return x;
                 }
 });
+
+test('Queue: async put/get + interspersed peek', 100, function() {
+  var rv = 0;
+  var q = new (cutil.Queue)(10);
+  waitfor {
+    waitfor {
+      for (var i=0; i<100; ++i) {
+        hold(0);
+        q.put(1);
+      }
+    }
+    and {
+      for (var j=0; j<100; ++j) {
+        hold(0);
+        rv += q.get();
+      }
+    }
+  }
+  or {
+    var at_least_one_peek = 0;
+    while (1) {
+      if (q.peek() != 1) return false;
+      ++at_least_one_peek;
+      hold(0);
+    }
+  }
+  if (!at_least_one_peek) return false;
+  return rv;
+});

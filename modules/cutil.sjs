@@ -439,6 +439,20 @@ Queue.prototype = {
     var item = this.items.shift();
     this.S_nonfull.release();
     return item;
+  },
+
+  /**
+     @function Queue.peek
+     @summary  Retrieve the first item on the queue without actually removing it. 
+               Blocks if the queue is empty. Safe to be called from multiple strata
+               concurrently.
+     @return {item} Item at front of queue.
+  */
+  peek: function() {
+    this.S_nonempty.acquire();
+    var item = this.items[0];
+    this.S_nonempty.release();
+    return item;
   }
 };
 
