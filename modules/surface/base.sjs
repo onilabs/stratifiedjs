@@ -462,8 +462,8 @@ UIElement.activate = function() {
    @summary Called when this UIElement has been attached (directly or indirectly) to the global surface
 */
 UIElement.activated = function() {
-  if (this.isActivated) throw new Error("UIElement already activated");
-  this.isActivated = true;
+  if (this.isActivated == 2) throw new Error("UIElement already activated");
+  this.isActivated = 1;
   this.dompeer.style.visibility = 'visible';
   if (this.mechanisms) {
     this.stratum = spawn coll.par.each(this.mechanisms) { 
@@ -472,6 +472,22 @@ UIElement.activated = function() {
       finally { delete this.api[name]; }
     }
   }
+  /*
+     A note on the usage of "isActivated":
+
+     isActivated can be false, 1, or 2
+
+     false means we're not activated
+     1 means we've called 'activate' on ourselves and our children, and are now
+       calling 'activated'
+     2 means we've called 'activated'
+
+     The reason for distinguishing between 1 and 2 is that we need to prevent 
+     any children that are added as part of mechanisms (which are executed in 'activated')
+     from being activated before all of our mechanisms are activated.
+
+  */
+  this.isActivated = 2;
 /*    if (Array.isArray(this.mechanisms))
       this.stratum = spawn coll.par.waitforAll(this.mechanisms, undefined, this);
     else
@@ -778,7 +794,7 @@ BoxElement.append = function(ui, attribs) {
     ui.activate();
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
-  if (this.isActivated)
+  if (this.isActivated == 2)
     ui.activated();
   this.invalidate(ui);
 };
@@ -1066,7 +1082,7 @@ __js VScrollBoxElement.append = function(ui) {
     ui.activate();
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
-  if (this.isActivated) {
+  if (this.isActivated == 2) {
     if (this.debug('activated')) 
       console.log(this.debugid+": activating "+ui);
     ui.activated();
@@ -1216,7 +1232,7 @@ HtmlFragmentElement.append = function(ui, insertionpoint) {
     ui.activate();
   parent.appendChild(ui.dompeer);
   ui.attached(this);
-  if (this.isActivated)
+  if (this.isActivated == 2)
     ui.activated();
   this.invalidate(ui);
 };
@@ -1361,7 +1377,7 @@ RootElement.append = function(ui) {
     ui.activate();
   this.dompeer.appendChild(ui.dompeer);
   ui.attached(this);
-  if (this.isActivated)
+  if (this.isActivated == 2)
     ui.activated();
   this.layoutChild(ui);
 };
