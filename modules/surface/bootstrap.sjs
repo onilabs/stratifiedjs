@@ -66,13 +66,17 @@ var tt = new Date();
 __js exports.surface = base.surface;
 
 /**
-   @function Html
+   @function  Html
+   @altsyntax Html(content)
    @summary Create a [base::HtmlFragmentElement] with full [bootstrap::] 
             styles and mechanisms applied.
-   @param {String} [content] HTML content
+   @param {Object} [attribs] Object with attributes 
+   @attrib {String} [content] HTML content
+   @attrib {Array|base::StyleElement} [style] Additional styles
+   @attrib {Object} [mechanisms] Hash of additional mechanisms
    @return {::HtmlFragmentElement}
 */
-exports.Html = function(content) {
+exports.Html = function(attribs) {
   var lf = Object.create(defaultLookAndFeel);
 /*
   lf.bodyBackground = { || "#2e2d35" };
@@ -81,22 +85,36 @@ exports.Html = function(content) {
   lf.btnBackgroundHighlight = { || darken(lf.btnBackground(), 0.1) };
   lf.btnBorder = { || "#ff0000" };
 */
-  return base.Html({
-    style:[
-      CSSReset(lf), CSSScaffolding(lf), CSSGrid(lf), CSSLayouts(lf),
+  var style = [CSSReset(lf), CSSScaffolding(lf), CSSGrid(lf), CSSLayouts(lf),
       CSSComponentAnimations(lf), CSSType(lf), CSSCode(lf), CSSTables(lf), CSSWells(lf),
       CSSForms(lf), CSSButtons(lf), CSSButtonGroups(lf), CSSAlerts(lf), CSSDropdowns(lf),
       CSSLabelsBadges(lf), CSSThumbnails(lf), CSSProgressBars(lf), CSSHeroUnit(lf),
       CSSNavs(lf), CSSNavbar(lf), CSSBreadcrumbs(lf), CSSModals(lf), CSSFontAwesome(lf),
-      CSSClose(lf), CSSResponsive(lf)],
+               CSSClose(lf), CSSResponsive(lf)];
+
+  var mechanisms = {
+    dropdowns: mechanism.dropdowns(), 
+    tabs: mechanism.tabs(), 
+    collapsing: mechanism.collapsing(),
+    alerts: mechanism.alert(), 
+    modal: mechanism.modal()
+  };
+
+  var content;
+  if (typeof attribs == 'string')
+    content = attribs;
+  else {
+    content = attribs.content || "";
+    if (attribs.style)
+      style = style.concat(attribs.style);
+    if (attribs.mechanisms)
+      mechanisms = common.mergeSettings(mechanisms, attribs.mechanisms);
+  }
+
+  return base.Html({
+    style: style,
     content: content,
-    mechanisms: {
-      dropdowns: mechanism.dropdowns(), 
-      tabs: mechanism.tabs(), 
-      collapsing: mechanism.collapsing(),
-      alerts: mechanism.alert(), 
-      modal: mechanism.modal()
-    }
+    mechanisms: mechanisms
   });
 };
 

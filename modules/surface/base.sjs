@@ -1244,12 +1244,17 @@ HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
 
 /**
    @function Html
+   @altsyntax Html(content)
    @summary Construct a [::HtmlFragmentElement]
    @param   {Object} [attribs] Object with attributes
    @attrib  {String} [content] HTML content
+   @attrib {Array|base::StyleElement} [style] Additional styles
+   @attrib {Object} [mechanisms] Hash of mechanisms
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
+  if (typeof attribs == 'string')
+    attribs = { content: attribs }
   var obj = Object.create(HtmlFragmentElement);
   obj.init(attribs); 
   return obj;
