@@ -268,7 +268,7 @@ function Console(opts) {
   var div = document.createElement("div");
   var parent = opts.target ? (typeof(opts.target) == "string" ? document.getElementById(opts.target) : opts.target) : null;
   if (!parent) {
-    parent = makeDiv(null, "position:fixed;bottom:0;left:0;width:100%;z-index:99999;"+
+    parent = makeDiv(null, "position:fixed;bottom:0;left:0;width:100%;z-index:999;"+
       (opts.fullscreen?"position:absolute;top:0;":"height:"+opts.height+"px;"));
     document.getElementsByTagName("body")[0].appendChild(parent);
     this.root = parent;
@@ -283,11 +283,11 @@ width:100%;\
 padding:0; margin:0; background:#fff;\
 border"+(opts.target?"":"-top")+": 1px solid #ccc;");
   div.innerHTML = "\
-<span style='display:block;cursor:row-resize;position:absolute;top:0px;border-top:1px solid #eee;left:0;right:0;height:2px;background:white;z-index:99999'></span>
+<span style='display:block;cursor:row-resize;position:absolute;top:0px;border-top:1px solid #eee;left:0;right:0;height:2px;background:white;z-index:999'></span>
 <div style='margin:0;position:absolute;top:"+(this.flipmode?20:0)+"px;left:0;right:0px;bottom:"+(this.flipmode?0:20)+"px;overflow:auto'>
 </div>\
 <div style='height:20px;position:absolute;left:0;right:0;"+(this.flipmode?"top:0;":"bottom:0;")+"background: #fcfcfc url("+icons.arrowblue+") 6px 4px no-repeat;'>\
-  <div style='z-index:99999;height:20px;position:absolute;right:0;'>
+  <div style='z-index:999;height:20px;position:absolute;right:0;'>
     <a title='Hide console' style='cursor:pointer;background:url("+icons.shut+") no-repeat 4px 4px; width:12px;height:12px; padding: 4px; display:block;float:left'></a>
     <a title='Clear console' style='cursor:pointer;background:url("+icons.clear+") no-repeat 4px 4px; width:12px;height:12px; padding: 4px; display:block;float:left'></a>
   </div>
@@ -315,7 +315,7 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
   this.history_p = this.history.length -1;
   this.summonbutton = makeDiv("<div style='background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#eee));'><a title='Open Apollo Console' style='display:block;padding: 2px 8px 3px 10px;background:url("+icons.arrowblue+") no-repeat 10px 6px;width: 8px;height:17px'></a></div>", "\
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
-z-index:9999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
+z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
   document.getElementsByTagName("body")[0].appendChild(this.summonbutton);
   if (opts.target) {
     opts.collapsed = false;
