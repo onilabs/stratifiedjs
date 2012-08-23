@@ -2702,6 +2702,7 @@ select:focus:required:invalid:focus {
 .form-inline .uneditable-input,
 .form-inline .input-prepend,
 .form-inline .input-append,
+.form-inline surface-ui,
 .form-horizontal input,
 .form-horizontal textarea,
 .form-horizontal select,

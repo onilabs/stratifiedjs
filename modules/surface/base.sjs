@@ -405,7 +405,7 @@ __js UIElement.init = function(attribs) {
     this.debugid = "";
   }
   this.dompeer = document.createElement('surface-ui');
-  this.dompeer.setAttribute('style', 'display:block;visibility:hidden'); 
+  this.dompeer.setAttribute('style', 'visibility:hidden'); 
   this.dompeer.ui = this;
   this.mechanisms = attribs.mechanisms;
   this.style = attribs.style || [];
