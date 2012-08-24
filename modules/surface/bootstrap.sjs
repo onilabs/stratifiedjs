@@ -2646,7 +2646,8 @@ select:focus:required:invalid:focus {
     border-left-color: #eee;
 }
 .input-append .add-on:last-child,
-.input-append .btn:last-child {
+.input-append .btn:last-child,
+.input-append .dropdown-toggle /* Oni Labs edit: dropdowns aren't last-child, because of the <ul> */ { 
     #{mixins.border_radius('0 '+vars.inputBorderRadius()+' '+vars.inputBorderRadius()+' 0')}
 }
 
