@@ -1,6 +1,6 @@
 var BaseRunner = require("./baseRunner").BaseRunner;
 
-var term = require("../lib/terminal.js");
+var term = require("apollo:nodejs/terminal");
 
 var NodeRunner = exports.NodeRunner = function() {
   this.init.apply(this, arguments);
