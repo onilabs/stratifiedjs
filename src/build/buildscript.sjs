@@ -27,6 +27,7 @@ function build_deps() {
                                                   "oni-apollo-node.js",
                                                   "modules/numeric.sjs",
                                                   "modules/sjcl.sjs",
+                                                  "modules/nodejs/terminal.sjs",
                                                   "tmp/version_stamp"]);
 
   PSEUDO("compiler");
@@ -158,6 +159,16 @@ function build_deps() {
         ["src/deps/sjcl/apollo-module-header.txt",
          "src/deps/sjcl/sjcl.js",
          "src/deps/sjcl/apollo-module-footer.txt"]
+       );
+
+  // node-terminal module
+  BUILD("modules/nodejs/terminal.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/node-terminal/apollo-module-header.txt",
+         "src/deps/node-terminal/terminal.js",
+         "src/deps/node-terminal/apollo-module-footer.txt"]
        );
 
   //----------------------------------------------------------------------
