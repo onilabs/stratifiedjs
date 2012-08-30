@@ -1077,7 +1077,9 @@ __js var Mixins = exports.Mixins = function(vars) {
 
         return ".row { margin-left: #{scale(gridGutterWidth,-1)}; }
                 #{mixins.clearfix('.row')}
-                [class*='span'] {
+                [class*='span'],
+                .formrow > surface-ui /* Oni Labs edit: allow compound components on the same row in a form */
+                {
                   float: left;
                   margin-left: #{gridGutterWidth};
                 }
@@ -1107,7 +1109,8 @@ __js var Mixins = exports.Mixins = function(vars) {
 
         return ".row-fluid { width: 100% }
                 #{mixins.clearfix('.row-fluid')}
-                .row-fluid [class*='span'] {
+                .row-fluid [class*='span']
+                {
                   #{mixins.input_block_level()}
                   float: left;
                   margin-left: #{fluidGridGutterWidth};
@@ -1347,7 +1350,9 @@ __js var CSSResponsive = exports.CSSResponsive = function(lookAndFeel) {
   }
   /* Make all grid-sized elements block level again */
   [class*='span'],
-  .row-fluid [class*='span'] {
+  .row-fluid [class*='span'],
+  .formrow > surface-ui /* Oni Labs edit: allow compound components on the same row in a form */
+  {
     float: none;
     display: block;
     width: auto;
@@ -2709,8 +2714,8 @@ select:focus:required:invalid:focus {
 .form-horizontal select,
 .form-horizontal .help-inline,
 .form-horizontal .uneditable-input,
-.form-horizontal .input-prepend,
-.form-horizontal .input-append {
+.form-horizontal .input-prepend
+/* .form-horizontal .input-append XXX Oni Labs edit: removed for proper alignment of compound widgets */ {
     display: inline-block;
     #{mixins.ie7_inline_block()}
     margin-bottom: 0;
@@ -2789,6 +2794,7 @@ legend + .control-group {
     margin-left: 160px;
     *margin-left: 0;
 }
+
 .form-horizontal .controls:first-child {
       *padding-left: 160px;
 }
