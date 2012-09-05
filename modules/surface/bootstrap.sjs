@@ -1628,6 +1628,9 @@ __js var CSSLayouts = exports.CSSLayouts = function(lookAndFeel) {
 /* Fixed-width and fluid (with sidebar) layouts */
 /* -------------------------------------------- */
 
+/* Oni Labs edit; put .clearfix somewhere 
+   XXX not sure this is the right place for this */
+#{mixins.clearfix('.clearfix')}
 
 /* Container (centered, fixed-width layouts) */
 #{mixins.container_fixed('.container')}
