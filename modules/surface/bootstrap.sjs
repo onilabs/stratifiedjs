@@ -1167,6 +1167,29 @@ a:hover {
   color: #{vars.linkColorHover()};
   text-decoration: underline;
 }
+
+/* Images */
+/* ------------------------- */
+
+/* Rounded corners */
+.img-rounded {
+  #{mixins.border_radius('6px')}
+}
+
+/* Add polaroid-esque trim */
+.img-polaroid {
+  padding: 4px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border: 1px solid rgba(0,0,0,.2);
+  #{mixins.box_shadow('0 1px 3px rgba(0,0,0,.1)')}
+}
+
+/* Perfect circle */
+.img-circle {
+  #{mixins.border_radius('500px')} /* crank the border-radius so it works with most reasonably sized images */
+}
+
 ");
 };
 
@@ -2733,6 +2756,9 @@ select:focus:required:invalid:focus {
 .form-search label,
 .form-inline label {
   display: inline-block;
+  /* Oni Labs edits: */
+  margin-bottom: 0;
+  vertical-align: middle;
 }
 /* Remove margin for input-prepend/-append */
 .form-search .input-append,
