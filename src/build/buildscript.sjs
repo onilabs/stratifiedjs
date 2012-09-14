@@ -241,8 +241,12 @@ function MINIFY(target, source, flags) {
     function() {
       log("* Minifying "+target);
       var src = fs.readFile(source).toString();
-      var c = require('../../tmp/c1jsmin.js');
-      var out = c.compile(src, flags);
+      if (process.env['APOLLO_MINIFY'] == 'false') {
+        var out = src;
+      } else {
+        var c = require('../../tmp/c1jsmin.js');
+        var out = c.compile(src, flags);
+      }
       var pre = flags.pre || "";
       var post = flags.post || "";
       fs.writeFile(target, pre + out + post);
