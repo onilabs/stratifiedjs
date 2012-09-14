@@ -39,8 +39,6 @@ global.__oni_rt={};(function(exports){var UNDEF;
 
 
 
-
-
 function augmented_message(e){return e.message+" (in "+e.file+(e.line?":"+e.line:"")+")";
 
 }
@@ -1831,8 +1829,6 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
-
-
 pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl});
 
 if(bl){
@@ -2319,7 +2315,8 @@ ph_throw.prototype.val=function(){return "__oni_rt.Sc("+this.line+",__oni_rt.Thr
 
 
 
-function ph_return(exp,pctx){this.line=pctx.line;
+function ph_return(exp,pctx){this.line=pctx.line-pctx.newline;
+
 
 this.exp=exp;
 

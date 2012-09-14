@@ -598,7 +598,8 @@ ph_throw.prototype.val = function() {
 #define GEN_RETURN(exp, pctx) return new ph_return(exp, pctx);
 // XXX should find a tail-safe way of encoding this
 function ph_return(exp, pctx) {
-  this.line = pctx.line;
+  // TODO: not sure why returns are special, and need `newline` subtracted from their lineno
+  this.line = pctx.line - pctx.newline;
   this.exp = exp;
   //XXX this is a bit fragile; need a new pctx flag for 'throwing'/'nonthrowing' context
   this.js_ctx = pctx.js_ctx;
