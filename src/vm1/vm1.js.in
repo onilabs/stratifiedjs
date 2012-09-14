@@ -46,6 +46,7 @@ OBSOLETE FLAGS:
 */
 /* #define DEBUG_VM 1 */
 #ifdef DEBUG_VM
+#define EF_TYPES
 #define LOG(x) console.log(x);
 // XXX figure out why normal CPP stringification is screwed
 #define ASSERT(X) if(!(X)) { throw new Error("Assertion failed: " + "X" ); }
@@ -149,7 +150,7 @@ function setEFProto(t) { for (var p in EF_Proto) t[p] = EF_Proto[p]; }
 
 // base prototype object for execution frames
 var EF_Proto = {
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
   toString: function() { return "<SJS Execution Frame '"+this.type+"'>"; },
 #else
   toString: function() { return "<suspended SJS>"; },
@@ -377,7 +378,7 @@ function EF_Seq(ndata, env) {
   this.unreturnable = NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_UNRETURNABLE;
 }
 setEFProto(EF_Seq.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Seq.prototype.type = "Seq";
 #endif
 EF_Seq.prototype.cont = function(idx, val) {
@@ -597,7 +598,7 @@ function EF_Fcall(ndata, env) {
   this.pars = [];
 }
 setEFProto(EF_Fcall.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Fcall.prototype.type = "Fcall";
 #endif
 
@@ -810,7 +811,7 @@ function EF_If(ndata, env) {
   this.env = env;
 }
 setEFProto(EF_If.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_If.prototype.type = "If";
 #endif
 
@@ -880,7 +881,7 @@ function EF_Switch(ndata, env) {
   this.phase = 0;
 }
 setEFProto(EF_Switch.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Switch.prototype.type = "Switch";
 #endif
 
@@ -978,7 +979,7 @@ function EF_Try(ndata, env) {
   this.state = 0;
 }
 setEFProto(EF_Try.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Try.prototype.type = "Try";
 #endif
 
@@ -1119,7 +1120,7 @@ function EF_Loop(ndata, env) {
   this.env.bef = this.env.cef = this;
 }
 setEFProto(EF_Loop.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Loop.prototype.type = "Loop";
 #endif
 
@@ -1223,7 +1224,7 @@ function EF_ForIn(ndata, env) {
   this.env.bef = this.env.cef = this;
 }
 setEFProto(EF_ForIn.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_ForIn.prototype.type = "ForIn";
 #endif
 
@@ -1349,7 +1350,7 @@ function EF_Par(ndata, env) {
   this.children = new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Par.prototype.type = "Par";
 #endif
 
@@ -1494,7 +1495,7 @@ function EF_Alt(ndata, env) {
   this.children = new Array(this.ndata.length);
 }
 setEFProto(EF_Alt.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Alt.prototype.type = "Alt";
 #endif
 
@@ -1717,7 +1718,7 @@ function EF_Suspend(ndata, env) {
   this.env = env;
 }
 setEFProto(EF_Suspend.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Suspend.prototype.type = "Suspend";
 #endif
 
@@ -1887,7 +1888,7 @@ function EF_Spawn(ndata, env, notifyAsync, notifyVal) {
   this.notifyVal = notifyVal;
 }
 setEFProto(EF_Spawn.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Spawn.prototype.type = "Spawn";
 #endif
 
@@ -1910,7 +1911,7 @@ function EF_SpawnWaitFrame(waitarr) {
   waitarr.push(this);
 }
 setEFProto(EF_SpawnWaitFrame.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_SpawnWaitFrame.prototype.type = "Spawn";
 #endif
 EF_SpawnWaitFrame.prototype.quench = function() {};
@@ -2007,7 +2008,7 @@ function EF_Collapse(ndata, env) {
   this.env = env;
 }
 setEFProto(EF_Collapse.prototype={});
-#ifdef DEBUG_VM
+#ifdef EF_TYPES
 EF_Collapse.prototype.type = "Collapse";
 #endif
 
