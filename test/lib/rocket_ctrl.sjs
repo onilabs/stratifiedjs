@@ -18,8 +18,11 @@ var is_running = exports.is_running = function(port) {
 
 var run = exports.run = function(port, basedir) {
   var child_process = require("apollo:nodejs/child-process");
+  // Point $APOLLO_ROCKET to a stable implementation if you have broken rocket but
+  // still want to run the rest of the tests:
+  var rocket_exe = process.env['APOLLO_ROCKET'] || basedir + "/rocket";
   try {
-    child_process.run(basedir + "/rocket", ['--port', port], {
+    child_process.run(rocket_exe, ['--port', port], {
       cwd: basedir,
       customFds: [-1, -1, 2]
     });
