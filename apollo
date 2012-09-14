@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// vim: syntax=sjs:
 
 var path = require('path');
 var fs   = require('fs');
@@ -10,9 +11,10 @@ function usage() {
     "Usage: apollo [options] [script.sjs [arguments]]\n\n" +
     "Without a script.sjs argument you get dropped into a stratified REPL\n\n" +
     "Options:\n" +
-    "  -h, --help        display this help message\n" +
-    "  -d, --dev         load development mode (src/build/devmode.sjs)\n" +
-    "  -e, --eval STR    evaluate STR\n" +
+    "  -h, --help          display this help message\n" +
+    "  -d, --dev           load development mode (src/build/devmode.sjs)\n" +
+    "  -e, --eval STR      evaluate STR\n" +
+    "  -c, --compile FILE  compile FILE\n" +
     "\nDocumentation is at http://onilabs.com/apollo");
 }
 
@@ -80,6 +82,14 @@ function runEval(str) {
   };
 };
 
+function runCompile(filename) {
+  return function() {
+    var src = require("fs").readFileSync(filename);
+    var compiled = __oni_rt.c1.compile(src, {globalReturn:true, filename:filename});
+    require("util").puts(compiled);
+  };
+};
+
 // -------------------- process options & run --------------------
 
 function processArgs() {
@@ -101,6 +111,12 @@ function processArgs() {
       ++i;
       var str = process.argv[i];
       run = runEval(str);
+      break;
+    case '-c':
+    case '--compile':
+      ++i;
+      var filename = process.argv[i];
+      run = runCompile(filename);
       break;
     default:
       if (flag[0] == '-') {
