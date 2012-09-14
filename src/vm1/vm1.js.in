@@ -89,6 +89,34 @@ function CFException_toString() {
   return this.name+": "+augmented_message(this);
 }
 
+function adopt_native_stack(e) {
+  if(!e.stack) {
+    e.stack = "";
+    return;
+  }
+  if (e.__oni_stack) return;
+  var stack = String(e.stack);
+  LOG("ADOPTING new stack: " + stack);
+  e.stack = "";
+  var lines = stack.split("\n");
+  var i;
+  for (i=0; i<lines.length; i++) {
+    // TODO: make this check more reliable (and xbrowser):
+    if(lines[i].indexOf("oni-apollo-node.js") != -1) {
+      // we've hit an apollo stack line.
+      break;
+    }
+  }
+  i--;
+  var oni_stack = [];
+  while(i >= 0) {
+    oni_stack.unshift([lines[i]])
+    i--;
+  }
+  // LOG("ADOPTED new stack: " + oni_stack.join("\n - "));
+  e.__oni_stack = oni_stack;
+}
+
 var token_oniE = {}; // oni-modified exception
 function CFException(type, value, line, file) {
   this.type = type;
@@ -97,7 +125,7 @@ function CFException(type, value, line, file) {
     value._oniE = token_oniE;
     value.line = line;
     value.file = file || "unknown SJS source";
-    value.stack = "";
+    adopt_native_stack(value);
     if (!value.hasOwnProperty('toString'))
       value.toString = CFException_toString;    
   }
@@ -114,9 +142,11 @@ CFException.prototype = {
     else
       return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
   },
-  mapToJS : function(augment_mes) {
+  mapToJS : function(augment_mes, file, lineno) {
     if (this.type == "t") {
-      throw (augment_mes && this.val.file) ? new Error(augmented_message(this.val)) : this.val;
+      annotate_exception_stack(this, file, lineno, 'mapToJS');
+      var e = (augment_mes && this.val.file) ? new Error(augmented_message(this.val)) : this.val;
+      throw e;
     }
     else if (!this.ef) // XXX DO WE NEED THIS???
       throw new Error(this.toString()); 
@@ -145,6 +175,17 @@ var EF_Proto = {
   toString: function() { return "<suspended SJS>"; },
 #endif
   __oni_ef : true,
+  lineno: function() {
+    if(this.child_frame && this.child_frame.lineno)
+    {
+      // TODO: is this ever used?
+      LOG("EF_Proto Using child_frame's lineno() function");
+      return this.child_frame.lineno();
+    }
+    LOG("no lineno for " + this + " // " + this.type);
+    //throw new Error("no lineno function for " + this + " // " + this.type)
+    return null;
+  },
 
   setChildFrame: function(ef, idx) {
     this.async = true;
@@ -169,6 +210,12 @@ var EF_Proto = {
   },
 
   returnToParent: function(val) {
+    if(is_cfx(val) && val.type == 't') {
+      if(this.lineno && this.env) {
+        var reason = 'EF_Proto.returnToParent';
+        annotate_exception_stack(val, this.env.file, this.lineno(), reason);
+      }
+    }
     if (this.swallow_r) {
       if (is_cfx(val)) {
         if (val.type == "r") {
@@ -188,7 +235,9 @@ var EF_Proto = {
     this.unreturnable = true;
 
     // a little cleanup which might aid GC:
+#ifndef STACKTRACES
     this.env = UNDEF;
+#endif
 
     if (this.async) {
       if (this.parent) {
@@ -204,7 +253,7 @@ var EF_Proto = {
           // Chrome's console exception reporting mechanism doesn't
           // respect user-supplied toString. To get linenumbers we
           // throw with an augmented message here:
-          val.mapToJS(true);
+          val.mapToJS(true, this.env.file, this.lineno());
         }
     }
     else // sync context
@@ -226,12 +275,15 @@ function execIN(node, env) {
     return node; // a literal value
   }
   
-  return node.exec(node.ndata, env);
+  var result = node.exec(node.ndata, env);
+  return result;
 }
 exports.ex = execIN;
 
 // function bodies: create a seq and exec it. map exceptions.
 // short for __oni_rt.exec(__oni_rt.Seq(...), aobj, thisobj, file)
+// aobj: effective `arguments`
+// tobj: effective `this`
 exports.exseq = function(aobj,tobj,file, args) {
   var rv = I_seq(args, new Env(aobj,tobj,file));
 //  var rv = (new EF_Seq(args, new Env(aobj,tobj,file))).cont(1);
@@ -253,10 +305,11 @@ exports.exbl = function(env, args) {
 
 //   exec: instruction executor function
 //   returns IN constructor function which returns a instruction object
-function makeINCtor(exec) {
+function makeINCtor(exec, lineno) {
   return function(/* ndata */) {
     return {
       exec: exec,
+      lineno: lineno || EF_Proto.lineno,
       ndata: arguments,
       __oni_dis: token_dis
     };
@@ -308,13 +361,50 @@ function I_nblock(ndata, env) {
         // called via a variable, see sjs-testsuite2:26
         return UNDEF;
       }
-      else
-        return e;
+    } else {
+      e = new CFException("t", e, NDATA_NBLOCK_LINENO(), env.file);
     }
-    return new CFException("t", e, NDATA_NBLOCK_LINENO(), env.file);
+    annotate_exception_stack(e, env.file, NDATA_NBLOCK_LINENO(), 'I_nblock catch');
+    return e;
   }
 }
-exports.Nb = makeINCtor(I_nblock);
+exports.Nb = makeINCtor(I_nblock, function() { return this.NDATA_NBLOCK_LINENO(); });
+
+var annotate_exception_stack = function(e, file, lineno, reason) {
+  if(e.type != 't') {
+    // LOG("skipping non-throw type " + e.type);
+    return;
+  }
+  if (lineno == null) {
+    LOG("skipping null lineno from: " + reason);
+    return;
+  }
+  LOG("annotating exception " + e.val);
+  if(!file) { return; }
+  if(e.val instanceof Error || e.val instanceof Object) { // TODO: why are JS-thrown errors an Object instead of Error
+    if(!e.val.__oni_msg) {
+      e.val.__oni_msg = e.val.toString();
+    }
+    e.val.__oni_stack.push([file, lineno, reason]);
+
+    // todo: this is surely a waste of effort in 90+% of cases, since the stack is not shown.
+    e.val.stack = "";
+    var last_line = null;
+    for(var i=0; i<e.val.__oni_stack.length; i++) {
+      var this_line = e.val.__oni_stack[i].slice(0,2).join(":");
+      //TODO: this check is so hacky! And doesn't work in some cases.
+      // Need to figure out exactly when a new line ought to be added
+      if(this_line != last_line) {
+        if(e.val.stack) e.val.stack += "\n";
+        e.val.stack += this_line;
+      }
+      last_line = this_line;
+    }
+    LOG("oni_stack for " + e + " is now = " + e.val.__oni_stack.join("\n---"));
+  } else {
+    LOG("can't annotate error: " + e.val + ", as it is a " + typeof(e.val));
+  }
+};
 
 //----------------------------------------------------------------------
 // Bl : instruction node for block lambdas
@@ -375,22 +465,63 @@ function EF_Seq(ndata, env) {
     // blocklambda breaks to target this frame:
     this.toplevel = true; 
   }
+  this.last_idx = 0;
 }
 setEFProto(EF_Seq.prototype={});
 #ifdef EF_TYPES
 EF_Seq.prototype.type = "Seq";
 #endif
+EF_Seq.prototype.lineno = function() {
+  if(this.last_idx >= this.ndata.length) {
+    LOG("SEQ_IDX_FUDGE" + this.last_idx + " -> " + (this.ndata.length - 1));
+    this.last_idx = this.ndata.length - 1; // XXX: is this correct?
+    // return 'TODO, idx>length of ' + this.id;
+  }
+  if(this.last_idx == 0)
+  {
+    return "[SEQ_FLags!?] [id=" + this.id + "]";
+  }
+  if(this.last_idx === undefined || this.last_idx < 1) {
+    return 'TODO, idx=' + String(this.last_idx);
+  }
+  if(this.last_idx > this.ndata.length) {
+    return 'TODO, overflow: ' + String(this.last_idx);
+  }
+  if(!this.ndata[this.last_idx].lineno) {
+    return '?? (' + this.ndata[this.last_idx].type + ')';
+  }
+  return this.ndata[this.last_idx].lineno();
+};
 EF_Seq.prototype.cont = function(idx, val) {
+  var self = this;
+  var getLine = function(idx) {
+    var lineno = drill(self, 'ndata', idx, 'lineno');
+    if (lineno && lineno.call) {
+      var val = lineno.call(self.ndata[idx]);
+      if (val) return val;
+      return String(lineno);
+    }
+    return "??: ";
+  };
+  var getType = function(val) {
+    var sub = val && val.type;
+    return "Seq/" + (sub || "??");
+  };
+  LOG("EF_Seq.prototype.cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "]) @ " + this.env.file + ":" + getLine(idx));
+
   if (is_ef(val)) {
     // child frame being replaced:
+    this.last_idx = idx; // TODO: clean up needed for this
     this.setChildFrame(val, idx);
   }
   else if (is_cfx(val)) {
     // pass through an exception:
+    this.last_idx = idx; // TODO: clean up needed for this
     return this.returnToParent(val);
   }
   else {
     while (idx<this.ndata.length) {
+      this.last_idx = idx; // TODO: clean up needed for this
       if (this.sc && idx > 1) {
         // short-circuit logic (for '||' & '&&')
         if (this.sc == NDATA_SEQ_FLAG_SHORTCIRCUIT_OR) {
@@ -410,7 +541,12 @@ EF_Seq.prototype.cont = function(idx, val) {
         }
         break;
       }
-      if ((++idx == this.ndata.length && this.tailcall) || is_cfx(val)) {
+      var actual_idx = idx; // note the ++idx below.
+      idx += 1;
+#if !TAIL_CALLS
+      this.tailcall = false;
+#endif
+      if ((idx == this.ndata.length && this.tailcall) || is_cfx(val)) {
         // tail call optimization: 
         break;
       }
@@ -484,7 +620,8 @@ function I_seq(ndata, env) {
   return (new EF_Seq(ndata, env)).cont(1);
 }
 #endif // HOTPATH
-exports.Seq = makeINCtor(I_seq);
+exports.Seq = makeINCtor(I_seq, EF_Seq.prototype.lineno);
+exports.seq = I_seq;
 
 //----------------------------------------------------------------------
 // Sc : simple strict function call
@@ -513,6 +650,7 @@ function EF_Sc(ndata, env) {
 }
 setEFProto(EF_Sc.prototype={});
 
+EF_Sc.prototype.lineno = function() { return this.NDATA_SC_LINE(); };
 EF_Sc.prototype.cont = function(idx, val) {
   if (is_ef(val)) {
     this.setChildFrame(val, idx);
@@ -554,7 +692,7 @@ function I_sc(ndata, env) {
   return (new EF_Sc(ndata, env)).cont(0);
 }
 
-exports.Sc = makeINCtor(I_sc);
+exports.Sc = makeINCtor(I_sc, EF_Sc.prototype.lineno);
 
 //----------------------------------------------------------------------
 // Fcall : instruction node for calling a function 
@@ -601,6 +739,7 @@ setEFProto(EF_Fcall.prototype={});
 EF_Fcall.prototype.type = "Fcall";
 #endif
 
+EF_Fcall.prototype.lineno = function() { return this.NDATA_FCALL_LINE(); };
 EF_Fcall.prototype.cont = function(idx, val) {
   if (is_ef(val)) {
     this.setChildFrame(val, idx);
@@ -641,9 +780,9 @@ EF_Fcall.prototype.cont = function(idx, val) {
       case 0:
       // 'normal' call
       // this optimization gives at least 10% performance boost vs 'eval'
-      if (typeof this.l == "function" && this.l.apply /* required for regexes on chrome (and others?) */)
+      if (typeof this.l == "function" && this.l.apply /* required for regexes on chrome (and others?) */) {
         rv = this.l.apply(null, this.pars);
-      else if (!testIsFunction(this.l)) {
+      } else if (!testIsFunction(this.l)) {
         rv = new CFException("t",
                              new Error("'"+this.l+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
@@ -725,13 +864,28 @@ EF_Fcall.prototype.cont = function(idx, val) {
 #endif // !NODEJS
         // ctor is one of the 'builtin' functions. we need to
         // construct it in a single stage:
+        var pars = this.pars;
         var command = "new ctor(";
-        for (var i=0; i<this.pars.length; ++i) {
+        for (var i=0; i<pars.length; ++i) {
           if (i) command +=",";
-          command += "this.pars["+i+"]";
+          command += "pars["+i+"]";
         }
         command += ")";
+
+#ifdef NODEJS
+        // TODO: get native stacks from non-node env
+        var sandbox = {
+          'pars': pars,
+          'ctor': ctor
+        };
+        var vm = __oni_rt.nodejs_require("vm");
+        var sandbox = vm.createContext();
+        sandbox.pars = pars;
+        sandbox.ctor = ctor;
+        rv = vm.runInNewContext(command, sandbox, this.env.file);
+#else
         rv = eval(command);
+#endif
       }
       else if (!testIsFunction(ctor)) {
         rv = new CFException("t",
@@ -795,7 +949,7 @@ function I_fcall(ndata, env) {
   return (new EF_Fcall(ndata, env)).cont(0);
 }
 
-exports.Fcall = makeINCtor(I_fcall);
+exports.Fcall = makeINCtor(I_fcall, EF_Fcall.prototype.lineno);
 
 //----------------------------------------------------------------------
 // If : instruction node for executing 'if'
@@ -1022,6 +1176,7 @@ EF_Try.prototype.cont = function(idx, val) {
         // XXX does this need to be wrapped?
         val = new CFException("t", e);
       }
+      var catch_fn = this.NDATA_TRY_CATCH_FUNC();
       if (is_ef(val)) {
         this.setChildFrame(val);
         return this;
@@ -1869,6 +2024,7 @@ setEFProto(EF_Spawn.prototype={});
 EF_Spawn.prototype.type = "Spawn";
 #endif
 
+EF_Spawn.prototype.lineno = function() { return this.NDATA_SPAWN_LINE(); };
 EF_Spawn.prototype.cont = function(idx, val) {
   if (idx == 0)
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
@@ -1960,7 +2116,7 @@ function I_spawn(ndata, env) {
           //   stratum.value();
           // We want to prevent the exception feeding to the user twice in this case
           if (!picked_up)
-            val.mapToJS(true); 
+            val.mapToJS(true, env.file, NDATA_SPAWN_LINE()); 
         }, 
                    0);
       }
@@ -1975,7 +2131,7 @@ function I_spawn(ndata, env) {
   return stratum;
 }
   
-exports.Spawn = makeINCtor(I_spawn);
+exports.Spawn = makeINCtor(I_spawn, EF_Spawn.prototype.lineno);
 
 //----------------------------------------------------------------------
 // collapse
@@ -1999,6 +2155,7 @@ EF_Collapse.prototype.type = "Collapse";
 // mark us as a collapse frame
 EF_Collapse.prototype.__oni_collapse = true;
 
+EF_Collapse.prototype.lineno = function() { return this.NDATA_COLLAPSE_LINE(); };
 EF_Collapse.prototype.cont = function(idx, val) {
   if (idx == 0) {
     var fold = this.env.fold;
@@ -2026,7 +2183,7 @@ function I_collapse(ndata, env) {
   return (new EF_Collapse(ndata, env)).cont(0);
 }
   
-exports.Collapse = makeINCtor(I_collapse);
+exports.Collapse = makeINCtor(I_collapse, EF_Collapse.prototype.lineno);
   
 //----------------------------------------------------------------------
 // builtin strict functions
@@ -2040,7 +2197,7 @@ exports.Hold = function(/*args*/) {
               abort: dummy,
 #if defined (CLIENTSIDE) || defined (NODEJS)
               quench: function() { sus = null; clearTimeout(this.co); }
-#else              
+#else
               quench: function() { sus = null; this.co.cancel(); }
 #endif
             };
