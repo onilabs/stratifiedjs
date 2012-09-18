@@ -1282,7 +1282,7 @@ HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
    @attrib  {String} [content] HTML content
    @attrib {Array|base::StyleElement} [style] Additional styles
    @attrib {Object} [mechanisms] Hash of mechanisms
-   @attrib {Object} [subelems] Hash of {container,elem} subelement objects
+   @attrib {Array} [subelems] Array of {container,elem} subelement objects
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
