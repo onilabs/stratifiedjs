@@ -1133,6 +1133,22 @@ __js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UICon
 
 ChildManagement.mixinto(HtmlFragmentElement);
 
+// HtmlFragmentElement needs to come *after* mixing in ChildManagement
+/**
+   @function HtmlFragmentElement.init
+   @summary Called by constructor function to initialize HtmlFragmentElement object
+   @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init]
+*/
+HtmlFragmentElement.init = func.seq(
+  HtmlFragmentElement.init, 
+  function(attribs) {
+    if (attribs.subelems)
+      coll.each(attribs.subelems) {
+        |e|
+        this.selectContainer(e.container ? e.container : "##{e.id}").append(e.elem);
+      }
+  });
+
 __js HtmlFragmentElement.layout = function(layout_spec) {
   var elem = this.dompeer;
   var style = elem.style;
@@ -1266,6 +1282,7 @@ HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
    @attrib  {String} [content] HTML content
    @attrib {Array|base::StyleElement} [style] Additional styles
    @attrib {Object} [mechanisms] Hash of mechanisms
+   @attrib {Object} [subelems] Hash of {container,elem} subelement objects
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
