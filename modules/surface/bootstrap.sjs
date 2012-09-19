@@ -2909,7 +2909,7 @@ __js var CSSButtons = exports.CSSButtons = function(lookAndFeel) {
   cursor: default;
   background-color: #{darken(vars.white(), .1)};
   background-image: none;
-  #{mixins.opacity(.65)}
+  #{mixins.opacity(65)}
   #{mixins.box_shadow('none')}
 }
 
