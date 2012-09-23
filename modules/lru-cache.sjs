@@ -42,7 +42,8 @@
      Use function [::makeCache] to create a new Cache instance
 */
 
-var Cache = {};
+function Cache() {};
+var CacheProto = Cache.prototype = {};
 
 /**
    @function makeCache
@@ -51,7 +52,7 @@ var Cache = {};
                              will be disposed
 */
 exports.makeCache = function(maxsize) {
-  var obj = Object.create(Cache);
+  var obj = new Cache();
   obj.init(maxsize);
   return obj;
 };
@@ -65,7 +66,7 @@ exports.makeCache = function(maxsize) {
    @desc
      [::makeCache] implicitly calls this method.
 */
-Cache.init = function(maxsize) {
+CacheProto.init = function(maxsize) {
   this.maxsize = maxsize;
   this.clear();
 };
@@ -76,7 +77,7 @@ var keyPrefix = "_";
    @function Cache.clear
    @summary  Dispose of all elements in the cache
 */
-Cache.clear = function() {
+CacheProto.clear = function() {
   this.size = 0;
   this.index = {};
   // init with a dummy node, so that we need fewer edge case checks
@@ -97,7 +98,7 @@ Cache.clear = function() {
      * If the item's size is larger than the cache's `maxsize`, the item will not be put into
        the cache, and the cache content will not be modified.
 */
-Cache.put = function(key, value, size) {
+CacheProto.put = function(key, value, size) {
   if (size === undefined) size = 1;
   if (size > this.maxsize) return; // cache too small for this item
 
@@ -131,7 +132,7 @@ Cache.put = function(key, value, size) {
      * Otherwise, if an item for the key is found, the item will be moved into 
        the 'most recently used' position and returned.
 */
-Cache.get = function(key) {
+CacheProto.get = function(key) {
   key = keyPrefix + key;
   var entry = this.index[key];
   if (!entry) return null;
