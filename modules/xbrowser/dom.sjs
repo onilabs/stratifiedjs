@@ -199,7 +199,7 @@ exports.stopEvent = function(ev) {
   @param     {optional Function} [filter] Function through which received
              events will be passed. [::waitforEvent]
              continues listening for events and won't return until the filter
-             returns a value != true.
+             returns a value == true.
   @param     {optional Function} [eventTransformer] Function through which an
              event will be passed before passing the return value on to
              *filter* and/or returning it from *waitforEvent*.
