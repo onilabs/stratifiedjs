@@ -57,5 +57,5 @@
 @module sjcl            Stanford JavaScript Crypto Library
 @module stream          Stratified stream and iterator constructs
 @module string          Functions for working with strings
-
+@module wraplib         Utility functions for wrapping plain JS libraries for SJS
 
