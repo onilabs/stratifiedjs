@@ -33,21 +33,50 @@
    @module  function
    @summary Function composition helpers
    @home    apollo:function
-   @desc    Work-in-progress
 */
+
+var coll = require('./collection');
 
 /**
    @function seq
-   @summary Compose two functions sequentially
-   @param   {Function} [f] 
-   @param   {Function} [g] 
-   @return  {Function} f,g
+   @summary Sequential function composition
+   @param   {Function} [f1, f2, ...] Functions to compose
+   @return  {Function} Sequential composition of f1, f2, ...
    @desc
-      The composed function `seq(f,g)` will apply its arguments first 
+      The composed function `c = seq(f,g)` will apply its arguments first 
       to `f`, then to `g`, and return the result of evaluating `g`.
+
+      `f` and `g` will be called with the same `this` pointer that `c` is called with.
 */
-exports.seq = function(f, g) {
-  return function() { f.apply(this, arguments); return g.apply(this, arguments); }
+exports.seq = function(/*f1,f2,...*/) {
+  var fs = arguments;
+  return function() { 
+    var rv;
+    for (var i=0; i<fs.length; ++i)
+      rv = fs[i].apply(this, arguments); 
+    return rv;
+  }
 };
 
-// XXX par, alt, compose (f o g), curry
+
+/**
+   @function par
+   @summary Parallel function composition
+   @param   {Function} [f1, f2, ...] Functions to compose
+   @return  {Function} Parallel composition of f1, f2, ...
+   @desc
+      A call `c(a1,a2,...)` to the composed function `c = par(f,g)`
+      executes as
+      `waitfor{ f(a1,a2,...) } and { g(a1,a2,...) }`.
+
+      `f` and `g` will be called with the same `this` pointer that `c` is called with.
+
+*/
+exports.par = function(/*f1,f2,...*/) {
+  var fs = Array.prototype.slice.call(arguments);
+  return function() {
+    return coll.par.waitforAll(fs, arguments, this);
+  }
+};
+
+// XXX alt, compose (f o g), curry

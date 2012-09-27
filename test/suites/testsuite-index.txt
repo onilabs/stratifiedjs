@@ -3,6 +3,7 @@ collection-tests.sjs xbrowser,nodejs
 common-tests.sjs xbrowser,nodejs
 cutil-tests.sjs xbrowser,nodejs
 dom-tests.sjs xbrowser
+function-tests.sjs xbrowser,nodejs
 google-tests.sjs xbrowser,nodejs
 http-tests.sjs xbrowser,nodejs
 jquery-tests.sjs xbrowser
