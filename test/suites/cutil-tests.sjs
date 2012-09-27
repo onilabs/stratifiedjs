@@ -11,7 +11,7 @@ test('waitforAll funcs', 3, function() {
 test('waitforAll funcs + arg', 3, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a[1]; }
-  cutil.waitforAll([one, one, one], [2,1,3]);
+  cutil.waitforAll([one, one, one], [[2,1,3]]);
   return x;
 });
 
@@ -46,7 +46,7 @@ test('waitforFirst funcs', 1, function() {
 test('waitforFirst funcs + arg', 3, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a[1]; }
-  cutil.waitforFirst([one, one, one], [3,3,3]);
+  cutil.waitforFirst([one, one, one], [[3,3,3]]);
   return x;
 });
 

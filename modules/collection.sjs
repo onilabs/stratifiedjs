@@ -201,12 +201,12 @@ exports.each = function(collection, fn, this_obj) {
             of them to finish, or, execute a single function with different
             arguments on separate strata and wait for all executions to finish.
   @param    {Function | Array} [funcs] Function or array of functions.
-  @param    {optional Object | Array} [args] Argument or array of arguments.
+  @param    {optional Array} [args] Array of arguments.
   @param    {optional Object} [this_obj] 'this' object on which `funcs` will be executed.
   @desc
     If `funcs` is an array of functions, each of the functions will
     be executed on a separate stratum, with 'this' set to `this_obj` and
-    the first argument set to `args`.
+    arguments set to `args`.
 
     If `funcs` is a single function and `args` is an array, `funcs`
     will be called `args.length` times on separate strata with its
@@ -232,7 +232,7 @@ exports.par.waitforAll = function waitforAll(funcs, args, this_obj) {
 
 function waitforAllFuncs(funcs, args, this_obj) {
   if (funcs.length == 1)
-    funcs[0].call(this_obj, args);
+    funcs[0].apply(this_obj, args);
   else {
     // build a binary recursion tree, so that we don't blow the stack easily
     // XXX we should really have waitforAll as a language primitive
@@ -269,12 +269,12 @@ function waitforAllArgs(f, args, i, l, this_obj) {
             arguments on separate strata and wait for the first execution to finish.
   @return   {value} Return value of function execution that finished first.
   @param    {Function | Array} [funcs] Function or array of functions.
-  @param    {optional Object | Array} [args] Argument or array of arguments.
+  @param    {optional Array} [args] Array of arguments.
   @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
   @desc
     If `funcs` is an array of functions, each of the functions will
     be executed on a separate stratum, with 'this' set to `this_obj` and
-    the first argument set to `args`.
+    arguments set to `args`.
 
     If `funcs` is a single function and `args` is an array, `funcs`
     will be called `args.length` times on separate strata with its
@@ -301,7 +301,7 @@ exports.par.waitforFirst = function waitforFirst(funcs, args, this_obj) {
 
 function waitforFirstFuncs(funcs, args, this_obj) {
   if (funcs.length == 1)
-    return funcs[0].call(this_obj, args);
+    return funcs[0].apply(this_obj, args);
   else {
     // build a binary recursion tree, so that we don't blow the stack easily
     // XXX we should really have waitforFirst as a language primitive
