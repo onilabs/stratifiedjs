@@ -248,7 +248,7 @@ function generateWrapLib(debug, timeout) {
         }
       }
     } catch(e) {
-      require("apollo:logging").print("Error applying annotation for key " + k + ": " + e);
+      require("apollo:logging").print("Error applying annotation for key #{k}: #{e}");
       throw e;
     }
   };

@@ -180,10 +180,7 @@ exports.defineField = function(key, val) {
 */
 exports.isEnabled = function(lvl) { return currentLevel >= lvl; };
 
-exports.formatMessage = function(lvl, message, vals) {
-  if(vals) {
-    message = str.supplant(message, vals);
-  }
+exports.formatMessage = function(lvl, message) {
   var fields = {
     level: exports.levelNames[lvl],
     message: message
@@ -195,23 +192,17 @@ exports.formatMessage = function(lvl, message, vals) {
   return rv;
 };
 
-exports.log = function(lvl, message, vals, obj, preferred_console_method) {
+exports.log = function(lvl, message, args, preferred_console_method) {
   if(!message) throw new Error("Please supply both a level and a message");
   if(!exports.isEnabled(lvl)) return;
-  var s = exports.formatMessage(lvl, message, vals);
-
-  // only pass the obj arg if it's defined,
-  // otherwise the console will log an `undefined` obj
-  var args = [s];
-  if(obj !== undefined) {
-    args.push(obj);
-  }
-  getPrinter(preferred_console_method).apply(null, args);
+  message = exports.formatMessage(lvl, message);
+  getPrinter(preferred_console_method).apply(null, [message].concat(args));
 };
 
 var printfn = function(lvl, preferred_console_method) {
-  return function(message, vals, obj) {
-    return exports.log(lvl, message, vals, obj, preferred_console_method);
+  return function(message) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return exports.log(lvl, message, args, preferred_console_method);
   }
 };
 
@@ -229,10 +220,10 @@ exports.print = function() { getPrinter('log').apply(null, arguments); };
   @function debug
   @summary  Print the given message to the console when the current log level is DEBUG or higher
   @param    {String} [message] The message to log
-  @param    {optional Object} [values] Values to be substituted into the message (see [common::supplant] for the syntax).
-  @param    {optional Object} [obj] An additional object to pass through to the underlying log method.
-            In the node.js environment, the object will be dumped as a JSON string.
-            In a browser, this may show an expandable view of the object.
+  @param    {optional Object ...} [args] Any additional objects given to this function will be
+            passed through to the underlying log method.
+            In the node.js environment, these arguments object will be dumped as a JSON string.
+            In a browser, this often shows an expandable view of each object.
 */
 exports.debug = printfn(exports.DEBUG, 'debug');
 
@@ -241,8 +232,7 @@ exports.debug = printfn(exports.DEBUG, 'debug');
   @summary  Print the given message to the console when the current log level is VERBOSE or higher.
             The arguments are interpreted as for [::debug].
   @param    {String} [message]
-  @param    {optional Object} [values]
-  @param    {optional Object} [obj]
+  @param    {optional Object} [args]
 */
 exports.verbose = printfn(exports.VERBOSE, 'debug');
 
@@ -251,8 +241,7 @@ exports.verbose = printfn(exports.VERBOSE, 'debug');
   @summary  Print the given message to the console when the current log level is INFO or higher.
             The arguments are interpreted as for [::debug].
   @param    {String} [message]
-  @param    {optional Object} [values]
-  @param    {optional Object} [obj]
+  @param    {optional Object} [args]
 */
 exports.info = printfn(exports.INFO,'info');
 
@@ -261,8 +250,7 @@ exports.info = printfn(exports.INFO,'info');
   @summary  Print the given message to the console when the current log level is WARN or higher.
             The arguments are interpreted as for [::debug].
   @param    {String} [message]
-  @param    {optional Object} [values]
-  @param    {optional Object} [obj]
+  @param    {optional Object} [args]
 */
 exports.warn = printfn(exports.WARN,'warn');
 /**
@@ -270,8 +258,7 @@ exports.warn = printfn(exports.WARN,'warn');
   @summary  Print the given message to the console when the current log level is ERROR or higher.
             The arguments are interpreted as for [::debug].
   @param    {String} [message]
-  @param    {optional Object} [values]
-  @param    {optional Object} [obj]
+  @param    {optional Object} [args]
 */
 exports.error = printfn(exports.ERROR,'error');
 
