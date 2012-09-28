@@ -74,7 +74,7 @@ __js exports.surface = base.surface;
    @attrib {String} [content] HTML content
    @attrib {Array|base::StyleElement} [style] Additional styles
    @attrib {Object} [mechanisms] Hash of additional mechanisms
-   @return {::HtmlFragmentElement}
+   @return {base::HtmlFragmentElement}
 */
 exports.Html = function(attribs) {
   var lf = Object.create(defaultLookAndFeel);
