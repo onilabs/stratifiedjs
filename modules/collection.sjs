@@ -157,6 +157,7 @@ exports.items = function(collection) {
 
 /**
   @function identity
+  @deprecated Use [function::identity]
   @param    [argument]
   @summary  Returns whatever argument it receives, unmodified.
   @desc

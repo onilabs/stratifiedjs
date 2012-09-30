@@ -181,12 +181,10 @@ var Event = exports.Event = function Event() {
 */
 Event.prototype.wait = function wait() {
   var result = this.value;
-  if (!this.isSet) {
-    waitfor(result) {
-      this.waiting.push(resume);
-    } retract {
-      coll.remove(this.waiting, resume, null);
-    }
+  waitfor(result) {
+    this.waiting.push(resume);
+  } retract {
+    coll.remove(this.waiting, resume, null);
   }
   return result;
 };
@@ -270,69 +268,37 @@ Condition.prototype.clear = function clear() {
 
 /**
   @function makeBoundedFunction
+  @deprecated Use [function::bound]
   @summary  A wrapper for limiting the number of concurrent executions of a function.
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
   @param    {Integer} [max_concurrent_calls] The maximum number of concurrent executions to allow for 'f'.
 */
-exports.makeBoundedFunction = function(f, max_concurrent_calls) {
-  var permits = new Semaphore(max_concurrent_calls);
-  return function() {
-    using (permits.acquire())
-      return f.apply(this, arguments);
-  }
-};
+exports.makeBoundedFunction = function(f, max_concurrent_calls) { return require('./function').bound(f, max_concurrent_calls) };
 
 /**
   @function makeRateLimitedFunction
+  @deprecated Use [function:rateLimit]
   @summary  A wrapper for limiting the rate at which a function can be called.
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
   @param    {Integer} [max_cps] The maximum number of calls per seconds allowed for 'f'.
 */
-exports.makeRateLimitedFunction = function(f, max_cps) {
-  var min_elapsed = 1000/max_cps;
-  var last_call;
-  return exports.makeBoundedFunction(
-  function() {
-    if (last_call) {
-      var elapsed = (new Date()) - last_call;
-      if (elapsed < min_elapsed)
-        hold(min_elapsed - elapsed);
-    }
-    last_call = new Date();
-    return f.apply(this, arguments);
-  }, 1);
-};
+exports.makeRateLimitedFunction = function(f, max_cps) { return require('./function').rateLimit(f, max_cps); };
 
 /**
   @function makeExclusiveFunction
+  @deprecated Use [function:exclusive]
   @summary  A wrapper for limiting the number of concurrent executions of a function to one. 
             Instead of potentially waiting for the previous execution to end, like makeBoundedFunction, it will cancel it.
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
 */
-exports.makeExclusiveFunction = function(f) {
-  var executing = false, cancel;
-  return function() {
-    if (executing) cancel();
-    waitfor {
-      executing = true;
-      return f.apply(this, arguments);
-    }
-    or {
-      waitfor() {
-        cancel = resume;
-      }
-    }
-    finally {
-      executing = false;
-    }
-  }
-}
+exports.makeExclusiveFunction = function(f) { return require('./function').exclusive(f); };
 
 /**
    @function makeDeferredFunction
+   @deprecated Use [function:deferred]
    @summary  A wrapper for implementing the 'deferred pattern' on a function (see 
              [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern)).
    @param    {Function} [f] The function to wrap.
@@ -343,27 +309,11 @@ exports.makeExclusiveFunction = function(f) {
      [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern). With these methods, plain JS code can be made to wait for
      for the execution of asynchronous SJS code.
 */
-exports.makeDeferredFunction = function(f) {
-  return function() {
-    var stratum = spawn f.apply(this, arguments);
-    var deferred = {
-      then : function(callback, errback) {
-        spawn (function() {
-          try { callback(stratum.waitforValue()); }
-          catch (e) { if (errback) errback(e); }
-        })();
-        return deferred;
-      },
-      cancel : function() {
-        stratum.abort();
-      }
-    };
-    return deferred;
-  }
-};
+exports.makeDeferredFunction = function(f) { return require('./function').deferred(f); };
 
 /**
    @function makeMemoizedFunction
+   @deprecated Use [function:memoize]
    @summary  A wrapper for implementing a memoized version of a function.
    @param    {Function} [f] The function to wrap.
    @param    {optional Function} [key] The key function to use.

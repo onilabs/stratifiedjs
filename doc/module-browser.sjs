@@ -9,7 +9,7 @@ and {
   var ui = require('./ui');
 }
 and {
-  var cutil = require('apollo:cutil');
+  var func = require('apollo:function');
 }
 and {
   var coll = require('apollo:collection');
@@ -117,7 +117,7 @@ exports.run = function(default_location, trail_parent, index_parent, main_parent
   }
     
 */
-var getLibDocs = exports.getLibDocs = cutil.makeMemoizedFunction(function(libpath) {
+var getLibDocs = exports.getLibDocs = func.memoize(function(libpath) {
   try {
     var url = http.constructURL(libpath, "sjs-lib-index.txt");
     var docs = docutil.parseSJSLibDocs(http.get(url));
@@ -139,7 +139,7 @@ function getPathDocs(libpath) {
   return rv;
 }
 
-var getModuleDocs = cutil.makeMemoizedFunction(function(modulepath) {
+var getModuleDocs = func.memoize(function(modulepath) {
   try { 
     if (modulepath.charAt(modulepath.length-1) == '/') return null;
     var docs = docutil.parseModuleDocs(http.get(modulepath + ".sjs"));
