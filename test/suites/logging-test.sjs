@@ -8,8 +8,9 @@ test('default format', 'DEBUG: msg', function() {
   return logging.formatMessage(logging.DEBUG, 'msg');
 });
 
-test('value substitution', 'INFO: hello world', function() {
-  return logging.formatMessage(logging.INFO, 'hello {who}', {who: 'world'});
+test('value substitution (/ string interpolation)', 'INFO: hello world', function() {
+  var who = "world";
+  return logging.formatMessage(logging.INFO, "hello #{who}");
 });
 
 test('print all log levels and revert', logging.getLevel(), function() {
@@ -20,9 +21,9 @@ test('print all log levels and revert', logging.getLevel(), function() {
   })) {
     logging.debug('debug');
     logging.verbose('verbose');
-    logging.info('{value}', {value: 'info'});
+    logging.info('info');
     logging.warn('warn');
-    logging.error('error with JSON object: ', {}, {error: "some error!"});
+    logging.error('error with JSON object: ', {error: "some error!"});
   }
   return logging.getLevel();
 });
