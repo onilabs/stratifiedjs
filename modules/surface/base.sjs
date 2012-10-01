@@ -50,8 +50,9 @@ and {
   var debug  = require('../debug');
 } 
 and {
-var func   = require('../function');
+  var func = require('../function');
 }
+
 console.log("surface.sjs loading deps: #{(new Date())-tt}");
 tt = new Date();
 //----------------------------------------------------------------------
@@ -345,7 +346,7 @@ var UIElement = exports.UIElement = {};
    @function UIElement.init
    @summary Called by constructor functions to initialize UIElement objects
    @param   {Object} [attribs] Hash with attributes
-   @attrib  {optional Object} [mechanisms] Hash of functions that will 
+   @attrib  {optional Function} [mechanism] Function that will 
                be spawned when the element has been activated and aborted when 
                the element is deactivated
                (see [::UIElement::activated] & [::UIElement::deactivated]).
@@ -360,40 +361,8 @@ var UIElement = exports.UIElement = {};
       [::UIElement::activated] and aborted (if it is still running) by
       [::UIElement::deactivated].
 
-      A mechanism function has the signature `f(ui, api)`, where `ui` is
-      the [::UIElement] for which it has been activated, and `api` is an
-      empty object into which the mechanism can install functions that will
-      be reflected in [::UIElement::api] under the name of the mechanism. When
-      the mechanism exits (either on its own or by being aborted), the reflected
-      api will be removed.
-
-      **Example:**
-
-          var surface = require('apollo:surface/base');
-          var dom     = require('apollo:xbrowser/dom');
- 
-          var elem = 
-            surface.Html({
-              ...,
-              mechanisms : { 
-                commands: function(ui, api) {
-                  api.get = { || 
-                    dom.waitforEvent(ui.dompeer, 'click', 
-                                     { |e| e.getAttribute('data-type') == 'command' })
-                  };
-                  hold();
-                }
-              }
-            });
-            
-          surface.withUI(surface.surface, elem) { ||
-            while (1) {
-              // process next click on element with data-type=='command':
-              var ev = elem.api.commands.get();
-              // ...
-            }
-          }
-
+      A mechanism function has the signature `f()`, and will be called with `this` set
+      to the `UIElement`.
 */
 __js UIElement.init = function(attribs) {
   if (attribs.debug) {
@@ -407,20 +376,14 @@ __js UIElement.init = function(attribs) {
   this.dompeer = document.createElement('surface-ui');
   this.dompeer.setAttribute('style', 'visibility:hidden'); 
   this.dompeer.ui = this;
-  this.mechanisms = attribs.mechanisms;
+  this.mechanism = attribs.mechanism || func.nop;
   this.style = attribs.style || [];
   if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
   coll.each(this.style, function(s) { 
     if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); }, this);
   if (typeof attribs.content !== 'undefined')
     this.dompeer.innerHTML = attribs.content;
-  this.api = {};
 };
-
-/**
-   @variable UIElement.api
-   @summary API reflected by mechanisms. See [::UIElement::init] for more information.
-*/
 
 /**
    @function UIElement.debug
@@ -465,12 +428,8 @@ UIElement.activated = function() {
   if (this.isActivated == 2) throw new Error("UIElement already activated");
   this.isActivated = 1;
   this.dompeer.style.visibility = 'visible';
-  if (this.mechanisms) {
-    this.stratum = spawn coll.par.each(this.mechanisms) { 
-      |f, name|
-      try { f(this, this.api[name] = {}); }
-      finally { delete this.api[name]; }
-    }
+  if (this.mechanism) {
+    this.stratum = spawn this.mechanism();
   }
   /*
      A note on the usage of "isActivated":
@@ -484,15 +443,10 @@ UIElement.activated = function() {
 
      The reason for distinguishing between 1 and 2 is that we need to prevent 
      any children that are added as part of mechanisms (which are executed in 'activated')
-     from being activated before all of our mechanisms are activated.
+     from being activated before our mechanism is activated.
 
   */
   this.isActivated = 2;
-/*    if (Array.isArray(this.mechanisms))
-      this.stratum = spawn coll.par.waitforAll(this.mechanisms, undefined, this);
-    else
-      this.stratum = spawn this.mechanisms.apply(this); 
-  } */
 };
 
 /**
@@ -1281,7 +1235,7 @@ HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
    @param   {Object} [attribs] Object with attributes
    @attrib  {String} [content] HTML content
    @attrib {Array|base::StyleElement} [style] Additional styles
-   @attrib {Object} [mechanisms] Hash of mechanisms
+   @attrib {Function} [mechanism] Mechanism function
    @attrib {Array} [subelems] Array of {container,elem} subelement objects
    @return  {::HtmlFragmentElement}
 */
@@ -1434,15 +1388,15 @@ surface.init({
 surface-ui, surface-aperture { display:block; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate;}
 surface-aperture { overflow:hidden; }
 ')],
-  mechanisms: { main: function(ui, api) {
-    document.body.appendChild(ui.dompeer);
+  mechanism: function() {
+    document.body.appendChild(this.dompeer);
     try {
       hold();
     }
     finally {
-      document.body.removeChild(ui.dompeer);
+      document.body.removeChild(this.dompeer);
     }
-  } }
+  } 
 });
 surface.activate();
 surface.activated();
@@ -1486,6 +1440,38 @@ surface.scheduleLayout = function() {
 
 surface.activated();
 */
+
+//----------------------------------------------------------------------
+// mixins
+
+
+/**
+   @function mixinCommandAPI
+   @param {::UIElement} [elem] Element to mix the Command API into
+   @param {optional String} [attrib='data-command'] Name of DOM attribute
+   @param {optional String} [method_name='waitforCommand'] Name of method to install
+   @summary Installs a 'Command API' on `elem` (see description for details)
+   @desc
+     Installs the method `method_name` on `elem`. 
+
+     `elem[method_name]()` waits for a click on a DOM child (or one of its 
+     descendents) that has the given DOM attribute. It returns the value of the attribute.
+*/
+exports.mixinCommandAPI = function(elem, attrib, method_name) {
+  attrib = attrib || 'data-command';
+  method_name = method_name || 'waitforCommand';
+  elem[method_name] = function() {
+    var ev = dom.waitforEvent(this.dompeer, 'click', function(ev) {
+      if ((ev.node = dom.findNode("[#{attrib}]", ev.target, elem.dompeer))) {
+        dom.stopEvent(ev);
+        return true;
+      }
+      return false;
+    });
+    return ev.node.getAttribute(attrib);
+  };
+};
+
 
 //----------------------------------------------------------------------
 // utilities

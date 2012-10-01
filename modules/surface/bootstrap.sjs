@@ -55,6 +55,7 @@
 
 var base = require('./base');
 var coll = require('../collection');
+var func = require('../function');
 var tt = new Date();
 
 //----------------------------------------------------------------------
@@ -73,7 +74,7 @@ __js exports.surface = base.surface;
    @param {Object} [attribs] Object with attributes 
    @attrib {String} [content] HTML content
    @attrib {Array|base::StyleElement} [style] Additional styles
-   @attrib {Object} [mechanisms] Hash of additional mechanisms
+   @attrib {Object} [mechanism] Mechanism (by default the dropdown, tabs, collapsing, alerts and modal mechanisms will be applied)
    @return {base::HtmlFragmentElement}
 */
 exports.Html = function(attribs) {
@@ -92,13 +93,15 @@ exports.Html = function(attribs) {
       CSSNavs(lf), CSSNavbar(lf), CSSBreadcrumbs(lf), CSSModals(lf), CSSFontAwesome(lf),
                CSSClose(lf), CSSResponsive(lf)];
 
-  var mechanisms = {
-    dropdowns: mechanism.dropdowns(), 
-    tabs: mechanism.tabs(), 
-    collapsing: mechanism.collapsing(),
-    alerts: mechanism.alert(), 
-    modal: mechanism.modal()
-  };
+  var mech;
+  if (attribs.mechanism !== undefined)
+    mech = attribs.mechanism;
+  else
+    mech = func.par(mechanism.dropdowns, 
+                    mechanism.tabs,
+                    mechanism.collapsing,
+                    mechanism.alert, 
+                    mechanism.modal);
 
   var content;
   if (typeof attribs == 'string')
@@ -107,14 +110,12 @@ exports.Html = function(attribs) {
     content = attribs.content || "";
     if (attribs.style)
       style = style.concat(attribs.style);
-    if (attribs.mechanisms)
-      mechanisms = common.mergeSettings(mechanisms, attribs.mechanisms);
   }
 
   return base.Html({
     style: style,
     content: content,
-    mechanisms: mechanisms
+    mechanism: mech
   });
 };
 
@@ -4997,172 +4998,162 @@ var mechanism = exports.mechanism = {};
 
 
 mechanism.dropdowns = function() {
-  return function(ui, api) {
-    var ignore = false;
-    using (var Q = dom.eventQueue(ui.dompeer, 'click', function (e){
-      if ((e.node = domFindData('toggle', 'dropdown', e.target, ui.dompeer))) {
-        dom.stopEvent(e);
-        if (ignore) { // see explanation below
-          ignore = false;
-          return false;
-        }          
-        return true;
-      }
-      else
+  var ignore = false;
+  using (var Q = dom.eventQueue(this.dompeer, 'click', function (e){
+    if ((e.node = domFindData('toggle', 'dropdown', e.target, this.dompeer))) {
+      dom.stopEvent(e);
+      if (ignore) { // see explanation below
+        ignore = false;
         return false;
-    })) {
-      while (1) {
-        var ev = Q.get();
-        var current = ev.node;
-        current.parentNode.classList.add('open');
-        try {
-          ev = dom.waitforEvent(window, '!click');
-          if (domFindData('toggle', 'dropdown', ev.target, ui.dompeer) == current) {
-            // we could stop the event here, to prevent the dropdown from reappearing, 
-            // but that is bad form: there might be other capturing listenern that 
-            // clear some state, so we should *never* stop events during the capturing
-            // phase
-            // dom.stopEvent(ev);
-            // Instead we set a flag that ignores the next event:
-            ignore = true;
-          }
+      }          
+      return true;
+    }
+    else
+      return false;
+  })) {
+    while (1) {
+      var ev = Q.get();
+      var current = ev.node;
+      current.parentNode.classList.add('open');
+      try {
+        ev = dom.waitforEvent(window, '!click');
+        if (domFindData('toggle', 'dropdown', ev.target, this.dompeer) == current) {
+          // we could stop the event here, to prevent the dropdown from reappearing, 
+          // but that is bad form: there might be other capturing listenern that 
+          // clear some state, so we should *never* stop events during the capturing
+          // phase
+          // dom.stopEvent(ev);
+          // Instead we set a flag that ignores the next event:
+          ignore = true;
         }
-        finally {
-          current.parentNode.classList.remove('open');
-        }
+      }
+      finally {
+        current.parentNode.classList.remove('open');
       }
     }
   }
 };
 
 mechanism.tabs = function() {
-  return function(ui, api) {
-    using (var Q = dom.eventQueue(ui.dompeer, 'click', function(e) {
-      if (domFindData('toggle', ['tab','pill'], e.target, ui.dompeer)) {
-        dom.stopEvent(e);
-        return true;
-      }
-      else
-        return false;
-    })) {
-      while (1) {
-        var ev = Q.get();
-        // ev.target is the <a> we want to activate
-        var newTab = domFind('li', ev.target);
-        if (newTab.classList.contains('active')) continue;
-        var tabContainer = domFind('ul:not(.dropdown-menu)', ev.target);
-        // deactivate current tab...
-        var currentTab = tabContainer.querySelector('li.active');
-        currentTab.classList.remove('active');
-        // ... and activate  the new one
-        newTab.classList.add('active');
-
-        // special case for dropdowns within tabs:
-        var olddropdown = currentTab.querySelector('.dropdown-menu > .active');
-        if (olddropdown) 
-          olddropdown.classList.remove('active');
-        if (newTab.parentNode.classList.contains('dropdown-menu'))
-          domFind('li.dropdown', newTab).classList.add('active');
-
-        // now switch to new content:
-        var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('data-target') || ev.target.getAttribute('href'));
-
-        var oldContent = newContent.parentNode.querySelector('.active');
-        oldContent.classList.remove('active');
-        newContent.classList.add('active');
-      }
+  using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
+    if (domFindData('toggle', ['tab','pill'], e.target, this.dompeer)) {
+      dom.stopEvent(e);
+      return true;
     }
-  };
+    else
+      return false;
+  })) {
+    while (1) {
+      var ev = Q.get();
+      // ev.target is the <a> we want to activate
+      var newTab = dom.findNode('li', ev.target);
+      if (newTab.classList.contains('active')) continue;
+      var tabContainer = dom.findNode('ul:not(.dropdown-menu)', ev.target);
+      // deactivate current tab...
+      var currentTab = tabContainer.querySelector('li.active');
+      currentTab.classList.remove('active');
+      // ... and activate  the new one
+      newTab.classList.add('active');
+      
+      // special case for dropdowns within tabs:
+      var olddropdown = currentTab.querySelector('.dropdown-menu > .active');
+      if (olddropdown) 
+        olddropdown.classList.remove('active');
+      if (newTab.parentNode.classList.contains('dropdown-menu'))
+        dom.findNode('li.dropdown', newTab).classList.add('active');
+      
+      // now switch to new content:
+      var newContent = tabContainer.parentNode.querySelector(ev.target.getAttribute('data-target') || ev.target.getAttribute('href'));
+      
+      var oldContent = newContent.parentNode.querySelector('.active');
+      oldContent.classList.remove('active');
+      newContent.classList.add('active');
+    }
+  }
 };
 
 mechanism.collapsing = function() {
-  return function(ui, api) {
-    using (var Q = dom.eventQueue(ui.dompeer, 'click', function(e) {
-      if (e.node = domFindData('toggle', 'collapse', e.target, ui.dompeer)) {
-        dom.stopEvent(e);
-        return true;
-      }
-      else
-        return false;
-    })) {
-      while (1) {
-        var ev = Q.get();
-        var targetSelector = ev.node.getAttribute('data-target');
-        var container = ev.node.parentNode;
-        var target = container.querySelector(targetSelector);
-        var forceUpdate = target.offsetHeight;
-//        if (!target.classList.contains('collapse'))
-//          target.classList.add('collapse');
-        if (target.classList.contains('in')) {
-          target.classList.remove('in');
-          target.style.height = null;
-        }
-        else {
-          target.classList.add('in');
-          target.style.height = 'auto';
-        }
-      }
+  using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
+    if (e.node = domFindData('toggle', 'collapse', e.target, this.dompeer)) {
+      dom.stopEvent(e);
+      return true;
     }
-  };
-};
-
-mechanism.alert = function() {
-  return function(ui, api) {
-    using (var Q = dom.eventQueue(ui.dompeer, 'click', function(e) {
-      if (e.node = domFindData('dismiss', 'alert', e.target, ui.dompeer)) {
-        dom.stopEvent(e);
-        return true;
+    else
+      return false;
+  })) {
+    while (1) {
+      var ev = Q.get();
+      var targetSelector = ev.node.getAttribute('data-target');
+      var container = ev.node.parentNode;
+      var target = container.querySelector(targetSelector);
+      var forceUpdate = target.offsetHeight;
+      //        if (!target.classList.contains('collapse'))
+      //          target.classList.add('collapse');
+      if (target.classList.contains('in')) {
+        target.classList.remove('in');
+        target.style.height = null;
       }
-      else 
-        return false;
-    })) {
-      while (1) {
-        var ev = Q.get();
-        var target = domFind('.alert', ev.node);
-        //target.classList.remove('in');
-        target.parentNode.removeChild(target);
+      else {
+        target.classList.add('in');
+        target.style.height = 'auto';
       }
     }
   }
 };
 
-mechanism.modal = function() {
-  return function(ui, api) {
-    // XXX should really only run one instance in each tree of ui components
-    // XXX or maybe get rid of it altogether
+mechanism.alert = function() {
+  using (var Q = dom.eventQueue(this.dompeer, 'click', function(e) {
+    if (e.node = domFindData('dismiss', 'alert', e.target, this.dompeer)) {
+      dom.stopEvent(e);
+      return true;
+    }
+    else 
+      return false;
+  })) {
     while (1) {
-      var ev = dom.waitforEvent(ui.dompeer, 'click', function(e) {
-        if (e.node = domFindData('toggle', 'modal', e.target, ui.dompeer)) {
-          dom.stopEvent(e);
-          return true;
-        }
-        else
-          return false;
-      });
-      var modal = ev.node.parentNode.querySelector(ev.node.getAttribute('href'));
-      try {
-        var backdrop = document.createElement('div');
-        backdrop.classList.add('modal-backdrop');
-        ui.dompeer.classList.add('modal-open');
-        ui.dompeer.appendChild(backdrop);
-        modal.style.display = 'block';
-        modal.classList.add('in');
-        waitfor {
-          dom.waitforEvent(document, 'keyup', {|e| e.which == 27 });
-        }
-        or {
-          dom.waitforEvent(backdrop, 'click');
-        }
-        or {
-          dom.waitforEvent(modal, 'click', { |e| domFindData('dismiss', 'modal', e.target, modal) });
-        }
+      var ev = Q.get();
+      var target = dom.findNode('.alert', ev.node);
+      //target.classList.remove('in');
+      target.parentNode.removeChild(target);
+    }
+  }
+};
+
+mechanism.modal = function() {
+  // XXX should really only run one instance in each tree of ui components
+  // XXX or maybe get rid of it altogether
+  while (1) {
+    var ev = dom.waitforEvent(this.dompeer, 'click', function(e) {
+      if (e.node = domFindData('toggle', 'modal', e.target, this.dompeer)) {
+        dom.stopEvent(e);
+        return true;
       }
-      finally {
-        modal.style.display = '';
-        modal.classList.remove('in');
-        backdrop.parentNode.removeChild(backdrop);
-        ui.dompeer.classList.remove('modal-open');
+      else
+        return false;
+    });
+    var modal = ev.node.parentNode.querySelector(ev.node.getAttribute('href'));
+    try {
+      var backdrop = document.createElement('div');
+      backdrop.classList.add('modal-backdrop');
+      this.dompeer.classList.add('modal-open');
+      this.dompeer.appendChild(backdrop);
+      modal.style.display = 'block';
+      modal.classList.add('in');
+      waitfor {
+        dom.waitforEvent(document, 'keyup', {|e| e.which == 27 });
       }
+      or {
+        dom.waitforEvent(backdrop, 'click');
+      }
+      or {
+        dom.waitforEvent(modal, 'click', { |e| domFindData('dismiss', 'modal', e.target, modal) });
+      }
+    }
+    finally {
+      modal.style.display = '';
+      modal.classList.remove('in');
+      backdrop.parentNode.removeChild(backdrop);
+      this.dompeer.classList.remove('modal-open');
     }
   }
 };
