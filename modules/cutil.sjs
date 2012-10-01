@@ -206,6 +206,42 @@ Event.prototype.emit = function emit(value) {
   spawn(coll.par.each(waiting, function(resume) { resume(value); }));
 };
 
+/**
+   @function Event.restartLoop
+   @altsyntax event.restartLoop { || ... }
+   @param {Function} [f] Function to execute
+   @summary (Re-)start a function everytime the event is emitted
+   @desc
+     The code
+
+         event.restartLoop {
+           ||
+           some_code
+         }
+
+     is equivalent to
+
+         while (1) {
+           waitfor {
+             event.wait();
+           }
+           or {
+             some_code
+             hold();
+           }
+         }
+*/
+Event.prototype.restartLoop = function restartLoop(f) {
+  while (1) {
+    waitfor {
+      this.wait();
+    }
+    or {
+      f();
+      hold();
+    }
+  }
+};
 
 /**
   @class    Condition
@@ -278,7 +314,7 @@ exports.makeBoundedFunction = function(f, max_concurrent_calls) { return require
 
 /**
   @function makeRateLimitedFunction
-  @deprecated Use [function:rateLimit]
+  @deprecated Use [function::rateLimit]
   @summary  A wrapper for limiting the rate at which a function can be called.
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
@@ -288,7 +324,7 @@ exports.makeRateLimitedFunction = function(f, max_cps) { return require('./funct
 
 /**
   @function makeExclusiveFunction
-  @deprecated Use [function:exclusive]
+  @deprecated Use [function::exclusive]
   @summary  A wrapper for limiting the number of concurrent executions of a function to one. 
             Instead of potentially waiting for the previous execution to end, like makeBoundedFunction, it will cancel it.
   @return   {Function} The wrapped function.
@@ -298,7 +334,7 @@ exports.makeExclusiveFunction = function(f) { return require('./function').exclu
 
 /**
    @function makeDeferredFunction
-   @deprecated Use [function:deferred]
+   @deprecated Use [function::deferred]
    @summary  A wrapper for implementing the 'deferred pattern' on a function (see 
              [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern)).
    @param    {Function} [f] The function to wrap.
@@ -313,7 +349,7 @@ exports.makeDeferredFunction = function(f) { return require('./function').deferr
 
 /**
    @function makeMemoizedFunction
-   @deprecated Use [function:memoize]
+   @deprecated Use [function::memoize]
    @summary  A wrapper for implementing a memoized version of a function.
    @param    {Function} [f] The function to wrap.
    @param    {optional Function} [key] The key function to use.
