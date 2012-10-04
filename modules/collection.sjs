@@ -233,7 +233,7 @@ exports.par.waitforAll = function waitforAll(funcs, args, this_obj) {
 
 function waitforAllFuncs(funcs, args, this_obj) {
   if (funcs.length == 1)
-    funcs[0].apply(this_obj, args);
+    funcs[0].apply(this_obj, args || []);
   else {
     // build a binary recursion tree, so that we don't blow the stack easily
     // XXX we should really have waitforAll as a language primitive
@@ -302,7 +302,7 @@ exports.par.waitforFirst = function waitforFirst(funcs, args, this_obj) {
 
 function waitforFirstFuncs(funcs, args, this_obj) {
   if (funcs.length == 1)
-    return funcs[0].apply(this_obj, args);
+    return funcs[0].apply(this_obj, args || []);
   else {
     // build a binary recursion tree, so that we don't blow the stack easily
     // XXX we should really have waitforFirst as a language primitive
