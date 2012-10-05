@@ -378,6 +378,9 @@ function createMappedDirectoryHandler(root, formats, flags)
       if (flags.mapIndexToDir)
         served = serveFile(request, response, file + "/index.html", format, formats);
       if (!served) {
+        served = serveFile(request, response, file + "/index.app", format, formats);
+      }
+      if (!served) {
         if(flags.allowDirListing)
           served = listDirectory(request, response, root, relativePath, format, formats);
         if(!served) {

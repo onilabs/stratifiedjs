@@ -116,13 +116,16 @@ function sjscompile(src, dest, req, etag) {
 
 // filter that generates the html boilerplate for *.app files:
 function gen_app_html(src, dest, req, etag) {
+  var app_name = req.parsedUrl.file || "index.app";
   dest.write(
     "<!DOCTYPE html>
      <html>
        <head>
+         <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
+         <meta name='viewport' content='width=device-width, initial-scale=1.0'>
          <script src='/__oni/apollo/oni-apollo.js'></script>
          <script type='text/sjs'>
-           require('#{req.parsedUrl.file}!sjs');
+           require('#{app_name}!sjs');
          </script>
        </head>
        <body></body>
