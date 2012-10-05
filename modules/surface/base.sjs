@@ -412,7 +412,7 @@ UIElement.select = function(selector) { return this.dompeer.querySelectorAll(sel
 /**
    @function UIElement.activate
    @summary Called when this UIElement is about to be attached (directly or indirectly) 
-   to the global surface. When attaching to a container that is active, this method will 
+   to a root element. When attaching to a container that is active, this method will 
    (by design) be called before [::UIElement:attached] 
 */
 UIElement.activate = function() {
@@ -422,7 +422,7 @@ UIElement.activate = function() {
 
 /**
    @function UIElement.activated
-   @summary Called when this UIElement has been attached (directly or indirectly) to the global surface
+   @summary Called when this UIElement has been attached (directly or indirectly) to a root element
 */
 UIElement.activated = function() {
   if (this.isActivated == 2) throw new Error("UIElement already activated");
@@ -451,7 +451,7 @@ UIElement.activated = function() {
 
 /**
    @function UIElement.deactivated
-   @summary Called when this UIElement has become detached from the global surface
+   @summary Called when this UIElement has become detached from the root element
 */
 UIElement.deactivated = function() {
   if (!this.isActivated) throw new Error("UIElement already deactivated");
@@ -755,7 +755,7 @@ BoxElement.append = function(ui, attribs) {
 
 __js BoxElement.invalidate = function(child) {
   // XXX be more specific
-  surface.scheduleLayout();
+  root.scheduleLayout();
 };
 
 BoxElement.layoutBox = function(entity, avail, oentity, ostart,
@@ -1376,12 +1376,12 @@ RootElement.layout = function(layout_spec) {
 
 
 /**
-   @variable surface
-   @summary  The one and only instance of [::RootElement]
+   @variable root
+   @summary  [::RootElement] instance for the current main browser window 
 */
-__js var surface = exports.surface = Object.create(RootElement);
+__js var root = exports.root = Object.create(RootElement);
 
-surface.init({
+root.init({
   style: 
   [ GlobalCSS('
 /*body { overflow:hidden; margin:0px;}*/
@@ -1398,48 +1398,8 @@ surface-aperture { overflow:hidden; }
     }
   } 
 });
-surface.activate();
-surface.activated();
-
-/*
-exports.surface = Box({
-  style: 
-  [ GlobalCSS('
-body { overflow:hidden; margin:0px;}
-surface-ui { -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate}
-surface-aperture { overflow:hidden; display:block; }
-')],
-  run: function() {
-    console.log('surface running ;-)');
-    document.body.appendChild(this.dompeer);
-    var W,H;
-    while (1) {
-      using(var Q = dom.eventQueue(window, "resize")) {
-        var w = document.documentElement.clientWidth;
-        var h = document.documentElement.clientHeight;
-        // the W/H check is to debounce redundant resize events sent by e.g. chrome
-        if (!this.pendingLayout && (W!=w || H!=h)) { 
-          this.layout({type:'wh',w:w,h:h});
-          W = w;
-          H = h;
-        }
-        Q.get();
-      }
-    }
-    console.log('surface shut down ;-)');
-  }
-});
-
-surface.scheduleLayout = function() {
-  if (this.pendingLayout) return;
-  this.pendingLayout = spawn (hold(0), this.pendingLayout = undefined, 
-                              this.layout({type: 'wh', 
-                                           w: document.documentElement.clientWidth,
-                                           h: document.documentElement.clientHeight}));
-};
-
-surface.activated();
-*/
+root.activate();
+root.activated();
 
 //----------------------------------------------------------------------
 // mixins

@@ -61,10 +61,10 @@ var tt = new Date();
 //----------------------------------------------------------------------
 
 /**
-   @variable surface
-   @summary  Copy of [base::surface] (the one and only instance of [base::RootElement])
+   @variable root
+   @summary  Copy of [base::root] (instance of [base::RootElement] for main window of the webapp)
 */
-__js exports.surface = base.surface;
+__js exports.root = base.root;
 
 /**
    @function  Html
