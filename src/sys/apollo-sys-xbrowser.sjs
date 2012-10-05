@@ -404,6 +404,10 @@ function getExtensions_hostenv() {
   return {
     // normal sjs modules
     'sjs': default_compiler,
+
+    // sjs part of app files
+    'app!sjs': default_compiler,
+
     // plain non-sjs js modules
     'js': function(src, descriptor) {
       var f = new Function("module", "exports", src);

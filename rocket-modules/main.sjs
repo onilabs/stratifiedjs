@@ -46,7 +46,8 @@ function usage() {
 
 //----------------------------------------------------------------------
 
-var root = http.canonicalizeURL('../', module.id).substr(7);
+var apollo_root = http.canonicalizeURL('../', module.id).substr(7);
+var root = apollo_root;
 var port = "7070";
 var host = "localhost";
 var cors = false;
@@ -113,6 +114,21 @@ function sjscompile(src, dest, req, etag) {
   dest.write("/*__oni_compiled_sjs_1*/"+src);
 }
 
+// filter that generates the html boilerplate for *.app files:
+function gen_app_html(src, dest, req, etag) {
+  dest.write(
+    "<!DOCTYPE html>
+     <html>
+       <head>
+         <script src='/__oni/apollo/oni-apollo.js'></script>
+         <script type='text/sjs'>
+           require('#{req.parsedUrl.file}!sjs');
+         </script>
+       </head>
+       <body></body>
+     </html>");
+}
+
 var SJSCache = require('apollo:lru-cache').makeCache(10*1000*1000); // 10MB
 
 function BaseFileFormatMap() { }
@@ -156,6 +172,15 @@ BaseFileFormatMap.prototype = {
   txt  : { none : { mime: "text/plain" } },
   css  : { none : { mime: "text/css" }},
   "*"  : { none : { /* serve without mimetype */ }
+         },
+  app  : { none     : { mime: "text/html",
+                        filter: gen_app_html
+                      },
+           sjs      : { mime: "text/plain",
+                        filter: sjscompile,
+                        filterETag() { "c1" },
+                        cache: SJSCache
+                      }
          }
 };
 
@@ -168,6 +193,21 @@ var PublicFileFormatMap = new BaseFileFormatMap();
 //----------------------------------------------------------------------
 
 var pathMap = [
+  // we map the apollo client lib + modules under __oni/apollo:
+  {
+    pattern: /__oni\/apollo(\/.*)$/,
+    handler: serverfs.createMappedDirectoryHandler(
+      apollo_root,
+      PublicFileFormatMap,
+      { allowDirListing: true,
+        mapIndexToDir: true
+      }
+    )      
+  },
+/*  {
+    pattern: /__oni\/aat\/(.*)$/,
+    handler: require('apollo:rpc/aat-server').createTransportHandler(xxx)
+  }, */
   {
     // main server root
     pattern: /(\/.*)$/,

@@ -39,6 +39,8 @@ global.__oni_rt={};(function(exports){var UNDEF;
 
 
 
+
+
 function augmented_message(e){return e.message+" (in "+e.file+(e.line?":"+e.line:"")+")";
 
 }
@@ -1804,6 +1806,8 @@ exports.UA=UA;
 exports.G=global;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
+
+
 
 
 
