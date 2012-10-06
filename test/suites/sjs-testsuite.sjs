@@ -1454,3 +1454,15 @@ test("complex detached blocklambda return", 111, function() {
 test("comments across strings", 1, function() {
   return /* " */ 2; /* " */1;
 });
+
+test('interpolation edge case 1 "#{1}"', '1', function() {
+  return "#{1}";
+});
+
+test('interpolation edge case 2 "#{1}2"', '12', function() {
+  return "#{1}2";
+});
+
+test('interpolation edge case 3 "#{1}#{2}"', '12', function() {
+  return "#{1}#{2}";
+});
