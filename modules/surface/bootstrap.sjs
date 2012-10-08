@@ -67,17 +67,24 @@ var tt = new Date();
 __js exports.root = base.root;
 
 /**
-   @function  Html
-   @altsyntax Html(content)
-   @summary Create a [base::HtmlFragmentElement] with full [bootstrap::] 
+   @function  Container
+   @altsyntax Container(child1, ...)
+   @summary Create a [base::UIContainerElement] with full [bootstrap::] 
             styles and mechanisms applied.
    @param {Object} [attribs] Object with attributes 
-   @attrib {String} [content] HTML content
+   @attrib {Array} [subelems] Array of children
    @attrib {Array|base::StyleElement} [style] Additional styles
    @attrib {Object} [mechanism] Mechanism (by default the dropdown, tabs, collapsing, alerts and modal mechanisms will be applied)
-   @return {base::HtmlFragmentElement}
+   @return {base::UIContainerElement}
 */
-exports.Html = function(attribs) {
+exports.Container = function(/*attribs*/) {
+
+  var attribs;
+  if (arguments.length == 1 && !base.UIElement.isPrototypeOf(arguments[0]))
+    attribs = arguments[0];
+  else 
+    attribs = { subelems: coll.toArray(arguments ) };
+
   var lf = Object.create(defaultLookAndFeel);
 /*
   lf.bodyBackground = { || "#2e2d35" };
@@ -94,7 +101,7 @@ exports.Html = function(attribs) {
                CSSClose(lf), CSSResponsive(lf)];
 
   var mech;
-  if (attribs.mechanism !== undefined)
+  if (attribs && attribs.mechanism !== undefined)
     mech = attribs.mechanism;
   else
     mech = func.par(mechanism.dropdowns, 
@@ -103,19 +110,13 @@ exports.Html = function(attribs) {
                     mechanism.alert, 
                     mechanism.modal);
 
-  var content;
-  if (typeof attribs == 'string')
-    content = attribs;
-  else {
-    content = attribs.content || "";
-    if (attribs.style)
+  if (attribs && attribs.style)
       style = style.concat(attribs.style);
-  }
 
   return base.Html({
     style: style,
-    content: content,
-    mechanism: mech
+    mechanism: mech,
+    subelems: attribs ? attribs.subelems : []
   });
 };
 
@@ -1079,7 +1080,7 @@ __js var Mixins = exports.Mixins = function(vars) {
         return ".row { margin-left: #{scale(gridGutterWidth,-1)}; }
                 #{mixins.clearfix('.row')}
                 [class*='span'],
-                .formrow > surface-ui /* Oni Labs edit: allow compound components on the same row in a form */
+                .formrow > * /* Oni Labs edit: allow compound components on the same row in a form */
                 {
                   float: left;
                   margin-left: #{gridGutterWidth};
@@ -1375,7 +1376,7 @@ __js var CSSResponsive = exports.CSSResponsive = function(lookAndFeel) {
   /* Make all grid-sized elements block level again */
   [class*='span'],
   .row-fluid [class*='span'],
-  .formrow > surface-ui /* Oni Labs edit: allow compound components on the same row in a form */
+  .formrow > *  /* Oni Labs edit: allow compound components on the same row in a form */
   {
     float: none;
     display: block;
@@ -2736,6 +2737,7 @@ select:focus:required:invalid:focus {
 .form-inline .input-prepend,
 .form-inline .input-append,
 .form-inline surface-ui,
+.form-inline .control-group, /* XXX Oni Labs edit */
 .form-horizontal input,
 .form-horizontal textarea,
 .form-horizontal select,

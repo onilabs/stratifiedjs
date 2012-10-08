@@ -47,9 +47,6 @@ and {
   var dom    = require('../xbrowser/dom');
 } 
 and {
-  var debug  = require('../debug');
-} 
-and {
   var func = require('../function');
 }
 
@@ -373,16 +370,26 @@ __js UIElement.init = function(attribs) {
     this.debugtags = "";
     this.debugid = "";
   }
-  this.dompeer = document.createElement('surface-ui');
-  this.dompeer.setAttribute('style', 'visibility:hidden'); 
-  this.dompeer.ui = this;
+  if (typeof attribs.content == 'object')
+    this.dompeer = attribs.content;
+  else {
+    // create a surrogate dompeer: 
+    this.dompeer = document.createElement('surface-ui');
+    if (typeof attribs.content !== 'undefined') {
+      this.dompeer.innerHTML = attribs.content.replace(/^\s+/, '');
+      // remove the surrogate again if there is only one child:
+      if (this.dompeer.childElementCount == 1 && this.dompeer.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
+        this.dompeer = this.dompeer.firstChild;
+      }
+    }
+  }
+
+  //this.dompeer.ui = this;
   this.mechanism = attribs.mechanism || func.nop;
   this.style = attribs.style || [];
   if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
   coll.each(this.style, function(s) { 
     if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); }, this);
-  if (typeof attribs.content !== 'undefined')
-    this.dompeer.innerHTML = attribs.content;
 };
 
 /**
@@ -399,15 +406,23 @@ UIElement.debug = function(tag) { return this.debugtags.indexOf(tag)!=-1; };
    @param {String} CSS selector
    @return {DOMElement|null}
 */
-UIElement.select1 = function(selector) { return this.dompeer.querySelector(selector); };
+UIElement.select1 = function(selector) { 
+  return dom.matchesSelector(this.dompeer, selector) ? 
+    this.dompeer : this.dompeer.querySelector(selector); 
+};
 
 /**
    @function UIElement.select
    @summary Select all matching DOM children
    @param {String} CSS selector
-   @return {NodeList}
+   @return {Array of DOM nodes}
 */
-UIElement.select = function(selector) { return this.dompeer.querySelectorAll(selector); };
+UIElement.select = function(selector) { 
+  var rv = coll.toArray(this.dompeer.querySelectorAll(selector));
+  if (dom.matchesSelector(this.dompeer, selector))
+    rv.unshift(this.dompeer);
+  return rv;
+};
 
 /**
    @function UIElement.activate
@@ -427,7 +442,7 @@ UIElement.activate = function() {
 UIElement.activated = function() {
   if (this.isActivated == 2) throw new Error("UIElement already activated");
   this.isActivated = 1;
-  this.dompeer.style.visibility = 'visible';
+  //abc this.dompeer.style.visibility = 'visible';
   if (this.mechanism) {
     this.stratum = spawn this.mechanism();
   }
@@ -460,7 +475,7 @@ UIElement.deactivated = function() {
     this.stratum = undefined;
   }
   this.isActivated = false;
-  this.dompeer.style.visibility = 'hidden';
+  //abc this.dompeer.style.visibility = 'hidden';
   coll.each(this.style, {|s| s.unuse() });
 };
 
@@ -1099,7 +1114,10 @@ HtmlFragmentElement.init = func.seq(
     if (attribs.subelems)
       coll.each(attribs.subelems) {
         |e|
-        this.selectContainer(e.container ? e.container : "##{e.id}").append(e.elem);
+        if (UIElement.isPrototypeOf(e))
+          this.append(e);
+        else
+          this.selectContainer(e.container ? e.container : "##{e.id}").append(e.elem);
       }
   });
 
@@ -1240,7 +1258,7 @@ HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
-  if (typeof attribs == 'string')
+  if (typeof attribs != 'object')
     attribs = { content: attribs }
   var obj = Object.create(HtmlFragmentElement);
   obj.init(attribs); 
@@ -1388,15 +1406,7 @@ root.init({
 surface-ui, surface-aperture { display:block; -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;border-collapse:separate;}
 surface-aperture { overflow:hidden; }
 ')],
-  mechanism: function() {
-    document.body.appendChild(this.dompeer);
-    try {
-      hold();
-    }
-    finally {
-      document.body.removeChild(this.dompeer);
-    }
-  } 
+  content: document.body
 });
 root.activate();
 root.activated();
