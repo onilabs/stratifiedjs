@@ -142,9 +142,9 @@ __js StyleElement.init = function(content, global) {
   if (!global) {
     var cssClass = this.cssClass = "__oni"+(++styleClassCounter);
     // fold cssClass into selectors:
-    var tt = new Date();
+    //var tt = new Date();
     var blocks = parseCSSBlocks(content);
-    console.log("parse style=#{(new Date())-tt}ms");    
+    //console.log("parse style=#{(new Date())-tt}ms");    
 
     function processBlock(b,lvl,cssClass) {
       return coll.map(b, function(b) {
@@ -170,9 +170,9 @@ __js StyleElement.init = function(content, global) {
         }
       }).join('\n');
     }
-    tt = new Date();
+    //tt = new Date();
     content = processBlock(blocks, 0, '.'+cssClass);
-    console.log("process style=#{(new Date())-tt}ms");
+    //console.log("process style=#{(new Date())-tt}ms");
   }
   var elem = this.dompeer = document.createElement('style');
   elem.setAttribute('type', 'text/css');
@@ -389,7 +389,7 @@ __js UIElement.init = function(attribs) {
   this.style = attribs.style || [];
   if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
   coll.each(this.style, function(s) { 
-    if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+this.dompeer.getAttribute('class')); }, this);
+    if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+(this.dompeer.getAttribute('class')||'')); }, this);
 };
 
 /**
@@ -422,6 +422,19 @@ UIElement.select = function(selector) {
   if (dom.matchesSelector(this.dompeer, selector))
     rv.unshift(this.dompeer);
   return rv;
+};
+
+/**
+   @function UIElement.waitforEvent
+   @summary XXX document me
+*/
+UIElement.waitforEvent = function(selector, event) {
+  var ev = dom.waitforEvent(this.dompeer, event, {
+    |ev|
+    dom.findNode(selector, ev.target, this.dompeer);
+  });
+  dom.stopEvent(ev);
+  return ev;
 };
 
 /**
