@@ -53,9 +53,11 @@
      
 */
 
-var base = require('./base');
-var coll = require('../collection');
-var func = require('../function');
+waitfor { var base = require('./base');        }
+and     { var coll = require('../collection'); }
+and     { var func = require('../function');   }
+and     { var common = require('../common');   }
+
 var tt = new Date();
 
 //----------------------------------------------------------------------
@@ -72,7 +74,10 @@ __js exports.root = base.root;
    @summary Create a [base::UIContainerElement] with full [bootstrap::] 
             styles and mechanisms applied.
    @param {Object} [attribs] Object with attributes 
-   @attrib {Array} [subelems] Array of children
+   @attrib {Array} [children] Array of children
+   @attrib {String} [containerClass='container'] CSS class of the container (e.g. 'container-fluid' or '')
+   @attrib {Boolean} [responsive=false] Wether or not to enable responsive Bootstrap features
+   @attrib {Object} [lookAndFeel=::defaultLookAndFeel] Bootstrap customization object
    @attrib {Array|base::StyleElement} [style] Additional styles
    @attrib {Object} [mechanism] Mechanism (by default the dropdown, tabs, collapsing, alerts and modal mechanisms will be applied)
    @return {base::UIContainerElement}
@@ -83,25 +88,23 @@ exports.Container = function(/*attribs*/) {
   if (arguments.length == 1 && !base.UIElement.isPrototypeOf(arguments[0]))
     attribs = arguments[0];
   else 
-    attribs = { subelems: coll.toArray(arguments ) };
+    attribs = { children: coll.toArray(arguments ) };
 
-  var lf = Object.create(defaultLookAndFeel);
-/*
-  lf.bodyBackground = { || "#2e2d35" };
-  lf.textColor = { || "#bba76b" };
-  lf.btnBackground = { || "#92978d" };
-  lf.btnBackgroundHighlight = { || darken(lf.btnBackground(), 0.1) };
-  lf.btnBorder = { || "#ff0000" };
-*/
+  attribs = common.mergeSettings({containerClass:'container'}, attribs);
+
+  var lf = Object.create(attribs.lookAndFeel ? attribs.lookAndFeel : defaultLookAndFeel);
+
   var style = [CSSReset(lf), CSSScaffolding(lf), CSSGrid(lf), CSSLayouts(lf),
       CSSComponentAnimations(lf), CSSType(lf), CSSCode(lf), CSSTables(lf), CSSWells(lf),
       CSSForms(lf), CSSButtons(lf), CSSButtonGroups(lf), CSSAlerts(lf), CSSDropdowns(lf),
       CSSLabelsBadges(lf), CSSThumbnails(lf), CSSProgressBars(lf), CSSHeroUnit(lf),
       CSSNavs(lf), CSSNavbar(lf), CSSBreadcrumbs(lf), CSSModals(lf), CSSFontAwesome(lf),
-               CSSClose(lf), CSSResponsive(lf)];
+               CSSClose(lf)];
+  if (attribs.responsive)
+    style.push(CSSResponsive(lf));
 
   var mech;
-  if (attribs && attribs.mechanism !== undefined)
+  if (attribs.mechanism !== undefined)
     mech = attribs.mechanism;
   else
     mech = func.par(mechanism.dropdowns, 
@@ -110,14 +113,18 @@ exports.Container = function(/*attribs*/) {
                     mechanism.alert, 
                     mechanism.modal);
 
-  if (attribs && attribs.style)
+  if (attribs.style)
       style = style.concat(attribs.style);
 
-  return base.Html({
+  var rv = base.Html({
+    content: "<div><div class='#{attribs.containerClass}'></div></div>",
     style: style,
-    mechanism: mech,
-    subelems: attribs ? attribs.subelems : []
-  });
+    mechanism: mech
+  }).selectContainer('div > div');
+
+  coll.each(attribs.children) { |c| rv.append(c) }
+
+  return rv;
 };
 
 //----------------------------------------------------------------------
@@ -350,6 +357,13 @@ exports.add = add;
 // port of Variables.less
 // Variables to customize the look and feel of Bootstrap
 
+/**
+   @variable defaultLookAndFeel
+   @summary  Object with functions to customize the look and feel of Bootstrap (port of Variables.less)
+   @desc
+      You can use this as prototype for a custom lookAndFeel object, which can then be passed to 
+      e.g. [::Container].
+*/
 __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
 
   // GLOBAL VALUES
