@@ -574,13 +574,18 @@ exports.matchesSelector = matchesSelectorFunc ?
 
 /**
    @function findNode
-   @summary Traverse DOM botton-up beginning at `from` up to (exclusively) element(s) `to` and return first element that matches `selector` or `null` if no such element is found
+   @summary Traverse DOM botton-up beginning at `from` up to element(s) `to` and return first element that matches `selector` or `null` if no such element is found
    @param {String} [selector] CSS selector
    @param {DOMElement} [from] DOM element at which to start traversal
-   @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal (exclusively)
+   @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal
+   @param {optional Boolean} [inclusive=false] Wether to include element(s) `to` in the match or not
    @return {DOMElement|null}
 */
-function findNode(selector, from, to) {
+function findNode(selector, from, to, inclusive) {
+  if (inclusive && to) {
+    if (!Array.isArray(to)) to = [to];
+    to = coll.map(to, {|elem| elem ? null : elem.parentNode });
+  }
   traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
   return null;
 }
