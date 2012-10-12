@@ -8,7 +8,7 @@ var ui = surface.Html(
     mechanism() {
       this.elapsed = 0;
       while (1) {
-        this.waitforEvent('#start', 'click');
+        this.waitforEvent('click', '#start');
         waitfor {
           while (1) {
             this.select1('span').innerHTML = this.elapsed++;
@@ -16,7 +16,7 @@ var ui = surface.Html(
           }
         }
         or {
-          this.waitforEvent('#stop', 'click');
+          this.waitforEvent('click', '#stop');
         }
       }
     }

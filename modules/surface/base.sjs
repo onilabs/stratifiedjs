@@ -393,6 +393,11 @@ __js UIElement.init = function(attribs) {
 };
 
 /**
+   @variable UIElement.dompeer
+   @summary The root DOM node of this UIElement
+*/
+
+/**
    @function UIElement.debug
    @summary Check if debugging is enabled for the given tag 
    @param {String} [tag] Debugging tag
@@ -402,37 +407,50 @@ UIElement.debug = function(tag) { return this.debugtags.indexOf(tag)!=-1; };
 
 /**
    @function UIElement.select1
-   @summary Selects first matching DOM child
+   @summary Selects first matching child of this UIElement's dompeer
    @param {String} CSS selector
    @return {DOMElement|null}
 */
 UIElement.select1 = function(selector) { 
-  return dom.matchesSelector(this.dompeer, selector) ? 
-    this.dompeer : this.dompeer.querySelector(selector); 
+  /* return dom.matchesSelector(this.dompeer, selector) ? 
+    this.dompeer : this.dompeer.querySelector(selector); */
+  return this.dompeer.querySelector(selector);
 };
 
 /**
    @function UIElement.select
-   @summary Select all matching DOM children
+   @summary Select all matching DOM children of this UIElement's dompeer
    @param {String} CSS selector
    @return {Array of DOM nodes}
 */
 UIElement.select = function(selector) { 
   var rv = coll.toArray(this.dompeer.querySelectorAll(selector));
-  if (dom.matchesSelector(this.dompeer, selector))
+  /* if (dom.matchesSelector(this.dompeer, selector))
     rv.unshift(this.dompeer);
+  */
   return rv;
 };
 
 /**
    @function UIElement.waitforEvent
-   @summary XXX document me
+   @summary Waits for an event on the element's dompeer or one of its children
+   @param {String} [event] String containing one or more space-separated DOM event names. E.g.: "click mouseover". 
+   @param {optional String} [selector=null] CSS selector to match children of this element's dompeer.
+   @return {DOMEvent}
+   @desc
+      * Blocks until the given `event` occurs on a DOM child mached by `selector`, or, if `selector is `null`, on the [::UIElement::dompeer] of this UIElement.
+      * Stops further propagation of the event
+      * To listen for an event during the capturing phase, prefix the event name with a '!'
 */
-UIElement.waitforEvent = function(selector, event) {
-  var ev = dom.waitforEvent(this.dompeer, event, {
-    |ev|
-    dom.findNode(selector, ev.target, this.dompeer);
-  });
+UIElement.waitforEvent = function(event, selector) {
+  var ev;
+  if (!selector) 
+    ev = dom.waitforEvent(this.dompeer, event);
+  else
+    ev = dom.waitforEvent(this.dompeer, event, {
+      |ev|
+      dom.findNode(selector, ev.target, this.dompeer);
+    });
   dom.stopEvent(ev);
   return ev;
 };
@@ -718,7 +736,7 @@ var ChildManagement = {
 //----------------------------------------------------------------------
 // BoxElement
 
-/**
+/*WIP - Not in official documentation yet
    @class   BoxElement
    @summary Box layout container
    @inherit ::UIContainerElement
@@ -732,7 +750,7 @@ __js var Box = exports.Box = function(attribs) {
   return obj;
 };
 
-/**
+/*WIP - Not in official documentation yet
    @function HBox
    @summary Construct a horizontally-stacking [::BoxElement]
    @param   [attribs] ...
@@ -740,7 +758,7 @@ __js var Box = exports.Box = function(attribs) {
 __js var HBox = exports.HBox = function(attribs) { 
   return Box(common.mergeSettings(attribs, {direction:'w'}));
 };
-/**
+/*WIP - Not in official documentation yet
    @function VBox
    @summary Construct a vertically-stacking [::BoxElement]
    @param   [attribs] ...
@@ -749,7 +767,7 @@ __js var VBox = exports.VBox = function(attribs) {
   return Box(common.mergeSettings(attribs, {direction:'h'}));
 }
 
-/**
+/*WIP - Not in official documentation yet
    @function BoxElement.init
    @summary Called by constructor functions to initialize BoxElement objects
    @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init]
@@ -1036,7 +1054,7 @@ BoxElement.layout = function(layout_spec) {
 };
 
 //----------------------------------------------------------------------
-/**
+/*WIP - Not in official documentation yet
    @class   VScrollBoxElement
    @summary Vertically scrolling list
    @inherit ::UIContainerElement
@@ -1045,7 +1063,7 @@ BoxElement.layout = function(layout_spec) {
 __js var VScrollBoxElement = exports.VScrollBoxElement = Object.create(UIContainerElement);
 
 
-/**
+/*WIP - Not in official documentation yet
    @function VScrollBox
    @summary  Construct a [::VScrollBox] object
    @param    [attribs] ...
@@ -1281,7 +1299,7 @@ exports.Html = function(attribs) {
 //----------------------------------------------------------------------
 // animation aperture:
 
-/**
+/*WIP - Not in official documentation yet
    @function Aperture
    @summary  XXX to be documented
 */

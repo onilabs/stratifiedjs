@@ -32,7 +32,7 @@
 /**
    @module  surface/bootstrap
    @summary Lightweight cross-browser UI toolkit - Twitter Bootstrap Components (unstable work-in-progress)
-   @home    apollo:surface/base
+   @home    apollo:surface/bootstrap
    @hostenv xbrowser
    @desc
       * Port of [Twitter Bootstrap](http://twitter.github.com/bootstrap/)
