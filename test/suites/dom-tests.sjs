@@ -121,5 +121,21 @@ if(testUtil.isBrowser) {
     return node ? node.getAttribute('data-x') : null;
   });
 
+  test("findNode exclusive", 'not found', function() {
+    var elem = document.createElement('div');
+    elem.setAttribute('class', 'xyz');
+    elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
+    var node = dom.findNode('.xyz',elem.firstChild.firstChild.firstChild, elem);
+    return node ? 'found' : 'not found';
+  });
+
+  test("findNode inclusive", 'found', function() {
+    var elem = document.createElement('div');
+    elem.setAttribute('class', 'xyz');
+    elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
+    var node = dom.findNode('.xyz',elem.firstChild.firstChild.firstChild, elem, true);
+    return node ? 'found' : 'not found';
+  });
+
 }
 
