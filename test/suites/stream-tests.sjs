@@ -114,3 +114,21 @@ test("async iterator", "012345", function() {
 
   return rv;
 });
+
+test("unpack", "F,o,o,B,a,r", function() {
+  var chars = s.unpack({|x,f| for (var i=0; i<x.length; ++i) f(x.charAt(i)) });
+  return s.collect(chars(s.stream(['Foo','Bar']))).join(',');
+});
+
+test("pack", "[1,2]:[3,4]:[5,6]", function() {
+  var pairs = s.pack({|iter,f| while (iter.hasMore()) f("[#{iter.next()},#{iter.next()}]") });
+  return s.collect(s.pick(3,pairs(s.integers(1)))).join(':');
+});
+
+test("iterator exception", 1, function() {
+  var I = s.iterator(s.stream([1,2]));
+  I.next();
+  I.next();
+  try { I.next(); } catch(e) {}
+  try { I.next(); /* try to call next again, because we used to get a hang for this case */ } catch(e) { return 1 }
+})

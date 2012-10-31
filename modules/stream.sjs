@@ -43,7 +43,7 @@ var sys  = require('sjs:apollo-sys');
    @class Stream
    @summary Stratified stream abstraction
    @desc
-     A stream `S` is a function with signature `S(f)`, where `f` is a 
+     A stream `S` is a function with signature `S(f)`, where `f`, the *receiver function*, is a 
      function of a single argument.
      When called, `S(f)` sequentially invokes `f(x)` with the stream's data elements 
      `x=x1,x2,x3,...` until the stream is empty.
@@ -82,7 +82,7 @@ var sys  = require('sjs:apollo-sys');
    @altsyntax stream(iterable) { |x| ...  process stream items ... }
    @summary Obtain a stream for an [::Iterator] or Array
    @param {Array|::Iterator} [iterable]
-   @param {optional Function} [f]
+   @param {optional Function} [f] Receiver function
    @return {::Stream|undefined}
    @desc
       - This function is partially curried. If parameter `f` is omitted, a [::Stream] will
@@ -108,7 +108,7 @@ exports.stream = stream;
 /**
    @function iterator
    @summary Create an iterator for the given stream
-   @param {::Stream} [s]
+   @param {::Stream} [s] Input stream
    @return {::Iterator}
 */
 var end_token = {};
@@ -130,7 +130,10 @@ function iterator(s) {
   })();
   return {
     hasMore() { Q.peek() !== end_token },
-    next() { Q.get(); },
+    next() { 
+      if (Q.peek() == end_token) throw new Error("End of stream"); 
+      Q.get(); 
+    },
     close() { S.abort(); }
   }
 }
@@ -140,7 +143,7 @@ exports.iterator = iterator;
 /**
    @function collect
    @summary Collect stream `s` into an array
-   @param {::Stream} [s]
+   @param {::Stream} [s] Input stream
    @return {Array}
 */
 function collect(s) {
@@ -156,8 +159,8 @@ exports.collect = collect;
    @altsyntax pick(count, s) { |x| ...  process stream items ... }
    @summary Create a stream containing the first `count` elements of stream `s`
    @param {Integer} [count]
-   @param {::Stream} [s]
-   @param {optional Function} [f]
+   @param {::Stream} [s] Input stream
+   @param {optional Function} [f] Receiver function
    @return {::Stream|undefined}
    @desc
       - This function is partially curried. If parameter `f` is omitted, a [::Stream] will
@@ -176,8 +179,8 @@ exports.pick = pick;
    @altsyntax filter(predicate, s) { |x| ...  process stream items ... }
    @summary Create a stream of elements of stream `s` that satisfy `predicate`
    @param {Function} [predicate] Function `f(x)` that will be called for each element `x` of `s`. If `f(x)` returns `true`, `x` will be part of the filtered stream
-   @param {optional ::Stream} [s]
-   @param {optional Function} [f]
+   @param {optional ::Stream} [s] Input stream
+   @param {optional Function} [f] Receiver function
    @return {Function(s,f)|::Stream|undefined}
    @desc
       - This function is fully curried. E.g. the following code creates a filter for even numbers:
@@ -202,8 +205,8 @@ exports.filter = filter;
    @altsyntax map(g, s) { |x| ...  process stream items ... }
    @summary Create a stream `g(x)` of elements `x` of stream `s` 
    @param {Function} [g] Function `g(x)` that will be applied to each element `x` of `s`
-   @param {optional ::Stream} [s]
-   @param {optional Function} [f]
+   @param {optional ::Stream} [s] Input stream
+   @param {optional Function} [f] Receiver function
    @return {Function(s,f)|::Stream|undefined}
    @desc
       - This function is fully curried. E.g. the following code creates a 
@@ -224,6 +227,72 @@ function map(g, s, f) {
 }
 exports.map = map;
 
+//----------------------------------------------------------------------
+/**
+   @function  unpack
+   @altsyntax unpack(u, s) { |x| ...  process stream items ... }
+   @summary Create a flattened stream out of elements of streams `u(x)` of elements `x` of stream `s` 
+   @param {Function} [u] Unpacking function `u(x,f)` that will be applied to each element `x` of `s` to extract a stream out of `x` into `f`
+   @param {optional ::Stream} [s] Input stream
+   @param {optional Function} [f] Receiver function
+   @return {Function(s,f)|::Stream|undefined}
+   @desc
+      - This function is fully curried. E.g. the following code creates an extractor of
+        characters for a stream of strings: 
+        
+              var chars = unpack({|x,f| for (var i=0;i<x.length;++i) f(x.charAt(i)) })
+              chars(stream(["Foo","Bar"])) { |x| console.log(x) } // F,o,o,B,a,r
+
+     - `unpack` is similar to LINQ's `SelectMany` function
+     - The inverse/complement of `unpack` is [::pack]
+*/
+function unpack(u, s, f) {
+  if (arguments.length<3) {
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift(this);
+    return unpack.bind.apply(unpack, args);
+  }
+
+  s { |x| u(x,f) }
+}
+exports.unpack = unpack;
+
+//----------------------------------------------------------------------
+/**
+   @function  pack
+   @altsyntax pack(p, s) { |x| ...  process stream items ... }
+   @summary Create a stream by combining elements of an input stream  
+   @param {Function} [p] Packing function `p(iter, f)` 
+   @param {optional ::Stream} [s] Input stream
+   @param {optional Function} [f] Receiver function
+   @return {Function(s,f)|::Stream|undefined}
+   @desc
+      - This function is fully curried. E.g. the following code creates a transformer that packs
+        a stream into a stream of pairs: 
+
+              var pairs = pack({|iter,f| while (iter.hasMore()) f([iter.next(),iter.next()]) })
+              pairs(stream([1,2,3,4,5,6])) { |x| console.log(x) } // [1,2],[3,4],[5,6]
+
+      - The inverse/complement of `pack` is [::unpack]
+*/
+function pack(p, s, f) {
+  if (arguments.length<3) {
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift(this);
+    return pack.bind.apply(pack, args);
+  }
+
+  var iter = iterator(s);
+  try {
+    p(iter, f)
+  }
+  finally {
+    iter.close();
+  }
+}
+exports.pack = pack;
+
+
 
 //----------------------------------------------------------------------
 /**
@@ -231,7 +300,7 @@ exports.map = map;
    @altsyntax integers([start]) { |x| ... process stream items ... }
    @summary Create an infinite stream of integers beginning with `start` (default: 0)
    @param {optional Integer} [start=0]
-   @param {optional Function} [f]
+   @param {optional Function} [f] Receiver function
    @desc
       - This function is partially curried. If parameter `f` is omitted, a [::Stream] will
         be returned. If `f` is given (e.g. implicitly, by using the blocklambda form), then
