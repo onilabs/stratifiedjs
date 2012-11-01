@@ -578,7 +578,7 @@ exports.matchesSelector = matchesSelectorFunc ?
    @param {String} [selector] CSS selector
    @param {DOMElement} [from] DOM element at which to start traversal
    @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal
-   @param {optional Boolean} [inclusive=false] Wether to include element(s) `to` in the match or not
+   @param {optional Boolean} [inclusive=false] Whether to include element(s) `to` in the match or not
    @return {DOMElement|null}
 */
 function findNode(selector, from, to, inclusive) {
