@@ -915,6 +915,16 @@ __js var Mixins = exports.Mixins = function(vars) {
        box-sizing: #{boxmodel};"
     },
 
+    // User select
+    // For selecting text on the page
+    user_select(select) {
+        "-webkit-user-select: #{select};
+            -moz-user-select: #{select};
+             -ms-user-select: #{select};
+              -o-user-select: #{select};
+                  user-select: #{select};"
+    },
+
     // XXX some omissions
     
     // Opacity
