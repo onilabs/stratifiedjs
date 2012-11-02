@@ -691,6 +691,22 @@ UIContainerElement.active = true;
      - If a string is passed as parameter `child`, it will be wrapped by [::Html]
 */
 
+/**
+   @function UIContainerElement.withUI
+   @altsyntax withUI(ui, [append_attribs]) { |ui| ... }
+   @summary Append a UI element, perform a function, and remove the UI element
+   @param {::UIElement|String} [ui] UI element to append to `container`
+   @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
+   @param {Function} [f] Function to execute; will be passed `ui` as parameter
+   @desc
+     - If a string is passed as `ui`, it will be converted to a [::HtmlFragmentElement]
+*/
+UIContainerElement.withUI = function() {
+  var args = coll.toArray(arguments);
+  args.unshift(this);
+  return exports.withUI.apply(this, args);
+};
+
 //----------------------------------------------------------------------
 // ChildManagement mixin
 
@@ -1274,7 +1290,7 @@ HtmlFragmentElement.selectContainer = function(selector) {
     ip = Object.create(this);
     var parent = this;
     ip.append = function(ui) { return parent.append(ui, selector); };
-    coll.each(['activate','activated','deactivated','attached','detached']) {
+    coll.each(['activate','activated','deactivated','attached','detached','selectContainer']) {
       |method|
       ip[method] = ip[method].bind(parent);
     }
