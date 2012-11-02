@@ -685,8 +685,10 @@ UIContainerElement.active = true;
    @function UIContainerElement.append
    @purevirtual
    @summary Append a UIElement to this container
-   @param {::UIElement} [child] The child to be appended
+   @param {::UIElement|String} [child] The child to be appended
    @param {optional Object} [attribs] Optional layout attributes (see UIContainer subclasses)
+   @desc
+     - If a string is passed as parameter `child`, it will be wrapped by [::Html]
 */
 
 //----------------------------------------------------------------------
@@ -781,6 +783,7 @@ BoxElement.init = function(attribs) {
 ChildManagement.mixinto(BoxElement);
 
 BoxElement.append = function(ui, attribs) {
+  if (typeof ui == 'string') ui = exports.Html(ui);
   attribs || (attribs = {});
 //  attribs.w || (attribs.w = "*");
 //  attribs.h || (attribs.h = "*");
@@ -1077,6 +1080,7 @@ var VScrollBox = exports.VScrollBox = function(attribs) {
 ChildManagement.mixinto(VScrollBoxElement);
 
 __js VScrollBoxElement.append = function(ui) {
+  if (typeof ui == 'string') ui = exports.Html(ui);
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
@@ -1239,6 +1243,7 @@ __js HtmlFragmentElement.layout = function(layout_spec) {
 };
 
 HtmlFragmentElement.append = function(ui, insertionpoint) {
+  if (typeof ui == 'string') ui = exports.Html(ui);
   var parent;
   if (insertionpoint) {
     parent = this.select1(insertionpoint);
@@ -1269,6 +1274,10 @@ HtmlFragmentElement.selectContainer = function(selector) {
     ip = Object.create(this);
     var parent = this;
     ip.append = function(ui) { return parent.append(ui, selector); };
+    coll.each(['activate','activated','deactivated','attached','detached']) {
+      |method|
+      ip[method] = ip[method].bind(parent);
+    }
     this.insertionPoints[selector] = ip;
   }
   
@@ -1392,6 +1401,7 @@ __js RootElement.init = function(attribs) {
 ChildManagement.mixinto(RootElement);
 
 RootElement.append = function(ui) {
+  if (typeof ui == 'string') ui = exports.Html(ui);
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
@@ -1482,11 +1492,14 @@ exports.mixinCommandAPI = function(elem, attrib, method_name) {
    @altsyntax withUI(container, ui, [append_attribs]) { |ui| ... }
    @summary Append a UI element to a container, perform a function, and remove the UI element
    @param {::UIContainerElement} [container] The container
-   @param {::UIElement} [ui] UI element to append to `container`
+   @param {::UIElement|String} [ui] UI element to append to `container`
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
    @param {Function} [f] Function to execute; will be passed `ui` as parameter
+   @desc
+     - If a string is passed as `ui`, it will be converted to a [::HtmlFragmentElement]
 */
 exports.withUI = function(container, ui /*, [append_attribs], f*/) {
+  if (typeof ui == 'string') ui = exports.Html(ui);
   var args = Array.prototype.slice.call(arguments, 1);
   var f = args.pop();
   container.append.apply(container, args);
