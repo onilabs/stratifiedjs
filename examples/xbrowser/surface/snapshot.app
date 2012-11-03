@@ -9,6 +9,8 @@ var win = require('apollo:surface/bootstrap').Container({style:"{text-align:cent
 surface.root.append(win);
 // Load in RTC module (getUserMedia, ...):
 var rtc = require('./rtc');
+// We're also gonna be using window.URL, which is prefixed in older chrome:
+window.URL = window.URL || window.webkitURL;
 
 //----------------------------------------------------------------------
 // MAIN PROGRAM:
