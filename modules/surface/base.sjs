@@ -348,8 +348,8 @@ var UIElement = exports.UIElement = {};
                the element is deactivated
                (see [::UIElement::activated] & [::UIElement::deactivated]).
                See description below for more information.
-   @attrib  {optional ::StyleElement|Array} [style] [::StyleElement] 
-               (or array of elements) to apply to this UIElement.
+   @attrib  {optional ::StyleElement|String|Array} [style] [::StyleElement] 
+               (or array of elements) to apply to this UIElement. If a string is given, it will be converted to a StyleElement using [::CSS].
    @attrib  {optional String} [content] HTML content for this UIElement.
    @desc
       ### Mechanisms
@@ -387,8 +387,9 @@ __js UIElement.init = function(attribs) {
   //this.dompeer.ui = this;
   this.mechanism = attribs.mechanism || func.nop;
   this.style = attribs.style || [];
-  if (StyleElement.isPrototypeOf(this.style)) this.style = [this.style];
-  coll.each(this.style, function(s) { 
+  if (!Array.isArray(this.style)) this.style = [this.style];
+  coll.each(this.style, function(s,i) { 
+    if (typeof s == 'string') this.style[i] = s = CSS(s);
     if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+(this.dompeer.getAttribute('class')||'')); }, this);
 };
 
@@ -1308,7 +1309,7 @@ HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
    @summary Construct a [::HtmlFragmentElement]
    @param   {Object} [attribs] Object with attributes
    @attrib  {String} [content] HTML content
-   @attrib {Array|base::StyleElement} [style] Additional styles
+   @attrib {optional ::StyleElement|String|Array} [style]
    @attrib {Function} [mechanism] Mechanism function
    @attrib {Array} [subelems] Array of {container,elem} subelement objects
    @return  {::HtmlFragmentElement}
