@@ -457,6 +457,18 @@ UIElement.waitforEvent = function(event, selector) {
 };
 
 /**
+   @function UIElement.waitforCommand
+   @summary Wait for a click on a DOM child (or one of its descendants) with a 'data-command' attribute
+   @return {String} Value of the 'data-command' attribute of the clicked DOM element
+   @desc
+
+     - When `waitforCommand` registers a matching click, further
+       processing of the event (propagation, bubbeling and default action of
+       given event) will be stopped.  
+*/
+mixinCommandAPI(UIElement);
+
+/**
    @function UIElement.activate
    @summary Called when this UIElement is about to be attached (directly or indirectly) 
    to a root element. When attaching to a container that is active, this method will 
@@ -1154,7 +1166,7 @@ __js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UICon
 
 ChildManagement.mixinto(HtmlFragmentElement);
 
-// HtmlFragmentElement needs to come *after* mixing in ChildManagement
+// HtmlFragmentElement.init needs to come *after* mixing in ChildManagement
 /**
    @function HtmlFragmentElement.init
    @summary Called by constructor function to initialize HtmlFragmentElement object
@@ -1483,9 +1495,9 @@ root.activated();
      Installs the method `method_name` on `elem`. 
 
      `elem[method_name]()` waits for a click on a DOM child (or one of its 
-     descendents) that has the given DOM attribute. It returns the value of the attribute.
+     descendants) that has the given DOM attribute. It returns the value of the attribute.
 */
-exports.mixinCommandAPI = function(elem, attrib, method_name) {
+function mixinCommandAPI(elem, attrib, method_name) {
   attrib = attrib || 'data-command';
   method_name = method_name || 'waitforCommand';
   elem[method_name] = function() {
@@ -1499,7 +1511,7 @@ exports.mixinCommandAPI = function(elem, attrib, method_name) {
     return ev.node.getAttribute(attrib);
   };
 };
-
+exports.mixinCommandAPI = mixinCommandAPI;
 
 //----------------------------------------------------------------------
 // utilities
