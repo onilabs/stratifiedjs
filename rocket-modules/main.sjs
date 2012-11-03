@@ -183,7 +183,8 @@ BaseFileFormatMap.prototype = {
                         filter: sjscompile,
                         filterETag() { "c1" },
                         cache: SJSCache
-                      }
+                      },
+           src      : { mime: "text/plain" }
          }
 };
 
