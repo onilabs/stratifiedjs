@@ -21,7 +21,7 @@
     See http://bit.ly/WkC6QR for documentation on "withUI"
 
   - Any 'return' in a block lambda exits not only the block lambda, but its enclosing
-    function scope as well. 
+    function scope as well. (Search for "stream.stop()" below for an example of this)
 
   - For an extensive discussion of why block lambdas are a useful and
     needed feature in JS, see Yehuda Katz's excellent blog post
