@@ -8,7 +8,7 @@
 
   This sample makes heavy use of "block lambda syntax", a powerful abstraction
   similar to Ruby's blocks. Block lambdas are like normal JS functions, but 
-  have a more succint syntax and slightly different semantics:
+  have a more succinct syntax and slightly different semantics:
 
   - The code
 
