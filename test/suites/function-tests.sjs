@@ -181,3 +181,11 @@ test('memoize retraction', 2, function() {
   g(42);
   return c;
 });
+
+test('sequential', 0, function() {
+  var x = 0;
+  function G() { ++x; if (x>1) throw new Error(x); hold(10); --x; }
+  var g = f.sequential(G);
+  waitfor { g(); } and { g(); } and { g(); } and { g(); } and { g(); }
+  return x;
+});

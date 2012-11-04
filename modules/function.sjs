@@ -112,32 +112,26 @@ exports.bound = function(f, max_concurrent_calls) {
 };
 
 /**
-  @function rateLimit
-  @summary  A wrapper for limiting the rate at which a function can be called.
+  @function sequential
+  @summary  A wrapper for sequentializing concurrent executions of a function. 
+            Like [::bound](f,1).
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
-  @param    {Integer} [max_cps] The maximum number of calls per seconds allowed for 'f'.
 */
-exports.rateLimit = function(f, max_cps) {
-  var min_elapsed = 1000/max_cps;
-  var last_call;
-  return exports.bound(
-    function() {
-      if (last_call) {
-        var elapsed = (new Date()) - last_call;
-        if (elapsed < min_elapsed)
-          hold(min_elapsed - elapsed);
-      }
-      last_call = new Date();
+exports.sequential = function(f) {
+  var permits = new (cutil.Semaphore)(1);
+  return function() {
+    permits.synchronize { 
+      ||
       return f.apply(this, arguments);
-    }, 1);
+    }
+  };
 };
-
 
 /**
   @function exclusive
   @summary  A wrapper for limiting the number of concurrent executions of a function to one. 
-            Instead of potentially waiting for the previous execution to end, like [::bound], it will cancel it.
+            Instead of potentially waiting for the previous execution to end, like [::serialized], it will cancel it.
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
 */
@@ -159,6 +153,29 @@ exports.exclusive = function(f) {
     }
   }
 };
+
+/**
+  @function rateLimit
+  @summary  A wrapper for limiting the rate at which a function can be called.
+  @return   {Function} The wrapped function.
+  @param    {Function} [f] The function to wrap.
+  @param    {Integer} [max_cps] The maximum number of calls per seconds allowed for 'f'.
+*/
+exports.rateLimit = function(f, max_cps) {
+  var min_elapsed = 1000/max_cps;
+  var last_call;
+  return exports.bound(
+    function() {
+      if (last_call) {
+        var elapsed = (new Date()) - last_call;
+        if (elapsed < min_elapsed)
+          hold(min_elapsed - elapsed);
+      }
+      last_call = new Date();
+      return f.apply(this, arguments);
+    }, 1);
+};
+
 
 /**
    @function deferred
