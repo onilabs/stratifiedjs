@@ -290,6 +290,9 @@ exports.write = function(fd, buffer, offset, length, position /*=null*/) {
    @desc
      Example:
 
+         var fs     = require('apollo:nodejs/fs');
+         var buffer = require('nodejs:buffer');
+
          // read 128 bytes from /dev/random:
          var f = fs.open('/dev/random', 'r');
          var buf = new (buffer.Buffer)(128);
