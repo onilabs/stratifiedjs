@@ -232,7 +232,8 @@ exports.readdir = function(path) {
 
 /**
    @function close
-   @summary To be documented
+   @summary `close(2)` system call
+   @param {Integer} [fd] File descriptor
 */
 exports.close = function(fd) {
   waitfor (var err) { fs.close(fd, resume); }
@@ -241,7 +242,11 @@ exports.close = function(fd) {
 
 /**
    @function open
-   @summary To be documented
+   @summary `open(2)` system call
+   @param {String} [path] File path
+   @param {String} [flags] Open flags ('r', 'r+', 'w', 'w+', 'a', or 'a+')
+   @param {optional Integer} [mode=0666] Open mode
+   @return {Integer} File descriptor
 */
 exports.open = function(path, flags, mode) {
   var retracted = false;
@@ -276,7 +281,22 @@ exports.write = function(fd, buffer, offset, length, position /*=null*/) {
 
 /**
    @function read
-   @summary To be documented
+   @summary Read data from the given file descriptor
+   @param {Integer} [fd] File descriptor
+   @param {Buffer}  [buffer] [Nodejs Buffer](http://nodejs.org/docs/latest/api/buffer.html) that the data will be written to
+   @param {Integer} [offset] Offset within the buffer where writing will start.
+   @param {Integer} [length] Number of bytes to read
+   @param {optional Integer} [position=null] Where to begin reading from in the file (`null` = read from current position)
+   @desc
+     Example:
+
+         // read 128 bytes from /dev/random:
+         var f = fs.open('/dev/random', 'r');
+         var buf = new (buffer.Buffer)(128);
+         fs.read(f, buf, 0, 128);
+         fs.close(f);
+         console.log(buf.toString('hex'));
+
 */
 exports.read = function(fd, buffer, offset, length, position /*=null*/) {
   if (position === undefined) position = null;
