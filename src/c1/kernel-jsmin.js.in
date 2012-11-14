@@ -311,6 +311,26 @@ function interpolating_string(parts) {
 }
 #endif // INTERPOLATING_STRINGS
 
+#ifdef QUASIS
+#define GEN_QUASI(parts, pctx) return quasi(parts);
+function quasi(parts) {
+  var rv = '`';
+  for (var i=0,l=parts.length;i<l;++i) {
+    if (i % 2)
+      rv += '#{'+parts[i]+'}';
+    else {
+#ifdef STRINGIFY
+      rv += parts[i].replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"');
+#else
+      rv += parts[i];
+#endif
+    }
+  }
+  return rv + '`';
+}
+#endif // QUASIS
+
+
 #define GEN_IDENTIFIER(value, pctx) return value;
 
 #ifdef STRINGIFY

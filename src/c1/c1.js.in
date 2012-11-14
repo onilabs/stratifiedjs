@@ -109,6 +109,7 @@ general:
    #define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    #define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
+   #define QUASIS: allow quasi templates (`foo#{bar}baz`)
    #define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
 
 for C1_KERNEL_JSMIN:
@@ -249,17 +250,20 @@ GEN_TRY(block, crf, pctx)
 
 GEN_USING(isvar, vname, exp, body, pctx)
 
-- if #defined SJS___JS is set:
+- if #define SJS___JS is set:
 
 BEGIN___JS_BLOCK(pctx)
 END___JS_BLOCK(pctx)
 GEN___JS(body, pctx)
 
-- if #defined SJS_BLOCKLAMBDA is set:
+- if #define SJS_BLOCKLAMBDA is set:
 GEN_BLOCKLAMBDA(pars, body, pctx)
 
-- if #defined INTERPOLATING_STRINGS is set:
+- if #define INTERPOLATING_STRINGS is set:
 GEN_INTERPOLATING_STR(parts, pctx)
+
+- if #define QUASIS is set:
+GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 
 */
 
@@ -276,6 +280,7 @@ GEN_INTERPOLATING_STR(parts, pctx)
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define INTERPOLATING_STRINGS 1
+#define QUASIS 1
 #define METHOD_DEFINITIONS 1
 #include "kernel-sjs.js.in"
 
@@ -288,6 +293,7 @@ GEN_INTERPOLATING_STR(parts, pctx)
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define INTERPOLATING_STRINGS 1
+#define QUASIS 1
 #define METHOD_DEFINITIONS 1
 #include "kernel-jsmin.js.in"
 
@@ -331,9 +337,9 @@ Hash.prototype = {
 #define PAT_OPERATOR3 ===|!==|>>>|<<=|>>=
 #define PAT_OPERATOR2 ==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
 #ifdef INTERPOLATING_STRINGS
-#define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()\"]
+#define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]
 #else
-#define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()]
+#define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()`]
 #endif
 // XXX unicode
 #define PAT_IDENTIFIER [$_\w]+
@@ -394,6 +400,15 @@ var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 #define IS_ESCAPED_NEWLINE_MATCH 2
 #define IS_NEWLINE_MATCH 3
 #define IS_OPERATOR_MATCH 4
+#endif
+
+#ifdef QUASIS
+// tokenizer for tokens in an quasi-literal:
+var TOKENIZER_QUASI = /((?:\\.|\#(?!\{)|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{)/g;
+#define QUASI_CONTENT_MATCH 1
+#define QUASI_ESCAPED_NEWLINE_MATCH 2
+#define QUASI_NEWLINE_MATCH 3
+#define QUASI_OPERATOR_MATCH 4
 #endif
 
 //----------------------------------------------------------------------
@@ -1040,6 +1055,58 @@ S('istr-#{', TOKENIZER_SA);
 S('istr-"', TOKENIZER_OP);
 #endif
 
+#ifdef QUASIS
+S('`', TOKENIZER_QUASI).exs(function(pctx, st) {
+  var parts = [], current=0;
+  while (pctx.token.id != 'quasi-`') {
+    switch (pctx.token.id) {
+    case '<string>':
+      // strings always go into an even position. If we get a string
+      // with current=odd it means the tokenizer gave us two adjacent
+      // strings (can happen because the tokenizer splits strings on
+      // '\n'). In this case we append the new string to the last string:
+      if (current % 2)
+        parts[current-1] += pctx.token.value;
+      else {
+        parts.push(pctx.token.value);
+        ++current;
+      }
+      break;
+    case 'quasi-#{':
+      scan(pctx);
+      // expressions always go into an odd position. If we're in an even
+      // position we insert an empty string:
+      if ((current % 2) == 0) {
+        parts.push('');
+        ++current;
+      }
+      parts.push(parseExp(pctx));
+      ++current;
+      break;
+    case '<eof>':
+      throw 'Unterminated string';
+      break;
+    default:
+      throw 'Internal parser error: Unknown token in string ('+pctx.token+')';
+    }
+    scan(pctx, undefined, TOKENIZER_QUASI);
+  }
+  scan(pctx);
+  
+  // xxx can this happen?
+  if (current == 0) {
+    parts.push('');
+  }
+
+  GEN_QUASI(parts, pctx);
+});
+
+S('quasi-#{', TOKENIZER_SA);
+S('quasi-`', TOKENIZER_OP);
+#else
+S('`'); // no support for quasis; disallow "`"
+#endif
+
 function isStmtTermination(token) {
   return token.id == ";" || token.id == "}" || token.id == "<eof>";
 }
@@ -1645,6 +1712,26 @@ function scan(pctx, id, tokenizer) {
       }
       else if (matches[IS_OPERATOR_MATCH]) {
         pctx.token = ST.lookup("istr-"+matches[IS_OPERATOR_MATCH]);
+      }
+    }
+#endif
+#ifdef QUASIS
+    else if (tokenizer == TOKENIZER_QUASI) {
+      // quasiliteral tokenizer
+      if (matches[QUASI_CONTENT_MATCH])
+        pctx.token = new Literal("<string>", matches[QUASI_CONTENT_MATCH]);
+      else if (matches[QUASI_ESCAPED_NEWLINE_MATCH]) {
+        ++pctx.line;
+        ++pctx.newline;
+        // go round loop again
+      }
+      else if (matches[QUASI_NEWLINE_MATCH]) {
+        ++pctx.line;
+        ++pctx.newline;
+        pctx.token = new Literal("<string>", '\\n');
+      }
+      else if (matches[QUASI_OPERATOR_MATCH]) {
+        pctx.token = ST.lookup("quasi-"+matches[QUASI_OPERATOR_MATCH]);
       }
     }
 #endif

@@ -877,6 +877,20 @@ ph_interpolating_str.prototype.val = function() {
 
 #endif // INTERPOLATING_STRINGS
 
+#ifdef QUASIS
+#define GEN_QUASI(parts, pctx) return gen_quasi(parts, pctx);
+function gen_quasi(parts, pctx) {
+  // we just use ph_arr_lit, but first need to convert all strings to
+  // proper ph_literal's. 
+  // strings are at even positions:
+  for (var i=0,l=parts.length; i<l; i+=2) {
+    parts[i] = new ph_literal('"'+parts[i].replace(/\"/g,'\\"')+'"', pctx, '<string>');
+  }
+
+  return new ph_arr_lit(parts, pctx);
+}
+#endif // QUASIS
+
 #define GEN_ASSIGN_OP(left, id, right, pctx) return new ph_assign_op(left, id, right, pctx);
 function ph_assign_op(left, id, right, pctx) {
   if (!left.is_ref && !left.is_id)

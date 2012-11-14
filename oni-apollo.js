@@ -2607,6 +2607,17 @@ return '__oni_rt.Sc('+this.line+',__oni_rt.sum,'+this.parts.join(',')+')';
 };
 
 
+function gen_quasi(parts,pctx){for(var i=0,l=parts.length;i<l;i+=2){
+
+
+
+
+parts[i]=new ph_literal('"'+parts[i].replace(/\"/g,'\\"')+'"',pctx,'<string>');
+}
+
+return new ph_arr_lit(parts,pctx);
+}
+
 function ph_assign_op(left,id,right,pctx){if(!left.is_ref&&!left.is_id){
 
 
@@ -3221,15 +3232,18 @@ delete this["$"+key]}};
 
 
 
-var TOKENIZER_SA=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\/\n])+\/[gimy]*)|(==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"]|[$_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\/\n])+\/[gimy]*)|(==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
 
 
 
-var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"]|[$_\w]+))/g;
+var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+))/g;
 
 
 
 var TOKENIZER_IS=/((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
+
+
+var TOKENIZER_QUASI=/((?:\\.|\#(?!\{)|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{)/g;
 
 
 
@@ -3748,6 +3762,54 @@ return new ph_interpolating_str(parts,pctx);
 
 S('istr-#{',TOKENIZER_SA);
 S('istr-"',TOKENIZER_OP);
+
+S('`',TOKENIZER_QUASI).exs(function(pctx,st){var parts=[],current=0;
+
+while(pctx.token.id!='quasi-`'){
+switch(pctx.token.id){case '<string>':
+
+
+
+
+
+if(current%2)parts[current-1]+=pctx.token.value;else{
+
+
+parts.push(pctx.token.value);
+++current;
+}
+break;
+case 'quasi-#{':
+scan(pctx);
+
+
+if((current%2)==0){
+parts.push('');
+++current;
+}
+parts.push(parseExp(pctx));
+++current;
+break;
+case '<eof>':
+throw 'Unterminated string';
+break;
+default:
+throw 'Internal parser error: Unknown token in string ('+pctx.token+')';
+}
+scan(pctx,undefined,TOKENIZER_QUASI);
+}
+scan(pctx);
+
+
+if(current==0){
+parts.push('');
+}
+
+return gen_quasi(parts,pctx);;
+});
+
+S('quasi-#{',TOKENIZER_SA);
+S('quasi-`',TOKENIZER_OP);
 
 function isStmtTermination(token){return token.id==";"||token.id=="}"||token.id=="<eof>";
 
@@ -4313,6 +4375,24 @@ pctx.token=new Literal("<string>",'\\n');
 }else if(matches[4]){
 
 pctx.token=ST.lookup("istr-"+matches[4]);
+}
+}else if(tokenizer==TOKENIZER_QUASI){
+
+
+if(matches[1])pctx.token=new Literal("<string>",matches[1]);else if(matches[2]){
+
+
+++pctx.line;
+++pctx.newline;
+
+}else if(matches[3]){
+
+++pctx.line;
+++pctx.newline;
+pctx.token=new Literal("<string>",'\\n');
+}else if(matches[4]){
+
+pctx.token=ST.lookup("quasi-"+matches[4]);
 }
 }else throw "Internal scanner error: no tokenizer";
 

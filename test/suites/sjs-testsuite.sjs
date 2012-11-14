@@ -298,19 +298,19 @@ test("!overwriting of own property 'toString' in Error exceptions", true, functi
 test("automatic semicolon insertion bug", 1, function() {
   // this didn't parse because "2" was scanned in an arg position by
   // our double-barrel tokenizer
-  a = "1"
+  var a = "1"
   "2";
   return a.length;
 });
 
 test("multiline strings", true, function() {
-  a = "1
+  var a = "1
 2";
   return a === "1\n2";
 });
 
 test("multiline strings; newline escaping", true, function() {
-  a = "1\
+  var a = "1\
 2";
   return a === "12";
 });
@@ -1465,4 +1465,49 @@ test('interpolation edge case 2 "#{1}2"', '12', function() {
 
 test('interpolation edge case 3 "#{1}#{2}"', '12', function() {
   return "#{1}#{2}";
+});
+
+function compareQuasiArrays(x,y) {
+  var rv;
+  if (x.length != y.length) return 'x.length != y.length';
+  for (var i=0; i<x.length; ++i) {
+    if (Array.isArray(x[i])) { 
+      if ((rv = compareQuasiArrays(x[i], y[i])) != true) return "child: #{rv}";
+    }
+    else
+      if (x[i] != y[i]) return "x[#{i}]!=y[#{i}] ('#{x[i]}' != '#{y[i]}')";
+  }
+  return true;
+}
+
+test('quasis', true, function() {
+  function x() { hold(0); return 42; }
+  var a = "interpolated";
+  var x = `#{"ab"}This is an #{ a } string #{ x()+1 }#{ '#{}' } #{ ({|| `#{1+1}`})() }#{3}`;
+  var result = ['',
+                'ab',
+                'This is an ',
+                'interpolated',
+                ' string ',
+                43,
+                '',
+                '#{}',
+                ' ',
+                ['', 2 ],
+                '',
+                3];
+  
+  return compareQuasiArrays(x, result);
+});
+
+test('multiline quasi', true, function() {
+  var a = `1
+2`;
+  return a[0] == '1\n2';
+});
+
+test('multiline quasi; newline escaping', true, function() {
+  var a = `1\
+2`;
+  return a[0] == '12';
 });
