@@ -153,7 +153,7 @@ BaseFileFormatMap.prototype = {
                         // filterETag() returns a tag that will be added onto 
                         // the base file's modification date to derive an etag for
                         // the filtered file.
-                        filterETag() { "c1" /* xxx could maybe derive this from some 
+                        filterETag() { "c1-1" /* xxx could maybe derive this from some 
                                                modification dates; now it needs to be 
                                                changed manually when our compiler or 
                                                compilation format changes */ },
@@ -181,7 +181,7 @@ BaseFileFormatMap.prototype = {
                       },
            sjs      : { mime: "text/plain",
                         filter: sjscompile,
-                        filterETag() { "c1" },
+                        filterETag() { "c1-1" },
                         cache: SJSCache
                       },
            src      : { mime: "text/plain" }
@@ -208,10 +208,10 @@ var pathMap = [
       }
     )      
   },
-/*  {
+  {
     pattern: /__oni\/aat\/(.*)$/,
-    handler: require('apollo:rpc/aat-server').createTransportHandler(xxx)
-  }, */
+    handler: require('apollo:rpc/aat-server').createTransportHandler(/* XXX */)
+  },
   {
     // main server root
     pattern: /(\/.*)$/,
@@ -266,6 +266,7 @@ function requestHandler(req, res) {
     try {
       res.writeHead(400);
       res.end(e.toString());
+      process.stderr.write("error handling request to #{req.url}; written 400 response: #{e}\n");
     } catch (writeErr) {
       // ending up here means that we probably already sent headers to the clients...
       process.stderr.write(writeErr + "\n");
