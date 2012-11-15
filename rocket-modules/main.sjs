@@ -208,10 +208,10 @@ var pathMap = [
       }
     )      
   },
-  {
-    pattern: /__oni\/aat\/(.*)$/,
-    handler: require('apollo:rpc/aat-server').createTransportHandler(/* XXX */)
-  },
+//  {
+//    pattern: /__oni\/aat\/(.*)$/,
+//    handler: require('apollo:rpc/aat-server').createTransportHandler(/* XXX */)
+//  },
   {
     // main server root
     pattern: /(\/.*)$/,
