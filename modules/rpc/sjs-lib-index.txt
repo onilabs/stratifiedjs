@@ -1,0 +1,5 @@
+@lib     Oni Apollo 'unstable' Standard Module Library - RPC
+@summary Remote Procedure Calling Support
+
+@module aat-client Asymmetric AJAX Transport Client
+@module aat-server Asymmetric AJAX Transport Server

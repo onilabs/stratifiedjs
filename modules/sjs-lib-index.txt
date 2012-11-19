@@ -40,6 +40,7 @@
         // the location above.
     
 @dir nodejs   NodeJS-related modules
+@dir rpc      Remote Procedure Calling Support
 @dir surface  Lightweight cross-browser UI toolkit
 @dir webapi   Bindings to popular web apis
 @dir xbrowser Modules with basic cross-browser functionality
