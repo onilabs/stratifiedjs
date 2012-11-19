@@ -3,3 +3,4 @@
 
 @module aat-client Asymmetric AJAX Transport Client
 @module aat-server Asymmetric AJAX Transport Server
+@module bridge     API bridge
