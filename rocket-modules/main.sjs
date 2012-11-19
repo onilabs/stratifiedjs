@@ -195,6 +195,21 @@ var PublicFileFormatMap = new BaseFileFormatMap();
 //};
 
 //----------------------------------------------------------------------
+// API Bridge
+
+// load in api modules just like normal sjs modules:
+require.extensions['api'] = require.extensions['sjs'];
+        
+function getBridgeAPI(name) {
+  var api_module = path.join(root, name+".api");
+  console.log("API #{api_module} requested");
+  var api = require(api_module);
+  console.log("got #{api}");
+  return require('apollo:rpc/bridge').API(api);
+}
+
+
+//----------------------------------------------------------------------
 
 var pathMap = [
   // we map the apollo client lib + modules under __oni/apollo:
@@ -208,10 +223,15 @@ var pathMap = [
       }
     )      
   },
-//  {
-//    pattern: /__oni\/aat\/(.*)$/,
-//    handler: require('apollo:rpc/aat-server').createTransportHandler(/* XXX */)
-//  },
+  {
+    // bridge-over-aat endpoint:
+    pattern: /__oni\/aat\/(.*)$/,
+    handler: require('apollo:rpc/aat-server').createTransportHandler(
+      function(transport) {
+        require('apollo:rpc/bridge').accept(getBridgeAPI, transport);
+      }
+    )
+  },
   {
     // main server root
     pattern: /(\/.*)$/,
