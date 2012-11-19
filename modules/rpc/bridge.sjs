@@ -175,10 +175,14 @@ function BridgeConnection(transport, base_api) {
       var message = unmarshall(transport.receive(), connection);
       switch (message[0]) {
       case 'return':
-        pending_calls[message[1]](message[2], false);
+        var cb = pending_calls[message[1]];
+        if (cb)
+          cb(message[2], false);
         break;
       case 'return_exception':
-        pending_calls[message[1]](message[2], true);
+        var cb = pending_calls[message[1]];
+        if (cb)
+          cb(message[2], true);
         break;
       case 'call':
         spawn (function(call_no, api_id, method, args) {
