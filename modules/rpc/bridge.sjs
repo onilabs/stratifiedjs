@@ -82,10 +82,15 @@ function marshall(value, connection) {
       connection.publishAPI(value);
       // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
       var methods = [];
-      coll.each(value.obj) {
-        |val, name|
-        if (typeof val == 'function') methods.push(name);
+      // can't use "each" here, because we want prototype methods too
+      // coll.each(value.obj) {
+      //  |val, name|
+      //  if (typeof val == 'function') methods.push(name);
+      //}
+      for (var name in value.obj) {
+        if (typeof value.obj[name] == 'function') methods.push(name);
       }
+
       // XXX can we do the following without running the replacer over the api?
       return /*JSON.stringify*/({ __oni_type:'api', id: value.id, methods: methods});
     }
