@@ -201,7 +201,7 @@ var PublicFileFormatMap = new BaseFileFormatMap();
 require.extensions['api'] = require.extensions['sjs'];
         
 function getBridgeAPI(name) {
-  var api_module = path.join(root, name+".api");
+  var api_module = "file://"+path.join(root, name+".api");
   console.log("API #{api_module} requested");
   var api = require(api_module);
   console.log("got #{api}");
