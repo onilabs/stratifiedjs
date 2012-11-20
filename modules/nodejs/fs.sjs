@@ -31,7 +31,7 @@
  */
 /**
   @module    nodejs/fs
-  @summary   Stratified wrapper of [nodejs filesystem functionality](http://nodejs.org/docs/v0.5.8/api/fs.html)
+  @summary   Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)
   @hostenv   nodejs
   @home      apollo:nodejs/fs
 */
@@ -97,7 +97,7 @@ exports.chmod = function(path, mode) {
      Throws if there is an error.
      
      The returned
-     [`fs.stat`](http://nodejs.org/docs/v0.5.8/api/fs.html#fs.stat)
+     [`fs.Stats`](http://nodejs.org/api/fs.html#fs_class_fs_stats)
      object looks like this:
 
          { dev: 2049,
@@ -213,7 +213,9 @@ exports.rmdir = function(path) {
 
 /**
    @function mkdir
-   @summary To be documented
+   @summary `mkdir(2)` system call
+   @param {String} [path]
+   @param {optional Integer} [mode=0777]
 */
 exports.mkdir = function(path, mode) {
   waitfor (var err) { fs.mkdir(path, mode===undefined ? 0777 : mode, resume); }
@@ -312,7 +314,12 @@ exports.read = function(fd, buffer, offset, length, position /*=null*/) {
 
 /**
    @function readFile
-   @summary To be documented
+   @summary Reads the entire contents of a file
+   @param {String} [filename]
+   @param {optional String} [encoding]
+   @return {Buffer|String}
+   @desc
+     - If no encoding is specified, then the raw buffer is returned.
 */
 exports.readFile = function(filename, /* opt */ encoding) {
   waitfor (var err, data) { fs.readFile(filename, encoding, resume); }
@@ -322,7 +329,13 @@ exports.readFile = function(filename, /* opt */ encoding) {
 
 /**
    @function writeFile
-   @summary To be documented
+   @summary Write data to a file, replacing the file if it already exists
+   @param {String} [filename]
+   @param {String|Buffer} [data]
+   @param {optional String} [encoding='utf8']
+   @desc
+     - `encoding` parameter is ignored if `data` is a 
+     [Buffer](http://nodejs.org/docs/latest/api/buffer.html)
 */
 exports.writeFile = function(filename, data, encoding /*='utf8'*/) {
   waitfor (var err) { fs.writeFile(filename, data, encoding, resume); }
@@ -364,7 +377,9 @@ exports.waitforChange = function(filename, interval /*=0*/) {
 
 /**
    @function exists
-   @summary To be documented
+   @summary Check if the given path exists
+   @param  {String} [path]
+   @return {Boolean}
 */
 exports.exists = function(path) {
   try {
@@ -379,7 +394,9 @@ exports.exists = function(path) {
 
 /**
    @function isFile
-   @summary To be documented
+   @summary Check if the given path is a file
+   @param {String} [path]
+   @return {Boolean}
 */
 exports.isFile = function(path) {
   try {
@@ -392,7 +409,9 @@ exports.isFile = function(path) {
 
 /**
    @function isDirectory
-   @summary To be documented
+   @summary Check if the given path is a directory
+   @param {String} [path]
+   @return {Boolean}
 */
 exports.isDirectory = function(path) {
   try {

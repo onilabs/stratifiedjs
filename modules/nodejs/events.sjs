@@ -31,7 +31,7 @@
  */
 /**
   @module    nodejs/events
-  @summary   Stratified wrapper for nodejs events
+  @summary   Stratified wrapper for [nodejs events](http://nodejs.org/api/events.html)
   @hostenv   nodejs
   @home      apollo:nodejs/events
 */

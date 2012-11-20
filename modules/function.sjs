@@ -114,7 +114,7 @@ exports.bound = function(f, max_concurrent_calls) {
 /**
   @function sequential
   @summary  A wrapper for sequentializing concurrent executions of a function. 
-            Like [::bound](f,1).
+            Like [::bound] (f,1).
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
 */

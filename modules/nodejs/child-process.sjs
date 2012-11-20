@@ -31,7 +31,7 @@
  */
 /**
   @module    nodejs/child-process
-  @summary   Stratified wrapper of nodejs's child_process lib
+  @summary   Stratified wrapper of [nodejs's child_process lib](http://nodejs.org/api/child_process.html)
   @hostenv   nodejs
   @home      apollo:nodejs/child-process
 */

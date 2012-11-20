@@ -31,7 +31,7 @@
  */
 /**
   @module    nodejs/stream
-  @summary   Stratified helpers for dealing nodejs's async streams
+  @summary   Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)
   @home      apollo:nodejs/stream
   @hostenv   nodejs
 */
