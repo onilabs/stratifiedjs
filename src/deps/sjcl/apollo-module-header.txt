@@ -251,7 +251,7 @@
 */
 
 /**
-   @function misc.pbkdf
+   @function misc.pbkdf2
    @summary Password-Based Key-Derivation Function, version 2.0. 
    @param   {::bitArray|String} [password] The password.
    @param   {::bitArray} [salt] The salt. Should have lots of entropy.
