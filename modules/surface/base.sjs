@@ -252,7 +252,6 @@ var UIElement = exports.UIElement = {};
                See description below for more information.
    @attrib  {optional ::StyleElement|String|Array} [style] [::StyleElement] 
                (or array of elements) to apply to this UIElement. If a string is given, it will be converted to a StyleElement using [::CSS].
-   @attrib  {optional String} [content] HTML content for this UIElement.
    @desc
       ### Mechanisms
       
@@ -272,70 +271,12 @@ UIElement.init = function(attribs) {
     this.debugtags = "";
     this.debugid = "";
   }
-  if (Array.isArray(attribs.content)) {
-    // we expect a QuasiArray, e.g.:
-    // Html(`<h1>#{name}</h1>#{Button('click')}`)
-    // -> content = ['<h1>', name, '</h1>', Button]
-    
-    // strategy: build html from the array with string values at odd
-    // indices sanitized. If there is a UIElement at at odd index, we
-    // create a surrogate for it, which we replace later with the
-    // element's dompeer:
-
-    var surrogates = [];
-    var html = '';
-    for (var i=0,l=attribs.content.length; i<l; ++i) {
-      var part = attribs.content[i];
-      if (i%2) {
-        if (UIElement.isPrototypeOf(part)) {
-          html += "<span id='__oni_surrogate#{i}'></span>";
-          surrogates.push(i);
-        }
-        else {
-          html += str.sanitize(part);
-        }
-      }
-      else 
-        html += part;
-    }
-
-    // create a surrogate dompeer:
-    this.dompeer = document.createElement('surface-ui');
-    this.dompeer.innerHTML = html.replace(/^\s+/,'');
-
-    // replace UIElement surrogates with UIElements:
-    coll.each(surrogates) {
-      |idx|
-      var old = this.select1("#__oni_surrogate#{idx}");
-      old.parentNode.replaceChild(attribs.content[idx].dompeer, old);
-    }
-    
-    // remove surrogate dompeer if there is only one child:
-    if (this.dompeer.childElementCount == 1 && this.dompeer.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
-      this.dompeer = this.dompeer.firstChild;
-    }
-  }
-  else if (typeof attribs.content == 'object')
-    this.dompeer = attribs.content;
-  else {
-    // create a surrogate dompeer: 
-    this.dompeer = document.createElement('surface-ui');
-    if (typeof attribs.content !== 'undefined') {
-      this.dompeer.innerHTML = attribs.content.replace(/^\s+/, '');
-      // remove the surrogate again if there is only one child:
-      if (this.dompeer.childElementCount == 1 && this.dompeer.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
-        this.dompeer = this.dompeer.firstChild;
-      }
-    }
-  }
-
-  //this.dompeer.ui = this;
   this.mechanism = attribs.mechanism || func.nop;
   this.style = attribs.style || [];
   if (!Array.isArray(this.style)) this.style = [this.style];
   coll.each(this.style, function(s,i) { 
-    if (typeof s == 'string') this.style[i] = s = CSS(s);
-    if (s.cssClass) this.dompeer.setAttribute('class', s.cssClass+" "+(this.dompeer.getAttribute('class')||'')); }, this);
+    if (typeof s == 'string') this.style[i] = CSS(s);
+  }, this);
 };
 
 /**
@@ -560,13 +501,6 @@ UIContainerElement.withUI = function() {
 var ChildManagement = {
   init: function(attribs) {
     this.children = [];
-    coll.each(attribs.children,
-              { |c|
-                if (UIElement.isPrototypeOf(c))
-                  this.append(c);
-                else // [child, attribs]
-                  this.append(c[0],c[1]);
-              });
   },
 
   remove: function(ui) {
@@ -613,15 +547,99 @@ __js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UICon
 
 ChildManagement.mixinto(HtmlFragmentElement);
 
-// HtmlFragmentElement.init needs to come *after* mixing in ChildManagement
+// HtmlFragmentElement.init needs to come *after* mixing in ChildManagement, so that
+// this.children is initialized
+
 /**
    @function HtmlFragmentElement.init
    @summary Called by constructor function to initialize HtmlFragmentElement object
-   @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init]
+   @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init], and understands all the attributes listed there.
+   @attrib {optional String|QuasiArray} [content=''] HTML content for this HtmlFragmentElement
+   @attrib {optional Array} [subelems] Elements that will be statically inserted into the HTML content. Deprecated; use QuasiArray mechanism instead.
 */
 HtmlFragmentElement.init = func.seq(
   HtmlFragmentElement.init, 
   function(attribs) {
+    
+    if (attribs.content instanceof HTMLElement) {
+      // content is a DOM object. This is e.g. used by the
+      // to create the RootElement, where attribs.content is set to 'document.body'
+      this.dompeer = attribs.content;
+    }
+    else {
+      if (Array.isArray(attribs.content)) {
+        // we expect a QuasiArray, e.g.:
+        // Html(`<h1>#{name}</h1>#{Button('click')}`)
+        // -> content = ['<h1>', name, '</h1>', Button]
+        
+        // strategy: build html from the array with string values at odd
+        // indices sanitized. If there is a UIElement at at odd index, we
+        // create a placeholder for it, which we replace later with the
+        // element's dompeer. 
+        // we'll also add the UIElements to our child array. Towards the end 
+        // of init(.) we'll make sure attached() is called on them. 
+        
+        var placeholders = [];
+        var html = '';
+        for (var i=0,l=attribs.content.length; i<l; ++i) {
+          var part = attribs.content[i];
+          if (i%2) {
+            if (UIElement.isPrototypeOf(part)) {
+              html += "<span id='__oni_placeholder#{i}'></span>";
+              placeholders.push(i);
+            }
+            else {
+              html += str.sanitize(part);
+            }
+          }
+          else 
+            html += part;
+        }
+        
+        // create a surrogate dompeer:
+        this.dompeer = document.createElement('surface-ui');
+        this.dompeer.innerHTML = html.replace(/^\s+/,'');
+        
+        // replace UIElement placeholders with UIElements:
+        coll.each(placeholders) {
+          |idx|
+          var old = this.select1("#__oni_placeholder#{idx}");
+          old.parentNode.replaceChild(attribs.content[idx].dompeer, old);
+          this.children.push(attribs.content[idx]);
+        }        
+      }
+      else {
+        // content is a string; //XXX sanitize it!!
+        // create a surrogate dompeer: 
+        this.dompeer = document.createElement('surface-ui');
+        if (typeof attribs.content !== 'undefined') {
+          this.dompeer.innerHTML = attribs.content.replace(/^\s+/, '');
+        }
+      }
+
+      // Flattening:
+      // remove the surrogate again if there is only one child.
+      // We do this, so that CSS rules work more predictably (so that there are no 
+      // intermediate 'surface-ui' tags that have to be worked into CSS rules).
+      if (this.dompeer.childElementCount == 1 && this.dompeer.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
+        this.dompeer = this.dompeer.firstChild;
+      }
+    }
+
+    // set styles on our dompeer:
+    coll.each(this.style) {
+      |s|
+      if (s.cssClass) this.dompeer.classList.add(s.cssClass)
+    }
+
+    // now that we are *nearly* fully initialized, we need to make
+    // sure that any children we've added for placeholders become properly attached:
+    coll.each(this.children) {
+      |c|
+      c.attached(this);
+    }
+
+    // finally, the deprecated subelems handling
     if (attribs.subelems)
       coll.each(attribs.subelems) {
         |e|
@@ -630,93 +648,9 @@ HtmlFragmentElement.init = func.seq(
         else
           this.selectContainer(e.container ? e.container : "##{e.id}").append(e.elem);
       }
-  });
-
-__js HtmlFragmentElement.layout = function(layout_spec) {
-  var elem = this.dompeer;
-  var style = elem.style;
-
-  if (layout_spec.type == 'abs') {
-    var margins = this.getMargins();
-    if (typeof layout_spec.w != 'undefined' && typeof layout_spec.h != 'undefined') {
-      // both w and h defined
-      style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
-      style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
-    }
-    else {
-      // xxx chrome has a bug whereby absolutely positioned content doesn't obey 
-      // 'box-sizing: border-box'. we need to measure with static positioning:
-      style.position = "static";
-      var measure_display = "table";
-      if (typeof layout_spec.w == 'undefined' && typeof layout_spec.h == 'undefined') {
-        style.width   = "1px";
-        style.height  = "1px";
-        style.display = measure_display;
-        layout_spec.w = elem.offsetWidth + margins[0];
-        layout_spec.h = elem.offsetHeight + margins[1];
-        style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
-        style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
-      }
-      else if (typeof layout_spec.w != 'undefined' && typeof layout_spec.h == 'undefined') {
-        style.width   =  Math.max(0,layout_spec.w-margins[0]) + "px";
-        style.height  = "1px";
-        style.display = measure_display;
-        layout_spec.h = elem.offsetHeight + margins[1];
-        style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
-      }
-      else { //typeof layout_spec.w == 'undefined' && typeof layout_spec.h != 'undefined'
-        style.width   = "1px";
-        style.height  = Math.max(0,layout_spec.h-margins[1]) + "px";
-        style.display = measure_display;
-        layout_spec.w = elem.offsetWidth + margins[0];
-        style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
-      }
-    }
-    style.display  = "block";
-    style.position = "absolute";
   }
-  else {
-    if (layout_spec.type == 'w') {
-      style.display  = "table";
-      style.left = "0px";
-      style.top = "0px";
-      style.position = "relative";
-      style.width  = "100%";
-      style.height = "";
-    }
-    else if (layout_spec.type == 'h') {
-      style.display  = "table";
-      style.left = "0px";
-      style.top = "0px";
-      style.position = "relative";
-      style.width  = "";
-      style.height = "100%";
-    }
-    else if (layout_spec.type == 'wh') {
-      style.display = "block";
-      style.position = "absolute";
-      style.left = "0px";
-      style.top = "0px";
-      style.width  = "100%";
-      style.height = "100%";
-    }
-    else if (layout_spec.type == 'flow') {
-      style.display = "";
-      style.position = "static";
-      style.left = undefined;
-      style.top = undefined;
-      style.width = undefined;
-      style.height = undefined;
-    }
-    else {
-      throw new Error("Layout type "+layout_spec.type+" unsupported for HtmlFragmentElement");
-    }
-  }
-  if (this.debug("ow"))
-    console.log(this.debugid + " ow: "+layout_spec.w);
+);
 
-  return layout_spec;
-};
 
 HtmlFragmentElement.append = function(ui, insertionpoint) {
   if (typeof ui == 'string') ui = exports.Html(ui);
@@ -734,7 +668,7 @@ HtmlFragmentElement.append = function(ui, insertionpoint) {
   ui.attached(this);
   if (this.isActivated == 2)
     ui.activated();
-  this.invalidate(ui);
+  //this.invalidate(ui);
 };
 
 /**
@@ -760,8 +694,6 @@ HtmlFragmentElement.selectContainer = function(selector) {
   return ip;
 };
 
-HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
-
 /**
    @function Html
    @altsyntax Html(content)
@@ -782,96 +714,23 @@ exports.Html = function(attribs) {
 };
 
 //----------------------------------------------------------------------
-// animation aperture:
-
-/*WIP - Not in official documentation yet
-   @function Aperture
-   @summary  XXX to be documented
-*/
-exports.Aperture = function(ui,f) {
-  var aperture = document.createElement('surface-aperture');
-  
-  var margins = ui.getMargins();
-  var w = ui.dompeer.offsetWidth;
-  var h = ui.dompeer.offsetHeight;
-  var oldWidth = ui.dompeer.style.width;
-  var oldHeight = ui.dompeer.style.height;
-  var oldPosition = ui.dompeer.style.position;
-  var oldTop = ui.dompeer.style.left;
-  var oldLeft = ui.dompeer.style.top;
-  var oldLayout = ui.layout;
-  
-  ui.layout = function(spec) {
-    spec.w = w; //+margin xx
-    spec.h = h; //+margin xx
-  };
-  
-  aperture.style.position = oldPosition;
-  aperture.style.top = oldTop;
-  aperture.style.left = oldLeft;
-  aperture.style.width  = w+'px'; //+margin XX
-  aperture.style.height = h+'px'; //+margin XX
-  
-  ui.dompeer.style.position = 'relative'; 
-  ui.dompeer.style.top = '0px';
-  ui.dompeer.style.left = '0px';
-  ui.dompeer.style.width = w+'px';
-  ui.dompeer.style.height = h+'px';
-  
-  ui.dompeer.parentNode.replaceChild(aperture, ui.dompeer);
-  aperture.appendChild(ui.dompeer);
-
-  var sizer = {
-    getWidth  : function() { return w; },
-    getHeight : function() { return h; },
-    setWidth : function(new_w) { 
-      w = new_w;
-      aperture.style.width = w+'px';
-      ui.parent.invalidate(ui);
-    },
-    setHeight : function(new_h) { 
-      h = new_h;
-      aperture.style.height = h+'px';
-      ui.parent.invalidate(ui);
-    },
-    style : aperture.style
-  };
-
-  try {
-    f(sizer);
-  }
-  finally {
-    ui.dompeer.style.position = oldPosition;
-    ui.dompeer.style.top = oldTop;
-    ui.dompeer.style.left = oldLeft;
-    ui.dompeer.style.width  = oldWidth;
-    ui.dompeer.style.height = oldHeight;
-    ui.layout = oldLayout;
-    aperture.parentNode.replaceChild(ui.dompeer, aperture);
-  }
-};
-
-//----------------------------------------------------------------------
-
-
-//----------------------------------------------------------------------
 // Root element
 
 /**
    @class RootElement
    @summary Root layout container
-   @inherit ::UIContainerElement
+   @inherit ::HtmlFragmentElement
 */
-__js var RootElement = Object.create(UIContainerElement);
+__js var RootElement = Object.create(HtmlFragmentElement);
 
-__js RootElement.init = function(attribs) {
-  UIContainerElement.init.apply(this, [attribs]);
+RootElement.init = function(attribs) {
+  HtmlFragmentElement.init.apply(this, [attribs]);
 };
 
 ChildManagement.mixinto(RootElement);
 
 RootElement.append = function(ui) {
-  if (typeof ui == 'string') ui = exports.Html(ui);
+  if (typeof ui == 'string' || Array.isArray(ui)) ui = exports.Html(ui);
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
@@ -881,11 +740,6 @@ RootElement.append = function(ui) {
     ui.activated();
   //this.layoutChild(ui);
 };
-
-RootElement.invalidate = function(child) {
-//XXX nothing to do?
-};
-
 
 
 /**
@@ -952,16 +806,19 @@ exports.mixinCommandAPI = mixinCommandAPI;
    @desc
      - If a String or QuasiArray are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
-exports.withUI = function(container, ui /*, [append_attribs], f*/) {
-  if (typeof ui == 'string' || Array.isArray(ui)) ui = exports.Html(ui);
+exports.withUI = function(/*container, ui, [append_attribs], f*/) {
+  var container = arguments[0];
   var args = Array.prototype.slice.call(arguments, 1);
   var f = args.pop();
+  // ensure ui is a UIElement:
+  if (typeof args[0] == 'string' || Array.isArray(args[0])) 
+    args[0] = exports.Html(args[0]);
   container.append.apply(container, args);
   try {
-    f(ui);
+    f(args[0]);
   }
   finally {
-    container.remove(ui);
+    container.remove(args[0]);
   }
 }
 

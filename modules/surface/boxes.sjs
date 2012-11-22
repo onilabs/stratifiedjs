@@ -639,3 +639,173 @@ RootElement.layout = function(layout_spec) {
     this.layoutChild(c);
   }
 };
+
+RootElement.invalidate = function(child) {
+//XXX nothing to do?
+};
+
+
+
+
+//----------------------------------------------------------------------
+// animation aperture:
+
+/*WIP - Not in official documentation yet
+   @function Aperture
+   @summary  XXX to be documented
+*/
+exports.Aperture = function(ui,f) {
+  var aperture = document.createElement('surface-aperture');
+  
+  var margins = ui.getMargins();
+  var w = ui.dompeer.offsetWidth;
+  var h = ui.dompeer.offsetHeight;
+  var oldWidth = ui.dompeer.style.width;
+  var oldHeight = ui.dompeer.style.height;
+  var oldPosition = ui.dompeer.style.position;
+  var oldTop = ui.dompeer.style.left;
+  var oldLeft = ui.dompeer.style.top;
+  var oldLayout = ui.layout;
+  
+  ui.layout = function(spec) {
+    spec.w = w; //+margin xx
+    spec.h = h; //+margin xx
+  };
+  
+  aperture.style.position = oldPosition;
+  aperture.style.top = oldTop;
+  aperture.style.left = oldLeft;
+  aperture.style.width  = w+'px'; //+margin XX
+  aperture.style.height = h+'px'; //+margin XX
+  
+  ui.dompeer.style.position = 'relative'; 
+  ui.dompeer.style.top = '0px';
+  ui.dompeer.style.left = '0px';
+  ui.dompeer.style.width = w+'px';
+  ui.dompeer.style.height = h+'px';
+  
+  ui.dompeer.parentNode.replaceChild(aperture, ui.dompeer);
+  aperture.appendChild(ui.dompeer);
+
+  var sizer = {
+    getWidth  : function() { return w; },
+    getHeight : function() { return h; },
+    setWidth : function(new_w) { 
+      w = new_w;
+      aperture.style.width = w+'px';
+      ui.parent.invalidate(ui);
+    },
+    setHeight : function(new_h) { 
+      h = new_h;
+      aperture.style.height = h+'px';
+      ui.parent.invalidate(ui);
+    },
+    style : aperture.style
+  };
+
+  try {
+    f(sizer);
+  }
+  finally {
+    ui.dompeer.style.position = oldPosition;
+    ui.dompeer.style.top = oldTop;
+    ui.dompeer.style.left = oldLeft;
+    ui.dompeer.style.width  = oldWidth;
+    ui.dompeer.style.height = oldHeight;
+    ui.layout = oldLayout;
+    aperture.parentNode.replaceChild(ui.dompeer, aperture);
+  }
+};
+
+
+//----------------------------------------------------------------------
+// Things that need to be mixed into HtmlFragmentElement:
+
+__js HtmlFragmentElement.layout = function(layout_spec) {
+  var elem = this.dompeer;
+  var style = elem.style;
+
+  if (layout_spec.type == 'abs') {
+    var margins = this.getMargins();
+    if (typeof layout_spec.w != 'undefined' && typeof layout_spec.h != 'undefined') {
+      // both w and h defined
+      style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
+      style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
+    }
+    else {
+      // xxx chrome has a bug whereby absolutely positioned content doesn't obey 
+      // 'box-sizing: border-box'. we need to measure with static positioning:
+      style.position = "static";
+      var measure_display = "table";
+      if (typeof layout_spec.w == 'undefined' && typeof layout_spec.h == 'undefined') {
+        style.width   = "1px";
+        style.height  = "1px";
+        style.display = measure_display;
+        layout_spec.w = elem.offsetWidth + margins[0];
+        layout_spec.h = elem.offsetHeight + margins[1];
+        style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
+        style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
+      }
+      else if (typeof layout_spec.w != 'undefined' && typeof layout_spec.h == 'undefined') {
+        style.width   =  Math.max(0,layout_spec.w-margins[0]) + "px";
+        style.height  = "1px";
+        style.display = measure_display;
+        layout_spec.h = elem.offsetHeight + margins[1];
+        style.height = Math.max(0,layout_spec.h-margins[1]) + "px";
+      }
+      else { //typeof layout_spec.w == 'undefined' && typeof layout_spec.h != 'undefined'
+        style.width   = "1px";
+        style.height  = Math.max(0,layout_spec.h-margins[1]) + "px";
+        style.display = measure_display;
+        layout_spec.w = elem.offsetWidth + margins[0];
+        style.width  = Math.max(0,layout_spec.w-margins[0]) + "px";
+      }
+    }
+    style.display  = "block";
+    style.position = "absolute";
+  }
+  else {
+    if (layout_spec.type == 'w') {
+      style.display  = "table";
+      style.left = "0px";
+      style.top = "0px";
+      style.position = "relative";
+      style.width  = "100%";
+      style.height = "";
+    }
+    else if (layout_spec.type == 'h') {
+      style.display  = "table";
+      style.left = "0px";
+      style.top = "0px";
+      style.position = "relative";
+      style.width  = "";
+      style.height = "100%";
+    }
+    else if (layout_spec.type == 'wh') {
+      style.display = "block";
+      style.position = "absolute";
+      style.left = "0px";
+      style.top = "0px";
+      style.width  = "100%";
+      style.height = "100%";
+    }
+    else if (layout_spec.type == 'flow') {
+      style.display = "";
+      style.position = "static";
+      style.left = undefined;
+      style.top = undefined;
+      style.width = undefined;
+      style.height = undefined;
+    }
+    else {
+      throw new Error("Layout type "+layout_spec.type+" unsupported for HtmlFragmentElement");
+    }
+  }
+  if (this.debug("ow"))
+    console.log(this.debugid + " ow: "+layout_spec.w);
+
+  return layout_spec;
+};
+
+HtmlFragmentElement.invalidate = function(child) { /* XXX */ };
+
