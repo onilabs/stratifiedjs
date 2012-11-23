@@ -575,26 +575,35 @@ HtmlFragmentElement.init = func.seq(
         // strategy: build html from the array with string values at odd
         // indices sanitized. If there is a UIElement at at odd index, we
         // create a placeholder for it, which we replace later with the
-        // element's dompeer. 
+        // element's dompeer.
+        // We'll do this recursively; i.e. we allow quasi arrays at odd indexes. 
         // we'll also add the UIElements to our child array. Towards the end 
         // of init(.) we'll make sure attached() is called on them. 
         
         var placeholders = [];
         var html = '';
-        for (var i=0,l=attribs.content.length; i<l; ++i) {
-          var part = attribs.content[i];
-          if (i%2) {
-            if (UIElement.isPrototypeOf(part)) {
-              html += "<span id='__oni_placeholder#{i}'></span>";
-              placeholders.push(i);
+        
+        function parseQuasiArray(arr) {
+          for (var i=0,l=arr.length; i<l; ++i) {
+            var part = arr[i];
+            if (i%2) {
+              if (UIElement.isPrototypeOf(part)) {
+                html += "<span id='__oni_placeholder#{placeholders.length}'></span>";
+                placeholders.push(part);
+              }
+              else if (Array.isArray(part)) {
+                parseQuasiArray(part);
+              }
+              else {
+                html += str.sanitize(part);
+              }
             }
-            else {
-              html += str.sanitize(part);
-            }
+            else 
+              html += part;
           }
-          else 
-            html += part;
         }
+
+        parseQuasiArray(attribs.content);
         
         // create a surrogate dompeer:
         this.dompeer = document.createElement('surface-ui');
@@ -602,10 +611,10 @@ HtmlFragmentElement.init = func.seq(
         
         // replace UIElement placeholders with UIElements:
         coll.each(placeholders) {
-          |idx|
+          |part, idx|
           var old = this.select1("#__oni_placeholder#{idx}");
-          old.parentNode.replaceChild(attribs.content[idx].dompeer, old);
-          this.children.push(attribs.content[idx]);
+          old.parentNode.replaceChild(part.dompeer, old);
+          this.children.push(part);
         }        
       }
       else {
