@@ -3243,7 +3243,7 @@ var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(
 var TOKENIZER_IS=/((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 
 
-var TOKENIZER_QUASI=/((?:\\.|\#(?![\{a-zA-Z_$])|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{|\#(?=[a-zA-Z_$]))/g;
+var TOKENIZER_QUASI=/((?:\\.|\$(?![\{a-zA-Z_$])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$]))/g;
 
 
 
@@ -3779,7 +3779,7 @@ parts.push(pctx.token.value);
 ++current;
 }
 break;
-case 'quasi-#{':
+case 'quasi-${':
 scan(pctx);
 
 
@@ -3790,7 +3790,7 @@ parts.push('');
 parts.push(parseExp(pctx));
 ++current;
 break;
-case 'quasi-#':
+case 'quasi-$':
 
 
 if((current%2)==0){
@@ -3840,8 +3840,8 @@ return new ph_fun_call(identifier.exsf(pctx),args,pctx);
 }
 }
 
-S('quasi-#{',TOKENIZER_SA);
-S('quasi-#',TOKENIZER_SA);
+S('quasi-${',TOKENIZER_SA);
+S('quasi-$',TOKENIZER_SA);
 S('quasi-`',TOKENIZER_OP);
 
 function isStmtTermination(token){return token.id==";"||token.id=="}"||token.id=="<eof>";

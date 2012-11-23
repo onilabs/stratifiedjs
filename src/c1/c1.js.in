@@ -404,7 +404,7 @@ var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 
 #ifdef QUASIS
 // tokenizer for tokens in an quasi-literal:
-var TOKENIZER_QUASI = /((?:\\.|\#(?![\{a-zA-Z_$])|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{|\#(?=[a-zA-Z_$]))/g;
+var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$]))/g;
 #define QUASI_CONTENT_MATCH 1
 #define QUASI_ESCAPED_NEWLINE_MATCH 2
 #define QUASI_NEWLINE_MATCH 3
@@ -1073,7 +1073,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx, st) {
         ++current;
       }
       break;
-    case 'quasi-#{':
+    case 'quasi-${':
       scan(pctx);
       // expressions always go into an odd position. If we're in an even
       // position we insert an empty string:
@@ -1084,7 +1084,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx, st) {
       parts.push(parseExp(pctx));
       ++current;
       break;
-    case 'quasi-#':
+    case 'quasi-$':
       // expressions always go into an odd position. If we're in an even
       // position we insert an empty string:
       if ((current % 2) == 0) {
@@ -1118,13 +1118,13 @@ function parseQuasiInlineEscape(pctx) {
   var identifier = scan(pctx);
   if (pctx.token.id != "<id>") throw "Unexpected " + pctx.token + " in quasi template";
   if (pctx.src.charAt(pctx.lastIndex) != '(') {
-    // #variable
+    // $variable
     return identifier.exsf(pctx);
   }
   else {
     scan(pctx); // consume identifier
     scan(pctx, '('); // consume '('
-    // #func(args)
+    // $func(args)
     var args = [];
     while (pctx.token.id != ')') {
       if (args.length) scan(pctx, ',');
@@ -1134,8 +1134,8 @@ function parseQuasiInlineEscape(pctx) {
   }
 }
 
-S('quasi-#{', TOKENIZER_SA);
-S('quasi-#', TOKENIZER_SA);
+S('quasi-${', TOKENIZER_SA);
+S('quasi-$', TOKENIZER_SA);
 S('quasi-`', TOKENIZER_OP);
 #else
 S('`'); // no support for quasis; disallow "`"
