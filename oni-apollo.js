@@ -3243,7 +3243,7 @@ var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(
 var TOKENIZER_IS=/((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 
 
-var TOKENIZER_QUASI=/((?:\\.|\#(?!\{)|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{)/g;
+var TOKENIZER_QUASI=/((?:\\.|\#(?![\{a-zA-Z_$])|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{|\#(?=[a-zA-Z_$]))/g;
 
 
 
@@ -3790,6 +3790,17 @@ parts.push('');
 parts.push(parseExp(pctx));
 ++current;
 break;
+case 'quasi-#':
+
+
+if((current%2)==0){
+parts.push('');
+++current;
+}
+parts.push(parseQuasiInlineEscape(pctx));
+++current;
+break;
+
 case '<eof>':
 throw 'Unterminated string';
 break;
@@ -3808,7 +3819,29 @@ parts.push('');
 return gen_quasi(parts,pctx);;
 });
 
+function parseQuasiInlineEscape(pctx){var identifier=scan(pctx);
+
+
+if(pctx.token.id!="<id>")throw "Unexpected "+pctx.token+" in quasi template";
+if(pctx.src.charAt(pctx.lastIndex)!='('){
+
+return identifier.exsf(pctx);
+}else{
+
+scan(pctx);
+scan(pctx,'(');
+
+var args=[];
+while(pctx.token.id!=')'){
+if(args.length)scan(pctx,',');
+args.push(parseExp(pctx,110));
+}
+return new ph_fun_call(identifier.exsf(pctx),args,pctx);
+}
+}
+
 S('quasi-#{',TOKENIZER_SA);
+S('quasi-#',TOKENIZER_SA);
 S('quasi-`',TOKENIZER_OP);
 
 function isStmtTermination(token){return token.id==";"||token.id=="}"||token.id=="<eof>";

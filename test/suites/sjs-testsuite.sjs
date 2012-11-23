@@ -1511,3 +1511,19 @@ test('multiline quasi; newline escaping', true, function() {
 2`;
   return a[0] == '12';
 });
+
+test('non-bracketed expressions in quasi', true, function() {
+  function x(i) { i=i||0; hold(0); return 42+i; }
+  var a = "interpolated";
+  var x = `This is an #a string #x() #x(1)#x(2)\#x`;
+  var result = ['This is an ',
+                'interpolated',
+                ' string ',
+                42,
+                ' ',
+                43,
+                '',
+                44,
+                '#x'];
+  return compareQuasiArrays(x, result);
+});

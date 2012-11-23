@@ -404,7 +404,7 @@ var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 
 #ifdef QUASIS
 // tokenizer for tokens in an quasi-literal:
-var TOKENIZER_QUASI = /((?:\\.|\#(?!\{)|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{)/g;
+var TOKENIZER_QUASI = /((?:\\.|\#(?![\{a-zA-Z_$])|[^#\\\`\n])+)|(\\\n)|(\n)|(\`|\#\{|\#(?=[a-zA-Z_$]))/g;
 #define QUASI_CONTENT_MATCH 1
 #define QUASI_ESCAPED_NEWLINE_MATCH 2
 #define QUASI_NEWLINE_MATCH 3
@@ -610,6 +610,7 @@ expressions up to BP 100
 
 */
 
+#define BP_LHS 250
 #define BP_ASSIGN 120
 #define BP_COMMA 110
 
@@ -1083,6 +1084,17 @@ S('`', TOKENIZER_QUASI).exs(function(pctx, st) {
       parts.push(parseExp(pctx));
       ++current;
       break;
+    case 'quasi-#':
+      // expressions always go into an odd position. If we're in an even
+      // position we insert an empty string:
+      if ((current % 2) == 0) {
+        parts.push('');
+        ++current;
+      }
+      parts.push(parseQuasiInlineEscape(pctx));
+      ++current;
+      break;
+
     case '<eof>':
       throw 'Unterminated string';
       break;
@@ -1101,7 +1113,29 @@ S('`', TOKENIZER_QUASI).exs(function(pctx, st) {
   GEN_QUASI(parts, pctx);
 });
 
+function parseQuasiInlineEscape(pctx) {
+  // scan an identifier:
+  var identifier = scan(pctx);
+  if (pctx.token.id != "<id>") throw "Unexpected " + pctx.token + " in quasi template";
+  if (pctx.src.charAt(pctx.lastIndex) != '(') {
+    // #variable
+    return identifier.exsf(pctx);
+  }
+  else {
+    scan(pctx); // consume identifier
+    scan(pctx, '('); // consume '('
+    // #func(args)
+    var args = [];
+    while (pctx.token.id != ')') {
+      if (args.length) scan(pctx, ',');
+      args.push(parseExp(pctx, BP_COMMA)); // only parse up to comma
+    }
+    GEN_FUN_CALL(identifier.exsf(pctx), args, pctx)
+  }
+}
+
 S('quasi-#{', TOKENIZER_SA);
+S('quasi-#', TOKENIZER_SA);
 S('quasi-`', TOKENIZER_OP);
 #else
 S('`'); // no support for quasis; disallow "`"
