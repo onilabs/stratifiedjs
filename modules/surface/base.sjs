@@ -789,8 +789,9 @@ function mixinCommandAPI(elem, attrib, method_name) {
   attrib = attrib || 'data-command';
   method_name = method_name || 'waitforCommand';
   elem[method_name] = function() {
+    var me = this;
     var ev = dom.waitforEvent(this.dompeer, 'click', function(ev) {
-      if ((ev.node = dom.findNode("[#{attrib}]", ev.target, elem.dompeer))) {
+      if ((ev.node = dom.findNode("[#{attrib}]", ev.target, me.dompeer))) {
         dom.stopEvent(ev);
         return true;
       }
