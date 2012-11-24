@@ -1483,7 +1483,7 @@ function compareQuasiArrays(x,y) {
 test('quasis', true, function() {
   function x() { hold(0); return 42; }
   var a = "interpolated";
-  var x = `#{"ab"}This is an #{ a } string #{ x()+1 }#{ '#{}' } #{ ({|| `#{1+1}`})() }#{3}`;
+  var x = `${"ab"}This is an ${ a } string ${ x()+1 }${ '#{}' } ${ ({|| `${1+1}`})() }${3}`;
   var result = ['',
                 'ab',
                 'This is an ',
@@ -1515,7 +1515,7 @@ test('multiline quasi; newline escaping', true, function() {
 test('non-bracketed expressions in quasi', true, function() {
   function x(i) { i=i||0; hold(0); return 42+i; }
   var a = "interpolated";
-  var x = `This is an #a string #x() #x(1)#x(2)\#x`;
+  var x = `This is an $a string $x() $x(1)$x(2)\$x`;
   var result = ['This is an ',
                 'interpolated',
                 ' string ',
@@ -1524,6 +1524,6 @@ test('non-bracketed expressions in quasi', true, function() {
                 43,
                 '',
                 44,
-                '#x'];
+                '$x'];
   return compareQuasiArrays(x, result);
 });
