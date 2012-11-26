@@ -86,6 +86,16 @@ exports.isArrayOrArguments = function(obj) {
 };
 
 /**
+   @function isTemplate
+   @summary  Tests if an object is a Quasi-Template
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+*/
+exports.isTemplate = function(obj) {
+  return (obj instanceof __oni_rt.QuasiTemplateProto);
+};
+
+/**
   @function flatten
   @summary Create a recursively flattened version of an array.
   @param   {Array} [arr] The array to flatten.

@@ -872,23 +872,30 @@ ph_interpolating_str.prototype.val = function() {
       this.parts[i] = '"'+p+'"';
     }
   }
-  return '__oni_rt.Sc('+this.line+',__oni_rt.sum,'+this.parts.join(',')+')';
+  return '__oni_rt.Sc('+this.line+',__oni_rt.join_str,'+this.parts.join(',')+')';
 };
 
 #endif // INTERPOLATING_STRINGS
 
 #ifdef QUASIS
-#define GEN_QUASI(parts, pctx) return gen_quasi(parts, pctx);
-function gen_quasi(parts, pctx) {
-  // we just use ph_arr_lit, but first need to convert all strings to
-  // proper ph_literal's. 
-  // strings are at even positions:
-  for (var i=0,l=parts.length; i<l; i+=2) {
-    parts[i] = new ph_literal('"'+parts[i].replace(/\"/g,'\\"')+'"', pctx, '<string>');
-  }
-
-  return new ph_arr_lit(parts, pctx);
+#define GEN_QUASI(parts, pctx) return new ph_quasi_template(parts, pctx);
+function ph_quasi_template(parts, pctx) {
+  this.parts = parts;
+  this.line = pctx.line;
+  this.is_nblock = false; // XXX implement nblock form
 }
+ph_quasi_template.prototype = new ph(WHENDEBUG("ph_quasi_template"));
+ph_quasi_template.prototype.is_value = true;
+ph_quasi_template.prototype.val = function() {
+  var rv = "__oni_rt.Sc("+this.line+",__oni_rt.QuasiTemplate";
+  for (var i=0; i<this.parts.length; ++i) {
+    if (i%2)
+      rv += ","+this.parts[i].v();
+    else
+      rv += ',"'+this.parts[i].replace(/\"/g,'\\"')+'"';
+  }
+  return rv + ")";
+};
 #endif // QUASIS
 
 #define GEN_ASSIGN_OP(left, id, right, pctx) return new ph_assign_op(left, id, right, pctx);

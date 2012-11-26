@@ -1471,8 +1471,8 @@ function compareQuasiArrays(x,y) {
   var rv;
   if (x.length != y.length) return 'x.length != y.length';
   for (var i=0; i<x.length; ++i) {
-    if (Array.isArray(x[i])) { 
-      if ((rv = compareQuasiArrays(x[i], y[i])) != true) return "child: #{rv}";
+    if (require('sjs:apollo-sys').isTemplate(x[i])) { 
+      if ((rv = compareQuasiArrays(x[i].parts, y[i])) != true) return "child: #{rv}";
     }
     else
       if (x[i] != y[i]) return "x[#{i}]!=y[#{i}] ('#{x[i]}' != '#{y[i]}')";
@@ -1497,19 +1497,19 @@ test('quasis', true, function() {
                 '',
                 3];
   
-  return compareQuasiArrays(x, result);
+  return compareQuasiArrays(x.parts, result);
 });
 
 test('multiline quasi', true, function() {
   var a = `1
 2`;
-  return a[0] == '1\n2';
+  return a.parts[0] == '1\n2';
 });
 
 test('multiline quasi; newline escaping', true, function() {
   var a = `1\
 2`;
-  return a[0] == '12';
+  return a.parts[0] == '12';
 });
 
 test('non-bracketed expressions in quasi', true, function() {
@@ -1525,5 +1525,5 @@ test('non-bracketed expressions in quasi', true, function() {
                 '',
                 44,
                 '$x'];
-  return compareQuasiArrays(x, result);
+  return compareQuasiArrays(x.parts, result);
 });

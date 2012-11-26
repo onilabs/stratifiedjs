@@ -29,6 +29,8 @@ var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };
 var stream = require('apollo:nodejs/stream');
 
+var compiler_version = "c1-4"; // XXX should be derived programatically
+
 //----------------------------------------------------------------------
 
 function usage() {
@@ -153,7 +155,7 @@ BaseFileFormatMap.prototype = {
                         // filterETag() returns a tag that will be added onto 
                         // the base file's modification date to derive an etag for
                         // the filtered file.
-                        filterETag() { "c1-3" /* xxx could maybe derive this from some 
+                        filterETag() { compiler_version /* xxx could maybe derive this from some 
                                                modification dates; now it needs to be 
                                                changed manually when our compiler or 
                                                compilation format changes */ },
@@ -181,7 +183,7 @@ BaseFileFormatMap.prototype = {
                       },
            sjs      : { mime: "text/plain",
                         filter: sjscompile,
-                        filterETag() { "c1-3" },
+                        filterETag() { compiler_version },
                         cache: SJSCache
                       },
            src      : { mime: "text/plain" }

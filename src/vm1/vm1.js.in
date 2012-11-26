@@ -2078,6 +2078,13 @@ exports.Obj = function(/*args*/) {
   return obj;
 };
 
+function QuasiTemplateProto(parts) {this.parts=parts;}
+exports.QuasiTemplateProto = QuasiTemplateProto;
+
+exports.QuasiTemplate = function(/*args*/) {
+  return new QuasiTemplateProto(Array.prototype.slice.call(arguments, 0));
+};
+
 exports.Return = function(exp) {
 //  var e = new CFException("r", exp);
 //  return e;
@@ -2088,7 +2095,7 @@ exports.With = function(exp, bodyf) {
   return bodyf(this, exp);
 };
 
-exports.sum = function() {
+exports.join_str = function() {
   var rv = '';
   for (var i=0,l=arguments.length;i<l;++i)
     rv += arguments[i];

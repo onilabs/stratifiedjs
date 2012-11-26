@@ -37,6 +37,8 @@
    @desc    Work-in-progress
 */
 var tt = new Date();
+var sys = require('sjs:apollo-sys');
+
 waitfor {
   var common = require('../common');
 } 
@@ -483,11 +485,11 @@ __js var UIContainerElement = exports.UIContainerElement = Object.create(UIEleme
    @function UIContainerElement.withUI
    @altsyntax withUI(ui, [append_attribs]) { |ui| ... }
    @summary Append a UI element, perform a function, and remove the UI element
-   @param {::UIElement|String|QuasiArray} [ui] UI element to append to `container`
+   @param {::UIElement|String|QuasiTemplate} [ui] UI element to append to `container`
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
    @param {Function} [f] Function to execute; will be passed `ui` as parameter
    @desc
-     - If a String or QuasiArray are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
+     - If a String or QuasiTemplate are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
 UIContainerElement.withUI = function() {
   var args = coll.toArray(arguments);
@@ -554,8 +556,8 @@ ChildManagement.mixinto(HtmlFragmentElement);
    @function HtmlFragmentElement.init
    @summary Called by constructor function to initialize HtmlFragmentElement object
    @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init], and understands all the attributes listed there.
-   @attrib {optional String|QuasiArray} [content=''] HTML content for this HtmlFragmentElement
-   @attrib {optional Array} [subelems] Elements that will be statically inserted into the HTML content. Deprecated; use QuasiArray mechanism instead.
+   @attrib {optional String|QuasiTemplate} [content=''] HTML content for this HtmlFragmentElement
+   @attrib {optional Array} [subelems] Elements that will be statically inserted into the HTML content. Deprecated; use QuasiTemplate mechanism instead.
 */
 HtmlFragmentElement.init = func.seq(
   HtmlFragmentElement.init, 
@@ -567,16 +569,16 @@ HtmlFragmentElement.init = func.seq(
       this.dompeer = attribs.content;
     }
     else {
-      if (Array.isArray(attribs.content)) {
-        // we expect a QuasiArray, e.g.:
+      if (sys.isTemplate(attribs.content)) {
+        // a QuasiTemplate, e.g.:
         // Html(`<h1>#{name}</h1>#{Button('click')}`)
-        // -> content = ['<h1>', name, '</h1>', Button]
+        // -> content = { parts:['<h1>', name, '</h1>', Button] }
         
         // strategy: build html from the array with string values at odd
         // indices sanitized. If there is a UIElement at at odd index, we
         // create a placeholder for it, which we replace later with the
         // element's dompeer.
-        // We'll do this recursively; i.e. we allow quasi arrays at odd indexes. 
+        // We'll do this recursively; i.e. we allow quasi templates at odd indexes. 
         // we'll also add the UIElements to our child array. Towards the end 
         // of init(.) we'll make sure attached() is called on them. 
         
@@ -591,8 +593,8 @@ HtmlFragmentElement.init = func.seq(
                 html += "<span id='__oni_placeholder#{placeholders.length}'></span>";
                 placeholders.push(part);
               }
-              else if (Array.isArray(part)) {
-                parseQuasiArray(part);
+              else if (sys.isTemplate(part)) {
+                parseQuasiArray(part.parts);
               }
               else {
                 html += str.sanitize(part);
@@ -603,7 +605,7 @@ HtmlFragmentElement.init = func.seq(
           }
         }
 
-        parseQuasiArray(attribs.content);
+        parseQuasiArray(attribs.content.parts);
         
         // create a surrogate dompeer:
         this.dompeer = document.createElement('surface-ui');
@@ -715,7 +717,7 @@ HtmlFragmentElement.selectContainer = function(selector) {
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
-  if (typeof attribs != 'object' || Array.isArray(attribs))
+  if (typeof attribs != 'object' || Array.isArray(attribs) || sys.isTemplate(attribs))
     attribs = { content: attribs }
   var obj = Object.create(HtmlFragmentElement);
   obj.init(attribs); 
@@ -739,7 +741,7 @@ RootElement.init = function(attribs) {
 ChildManagement.mixinto(RootElement);
 
 RootElement.append = function(ui) {
-  if (typeof ui == 'string' || Array.isArray(ui)) ui = exports.Html(ui);
+  if (typeof ui == 'string' || Array.isArray(ui) || sys.isTemplate(ui)) ui = exports.Html(ui);
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
@@ -810,18 +812,18 @@ exports.mixinCommandAPI = mixinCommandAPI;
    @altsyntax withUI(container, ui, [append_attribs]) { |ui| ... }
    @summary Append a UI element to a container, perform a function, and remove the UI element
    @param {::UIContainerElement} [container] The container
-   @param {::UIElement|String|QuasiArray} [ui] UI element to append to `container`
+   @param {::UIElement|String|QuasiTemplate} [ui] UI element to append to `container`
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
    @param {Function} [f] Function to execute; will be passed `ui` as parameter
    @desc
-     - If a String or QuasiArray are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
+     - If a String or QuasiTemplate are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
 exports.withUI = function(/*container, ui, [append_attribs], f*/) {
   var container = arguments[0];
   var args = Array.prototype.slice.call(arguments, 1);
   var f = args.pop();
   // ensure ui is a UIElement:
-  if (typeof args[0] == 'string' || Array.isArray(args[0])) 
+  if (typeof args[0] == 'string' || Array.isArray(args[0]) || sys.isTemplate(args[0])) 
     args[0] = exports.Html(args[0]);
   container.append.apply(container, args);
   try {
