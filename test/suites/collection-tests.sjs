@@ -395,3 +395,13 @@ test("par.each(.) { |.| .}", 20, function() {
   };
 });
 
+test("haveCommonElements", true, function() {
+  var x = {}, y = {};
+  var a = [x, y, 3, 4, 5];
+  var b = [y, 7, 8, 9 ];
+  var c = [ 9, 10, 11, 12];
+
+  return collection.haveCommonElements(a,b) && 
+    collection.haveCommonElements(b,c) &&
+    !collection.haveCommonElements(a,c); 
+});
