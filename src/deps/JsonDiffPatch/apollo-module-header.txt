@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'node/terminal' module
+ * Oni Apollo 'jsondiffpatch' module
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
@@ -15,45 +15,44 @@
  *   ***********************************************************
  *
  *
- * This file is derived from the "node-terminal" project 
- * (https://github.com/mattijs/node-terminal), 
+ * This file is derived from the "JsonDiffPatch" project 
+ * (git://github.com/benjamine/JsonDiffPatch.git), 
  * which is available under the terms of the MIT License.
  *
  * Original License Text:
  *
- * (The MIT License)
- *
- * Copyright (c) 2011 Mattijs Hoitink
- *
+ * The MIT License
+ * 
+ * Copyright (c) 2011 Benjamín Eidelman twitter.com/beneidel
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the 'Software'), to deal
+ * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
 /**
-  @module    nodejs/terminal
-  @summary   node-terminal from https://github.com/mattijs/node-terminal
-  @home      apollo:nodejs/sjcl
+  @module    jsondiffpatch
+  @summary   Diff & patch for JSON objects
+  @home      apollo:jsondiffpatch
   @desc      
-             This module tracks the [node-terminal library](https://github.com/mattijs/node-terminal) by Mattijs Hoitink
-             For more information see the [original node-terminal documentation](https://github.com/mattijs/node-terminal/blob/master/README.md).
+             This module tracks the [Json Diff Patch library](https://github.com/benjamine/JsonDiffPatch) by Benjamin Eidelman
 */
+// XXX document
 
-// TODO: document this module's contents
 
 /** 
   turn off docs from this point onwards:

@@ -52,6 +52,7 @@
 @module docutil         Utilities for extracting documentation from StratifiedJS modules (Work in progress)
 @module function        Function composition helpers
 @module http            Functions for performing HTTP requests and working with URLs
+@module jsondiffpatch   Diff & patch for JSON objects
 @module logging         Simple cross-environment logging framework
 @module lru-cache       Least Recently Used Cache
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)

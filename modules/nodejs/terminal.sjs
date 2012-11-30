@@ -49,7 +49,7 @@
   @summary   node-terminal from https://github.com/mattijs/node-terminal
   @home      apollo:nodejs/sjcl
   @desc      
-             This module tracks the [node-terminal library](https://github.com/mattijs/node-terminal) library by Mattijs Hoitink
+             This module tracks the [node-terminal library](https://github.com/mattijs/node-terminal) by Mattijs Hoitink
              For more information see the [original node-terminal documentation](https://github.com/mattijs/node-terminal/blob/master/README.md).
 */
 

@@ -7,3 +7,5 @@ sjcl/ git://github.com/bitwiseshiftleft/sjcl.git 81c63557548ac4d5c9e9fae8e95ee7f
 # node-terminal:
 node-terminal/ git://github.com/mattijs/node-terminal.git 00e6fa30b196a3a709b025c2725c89f4d6d54408
 
+# JsonDiffPatch:
+JsonDiffPatch/ git://github.com/benjamine/JsonDiffPatch.git 2b7ef07a253e41aad4ed4d938ab701baec2b00db
