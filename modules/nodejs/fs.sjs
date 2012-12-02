@@ -270,7 +270,12 @@ exports.open = function(path, flags, mode) {
 
 /**
    @function write
-   @summary To be documented
+   @summary Write a buffer to the given file
+   @param {Integer} [fd] File descriptor
+   @param {Buffer}  [buffer] [Nodejs Buffer](http://nodejs.org/docs/latest/api/buffer.html) from which data will be written
+   @param {Integer} [offset] Offset into buffer from where data will be read
+   @param {Integer} [length] Number of bytes to write
+   @param {optional Integer} [position=null] Where to begin writing to the file (`null` = write to current position)
 */
 exports.write = function(fd, buffer, offset, length, position /*=null*/) {
   if (position === undefined) position = null;
