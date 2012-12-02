@@ -45,6 +45,7 @@ var coll   = require('apollo:collection');
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
 var POLL_ACCU_INTERVAL = 200; // 200 ms
+var EXCHANGE_ACCU_INTERVAL = 10; // 10ms
 
 //----------------------------------------------------------------------
 // helper function to generate random 128bit id's:
@@ -117,8 +118,11 @@ function createTransport() {
         // now resume our receiver; this might lead to 
         // re-entrant calls to send(), which is good, because then 
         // we can flush out the given messages immediately
-        if (in_messages.length && resume_receive)
+        if (in_messages.length && resume_receive) {
           resume_receive();
+          // wait a little bit for outgoing messages:
+          hold(EXCHANGE_ACCU_INTERVAL);
+        }
         
         // flush our send_q:
         coll.each(send_q) {
@@ -235,13 +239,11 @@ function createTransportHandler(transportSink) {
       return this.handle_post(req, resp, v);
     },
     handle_post(req, resp, v) {
-//      console.log("AAT request #{req.body}");
-
-      var in_messages = JSON.parse(req.body);
+//      console.log("AAT request #{require('apollo:debug').inspect(req)}");
 
       var out_messages = [];
 
-      var command = in_messages.shift();
+      var command = decodeURIComponent(req.parsedUrl.queryKey.cmd);
 
       if (command == 'send') {
         // message is arriving via a new transport -> create one:
@@ -249,26 +251,60 @@ function createTransportHandler(transportSink) {
 
         transportSink(transport);
 
+        var in_messages = 
+          coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], {
+            |mes|
+            ({ type: 'message', data: mes})
+          });
         transport.exchangeMessages(in_messages, out_messages);
+        console.log("new transport #{transport.id}");
         out_messages.unshift("ok_#{transport.id}");
       }
       else if (command.indexOf('send_') == 0) {
         // find the transport:
         var transport = transports[command.substr(5)];
-        if (!transport)
+        if (!transport) {
+          console.log("#{command}: transport not found");
           out_messages.push('error_id');
+        }
         else {
-          transport.exchangeMessages(in_messages, out_messages);
+          var in_messages = 
+            coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], {
+              |mes|
+              ({ type: 'message', data: mes})
+            });
+          transport.exchangeMessages(in_messages, 
+                                     out_messages);
+          out_messages.unshift('ok');
+        }
+      }
+      else if (command.indexOf('data_') == 0) {
+        // find the transport:
+        var transport = transports[command.substr(5)];
+        if (!transport) {
+          console.log("#{command}: transport not found");
+          out_messages.push('error_id');
+        }
+        else {
+          transport.exchangeMessages([
+            { type: 'data', 
+              header: JSON.parse(decodeURIComponent(req.parsedUrl.queryKey.header)),
+              data: req.body
+            }], 
+            out_messages);
           out_messages.unshift('ok');
         }
       }
       else if (command.indexOf('poll_') == 0) {
         // find the transport:
         var transport = transports[command.substr(5)];
-        if (!transport)
+        if (!transport) {
+          console.log("#{command}: transport not found");
           out_messages.push('error_id');
+        }
         else {
-          transport.pollMessages(in_messages, out_messages);
+          transport.pollMessages(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], 
+                                 out_messages);
         }
       }
       else if (command == 'poll') {

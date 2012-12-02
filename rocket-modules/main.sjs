@@ -225,8 +225,8 @@ var pathMap = [
     )      
   },
   {
-    // bridge-over-aat endpoint:
-    pattern: /__oni\/aat\/(.*)$/,
+    // bridge-over-aat v2 endpoint:
+    pattern: /__oni\/aat\/(2)$/,
     handler: require('apollo:rpc/aat-server').createTransportHandler(
       function(transport) {
         require('apollo:rpc/bridge').accept(getBridgeAPI, transport);

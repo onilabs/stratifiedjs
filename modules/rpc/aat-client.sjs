@@ -31,7 +31,7 @@
  */
 /**
    @module  rpc/aat-client
-   @summary Asymmetric AJAX Transport Client
+   @summary Asymmetric AJAX Transport Client v2 for modern browsers
    @home    apollo:rpc/aat-client
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
 */
@@ -40,17 +40,10 @@ var http = require('apollo:http');
 var coll = require('apollo:collection');
 var func = require('apollo:function');
 
-var AAT_VERSION   = '1';
+var AAT_VERSION   = '2';
 var SERVER_PATH   = '__oni/aat';
 
 /*
-
- openTransport(server) -> Transport
-
- Transport: { send(message), receive()->message, close() }
-
- Transport.send(message)
- Transport.receive() -> message
 
  2 messages: send, poll
 
@@ -65,6 +58,26 @@ var SERVER_PATH   = '__oni/aat';
  // this returns "immediately" (equivalent to 'send'):
  ['poll', MES*] -> ['ok_'+ID, MES*] | ['error_xx']
 */
+
+/**
+   @class Transport
+   @summary To be documented
+   
+   @function Transport.send
+   @summary To be documented
+
+   @function Transport.sendData
+   @summary To be documented
+   
+   @function Transport.receive
+   @summary To be documented
+
+   @function Transport.close
+   @summary To be documented
+*/
+
+
+
 /**
    @function openTransport
    @summary  Establish an AAT transport to the given server
@@ -84,10 +97,14 @@ function openTransport(server) {
     try {
       while (1) {
         // assert(transport_id_suffix)
-        var messages = http.request([server, SERVER_PATH, AAT_VERSION],
-                                    { method: 'POST',
-                                      body: JSON.stringify(["poll#{transport_id_suffix}"])
-                                    });
+        var messages = http.request(
+          [server, SERVER_PATH, AAT_VERSION,
+           {
+             cmd: "poll#{transport_id_suffix}"
+           }
+          ],
+          { method: 'POST',
+          });
         messages = JSON.parse(messages);
         
         // check for error response:
@@ -99,7 +116,7 @@ function openTransport(server) {
         messages.shift();
         coll.each(messages) {
           |mes| 
-          receive_q.unshift(mes);
+          receive_q.unshift({ type: 'message', data: mes });
         }
         // prod receiver:
         if (receive_q.length && resume_receive) resume_receive();
@@ -121,10 +138,15 @@ function openTransport(server) {
       if (!this.active) throw new Error("inactive transport");
 
       try {
-        var result = http.request([server,SERVER_PATH,AAT_VERSION],
-                                  { method: 'POST', 
-                                    body: JSON.stringify(["send#{transport_id_suffix}",message])
-                                  });
+        var result = http.request(
+          [server, SERVER_PATH, AAT_VERSION,
+           {
+             cmd: "send#{transport_id_suffix}"
+           }
+          ],
+          { method: 'POST', 
+            body: JSON.stringify([message])
+          });
         
         result = JSON.parse(result);
         
@@ -151,7 +173,7 @@ function openTransport(server) {
         result.shift();
         coll.each(result) {
           |mes| 
-          receive_q.unshift(mes);
+          receive_q.unshift({ type: 'message', data: mes });
         }
         // prod receiver:
         if (receive_q.length && resume_receive) resume_receive();
@@ -161,6 +183,60 @@ function openTransport(server) {
         throw e;
       }
     },
+
+    // XXX factor out common code between send() and sendData()
+    sendData(header, data) {
+      if (!this.active) throw new Error("inactive transport");
+
+      try {
+        var result = http.request(
+          [server, SERVER_PATH, AAT_VERSION,
+           {
+             cmd: "data#{transport_id_suffix}",
+             header: JSON.stringify(header)
+           }
+          ],
+          {
+            method: 'POST',
+            body: data
+          });
+        
+        result = JSON.parse(result);
+
+        // check for error response:
+        if (!result[0] || result[0].indexOf('ok') != 0)
+          throw new Error("Transport Error (#{result[0]})");
+
+        // parse response code:
+        if (!transport_id_suffix.length) {
+          // we're expecting an id
+          if (result[0].indexOf('ok_') != 0) 
+            throw new Error("Transport Error (Missing ID)");
+          // ok, all good, we've got an id:
+          transport_id_suffix = result[0].substr(2);
+          this.id = transport_id_suffix.substr(1);
+          
+          // start our polling loop:
+          poll_stratum = spawn (hold(0),poll_loop());
+        }
+        else if (result[0] != 'ok')
+          throw new Error("Transport Error (#{result[0]} instead of 'ok')");
+        
+        // put any messages in receive queue:
+        result.shift();
+        coll.each(result) {
+          |mes| 
+          receive_q.unshift({ type: 'message', data: mes });
+        }
+        // prod receiver:
+        if (receive_q.length && resume_receive) resume_receive();
+      }
+      catch (e) {
+        this.close();
+        throw e;
+      }
+    },
+
     receive: func.sequential(function() { 
       if (!this.active) throw new Error("inactive transport");
 
