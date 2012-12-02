@@ -45,17 +45,54 @@ var collection = require('../collection');
 var http = require('../http');
 var events = require('./events');
 
-// helper to receive a (smallish, <10MB) utf8 request body (if any) and store it 
+// XXX nodejs < v8 backfill:
+var concatBuffers = Buffer.concat;
+if (!concatBuffers) {
+  concatBuffers = function(list, length) {
+    if (!Array.isArray(list)) {
+      throw new Error('Usage: Buffer.concat(list, [length])');
+    }
+    
+    if (list.length === 0) {
+      return new Buffer(0);
+    } else if (list.length === 1) {
+      return list[0];
+    }
+    
+    if (typeof length !== 'number') {
+      length = 0;
+      for (var i = 0; i < list.length; i++) {
+        var buf = list[i];
+        length += buf.length;
+      }
+    }
+    
+    var buffer = new Buffer(length);
+    var pos = 0;
+    for (var i = 0; i < list.length; i++) {
+      var buf = list[i];
+      buf.copy(buffer, pos);
+      pos += buf.length;
+    }
+    return buffer;
+  };
+}
+
+
+
+// helper to receive a (smallish, <10MB) request body (if any) and store it 
 // on request.body
 function receiveBody(request) {
-  __js request.setEncoding('utf8');
-  __js request.body = "";
+  __js request.body = new Buffer(0);
   waitfor {
     waitfor() { __js request.on('end', resume); }
   }
   or {
     while (1) { 
-      request.body += events.waitforEvent(request, 'data')[0];
+      request.body = concatBuffers(
+        [request.body, 
+         events.waitforEvent(request, 'data')[0]
+        ]);
       __js if (request.body.length > 1024*1024*10) throw "Request body too large";
     }
   }
@@ -92,9 +129,9 @@ function handleRequest(connectionHandler, request, response) {
 
      For an incoming request `req` (see [nodejs
      http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest)),
-     `runSimpleServer` will first receive any request body (utf8
-     assumed and up to a maximum size of 10MB - larger requests will
-     be ignored). The request body will be stored on `req.body`, and
+     `runSimpleServer` will first receive any request body (up to a maximum size of 
+     10MB - larger requests will be ignored). 
+     The request body will be stored as a nodejs Buffer on `req.body`, and
      `connectionHandler` will be called with arguments `(req,resp)`. 
      For details about `resp` see [nodejs
      http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse).
