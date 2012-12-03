@@ -27,22 +27,14 @@ var common = require('apollo:common');
 var stream = require('apollo:nodejs/stream');
 var logging = require('apollo:logging');
 
-// this is the configurable part of the filesystem:
-var staticPathMap = [];
-
-// this is where modules map their paths; these paths take priority
-// over the static map:
-var dynamicPathMap = [];
+// the one and only pathmap; set at server startup:
+var pathMap = [];
 
 //----------------------------------------------------------------------
 // initialization
 
-exports.setStaticPathMap = function(pathMap) {
-  staticPathMap = pathMap;
-};
-
-exports.mapDynamicHandler = function(regex, handler) {
-  dynamicPathMap.push({pattern: regex, handler:handler});
+exports.setPathMap = function(paths) {
+  pathMap = paths;
 };
 
 //----------------------------------------------------------------------
@@ -51,15 +43,10 @@ exports.mapDynamicHandler = function(regex, handler) {
 // returns [matches, handler] || null
 function match_handler(path) {
   var matches;
-  var l = dynamicPathMap.length;
+  var l = pathMap.length;
   for (var i=0; i<l; ++i) {
-    if((matches = path.match(dynamicPathMap[i].pattern)))
-      return [matches, dynamicPathMap[i].handler];
-  }
-  l = staticPathMap.length;
-  for (var i=0; i<l; ++i) {
-    if((matches = path.match(staticPathMap[i].pattern)))
-      return [matches, staticPathMap[i].handler];
+    if((matches = path.match(pathMap[i].pattern)))
+      return [matches, pathMap[i].handler];
   }
   return null;
 }
@@ -78,6 +65,7 @@ function writeRedirectResponse(response, location, status) {
 }
 
 function writeErrorResponse(response, status, title, text) {
+  text = text || title;
   var resp = "<html><head><title>"+status+" "+title+"</title></head>";
   resp += "<body><h4>"+status+" "+title+"</h4>";
   resp += text;
@@ -411,3 +399,61 @@ function createMappedDirectoryHandler(root, formats, flags)
 
 exports.createMappedDirectoryHandler = createMappedDirectoryHandler;
 
+//----------------------------------------------------------------------
+// 'keyhole' server for mapping files dynamically:
+
+var keyholes = {};
+
+
+
+var crypto = require('crypto');
+function makeKeyholeID() {
+  return crypto.randomBytes(16).toString('base64').replace(/\//g, '_').replace(/\+/g, '-').replace(/\=/g, '');
+}
+
+function createKeyhole() {
+  var mappings = {};
+  var id = makeKeyholeID();
+  keyholes[id] = mappings;
+
+  return {
+    id: id,
+    mappings: mappings, // virtual_path -> { file, mime }
+    close() {
+      delete keyholes[id];
+    }
+  }
+}
+exports.createKeyhole = createKeyhole;
+
+function createKeyholeHandler() {
+  function handle_get(request, response, matches) {
+
+    // find the keyhole descriptor:
+    var descriptor;
+    var keyhole_id, keyhole_path;
+    [,keyhole_id, keyhole_path] = matches;
+    console.log("accessing keyhole #{keyhole_id} -- #{keyhole_path}");
+    var keyhole = keyholes[keyhole_id];
+
+    // no descriptor
+    if (!keyhole || !(descriptor = keyhole[keyhole_path])) {
+      console.log("keyhole #{keyhole_id} -- #{keyhole_path} not found");
+      writeErrorResponse(response, 404, "Not Found");
+      return;
+    }
+
+    if (descriptor.file) {
+      // serve as file from the filesystem
+      // XXX this format stuff is a bit of a song and dance
+      var formats = { '*': { custom : { mime: descriptor.mime } } };
+      if (!serveFile(request, response, descriptor.file, {name:'custom'}, formats)) {
+        throw "Cannot serve file";
+      }
+    }
+  }
+
+  return { handle_get: handle_get };
+}
+
+exports.createKeyholeHandler = createKeyholeHandler;

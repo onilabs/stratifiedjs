@@ -21,10 +21,12 @@
  *
  */
 
+var http = require('apollo:http');
+require.hubs.push(['rocket:', http.canonicalizeURL('./', module.id)]);
+
 var fs = require('apollo:nodejs/fs');
 var common = require('apollo:common');
-var http = require('apollo:http');
-var serverfs = require('./serverfs');
+var serverfs = require('rocket:serverfs');
 var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };
 var stream = require('apollo:nodejs/stream');
@@ -213,8 +215,8 @@ function getBridgeAPI(name) {
 //----------------------------------------------------------------------
 
 var pathMap = [
-  // we map the apollo client lib + modules under __oni/apollo:
   {
+    // we map the apollo client lib + modules under __oni/apollo:
     pattern: /__oni\/apollo(\/.*)$/,
     handler: serverfs.createMappedDirectoryHandler(
       apollo_root,
@@ -234,6 +236,11 @@ var pathMap = [
     )
   },
   {
+    // "keyhole", where we can map dynamic files:
+    pattern: /__oni\/keyhole\/([^\/]+)\/(.*)$/,
+    handler: serverfs.createKeyholeHandler()
+  },
+  {
     // main server root
     pattern: /(\/.*)$/,
     handler: serverfs.createMappedDirectoryHandler(
@@ -249,7 +256,7 @@ var pathMap = [
 
 
 waitfor {
-  serverfs.setStaticPathMap(pathMap);
+  serverfs.setPathMap(pathMap);
   require('apollo:nodejs/http').runSimpleServer(requestHandler, port, host);
 }
 and {
