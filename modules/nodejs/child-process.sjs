@@ -50,7 +50,7 @@ var STREAMS_CLOSED_SIGNAL = version>7006 ? 'close' : 'exit';
    @function exec
    @summary Execute a child process and return output
    @param {String} [command] Command to execute
-   @param {Object} [optional options] Hash of options (see nodejs's child-process.exec docs)
+   @param {optional Object} [options] Hash of options (see nodejs's child-process.exec docs)
    @return {Object} Object with 'stdout' and 'stderr' members
    @desc
       If the child process exits abnormally (exit code != 0), an
@@ -73,8 +73,9 @@ exports.exec = function(command, options) {
 /**
    @function run
    @summary Execute a child process and return output
-   @param {Array} [optional args] Array of command-line arguments
-   @param {Object} [optional options] Hash of options (see nodejs's child-process.spawn docs)
+   @param {String} [command] Command to execute
+   @param {optional Array} [args] Array of command-line arguments
+   @param {optional Object} [options] Hash of options (see nodejs's child-process.spawn docs)
    @return {Object} Object with 'stdout' and 'stderr' members
    @desc
       This function is just like `exec`, but takes an array of arguments instead
@@ -116,8 +117,8 @@ exports.run = function(command, args, options) {
    @function launch
    @summary Launch a child process
    @param {String} [command] Command to launch
-   @param {Array} [optional args] Array of command-line arguments
-   @param {Object} [optional options] Hash of options (see nodejs's child-process.spawn docs)
+   @param {optional Array} [args] Array of command-line arguments
+   @param {optional Object} [options] Hash of options (see nodejs's child-process.spawn docs)
    @return {Object} The child process
    @desc
      This function wraps the `spawn` function of node's child_process module, but
@@ -155,8 +156,8 @@ exports.wait = function(child) {
 /**
    @function kill
    @summary Kill a child process
-   @param {Array} [command] Command to execute
-   @param {Object} [optional options] Options, described below
+   @param {Object} [child] The child process object obtailed from `run`.
+   @param {optional Object} [options] Options, described below
    @desc
       If `options.signal` is set to a signal name (a string), that signal will be used
       instead of the default 'SIGTERM'.
