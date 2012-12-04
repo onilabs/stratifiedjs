@@ -82,6 +82,28 @@ exports.par = function(/*f1,f2,...*/) {
 };
 
 /**
+   @function tryfinally
+   @summary try-finally function composition
+   @param   {Function} [try_func] 
+   @param   {Function} [finally_func]
+   @return  {Function} Composition try { try_func } finally { finally_func }
+   @desc
+      A call `c(a1,a2,...)` to the composed function `c = par(f,g)`
+      executes as
+      `try{ return f(a1,a2,...) } finally { g(a1,a2,...) }`.
+
+      `f` and `g` will be called with the same `this` pointer that `c` is called with.
+
+*/
+exports.tryfinally = function(try_func, finally_func) {
+  return function() {
+    try     { return try_func.apply(this, arguments); }
+    finally { finally_func.apply(this, arguments); }
+  }
+};
+
+
+/**
   @function identity
   @param    [argument]
   @summary  Returns whatever argument it receives, unmodified.
