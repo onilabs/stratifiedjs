@@ -1642,11 +1642,13 @@ val=new CFException("t",new Error("stratum aborted"),ndata[0],env.file);
 
 while(waitarr.length)waitarr.shift().cont(val);
 
-},waitforValue:function(){
+},value:function(){
 if(!async){
 picked_up=true;return val}
 return new EF_SpawnWaitFrame(waitarr);
-},running:function(){
+},waitforValue:function(){
+
+return this.value()},running:function(){
 return async},waiting:function(){
 return waitarr.length;
 

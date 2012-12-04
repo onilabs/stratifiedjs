@@ -1940,10 +1940,12 @@ function I_spawn(ndata, env) {
       while (waitarr.length)
         waitarr.shift().cont(val);
     },
-    waitforValue : function() {
+    value : function() {
       if (!async) { picked_up=true; return val; }
       return new EF_SpawnWaitFrame(waitarr);
     },
+    // waitforValue deprecated:
+    waitforValue : function() { return this.value() },
     running : function() { return async; },
     waiting : function() {
       return waitarr.length;
@@ -1974,7 +1976,7 @@ function I_spawn(ndata, env) {
           // We only throw if the value hasn't been picked up in the
           // meanwhile. This is for cases where we have:
           //   var stratum = spawn synchronous_throw_here;
-          //   stratum.waitforValue();
+          //   stratum.value();
           // We want to prevent the exception feeding to the user twice in this case
           if (!picked_up)
             val.mapToJS(true); 
