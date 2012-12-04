@@ -1944,6 +1944,7 @@ function I_spawn(ndata, env) {
       if (!async) { picked_up=true; return val; }
       return new EF_SpawnWaitFrame(waitarr);
     },
+    running : function() { return async; },
     waiting : function() {
       return waitarr.length;
     },

@@ -1646,7 +1646,8 @@ while(waitarr.length)waitarr.shift().cont(val);
 if(!async){
 picked_up=true;return val}
 return new EF_SpawnWaitFrame(waitarr);
-},waiting:function(){
+},running:function(){
+return async},waiting:function(){
 return waitarr.length;
 
 },toString:function(){
