@@ -40,7 +40,8 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/http module only runs in a nodejs environment');
 
 
-var builtin_http = require('http');
+var builtin_http  = require('http');
+
 var collection = require('../collection');
 var http = require('../http');
 var events = require('./events');
@@ -99,7 +100,8 @@ function receiveBody(request) {
 }
 
 // helper to receive a body before handling a request
-function handleRequest(connectionHandler, request, response) {
+function handleRequest(connectionHandler, request, response, protocol) {
+  request.protocol = protocol;
   waitfor {
     receiveBody(request); 
     connectionHandler(request, response);
@@ -132,7 +134,8 @@ function handleRequest(connectionHandler, request, response) {
      `runSimpleServer` will first receive any request body (up to a maximum size of 
      10MB - larger requests will be ignored). 
      The request body will be stored as a nodejs Buffer on `req.body`, and
-     `connectionHandler` will be called with arguments `(req,resp)`. 
+     `connectionHandler` will be called with arguments `(req,resp)`. The protocol (`"http"`) 
+     will be stored on `req.protocol`.
      For details about `resp` see [nodejs
      http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse).
 
@@ -158,7 +161,7 @@ function handleRequest(connectionHandler, request, response) {
  */
 exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
   var server = builtin_http.createServer(function(req, res) { 
-    __js handleRequest(connectionHandler, req, res);
+    __js handleRequest(connectionHandler, req, res, 'http');
   });
   try {
     server.listen(port, host);
@@ -168,6 +171,51 @@ exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
     try { server.close(); } catch(e) { }
   }
 };
+
+/**
+   @function runSimpleSSLServer
+   @summary Run a simple HTTPS server.
+   @param {Function} [connectionHandler] Function to be invoked for each request
+   @param {Object} [ssl_opts] SSL options as described [here](http://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener)
+   @param {Integer} [port] Port to listen on
+   @param {optional String} [host] IP address to listen on. (If not specified, the server will
+                                   listen on all IP addresses, i.e. INADDR_ANY.)
+   @desc
+     `runSimpleSSLServer` will start a HTTPS server on the given
+     `host:port` and **block until aborted**, or throw an exception if the
+     server cannot be started.
+
+     For an incoming request `req` (see [nodejs
+     http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest)),
+     `runSimpleServer` will first receive any request body (up to a maximum size of 
+     10MB - larger requests will be ignored). 
+     The request body will be stored as a nodejs Buffer on `req.body`, and
+     `connectionHandler` will be called with arguments `(req,resp)`. The protocol (`"https"`) 
+     will be stored on `req.protocol`. 
+     For details about `resp` see [nodejs
+     http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse).
+
+     When `runSimpleServer` is aborted, the underlying [nodejs
+     http.Server](http://nodejs.org/docs/latest/api/http.html#http.Server)
+     will be closed. This will make it stop accepting new connections, but
+     existing connections might not be closed.
+ */
+exports.runSimpleSSLServer = function(connectionHandler, ssl_opts, port, /* opt */ host) {
+  var server = require('https').createServer(
+    ssl_opts,
+    function(req, res) { 
+      __js handleRequest(connectionHandler, req, res, 'https');
+    });
+
+  try {
+    server.listen(port, host);
+    hold();
+  }
+  finally {
+    try { server.close(); } catch(e) { }
+  }
+};
+
 
 /**
  @class ServerRequest

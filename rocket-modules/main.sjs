@@ -39,12 +39,17 @@ function usage() {
   print("Usage: rocket [options]");
   print("");
   print("Options:");
-  print("  -h, --help         display this help message");
-  print("      --port PORT    server port (default: "+port+")");
-  print("      --host IPADDR  server host (default: "+host+"; use 'any' for INADDR_ANY)");
-  print("      --root DIR     server root (default: "+root+")");
-  print("      --cors         allow full cross-origin access (adds ");
-  print("                     'Access-Control-Allow-Origin: *' headers)");
+  print("  -h, --help             display this help message");
+  print("      --port    PORT     server port (default: #{port})");
+  print("      --sslport PORT     ssl server port (default: #{ssl_port})");
+  print("      --ssl     KEYFILE CERTFILE");
+  print("                         (default: don't start https server)");
+  print("      --sslpw   STRING   password for SSL keyfile (default: no password)");
+  print("      --sslonly          don't start a http server");
+  print("      --host    IPADDR   server host (default: '#{host}'; use 'any' for INADDR_ANY)");
+  print("      --root    DIR      server root (default: '#{root}')");
+  print("      --cors             allow full cross-origin access (adds ");
+  print("                         'Access-Control-Allow-Origin: *' headers)");
   print("");
 }
 
@@ -53,6 +58,10 @@ function usage() {
 var apollo_root = http.canonicalizeURL('../', module.id).substr(7);
 var root = apollo_root;
 var port = "7070";
+var ssl_port = "4430";
+var ssl_keyfile, ssl_certfile;
+var ssl_pw;
+var sslonly = false;
 var host = "localhost";
 var cors = false;
 
@@ -65,6 +74,19 @@ for (var i=1; i<process.argv.length; ++i) {
     break;
   case "--port":
     port = process.argv[++i];
+    break;
+  case "--sslport":
+    port = process.argv[++i];
+    break;
+  case "--ssl":
+    ssl_keyfile = process.argv[++i];
+    ssl_certfile = process.argv[++i];
+    break;
+  case "--sslpw":
+    ssl_pw = process.argv[++i];
+    break;
+  case "--sslonly":
+    sslonly = true;
     break;
   case "--host":
     host = process.argv[++i];
@@ -257,7 +279,22 @@ var pathMap = [
 
 waitfor {
   serverfs.setPathMap(pathMap);
-  require('apollo:nodejs/http').runSimpleServer(requestHandler, port, host);
+  waitfor {
+    if (!sslonly)
+      require('apollo:nodejs/http').runSimpleServer(requestHandler, port, host);
+  }
+  and {
+    if (ssl_keyfile) {
+      require('apollo:nodejs/http').runSimpleSSLServer(
+        requestHandler,
+        {
+          key: fs.readFile(ssl_keyfile),
+          cert: fs.readFile(ssl_certfile),
+          passphrase: ssl_pw || undefined
+        },
+        ssl_port, host);
+    }
+  }
 }
 and {
   print("");
@@ -266,10 +303,10 @@ and {
   print("  |O|   * Version: 'unstable'");
   print("  | |");
   print(" | _ |  * Launched with root directory");
-  print("/_| |_\\   '"+root+"'");
+  print("/_| |_\\   '#{root}'");
   print(" |||||");
-  print("  |||   * Running on http://"+(host ? host : "INADDR_ANY")+":"+port+"/");
-  print("  |||");
+  print("  |||   * Running on #{sslonly ? 'SSL ONLY' : "http://#{host ? host : 'INADDR_ANY'}:#{port}/"}");
+  print("  |||                #{ssl_keyfile ? "https://#{host ? host : 'INADDR_ANY'}:#{ssl_port}/" : ''} ");
   print("   |");
 }
 
@@ -277,7 +314,7 @@ and {
 
 function requestHandler(req, res) {
   try {
-    req.parsedUrl = http.parseURL("http://"+req.headers.host+req.url);
+    req.parsedUrl = http.parseURL("#{req.protocol}://#{req.headers.host}#{req.url}");
     res.setHeader("Server", "OniRocket"); // XXX version
     if (cors)
       res.setHeader("Access-Control-Allow-Origin", "*");
