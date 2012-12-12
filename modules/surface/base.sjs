@@ -625,6 +625,11 @@ HtmlFragmentElement.init = func.seq(
         coll.each(placeholders) {
           |part, idx|
           var old = this.select1("#__oni_placeholder#{idx}");
+          if (!old) {
+            // placeholder not found in the dom... probably caused by
+            // user-provided html not being valid
+            throw new Error("Invalid HTML (#{str.sanitize(html)})");
+          }
           old.parentNode.replaceChild(part.dompeer, old);
           this.children.push(part);
         }        
