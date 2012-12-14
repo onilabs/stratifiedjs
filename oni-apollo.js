@@ -3266,12 +3266,12 @@ var TOKENIZER_QUASI=/((?:\\.|\$(?![\{a-zA-Z_$])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$
 
 
 function SemanticToken(){}
-SemanticToken.prototype={exsf:function(pctx,st){
+SemanticToken.prototype={exsf:function(pctx){
 
 
 
 
-throw "Unexpected "+this},excbp:0,excf:function(left,pctx,st){
+throw "Unexpected "+this},excbp:0,excf:function(left,pctx){
 
 
 
@@ -3309,7 +3309,7 @@ return this;
 this.excbp=bp;
 
 if(right_assoc)bp-=.5;
-this.excf=function(left,pctx,st){var right=parseExp(pctx,bp,st);
+this.excf=function(left,pctx){var right=parseExp(pctx,bp);
 
 
 return new ph_infix_op(left,this.id,right,pctx);
@@ -3320,7 +3320,7 @@ return this;
 this.excbp=bp;
 
 if(right_assoc)bp-=.5;
-this.excf=function(left,pctx,st){var right=parseExp(pctx,bp,st);
+this.excf=function(left,pctx){var right=parseExp(pctx,bp);
 
 
 return new ph_assign_op(left,this.id,right,pctx);
@@ -3328,15 +3328,15 @@ return new ph_assign_op(left,this.id,right,pctx);
 return this;
 },pre:function(bp){
 
-return this.exs(function(pctx,st){
-var right=parseExp(pctx,bp,st);
+return this.exs(function(pctx){
+var right=parseExp(pctx,bp);
 
 
 return new ph_prefix_op(this.id,right,pctx);
 });
 },pst:function(bp){
 
-return this.exc(bp,function(left,pctx,st){
+return this.exc(bp,function(left,pctx){
 return new ph_postfix_op(left,this.id,pctx);
 
 
@@ -3352,7 +3352,7 @@ this.value=value;
 Literal.prototype=new SemanticToken();
 Literal.prototype.tokenizer=TOKENIZER_OP;
 Literal.prototype.toString=function(){return "literal '"+this.value+"'"};
-Literal.prototype.exsf=function(pctx,st){return new ph_literal(this.value,pctx,this.id);
+Literal.prototype.exsf=function(pctx){return new ph_literal(this.value,pctx,this.id);
 
 
 };
@@ -3362,7 +3362,7 @@ function Identifier(value){this.value=value;
 
 }
 Identifier.prototype=new Literal("<id>");
-Identifier.prototype.exsf=function(pctx,st){return gen_identifier(this.value,pctx);
+Identifier.prototype.exsf=function(pctx){return gen_identifier(this.value,pctx);
 
 
 };
@@ -3383,7 +3383,7 @@ return t;
 
 
 
-S("[").exs(function(pctx,st){
+S("[").exs(function(pctx){
 
 var elements=[];
 
@@ -3400,7 +3400,7 @@ elements.push((function(pctx){return new ph_literal("",pctx)})(pctx));
 scan(pctx,"]");
 
 return new ph_arr_lit(elements,pctx);
-}).exc(270,function(l,pctx,st){
+}).exc(270,function(l,pctx){
 
 var idxexp=parseExp(pctx);
 
@@ -3409,7 +3409,7 @@ scan(pctx,"]");
 return new ph_idx_accessor(l,idxexp,pctx);
 });
 
-S(".").exc(270,function(l,pctx,st){if(pctx.token.id!="<id>")throw "Expected an identifier, found '"+pctx.token+"' instead";
+S(".").exc(270,function(l,pctx){if(pctx.token.id!="<id>")throw "Expected an identifier, found '"+pctx.token+"' instead";
 
 
 var name=pctx.token.value;
@@ -3418,7 +3418,7 @@ scan(pctx);
 return new ph_dot_accessor(l,name,pctx);
 });
 
-S("new").exs(function(pctx,st){var exp=parseExp(pctx,110,"(");
+S("new").exs(function(pctx){var exp=parseExp(pctx,260);
 
 var args=[];
 if(pctx.token.id=="("){
@@ -3433,14 +3433,14 @@ scan(pctx,")");
 return new ph_new(exp,args);
 });
 
-S("(").exs(function(pctx,st){
+S("(").exs(function(pctx){
 
 var e=parseExp(pctx);
 
 scan(pctx,")");
 
 return new ph_group(e,pctx);
-}).exc(260,function(l,pctx,st){
+}).exc(260,function(l,pctx){
 
 var args=[];
 
@@ -3513,7 +3513,7 @@ S("|").ifx(160);
 S("&&").ifx(150);
 S("||").ifx(140);
 
-S("?").exc(130,function(test,pctx,st){var consequent=parseExp(pctx,110);
+S("?").exc(130,function(test,pctx){var consequent=parseExp(pctx,110);
 
 scan(pctx,":");
 var alternative=parseExp(pctx,110);
@@ -3597,7 +3597,7 @@ var body=parseBlockLambdaBody(pctx);
 return new ph_blocklambda(pars,body,pctx);
 }
 
-S("{").exs(function(pctx,st){
+S("{").exs(function(pctx){
 var start=pctx.token.id;
 
 if(start=="|"||start=="||"){
@@ -3633,7 +3633,7 @@ scan(pctx,"}",TOKENIZER_OP);
 
 return new ph_obj_lit(props,pctx);
 }
-}).exc(260,function(l,pctx,st){
+}).exc(260,function(l,pctx){
 
 var start=pctx.token.id;
 
@@ -3653,7 +3653,7 @@ S("]",TOKENIZER_OP);
 S("}");
 S(":");
 
-S("<eof>").exs(function(pctx,st){
+S("<eof>").exs(function(pctx){
 throw "Unexpected end of input (exs)"}).stmt(function(pctx){
 throw "Unexpected end of input (stmt)"});
 
@@ -3698,7 +3698,7 @@ var body=parseFunctionInner(pctx,pars,true);
 return new ph_fun_exp("",pars,body,pctx,true);
 }
 
-S("function").exs(function(pctx,st){
+S("function").exs(function(pctx){
 
 var fname="";
 
@@ -3722,14 +3722,14 @@ var body=parseFunctionInner(pctx,pars);
 return gen_fun_decl(fname,pars,body,pctx);
 });
 
-S("this",TOKENIZER_OP).exs(function(pctx,st){return new ph_envobj('this','tobj',pctx)});
-S("true",TOKENIZER_OP).exs(function(pctx,st){return new ph_literal('true',pctx)});
-S("false",TOKENIZER_OP).exs(function(pctx,st){return new ph_literal('false',pctx)});
-S("null",TOKENIZER_OP).exs(function(pctx,st){return new ph_literal('null',pctx)});
+S("this",TOKENIZER_OP).exs(function(pctx){return new ph_envobj('this','tobj',pctx)});
+S("true",TOKENIZER_OP).exs(function(pctx){return new ph_literal('true',pctx)});
+S("false",TOKENIZER_OP).exs(function(pctx){return new ph_literal('false',pctx)});
+S("null",TOKENIZER_OP).exs(function(pctx){return new ph_literal('null',pctx)});
 
-S("collapse",TOKENIZER_OP).exs(function(pctx,st){return new ph_collapse(pctx)});
+S("collapse",TOKENIZER_OP).exs(function(pctx){return new ph_collapse(pctx)});
 
-S('"',TOKENIZER_IS).exs(function(pctx,st){var parts=[],last=-1;
+S('"',TOKENIZER_IS).exs(function(pctx){var parts=[],last=-1;
 
 while(pctx.token.id!='istr-"'){
 switch(pctx.token.id){case "<string>":
@@ -3780,7 +3780,7 @@ return new ph_interpolating_str(parts,pctx);
 S('istr-#{',TOKENIZER_SA);
 S('istr-"',TOKENIZER_OP);
 
-S('`',TOKENIZER_QUASI).exs(function(pctx,st){var parts=[],current=0;
+S('`',TOKENIZER_QUASI).exs(function(pctx){var parts=[],current=0;
 
 while(pctx.token.id!='quasi-`'){
 switch(pctx.token.id){case '<string>':
@@ -3870,15 +3870,16 @@ function parseStmtTermination(pctx){if(pctx.token.id!="}"&&pctx.token.id!="<eof>
 
 }
 
-function parseVarDecls(pctx,st){var decls=[];
+function parseVarDecls(pctx,noIn){var decls=[];
 
+var parse=noIn?parseExpNoIn:parseExp;
 do {
 if(decls.length)scan(pctx,",");
 var id=pctx.token.value;
 scan(pctx,"<id>");
 if(pctx.token.id=="="){
 scan(pctx);
-var initialiser=parseExp(pctx,110,st);
+var initialiser=parse(pctx,110);
 decls.push([id,initialiser]);
 }else decls.push([id]);
 
@@ -3936,10 +3937,10 @@ var start_exp=null;
 var decls=null;
 if(pctx.token.id=="var"){
 scan(pctx);
-decls=parseVarDecls(pctx,"in");
+decls=parseVarDecls(pctx,true);
 }else{
 
-if(pctx.token.id!=";")start_exp=parseExp(pctx,0,"in");
+if(pctx.token.id!=';')start_exp=parseExpNoIn(pctx);
 
 }
 
@@ -4301,7 +4302,7 @@ return new ph_lbl_stmt(t.value,stmt);
 }else{
 
 
-var exp=parseExp(pctx,0,null,t);
+var exp=parseExp(pctx,0,t);
 parseStmtTermination(pctx);
 
 return new ph_exp_stmt(exp,pctx);
@@ -4309,23 +4310,43 @@ return new ph_exp_stmt(exp,pctx);
 }
 
 
-function parseExp(pctx,bp,st,t){bp=bp||0;
+function parseExp(pctx,bp,t){bp=bp||0;
 
 if(!t){
 t=pctx.token;
 scan(pctx);
 }
-var left=t.exsf(pctx,st);
-while(bp<pctx.token.excbp&&pctx.token.id!=st){
+var left=t.exsf(pctx);
+while(bp<pctx.token.excbp){
 t=pctx.token;
 
-if(pctx.newline&&(!t.excf||t.asi_restricted))return left;
+if(pctx.newline&&t.asi_restricted)return left;
 
 scan(pctx);
-left=t.excf(left,pctx,st);
+left=t.excf(left,pctx);
 }
 return left;
 }
+
+
+function parseExpNoIn(pctx,bp,t){bp=bp||0;
+
+if(!t){
+t=pctx.token;
+scan(pctx);
+}
+var left=t.exsf(pctx);
+while(bp<pctx.token.excbp&&pctx.token.id!='in'){
+t=pctx.token;
+
+if(pctx.newline&&t.asi_restricted)return left;
+
+scan(pctx);
+left=t.excf(left,pctx);
+}
+return left;
+}
+
 
 function scan(pctx,id,tokenizer){if(!tokenizer){
 

@@ -85,8 +85,10 @@
  information directly into semantic tokens (see 'SemanticToken' class,
  below). A good introduction to Pratt parsing for JS is at
  http://javascript.crockford.com/tdop/tdop.html. What Douglas
- Crockford calls 'lbp', 'nud', and 'led', we call 'excbp', 'expsf' and
- 'excf', respectively.
+ Crockford calls 'lbp', 'nud', and 'led', we call 
+ 'excbp' (expression continuation binding power), 
+ 'expsf' (expression start function) and
+ 'excf'  (expression continuation function), respectively.
 
 
  *** PREPROCESSOR FLAGS ***
@@ -421,18 +423,18 @@ SemanticToken.prototype = {
 
   // expression starter function
 #ifdef VERBOSE_COMPILE_ERRORS
-  exsf: function(pctx, st) { throw "Unexpected token " + this + " (exsf missing)"; },
+  exsf: function(pctx) { throw "Unexpected token " + this + " (exsf missing)"; },
 #else
-  exsf: function(pctx, st) { throw "Unexpected " + this; },
+  exsf: function(pctx) { throw "Unexpected " + this; },
 #endif
   // expression continuation binding power
   excbp: 0,
 
   // expression continuation
 #ifdef VERBOSE_COMPILE_ERRORS
-  excf: function(left, pctx, st) { throw "Unexpected token " + this + " (excf missing)"; },
+  excf: function(left, pctx) { throw "Unexpected token " + this + " (excf missing)"; },
 #else
-  excf: function(left, pctx, st) { throw "Unexpected " + this; },
+  excf: function(left, pctx) { throw "Unexpected " + this; },
 #endif
   // statement function
   stmtf: null,
@@ -466,8 +468,8 @@ SemanticToken.prototype = {
   ifx: function(bp, right_assoc) {
     this.excbp = bp;
     if (right_assoc) bp -= .5;
-    this.excf = function(left, pctx, st) {
-      var right = parseExp(pctx, bp, st);
+    this.excf = function(left, pctx) {
+      var right = parseExp(pctx, bp);
       LOGM('infix_op('+this.id+')')
       GEN_INFIX_OP(left, this.id, right, pctx)
     };
@@ -477,8 +479,8 @@ SemanticToken.prototype = {
   asg: function(bp, right_assoc) {
     this.excbp = bp;
     if (right_assoc) bp -= .5;
-    this.excf = function(left, pctx, st) {
-      var right = parseExp(pctx, bp, st);
+    this.excf = function(left, pctx) {
+      var right = parseExp(pctx, bp);
       LOGM('assign_op('+this.id+')')
       GEN_ASSIGN_OP(left, this.id, right, pctx)
     };
@@ -486,15 +488,15 @@ SemanticToken.prototype = {
   },
   // encode prefix operation
   pre: function(bp) {
-    return this.exs(function(pctx, st) {
-      var right = parseExp(pctx, bp, st);
+    return this.exs(function(pctx) {
+      var right = parseExp(pctx, bp);
       LOGM('prefix_op')
       GEN_PREFIX_OP(this.id, right, pctx)
     });
   },
   // encode postfix operation
   pst: function(bp) {
-    return this.exc(bp, function(left, pctx, st) {
+    return this.exc(bp, function(left, pctx) {
       LOGM('postfix_op')
       GEN_POSTFIX_OP(left, this.id, pctx)
     });
@@ -513,7 +515,7 @@ Literal.prototype.toString = function() { return this.id + "('" + this.value + "
 #else
 Literal.prototype.toString = function() { return "literal '"+this.value+"'"; };
 #endif
-Literal.prototype.exsf = function(pctx, st) {
+Literal.prototype.exsf = function(pctx) {
   LOGM('literal')
   GEN_LITERAL(this.id, this.value, pctx)
 };
@@ -523,7 +525,7 @@ function Identifier(value) {
   this.value = value;
 }
 Identifier.prototype = new Literal("<id>");
-Identifier.prototype.exsf = function(pctx, st) {
+Identifier.prototype.exsf = function(pctx) {
   LOGM('identifier('+this.value+')')
   GEN_IDENTIFIER(this.value, pctx)
 };
@@ -610,13 +612,13 @@ expressions up to BP 100
 
 */
 
-#define BP_LHS 250
+#define BP_CALLEXP 260
 #define BP_ASSIGN 120
 #define BP_COMMA 110
 
 S("[").
   // array literal
-  exs(function(pctx, st) {
+  exs(function(pctx) {
     var elements = [];
     while (pctx.token.id != "]") {
       if (elements.length) scan(pctx, ",");
@@ -633,14 +635,14 @@ S("[").
     GEN_ARR_LIT(elements, pctx)
   }).
   // indexed property access
-  exc(270, function(l, pctx, st) {
+  exc(270, function(l, pctx) {
     var idxexp = parseExp(pctx);
     scan(pctx, "]");
     LOGM('idx_accessor')
     GEN_IDX_ACCESSOR(l, idxexp, pctx)
   });
 
-S(".").exc(270, function(l, pctx, st) {
+S(".").exc(270, function(l, pctx) {
   if (pctx.token.id != "<id>")
     throw "Expected an identifier, found '"+pctx.token+"' instead";
   var name = pctx.token.value;
@@ -649,8 +651,8 @@ S(".").exc(270, function(l, pctx, st) {
   GEN_DOT_ACCESSOR(l, name, pctx)
 });
 
-S("new").exs(function(pctx, st) {
-  var exp = parseExp(pctx, BP_COMMA, "(");
+S("new").exs(function(pctx) {
+  var exp = parseExp(pctx, BP_CALLEXP);
   var args = [];
   if (pctx.token.id == "(") {
     scan(pctx); // swallow '('
@@ -666,14 +668,14 @@ S("new").exs(function(pctx, st) {
 
 S("(").
   // grouping
-  exs(function (pctx, st) {
+  exs(function (pctx) {
     var e = parseExp(pctx);
     scan(pctx, ")");
     LOGM('group')
     GEN_GROUP(e, pctx)
   }).
   // function call
-  exc(260, function(l, pctx, st) {
+  exc(260, function(l, pctx) {
     var args = [];
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
@@ -746,7 +748,7 @@ S("|").ifx(160);
 S("&&").ifx(150);
 S("||").ifx(140);
 
-S("?").exc(130, function(test, pctx, st) {
+S("?").exc(130, function(test, pctx) {
   var consequent = parseExp(pctx, BP_COMMA);
   scan(pctx, ":");
   var alternative = parseExp(pctx, BP_COMMA);
@@ -837,7 +839,7 @@ function parseBlockLambda(start, pctx) {
 #endif // SJS_BLOCKLAMBDA
 
 S("{").
-  exs(function(pctx, st) {
+  exs(function(pctx) {
 #ifdef SJS_BLOCKLAMBDA
     var start = pctx.token.id;
     if (start == "|" || start == "||") {
@@ -904,7 +906,7 @@ S("{").
   }).
 #ifdef SJS_BLOCKLAMBDA
   // block lambda call:
-  exc(260, function(l, pctx, st) {
+  exc(260, function(l, pctx) {
     var start = pctx.token.id;
     if (start != "|" && start != "||")
       throw "Unexpected token '"+pctx.token+"' - was expecting '|' or '||'";
@@ -924,7 +926,7 @@ S("}"); // note the special tokenizer case for object literals, above
 S(":");
 
 S("<eof>").
-  exs(function(pctx, st) { throw "Unexpected end of input (exs)"; }).
+  exs(function(pctx) { throw "Unexpected end of input (exs)"; }).
   stmt(function(pctx) { throw "Unexpected end of input (stmt)"; });
 
 // statements/misc
@@ -972,7 +974,7 @@ function parseMethod(pctx) {
 
 S("function").
   // expression function form ('function expression')
-  exs(function(pctx, st) {
+  exs(function(pctx) {
     var fname = "";
     if (pctx.token.id == "<id>") {
       fname = pctx.token.value;
@@ -994,17 +996,17 @@ S("function").
     GEN_FUN_DECL(fname, pars, body, pctx)
   });
 
-S("this", TOKENIZER_OP).exs(function(pctx, st) { LOGM('this') GEN_THIS(pctx) });
-S("true", TOKENIZER_OP).exs(function(pctx, st) { LOGM('true') GEN_TRUE(pctx) });
-S("false", TOKENIZER_OP).exs(function(pctx, st) { LOGM('false') GEN_FALSE(pctx) });
-S("null", TOKENIZER_OP).exs(function(pctx, st) { LOGM('null') GEN_NULL(pctx) });
+S("this", TOKENIZER_OP).exs(function(pctx) { LOGM('this') GEN_THIS(pctx) });
+S("true", TOKENIZER_OP).exs(function(pctx) { LOGM('true') GEN_TRUE(pctx) });
+S("false", TOKENIZER_OP).exs(function(pctx) { LOGM('false') GEN_FALSE(pctx) });
+S("null", TOKENIZER_OP).exs(function(pctx) { LOGM('null') GEN_NULL(pctx) });
 
 #ifdef SJS
-S("collapse", TOKENIZER_OP).exs(function(pctx, st) { LOGM('collapse') GEN_COLLAPSE(pctx) });
+S("collapse", TOKENIZER_OP).exs(function(pctx) { LOGM('collapse') GEN_COLLAPSE(pctx) });
 #endif
 
 #ifdef INTERPOLATING_STRINGS
-S('"', TOKENIZER_IS).exs(function(pctx, st) {
+S('"', TOKENIZER_IS).exs(function(pctx) {
   var parts = [], last=-1;
   while (pctx.token.id != 'istr-"') {
     switch (pctx.token.id) {
@@ -1057,7 +1059,7 @@ S('istr-"', TOKENIZER_OP);
 #endif
 
 #ifdef QUASIS
-S('`', TOKENIZER_QUASI).exs(function(pctx, st) {
+S('`', TOKENIZER_QUASI).exs(function(pctx) {
   var parts = [], current=0;
   while (pctx.token.id != 'quasi-`') {
     switch (pctx.token.id) {
@@ -1150,15 +1152,16 @@ function parseStmtTermination(pctx) {
     scan(pctx, ";");
 }
 
-function parseVarDecls(pctx, st) {
+function parseVarDecls(pctx, noIn) {
   var decls = [];
+  var parse = noIn ? parseExpNoIn : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
     var id = pctx.token.value;
     scan(pctx, "<id>");
     if (pctx.token.id == "=") {
       scan(pctx);
-      var initialiser = parseExp(pctx, BP_COMMA, st);
+      var initialiser = parse(pctx, BP_COMMA);
       decls.push([id, initialiser]);
     }
     else
@@ -1216,11 +1219,11 @@ S("for").stmt(function(pctx) {
   var decls = null;
   if (pctx.token.id == "var") {
     scan(pctx); // consume 'var'
-    decls = parseVarDecls(pctx, "in");
+    decls = parseVarDecls(pctx, true);
   }
   else {
-    if (pctx.token.id != ";")
-      start_exp = parseExp(pctx, 0, "in");
+    if (pctx.token.id != ';')
+      start_exp = parseExpNoIn(pctx);
   }
 
   if (pctx.token.id == ";") {
@@ -1619,31 +1622,51 @@ function parseStmt(pctx) {
   }
   else {
     // an expression statement
-    var exp = parseExp(pctx, 0, null, t);
+    var exp = parseExp(pctx, 0, t);
     parseStmtTermination(pctx);
     LOGM('exp_stmt')
     GEN_EXP_STMT(exp, pctx)
   }
 }
 
-// bp: binding power of enclosing exp, st: optional 'stop' token, t: optional next token
-function parseExp(pctx, bp, st, t) {
+// bp: binding power of enclosing exp, t: optional next token 
+function parseExp(pctx, bp, t) {
   bp = bp || 0;
   if (!t) {
     t = pctx.token;
     scan(pctx);
   }
-  var left = t.exsf(pctx, st);
-  while (bp < pctx.token.excbp && pctx.token.id != st) {
+  var left = t.exsf(pctx);
+  while (bp < pctx.token.excbp) {
     t = pctx.token;
     // automatic semicolon insertion:
-    if (pctx.newline && (!t.excf || t.asi_restricted))
+    if (pctx.newline && t.asi_restricted)
       return left;
     scan(pctx);
-    left = t.excf(left, pctx, st);
+    left = t.excf(left, pctx);
   }
   return left;
 }
+
+// parse up to keyword 'in' ( where bp might be < bp(in) )
+function parseExpNoIn(pctx, bp, t) {
+  bp = bp || 0;
+  if (!t) {
+    t = pctx.token;
+    scan(pctx);
+  }
+  var left = t.exsf(pctx);
+  while (bp < pctx.token.excbp && pctx.token.id != 'in') {
+    t = pctx.token;
+    // automatic semicolon insertion:
+    if (pctx.newline && t.asi_restricted)
+      return left;
+    scan(pctx);
+    left = t.excf(left, pctx);
+  }
+  return left;
+}
+
 
 function scan(pctx, id, tokenizer) {
   if (!tokenizer) {
