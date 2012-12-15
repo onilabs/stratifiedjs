@@ -367,7 +367,7 @@ function gen_fun_decl(fname, pars, body, pctx) {
   if (top_decl_scope(pctx).fscoped_ctx) {
     // XXX see comment under ph_fun_exp as to why we encode ph_fun_exp without
     // name. this breaks some pathological cases.
-    return gen_var_decl([[fname, new ph_fun_exp(/*fname*/"", pars, body, pctx)]], pctx);
+    return gen_var_decl([[new ph_identifier(fname,pctx), new ph_fun_exp(/*fname*/"", pars, body, pctx)]], pctx);
   }
   else
     return new ph_fun_decl(fname, pars, body, pctx);
@@ -460,6 +460,7 @@ function gen_var_decl(decls, pctx) {
 
 function ph_var_decl(d, pctx) {
   this.d = d;
+  if (!this.d[0].is_id) throw "Invalid expression in variable declaration";
   this.is_empty = this.d.length<2;
   this.line = pctx.line; //XXX might want to take the line of the decl here
   if (!this.is_empty)
@@ -467,15 +468,15 @@ function ph_var_decl(d, pctx) {
 }
 ph_var_decl.prototype = new ph(WHENDEBUG("ph_var_decl"));
 ph_var_decl.prototype.is_var_decl = true;
-ph_var_decl.prototype.decl = function() { return this.d[0]; };
+ph_var_decl.prototype.decl = function() { return this.d[0].name; };
 ph_var_decl.prototype.nblock_val = function() {
     ASSERT(!this.is_empty)
-    return this.d[0]+"="+this.d[1].nb()+";";
+    return this.d[0].name+"="+this.d[1].nb()+";";
 };
 ph_var_decl.prototype.val = function() {
     ASSERT(!this.is_empty)
     // XXX Need to handle special case of "var arguments = XXX"
-    return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0]+
+    return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0].name+
       "=_oniX;},"+this.d[1].v()+")";
 }; 
 
@@ -731,7 +732,7 @@ function gen_for_in(lhs_exp, decl, obj_exp, body, pctx) {
   var rv;
   if (decl) {
     rv = gen_var_compound([decl], pctx);
-    rv.stmts.push(new ph_for_in(new ph_identifier(decl[0], pctx),
+    rv.stmts.push(new ph_for_in(decl[0],
                                 obj_exp, body, pctx));
     // XXX suboptimal
     rv = rv.toBlock();
@@ -1026,36 +1027,36 @@ ph_postfix_op.prototype.val = function() {
     return rv;
 };
 
-#define GEN_IDENTIFIER(value, pctx) return gen_identifier(value, pctx);
-function gen_identifier(value, pctx) {
+#define GEN_IDENTIFIER(name, pctx) return gen_identifier(name, pctx);
+function gen_identifier(name, pctx) {
   // special case built-in stratified functions here:
   // XXX not quite right to put them here maybe. they should be assignable, etc.
-  if (value == "hold") {
+  if (name == "hold") {
     // stratified 'hold' operator
     var rv = new ph_literal('__oni_rt.Hold', pctx);
     rv.is_id = true;
     return rv;
   }
-  else if (value == "arguments") {
+  else if (name == "arguments") {
     return new ph_envobj('arguments', 'aobj', pctx);
   }
 
   // default:
-  return new ph_identifier(value, pctx);
+  return new ph_identifier(name, pctx);
 }
 
-function ph_identifier(value, pctx) {
-  this.value = value;
+function ph_identifier(name, pctx) {
+  this.name = name;
   this.line = pctx.line;
 }
 ph_identifier.prototype = new ph(WHENDEBUG("ph_identifier"));
 ph_identifier.prototype.is_nblock = true;
 ph_identifier.prototype.is_id = true;
 ph_identifier.prototype.is_value = true;
-ph_identifier.prototype.nblock_val = function() { return this.value; };
+ph_identifier.prototype.nblock_val = function() { return this.name; };
 #ifdef SJS_DESTRUCTURE
 ph_identifier.prototype.destruct = function(dpath) {
-  return this.value + "=" + dpath + ";";
+  return this.name + "=" + dpath + ";";
 };
 #endif
 
@@ -1454,7 +1455,7 @@ ph_suspend.prototype.val = function() {
     rv += "return __oni_rt.ex("+b+",__oni_env)";
   rv += "}, function() {";
   for (var i=0; i<this.decls.length;++i) {
-    var name = this.decls[i][0];
+    var name = this.decls[i][0].name;
     if (name == "arguments") throw "Cannot use 'arguments' as variable name in waitfor()";
     rv += name+"=arguments["+i+"];";
   }
@@ -1484,7 +1485,7 @@ function gen_using(has_var, lhs, exp, body, pctx) {
   if (has_var) {
     //XXX this is suboptimal
     if (!lhs.is_id) throw "Variable name expected in 'using' expression";
-    rv = gen_var_compound([[lhs.nb()]], pctx);
+    rv = gen_var_compound([[lhs]], pctx);
     rv.stmts.push(new ph_using(lhs, exp, body, pctx));
     rv = rv.toBlock();
   }

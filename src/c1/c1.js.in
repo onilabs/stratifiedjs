@@ -177,7 +177,7 @@ GEN_LBL_STMT(lbl, stmt, pctx)
 GEN_FUN_DECL(fname, pars, body, pctx)
 GEN_VAR_DECL(decls, pctx)
   decls = array of decl
-  decl = [name, optional initializer]
+  decl = [id_or_pattern, optional initializer]
 GEN_IF(test, consequent, alternative, pctx)
 GEN_DO_WHILE(body, test, pctx)
 GEN_WHILE(test, body, pctx)
@@ -206,7 +206,7 @@ GEN_PREFIX_OP(id, right, pctx)
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
 GEN_LITERAL(type, value, pctx)
-GEN_IDENTIFIER(value, pctx)
+GEN_IDENTIFIER(name, pctx)
 GEN_OBJ_LIT(props, pctx)
   props : array of ["prop", string|id, val]
           if ECMA_GETTERS_SETTERS is defined, also:
@@ -423,18 +423,18 @@ SemanticToken.prototype = {
 
   // expression starter function
 #ifdef VERBOSE_COMPILE_ERRORS
-  exsf: function(pctx) { throw "Unexpected token " + this + " (exsf missing)"; },
+  exsf: function(pctx) { throw "Unexpected token '" + this + "' (exsf missing)"; },
 #else
-  exsf: function(pctx) { throw "Unexpected " + this; },
+  exsf: function(pctx) { throw "Unexpected '" + this + "'"; },
 #endif
   // expression continuation binding power
   excbp: 0,
 
   // expression continuation
 #ifdef VERBOSE_COMPILE_ERRORS
-  excf: function(left, pctx) { throw "Unexpected token " + this + " (excf missing)"; },
+  excf: function(left, pctx) { throw "Unexpected token '" + this + "' (excf missing)"; },
 #else
-  excf: function(left, pctx) { throw "Unexpected " + this; },
+  excf: function(left, pctx) { throw "Unexpected '" + this + "'"; },
 #endif
   // statement function
   stmtf: null,
@@ -1157,15 +1157,14 @@ function parseVarDecls(pctx, noIn) {
   var parse = noIn ? parseExpNoIn : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
-    var id = pctx.token.value;
-    scan(pctx, "<id>");
+    var id_or_pattern = parse(pctx, BP_ASSIGN);
     if (pctx.token.id == "=") {
       scan(pctx);
       var initialiser = parse(pctx, BP_COMMA);
-      decls.push([id, initialiser]);
+      decls.push([id_or_pattern, initialiser]);
     }
     else
-      decls.push([id]);
+      decls.push([id_or_pattern]);
   } while (pctx.token.id == ",");
   return decls;
 }

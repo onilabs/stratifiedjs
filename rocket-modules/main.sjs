@@ -31,7 +31,7 @@ var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };
 var stream = require('apollo:nodejs/stream');
 
-var compiler_version = "c1-4"; // XXX should be derived programatically
+var compiler_version = "c1-5"; // XXX should be derived programatically
 
 //----------------------------------------------------------------------
 

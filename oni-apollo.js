@@ -2151,7 +2151,7 @@ function gen_fun_decl(fname,pars,body,pctx){if(top_decl_scope(pctx).fscoped_ctx)
 
 
 
-return gen_var_decl([[fname,new ph_fun_exp("",pars,body,pctx)]],pctx);
+return gen_var_decl([[new ph_identifier(fname,pctx),new ph_fun_exp("",pars,body,pctx)]],pctx);
 }else return new ph_fun_decl(fname,pars,body,pctx);
 
 
@@ -2230,6 +2230,7 @@ function gen_var_decl(decls,pctx){return gen_var_compound(decls,pctx).toBlock();
 
 function ph_var_decl(d,pctx){this.d=d;
 
+if(!this.d[0].is_id)throw "Invalid expression in variable declaration";
 this.is_empty=this.d.length<2;
 this.line=pctx.line;
 if(!this.is_empty)this.is_nblock=pctx.allow_nblock&&d[1].is_nblock;
@@ -2237,12 +2238,12 @@ if(!this.is_empty)this.is_nblock=pctx.allow_nblock&&d[1].is_nblock;
 }
 ph_var_decl.prototype=new ph();
 ph_var_decl.prototype.is_var_decl=true;
-ph_var_decl.prototype.decl=function(){return this.d[0]};
-ph_var_decl.prototype.nblock_val=function(){return this.d[0]+"="+this.d[1].nb()+";";
+ph_var_decl.prototype.decl=function(){return this.d[0].name};
+ph_var_decl.prototype.nblock_val=function(){return this.d[0].name+"="+this.d[1].nb()+";";
 
 
 };
-ph_var_decl.prototype.val=function(){return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0]+"=_oniX;},"+this.d[1].v()+")";
+ph_var_decl.prototype.val=function(){return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0].name+"=_oniX;},"+this.d[1].v()+")";
 
 
 
@@ -2479,7 +2480,7 @@ function gen_for_in(lhs_exp,decl,obj_exp,body,pctx){var rv;
 
 if(decl){
 rv=gen_var_compound([decl],pctx);
-rv.stmts.push(new ph_for_in(new ph_identifier(decl[0],pctx),obj_exp,body,pctx));
+rv.stmts.push(new ph_for_in(decl[0],obj_exp,body,pctx));
 
 
 rv=rv.toBlock();
@@ -2745,7 +2746,7 @@ rv="__oni_rt.Sc("+this.line+",function(l){return l[0][l[1]]"+this.id+"},"+this.l
 return rv;
 };
 
-function gen_identifier(value,pctx){if(value=="hold"){
+function gen_identifier(name,pctx){if(name=="hold"){
 
 
 
@@ -2753,16 +2754,16 @@ function gen_identifier(value,pctx){if(value=="hold"){
 var rv=new ph_literal('__oni_rt.Hold',pctx);
 rv.is_id=true;
 return rv;
-}else if(value=="arguments"){
+}else if(name=="arguments"){
 
 return new ph_envobj('arguments','aobj',pctx);
 }
 
 
-return new ph_identifier(value,pctx);
+return new ph_identifier(name,pctx);
 }
 
-function ph_identifier(value,pctx){this.value=value;
+function ph_identifier(name,pctx){this.name=name;
 
 this.line=pctx.line;
 }
@@ -2770,8 +2771,8 @@ ph_identifier.prototype=new ph();
 ph_identifier.prototype.is_nblock=true;
 ph_identifier.prototype.is_id=true;
 ph_identifier.prototype.is_value=true;
-ph_identifier.prototype.nblock_val=function(){return this.value};
-ph_identifier.prototype.destruct=function(dpath){return this.value+"="+dpath+";";
+ph_identifier.prototype.nblock_val=function(){return this.name};
+ph_identifier.prototype.destruct=function(dpath){return this.name+"="+dpath+";";
 
 };
 
@@ -3129,7 +3130,7 @@ if(b.length)rv+="return __oni_rt.ex("+b+",__oni_env)";
 
 rv+="}, function() {";
 for(var i=0;i<this.decls.length;++i){
-var name=this.decls[i][0];
+var name=this.decls[i][0].name;
 if(name=="arguments")throw "Cannot use 'arguments' as variable name in waitfor()";
 rv+=name+"=arguments["+i+"];";
 }
@@ -3156,7 +3157,7 @@ function gen_using(has_var,lhs,exp,body,pctx){var rv;
 if(has_var){
 
 if(!lhs.is_id)throw "Variable name expected in 'using' expression";
-rv=gen_var_compound([[lhs.nb()]],pctx);
+rv=gen_var_compound([[lhs]],pctx);
 rv.stmts.push(new ph_using(lhs,exp,body,pctx));
 rv=rv.toBlock();
 }else rv=new ph_using(lhs,exp,body,pctx);
@@ -3271,12 +3272,12 @@ SemanticToken.prototype={exsf:function(pctx){
 
 
 
-throw "Unexpected "+this},excbp:0,excf:function(left,pctx){
+throw "Unexpected '"+this+"'"},excbp:0,excf:function(left,pctx){
 
 
 
 
-throw "Unexpected "+this},stmtf:null,tokenizer:TOKENIZER_SA,toString:function(){
+throw "Unexpected '"+this+"'"},stmtf:null,tokenizer:TOKENIZER_SA,toString:function(){
 
 
 
@@ -3875,13 +3876,12 @@ function parseVarDecls(pctx,noIn){var decls=[];
 var parse=noIn?parseExpNoIn:parseExp;
 do {
 if(decls.length)scan(pctx,",");
-var id=pctx.token.value;
-scan(pctx,"<id>");
+var id_or_pattern=parse(pctx,120);
 if(pctx.token.id=="="){
 scan(pctx);
 var initialiser=parse(pctx,110);
-decls.push([id,initialiser]);
-}else decls.push([id]);
+decls.push([id_or_pattern,initialiser]);
+}else decls.push([id_or_pattern]);
 
 
 }while(pctx.token.id==",");
