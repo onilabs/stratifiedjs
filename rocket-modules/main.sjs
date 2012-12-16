@@ -76,7 +76,7 @@ for (var i=1; i<process.argv.length; ++i) {
     port = process.argv[++i];
     break;
   case "--sslport":
-    port = process.argv[++i];
+    ssl_port = process.argv[++i];
     break;
   case "--ssl":
     ssl_keyfile = process.argv[++i];
