@@ -4,6 +4,8 @@
   <script src="../../oni-apollo.js"></script> 
   <script type="text/sjs">
 
+function main() {
+
 var c= require('apollo:xbrowser/console').console({target:"container", 
                                                    collapsed:false});
 
@@ -24,6 +26,9 @@ var cmd = document.location.getParameter ?
 if (cmd) c.exec(decodeURIComponent(cmd));
 
 c.focus();
+
+}
+main();
 
   </script>
   </head>
