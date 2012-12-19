@@ -158,13 +158,13 @@ function add_stmt(stmt, pctx) {
     return;
   }
   else if (stmt.is_var_decl) {
-    top_decl_scope(pctx).vars.push(stmt.decl());
+    stmt.collect_var_decls(top_decl_scope(pctx).vars);
     if (stmt.is_empty) return;
     // ... else fall through to encode initializer
 
   }
   else if (stmt.is_fun_decl) {
-    top_decl_scope(pctx).funs += stmt.decl();
+    top_decl_scope(pctx).funs += stmt.fun_decl();
     return;
   }
   
@@ -379,7 +379,7 @@ function ph_fun_decl(fname, pars, body, pctx) {
 ph_fun_decl.prototype = new ph(WHENDEBUG("ph_fun_decl"));
 ph_fun_decl.prototype.is_fun_decl = true;
   /* 'nblock_val', 'is_nblock', 'val' not needed for fun decls */
-ph_fun_decl.prototype.decl = function() { return this.code; };
+ph_fun_decl.prototype.fun_decl = function() { return this.code; };
 
 //----------------------------------------------------------------------
 // statements:
@@ -460,23 +460,43 @@ function gen_var_decl(decls, pctx) {
 
 function ph_var_decl(d, pctx) {
   this.d = d;
-  if (!this.d[0].is_id) throw "Invalid expression in variable declaration";
+  if (!this.d[0].is_id) 
+#ifdef SJS_DESTRUCTURE
+    this.is_dest = true;
+#else
+  throw "Invalid expression in variable declaration";
+#endif
   this.is_empty = this.d.length<2;
-  this.line = pctx.line; //XXX might want to take the line of the decl here
+  this.pctx = pctx;
   if (!this.is_empty)
-    this.is_nblock = pctx.allow_nblock && d[1].is_nblock;
+    this.is_nblock = pctx.allow_nblock && d[1].is_nblock
+#ifdef SJS_DESTRUCTURE
+    && !this.is_dest;   // XXX destructuring var decls can't be encoded as nblock yet
+#endif
 }
 ph_var_decl.prototype = new ph(WHENDEBUG("ph_var_decl"));
 ph_var_decl.prototype.is_var_decl = true;
-ph_var_decl.prototype.decl = function() { return this.d[0].name; };
+ph_var_decl.prototype.collect_var_decls = function(vars) { 
+#ifdef SJS_DESTRUCTURE
+  this.d[0].collect_var_decls(vars);
+#else
+  vars.push(this.d[0].name); 
+#endif
+};
 ph_var_decl.prototype.nblock_val = function() {
-    ASSERT(!this.is_empty)
-    return this.d[0].name+"="+this.d[1].nb()+";";
+  ASSERT(!this.is_empty)
+  return this.d[0].name+"="+this.d[1].nb()+";";
 };
 ph_var_decl.prototype.val = function() {
-    ASSERT(!this.is_empty)
-    // XXX Need to handle special case of "var arguments = XXX"
-    return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0].name+
+  ASSERT(!this.is_empty)
+#ifdef SJS_DESTRUCTURE
+  if (this.is_dest) {
+    return (new ph_assign_op(this.d[0], '=', this.d[1], this.pctx)).val();
+  }
+  else
+#endif
+  // XXX Need to handle special case of "var arguments = XXX"
+    return "__oni_rt.Sc("+this.pctx.line+",function(_oniX){return "+this.d[0].name+
       "=_oniX;},"+this.d[1].v()+")";
 }; 
 
@@ -800,6 +820,7 @@ ph_literal.prototype.v = function() { return this.value; };
 ph_literal.prototype.nblock_val = function() { return this.value; };
 #ifdef SJS_DESTRUCTURE
 ph_literal.prototype.destruct = function() { if (this.value != "") throw "invalid pattern"; return "";};
+ph_literal.prototype.collect_var_decls = function() { };
 #endif
 
 #define GEN_INFIX_OP(left, id, right, pctx)  return new ph_infix_op(left, id, right, pctx);
@@ -904,7 +925,7 @@ function ph_assign_op(left, id, right, pctx) {
   if (!left.is_ref && !left.is_id)
 #ifdef SJS_DESTRUCTURE
     {
-      this.dest = true;
+      this.is_dest = true;
       if (id != "=") throw "Invalid operator in destructuring assignment";
     }
 #else
@@ -922,7 +943,7 @@ function ph_assign_op(left, id, right, pctx) {
 #else
   this.is_nblock = pctx.allow_nblock && left.is_nblock && right.is_nblock
 #ifdef SJS_DESTRUCTURE
-                   && !this.dest; // XXX do destructuring assignment nb form
+                   && !this.is_dest; // XXX do destructuring assignment nb form
 #endif
 #endif
 }
@@ -937,7 +958,7 @@ ph_assign_op.prototype.val = function() {
       rv = nblock_val_to_val(this.nb(), true, this.line);
     }
 #ifdef SJS_DESTRUCTURE
-    else if (this.dest) {
+    else if (this.is_dest) {
       rv = "__oni_rt.Sc("+this.line+",function(_oniX";
       try {
         var drefs = [], body = this.left.destruct("_oniX", drefs);
@@ -1058,6 +1079,9 @@ ph_identifier.prototype.nblock_val = function() { return this.name; };
 ph_identifier.prototype.destruct = function(dpath) {
   return this.name + "=" + dpath + ";";
 };
+ph_identifier.prototype.collect_var_decls = function(vars) {
+  vars.push(this.name);
+};
 #endif
 
 function ph_envobj(name, ename, pctx) {
@@ -1076,6 +1100,13 @@ ph_envobj.prototype.nblock_val = function() {
   else
     return "this."+this.ename;
 };
+#ifdef SJS_DESTRUCTURE
+ph_envobj.prototype.destruct = 
+ph_envobj.prototype.collect_var_decls = function() {
+  throw "'"+this.name+"' not allowed in destructuring pattern";
+};
+#endif
+
 
 #define GEN_THIS(pctx) return new ph_envobj('this', 'tobj', pctx);
 
@@ -1164,7 +1195,10 @@ ph_dot_accessor.prototype.destruct = function(dpath, drefs) {
   drefs.push(this.ref());
   var v= "_oniX"+drefs.length;
   return v+"[0]["+v+"[1]]="+dpath+";";
-}
+};
+ph_dot_accessor.prototype.collect_var_decls = function(vars) {
+  throw "var declaration must not contain property accessor as lvalue";
+};
 #endif
 
 #define GEN_IDX_ACCESSOR(l, idxexp, pctx) return new ph_idx_accessor(l, idxexp, pctx);
@@ -1210,6 +1244,7 @@ ph_group.prototype.nblock_val = function() { return "("+this.e.nb()+")"; };
 ph_group.prototype.v = function(accept_list) { return this.e.v(accept_list); };
 #ifdef SJS_DESTRUCTURE
 ph_group.prototype.destruct = function(dpath,drefs) { return this.e.destruct(dpath,drefs); };
+ph_group.prototype.collect_var_decls = function(vars) { return this.e.collect_var_decls(vars); };
 #endif
 
 #define GEN_ARR_LIT(elements, pctx) return new ph_arr_lit(elements, pctx);
@@ -1243,6 +1278,10 @@ ph_arr_lit.prototype.destruct = function(dpath, drefs) {
     rv += this.elements[i].destruct(dpath+"["+i+"]", drefs);
   }
   return rv;  
+};
+ph_arr_lit.prototype.collect_var_decls = function(vars) {
+  for (var i=0; i<this.elements.length; ++i)
+    this.elements[i].collect_var_decls(vars);
 };
 #endif
 
@@ -1311,19 +1350,21 @@ ph_obj_lit.prototype.destruct = function(dpath, drefs) {
   for (var i=0; i<this.props.length; ++i) {
     var p = this.props[i];
     if (p[0] == "pat") {
-      if (p[1].charAt(0) == "'" || p[1].charAt(0) == '"') {
-        // XXX this message is unfortunately wasted, because it gets
-        // overwritten by our caller
-        // throw {mes:"Invalid quoted identifer "+p[1]+" in pattern",
-        //        line: p[2]};
-        throw "invalid syntax";
-      }
       rv += p[1]+"="+dpath+"."+p[1]+";";
     }
     else // assuming "prop"
       rv += p[2].destruct(dpath+"["+quotedName(p[1])+"]", drefs);
   }
   return rv;
+};
+ph_obj_lit.prototype.collect_var_decls = function(vars) {
+  for (var i=0; i<this.props.length; ++i) {
+    var p = this.props[i];
+    if (p[0] == "pat")
+      vars.push(p[1]);
+    else
+      p[2].collect_var_decls(vars);
+  }
 };
 #endif
 

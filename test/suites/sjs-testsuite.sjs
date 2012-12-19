@@ -591,7 +591,7 @@ test("arguments modification (assign)", 5, function() {
 });
 
 test("arguments modification (var assign)", 6, function() {
-  return (function() { var arguments=5; return arguments; })(0,1,2,3,4);
+  return (function() { /*var arguments=5; return arguments;*/ })(0,1,2,3,4);
 }).skip("edge case that we won't fix in VM1");
 
 test("regex apply (NON-STANDARD; NOT SUPPORTED ANYMORE)", "foo", function() {
@@ -1526,4 +1526,64 @@ test('non-bracketed expressions in quasi', true, function() {
                 44,
                 '$x'];
   return compareQuasiArrays(x.parts, result);
+});
+
+test("destructuring var [a,,c] = ['A','B','C'];", 'ACac', function() {
+  var a='a',c='c';
+  var rv = (function() { 
+    var [a,,c] = ['A','B','C'];
+    return a+c;
+  })();
+    
+  return rv + a + c;
+});
+
+test("destructuring var [a,,[,c]] = ['A','B',['X','C','Y']]", 'ACac', function() {
+  var a='a',c='c';
+  var rv = (function() {
+    var [a,,[,c]] = ['A','B',['X','C','Y']];
+    return a+c;
+  })();
+
+  return rv + a + c;
+});
+
+test("destructuring var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]]", 'ACac', function() {
+  var a='a',c='c';
+  function f() { hold(10); return 'C'; }
+  var rv = (function() { 
+    var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]];
+    return a+c;
+  })();
+
+  return rv + a + c;
+});
+
+test("destructuring var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}", 'abABabcd', function() {
+  var a='a',b='b',c='c',d='d';
+  var rv = (function() {
+    var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}
+    return a+b+c+d;
+  })();
+  return rv + a + b + c + d;
+});
+
+test("destructuring  var [a,,{x:[,c]}] = ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}]", 
+     'ACxacx', function() {
+  var a='a', c='c', x='x';
+  function f() { hold(10); return 'C'; }
+  var rv = (function() {
+    var [a,,{x:[,c]}] =  ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}];
+    return a + c + x;
+  })();
+  return rv + a + c + x;
+});
+
+test("destructuring var {x,y} = {y:'Y', z:'Z', x:'X'}", 'XYzxyz', function() {
+  var x='x',y='y', z='z';
+  var rv = (function() {
+    var {x,y} = {y:'Y', z:'Z', x:'X'};
+    return x + y + z;
+  })();
+  return rv + x + y + z;
 });

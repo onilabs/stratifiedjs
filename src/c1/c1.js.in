@@ -891,6 +891,8 @@ S("{").
 #endif // METHOD_DEFINITIONS
 #ifdef SJS_DESTRUCTURE
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
+          if (prop.charAt(0) == "'" || prop.charAt(0) == '"')
+            throw "Quoted identifiers not allowed in destructuring patterns ("+prop+")";
           props.push(["pat", prop, pctx.line]);
         }
 #endif // SJS_DESTRUCTURE
