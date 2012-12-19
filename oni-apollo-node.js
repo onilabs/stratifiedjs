@@ -2858,7 +2858,7 @@ ph_dot_accessor.prototype.destruct=function(dpath,drefs){drefs.push(this.ref());
 var v="_oniX"+drefs.length;
 return v+"[0]["+v+"[1]]="+dpath+";";
 };
-ph_dot_accessor.prototype.collect_var_decls=function(vars){throw "var declaration must not contain propery accessors as lvalues";
+ph_dot_accessor.prototype.collect_var_decls=function(vars){throw "var declaration must not contain property accessor as lvalue";
 
 };
 
