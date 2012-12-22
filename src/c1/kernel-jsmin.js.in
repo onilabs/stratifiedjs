@@ -272,6 +272,14 @@ function gen_prefix_op(id, right, pctx) {
 #define GEN_POSTFIX_OP(left, id, pctx)          \
   return left + id + " ";
 
+#ifdef SJS_ARROWS
+#define GEN_THIN_ARROW(body, ptcx) GEN_PREFIX_OP('->', body, pctx)
+#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx) GEN_INFIX_OP(pars, '->', body, pctx)
+// note the intentional space in ' =>' below; it is to fix cases like '= => ...'
+#define GEN_FAT_ARROW(body, ptcx) GEN_PREFIX_OP(' =>', body, pctx)
+#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx) GEN_INFIX_OP(pars, '=>', body, pctx)
+#endif
+
 #ifdef STRINGIFY
 #define GEN_LITERAL(type, value, pctx)                                  \
   if (type == "<string>")                                               \

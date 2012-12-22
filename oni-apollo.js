@@ -276,9 +276,9 @@ exports.Nb=makeINCtor(I_nblock);
 
 
 
-function I_blocklambda(ndata,env){return (function(){
+function I_blocklambda(ndata,env){return ndata[0].bind(env);
 
-return (ndata[0]).apply(env,arguments)});
+
 }
 exports.Bl=makeINCtor(I_blocklambda);
 
@@ -2234,14 +2234,20 @@ if(!this.d[0].is_id)this.is_dest=true;
 
 this.is_empty=this.d.length<2;
 this.pctx=pctx;
+this.line=pctx.line;
 if(!this.is_empty)this.is_nblock=pctx.allow_nblock&&d[1].is_nblock&&!this.is_dest;
 
 
 }
 ph_var_decl.prototype=new ph();
 ph_var_decl.prototype.is_var_decl=true;
-ph_var_decl.prototype.collect_var_decls=function(vars){this.d[0].collect_var_decls(vars);
+ph_var_decl.prototype.collect_var_decls=function(vars){try{
 
+this.d[0].collect_var_decls(vars);
+}catch(e){
+
+throw "Invalid syntax in variable declaration";
+}
 };
 ph_var_decl.prototype.nblock_val=function(){return this.d[0].name+"="+this.d[1].nb()+";";
 
@@ -2250,8 +2256,9 @@ ph_var_decl.prototype.nblock_val=function(){return this.d[0].name+"="+this.d[1].
 ph_var_decl.prototype.val=function(){if(this.is_dest){
 
 
+
 return (new ph_assign_op(this.d[0],'=',this.d[1],this.pctx)).val();
-}else return "__oni_rt.Sc("+this.pctx.line+",function(_oniX){return "+this.d[0].name+"=_oniX;},"+this.d[1].v()+")";
+}else return "__oni_rt.Sc("+this.line+",function(_oniX){return "+this.d[0].name+"=_oniX;},"+this.d[1].v()+")";
 
 
 
@@ -2565,6 +2572,16 @@ this.is_nblock=pctx.allow_nblock&&left.is_nblock&&right.is_nblock;
 }
 ph_infix_op.prototype=new ph();
 ph_infix_op.prototype.is_value=true;
+
+ph_infix_op.prototype.collect_pars=function(pars){if(this.id!=',')throw "invalid parameter list syntax";
+
+pars.push(this.left);
+if(this.right.collect_pars)this.right.collect_pars(pars);else pars.push(this.right);
+
+
+
+};
+
 ph_infix_op.prototype.nblock_val=function(){return this.left.nb()+" "+this.id+" "+this.right.nb();
 
 };
@@ -2755,6 +2772,79 @@ rv="__oni_rt.Sc("+this.line+",function(l){return l[0][l[1]]"+this.id+"},"+this.l
 return rv;
 };
 
+
+
+
+
+function ph_arrow(pars_exp,body,pctx,bound){this.is_nblock=pctx.allow_nblock;
+
+this.js_ctx=pctx.js_ctx;
+this.line=pctx.line;
+this.bound=bound;
+
+this.code='function(){';
+
+
+
+
+
+
+
+if(pars_exp){
+var pars,vars=[],assignments="";
+
+
+
+try{
+if(pars_exp.collect_pars)pars_exp.collect_pars(pars=[]);else pars=[pars_exp];
+
+
+
+for(var i=0;i<pars.length;++i){
+pars[i].collect_var_decls(vars);
+assignments+=pars[i].destruct('arguments['+i+']');
+}
+
+if(vars.length){
+this.code+="var "+vars.join(',')+";";
+}
+
+this.code+=assignments;
+
+}catch(e){
+
+throw "Invalid syntax in parameter list";
+}
+}
+
+if(pctx.js_ctx){
+this.code+="return "+body.nb()+"}";
+}else{
+
+this.code+='return __oni_rt.exseq(arguments,this,'+pctx.filename+',['+(1+32)+','+body.v()+'])}';
+
+
+
+}
+}
+ph_arrow.prototype=new ph();
+
+ph_arrow.prototype.v=function(){if(this.bound)return nblock_val_to_val(this.nb(),true,this.line);else return this.code;
+
+
+
+
+};
+
+ph_arrow.prototype.nb=function(){if(this.bound)return '('+this.code+').bind('+(this.js_ctx?'this':'this.tobj')+')';else return this.code;
+
+
+
+
+};
+
+
+
 function gen_identifier(name,pctx){if(name=="hold"){
 
 
@@ -2928,6 +3018,12 @@ ph_group.prototype.nblock_val=function(){return "("+this.e.nb()+")"};
 ph_group.prototype.v=function(accept_list){return this.e.v(accept_list)};
 ph_group.prototype.destruct=function(dpath,drefs){return this.e.destruct(dpath,drefs)};
 ph_group.prototype.collect_var_decls=function(vars){return this.e.collect_var_decls(vars)};
+ph_group.prototype.collect_pars=function(pars){if(this.e.collect_pars)this.e.collect_pars(pars);else pars.push(this.e);
+
+
+
+
+};
 
 function ph_arr_lit(elements,pctx){this.elements=elements;
 
@@ -3277,11 +3373,13 @@ delete this["$"+key]}};
 
 
 
-var TOKENIZER_SA=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\/\n])+\/[gimy]*)|(==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
+
+
+var TOKENIZER_SA=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\/\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
 
 
 
-var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+))/g;
+var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+))/g;
 
 
 
@@ -3463,8 +3561,17 @@ return new ph_new(exp,args);
 
 S("(").exs(function(pctx){
 
-var e=parseExp(pctx);
+if(pctx.token.id==')'){
 
+
+var op=scan(pctx,')');
+if(op.id!='->'&&op.id!='=>')throw "Was expecting '->' or '=>' after empty parameter list, but saw '"+pctx.token.id+"'";
+
+
+scan(pctx);
+return op.exsf(pctx);
+}
+var e=parseExp(pctx);
 scan(pctx,")");
 
 return new ph_group(e,pctx);
@@ -3561,6 +3668,33 @@ S(">>>=").asg(120,true);
 S("&=").asg(120,true);
 S("^=").asg(120,true);
 S("|=").asg(120,true);
+
+S("->").exs(function(pctx){
+
+var body=parseExp(pctx,119.5);
+
+
+return new ph_arrow(undefined,body,pctx);
+}).exc(120,function(left,pctx){
+
+var body=parseExp(pctx,119.5);
+
+
+return new ph_arrow(left,body,pctx);
+});
+S("=>").exs(function(pctx){
+
+var body=parseExp(pctx,119.5);
+
+
+return new ph_arrow(undefined,body,pctx,true);
+}).exc(120,function(left,pctx){
+
+var body=parseExp(pctx,119.5);
+
+
+return new ph_arrow(left,body,pctx,true);
+});
 
 S("spawn").pre(115);
 

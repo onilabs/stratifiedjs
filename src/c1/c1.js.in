@@ -110,6 +110,7 @@ general:
    #define SJS___JS: parse SJS's "__js" keyword
    #define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    #define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
+   #define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
    #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    #define QUASIS: allow quasi templates (`foo#{bar}baz`)
    #define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
@@ -261,6 +262,13 @@ GEN___JS(body, pctx)
 - if #define SJS_BLOCKLAMBDA is set:
 GEN_BLOCKLAMBDA(pars, body, pctx)
 
+- if #define SJS_ARROWS is set:
+GEN_THIN_ARROW(body_exp, pctx)
+GEN_THIN_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
+GEN_FAT_ARROW(body_exp, pctx)
+GEN_FAT_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
+
+
 - if #define INTERPOLATING_STRINGS is set:
 GEN_INTERPOLATING_STR(parts, pctx)
 
@@ -281,6 +289,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
+#define SJS_ARROWS 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #define METHOD_DEFINITIONS 1
@@ -294,6 +303,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
+#define SJS_ARROWS 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #define METHOD_DEFINITIONS 1
@@ -337,7 +347,13 @@ Hash.prototype = {
 
 #define PAT_OPERATOR4 >>>=
 #define PAT_OPERATOR3 ===|!==|>>>|<<=|>>=
+
+#ifdef SJS_ARROWS
+#define PAT_OPERATOR2 ==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
+#else
 #define PAT_OPERATOR2 ==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
+#endif
+
 #ifdef INTERPOLATING_STRINGS
 #define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]
 #else
@@ -605,6 +621,10 @@ BP  P  A    Operator      Operand Types                  Operation Performed
        R     &=           LeftHandSideExp AssignExp      AssignmentWithBitwiseAnd
        R     ^=           LeftHandSideExp AssignExp      AssignmentWithBitwiseOr
        R     |=           LeftHandSideExp AssignExp      AssignmentWithLogicalNot
+*      R     ->           Args AssignExp                 Thin Arrow 
+*      R     ->           AssignExp                      Thin Arrow (prefix form)
+*      R     =>           Args AssignExp                 Fat Arrow
+*      R     =>           AssignExp                      Fat Arrow (prefix form)
 *115         spawn        SpawnExp                       StratifiedJS 'spawn'
 110 17 L     ,            Expression AssignExp           SequentialEvaluation
 
@@ -667,8 +687,19 @@ S("new").exs(function(pctx) {
 });
 
 S("(").
-  // grouping
+  // grouping/parameter list
   exs(function (pctx) {
+#ifdef SJS_ARROWS
+    if (pctx.token.id == ')') {
+      // empty parameter list
+      var op = scan(pctx, ')');
+      if (op.id != '->' &&
+          op.id != '=>')
+        throw "Was expecting '->' or '=>' after empty parameter list, but saw '"+pctx.token.id+"'";
+      scan(pctx);
+      return op.exsf(pctx);
+    }
+#endif
     var e = parseExp(pctx);
     scan(pctx, ")");
     LOGM('group')
@@ -768,6 +799,35 @@ S(">>>=").asg(120, true);
 S("&=").asg(120, true);
 S("^=").asg(120, true);
 S("|=").asg(120, true);
+
+#ifdef SJS_ARROWS
+S("->")
+  // prefix form without parameters expression
+  .exs(function(pctx) {
+    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    LOGM('thinarray/prefix')
+    GEN_THIN_ARROW(body, pctx)
+  })
+  // infix form with parameters expression
+  .exc(120, function(left, pctx) {
+    var body = parseExp(pctx, 119.5);
+    LOGM('thinarray/infix')
+    GEN_THIN_ARROW_WITH_PARS(left, body, pctx)
+  });
+S("=>")
+  // prefix form without parameters expression
+  .exs(function(pctx) {
+    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    LOGM('fatarray/prefix')
+    GEN_FAT_ARROW(body, pctx)
+  })
+  // infix form with parameters expression
+  .exc(120, function(left, pctx) {
+    var body = parseExp(pctx, 119.5);
+    LOGM('fatarray/infix')
+    GEN_FAT_ARROW_WITH_PARS(left, body, pctx)
+  });
+#endif
 
 #ifdef SJS
 S("spawn").pre(115);

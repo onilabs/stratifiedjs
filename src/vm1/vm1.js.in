@@ -251,7 +251,7 @@ exports.exseq = function(aobj,tobj,file, args) {
   return rv;
 };
 
-// block lambda bodies: create a seq and exec it. don't map exceptions.
+// block lambda bodies: create a seq and exec it. XXX don't map exceptions?
 // short for __oni_rt.exec(__oni_rt.Seq(...), env)
 exports.exbl = function(env, args) {
   var rv = I_seq(args, env);
@@ -327,8 +327,8 @@ exports.Nb = makeINCtor(I_nblock);
 // structure of ndata array:
 #define NDATA_BLOCKLAMBDA_JSFUNC() ndata[0]
 function I_blocklambda(ndata, env) {
-  ASSERT(env.ref)
-  return (function() { return (NDATA_BLOCKLAMBDA_JSFUNC()).apply(env, arguments); });
+  //return (function() { return (NDATA_BLOCKLAMBDA_JSFUNC()).apply(env, arguments); });
+  return NDATA_BLOCKLAMBDA_JSFUNC().bind(env);
 }
 exports.Bl = makeINCtor(I_blocklambda);
 

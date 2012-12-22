@@ -14,6 +14,7 @@ perf-tests.sjs xbrowser,nodejs
 require-tests.sjs xbrowser,nodejs
 sjcl-tests.sjs xbrowser,nodejs
 sjs-testsuite.sjs xbrowser,nodejs
+sjs-testsuite2.sjs xbrowser,nodejs
 stream-tests.sjs xbrowser,nodejs
 string-tests.sjs xbrowser,nodejs
 yql-tests.sjs xbrowser,nodejs
