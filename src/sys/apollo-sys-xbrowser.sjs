@@ -371,7 +371,7 @@ function request_hostenv(url, settings) {
     // response == 'full'
     return {
       content: req.responseText,
-      getHeader(name) { req.getResponseHeader(name) }
+      getHeader: name -> req.getResponseHeader(name)
     };
   }
 }

@@ -179,10 +179,10 @@ BaseFileFormatMap.prototype = {
                         // filterETag() returns a tag that will be added onto 
                         // the base file's modification date to derive an etag for
                         // the filtered file.
-                        filterETag() { compiler_version /* xxx could maybe derive this from some 
-                                               modification dates; now it needs to be 
-                                               changed manually when our compiler or 
-                                               compilation format changes */ },
+                        filterETag: -> compiler_version /* xxx could maybe derive this from some 
+                                                           modification dates; now it needs to be 
+                                                           changed manually when our compiler or 
+                                                           compilation format changes */,
                         // cache is an lru-cache object which caches requests to filtered
                         // files (requires presence of filterETag() ):
                         cache: SJSCache
@@ -207,7 +207,7 @@ BaseFileFormatMap.prototype = {
                       },
            sjs      : { mime: "text/plain",
                         filter: sjscompile,
-                        filterETag() { compiler_version },
+                        filterETag: -> compiler_version,
                         cache: SJSCache
                       },
            src      : { mime: "text/plain" }

@@ -41,7 +41,7 @@ var responsive = false;
 var columnWidth = 60;
 while (1) {
   var lookAndFeel = Object.create(bootstrap.defaultLookAndFeel);
-  lookAndFeel.gridColumnWidth = {|| columnWidth+'px' };
+  lookAndFeel.gridColumnWidth = -> columnWidth+'px';
 
   var bs_container = bootstrap.Container(
     {

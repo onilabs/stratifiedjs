@@ -5,7 +5,7 @@ var ui = surface.Html(
     content: "<button id='start'>Start</button>
               <button id='stop'>Stop</button>
               <span></span>",
-    mechanism() {
+    mechanism: function() {
       this.elapsed = 0;
       while (1) {
         this.waitforEvent('click', '#start');

@@ -305,7 +305,7 @@ function request_hostenv(url, settings) {
     // response == 'full'
     return {
       content: response.data,
-      getHeader(name) { response.headers[name.toLowerCase()] }
+      getHeader: name -> response.headers[name.toLowerCase()]
     };
   }
       
@@ -400,7 +400,7 @@ function getExtensions_hostenv() {
     // normal sjs modules
     'sjs': default_compiler,
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
-    'js'(src, descriptor) {
+    'js': function(src, descriptor) {
       var f = new Function("module", "exports", "require", src);
       f.apply(descriptor.exports, [descriptor, descriptor.exports, descriptor.require]);
     }

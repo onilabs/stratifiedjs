@@ -315,10 +315,10 @@ function serveFile(request, response, filePath, format, formats) {
 
   var ext = path.extname(filePath).slice(1);
   return formatResponse(
-    { input(opts) {
+    { input: opts ->
         // XXX hmm, might need to destroy this somewhere
         require('fs').createReadStream(filePath, opts) 
-      },
+      ,
       length: stat.size,
       extension: ext,
       requestedFormat: format,
@@ -419,9 +419,7 @@ function createKeyhole() {
   return {
     id: id,
     mappings: mappings, // virtual_path -> { file, mime }
-    close() {
-      delete keyholes[id];
-    }
+    close: -> delete keyholes[id]
   }
 }
 exports.createKeyhole = createKeyhole;

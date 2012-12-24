@@ -104,7 +104,7 @@ function createTransport() {
   var transport = {
     id: createID(),
     active: true,
-    exchangeMessages(in_messages, out_messages) {
+    exchangeMessages: function(in_messages, out_messages) {
       // assert(this.active)
       try {
         exchange_in_progress = true;
@@ -140,7 +140,7 @@ function createTransport() {
       }
     },
 
-    pollMessages(in_messages, out_messages) {
+    pollMessages: function(in_messages, out_messages) {
 //      console.log('polling...');
       // assert(this.active)
       if (in_messages.length) {
@@ -172,12 +172,12 @@ function createTransport() {
     },
 
     // external API:
-    send(message) {
+    send: function(message) {
       if (!this.active) throw new Error("inactive transport");
       send_q.unshift(message);
       if (resume_poll && !exchange_in_progress) resume_poll();
     },
-    receive() {
+    receive: function() {
       if (!this.active) throw new Error("inactive transport");
       if (!receive_q.length) {
         waitfor(var e) {
@@ -235,10 +235,9 @@ function createTransportHandler(transportSink) {
   if (!transportSink) transportSink = defaultTransportSink;
 
   return {
-    handle_get(req, resp, v) {
-      return this.handle_post(req, resp, v);
-    },
-    handle_post(req, resp, v) {
+    handle_get: (req, resp, v) -> this.handle_post(req, resp, v),
+
+    handle_post: function(req, resp, v) {
 //      console.log("AAT request #{require('apollo:debug').inspect(req)}");
 
       var out_messages = [];

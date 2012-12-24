@@ -134,7 +134,7 @@ function openTransport(server) {
   var transport = {
     active: true,
 
-    send(message) {
+    send: function(message) {
       if (!this.active) throw new Error("inactive transport");
 
       try {
@@ -185,7 +185,7 @@ function openTransport(server) {
     },
 
     // XXX factor out common code between send() and sendData()
-    sendData(header, data) {
+    sendData: function(header, data) {
       if (!this.active) throw new Error("inactive transport");
 
       try {
@@ -252,7 +252,7 @@ function openTransport(server) {
 
       return receive_q.pop();
     }),
-    close() {
+    close: function() {
       this.active = false;
       if (poll_stratum) poll_stratum.abort();
       if (resume_receive) resume_receive(new Error('transport closed'));

@@ -215,11 +215,11 @@ function BridgeConnection(transport, base_api) {
     transport: transport,
     sent_blob_counter: 0, // counter for identifying data blobs (see marshalling above)
     received_blobs: {},
-    sendBlob(id, obj) {
+    sendBlob: function(id, obj) {
       transport.sendData(id, obj);
       return id;
     },
-    makeCall(api, method, args) {
+    makeCall: function(api, method, args) {
       var call_no = ++call_counter;
       waitfor {
         // initiate waiting for return value:
@@ -239,11 +239,11 @@ function BridgeConnection(transport, base_api) {
       if (isException) throw new Error(rv);
       return rv;
     },
-    publishAPI(api) {
+    publishAPI: function(api) {
       if (published_apis[api.id]) return; // already published
       published_apis[api.id] = api.obj;
     },
-    publishFunction(f) {
+    publishFunction: function(f) {
       var id = ++published_func_counter;
       published_funcs[id] = f;
       return id;

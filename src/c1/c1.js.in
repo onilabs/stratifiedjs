@@ -292,7 +292,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_ARROWS 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
-#define METHOD_DEFINITIONS 1
 #include "kernel-sjs.js.in"
 
 #elif defined(C1_KERNEL_JSMIN)
@@ -306,7 +305,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_ARROWS 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
-#define METHOD_DEFINITIONS 1
 #include "kernel-jsmin.js.in"
 
 #else
@@ -1027,6 +1025,7 @@ function parseFunctionInner(pctx, pars, implicit_return) {
 #ifdef METHOD_DEFINITIONS
 // parse an abbreviated-syntax method (as in { x() { ... }, y() { ... } })
 function parseMethod(pctx) {
+  //console.log("**** Deprecated method definition syntax in "+pctx.filename+":"+pctx.line);
   var pars = [];
   var body = parseFunctionInner(pctx, pars, true);
   LOGM('method_exp()')

@@ -129,12 +129,12 @@ function iterator(s) {
     } 
   })();
   return {
-    hasMore() { Q.peek() !== end_token },
-    next() { 
+    hasMore: -> Q.peek() !== end_token,
+    next: function() { 
       if (Q.peek() == end_token) throw new Error("End of stream"); 
-      Q.get(); 
+      return Q.get(); 
     },
-    close() { S.abort(); }
+    close: -> S.abort()
   }
 }
 exports.iterator = iterator;

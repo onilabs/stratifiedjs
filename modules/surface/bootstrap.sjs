@@ -371,105 +371,105 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
 
   // Grays
   // -------------------------
-  black()               { '#000' },
-  grayDarker()          { '#222' },
-  grayDark()            { '#333' },
-  gray()                { '#555' },
-  grayLight()           { '#999' },
-  grayLighter()         { '#eee' },
-  white()               { '#fff' },
+  black:               -> '#000',
+  grayDarker:          -> '#222',
+  grayDark:            -> '#333',
+  gray:                -> '#555',
+  grayLight:           -> '#999',
+  grayLighter:         -> '#eee',
+  white:               -> '#fff',
 
 
   // Accent colors
   // -------------------------
-  blue()                { '#049cdb' },
-  blueDark()            { '#0064cd' },
-  green()               { '#46a546' },
-  red()                 { '#9d261d' },
-  yellow()              { '#ffc40d' },
-  orange()              { '#f89406' },
-  pink()                { '#c3325f' },
-  purple()              { '#7a43b6' },
+  blue:                -> '#049cdb',
+  blueDark:            -> '#0064cd',
+  green:               -> '#46a546',
+  red:                 -> '#9d261d',
+  yellow:              -> '#ffc40d',
+  orange:              -> '#f89406',
+  pink:                -> '#c3325f',
+  purple:              -> '#7a43b6',
 
 
   // Scaffolding
   // -------------------------
-  bodyBackground()      { this.white() },
-  textColor()           { this.grayDark() },
+  bodyBackground:      -> this.white(),
+  textColor:           -> this.grayDark(),
 
 
   // Links
   // -------------------------
-  linkColor()           { '#08c' },
-  linkColorHover()      { darken(this.linkColor(), 0.15) },
+  linkColor:           -> '#08c',
+  linkColorHover:      -> darken(this.linkColor(), 0.15),
 
 
   // Typography
   // -------------------------
-  sansFontFamily()      { '"Helvetica Neue", Helvetica, Arial, sans-serif' },
-  serifFontFamily()     { 'Georgia, "Times New Roman", Times, serif' },
-  monoFontFamily()      { 'Menlo, Monaco, Consolas, "Courier New", monospace' },
+  sansFontFamily:      -> '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  serifFontFamily:     -> 'Georgia, "Times New Roman", Times, serif',
+  monoFontFamily:      -> 'Menlo, Monaco, Consolas, "Courier New", monospace',
 
-  baseFontSize()        { '13px' },
-  baseFontFamily()      { this.sansFontFamily() },
-  baseLineHeight()      { '18px' },
-  altFontFamily()       { this.serifFontFamily() },
+  baseFontSize:        -> '13px',
+  baseFontFamily:      -> this.sansFontFamily(),
+  baseLineHeight:      -> '18px',
+  altFontFamily:       -> this.serifFontFamily(),
 
-  headingsFontFamily()  { 'inherit' }, // empty to use BS default, @baseFontFamily
-  headingsFontWeight()  { 'bold' },    // instead of browser default, bold
-  headingsColor()       { 'inherit' }, // empty to use BS default, @textColor
+  headingsFontFamily:  -> 'inherit', // empty to use BS default, @baseFontFamily
+  headingsFontWeight:  -> 'bold',    // instead of browser default, bold
+  headingsColor:       -> 'inherit', // empty to use BS default, @textColor
 
 
   // Tables
   // -------------------------
-  tableBackground()                 { 'transparent' }, // overall background-color
-  tableBackgroundAccent()           { '#f9f9f9' }, // for striping
-  tableBackgroundHover()            { '#f5f5f5' }, // for hover
-  tableBorder()                     { '#ddd' }, // table and cell border
+  tableBackground:                 -> 'transparent', // overall background-color
+  tableBackgroundAccent:           -> '#f9f9f9', // for striping
+  tableBackgroundHover:            -> '#f5f5f5', // for hover
+  tableBorder:                     -> '#ddd', // table and cell border
 
 
   // Buttons
   // -------------------------
-  btnBackground()                     { this.white() },
-  btnBackgroundHighlight()            { darken(this.white(), 0.1) },
-  btnBorder()                         { '#ccc' },
+  btnBackground:                     -> this.white(),
+  btnBackgroundHighlight:            -> darken(this.white(), 0.1),
+  btnBorder:                         -> '#ccc',
   
-  btnPrimaryBackground()              { this.linkColor() },
-  btnPrimaryBackgroundHighlight()     { spin(this.btnPrimaryBackground(), 15) },
+  btnPrimaryBackground:              -> this.linkColor(),
+  btnPrimaryBackgroundHighlight:     -> spin(this.btnPrimaryBackground(), 15),
   
-  btnInfoBackground()                 { '#5bc0de' },
-  btnInfoBackgroundHighlight()        { '#2f96b4' },
+  btnInfoBackground:                 -> '#5bc0de',
+  btnInfoBackgroundHighlight:        -> '#2f96b4',
   
-  btnSuccessBackground()              { '#62c462' },
-  btnSuccessBackgroundHighlight()     { '#51a351' },
+  btnSuccessBackground:              -> '#62c462',
+  btnSuccessBackgroundHighlight:     -> '#51a351',
   
-  btnWarningBackground()              { lighten(this.orange(), 0.15) },
-  btnWarningBackgroundHighlight()     { this.orange() },
+  btnWarningBackground:              -> lighten(this.orange(), 0.15),
+  btnWarningBackgroundHighlight:     -> this.orange(),
   
-  btnDangerBackground()               { '#ee5f5b' },
-  btnDangerBackgroundHighlight()      { '#bd362f' },
+  btnDangerBackground:               -> '#ee5f5b',
+  btnDangerBackgroundHighlight:      -> '#bd362f',
   
-  btnInverseBackground()              { this.gray() },
-  btnInverseBackgroundHighlight()     { this.grayDarker() },
+  btnInverseBackground:              -> this.gray(),
+  btnInverseBackgroundHighlight:     -> this.grayDarker(),
 
 
   // Forms
   // -------------------------
-  inputBackground()               { this.white() },
-  inputBorder()                   { '#ccc' },
-  inputBorderRadius()             { '3px' },
-  inputDisabledBackground()       { this.grayLighter() },
-  formActionsBackground()         { '#f5f5f5' },
+  inputBackground:               -> this.white(),
+  inputBorder:                   -> '#ccc',
+  inputBorderRadius:             -> '3px',
+  inputDisabledBackground:       -> this.grayLighter(),
+  formActionsBackground:         -> '#f5f5f5',
 
   // Dropdowns
   // -------------------------
-  dropdownBackground()            { this.white() },
-  dropdownBorder()                { 'rgba(0,0,0,.2)' },
-  dropdownLinkColor()             { this.grayDark() },
-  dropdownLinkColorHover()        { this.white() },
-  dropdownLinkBackgroundHover()   { this.linkColor() },
-  dropdownDividerTop()            { '#e5e5e5' },
-  dropdownDividerBottom()         { this.white() },
+  dropdownBackground:            -> this.white(),
+  dropdownBorder:                -> 'rgba(0,0,0,.2)',
+  dropdownLinkColor:             -> this.grayDark(),
+  dropdownLinkColorHover:        -> this.white(),
+  dropdownLinkBackgroundHover:   -> this.linkColor(),
+  dropdownDividerTop:            -> '#e5e5e5',
+  dropdownDividerBottom:         -> this.white(),
 
   // COMPONENT VARIABLES
   // --------------------------------------------------
@@ -478,71 +478,71 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   // -------------------------
   // Used for a bird's eye view of components dependent on the z-axis
   // Try to avoid customizing these :)
-  zindexDropdown()          { 1000 },
-  zindexPopover()           { 1010 },
-  zindexTooltip()           { 1020 },
-  zindexFixedNavbar()       { 1030 },
-  zindexModalBackdrop()     { 1040 },
-  zindexModal()             { 1050 },
+  zindexDropdown:          -> 1000,
+  zindexPopover:           -> 1010,
+  zindexTooltip:           -> 1020,
+  zindexFixedNavbar:       -> 1030,
+  zindexModalBackdrop:     -> 1040,
+  zindexModal:             -> 1050,
 
   // Sprite icons path
   // -------------------------
   //@iconSpritePath:          "../img/glyphicons-halflings.png";
   //@iconWhiteSpritePath:     "../img/glyphicons-halflings-white.png";
   // in lieu of the sprite icons we use Font Awesome:  
-  fontAwesomePath()         { 'apollo:surface/resources/' },
+  fontAwesomePath:         -> 'apollo:surface/resources/',
 
   // Input placeholder text color
   // -------------------------
-  placeholderText()         { this.grayLight() },
+  placeholderText:         -> this.grayLight(),
   
   // Hr border color
   // -------------------------
-  hrBorder()                { this.grayLighter() },
+  hrBorder:                -> this.grayLighter(),
 
   // Navbar
   // -------------------------
-  navbarHeight()                    { '40px'},
-  navbarBackground()                { this.grayDarker() },
-  navbarBackgroundHighlight()       { this.grayDark() },
+  navbarHeight:                    -> '40px',
+  navbarBackground:                -> this.grayDarker(),
+  navbarBackgroundHighlight:       -> this.grayDark(),
   
-  navbarText()                      { this.grayLight() },
-  navbarLinkColor()                 { this.grayLight() },
-  navbarLinkColorHover()            { this.white() },
-  navbarLinkColorActive()           { this.navbarLinkColorHover() },
-  navbarLinkBackgroundHover()       { 'transparent' },
-  navbarLinkBackgroundActive()      { this.navbarBackground()},
+  navbarText:                      -> this.grayLight(),
+  navbarLinkColor:                 -> this.grayLight(),
+  navbarLinkColorHover:            -> this.white(),
+  navbarLinkColorActive:           -> this.navbarLinkColorHover(),
+  navbarLinkBackgroundHover:       -> 'transparent',
+  navbarLinkBackgroundActive:      -> this.navbarBackground(),
   
-  navbarSearchBackground()          { lighten(this.navbarBackground(), .25) },
-  navbarSearchBackgroundFocus()     { this.white() },
-  navbarSearchBorder()              { darken(this.navbarSearchBackground(), .30) },
-  navbarSearchPlaceholderColor()    { '#ccc' },
-  navbarBrandColor()                { this.navbarLinkColor() },
+  navbarSearchBackground:          -> lighten(this.navbarBackground(), .25),
+  navbarSearchBackgroundFocus:     -> this.white(),
+  navbarSearchBorder:              -> darken(this.navbarSearchBackground(), .30),
+  navbarSearchPlaceholderColor:    -> '#ccc',
+  navbarBrandColor:                -> this.navbarLinkColor(),
 
   // Hero unit
   // -------------------------
-  heroUnitBackground()              { this.grayLighter() },
-  heroUnitHeadingColor()            { 'inherit' },
-  heroUnitLeadColor()               { 'inherit' },
+  heroUnitBackground:              -> this.grayLighter(),
+  heroUnitHeadingColor:            -> 'inherit',
+  heroUnitLeadColor:               -> 'inherit',
 
 
   // Form states and alerts
   // -------------------------
-  warningText()             { '#c09853' },
-  warningBackground()       { '#fcf8e3' },
-  warningBorder()           { darken(spin(this.warningBackground(), -10), .03) },
+  warningText:             -> '#c09853',
+  warningBackground:       -> '#fcf8e3',
+  warningBorder:           -> darken(spin(this.warningBackground(), -10), .03),
   
-  errorText()               { '#b94a48' },
-  errorBackground()         { '#f2dede' },
-  errorBorder()             { darken(spin(this.errorBackground(), -10), .03) },
+  errorText:               -> '#b94a48',
+  errorBackground:         -> '#f2dede',
+  errorBorder:             -> darken(spin(this.errorBackground(), -10), .03),
   
-  successText()             { '#468847' },
-  successBackground()       { '#dff0d8' },
-  successBorder()           { darken(spin(this.successBackground(), -10), .05) },
+  successText:             -> '#468847',
+  successBackground:       -> '#dff0d8',
+  successBorder:           -> darken(spin(this.successBackground(), -10), .05),
   
-  infoText()                { '#3a87ad' },
-  infoBackground()          { '#d9edf7' },
-  infoBorder()              { darken(spin(this.infoBackground(), -10), .07) },
+  infoText:                -> '#3a87ad',
+  infoBackground:          -> '#d9edf7',
+  infoBorder:              -> darken(spin(this.infoBackground(), -10), .07),
 
 
   // GRID
@@ -550,16 +550,16 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
 
   // Default 940px grid
   // -------------------------
-  gridColumns()             { 12 },
-  gridColumnWidth()         { "60px" },
-  gridGutterWidth()         { "20px" },
-  gridRowWidth()            { add(scale(this.gridColumnWidth(), this.gridColumns()), 
-                                  scale(this.gridGutterWidth(), this.gridColumns()-1)) },
+  gridColumns:             -> 12,
+  gridColumnWidth:         -> "60px",
+  gridGutterWidth:         -> "20px",
+  gridRowWidth:            -> add(scale(this.gridColumnWidth(), this.gridColumns()), 
+                                  scale(this.gridGutterWidth(), this.gridColumns()-1)),
 
   // Fluid grid
   //--------------------------
-  fluidGridColumnWidth()    { "6.382978723%" },
-  fluidGridGutterWidth()    { "2.127659574%" }
+  fluidGridColumnWidth:    -> "6.382978723%",
+  fluidGridGutterWidth:    -> "2.127659574%"
 };
 
 
@@ -713,7 +713,7 @@ __js var Mixins = exports.Mixins = function(vars) {
     // Clearfix
     // --------
     // For clearing floats like a boss h5bp.com/q
-    clearfix(selector) {
+    clearfix: selector -> 
       "#{selector} { *zoom: 1; }
        #{selector}:before,
        #{selector}:after {
@@ -723,26 +723,24 @@ __js var Mixins = exports.Mixins = function(vars) {
        #{selector}:after {
             clear: both;
        }"
-    },
-
-
+    ,
 
     // Webkit-style focus
     // ------------------
-    tab_focus() {
+    tab_focus: ->
       "/* Default */
        outline: thin dotted #333;
        /* Webkit */
        outline: 5px auto -webkit-focus-ring-color;
        outline-offset: -2px;"
-    },
+    ,
 
     // IE7 inline-block
     // ----------------
-    ie7_inline_block() {
+    ie7_inline_block: ->
       "*display: inline; /* IE7 inline-block hack */
        *zoom: 1;"
-    },
+    ,
 
     // IE7 likes to collapse whitespace on either side of the inline-block elements.
     // Ems because we're attempting to match the width of a space character. Left
@@ -750,87 +748,83 @@ __js var Mixins = exports.Mixins = function(vars) {
     // right version is for icons, which come before. Applying both is ok, but it will
     // mean that space between those elements will be .6em (~2 space characters) in IE7,
     // instead of the 1 space in other browsers.
-    ie7_restore_left_whitespace(selector) {
+    ie7_restore_left_whitespace: selector -> 
       "#{selector} { *margin-left: .3em; }
        #{selector}:first-child { *margin-left: 0; }"
-    },
-
-
+    ,
 
     // Placeholder text
     // -------------------------
-    placeholder(selector, color) {
-      color = color || vars.placeholderText(),
-      "#{selector}:-moz-placeholder {
-         color: #{color};
-       }
-       #{selector}:-ms-input-placeholder {
-         color: #{color};
-       }
-       #{selector}::-webkit-input-placeholder {
-         color: #{color};
-       }"
+    placeholder: function(selector, color) {
+      color = color || vars.placeholderText();
+      return "#{selector}:-moz-placeholder {
+                color: #{color};
+              }
+              #{selector}:-ms-input-placeholder {
+                color: #{color};
+              }
+              #{selector}::-webkit-input-placeholder {
+                color: #{color};
+              }";
     },
-
 
     // Text overflow
     // -------------------------
     // Requires inline-block or block for proper styling
-    text_overflow() { 
+    text_overflow: ->  
       "overflow: hidden;
        text-overflow: ellipsis;
        white-space: nowrap;" 
-    },
+    ,
 
     // FONTS
     // --------------------------------------------------
 
     font : {
       family : {
-        serif() { "font-family: #{vars.serifFontFamily()};" },
-        sans_serif() { "font-family: #{vars.sansFontFamily()};" },
-        monospace() { "font-family: #{vars.monoFontFamily()};" }
+        serif: -> "font-family: #{vars.serifFontFamily()};",
+        sans_serif: -> "font-family: #{vars.sansFontFamily()};",
+        monospace: ->"font-family: #{vars.monoFontFamily()};"
       },
   
-      shorthand(size,weight,lineHeight) {
+      shorthand: (size,weight,lineHeight) ->
         "font-size:   #{size||vars.baseFontSize()};
          font-weight: #{weight||'normal'};
          line-height: #{lineHeight||vars.baseLineHeight()};"
-      },
-      serif(size, weight, lineHeight) {
+      ,
+      serif: (size, weight, lineHeight) ->
         "#{this.family.serif()}
          #{this.shorthand(size, weight, lineHeight)}"
-      },
-      sans_serif(size, weight, lineHeight) {
+      ,
+      sans_serif: (size, weight, lineHeight) ->
         "#{this.family.sans_serif()}
          #{this.shorthand(size, weight, lineHeight)}"
-      },
-      monospace(size, weight, lineHeight) {
+      ,
+      monospace: (size, weight, lineHeight) ->
         "#{this.family.monospace()}
          #{this.shorthand(size, weight, lineHeight)}"
-      }
     },
 
     // FORMS
     // --------------------------------------------------
 
     // Block level inputs
-    input_block_level() {
+    input_block_level: ->
         "display: block;
          width: 100%;
          min-height: 28px;        /* Make inputs at least the height of their button counterpart */
          #{this.box_sizing('border-box'); /* Makes inputs behave like true block-level elements */
         "
-    },
-
+    ,
 
     // Mixin for form field states
-    formFieldState(selector, textColor, borderColor, backgroundColor) {
-      textColor = textColor || '#555',
-      borderColor = borderColor || '#ccc',
-      backgroundColor = backgroundColor || '#f5f5f5',
+    formFieldState: function(selector, textColor, borderColor, backgroundColor) {
+      textColor = textColor || '#555';
+      borderColor = borderColor || '#ccc';
+      backgroundColor = backgroundColor || '#f5f5f5';
 
-      "/* Set the text color */
+      return "
+       /* Set the text color */
        #{selector} > label,
        #{selector} .help-block,
        #{selector} .help-inline {
@@ -862,93 +856,93 @@ __js var Mixins = exports.Mixins = function(vars) {
        }";
     },
 
-
     // CSS3 PROPERTIES
     // --------------------------------------------------
 
     // Border Radius
-    border_radius(radius) {
+    border_radius: radius ->
       "-webkit-border-radius: #{radius};
        -moz-border-radius: #{radius};
        border-radius: #{radius};"
-    },
+    ,
 
     // Drop shadows
-    box_shadow(shadow) {
+    box_shadow: shadow ->
       "-webkit-box-shadow: #{shadow};
        -moz-box-shadow: #{shadow};
        box-shadow: #{shadow};"
-    },
+    ,
 
     // Transitions
-    transition(transition) {
+    transition: transition ->
       "-webkit-transition: #{transition};
        -moz-transition: #{transition};
        -ms-transition: #{transition};
        -o-transition: #{transition};
        transition: #{transition};"
-    },
+    ,
 
     // XXX some omissions
 
     // Background clipping
     // Heads up: FF 3.6 and under need "padding" instead of "padding-box"
-    background_clip(clip) {
+    background_clip: clip ->
       "-webkit-background-clip: #{clip};
        -moz-background-clip: #{clip};
        background-clip: #{clip};"
-    },
+    ,
 
     // Background sizing
-    background_size(size){
+    background_size: size ->
       "-webkit-background-size: #{size};
        -moz-background-size: #{size};
        -o-background-size: #{size};
        background-size: #{size};"
-    },
+    ,
 
     // Box sizing
-    box_sizing(boxmodel) {
+    box_sizing: boxmodel ->
       "-webkit-box-sizing: #{boxmodel};
        -moz-box-sizing: #{boxmodel};
        -ms-box-sizing: #{boxmodel};
        box-sizing: #{boxmodel};"
-    },
+    ,
 
     // User select
     // For selecting text on the page
-    user_select(select) {
+    user_select: select ->
         "-webkit-user-select: #{select};
             -moz-user-select: #{select};
              -ms-user-select: #{select};
               -o-user-select: #{select};
                   user-select: #{select};"
-    },
+    ,
 
     // XXX some omissions
     
     // Opacity
-    opacity(opacity) {
+    opacity: opacity ->
       "opacity: #{Math.round(opacity*100)/10000};
        filter: alpha(opacity=#{opacity});"
-    },
+    ,
 
     // BACKGROUNDS
     // --------------------------------------------------
 
     // Gradient Bar Colors for buttons and alerts
-    gradientBar(primaryColor, secondaryColor) {
+    gradientBar: (primaryColor, secondaryColor) ->
      "#{this.gradient.vertical(primaryColor, secondaryColor)}
       border-color: #{secondaryColor} #{secondaryColor} #{darken(secondaryColor, .15)};
       border-color: rgba(0,0,0,.1) rgba(0,0,0,.1) #{fadein('rgba(0,0,0,.1)', .15)};"
-    },
+    ,
 
     // Gradients
     gradient : {
-      horizontal(startColor, endColor) {
-        startColor = startColor || '#555',
-        endColor = endColor || '#333',
-        "background-color: #{endColor};
+      horizontal: function(startColor, endColor) {
+        startColor = startColor || '#555';
+        endColor = endColor || '#333';
+        return "
+         background-color: #{endColor};
          background-image: -moz-linear-gradient(left, #{startColor}, #{endColor}); /* FF 3.6+ */
          background-image: -ms-linear-gradient(left, #{startColor}, #{endColor}); /* IE10 */
          background-image: -webkit-gradient(linear, 0 0, 100% 0, from(#{startColor}), to(#{endColor})); /* Safari 4+, Chrome 2+ */
@@ -958,10 +952,11 @@ __js var Mixins = exports.Mixins = function(vars) {
          background-repeat: repeat-x;
          filter: e(%(\"progid:DXImageTransform.Microsoft.gradient(startColorstr='%d', endColorstr='%d', GradientType=1)\",#{startColor},#{endColor})); /* IE9 and down */"
       },
-      vertical(startColor, endColor) {
-        startColor = startColor || '#555',
-        endColor = endColor || '#333',
-        "background-color: #{mix(startColor, endColor, .6)};
+      vertical: function(startColor, endColor) {
+        startColor = startColor || '#555';
+        endColor = endColor || '#333';
+        return "
+         background-color: #{mix(startColor, endColor, .6)};
          background-image: -moz-linear-gradient(top, #{startColor}, #{endColor}); /* FF 3.6+ */
          background-image: -ms-linear-gradient(top, #{startColor}, #{endColor}); /* IE10 */
          background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#{startColor}), to(#{endColor})); /* Safari 4+, Chrome 2+ */
@@ -971,24 +966,23 @@ __js var Mixins = exports.Mixins = function(vars) {
          background-repeat: repeat-x;
          filter: e(%(\"progid:DXImageTransform.Microsoft.gradient(startColorstr='%d', endColorstr='%d', GradientType=0)\",#{startColor},#{endColor})); /* IE9 and down */"
       },
-      striped(color, angle) {
-        angle = angle || '-45deg',
-        "background-color: #{color};
+      striped: function(color, angle) {
+        angle = angle || '-45deg';
+        return "
+         background-color: #{color};
          background-image: -webkit-gradient(linear, 0 100%, 100% 0, color-stop(.25, rgba(255,255,255,.15)), color-stop(.25, transparent), color-stop(.5, transparent), color-stop(.5, rgba(255,255,255,.15)), color-stop(.75, rgba(255,255,255,.15)), color-stop(.75, transparent), to(transparent));
          background-image: -webkit-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
          background-image: -moz-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
          background-image: -ms-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
          background-image: -o-linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
          background-image: linear-gradient(#{angle}, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);"
-  }
-
+      }
     },
 
     // Reset filters for IE
-    reset_filter() {
+    reset_filter: ->
       "filter: e(%(\"progid:DXImageTransform.Microsoft.gradient(enabled = false)\"));"
-    },
-
+    ,
 
     // COMPONENT MIXINS
     // --------------------------------------------------
@@ -996,10 +990,11 @@ __js var Mixins = exports.Mixins = function(vars) {
     // Horizontal dividers
     // -------------------------
     // Dividers (basically an hr) within dropdowns and nav lists
-    nav_divider(top, bottom) {
-      top = top || '#e5e5e5',
-      bottom = bottom || vars.white(),
-      "/* IE7 needs a set width since we gave a height. Restricting just */
+    nav_divider: function(top, bottom) {
+      top = top || '#e5e5e5';
+      bottom = bottom || vars.white();
+      return "
+       /* IE7 needs a set width since we gave a height. Restricting just */
        /* to IE7 to keep the 1px left/right space in other browsers. */
        /* It is unclear where IE is getting the extra space that we need */
        /* to negative-margin away, but so it goes. */
@@ -1012,10 +1007,9 @@ __js var Mixins = exports.Mixins = function(vars) {
        border-bottom: 1px solid #{bottom};"
     },
 
-
     // Button backgrounds
     // ------------------
-    buttonBackground(selector, startColor, endColor) {
+    buttonBackground: (selector, startColor, endColor) ->
       "#{selector} {
          /* gradientBar will set the background to a pleasing blend of these, to support IE<=9 */
          #{this.gradientBar(startColor, endColor)}
@@ -1033,34 +1027,33 @@ __js var Mixins = exports.Mixins = function(vars) {
        #{selector}.active {
          background-color: #{darken(endColor, .1)} \\9;
        }"
-    },
+    ,
 
     // Navbar vertical align
     // -------------------------
     // Vertically center elements in the navbar.
     // Example: an element has a height of 30px, so write out `mixins.navbarVerticalAlign('30px');` to calculate the appropriate top margin.
-    navbarVerticalAlign(elementHeight) {
+    navbarVerticalAlign: elementHeight ->
       "margin-top: #{scale(add(vars.navbarHeight(), '-'+elementHeight), 1/2)};"
-    },
-
+    ,
 
     // Grid System
     // -----------
 
     // Centered container element
-    container_fixed(selector) {
+    container_fixed: selector ->
       "#{selector} { 
         margin-right: auto;
         margin-left: auto;
        }
        #{this.clearfix(selector)}"
-    },
-
+    ,
 
     // Table columns
-    tableColumns(columnSpan) {
-      columnSpan = columnSpan || 1,
-      "float: none; /* undo default grid column styles */
+    tableColumns: function(columnSpan) {
+      columnSpan = columnSpan || 1;
+      return "
+       float: none; /* undo default grid column styles */
        width: #{add(add(scale(vars.gridColumnWidth(),columnSpan), 
                         scale(vars.gridGutterWidth(),columnSpan-1)), 
                     - 16) /* 16 is total padding on left and right of table cells */
@@ -1074,9 +1067,9 @@ __js var Mixins = exports.Mixins = function(vars) {
 
     // The Grid
     grid : {
-      coreSpan(columns) {
+      coreSpan: columns ->
         "width: #{add(scale(vars.gridColumnWidth(),columns),scale(vars.gridGutterWidth(),columns-1))};"
-      },
+      ,
 
       core: function(gridColumnWidth, gridGutterWidth) {
         function span(columns) {

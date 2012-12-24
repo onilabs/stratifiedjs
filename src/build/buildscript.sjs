@@ -246,7 +246,7 @@ function replacements_from_config(target) {
 // high-level builders
 
 function MINIFY(target, source, flags) {
-  flags = common.mergeSettings({keeplines:true}, flags);
+  flags = common.mergeSettings({keeplines:true, filename:source}, flags);
   BUILD(
     target,
     function() {
@@ -267,7 +267,7 @@ function MINIFY(target, source, flags) {
 }
 
 function STRINGIFY(target, source, flags) {
-  flags = common.mergeSettings({keeplines:true}, flags);
+  flags = common.mergeSettings({keeplines:true, filename:source}, flags);
   BUILD(
     target,
     function() {
