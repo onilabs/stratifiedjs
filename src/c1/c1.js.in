@@ -842,7 +842,7 @@ function parsePropertyName(token, pctx) {
   if (id == '"') {
     if ((token = scan(pctx)).id != "<string>" ||
         scan(pctx, undefined, TOKENIZER_IS).id != 'istr-"')
-      throw "Non-literal strings can't be used as propery names ("+token+")";
+      throw "Non-literal strings can't be used as property names ("+token+")";
     return '"'+token.value+'"';
   }
 #endif

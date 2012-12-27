@@ -301,10 +301,11 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
       should be called from the `eventTransformer`, rather than after the event is 
       retrieved from the queue using [::EventQueue::get]. 
 
-    * IE multiplexes all events onto a global event object. To ensure retrieved from the 
-      queue are the same events that were put in, the implementation clones events on
-      IE before entering them into the queue. This also means that calls such as 
-      [::stopEvent] will **never** work on IE if performed after [::EventQueue::get]. 
+    * IE multiplexes all events onto a global event object. To ensure events 
+      retrieved from the queue are the same events that were put in, the implementation 
+      clones events on IE before entering them into the queue. 
+      This also means that calls such as [::stopEvent] will **never** work on IE if 
+      performed after [::EventQueue::get]. 
       To have any effect, these call need to be performed from `eventTransformer`.
 */
 exports.eventQueue = function(selector, events, filter, eventTransformer) {

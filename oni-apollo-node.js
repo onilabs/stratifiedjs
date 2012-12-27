@@ -3677,7 +3677,7 @@ function parsePropertyName(token,pctx){var id=token.id;
 if(id=="<id>"||id=="<string>"||id=="<number>")return token.value;
 
 if(id=='"'){
-if((token=scan(pctx)).id!="<string>"||scan(pctx,undefined,TOKENIZER_IS).id!='istr-"')throw "Non-literal strings can't be used as propery names ("+token+")";
+if((token=scan(pctx)).id!="<string>"||scan(pctx,undefined,TOKENIZER_IS).id!='istr-"')throw "Non-literal strings can't be used as property names ("+token+")";
 
 
 return '"'+token.value+'"';
