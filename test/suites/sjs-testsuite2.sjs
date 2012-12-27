@@ -70,16 +70,18 @@ test("[a,,{b:[,c]}] -> (hold(0),a+b+c)", "AbC", function() {
 });
 
 test("{ a: -> this } ", true, function() {
-  var t1 = { a: -> this };
-  var t2 = Object.create(t1);
+  function t1_ctor() {}
+  t1_ctor.prototype = { a: -> this };
+  var t2 = new t1_ctor();
   return t2.a() == t2;
 });
 
 // XXX, hmm, not sure about this one. Should we be able to bind 'this'
 // to an object, and not just lexically?
 test("{ a: => this } ", true, function() {
-  var t1 = { a: => this };
-  var t2 = Object.create(t1);
+  function t1_ctor() {}
+  t1_ctor.prototype = { a: => this };
+  var t2 = new t1_ctor();
   return t2.a() == this;
 });
 
