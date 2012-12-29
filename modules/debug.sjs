@@ -110,7 +110,7 @@ function stylizeNoColor(str, styleType) {
 }
 
 
-function formatValue(ctx, value, recurseTimes) {
+__js function formatValue(ctx, value, recurseTimes) {
   // Provide a hook for user-specified inspect functions.
   // Check that value is an object with an inspect function on it
   if (value && typeof value.inspect === 'function' &&
