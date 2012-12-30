@@ -115,8 +115,7 @@ var end_token = {};
 function iterator(s) {
   // XXX there is probably a cleverer implementation than using a full-blown queue
   var Q = new (require('./cutil').Queue)(1,true);
-  var S = spawn ({
-    || 
+  var S = spawn (function() {
     try { 
       s { |x| Q.put(x) } 
       Q.put(end_token);

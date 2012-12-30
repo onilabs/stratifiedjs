@@ -482,9 +482,9 @@ VScrollBoxElement.layout = function(layout_spec) {
 
   var child_spec = {type:"w", "w":this.clientW};
   if (first_layout)
-    coll.each(this.children, {|c| c.layout(child_spec)});
+    coll.each(this.children) {|c| c.layout(child_spec)};
   else // only lay out active children:
-    coll.each(this.children, {|c| if (c.active) c.layout(child_spec)});
+    coll.each(this.children) {|c| if (c.active) c.layout(child_spec)};
 
   return layout_spec;
 };

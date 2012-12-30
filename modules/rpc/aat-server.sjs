@@ -67,8 +67,7 @@ function createID() {
 //----------------------------------------------------------------------
 // default transport sink (for testing):
 function defaultTransportSink(transport) {
-  spawn ({
-    ||
+  spawn (function() {
     try {
       while (1) {
         var message = transport.receive();
@@ -251,10 +250,9 @@ function createTransportHandler(transportSink) {
         transportSink(transport);
 
         var in_messages = 
-          coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], {
-            |mes|
-            ({ type: 'message', data: mes})
-          });
+          coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [],
+                   mes -> { type: 'message', data: mes});
+
         transport.exchangeMessages(in_messages, out_messages);
         console.log("new transport #{transport.id}");
         out_messages.unshift("ok_#{transport.id}");
@@ -268,10 +266,9 @@ function createTransportHandler(transportSink) {
         }
         else {
           var in_messages = 
-            coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], {
-              |mes|
-              ({ type: 'message', data: mes})
-            });
+            coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], 
+                     mes -> { type: 'message', data: mes});
+
           transport.exchangeMessages(in_messages, 
                                      out_messages);
           out_messages.unshift('ok');

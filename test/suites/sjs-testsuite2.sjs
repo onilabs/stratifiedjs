@@ -126,3 +126,87 @@ test("__js => this; blocking ctx", true, function() {
   var a = f.call(t1);
   return a.call(t2) == t1;
 });
+
+// helper for blocklambda tests:
+function thrice(f) {
+  f();
+  f();
+  f();
+}
+
+test("blocklambda inner continue", 'aaaaaa', function() {
+  var rv = '';
+  thrice {
+    ||
+    for (var i=0; i<2; ++i) {
+      rv += 'a';
+      continue;
+      rv += 'b';
+    }
+  }
+  return rv;
+});
+
+test("blocklambda inner break", 'aaa', function() {
+  var rv = '';
+  thrice {
+    ||
+    for (var i=0; i<2; ++i) {
+      rv += 'a';
+      break;
+      rv += 'b';
+    }
+  }
+  return rv;
+});
+
+
+test("blocklambda continue", 'aaac', function() {
+  var rv = '';
+
+  thrice {
+    ||
+    rv += 'a';
+    continue;
+    rv += 'b';
+  }
+
+  rv += 'c';
+  
+  return rv;
+});
+
+test("blocklambda break", 'ac', function() {
+  var rv = '';
+
+  thrice {
+    ||
+    rv += 'a';
+    break;
+    rv += 'b';
+  }
+  rv += 'c';
+
+  return rv;
+});
+
+test("blocklambda break 2", 'ac', function() {
+  var rv = '';
+
+  // XXX we might disallow this non-idiomatic syntax in future!
+  // it excercises a different code path in vm1.js than the test above
+  // (grep vm1.js.in for sjs-testsuite2:26 to find the code path)
+
+  var bl = {
+    ||
+    rv += 'a';
+    break;
+    rv += 'b';
+  };
+
+  thrice(bl);
+
+  rv += 'c';
+
+  return rv;
+});

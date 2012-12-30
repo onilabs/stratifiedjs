@@ -376,7 +376,6 @@ function generateMap(each) {
 
 /**
   @function map
-  @altsyntax map(collection) { | value, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the transform function
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -410,7 +409,6 @@ exports.map     = generateMap(exports.each);
 
 /**
   @function par.map
-  @altsyntax par.map(collection) { | value, key, collection | ... }  
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the transform function
   @param    {optional Object} [this_obj]
@@ -427,7 +425,6 @@ exports.par.map = generateMap(exports.par.each);
 
 /**
    @function find
-   @altsyntax find(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -446,7 +443,6 @@ exports.find = function(collection, fn, this_obj) {
 
 /**
    @function par.find
-   @altsyntax par.find(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -465,7 +461,6 @@ exports.par.find = function(collection, fn, this_obj) {
 
 /**
    @function findKey
-   @altsyntax findKey(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -484,7 +479,6 @@ exports.findKey = function(collection, fn, this_obj) {
 
 /**
    @function par.findKey
-   @altsyntax par.findKey(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -592,7 +586,6 @@ function generateFilter(each) {
 
 /**
    @function filter
-   @altsyntax filter(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -606,7 +599,6 @@ function generateFilter(each) {
 exports.filter     = generateFilter(exports.each);
 /**
    @function par.filter
-   @altsyntax par.filter(collection) { | item, key, collection | ... }
    @param    {Object | Array} [collection]
    @param    {Function} [fn] the test function
    @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -621,7 +613,6 @@ exports.par.filter = generateFilter(exports.par.each);
 
 /**
   @function reduce
-  @altsyntax reduce(collection, initial) { | accum, elem, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Object} [initial] the initial value
   @param    {Function} [fn] the reducer function
@@ -654,7 +645,6 @@ exports.reduce = function(collection, initial, fn, this_obj) {
 
 /**
   @function reduce1
-  @altsyntax reduce1(collection) { | accum, elem, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] the reducer function
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -683,7 +673,6 @@ exports.reduce1 = function(collection, fn, this_obj) {
 
 /**
   @function all
-  @altsyntax all(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
   @param    {optional Object} [this_obj] the object on which `fn` will be executed
@@ -701,7 +690,6 @@ exports.all = function(collection, test, this_obj) {
 
 /**
   @function par.all
-  @altsyntax par.all(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [fn] The test function
   @param    {optional Object} [this_obj]
@@ -722,7 +710,6 @@ function generateAny(find) {
 
 /**
   @function any
-  @altsyntax any(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
   @param    {optional Object} [this_obj]
@@ -735,7 +722,6 @@ exports.any     = generateAny(exports.findKey);
 
 /**
   @function par.any
-  @altsyntax par.any(collection) { | item, key, collection | ... }
   @param    {Object | Array} [collection]
   @param    {Function} [test] The test function
   @param    {optional Object} [this_obj]

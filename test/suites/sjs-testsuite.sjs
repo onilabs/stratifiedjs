@@ -899,12 +899,18 @@ test('reentrant edge case in waitfor/and 6', 3, function() {
 });
 
 test("break across funcs (sync)", 1, 
-     function() { function foo() { break; }; 
-                  try { while (1) { foo(); return 2;} } catch(e) { return 1; } return 3; });
+     function() { 
+/*     function foo() { break; }; 
+       try { while (1) { foo(); return 2;} } catch(e) { return 1; } return 3; 
+*/
+     }).skip("Now caught at compile time");
 
 test("break across funcs (async)", 1, 
-     function() { function foo() { hold(0); break; }; 
-                  try { while (1) { foo(); return 2;} } catch(e) { return 1; } return 3; });
+     function() { 
+/*       function foo() { hold(0); break; }; 
+       try { while (1) { foo(); return 2;} } catch(e) { return 1; } return 3; 
+*/
+     }).skip("Now caught at compile time");
 
 test("with 1", 1, function() {
   var a = 10, b = { a: 1 };
@@ -1146,15 +1152,15 @@ test("'this' pointer in async for-in bug", 1212331, function() {
   return rv;
 });
 
-test("({|| 1})()", 1, function() { return ({|| 1})() });
+test("({|| 1})()", undefined, function() { return ({|| 1})() });
 test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
-     function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) });
+     function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) }).skip("Old blocklambda behaviour");
 function accu3(f) {
   var rv = 0;
   for (var i=1;i<4;++i) rv += f(i);
   return rv;
 }
-test("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } });
+test("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } }).skip("Old blocklambda behaviour");
 test("accu3 { |x| if (x==2) return x; }", 2,
      function() { accu3 { |x| if (x==2) return x; } });
 
@@ -1207,9 +1213,9 @@ test("{ || break; }", 5, function() {
     ({ || if (i==5) break; })()
   }
   return i;
-});
+}).skip('Old blocklambda behaviour');
 
-test("nested {|| break}", 2, function() {
+test("nested {|| break}", 11 /* was 2 with old blocklambda behaviour */, function() {
 
   var x = 0;
 
@@ -1251,7 +1257,7 @@ test("break/switch edge case", 1, function() {
 });
 
 
-test("{|| break}/switch edge case", 1, function() {
+test("{|| break}/switch edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
   while (1) {
     var a = {||break };
     switch (1) {
@@ -1272,7 +1278,7 @@ test("break/for-in edge case", 1, function() {
   return 1;
 });
 
-test("{|| break}/for-in edge case", 1, function() {
+test("{|| break}/for-in edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
   while (1) {
     var a = {||break };
     for (x in [1]) {
@@ -1317,10 +1323,12 @@ test("__js switch/case", 3,
 
 test("blocklambda pulled into argument list: f(a) {||...}", 43, function() {
   function f(a,b) {
-    return b(a);
+    var rv = {val:a};
+    b(rv);
+    return rv.val;
   }
 
-  return f(42) { |x| x+1 };
+  return f(42) { |x| ++x.val };
 });
 
 test("blocklambda with newlines", 43, function() {
@@ -1329,19 +1337,21 @@ test("blocklambda with newlines", 43, function() {
     
         |x|
         
-      x+1
+      return x+1
     };
-  return a(42);
+  a(42);
 });
 
 test("blocklambda with newline pulled into argument list", 43, function() {
   function f(a,b) {
-    return b(a);
+    var rv = {val:a};
+    b(rv);
+    return rv.val;
   }
 
   var rv = f(42) 
     { 
-        |x| x+1 
+        |x| ++x.val 
     };
 
   return rv;
@@ -1368,7 +1378,7 @@ test("interpolating vs non-interpolating strings", true, function() {
 test("string interpolation", true, function() {
   function x() { hold(0); return 42; }
   var a = "interpolated";
-  var x = "This is an #{ a } string #{ x()+1 } #{ '#{}' } #{ ({|| "#{1+1}"})() }#{3}";
+  var x = "This is an #{ a } string #{ x()+1 } #{ '#{}' } #{ (-> "#{1+1}")() }#{3}";
   return x === 'This is an interpolated string 43 #{} 23';
 });
 
@@ -1406,13 +1416,13 @@ test("complicated blocklambda return", 111, function() {
   return rv;
 });
 
-test("detached blocklambda return", 1, function() {
+test("detached blocklambda return", 'a', function() {
   function f(g) {
     spawn g();
-    return 10;
+    hold(10);
+    return 'b';
   }
-  var rv = f { || return 1; };
-  hold(10);
+  var rv = f { || return 'a'; };
   return rv;
 });
 
@@ -1483,7 +1493,7 @@ function compareQuasiArrays(x,y) {
 test('quasis', true, function() {
   function x() { hold(0); return 42; }
   var a = "interpolated";
-  var x = `${"ab"}This is an ${ a } string ${ x()+1 }${ '#{}' } ${ ({|| `${1+1}`})() }${3}`;
+  var x = `${"ab"}This is an ${ a } string ${ x()+1 }${ '#{}' } ${ (-> `${1+1}`)() }${3}`;
   var result = ['',
                 'ab',
                 'This is an ',

@@ -104,19 +104,8 @@ function CFException(type, value, line, file) {
   this.val = value;
   // this.ef = UNDEF;  // 'execution frame' tag for targetted return/break/continue
 }
-exports.CFER = function(env, value) { 
-  var e = new CFException('r', value);
-  if (env.ref) {
-    // we're returning to a lexical function container (usually from blocklambdas)
-    if (env.ref.unreturnable) // the function is not active anymore!
-      throw new TypeError(e.toString());
-    //WHENDEBUG(console.log('tagged return!!');)
-    e.ef = env.ref;
-  }
-  return e;
-}
 
-var CFETypes = { r:"return", b:"break", c:"continue"};
+var CFETypes = { r:"return", b:"break", c:"continue", blb: "blocklambda break"};
 CFException.prototype = {
   __oni_cfx : true,
   toString : function() {
@@ -129,9 +118,9 @@ CFException.prototype = {
     if (this.type == "t") {
       throw (augment_mes && this.val.file) ? new Error(augmented_message(this.val)) : this.val;
     }
-    else if (!this.ef)
-      throw new Error(this.toString());
-    else // this is a 'b', 'c' or 'r' tunneling through a JS functions:
+    else if (!this.ef) // XXX DO WE NEED THIS???
+      throw new Error(this.toString()); 
+    else // this is a 'blb' or 'r' tunneling through a JS functions:
       throw this;
   }
 };
@@ -284,23 +273,19 @@ function makeINCtor(exec) {
     file: filename,
     ref: function execution frame (only for non-tail-called functions that
          might be targetted by blocklambdas; see EF_Seq)
-    bef: 'break' execution frame
-    cef: 'continue' execution frame
   }
 
 */
 
-function Env(aobj, tobj, file, ref, bef, cef) { 
+function Env(aobj, tobj, file, ref) { 
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
   this.ref = ref;
-  this.bef = bef;
-  this.cef = cef;
 }
 
 function copyEnv(e) {
-  return new Env(e.aobj, e.tobj, e.file, e.ref, e.bef, e.cef);  
+  return new Env(e.aobj, e.tobj, e.file, e.ref);  
 }
 
 //----------------------------------------------------------------------
@@ -315,7 +300,17 @@ function I_nblock(ndata, env) {
     return (NDATA_NBLOCK_JSFUNC()).call(env);
   }
   catch (e) {
-    if (is_cfx(e)) return e; 
+    if (is_cfx(e)) {
+      // handle blocklamda break:
+      if (e.type == 'blb' && e.ef == env.ref) {
+        // XXX This is only reached when an fcall is encoded as
+        // nblock, which currently only happens if the blocklambda is
+        // called via a variable, see sjs-testsuite2:26
+        return UNDEF;
+      }
+      else
+        return e;
+    }
     return new CFException("t", e, NDATA_NBLOCK_LINENO(), env.file);
   }
 }
@@ -327,7 +322,6 @@ exports.Nb = makeINCtor(I_nblock);
 // structure of ndata array:
 #define NDATA_BLOCKLAMBDA_JSFUNC() ndata[0]
 function I_blocklambda(ndata, env) {
-  //return (function() { return (NDATA_BLOCKLAMBDA_JSFUNC()).apply(env, arguments); });
   return NDATA_BLOCKLAMBDA_JSFUNC().bind(env);
 }
 exports.Bl = makeINCtor(I_blocklambda);
@@ -375,7 +369,12 @@ function EF_Seq(ndata, env) {
                                  NDATA_SEQ_FLAG_SHORTCIRCUIT_AND); 
 
   // is this a top-level seq (one that can't be return'ed to?)
-  this.unreturnable = NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_UNRETURNABLE;
+  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_UNRETURNABLE) {
+    this.unreturnable = true;
+    // mark it as toplevel, for correct error messages and to allow
+    // blocklambda breaks to target this frame:
+    this.toplevel = true; 
+  }
 }
 setEFProto(EF_Seq.prototype={});
 #ifdef EF_TYPES
@@ -775,8 +774,14 @@ EF_Fcall.prototype.cont = function(idx, val) {
       // have been amended.
       // The *pragmatic* thing seems to be to annotate.
 //      rv = new CFException("t", e, "passthrough");
-      if (is_cfx(e))
-        rv = e;
+      if (is_cfx(e)) {
+        // handle blocklambda break:
+        if (e.type == 'blb' && e.ef == this.env.ref) {
+          rv = UNDEF;
+        }
+        else
+          rv = e;
+      }
       else
         rv = new CFException("t", e,
                              this.NDATA_FCALL_LINE(),
@@ -877,7 +882,6 @@ phase 2: (executing clause code)
 function EF_Switch(ndata, env) {
   this.ndata = ndata;
   this.env = copyEnv(env);
-  this.env.bef = this;
   this.phase = 0;
 }
 setEFProto(EF_Switch.prototype={});
@@ -924,7 +928,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       return this;
     }
     if (is_cfx(val)) {
-      if (val.type == "b" && (!val.ef || val.ef == this)) {
+      if (val.type == "b") {
         val = val.val;
       }
       return this.returnToParent(val);
@@ -1117,7 +1121,6 @@ exports.Try = makeINCtor(I_try);
 function EF_Loop(ndata, env) {
   this.ndata = ndata;
   this.env = copyEnv(env);
-  this.env.bef = this.env.cef = this;
 }
 setEFProto(EF_Loop.prototype={});
 #ifdef EF_TYPES
@@ -1156,7 +1159,6 @@ EF_Loop.prototype.cont = function(idx, val) {
         while (1) {
           if (idx > 2) {
             if (is_cfx(val)) {
-              if (!val.ef || val.ef == this) {
                 if (val.type == "b") {
                   // break statement
                   val = UNDEF;
@@ -1167,7 +1169,6 @@ EF_Loop.prototype.cont = function(idx, val) {
                   // break out of the loop; pick up again at increment:
                   break;
                 }
-              }
               return this.returnToParent(val);
             }
             if (idx >= this.ndata.length)
@@ -1221,7 +1222,6 @@ exports.Loop = makeINCtor(I_loop);
 function EF_ForIn(ndata, env) {
   this.ndata = ndata;
   this.env = copyEnv(env);
-  this.env.bef = this.env.cef = this;
 }
 setEFProto(EF_ForIn.prototype={});
 #ifdef EF_TYPES
@@ -1249,7 +1249,6 @@ EF_ForIn.prototype.cont = function(idx, val) {
         if (typeof this.remainingX === 'undefined') {
           val = this.NDATA_FORIN_LOOPF()(this.env,x);
           if (is_cfx(val)) {
-            if (!val.ef || val.ef == this) {
               if (val.type == "b") {
                 // break statement
                 val = UNDEF;
@@ -1259,7 +1258,6 @@ EF_ForIn.prototype.cont = function(idx, val) {
                 val = UNDEF;
                 continue;
               }
-            }
             return this.returnToParent(val);
           }
           if (is_ef(val))
@@ -1280,7 +1278,6 @@ EF_ForIn.prototype.cont = function(idx, val) {
       while (1) {
         // returning from evaluation of loop
         if (is_cfx(val)) {
-          if (!val.ef || val.ef == this) {
             if (val.type == "b") {
               // break
               val = UNDEF;
@@ -1291,7 +1288,6 @@ EF_ForIn.prototype.cont = function(idx, val) {
               if (this.remainingX.length)
                 continue;
             }            
-          }
           return this.returnToParent(val);
         }
         if (is_ef(val)) {
@@ -1313,24 +1309,6 @@ function I_forin(ndata, env) {
 }
 
 exports.ForIn = makeINCtor(I_forin);
-
-//----------------------------------------------------------------------
-// Cfe : control flow exception (break, continue)
-
-// structure of ndata array:
-#define NDATA_CFE_TYPE() ndata[0]
-#define NDATA_CFE_LBL() ndata[1]
-
-function I_cfe(ndata, env) {
-  var e = new CFException(NDATA_CFE_TYPE(), NDATA_CFE_LBL());
-  e.ef = env[NDATA_CFE_TYPE() + 'ef'];
-  if (!e.ef || e.ef.unreturnable) // the break/continue is mal-nested,
-                                  // or the return frame is inactive!
-    e = new CFException("t", new TypeError(e.toString()), 0, env.file);
-  return e;
-}
-
-exports.Cfe = makeINCtor(I_cfe);
 
 //----------------------------------------------------------------------
 // Par : stratified par construct
@@ -1961,14 +1939,18 @@ function I_spawn(ndata, env) {
     async = false;
     if (!waitarr.length) {
       // make sure exceptions that noone is waiting on get reported in
-      // console. Don't report exceptions that aren't instanceof Error;
+      // console. Only report stray control flow exceptions & exceptions that
+      // are instanceof Error;
       // IE shows a popup for uncaught exceptions, and exceptions
       // without linenumbers etc are very confusing
-      if (is_cfx(val) && val.val instanceof Error) {
+      if (is_cfx(val) && (val.type != 't' || val.val instanceof Error)) {
+        // XXX unfortunately stray control flow exceptions, such as
+        // e.g. returns from blocklambdas, will not have line numbers
+        // attached. Maybe we shouldn't report them?
+
         // Chrome's console exception reporting mechanism doesn't
         // respect user-supplied toString. To get linenumbers we throw
-        // as an augmented message here:
-        
+        // as an augmented message here.        
         // It is essential that we throw the exception *asynchronously*
         // when async = false. Otherwise it will end up at our
         // caller. For simplicity we always throw asynchronously:
@@ -2089,9 +2071,39 @@ exports.QuasiTemplate = function(/*args*/) {
 };
 
 exports.Return = function(exp) {
-//  var e = new CFException("r", exp);
-//  return e;
-  return exports.CFER(this, exp);
+  return new CFException("r", exp);
+};
+
+exports.Break = function(lbl) {
+  return new CFException("b", lbl);
+};
+
+exports.Cont = function(lbl) {
+  return new CFException("c", lbl);
+};
+
+exports.BlBreak = function(env, lbl) {
+  var e = new CFException('blb', lbl);
+  if (!env.ref) throw "Internal runtime error; no reference frame in BlBreak";
+  if (env.ref.unreturnable && !env.ref.toplevel) // the return scope is not active anymore!
+    throw new Error("Blocklambda break to inactive scope");
+  e.ef = env.ref;
+  return e;
+};
+
+exports.BlReturn = function(exp) {
+  var e = new CFException('r', exp);
+  if (!this.ref) throw "Internal runtime error; no reference frame in BlReturn";
+  if (this.ref.unreturnable) { 
+    if (this.ref.toplevel)
+      throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");
+    else {
+      // return scope not active anymore!
+      throw new Error("Blocklambda return to inactive function");
+    }
+  }
+  e.ef = this.ref;
+  return e;
 };
 
 exports.With = function(exp, bodyf) {

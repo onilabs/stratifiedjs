@@ -18,8 +18,8 @@ exports.hasGetUserMedia = function() { return !!navigator.getUserMedia };
 exports.getUserMedia = function(constraints) {
   waitfor (var rv, success) {
     navigator.getUserMedia(constraints, 
-                           { |stream| resume(stream, true) },
-                           { |error|  resume(error, false) });
+                           stream -> resume(stream, true),
+                           error ->  resume(error, false));
   }
   if (!success) throw rv;
   return rv;

@@ -5159,13 +5159,13 @@ mechanism.modal = function() {
       modal.style.display = 'block';
       modal.classList.add('in');
       waitfor {
-        dom.waitforEvent(document, 'keyup', {|e| e.which == 27 });
+        dom.waitforEvent(document, 'keyup', e -> e.which == 27);
       }
       or {
         dom.waitforEvent(backdrop, 'click');
       }
       or {
-        dom.waitforEvent(modal, 'click', { |e| domFindData('dismiss', 'modal', e.target, modal) });
+        dom.waitforEvent(modal, 'click', e -> domFindData('dismiss', 'modal', e.target, modal));
       }
     }
     finally {

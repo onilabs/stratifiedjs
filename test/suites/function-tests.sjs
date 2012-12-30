@@ -4,7 +4,7 @@ var f = require('apollo:function');
 
 
 test('seq', 2, function() {
-  return f.seq({|| hold(0) }, {|| 1 }, {|| 2})();
+  return f.seq(-> hold(0), -> 1, -> 2)();
 });
 
 test("'this' in seq", 12, function() {

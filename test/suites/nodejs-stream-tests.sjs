@@ -51,7 +51,7 @@ if(!testUtil.isBrowser) {
     var src = new s.ReadableStringStream('data');
     src.pause();
     var dest = new s.WritableStringStream();
-    s.pump(src, dest, {|d| d.toUpperCase()});
+    s.pump(src, dest, d -> d.toUpperCase());
     return dest.data;
   });
 

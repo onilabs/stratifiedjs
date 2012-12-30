@@ -52,8 +52,15 @@
 // bl=true means that this is a block lambda scope
 // notail=true mean that this scope is being targetted by returns from 
 // blocklambdas and can't be tail-optimized
+
+// for 'break' and 'continue' encoding, we have the following decl_scope flags:
+// continue_scope > 0 : we're in a scope (besides possibly a blocklambda) where 
+//                      'continue' can be called (while, do-while, for, for-in)
+// break_scope > 0 : we're in a scope (besides possibly a blocklambda) where 
+//                   'break' can be called (while, do-while, for, for-in, switch)
 function push_decl_scope(pctx, bl) {
-  pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0, bl:bl});
+  pctx.decl_scopes.push({vars:[], funs:"", fscoped_ctx:0, bl:bl, 
+                         continue_scope:0, break_scope:0});
   if (bl) {
     var prev = pctx.decl_scopes[pctx.decl_scopes.length-2];
     if (!prev.bl)
@@ -137,7 +144,11 @@ function begin_script(pctx) {
   
   if (typeof pctx.scopes !== 'undefined')
     throw "Internal parser error: Nested script";
+  // pctx.decl_scopes is where we collect declarations
   pctx.decl_scopes = [];
+  // ... and pctx.stmt_scopes where we collect (block) statements. 
+  // stmt_scopes are always nested in decl_scopes, but for simplicity we
+  // store both at top level in pctx
   pctx.stmt_scopes = [];
   // js_ctx > 0 makes it a noblocking js context (i.e. __js {...}):
   pctx.js_ctx = 0;
@@ -201,6 +212,8 @@ function end_script(pctx) {
   add_stmt(stmt, pctx);
 
 
+// convert all statements accumulated in top_stmt_scope into a single
+// (block) statement
 // XXX this is a bit of a mess
 function pop_block(pctx) {
   switch (top_stmt_scope(pctx).seq.length) {
@@ -218,6 +231,17 @@ function pop_block(pctx) {
 }
 #define END_BLOCK(pctx) return pop_block(pctx);
 
+//----------------------------------------------------------------------
+
+#define BEGIN_LOOP_SCOPE(pctx)   ++top_decl_scope(pctx).break_scope;    \
+                                 ++top_decl_scope(pctx).continue_scope;
+
+#define END_LOOP_SCOPE(pctx)     --top_decl_scope(pctx).break_scope;    \
+                                 --top_decl_scope(pctx).continue_scope;
+
+#define BEGIN_SWITCH_SCOPE(pctx) ++top_decl_scope(pctx).break_scope;
+
+#define END_SWITCH_SCOPE(pctx)   --top_decl_scope(pctx).break_scope;
 
 //----------------------------------------------------------------------
 
@@ -275,12 +299,6 @@ ph_block.prototype.val = function(accept_list) {
 
 #define END_CASE_CLAUSE(pctx)                                   \
   return [top_stmt_scope(pctx).exp, pop_block(pctx)];
-
-/*
-  var cexp = top_stmt_scope(pctx).exp;                          \
-  var block = pop_block(pctx);                                  \
-  return "["+(cexp ? cexp.v() : "__oni_rt.Default")+","+block.v()+"]";
-*/
 
 #define GEN_SWITCH return new ph_switch(exp, clauses);
 function ph_switch(exp, clauses) {
@@ -622,8 +640,27 @@ ph_throw.prototype.val = function() {
     return "__oni_rt.Sc("+this.line+",__oni_rt.Throw,"+this.exp.v()+","+this.line+","+this.file+")";
 }
 
+#ifdef SJS_BLOCKLAMBDA
+#define GEN_RETURN(exp, pctx)             \
+    if (top_decl_scope(pctx).bl)          \
+      return new ph_bl_return(exp, pctx); \
+    else                                  \
+      return new ph_return(exp, pctx);
 
+function ph_bl_return(exp, pctx) {
+  this.line = pctx.line;
+  this.exp = exp;
+}
+ph_bl_return.prototype = new ph(WHENDEBUG("ph_bl_return"));
+ph_bl_return.prototype.val = function() {
+  var v = this.exp ? ","+this.exp.v() : "";
+  return "__oni_rt.Sc("+this.line+",__oni_rt.BlReturn"+v+")";
+};
+
+#else
 #define GEN_RETURN(exp, pctx) return new ph_return(exp, pctx);
+#endif
+
 // XXX should find a tail-safe way of encoding this
 function ph_return(exp, pctx) {
   // TODO: not sure why returns are special, and need `newline` subtracted from their lineno
@@ -644,8 +681,8 @@ ph_return.prototype.nblock_val = function() {
   }
   else {
     // we're nblock, but not in an nblock ctx; need to create a CFE:
-    rv = "return __oni_rt.CFER(this";
-    if (this.exp) rv += ","+this.exp.nb();
+    rv = "return __oni_rt.Return(";
+    if (this.exp) rv += this.exp.nb();
     rv += ");";
   }
   return rv;
@@ -666,31 +703,64 @@ ph_collapse.prototype.val = function() {
 };
 
 #define GEN_BREAK(lbl, pctx)                    \
-  return new ph_cfe("b", lbl);
+    if (top_decl_scope(pctx).break_scope)       \
+      return new ph_cfe("b", pctx, lbl);        \
+    else if (top_decl_scope(pctx).bl)           \
+      return new ph_bl_break(pctx, lbl);        \
+    else                                        \
+      throw "Unexpected 'break' statement";
 
 #define GEN_CONTINUE(lbl, pctx)                 \
-  return new ph_cfe("c", lbl);
+    if (top_decl_scope(pctx).continue_scope)    \
+      return new ph_cfe("c", pctx, lbl);        \
+    else if (top_decl_scope(pctx).bl)           \
+      return new ph_return(undefined, pctx);    \
+    else                                        \
+      throw "Unexpected 'continue' statement";
 
 // control flow exception:
-function ph_cfe(f, lbl) {
+function ph_cfe(f, pctx, lbl) {
   this.f = f;
   this.lbl = lbl;
+  this.is_nblock = true;
+  // XXX this is a bit fragile; need a new pctx flag for 'throwing'/'nonthrowing' context
+  this.js_ctx = pctx.js_ctx;
 }
 ph_cfe.prototype = new ph(WHENDEBUG("ph_cfe"));
 ph_cfe.prototype.nblock_val = function() {
-  // this only gets called when nblock is forced (__js), and it only
-  // works in a non-throwing nblock context!
-  var rv = (this.f=="b" ? "break" : "continue");
-  if (this.lbl) rv += " "+this.lbl;
-  return rv+";";
+  var rv;
+  if (this.js_ctx) {
+    // this only gets called when nblock is forced (__js), and it only
+    // works in a non-throwing nblock context!
+    rv = (this.f=="b" ? "break" : "continue");
+    if (this.lbl) rv += " "+this.lbl;
+    rv += ";";
+  }
+  else {
+    // we're not in a __js context; need to create a CFE:
+    rv = "return __oni_rt."+(this.f=="b" ? "Break" : "Cont")+"(";
+    if (this.lbl) rv += "'"+this.lbl+"'";
+    rv += ");";
+  }
+  return rv;
 };
-ph_cfe.prototype.val = function() {
-  var l = this.lbl ? '"'+this.lbl+'"' : "";
-  var rv = '__oni_rt.Cfe("'+this.f+'"';
-  if (this.lbl)
-    rv += ',"'+this.lbl+'"';
-  return rv + ")";
+
+#ifdef SJS_BLOCKLAMBDA
+function ph_bl_break(pctx, lbl) {
+  this.line = pctx.line;
+  this.lbl = lbl;
+  this.is_nblock = true;
+}
+ph_bl_break.prototype = new ph(WHENDEBUG("ph_bl_break"));
+ph_bl_break.prototype.nblock_val = function() {
+  if (this.js_ctx) throw "Blocklamdas cannot contain 'break' statements in __js{...} contexts";
+  var rv = "return __oni_rt.BlBreak(this";
+  if (this.lbl) rv += ",'"+this.lbl+"'";
+  rv += ");";
+  return rv;
 };
+
+#endif
 
 #define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx) \
 return gen_for(init_exp, decls, test_exp, inc_exp, body, pctx);
@@ -1682,10 +1752,10 @@ ph_using.prototype.val = function() {
 
 #define ADD_BLAMBDABODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
 
-#define END_BLAMBDABODY(pctx)                                                 \
-  var decls = pctx.decl_scopes.pop();                                   \
-  return collect_decls(decls) +                                         \
-    pop_stmt_scope(pctx, "return __oni_rt.exbl(this,["+SEQ_FLAG_NONE, \
+#define END_BLAMBDABODY(pctx)                                             \
+  var decls = pctx.decl_scopes.pop();                                     \
+  return collect_decls(decls) +                                           \
+    pop_stmt_scope(pctx, "return __oni_rt.exbl(this,["+SEQ_FLAG_FUNCTION, \
     "])");
 
 #define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_blocklambda(pars, body, pctx);

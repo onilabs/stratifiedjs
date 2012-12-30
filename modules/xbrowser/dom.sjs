@@ -563,7 +563,7 @@ var matchesSelectorFunc = coll.find(['matchesSelector',
                                      'webkitMatchesSelector',
                                      'mozMatchesSelector',
                                      'msMatchesSelector'], 
-                                    {|f| document.body[f] != undefined });
+                                    f -> document.body[f] != undefined );
 
 __js function matchesSelector(elem, selector) {
   return elem[matchesSelectorFunc](selector);
@@ -585,7 +585,7 @@ exports.matchesSelector = matchesSelectorFunc ?
 function findNode(selector, from, to, inclusive) {
   if (inclusive && to) {
     if (!Array.isArray(to)) to = [to];
-    to = coll.map(to, {|elem| elem ? null : elem.parentNode });
+    to = coll.map(to, elem -> elem ? null : elem.parentNode);
   }
   traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
   return null;

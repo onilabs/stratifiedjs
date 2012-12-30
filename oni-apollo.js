@@ -73,19 +73,8 @@ if(!value.hasOwnProperty('toString'))value.toString=CFException_toString;
 this.val=value;
 
 }
-exports.CFER=function(env,value){var e=new CFException('r',value);
 
-if(env.ref){
-
-if(env.ref.unreturnable)throw new TypeError(e.toString());
-
-
-e.ef=env.ref;
-}
-return e;
-};
-
-var CFETypes={r:"return",b:"break",c:"continue"};
+var CFETypes={r:"return",b:"break",c:"continue",blb:"blocklambda break"};
 CFException.prototype={__oni_cfx:true,toString:function(){
 
 if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";else return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
@@ -243,16 +232,14 @@ return {exec:exec,ndata:arguments,__oni_dis:token_dis};
 
 
 
-function Env(aobj,tobj,file,ref,bef,cef){this.aobj=aobj;
+function Env(aobj,tobj,file,ref){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
 this.ref=ref;
-this.bef=bef;
-this.cef=cef;
 }
 
-function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.ref,e.bef,e.cef);
+function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.ref);
 
 }
 
@@ -266,7 +253,17 @@ function I_nblock(ndata,env){try{
 return (ndata[0]).call(env);
 }catch(e){
 
-if((e instanceof CFException))return e;
+if((e instanceof CFException)){
+
+if(e.type=='blb'&&e.ef==env.ref){
+
+
+
+return UNDEF;
+}else return e;
+
+
+}
 return new CFException("t",e,ndata[1],env.file);
 }
 }
@@ -277,7 +274,6 @@ exports.Nb=makeINCtor(I_nblock);
 
 
 function I_blocklambda(ndata,env){return ndata[0].bind(env);
-
 
 }
 exports.Bl=makeINCtor(I_blocklambda);
@@ -313,7 +309,12 @@ this.sc=ndata[0]&(2|4);
 
 
 
-this.unreturnable=ndata[0]&16;
+if(ndata[0]&16){
+this.unreturnable=true;
+
+
+this.toplevel=true;
+}
 }
 setEFProto(EF_Seq.prototype={});
 EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
@@ -628,8 +629,14 @@ rv=new CFException("i","Invalid Fcall mode");
 
 
 
-if((e instanceof CFException))rv=e;else rv=new CFException("t",e,this.ndata[1],this.env.file);
+if((e instanceof CFException)){
 
+if(e.type=='blb'&&e.ef==this.env.ref){
+rv=UNDEF;
+}else rv=e;
+
+
+}else rv=new CFException("t",e,this.ndata[1],this.env.file);
 
 
 
@@ -702,7 +709,6 @@ exports.Default=Default;
 function EF_Switch(ndata,env){this.ndata=ndata;
 
 this.env=copyEnv(env);
-this.env.bef=this;
 this.phase=0;
 }
 setEFProto(EF_Switch.prototype={});
@@ -746,7 +752,7 @@ this.setChildFrame(val,idx);
 return this;
 }
 if((val instanceof CFException)){
-if(val.type=="b"&&(!val.ef||val.ef==this)){
+if(val.type=="b"){
 val=val.val;
 }
 return this.returnToParent(val);
@@ -910,7 +916,6 @@ exports.Try=makeINCtor(I_try);
 function EF_Loop(ndata,env){this.ndata=ndata;
 
 this.env=copyEnv(env);
-this.env.bef=this.env.cef=this;
 }
 setEFProto(EF_Loop.prototype={});
 
@@ -946,7 +951,6 @@ return this.returnToParent(val);
 while(1){
 if(idx>2){
 if((val instanceof CFException)){
-if(!val.ef||val.ef==this){
 if(val.type=="b"){
 
 val=UNDEF;
@@ -956,7 +960,6 @@ val=UNDEF;
 val=UNDEF;
 
 break;
-}
 }
 return this.returnToParent(val);
 }
@@ -1004,7 +1007,6 @@ exports.Loop=makeINCtor(I_loop);
 function EF_ForIn(ndata,env){this.ndata=ndata;
 
 this.env=copyEnv(env);
-this.env.bef=this.env.cef=this;
 }
 setEFProto(EF_ForIn.prototype={});
 
@@ -1029,7 +1031,6 @@ for(var x in val){
 if(typeof this.remainingX==='undefined'){
 val=this.ndata[1](this.env,x);
 if((val instanceof CFException)){
-if(!val.ef||val.ef==this){
 if(val.type=="b"){
 
 val=UNDEF;
@@ -1038,7 +1039,6 @@ val=UNDEF;
 
 val=UNDEF;
 continue;
-}
 }
 return this.returnToParent(val);
 }
@@ -1060,7 +1060,6 @@ if(idx==2){
 while(1){
 
 if((val instanceof CFException)){
-if(!val.ef||val.ef==this){
 if(val.type=="b"){
 
 val=UNDEF;
@@ -1070,7 +1069,6 @@ val=UNDEF;
 val=UNDEF;
 if(this.remainingX.length)continue;
 
-}
 }
 return this.returnToParent(val);
 }
@@ -1093,22 +1091,6 @@ function I_forin(ndata,env){return (new EF_ForIn(ndata,env)).cont(0);
 }
 
 exports.ForIn=makeINCtor(I_forin);
-
-
-
-
-
-
-function I_cfe(ndata,env){var e=new CFException(ndata[0],ndata[1]);
-
-e.ef=env[ndata[0]+'ef'];
-if(!e.ef||e.ef.unreturnable)e=new CFException("t",new TypeError(e.toString()),0,env.file);
-
-
-return e;
-}
-
-exports.Cfe=makeINCtor(I_cfe);
 
 
 
@@ -1667,7 +1649,11 @@ if(!waitarr.length){
 
 
 
-if((val instanceof CFException)&&val.val instanceof Error){
+
+if((val instanceof CFException)&&(val.type!='t'||val.val instanceof Error)){
+
+
+
 
 
 
@@ -1783,10 +1769,40 @@ exports.QuasiTemplate=function(){return new QuasiTemplateProto(Array.prototype.s
 
 };
 
-exports.Return=function(exp){return exports.CFER(this,exp);
+exports.Return=function(exp){return new CFException("r",exp);
+
+};
+
+exports.Break=function(lbl){return new CFException("b",lbl);
+
+};
+
+exports.Cont=function(lbl){return new CFException("c",lbl);
+
+};
+
+exports.BlBreak=function(env,lbl){var e=new CFException('blb',lbl);
+
+if(!env.ref)throw "Internal runtime error; no reference frame in BlBreak";
+if(env.ref.unreturnable&&!env.ref.toplevel)throw new Error("Blocklambda break to inactive scope");
+
+e.ef=env.ref;
+return e;
+};
+
+exports.BlReturn=function(exp){var e=new CFException('r',exp);
+
+if(!this.ref)throw "Internal runtime error; no reference frame in BlReturn";
+if(this.ref.unreturnable){
+if(this.ref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
 
 
 
+throw new Error("Blocklambda return to inactive function");
+}
+}
+e.ef=this.ref;
+return e;
 };
 
 exports.With=function(exp,bodyf){return bodyf(this,exp);
@@ -1872,7 +1888,14 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
-pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl});
+
+
+
+
+
+
+pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,continue_scope:0,break_scope:0});
+
 
 if(bl){
 var prev=pctx.decl_scopes[pctx.decl_scopes.length-2];
@@ -1954,7 +1977,11 @@ pctx.full_nblock=false;
 
 if(typeof pctx.scopes!=='undefined')throw "Internal parser error: Nested script";
 
+
 pctx.decl_scopes=[];
+
+
+
 pctx.stmt_scopes=[];
 
 pctx.js_ctx=0;
@@ -2013,6 +2040,8 @@ return rv;
 
 
 
+
+
 function pop_block(pctx){switch(top_stmt_scope(pctx).seq.length){case 1:
 
 
@@ -2027,6 +2056,11 @@ default:
 return new ph_block(pop_stmt_scope(pctx));
 }
 }
+
+
+
+
+
 
 
 
@@ -2075,8 +2109,6 @@ ph_block.prototype.val=function(accept_list){return this.seq.length?(accept_list
 
 
 };
-
-
 
 
 
@@ -2373,6 +2405,17 @@ ph_throw.prototype.val=function(){return "__oni_rt.Sc("+this.line+",__oni_rt.Thr
 };
 
 
+function ph_bl_return(exp,pctx){this.line=pctx.line;
+
+this.exp=exp;
+}
+ph_bl_return.prototype=new ph();
+ph_bl_return.prototype.val=function(){var v=this.exp?","+this.exp.v():"";
+
+return "__oni_rt.Sc("+this.line+",__oni_rt.BlReturn"+v+")";
+};
+
+
 
 function ph_return(exp,pctx){this.line=pctx.line-pctx.newline;
 
@@ -2393,8 +2436,8 @@ rv+=";";
 }else{
 
 
-rv="return __oni_rt.CFER(this";
-if(this.exp)rv+=","+this.exp.nb();
+rv="return __oni_rt.Return(";
+if(this.exp)rv+=this.exp.nb();
 rv+=");";
 }
 return rv;
@@ -2416,25 +2459,46 @@ ph_collapse.prototype.val=function(){return "__oni_rt.Collapse("+this.line+")";
 
 
 
-function ph_cfe(f,lbl){this.f=f;
+function ph_cfe(f,pctx,lbl){this.f=f;
 
 this.lbl=lbl;
+this.is_nblock=true;
+
+this.js_ctx=pctx.js_ctx;
 }
 ph_cfe.prototype=new ph();
-ph_cfe.prototype.nblock_val=function(){var rv=(this.f=="b"?"break":"continue");
+ph_cfe.prototype.nblock_val=function(){var rv;
+
+if(this.js_ctx){
 
 
-
+rv=(this.f=="b"?"break":"continue");
 if(this.lbl)rv+=" "+this.lbl;
-return rv+";";
-};
-ph_cfe.prototype.val=function(){var l=this.lbl?'"'+this.lbl+'"':"";
+rv+=";";
+}else{
 
-var rv='__oni_rt.Cfe("'+this.f+'"';
-if(this.lbl)rv+=',"'+this.lbl+'"';
 
-return rv+")";
+rv="return __oni_rt."+(this.f=="b"?"Break":"Cont")+"(";
+if(this.lbl)rv+="'"+this.lbl+"'";
+rv+=");";
+}
+return rv;
 };
+
+function ph_bl_break(pctx,lbl){this.line=pctx.line;
+
+this.lbl=lbl;
+this.is_nblock=true;
+}
+ph_bl_break.prototype=new ph();
+ph_bl_break.prototype.nblock_val=function(){if(this.js_ctx)throw "Blocklamdas cannot contain 'break' statements in __js{...} contexts";
+
+var rv="return __oni_rt.BlBreak(this";
+if(this.lbl)rv+=",'"+this.lbl+"'";
+rv+=");";
+return rv;
+};
+
 
 
 function gen_for(init_exp,decls,test_exp,inc_exp,body,pctx){var rv;
@@ -3737,7 +3801,7 @@ add_stmt(stmt,pctx);;
 }
 scan(pctx,"}");
 
-var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exbl(this,["+0,"])");
+var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exbl(this,["+1,"])");
 }
 function parseBlockLambda(start,pctx){var token=scan(pctx);
 
@@ -4068,13 +4132,17 @@ S("while").stmt(function(pctx){scan(pctx,"(");
 
 var test=parseExp(pctx);
 scan(pctx,")");
+++top_decl_scope(pctx).break_scope;++top_decl_scope(pctx).continue_scope;
 var body=parseStmt(pctx);
+--top_decl_scope(pctx).break_scope;--top_decl_scope(pctx).continue_scope;
 
 return new ph_loop(0,test,body);
 });
 
-S("do").stmt(function(pctx){var body=parseStmt(pctx);
-
+S("do").stmt(function(pctx){++top_decl_scope(pctx).break_scope;
+++top_decl_scope(pctx).continue_scope;
+var body=parseStmt(pctx);
+--top_decl_scope(pctx).break_scope;--top_decl_scope(pctx).continue_scope;
 scan(pctx,"while");
 scan(pctx,"(");
 var test=parseExp(pctx);
@@ -4107,7 +4175,9 @@ var inc_exp=null;
 if(pctx.token.id!=")")inc_exp=parseExp(pctx);
 
 scan(pctx,")");
+++top_decl_scope(pctx).break_scope;++top_decl_scope(pctx).continue_scope;
 var body=parseStmt(pctx);
+--top_decl_scope(pctx).break_scope;--top_decl_scope(pctx).continue_scope;
 
 return gen_for(start_exp,decls,test_exp,inc_exp,body,pctx);
 }else if(pctx.token.id=="in"){
@@ -4118,7 +4188,9 @@ if(decls&&decls.length>1)throw "More that one variable declaration in for-in loo
 
 var obj_exp=parseExp(pctx);
 scan(pctx,")");
+++top_decl_scope(pctx).break_scope;++top_decl_scope(pctx).continue_scope;
 var body=parseStmt(pctx);
+--top_decl_scope(pctx).break_scope;--top_decl_scope(pctx).continue_scope;
 var decl=decls?decls[0]:null;
 
 return gen_for_in(start_exp,decl,obj_exp,body,pctx);
@@ -4135,7 +4207,7 @@ scan(pctx);
 }
 parseStmtTermination(pctx);
 
-return new ph_cfe("c",label);
+if(top_decl_scope(pctx).continue_scope)return new ph_cfe("c",pctx,label);else if(top_decl_scope(pctx).bl)return new ph_return(undefined,pctx);else throw "Unexpected 'continue' statement";
 });
 
 S("break").stmt(function(pctx){var label=null;
@@ -4146,7 +4218,7 @@ scan(pctx);
 }
 parseStmtTermination(pctx);
 
-return new ph_cfe("b",label);
+if(top_decl_scope(pctx).break_scope)return new ph_cfe("b",pctx,label);else if(top_decl_scope(pctx).bl)return new ph_bl_break(pctx,label);else throw "Unexpected 'break' statement";
 });
 
 S("return").stmt(function(pctx){var exp=null;
@@ -4155,7 +4227,7 @@ if(!isStmtTermination(pctx.token)&&!pctx.newline)exp=parseExp(pctx);
 
 parseStmtTermination(pctx);
 
-return new ph_return(exp,pctx);
+if(top_decl_scope(pctx).bl)return new ph_bl_return(exp,pctx);else return new ph_return(exp,pctx);
 });
 
 S("with").stmt(function(pctx){scan(pctx,"(");
@@ -4175,6 +4247,7 @@ S("switch").stmt(function(pctx){scan(pctx,"(");
 var exp=parseExp(pctx);
 scan(pctx,")");
 scan(pctx,"{");
+++top_decl_scope(pctx).break_scope;
 var clauses=[];
 while(pctx.token.id!="}"){
 var clause_exp=null;
@@ -4197,6 +4270,7 @@ add_stmt(stmt,pctx);
 }
 clauses.push((function(pctx){return [top_stmt_scope(pctx).exp,pop_block(pctx)]})(pctx));
 }
+--top_decl_scope(pctx).break_scope;
 scan(pctx,"}");
 
 return new ph_switch(exp,clauses);(exp,clauses,pctx);

@@ -120,6 +120,12 @@ function gen_block(code) {
     rv = "default:";                              \
   return rv + scope.stmts.join("");
 
+#define BEGIN_LOOP_SCOPE(pctx)   /* */
+#define END_LOOP_SCOPE(pctx)     /* */
+#define BEGIN_SWITCH_SCOPE(pctx) /* */
+#define END_SWITCH_SCOPE(pctx)   /* */
+
+
 #define BEGIN_BLAMBDABODY(pctx)                       \
   push_scope(pctx);
 

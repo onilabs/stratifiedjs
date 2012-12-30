@@ -27,7 +27,7 @@ test("integers(1)", "123456789", function() {
 test("filter(.,.,.)", "024681012141618", function() {
   var rv = "";
   var i=10;
-  s.filter({|x| x%2==0},s.integers()) {
+  s.filter(x -> x%2==0, s.integers()) {
     |x|
     rv += x;
     if (--i==0) return rv;
@@ -35,18 +35,18 @@ test("filter(.,.,.)", "024681012141618", function() {
 });
 
 test("filter(.,.)", "024681012141618", function() {
-  return s.collect(s.pick(10, s.filter({|x| x%2==0},s.integers()))).join('');
+  return s.collect(s.pick(10, s.filter(x -> x%2==0, s.integers()))).join('');
 });
 
 test("filter(.)", "024681012141618", function() {
-  var even = s.filter({|x| x%2==0});
+  var even = s.filter(x -> x%2==0);
   return s.collect(s.pick(10, even(s.integers()))).join('');
 });
 
 test("map(.,.,.)", "0149162536496481", function() {
   var rv = "";
   var i=10;
-  s.map({|x| x*x},s.integers()) {
+  s.map(x -> x*x, s.integers()) {
     |x|
     rv += x;
     if (--i==0) return rv;
@@ -54,11 +54,11 @@ test("map(.,.,.)", "0149162536496481", function() {
 });
 
 test("map(.,.)", "0149162536496481", function() {
-  return s.collect(s.pick(10, s.map({|x| x*x},s.integers()))).join('');
+  return s.collect(s.pick(10, s.map(x -> x*x, s.integers()))).join('');
 });
 
 test("map(.)", "0149162536496481", function() {
-  var squared = s.map({|x| x*x});
+  var squared = s.map(x -> x*x);
   return s.collect(s.pick(10, squared(s.integers()))).join('');
 });
 
@@ -106,7 +106,7 @@ test("S = stream(iterator(.)); S,iterator.close(),S", "012", function() {
 });
 
 test("async iterator", "012345", function() {
-  var I = s.iterator(s.map({|x| hold(10),x},s.integers()));
+  var I = s.iterator(s.map(x -> (hold(10),x), s.integers()));
   var rv = "";
 
   rv += s.collect(s.pick(3,s.stream(I))).join('');
@@ -116,12 +116,12 @@ test("async iterator", "012345", function() {
 });
 
 test("unpack", "F,o,o,B,a,r", function() {
-  var chars = s.unpack({|x,f| for (var i=0; i<x.length; ++i) f(x.charAt(i)) });
+  var chars = s.unpack(function(x,f) { for (var i=0; i<x.length; ++i) f(x.charAt(i)) });
   return s.collect(chars(s.stream(['Foo','Bar']))).join(',');
 });
 
 test("pack", "[1,2]:[3,4]:[5,6]", function() {
-  var pairs = s.pack({|iter,f| while (iter.hasMore()) f("[#{iter.next()},#{iter.next()}]") });
+  var pairs = s.pack(function(iter,f) { while (iter.hasMore()) f("[#{iter.next()},#{iter.next()}]") });
   return s.collect(s.pick(3,pairs(s.integers(1)))).join(':');
 });
 

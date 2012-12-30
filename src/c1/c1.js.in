@@ -164,6 +164,14 @@ BEGIN_CASE_CLAUSE(cexp, pctx)
 ADD_CASE_CLAUSE_STMT(stmt, pctx)
 END_CASE_CLAUSE(pctx)
 
+- called for do-while/while/for/for-in bodies:
+BEGIN_LOOP_SCOPE(pctx)
+END_LOOP_SCOPE(pctx)
+
+- called for switch bodies:
+BEGIN_SWITCH_SCOPE(pctx)
+END_SWITCH_SCOPE(pctx)
+
 - if #defined SJS_BLOCKLAMBDA is set:
 BEGIN_BLAMBDABODY(pctx)
 ADD_BLAMBDABODY_STMT(stmt, pctx)
@@ -1257,13 +1265,17 @@ S("while").stmt(function(pctx) {
   scan(pctx, "(");
   var test = parseExp(pctx);
   scan(pctx, ")");
+  BEGIN_LOOP_SCOPE(pctx)
   var body = parseStmt(pctx);
+  END_LOOP_SCOPE(pctx)
   LOGM('while')
   GEN_WHILE(test, body, pctx)
 });
 
 S("do").stmt(function(pctx) {
+  BEGIN_LOOP_SCOPE(pctx)
   var body = parseStmt(pctx);
+  END_LOOP_SCOPE(pctx)
   scan(pctx, "while");
   scan(pctx, "(");
   var test = parseExp(pctx);
@@ -1296,7 +1308,9 @@ S("for").stmt(function(pctx) {
     if (pctx.token.id != ")")
       inc_exp = parseExp(pctx);
     scan(pctx, ")");
+    BEGIN_LOOP_SCOPE(pctx)
     var body = parseStmt(pctx);
+    END_LOOP_SCOPE(pctx)
     LOGM('for')
     GEN_FOR(start_exp, decls, test_exp, inc_exp, body, pctx)
   }
@@ -1307,7 +1321,9 @@ S("for").stmt(function(pctx) {
       throw "More that one variable declaration in for-in loop";
     var obj_exp = parseExp(pctx);
     scan(pctx, ")");
+    BEGIN_LOOP_SCOPE(pctx)
     var body = parseStmt(pctx);
+    END_LOOP_SCOPE(pctx)
     var decl = decls ? decls[0] : null;
     LOGM('for_in')
     GEN_FOR_IN(start_exp, decl, obj_exp, body, pctx)
@@ -1364,6 +1380,7 @@ S("switch").stmt(function(pctx) {
   var exp = parseExp(pctx);
   scan(pctx, ")");
   scan(pctx, "{");
+  BEGIN_SWITCH_SCOPE(pctx)
   var clauses = [];
   while (pctx.token.id != "}") {
     var clause_exp = null;
@@ -1386,6 +1403,7 @@ S("switch").stmt(function(pctx) {
     }
     clauses.push((function(pctx) { LOGM('>case_clause') END_CASE_CLAUSE(pctx) })(pctx));
   }
+  END_SWITCH_SCOPE(pctx)
   scan(pctx, "}");
   LOGM('switch')
   GEN_SWITCH(exp, clauses, pctx)

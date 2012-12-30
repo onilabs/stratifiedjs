@@ -187,14 +187,14 @@ function build_deps() {
 
   // helper to recursively read all files in given directory
   function walkdir(path, cb) {
-  var files = fs.readdir(path);
-  collection.each(files, 
-                  { |f|
-                    if (fs.isDirectory(path+"/"+f))
-                      walkdir(path+"/"+f, cb);
-                    else
-                      cb(path+"/"+f);
-                  });
+    var files = fs.readdir(path);
+    collection.each(files) { 
+      |f|
+      if (fs.isDirectory(path+"/"+f))
+        walkdir(path+"/"+f, cb);
+      else
+        cb(path+"/"+f);
+    };
   }
 
 

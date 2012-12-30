@@ -89,6 +89,11 @@ function top_scope(pctx) {
     rv = "default:";                              \
   return rv + scope.stmts.join(" ");
 
+#define BEGIN_LOOP_SCOPE(pctx)   /* */
+#define END_LOOP_SCOPE(pctx)     /* */
+#define BEGIN_SWITCH_SCOPE(pctx) /* */
+#define END_SWITCH_SCOPE(pctx)   /* */
+
 //----------------------------------------------------------------------
 // statements:
 #define GEN_EMPTY_STMT(pctx) return ";";

@@ -212,8 +212,8 @@ function makeIndexView() {
 //          (entries[dir] = makeIndexDirEntry(location.path+dir+"/", dir+"/")).show(view.elems.list);
           l.push([dir, makeIndexDirEntry(location.path+dir+"/", dir+"/")]);
         });
-        l.sort({|a,b| a[0]<b[0] ? -1 : (a[0]>b[0] ? 1 : 0)});
-        coll.each(l, {|e| (entries[e[0]] = e[1]).show(view.elems.list) });
+        l.sort((a,b) -> a[0]<b[0] ? -1 : (a[0]>b[0] ? 1 : 0));
+        coll.each(l) {|e| (entries[e[0]] = e[1]).show(view.elems.list) };
       }
       // else ... we didn't find any lib_docs; so no modules we can list
     }
@@ -584,23 +584,25 @@ function makeLibView(location) {
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
 
   // collect modules & dirs:
-  var modules = coll.reduce(docs.modules, "", {|p,m| p+
+  var modules = coll.reduce(docs.modules, "", 
+                            (p,m) -> p +
     "<tr>
       <td class='mb-td-symbol'><a href='##{location.path}#{m.name}'>#{m.name}</a></td>
       <td>#{makeSummaryHTML(m, location)}</td>
      </tr>"
-  });
+  );
 
   if (modules.length) {
     ui.makeView("<h3>Modules</h3><table>#{modules}</table>").show(view.elems.modules);
   }
 
-  var dirs = coll.reduce(docs.dirs, "", {|p,d| p+
+  var dirs = coll.reduce(docs.dirs, "", 
+                         (p,d) -> p +
     "<tr>
       <td class='mb-td-symbol'><a href='##{location.path}#{d.name}'>#{d.name}</a></td>
       <td>#{makeSummaryHTML(d,location)}</td>
-     </tr>";
-   });
+     </tr>"
+   );
 
   if (dirs.length) {
     ui.makeView("<h3>Directories</h3><table>"+dirs+"</table>").show(view.elems.dirs);

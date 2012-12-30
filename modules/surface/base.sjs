@@ -336,10 +336,8 @@ UIElement.waitforEvent = function(event, selector) {
   if (!selector) 
     ev = dom.waitforEvent(this.dompeer, event);
   else
-    ev = dom.waitforEvent(this.dompeer, event, {
-      |ev|
-      dom.findNode(selector, ev.target, this.dompeer);
-    });
+    ev = dom.waitforEvent(this.dompeer, event,
+                          ev -> dom.findNode(selector, ev.target, this.dompeer));
   dom.stopEvent(ev);
   return ev;
 };
@@ -364,7 +362,7 @@ mixinCommandAPI(UIElement);
 */
 UIElement.activate = function() {
   if (this.isActivated) throw new Error("UIElement already activated");
-  coll.each(this.style, {|s| s.use() });
+  coll.each(this.style) {|s| s.use() };
 };
 
 /**
@@ -408,7 +406,7 @@ UIElement.deactivated = function() {
   }
   this.isActivated = false;
   //abc this.dompeer.style.visibility = 'hidden';
-  coll.each(this.style, {|s| s.unuse() });
+  coll.each(this.style) {|s| s.unuse() };
 };
 
 /**
@@ -514,15 +512,15 @@ var ChildManagement = {
   },
 
   activate: function() {
-    coll.each(this.children, { |c| c.activate() });
+    coll.each(this.children) { |c| c.activate() };
   },
 
   activated: function() {
-    coll.each(this.children, { |c| c.activated() });
+    coll.each(this.children) { |c| c.activated() };
   },
 
   deactivated: function() {
-    coll.each(this.children, { |c| c.deactivated() });
+    coll.each(this.children) { |c| c.deactivated() };
   },
 
   mixinto: function(target) {
