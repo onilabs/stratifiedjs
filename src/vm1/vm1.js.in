@@ -881,7 +881,7 @@ phase 2: (executing clause code)
 
 function EF_Switch(ndata, env) {
   this.ndata = ndata;
-  this.env = copyEnv(env);
+  this.env = env;
   this.phase = 0;
 }
 setEFProto(EF_Switch.prototype={});
@@ -1120,7 +1120,7 @@ exports.Try = makeINCtor(I_try);
 
 function EF_Loop(ndata, env) {
   this.ndata = ndata;
-  this.env = copyEnv(env);
+  this.env = env;
 }
 setEFProto(EF_Loop.prototype={});
 #ifdef EF_TYPES
@@ -1221,7 +1221,7 @@ exports.Loop = makeINCtor(I_loop);
 
 function EF_ForIn(ndata, env) {
   this.ndata = ndata;
-  this.env = copyEnv(env);
+  this.env = env;
 }
 setEFProto(EF_ForIn.prototype={});
 #ifdef EF_TYPES
@@ -1488,7 +1488,6 @@ EF_Alt.prototype.cont = function(idx, val) {
         // create a new environment for 'collapse' support
         // XXX it sucks that we have to create a new environment for each branch here 
         var env = copyEnv(this.env);
-        env.ref = this.env.ref;
         env.fold = this;
         env.branch = i;
         val = execIN(this.ndata[i], env);

@@ -691,7 +691,7 @@ exports.Default=Default;
 
 function EF_Switch(ndata,env){this.ndata=ndata;
 
-this.env=copyEnv(env);
+this.env=env;
 this.phase=0;
 }
 setEFProto(EF_Switch.prototype={});
@@ -898,7 +898,7 @@ exports.Try=makeINCtor(I_try);
 
 function EF_Loop(ndata,env){this.ndata=ndata;
 
-this.env=copyEnv(env);
+this.env=env;
 }
 setEFProto(EF_Loop.prototype={});
 
@@ -989,7 +989,7 @@ exports.Loop=makeINCtor(I_loop);
 
 function EF_ForIn(ndata,env){this.ndata=ndata;
 
-this.env=copyEnv(env);
+this.env=env;
 }
 setEFProto(EF_ForIn.prototype={});
 
@@ -1239,7 +1239,6 @@ for(var i=0;i<this.ndata.length;++i){
 
 
 var env=copyEnv(this.env);
-env.ref=this.env.ref;
 env.fold=this;
 env.branch=i;
 val=execIN(this.ndata[i],env);
