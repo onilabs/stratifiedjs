@@ -210,3 +210,39 @@ test("blocklambda break 2", 'ac', function() {
 
   return rv;
 });
+
+test('a() .. b()', 'ab', function() {
+  var a = -> 'a', b = x -> x+'b';
+  return a() .. b();
+});
+
+test('a() .. b', 'ab', function() {
+  var a = -> 'a', b = x -> x+'b';
+  return a() .. b;
+});
+
+test("a() .. b('c')", 'abc', function() {
+  var a = -> 'a', b = (x,y) -> x+'b'+y;
+  return a() .. b('c');
+});
+
+test("a() .. (b('c'))", 'ab', function() {
+  var a = -> 'a', b = -> x -> x+'b';
+  return a() .. (b('c'));
+});
+
+test("a() .. b.c", 'ab', function() {
+  var a = -> 'a', b = { c: x -> x+'b' };
+  return a() .. b.c;
+});
+
+test("a() .. b['c']", 'ab', function() {
+  var a = -> 'a', b = { c: x -> x+'b' };
+  return a() .. b['c'];
+});
+
+test("a() .. (b['c']()) .. d", 'abd', function() {
+  var a = -> 'a', b = { c: -> x -> x+'b' }, d = x -> x+'d';
+  return a() .. (b['c']()) .. d;
+});
+

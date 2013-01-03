@@ -2879,6 +2879,17 @@ ph_arrow.prototype.nb=function(){if(this.bound)return '('+this.code+').bind('+(t
 
 
 
+function gen_doubledot_call(l,r,pctx){if(r.is_fun_call){
+
+r.args.unshift(l);
+return r;
+}else return new ph_fun_call(r,[l],pctx);
+
+
+}
+
+
+
 function gen_identifier(name,pctx){if(name=="hold"){
 
 
@@ -2952,6 +2963,7 @@ this.line=pctx.line;
 }
 ph_fun_call.prototype=new ph();
 ph_fun_call.prototype.is_value=true;
+ph_fun_call.prototype.is_fun_call=true;
 ph_fun_call.prototype.nblock_val=function(){var rv=this.l.nb()+"(";
 
 
@@ -3409,11 +3421,11 @@ delete this["$"+key]}};
 
 
 
-var TOKENIZER_SA=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\/\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\/\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
 
 
 
-var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+))/g;
+var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+))/g;
 
 
 
@@ -3640,6 +3652,12 @@ break;
 
 
 return new ph_fun_call(l,args,pctx);
+});
+
+S("..").exc(255,function(l,pctx){var r=parseExp(pctx,255);
+
+
+return gen_doubledot_call(l,r,pctx);
 });
 
 S("++").pre(240).pst(250).asi_restricted=true;

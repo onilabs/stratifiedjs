@@ -1218,6 +1218,20 @@ ph_arrow.prototype.nb = function() {
 
 #endif // SJS_ARROWS
 
+#ifdef SJS_DOUBLEDOT
+#define GEN_DOUBLEDOT_CALL(l,r,pctx) return gen_doubledot_call(l, r, pctx);
+
+function gen_doubledot_call(l, r, pctx) {
+  if (r.is_fun_call) {
+    r.args.unshift(l);
+    return r;
+  }
+  else
+    return new ph_fun_call(r, [l], pctx);
+}
+
+#endif // SJS_DOUBLEDOT
+
 
 #define GEN_IDENTIFIER(name, pctx) return gen_identifier(name, pctx);
 function gen_identifier(name, pctx) {
@@ -1302,6 +1316,7 @@ function ph_fun_call(l, args, pctx) {
 }
 ph_fun_call.prototype = new ph(WHENDEBUG("ph_fun_call"));
 ph_fun_call.prototype.is_value = true;
+ph_fun_call.prototype.is_fun_call = true;
 ph_fun_call.prototype.nblock_val = function() {
     // fun_call is never nblock by default, since the function call
     // might return a suspension, but it can be forced (__js)

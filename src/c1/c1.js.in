@@ -111,6 +111,7 @@ general:
    #define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    #define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    #define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
+   #define SJS_DOUBLEDOT: allow double dot call syntax
    #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    #define QUASIS: allow quasi templates (`foo#{bar}baz`)
    #define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
@@ -276,6 +277,8 @@ GEN_THIN_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
 GEN_FAT_ARROW(body_exp, pctx)
 GEN_FAT_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
 
+- if #define SJS_DOUBLEDOT is set
+GEN_DOUBLEDOT_CALL(l, r, pctx)
 
 - if #define INTERPOLATING_STRINGS is set:
 GEN_INTERPOLATING_STR(parts, pctx)
@@ -298,6 +301,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
+#define SJS_DOUBLEDOT 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #include "kernel-sjs.js.in"
@@ -311,6 +315,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
+#define SJS_DOUBLEDOT 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #include "kernel-jsmin.js.in"
@@ -355,7 +360,11 @@ Hash.prototype = {
 #define PAT_OPERATOR3 ===|!==|>>>|<<=|>>=
 
 #ifdef SJS_ARROWS
+#ifdef SJS_DOUBLEDOT
+#define PAT_OPERATOR2 ==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=
+#else // !SJS_DOUBLEDOT
 #define PAT_OPERATOR2 ==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
+#endif
 #else
 #define PAT_OPERATOR2 ==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
 #endif
@@ -570,7 +579,8 @@ function S(id, tokenizer) {
 /*
 BP: Binding Power
 P: Precedence
-A: Associates (L: left, R: right)
+A: Associativity (L: left, R: right)
+*: Designates an SJS-specific construct
 
 BP  P  A    Operator      Operand Types                  Operation Performed
 270  1 L     []           MemberExp Expression        
@@ -579,7 +589,8 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 260  2 L     ( )          CallExpression Arguments       Function Call
        L     { }          CallExpression BlockArguments  Block Lambda Call
   (    L     []           CallExpression Expression        )
-  (    L     .            CallExpression Identifier        )
+  (    L     .            CallExpression Identifier        )  
+*255   L     ..           ArgExp CallExpression          Double Dot Call
 250  3 n/a   ++           LeftHandSideExp                PostfixIncrement
        n/a   --           LeftHandSideExp                PostfixDecrement
 240  4 R     delete       UnaryExp                       Call Delete Method
@@ -744,6 +755,14 @@ S("(").
     LOGM('fun_call')
     GEN_FUN_CALL(l, args, pctx)
   });
+
+#ifdef SJS_DOUBLEDOT
+S("..").exc(255, function(l, pctx) {
+  var r = parseExp(pctx, 255);
+  LOGM('doubledot')
+  GEN_DOUBLEDOT_CALL(l,r,pctx)
+});
+#endif
 
 S("++").pre(240).pst(250).asi_restricted = true;
 S("--").pre(240).pst(250).asi_restricted = true;

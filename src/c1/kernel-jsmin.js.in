@@ -286,6 +286,10 @@ function gen_prefix_op(id, right, pctx) {
 #define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx) GEN_INFIX_OP(pars, '=>', body, pctx)
 #endif
 
+#ifdef SJS_DOUBLEDOT
+#define GEN_DOUBLEDOT_CALL(l,r,pctx) return l+".."+r;
+#endif
+
 #ifdef STRINGIFY
 #define GEN_LITERAL(type, value, pctx)                                  \
   if (type == "<string>")                                               \
