@@ -36,6 +36,7 @@
 
 /**
   @module  collection
+  @deprecated Use [sequence::] module
   @summary Functional tools for iterating and processing collections (arrays or objects).
   @home    apollo:collection
   @desc

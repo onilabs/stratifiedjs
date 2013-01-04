@@ -31,6 +31,7 @@
  */
 /**
    @module    stream
+   @deprecated Use [sequence::] module
    @summary   Stratified stream and iterator constructs
    @home      apollo:stream
 */

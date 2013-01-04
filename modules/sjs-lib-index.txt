@@ -45,7 +45,7 @@
 @dir webapi   Bindings to popular web apis
 @dir xbrowser Modules with basic cross-browser functionality
 
-@module collection      Functions for iterating and processing collections (arrays or objects)
+@module collection      Functions for iterating and processing collections (arrays or objects); (Deprecated; use [sequence::] module)
 @module common          Common JS utility functions
 @module cutil           Functions and constructs for concurrent stratified programming
 @module debug           Helpers for debugging
@@ -56,8 +56,9 @@
 @module logging         Simple cross-environment logging framework
 @module lru-cache       Least Recently Used Cache
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
+@module sequence        Constructs for manipulating sequence structures (arrays, strings and more general streams)
 @module sjcl            Stanford JavaScript Crypto Library
-@module stream          Stratified stream and iterator constructs
+@module stream          Stratified stream and iterator constructs (Deprecated; use [sequence::] module)
 @module string          Functions for working with strings
 @module wraplib         Utility functions for wrapping plain JS libraries for SJS
 
