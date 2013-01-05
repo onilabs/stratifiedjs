@@ -42,6 +42,37 @@
 
 var {isArrayOrArguments} = require('sjs:apollo-sys');
 
+//----------------------------------------------------------------------
+
+/**
+   @class Sequence
+   @summary An Array, arguments object, String or [::Stream]
+   @desc
+     A sequence is a datastructure that can be sequentially processed by [::each].
+     Of the built-in JavaScript constructs, Arrays, the `arguments` object and Strings are
+     sequences. Strings are treated like Character arrays.
+*/
+
+/**
+   @class Stream
+   @summary Stratified stream abstraction
+   @desc
+     A stream `S` is a function with signature `S(r)`, where `r`, the *receiver function*, is a 
+     function of a single argument.
+     When called, `S(r)` sequentially invokes `r(x)` with the stream's data elements 
+     `x=x1,x2,x3,...` until the stream is empty.
+
+     ### Example:
+     
+         // assuming S is the stream 1,2,3,...,10
+ 
+         S(function(x) { console.log(x); }); // -> 1,2,3,...,10
+
+         // blocklambda form:
+         S { |x| console.log(x*x) }  // -> 1,4,9,...,100
+*/
+
+//----------------------------------------------------------------------
 
 /**
    @function each
@@ -384,7 +415,7 @@ exports.unpack = unpack;
 
           // zip a character sequence with the corresponsing character position:
 
-          zip(integers(), "This is a string") .. each { |x| console.log("#{x[0]}:#{x[1]}") }
+          zip(integers(1), "This is a string") .. each { |x| console.log("#{x[0]}:#{x[1]}") }
 
           // -> 1:T, 2:h, 3:i, 4:s, 5: , 6:i, 7:s, ...
 */
@@ -413,7 +444,24 @@ exports.zip = zip;
 
 /**
    @function reduce
-   @summary To be documented
+   @altsyntax sequence .. reduce(initial, f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Object} [initial] Initial value
+   @param {Function} [f] Reducer function
+   @return {Object} 
+   @summary Cumulatively combine elements of a sequence
+   @desc
+     Also known as `foldl` or `inject`.
+
+     Initializes an accumulator `accu` to `initial`, executes
+     `accu = f(accu, x)` for each element `x` in `sequence`, and yields the
+     final value of `accu` as return value.
+
+     ### Example:
+
+         // sum integers from 1 to 100:
+
+         integers(1,100) .. reduce(0, (sum, x) => sum + x)
 */
 function reduce(sequence, initial, f) {
   var accu = initial;
@@ -424,7 +472,19 @@ exports.reduce = reduce;
 
 /**
    @function reduce1
-   @summary To be documented
+   @altsyntax sequence .. reduce1(f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [f] Reducer function
+   @return {Object} 
+   @summary Cumulatively combine elements of a non-empty sequence
+   @desc
+     Same as [::reduce], but using the first element of `sequence` as initial value.
+
+     ### Example:
+
+         // sum integers from 1 to 100:
+
+         integers(1,100) .. reduce((sum, x) => sum + x)
 */
 function reduce1(sequence, f) {
   var accu;
@@ -445,36 +505,83 @@ exports.reduce1 = reduce1;
 
 /**
    @function find
-   @summary To be documented
+   @altsyntax sequence .. find(p, defval)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [p] Predicate function
+   @param {optional Object} [defval=undefined] Default value to return if no match is found
+   @return {Object} Matching element or `defval` if no match was found
+   @summary Find first element `x` of `sequence` for which `p(x)` is truthy.
 */
-function find(sequence, t) {
-  sequence .. each { |x| if (t(x)) return x }
-  return undefined;
+function find(sequence, p, defval) {
+  sequence .. each { |x| if (p(x)) return x }
+  return defval;
 }
 exports.find = find;
 
 /**
    @function all
-   @summary To be documented
+   @altsyntax sequence .. all(p)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [p] Predicate function
+   @return {Boolean} 
+   @summary Returns `true` if `p(x)` is truthy for all elements in `sequence`, `false` otherwise.
 */
-function all(sequence, t) {
-  sequence .. each { |x| if (!t(x)) return false }
+function all(sequence, p) {
+  sequence .. each { |x| if (!p(x)) return false }
   return true;
 }
 exports.all = all;
 
 /**
    @function any
-   @summary To be documented
+   @altsyntax sequence .. any(p)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [p] Predicate function
+   @return {Boolean} 
+   @summary Returns `true` if `p(x)` is truthy for any elements in `sequence`, `false` otherwise.
 */
-function any(sequence, t) {
-  sequence .. each { |x| if (t(x)) return true }
+function any(sequence, p) {
+  sequence .. each { |x| if (p(x)) return true }
   return false;
 }
 exports.any = any;
 
-
 /**
+   @function parallelize
+   @altsyntax sequence .. parallelize([max_strata])
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=10] Maximum number of parallel strata to spawn
+   @return {::Stream}
+   @summary  Parallelize a sequence
+   @desc
+      Generates a parallelized stream from `sequence`.
+*/
+function parallelize(sequence, max_strata) {
+  max_strata = max_strata || 10;
+  return function(r) {
+    var eos = {}, count = 0;
+    sequence .. iterate(eos) {
+      |next|
+      function dispatch() {
+        var x = next();
+        if (x === eos) return;
+        waitfor {
+          ++count;
+          r(x);
+          if (count-- == max_strata) dispatch();
+        }
+        and {
+          if (count < max_strata) dispatch();
+        }
+      }
+      dispatch();
+    }
+  }
+}
+exports.parallel = parallel;
+
+
+/* NOT PART OF DOCUMENTED API YET
    @function makeIterator
    @summary To be documented
 */   
@@ -510,33 +617,6 @@ function makeIterator(sequence) {
 }
 exports.makeIterator = makeIterator;
 
-/**
-   @function parallel
-   @summary To be documented
-*/
-function parallel(sequence, max_strata) {
-  max_strata = max_strata || 10;
-  return function(r) {
-    var eos = {}, count = 0;
-    sequence .. iterate(eos) {
-      |next|
-      function dispatch() {
-        var x = next();
-        if (x === eos) return;
-        waitfor {
-          ++count;
-          r(x);
-          if (count-- == max_strata) dispatch();
-        }
-        and {
-          if (count < max_strata) dispatch();
-        }
-      }
-      dispatch();
-    }
-  }
-}
-exports.parallel = parallel;
 
 //----------------------------------------------------------------------
 // Utility sequences:
@@ -544,7 +624,15 @@ exports.parallel = parallel;
 var MAX_PRECISE_INT = 9007199254740992; // 2^53
 /**
    @function integers
-   @summary To be documented
+   @param {optional Integer} [start=0] Start integer
+   @param {optional Integer} [end=2^53] End integer
+   @return {::Stream} 
+   @summary Generate a stream of integers from `start` to `end`
+   @desc
+     ### Example:
+     
+         // print integers from 1 to 100:
+         integers(1,100) .. each { |x| console.log(x) }
 */
 function integers(start, end) {
   if (start == undefined) start = 0;
@@ -555,7 +643,13 @@ exports.integers = integers;
 
 /**
    @function fib
-   @summary To be documented
+   @return {::Stream} 
+   @summary Generate a stream of [Fibonacci numbers](http://en.wikipedia.org/wiki/Fibonacci_number) beginning with 1
+   @desc
+     ### Example:
+     
+         // print first 10 Fibonacci numbers
+         fib() .. pick(10) .. each { |x| console.log(x) }
 */
 function fib() {
   return function(r) {
