@@ -578,7 +578,7 @@ function parallelize(sequence, max_strata) {
     }
   }
 }
-exports.parallel = parallel;
+exports.parallelize = parallelize;
 
 
 /* NOT PART OF DOCUMENTED API YET
