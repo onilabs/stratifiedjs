@@ -206,6 +206,7 @@ exports.parseModuleDocs = function(src, module) {
       break;
     case "function":
     case "variable":
+    case "constructor":
       // append to module or class depending on name
       var matches = /(.+)\.([^.]+)/.exec(value);
       // class member?
@@ -216,6 +217,15 @@ exports.parseModuleDocs = function(src, module) {
       }
       else if (module.classes[value]) {
         if (prop == 'function') {
+          // creation function: a ctor that isn't being called with 'new'
+          curr = module.classes[value].symbols[value] = { name: value,
+                                                          type: "ctor",
+                                                          nonew: true,
+                                                          "return": {type:"return", valtype:"::"+value},
+                                                          summary: "Create a #{value} object."
+                                                        };
+        }
+        else if (prop == 'constructor') {
           // constructor
           curr = module.classes[value].symbols[value] = { name: value, 
                                                           type: "ctor", 

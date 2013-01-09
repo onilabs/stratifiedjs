@@ -468,7 +468,7 @@ function makeSymbolView(location) {
       signature = location.classname.toLowerCase()+"."+docs.name;
     else {
       signature = docs.name;
-      if (docs.type == 'ctor') {
+      if (docs.type == 'ctor' && !docs.nonew) {
         if (signature.indexOf('.') != -1)
           signature = '('+signature+')';
         signature = "new "+signature;

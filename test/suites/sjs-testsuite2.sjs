@@ -246,3 +246,61 @@ test("a() .. (b['c']()) .. d", 'abd', function() {
   return a() .. (b['c']()) .. d;
 });
 
+test("waitfor() { ... } sequencing", 'ba', function() {
+  var rv = '', next;
+  waitfor {
+    waitfor() { next = resume; }
+    rv += 'b';
+  }
+  and {
+    next();
+    rv += 'a';
+  }
+  return rv;
+});
+
+test("reentrant blocklambda calltree teardown", 'BbABacd', function() {
+
+  var rv = '';
+
+  function foo(f) {
+    waitfor {
+      try { f('a'); } finally { rv += 'a' }
+    }
+    and {
+      try { f('b'); } finally { rv += 'b' }
+    } 
+    finally {
+      rv += 'c';
+    }
+  }
+
+  function bar() {
+    try {
+      foo { 
+        |x|
+        try {
+          if (x == 'a') {
+            try {
+              hold();
+            }
+            finally {
+              rv += 'A';
+            }
+          }
+          else
+            return;
+        }
+        finally {
+          rv += 'B';
+        }
+      }
+    }
+    finally {
+      rv += 'd';
+    }
+  }
+
+  bar();
+  return rv;
+});
