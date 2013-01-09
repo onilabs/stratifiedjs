@@ -43,6 +43,10 @@ waitfor {
   var common = require('../common');
 } 
 and {
+  var seq    = require('../sequence');
+}
+and {
+  // XXX replace this with the sequence module functions
   var coll   = require('../collection');
 } 
 and {
@@ -487,7 +491,7 @@ __js var UIContainerElement = exports.UIContainerElement = Object.create(UIEleme
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
    @param {Function} [f] Function to execute; will be passed `ui` as parameter
    @desc
-     - If a String, QuasiTemplate or Array are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
+     - If a String, QuasiTemplate, Array or [../sequence::Stream] are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
 UIContainerElement.withUI = function() {
   var args = coll.toArray(arguments);
@@ -554,7 +558,7 @@ ChildManagement.mixinto(HtmlFragmentElement);
    @function HtmlFragmentElement.init
    @summary Called by constructor function to initialize HtmlFragmentElement object
    @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init], and understands all the attributes listed there.
-   @attrib {optional String|QuasiTemplate|Array} [content=''] HTML content for this HtmlFragmentElement
+   @attrib {optional String|QuasiTemplate|Array|../sequence::Stream} [content=''] HTML content for this HtmlFragmentElement
    @attrib {optional Array} [subelems] Elements that will be statically inserted into the HTML content. Deprecated; use QuasiTemplate mechanism instead.
 */
 HtmlFragmentElement.init = func.seq(
@@ -567,7 +571,8 @@ HtmlFragmentElement.init = func.seq(
       this.dompeer = attribs.content;
     }
     else {
-      if (sys.isTemplate(attribs.content) || Array.isArray(attribs.content)) {
+      if (sys.isTemplate(attribs.content) || Array.isArray(attribs.content) || 
+          seq.isStream(attribs.content)) {
         // Complex Content:
 
         // * a QuasiTemplate, e.g.:
@@ -595,8 +600,8 @@ HtmlFragmentElement.init = func.seq(
                 html += "<span id='__oni_placeholder#{placeholders.length}'></span>";
                 placeholders.push(part);
               }
-              else if (Array.isArray(part)) {
-                parseArray(part, false);
+              else if (Array.isArray(part) || seq.isStream(part)) {
+                parseArray(seq.toArray(part), false);
               }
               else if (sys.isTemplate(part)) {
                 parseArray(part.parts, true);
@@ -613,7 +618,7 @@ HtmlFragmentElement.init = func.seq(
         if (sys.isTemplate(attribs.content))
           parseArray(attribs.content.parts, true);
         else
-          parseArray(attribs.content, false);
+          parseArray(seq.toArray(attribs.content), false);
         
         // create a surrogate dompeer:
         this.dompeer = document.createElement('surface-ui');
@@ -633,7 +638,9 @@ HtmlFragmentElement.init = func.seq(
         }        
       }
       else {
-        // content is a string; //XXX sanitize it!!
+        // content is a string (or will be coerced to one); 
+        //XXX sanitize it!! - This might break existing surface code
+
         // create a surrogate dompeer: 
         this.dompeer = document.createElement('surface-ui');
         if (typeof attribs.content !== 'undefined') {
@@ -724,13 +731,13 @@ HtmlFragmentElement.selectContainer = function(selector) {
    @summary Construct a [::HtmlFragmentElement]
    @param   {Object} [attribs] Object with attributes
    @attrib  {String} [content] HTML content
-   @attrib {optional ::StyleElement|String|Array} [style]
+   @attrib {optional ::StyleElement|String|Array|../sequence::Stream} [style]
    @attrib {Function} [mechanism] Mechanism function
    @attrib {Array} [subelems] Array of {container,elem} subelement objects
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
-  if (typeof attribs != 'object' || Array.isArray(attribs) || sys.isTemplate(attribs))
+  if (typeof attribs != 'object' || Array.isArray(attribs) || seq.isStream(attribs) || sys.isTemplate(attribs))
     attribs = { content: attribs }
   var obj = Object.create(HtmlFragmentElement);
   obj.init(attribs); 
@@ -754,7 +761,7 @@ RootElement.init = function(attribs) {
 ChildManagement.mixinto(RootElement);
 
 RootElement.append = function(ui) {
-  if (typeof ui == 'string' || Array.isArray(ui) || sys.isTemplate(ui)) ui = exports.Html(ui);
+  if (typeof ui == 'string' || Array.isArray(ui) || seq.isStream(ui) || sys.isTemplate(ui)) ui = exports.Html(ui);
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
@@ -829,14 +836,14 @@ exports.mixinCommandAPI = mixinCommandAPI;
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
    @param {Function} [f] Function to execute; will be passed `ui` as parameter
    @desc
-     - If a String, QuasiTemplate or Array are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
+     - If a String, QuasiTemplate, Array or [../sequence::Stream] are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
 exports.withUI = function(/*container, ui, [append_attribs], f*/) {
   var container = arguments[0];
   var args = Array.prototype.slice.call(arguments, 1);
   var f = args.pop();
   // ensure ui is a UIElement:
-  if (typeof args[0] == 'string' || Array.isArray(args[0]) || sys.isTemplate(args[0])) 
+  if (typeof args[0] == 'string' || Array.isArray(args[0])  || seq.isStream(args[0]) || sys.isTemplate(args[0]))
     args[0] = exports.Html(args[0]);
   container.append.apply(container, args);
   try {
