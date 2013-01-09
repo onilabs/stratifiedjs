@@ -136,8 +136,7 @@ exports.pump = function(src, dest, fn) {
     The stream will emit a single `data` event with the provided string. `pause()`
     and `resume()` can be used to delay this event, and `destroy()` to cancel it.
 
-  @function ReadableStringStream
-  @summary  Constructor for a ReadableStringStream object.
+  @constructor ReadableStringStream
   @param    {String} [data] The data for this stream to emit
 */
 var ReadableStringStream = exports.ReadableStringStream = function(data) {
@@ -186,8 +185,7 @@ ReadableStringStream.prototype.setEncoding = function() {
      The data written to the stream can be retrieved from field 
      [::WritableStringStream::data].
 
-   @function WritableStringStream
-   @summary  Constructor for a WritableStringStream object
+   @constructor WritableStringStream
 
    @variable WritableStringStream.data
    @summary  Data that has been written to the stream (String)

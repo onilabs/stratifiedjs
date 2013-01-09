@@ -50,7 +50,7 @@ var common = require("../common");
 /**
    @class    Client
    @summary  Asana API client
-   @function Client
+   @constructor Client
    @param    {String} [apiKey] [Asana API Key](http://developer.asana.com/documentation/#api_keys)
 */
 function Client(apiKey) {

@@ -141,7 +141,7 @@
    @desc
      Schedule out an AES key for both encryption and decryption.  This
      is a low-level class.  Use a cipher mode to do bulk encryption.
-   @function cipher.aes
+   @constructor cipher.aes
    @param    {Array} [key] The key as an array of 4, 6 or 8 words.
 
    @function cipher.aes.decrypt
@@ -192,7 +192,7 @@
 /**
    @class    hash.sha256
    @summary  Context for a SHA-256 operation in progress.
-   @function hash.sha256
+   @constructor hash.sha256
    @param    [hash]
 
    @function hash.sha256.hash
@@ -275,7 +275,7 @@
 /**
    @class    misc.hmac
    @summary  HMAC with the specified hash function.
-   @function misc.hmac
+   @constructor misc.hmac
    @param    {::bitArray} [key] The key for the HMAC.
    @param    {optional Object} [hash=::hash.sha256] The hash function to use.
 

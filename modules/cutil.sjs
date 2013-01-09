@@ -54,7 +54,7 @@ exports.waitforFirst = coll.par.waitforFirst;
 /**
   @class    Semaphore
   @summary  A counting semaphore.
-  @function Semaphore
+  @constructor Semaphore
   @param    {Integer} [permits] Number of permits available to be handed out.
   @param    {Boolean} [sync=false] Toggles synchronous behaviour (see [::Semaphore::release])
   @desc
@@ -169,7 +169,7 @@ Semaphore.prototype = {
 /**
   @class    Event
   @summary  An event that can be waited upon and emitted multiple times.
-  @function Event
+  @constructor Event
 */
 var Event = exports.Event = function Event() {
   this.waiting = [];
@@ -246,7 +246,7 @@ Event.prototype.restartLoop = function restartLoop(f) {
 /**
   @class    Condition
   @summary  A single condition value that can be waited upon, set and cleared.
-  @function Condition
+  @constructor Condition
 
   @variable Condition.isSet
   @summary  (Boolean) whether the condition is currently set
@@ -382,7 +382,7 @@ exports.makeMemoizedFunction = sys.makeMemoizedFunction;
 /**
   @class   Queue
 
-  @function Queue
+  @constructor Queue
   @summary Constructor for a bounded FIFO queue datastructure.
   @param   {Integer} [capacity] Maximum number of items to which the queue will
            be allowed to grow.
