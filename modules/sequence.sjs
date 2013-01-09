@@ -56,21 +56,47 @@ var {isArrayOrArguments} = require('sjs:apollo-sys');
 /**
    @class Stream
    @summary Stratified stream abstraction
+*/
+
+/**
+   @function Stream
+   @summary Create a Stream from a streaming function
+   @param {Function} [S] Streaming function
    @desc
-     A stream `S` is a function with signature `S(r)`, where `r`, the *receiver function*, is a 
+     A streaming function `S` is a function with signature `S(r)`, where `r`, the *receiver function*, is a 
      function of a single argument.
-     When called, `S(r)` sequentially invokes `r(x)` with the stream's data elements 
+     When called, `S(r)` must sequentially invokes `r(x)` with the stream's data elements 
      `x=x1,x2,x3,...` until the stream is empty.
 
      ### Example:
      
-         // assuming S is the stream 1,2,3,...,10
+         // The stream 1,2,3,...,10 can be expressed by the streaming function:
+         function S(r) { for (var i=1; i<=10; ++1) r(i) }
  
+         // We then have:
          S(function(x) { console.log(x); }); // -> 1,2,3,...,10
 
          // blocklambda form:
          S { |x| console.log(x*x) }  // -> 1,4,9,...,100
+
 */
+var STREAM_TOKEN = {};
+function Stream(S) {
+  S.__oni_stream = STREAM_TOKEN;
+  return S;
+}
+exports.Stream = Stream;
+
+/**
+   @function isStream
+   @param {Object} [s] Object to test
+   @returns {Boolean}
+   @summary Returns `true` is `s` is a [::Stream], `false` otherwise.
+*/
+function isStream(s) {
+  return s && s.__oni_stream == STREAM_TOKEN;
+}
+exports.isStream = isStream;
 
 //----------------------------------------------------------------------
 
@@ -140,43 +166,113 @@ exports.each = each;
          }
      
 */
-function iterate(/* sequence, [opt]eos, loop*/) {
 
+/* 
+   Support for parallel streams makes the 'iterate' implementation quite complicated.
+   Here's what it would looks like if we disallowed parallel streams, i.e. 'each(stream,f)'
+   would guarantee to never call 'f' reentrantly when 'f' blocks:
+
+   function iterate_single_stratum_version(/ * sequence, [opt]eos, loop* /) {
+
+     var sequence, eos, loop;
+     if (arguments.length > 2)
+       [sequence, eos, loop] = arguments;
+     else
+       [sequence, loop] = arguments;
+
+     var emit_next,want_next;
+
+     function next() {
+       waitfor(var rv) {
+         emit_next = resume;
+         want_next();
+       }
+       return rv;
+     }
+
+     waitfor {
+       waitfor() { want_next = resume }
+       sequence .. each { 
+         |x|
+         waitfor() { 
+           want_next = resume;
+           emit_next(x);
+         }
+       }
+       while (1) {
+         waitfor() {
+           want_next = resume;
+           emit_next(eos);
+         }
+       }
+     }
+     or {
+       loop(next);
+     }
+  }
+*/
+function iterate(/* sequence, [opt]eos, loop */) {
   var sequence, eos, loop;
   if (arguments.length > 2)
     [sequence, eos, loop] = arguments;
   else
     [sequence, loop] = arguments;
 
-  var emit_next,want_next;
+  var wants = []; // wants are issued by loops ready to receive their
+                  // next value; for a n-parallel stream there can be n concurrent wants
+  var waitfor_loop; // set by waitfor_all_loops
+  var active_loops = 0;
 
-  function next() {
-    waitfor(var rv) {
-      emit_next = resume;
-      want_next();
+  function waitfor_all_loops() {
+    waitfor(var loop) { waitfor_loop = resume }
+    waitfor {
+      ++active_loops;
+      loop.value();
+      if (--active_loops == 0) return;
     }
-    return rv;
+    and {
+      waitfor_all_loops();
+    }
+  }
+
+  function runLoop(getNext, x) {
+    var have_x = true;
+    function next() {
+      if (!have_x) {
+        if (getNext) {
+          waitfor(x, getNext) { wants.push(resume); getNext(); }
+        }
+        else
+          return eos;
+      }
+      else
+        have_x = false; // we use the getNext from the closure in the following next() call
+      return x;
+    }
+
+    waitfor_loop(spawn loop(next));
   }
 
   waitfor {
-    waitfor() { want_next = resume }
-    sequence .. each { 
-      |x|
-      waitfor() { 
-        want_next = resume;
-        emit_next(x);
-      }
-    }
-    while (1) {
-      waitfor() {
-        want_next = resume;
-        emit_next(eos);
-      }
-    }
+    waitfor_all_loops()
   }
   or {
-    loop(next);
+    sequence .. each {
+      |x|
+      waitfor() {
+        if (!wants.length)
+          runLoop(resume, x);
+        else
+          wants.shift()(x, resume);
+      }
+    }
+    // there should be at least one loop waiting
+    // ASSERT(wants.length >= 1)
+    while (wants.length)
+      wants.shift()(eos);
+    hold(); // we wait for all the loops to terminate
   }
+
 }
 exports.iterate = iterate;
 
@@ -230,31 +326,31 @@ exports.toStream = toStream;
 */
 
 /**
-   @function pick
-   @altsyntax sequence .. pick(count)
+   @function take
+   @altsyntax sequence .. take(count)
    @param {::Sequence} [sequence] Input sequence
-   @param {Integer} [count] Number of items to pick
+   @param {Integer} [count] Number of items to take
    @return {::Stream}
-   @summary  Picks `count` items from `sequence`
+   @summary  Takes `count` items from `sequence`
    @desc
       Generates a stream that contains at most the first `count` items from 
       `sequence` (or fewer, if `sequence` contains fewer items).
 
       ### Example:
 
-          each(pick(integers(), 10), function(x) { console.log(x) })
+          each(take(integers(), 10), function(x) { console.log(x) })
 
           // same as above, with double dot and blocklamdba syntax:
 
-          integers() .. pick(10) .. each { |x| console.log(x) }
+          integers() .. take(10) .. each { |x| console.log(x) }
 */
-function pick(sequence, count) {
-  return function(r) {
+function take(sequence, count) {
+  return Stream(function(r) {
     var n = count;
-      sequence .. each { |x| if (--count < 0) return; r(x) }
-  }
+      sequence .. each { |x| if (--n < 0) return; r(x) }
+  });
 }
-exports.pick = pick;
+exports.take = take;
 
 /**
    @function filter
@@ -271,20 +367,20 @@ exports.pick = pick;
 
           // print first 10 odd integers:
 
-          each(pick(filter(integers(), x=>x%2), 10), function(x) { console.log(x) })
+          each(take(filter(integers(), x=>x%2), 10), function(x) { console.log(x) })
 
           // same as above, with double dot and blocklamdba syntax:
 
-          integers() .. filter(x=>x%2) .. pick(10) .. each { |x| console.log(x) }
+          integers() .. filter(x=>x%2) .. take(10) .. each { |x| console.log(x) }
 */
 function filter(sequence, predicate) {
-  return function(r) {
+  return Stream(function(r) {
     sequence .. each { 
       |x| 
       if (predicate(x)) 
         r(x);
     }
-  }
+  });
 }
 exports.filter = filter;
 
@@ -303,16 +399,16 @@ exports.filter = filter;
 
           // print first 10 squares:
 
-          each(pick(map(integers(), x=>x*x), 10), function(x) { console.log(x) })
+          each(take(map(integers(), x=>x*x), 10), function(x) { console.log(x) })
 
           // same as above, with double dot and blocklamdba syntax:
 
-          integers() .. map(x=>x*x) .. pick(10) .. each { |x| console.log(x) }
+          integers() .. map(x=>x*x) .. take(10) .. each { |x| console.log(x) }
 */
 function map(sequence, f) {
-  return function(r) {
+  return Stream(function(r) {
     sequence .. each { |x| r(f(x)) }
-  }
+  });
 }
 exports.map = map;
 
@@ -341,7 +437,7 @@ exports.map = map;
           integers() .. pack(next => [next(),next()])
 */
 function pack(sequence, p, pad) {
-  return function(r) {
+  return Stream(function(r) {
     var eos = {}, next_item;
 
     sequence .. iterate(eos) { 
@@ -358,7 +454,7 @@ function pack(sequence, p, pad) {
       while (next_item !== eos)
         r(p(next));
     }
-  }
+  });
 }
 exports.pack = pack;
 
@@ -391,12 +487,12 @@ exports.pack = pack;
           integers() .. unpack(n => integers(1,n))
 */
 function unpack(sequence, u) {
-  return function(r) {
+  return Stream(function(r) {
     sequence .. each { 
       |x| 
       u(x) .. each { |y| r(y) } 
     }
-  }
+  })
 }
 exports.unpack = unpack;
 
@@ -421,7 +517,7 @@ exports.unpack = unpack;
 */
 function zip(/* sequences... */) {
   var sequences = arguments;
-  return function(r) {
+  return Stream(function(r) {
     var iterators = sequences .. map(seq => makeIterator(seq)) .. toArray;
     try {
       while (1) {
@@ -437,7 +533,7 @@ function zip(/* sequences... */) {
     finally {
       iterators .. each { |iter| iter.destroy() }
     }
-  }
+  });
 }
 exports.zip = zip;
 
@@ -558,7 +654,7 @@ exports.any = any;
 */
 function parallelize(sequence, max_strata) {
   max_strata = max_strata || 10;
-  return function(r) {
+  return Stream(function(r) {
     var eos = {}, count = 0;
     sequence .. iterate(eos) {
       |next|
@@ -576,7 +672,7 @@ function parallelize(sequence, max_strata) {
       }
       dispatch();
     }
-  }
+  })
 }
 exports.parallelize = parallelize;
 
@@ -637,7 +733,7 @@ var MAX_PRECISE_INT = 9007199254740992; // 2^53
 function integers(start, end) {
   if (start == undefined) start = 0;
   if (end == undefined) end = MAX_PRECISE_INT;
-  return function(r) { for (var i=start;i<= end;++i) r(i) };
+  return Stream(function(r) { for (var i=start;i<= end;++i) r(i) });
 }
 exports.integers = integers;
 
@@ -649,16 +745,16 @@ exports.integers = integers;
      ### Example:
      
          // print first 10 Fibonacci numbers
-         fib() .. pick(10) .. each { |x| console.log(x) }
+         fib() .. take(10) .. each { |x| console.log(x) }
 */
 function fib() {
-  return function(r) {
+  return Stream(function(r) {
     var [i1, i2] = [1,1];
     while (1) {
       r(i1);
       [i1,i2] = [i2, i1+i2];
     }
-  }
+  })
 }
 exports.fib = fib;
 

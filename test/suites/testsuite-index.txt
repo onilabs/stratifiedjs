@@ -11,7 +11,9 @@ logging-test.sjs xbrowser,nodejs
 lru-cache-tests.sjs xbrowser,nodejs
 nodejs-stream-tests.sjs nodejs
 perf-tests.sjs xbrowser,nodejs
+perf-tests2.sjs xbrowser,nodejs
 require-tests.sjs xbrowser,nodejs
+sequence-tests.sjs xbrowser,nodejs
 sjcl-tests.sjs xbrowser,nodejs
 sjs-testsuite.sjs xbrowser,nodejs
 sjs-testsuite2.sjs xbrowser,nodejs
