@@ -226,7 +226,7 @@ function makeIndexView() {
           // didn't find the module in our index entries... let's add
           // it, but only if there is documentation for it:
           if (!getModuleDocs(location.path + location.module)) return;
-          (selection = entries[location.module] = makeIndexEntry(location, location.module)).show(view.top[0]);
+          (selection = entries[location.module] = makeIndexModuleEntry(location, location.module)).show(view.top[0]);
         } 
         selection.select(); 
       }
