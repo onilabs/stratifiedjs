@@ -47,7 +47,7 @@ var PAT_COMMENT = "(" + PAT_NBCOMMENT + "|" + PAT_BCOMMENT + ")";
 // patterns that might contain something that _looks_ like a comment:
 // e.g. " /* */ " <-- a string, not a comment
 //      /\/* .*/  <-- a regexp, not a comment
-var PAT_REGEXLIT = "\\/(?:\\\\.|\\[(?:\\\\.|[^\\n\\]])*\\]|[^\\/\\n])+\\/[gimy]*";
+var PAT_REGEXLIT = "\\/(?:\\\\.|\\[(?:\\\\.|[^\\n\\]])*\\]|[^\\[\\/\\n])+\\/[gimy]*";
 var PAT_ML_STRLIT_SGL = "'(?:\\\\.|[^\\'])*'";
 var PAT_ML_STRLIT_DBL = '"(?:\\\\.|[^\\"])*"';
 var PAT_ML_STRLIT = PAT_ML_STRLIT_SGL+"|"+PAT_ML_STRLIT_DBL;
