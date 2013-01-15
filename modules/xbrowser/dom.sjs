@@ -583,12 +583,17 @@ exports.matchesSelector = matchesSelectorFunc ?
    @return {DOMElement|null}
 */
 function findNode(selector, from, to, inclusive) {
-  if (inclusive && to) {
-    if (!Array.isArray(to)) to = [to];
-    to = coll.map(to, elem -> elem ? null : elem.parentNode);
+  try {
+    if (inclusive && to) {
+      if (!Array.isArray(to)) to = [to];
+      to = coll.map(to, elem -> elem ? null : elem.parentNode);
+    }
+    traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
+    return null;
   }
-  traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
-  return null;
+  catch(e) {
+    throw new Error("findNode(#{selector}, #{from}, #{to}, #{inclusive}): #{e}");
+  }
 }
 exports.findNode= findNode;
 
