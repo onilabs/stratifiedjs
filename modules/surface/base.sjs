@@ -248,6 +248,16 @@ __js var GlobalCSS = exports.GlobalCSS = function(content) {
 var UIElement = exports.UIElement = {};
 
 /**
+   @function isUIElement
+   @param {Object} [obj]
+   @summary Returns `true` if `obj` is a [::UIElement], `false` otherwise.
+*/
+function isUIElement(obj) {
+  return UIElement.isPrototypeOf(obj);
+}
+exports.isUIElement = isUIElement;
+
+/**
    @function UIElement.init
    @summary Called by constructor functions to initialize UIElement objects
    @param   {Object} [attribs] Hash with attributes
@@ -341,7 +351,7 @@ UIElement.waitforEvent = function(event, selector) {
     ev = dom.waitforEvent(this.dompeer, event);
   else
     ev = dom.waitforEvent(this.dompeer, event,
-                          ev -> dom.findNode(selector, ev.target, this.dompeer));
+                          ev => dom.findNode(selector, ev.target, this.dompeer));
   dom.stopEvent(ev);
   return ev;
 };
@@ -444,8 +454,6 @@ UIElement.parent = undefined;
    @summary Slot for use by element's parent
 */
 UIElement.parentSlot = undefined;
-
-
 
 //----------------------------------------------------------------------
 // UIContainerElement
@@ -730,8 +738,8 @@ HtmlFragmentElement.selectContainer = function(selector) {
    @altsyntax Html(content)
    @summary Construct a [::HtmlFragmentElement]
    @param   {Object} [attribs] Object with attributes
-   @attrib  {String} [content] HTML content
-   @attrib {optional ::StyleElement|String|Array|../sequence::Stream} [style]
+   @attrib  {String|Array|../sequence::Stream} [content] HTML content
+   @attrib {optional ::StyleElement|String|Array} [style]
    @attrib {Function} [mechanism] Mechanism function
    @attrib {Array} [subelems] Array of {container,elem} subelement objects
    @return  {::HtmlFragmentElement}
