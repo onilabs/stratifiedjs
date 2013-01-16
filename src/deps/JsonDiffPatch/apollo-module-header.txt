@@ -8,11 +8,11 @@
  * (c) 2012 Oni Labs, http://onilabs.com
  *
  *
- *   ***********************************************************
- *   *    DO NOT EDIT terminal.sjs - IT IS A GENERATED FILE!   *
- *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN   *
- *   *    apollo/src/build/make-apollo                         *
- *   ***********************************************************
+ *   **************************************************************
+ *   *    DO NOT EDIT jsondiffpatch.sjs - IT IS A GENERATED FILE! *
+ *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN      *
+ *   *    apollo/src/build/make-apollo                            *
+ *   **************************************************************
  *
  *
  * This file is derived from the "JsonDiffPatch" project 

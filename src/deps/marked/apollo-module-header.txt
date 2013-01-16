@@ -9,7 +9,7 @@
  *
  *
  *   ***********************************************************
- *   *    DO NOT EDIT terminal.sjs - IT IS A GENERATED FILE!   *
+ *   *    DO NOT EDIT marked.sjs - IT IS A GENERATED FILE!     *
  *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN   *
  *   *    apollo/src/build/make-apollo                         *
  *   ***********************************************************
