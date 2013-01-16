@@ -55,6 +55,7 @@
 @module jsondiffpatch   Diff & patch for JSON objects
 @module logging         Simple cross-environment logging framework
 @module lru-cache       Least Recently Used Cache
+@module marked          Markdown to Html Converter (tracking the [marked library](https://github.com/chjj/marked))
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
 @module sequence        Constructs for manipulating sequence structures (arrays, strings and more general streams)
 @module sjcl            Stanford JavaScript Crypto Library

@@ -361,7 +361,7 @@ exports.take = take;
    @summary  Create a stream of elements of `sequence` that satisfy `predicate`
    @desc
       Generates a stream that contains all items `x` from `sequence` for which
-      `prdicate(x)` is truthy.
+      `predicate(x)` is truthy.
 
       ### Example:
 

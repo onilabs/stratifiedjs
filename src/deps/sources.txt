@@ -9,3 +9,8 @@ node-terminal/ git://github.com/mattijs/node-terminal.git 00e6fa30b196a3a709b025
 
 # JsonDiffPatch:
 JsonDiffPatch/ git://github.com/benjamine/JsonDiffPatch.git 2b7ef07a253e41aad4ed4d938ab701baec2b00db
+
+# marked:
+marked/ git://github.com/chjj/marked.git 2439b9b6caaafdd2e3e1423e87c678de796d16ba
+
+

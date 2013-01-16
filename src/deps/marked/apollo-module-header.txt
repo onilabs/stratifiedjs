@@ -1,0 +1,83 @@
+/*
+ * Oni Apollo 'marked' module
+ *
+ * Part of the Oni Apollo Standard Module Library
+ * Version: 'unstable'
+ * http://onilabs.com/apollo
+ *
+ * (c) 2013 Oni Labs, http://onilabs.com
+ *
+ *
+ *   ***********************************************************
+ *   *    DO NOT EDIT terminal.sjs - IT IS A GENERATED FILE!   *
+ *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN   *
+ *   *    apollo/src/build/make-apollo                         *
+ *   ***********************************************************
+ *
+ *
+ * This file is derived from the "marked" project 
+ * (git://github.com/chjj/marked.git), 
+ * which is available under the terms of the MIT License.
+ *
+ * Original License Text:
+ *
+ * Copyright (c) 2011-2013, Christopher Jeffrey (https://github.com/chjj/)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE. */
+
+/**
+  @module    marked
+  @summary   Markdown to Html Converter
+  @home      apollo:marked
+  @desc      
+             This module tracks the [marked library](https://github.com/chjj/marked) by Christopher Jeffrey.
+
+             It implements a high-speed markdown to html converter, supporting the full set
+             of [markdown features](http://daringfireball.net/projects/markdown/syntax) 
+             as well as some of the 
+             [GFM](http://github.github.com/github-flavored-markdown/) 
+             enhancements.
+*/
+
+/**
+   @function convert
+   @param {String} [text] Markdown text to convert
+   @param {optional Object} [settings] Hash of settings
+   @summary Convert Markdown text to HTML
+   @setting {Boolean} [pedantic=false] Conform to obscure parts of markdown.pl as much as possible. Don't fix any of the original markdown bugs or poor behavior.
+   @setting {Boolean} [gfm=true] Enable github flavored markdown.
+   @setting {Boolean} [sanitize=false] Sanitize the output. Ignore any HTML that has been input.
+   @setting {Function} [highlight] A callback to highlight code blocks (see below).
+   @setting {Boolean} [tables=true] Enable GFM tables. Requires `gfm:true`.
+   @setting {Boolean} [breaks=false] Enable GFM line breaks.
+   @desc
+     If code-highlighting is desired, pass in a `highlight` function with 
+     signature `function highlight(code, lang)`. The function must be **non-blocking**, 
+     i.e. not use any asynchronous constructs, like `require()` or `hold()` calls, 
+     and return the marked up code as a string.
+
+     `lang` will be the language identifier, as specified by GFM, or `undefined` if not
+     given. `code` is the code to mark up. 
+*/
+
+/** 
+  turn off docs from this point onwards:
+  @docsoff
+*/
+__js {

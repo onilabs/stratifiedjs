@@ -29,6 +29,7 @@ function build_deps() {
                                                   "modules/sjcl.sjs",
                                                   "modules/nodejs/terminal.sjs",
                                                   "modules/jsondiffpatch.sjs",
+                                                  "modules/marked.sjs",
                                                   "tmp/version_stamp"]);
 
   PSEUDO("compiler");
@@ -180,6 +181,16 @@ function build_deps() {
         ["src/deps/JsonDiffPatch/apollo-module-header.txt",
          "src/deps/JsonDiffPatch/src/jsondiffpatch.js",
          "src/deps/JsonDiffPatch/apollo-module-footer.txt"]
+       );
+
+  // marked module
+  BUILD("modules/marked.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/marked/apollo-module-header.txt",
+         "src/deps/marked/lib/marked.js",
+         "src/deps/marked/apollo-module-footer.txt"]
        );
 
   //----------------------------------------------------------------------
