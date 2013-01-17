@@ -4,7 +4,7 @@
 
 var test = require('../lib/testUtil').test;
 var puts = require('apollo:logging').print;
-var clean_stack = function(e) { return e.stack.replace(/module [^ ]*stack-tests.sjs/g, 'this_file').replace(/module [^ ]*lib/g, "lib").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, '').replace(/^Error(: [^\n]*)?\n/m, '').replace(/^this_file:1:14\n/m, ''); }; // This could really do with some work ;)
+var clean_stack = function(e) { return String(e.message).replace(/module [^ ]*stack-tests.sjs/g, 'this_file').replace(/module [^ ]*lib/g, "lib").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, '').replace(/^Error(: [^\n]*)?\n/m, '').replace(/^this_file:1:14\n/m, ''); }; // This could really do with some work ;)
 var line;
 var stack_from_running = function(f) {
   try {

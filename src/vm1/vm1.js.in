@@ -81,40 +81,42 @@ var UNDEF; // == undefined
   return obj && obj.__oni_cfx;
 }*/
 
-function augmented_message(e) {
-  return e.message+" (in "+e.file+(e.line ? ":"+e.line : "")+")";
+function CFException_toString() {
+  return this.name+": "+this.message;
 }
 
-function CFException_toString() {
-  return this.name+": "+augmented_message(this);
+function decorate_exception(e) {
+  // ensure exception `e` has oni-specific fields
+  if(!e.hasOwnProperty('__oni_stack')) e.__oni_stack = [];
+  if(!e.hasOwnProperty('__oni_msg')) {
+    e.message = e.__oni_msg = String(e);
+  }
 }
 
 function adopt_native_stack(e) {
+  if (e.__oni_stack) return;
   if(!e.stack) {
-    e.stack = "";
     return;
   }
-  if (e.__oni_stack) return;
+  decorate_exception(e);
   var stack = String(e.stack);
   LOG("ADOPTING new stack: " + stack);
   e.stack = "";
   var lines = stack.split("\n");
   var i;
   for (i=0; i<lines.length; i++) {
-    // TODO: make this check more reliable (and xbrowser):
-    if(lines[i].indexOf("oni-apollo-node.js") != -1) {
+    // TODO: make this check more reliable
+    if(lines[i].indexOf("oni-apollo-node.js") != -1 ||
+       lines[i].indexOf("oni-apollo.js") != -1 ) {
       // we've hit an apollo stack line.
       break;
     }
   }
   i--;
-  var oni_stack = [];
-  while(i >= 0) {
-    oni_stack.unshift([lines[i]])
+  while(i >= 1) {
+    __oni_add_stack_entry(e, [lines[i]]);
     i--;
   }
-  // LOG("ADOPTED new stack: " + oni_stack.join("\n - "));
-  e.__oni_stack = oni_stack;
 }
 
 var token_oniE = {}; // oni-modified exception
@@ -142,11 +144,10 @@ CFException.prototype = {
     else
       return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
   },
-  mapToJS : function(augment_mes, file, lineno) {
+  mapToJS : function(file, lineno) {
     if (this.type == "t") {
       annotate_exception_stack(this, file, lineno, 'mapToJS');
-      var e = (augment_mes && this.val.file) ? new Error(augmented_message(this.val)) : this.val;
-      throw e;
+      throw this.val;
     }
     else if (!this.ef) // XXX DO WE NEED THIS???
       throw new Error(this.toString()); 
@@ -253,7 +254,7 @@ var EF_Proto = {
           // Chrome's console exception reporting mechanism doesn't
           // respect user-supplied toString. To get linenumbers we
           // throw with an augmented message here:
-          val.mapToJS(true, this.env.file, this.lineno());
+          val.mapToJS(this.env.file, this.lineno());
         }
     }
     else // sync context
@@ -370,6 +371,24 @@ function I_nblock(ndata, env) {
 }
 exports.Nb = makeINCtor(I_nblock, function() { return this.NDATA_NBLOCK_LINENO(); });
 
+var __oni_add_stack_entry = function __oni_add_stack_entry(e, entry, last_entry) {
+  //TODO: this check is so hacky! And doesn't work in some cases.
+  // Need to figure out exactly when a new line ought to be added
+  if (String(entry) == String(last_entry)) return;
+  e.__oni_stack.push(entry);
+
+  var line;
+  if(entry.length == 1){
+    line = entry;
+  } else {
+    line = '    at ' + entry.slice(0,2).join(":");
+  }
+  
+  // Add the formatted stack line to the message. Ideally we'd do this on-demand (and not abuse
+  // the `message` property), but that can't be done reliably.
+  e.message += "\n" + line;
+}
+
 var annotate_exception_stack = function(e, file, lineno, reason) {
   if(e.type != 't') {
     // LOG("skipping non-throw type " + e.type);
@@ -382,24 +401,9 @@ var annotate_exception_stack = function(e, file, lineno, reason) {
   LOG("annotating exception " + e.val);
   if(!file) { return; }
   if(e.val instanceof Error || e.val instanceof Object) { // TODO: why are JS-thrown errors an Object instead of Error
-    if(!e.val.__oni_msg) {
-      e.val.__oni_msg = e.val.toString();
-    }
-    e.val.__oni_stack.push([file, lineno, reason]);
-
-    // todo: this is surely a waste of effort in 90+% of cases, since the stack is not shown.
-    e.val.stack = "";
-    var last_line = null;
-    for(var i=0; i<e.val.__oni_stack.length; i++) {
-      var this_line = e.val.__oni_stack[i].slice(0,2).join(":");
-      //TODO: this check is so hacky! And doesn't work in some cases.
-      // Need to figure out exactly when a new line ought to be added
-      if(this_line != last_line) {
-        if(e.val.stack) e.val.stack += "\n";
-        e.val.stack += this_line;
-      }
-      last_line = this_line;
-    }
+    decorate_exception(e.val);
+    var last_entry = e.val.__oni_stack[e.val.__oni_stack.length - 1];
+    __oni_add_stack_entry(e.val, [file, lineno, reason], last_entry);
     LOG("oni_stack for " + e + " is now = " + e.val.__oni_stack.join("\n---"));
   } else {
     LOG("can't annotate error: " + e.val + ", as it is a " + typeof(e.val));
@@ -495,13 +499,7 @@ EF_Seq.prototype.lineno = function() {
 EF_Seq.prototype.cont = function(idx, val) {
   var self = this;
   var getLine = function(idx) {
-    var lineno = drill(self, 'ndata', idx, 'lineno');
-    if (lineno && lineno.call) {
-      var val = lineno.call(self.ndata[idx]);
-      if (val) return val;
-      return String(lineno);
-    }
-    return "??: ";
+    return 'TODO: seq lineno??';
   };
   var getType = function(val) {
     var sub = val && val.type;
@@ -2116,7 +2114,7 @@ function I_spawn(ndata, env) {
           //   stratum.value();
           // We want to prevent the exception feeding to the user twice in this case
           if (!picked_up)
-            val.mapToJS(true, env.file, NDATA_SPAWN_LINE()); 
+            val.mapToJS(env.file, NDATA_SPAWN_LINE()); 
         }, 
                    0);
       }
