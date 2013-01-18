@@ -467,7 +467,8 @@ Console.prototype = {
           // *sigh* IE6's Error.toString just prints '[object Error]'. hack:
           var message = ex ? ex.toString() : "<Error>";
           if (message == "[object Error]") message = ex.message || "<Error>";
-          result.innerHTML = str.sanitize(message);
+          var lines = message.split("\n");
+          result.innerHTML = collection.map(lines, str.sanitize).join("<br/>");
         }
       }
       or {
