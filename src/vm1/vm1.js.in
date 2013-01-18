@@ -29,6 +29,8 @@ Preprocessor flags:
 
 #define HOTPATH       : don't build execution frames unless we have to
 
+#define STACKTRACES   : enable stack traces (compiler must be also built with this flag)
+
 OBSOLETE FLAGS:
     verbose exceptions are always on now; not predicated on this flag anymore:
 #define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
@@ -44,6 +46,9 @@ OBSOLETE FLAGS:
 #define ASYNC_RESUME  : obsolete asynchronous resume code path
 
 */
+
+#define STACKTRACES
+
 /* #define DEBUG_VM 1 */
 #ifdef DEBUG_VM
 #define EF_TYPES
@@ -85,15 +90,20 @@ function CFException_toString() {
   return this.name+": "+this.message;
 }
 
+function CFException_getMessage() {
+  return this.__oni_msg;
+}
+
 function decorate_exception(e) {
   // ensure exception `e` has oni-specific fields
   if(!e.hasOwnProperty('__oni_stack')) e.__oni_stack = [];
   if(!e.hasOwnProperty('__oni_msg')) {
-    e.message = e.__oni_msg = String(e);
+    e.__oni_msg = e.message;
   }
 }
 
 function adopt_native_stack(e) {
+#ifdef STACKTRACES
   if (e.__oni_stack) return;
   if(!e.stack) {
     return;
@@ -117,6 +127,7 @@ function adopt_native_stack(e) {
     __oni_add_stack_entry(e, [lines[i]]);
     i--;
   }
+#endif
 }
 
 var token_oniE = {}; // oni-modified exception
@@ -128,8 +139,8 @@ function CFException(type, value, line, file) {
     value.line = line;
     value.file = file || "unknown SJS source";
     adopt_native_stack(value);
-    if (!value.hasOwnProperty('toString'))
-      value.toString = CFException_toString;    
+    if (!value.hasOwnProperty('toString')) value.toString = CFException_toString;
+    if (!value.hasOwnProperty('getMessage')) value.getMessage = CFException_getMessage;
   }
   this.val = value;
   // this.ef = UNDEF;  // 'execution frame' tag for targetted return/break/continue
@@ -372,7 +383,7 @@ function I_nblock(ndata, env) {
 exports.Nb = makeINCtor(I_nblock, function() { return this.NDATA_NBLOCK_LINENO(); });
 
 var __oni_add_stack_entry = function __oni_add_stack_entry(e, entry, last_entry) {
-  //TODO: this check is so hacky! And doesn't work in some cases.
+  //TODO: this check is a hack! And doesn't work in some cases.
   // Need to figure out exactly when a new line ought to be added
   if (String(entry) == String(last_entry)) return;
   e.__oni_stack.push(entry);
@@ -390,6 +401,7 @@ var __oni_add_stack_entry = function __oni_add_stack_entry(e, entry, last_entry)
 }
 
 var annotate_exception_stack = function(e, file, lineno, reason) {
+#ifdef STACKTRACES
   if(e.type != 't') {
     // LOG("skipping non-throw type " + e.type);
     return;
@@ -408,6 +420,7 @@ var annotate_exception_stack = function(e, file, lineno, reason) {
   } else {
     LOG("can't annotate error: " + e.val + ", as it is a " + typeof(e.val));
   }
+#endif
 };
 
 //----------------------------------------------------------------------
@@ -469,7 +482,7 @@ function EF_Seq(ndata, env) {
     // blocklambda breaks to target this frame:
     this.toplevel = true; 
   }
-  this.last_idx = 0;
+  this.last_idx = 0; // used for recontructing stacktraces
 }
 setEFProto(EF_Seq.prototype={});
 #ifdef EF_TYPES
@@ -479,8 +492,13 @@ EF_Seq.prototype.lineno = function() {
   if(this.last_idx >= this.ndata.length) {
     LOG("SEQ_IDX_FUDGE" + this.last_idx + " -> " + (this.ndata.length - 1));
     this.last_idx = this.ndata.length - 1; // XXX: is this correct?
-    // return 'TODO, idx>length of ' + this.id;
   }
+  var last_instr = this.ndata[this.last_idx];
+  if(last_instr && last_instr.lineno && last_instr.lineno.call) {
+    return this.ndata[this.last_idx].lineno();
+  }
+
+#ifdef DEBUG_VM
   if(this.last_idx == 0)
   {
     return "[SEQ_FLags!?] [id=" + this.id + "]";
@@ -494,18 +512,19 @@ EF_Seq.prototype.lineno = function() {
   if(!this.ndata[this.last_idx].lineno) {
     return '?? (' + this.ndata[this.last_idx].type + ')';
   }
-  return this.ndata[this.last_idx].lineno();
+#endif
+
+  return null;
 };
 EF_Seq.prototype.cont = function(idx, val) {
   var self = this;
-  var getLine = function(idx) {
-    return 'TODO: seq lineno??';
-  };
+#ifdef DEBUG_VM
   var getType = function(val) {
     var sub = val && val.type;
     return "Seq/" + (sub || "??");
   };
-  LOG("EF_Seq.prototype.cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "]) @ " + this.env.file + ":" + getLine(idx));
+  LOG("EF_Seq.prototype.cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "]) @ " + this.env.file);
+#endif
 
   if (is_ef(val)) {
     // child frame being replaced:

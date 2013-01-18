@@ -84,7 +84,7 @@ test('supplant strictness', "No substitution found for \"who\"", function() {
   try {
     return str.supplant("Hello {who}", {version:1});
   } catch (e) {
-    return e.message;
+    return e.getMessage();
   }
 });
 

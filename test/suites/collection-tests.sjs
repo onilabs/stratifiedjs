@@ -103,7 +103,7 @@ test('each / eachSeq don\'t swallow all exceptions (only stopIteration)', 'expec
     collection.each([1,2,3], function() { throw new Error("expected error"); });
     return "no error thrown!"
   } catch (e) {
-    return e.message;
+    return e.getMessage();
   }
 });
 
@@ -225,7 +225,7 @@ test('remove on array throws when item not found', {message: "Could not find ite
     collection.remove(a, 'unknown');
     return "unexpected success";
   } catch (e) {
-    return {message:e.message, collection:e.collection, item:e.item};
+    return {message:e.getMessage(), collection:e.collection, item:e.item};
   }
 });
 
@@ -262,7 +262,7 @@ test('remove on object throws when key not found', {message: "Could not find ite
     collection.remove(a, 'unknown');
     return "unexpected success";
   } catch (e) {
-    return {message:e.message, collection:e.collection, item:e.item};
+    return {message:e.getMessage(), collection:e.collection, item:e.item};
   }
 });
 
@@ -285,7 +285,7 @@ test('reduce1 fails on empty array', 'reduce1 on empty collection', function() {
   try {
     return collection.reduce1([], function() { return 'should not be run'; });
   } catch(e) {
-    return e.message;
+    return e.getMessage();
   }
 });
 
