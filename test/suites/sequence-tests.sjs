@@ -89,3 +89,9 @@ test("'abcdefghij' .. parallelize(5) .. iterate", 'abcdefghij', function() {
 test("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
+
+test("skip", "45", function() {
+  var rv = '';
+  [1,2,3,4,5] .. s.skip(3) .. s.each { |x| rv += x }
+  return rv;
+});
