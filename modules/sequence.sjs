@@ -353,6 +353,39 @@ function take(sequence, count) {
 exports.take = take;
 
 /**
+   @function skip
+   @altsyntax sequence .. skip(count)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Integer} [count] Number of items to skip
+   @return {::Stream}
+   @summary  Skip `count` items from `sequence`
+   @desc
+      Generates a stream that contains all items from 
+      `sequence` starting from the `count+1`th item.
+
+      ### Example:
+
+          each(skip([1,2,3,4,5], 3), function(x) { console.log(x) }) // -> 4,5
+
+          // same as above, with double dot and blocklamdba syntax:
+
+          [1,2,3,4,5] .. skip(3) .. each { |x| console.log(x) }
+*/
+function skip(sequence, count) {
+  // XXX could special-case this for array sequences for better performance
+  return Stream(function(r) {
+    var n = count;
+      sequence .. each { 
+        |x| 
+        if (n > 0) { --n; continue; } 
+        r(x) 
+      }
+  });
+}
+exports.skip = skip;
+
+
+/**
    @function filter
    @altsyntax sequence .. filter(predicate)
    @param {::Sequence} [sequence] Input sequence
