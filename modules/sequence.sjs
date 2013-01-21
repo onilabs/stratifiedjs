@@ -32,7 +32,7 @@
 /**
    @module    sequence
    @summary   Constructs for manipulating sequence structures (arrays, strings and more general streams)
-   @home      apollo:sequence
+   @home      sjs:sequence
    @desc
      The sequence module contains building blocks for working with
      sequential data streams, such as arrays, strings, and more general, possibly
@@ -40,7 +40,7 @@
 
 */
 
-var {isArrayOrArguments} = require('sjs:apollo-sys');
+var {isArrayOrArguments} = require('builtin:apollo-sys');
 
 //----------------------------------------------------------------------
 

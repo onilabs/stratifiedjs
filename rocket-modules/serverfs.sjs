@@ -21,11 +21,11 @@
  *
  */
 
-var fs = require('apollo:nodejs/fs');
+var fs = require('sjs:nodejs/fs');
 var path = require('path');
-var common = require('apollo:common');
-var stream = require('apollo:nodejs/stream');
-var logging = require('apollo:logging');
+var common = require('sjs:common');
+var stream = require('sjs:nodejs/stream');
+var logging = require('sjs:logging');
 
 // the one and only pathmap; set at server startup:
 var pathMap = [];
@@ -341,7 +341,7 @@ function createMappedDirectoryHandler(root, formats, flags)
     var relativePath = matches[1] || "/";
     var pathAndFormat = relativePath.split("!");
     relativePath = pathAndFormat[0];
-//    console.log(relativePath + " " +require('apollo:debug').inspect(request.parsedUrl));
+//    console.log(relativePath + " " +require('sjs:debug').inspect(request.parsedUrl));
     var format;
     if (pathAndFormat[1])
       format = { name: pathAndFormat[1], mandatory: true };

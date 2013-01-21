@@ -1,5 +1,5 @@
 var test = require('../lib/testUtil').test;
-var yql=require('apollo:webapi/yql');
+var yql=require('sjs:webapi/yql');
 
 test("query", "Stratified", function() {
   var rv = yql.query("select * from html where url=@url and xpath='//h1'",

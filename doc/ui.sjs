@@ -31,8 +31,8 @@
    @hostenv   xbrowser
    @desc    Work-in-progress; to be documented
 */
-var common = require('apollo:common');
-var coll = require('apollo:collection');
+var common = require('sjs:common');
+var coll = require('sjs:collection');
 
 /*
 

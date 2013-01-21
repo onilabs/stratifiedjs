@@ -33,10 +33,10 @@
   @module    nodejs/events
   @summary   Stratified wrapper for [nodejs events](http://nodejs.org/api/events.html)
   @hostenv   nodejs
-  @home      apollo:nodejs/events
+  @home      sjs:nodejs/events
 */
 
-if (require('sjs:apollo-sys').hostenv != 'nodejs') 
+if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/events module only runs in a nodejs environment');
 
 var cutil = require('../cutil');
@@ -80,7 +80,7 @@ exports.waitforEvent = function(emitter, event) {
     [::EventQueue::__finally__] method, it can be used in a
     `using` block:
 
-        using (var Q = require('apollo:nodejs/events').eventQueue(emitter, event)) {
+        using (var Q = require('sjs:nodejs/events').eventQueue(emitter, event)) {
           while (true) {
             var data = Q.get();
             ...

@@ -21,15 +21,15 @@
  *
  */
 
-var http = require('apollo:http');
+var http = require('sjs:http');
 require.hubs.push(['rocket:', http.canonicalizeURL('./', module.id)]);
 
-var fs = require('apollo:nodejs/fs');
-var common = require('apollo:common');
+var fs = require('sjs:nodejs/fs');
+var common = require('sjs:common');
 var serverfs = require('rocket:serverfs');
 var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };
-var stream = require('apollo:nodejs/stream');
+var stream = require('sjs:nodejs/stream');
 
 var compiler_version = "c1-12"; // XXX should be derived programatically
 
@@ -158,7 +158,7 @@ function gen_app_html(src, dest, req, etag) {
      </html>");
 }
 
-var SJSCache = require('apollo:lru-cache').makeCache(10*1000*1000); // 10MB
+var SJSCache = require('sjs:lru-cache').makeCache(10*1000*1000); // 10MB
 
 function BaseFileFormatMap() { }
 BaseFileFormatMap.prototype = {
@@ -230,7 +230,7 @@ function getBridgeAPI(name) {
   var api_module = "file://"+path.join(root, name+".api");
   console.log("API #{api_module} requested");
   var api = require(api_module);
-  return require('apollo:rpc/bridge').API(api);
+  return require('sjs:rpc/bridge').API(api);
 }
 
 
@@ -251,9 +251,9 @@ var pathMap = [
   {
     // bridge-over-aat v2 endpoint:
     pattern: /__oni\/aat\/(2)$/,
-    handler: require('apollo:rpc/aat-server').createTransportHandler(
+    handler: require('sjs:rpc/aat-server').createTransportHandler(
       function(transport) {
-        require('apollo:rpc/bridge').accept(getBridgeAPI, transport);
+        require('sjs:rpc/bridge').accept(getBridgeAPI, transport);
       }
     )
   },
@@ -281,11 +281,11 @@ waitfor {
   serverfs.setPathMap(pathMap);
   waitfor {
     if (!sslonly)
-      require('apollo:nodejs/http').runSimpleServer(requestHandler, port, host);
+      require('sjs:nodejs/http').runSimpleServer(requestHandler, port, host);
   }
   and {
     if (ssl_keyfile) {
-      require('apollo:nodejs/http').runSimpleSSLServer(
+      require('sjs:nodejs/http').runSimpleSSLServer(
         requestHandler,
         {
           key: fs.readFile(ssl_keyfile),

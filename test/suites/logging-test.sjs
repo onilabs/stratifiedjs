@@ -2,7 +2,7 @@
 // but we can at least test the logic & formatting.
 
 var test = require('../lib/testUtil').test;
-var logging = require('apollo:logging');
+var logging = require('sjs:logging');
 
 test('default format', 'DEBUG: msg', function() {
   return logging.formatMessage(logging.DEBUG, 'msg');
@@ -59,7 +59,7 @@ test('logging to debug.console objects',
      log2: ["INFO: message 1", "INFO: message 2"],
      nologs: []
     }, function() {
-  var debug = require('apollo:xbrowser/console');
+  var debug = require('sjs:xbrowser/console');
   function mkConsole(receivelog) {
     var c = debug.console({receivelog: receivelog});
     // make a console that records log messages

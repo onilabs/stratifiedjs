@@ -32,10 +32,10 @@
 /**
   @module    common
   @summary   Common JS utility functions
-  @home      apollo:common
+  @home      sjs:common
 */
 
-var str = require('apollo:string');
+var str = require('sjs:string');
 
 /**
   @function bind
@@ -64,7 +64,7 @@ exports.isArray = Array.isArray;
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isArrayOrArguments = require('sjs:apollo-sys').isArrayOrArguments;
+exports.isArrayOrArguments = require('builtin:apollo-sys').isArrayOrArguments;
 
 /**
   @function flatten
@@ -77,10 +77,10 @@ exports.isArrayOrArguments = require('sjs:apollo-sys').isArrayOrArguments;
      ###Example:
 
          var a = [1,2,[3,4,[5,6]],[[7,8]],[9],10];
-         var b = require('apollo:common').flatten(a);
+         var b = require('sjs:common').flatten(a);
          // b is now [1,2,3,4,5,6,7,8,9,10]
 */
-exports.flatten = require('sjs:apollo-sys').flatten;
+exports.flatten = require('builtin:apollo-sys').flatten;
 
 /**
   @function supplant
@@ -124,5 +124,5 @@ exports.sanitize = str.sanitize;
         SETTINGSHASH    : { key: value, ... } | undefined
 */
 exports.mergeSettings = function(/*settings-hash,...*/) {
-  return require('sjs:apollo-sys').accuSettings({}, arguments);
+  return require('builtin:apollo-sys').accuSettings({}, arguments);
 };

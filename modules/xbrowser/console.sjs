@@ -32,17 +32,17 @@
 /**
   @module  xbrowser/console
   @summary Cross-browser StratifiedJS console
-  @home    apollo:xbrowser/console
+  @home    sjs:xbrowser/console
   @hostenv xbrowser
   @desc
     sample usage:
 
-        var c = require("apollo:xbrowser/console").console();
+        var c = require("sjs:xbrowser/console").console();
         c.log("Hello", document);
         c.warn("Oooh noo!");
 */
 
-if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
+if (require('builtin:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('The xbrowser/console module only runs in an xbrowser environment');
 
 var common = require('../common');
@@ -460,7 +460,7 @@ Console.prototype = {
       var result = document.createElement('div');
       waitfor {
         try {
-          result = inspect_obj(require('sjs:apollo-sys').eval(cl, {filename:"commandline"}));
+          result = inspect_obj(require('builtin:apollo-sys').eval(cl, {filename:"commandline"}));
         }
         catch(ex) {
           setStyle(result, 'color:red;');

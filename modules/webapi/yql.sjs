@@ -33,10 +33,10 @@
   @module    webapi/yql
   @summary   A stratified wrapper for the [Yahoo! Query Language](http://developer.yahoo.com/yql/) (YQL) Web Service, 
              which enables you to access Internet data with SQL-like commands.
-  @home      apollo:webapi/yql
+  @home      sjs:webapi/yql
   @desc
     
-        var yql = require("apollo:webapi/yql");
+        var yql = require("sjs:webapi/yql");
         var q = "select * from html where url=&#0064;url and xpath='//h1'";
         var rv = yql.query(q, {url:"http://www.onilabs.com"});
 
@@ -57,14 +57,14 @@ var http = require("../http");
 
     ### HTML selector Example
 
-        var yql = require("apollo:webapi/yql");
+        var yql = require("sjs:webapi/yql");
         var q = "select * from html where url=&#0064;url and xpath='//h1'";
         var rv = yql.query(q, {url:"http://www.onilabs.com"});
         c.log(rv.results.h1);
 
     ### Cross-domain XML Example
 
-        var yql = require("apollo:webapi/yql");
+        var yql = require("sjs:webapi/yql");
         var q = "select * from xml where url=&#0064;url";
         var rv = yql.query(q, {
           url:"http://www.weather.gov/xml/current_obs/OOUH1.xml"
@@ -99,7 +99,7 @@ exports.query = function (statement, params) {
   @desc
     This is a convenience wrapper for [the feed table](http://developer.yahoo.com/yql/console/#h=desc%20feed).
 
-        var yql = require("apollo:webapi/yql");
+        var yql = require("sjs:webapi/yql");
         var rv = yql.getFeed("http://planet.mozilla.org/atom.xml"});
         console.log(rv[0].title);`
 */
@@ -114,7 +114,7 @@ exports.getFeed = function(url) {
   @shortcut  query
   @desc
     This is a convenience wrapper for [the xml table](http://developer.yahoo.com/yql/console/#h=desc%20xml).
-    `var yql = require("apollo:webapi/yql");
+    `var yql = require("sjs:webapi/yql");
     var xmlUrl = "http://www.weather.gov/xml/current_obs/OOUH1.xml";
     var honoluluWeather = yql.getXML(xmlUrl).current_observation;
     console.log(honoluluWeather.temp_c);`

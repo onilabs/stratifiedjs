@@ -32,7 +32,7 @@
 /**
    @module  surface/bootstrap
    @summary Lightweight cross-browser UI toolkit - Twitter Bootstrap Components (unstable work-in-progress)
-   @home    apollo:surface/bootstrap
+   @home    sjs:surface/bootstrap
    @hostenv xbrowser
    @desc
       * Port of [Twitter Bootstrap](http://twitter.github.com/bootstrap/)
@@ -490,7 +490,7 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   //@iconSpritePath:          "../img/glyphicons-halflings.png";
   //@iconWhiteSpritePath:     "../img/glyphicons-halflings-white.png";
   // in lieu of the sprite icons we use Font Awesome:  
-  fontAwesomePath:         -> 'apollo:surface/resources/',
+  fontAwesomePath:         -> 'sjs:surface/resources/',
 
   // Input placeholder text color
   // -------------------------
@@ -4648,7 +4648,7 @@ __js var CSSFontAwesome = exports.CSSFontAwesome = function(lookAndFeel) {
   var vars = lookAndFeel || defaultLookAndFeel;
   var mixins = Mixins(vars);
 
-  var fontPath = require('sjs:apollo-sys').resolve(vars.fontAwesomePath()).path;
+  var fontPath = require('builtin:apollo-sys').resolve(vars.fontAwesomePath()).path;
 
   // XXX cache
   return base.CSS("

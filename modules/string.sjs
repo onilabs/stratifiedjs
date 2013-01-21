@@ -32,7 +32,7 @@
 /**
    @module  string
    @summary Functions for working with strings
-   @home    apollo:string
+   @home    sjs:string
    @desc    Work-in-progress
 */
 

@@ -3,7 +3,7 @@ var test = testUtil.test;
 var relativeURL = require("../lib/testContext").getHttpURL;
 
 if(testUtil.isBrowser) {
-  var dom = require('apollo:xbrowser/dom');
+  var dom = require('sjs:xbrowser/dom');
   function synthesizeClick(elem) {
     elem = elem || document;
     if (document.createEvent) {

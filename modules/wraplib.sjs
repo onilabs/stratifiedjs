@@ -32,7 +32,7 @@
 /**
    @module  wraplib
    @summary Utility functions for wrapping plain JS libraries for SJS
-   @home    apollo:wraplib
+   @home    sjs:wraplib
    @desc    Work-in-progress
 */
 
@@ -41,7 +41,7 @@
 function generateWrapLib(debug, timeout) {
   var exports = {};
   if(debug) {
-    var logging = require("apollo:logging");
+    var logging = require("sjs:logging");
   }
   var logdebug = function() {
     if (!debug) return;
@@ -192,7 +192,7 @@ function generateWrapLib(debug, timeout) {
           }
    
           // Wrap for SJS:
-          var wraplib = require("apollo:wraplib");
+          var wraplib = require("sjs:wraplib");
           wraplib.annotate(module,
             {
               "ClassA": {
@@ -248,7 +248,7 @@ function generateWrapLib(debug, timeout) {
         }
       }
     } catch(e) {
-      require("apollo:logging").print("Error applying annotation for key #{k}: #{e}");
+      require("sjs:logging").print("Error applying annotation for key #{k}: #{e}");
       throw e;
     }
   };
@@ -266,7 +266,7 @@ function generateWrapLib(debug, timeout) {
     the same properties and functions as the `wraplib` module itself, except
     that all invocations of wrapped functions will:
  
-     - Log information (using `apollo:logging`) about the call (ie. whether it
+     - Log information (using `sjs:logging`) about the call (ie. whether it
        is wrapping the invocation or passing it straight through to
        the underlying code)
      - Throw an exception if any wrapped function does not complete within the
@@ -278,5 +278,5 @@ function generateWrapLib(debug, timeout) {
 exports.withDebug = function(timeout) { return generateWrapLib(true, timeout || 2); }
 
 // at the top level, this module exports a non-debug version of itself
-require("sjs:apollo-sys").accuSettings(exports, [generateWrapLib(false)]);
+require("builtin:apollo-sys").accuSettings(exports, [generateWrapLib(false)]);
 

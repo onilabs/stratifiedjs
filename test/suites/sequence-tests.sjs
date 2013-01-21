@@ -1,7 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 
-var s = require("apollo:sequence");
+var s = require("sjs:sequence");
 
 test("each(['a','b','c'], f)", 'abc', function() {
   var rv = "";

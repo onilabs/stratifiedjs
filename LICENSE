@@ -1,14 +1,26 @@
 Oni Apollo: Multi-Platform StratifiedJS Implementation
 ======================================================
 
-(c) 2010-2011 Oni Labs, http://onilabs.com
+(c) 2010-2013 Oni Labs, http://onilabs.com
 
 The Oni Apollo distribution is made available as open-source.
 
-For exact licensing terms, please see individual files. Unless otherwise
-stated, licensing is as follows:
+All client-side components of the distribution are licensed under the MIT License.
+Some server-side components are licensed under the GPL v2.
 
-- The modules contained in the Apollo Standard Module Library
+The upshot is that if you use Apollo purely on the client-side via the 
+cross-browser oni-apollo.js runtime and the standard module library, there are no 
+restrictions placed on your application. 
+If you use Apollo on the server-side, or you use the StratifiedJS compiler 
+or virtual machine directly (i.e. not via oni-apollo.js) in another product, 
+then that product also needs to be licensed under the GPL.
+
+Alternative licensing available; for enquiries please contact alex@onilabs.com
+
+
+For exact licensing terms, please see individual files. As an overview:
+
+- The modules contained in the Standard Module Library
   (modules/*) are licensed under the MIT License.
 
 - The Apollo bootstraping code (src/bootstrap/*) is licensed under the
@@ -16,18 +28,15 @@ stated, licensing is as follows:
 
 - The Apollo system module code (src/sys/*) is licensed under the MIT License.
 
-- The Apollo compiler and virtual machine code (src/c1/* and
-  src/vm1/*) is licensed under the GPL v2.
-
 - The client-side cross-browser StratifiedJS runtime (oni-apollo.js)
   is licensed under the MIT License.
+
+- The Apollo compiler and virtual machine code (src/c1/* and
+  src/vm1/*) is licensed under the GPL v2.
 
 - The server-side Node.JS-based StratifiedJS runtime
   (oni-apollo-node.js) is licensed under the GPL v2.
 
-- The Oni Rocket Web Application Server modules (src/rocket-modules/*)
+- The Oni Rocket Web Server modules (src/rocket-modules/*)
   are licensed under the GPL v2.
 
-
-
-Alternative licensing available; for enquiries please contact alex@onilabs.com

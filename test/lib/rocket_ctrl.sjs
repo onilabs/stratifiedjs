@@ -1,6 +1,6 @@
 var util = require('util');
-var http = require('apollo:http');
-var common = require("apollo:common");
+var http = require('sjs:http');
+var common = require("sjs:common");
 
 var is_running = exports.is_running = function(port) {
   var base_url = 'http://localhost:' + port + '/';
@@ -17,7 +17,7 @@ var is_running = exports.is_running = function(port) {
 };
 
 var run = exports.run = function(port, basedir) {
-  var child_process = require("apollo:nodejs/child-process");
+  var child_process = require("sjs:nodejs/child-process");
   // Point $APOLLO_ROCKET to a stable implementation if you have broken rocket but
   // still want to run the rest of the tests:
   var rocket_exe = process.env['APOLLO_ROCKET'] || basedir + "/rocket";

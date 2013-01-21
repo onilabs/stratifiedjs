@@ -32,7 +32,7 @@
 /**
    @module  rpc/bridge
    @summary API bridge: High-level API remoting. Work in progress
-   @home    apollo:rpc/bridge
+   @home    sjs:rpc/bridge
 */
 
 
@@ -53,7 +53,7 @@ Protocol:
 
 */
 
-var coll = require('apollo:collection');
+var coll = require('sjs:collection');
 
 //----------------------------------------------------------------------
 // marshalling

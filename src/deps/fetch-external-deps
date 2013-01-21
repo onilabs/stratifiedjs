@@ -1,9 +1,9 @@
 #!/usr/bin/env apollo
 
 var dirname = require('path').dirname;
-var fs      = require('apollo:nodejs/fs');
-var exec    = require('apollo:nodejs/child-process').exec;
-var read    = require('apollo:nodejs/stream').read;
+var fs      = require('sjs:nodejs/fs');
+var exec    = require('sjs:nodejs/child-process').exec;
+var read    = require('sjs:nodejs/stream').read;
 
 // make sure we're in the right directory
 process.chdir(dirname(process.argv[0]));

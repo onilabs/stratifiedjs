@@ -33,10 +33,10 @@
   @module    nodejs/child-process
   @summary   Stratified wrapper of [nodejs's child_process lib](http://nodejs.org/api/child_process.html)
   @hostenv   nodejs
-  @home      apollo:nodejs/child-process
+  @home      sjs:nodejs/child-process
 */
 
-if (require('sjs:apollo-sys').hostenv != 'nodejs') 
+if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/events module only runs in a nodejs environment');
 
 var child_process = require('child_process');

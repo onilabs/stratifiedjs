@@ -1,6 +1,6 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
-var f = require('apollo:function');
+var f = require('sjs:function');
 
 
 test('seq', 2, function() {

@@ -32,12 +32,12 @@
 /**
   @module    webapi/twitter
   @summary   Stratified bindings to the client-side Twitter API.
-  @home      apollo:webapi/twitter
+  @home      sjs:webapi/twitter
   @hostenv   xbrowser
 */
 
-var sys = require('sjs:apollo-sys');
-if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
+var sys = require('builtin:apollo-sys');
+if (require('builtin:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('The webapi/twitter module only runs in an xbrowser environment');
 
 var http = require("../http");
@@ -75,7 +75,7 @@ var common = require("../common");
 
     ###Example
 
-        var T = require('apollo:webapi/twitter').initAnywhere({id:MY_API_KEY});
+        var T = require('sjs:webapi/twitter').initAnywhere({id:MY_API_KEY});
         T("#login").connectButton(); // show twitter connect button
         if (!T.isConnected()) 
           T.waitforEvent("authComplete");

@@ -1,4 +1,4 @@
-var isBrowser = exports.isBrowser = require("sjs:apollo-sys").hostenv == 'xbrowser';
+var isBrowser = exports.isBrowser = require("builtin:apollo-sys").hostenv == 'xbrowser';
 var _ = require("../lib/underscore.js");
 
 var _currentRunner = null;

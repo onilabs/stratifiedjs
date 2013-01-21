@@ -1,7 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
-var lru = require('apollo:lru-cache');
-var coll = require('apollo:collection');
+var lru = require('sjs:lru-cache');
+var coll = require('sjs:collection');
 
 test('put/get', 'asdf', function() {
   var cache = lru.makeCache(100);

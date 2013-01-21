@@ -1,10 +1,10 @@
 /*
- * Oni Apollo system module ('sjs:apollo-sys') common part
+ * Oni Apollo system module ('builtin:apollo-sys') common part
  *
  * Part of the Oni Apollo StratifiedJS Runtime
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2010-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -33,7 +33,7 @@
    @desc
 
    The apollo system module, accessible as
-   `require('sjs:apollo-sys')`, is spread over two parts: the 'common'
+   `require('builtin:apollo-sys')`, is spread over two parts: the 'common'
    part, and the 'hostenv' specific part (where hostenv currently is
    one of 'xbrowser' or 'nodejs' - see [apollo-sys-xbrowser::] and
    [apollo-sys-nodejs::])
@@ -60,7 +60,7 @@ var UNDEF; // == undefined
 
 //----------------------------------------------------------------------
 // helper functions that we use internally and export for use by other
-// libraries; accessible through require('sjs:apollo-sys')
+// libraries; accessible through require('builtin:apollo-sys')
 
 /**
    @variable hostenv
@@ -618,7 +618,7 @@ function github_src_loader(path) {
     throw new Error(data.message);
   
   // XXX maybe we should move some string functions into apollo-sys-common
-  var str = exports.require('apollo:string');
+  var str = exports.require('sjs:string');
 
   return {
     src: str.utf8ToUtf16(str.base64ToOctets(data.content)),
@@ -691,8 +691,8 @@ function requireInner(module, require_obj, parent, opts) {
 // top-level require function:
 exports.require = makeRequire(getTopReqParent_hostenv());
 
-exports.require.modules['sjs:apollo-sys.sjs'] = {
-  id: 'sjs:apollo-sys.sjs',
+exports.require.modules['builtin:apollo-sys.sjs'] = {
+  id: 'builtin:apollo-sys.sjs',
   exports: exports,
   loaded_from: "[builtin]",
   loaded_by: "[toplevel]",

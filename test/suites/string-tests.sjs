@@ -1,6 +1,6 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
-var str = require('apollo:string');
+var str = require('sjs:string');
 
 test('utf16ToUtf8', 'c692', function() {
   // f with hook = U+0192 = c6 92 in utf-8

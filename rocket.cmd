@@ -1,5 +1,5 @@
 @IF EXIST "%~dp0\node.exe" (
-  "%~dp0\node.exe"  "%~dp0\.\apollo" "apollo:../rocket-modules/main.sjs" %*
+  "%~dp0\node.exe"  "%~dp0\.\apollo" "sjs:../rocket-modules/main.sjs" %*
 ) ELSE (
-  node  "%~dp0\.\apollo" "apollo:../rocket-modules/main.sjs" %*
+  node  "%~dp0\.\apollo" "sjs:../rocket-modules/main.sjs" %*
 )

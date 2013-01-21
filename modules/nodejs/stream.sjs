@@ -32,11 +32,11 @@
 /**
   @module    nodejs/stream
   @summary   Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)
-  @home      apollo:nodejs/stream
+  @home      sjs:nodejs/stream
   @hostenv   nodejs
 */
 
-if (require('sjs:apollo-sys').hostenv != 'nodejs')
+if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
 
@@ -56,7 +56,7 @@ if (require('sjs:apollo-sys').hostenv != 'nodejs')
     This ensures that no data is emitted between calls to `read()`.
 */
 // implementation in apollo-sys-nodejs.sjs
-exports.read = require('sjs:apollo-sys').readStream;
+exports.read = require('builtin:apollo-sys').readStream;
 
 /**
   @function readAll

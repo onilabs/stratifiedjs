@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2010-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -32,66 +32,185 @@
 /**
   @module    cutil
   @summary   Utility functions and constructs for concurrent stratified programming
-  @home      apollo:cutil
+  @home      sjs:cutil
 */
 
-var sys  = require('sjs:apollo-sys');
-var coll = require('./collection');
+var sys  = require('builtin:apollo-sys');
+var { each } = require('sjs:sequence');
+var { remove } = require('sjs:array');
 
 /**
   @function waitforAll
-  @deprecated Use [collection::par.waitforAll]
+  @summary  Execute a number of functions on separate strata and wait for all
+            of them to finish, or, execute a single function with different
+            arguments on separate strata and wait for all executions to finish.
+  @param    {Function | Array} [funcs] Function or array of functions.
+  @param    {optional Array} [args] Array of arguments.
+  @param    {optional Object} [this_obj] 'this' object on which `funcs` will be executed.
+  @desc
+    If `funcs` is an array of functions, each of the functions will
+    be executed on a separate stratum, with 'this' set to `this_obj` and
+    arguments set to `args`.
+
+    If `funcs` is a single function and `args` is an array, `funcs`
+    will be called `args.length` times on separate strata with its
+    first argument set to a different elements of `args`, the second
+    argument set to the index of the element in `args`, and the the
+    third argument set to the `args`.
 */
-exports.waitforAll = coll.par.waitforAll;
+function waitforAll(funcs, args, this_obj) {
+  this_obj = this_obj || null;
+  if (sys.isArrayOrArguments(funcs)) {
+    if (!funcs.length) return;
+    //...else
+    return waitforAllFuncs(funcs, args, this_obj);
+  }
+  else if (sys.isArrayOrArguments(args)) {
+    if (!args.length) return;
+    //...else
+    return waitforAllArgs(funcs, args, 0, args.length, this_obj);
+  }
+  // else
+  throw new Error("waitforAll: argument error; either funcs or args needs to be an array");
+};
+exports.waitforAll = waitforAll;
+
+function waitforAllFuncs(funcs, args, this_obj) {
+  if (funcs.length == 1)
+    funcs[0].apply(this_obj, args || []);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforAll as a language primitive
+    var split = Math.floor(funcs.length/2);
+    waitfor {
+      waitforAllFuncs(funcs.slice(0,split), args, this_obj);
+    }
+    and {
+      waitforAllFuncs(funcs.slice(split), args, this_obj);
+    }
+  }
+};
+
+function waitforAllArgs(f, args, i, l, this_obj) {
+  if (l == 1)
+    f.call(this_obj, args[i], i, args);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforAll as a language primitive
+    var split = Math.floor(l/2);
+    waitfor {
+      waitforAllArgs(f, args, i, split, this_obj);
+    }
+    and {
+      waitforAllArgs(f, args, i+split, l-split, this_obj);
+    }
+  }
+}
 
 /**
   @function waitforFirst
-  @deprecated Use [collection::par.waitforFirst]
+  @summary  Execute a number of functions on separate strata and wait for the first
+            of them to finish, or, execute a single function with different
+            arguments on separate strata and wait for the first execution to finish.
+  @return   {value} Return value of function execution that finished first.
+  @param    {Function | Array} [funcs] Function or array of functions.
+  @param    {optional Array} [args] Array of arguments.
+  @param    {optional Object} [this_obj] 'this' object on which *funcs* will be executed.
+  @desc
+    If `funcs` is an array of functions, each of the functions will
+    be executed on a separate stratum, with 'this' set to `this_obj` and
+    arguments set to `args`.
+
+    If `funcs` is a single function and `args` is an array, `funcs`
+    will be called `args.length` times on separate strata with its
+    first argument set to a different elements of `args`, the second
+    argument set to the index of the element in `args`, and the
+    third argument set to the `args`.  
 */
-exports.waitforFirst = coll.par.waitforFirst;
+function waitforFirst(funcs, args, this_obj) {
+  this_obj = this_obj || this;
+  if (sys.isArrayOrArguments(funcs)) {
+    if (!funcs.length) return;
+    //...else
+    return waitforFirstFuncs(funcs, args, this_obj);
+  }
+  else if (sys.isArrayOrArguments(args)) {
+    if (!args.length) return;
+    //...else
+    return waitforFirstArgs(funcs, args, 0, args.length, this_obj);
+  }
+  // else
+  throw new Error("waitforFirst: argument error; either funcs or args needs to be an array");
+};
+exports.waitforFirst = waitforFirst;
+
+function waitforFirstFuncs(funcs, args, this_obj) {
+  if (funcs.length == 1)
+    return funcs[0].apply(this_obj, args || []);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforFirst as a language primitive
+    var split = Math.floor(funcs.length/2);    
+    waitfor {
+      return waitforFirstFuncs(funcs.slice(0,split), args, this_obj);
+    }
+    or {
+      return waitforFirstFuncs(funcs.slice(split), args, this_obj);
+    }
+  }
+};
+
+function waitforFirstArgs(f, args, i, l, this_obj) {
+  if (l == 1)
+    return f.call(this_obj, args[i], i, args);
+  else {
+    // build a binary recursion tree, so that we don't blow the stack easily
+    // XXX we should really have waitforFirst as a language primitive
+    var split = Math.floor(l/2);    
+    waitfor {
+      return waitforFirstArgs(f, args, i, split, this_obj);
+    }
+    or {
+      return waitforFirstArgs(f, args, i+split, l-split, this_obj);
+    }
+  }
+};
 
 
 /**
   @class    Semaphore
   @summary  A counting semaphore.
-  @constructor Semaphore
+  @function Semaphore
   @param    {Integer} [permits] Number of permits available to be handed out.
   @param    {Boolean} [sync=false] Toggles synchronous behaviour (see [::Semaphore::release])
   @desc
     Example:
-    `var S = new (cutil.Semaphore)(10);`
+    `var S = cutil.Semaphore(10);`
 */
 function Semaphore(permits, sync) {
+  var rv = Object.create(SemaphoreProto);
+
   /**
     @variable Semaphore.permits
     @summary  Number of free permits currently available to be handed out.
    */
-  this.permits = permits;
-  this.sync = sync;
-  this.queue = [];
-  var me = this;
-  this._permit = { __finally__: function() { me.release(); } };
+  rv.permits = permits;
+  rv.sync = sync;
+  rv.queue = [];
+
+  return rv;
 }
 exports.Semaphore = Semaphore;
-Semaphore.prototype = {
+
+var SemaphoreProto = {
   /**
     @function Semaphore.acquire
     @summary  Acquire a permit. If all permits are currently taken, block until one
               becomes available.
-    @return   {Permit} An object with a *__finally__* method, which will release
-              the semaphore.
     @desc
       Calls to [::Semaphore::acquire] usually need to be paired up
       with calls to [::Semaphore::release]. Instead of ensuring this pairing 
-      manually, consider using [::Semaphore::synchronize], or the following 
-      deprecated `using` syntax:
-
-          using (mySemaphore.acquire()) {
-            ...
-          }
-
-      Here the `using` construct will automatically call the permit's
-      `__finally__` method when the code block is left.
+      manually, consider using [::Semaphore::synchronize].
    */
   acquire: function() {
     if (this.permits <= 0) {
@@ -99,12 +218,10 @@ Semaphore.prototype = {
         this.queue.push(resume);
       }
       retract {
-        for (var i=0; this.queue[i] != resume; ++i) /**/;
-        this.queue.splice(i, 1);
+        this.queue .. remove(resume);
       }
     }
     --this.permits;
-    return this._permit;
   },
   
   /**
@@ -127,7 +244,7 @@ Semaphore.prototype = {
 
       Calls to [::Semaphore::release] are usually
       paired with calls to [::Semaphore::acquire].
-      See documentation for [::Semaphore::acquire]
+      See documentation for [::Semaphore::synchronize]
       for an alternative to doing this manually.
    */
   release : function() {
@@ -169,22 +286,27 @@ Semaphore.prototype = {
 /**
   @class    Event
   @summary  An event that can be waited upon and emitted multiple times.
-  @constructor Event
+  @function Event
 */
-var Event = exports.Event = function Event() {
-  this.waiting = [];
+function Event() {
+  var rv = Object.create(EventProto);
+  rv.waiting = [];
+  return rv;
 };
+exports.Event = Event;
 
+var EventProto = {};
 /**
   @function  Event.wait
   @summary   Block until this event is next emitted, and return the emitted value (if given).
 */
-Event.prototype.wait = function wait() {
+
+EventProto.wait = function wait() {
   var result = this.value;
   waitfor(result) {
     this.waiting.push(resume);
   } retract {
-    coll.remove(this.waiting, resume, null);
+    this.waiting .. remove(resume);
   }
   return result;
 };
@@ -199,11 +321,11 @@ Event.prototype.wait = function wait() {
     If `val` is provided, it will be the return value of all
     outstanding `wait()` calls.
 */
-Event.prototype.emit = function emit(value) {
+EventProto.emit = function emit(value) {
   if(this.waiting.length == 0) return;
   var waiting = this.waiting;
   this.waiting = [];
-  spawn(coll.par.each(waiting, function(resume) { resume(value); }));
+  spawn(waiting .. each { |resume| resume(value) });
 };
 
 /**
@@ -231,7 +353,7 @@ Event.prototype.emit = function emit(value) {
            }
          }
 */
-Event.prototype.restartLoop = function restartLoop(f) {
+EventProto.restartLoop = function restartLoop(f) {
   while (1) {
     waitfor {
       this.wait();
@@ -246,17 +368,22 @@ Event.prototype.restartLoop = function restartLoop(f) {
 /**
   @class    Condition
   @summary  A single condition value that can be waited upon, set and cleared.
-  @constructor Condition
+  @function Condition
 
   @variable Condition.isSet
   @summary  (Boolean) whether the condition is currently set
   @variable Condition.value
   @summary  the currently set value, or `undefined` if the condition is not set
 */
-var Condition = exports.Condition = function Condition() {
-  this._ev = new Event();
-  this.clear();
+function Condition() {
+  var rv = Object.create(ConditionProto);
+  rv._ev = Event();
+  rv.clear();
+  return rv;
 };
+exports.Condition = Condition;
+
+var ConditionProto = {};
 
 /**
   @function  Condition.wait
@@ -264,7 +391,7 @@ var Condition = exports.Condition = function Condition() {
   @desc
     If the condition has already been set, this function returns immediately.
 */
-Condition.prototype.wait = function wait() {
+ConditionProto.wait = function wait() {
   if (!this.isSet) {
     this.value = this._ev.wait();
   }
@@ -282,7 +409,7 @@ Condition.prototype.wait = function wait() {
     If `val` is provided, it will become this condition's value (and
     will be the return value of all outstanding `wait()` calls).
 */
-Condition.prototype.set = function set(value) {
+ConditionProto.set = function set(value) {
   if(this.isSet) return; // noop
   this.isSet = true;
   this.value = value;
@@ -296,105 +423,33 @@ Condition.prototype.set = function set(value) {
     Once cleared, the condition can be waited upon and triggered again with
     `wait` and `set`.
 */
-Condition.prototype.clear = function clear() {
+ConditionProto.clear = function clear() {
   this.isSet = false;
   this.value = undefined;
 };
 
 
 /**
-  @function makeBoundedFunction
-  @deprecated Use [function::bound]
-  @summary  A wrapper for limiting the number of concurrent executions of a function.
-  @return   {Function} The wrapped function.
-  @param    {Function} [f] The function to wrap.
-  @param    {Integer} [max_concurrent_calls] The maximum number of concurrent executions to allow for 'f'.
-*/
-exports.makeBoundedFunction = function(f, max_concurrent_calls) { return require('./function').bound(f, max_concurrent_calls) };
-
-/**
-  @function makeRateLimitedFunction
-  @deprecated Use [function::rateLimit]
-  @summary  A wrapper for limiting the rate at which a function can be called.
-  @return   {Function} The wrapped function.
-  @param    {Function} [f] The function to wrap.
-  @param    {Integer} [max_cps] The maximum number of calls per seconds allowed for 'f'.
-*/
-exports.makeRateLimitedFunction = function(f, max_cps) { return require('./function').rateLimit(f, max_cps); };
-
-/**
-  @function makeExclusiveFunction
-  @deprecated Use [function::exclusive]
-  @summary  A wrapper for limiting the number of concurrent executions of a function to one. 
-            Instead of potentially waiting for the previous execution to end, like makeBoundedFunction, it will cancel it.
-  @return   {Function} The wrapped function.
-  @param    {Function} [f] The function to wrap.
-*/
-exports.makeExclusiveFunction = function(f) { return require('./function').exclusive(f); };
-
-/**
-   @function makeDeferredFunction
-   @deprecated Use [function::deferred]
-   @summary  A wrapper for implementing the 'deferred pattern' on a function (see 
-             [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern)).
-   @param    {Function} [f] The function to wrap.
-   @return   {Function} The wrapped function.
-   @desc
-     When the wrapped function is called, it returns a 'deferred object' which 
-     implements the methods `then` and `cancel`, as described in 
-     [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern). With these methods, plain JS code can be made to wait for
-     for the execution of asynchronous SJS code.
-*/
-exports.makeDeferredFunction = function(f) { return require('./function').deferred(f); };
-
-/**
-   @function makeMemoizedFunction
-   @deprecated Use [function::memoize]
-   @summary  A wrapper for implementing a memoized version of a function.
-   @param    {Function} [f] The function to wrap.
-   @param    {optional Function} [key] The key function to use.
-   @return   {Function} The wrapped function.
-   @desc
-     The wrapped function `g = makeMemoizedFunction(f)` stores values that have
-     been previously computed by `f` in the hash `g.db`, indexed by key. 
-     If `g` is called multiple times with the same argument `X`, only the 
-     first invocation will call `f(X)` and store the resulting value under 
-     `g.db[X]`. Subsequent invocations to `g(X)` will read the value for `X` from 
-     `g.db[X]`.
-
-     If `keyfn` is provided, it is called with the same arguments as the function 
-     itself, and its return value becomes the key for this call. If `keyfn` is 
-     omitted, the first argument to the function is used as the key.
-
-     It is safe to call `g` concurrently from multiple strata: 
-     If a call `g(X)` is already in progress (blocked in `f(X)`), while 
-     another call `g(X)` is being made, the second (and any subsequent) call 
-     will not cause `f(X)` to be called again. Instead, these subsequent 
-     calls will wait for the first invocation of `f(X)`.
-
-     `g` implements the following retraction semantics: A pending invocation of 
-     `f(X)` will be aborted if and only if every `g(X)` call waiting for 
-     `f(X)` to finish has been aborted (i.e. noone is interested in the value 
-     for `X` at the moment).
-*/
-exports.makeMemoizedFunction = sys.makeMemoizedFunction;
-
-/**
   @class   Queue
-
-  @constructor Queue
-  @summary Constructor for a bounded FIFO queue datastructure.
+  @summary FIFO queue
+  @function Queue
+  @summary Creates a bounded FIFO queue datastructure.
   @param   {Integer} [capacity] Maximum number of items to which the queue will
            be allowed to grow.
   @param   {optional Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [::Semaphore]).
 */
 function Queue(capacity, sync) {
-  this.items = [];
-  this.S_nonfull  = new Semaphore(capacity, sync);
-  this.S_nonempty = new Semaphore(0, sync);
+  var rv = Object.create(QueueProto);
+
+  rv.items = [];
+  rv.S_nonfull  = Semaphore(capacity, sync);
+  rv.S_nonempty = Semaphore(0, sync);
+
+  return rv;
 }
 exports.Queue = Queue;
-Queue.prototype = {
+
+QueueProto = {
   /**
     @function Queue.count
     @summary  Returns current number of elements in the queue.

@@ -1,4 +1,4 @@
-var str = require('apollo:string');
+var str = require('sjs:string');
 var BaseRunner = require("./baseRunner").BaseRunner;
 
 var BrowserRunner = exports.BrowserRunner = function() {

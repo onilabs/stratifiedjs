@@ -32,7 +32,7 @@
 /**
   @module    webapi/asana
   @summary   Bindings to the [Asana](http://asana.com) API
-  @home      apollo:webapi/asana
+  @home      sjs:webapi/asana
   @hostenv   nodejs
   @desc
     For more information about the Asana API, see http://developer.asana.com/documentation/
@@ -44,7 +44,7 @@
 */
 
 var http   = require("../http");
-var sys    = require("sjs:apollo-sys"); 
+var sys    = require("builtin:apollo-sys"); 
 var common = require("../common");
 
 /**

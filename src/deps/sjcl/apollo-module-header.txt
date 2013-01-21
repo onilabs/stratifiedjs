@@ -58,7 +58,7 @@
 /**
   @module    sjcl
   @summary   Stanford JavaScript Crypto Library from http://crypto.stanford.edu/sjcl/
-  @home      apollo:sjcl
+  @home      sjs:sjcl
   @desc      
              This module tracks the [Stanford JavaScript Crypto Library](http://crypto.stanford.edu/sjcl/) library by the Stanford Computer Security Lab - 
              a secure, powerful, fast, small, easy-to-use library for cryptography.

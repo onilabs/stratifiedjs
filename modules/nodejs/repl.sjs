@@ -32,11 +32,11 @@
 /**
   @module  nodejs/repl
   @summary Stratified read-eval-print loop for nodejs-based apollo
-  @home    apollo:nodejs/repl
+  @home    sjs:nodejs/repl
   @hostenv nodejs
 */
 
-var sys = require('sjs:apollo-sys');
+var sys = require('builtin:apollo-sys');
 if (sys.hostenv != 'nodejs') 
   throw new Error('The nodejs/repl module only runs in a nodejs environment');
 
@@ -101,7 +101,7 @@ exports.runREPL = function() {
 };
 
 function evalCommandLine(cl) {
-  var stratum = spawn require('sjs:apollo-sys').eval(cl, {filename:'repl'});
+  var stratum = spawn require('builtin:apollo-sys').eval(cl, {filename:'repl'});
 
   waitfor {
     try { writeVal(stratum.waitforValue()); } catch(e) { writeErr(e); }

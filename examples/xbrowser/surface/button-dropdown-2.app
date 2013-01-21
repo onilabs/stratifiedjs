@@ -1,6 +1,6 @@
-var surface   = require('apollo:surface/base');
-var bootstrap = require('apollo:surface/bootstrap');
-var widgets   = require('apollo:surface/bootstrap-widgets');
+var surface   = require('sjs:surface/base');
+var bootstrap = require('sjs:surface/bootstrap');
+var widgets   = require('sjs:surface/bootstrap-widgets');
 
 var ui = widgets.ButtonDropdown(
   'Action',

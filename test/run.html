@@ -22,8 +22,8 @@
   <script type="text/javascript" src="../oni-apollo.js"></script>
   <script type="text/sjs">
 
-var http = require("apollo:http");
-var coll = require("apollo:collection");
+var http = require("sjs:http");
+var coll = require("sjs:collection");
 var suite_dir = http.canonicalizeURL("suites/", document.location);
 var suites = [];
 coll.map(http.get(suite_dir + "testsuite-index.txt").split('\n'),
@@ -82,7 +82,7 @@ while (true) {
     hold();
   }
   or {
-    require('apollo:xbrowser/dom').waitforEvent("select", "change");
+    require('sjs:xbrowser/dom').waitforEvent("select", "change");
     currentSuite = document.getElementById("select").value;
   }
 }

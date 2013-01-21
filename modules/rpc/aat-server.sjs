@@ -32,15 +32,15 @@
 /**
    @module  rpc/aat-server
    @summary Asymmetric AJAX Transport Server
-   @home    apollo:rpc/aat-server
+   @home    sjs:rpc/aat-server
    @hostenv nodejs
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
 */
 
-var sjcl   = require('apollo:sjcl');
-var fs     = require('apollo:nodejs/fs');
+var sjcl   = require('sjs:sjcl');
+var fs     = require('sjs:nodejs/fs');
 var buffer = require('nodejs:buffer');
-var coll   = require('apollo:collection');
+var coll   = require('sjs:collection');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
@@ -237,7 +237,7 @@ function createTransportHandler(transportSink) {
     handle_get: (req, resp, v) -> this.handle_post(req, resp, v),
 
     handle_post: function(req, resp, v) {
-//      console.log("AAT request #{require('apollo:debug').inspect(req)}");
+//      console.log("AAT request #{require('sjs:debug').inspect(req)}");
 
       var out_messages = [];
 

@@ -31,7 +31,7 @@ var main = exports.main = function(obj) {
 	 */
 	var errors = 0;
 
-	var term = require("apollo:nodejs/terminal");
+	var term = require("sjs:nodejs/terminal");
 
 	var _c = function(c) {
 		return function(str) {
