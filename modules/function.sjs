@@ -32,10 +32,10 @@
 /**
    @module  function
    @summary Function composition helpers
-   @home    apollo:function
+   @home    sjs:function
 */
 
-var sys   = require('sjs:apollo-sys');
+var sys   = require('builtin:apollo-sys');
 var coll  = require('./collection');
 var cutil = require('./cutil');
 
@@ -124,7 +124,7 @@ exports.nop = function() { };
   @param    {Integer} [max_concurrent_calls] The maximum number of concurrent executions to allow for 'f'.
 */
 exports.bound = function(f, max_concurrent_calls) {
-  var permits = new (cutil.Semaphore)(max_concurrent_calls);
+  var permits = cutil.Semaphore(max_concurrent_calls);
   return function() {
     permits.synchronize { 
       ||
@@ -141,7 +141,7 @@ exports.bound = function(f, max_concurrent_calls) {
   @param    {Function} [f] The function to wrap.
 */
 exports.sequential = function(f) {
-  var permits = new (cutil.Semaphore)(1);
+  var permits = cutil.Semaphore(1);
   return function() {
     permits.synchronize { 
       ||

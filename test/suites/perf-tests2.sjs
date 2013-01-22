@@ -2,7 +2,7 @@ var {test, time } = require('../lib/testUtil');
 
 
 
-var sequence = require('apollo:sequence');
+var sequence = require('sjs:sequence');
 
 time("sequence test", function() {
   var dummy;

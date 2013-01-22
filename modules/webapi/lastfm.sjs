@@ -33,11 +33,11 @@
  /**
    @module  webapi/lastfm
    @summary A wrapper around the Last.fm API
-   @home    apollo:webapi/lastfm
+   @home    sjs:webapi/lastfm
    @desc
      This module uses the JSONP interface of [the Last.fm API](http://www.last.fm/api).
 
-         var lastfm = require("apollo:webapi/lastfm");
+         var lastfm = require("sjs:webapi/lastfm");
          lastfm.key = "somekey...";
          var tracks = lastfm.get({
            method: "user.getrecenttracks", 
@@ -67,7 +67,7 @@ exports.key = defaultKey;
   @desc
     ###Example
 
-        var name = require("apollo:webapi/lastfm").get({
+        var name = require("sjs:webapi/lastfm").get({
           method: "user.getinfo", 
           user: "rj"
         }).realname;

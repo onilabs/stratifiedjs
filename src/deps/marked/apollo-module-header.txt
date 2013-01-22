@@ -44,7 +44,7 @@
 /**
   @module    marked
   @summary   Markdown to Html Converter
-  @home      apollo:marked
+  @home      sjs:marked
   @desc      
              This module tracks the [marked library](https://github.com/chjj/marked) by Christopher Jeffrey.
 

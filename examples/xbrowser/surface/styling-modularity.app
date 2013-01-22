@@ -1,4 +1,4 @@
-var surface = require("apollo:surface/base");
+var surface = require("sjs:surface/base");
 
 var myCSS = surface.CSS("
        { font-family: sans-serif; }

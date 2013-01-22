@@ -3,7 +3,7 @@ var numeric = exports;
 // numeric generates many functions dynamically, and this leads to
 // scope problems.  As a quick-and-dirty workaround for Apollo, we
 // reflect the numeric object into the global scope as '__numeric':
-require('sjs:apollo-sys').getGlobal().__numeric = numeric;
+require('builtin:apollo-sys').getGlobal().__numeric = numeric;
 
 __numeric.version = "1.0.1";
 

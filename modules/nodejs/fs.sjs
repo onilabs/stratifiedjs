@@ -33,10 +33,10 @@
   @module    nodejs/fs
   @summary   Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)
   @hostenv   nodejs
-  @home      apollo:nodejs/fs
+  @home      sjs:nodejs/fs
 */
 
-if (require('sjs:apollo-sys').hostenv != 'nodejs') 
+if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/fs module only runs in a nodejs environment');
 
 
@@ -297,7 +297,7 @@ exports.write = function(fd, buffer, offset, length, position /*=null*/) {
    @desc
      Example:
 
-         var fs     = require('apollo:nodejs/fs');
+         var fs     = require('sjs:nodejs/fs');
          var buffer = require('nodejs:buffer');
 
          // read 128 bytes from /dev/random:

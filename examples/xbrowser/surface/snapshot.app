@@ -38,8 +38,8 @@
 // INITIALIZATION:
 
 // load in the 'surface' UI module and set up a twitter bootstrap styled window:
-var surface = require('apollo:surface/base');
-var win = require('apollo:surface/bootstrap').Container({style:"{text-align:center}"});
+var surface = require('sjs:surface/base');
+var win = require('sjs:surface/bootstrap').Container({style:"{text-align:center}"});
 surface.root.append(win);
 
 // load in RTC module (contains a stratified, callback-less getUserMedia implementation):

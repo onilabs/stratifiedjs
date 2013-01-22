@@ -32,7 +32,7 @@
 /**
    @module  debug
    @summary Helpers for debugging
-   @home    apollo:debug
+   @home    sjs:debug
    @desc    Work-in-progress; pretty much a straight copy of nodejs's [util.inspect, etc](http://nodejs.org/api/util.html#util_util_inspect_object_showhidden_depth_colors) atm.
 */
 

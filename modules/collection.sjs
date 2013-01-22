@@ -38,7 +38,7 @@
   @module  collection
   @deprecated Use [sequence::] module
   @summary Functional tools for iterating and processing collections (arrays or objects).
-  @home    apollo:collection
+  @home    sjs:collection
   @desc
     The collection module contains a number of building blocks common
     in functional programming and similar to libraries like
@@ -82,7 +82,7 @@
     of stratified code.
 */
 
-var sys = require('sjs:apollo-sys');
+var sys = require('builtin:apollo-sys');
 var par = exports.par = {};
 
 // -------------------------------------------------------------

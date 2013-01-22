@@ -26,7 +26,8 @@ oni-apollo-node.js, 'apollo' executable
 rocket, rocket-modules/
 -----------------------
 
- - A simple web server
+ - A simple web server. Run `rocket` to start a webserver on port 7070, serving the
+   current directory. Run `rocket -h` for options.
 
 modules/
 --------
@@ -75,7 +76,7 @@ Considerations for client-side use
 Note that, by default, if you load standard library modules using code
 such as
 
-    var http = require('apollo:http');
+    var http = require('sjs:http');
 
 the module will be requested from 
 
@@ -84,16 +85,16 @@ the module will be requested from
 This location can only be inferred if you load oni-apollo.js in the
 'normal' way. If you rename oni-apollo.js to something else, or you
 don't load it through a &lt;script> tag, you'll need to manually
-configure the 'apollo' hub before you can make calls such as
-`require('apollo:http')`.
+configure the 'sjs' hub before you can make calls such as
+`require('sjs:http')`.
 
-To (re-)configure the 'apollo hub', you can use code such as this:
+To (re-)configure the 'sjs hub', you can use code such as this:
 
     require.hubs.unshift( 
-      ["apollo:", 
+      ["sjs:", 
        "http://code.mydomain.com/apollo-mirror/modules/"] 
       ]);
-    // all modules addressed as 'apollo:' will now be loaded from the
+    // all modules addressed as 'sjs:' will now be loaded from the
     // location above.
 
 Note that many browsers cannot load modules over the `file:`

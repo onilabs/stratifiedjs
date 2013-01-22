@@ -6,7 +6,7 @@
 
 function main() {
 
-var c= require('apollo:xbrowser/console').console({target:"container", 
+var c= require('sjs:xbrowser/console').console({target:"container", 
                                                    collapsed:false});
 
 function initLogging() {
@@ -22,7 +22,7 @@ initLogging();
 
 var cmd = document.location.getParameter ? 
   document.location.getParameter('cmd') :
-  require('apollo:http').parseURL(document.location).queryKey.cmd;
+  require('sjs:http').parseURL(document.location).queryKey.cmd;
 if (cmd) c.exec(decodeURIComponent(cmd));
 
 c.focus();

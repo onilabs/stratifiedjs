@@ -17,13 +17,13 @@
 /*10*/
 /*11*/  spawn (function() {
 /*12*/    while(1) { 
-/*13*/      require('apollo:xbrowser/dom').waitforEvent('button2', 'click');
+/*13*/      require('sjs:xbrowser/dom').waitforEvent('button2', 'click');
 /*14*/      spawn throwError();
 /*15*/    }
 /*16*/  })();
 /*17*/ 
 /*18*/  while (1) {
-/*19*/    require('apollo:xbrowser/dom').waitforEvent('button3', 'click');
+/*19*/    require('sjs:xbrowser/dom').waitforEvent('button3', 'click');
 /*20*/    throwError();
 /*21*/  }
 /*22*/

@@ -32,7 +32,7 @@
 /**
   @module    logging
   @summary   Simple cross-environment logging framework
-  @home      apollo:logging
+  @home      sjs:logging
   @desc
     This module exposes a simple logging API, and is useable
     across environments.
@@ -55,7 +55,7 @@
 
 var common = require('./common');
 var str = require('./string');
-var sys = require('sjs:apollo-sys');
+var sys = require('builtin:apollo-sys');
 
 /**
   @variable DEBUG

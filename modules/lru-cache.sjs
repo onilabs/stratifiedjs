@@ -32,7 +32,7 @@
 /**
    @module  lru-cache
    @summary Least Recently Used Cache
-   @home    apollo:lru-cache
+   @home    sjs:lru-cache
 */
 
 /**

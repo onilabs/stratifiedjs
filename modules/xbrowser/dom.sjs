@@ -32,15 +32,15 @@
 /**
   @module    xbrowser/dom
   @summary   Utilities for interacting with the DOM
-  @home      apollo:/xbrowser/dom
+  @home      sjs:/xbrowser/dom
   @hostenv   xbrowser
   @desc
      Note: This module will automatically load the [dom-shim::] module on 
      non-conformant browsers.
 */
 
-var sys = require('sjs:apollo-sys');
-if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
+var sys = require('builtin:apollo-sys');
+if (sys.hostenv != 'xbrowser') 
   throw new Error('the dom module only runs in an xbrowser environment');
 
 var coll = require('../collection');
@@ -214,7 +214,7 @@ exports.stopEvent = function(ev) {
 
     **Keep observing events in an event loop:**
 
-        while (require('apollo:xbrowser/dom').waitforEvent("myid", "mouseover")) {
+        while (require('sjs:xbrowser/dom').waitforEvent("myid", "mouseover")) {
           console.log("mouseover!");
         }
 
@@ -282,7 +282,7 @@ exports.waitforEvent = function(selector, events, filter, eventTransformer) {
     [::EventQueue::__finally__] method, it can be used in a
     'using' block:
 
-        using (var Q = require('apollo:xbrowser/dom').eventQueue(elem,"click")) {
+        using (var Q = require('sjs:xbrowser/dom').eventQueue(elem,"click")) {
           while (true) {
             var ev = Q.get();
             ...
@@ -415,7 +415,7 @@ var _loadedScripts = {};
 
     ### Example:
 
-        var dom = require("apollo:xbrowser/dom");
+        var dom = require("sjs:xbrowser/dom");
         dom.script("http://code.jquery.com/jquery.js");
         jQuery("body").css({background:"red"});
 */

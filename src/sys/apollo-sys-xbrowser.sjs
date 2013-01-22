@@ -1,5 +1,5 @@
 /*
- * Oni Apollo system module ('sjs:apollo-sys') hostenv-specific part
+ * Oni Apollo system module ('builtin:apollo-sys') hostenv-specific part
  *
  * Cross-browser ('xbrowser') version
  *
@@ -381,7 +381,7 @@ function request_hostenv(url, settings) {
 
 function getHubs_hostenv() {
   return [
-    ["apollo:", determineLocation().location ? 
+    ["sjs:", determineLocation().location ? 
                   determineLocation().location : 
                   { src: function(path) { 
                       throw new Error("Can't load module '"+path+

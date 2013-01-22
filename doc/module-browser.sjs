@@ -1,24 +1,24 @@
 
 waitfor {
-  var http = require('apollo:http');
+  var http = require('sjs:http');
 }
 and {
-  var dom = require('apollo:xbrowser/dom');
+  var dom = require('sjs:xbrowser/dom');
 }
 and {
   var ui = require('./ui');
 }
 and {
-  var func = require('apollo:function');
+  var func = require('sjs:function');
 }
 and {
-  var coll = require('apollo:collection');
+  var coll = require('sjs:collection');
 }
 and {
-  var docutil = require('apollo:docutil');
+  var docutil = require('sjs:docutil');
 }
 and {
-  var common = require('apollo:common');
+  var common = require('sjs:common');
 }
 and {
   // preload:

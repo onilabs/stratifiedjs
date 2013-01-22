@@ -1,6 +1,6 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
-var g = require('apollo:webapi/google');
+var g = require('sjs:webapi/google');
 
 test('search', true, function() {
   var results = g.search("croczilla");

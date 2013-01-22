@@ -1,5 +1,5 @@
-var surface   = require('apollo:surface/base');
-var bootstrap = require('apollo:surface/bootstrap');
+var surface   = require('sjs:surface/base');
+var bootstrap = require('sjs:surface/bootstrap');
 
 var ui = surface.Html("
   <div style='margin:20px 20px;'>

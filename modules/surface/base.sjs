@@ -32,12 +32,12 @@
 /**
    @module  surface/base
    @summary Lightweight cross-browser UI toolkit - Core functionality (unstable work-in-progress)
-   @home    apollo:surface/base
+   @home    sjs:surface/base
    @hostenv xbrowser
    @desc    Work-in-progress
 */
 var tt = new Date();
-var sys = require('sjs:apollo-sys');
+var sys = require('builtin:apollo-sys');
 
 waitfor {
   var common = require('../common');

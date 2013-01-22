@@ -2,7 +2,7 @@ var testUtil = require('../lib/testUtil')
 var test = testUtil.test;
 
 if(!testUtil.isBrowser) {
-  var child_process = require('apollo:nodejs/child-process');
+  var child_process = require('sjs:nodejs/child-process');
 
   //-------------------------------------------------------------
   // exec (simple string)
@@ -27,7 +27,7 @@ if(!testUtil.isBrowser) {
   });
 
   test('run returns stdout / stderr', {"code":1,"signal":null,"stdout":"out\n","stderr":"err\n"}, function() {
-    var coll = require('apollo:collection');
+    var coll = require('sjs:collection');
     try{
       return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']);
     } catch(e) {

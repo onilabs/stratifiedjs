@@ -1,12 +1,12 @@
 /*
- * Oni Apollo 'surface/bootstrap-widgets' module
- * High-level Twitter Bootstrap Widgets
+ * Oni Apollo 'array' module
+ * Functions for working with arrays
  *
  * Part of the Oni Apollo Standard Module Library
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -30,36 +30,23 @@
  *
  */
 /**
-   @module  surface/bootstrap-widgets
-   @summary High-level Twitter Bootstrap Widgets
-   @home    sjs:surface/bootstrap-widgets
-   @hostenv xbrowser
-   @desc
-      * High-level widgets for use with the [bootstrap::] module
-      * Work-in-progress     
+   @module  array
+   @summary Functions for working with arrays
+   @home    sjs:array
 */
 
-var surface = require('./base');
-var coll = require('../collection');
-var str = require('../string');
-
-exports.ButtonDropdown = function(title, items) {
-
-  var menu = coll.map(items,
-                      item ->
-                      "<li><a href='#' data-command='#{item[1]}'>#{str.sanitize(item[0])}</a></li>").join('');
-
-  var ui = surface.Html("
-    <div class='btn-group'>
-      <a class='btn dropdown-toggle' data-toggle='dropdown' href='#'>
-        #{str.sanitize(title)}
-      <span class='caret'></span>
-      </a>
-      <ul class='dropdown-menu'>
-        #{menu}
-      </ul>
-    </div>
-");
-  surface.mixinCommandAPI(ui);
-  return ui;
-};
+/**
+   @function remove
+   @altsyntax arr .. remove(elem)
+   @param {Array} [arr] 
+   @param {Object} [elem] Element to remove
+   @return {Boolean} `true` if the element was removed, `false` if `elem` is not in `arr`.
+   @summary Removes the first element in the array equal (under `===`) to `elem`. 
+*/
+function remove(arr, elem) {
+  var idx = arr.indexOf(elem);
+  if (idx == -1) return false;
+  arr.splice(idx, 1);
+  return true;
+}
+exports.remove = remove;

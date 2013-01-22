@@ -32,11 +32,11 @@
 /**
   @module    nodejs/http
   @summary   HTTP server functionality
-  @home      apollo:nodejs/http
+  @home      sjs:nodejs/http
   @hostenv   nodejs
 */
 
-if (require('sjs:apollo-sys').hostenv != 'nodejs') 
+if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/http module only runs in a nodejs environment');
 
 
@@ -152,7 +152,7 @@ function handleRequest(connectionHandler, request, response, protocol) {
 
          // Run server for 60s:
          waitfor {
-           require('apollo:nodejs/http').runSimpleServer(echo, 12345);
+           require('sjs:nodejs/http').runSimpleServer(echo, 12345);
          }
          or { 
            hold(60*1000);
@@ -283,7 +283,7 @@ function ServerRequest(req, res) {
    As an alternative to calling [::Server::stop] manually, the lifetime of 
    a [::Server] can be managed with a 'using' block:
 
-       using (var S = require('apollo:nodejs/http').server(8080)) {
+       using (var S = require('sjs:nodejs/http').server(8080)) {
          while (true) {
            var request = S.get();
            ...
@@ -368,7 +368,7 @@ Server.prototype.__finally__ = function() { this.stop(); };
  @desc
    **Example:**
    
-       using (var router = require('apollo:nodejs/http').router(
+       using (var router = require('sjs:nodejs/http').router(
                 [ ['/ping', function(r) { hold(1000); return 'pong'; }],
                   [/.*$/,   function(r) { return r.url.path; }] ],
                 8090)) {

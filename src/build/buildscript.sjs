@@ -6,9 +6,9 @@
 
 */
 
-var fs = require('apollo:nodejs/fs');
-var common = require('apollo:common');
-var collection = require('apollo:collection');
+var fs = require('sjs:nodejs/fs');
+var common = require('sjs:common');
+var collection = require('sjs:collection');
 var util = require('util');
 
 //----------------------------------------------------------------------
@@ -72,15 +72,15 @@ function build_deps() {
 
   // common part:
   STRINGIFY("tmp/apollo-sys-common.sjs.min", "src/sys/apollo-sys-common.sjs",
-            { pre: "__oni_rt.modsrc['sjs:apollo-sys-common.sjs']=", post: ";" });
+            { pre: "__oni_rt.modsrc['builtin:apollo-sys-common.sjs']=", post: ";" });
   
   // xbrowser hostenv-specific part:
   STRINGIFY("tmp/apollo-sys-xbrowser.sjs.min", "src/sys/apollo-sys-xbrowser.sjs",
-            { pre: "__oni_rt.modsrc['sjs:apollo-sys-xbrowser.sjs']=", post: ";" });
+            { pre: "__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']=", post: ";" });
 
   // nodejs hostenv-specific part:
   STRINGIFY("tmp/apollo-sys-nodejs.sjs.min", "src/sys/apollo-sys-nodejs.sjs",
-            { pre: "__oni_rt.modsrc['sjs:apollo-sys-nodejs.sjs']=", post: ";" });
+            { pre: "__oni_rt.modsrc['builtin:apollo-sys-nodejs.sjs']=", post: ";" });
 
 
   //----------------------------------------------------------------------
@@ -235,7 +235,7 @@ function build_deps() {
 var config;
 function get_config() {
   if (!config)
-    config = require('apollo:docutil').parseCommentedJSON(
+    config = require('sjs:docutil').parseCommentedJSON(
       fs.readFile("src/build/config.json"));
   return config;
 }
@@ -356,7 +356,7 @@ function timestamp(target, istarget) {
 function _run_builder(target, task, deps) {
   // first run dependencies:
   if (deps.length) {
-    require('apollo:cutil').waitforAll(
+    require('sjs:cutil').waitforAll(
       function(dep) {
         if (builders[dep]) 
           builders[dep]();
@@ -390,7 +390,7 @@ function _run_builder(target, task, deps) {
 }
 
 function _run_task(target, task, deps) {
-  if (require('apollo:common').isArray(task)) {
+  if (require('sjs:common').isArray(task)) {
     for (var i=0; i<task.length; ++i)
       _run_task(target, task[i], deps);
   }
@@ -402,7 +402,7 @@ function _run_task(target, task, deps) {
     task = task.replace(/\$(\d+)/g, function(m,n) { return deps[n]; });
     task = task.replace(/\$TARGET/g, target);
     log("* Executing shell command: '"+task+"'");
-    require('apollo:nodejs/child-process').exec(task);
+    require('sjs:nodejs/child-process').exec(task);
   }
   else 
     throw new Error("Unknown task type in builder '"+target+"'");    

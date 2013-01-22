@@ -33,19 +33,19 @@
 if (!__oni_rt.sys) {
   
   //----------------------------------------------------------------------
-  // Install SJS system module ('sjs:apollo-sys'). Bootstrapping will be
+  // Install SJS system module ('builtin:apollo-sys'). Bootstrapping will be
   // run from there.
   // The system module is spread over two parts: the 'common' part, and the
   // 'hostenv' specific part. 
   // hostenv is one of : 'xbrowser' | 'nodejs' 
   __oni_rt.G.eval("(function(exports) {"+
-                  __oni_rt.c1.compile(__oni_rt.modsrc['sjs:apollo-sys-common.sjs'],
+                  __oni_rt.c1.compile(__oni_rt.modsrc['builtin:apollo-sys-common.sjs'],
                                       {filename:"'apollo-sys-common.sjs'"})+"\n"+
-                  __oni_rt.c1.compile(__oni_rt.modsrc['sjs:apollo-sys-'+__oni_rt.hostenv+'.sjs'],
+                  __oni_rt.c1.compile(__oni_rt.modsrc['builtin:apollo-sys-'+__oni_rt.hostenv+'.sjs'],
                                       {filename:"'apollo-sys-"+__oni_rt.hostenv+".sjs'"})+
                  "})({})");
-  delete __oni_rt.modsrc['sjs:apollo-sys-common.sjs'];
-  delete __oni_rt.modsrc['sjs:apollo-sys-'+__oni_rt.hostenv+'.sjs']; 
+  delete __oni_rt.modsrc['builtin:apollo-sys-common.sjs'];
+  delete __oni_rt.modsrc['builtin:apollo-sys-'+__oni_rt.hostenv+'.sjs']; 
 }
 
 

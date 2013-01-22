@@ -32,7 +32,7 @@
 /**
   @module    webapi/google
   @summary   Bindings to various Google webservices and APIs 
-  @home      apollo:webapi/google
+  @home      sjs:webapi/google
 */
 var http = require("../http");
 
@@ -49,7 +49,7 @@ var http = require("../http");
 
     **Example:**
     
-        var s = require("apollo:webapi/google").search("Onilabs", {start:4});
+        var s = require("sjs:webapi/google").search("Onilabs", {start:4});
         console.log(s.responseData.results[0].url); // first result
 */
 function search(q, settings) {
@@ -102,7 +102,7 @@ exports.siteSearch = function (q, site, settings) {
 exports.translate = function(text, to, /* [opt] */ from, /* [opt] */ extra) {
   from = from || ""; // "" == autodetect
   var langpair;
-  if (require('sjs:apollo-sys').isArrayOrArguments(to)) {
+  if (require('builtin:apollo-sys').isArrayOrArguments(to)) {
     langpair = [];
     for (var i=0; i<to.length; ++i)
       langpair.push(from + "|" + to[i]);
@@ -195,7 +195,7 @@ function ensureAPI() {
 
      **Example:**
 
-         require('apollo:webapi/google').load("language", "1");
+         require('sjs:webapi/google').load("language", "1");
          if (google.language.isFontRenderingSupported("hi"))
            ...
 */

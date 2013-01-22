@@ -1,7 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 
-var s = require("apollo:stream");
+var s = require("sjs:stream");
 
 test("stream([1,2,3])", 6, function() {
   var rv = 0;

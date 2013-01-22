@@ -46,7 +46,7 @@
 /**
   @module    numeric
   @summary   Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
-  @home      apollo:numeric
+  @home      sjs:numeric
   @desc      
              This module tracks the [numericjs.com](http://numericjs.com) library by Sébastien Loisel -
              a high-performance ([compared to competing JS libs](http://numericjs.com/benchmark.html)) linear algebra library for manipulating matrices, 
@@ -764,7 +764,7 @@ var numeric = exports;
 // numeric generates many functions dynamically, and this leads to
 // scope problems.  As a quick-and-dirty workaround for Apollo, we
 // reflect the numeric object into the global scope as '__numeric':
-require('sjs:apollo-sys').getGlobal().__numeric = numeric;
+require('builtin:apollo-sys').getGlobal().__numeric = numeric;
 
 __numeric.version = "1.0.1";
 

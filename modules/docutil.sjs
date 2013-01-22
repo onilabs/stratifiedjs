@@ -32,7 +32,7 @@
 /**
    @module  docutil
    @summary Utility functions for extracting JS-style comments from source code.
-   @home    apollo:docutil
+   @home    sjs:docutil
    @desc    Work-in-progress
 */
 

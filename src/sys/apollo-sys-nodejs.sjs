@@ -1,5 +1,5 @@
 /*
- * Oni Apollo system module ('sjs:apollo-sys') hostenv-specific part
+ * Oni Apollo system module ('builtin:apollo-sys') hostenv-specific part
  *
  * NodeJS-based ('nodejs') version
  *
@@ -386,7 +386,7 @@ function nodejs_loader(path, parent, dummy_src, opts) {
 
 function getHubs_hostenv() {
   return [
-    ["apollo:", "file://"+__oni_rt.nodejs_apollo_lib_dir ],
+    ["sjs:", "file://"+__oni_rt.nodejs_apollo_lib_dir ],
     ["github:", {src: github_src_loader} ],
     ["http:", {src: http_src_loader} ],
     ["https:", {src: http_src_loader} ],

@@ -32,7 +32,7 @@
 /**
   @module    xbrowser/dom-shim
   @summary   DOM polyfills for non-conformant browsers (IE8, IE9)
-  @home      apollo:/xbrowser/dom-shim
+  @home      sjs:/xbrowser/dom-shim
   @hostenv   xbrowser
   @desc
      * Will automatically be loaded by [dom::] module if required
@@ -47,8 +47,8 @@
         * matchesSelector (for IE<9)
 */
 
-var sys = require('sjs:apollo-sys');
-if (require('sjs:apollo-sys').hostenv != 'xbrowser') 
+var sys = require('builtin:apollo-sys');
+if (sys.hostenv != 'xbrowser') 
   throw new Error('the xbrowser/dom-shim module only runs in an xbrowser environment');
 
 __js {

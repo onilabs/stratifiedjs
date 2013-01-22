@@ -46,7 +46,7 @@ function runSJScript(url) {
 function runRepl(beforeHook) {
   return function() {
     var runRepl = function() {
-      apollo_node.require('apollo:nodejs/repl', {
+      apollo_node.require('sjs:nodejs/repl', {
         callback: function(err, m) {
           if (err) throw err;
           m.runREPL();

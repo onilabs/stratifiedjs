@@ -46,7 +46,7 @@
 /**
   @module    numeric
   @summary   Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
-  @home      apollo:numeric
+  @home      sjs:numeric
   @desc      
              This module tracks the [numericjs.com](http://numericjs.com) library by Sébastien Loisel -
              a high-performance ([compared to competing JS libs](http://numericjs.com/benchmark.html)) linear algebra library for manipulating matrices, 

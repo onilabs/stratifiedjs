@@ -32,13 +32,13 @@
 /**
    @module  rpc/aat-client
    @summary Asymmetric AJAX Transport Client v2 for modern browsers
-   @home    apollo:rpc/aat-client
+   @home    sjs:rpc/aat-client
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
 */
 
-var http = require('apollo:http');
-var coll = require('apollo:collection');
-var func = require('apollo:function');
+var http = require('sjs:http');
+var coll = require('sjs:collection');
+var func = require('sjs:function');
 
 var AAT_VERSION   = '2';
 var SERVER_PATH   = '__oni/aat';

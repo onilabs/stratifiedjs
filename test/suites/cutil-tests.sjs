@@ -1,5 +1,5 @@
 var test = require('../lib/testUtil').test;
-var cutil = require("apollo:cutil");
+var cutil = require("sjs:cutil");
 
 test('waitforAll funcs', 3, function() {
   var x = 0;
@@ -58,7 +58,7 @@ test('waitforFirst args', 6, function() {
 });
 
 test('Semaphore: blocking on acquire', 1, function() {
-  var S = new (cutil.Semaphore)(1);
+  var S = cutil.Semaphore(1);
   S.acquire();
   waitfor {
     S.acquire();
@@ -71,7 +71,7 @@ test('Semaphore: blocking on acquire', 1, function() {
 });
 
 test('Semaphore: block/resume on acquire', 1, function() {
-  var S = new (cutil.Semaphore)(1);
+  var S = cutil.Semaphore(1);
   S.acquire();
   waitfor {
     S.acquire();
@@ -85,7 +85,7 @@ test('Semaphore: block/resume on acquire', 1, function() {
 });
 
 test('Event: block/resume', 1, function() {
-  var e = new cutil.Event();
+  var e = cutil.Event();
   waitfor {
     e.wait();
     return 1;
@@ -97,7 +97,7 @@ test('Event: block/resume', 1, function() {
 });
 
 test('Event: retract from wait()', [], function() {
-  var e = new cutil.Event();
+  var e = cutil.Event();
   waitfor {
     e.wait();
   } or {
@@ -107,7 +107,7 @@ test('Event: retract from wait()', [], function() {
 });
 
 test('Event: setting with a value', ["first", "second"], function() {
-  var e = new cutil.Event();
+  var e = cutil.Event();
   var results = [];
   waitfor {
     results.push(e.wait());
@@ -122,7 +122,7 @@ test('Event: setting with a value', ["first", "second"], function() {
 });
 
 test('Condition: not blocking if already set', 1, function() {
-  var c = new cutil.Condition();
+  var c = cutil.Condition();
   c.set();
   waitfor {
     c.wait();
@@ -133,7 +133,7 @@ test('Condition: not blocking if already set', 1, function() {
 });
 
 test('Condition: clearing and re-setting', 1, function() {
-  var c = new cutil.Condition();
+  var c = cutil.Condition();
   waitfor {
     c.wait();
     c.clear();
@@ -149,7 +149,7 @@ test('Condition: clearing and re-setting', 1, function() {
 });
 
 test('Condition: setting with a value', ["result!", "result!", "result!"], function() {
-  var c = new cutil.Condition();
+  var c = cutil.Condition();
   var results = [];
   waitfor {
     waitfor {
@@ -176,7 +176,7 @@ test('makeBoundedFunction 1', 3, function() {
   and {
     return x;
   }
-});
+}).skip('function removed');
 
 test('makeBoundedFunction 2', 0, function() {
   var x = 0;
@@ -184,7 +184,7 @@ test('makeBoundedFunction 2', 0, function() {
   var g = cutil.makeBoundedFunction(f, 3);
   waitfor { g(); } and { g(); } and { g(); } and { g(); } and { g(); }
   return x;
-});
+}).skip('function removed');
 
 test('Queue: producer/consumer', 1000, function() {
   var rv = 0;
@@ -281,7 +281,7 @@ test('makeMemoizedFunction 1', 1, function() {
   f(42);
   f(32);
   return c;
-});
+}).skip('function removed');
 
 test('makeMemoizedFunction 2', 3, function() {
   var c = 0;
@@ -308,7 +308,7 @@ test('makeMemoizedFunction 2', 3, function() {
   f(10);
   f(42);
   return c;
-});
+}).skip('function removed');
 
 test('makeMemoizedFunction with custom key', 2, function() {
   var c = 0;
@@ -323,7 +323,7 @@ test('makeMemoizedFunction with custom key', 2, function() {
   f(42, 2);
   f(42, 2);
   return c;
-});
+}).skip('function removed');
 
 
 test('makeMemoizedFunction retraction', 2, function() {
@@ -342,10 +342,10 @@ test('makeMemoizedFunction retraction', 2, function() {
   }
   f(42);
   return c;
-});
+}).skip('function removed');
 
 test('Semaphore.synchronize', 1, function() {
-  var S = new (cutil.Semaphore)(1);
+  var S = cutil.Semaphore(1);
   var x = 0;
   waitfor {
     try {

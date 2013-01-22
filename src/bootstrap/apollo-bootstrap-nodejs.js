@@ -31,7 +31,7 @@
  */
 
 //----------------------------------------------------------------------
-// Install Apollo system module ('sjs:apollo-sys'). Bootstrapping will be
+// Install Apollo system module ('builtin:apollo-sys'). Bootstrapping will be
 // run from there.
 // The system module is spread over two parts: the 'common' part, and the
 // 'hostenv' specific part. 
@@ -46,9 +46,9 @@ global.__oni_rt.nodejs_require = require;
 global.__oni_rt.nodejs_apollo_lib_dir = path.join(path.dirname(fs.realpathSync(__filename)), 'modules/');
 
 var sys = rt.G.eval("(function(exports) {"+
-                    rt.c1.compile(rt.modsrc['sjs:apollo-sys-common.sjs'],
+                    rt.c1.compile(rt.modsrc['builtin:apollo-sys-common.sjs'],
                                   {filename:"'apollo-sys-common.sjs'"})+"\n"+
-                    rt.c1.compile(rt.modsrc['sjs:apollo-sys-'+rt.hostenv+'.sjs'],
+                    rt.c1.compile(rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'],
                                   {filename:"'apollo-sys-"+rt.hostenv+".sjs'"})+
                           "})");
 
@@ -57,6 +57,6 @@ var sys = rt.G.eval("(function(exports) {"+
 // 'exports':
 sys(exports);
 
-delete rt.modsrc['sjs:apollo-sys-common.sjs'];
-delete rt.modsrc['sjs:apollo-sys-'+rt.hostenv+'.sjs']; 
+delete rt.modsrc['builtin:apollo-sys-common.sjs'];
+delete rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs']; 
 

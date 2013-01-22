@@ -47,7 +47,7 @@
 /**
   @module    jsondiffpatch
   @summary   Diff & patch for JSON objects
-  @home      apollo:jsondiffpatch
+  @home      sjs:jsondiffpatch
   @desc      
              This module tracks the [Json Diff Patch library](https://github.com/benjamine/JsonDiffPatch) by Benjamin Eidelman
 */

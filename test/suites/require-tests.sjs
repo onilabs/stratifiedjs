@@ -1,11 +1,11 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
-var global = require("sjs:apollo-sys").getGlobal();
-var http = require('apollo:http');
-var common = require('apollo:common');
+var global = require("builtin:apollo-sys").getGlobal();
+var http = require('sjs:http');
+var common = require('sjs:common');
 
 test('force extension/sjs', "a=1&b=2", function() {
-  return require('apollo:http.sjs').constructQueryString({a:1},{b:2});
+  return require('sjs:http.sjs').constructQueryString({a:1},{b:2});
 });
 
 test('force extension/js', 42, function() {
@@ -17,7 +17,7 @@ test('"this" object in modules', this, function() {
 });
 
 if (!testUtil.isBrowser) {
-  var child_process = require('apollo:nodejs/child-process');
+  var child_process = require('sjs:nodejs/child-process');
   var path = require('nodejs:path');
   var apollo_path = path.join(http.parseURL(module.id).path, '../../../apollo');
 
