@@ -12,7 +12,10 @@ and {
   var func = require('sjs:function');
 }
 and {
-  var coll = require('sjs:collection');
+  var { each, map, toArray, join, reduce } = require('sjs:sequence');
+}
+and {
+  var { values, keys } = require('sjs:object');
 }
 and {
   var docutil = require('sjs:docutil');
@@ -194,7 +197,7 @@ function makeIndexView() {
       var lib_docs = getPathDocs(location.path);
 
       // remove previous entries:
-      coll.each(entries, function(e) { e.hide(); });
+      values(entries) .. each { |e| e.hide() }
       entries = {}; selection = null;
 
       if (lib_docs) {
@@ -204,16 +207,16 @@ function makeIndexView() {
         }
         // create a sorted list of modules & directories:
         var l = [];
-        coll.each(lib_docs.modules, function(mdocs, module) {
-//          (entries[module] = makeIndexModuleEntry(location, module)).show(view.elems.list);
-          l.push([module, makeIndexModuleEntry(location, module)]);
-        });
-        coll.each(lib_docs.dirs, function(ddocs, dir) {
-//          (entries[dir] = makeIndexDirEntry(location.path+dir+"/", dir+"/")).show(view.elems.list);
+        keys(lib_docs.modules) .. each { 
+          |module|
+          l.push([module, makeIndexModuleEntry(location, module)])
+        }
+        keys(lib_docs.dirs) .. each {
+          |dir|
           l.push([dir, makeIndexDirEntry(location.path+dir+"/", dir+"/")]);
-        });
+        }
         l.sort((a,b) -> a[0]<b[0] ? -1 : (a[0]>b[0] ? 1 : 0));
-        coll.each(l) {|e| (entries[e[0]] = e[1]).show(view.elems.list) };
+        l .. each {|e| (entries[e[0]] = e[1]).show(view.elems.list) };
       }
       // else ... we didn't find any lib_docs; so no modules we can list
     }
@@ -250,10 +253,9 @@ function makeIndexModuleEntry(location, module) {
     var module_docs = getModuleDocs(location.path + module);
     if (!module_docs) return; // no docs; nothing much we can do
     var symbols_template = 
-      coll.map(coll.values(common.mergeSettings(module_docs.symbols, module_docs.classes)), 
-               function(symbol) {
-                 return "<li><a href='##{location.path}#{module}::#{symbol.name}'>#{symbol.name}</a></li>";
-               }).join("");
+      values(common.mergeSettings(module_docs.symbols, module_docs.classes)) ..
+      map(symbol => "<li><a href='##{location.path}#{module}::#{symbol.name}'>#{symbol.name}</a></li>") ..
+      join;
     (symbols_view = ui.makeView(symbols_template)).show(view.elems.symbols);
   };
   view.deselect = function() { 
@@ -398,14 +400,15 @@ function makeModuleView(location) {
  
   // collect symbols (XXX really want classes in symbols hash to start with)
   var symbols = {};
-  coll.each(common.mergeSettings(docs.symbols, docs.classes), function(s) {
+  values(common.mergeSettings(docs.symbols, docs.classes)) .. each {
+    |s|
     if (!symbols[s.type]) symbols[s.type] = [];
     symbols[s.type].push(
         "<tr>
            <td class='mb-td-symbol'><a href='##{location.path}#{location.module}::#{s.name}'>#{s.name}</a></td>
            <td>#{makeSummaryHTML(s,location)}</td>
          </tr>");
-  });
+  }
   
   if (symbols['function'])
     ui.makeView("<h3>Functions</h3><table>"+symbols['function'].join("")+"</table>").show(view.elems.symbols);
@@ -476,12 +479,12 @@ function makeSymbolView(location) {
     }      
 
     signature += "(<span class='mb-arglist'>"+
-      coll.map(docs.param || [], function(p) {
+      ((docs.param||[]) .. map(function(p) {
         var rv = p.name || '.';
         if (p.valtype && p.valtype.indexOf("optional") != -1)
           rv = "<span class='mb-optarg'>["+rv+"]</span>";
         return rv;
-      }).join(", ")+
+      }) .. join(", "))+
       "</span>)";
 
     if (docs['return']) {
@@ -496,27 +499,27 @@ function makeSymbolView(location) {
 
 
     // function args details
-    var args = coll.map(docs.param || [], function(p) {
+    var args = (docs.param || []) .. map(function(p) {
       var name = p.name||'.';
       var def = p.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(p.defval,location)+"</span>" : "";
       return "<tr><td class='mb-td-symbol'>#{name}</td><td><span class='mb-type'>#{makeTypeHTML(p.valtype,location)}</span>#{def}#{makeSummaryHTML(p,location)}</td></tr>";
-    });
+    }) .. toArray;
     if (args.length)
       ui.makeView("<table>"+args.join("")+"</table>").show(view.elems.details);
 
     // settings
-    var settings = coll.map(docs.setting || [], function(s) {
+    var settings = (docs.setting || []) .. map(function(s) {
       var def = s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "";
       return "<tr><td class='mb-td-symbol'>#{s.name}</td><td><span class='mb-type'>#{makeTypeHTML(s.valtype, location)}</span>#{def}#{makeSummaryHTML(s, location)}</td></tr>";
-    });
+    }) .. toArray;
     if (settings.length)
       ui.makeView("<h3>Settings</h3><table>"+settings.join("")+"</table>").show(view.elems.details);
 
     // attribs (nearly identical to settings)
-    var attribs = coll.map(docs.attrib || [], function(s) {
+    var attribs = (docs.attrib || []) .. map(function(s) {
       var def = s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "";
       return "<tr><td class='mb-td-symbol'>#{s.name}</td><td><span class='mb-type'>#{makeTypeHTML(s.valtype, location)}</span>#{def}#{makeSummaryHTML(s, location)}</td></tr>";
-    });
+    }) .. toArray;
     if (attribs.length)
       ui.makeView("<h3>Attribs</h3><table>"+attribs.join("")+"</table>").show(view.elems.details);
 
@@ -541,7 +544,8 @@ function makeSymbolView(location) {
 
     // collect symbols
     var symbols = {};
-    coll.each(docs.symbols, function(s) { 
+    values(docs.symbols) .. each { 
+      |s|
       var type = s.type;
       if (s['static'])
         type = 'static-'+type;
@@ -551,7 +555,7 @@ function makeSymbolView(location) {
              <td class='mb-td-symbol'><a href='##{location.path}#{location.module}::#{docs.name}::#{s.name}'>#{s.name}</a></td>
              <td>#{makeSummaryHTML(s, location)}</td>
            </tr>");
-    });
+    }
     
     if (symbols['ctor'])
       ui.makeView("<table>"+symbols['ctor'].join("")+"</table>").show(view.elems.details);
@@ -584,8 +588,9 @@ function makeLibView(location) {
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
 
   // collect modules & dirs:
-  var modules = coll.reduce(docs.modules, "", 
-                            (p,m) -> p +
+
+  var modules = values(docs.modules) .. 
+    reduce("", (p,m) -> p +
     "<tr>
       <td class='mb-td-symbol'><a href='##{location.path}#{m.name}'>#{m.name}</a></td>
       <td>#{makeSummaryHTML(m, location)}</td>
@@ -596,8 +601,8 @@ function makeLibView(location) {
     ui.makeView("<h3>Modules</h3><table>#{modules}</table>").show(view.elems.modules);
   }
 
-  var dirs = coll.reduce(docs.dirs, "", 
-                         (p,d) -> p +
+  var dirs = values(docs.dirs) .. 
+    reduce("", (p,d) -> p +
     "<tr>
       <td class='mb-td-symbol'><a href='##{location.path}#{d.name}'>#{d.name}</a></td>
       <td>#{makeSummaryHTML(d,location)}</td>

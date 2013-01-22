@@ -32,7 +32,7 @@
    @desc    Work-in-progress; to be documented
 */
 var common = require('sjs:common');
-var coll = require('sjs:collection');
+var { each, any, map } = require('sjs:sequence');
 
 /*
 
@@ -52,26 +52,28 @@ ui class:
 
 function ui_show(dom_parent) {
   if (!dom_parent) dom_parent = document.body;
-  coll.each(this.top, function(elem) { dom_parent.appendChild(elem); });
+  this.top .. each { |elem|  dom_parent.appendChild(elem); }
   return { __finally__ : ui_hide.bind(this) };
 }
 
 function ui_hide() {
-  coll.each(this.top, function(elem) {
+  this.top .. each { 
+    |elem|
     if (elem.parentNode) elem.parentNode.removeChild(elem);
-  });
+  }
   return this;
 }
 
 function ui_replace(html_template) {
   var newView = makeView(html_template);
   var parentNode = null;
-  coll.each(this.top, function(elem) { 
+  this.top .. each {
+    |elem|
     if (elem.parentNode) {
       parentNode = elem.parentNode;
       parentNode.removeChild(elem); 
     }
-  });
+  }
   this.top = newView.top;
   this.elems = newView.elems;
   this.templates = newView.templates;
@@ -86,9 +88,9 @@ function ui_supplant(replacements) {
   // and then at a later stage only bar.
   replacements = this.replacements = 
     common.mergeSettings(this.replacements, replacements);
-
-  coll.each(this.templates, function(t) {    
-    if (!coll.any(t.vars, function(x) { return replacements[x]!==undefined; })) return;
+  this.templates .. each {
+    |t|
+    if (!any(t.vars, x => replacements[x]!==undefined)) continue;
     var s = common.supplant(t.template, replacements);
     if (t.attrib) {
       if (t.attrib.charAt(0) == '@') { 
@@ -110,7 +112,7 @@ function ui_supplant(replacements) {
       t.elem.parentNode.replaceChild(s, t.elem);
       t.elem = s;
     }
-  });
+  }
   return this;
 };
 
@@ -165,7 +167,7 @@ var makeView = exports.makeView = function(html_template) {
           templates.push({elem:   node, 
                           attrib: node.attributes[i].name,
                           template: node.attributes[i].value,
-                          vars: coll.map(matches, stripFirstLast)
+                          vars: matches .. map(stripFirstLast)
                          });
         }
       }
@@ -174,7 +176,7 @@ var makeView = exports.makeView = function(html_template) {
              ((matches = node.data.match(/{[^\}]*}/g)))) {
       templates.push({elem: node,
                       template: node.data,
-                      vars: coll.map(matches, stripFirstLast)
+                      vars: matches .. map(stripFirstLast)
                      });
     }
   });

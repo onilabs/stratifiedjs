@@ -308,6 +308,20 @@ function toArray(sequence) {
 }
 exports.toArray = toArray;
 
+/**
+   @function join
+   @altsyntax sequence .. join(separator)
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional String} [separator=''] 
+   @return {String} 
+   @summary Convert all elements of the sequence to strings and joins them into one string
+*/
+function join(sequence, separator) {
+  separator = separator || '';
+  return (sequence .. toArray).join(separator);
+}
+exports.join = join;
+
 /*
    @function toStream
   
