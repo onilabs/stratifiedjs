@@ -47,7 +47,8 @@ if (require('builtin:apollo-sys').hostenv != 'xbrowser')
 
 var common = require('../common');
 var str = require('../string');
-var collection = require('../collection');
+var { each } = require('../sequence');
+var { remove } = require('../array');
 
 //----------------------------------------------------------------------
 // logging
@@ -63,9 +64,7 @@ function installLogger(logger) {
 };
 
 function uninstallLogger(logger) {
-  var idx = collection.findKey(logReceivers, function(r) { return r == logger; });
-  if(idx === undefined) return; // logger was never installed
-  logReceivers.splice(idx, 1);
+  logReceivers .. remove(logger);
 
   if(logReceivers.length == 0) { // last logger removed
     var logging = require('../logging');
@@ -81,9 +80,10 @@ function uninstallLogger(logger) {
 */
 var printToLoggers = exports.log = function() {
   var logArgs = arguments;
-  collection.each(logReceivers, function(c) {
+  logReceivers .. each {
+    |c|
     c.log.apply(c, logArgs);
-  });
+  }
 };
 
 //----------------------------------------------------------------------

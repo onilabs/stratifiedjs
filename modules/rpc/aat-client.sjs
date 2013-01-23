@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -37,7 +37,7 @@
 */
 
 var http = require('sjs:http');
-var coll = require('sjs:collection');
+var { each } = require('sjs:sequence');
 var func = require('sjs:function');
 
 var AAT_VERSION   = '2';
@@ -114,7 +114,7 @@ function openTransport(server) {
         
         // put any messages in receive queue:
         messages.shift();
-        coll.each(messages) {
+        messages .. each {
           |mes| 
           receive_q.unshift({ type: 'message', data: mes });
         }
@@ -171,7 +171,7 @@ function openTransport(server) {
         
         // put any messages in receive queue:
         result.shift();
-        coll.each(result) {
+        result .. each {
           |mes| 
           receive_q.unshift({ type: 'message', data: mes });
         }
@@ -224,7 +224,7 @@ function openTransport(server) {
         
         // put any messages in receive queue:
         result.shift();
-        coll.each(result) {
+        result .. each {
           |mes| 
           receive_q.unshift({ type: 'message', data: mes });
         }

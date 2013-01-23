@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -40,14 +40,15 @@
 */
 
 var surface = require('./base');
-var coll = require('../collection');
+var { map, join } = require('../sequence');
 var str = require('../string');
 
 exports.ButtonDropdown = function(title, items) {
 
-  var menu = coll.map(items,
-                      item ->
-                      "<li><a href='#' data-command='#{item[1]}'>#{str.sanitize(item[0])}</a></li>").join('');
+  var menu = items .. 
+    map(item ->
+        "<li><a href='#' data-command='#{item[1]}'>#{str.sanitize(item[0])}</a></li>") ..
+    join('');
 
   var ui = surface.Html("
     <div class='btn-group'>

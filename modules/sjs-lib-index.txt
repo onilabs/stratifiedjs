@@ -9,7 +9,7 @@
     and organization of modules might change from one release to the
     next. Some of the more stable and fundamental modules include:
 
-    * [collection::]: Functional tools for iterating and processing collections
+    * [sequence::]: Constructs for manipulating arrays, string and streams
     * [http::]: Functions for performing HTTP requests and working with URLs
     * [cutil::]: Functions and constructs for concurrent stratified programming
 
@@ -46,7 +46,6 @@
 @dir xbrowser Modules with basic cross-browser functionality
 
 @module array           Functions for working with arrays
-@module collection      Functions for iterating and processing collections (arrays or objects); (Deprecated; use [sequence::] module)
 @module common          Common JS utility functions
 @module cutil           Functions and constructs for concurrent stratified programming
 @module debug           Helpers for debugging
@@ -58,6 +57,7 @@
 @module lru-cache       Least Recently Used Cache
 @module marked          Markdown to Html Converter (tracking the [marked library](https://github.com/chjj/marked))
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
+@module object          Functions for working with objects
 @module sequence        Constructs for manipulating sequence structures (arrays, strings and more general streams)
 @module sjcl            Stanford JavaScript Crypto Library
 @module stream          Stratified stream and iterator constructs (Deprecated; use [sequence::] module)

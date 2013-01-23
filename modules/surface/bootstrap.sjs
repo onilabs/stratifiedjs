@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -53,10 +53,10 @@
      
 */
 
-waitfor { var base = require('./base');        }
-and     { var coll = require('../collection'); }
-and     { var func = require('../function');   }
-and     { var common = require('../common');   }
+waitfor { var base = require('./base');                                        }
+and     { var { toArray, map, each, join, integers } = require('../sequence'); }
+and     { var func = require('../function');                                   }
+and     { var common = require('../common');                                   }
 
 var tt = new Date();
 
@@ -88,7 +88,7 @@ exports.Container = function(/*attribs*/) {
   if (arguments.length == 1 && !base.UIElement.isPrototypeOf(arguments[0]))
     attribs = arguments[0];
   else 
-    attribs = { children: coll.toArray(arguments ) };
+    attribs = { children: toArray(arguments ) };
 
   attribs = common.mergeSettings({containerClass:'container'}, attribs);
 
@@ -122,7 +122,7 @@ exports.Container = function(/*attribs*/) {
     mechanism: mech
   }).selectContainer('div > div');
 
-  coll.each(attribs.children) { |c| rv.append(c) }
+  (attribs.children || []) .. each { |c| rv.append(c) }
 
   return rv;
 };
@@ -181,23 +181,27 @@ function cssToRgba(css_color) {
   var rgba;
   if (matches[1]) {
     // 6 digit hex string
-    rgba = coll.map(matches[1].match(/.{2}/g), function(c){ return parseInt(c,16) });
+    rgba = matches[1].match(/.{2}/g) .. map(c => parseInt(c,16)) .. toArray;
     rgba.push(1);
   }
   else if (matches[2]) {
     // 3 digit hex string
-    rgba = coll.map(matches[2].split(''),function(c){ return parseInt(c+c,16) });
+    rgba = matches[2].split('') .. map(c => parseInt(c+c,16)) .. toArray;
     rgba.push(1);
   }
   else if (matches[3]) {
     // rgb(.)
-    rgba = coll.map(matches[3].split(","),function(n){ return n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n) });
+    rgba = matches[3].split(",") .. 
+      map(n => n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n)) ..
+      toArray;
     rgba.push(1);
     if (rgba.length != 4) throw new Error("invalid css color "+css_color);
   }
   else if (matches[4]) {
     // rgba(.)
-    rgba = coll.map(matches[4].split(","),function(n){ return n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n) });
+    rgba = matches[4].split(",") .. 
+      map(n => n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n)) ..
+      toArray;
     if (rgba.length != 4) throw new Error("invalid css color "+css_color);
   }
   else if (matches[5]) {
@@ -247,11 +251,11 @@ function hslaToRgba(hsla) {
 
 function rgbaToCss(rgba) {
   if (rgba[3] < 1.0) {
-    return "rgba(#{ coll.map(rgba,function(c){return Math.round(c) }).join(',') })";
+    return "rgba(#{ rgba .. map(c => Math.round(c)) .. join(',') })";
   }
   else {
     rgba.pop();
-    return "##{ coll.map(rgba,hexByte).join('') }";
+    return "##{ rgba .. map(hexByte) .. join('') }";
   }
 }
 
@@ -2174,8 +2178,9 @@ table {
 /* TABLE CELL SIZING */
 
 /* Change the columns */
- #{ coll.map([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24],function(i){ 
-             return "table .span#{i} { #{ mixins.tableColumns(i) } }" })
+ #{ integers(1,24) .. 
+    map(i => "table .span#{i} { #{ mixins.tableColumns(i) } }") .. 
+    join(' ')
   }
 "); 
 };

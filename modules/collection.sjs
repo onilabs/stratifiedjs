@@ -186,7 +186,7 @@ exports.identity = function(a) { return a; }
 */
 exports.each = function(collection, fn, this_obj) {
   if (!collection) return;
-  if (sys.isArrayOrArguments(collection)) {
+  if (sys.isArrayLike(collection)) {
     for (var i=0,l=collection.length; i<l; ++i) 
       fn.call(this_obj, collection[i], i, collection);
   }
@@ -218,12 +218,12 @@ exports.each = function(collection, fn, this_obj) {
 */
 exports.par.waitforAll = function waitforAll(funcs, args, this_obj) {
   this_obj = this_obj || null;
-  if (sys.isArrayOrArguments(funcs)) {
+  if (sys.isArrayLike(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforAllFuncs(funcs, args, this_obj);
   }
-  else if (sys.isArrayOrArguments(args)) {
+  else if (sys.isArrayLike(args)) {
     if (!args.length) return;
     //...else
     return waitforAllArgs(funcs, args, 0, args.length, this_obj);
@@ -286,12 +286,12 @@ function waitforAllArgs(f, args, i, l, this_obj) {
 */
 exports.par.waitforFirst = function waitforFirst(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (sys.isArrayOrArguments(funcs)) {
+  if (sys.isArrayLike(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforFirstFuncs(funcs, args, this_obj);
   }
-  else if (sys.isArrayOrArguments(args)) {
+  else if (sys.isArrayLike(args)) {
     if (!args.length) return;
     //...else
     return waitforFirstArgs(funcs, args, 0, args.length, this_obj);
@@ -343,7 +343,7 @@ function waitforFirstArgs(f, args, i, l, this_obj) {
   @summary  Parallel version of [::each]
 */
 exports.par.each = function(collection, fn, this_obj) {
-  if (sys.isArrayOrArguments(collection))
+  if (sys.isArrayLike(collection))
     return exports.par.waitforAll(fn, collection, this_obj);
   else {
     return exports.par.waitforAll(function(key) {
@@ -357,7 +357,7 @@ exports.par.each = function(collection, fn, this_obj) {
 // for accumulating results, we start with an empty object of the same
 // type as the collection (i.e object or array)
 function emptyObj(collection) {
-  if(sys.isArrayOrArguments(collection)) {
+  if(sys.isArrayLike(collection)) {
     return [];
   } else {
     return {};
@@ -577,7 +577,7 @@ function generateFilter(each) {
     // build an unordered set of items
     var items = filterItems(each, collection, fn, this_obj);
     // and combine
-    if(sys.isArrayOrArguments(collection)) {
+    if(sys.isArrayLike(collection)) {
       return concatArrayItems(items);
     } else {
       return concatObjectItems(items);

@@ -1,7 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var lru = require('sjs:lru-cache');
-var coll = require('sjs:collection');
+var { each } = require('sjs:sequence');
 
 test('put/get', 'asdf', function() {
   var cache = lru.makeCache(100);
@@ -9,9 +9,9 @@ test('put/get', 'asdf', function() {
               [Math.random()+'b','s'],
               [Math.random()+'c','d'],
               [Math.random()+'d','f']];
-  coll.each(data) { |d| cache.put(d[0],d[1]) }
+  each(data) { |d| cache.put(d[0],d[1]) }
   var rv = "";
-  coll.each(data) { |d| rv+=cache.get(d[0]) }
+  each(data) { |d| rv+=cache.get(d[0]) }
   return rv;
 });
 
@@ -21,7 +21,7 @@ test('discard lru', true, function() {
               [Math.random()+'b','s'],  // 1
               [Math.random()+'c','d'],  // 2
               [Math.random()+'d','f']]; // 3
-  coll.each(data) { |d| cache.put(d[0],d[1]) }
+  each(data) { |d| cache.put(d[0],d[1]) }
   if (cache.get(data[1][0]) != 's') return 1;
   if (cache.get(data[0][0]) != undefined) return 2;
   cache.put('x', 'y'); 
@@ -36,7 +36,7 @@ test('discard multiple', true, function() {
               [Math.random()+'b','s',10],  // 1
               [Math.random()+'c','d',10],  // 2
               [Math.random()+'d','f',21]]; // 3
-  coll.each(data) { |d| cache.put(d[0],d[1], d[2]) }  
+  each(data) { |d| cache.put(d[0],d[1], d[2]) }  
   if (cache.get(data[0][0]) != undefined) return 1;
   if (cache.get(data[1][0]) != undefined) return 2;
   if (cache.get(data[2][0]) != undefined) return 3;
@@ -50,8 +50,8 @@ test('discard multiple 2', true, function() {
               [Math.random()+'b','s',10],  // 1
               [Math.random()+'c','d',10],  // 2
               [Math.random()+'d','f',10]]; // 3
-  coll.each(data) { |d| cache.put(d[0],d[1], d[2]) }  
-  coll.each(data) { |d| if (cache.get(d[0]) != d[1]) return d[1] }
+  each(data) { |d| cache.put(d[0],d[1], d[2]) }  
+  each(data) { |d| if (cache.get(d[0]) != d[1]) return d[1] }
   cache.get(data[0][0]); // put item 0 to front
   cache.put('x', 'y', 30);
   if (cache.get(data[0][0]) != 'a') return 1;

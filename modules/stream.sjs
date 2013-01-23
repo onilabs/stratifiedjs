@@ -92,7 +92,7 @@ var sys  = require('builtin:apollo-sys');
 */
 function stream(iterable, f) {
   if (f===undefined) return stream.bind(this, iterable);
-  if (sys.isArrayOrArguments(iterable)) {
+  if (sys.isArrayLike(iterable)) {
     for (var i=0; i<iterable.length; ++i)
       f(iterable[i]);
   }

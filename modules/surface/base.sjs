@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -43,11 +43,10 @@ waitfor {
   var common = require('../common');
 } 
 and {
-  var seq    = require('../sequence');
+  var { each, isStream, toArray, join, map } = require('../sequence');
 }
 and {
-  // XXX replace this with the sequence module functions
-  var coll   = require('../collection');
+  var { indexValuePairs, remove } = require('../array');
 } 
 and {
   var dom    = require('../xbrowser/dom');
@@ -156,7 +155,7 @@ __js StyleElement.init = function(content, global) {
     //console.log("parse style=#{(new Date())-tt}ms");    
 
     function processBlock(b,lvl,cssClass) {
-      return coll.map(b, function(b) {
+      return b .. map(function(b) {
         if (!Array.isArray(b))
           return b; // a decl
         else {
@@ -165,7 +164,7 @@ __js StyleElement.init = function(content, global) {
           }
           if (b[0].charAt(0) != '@') {
             // fold cssClass into selector
-            b[0] = coll.map(b[0].split(','), function(s){ return "#{cssClass} #{s}" }).join(',');
+            b[0] = b[0].split(',') .. map(s => "#{cssClass} #{s}") .. join(',');
             return "#{b[0]} { #{processBlock(b[1],lvl+1,cssClass)} }";
           }
           else if (b[0].indexOf('@global') == 0) {
@@ -177,7 +176,7 @@ __js StyleElement.init = function(content, global) {
             return "#{b[0]} { #{processBlock(b[1],lvl,cssClass)} }";
           }
         }
-      }).join('\n');
+      }) .. join('\n');
     }
     //tt = new Date();
     content = processBlock(blocks, 0, '.'+cssClass);
@@ -290,9 +289,11 @@ UIElement.init = function(attribs) {
   this.mechanism = attribs.mechanism || func.nop;
   this.style = attribs.style || [];
   if (!Array.isArray(this.style)) this.style = [this.style];
-  coll.each(this.style, function(s,i) { 
+  indexValuePairs(this.style) .. each { 
+    |style| 
+    var [i,s] = style;
     if (typeof s == 'string') this.style[i] = CSS(s);
-  }, this);
+  }
 };
 
 /**
@@ -327,7 +328,7 @@ UIElement.select1 = function(selector) {
    @return {Array of DOM nodes}
 */
 UIElement.select = function(selector) { 
-  var rv = coll.toArray(this.dompeer.querySelectorAll(selector));
+  var rv = toArray(this.dompeer.querySelectorAll(selector));
   /* if (dom.matchesSelector(this.dompeer, selector))
     rv.unshift(this.dompeer);
   */
@@ -376,7 +377,7 @@ mixinCommandAPI(UIElement);
 */
 UIElement.activate = function() {
   if (this.isActivated) throw new Error("UIElement already activated");
-  coll.each(this.style) {|s| s.use() };
+  this.style .. each {|s| s.use() };
 };
 
 /**
@@ -420,7 +421,7 @@ UIElement.deactivated = function() {
   }
   this.isActivated = false;
   //abc this.dompeer.style.visibility = 'hidden';
-  coll.each(this.style) {|s| s.unuse() };
+  this.style .. each {|s| s.unuse() };
 };
 
 /**
@@ -502,7 +503,7 @@ __js var UIContainerElement = exports.UIContainerElement = Object.create(UIEleme
      - If a String, QuasiTemplate, Array or [../sequence::Stream] are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
 UIContainerElement.withUI = function() {
-  var args = coll.toArray(arguments);
+  var args = toArray(arguments);
   args.unshift(this);
   return exports.withUI.apply(this, args);
 };
@@ -516,7 +517,7 @@ var ChildManagement = {
   },
 
   remove: function(ui) {
-    coll.remove(this.children, ui);
+    remove(this.children, ui);
     ui.dompeer.parentNode.removeChild(ui.dompeer);
     if (ui.isActivated)
       ui.deactivated();
@@ -524,15 +525,15 @@ var ChildManagement = {
   },
 
   activate: function() {
-    coll.each(this.children) { |c| c.activate() };
+    this.children .. each { |c| c.activate() };
   },
 
   activated: function() {
-    coll.each(this.children) { |c| c.activated() };
+    this.children .. each { |c| c.activated() };
   },
 
   deactivated: function() {
-    coll.each(this.children) { |c| c.deactivated() };
+    this.children .. each { |c| c.deactivated() };
   },
 
   mixinto: function(target) {
@@ -580,7 +581,7 @@ HtmlFragmentElement.init = func.seq(
     }
     else {
       if (sys.isTemplate(attribs.content) || Array.isArray(attribs.content) || 
-          seq.isStream(attribs.content)) {
+          isStream(attribs.content)) {
         // Complex Content:
 
         // * a QuasiTemplate, e.g.:
@@ -608,8 +609,8 @@ HtmlFragmentElement.init = func.seq(
                 html += "<span id='__oni_placeholder#{placeholders.length}'></span>";
                 placeholders.push(part);
               }
-              else if (Array.isArray(part) || seq.isStream(part)) {
-                parseArray(seq.toArray(part), false);
+              else if (Array.isArray(part) || isStream(part)) {
+                parseArray(toArray(part), false);
               }
               else if (sys.isTemplate(part)) {
                 parseArray(part.parts, true);
@@ -626,15 +627,16 @@ HtmlFragmentElement.init = func.seq(
         if (sys.isTemplate(attribs.content))
           parseArray(attribs.content.parts, true);
         else
-          parseArray(seq.toArray(attribs.content), false);
+          parseArray(toArray(attribs.content), false);
         
         // create a surrogate dompeer:
         this.dompeer = document.createElement('surface-ui');
         this.dompeer.innerHTML = html.replace(/^\s+/,'');
         
         // replace UIElement placeholders with UIElements:
-        coll.each(placeholders) {
-          |part, idx|
+        indexValuePairs(placeholders) .. each  {
+          |placeholder|
+          var [idx, part] = placeholder;
           var old = this.select1("#__oni_placeholder#{idx}");
           if (!old) {
             // placeholder not found in the dom... probably caused by
@@ -666,21 +668,21 @@ HtmlFragmentElement.init = func.seq(
     }
 
     // set styles on our dompeer:
-    coll.each(this.style) {
+    this.style .. each {
       |s|
       if (s.cssClass) this.dompeer.classList.add(s.cssClass)
     }
 
     // now that we are *nearly* fully initialized, we need to make
     // sure that any children we've added for placeholders become properly attached:
-    coll.each(this.children) {
+    this.children .. each {
       |c|
       c.attached(this);
     }
 
     // finally, the deprecated subelems handling
     if (attribs.subelems)
-      coll.each(attribs.subelems) {
+      attribs.subelems .. each {
         |e|
         if (UIElement.isPrototypeOf(e))
           this.append(e);
@@ -723,7 +725,7 @@ HtmlFragmentElement.selectContainer = function(selector) {
     ip = Object.create(this);
     var parent = this;
     ip.append = function(ui) { return parent.append(ui, selector); };
-    coll.each(['activate','activated','deactivated','attached','detached','selectContainer']) {
+    ['activate','activated','deactivated','attached','detached','selectContainer'] .. each {
       |method|
       ip[method] = ip[method].bind(parent);
     }
@@ -745,7 +747,7 @@ HtmlFragmentElement.selectContainer = function(selector) {
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
-  if (typeof attribs != 'object' || Array.isArray(attribs) || seq.isStream(attribs) || sys.isTemplate(attribs))
+  if (typeof attribs != 'object' || Array.isArray(attribs) || isStream(attribs) || sys.isTemplate(attribs))
     attribs = { content: attribs }
   var obj = Object.create(HtmlFragmentElement);
   obj.init(attribs); 
@@ -769,7 +771,7 @@ RootElement.init = function(attribs) {
 ChildManagement.mixinto(RootElement);
 
 RootElement.append = function(ui) {
-  if (typeof ui == 'string' || Array.isArray(ui) || seq.isStream(ui) || sys.isTemplate(ui)) ui = exports.Html(ui);
+  if (typeof ui == 'string' || Array.isArray(ui) || isStream(ui) || sys.isTemplate(ui)) ui = exports.Html(ui);
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
@@ -851,7 +853,7 @@ exports.withUI = function(/*container, ui, [append_attribs], f*/) {
   var args = Array.prototype.slice.call(arguments, 1);
   var f = args.pop();
   // ensure ui is a UIElement:
-  if (typeof args[0] == 'string' || Array.isArray(args[0])  || seq.isStream(args[0]) || sys.isTemplate(args[0]))
+  if (typeof args[0] == 'string' || Array.isArray(args[0])  || isStream(args[0]) || sys.isTemplate(args[0]))
     args[0] = exports.Html(args[0]);
   container.append.apply(container, args);
   try {

@@ -35,6 +35,8 @@
    @home    sjs:array
 */
 
+var { Stream } = require('./sequence');
+
 /**
    @function remove
    @altsyntax arr .. remove(elem)
@@ -50,3 +52,14 @@ function remove(arr, elem) {
   return true;
 }
 exports.remove = remove;
+
+/**
+   @function indexValuePairs
+   @param {Array} [arr]
+   @return {sequence::Stream}
+   @summary  Returns a [sequence::Stream] of index-value pairs `[0,arr[0]], [1,arr[1]], ...`
+*/
+function indexValuePairs(arr) {  
+  return Stream(function(r) { for (var i=0; i<arr.length; ++i) r([i,arr[i]]) });
+}
+exports.indexValuePairs = indexValuePairs;

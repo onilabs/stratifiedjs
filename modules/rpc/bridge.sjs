@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -53,7 +53,8 @@ Protocol:
 
 */
 
-var coll = require('sjs:collection');
+var { each, toArray } = require('sjs:sequence');
+var { keys } = require('sjs:object');
 
 //----------------------------------------------------------------------
 // marshalling
@@ -102,12 +103,9 @@ function marshall(value, connection) {
       connection.publishAPI(value);
       // serialize as "{ __oni_type:'api', methods: ['m1', 'm2', ...] }"
       var methods = [];
-      // can't use "each" here, because we want prototype methods too
-      // coll.each(value.obj) {
-      //  |val, name|
-      //  if (typeof val == 'function') methods.push(name);
-      //}
-      for (var name in value.obj) {
+
+      keys(value.obj) .. each {
+        |name| 
         if (typeof value.obj[name] == 'function') methods.push(name);
       }
 
@@ -127,7 +125,7 @@ function marshall(value, connection) {
 
   // send blobs before returning:
   // XXX needs to be done here, after JSON.stringify, because that function isn't stratified.
-  coll.each(blobs) {
+  blobs .. each {
     |b|
     connection.sendBlob(b[0], b[1]);
   }
@@ -153,9 +151,9 @@ function unmarshallComplexTypes(obj, connection) {
     return unmarshallBlob(obj, connection);
   }
   else {
-    coll.each(obj) {
-      |val, key|
-      obj[key] = unmarshallComplexTypes(val, connection);
+    keys(obj) .. each {
+      |key|
+      obj[key] = unmarshallComplexTypes(obj[key], connection);
     }
     return obj;
   }
@@ -174,8 +172,8 @@ function unmarshallAPI(obj, connection) {
   // make a proxy for the api:
   var proxy = { };
 
-  coll.each(obj.methods) {
-    |m|
+  obj.methods .. each {
+    |m| 
     proxy[m] = function() { 
 //      console.log("making call to #{obj.id}:#{m}"); 
       return connection.makeCall(obj.id, m, arguments);
@@ -232,7 +230,7 @@ function BridgeConnection(transport, base_api) {
       }
       and {
         // make the call:
-        transport.send(marshall(['call', call_no, api, method, coll.toArray(args)], 
+        transport.send(marshall(['call', call_no, api, method, toArray(args)], 
                                 connection));
       }
       

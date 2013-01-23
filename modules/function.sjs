@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -36,8 +36,7 @@
 */
 
 var sys   = require('builtin:apollo-sys');
-var coll  = require('./collection');
-var cutil = require('./cutil');
+var cutil  = require('./cutil');
 
 /**
    @function seq
@@ -77,7 +76,7 @@ exports.seq = function(/*f1,f2,...*/) {
 exports.par = function(/*f1,f2,...*/) {
   var fs = Array.prototype.slice.call(arguments);
   return function() {
-    return coll.par.waitforAll(fs, arguments, this);
+    return cutil.waitforAll(fs, arguments, this);
   }
 };
 
