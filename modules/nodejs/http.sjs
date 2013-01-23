@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -42,7 +42,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 var builtin_http  = require('http');
 
-var collection = require('../collection');
+var { find } = require('../sequence');
 var http = require('../http');
 var events = require('./events');
 
@@ -406,7 +406,7 @@ function Router(routes, port, host) {
         console.log(sr.url.path);
 //        console.log(sr.request.headers);
         var matches;
-        var route = collection.find(me.routes, function (r) {
+        var route = routes .. find(function (r) {
           if (typeof r[0] == 'string') {
             if (r[0] != sr.url.path) return false;
             matches = [r[0]];

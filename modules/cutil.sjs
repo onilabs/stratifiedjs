@@ -60,12 +60,12 @@ var { remove } = require('sjs:array');
 */
 function waitforAll(funcs, args, this_obj) {
   this_obj = this_obj || null;
-  if (sys.isArrayOrArguments(funcs)) {
+  if (sys.isArrayLike(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforAllFuncs(funcs, args, this_obj);
   }
-  else if (sys.isArrayOrArguments(args)) {
+  else if (sys.isArrayLike(args)) {
     if (!args.length) return;
     //...else
     return waitforAllArgs(funcs, args, 0, args.length, this_obj);
@@ -129,12 +129,12 @@ function waitforAllArgs(f, args, i, l, this_obj) {
 */
 function waitforFirst(funcs, args, this_obj) {
   this_obj = this_obj || this;
-  if (sys.isArrayOrArguments(funcs)) {
+  if (sys.isArrayLike(funcs)) {
     if (!funcs.length) return;
     //...else
     return waitforFirstFuncs(funcs, args, this_obj);
   }
-  else if (sys.isArrayOrArguments(args)) {
+  else if (sys.isArrayLike(args)) {
     if (!args.length) return;
     //...else
     return waitforFirstArgs(funcs, args, 0, args.length, this_obj);

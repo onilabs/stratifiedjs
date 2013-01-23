@@ -75,14 +75,15 @@ exports.hostenv = __oni_rt.hostenv;
 exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
-   @function isArrayOrArguments
-   @summary  Tests if an object is an array or arguments object.
+   @function isArrayLike
+   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of Apollo, NodeList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isArrayOrArguments = function(obj) {
+exports.isArrayLike = function(obj) {
   return Array.isArray(obj) || 
-    !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee'));
+         !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
+         !!(typeof NodeList == 'function' && obj instanceof NodeList);
 };
 
 /**
@@ -110,7 +111,7 @@ exports.flatten = function(arr, rv) {
   var l=arr.length;
   for (var i=0; i<l; ++i) {
     var elem = arr[i];
-    if (exports.isArrayOrArguments(elem))
+    if (exports.isArrayLike(elem))
       exports.flatten(elem, rv);
     else
       rv.push(elem);
@@ -192,7 +193,7 @@ exports.constructQueryString = function(/*hashes*/) {
     for (var q in hash) {
       var l = encodeURIComponent(q) + "=";
       var val = hash[q];
-      if (!exports.isArrayOrArguments(val))
+      if (!exports.isArrayLike(val))
         parts.push(l + encodeURIComponent(val));
       else {
         for (var i=0; i<val.length; ++i)

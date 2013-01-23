@@ -57,7 +57,7 @@ function elementsFromSelector(selector) {
   // at the moment we only do simple, single element selectors
   if (typeof selector === "string")
     elems = [document.getElementById(selector)];
-  else if (sys.isArrayOrArguments(selector))
+  else if (sys.isArrayLike(selector))
     elems = selector;
   else
     elems = [selector];

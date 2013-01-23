@@ -59,12 +59,12 @@ exports.bind = function(f, thisObj) {
 exports.isArray = Array.isArray;
 
 /**
-   @function isArrayOrArguments
-   @summary  Tests if an object is an array or arguments object.
+   @function isArrayLike
+   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of Apollo, NodeList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isArrayOrArguments = require('builtin:apollo-sys').isArrayOrArguments;
+exports.isArrayLike = require('builtin:apollo-sys').isArrayLike;
 
 /**
   @function flatten

@@ -40,17 +40,18 @@
 
 */
 
-var {isArrayOrArguments} = require('builtin:apollo-sys');
+var {isArrayLike} = require('builtin:apollo-sys');
 
 //----------------------------------------------------------------------
 
 /**
    @class Sequence
-   @summary An Array, arguments object, String or [::Stream]
+   @summary An Array, array-like object (like `arguments` or `NodeList`), String or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
-     Of the built-in JavaScript constructs, Arrays, the `arguments` object and Strings are
-     sequences. Strings are treated like Character arrays.
+     Of the built-in JavaScript constructs, Arrays, the `arguments` object, 
+     `NodeList`s (in the xbrowser hostenv) and Strings are sequences. Strings are treated 
+     like Character arrays.
 */
 
 /**
@@ -123,7 +124,7 @@ exports.isStream = isStream;
 function each(sequence, r) {
   if (typeof sequence == 'function')
     sequence(r);
-  else if (isArrayOrArguments(sequence)) {
+  else if (isArrayLike(sequence)) {
     for (var i=0,l=sequence.length; i<l; ++i)
       r(sequence[i]);
   }
@@ -294,7 +295,7 @@ exports.iterate = iterate;
 
 */
 function toArray(sequence) {
-  if (isArrayOrArguments(sequence)) {
+  if (isArrayLike(sequence)) {
     if (Array.isArray(sequence)) 
       return sequence;
     else

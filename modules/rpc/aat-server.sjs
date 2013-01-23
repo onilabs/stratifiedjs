@@ -40,7 +40,7 @@
 var sjcl   = require('sjs:sjcl');
 var fs     = require('sjs:nodejs/fs');
 var buffer = require('nodejs:buffer');
-var coll   = require('sjs:collection');
+var { each, map, toArray } = require('sjs:sequence');
 
 var REAP_INTERVAL = 1000*60; // 1 minute
 var PING_INTERVAL = 1000*40; // 40 seconds
@@ -109,7 +109,7 @@ function createTransport() {
         exchange_in_progress = true;
 
         // put new incoming messages into our receive_q:
-        coll.each(in_messages) {
+        in_messages .. each {
           |mes|
           receive_q.unshift(mes);
         }
@@ -124,7 +124,7 @@ function createTransport() {
         }
         
         // flush our send_q:
-        coll.each(send_q) {
+        send_q .. each {
           |mes|
           out_messages.unshift(mes);
         }
@@ -250,8 +250,8 @@ function createTransportHandler(transportSink) {
         transportSink(transport);
 
         var in_messages = 
-          coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [],
-                   mes -> { type: 'message', data: mes});
+          (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) .. 
+          map(mes -> { type: 'message', data: mes}) .. toArray;
 
         transport.exchangeMessages(in_messages, out_messages);
         console.log("new transport #{transport.id}");
@@ -266,8 +266,8 @@ function createTransportHandler(transportSink) {
         }
         else {
           var in_messages = 
-            coll.map(req.body.length ? JSON.parse(req.body.toString('utf8')) : [], 
-                     mes -> { type: 'message', data: mes});
+            (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) ..
+            map(mes -> { type: 'message', data: mes}) .. toArray;
 
           transport.exchangeMessages(in_messages, 
                                      out_messages);

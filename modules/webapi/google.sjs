@@ -102,7 +102,7 @@ exports.siteSearch = function (q, site, settings) {
 exports.translate = function(text, to, /* [opt] */ from, /* [opt] */ extra) {
   from = from || ""; // "" == autodetect
   var langpair;
-  if (require('builtin:apollo-sys').isArrayOrArguments(to)) {
+  if (require('builtin:apollo-sys').isArrayLike(to)) {
     langpair = [];
     for (var i=0; i<to.length; ++i)
       langpair.push(from + "|" + to[i]);
