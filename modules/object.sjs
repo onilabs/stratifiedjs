@@ -41,10 +41,8 @@ var { map, Stream } = require('./sequence');
    @function keys
    @param {Object} [obj]
    @return {sequence::Stream}
-   @summary  Returns a [sequence::Stream] containing the names of `obj`'s enumerable properties, including those defined in `obj`'s prototype chain.
+   @summary  Returns a [sequence::Stream] of the names of `obj`'s enumerable properties, including those defined on `obj`'s prototype chain.
    @desc     
-      The property names are returned with no consistent order.
-
       See also [::ownKeys].
 */
 function keys(obj) {  
@@ -56,11 +54,9 @@ exports.keys = keys;
    @function ownKeys
    @param {Object} [obj]
    @return {sequence::Stream}
-   @summary  Returns a [sequence::Stream] containing the names of `obj`'s own enumerable properties, 
-             i.e. excluding those defined in `obj`'s prototype chain.
+   @summary  Returns a [sequence::Stream] of the names of `obj`'s own enumerable properties, 
+             i.e. excluding those defined on `obj`'s prototype chain.
    @desc     
-       The property names are returned with no consistent order.
-
        Note that you can also use the ECMA-263/5 function `Object.keys` - 
        on older JS engines Apollo adds a shim to emulate this function. 
 
@@ -75,10 +71,9 @@ exports.ownKeys = ownKeys;
 /**
   @function values
   @param    {Object} [obj]
-  @return   {Array}  [values]
-  @summary  Returns an [sequence::Stream] containing the values of `obj`'s enumerable properties,
+  @return   {sequence::Stream}
+  @summary  Returns a [sequence::Stream] of the values of `obj`'s enumerable properties,
             including those defined on `obj`'s prototype chain.
-  @desc     The property values are returned in no consistent order.
 */
 function values(obj) {
   return keys(obj) .. map(k => obj[k]);
@@ -88,12 +83,35 @@ exports.values = values;
 /**
   @function values
   @param    {Object} [obj]
-  @return   {Array}  [values]
-  @summary  Returns an [sequence::Stream] containing the values of `obj`'s enumerable properties,
+  @return   {sequence::Stream}
+  @summary  Returns a [sequence::Stream] of the values of `obj`'s enumerable properties,
             excluding those defined on `obj`'s prototype chain.
-  @desc     The property values are returned in no consistent order.
 */
 function ownValues(obj) {
   return ownKeys(obj) .. map(k => obj[k]);
 }
 exports.ownValues = ownValues;
+
+/**
+  @function propertyPairs
+  @param    {Object} [obj]
+  @return   {sequence::Stream}
+  @summary  Returns a [sequence::Stream] `[key1,val1], [key2,val2], ...` of `obj`'s 
+            enumerable properties, including those defined on `obj`'s prototype chain.
+*/
+function propertyPairs(obj) {
+  return keys(obj) .. map(k => [k,obj[k]]);
+}
+exports.propertyPairs = propertyPairs;
+
+/**
+  @function ownPropertyPairs
+  @param    {Object} [obj]
+  @return   {sequence::Stream}
+  @summary  Returns a [sequence::Stream] `[key1,val1], [key2,val2], ...` of `obj`'s 
+            enumerable properties, excluding those defined on `obj`'s prototype chain.
+*/
+function ownPropertyPairs(obj) {
+  return ownKeys(obj) .. map(k => [k,obj[k]]);
+}
+exports.ownPropertyPairs = ownPropertyPairs;
