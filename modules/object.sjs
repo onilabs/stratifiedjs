@@ -35,31 +35,65 @@
    @home    sjs:object
 */
 
-var { each, map, toArray } = require('./sequence');
+var { map, Stream } = require('./sequence');
 
 /**
    @function keys
    @param {Object} [obj]
-   @return {Array}
-   @summary  Returns an array containing the names of `obj`'s own properties.
-   @desc     The property names are returned with no consistent order.
-             Note that you can also use the ECMA-263/5 function `Object.keys` - 
-             on older JS engines Apollo adds a shim to emulate this function. 
+   @return {sequence::Stream}
+   @summary  Returns a [sequence::Stream] containing the names of `obj`'s enumerable properties, including those defined in `obj`'s prototype chain.
+   @desc     
+      The property names are returned with no consistent order.
+
+      See also [::ownKeys].
 */
-function keys(obj) {
-  return Object.keys(obj);
+function keys(obj) {  
+  return Stream(function(r) { for (var p in obj) r(p) });
 }
 exports.keys = keys;
+
+/**
+   @function ownKeys
+   @param {Object} [obj]
+   @return {sequence::Stream}
+   @summary  Returns a [sequence::Stream] containing the names of `obj`'s own enumerable properties, 
+             i.e. excluding those defined in `obj`'s prototype chain.
+   @desc     
+       The property names are returned with no consistent order.
+
+       Note that you can also use the ECMA-263/5 function `Object.keys` - 
+       on older JS engines Apollo adds a shim to emulate this function. 
+
+       See also [::keys].
+*/
+function ownKeys(obj) {  
+  return Stream(function(r) { for (var p in obj) { if (hasOwnProperty.call(obj, p)) r(p) } });
+}
+exports.ownKeys = ownKeys;
+
 
 /**
   @function values
   @param    {Object} [obj]
   @return   {Array}  [values]
-  @summary  Returns an array containing the values of `obj`'s own properties.
+  @summary  Returns an [sequence::Stream] containing the values of `obj`'s enumerable properties,
+            including those defined on `obj`'s prototype chain.
   @desc     The property values are returned in no consistent order.
 */
 function values(obj) {
-  return obj .. keys .. map(k => obj[k]) .. toArray;
+  return keys(obj) .. map(k => obj[k]);
 }
 exports.values = values;
 
+/**
+  @function values
+  @param    {Object} [obj]
+  @return   {Array}  [values]
+  @summary  Returns an [sequence::Stream] containing the values of `obj`'s enumerable properties,
+            excluding those defined on `obj`'s prototype chain.
+  @desc     The property values are returned in no consistent order.
+*/
+function ownValues(obj) {
+  return ownKeys(obj) .. map(k => obj[k]);
+}
+exports.ownValues = ownValues;
