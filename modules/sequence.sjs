@@ -323,6 +323,24 @@ function join(sequence, separator) {
 }
 exports.join = join;
 
+/**
+   @function pairsToObject
+   @altsyntax sequence .. pairsToObject([prototype])
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Object} [prototype=null] Prototype for return object
+   @summary Create an object from a [::Stream] `[key1,val1],[key2,val2],...` of property pairs
+*/
+function pairsToObject(sequence, prototype) {
+  if (prototype === undefined) prototype = null;
+  var rv = Object.create(prototype);
+  sequence .. each {
+    |prop|
+    rv[prop[0]] = prop[1];
+  }
+  return rv;
+}
+exports.pairsToObject = pairsToObject;
+
 /*
    @function toStream
   
