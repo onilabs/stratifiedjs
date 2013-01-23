@@ -122,7 +122,7 @@ exports.Container = function(/*attribs*/) {
     mechanism: mech
   }).selectContainer('div > div');
 
-  attribs.children .. each { |c| rv.append(c) }
+  (attribs.children || []) .. each { |c| rv.append(c) }
 
   return rv;
 };
