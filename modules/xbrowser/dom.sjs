@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2010-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -43,7 +43,7 @@ var sys = require('builtin:apollo-sys');
 if (sys.hostenv != 'xbrowser') 
   throw new Error('the dom module only runs in an xbrowser environment');
 
-var coll = require('../collection');
+var { map, toArray, find } = require('../sequence');
 
 // see if we need to load the shim:
 if (typeof document !== "undefined" && !("classList" in document.createElement("a")))
@@ -559,11 +559,13 @@ exports.traverseDOM = traverseDOM;
     @param    {String} [selector] CSS selector
     @return   {Boolean} 
 */
-var matchesSelectorFunc = coll.find(['matchesSelector',
-                                     'webkitMatchesSelector',
-                                     'mozMatchesSelector',
-                                     'msMatchesSelector'], 
-                                    f -> document.body[f] != undefined );
+var matchesSelectorFunc = 
+  ['matchesSelector',
+   'webkitMatchesSelector',
+   'mozMatchesSelector',
+   'msMatchesSelector'
+  ] .. 
+  find(f -> document.body[f] != undefined);
 
 __js function matchesSelector(elem, selector) {
   return elem[matchesSelectorFunc](selector);
@@ -586,7 +588,7 @@ function findNode(selector, from, to, inclusive) {
   try {
     if (inclusive && to) {
       if (!Array.isArray(to)) to = [to];
-      to = coll.map(to, elem -> elem ? null : elem.parentNode);
+      to = to .. map(elem -> elem ? null : elem.parentNode) .. toArray;
     }
     traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
     return null;

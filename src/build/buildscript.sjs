@@ -8,7 +8,7 @@
 
 var fs = require('sjs:nodejs/fs');
 var common = require('sjs:common');
-var collection = require('sjs:collection');
+var { each } = require('sjs:sequence');
 var util = require('util');
 
 //----------------------------------------------------------------------
@@ -199,7 +199,7 @@ function build_deps() {
   // helper to recursively read all files in given directory
   function walkdir(path, cb) {
     var files = fs.readdir(path);
-    collection.each(files) { 
+    files .. each { 
       |f|
       if (fs.isDirectory(path+"/"+f))
         walkdir(path+"/"+f, cb);

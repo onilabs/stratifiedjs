@@ -27,13 +27,14 @@ if(!testUtil.isBrowser) {
   });
 
   test('run returns stdout / stderr', {"code":1,"signal":null,"stdout":"out\n","stderr":"err\n"}, function() {
-    var coll = require('sjs:collection');
+    var { filter, pairsToObject } = require('sjs:sequence');
+    var { propertyPairs } = require('sjs:object');
     try{
       return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']);
     } catch(e) {
-      return coll.filter(e, function(val, key) {
-        return ['stdout', 'stderr', 'code', 'signal'].indexOf(key) !== -1;
-      });
+      return propertyPairs(e) .. 
+        filter([key,val] => ['stdout', 'stderr', 'code', 'signal'].indexOf(key) != -1) ..
+        pairsToObject;
     }
   });
 
