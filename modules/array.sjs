@@ -63,3 +63,46 @@ function indexValuePairs(arr) {
   return Stream(function(r) { for (var i=0; i<arr.length; ++i) r([i,arr[i]]) });
 }
 exports.indexValuePairs = indexValuePairs;
+
+/**
+  @function union
+  @param    {Array} [a] Set of unique elements
+  @param    {Array} [b] Set of unique elements
+  @return   {Array} New set containing union of sets `a` and `b`.
+  @summary  Union of `a` and `b`, with duplicate elements (under `===`) appearing only once.
+  @desc
+    ###Notes:
+
+    * This is a general but naive implementation with a running time `O(size(a)*size(b))`.
+    For more specific datatypes (strings or numbers, or objects with unique id's) there are
+    more scalable algorithms.
+
+    * `a` and `b` are assumed to be sets, in the sense that they individually don't contain
+    duplicate elements.
+
+    * The resulting set will be an Array beginning with all elements in `a` (in the same order
+    as they appeared in `a`) and continuing with all elements in `b` not present in `a`. The
+    relative order of elements in `b` will be preserved.
+
+
+    #### Behaviour if `a` or `b` is not a set:
+
+    * If `a` contains duplicate elements, they will also appear in the resulting array. If `b`
+    contains duplicate elements, they will appear in the resulting array, unless there is an 
+    equal (`===`) element in `a`.
+*/
+__js function union(a, b) {
+  var rv = a.slice();
+  var i=0;
+  outer:
+  for (; i<b.length; ++i) {
+    var e_b = b[i];
+    for (var j=0; j<a.length; ++j) {
+      if (a[j] === e_b) 
+        continue outer;
+    }
+    rv.push(e_b);
+  }
+  return rv;
+}
+exports.union = union;
