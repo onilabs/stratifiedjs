@@ -2910,7 +2910,13 @@ ph_arrow.prototype.nb=function(){if(this.bound)return '('+this.code+').bind('+(t
 
 function gen_doubledot_call(l,r,pctx){if(r.is_fun_call){
 
+
+
+
 r.args.unshift(l);
+
+
+if(!r.is_nblock)r.nblock_form=false;
 return r;
 }else return new ph_fun_call(r,[l],pctx);
 

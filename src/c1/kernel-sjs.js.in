@@ -1222,8 +1222,14 @@ ph_arrow.prototype.nb = function() {
 #define GEN_DOUBLEDOT_CALL(l,r,pctx) return gen_doubledot_call(l, r, pctx);
 
 function gen_doubledot_call(l, r, pctx) {
+  // XXX not very elegant show we inject ourselves into the funcall
+  // here (and it was the source of a very hard to track down bug
+  // already!)
   if (r.is_fun_call) {
     r.args.unshift(l);
+    // we need to make sure that the call doesn't get encoded as
+    // nblock if 'r' isn't. See sjs-testsuite2:36
+    if (!r.is_nblock) r.nblock_form = false;
     return r;
   }
   else

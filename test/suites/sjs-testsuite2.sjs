@@ -304,3 +304,19 @@ test("reentrant blocklambda calltree teardown", 'BbABacd', function() {
   bar();
   return rv;
 });
+
+
+
+
+test("double dot falsly encoding as nblock bug", true, function() {
+  function A() {
+    hold(0);
+    return ->true;
+  }
+  function id(x) { return x }
+
+  // "id(A()(),1)" works. But for "A()() .. id(1)", the compiler was
+  // fooled into thinking that the call to id(.) can be encoded as non
+  // blocking
+  return A()() .. id(1)
+});
