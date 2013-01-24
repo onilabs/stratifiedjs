@@ -625,7 +625,7 @@ exports.zip = zip;
    @param {Object} [initial] Initial value
    @param {Function} [f] Reducer function
    @return {Object} 
-   @summary Cumulatively combine elements of a sequence
+   @summary Cumulatively combine elements of a sequence given an initial value
    @desc
      Also known as `foldl` or `inject`.
 
@@ -651,8 +651,9 @@ exports.reduce = reduce;
    @altsyntax sequence .. reduce1(f)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Reducer function
+   @param {optional Object} [default_val=undefined] Value to return if `sequence` is empty
    @return {Object} 
-   @summary Cumulatively combine elements of a non-empty sequence
+   @summary Cumulatively combine elements of a sequence
    @desc
      Same as [::reduce], but using the first element of `sequence` as initial value.
 
@@ -662,7 +663,7 @@ exports.reduce = reduce;
 
          integers(1,100) .. reduce((sum, x) => sum + x)
 */
-function reduce1(sequence, f) {
+function reduce1(sequence, f, default_val) {
   var accu;
   var first = true;
   sequence .. each { 
@@ -674,8 +675,7 @@ function reduce1(sequence, f) {
     else
       accu = f(accu, x) 
   }
-  if (first) throw new Error("reduce1 on empty sequence");
-  return accu;
+  return first ? default_val : accu;
 }
 exports.reduce1 = reduce1;
 
