@@ -341,6 +341,20 @@ function pairsToObject(sequence, prototype) {
 }
 exports.pairsToObject = pairsToObject;
 
+/**
+   @function count
+   @altsyntax sequence .. count
+   @param {::Sequence} [sequence] Input sequence
+   @return {Integer} 
+   @summary Count number of elements in the sequence
+*/
+function count(sequence) {
+  var n = 0;
+  sequence .. each { || ++n }
+  return n;
+}
+exports.count = count;
+
 /*
    @function toStream
   
