@@ -648,7 +648,7 @@ exports.reduce = reduce;
 
 /**
    @function reduce1
-   @altsyntax sequence .. reduce1(f)
+   @altsyntax sequence .. reduce1(f, [default_val])
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Reducer function
    @param {optional Object} [default_val=undefined] Value to return if `sequence` is empty
