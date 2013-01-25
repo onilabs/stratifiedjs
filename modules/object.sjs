@@ -35,7 +35,7 @@
    @home    sjs:object
 */
 
-var { map, Stream } = require('./sequence');
+var { each, map, Stream } = require('./sequence');
 
 /**
    @function keys
@@ -115,3 +115,21 @@ function ownPropertyPairs(obj) {
   return ownKeys(obj) .. map(k => [k,obj[k]]);
 }
 exports.ownPropertyPairs = ownPropertyPairs;
+
+/**
+   @function pairsToObject
+   @altsyntax sequence .. pairsToObject([prototype])
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Object} [prototype=null] Prototype for return object
+   @summary Create an object from a [::Stream] `[key1,val1],[key2,val2],...` of property pairs
+*/
+function pairsToObject(sequence, prototype) {
+  if (prototype === undefined) prototype = null;
+  var rv = Object.create(prototype);
+  sequence .. each {
+    |prop|
+    rv[prop[0]] = prop[1];
+  }
+  return rv;
+}
+exports.pairsToObject = pairsToObject;
