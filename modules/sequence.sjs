@@ -324,6 +324,29 @@ function join(sequence, separator) {
 exports.join = join;
 
 /**
+   @function sort
+   @altsyntax sequence .. sort([compare])
+   @param {optional Function} [compare] Function determining sort order; see below
+   @return {Array}
+   @summary Sort the sequence elements into an Array
+   @desc
+      * If a `compare` function is not supplied, elements are sorted by converting them to strings
+      and comparing them in lexicographic order.
+
+      * If a `compare` function is supplied, elements are sorted according to the return value
+      of the compare function. If `a` and `b` are two elements being compared, then:
+
+         * If `compare(a,b)` is less than 0, sort `a` to a lower index than `b`.
+         * If `compare(a,b)` is greater than 0, sort `b` to a lower index than `a`.
+
+      * `compare` must be a **non-blocking** function.
+*/
+function sort(sequence, compare) {
+  return (sequence .. toArray).sort(compare);
+}
+exports.sort = sort;
+
+/**
    @function count
    @altsyntax sequence .. count
    @param {::Sequence} [sequence] Input sequence
