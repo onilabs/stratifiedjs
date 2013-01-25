@@ -283,8 +283,11 @@ exports.iterate = iterate;
    @altsyntax sequence .. toArray
    @param {::Sequence} [sequence] Input sequence
    @return {Array} 
-   @summary Convert the given sequence to an array
+   @summary Convert the given sequence `elem1, elem2, ...` to an array `[elem1, elem2, ...]`
    @desc
+     * If `sequence` is already an Array, it will be returned unmodified (i.e. it will not be
+     cloned).
+
      ### Example:
 
          var ints = toArray(integers(1,10)) // = [1,2,3,4,5,6,7,8,9,10]
@@ -326,6 +329,7 @@ exports.join = join;
 /**
    @function sort
    @altsyntax sequence .. sort([compare])
+   @param {::Sequence} [sequence] Input sequence
    @param {optional Function} [compare] Function determining sort order; see below
    @return {Array}
    @summary Sort the sequence elements into an Array
@@ -340,11 +344,32 @@ exports.join = join;
          * If `compare(a,b)` is greater than 0, sort `b` to a lower index than `a`.
 
       * `compare` must be a **non-blocking** function.
+
+      * If `sequence` is an Array, it will be destructively sorted in-place.
 */
 function sort(sequence, compare) {
   return (sequence .. toArray).sort(compare);
 }
 exports.sort = sort;
+
+/**
+   @function reverse
+   @altsyntax sequence .. reverse
+   @param {::Sequence} [sequence] Input sequence
+   @return {Array}
+   @summary Convert the given sequence `elem1, ..., elemN-1, elemN` to an array `[elemN, elemN-1, ..., elem1]`
+   @desc
+     * If `sequence` is an Array, it will be reversed destructively in-place.
+*/
+function reverse(sequence) {
+  if (Array.isArray(sequence))
+    return sequence.reverse();
+  //else
+  var rv = [];
+  sequence .. each { |x| rv.unshift(x) }
+  return rv;  
+}
+exports.reverse = reverse;
 
 /**
    @function count
