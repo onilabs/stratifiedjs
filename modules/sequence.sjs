@@ -99,6 +99,17 @@ function isStream(s) {
 }
 exports.isStream = isStream;
 
+/**
+   @function generate
+   @param {Function} [generator_func] Generator Function.
+   @return {::Stream}
+   @summary Create a (infinite) stream of successive invocations of `generator_func`
+*/
+function generate(generator_func) {
+  return Stream(function(r) { while(1) r(generator_func()) });
+}
+exports.generate = generate;
+
 //----------------------------------------------------------------------
 
 /**
