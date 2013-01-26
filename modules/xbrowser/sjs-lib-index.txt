@@ -4,4 +4,3 @@
 @module console         Browser-based StratifiedJS console
 @module dom             Basic DOM functionality
 @module dom-shim        DOM polyfills for non-conformant browsers (IE8, IE9)
-@module jquery-binding  Stratified bindings to [jquery](http://jquery.com) (client-side only)

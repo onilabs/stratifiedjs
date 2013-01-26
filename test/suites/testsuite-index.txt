@@ -5,7 +5,6 @@ dom-tests.sjs xbrowser
 function-tests.sjs xbrowser,nodejs
 google-tests.sjs xbrowser,nodejs
 http-tests.sjs xbrowser,nodejs
-jquery-tests.sjs xbrowser
 logging-test.sjs xbrowser,nodejs
 lru-cache-tests.sjs xbrowser,nodejs
 nodejs-stream-tests.sjs nodejs
