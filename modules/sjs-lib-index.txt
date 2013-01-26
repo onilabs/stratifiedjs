@@ -60,7 +60,6 @@
 @module object          Functions for working with objects
 @module sequence        Constructs for manipulating sequence structures (arrays, strings and more general streams)
 @module sjcl            Stanford JavaScript Crypto Library
-@module stream          Stratified stream and iterator constructs (Deprecated; use [sequence::] module)
 @module string          Functions for working with strings
 @module wraplib         Utility functions for wrapping plain JS libraries for SJS
 
