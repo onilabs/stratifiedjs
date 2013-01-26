@@ -66,16 +66,16 @@ function calculatePi(d) {
 
 time("pi to 700 digits", function() { calculatePi(700); });
 
-var coll = require('sjs:collection');
-time("coll.each(arr*200)*200)", function() { 
+var seq = require('sjs:sequence');
+
+time("seq.each(arr*200)*200)", function() { 
   var arr = [];
   for (var i=0; i<200; ++i) arr.push(i);
   var accu = 0;
-  coll.each(arr, function() { coll.each(arr, function(v) { accu += v; }) });
+  seq.each(arr, function() { seq.each(arr, function(v) { accu += v; }) });
 });
 
-testCompilation("collection module", 
-                http.get("http://code.onilabs.com/apollo/latest/modules/collection.sjs"));
+test("collection module", '', function() {}).skip('module retired');
 testCompilation("debug module", 
                 http.get("http://code.onilabs.com/apollo/latest/modules/debug.sjs"));
 testCompilation("http module", 
@@ -86,8 +86,10 @@ var arr = [];
 for (var i=0; i<10000;++i)
   arr.push(i);
 
+var {waitforFirst} = require('sjs:cutil');
+
 function alt_test() {
-  coll.par.waitforFirst(function(a) { if(a==arr.length-1) return; hold(); }, arr);
+  waitforFirst(function(a) { if(a==arr.length-1) return; hold(); }, arr);
   return 1;
 }
 time("waitforFirst/10000", alt_test);
@@ -121,3 +123,6 @@ time("waitfor/and tail recursion", function() {
 
   return r(100000);
 }).serverOnly(); // browser hold(0) is too slow
+
+//testCompilation("sequence module", 
+//                http.get("http://code.onilabs.com/apollo/latest/modules/sequence.sjs"));

@@ -1,5 +1,4 @@
 child-process-tests.sjs nodejs
-collection-tests.sjs xbrowser,nodejs
 common-tests.sjs xbrowser,nodejs
 cutil-tests.sjs xbrowser,nodejs
 dom-tests.sjs xbrowser
