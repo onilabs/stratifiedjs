@@ -1,6 +1,6 @@
 var util = require('util');
 var http = require('sjs:http');
-var common = require("sjs:common");
+var { supplant } = require("sjs:string");
 
 var is_running = exports.is_running = function(port) {
   var base_url = 'http://localhost:' + port + '/';
@@ -27,7 +27,7 @@ var run = exports.run = function(port, basedir) {
       customFds: [-1, -1, 2]
     });
   } catch(e) {
-    throw new Error(common.supplant(
+    throw new Error(supplant(
       "Rocket died: {message}\nstdout:{stdout}\nstderr:{stderr}", e));
   }
   throw new Error("Rocket complete (it should have run forever...");

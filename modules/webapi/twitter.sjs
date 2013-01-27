@@ -41,7 +41,7 @@ if (require('builtin:apollo-sys').hostenv != 'xbrowser')
   throw new Error('The webapi/twitter module only runs in an xbrowser environment');
 
 var http = require("../http");
-var common = require("../common");
+var { extend } = require("../object");
 
 /**
   @function initAnywhere
@@ -95,7 +95,7 @@ var common = require("../common");
 
 */
 exports.initAnywhere = function(settings) {
-  settings = common.mergeSettings(
+  settings = extend(
     { v : "1" },
     settings);
   if (!window['twttr'])

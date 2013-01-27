@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2010-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -53,8 +53,8 @@
     `log` will be used instead.
 */
 
-var common = require('./common');
-var str = require('./string');
+var { merge } = require('./object');
+var { supplant } = require('./string');
 var sys = require('builtin:apollo-sys');
 
 /**
@@ -186,9 +186,9 @@ exports.formatMessage = function(lvl, message) {
     message: message
   };
   if(customFormatFields) {
-    fields = common.mergeSettings(customFormatFields, fields);
+    fields = merge(customFormatFields, fields);
   }
-  var rv = str.supplant(currentFormat, fields);
+  var rv = supplant(currentFormat, fields);
   return rv;
 };
 

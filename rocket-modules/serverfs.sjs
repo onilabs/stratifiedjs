@@ -23,7 +23,7 @@
 
 var fs = require('sjs:nodejs/fs');
 var path = require('path');
-var common = require('sjs:common');
+var { merge } = require('sjs:object');
 var stream = require('sjs:nodejs/stream');
 var logging = require('sjs:logging');
 
@@ -192,7 +192,7 @@ function formatResponse(item, request, response, formats) {
   var format = item.requestedFormat;
   var defaultFormats = item.defaultFormats;
 
-  formats = common.mergeSettings(defaultFormats, formats);
+  formats = merge(defaultFormats, formats);
   var filedesc = formats[extension] || formats["*"];
   if (!filedesc) {
     console.log("Don't know how to serve item with extension '#{extension}'");

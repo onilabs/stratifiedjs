@@ -45,7 +45,7 @@
 
 var http   = require("../http");
 var sys    = require("builtin:apollo-sys"); 
-var common = require("../common");
+var { merge } = require("../object");
 
 /**
    @class    Client
@@ -67,7 +67,7 @@ exports.makeClient = function(apiKey) { return new Client(apiKey); };
 Client.prototype = {};
 
 Client.prototype.request = function(method, path, opts) {
-  opts = common.mergeSettings(
+  opts = merge(
     {
       username: this.apiKey,
       password: "",

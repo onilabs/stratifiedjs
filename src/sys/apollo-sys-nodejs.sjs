@@ -54,7 +54,7 @@
    @setting {String} [forcecb] Force the name of the callback to the given string. 
 */
 function jsonp_hostenv(url, settings) {
-  var opts = exports.accuSettings({}, [ 
+  var opts = exports.extendObject({}, [ 
     {
       // query : undefined,
       cbfield : "callback",
@@ -176,7 +176,7 @@ var readStream = exports.readStream = function readStream(stream) {
    @setting {Integer} [max_redirects=5] Maximum number of redirects to follow.
 */
 function request_hostenv(url, settings) {
-  var opts = exports.accuSettings({},
+  var opts = exports.extendObject({},
                                   [ 
                                     { 
                                       method : "GET",

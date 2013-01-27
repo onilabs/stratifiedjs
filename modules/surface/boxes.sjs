@@ -124,7 +124,7 @@ __js var Box = exports.Box = function(attribs) {
    @param   [attribs] ...
 */
 __js var HBox = exports.HBox = function(attribs) { 
-  return Box(common.mergeSettings(attribs, {direction:'w'}));
+  return Box(merge(attribs, {direction:'w'}));
 };
 /*WIP - Not in official documentation yet
    @function VBox
@@ -132,7 +132,7 @@ __js var HBox = exports.HBox = function(attribs) {
    @param   [attribs] ...
 */
 __js var VBox = exports.VBox = function(attribs) { 
-  return Box(common.mergeSettings(attribs, {direction:'h'}));
+  return Box(merge(attribs, {direction:'h'}));
 }
 
 /*WIP - Not in official documentation yet

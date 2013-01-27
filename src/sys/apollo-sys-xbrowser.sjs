@@ -87,7 +87,7 @@ else
    @setting {String} [forcecb] Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*.  
 */
 function jsonp_hostenv(url, settings) {
-  var opts = exports.accuSettings({}, [
+  var opts = exports.extendObject({}, [
     {
       iframe : false,
       //    query : undefined,
@@ -295,7 +295,7 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
      string will be returned.  
 */
 function request_hostenv(url, settings) {
-  var opts = exports.accuSettings({},
+  var opts = exports.extendObject({},
                                    [
                                      {
                                        method   : "GET",

@@ -104,7 +104,7 @@ exports.isTemplate = function(obj) {
                    of *arr*, but with elements that are arrays replaced by
                    their elements (recursively).
   @desc
-    See [../../modules/common::flatten]
+    See [../../modules/array::flatten]
 */
 exports.flatten = function(arr, rv) {
   var rv = rv || [];
@@ -120,19 +120,20 @@ exports.flatten = function(arr, rv) {
 };
 
 /**
-   @function accuSettings
+   @function extendObject
    @summary 
-     See [../../modules/common::mergeSettings]
+     See [../../modules/object::extend]
 */
-exports.accuSettings = function(accu, hashes) {
-  hashes = exports.flatten(hashes);
-  var hl = hashes.length;
+exports.extendObject = function(/*dest, source...*/) {
+  var dest = arguments[0];
+  var sources = exports.flatten(Array.prototype.slice.call(arguments, 1));
+  var hl = sources.length;
   for (var h=0; h<hl; ++h) {
-    var hash = hashes[h];
-    for (var o in hash)
-      accu[o] = hash[o];
+    var source = sources[h];
+    for (var o in source)
+      dest[o] = source[o];
   }
-  return accu;
+  return dest;
 };
 
 
@@ -401,7 +402,7 @@ var pendingLoads = {};
 function makeRequire(parent) {
   // make properties of this require function accessible in requireInner:
   var rf = function(module, settings) {
-    var opts = exports.accuSettings({},
+    var opts = exports.extendObject({},
                                     [settings]);
     if (opts.callback) {
       (spawn (function() {
@@ -419,7 +420,7 @@ function makeRequire(parent) {
   };
 
   rf.resolve = function(module, settings) {
-    var opts = exports.accuSettings({}, [settings]);
+    var opts = exports.extendObject({}, [settings]);
     return resolve(module, rf, parent, opts);
   };
 
@@ -677,7 +678,7 @@ function requireInner(module, require_obj, parent, opts) {
     // now perform the load:
     module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
     if (opts.copyTo) {
-      exports.accuSettings(opts.copyTo, [module]);
+      exports.extendObject(opts.copyTo, [module]);
     }
     //console.log("require(#{resolveSpec.path}) = #{(new Date())-start} ms");
     return module;

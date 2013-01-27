@@ -6,7 +6,7 @@
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2010-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -45,7 +45,7 @@
 if (require('builtin:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('The xbrowser/console module only runs in an xbrowser environment');
 
-var common = require('../common');
+var { extend } = require('../object');
 var str = require('../string');
 var { each } = require('../sequence');
 var { remove } = require('../array');
@@ -256,7 +256,7 @@ exports.console = function(opts) {
 };
 
 function Console(opts) {
-  opts = common.mergeSettings({
+  opts = extend({
     collapsed : true,
     height: 200,
     fullscreen: isWebkitMobile ? true : false,

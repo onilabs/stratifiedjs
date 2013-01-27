@@ -2,7 +2,7 @@ var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var global = require("builtin:apollo-sys").getGlobal();
 var http = require('sjs:http');
-var common = require('sjs:common');
+var { merge } = require('sjs:object');
 
 test('force extension/sjs', "a=1&b=2", function() {
   return require('sjs:http.sjs').constructQueryString({a:1},{b:2});
@@ -25,7 +25,7 @@ if (!testUtil.isBrowser) {
   {
     try {
       var result = child_process.run(cmd, args, {
-        env: common.mergeSettings(process.env, env || process.env)
+        env: merge(process.env, env || process.env)
       });
       return result;
     } catch(e) {

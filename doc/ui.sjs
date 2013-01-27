@@ -31,8 +31,8 @@
    @hostenv   xbrowser
    @desc    Work-in-progress; to be documented
 */
-var common = require('sjs:common');
-var { each, any, map } = require('sjs:sequence');
+var { supplant } = require('sjs:string');
+var { each, any, map, merge } = require('sjs:sequence');
 
 /*
 
@@ -87,11 +87,11 @@ function ui_supplant(replacements) {
   // e.g. in a template "{foo} {bar}", we might replace both foo and bar
   // and then at a later stage only bar.
   replacements = this.replacements = 
-    common.mergeSettings(this.replacements, replacements);
+    merge(this.replacements, replacements);
   this.templates .. each {
     |t|
     if (!any(t.vars, x => replacements[x]!==undefined)) continue;
-    var s = common.supplant(t.template, replacements);
+    var s = supplant(t.template, replacements);
     if (t.attrib) {
       if (t.attrib.charAt(0) == '@') { 
         // a mapped property rather than an attrib

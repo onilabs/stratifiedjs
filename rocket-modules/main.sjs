@@ -25,7 +25,6 @@ var http = require('sjs:http');
 require.hubs.push(['rocket:', http.canonicalizeURL('./', module.id)]);
 
 var fs = require('sjs:nodejs/fs');
-var common = require('sjs:common');
 var serverfs = require('rocket:serverfs');
 var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };

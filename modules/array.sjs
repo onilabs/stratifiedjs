@@ -38,6 +38,15 @@
 var { Stream } = require('./sequence');
 
 /**
+   @function isArrayLike
+   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser 
+             hostenv of Apollo, NodeList.
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+*/
+exports.isArrayLike = require('builtin:apollo-sys').isArrayLike;
+
+/**
    @function remove
    @altsyntax arr .. remove(elem)
    @param {Array} [arr] 
@@ -63,6 +72,22 @@ function indexValuePairs(arr) {
   return Stream(function(r) { for (var i=0; i<arr.length; ++i) r([i,arr[i]]) });
 }
 exports.indexValuePairs = indexValuePairs;
+
+/**
+  @function flatten
+  @summary Create a recursively flattened version of an array.
+  @param   {Array} [arr] The array to flatten.
+  @return  {Array} Flattend version of *arr*, consisting of the elements
+                   of *arr*, but with elements that are arrays replaced by
+                   their elements (recursively).
+  @desc
+     ###Example:
+
+         var a = [1,2,[3,4,[5,6]],[[7,8]],[9],10];
+         var b = flatten(a);
+         // b is now [1,2,3,4,5,6,7,8,9,10]
+*/
+exports.flatten = require('builtin:apollo-sys').flatten;
 
 /**
   @function union

@@ -40,7 +40,6 @@ var sys = require('builtin:apollo-sys');
 if (sys.hostenv != 'nodejs') 
   throw new Error('The nodejs/repl module only runs in a nodejs environment');
 
-var common = require('../common');
 var events = require('./events');
 var debug = require('../debug');
 

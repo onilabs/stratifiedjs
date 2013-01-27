@@ -56,7 +56,7 @@
 waitfor { var base = require('./base');                                        }
 and     { var { toArray, map, each, join, integers } = require('../sequence'); }
 and     { var func = require('../function');                                   }
-and     { var common = require('../common');                                   }
+and     { var { merge } = require('../object');                                }
 
 var tt = new Date();
 
@@ -90,7 +90,7 @@ exports.Container = function(/*attribs*/) {
   else 
     attribs = { children: toArray(arguments ) };
 
-  attribs = common.mergeSettings({containerClass:'container'}, attribs);
+  attribs = merge({containerClass:'container'}, attribs);
 
   var lf = Object.create(attribs.lookAndFeel ? attribs.lookAndFeel : defaultLookAndFeel);
 

@@ -5,7 +5,7 @@
 var sys = require('sys');
 var http = require('sjs:http');
 var node_vm = require('vm');
-var common = require('sjs:common');
+var { merge } = require('sjs:object');
 var child_process = require('sjs:nodejs/child-process');
 var apollo_home = http.canonicalizeURL('../../', module.id);
 
@@ -21,7 +21,7 @@ exports.build = function(debug) {
   var cmd = http.parseURL(apollo_home).path + "/src/build/make-apollo compiler";
   var opts = {};
   if(debug) {
-    opts.env = common.mergeSettings(process.env, {APOLLO_CFLAGS: '-DDEBUG_VM -DDEBUG_C1'});
+    opts.env = merge(process.env, {APOLLO_CFLAGS: '-DDEBUG_VM -DDEBUG_C1'});
   }
   var result = child_process.exec(cmd, opts);
   if(result.stdout) sys.puts(result.stdout);

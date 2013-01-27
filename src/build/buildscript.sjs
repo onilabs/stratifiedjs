@@ -7,7 +7,7 @@
 */
 
 var fs = require('sjs:nodejs/fs');
-var common = require('sjs:common');
+var { extend } = require('sjs:object');
 var { each } = require('sjs:sequence');
 var util = require('util');
 
@@ -257,7 +257,7 @@ function replacements_from_config(target) {
 // high-level builders
 
 function MINIFY(target, source, flags) {
-  flags = common.mergeSettings({keeplines:true, filename:source}, flags);
+  flags = extend({keeplines:true, filename:source}, flags);
   BUILD(
     target,
     function() {
@@ -278,7 +278,7 @@ function MINIFY(target, source, flags) {
 }
 
 function STRINGIFY(target, source, flags) {
-  flags = common.mergeSettings({keeplines:true, filename:source}, flags);
+  flags = extend({keeplines:true, filename:source}, flags);
   BUILD(
     target,
     function() {

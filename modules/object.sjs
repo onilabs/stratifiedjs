@@ -133,3 +133,36 @@ function pairsToObject(sequence, prototype) {
   return rv;
 }
 exports.pairsToObject = pairsToObject;
+
+/**
+   @function extend
+   @altsyntax dest .. extend(source*)
+   @param {Object} [dest] Destination Object
+   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @return {Object} `dest` object
+   @summary Extend `dest` with properties from the given source object(s)
+   @desc
+      * Properties from the source objects will be applied in the order that they
+        appear in the argument list. I.e. properties appearing later will override
+        properties appearing in objects to the left.
+      * `source` parameters can be arbitrarily nested arrays of objects. These will be 
+        flattend before the objects contained in them will be applied to `dest`.
+*/
+exports.extend = require('builtin:apollo-sys').extendObject;
+
+/**
+   @function merge
+   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @return {Object} New object with merged properties
+   @summary Merge properties from the given source objects into a new object
+   @desc
+      * Properties from the source objects will be merged in the order that they
+        appear in the argument list. I.e. properties appearing later will override
+        properties appearing in objects to the left.
+      * `source` parameters can be arbitrarily nested arrays of objects. These will be 
+        flattend before the objects contained in them will be applied to `dest`.
+*/
+exports.merge = function(/*source*/) {
+  return exports.extend({}, arguments);
+};
+

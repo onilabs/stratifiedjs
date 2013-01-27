@@ -46,7 +46,6 @@
 @dir xbrowser Modules with basic cross-browser functionality
 
 @module array           Functions for working with arrays
-@module common          Common JS utility functions
 @module cutil           Functions and constructs for concurrent stratified programming
 @module debug           Helpers for debugging
 @module docutil         Utilities for extracting documentation from StratifiedJS modules (Work in progress)

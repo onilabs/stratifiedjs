@@ -40,9 +40,6 @@ var tt = new Date();
 var sys = require('builtin:apollo-sys');
 
 waitfor {
-  var common = require('../common');
-} 
-and {
   var { each, isStream, toArray, join, map } = require('../sequence');
 }
 and {

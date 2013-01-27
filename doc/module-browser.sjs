@@ -15,13 +15,10 @@ and {
   var { each, map, toArray, join, reduce } = require('sjs:sequence');
 }
 and {
-  var { values, keys } = require('sjs:object');
+  var { values, keys, merge } = require('sjs:object');
 }
 and {
   var docutil = require('sjs:docutil');
-}
-and {
-  var common = require('sjs:common');
 }
 and {
   // preload:
@@ -253,7 +250,7 @@ function makeIndexModuleEntry(location, module) {
     var module_docs = getModuleDocs(location.path + module);
     if (!module_docs) return; // no docs; nothing much we can do
     var symbols_template = 
-      values(common.mergeSettings(module_docs.symbols, module_docs.classes)) ..
+      values(merge(module_docs.symbols, module_docs.classes)) ..
       map(symbol => "<li><a href='##{location.path}#{module}::#{symbol.name}'>#{symbol.name}</a></li>") ..
       join;
     (symbols_view = ui.makeView(symbols_template)).show(view.elems.symbols);
@@ -400,7 +397,7 @@ function makeModuleView(location) {
  
   // collect symbols (XXX really want classes in symbols hash to start with)
   var symbols = {};
-  values(common.mergeSettings(docs.symbols, docs.classes)) .. each {
+  values(merge(docs.symbols, docs.classes)) .. each {
     |s|
     if (!symbols[s.type]) symbols[s.type] = [];
     symbols[s.type].push(

@@ -74,7 +74,7 @@ exports.sanitize = function(str) {
         
         var obj = { who: "world" };
 
-        var rv = common.supplant("Hello {who}", obj);
+        var rv = supplant("Hello {who}", obj);
         // rv will equal "Hello world"
         
         // alternatively, this can be expressed with builtin string interpolation:
