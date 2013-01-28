@@ -128,7 +128,7 @@ test("__js => this; blocking ctx", true, function() {
 });
 
 // helper for blocklambda tests:
-function thrice(f) {
+function thrice(f) { 
   f();
   f();
   f();
@@ -319,4 +319,341 @@ test("double dot falsly encoding as nblock bug", true, function() {
   // fooled into thinking that the call to id(.) can be encoded as non
   // blocking
   return A()() .. id(1)
+});
+
+test("async blocklambda return", 'ar', function() {
+  var rv = '';
+  
+  function inner() {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      return 'r';
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+  
+  rv += inner();
+
+  return rv;
+});
+
+
+
+test("async blocklambda continue", 'aaac', function() {
+  var rv = '';
+
+  thrice {
+    ||
+    rv += 'a';
+    hold(0);
+    continue;
+    rv += 'b';
+  }
+
+  rv += 'c';
+  
+  return rv;
+});
+
+test("async blocklambda break", 'ac', function() {
+  var rv = '';
+
+  thrice {
+    ||
+    rv += 'a';
+    hold(0);
+    break;
+    rv += 'b';
+  }
+  rv += 'c';
+
+  return rv;
+});
+
+test("async blocklambda break in do-while", 'ac', function() {
+  var rv = '';
+
+  do {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+  while (false)
+
+  return rv;
+});
+
+test("async blocklambda break in while()", 'ac', function() {
+  var rv = '';
+
+  while(1) {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+    break;
+  }
+
+  return rv;
+});
+
+test("blocklambda break in for(;;)", 'ac', function() {
+  var rv = '';
+
+  for(;;) {
+    thrice {
+      ||
+      rv += 'a';
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+    break;
+  }
+
+  return rv;
+});
+
+
+test("async blocklambda break in for(;;)", 'ac', function() {
+  var rv = '';
+
+  for(;;) {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+    break;
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in for-in", 'ac', function() {
+  var rv = '';
+
+  for(var a in {x:1}) {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    } 
+    rv += 'c';
+    break;
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in switch", 'ac', function() {
+  var rv = '';
+
+  switch(1) {
+    case 1:
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    } 
+    rv += 'c';
+    break;
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in switch", 'ac', function() {
+  var rv = '';
+
+  switch(1) {
+    case 1:
+    thrice {
+      ||
+      rv += 'a';
+      break;
+      rv += 'b';
+    } 
+    rv += 'c';
+    break;
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in if()", 'ac', function() {
+  var rv = '';
+
+  if(1) {
+    thrice {
+      ||
+      rv += 'a';
+      break;
+      rv += 'b';
+    } 
+    rv += 'c';
+  }
+
+  return rv;
+});
+
+
+test("async blocklambda break in try", 'ac', function() {
+  var rv = '';
+
+  try {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+  catch (e) { rv += 'e' }
+
+  return rv;
+});
+
+test("async blocklambda break in catch", 'ac', function() {
+  var rv = '';
+
+  try {
+    throw 'foo';
+  }
+  catch (e) {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in finally", 'ac', function() {
+  var rv = '';
+
+  try {
+    //
+  }
+  finally {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in retract", 'ac', function() {
+  var rv = '';
+  
+  waitfor {
+    try {
+      hold();
+    }
+    retract {
+      thrice {
+        ||
+        rv += 'a';
+        hold(0);
+        break;
+        rv += 'b';
+      }
+      rv += 'c';
+    }
+  }
+  or {
+    // 
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in waitfor() {}", 'ac', function() {
+  var rv = '';
+
+  waitfor() {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+    resume();
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in waitfor/or", 'ac', function() {
+  var rv = '';
+
+  waitfor {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+  or {
+    hold();
+  }
+
+  return rv;
+});
+
+test("async blocklambda break in waitfor/and", 'ac', function() {
+  var rv = '';
+
+  waitfor {
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+  and {
+    hold(0);
+  }
+
+  return rv;
 });

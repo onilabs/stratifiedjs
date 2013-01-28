@@ -4,7 +4,7 @@
  * Part of Oni Apollo
  * http://onilabs.com/apollo
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the GPL v2, see
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -271,21 +271,25 @@ function makeINCtor(exec) {
     aobj: 'arguments' object,
     tobj: 'this' object,
     file: filename,
-    ref: function execution frame (only for non-tail-called functions that
-         might be targetted by blocklambdas; see EF_Seq)
+    blref: function execution frame that blocklambda returns/breaks should
+           target in current environment 
+    blscope: like blref, but will be cleared at function boundaries. This is
+             to identify the topmost execution frame that a blocklambda break 
+             should return to
   }
 
 */
 
-function Env(aobj, tobj, file, ref) { 
+function Env(aobj, tobj, file, blref, blscope) { 
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
-  this.ref = ref;
+  this.blref = blref;
+  this.blscope = blscope;
 }
 
 function copyEnv(e) {
-  return new Env(e.aobj, e.tobj, e.file, e.ref);  
+  return new Env(e.aobj, e.tobj, e.file, e.blref, e.blscope);  
 }
 
 //----------------------------------------------------------------------
@@ -301,8 +305,7 @@ function I_nblock(ndata, env) {
   }
   catch (e) {
     if (is_cfx(e)) {
-      // handle blocklamda break:
-      if (e.type == 'blb' && e.ef == env.ref) {
+      if (e.type == 'blb' && e.ef == env.blscope) {
         // XXX This is only reached when an fcall is encoded as
         // nblock, which currently only happens if the blocklambda is
         // called via a variable, see sjs-testsuite2:26
@@ -352,8 +355,14 @@ function EF_Seq(ndata, env) {
   this.ndata = ndata;
   this.env = env;
 
-  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) 
-    env.ref = this; // note down function execution frame in environment
+  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) {
+    env.blref = this; // note down function execution frame in environment
+    env.blscope = this;
+  }
+  else if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
+    this.env = copyEnv(env);
+    this.env.blscope = null; // clear blocklambda break-scope at function boundary
+  }
 
   this.tailcall = !(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
   //WHENDEBUG(if (!this.tailcall) console.log("no tailcall!!");)
@@ -385,11 +394,17 @@ EF_Seq.prototype.cont = function(idx, val) {
     // child frame being replaced:
     this.setChildFrame(val, idx);
   }
-  else if (is_cfx(val)) {
-    // pass through an exception:
-    return this.returnToParent(val);
-  }
   else {
+    if (is_cfx(val)) {
+      // block lambda break
+      if (val.type == 'blb' && val.ef == this.env.blscope) {
+        val = UNDEF;
+      }
+      else {
+        // pass through other exceptions:
+        return this.returnToParent(val);
+      }
+    }
     while (idx<this.ndata.length) {
       if (this.sc && idx > 1) {
         // short-circuit logic (for '||' & '&&')
@@ -775,8 +790,8 @@ EF_Fcall.prototype.cont = function(idx, val) {
       // The *pragmatic* thing seems to be to annotate.
 //      rv = new CFException("t", e, "passthrough");
       if (is_cfx(e)) {
-        // handle blocklambda break:
-        if (e.type == 'blb' && e.ef == this.env.ref) {
+        // handle blocklambda break: 
+        if (e.type == 'blb' && e.ef == this.env.blscope) {
           rv = UNDEF;
         }
         else
@@ -1159,6 +1174,11 @@ EF_Loop.prototype.cont = function(idx, val) {
         while (1) {
           if (idx > 2) {
             if (is_cfx(val)) {
+              if (val.type == 'blb' && val.ef == this.env.blscope) {
+                // blocklambda return
+                val = UNDEF;
+              }
+              else {
                 if (val.type == "b") {
                   // break statement
                   val = UNDEF;
@@ -1169,7 +1189,8 @@ EF_Loop.prototype.cont = function(idx, val) {
                   // break out of the loop; pick up again at increment:
                   break;
                 }
-              return this.returnToParent(val);
+                return this.returnToParent(val);
+              }
             }
             if (idx >= this.ndata.length)
               break; // pick up at increment
@@ -2083,25 +2104,25 @@ exports.Cont = function(lbl) {
 
 exports.BlBreak = function(env, lbl) {
   var e = new CFException('blb', lbl);
-  if (!env.ref) throw "Internal runtime error; no reference frame in BlBreak";
-  if (env.ref.unreturnable && !env.ref.toplevel) // the return scope is not active anymore!
+  if (!env.blref) throw "Internal runtime error; no reference frame in BlBreak";
+  if (env.blref.unreturnable && !env.blref.toplevel) // the return scope is not active anymore!
     throw new Error("Blocklambda break to inactive scope");
-  e.ef = env.ref;
+  e.ef = env.blref;
   return e;
 };
 
 exports.BlReturn = function(exp) {
   var e = new CFException('r', exp);
-  if (!this.ref) throw "Internal runtime error; no reference frame in BlReturn";
-  if (this.ref.unreturnable) { 
-    if (this.ref.toplevel)
+  if (!this.blref) throw "Internal runtime error; no reference frame in BlReturn";
+  if (this.blref.unreturnable) { 
+    if (this.blref.toplevel)
       throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");
     else {
       // return scope not active anymore!
       throw new Error("Blocklambda return to inactive function");
     }
   }
-  e.ef = this.ref;
+  e.ef = this.blref;
   return e;
 };
 

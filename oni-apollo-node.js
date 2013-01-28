@@ -223,14 +223,15 @@ return {exec:exec,ndata:arguments,__oni_dis:token_dis};
 
 
 
-function Env(aobj,tobj,file,ref){this.aobj=aobj;
+function Env(aobj,tobj,file,blref,blscope){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
-this.ref=ref;
+this.blref=blref;
+this.blscope=blscope;
 }
 
-function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.ref);
+function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blref,e.blscope);
 
 }
 
@@ -245,8 +246,7 @@ return (ndata[0]).call(env);
 }catch(e){
 
 if((e instanceof CFException)){
-
-if(e.type=='blb'&&e.ef==env.ref){
+if(e.type=='blb'&&e.ef==env.blscope){
 
 
 
@@ -283,8 +283,14 @@ function EF_Seq(ndata,env){this.ndata=ndata;
 
 this.env=env;
 
-if(ndata[0]&8)env.ref=this;
+if(ndata[0]&8){
+env.blref=this;
+env.blscope=this;
+}else if(ndata[0]&1){
 
+this.env=copyEnv(env);
+this.env.blscope=null;
+}
 
 this.tailcall=!(ndata[0]&8);
 
@@ -312,12 +318,18 @@ EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
 
 
 this.setChildFrame(val,idx);
-}else if((val instanceof CFException)){
+}else{
+
+if((val instanceof CFException)){
+
+if(val.type=='blb'&&val.ef==this.env.blscope){
+val=UNDEF;
+}else{
 
 
 return this.returnToParent(val);
-}else{
-
+}
+}
 while(idx<this.ndata.length){
 if(this.sc&&idx>1){
 
@@ -614,7 +626,7 @@ rv=new CFException("i","Invalid Fcall mode");
 
 if((e instanceof CFException)){
 
-if(e.type=='blb'&&e.ef==this.env.ref){
+if(e.type=='blb'&&e.ef==this.env.blscope){
 rv=UNDEF;
 }else rv=e;
 
@@ -934,6 +946,11 @@ return this.returnToParent(val);
 while(1){
 if(idx>2){
 if((val instanceof CFException)){
+if(val.type=='blb'&&val.ef==this.env.blscope){
+
+val=UNDEF;
+}else{
+
 if(val.type=="b"){
 
 val=UNDEF;
@@ -945,6 +962,7 @@ val=UNDEF;
 break;
 }
 return this.returnToParent(val);
+}
 }
 if(idx>=this.ndata.length)break;
 
@@ -1765,25 +1783,25 @@ exports.Cont=function(lbl){return new CFException("c",lbl);
 
 exports.BlBreak=function(env,lbl){var e=new CFException('blb',lbl);
 
-if(!env.ref)throw "Internal runtime error; no reference frame in BlBreak";
-if(env.ref.unreturnable&&!env.ref.toplevel)throw new Error("Blocklambda break to inactive scope");
+if(!env.blref)throw "Internal runtime error; no reference frame in BlBreak";
+if(env.blref.unreturnable&&!env.blref.toplevel)throw new Error("Blocklambda break to inactive scope");
 
-e.ef=env.ref;
+e.ef=env.blref;
 return e;
 };
 
 exports.BlReturn=function(exp){var e=new CFException('r',exp);
 
-if(!this.ref)throw "Internal runtime error; no reference frame in BlReturn";
-if(this.ref.unreturnable){
-if(this.ref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
+if(!this.blref)throw "Internal runtime error; no reference frame in BlReturn";
+if(this.blref.unreturnable){
+if(this.blref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
 
 
 
 throw new Error("Blocklambda return to inactive function");
 }
 }
-e.ef=this.ref;
+e.ef=this.blref;
 return e;
 };
 
