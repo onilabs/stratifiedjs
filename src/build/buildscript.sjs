@@ -390,7 +390,7 @@ function _run_builder(target, task, deps) {
 }
 
 function _run_task(target, task, deps) {
-  if (require('sjs:common').isArray(task)) {
+  if (Array.isArray(task)) {
     for (var i=0; i<task.length; ++i)
       _run_task(target, task[i], deps);
   }
