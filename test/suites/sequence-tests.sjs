@@ -301,3 +301,14 @@ test('generate', [1,2,3], function() {
   return s.generate(generator) .. s.take(3) .. s.toArray ;
 });
 
+test('parallelize scaling', 10000, function() {
+  var i=0;
+  s.integers() .. s.parallelize(10000) .. s.each { 
+    |x|
+    
+    if (++i == 10000) break;
+//    if (i%1000 == 0) process.stdout.write('.');
+    hold();
+  }
+  return i;
+});

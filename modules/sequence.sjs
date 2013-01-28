@@ -790,6 +790,13 @@ function parallelize(sequence, max_strata) {
         and {
           if (count < max_strata) dispatch();
         }
+        and {
+          // by adding another dispatch() call clause here, we ensure
+          // that we don't build a long linear chain of dispatch
+          // calls, but a tree. this greatly aids scaling with large
+          // parallelism
+          if (count < max_strata) dispatch();
+        }
       }
       dispatch();
     }
