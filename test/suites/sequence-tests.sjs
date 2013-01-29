@@ -312,3 +312,36 @@ test('parallelize scaling', 10000, function() {
   }
   return i;
 });
+
+test('parallelize teardown', '123ff.', function() {
+  var rv='';
+  s.integers(1) .. s.parallelize .. s.each {
+    |x|
+    rv += x;
+    if (x == 3) break;
+    try { hold(); } finally { rv += 'f' }
+  }
+  rv += '.';
+  return rv;
+});
+
+test('parallelize teardown on exception', '12345fffffe.', function() {
+  var rv='';
+  try {
+    s.integers(1) .. s.parallelize(5) .. s.each {
+      |x|
+      try {
+        rv += x; 
+        hold(0);
+        if (x == 3) throw new Error('done');
+        hold(); 
+      } 
+      finally { 
+        rv += 'f';
+      }
+    }
+  }
+  catch (e) { rv += 'e' }
+    rv += '.';
+  return rv;
+})
