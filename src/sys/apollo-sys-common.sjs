@@ -130,8 +130,9 @@ exports.extendObject = function(/*dest, source...*/) {
   var hl = sources.length;
   for (var h=0; h<hl; ++h) {
     var source = sources[h];
-    for (var o in source)
-      dest[o] = source[o];
+    for (var o in source) {
+      if (Object.hasOwnProperty.call(source, o)) dest[o] = source[o];
+    }
   }
   return dest;
 };

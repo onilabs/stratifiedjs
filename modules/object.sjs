@@ -166,3 +166,21 @@ exports.merge = function(/*source*/) {
   return exports.extend({}, arguments);
 };
 
+/**
+  @function clone
+  @summary Shallow-clone an object or array
+  @param {Object|Array} [source] Source Object or Array
+  @return {Object} A new Object or Array with the same keys/values as the input.
+  @desc
+    The return type is a simple Object with the same keys and values - no
+    prototype or class information is cloned.
+    The return type when given either an Array or an `arguments` object will
+    be a new Array with the same elements as `source`.
+*/
+exports.clone = function(obj) {
+  if (require('builtin:apollo-sys').isArrayLike(obj)) {
+    return Array.prototype.slice.call(obj);
+  }
+  return exports.extend({}, [obj]);
+};
+
