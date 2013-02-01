@@ -126,3 +126,22 @@ exports.sanitize = str.sanitize;
 exports.mergeSettings = function(/*settings-hash,...*/) {
   return require('sjs:apollo-sys').accuSettings({}, arguments);
 };
+
+
+/**
+  @function clone
+  @summary Shallow-clone an object or array
+  @param {Object} [obj|array] Source object
+  @return {Object} A new object with the same keys/values as the input.
+  @desc
+    The return type is a simple Object with the same keys and values - no
+    prototype or class information is copied.
+    The return type when given either an Array or an `arguments` object will
+    be an Array.
+*/
+exports.clone = function(obj) {
+  if (exports.isArrayOrArguments(obj)) {
+    return Array.prototype.slice.call(obj);
+  }
+  return exports.mergeSettings([obj]);
+};

@@ -128,8 +128,9 @@ exports.accuSettings = function(accu, hashes) {
   var hl = hashes.length;
   for (var h=0; h<hl; ++h) {
     var hash = hashes[h];
-    for (var o in hash)
-      accu[o] = hash[o];
+    for (var o in hash) {
+      if (Object.hasOwnProperty.call(hash, o)) accu[o] = hash[o];
+    }
   }
   return accu;
 };
