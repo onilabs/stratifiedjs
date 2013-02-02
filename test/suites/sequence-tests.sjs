@@ -89,3 +89,11 @@ test("'abcdefghij' .. parallelize(5) .. iterate", 'abcdefghij', function() {
 test("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
+
+test("take() leaves the rest", [[1], [2,3,4]], function() {
+  var arr = [1,2,3,4];
+  var seq = s.Stream() {|emit| while(arr.length > 0) emit(arr.shift());}
+  var head = seq .. s.take(1) .. s.toArray();
+  var tail = seq .. s.toArray();
+  return [head, tail];
+});
