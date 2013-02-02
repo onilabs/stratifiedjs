@@ -435,7 +435,7 @@ exports.toStream = toStream;
 function take(sequence, count) {
   return Stream(function(r) {
     var n = count;
-      sequence .. each { |x| if (--n < 0) return; r(x) }
+      sequence .. each { |x| r(x); if (--n <= 0) return }
   });
 }
 exports.take = take;

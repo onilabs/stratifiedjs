@@ -345,3 +345,12 @@ test('parallelize teardown on exception', '12345fffffe.', function() {
     rv += '.';
   return rv;
 })
+
+
+test("take() leaves the rest", [[1], [2,3,4]], function() {
+  var arr = [1,2,3,4];
+  var seq = s.Stream() {|emit| while(arr.length > 0) emit(arr.shift());}
+  var head = seq .. s.take(1) .. s.toArray();
+  var tail = seq .. s.toArray();
+  return [head, tail];
+});
