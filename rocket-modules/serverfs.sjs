@@ -190,9 +190,15 @@ function formatResponse(item, request, response, formats) {
   var input = item.input;
   var extension = item.extension;
   var format = item.requestedFormat;
-  var defaultFormats = item.defaultFormats;
 
-  formats = common.mergeSettings(defaultFormats, formats);
+  var FormatsWithDefault = function(src) {
+    // NOTE: we want to include inherited properties of the source `formats` object,
+    // so we don't check hasOwnProperty
+    for (var k in src) this[k] = src[k];
+  }
+  FormatsWithDefault.prototype = item.defaultFormats || {};
+  formats = new FormatsWithDefault(formats);
+
   var filedesc = formats[extension] || formats["*"];
   if (!filedesc) {
     console.log("Don't know how to serve item with extension '#{extension}'");
