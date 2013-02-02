@@ -23,7 +23,6 @@
 
 var fs = require('sjs:nodejs/fs');
 var path = require('path');
-var { merge } = require('sjs:object');
 var stream = require('sjs:nodejs/stream');
 var logging = require('sjs:logging');
 
@@ -190,9 +189,15 @@ function formatResponse(item, request, response, formats) {
   var input = item.input;
   var extension = item.extension;
   var format = item.requestedFormat;
-  var defaultFormats = item.defaultFormats;
 
-  formats = merge(defaultFormats, formats);
+  var FormatsWithDefault = function(src) {
+    // NOTE: we want to include inherited properties of the source `formats` object,
+    // so we don't check hasOwnProperty
+    for (var k in src) this[k] = src[k];
+  }
+  FormatsWithDefault.prototype = item.defaultFormats || {};
+  formats = new FormatsWithDefault(formats);
+
   var filedesc = formats[extension] || formats["*"];
   if (!filedesc) {
     console.log("Don't know how to serve item with extension '#{extension}'");
