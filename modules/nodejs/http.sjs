@@ -42,11 +42,15 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 var builtin_http  = require('http');
 
-var { find } = require('../sequence');
-var http = require('../http');
+var { find, parallelize, generate, filter, each } = require('../sequence');
+var { parseURL, canonicalizeURL } = require('../http');
+var { Queue } = require('../cutil');
+var { override } = require('../object');
 var events = require('./events');
 
+//----------------------------------------------------------------------
 // XXX nodejs < v8 backfill:
+
 var concatBuffers = Buffer.concat;
 if (!concatBuffers) {
   concatBuffers = function(list, length) {
@@ -79,31 +83,36 @@ if (!concatBuffers) {
   };
 }
 
+//----------------------------------------------------------------------
+// helpers
 
-
-// helper to receive a (smallish, <10MB) request body (if any) and store it 
-// on request.body
+// helper to receive a (smallish, <10MB) request body (if any)
 function receiveBody(request) {
-  __js request.body = new Buffer(0);
+  __js var rv = new Buffer(0);
   waitfor {
     waitfor() { __js request.on('end', resume); }
   }
   or {
     while (1) { 
-      request.body = concatBuffers(
-        [request.body, 
+      rv = concatBuffers(
+        [rv, 
          events.waitforEvent(request, 'data')[0]
         ]);
-      __js if (request.body.length > 1024*1024*10) throw "Request body too large";
+      __js if (rv.length > 1024*1024*10) throw "Request body too large";
     }
   }
+  return rv;
 }
+
+
+//----------------------------------------------------------------------
+// DEPRECATED API
 
 // helper to receive a body before handling a request
 function handleRequest(connectionHandler, request, response, protocol) {
   request.protocol = protocol;
   waitfor {
-    receiveBody(request); 
+    request.body = receiveBody(request); 
     connectionHandler(request, response);
   }
   or {
@@ -216,13 +225,13 @@ exports.runSimpleSSLServer = function(connectionHandler, ssl_opts, port, /* opt 
   }
 };
 
+//----------------------------------------------------------------------
 
 /**
  @class ServerRequest
  @summary Incoming HTTP request. 
  @desc
     - Request body size is limited to 10MB.
-    - Request body 'utf8' encoding is implied. 
 */
 function ServerRequest(req, res) {
   /**
@@ -240,118 +249,154 @@ function ServerRequest(req, res) {
    @summary Full canonicalized request URL object in the format as returned by [http::parseURL].
    */
   // XXX https
-  this.url = http.parseURL(http.canonicalizeURL(req.url, 'http://'+req.headers.host));
-  // XXX other encodings
-  req.setEncoding('utf8');
+  this.url = parseURL(canonicalizeURL(req.url, 'http://'+req.headers.host));
   /**
    @variable ServerRequest.body
-   @summary Request body (utf8 string, possibly empty)
+   @summary Request body (nodejs buffer, possibly empty)
    */
-  // receive a (smallish, <10MB) utf8 request body (if any):
-  this.body = "";
-  waitfor {
-    waitfor() { __js req.on('end', resume); hold(1000);}
-  }
-  or {
-    while (1) {
-      this.body += events.waitforEvent(req, 'data')[0];
-      if (this.body.length > 1024*1024*10) {
-        // close the socket, lest the client send us even more data:
-        req.destroy();
-        throw "Request body too large";
-      }
-    }
-  }
+  // receive a (smallish, <10MB) request body (if any):
+  this.body = receiveBody(this.request);
 }
 
 /**
- @class Server
- @summary HTTP server
- @desc
-   Use function [::server] to construct a new Server object. 
+   @function withServer
+   @summary Work in progress
+*/
+function withServer(config, server_loop) {
+  // detangle configuration:
+  if (typeof config != 'object')
+    config = { address: config };
 
- @function server
- @summary Constructs a new [::Server] object.
- @return {::Server}
- @param {Integer} [port] Port to listen on (0 to automatically assign free port).
- @param {optional String} [host] IP address to listen on. If not
- specified, the server will listen on all IP addresses, i.e. INADDR_ANY.
- @desc
-   The server starts listening for connections immediately, and continues to do so 
-   until [::Server::stop] is called.
+  config = override({ 
+    address: '0',
+    capacity: 100,
+    max_connections: 1000,
+    log: x => process.stdout.write("#{address}: #{x}\n")
+  }, config);
 
-   As an alternative to calling [::Server::stop] manually, the lifetime of 
-   a [::Server] can be managed with a 'using' block:
+  var [,host,port] = /^(?:(.*)?\:)?(\d+)$/.exec(config.address);
+  //var address; // hoisted; will be filled in in waitfor/or below
 
-       using (var S = require('sjs:nodejs/http').server(8080)) {
-         while (true) {
-           var request = S.get();
-           ...
-         }
-       }
+  // It is not quite clear how we can accept nodejs sockets on demand
+  // (pause/resume?), so we use a queue:
+  var request_queue = Queue(config.capacity, true);
 
-    Here the `using` construct will automatically call
-    [::Server::__finally__] when the `using` code
-    block is exited.
- */
-exports.server = function server(port, /* opt */ host) {
-  return new Server(port, host);
-};
-
-function Server(port, host) {
-  var capacity = 100; // XXX does this need to be configurable??
-  var me = this;
-  this._queue = new (require('./cutil').Queue)(capacity, true);
-  this._server = builtin_http.createServer(
+  var server = builtin_http.createServer(
     function(req, res) {
-      if (me._queue.size == capacity) {
-        // XXX 
-        throw new Error("dropping request");
+      if (request_queue.count() == config.capacity) {
+        // XXX
+        config.log("Dropping request");
+        res.writeHead(500);
+        res.end();
+        return;        
       }
-      me._queue.put(new ServerRequest(req, res));
-    });
-  waitfor() {
-    this._server.listen(port, host, resume);
+      request_queue.put([req, res]);
+    }
+  );
+
+  // bind the socket:
+  waitfor  {
+    var error = events.waitforEvent(server, 'error')[0];
+    throw new Error("Cannot bind #{config.address}: #{error}");
   }
-}     
+  or { 
+    waitfor() { server.listen(port, host, resume); }
+  } 
+  retract {
+    // There is no clear way of aborting the socket binding process,
+    // so to shut down things cleanly, we need to wait for the process
+    // to complete (or fail)
+    waitfor {
+      events.waitforEvent(server, 'listening');
+      try { server.close(); } catch(e) { /* ignore */ }
+      // xxx close any connection that might have snuck in
+    } or {
+      events.waitforEvent(server, 'error');
+    }
+  }
 
-/**
- @function Server.count
- @summary  Returns current number of pending requests.
- @return   {Integer}
- */
-Server.prototype.count = function() { return this._queue.count(); };
+  // XXX is there no flag on server that has this information???
+  var server_closed = false;
 
-/**
- @function Server.address
- @summary  Returns the address that the server is listening on.
- @return {Object} Bound address in the form 
-                  {address: IP_String, family: FAMILY_Int, port: PORT_Int}.
-*/
-Server.prototype.address = function() { return this._server.address(); };
+  // run our server_loop :
+  waitfor {
+    var error = events.waitforEvent(server, 'error')[0];
+    throw new Error("#{config.address}: #{error}");
+  }
+  or {
+    var {port, family, address} = server.address() || {};
+    address = family=='IPv6' ? "[#{address}]:#{port}" : "#{address}:#{port}";
 
-/**
- @function Server.get
- @summary  Wait for a request.
- @return   {::ServerRequest}
- */
-Server.prototype.get = function() { return this._queue.get(); };
+    config.log("Listening on #{address}");
 
-/**
- @function Server.stop
- @summary  Stop listening for new connections. Unbind port.
- @desc
-   Note that calling [::Server::stop] does not abort pending connections.
- */
-Server.prototype.stop = function() { this._server.close(); };
+    waitfor {
+      server .. events.waitforEvent('close');
+      server_closed = true;
+    }
+    and {
+      server_loop(
+        {
+          nodeServer: server,
+          address: address,
+          stop: -> server.close(),
+          eachRequest: function(handler) { 
+            waitfor {
+              if (!server_closed)
+                server .. events.waitforEvent('close');
+            }
+            or {
+              generate(-> request_queue.get()) ..
+                filter(function(req_res) {
+                  if (req_res[0].socket.writable) return true;
+                  config.log("Pending connection closed");
+                  return false;
+                }) ..
+                parallelize(config.max_connections) ..
+                each {
+                  |req_res|
+                  var [req,res] = req_res;
+                  waitfor {
+                    events.waitforEvent(req, 'close');
+                    config.log("Connection closed");
+                  }
+                  or {
+                    handler(new ServerRequest(req, res));
+                    if (!res.finished) {
+                      //config.log("Unfinished response");
+                      if(!res._header) {
+                        config.log("Response without header; sending 500");
+                        res.writeHead(500);
+                      } 
+                      res.end();
+                    }
+                  }
+                  retract { 
+                    config.log("Active request while server shutdown");
+                    // try to gracefully end this?
+                  }
+                }
+            } 
+          }
+        });
+    }
+  }
+  finally {
+    if (!server_closed) {
+      try { server.close(); } catch(e) { /* ignore */ }
+    }
+    if (server.connections) {
+      config.log("Server closed, but #{server.connections} lingering open connections");
+      // XXX close connections
+    }
+    else 
+      config.log("Server closed");
+  }
+}
+exports.withServer = withServer;
 
-/**
- @function Server.__finally__
- @summary Calls [::Server::stop].
-          Allows [::Server] to be managed by a `using` construct. 
-*/
-Server.prototype.__finally__ = function() { this.stop(); };
-
+//----------------------------------------------------------------------
+// REMOVE
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 /**
  @class Router
@@ -379,6 +424,12 @@ Server.prototype.__finally__ = function() { this.stop(); };
          console.log('Stopping router');
        }
  */
+
+
+
+
+
+
 
 exports.router = function router(routes, port, /* opt */ host) {
   return new Router(routes, port, host);

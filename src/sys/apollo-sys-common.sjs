@@ -147,16 +147,23 @@ exports.extendObject = function(/*dest, source...*/) {
      Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
 */
 /*
-  Implementation is taken from
+  Implementation is taken originally from
   parseUri 1.2.2
   (c) Steven Levithan <stevenlevithan.com>
   MIT License
   http://blog.stevenlevithan.com/archives/parseuri
 */
+function URI() {}
+URI.prototype = {
+  toString: function() {
+    return "#{this.protocol}://#{this.authority}#{this.relative}";
+  }
+};
+
 exports.parseURL = function(str) {
   var o = exports.parseURL.options,
   m = o.parser.exec(str),
-  uri = {},
+  uri = new URI(),
   i = 14;
   
   while (i--) uri[o.key[i]] = m[i] || "";

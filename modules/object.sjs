@@ -36,6 +36,7 @@
 */
 
 var { each, map, Stream } = require('./sequence');
+var { extendObject, flatten } = require('builtin:apollo-sys');
 
 /**
    @function keys
@@ -148,7 +149,7 @@ exports.pairsToObject = pairsToObject;
       * `source` parameters can be arbitrarily nested arrays of objects. These will be 
         flattend before the objects contained in them will be applied to `dest`.
 */
-exports.extend = require('builtin:apollo-sys').extendObject;
+exports.extend = extendObject;
 
 /**
    @function merge
@@ -184,3 +185,35 @@ exports.clone = function(obj) {
   return exports.extend({}, [obj]);
 };
 
+/**
+   @function override
+   @altsyntax dest .. override(source*)
+   @param {Object} [dest] Destination Object
+   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @return {Object} `dest` object
+   @summary Override properties of `dest` with properties from the given source object(s)
+   @desc
+      * In contrast to [::extend], only enumerable properties on `dest` (those e.g. 
+        accessible by a for-in loop) will be overridden.  No other properties from 
+        `source` parameters will be be copied to `dest`.
+      * Properties from the source objects will be applied in the order that they
+        appear in the argument list. I.e. properties appearing later will override
+        properties appearing in objects to the left.
+      * `source` parameters can be arbitrarily nested arrays of objects. These will be 
+        flattend before the objects contained in them will be applied to `dest`.
+*/
+exports.override = function(/*dest, source...*/) {
+  var dest = arguments[0];
+  var sources = flatten(Array.prototype.slice.call(arguments, 1));
+  var hl = sources.length;
+  for (var o in dest) {
+    for (var h=hl-1; h>=0; --h) {
+      var source = sources[h];
+      if (o in source) {
+        dest[o] = source[o];
+        break;
+      }
+    }
+  }
+  return dest;
+};

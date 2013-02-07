@@ -271,6 +271,8 @@ function iterate(/* sequence, [opt]eos, loop */) {
   or {
     sequence .. each {
       |x|
+      // for a parallel stream this function will be called reentrantly!
+
       waitfor() {
         if (!wants.length)
           runLoop(resume, x);
