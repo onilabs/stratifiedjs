@@ -236,7 +236,7 @@ exports.deferred = function(f) {
    @param    {optional Function} [key] The key function to use.
    @return   {Function} The wrapped function.
    @desc
-     The wrapped function `g = makeMemoizedFunction(f)` stores values that have
+     The wrapped function `g = memoize(f)` stores values that have
      been previously computed by `f` in the hash `g.db`, indexed by key. 
      If `g` is called multiple times with the same argument `X`, only the 
      first invocation will call `f(X)` and store the resulting value under 
