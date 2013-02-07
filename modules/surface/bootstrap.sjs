@@ -423,6 +423,11 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   headingsFontWeight:  -> 'bold',    // instead of browser default, bold
   headingsColor:       -> 'inherit', // empty to use BS default, @textColor
 
+  // Component sizing
+  // -------------------------
+  // Based on 14px font-size and 20px line-height
+
+  baseBorderRadius:    -> '4px',
 
   // Tables
   // -------------------------
@@ -2089,6 +2094,10 @@ table {
     border-top: 2px solid #{vars.tableBorder()};
 }
 
+ /* Nesting */
+.table .table {
+  background-color: #{vars.bodyBackground()};
+}
 
 /* CONDENSED TABLE W/ HALF PADDING */
 
@@ -2105,7 +2114,7 @@ table {
   border-collapse: separate; /* Done so we can round those corners! */
   *border-collapse: collapsed; /* IE7 can't round corners anyway */
   border-left: 0;
-  #{mixins.border_radius('4px')}
+  #{mixins.border_radius(vars.baseBorderRadius())}
 }
 
 .table-bordered th,
@@ -2129,32 +2138,32 @@ table {
   /* For first th or td in the first row in the first thead or tbody */
 .table-bordered thead:first-child tr:first-child th:first-child,
 .table-bordered tbody:first-child tr:first-child td:first-child {
-    -webkit-border-top-left-radius: 4px;
-            border-top-left-radius: 4px;
-        -moz-border-radius-topleft: 4px;
+    -webkit-border-top-left-radius: #{vars.baseBorderRadius()};
+            border-top-left-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-topleft: #{vars.baseBorderRadius()};
 }
 
 .table-bordered thead:first-child tr:first-child th:last-child,
 .table-bordered tbody:first-child tr:first-child td:last-child {
-    -webkit-border-top-right-radius: 4px;
-            border-top-right-radius: 4px;
-        -moz-border-radius-topright: 4px;
+    -webkit-border-top-right-radius: #{vars.baseBorderRadius()};
+            border-top-right-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-topright: #{vars.baseBorderRadius()};
 }
 
   /* For first th or td in the first row in the first thead or tbody */
 .table-bordered thead:last-child tr:last-child th:first-child,
 .table-bordered tbody:last-child tr:last-child td:first-child {
-    #{mixins.border_radius('0 0 0 4px')}
-    -webkit-border-bottom-left-radius: 4px;
-            border-bottom-left-radius: 4px;
-        -moz-border-radius-bottomleft: 4px;
+    #{mixins.border_radius('0 0 0 '+vars.baseBorderRadius())}
+    -webkit-border-bottom-left-radius: #{vars.baseBorderRadius()};
+            border-bottom-left-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-bottomleft: #{vars.baseBorderRadius()};
 }
 
 .table-bordered thead:last-child tr:last-child th:last-child,
 .table-bordered tbody:last-child tr:last-child td:last-child {
-    -webkit-border-bottom-right-radius: 4px;
-            border-bottom-right-radius: 4px;
-        -moz-border-radius-bottomright: 4px;
+    -webkit-border-bottom-right-radius: #{vars.baseBorderRadius()};
+            border-bottom-right-radius: #{vars.baseBorderRadius()};
+        -moz-border-radius-bottomright: #{vars.baseBorderRadius()};
 }
 
 
@@ -2169,8 +2178,8 @@ table {
 
 /* HOVER EFFECT */
 /* Placed here since it has to come after the potential zebra striping */
-.table tbody tr:hover td,
-.table tbody tr:hover th {
+.table-hover tbody tr:hover td,
+.table-hover tbody tr:hover th {
     background-color: #{vars.tableBackgroundHover()};
 }
 
@@ -2178,10 +2187,41 @@ table {
 /* TABLE CELL SIZING */
 
 /* Change the columns */
- #{ integers(1,24) .. 
+ #{ integers(1,12) .. 
     map(i => "table .span#{i} { #{ mixins.tableColumns(i) } }") .. 
     join(' ')
   }
+
+/* TABLE BACKGROUNDS */
+/* Exact selectors below required to override .table-striped */
+
+.table tbody tr.success td {
+  background-color: #{vars.successBackground()};
+}
+.table tbody tr.error td {
+  background-color: #{vars.errorBackground()};
+}
+.table tbody tr.warning td {
+  background-color: #{vars.warningBackground()};
+}
+.table tbody tr.info td {
+  background-color: #{vars.infoBackground()};
+}
+
+/* Hover states for .table-hover */
+.table-hover tbody tr.success:hover td {
+  background-color: #{darken(vars.successBackground(), 0.05)};
+}
+.table-hover tbody tr.error:hover td {
+  background-color: #{darken(vars.errorBackground(), 0.05)};
+
+}
+.table-hover tbody tr.warning:hover td {
+  background-color: #{darken(vars.warningBackground(), 0.05)};
+}
+.table-hover tbody tr.info:hover td {
+  background-color: #{darken(vars.infoBackground(), 0.05)};
+}
 "); 
 };
 
