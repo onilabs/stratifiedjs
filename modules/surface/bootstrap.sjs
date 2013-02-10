@@ -553,6 +553,19 @@ __js var defaultLookAndFeel = exports.defaultLookAndFeel = {
   infoBackground:          -> '#d9edf7',
   infoBorder:              -> darken(spin(this.infoBackground(), -10), .07),
 
+  // Tooltips and popovers
+  // -----------------------
+
+  popoverBackground:       -> '#fff',
+  popoverArrowWidth:       -> '10px',
+  popoverArrowColor:       -> '#fff',
+  popoverTitleBackground:  -> darken(this.popoverBackground(), .03),
+
+  // Special enhancement for popovers
+  popoverArrowOuterWidth:  -> add(this.popoverArrowWidth(), 1),
+  popoverArrowOuterColor:  -> 'rgba(0,0,0,.25)',
+
+
 
   // GRID
   // --------------------------------------------------
