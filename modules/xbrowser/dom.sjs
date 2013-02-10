@@ -599,6 +599,21 @@ function findNode(selector, from, to, inclusive) {
 }
 exports.findNode= findNode;
 
+/**
+   @function getOffset
+   @summary Retrieve the current position of the given DOM element *relative to the document*
+   @param {DOMElement} [elem] DOM element
+   @return {Object} Object with members `top` and `left`
+*/
+function getOffset(elem) {
+  var { top, left } = elem.getBoundingClientRect();
+  return {
+    top: top  + window.pageYOffset - document.documentElement.clientTop,
+    left: left + window.pageXOffset - document.documentElement.clientLeft
+  };
+}
+exports.getOffset = getOffset;
+
 //----------------------------------------------------------------------
 
 /**
