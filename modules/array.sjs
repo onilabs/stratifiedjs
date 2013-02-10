@@ -74,6 +74,20 @@ function indexValuePairs(arr) {
 exports.indexValuePairs = indexValuePairs;
 
 /**
+   @function cycle
+   @param {Array} [arr]
+   @return {sequence:Stream}
+   @summary Returns an infinite [sequence:Stream] of values `arr[0], arr[1], ..., arr[arr.length-1], arr[0], arr[1], ...`
+   @desc
+     * Throws an exception is the array is empty
+*/
+function cycle(arr) {
+  if (arr.length == 0) throw new Error('Cannot cycle an empty array');
+  return Stream(function(r) { var idx = 0; while (1) { r(arr[idx]); ++idx; idx%=arr.length; } });
+}
+exports.cycle = cycle;
+
+/**
   @function flatten
   @summary Create a recursively flattened version of an array.
   @param   {Array} [arr] The array to flatten.
