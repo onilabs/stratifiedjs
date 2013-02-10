@@ -52,7 +52,7 @@ and {
   var func = require('../function');
 }
 and {
-  var str = require('../string');
+  var { sanitize } = require('../string');
 }
 
 console.log("surface.sjs loading deps: #{(new Date())-tt}");
@@ -160,8 +160,11 @@ __js StyleElement.init = function(content, global) {
             throw new Error("Invalid CSS: invalid nesting of '#{b[0]}{#{b[1].join(' ')}}'");
           }
           if (b[0].charAt(0) != '@') {
-            // fold cssClass into selector
-            b[0] = b[0].split(',') .. map(s => "#{cssClass} #{s}") .. join(',');
+            // fold cssClass into selector; if selector starts with '&' append without space (
+            // e.g. a class selector that should apply to the top-level)
+            b[0] = b[0].split(',') .. 
+              map(s => s.charAt(0) == '&' ? "#{cssClass}#{s.substring(1)}" : "#{cssClass} #{s}") .. 
+              join(',');
             return "#{b[0]} { #{processBlock(b[1],lvl+1,cssClass)} }";
           }
           else if (b[0].indexOf('@global') == 0) {
@@ -493,11 +496,11 @@ __js var UIContainerElement = exports.UIContainerElement = Object.create(UIEleme
    @function UIContainerElement.withUI
    @altsyntax withUI(ui, [append_attribs]) { |ui| ... }
    @summary Append a UI element, perform a function, and remove the UI element
-   @param {::UIElement|String|QuasiTemplate|Array} [ui] UI element to append to `container`
+   @param {::UIElement|String|Quasi|Array} [ui] UI element to append to `container`
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
    @param {Function} [f] Function to execute; will be passed `ui` as parameter
    @desc
-     - If a String, QuasiTemplate, Array or [../sequence::Stream] are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
+     - If a String, Quasi, Array or [../sequence::Stream] are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
 UIContainerElement.withUI = function() {
   var args = toArray(arguments);
@@ -564,8 +567,8 @@ ChildManagement.mixinto(HtmlFragmentElement);
    @function HtmlFragmentElement.init
    @summary Called by constructor function to initialize HtmlFragmentElement object
    @param {Object} [attribs] Hash with attributes. Will also be passed to [::UIContainerElement::init], and understands all the attributes listed there.
-   @attrib {optional String|QuasiTemplate|Array|../sequence::Stream} [content=''] HTML content for this HtmlFragmentElement
-   @attrib {optional Array} [subelems] Elements that will be statically inserted into the HTML content. Deprecated; use QuasiTemplate mechanism instead.
+   @attrib {optional String|Quasi|Array|../sequence::Stream} [content=''] HTML content for this HtmlFragmentElement
+   @attrib {optional Array} [subelems] Elements that will be statically inserted into the HTML content. Deprecated; use Quasi mechanism instead.
 */
 HtmlFragmentElement.init = func.seq(
   HtmlFragmentElement.init, 
@@ -581,17 +584,17 @@ HtmlFragmentElement.init = func.seq(
           isStream(attribs.content)) {
         // Complex Content:
 
-        // * a QuasiTemplate, e.g.:
+        // * a Quasi, e.g.:
         //   Html(`<h1>#{name}</h1>#{Button('click')}`)
         //   -> content = { parts:['<h1>', name, '</h1>', Button] }
         //   strategy: build html from the parts with string values at odd
         //   indices sanitized. If there is a UIElement at at odd index, we
         //   create a placeholder for it, which we replace later with the
         //   element's dompeer.
-        // * an Array: treat like QuasiTemplate, but treat every element like
+        // * an Array: treat like Quasi, but treat every element like
         //   an 'odd' indexed value (i.e. sanitized).
 
-        // We'll parse recursively; i.e. we allow quasi templates|Arrays|Elements at odd indexes. 
+        // We'll parse recursively; i.e. we allow quasis|Arrays|Elements at odd indexes. 
         // we'll also add the UIElements to our child array. Towards the end 
         // of init(.) we'll make sure attached() is called on them. 
         
@@ -613,7 +616,7 @@ HtmlFragmentElement.init = func.seq(
                 parseArray(part.parts, true);
               }
               else {
-                html += str.sanitize(part);
+                html += sanitize(part);
               }
             }
             else 
@@ -638,7 +641,7 @@ HtmlFragmentElement.init = func.seq(
           if (!old) {
             // placeholder not found in the dom... probably caused by
             // user-provided html not being valid
-            throw new Error("Invalid HTML (#{str.sanitize(html)})");
+            throw new Error("Invalid HTML (#{sanitize(html)})");
           }
           old.parentNode.replaceChild(part.dompeer, old);
           this.children.push(part);
@@ -839,11 +842,11 @@ exports.mixinCommandAPI = mixinCommandAPI;
    @altsyntax withUI(container, ui, [append_attribs]) { |ui| ... }
    @summary Append a UI element to a container, perform a function, and remove the UI element
    @param {::UIContainerElement} [container] The container
-   @param {::UIElement|String|QuasiTemplate|Array} [ui] UI element to append to `container`
+   @param {::UIElement|String|Quasi|Array} [ui] UI element to append to `container`
    @param {optional Object} [append_attribs] Optional attribute object to pass to [::UIContainerElement::append]   
    @param {Function} [f] Function to execute; will be passed `ui` as parameter
    @desc
-     - If a String, QuasiTemplate, Array or [../sequence::Stream] are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
+     - If a String, Quasi, Array or [../sequence::Stream] are passed as `ui`, they will be converted to a [::HtmlFragmentElement]
 */
 exports.withUI = function(/*container, ui, [append_attribs], f*/) {
   var container = arguments[0];
