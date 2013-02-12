@@ -76,24 +76,16 @@ exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
    @function isArrayLike
-   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of Apollo, NodeList.
+   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of Apollo, a NodeList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
+   @desc
+     See [../../modules/array::isArrayLike]
 */
 exports.isArrayLike = function(obj) {
   return Array.isArray(obj) || 
          !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
          !!(typeof NodeList == 'function' && obj instanceof NodeList);
-};
-
-/**
-   @function isQuasi
-   @summary  Tests if an object is a Quasi
-   @param    {anything} [testObj] Object to test.
-   @return   {Boolean}
-*/
-exports.isQuasi = function(obj) {
-  return (obj instanceof __oni_rt.QuasiProto);
 };
 
 /**
@@ -120,9 +112,27 @@ exports.flatten = function(arr, rv) {
 };
 
 /**
+   @function isQuasi
+   @summary  Tests if an object is a Quasi
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+   @desc
+     See [../../modules/quasi::isQuasi]
+*/
+exports.isQuasi = function(obj) {
+  return (obj instanceof __oni_rt.QuasiProto);
+};
+
+/**
+   @function Quasi
+   @summary Create a Quasi
+   @summary See [../../modules/quasi::Quasi]
+*/
+exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)};
+
+/**
    @function extendObject
-   @summary 
-     See [../../modules/object::extend]
+   @summary See [../../modules/object::extend]
 */
 exports.extendObject = function(/*dest, source...*/) {
   var dest = arguments[0];

@@ -36,15 +36,16 @@
 */
 
 var { Stream } = require('./sequence');
+var { isArrayLike, flatten } = require('builtin:apollo-sys');
 
 /**
    @function isArrayLike
    @summary  Tests if an object is an array, `arguments` object or, in an xbrowser 
-             hostenv of Apollo, NodeList.
+             hostenv of Apollo, a NodeList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isArrayLike = require('builtin:apollo-sys').isArrayLike;
+exports.isArrayLike = isArrayLike;
 
 /**
    @function remove
@@ -101,7 +102,7 @@ exports.cycle = cycle;
          var b = flatten(a);
          // b is now [1,2,3,4,5,6,7,8,9,10]
 */
-exports.flatten = require('builtin:apollo-sys').flatten;
+exports.flatten = flatten;
 
 /**
   @function union

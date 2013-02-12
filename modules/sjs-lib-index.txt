@@ -57,6 +57,7 @@
 @module marked          Markdown to Html Converter (tracking the [marked library](https://github.com/chjj/marked))
 @module numeric         Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)
 @module object          Functions for working with objects
+@module quasi           Functions for working with quasis
 @module sequence        Constructs for manipulating sequence structures (arrays, strings and more general streams)
 @module sjcl            Stanford JavaScript Crypto Library
 @module string          Functions for working with strings
