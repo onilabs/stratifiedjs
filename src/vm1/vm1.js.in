@@ -2083,11 +2083,11 @@ exports.Obj = function(/*args*/) {
   return obj;
 };
 
-function QuasiTemplateProto(parts) {this.parts=parts;}
-exports.QuasiTemplateProto = QuasiTemplateProto;
+function QuasiProto(parts) {this.parts=parts;}
+exports.QuasiProto = QuasiProto;
 
-exports.QuasiTemplate = function(/*args*/) {
-  return new QuasiTemplateProto(Array.prototype.slice.call(arguments, 0));
+exports.Quasi = function(/*args*/) {
+  return new QuasiProto(Array.prototype.slice.call(arguments, 0));
 };
 
 exports.Return = function(exp) {

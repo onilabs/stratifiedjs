@@ -87,13 +87,13 @@ exports.isArrayLike = function(obj) {
 };
 
 /**
-   @function isTemplate
-   @summary  Tests if an object is a Quasi-Template
+   @function isQuasi
+   @summary  Tests if an object is a Quasi
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isTemplate = function(obj) {
-  return (obj instanceof __oni_rt.QuasiTemplateProto);
+exports.isQuasi = function(obj) {
+  return (obj instanceof __oni_rt.QuasiProto);
 };
 
 /**

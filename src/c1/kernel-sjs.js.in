@@ -998,7 +998,7 @@ function ph_quasi_template(parts, pctx) {
 ph_quasi_template.prototype = new ph(WHENDEBUG("ph_quasi_template"));
 ph_quasi_template.prototype.is_value = true;
 ph_quasi_template.prototype.val = function() {
-  var rv = "__oni_rt.Sc("+this.line+",__oni_rt.QuasiTemplate";
+  var rv = "__oni_rt.Sc("+this.line+",__oni_rt.Quasi";
   for (var i=0; i<this.parts.length; ++i) {
     if (i%2)
       rv += ","+this.parts[i].v();

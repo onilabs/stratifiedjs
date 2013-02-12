@@ -580,7 +580,7 @@ HtmlFragmentElement.init = func.seq(
       this.dompeer = attribs.content;
     }
     else {
-      if (sys.isTemplate(attribs.content) || Array.isArray(attribs.content) || 
+      if (sys.isQuasi(attribs.content) || Array.isArray(attribs.content) || 
           isStream(attribs.content)) {
         // Complex Content:
 
@@ -612,7 +612,7 @@ HtmlFragmentElement.init = func.seq(
               else if (Array.isArray(part) || isStream(part)) {
                 parseArray(toArray(part), false);
               }
-              else if (sys.isTemplate(part)) {
+              else if (sys.isQuasi(part)) {
                 parseArray(part.parts, true);
               }
               else {
@@ -624,7 +624,7 @@ HtmlFragmentElement.init = func.seq(
           }
         }
 
-        if (sys.isTemplate(attribs.content))
+        if (sys.isQuasi(attribs.content))
           parseArray(attribs.content.parts, true);
         else
           parseArray(toArray(attribs.content), false);
@@ -747,7 +747,7 @@ HtmlFragmentElement.selectContainer = function(selector) {
    @return  {::HtmlFragmentElement}
 */
 exports.Html = function(attribs) { 
-  if (typeof attribs != 'object' || Array.isArray(attribs) || isStream(attribs) || sys.isTemplate(attribs))
+  if (typeof attribs != 'object' || Array.isArray(attribs) || isStream(attribs) || sys.isQuasi(attribs))
     attribs = { content: attribs }
   var obj = Object.create(HtmlFragmentElement);
   obj.init(attribs); 
@@ -771,7 +771,7 @@ RootElement.init = function(attribs) {
 ChildManagement.mixinto(RootElement);
 
 RootElement.append = function(ui) {
-  if (typeof ui == 'string' || Array.isArray(ui) || isStream(ui) || sys.isTemplate(ui)) ui = exports.Html(ui);
+  if (typeof ui == 'string' || Array.isArray(ui) || isStream(ui) || sys.isQuasi(ui)) ui = exports.Html(ui);
   this.children.push(ui);
   if (this.isActivated)
     ui.activate();
@@ -853,7 +853,7 @@ exports.withUI = function(/*container, ui, [append_attribs], f*/) {
   var args = Array.prototype.slice.call(arguments, 1);
   var f = args.pop();
   // ensure ui is a UIElement:
-  if (typeof args[0] == 'string' || Array.isArray(args[0])  || isStream(args[0]) || sys.isTemplate(args[0]))
+  if (typeof args[0] == 'string' || Array.isArray(args[0])  || isStream(args[0]) || sys.isQuasi(args[0]))
     args[0] = exports.Html(args[0]);
   container.append.apply(container, args);
   try {
