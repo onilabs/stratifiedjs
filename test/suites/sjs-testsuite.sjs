@@ -1481,7 +1481,7 @@ function compareQuasiArrays(x,y) {
   var rv;
   if (x.length != y.length) return 'x.length != y.length';
   for (var i=0; i<x.length; ++i) {
-    if (require('builtin:apollo-sys').isTemplate(x[i])) { 
+    if (require('builtin:apollo-sys').isQuasi(x[i])) { 
       if ((rv = compareQuasiArrays(x[i].parts, y[i])) != true) return "child: #{rv}";
     }
     else
