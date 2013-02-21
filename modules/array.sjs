@@ -147,6 +147,23 @@ __js function union(a, b) {
 }
 exports.union = union;
 
+/**
+  @function difference
+  @param    {Array} [a] 
+  @param    {Array} [b] 
+  @return   {Array} New array containing all elements of `a` that are not in `b` (under `===`)
+  @summary  Create an array of elements in `a` that are not in `b` (under `===`).
+*/
+__js function difference(a, b) {
+  var rv = [];
+  for (var i=0; i<a.length; ++i) {
+    if (b.indexOf(a[i]) == -1)
+      rv.push(a[i]);
+  }
+  return rv;
+}
+exports.difference = difference;
+
 /** 
     @function haveCommonElements
     @param {Array} [a] Set of elements
