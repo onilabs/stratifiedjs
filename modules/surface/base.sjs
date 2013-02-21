@@ -694,7 +694,7 @@ HtmlFragmentElement.init = func.seq(
 
 
 HtmlFragmentElement.append = function(ui, insertionpoint) {
-  if (typeof ui == 'string') ui = exports.Html(ui);
+  if (typeof ui == 'string' || Array.isArray(ui) || isStream(ui) || sys.isQuasi(ui)) ui = exports.Html(ui);
   var parent;
   if (insertionpoint) {
     parent = this.select1(insertionpoint);
