@@ -33,8 +33,18 @@
    @module  string
    @summary Functions for working with strings
    @home    sjs:string
-   @desc    Work-in-progress
 */
+
+/**
+   @function isString
+   @summary Tests if an object is a string
+   @param   {anything} [testObj] Object to test.
+   @return  {Boolean}
+*/
+function isString(obj) {
+  return typeof obj == 'string';
+}
+exports.isString = isString;
 
 /**
   @function sanitize
