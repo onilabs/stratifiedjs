@@ -171,6 +171,10 @@ __js StyleElement.init = function(content, global) {
             // apply style globally (i.e. don't fold cssClass into selector)
             return processBlock(b[1],lvl,'');
           }
+          else if (b[0].indexOf('keyframes') != -1) {
+            // @keyframe ... don't pass through cssClass
+            return "#{b[0]} { #{processBlock(b[1],lvl,'')} }";
+          }
           else {
             // generic '@'-rule (maybe a media query)
             return "#{b[0]} { #{processBlock(b[1],lvl,cssClass)} }";
@@ -389,7 +393,7 @@ UIElement.activated = function() {
   this.isActivated = 1;
   //abc this.dompeer.style.visibility = 'visible';
   if (this.mechanism) {
-    this.stratum = spawn this.mechanism();
+    this.stratum = spawn this.mechanism(this);
   }
   /*
      A note on the usage of "isActivated":
@@ -740,19 +744,47 @@ HtmlFragmentElement.selectContainer = function(selector) {
    @altsyntax Html(content)
    @summary Construct a [::HtmlFragmentElement]
    @param   {Object} [attribs] Object with attributes
-   @attrib  {String|Array|../sequence::Stream} [content] HTML content
+   @attrib  {String|Array|../sequence::Stream|Quasi} [content] HTML content
    @attrib {optional ::StyleElement|String|Array} [style]
    @attrib {Function} [mechanism] Mechanism function
    @attrib {Array} [subelems] Array of {container,elem} subelement objects
    @return  {::HtmlFragmentElement}
 */
-exports.Html = function(attribs) { 
+function Html(attribs) { 
   if (typeof attribs != 'object' || Array.isArray(attribs) || isStream(attribs) || sys.isQuasi(attribs))
     attribs = { content: attribs }
   var obj = Object.create(HtmlFragmentElement);
   obj.init(attribs); 
   return obj;
 };
+exports.Html = Html;
+
+/**
+   @function Mechanism
+   @altsyntax content .. Mechanism(m)
+   @summary Associates a mechanism with the given content
+   @param {String|Array|../sequence::Stream|Quasi} [content] HTML content
+   @param {Function} [m] Mechanism function
+   @return {::HtmlFragmentElement}
+*/
+function Mechanism(content, m) {
+  return Html({content:content, mechanism: m});
+};
+exports.Mechanism = Mechanism;
+
+/**
+   @function Style
+   @altsyntax content .. Style(m)
+   @summary Associates CSS styling with the given content
+   @param {String|Array|../sequence::Stream|Quasi} [content] HTML content
+   @param {CSS|String|Array} [style] Style to apply to content
+   @return {::HtmlFragmentElement}
+*/
+function Style(content, style) {
+  return Html({content:content, style: style});
+};
+exports.Style = Style;
+
 
 //----------------------------------------------------------------------
 // Root element
