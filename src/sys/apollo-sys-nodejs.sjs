@@ -401,8 +401,12 @@ function getExtensions_hostenv() {
     'sjs': default_compiler,
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
     'js': function(src, descriptor) {
-      var f = new Function("module", "exports", "require", src);
-      f.apply(descriptor.exports, [descriptor, descriptor.exports, descriptor.require]);
+      var vm = __oni_rt.nodejs_require("vm");
+      var sandbox = vm.createContext(global);
+      sandbox.module = descriptor;
+      sandbox.exports = descriptor.exports;
+      sandbox.require = descriptor.require;
+      vm.runInNewContext(src, sandbox, "module " + descriptor.id);
     }
   };
 }

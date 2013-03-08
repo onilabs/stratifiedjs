@@ -16,4 +16,5 @@ sjcl-tests.sjs xbrowser,nodejs
 sjs-testsuite.sjs xbrowser,nodejs
 sjs-testsuite2.sjs xbrowser,nodejs
 string-tests.sjs xbrowser,nodejs
+stack-tests.sjs xbrowser,nodejs
 yql-tests.sjs xbrowser,nodejs

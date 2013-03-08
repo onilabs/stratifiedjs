@@ -690,22 +690,15 @@ exports.resolve = function(url, require_obj, parent, opts) {
 // requireInner: workhorse for require
 function requireInner(module, require_obj, parent, opts) {
   //var start = new Date();
-  try {
-    var resolveSpec = resolve(module, require_obj, parent, opts);
+  var resolveSpec = resolve(module, require_obj, parent, opts);
 
-    // now perform the load:
-    module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
-    if (opts.copyTo) {
-      exports.extendObject(opts.copyTo, [module]);
-    }
-    //console.log("require(#{resolveSpec.path}) = #{(new Date())-start} ms");
-    return module;
+  // now perform the load:
+  module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
+  if (opts.copyTo) {
+    exports.extendObject(opts.copyTo, [module]);
   }
-  catch (e) {
-    var mes = "Cannot load module '"+module+"'. "+
-      "(Underlying exception: "+e+")";
-    throw new Error(mes);
-  }
+  //console.log("require(#{resolveSpec.path}) = #{(new Date())-start} ms");
+  return module;
 }
 
 // top-level require function:

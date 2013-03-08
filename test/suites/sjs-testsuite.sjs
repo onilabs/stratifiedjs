@@ -1134,7 +1134,7 @@ test('spawn/waitforValue/abort', [
       s.waitforValue();
       log.push("first: wait returned normally");
     } catch(e) {
-      log.push("error: " + e.message);
+      log.push("error: " + e.getMessage());
     }
   } or {
     log.push("second: aborting stratum");
