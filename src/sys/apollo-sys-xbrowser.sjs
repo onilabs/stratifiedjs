@@ -87,15 +87,15 @@ else
    @setting {String} [forcecb] Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*.  
 */
 function jsonp_hostenv(url, settings) {
-  var opts = exports.extendObject({}, [
+  var opts = exports.mergeObjects(
     {
       iframe : false,
       //    query : undefined,
       cbfield : "callback",
       //    forcecb : undefined,
-    }, 
+    },
     settings
-  ]);
+  );
 
   url = exports.constructURL(url, opts.query);
   if (opts.iframe || opts.forcecb)
@@ -295,20 +295,17 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
      string will be returned.  
 */
 function request_hostenv(url, settings) {
-  var opts = exports.extendObject({},
-                                   [
-                                     {
-                                       method   : "GET",
-                                       //    query    : undefined,
-                                       body     : null,
-                                       //    headers  : undefined,
-                                       //    username : undefined,
-                                       //    password : undefined,
-                                       response : 'string',
-                                       throwing : true
-                                     },
-                                     settings
-                                   ]);
+  var opts = exports.mergeObjects({
+                                    method   : "GET",
+                                    //    query    : undefined,
+                                    body     : null,
+                                    //    headers  : undefined,
+                                    //    username : undefined,
+                                    //    password : undefined,
+                                    response : 'string',
+                                    throwing : true
+                                  },
+                                  settings);
   url = exports.constructURL(url, opts.query);
 
   var caps = getXHRCaps();

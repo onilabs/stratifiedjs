@@ -28,3 +28,28 @@ test('clone arguments', [[1,2], [1,2,3]], function() {
   clone.push(3);
   return [initial, clone];
 });
+
+test("merge argument list", {"a":1,"b":2}, function() {
+	var a = {a:1};
+	var b = {b:2};
+	return o.merge(a,b);
+});
+
+test("merge array of objects", {"a":1,"b":2}, function() {
+	var a = {a:1};
+	var b = {b:2};
+	return o.merge([a,b]);
+});
+
+// these next two aren't particularly likely scenarios, but just to test that we aren't recursively flattening:
+test("merge array of arrays", {"a":1, "0": {"b":2}}, function() {
+	var a = {a:1};
+	var b = {b:2};
+	return o.merge([a, [b]]);
+});
+
+test("merge multiple array arguments", {"a":1, "0": {"b":2}}, function() {
+	var a = {a:1};
+	var b = {b:2};
+	return o.merge(a, [b]);
+});

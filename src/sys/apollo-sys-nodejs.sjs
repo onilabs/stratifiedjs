@@ -54,14 +54,13 @@
    @setting {String} [forcecb] Force the name of the callback to the given string. 
 */
 function jsonp_hostenv(url, settings) {
-  var opts = exports.extendObject({}, [ 
+  var opts = exports.mergeObjects(
     {
       // query : undefined,
       cbfield : "callback",
       forcecb : "jsonp"
     },
-    settings
-  ]);
+    settings);
   var query = {};
   query[opts.cbfield] = opts.forcecb;
   // XXX should be cleverer about this 
@@ -176,21 +175,18 @@ var readStream = exports.readStream = function readStream(stream) {
    @setting {Integer} [max_redirects=5] Maximum number of redirects to follow.
 */
 function request_hostenv(url, settings) {
-  var opts = exports.extendObject({},
-                                  [ 
-                                    { 
-                                      method : "GET",
-                                      // query : undefined
-                                      // body : undefined,
-                                      headers : {},
-                                      // username : undefined
-                                      // password : undefined
-                                      response : 'string',
-                                      throwing : true,
-                                      max_redirects : 5
-                                    },
-                                    settings
-                                  ]);
+  var opts = exports.mergeObjects({
+                                     method : "GET",
+                                     // query : undefined
+                                     // body : undefined,
+                                     headers : {},
+                                     // username : undefined
+                                     // password : undefined
+                                     response : 'string',
+                                     throwing : true,
+                                     max_redirects : 5
+                                  },
+                                  settings);
   var url_string = exports.constructURL(url, opts.query);
   //console.log('req '+url_string);
   // XXX ok, it sucks that we have to take this URL apart again :-/

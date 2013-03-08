@@ -49,7 +49,7 @@ var api_base = "http://api.freebase.com/api/service/"; // XXX do we want https?
 function mqlread(query, envelope_props) {
   return http.jsonp([api_base, "mqlread", 
                      {query: JSON.stringify(sys.extendObject({query:query},
-                                                             [envelope_props]))}]);
+                                                             envelope_props))}]);
 }
 exports.mqlread = mqlread;
 

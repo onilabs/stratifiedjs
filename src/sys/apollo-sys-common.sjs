@@ -112,6 +112,30 @@ exports.flatten = function(arr, rv) {
 };
 
 /**
+  @function expandSingleArgument
+  @summary Returns an array from an `arguments` object with either multiple objects or a single array element.
+  @param   {Arguments} [args] an *arguments* object.
+  @return  {Array|Arguments}
+                  If *args* has length 1 and its only element is an array,
+                  returns that array.
+                  Otherwise, returns `args`.
+  @desc
+    The intent is to allow functions that accept a sequence of items to be called as either:
+    
+        fn(a, b, c);
+        fn([a,b,c]);
+
+      In both cases, calling expandSingleArgument(arguments) from within `fn` will return [a,b,c].
+
+      Note that flattening is only applied if a single argument is given, and flattening is non-recursive.
+*/
+exports.expandSingleArgument = function(args) {
+  if (args.length == 1 && exports.isArrayLike(args[0]))
+    args = args[0];
+  return args;
+}
+
+/**
    @function isQuasi
    @summary  Tests if an object is a Quasi
    @param    {anything} [testObj] Object to test.
@@ -130,19 +154,27 @@ exports.isQuasi = function(obj) {
 */
 exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)};
 
+
+/**
+   @function mergeObjects
+   @summary See [../../modules/object::extend]
+*/
+exports.mergeObjects = function(/*source*/) {
+  var rv = {};
+  var sources = exports.expandSingleArgument(arguments);
+  for (var i=0; i<sources.length; i++) {
+    exports.extendObject(rv, sources[i]);
+  }
+  return rv;
+};
+
 /**
    @function extendObject
    @summary See [../../modules/object::extend]
 */
-exports.extendObject = function(/*dest, source...*/) {
-  var dest = arguments[0];
-  var sources = exports.flatten(Array.prototype.slice.call(arguments, 1));
-  var hl = sources.length;
-  for (var h=0; h<hl; ++h) {
-    var source = sources[h];
-    for (var o in source) {
-      if (Object.hasOwnProperty.call(source, o)) dest[o] = source[o];
-    }
+exports.extendObject = function(dest, source) {
+  for (var o in source) {
+    if (Object.hasOwnProperty.call(source, o)) dest[o] = source[o];
   }
   return dest;
 };
@@ -420,8 +452,7 @@ var pendingLoads = {};
 function makeRequire(parent) {
   // make properties of this require function accessible in requireInner:
   var rf = function(module, settings) {
-    var opts = exports.extendObject({},
-                                    [settings]);
+    var opts = exports.extendObject({}, settings);
     if (opts.callback) {
       (spawn (function() {
         try { 
@@ -438,7 +469,7 @@ function makeRequire(parent) {
   };
 
   rf.resolve = function(module, settings) {
-    var opts = exports.extendObject({}, [settings]);
+    var opts = exports.extendObject({}, settings);
     return resolve(module, rf, parent, opts);
   };
 
@@ -695,7 +726,7 @@ function requireInner(module, require_obj, parent, opts) {
   // now perform the load:
   module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
   if (opts.copyTo) {
-    exports.extendObject(opts.copyTo, [module]);
+    exports.extendObject(opts.copyTo, module);
   }
   //console.log("require(#{resolveSpec.path}) = #{(new Date())-start} ms");
   return module;

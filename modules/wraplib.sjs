@@ -278,5 +278,5 @@ function generateWrapLib(debug, timeout) {
 exports.withDebug = function(timeout) { return generateWrapLib(true, timeout || 2); }
 
 // at the top level, this module exports a non-debug version of itself
-require("builtin:apollo-sys").extendObject(exports, [generateWrapLib(false)]);
+require("builtin:apollo-sys").extendObject(exports, generateWrapLib(false));
 

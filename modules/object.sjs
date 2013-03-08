@@ -36,7 +36,7 @@
 */
 
 var { each, map, Stream } = require('./sequence');
-var { extendObject, flatten } = require('builtin:apollo-sys');
+var { extendObject, mergeObjects, flatten } = require('builtin:apollo-sys');
 
 /**
    @function keys
@@ -137,35 +137,29 @@ exports.pairsToObject = pairsToObject;
 
 /**
    @function extend
-   @altsyntax dest .. extend(source*)
+   @altsyntax dest .. extend(source)
    @param {Object} [dest] Destination Object
-   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @param {Object|Array} [source] Source Object(s)
    @return {Object} `dest` object
-   @summary Extend `dest` with properties from the given source object(s)
+   @summary Extend `dest` with properties from the given source object
    @desc
-      * Properties from the source objects will be applied in the order that they
-        appear in the argument list. I.e. properties appearing later will override
-        properties appearing in objects to the left.
-      * `source` parameters can be arbitrarily nested arrays of objects. These will be 
-        flattend before the objects contained in them will be applied to `dest`.
+      * Only "own" properties will be added to *dest* - i.e no
+        properties inherited via prototypes will be copied.
 */
 exports.extend = extendObject;
 
 /**
    @function merge
-   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @param {Object|Array} [source*] Source Object(s) or Array of Objects
    @return {Object} New object with merged properties
    @summary Merge properties from the given source objects into a new object
    @desc
       * Properties from the source objects will be merged in the order that they
         appear in the argument list. I.e. properties appearing later will override
         properties appearing in objects to the left.
-      * `source` parameters can be arbitrarily nested arrays of objects. These will be 
-        flattend before the objects contained in them will be applied to `dest`.
+      * `source` can be a multiple object arguments, or a single Array argument.
 */
-exports.merge = function(/*source*/) {
-  return exports.extend({}, arguments);
-};
+exports.merge = mergeObjects;
 
 /**
   @function clone
@@ -182,7 +176,7 @@ exports.clone = function(obj) {
   if (require('builtin:apollo-sys').isArrayLike(obj)) {
     return Array.prototype.slice.call(obj);
   }
-  return exports.extend({}, [obj]);
+  return exports.extend({}, obj);
 };
 
 /**

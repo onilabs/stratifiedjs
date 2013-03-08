@@ -105,6 +105,27 @@ exports.cycle = cycle;
 exports.flatten = flatten;
 
 /**
+  @function concat
+  @summary Concatenate an array of arrays into a single array.
+  @param   {Array} [arr] The array to flatten.
+  @return  {Array} A concatenated array of all sub-arrays in *arr*.
+                   This method is similar to [array::flatten], except that
+                   all elements of *arr* must be array-like, and the
+                   concatenation is only applied once - it is not recursive.
+    See [../../modules/array::concat]
+*/
+exports.concat = function(arr) {
+  rv = [];
+  for (var i=0; i<arr.length; i++) {
+    var sub = arr[i];
+    for(var j=0; j<sub.length; j++) {
+      rv.push(sub[j]);
+    }
+  }
+  return rv;
+};
+
+/**
   @function union
   @param    {Array} [a] Set of unique elements
   @param    {Array} [b] Set of unique elements
