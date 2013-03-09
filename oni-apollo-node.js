@@ -68,19 +68,20 @@ var stack=String(e.stack);
 e.stack="";
 var lines=stack.split("\n");
 var i;
-for(i=0;i<lines.length;i++ ){
+for(i=1;i<lines.length;i++ ){
 
 if(lines[i].indexOf("oni-apollo-node.js")!=-1||lines[i].indexOf("oni-apollo.js")!=-1){
 
 
 break;
 }
-}
-i-- ;
-while(i>=1){
 __oni_add_stack_entry(e,[lines[i]]);
-i-- ;
 }
+
+
+
+
+
 }
 
 var token_oniE={};

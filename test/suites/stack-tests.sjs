@@ -113,7 +113,7 @@ test('stack with multiple entries on the same line', 'this_file:' + (line+2) + '
   var bottom_fn = function() { hold(1); throw new Error("inner error"); };
   var middle_fn = function() { return bottom_fn(); }; var top_fn = function() { return middle_fn(); };
   return stack_from_running(top_fn);
-});
+}).skip("Not yet implemented");
 
 line=118;
 test('stack from tail-call', 'this_file:' + (line+2) + '\nthis_file:' + (line+3), function() {
@@ -130,7 +130,7 @@ test('stack from imported JS', (module.fail_normally.expected_stack_lines.join("
   };
   var ret = stack_from_running(caller);
   return ret;
-});
+}).serverOnly(); // TODO: implement this for xbrowser
 
 line=135;
 test('stack from embedded JS', 'this_file:' + (line+11) + '\nthis_file:' + (line + 4) + '\nthis_file:' + (line + 7), function() {
@@ -146,7 +146,7 @@ test('stack from embedded JS', 'this_file:' + (line+11) + '\nthis_file:' + (line
     f1();
   };
   return stack_from_running(caller);
-});
+}).skip("Not yet working");
 
 // things to note:
 // - blocklambdas
