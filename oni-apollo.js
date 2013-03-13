@@ -50,6 +50,8 @@ var __oni_rt={};(function(exports){var UNDEF;
 
 
 
+
+
 function CFException_toString(){return this.name+": "+this.message;
 
 }
@@ -86,11 +88,6 @@ break;
 }
 __oni_add_stack_entry(e,[lines[i]]);
 }
-
-
-
-
-
 }
 
 var token_oniE={};
@@ -2036,6 +2033,8 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
+
+
 pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,continue_scope:0,break_scope:0});
 
 
@@ -3145,7 +3144,16 @@ return rv+")";
 };
 ph_fun_call.prototype.val=function(){var rv;
 
-if(this.l.is_ref){
+if(this.nblock_form){
+rv=this.l.nb()+"(";
+for(var i=0;i<this.args.length;++i){
+if(i)rv+=",";
+rv+=this.args[i].nb();
+}
+return nblock_val_to_val(rv+")",true,this.line);
+}else if(this.l.is_ref){
+
+
 rv="__oni_rt.Fcall(1,"+this.line+","+this.l.ref();
 }else{
 

@@ -1344,7 +1344,6 @@ ph_fun_call.prototype.nblock_val = function() {
 };
 ph_fun_call.prototype.val = function() {
     var rv;
-#ifndef STACKTRACES
     if (this.nblock_form) {
       rv = this.l.nb() + "(";
       for (var i=0; i<this.args.length;++i) {
@@ -1354,7 +1353,6 @@ ph_fun_call.prototype.val = function() {
       return nblock_val_to_val(rv+")",true,this.line);
     }
     else
-#endif
     if (this.l.is_ref) {
       rv = "__oni_rt.Fcall(1,"+this.line+","+this.l.ref();
     }
