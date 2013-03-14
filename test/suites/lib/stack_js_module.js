@@ -12,7 +12,11 @@ var fail_normally = exports.fail_normally = function fail_normally() {
 	};
 	f1();
 }
-fail_normally.expected_stack_lines = [11, 7, 3, 13].map(function(n) { return 'lib/stack_js_module.js:' + n; });
+
+fail_normally.expected_stack_lines = ['lib/stack_js_module.js:11',
+                                      'lib/stack_js_module.js:7',
+                                      'lib/stack_js_module.js:3',
+                                      'lib/stack_js_module.js:13'];
 
 var getStackSummary = function(lvl) {
   lvl = lvl || 1;
