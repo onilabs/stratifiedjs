@@ -41,59 +41,71 @@ global.__oni_rt={};(function(exports){var UNDEF;
 
 
 
+function CFException_toString(){var rv=this.name+": "+this.message;
+
+if(this.__oni_stack){
+for(var i=0;i<this.__oni_stack.length;++i){
+var line=this.__oni_stack[i];
+if(line.length==1)line=line[0];else line='    at '+line.slice(0,2).join(':');
 
 
-function CFException_toString(){return this.name+": "+this.message;
 
-}
-
-function CFException_getMessage(){return this.__oni_msg;
-
-}
-
-function decorate_exception(e){if(!e.hasOwnProperty('__oni_stack'))e.__oni_stack=[];
-
-
-if(!e.hasOwnProperty('__oni_msg')){
-e.__oni_msg=e.message;
+rv+='\n'+line;
 }
 }
+return rv;
+}
 
-function adopt_native_stack(e){if(e.__oni_stack)return;
+function annotate_exception_stack(e,file,lineno){if(!file||!lineno)return;
 
-if(!e.stack){
+e.val.__oni_stack.push([file,lineno]);
+};
+
+function adopt_native_stack(e,caller_module){if(!e.stack)return;
+
+
+if(exports.hostenv!=='nodejs'){
+
+
+e.stack='';
 return;
 }
-decorate_exception(e);
 var stack=String(e.stack);
-;
 e.stack="";
 var lines=stack.split("\n");
 var i;
+
 for(i=1;i<lines.length;i++ ){
 
-if(lines[i].indexOf("oni-apollo-node.js")!=-1||lines[i].indexOf("oni-apollo.js")!=-1){
+if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("oni-apollo-node.js")!=-1||lines[i].indexOf("oni-apollo.js")!=-1){
+
 
 
 break;
 }
-__oni_add_stack_entry(e,[lines[i]]);
+e.__oni_stack.push([lines[i]]);
 }
 }
 
 var token_oniE={};
 function CFException(type,value,line,file){this.type=type;
 
+this.val=value;
 
-if(type=="t"&&(value instanceof Error||(typeof value=="object"&&value.message))&&value._oniE!==token_oniE){
+if(type=="t"){
+if((value instanceof Error||(typeof value=="object"&&value.message))&&value._oniE!==token_oniE){
+
 value._oniE=token_oniE;
+value.__oni_stack=[];
 value.line=line;
 value.file=file||"unknown SJS source";
-adopt_native_stack(value);
+
+adopt_native_stack(value,file);
+
 if(!value.hasOwnProperty('toString'))value.toString=CFException_toString;
-if(!value.hasOwnProperty('getMessage'))value.getMessage=CFException_getMessage;
 }
-this.val=value;
+annotate_exception_stack(this,file||'unknown SJS source',line);
+}
 
 }
 
@@ -105,11 +117,13 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 
 
 
-},mapToJS:function(file,lineno){
+},mapToJS:function(augment){
 if(this.type=="t"){
 
-annotate_exception_stack(this,file,lineno,'mapToJS');
-throw this.val;
+
+
+
+throw (augment&&this.val.__oni_stack)?new Error(this.val.toString()):this.val;
 }else if(!this.ef)throw new Error(this.toString());else throw this;
 
 
@@ -132,21 +146,11 @@ function setEFProto(t){for(var p in EF_Proto)t[p]=EF_Proto[p]}
 
 
 var EF_Proto={toString:function(){
-return "<suspended SJS>"},__oni_ef:true,lineno:function(){
+return "<suspended SJS>"},__oni_ef:true,setChildFrame:function(ef,idx){
 
-if(this.child_frame&&this.child_frame.lineno){
-
-
-
-;
-return this.child_frame.lineno();
-}
-;
-
-return null;
-},setChildFrame:function(ef,idx){
 
 this.async=true;
+
 
 this.child_frame=ef;
 ef.parent=this;
@@ -168,12 +172,10 @@ return this.child_frame.abort();
 
 },returnToParent:function(val){
 
-if((val instanceof CFException)&&val.type=='t'){
+if((val instanceof CFException)&&val.type=='t'&&this.callstack){
 
-if(this.lineno&&this.env){
-var reason='EF_Proto.returnToParent';
-annotate_exception_stack(val,this.env.file,this.lineno(),reason);
-}
+for(var i=0;i<this.callstack.length;++i)annotate_exception_stack(val,this.callstack[i][0],this.callstack[i][1]);
+
 }
 if(this.swallow_r){
 if((val instanceof CFException)){
@@ -194,6 +196,7 @@ if(!val.ef||val.ef==this)val=val.val;
 this.unreturnable=true;
 
 
+this.env=UNDEF;
 
 if(this.async){
 if(this.parent){
@@ -209,7 +212,7 @@ this.parent.cont(this.parent_idx,val);
 
 
 
-val.mapToJS(this.env.file,this.lineno());
+val.mapToJS(true);
 }
 }else return val;
 
@@ -231,8 +234,7 @@ function execIN(node,env){if(!node||node.__oni_dis!=token_dis){
 return node;
 }
 
-var result=node.exec(node.ndata,env);
-return result;
+return node.exec(node.ndata,env);
 }
 exports.ex=execIN;
 
@@ -261,9 +263,8 @@ return rv;
 
 
 
-function makeINCtor(exec,lineno){return function(){
-return {exec:exec,lineno:lineno||EF_Proto.lineno,ndata:arguments,__oni_dis:token_dis};
-
+function makeINCtor(exec){return function(){
+return {exec:exec,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -293,9 +294,15 @@ function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blref,e.blscope);
 
 
 
-function I_nblock(ndata,env){try{
+function I_call(ndata,env){try{
 
-return (ndata[0]).call(env);
+var rv=(ndata[0]).call(env);
+if(is_ef(rv)){
+
+if(!rv.callstack)rv.callstack=[];
+rv.callstack.push([env.file,ndata[1]]);
+}
+return rv;
 }catch(e){
 
 if((e instanceof CFException)){
@@ -308,50 +315,28 @@ return UNDEF;
 }else{
 e=new CFException("t",e,ndata[1],env.file);
 }
-annotate_exception_stack(e,env.file,ndata[1],'I_nblock catch');
 return e;
 }
 }
-exports.Nb=makeINCtor(I_nblock,function(){return this.ndata[1]});
-
-var __oni_add_stack_entry=function __oni_add_stack_entry(e,entry,last_entry){if(String(entry)==String(last_entry))return;
+exports.C=makeINCtor(I_call);
 
 
 
-e.__oni_stack.push(entry);
 
-var line;
-if(entry.length==1){
-line=entry;
-}else{
-line='    at '+entry.slice(0,2).join(":");
+
+
+function I_nblock(ndata,env){try{
+
+return (ndata[0]).call(env);
+}catch(e){
+
+if(!(e instanceof CFException)){
+e=new CFException("t",e,ndata[1],env.file);
 }
-
-
-
-e.message+="\n"+line;
-};
-
-var annotate_exception_stack=function(e,file,lineno,reason){if(e.type!='t'){
-
-
-return;
+return e;
 }
-if(lineno==null){
-;
-return;
 }
-;
-if(!file){return}
-if(e.val instanceof Error||e.val instanceof Object){
-decorate_exception(e.val);
-var last_entry=e.val.__oni_stack[e.val.__oni_stack.length-1];
-__oni_add_stack_entry(e.val,[file,lineno,reason],last_entry);
-;
-}else{
-;
-}
-};
+exports.Nb=makeINCtor(I_nblock);
 
 
 
@@ -405,28 +390,12 @@ this.unreturnable=true;
 
 this.toplevel=true;
 }
-this.last_idx=0;
 }
 setEFProto(EF_Seq.prototype={});
-EF_Seq.prototype.lineno=function(){if(this.last_idx>=this.ndata.length){
-
-;
-this.last_idx=this.ndata.length-1;
-}
-var last_instr=this.ndata[this.last_idx];
-if(last_instr&&last_instr.lineno&&last_instr.lineno.call){
-return this.ndata[this.last_idx].lineno();
-}
+EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
 
 
-return null;
-};
-EF_Seq.prototype.cont=function(idx,val){var self=this;
 
-
-if(is_ef(val)){
-
-this.last_idx=idx;
 this.setChildFrame(val,idx);
 }else{
 
@@ -437,12 +406,10 @@ val=UNDEF;
 }else{
 
 
-this.last_idx=idx;
 return this.returnToParent(val);
 }
 }
 while(idx<this.ndata.length){
-this.last_idx=idx;
 if(this.sc&&idx>1){
 
 if(this.sc==2){
@@ -462,10 +429,7 @@ val=val.abort();
 }
 break;
 }
-var actual_idx=idx;
-idx+=1;
-this.tailcall=false;
-if((idx==this.ndata.length&&this.tailcall)||(val instanceof CFException)){
+if((++idx==this.ndata.length&&this.tailcall)||(val instanceof CFException)){
 
 break;
 }
@@ -496,8 +460,7 @@ return this;
 function I_seq(ndata,env){return (new EF_Seq(ndata,env)).cont(1);
 
 }
-exports.Seq=makeINCtor(I_seq,EF_Seq.prototype.lineno);
-exports.seq=I_seq;
+exports.Seq=makeINCtor(I_seq);
 
 
 
@@ -519,7 +482,6 @@ this.pars=[];
 }
 setEFProto(EF_Sc.prototype={});
 
-EF_Sc.prototype.lineno=function(){return this.ndata[0]};
 EF_Sc.prototype.cont=function(idx,val){if(is_ef(val)){
 
 this.setChildFrame(val,idx);
@@ -561,7 +523,7 @@ function I_sc(ndata,env){return (new EF_Sc(ndata,env)).cont(0);
 
 }
 
-exports.Sc=makeINCtor(I_sc,EF_Sc.prototype.lineno);
+exports.Sc=makeINCtor(I_sc);
 
 
 
@@ -595,7 +557,6 @@ this.pars=[];
 }
 setEFProto(EF_Fcall.prototype={});
 
-EF_Fcall.prototype.lineno=function(){return this.ndata[1]};
 EF_Fcall.prototype.cont=function(idx,val){if(is_ef(val)){
 
 this.setChildFrame(val,idx);
@@ -639,6 +600,7 @@ switch(this.ndata[0]){case 0:
 if(typeof this.l=="function"&&this.l.apply){
 rv=this.l.apply(null,this.pars);
 }else if(!testIsFunction(this.l)){
+
 rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
 
 
@@ -707,16 +669,7 @@ command+="pars["+i+"]";
 }
 command+=")";
 
-
-var sandbox={'pars':pars,'ctor':ctor};
-
-
-
-var vm=__oni_rt.nodejs_require("vm");
-var sandbox=vm.createContext();
-sandbox.pars=pars;
-sandbox.ctor=ctor;
-rv=vm.runInNewContext(command,sandbox,this.env.file);
+rv=eval(command);
 }else if(!testIsFunction(ctor)){
 
 rv=new CFException("t",new Error("'"+ctor+"' is not a function"),this.ndata[1],this.env.file);
@@ -766,6 +719,11 @@ rv=UNDEF;
 
 
 }
+if(is_ef(rv)){
+
+if(!rv.callstack)rv.callstack=[];
+rv.callstack.push([this.env.file,this.ndata[1]]);
+}
 return this.returnToParent(rv);
 }
 };
@@ -774,7 +732,7 @@ function I_fcall(ndata,env){return (new EF_Fcall(ndata,env)).cont(0);
 
 }
 
-exports.Fcall=makeINCtor(I_fcall,EF_Fcall.prototype.lineno);
+exports.Fcall=makeINCtor(I_fcall);
 
 
 
@@ -950,7 +908,6 @@ val=this.ndata[2](this.env,v);
 
 val=new CFException("t",e);
 }
-var catch_fn=this.ndata[2];
 if(is_ef(val)){
 this.setChildFrame(val);
 return this;
@@ -1710,7 +1667,6 @@ this.notifyVal=notifyVal;
 }
 setEFProto(EF_Spawn.prototype={});
 
-EF_Spawn.prototype.lineno=function(){return this.ndata[0]};
 EF_Spawn.prototype.cont=function(idx,val){if(idx==0)val=execIN(this.ndata[1],this.env);
 
 
@@ -1792,7 +1748,7 @@ if((val instanceof CFException)&&(val.type!='t'||val.val instanceof Error)){
 
 
 
-setTimeout(function(){if(!picked_up)val.mapToJS(env.file,ndata[0]);
+setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 
 
@@ -1814,7 +1770,7 @@ ef.cont(0);
 return stratum;
 }
 
-exports.Spawn=makeINCtor(I_spawn,EF_Spawn.prototype.lineno);
+exports.Spawn=makeINCtor(I_spawn);
 
 
 
@@ -1834,7 +1790,6 @@ setEFProto(EF_Collapse.prototype={});
 
 EF_Collapse.prototype.__oni_collapse=true;
 
-EF_Collapse.prototype.lineno=function(){return this.ndata[0]};
 EF_Collapse.prototype.cont=function(idx,val){if(idx==0){
 
 var fold=this.env.fold;
@@ -1862,7 +1817,7 @@ function I_collapse(ndata,env){return (new EF_Collapse(ndata,env)).cont(0);
 
 }
 
-exports.Collapse=makeINCtor(I_collapse,EF_Collapse.prototype.lineno);
+exports.Collapse=makeINCtor(I_collapse);
 
 
 
@@ -1981,7 +1936,6 @@ exports.UA=UA;
 exports.G=global;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
-
 
 
 
@@ -2439,11 +2393,21 @@ return rv;
 ph_if.prototype.val=function(){var rv;
 
 var c=this.c.v();
+if(this.t.is_nblock){
+
+rv="__oni_rt.Nb(function(){if("+this.t.nb()+")return __oni_rt.ex("+c+",this);";
+
+if(this.a)rv+="else return __oni_rt.ex("+this.a.v()+",this);";
+
+return rv+"},"+this.line+")";
+}else{
+
 
 rv="__oni_rt.If("+this.t.v()+","+c;
 if(this.a)rv+=","+this.a.v();
 
 return rv+")";
+}
 };
 
 
@@ -2473,9 +2437,8 @@ rv+=","+tb;
 if(this.crf[0]){
 var cb=this.crf[0][1].v();
 rv+=",function(__oni_env,"+this.crf[0][0]+"){";
-if(cb.length){
-rv+="return __oni_rt.seq(["+(0)+","+cb+"],__oni_env)";
-}
+if(cb.length)rv+="return __oni_rt.ex("+cb+",__oni_env)";
+
 rv+="}";
 }else rv+=",0";
 
@@ -3130,9 +3093,8 @@ for(var i=0;i<this.args.length;++i){
 if(i)rv+=",";
 rv+=this.args[i].nb();
 }
-return nblock_val_to_val(rv+")",true,this.line);
+return "__oni_rt.C(function(){return "+rv+")},"+this.line+")";
 }else if(this.l.is_ref){
-
 
 rv="__oni_rt.Fcall(1,"+this.line+","+this.l.ref();
 }else{

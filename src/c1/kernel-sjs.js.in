@@ -548,7 +548,6 @@ ph_if.prototype.nblock_val = function() {
 ph_if.prototype.val = function() {
   var rv;
   var c = this.c.v();
-#ifndef STACKTRACES
   if (this.t.is_nblock) {
     // half-nblock encoding
     rv = "__oni_rt.Nb(function(){if("+this.t.nb()+
@@ -558,15 +557,12 @@ ph_if.prototype.val = function() {
     return rv+"},"+this.line+")";
   }
   else {
-#endif
     // test is blocking -> full blocking encoding
     rv = "__oni_rt.If("+this.t.v()+","+c;
     if (this.a)
       rv += ","+this.a.v();
     return rv + ")";
-#ifndef STACKTRACES
   }
-#endif
 };
 
 /*
@@ -600,13 +596,8 @@ ph_try.prototype.val = function() {
     if (this.crf[0]) {
       var cb = this.crf[0][1].v();
       rv += ",function(__oni_env,"+this.crf[0][0]+"){";
-      if (cb.length) {
-#ifdef STACKTRACES
-        rv += "return __oni_rt.seq(["+(SEQ_FLAG_NONE)+","+cb+"],__oni_env)";
-#else
+      if (cb.length)
         rv += "return __oni_rt.ex("+cb+",__oni_env)";
-#endif
-      }
       rv +="}";
     }
     else
@@ -1350,10 +1341,9 @@ ph_fun_call.prototype.val = function() {
         if (i) rv += ",";
         rv += this.args[i].nb();
       }
-      return nblock_val_to_val(rv+")",true,this.line);
+      return "__oni_rt.C(function(){return "+rv+")},"+this.line+")";
     }
-    else
-    if (this.l.is_ref) {
+    else if (this.l.is_ref) {
       rv = "__oni_rt.Fcall(1,"+this.line+","+this.l.ref();
     }
     // XXX could have an Scall form here?? (iff this.l is nb)
