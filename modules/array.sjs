@@ -112,7 +112,6 @@ exports.flatten = flatten;
                    This method is similar to [array::flatten], except that
                    all elements of *arr* must be array-like, and the
                    concatenation is only applied once - it is not recursive.
-    See [../../modules/array::concat]
 */
 exports.concat = function(arr) {
   rv = [];
