@@ -149,9 +149,19 @@ var EF_Proto={toString:function(){
 return "<suspended SJS>"},__oni_ef:true,setChildFrame:function(ef,idx){
 
 
+if(this.child_frame&&this.child_frame.callstack){
+
+
+if(ef.callstack){
+
+ef.callstack=ef.callstack.concat(this.child_frame.callstack);
+}else{
+
+
+ef.callstack=this.child_frame.callstack;
+}
+}
 this.async=true;
-
-
 this.child_frame=ef;
 ef.parent=this;
 ef.parent_idx=idx;
