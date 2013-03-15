@@ -56,7 +56,7 @@ rv+='\n'+line;
 return rv;
 }
 
-function annotate_exception_stack(e,file,lineno){if(!file||!lineno)return;
+function annotate_exception_stack(e,file,lineno){if(e.val._oniE!==token_oniE||!file||!lineno)return;
 
 e.val.__oni_stack.push([file,lineno]);
 };
@@ -196,7 +196,8 @@ if(!val.ef||val.ef==this)val=val.val;
 this.unreturnable=true;
 
 
-this.env=UNDEF;
+
+
 
 if(this.async){
 if(this.parent){
@@ -597,7 +598,7 @@ switch(this.ndata[0]){case 0:
 
 
 
-if(typeof this.l=="function"&&this.l.apply){
+if(typeof this.l=="function"){
 rv=this.l.apply(null,this.pars);
 }else if(!testIsFunction(this.l)){
 
