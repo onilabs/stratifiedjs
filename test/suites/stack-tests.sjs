@@ -249,14 +249,52 @@ test('tail call (ef concating)', "this_file:#{line+2}\nthis_file:#{line+7}\nthis
 });
 
 
-line=233;
-test('tail call 2', "this_file:#{line+4}\nthis_file:#{line+7}", function() {
+line=252;
+test('long recursive callstack pruning', true, function() {
+  var depth = 1000;
 
-  function inner() {
-    hold(0); throw new Error('inner error');
+  function recurse() {
+    hold(0);
+    if (--depth)
+      recurse();
+    else
+      throw new Error('inner error');
   }
-  function outer() {
-    inner();
+  try {
+    recurse();
   }
-  return stack_from_running(outer);
+  catch (e) {
+    return (e.toString().indexOf('...(frames omitted)') != -1);
+  }
+  return false;
 });
+
+line=252;
+test('long recursive callstack pruning 2', true, function() {
+  var depth = 1000;
+
+  function recurse1() {
+    hold(0);
+    if (--depth)
+      recurse2();
+    else
+      throw new Error('inner error');
+  }
+
+
+  function recurse2() {
+    hold(0);
+    if (--depth)
+      recurse1();
+    else
+      throw new Error('inner error');
+  }
+  try {
+    recurse1();
+  }
+  catch (e) {
+    return (e.toString().indexOf('...(frames omitted)') != -1);
+  }
+  return false;
+});
+

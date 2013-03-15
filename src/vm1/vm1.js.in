@@ -64,6 +64,9 @@ var UNDEF; // == undefined
 // on firefox this seems to help, on v8 it doesn't :-/
 //#define HOTPATH 1
 
+// maximum size of callstack that we'll record in tail-recursive scenarios:
+#define MAX_CALLSTACK 20
+
 //----------------------------------------------------------------------
 // Control Flow Exceptions
 
@@ -96,11 +99,6 @@ function CFException_toString() {
   return rv;
 }
 
-function annotate_exception_stack(e, file, lineno) {
-  if (e.val._oniE !== token_oniE || !file || !lineno) return;
-  e.val.__oni_stack.push([file, lineno]);
-};
-
 function adopt_native_stack(e, caller_module) {
   if(!e.stack)
     return;
@@ -132,9 +130,10 @@ function CFException(type, value, line, file) {
   this.type = type;
   this.val = value;
   // XXX checking for "value instanceof Error" alone doesn't work for some errors on firefox
-  if (type == "t") {
-    if ((value instanceof Error || (typeof value == "object" && value.message)) && 
-        value._oniE !== token_oniE) {
+  if (type == "t" && 
+      (value instanceof Error || (typeof value == 'object' && value.message))) {
+    if (value._oniE !== token_oniE) {
+      // annotate the exception object with our oni-special fields:
       value._oniE = token_oniE;
       value.__oni_stack = [];
       value.line = line;
@@ -144,7 +143,10 @@ function CFException(type, value, line, file) {
 
       if (!value.hasOwnProperty('toString')) value.toString = CFException_toString;
     }
-    annotate_exception_stack(this, file || 'unknown SJS source', line); 
+
+    // push current line/file onto stack (if provided):
+    if (line)
+      value.__oni_stack.push([file || 'unknown SJS source', line]);
   }
   // this.ef = UNDEF;  // 'execution frame' tag for targetted return/break/continue
 }
@@ -198,7 +200,14 @@ var EF_Proto = {
       // merge callstacks of old & new childframes:
       if (ef.callstack) {
         // stack-tests 17
+
+        // concat stacks; potentially dropping frames in the middle if
+        // we go above MAX_CALLSTACK:
         ef.callstack = ef.callstack.concat(this.child_frame.callstack);
+        if (ef.callstack.length > MAX_CALLSTACK)
+          ef.callstack.splice(MAX_CALLSTACK/2, 
+                              ef.callstack.length-MAX_CALLSTACK+1, 
+                              ['    ...(frames omitted)']);
       }
       else {
         // stack-tests 16
@@ -227,9 +236,8 @@ var EF_Proto = {
   },
 
   returnToParent: function(val) {
-    if(is_cfx(val) && val.type == 't' && this.callstack) {
-      for (var i=0; i<this.callstack.length; ++i)
-        annotate_exception_stack(val, this.callstack[i][0], this.callstack[i][1]);
+    if(is_cfx(val) && val.type == 't' && this.callstack && val.val.__oni_stack) {
+      val.val.__oni_stack = val.val.__oni_stack.concat(this.callstack);
     }
     if (this.swallow_r) {
       if (is_cfx(val)) {
