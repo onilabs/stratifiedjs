@@ -50,6 +50,8 @@ var __oni_rt={};(function(exports){var UNDEF;
 
 
 
+
+
 function CFException_toString(){var rv=this.name+": "+this.message;
 
 if(this.__oni_stack){
@@ -64,11 +66,6 @@ rv+='\n'+line;
 }
 return rv;
 }
-
-function annotate_exception_stack(e,file,lineno){if(e.val._oniE!==token_oniE||!file||!lineno)return;
-
-e.val.__oni_stack.push([file,lineno]);
-};
 
 function adopt_native_stack(e,caller_module){if(!e.stack)return;
 
@@ -101,8 +98,9 @@ function CFException(type,value,line,file){this.type=type;
 
 this.val=value;
 
-if(type=="t"){
-if((value instanceof Error||(typeof value=="object"&&value.message))&&value._oniE!==token_oniE){
+if(type=="t"&&(value instanceof Error||(typeof value=='object'&&value.message))){
+
+if(value._oniE!==token_oniE){
 
 value._oniE=token_oniE;
 value.__oni_stack=[];
@@ -113,7 +111,10 @@ adopt_native_stack(value,file);
 
 if(!value.hasOwnProperty('toString'))value.toString=CFException_toString;
 }
-annotate_exception_stack(this,file||'unknown SJS source',line);
+
+
+if(line)value.__oni_stack.push([file||'unknown SJS source',line]);
+
 }
 
 }
@@ -163,7 +164,14 @@ if(this.child_frame&&this.child_frame.callstack){
 
 if(ef.callstack){
 
+
+
+
 ef.callstack=ef.callstack.concat(this.child_frame.callstack);
+if(ef.callstack.length>20)ef.callstack.splice(20/2,ef.callstack.length-20+1,['    ...(frames omitted)']);
+
+
+
 }else{
 
 
@@ -191,10 +199,9 @@ return this.child_frame.abort();
 
 },returnToParent:function(val){
 
-if((val instanceof CFException)&&val.type=='t'&&this.callstack){
+if((val instanceof CFException)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
 
-for(var i=0;i<this.callstack.length;++i)annotate_exception_stack(val,this.callstack[i][0],this.callstack[i][1]);
-
+val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
 if(this.swallow_r){
 if((val instanceof CFException)){
