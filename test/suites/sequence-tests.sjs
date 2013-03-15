@@ -152,7 +152,7 @@ test('each doesn\'t swallow all exceptions', 'expected error', function() {
     s.each([1,2,3], function() { throw new Error("expected error"); });
     return "no error thrown!"
   } catch (e) {
-    return e.getMessage();
+    return e.message;
   }
 });
 
@@ -239,7 +239,7 @@ test('reduce1 on empty array', 'reduce1 on empty sequence', function() {
   try {
     return s.reduce1([], function() { throw 'should not be run'; }, 'reduce1 on empty sequence');
   } catch(e) {
-    return e.getMessage();
+    return e.message;
   }
 });
 

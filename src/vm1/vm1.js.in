@@ -97,7 +97,7 @@ function CFException_toString() {
 }
 
 function annotate_exception_stack(e, file, lineno) {
-  if (!file || !lineno) return;
+  if (e.val._oniE !== token_oniE || !file || !lineno) return;
   e.val.__oni_stack.push([file, lineno]);
 };
 
@@ -250,7 +250,8 @@ var EF_Proto = {
     this.unreturnable = true;
 
     // a little cleanup which might aid GC:
-    this.env = UNDEF;
+    // XXX this breaks function-tests.sjs:8
+    // this.env = UNDEF;
 
     if (this.async) {
       if (this.parent) {
@@ -358,7 +359,7 @@ function copyEnv(e) {
 
 //----------------------------------------------------------------------
 // C : instruction node for function calls with non-blocking args
-// Calls the given function with 'this' set to current environment (XXX check if needed)
+// Calls the given function with 'this' set to current environment 
 
 // structure of ndata array:
 #define NDATA_CALL_JSFUNC() ndata[0]
@@ -367,7 +368,7 @@ function I_call(ndata, env) {
   try {
     var rv = (NDATA_CALL_JSFUNC()).call(env);
     if (is_ef(rv)) {
-    // need to collect the callstack on EF here!!!
+      // collect callstack on the execution frame:
       if (!rv.callstack) rv.callstack = [];
       rv.callstack.push([env.file, NDATA_CALL_LINENO()]);
     }
@@ -754,7 +755,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       case 0:
       // 'normal' call
       // this optimization gives at least 10% performance boost vs 'eval'
-      if (typeof this.l == "function" && this.l.apply /* required for regexes on chrome (and others?) */) {
+      if (typeof this.l == "function") {
         rv = this.l.apply(null, this.pars);
       } 
       else if (!testIsFunction(this.l)) {
