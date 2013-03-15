@@ -1,3 +1,4 @@
+array-tests.sjs xbrowser,nodejs
 child-process-tests.sjs nodejs
 cutil-tests.sjs xbrowser,nodejs
 dom-tests.sjs xbrowser
@@ -7,6 +8,7 @@ http-tests.sjs xbrowser,nodejs
 logging-test.sjs xbrowser,nodejs
 lru-cache-tests.sjs xbrowser,nodejs
 nodejs-stream-tests.sjs nodejs
+object-tests.sjs xbrowser,nodejs
 perf-tests.sjs xbrowser,nodejs
 perf-tests2.sjs xbrowser,nodejs
 quasi-tests.sjs xbrowser,nodejs
