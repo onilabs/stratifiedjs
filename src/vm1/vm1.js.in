@@ -194,17 +194,17 @@ var EF_Proto = {
   __oni_ef : true,
 
   setChildFrame: function(ef, idx) {
-/*    if (this.child_frame && this.child_frame.callstack) {
-      // copy callstack
+    if (this.child_frame && this.child_frame.callstack) {
+      // merge callstacks of old & new childframes:
       if (ef.callstack) {
-        console.log('concating callstack')
+        // stack-tests 17
         ef.callstack = ef.callstack.concat(this.child_frame.callstack);
       }
       else {
-        console.log('copying callstack');
+        // stack-tests 16
         ef.callstack = this.child_frame.callstack;
       }
-    } */
+    }
     this.async = true;
     this.child_frame = ef;
     ef.parent = this;

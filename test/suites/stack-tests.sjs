@@ -8,7 +8,7 @@ var clean_stack = function(e) { return String(e).replace(/module [^ ]*stack-test
 var line;
 var stack_from_running = function(f) {
   try {
-    f.apply(this, arguments);
+    f();
   } catch(e) {
     //puts('\n---- STACK: -----\n' + (e.stack)); puts('\n---- CLEANED STACK: -----\n' + (clean_stack(e)));
     return clean_stack(e);
@@ -219,3 +219,44 @@ test('codepath 4', "this_file:#{line+7}\nthis_file:#{line+2}\nthis_file:#{line+2
   return stack_from_running(function() { outer(id(true)); }); // line + 25
 });
 
+line=222;
+test('tail call (ef copying)', "this_file:#{line+6}\nthis_file:#{line+9}", function() {
+  function inner() {
+    // cause inner's ef to be returned:
+    hold(0); 
+    // cause the returned ef to be replaced by a new one (tail call):
+    throw new Error(hold(0),'inner error');
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+line=236;
+test('tail call (ef concating)', "this_file:#{line+2}\nthis_file:#{line+7}\nthis_file:#{line+10}", function() {
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // cause inner's ef to be returned:
+    hold(0); 
+    // cause the returned ef to be replaced by a new one (tail call):
+    inner2();
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+
+line=233;
+test('tail call 2', "this_file:#{line+4}\nthis_file:#{line+7}", function() {
+
+  function inner() {
+    hold(0); throw new Error('inner error');
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
