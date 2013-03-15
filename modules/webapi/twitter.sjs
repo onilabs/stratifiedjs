@@ -31,129 +31,13 @@
  */
 /**
   @module    webapi/twitter
-  @summary   Stratified bindings to the client-side Twitter API.
+  @summary   Stratified bindings to the Twitter API.
   @home      sjs:webapi/twitter
-  @hostenv   xbrowser
 */
 
 var sys = require('builtin:apollo-sys');
-if (require('builtin:apollo-sys').hostenv != 'xbrowser') 
-  throw new Error('The webapi/twitter module only runs in an xbrowser environment');
 
 var http = require("../http");
-var { extend } = require("../object");
-
-/**
-  @function initAnywhere
-  @summary Load Twitter @Anywhere and install stratified functions for accessing the full RESTful Twitter API.
-  @param {optional Object} [settings] Hash of settings
-  @return {Object} Twitter API Client object with stratified functions *call* and *waitforEvent*, see below.
-  @setting {String} [v=1] Version of API to load.
-  @setting {String} [id] API key.
-  @desc
-    See https://dev.twitter.com/docs/anywhere/welcome for an introduction to the
-    Twitter @Anywhere library.
-
-    *initAnywhere* returns the **Twitter API Client** object (the object named
-    **T** in the @Anywhere docs). 
-
-    Two extra functions will be installed on the API Client:
-
-    - *call(method, params)*: make a (stratified) call to the RESTful
-    Twitter API (see http://dev.twitter.com/doc). If the call fails,
-    *call* throws an exception with 'detail' member that contains more
-    information about the error.  See also example below.
-
-    - *waitforEvent(event)*: wait for an @Anywhere event, such as e.g. "authComplete".
-
-    ###Typical usage
-
-    See http://fatc.onilabs.com for a complete example of how to use
-    this API. The idea is to use the @Anywhere API for
-    authentication to Twitter and the use *call* to make calls
-    directly to the RESTful Twitter API, rather than going through the @Anywhere abstractions.
-
-    ###Example
-
-        var T = require('sjs:webapi/twitter').initAnywhere({id:MY_API_KEY});
-        T("#login").connectButton(); // show twitter connect button
-        if (!T.isConnected()) 
-          T.waitforEvent("authComplete");
-        ...
-        var profile = T.call("users/show", {user_id: T.currentUser.id});
-        ...
-        var tweets = T.call("statuses/home_timeline", {count:30});
-        ...
-        try {
-          var tweet = T.call("favorites/create/:id", [ SOME_TWEET_ID ]);
-        }
-        catch (e) {
-          console.log(e);
-          console.log(e.detail);
-        }
-        ...
-
-*/
-exports.initAnywhere = function(settings) {
-  settings = extend(
-    { v : "1" },
-    settings);
-  if (!window['twttr'])
-    require("../xbrowser/dom").script([
-      "http://platform.twitter.com/anywhere.js", settings
-    ]);
-  
-  try {
-    waitfor(var _t) {
-      twttr.anywhere(resume);
-    };
-  }
-  catch (e) {
-    // twttr.anywhere throws exceptions as strings, not as 'new
-    // Error'. Wrap them here so that they show nicely in the IE
-    // console, etc.
-    if (!(e instanceof Error))
-      e = new Error(e);
-    throw e;
-  }
-
-  var _tw = twttr.anywhere._instances[_t.version].contentWindow.twttr;
-  
-  /*
-  _tw.klass("twttr.anywhere.proxies.Collection").methods({
-    $: function() {
-      waitfor(var dummy, rv) {
-        _tw.anywhere.api.util.chain.bind(this.event, resume);
-      }
-      return rv;
-    }
-  });
-  */
-  
-  _t.call = function(method, params) {
-    waitfor(var rv, success) {
-      params = params || {};
-      _tw.anywhere.remote.call(method, [params], {
-        success: function(rv) { resume(rv, true); },
-        error: function(rv) { resume(rv, false); } 
-      });
-    }
-    if (!success) {
-      var e = new Error("twitter request error");
-      e.detail = rv;
-      throw e;
-    }
-    return rv;
-  };
-  
-  _t.waitforEvent = function(name) {
-    waitfor(var rv) {
-      _t.one(name, resume);
-    }
-    return rv;
-  }
-  return _t;
-};
 
 /**
   @function  getProfile
