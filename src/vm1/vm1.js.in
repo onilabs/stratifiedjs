@@ -643,6 +643,7 @@ EF_Sc.prototype.cont = function(idx, val) {
     return this.returnToParent(val);
   }
   else {
+    this.child_frame = null; // prevent callstack copying; stack-tests 20
     if (idx == 1) {
       // handle a result that has been passed in
       this.pars.push(val);

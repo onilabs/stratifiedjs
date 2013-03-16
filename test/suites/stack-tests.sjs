@@ -298,3 +298,19 @@ test('long recursive callstack pruning 2', true, function() {
   return false;
 });
 
+line=301;
+test('callstack copying edgecase (Sc)', "this_file:#{line+3}\nthis_file:#{line+8}\nthis_file:#{line+11}", function() {
+  function should_not_be_on_stack() { hold(0); return 1;}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create an Sc(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    return should_not_be_on_stack() + inner2();
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+
+});
