@@ -517,6 +517,7 @@ this.setChildFrame(val,idx);
 return this.returnToParent(val);
 }else{
 
+this.child_frame=null;
 if(idx==1){
 
 this.pars.push(val);
