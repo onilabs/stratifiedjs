@@ -677,7 +677,7 @@ case 2:
 
 
 var ctor=this.l;
-if(ctor&&/\{ \[native code\] \}$/.exec(ctor.toString())){
+if(ctor&&(/\{ \[native code\] \}$/.exec(ctor.toString())||ctor==Buffer)){
 
 
 var pars=this.pars;

@@ -837,7 +837,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       // builtin objects and user functions :-(
       var ctor = this.l;
 #ifdef NODEJS
-      if (ctor && /\{ \[native code\] \}$/.exec(ctor.toString())) {
+      if (ctor && (/\{ \[native code\] \}$/.exec(ctor.toString()) || ctor == Buffer)) {
 #else
       if (ctor && (ctor == Array || ctor == Boolean || ctor == Date || ctor == Error || ctor == EvalError || ctor == Function || ctor == Math || ctor == Number || ctor == Object || ctor == RangeError || ctor == ReferenceError || ctor == RegExp || ctor == String || ctor == SyntaxError || ctor == TypeError || ctor == URIError ||
 #ifdef CLIENTSIDE
