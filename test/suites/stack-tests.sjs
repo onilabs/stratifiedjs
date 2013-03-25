@@ -314,3 +314,65 @@ test('callstack copying edgecase (Sc)', "this_file:#{line+3}\nthis_file:#{line+8
   return stack_from_running(outer);
 
 });
+
+line=318;
+test('callstack copying edgecase (Switch 1)', "this_file:#{line+3}\nthis_file:#{line+9}\nthis_file:#{line+14}", function() {
+  function should_not_be_on_stack() { hold(0); return 1;}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create a Switch(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    switch (should_not_be_on_stack()) {
+      case inner2():
+        return 'dummy';
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+line=337;
+test('callstack copying edgecase (Switch 2)', "this_file:#{line+3}\nthis_file:#{line+10}\nthis_file:#{line+15}", function() {
+  function should_not_be_on_stack() { hold(0); return 1;}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create a Switch(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    switch (1) {
+    case should_not_be_on_stack():
+      inner2();
+      return 'dummy';
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+line=357;
+test('callstack copying edgecase (Try/Catch)', "this_file:#{line+3}\nthis_file:#{line+12}\nthis_file:#{line+16}", function() {
+  function should_not_be_on_stack() { hold(0); throw 'foo';}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create a Try(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    try { 
+      should_not_be_on_stack();
+    }
+    catch(e) {
+      inner2();
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+
