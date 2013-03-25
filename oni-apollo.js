@@ -946,8 +946,9 @@ val=this.ndata[2](this.env,v);
 if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3])return this.returnToParent(val);
 
 
-this.child_frame=null;
+
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val);
 return this;
 }
@@ -968,6 +969,7 @@ val=execIN(this.ndata[4],this.env);
 
 
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val);
 return this;
 }
@@ -980,6 +982,7 @@ val=execIN(this.ndata[3],this.env);
 
 
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val);
 return this;
 }
