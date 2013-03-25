@@ -1155,8 +1155,9 @@ EF_Try.prototype.cont = function(idx, val) {
       if (!this.NDATA_TRY_RETRACT_BLOCK && !this.NDATA_TRY_FINALLY_BLOCK())
         return this.returnToParent(val);
 
-      this.child_frame = null; // prevent callstack copying; stack-tests 23
+
       if (is_ef(val)) {
+        this.child_frame = null; // prevent callstack copying; stack-tests 23        
         this.setChildFrame(val);
         return this;
       }
@@ -1177,6 +1178,7 @@ EF_Try.prototype.cont = function(idx, val) {
 
 
       if (is_ef(val)) {
+        this.child_frame = null; // prevent unnecessary callstack copying
         this.setChildFrame(val);
         return this;
       }
@@ -1189,6 +1191,7 @@ EF_Try.prototype.cont = function(idx, val) {
       // we can't tail-call this, because we might have to return
       // the stored rv (if it is an exception)
       if (is_ef(val)) {
+        this.child_frame = null; // prevent unnecessary callstack copying
         this.setChildFrame(val);
         return this;
       }
