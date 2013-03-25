@@ -601,6 +601,7 @@ rv=execIN(this.ndata[this.i],this.env);
 ++this.i;
 if((rv instanceof CFException))return this.returnToParent(rv);
 if(is_ef(rv)){
+this.child_frame=null;
 this.setChildFrame(rv,1);
 return this;
 }
@@ -842,6 +843,7 @@ return this;
 if(++idx>=this.ndata[1].length)return this.returnToParent(null);
 
 
+this.child_frame=null;
 val=execIN(this.ndata[1][idx][0],this.env);
 }
 this.phase=2;
@@ -861,6 +863,7 @@ return this.returnToParent(val);
 if(idx>=this.ndata[1].length){
 return this.returnToParent(val);
 }
+this.child_frame=null;
 val=execIN(this.ndata[1][idx][1],this.env);
 ++idx;
 }
@@ -912,7 +915,6 @@ if(!this.aborted&&this.ndata[2]&&(((val instanceof CFException)&&val.type=="t")|
 
 
 
-try{
 var v;
 if(this.ndata[0]&1){
 
@@ -922,11 +924,12 @@ v=(val instanceof CFException)?[val.val,true]:[val,false];
 
 
 val=this.ndata[2](this.env,v);
-}catch(e){
 
 
-val=new CFException("t",e);
-}
+if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3])return this.returnToParent(val);
+
+
+this.child_frame=null;
 if(is_ef(val)){
 this.setChildFrame(val);
 return this;
@@ -940,6 +943,13 @@ this.state=3;
 this.rv=val;
 if(this.aborted&&this.ndata[4]){
 val=execIN(this.ndata[4],this.env);
+
+
+
+
+
+
+
 if(is_ef(val)){
 this.setChildFrame(val);
 return this;
