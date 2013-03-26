@@ -146,6 +146,25 @@ function setEFProto(t){for(var p in EF_Proto)t[p]=EF_Proto[p]}
 
 
 
+function mergeCallstacks(target_ef,src_ef){if(target_ef.callstack){
+
+
+
+
+
+target_ef.callstack=target_ef.callstack.concat(src_ef.callstack);
+if(target_ef.callstack.length>20)target_ef.callstack.splice(20/2,target_ef.callstack.length-20+1,['    ...(frames omitted)']);
+
+
+
+}else{
+
+
+target_ef.callstack=src_ef.callstack;
+}
+}
+
+
 var EF_Proto={toString:function(){
 return "<suspended SJS>"},__oni_ef:true,setChildFrame:function(ef,idx){
 
@@ -153,21 +172,7 @@ return "<suspended SJS>"},__oni_ef:true,setChildFrame:function(ef,idx){
 if(this.child_frame&&this.child_frame.callstack){
 
 
-if(ef.callstack){
-
-
-
-
-ef.callstack=ef.callstack.concat(this.child_frame.callstack);
-if(ef.callstack.length>20)ef.callstack.splice(20/2,ef.callstack.length-20+1,['    ...(frames omitted)']);
-
-
-
-}else{
-
-
-ef.callstack=this.child_frame.callstack;
-}
+mergeCallstacks(ef,this.child_frame);
 }
 this.async=true;
 this.child_frame=ef;
@@ -1141,6 +1146,7 @@ this.setChildFrame(val,idx);
 if(idx==0){
 val=execIN(this.ndata[0],this.env);
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,1);
 return this;
 }
@@ -1173,6 +1179,7 @@ if(is_ef(val))this.remainingX=[];
 }
 if(is_ef(val)){
 if(!this.remainingX)this.remainingX=[];
+this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
 }
@@ -1196,6 +1203,7 @@ if(this.remainingX.length)continue;
 return this.returnToParent(val);
 }
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
 }
@@ -1340,8 +1348,12 @@ this.async=true;
 return this;
 };
 
-EF_Par.prototype.setChildFrame=function(ef,idx){this.children[idx]=ef;
+EF_Par.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
 
+
+mergeCallstacks(ef,this.children[idx]);
+}
+this.children[idx]=ef;
 ef.parent=this;
 ef.parent_idx=idx;
 };
@@ -1496,8 +1508,12 @@ this.async=true;
 return this;
 };
 
-EF_Alt.prototype.setChildFrame=function(ef,idx){this.children[idx]=ef;
+EF_Alt.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
 
+
+mergeCallstacks(ef,this.children[idx]);
+}
+this.children[idx]=ef;
 ef.parent=this;
 ef.parent_idx=idx;
 };
