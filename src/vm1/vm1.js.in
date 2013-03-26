@@ -186,6 +186,25 @@ function setEFProto(t) { for (var p in EF_Proto) t[p] = EF_Proto[p]; }
 //function setEFProto(t) { t.__proto__ = EF_Proto; }
 
 
+// helper to merge callstacks of two execution frames:
+function mergeCallstacks(target_ef, src_ef) {
+  if (target_ef.callstack) {
+    // stack-tests 17
+    
+    // concat stacks; potentially dropping frames in the middle if
+    // we go above MAX_CALLSTACK:
+    target_ef.callstack = target_ef.callstack.concat(src_ef.callstack);
+    if (target_ef.callstack.length > MAX_CALLSTACK)
+      target_ef.callstack.splice(MAX_CALLSTACK/2, 
+                                 target_ef.callstack.length-MAX_CALLSTACK+1, 
+                                 ['    ...(frames omitted)']);
+  }
+  else {
+    // stack-tests 16
+    target_ef.callstack = src_ef.callstack;
+  }
+}
+
 // base prototype object for execution frames
 var EF_Proto = {
 #ifdef EF_TYPES
@@ -198,21 +217,7 @@ var EF_Proto = {
   setChildFrame: function(ef, idx) {
     if (this.child_frame && this.child_frame.callstack) {
       // merge callstacks of old & new childframes:
-      if (ef.callstack) {
-        // stack-tests 17
-
-        // concat stacks; potentially dropping frames in the middle if
-        // we go above MAX_CALLSTACK:
-        ef.callstack = ef.callstack.concat(this.child_frame.callstack);
-        if (ef.callstack.length > MAX_CALLSTACK)
-          ef.callstack.splice(MAX_CALLSTACK/2, 
-                              ef.callstack.length-MAX_CALLSTACK+1, 
-                              ['    ...(frames omitted)']);
-      }
-      else {
-        // stack-tests 16
-        ef.callstack = this.child_frame.callstack;
-      }
+      mergeCallstacks(ef, this.child_frame);
     }
     this.async = true;
     this.child_frame = ef;
@@ -1389,6 +1394,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
     if (idx == 0) {
       val = execIN(this.NDATA_FORIN_OBJ(), this.env);
       if (is_ef(val)) {
+        this.child_frame = null; // prevent callstack copying
         this.setChildFrame(val, 1);
         return this;
       }
@@ -1421,6 +1427,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
       }
       if (is_ef(val)) {
         if (!this.remainingX) this.remainingX = [];
+        this.child_frame = null; // prevent callstack copying
         this.setChildFrame(val, 2);
         return this;
       }
@@ -1444,6 +1451,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
           return this.returnToParent(val);
         }
         if (is_ef(val)) {
+          this.child_frame = null; // prevent callstack copying
           this.setChildFrame(val, 2);
           return this;
         }
@@ -1596,6 +1604,10 @@ EF_Par.prototype.abortInner = function() {
 };
 
 EF_Par.prototype.setChildFrame = function(ef, idx) {
+  if (this.children[idx] && this.children[idx].callstack) {
+    // merge callstacks of old & new childframes (stack-tests 28)
+    mergeCallstacks(ef, this.children[idx]);
+  }
   this.children[idx] = ef;
   ef.parent = this;
   ef.parent_idx = idx;
@@ -1759,6 +1771,10 @@ EF_Alt.prototype.abortInner = function() {
 };
 
 EF_Alt.prototype.setChildFrame = function(ef, idx) {
+  if (this.children[idx] && this.children[idx].callstack) {
+    // merge callstacks of old & new childframes (stack-tests 29)
+    mergeCallstacks(ef, this.children[idx]);
+  }
   this.children[idx] = ef;
   ef.parent = this;
   ef.parent_idx = idx;

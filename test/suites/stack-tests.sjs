@@ -451,3 +451,47 @@ test('callstack copying edgecase (Loop 4)', "this_file:#{line+3}\nthis_file:#{li
   }
   return stack_from_running(outer);
 });
+
+line=455;
+test('callstack copying edgecase (Par)', "this_file:#{line+3}\nthis_file:#{line+6}\nthis_file:#{line+10}\nthis_file:#{line+17}", function() {
+  function should_not_be_on_stack() { hold(0); return true}
+  function inner3() { hold(0); throw new Error('inner error'); }
+  function inner2() {
+    should_not_be_on_stack();
+    return inner3();
+  }
+  function inner() {
+    waitfor {
+      inner2();
+    }
+    and {
+      hold();
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+line=477;
+test('callstack copying edgecase (Alt)', "this_file:#{line+3}\nthis_file:#{line+6}\nthis_file:#{line+10}\nthis_file:#{line+17}", function() {
+  function should_not_be_on_stack() { hold(0); return true}
+  function inner3() { hold(0); throw new Error('inner error'); }
+  function inner2() {
+    should_not_be_on_stack();
+    return inner3();
+  }
+  function inner() {
+    waitfor {
+      inner2();
+    }
+    or {
+      hold();
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
