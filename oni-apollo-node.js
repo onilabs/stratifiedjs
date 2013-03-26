@@ -1048,6 +1048,7 @@ return this.returnToParent(val);
 
 val=execIN(this.ndata[1],this.env);
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
 }
@@ -1091,6 +1092,7 @@ if(idx>=this.ndata.length)break;
 val=execIN(this.ndata[idx+1],this.env);
 ++idx;
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,idx);
 return this;
 }
@@ -1102,6 +1104,7 @@ if(this.ndata[2]){
 
 val=execIN(this.ndata[2],this.env);
 if(is_ef(val)){
+this.child_frame=null;
 this.setChildFrame(val,0);
 return this;
 }
