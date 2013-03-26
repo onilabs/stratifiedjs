@@ -1286,6 +1286,7 @@ EF_Loop.prototype.cont = function(idx, val) {
         // perform loop test
         val = execIN(this.NDATA_LOOP_TEST(), this.env);
         if (is_ef(val)) {
+          this.child_frame = null; // prevent callstack copying; stack-tests 26
           this.setChildFrame(val, 2);
           return this;
         }
@@ -1329,6 +1330,7 @@ EF_Loop.prototype.cont = function(idx, val) {
           val = execIN(this.NDATA_LOOP_BODY(idx), this.env);
           ++idx;
           if (is_ef(val)) {
+            this.child_frame = null; // prevent callstack copying; stack-tests 24 & 25
             this.setChildFrame(val, idx);
             return this;
           }
@@ -1340,6 +1342,7 @@ EF_Loop.prototype.cont = function(idx, val) {
         // perform inc
         val = execIN(this.NDATA_LOOP_INC(), this.env);
         if (is_ef(val)) {
+          this.child_frame = null; // prevent callstack copying; stack-tests 27
           this.setChildFrame(val, 0);
           return this;
         }

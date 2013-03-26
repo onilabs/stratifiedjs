@@ -251,7 +251,9 @@ test('tail call (ef concating)', "this_file:#{line+2}\nthis_file:#{line+7}\nthis
 
 line=252;
 test('long recursive callstack pruning', true, function() {
-  var depth = 1000;
+  // less depth in browser-based apollo, because every hold(0) is a
+  // timeout, taking much longer that nextTick on nodejs
+  var depth = require('builtin:apollo-sys').hostenv == 'nodejs' ? 1000 : 100;
 
   function recurse() {
     hold(0);
@@ -269,9 +271,11 @@ test('long recursive callstack pruning', true, function() {
   return false;
 });
 
-line=252;
+line=274;
 test('long recursive callstack pruning 2', true, function() {
-  var depth = 1000;
+  // less depth in browser-based apollo, because every hold(0) is a
+  // timeout, taking much longer that nextTick on nodejs
+  var depth = require('builtin:apollo-sys').hostenv == 'nodejs' ? 1000 : 100;
 
   function recurse1() {
     hold(0);
@@ -298,7 +302,7 @@ test('long recursive callstack pruning 2', true, function() {
   return false;
 });
 
-line=301;
+line=305;
 test('callstack copying edgecase (Sc)', "this_file:#{line+3}\nthis_file:#{line+8}\nthis_file:#{line+11}", function() {
   function should_not_be_on_stack() { hold(0); return 1;}
   function inner2() { hold(0); throw new Error('inner error'); }
@@ -315,7 +319,7 @@ test('callstack copying edgecase (Sc)', "this_file:#{line+3}\nthis_file:#{line+8
 
 });
 
-line=318;
+line=322;
 test('callstack copying edgecase (Switch 1)', "this_file:#{line+3}\nthis_file:#{line+9}\nthis_file:#{line+14}", function() {
   function should_not_be_on_stack() { hold(0); return 1;}
   function inner2() { hold(0); throw new Error('inner error'); }
@@ -334,7 +338,7 @@ test('callstack copying edgecase (Switch 1)', "this_file:#{line+3}\nthis_file:#{
   return stack_from_running(outer);
 });
 
-line=337;
+line=341;
 test('callstack copying edgecase (Switch 2)', "this_file:#{line+3}\nthis_file:#{line+10}\nthis_file:#{line+15}", function() {
   function should_not_be_on_stack() { hold(0); return 1;}
   function inner2() { hold(0); throw new Error('inner error'); }
@@ -354,7 +358,7 @@ test('callstack copying edgecase (Switch 2)', "this_file:#{line+3}\nthis_file:#{
   return stack_from_running(outer);
 });
 
-line=357;
+line=361;
 test('callstack copying edgecase (Try/Catch)', "this_file:#{line+3}\nthis_file:#{line+12}\nthis_file:#{line+16}", function() {
   function should_not_be_on_stack() { hold(0); throw 'foo';}
   function inner2() { hold(0); throw new Error('inner error'); }
@@ -375,4 +379,75 @@ test('callstack copying edgecase (Try/Catch)', "this_file:#{line+3}\nthis_file:#
   return stack_from_running(outer);
 });
 
+line=382;
+test('callstack copying edgecase (Loop 1)', "this_file:#{line+3}\nthis_file:#{line+9}\nthis_file:#{line+13}", function() {
+  function should_not_be_on_stack() { hold(0); return true}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create a Loop(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    while(should_not_be_on_stack()) {
+      inner2();
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
 
+line=400;
+test('callstack copying edgecase (Loop 2)', "this_file:#{line+3}\nthis_file:#{line+10}\nthis_file:#{line+14}", function() {
+  function should_not_be_on_stack() { hold(0); return true}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create a Loop(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    while(1) {
+      should_not_be_on_stack();
+      inner2();
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+line=419;
+test('callstack copying edgecase (Loop 3)', "this_file:#{line+3}\nthis_file:#{line+10}\nthis_file:#{line+13}", function() {
+  function should_not_be_on_stack() { hold(0); return true}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create a Loop(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    do {
+      should_not_be_on_stack();
+    } while (inner2())
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
+
+line=437;
+test('callstack copying edgecase (Loop 4)', "this_file:#{line+3}\nthis_file:#{line+8}\nthis_file:#{line+13}", function() {
+  function should_not_be_on_stack() { hold(0); return true}
+  function inner2() { hold(0); throw new Error('inner error'); }
+  function inner() {
+    // create a Loop(..) execution frame with should_not_be_on_stack
+    // child_frame which will be replaced by the inner2 child_frame.
+    // The stack must not be copied between the two child_frames
+    for(;;inner2()) {
+      should_not_be_on_stack();
+    }
+  }
+  function outer() {
+    inner();
+  }
+  return stack_from_running(outer);
+});
