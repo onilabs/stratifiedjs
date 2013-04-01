@@ -47,7 +47,7 @@ if (require('builtin:apollo-sys').hostenv != 'xbrowser')
 
 var { extend } = require('../object');
 var str = require('../string');
-var { each } = require('../sequence');
+var { each, map, join } = require('../sequence');
 var { remove } = require('../array');
 
 //----------------------------------------------------------------------
@@ -468,7 +468,7 @@ Console.prototype = {
           var message = ex ? ex.toString() : "<Error>";
           if (message == "[object Error]") message = ex.message || "<Error>";
           var lines = message.split("\n");
-          result.innerHTML = collection.map(lines, str.sanitize).join("<br/>");
+          result.innerHTML = join(map(lines, str.sanitize), "<br/>");
         }
       }
       or {
