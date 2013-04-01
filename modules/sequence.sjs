@@ -143,7 +143,7 @@ function each(sequence, r) {
     for (var i=0,l=sequence.length; i<l; ++i)
       r(sequence.charAt(i));
   else
-    throw "sequence::each: Unsupported sequence type '#{sequence}'";
+    throw new Error("sequence::each: Unsupported sequence type '#{sequence}'");
 }
 exports.each = each;
 
