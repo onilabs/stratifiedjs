@@ -130,7 +130,7 @@ test('stack from imported JS', (module.fail_normally.expected_stack_lines.join("
   };
   var ret = stack_from_running(caller);
   return ret;
-}); 
+}).serverOnly("Not yet implemented for `xbrowser`");
 
 line=135;
 test('stack from embedded JS', 'this_file:' + (line+11) + '\nthis_file:' + (line + 4) + '\nthis_file:' + (line + 7), function() {
@@ -146,7 +146,7 @@ test('stack from embedded JS', 'this_file:' + (line+11) + '\nthis_file:' + (line
     f1();
   };
   return stack_from_running(caller);
-});
+}).skip("Not yet implemented");
 
 // things to note:
 // - blocklambdas

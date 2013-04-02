@@ -121,14 +121,14 @@ var TestWrapper = function(func) {
 TestWrapper.prototype.skip = function(reason) {
   this.func.skipTest = reason || "pending";
 };
-TestWrapper.prototype.browserOnly = function() {
+TestWrapper.prototype.browserOnly = function(reason) {
   if(!testUtil.isBrowser) {
-    this.skip("browser only");
+    this.skip(reason || "browser only");
   }
 };
-TestWrapper.prototype.serverOnly = function() {
+TestWrapper.prototype.serverOnly = function(reason) {
   if(testUtil.isBrowser) {
-    this.skip("server only");
+    this.skip(reason || "server only");
   }
 };
 
