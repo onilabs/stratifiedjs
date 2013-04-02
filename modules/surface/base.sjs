@@ -521,11 +521,17 @@ var ChildManagement = {
   },
 
   remove: function(ui) {
-    remove(this.children, ui);
+    if (! remove(this.children, ui)) return false;
     ui.dompeer.parentNode.removeChild(ui.dompeer);
     if (ui.isActivated)
       ui.deactivated();
     ui.detached();
+    return true;
+  },
+
+  replaceAll: function(new_children) {
+    this.children .. each { |c| this.remove(c) };
+    new_children .. each { |c| this.append(c); };
   },
 
   activate: function() {
@@ -543,6 +549,7 @@ var ChildManagement = {
   mixinto: function(target) {
     target.init = func.seq(target.init, this.init);
     target.remove = this.remove;
+    target.replaceAll = this.replaceAll;
     target.activate = func.seq(target.activate, this.activate);
     target.activated = func.seq(target.activated, this.activated);
     target.deactivated = func.seq(target.deactivated, this.deactivated);
