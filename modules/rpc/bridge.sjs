@@ -315,6 +315,11 @@ function BridgeConnection(transport, base_api) {
    @param {String} [api_name] 
    @param {optional Transport} [transport=aat-client::Transport]
    @return {::BridgeConnection}
+   @desc
+     **Note**: connecting to a server-side API does a require() on the
+     module in the server's process. Currently there is no way to
+     force the server to reload the module other than restarting the
+     server process.
 */
 exports.connect = function(api_name, transport) {
   if (typeof transport != 'object') {
