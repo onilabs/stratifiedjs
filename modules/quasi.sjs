@@ -157,3 +157,32 @@ function joinQuasis(/*arguments*/) {
     });
 }
 exports.joinQuasis = joinQuasis;
+
+/**
+   @function mapQuasi
+   @param {::Quasi} [quasi...] A quasi
+   @param {::Quasi} [quasi...] A converter function
+   @return {::Array}
+   @summary Replaces each embedded (interpolated) value in quasi with the result of `fn(value)`,
+            and returns these values interleaved with the literals from the quasi
+            (i.e. a copy of `quasi.parts`, but with every second value processed with `fn`).
+   @desc
+     ### Example:
+     
+         var user_input = "<script>";
+         mapQuasi(`Making html safe, one ${user_input} at a time!`, require("sjs:string").sanitize);
+
+     results in:
+
+         ["Making html safe, one ", "&lt;script&gt;", " at a time!"]
+
+*/
+function mapQuasi(quasi, fn) {
+  if (!isQuasi(quasi)) throw new Error("Not a quasi: #{quasi}");
+  var result = quasi.parts.slice();
+  for (var i=1; i<quasi.parts.length; i+=2) {
+    result[i] = fn(result[i]);
+  }
+  return result;
+};
+exports.mapQuasi = mapQuasi;

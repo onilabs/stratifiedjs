@@ -92,3 +92,9 @@ test('logging to debug.console objects',
     nologs: noLogging.loggedMessages
   };
 }).browserOnly();
+
+test("formatting quasis", "INFO: Hello " + require("sjs:debug").inspect({'subject':'world'}), function() {
+  var obj = {subject: "world"};
+  return logging.formatMessage(logging.INFO, `Hello ${obj}`);
+});
+  

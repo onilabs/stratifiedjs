@@ -1,7 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 
-var { Quasi, isQuasi, joinQuasis } = require("sjs:quasi");
+var { Quasi, isQuasi, joinQuasis, mapQuasi } = require("sjs:quasi");
 
 test('isQuasi(``)', true, function() { return isQuasi(``); });
 test('isQuasi(`foo`)', true, function() { return isQuasi(`foo`); });
@@ -23,3 +23,5 @@ test('joinQuasis(`a${1}`,`b`) equals `a${1}b`', `a${1}b`, function() { return jo
 test('joinQuasis(`a`,`${2}b`) equals `a${2}b`', `a${2}b`, function() { return joinQuasis(`a`,`${2}b`); });
 test('joinQuasis(`a${1}`,`${2}b`) equals `a${1}${2}b`', `a${1}${2}b`, function() { return joinQuasis(`a${1}`,`${2}b`); });
 test('joinQuasis(`a${1}`,`${2}b`, `${3}`) equals `a${1}${2}b${3}`', `a${1}${2}b${3}`, function() { return joinQuasis(`a${1}`,`${2}b`, `${3}`); });
+
+test('mapQuasi(`start${0}middle${1}end`, (v) -> v + 1)', ["start",1,"middle",2,"end"], function() { return mapQuasi(`start${0}middle${1}end`, function(val) { return val + 1; }); });
