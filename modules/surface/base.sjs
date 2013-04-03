@@ -571,8 +571,13 @@ __js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UICon
 
 ChildManagement.mixinto(HtmlFragmentElement);
 
-// convert HTML string -> dom node (used in HtmlFragmentElement)
 var makeDomNode = (function() {
+  /* convert HTML string -> dom node (used in HtmlFragmentElement).
+   * This function adapted from JQuery code (src/manipulation.js),
+   * which is distributed under the MIT licence, and is
+   * Copyright 2013 jQuery Foundation and other contributors
+   * http://jquery.com/
+   */
   var rtagName = /<([\w:]+)/;
   var wrapMap = {
     // Support: IE 9
