@@ -55,6 +55,7 @@
 
 var { merge } = require('./object');
 var { supplant } = require('./string');
+var quasi = require('./quasi');
 var sys = require('builtin:apollo-sys');
 
 /**
@@ -181,6 +182,10 @@ exports.defineField = function(key, val) {
 exports.isEnabled = function(lvl) { return currentLevel >= lvl; };
 
 exports.formatMessage = function(lvl, message) {
+  if (quasi.isQuasi(message)) {
+    message = quasi.mapQuasi(message, require("./debug").inspect).join("");
+  }
+
   var fields = {
     level: exports.levelNames[lvl],
     message: message
