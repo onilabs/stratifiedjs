@@ -29,6 +29,7 @@ var serverfs = require('rocket:serverfs');
 var path = require('path');
 var print = function(s) { process.stdout.write(s+"\n") };
 var stream = require('sjs:nodejs/stream');
+var logging = require('sjs:logging');
 
 var compiler_version = (new Date(fs.stat(http.canonicalizeURL('../oni-apollo-node.js', module.id).substr(7)).mtime)).getTime();
 
@@ -39,6 +40,8 @@ function usage() {
   print("");
   print("Options:");
   print("  -h, --help             display this help message");
+  print("  -v, --verbose          increase verbosity (can be used multiple times)");
+  print("  -q, --verbose          decrease verbosity (can be used multiple times)");
   print("      --port    PORT     server port (default: #{port})");
   print("      --sslport PORT     ssl server port (default: #{ssl_port})");
   print("      --ssl     KEYFILE CERTFILE");
@@ -56,6 +59,7 @@ function usage() {
 
 var apollo_root = http.canonicalizeURL('../', module.id).substr(7);
 var root = apollo_root;
+var verbosity = 0;
 var port = "7070";
 var ssl_port = "4430";
 var ssl_keyfile, ssl_certfile;
@@ -70,6 +74,14 @@ for (var i=1; i<process.argv.length; ++i) {
   case "-h":
   case "--help":
     return usage();
+    break;
+  case "-v":
+  case "--verbose":
+    verbosity += 1;
+    break;
+  case "-q":
+  case "--quiet":
+    verbosity -= 1;
     break;
   case "--port":
     port = process.argv[++i];
@@ -98,9 +110,31 @@ for (var i=1; i<process.argv.length; ++i) {
     cors = true;
     break;
   default:
+    console.log("Unknown flag: #{flag}");
     return usage();
   }
 }
+
+var logLevel;
+switch(verbosity) {
+  case -1:
+    logLevel = logging.ERROR;
+    break;
+  case 0: // default
+    logLevel = logging.WARN;
+    break;
+  case 1:
+    logLevel = logging.INFO;
+    break;
+  case 2:
+    logLevel = logging.VERBOSE;
+    break;
+  default:
+    logLevel = verbosity < 0 ? logging.OFF : logging.DEBUG;
+    break;
+}
+logging.setLevel(logLevel);
+
 
 //----------------------------------------------------------------------
 // File format filter maps
@@ -127,7 +161,7 @@ function sjscompile(src, dest, req, etag) {
     src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
   }
   catch (e) {
-    console.log("sjscompiler: #{req.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
+    logger.error("sjscompiler: #{req.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
     // communicate the compilation error to the caller in a little bit
     // of a round-about way: We create a compiled SJS file that throws
     // our compile error as an exception on execution
@@ -227,7 +261,7 @@ require.extensions['api'] = require.extensions['sjs'];
         
 function getBridgeAPI(name) {
   var api_module = "file://"+path.join(root, name+".api");
-  console.log("API #{api_module} requested");
+  logging.info("API #{api_module} requested");
   var api = require(api_module);
   return require('sjs:rpc/bridge').API(api);
 }
@@ -296,22 +330,27 @@ waitfor {
   }
 }
 and {
-  print("");
-  print("   ^    Oni Rocket Server");
-  print("  | |");
-  print("  |O|   * Version: 'unstable'");
-  print("  | |");
-  print(" | _ |  * Launched with root directory");
-  print("/_| |_\\   '#{root}'");
-  print(" |||||");
-  print("  |||   * Running on #{sslonly ? 'SSL ONLY' : "http://#{host ? host : 'INADDR_ANY'}:#{port}/"}");
-  print("  |||                #{ssl_keyfile ? "https://#{host ? host : 'INADDR_ANY'}:#{ssl_port}/" : ''} ");
-  print("   |");
+  if(logging.isEnabled(logging.ERROR)) {
+    // print intro unless logging is set to completely OFF
+    print("");
+    print("   ^    Oni Rocket Server");
+    print("  | |");
+    print("  |O|   * Version: 'unstable'");
+    print("  | |");
+    print(" | _ |  * Launched with root directory");
+    print("/_| |_\\   '#{root}'");
+    print(" |||||");
+    print("  |||   * Running on #{sslonly ? 'SSL ONLY' : "http://#{host ? host : 'INADDR_ANY'}:#{port}/"}");
+    print("  |||                #{ssl_keyfile ? "https://#{host ? host : 'INADDR_ANY'}:#{ssl_port}/" : ''} ");
+    print("   |    * Log level: #{logging.levelNames[logging.getLevel()]}");
+    print("");
+  }
 }
 
 //----------------------------------------------------------------------
 
 function requestHandler(req, res) {
+  logging.debug("Handling #{req.method} request for #{req.url}");
   try {
     req.parsedUrl = http.parseURL("#{req.protocol}://#{req.headers.host}#{req.url}");
     res.setHeader("Server", "OniRocket"); // XXX version
@@ -330,10 +369,10 @@ function requestHandler(req, res) {
     try {
       res.writeHead(400);
       res.end(e.toString());
-      process.stderr.write("error handling request to #{req.url}; written 400 response: #{e}\n");
+      logging.error("error handling request to #{req.url}; written 400 response: #{e}\n");
     } catch (writeErr) {
       // ending up here means that we probably already sent headers to the clients...
-      process.stderr.write(writeErr + "\n");
+      logging.error(writeErr + "\n");
       // throw the original exception, it's more important
       throw e;
     }

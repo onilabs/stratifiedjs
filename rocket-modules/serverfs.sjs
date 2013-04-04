@@ -189,6 +189,10 @@ function formatResponse(item, request, response, formats) {
   var input = item.input;
   var extension = item.extension;
   var format = item.requestedFormat;
+  var setStatus = function(code /*, ... */) {
+    logging.info("#{request.url} #{code}");
+    response.writeHead.apply(response, arguments);
+  };
 
   var FormatsWithDefault = function(src) {
     // NOTE: we want to include inherited properties of the source `formats` object,
@@ -200,7 +204,7 @@ function formatResponse(item, request, response, formats) {
 
   var filedesc = formats[extension] || formats["*"];
   if (!filedesc) {
-    console.log("Don't know how to serve item with extension '#{extension}'");
+    logging.verbose("Don't know how to serve item with extension '#{extension}'");
     // XXX should we generate an error?
     return false;
   }
@@ -209,7 +213,7 @@ function formatResponse(item, request, response, formats) {
   if (!formatdesc && !format.mandatory)
     formatdesc = filedesc["none"];
   if (!formatdesc) {
-    console.log("Can't serve item with extension '#{extension}' in format '#{format.name}'");
+    logging.verbose("Can't serve item with extension '#{extension}' in format '#{format.name}'");
     // XXX should we generate an error?
     return false;
   }
@@ -226,27 +230,26 @@ function formatResponse(item, request, response, formats) {
   // check for etag match
   if (etag) {
     if (request.headers["if-none-match"]) {
-//      console.log("If-None-Matched: #{request.headers['if-none-match']}");
+      logging.debug("If-None-Matched: #{request.headers['if-none-match']}");
       // XXX wrt '-gzip': Apache attaches this prefix to ETags. We remove it here
       // if present, so that we can run rocket behind an Apache reverse proxy.
       // Clearly this is hackish and not a good place for it :-/
       if (request.headers["if-none-match"].replace(/-gzip$/,'') == etag) {
-//        console.log("#{request.url} #{etag} Not Modified!");
-        response.writeHead(304);
+        setStatus(304);
         response.end();
         return true;
       }
-//      else {
-//        console.log("#{request.url} outdated");        
-//      }  
+      else {
+        logging.debug("#{request.url} outdated");
+      }  
     }
-//    else {
-//      console.log("#{request.url}: requested without etag");
-//    }
+    else {
+      logging.debug("#{request.url}: requested without etag");
+    }
   }
-//  else {
-//    console.log("no etag for #{request.url}");
-//  }
+  else {
+    logging.debug("no etag for #{request.url}");
+  }
 
   // construct header:
   var contentHeader = formatdesc.mime ? {"Content-Type":formatdesc.mime} : {};
@@ -254,7 +257,7 @@ function formatResponse(item, request, response, formats) {
     contentHeader["ETag"] = etag;
   
   if(formatdesc.filter) {
-    response.writeHead(200, contentHeader);
+    setStatus(200, contentHeader);
     if (request.method == "GET") { // as opposed to "HEAD"
       if (formatdesc.cache && etag) {
         // check cache:
@@ -263,11 +266,11 @@ function formatResponse(item, request, response, formats) {
           var data_stream = new (stream.WritableStringStream);
           formatdesc.filter(input(), data_stream, request);
           cache_entry = { etag: etag, data: data_stream.data };
-          console.log("populating cache #{request.url} length: #{cache_entry.data.length}");
+          logging.info("populating cache #{request.url} length: #{cache_entry.data.length}");
           formatdesc.cache.put(request.url, cache_entry, cache_entry.data.length);
         }
         // write to response stream:
-//        console.log("stream from cache #{request.url}");
+        logging.verbose("stream from cache #{request.url}");
         stream.pump(new (stream.ReadableStringStream)(cache_entry.data), response);
       }
       else // no cache or no etag -> filter straight to response
@@ -286,18 +289,18 @@ function formatResponse(item, request, response, formats) {
       var to = range[2] ? parseInt(range[2]) : item.length-1;
       to = Math.min(to, item.length-1);
       if (isNaN(from) || isNaN(to) || from<0 || to<from)
-        response.writeHead(416); // range not satisfiable
+        setStatus(416); // range not satisfiable
       else {
         contentHeader["Content-Length"] = (to-from+1);
         contentHeader["Content-Range"] = "bytes "+from+"-"+to+"/"+item.length;
-        response.writeHead(206, contentHeader);
+        setStatus(206, contentHeader);
         if (request.method == "GET") // as opposed to "HEAD"
           stream.pump(input({start:from, end:to}), response);
       }
     }
     else {
       // normal request
-      response.writeHead(200, contentHeader);
+      setStatus(200, contentHeader);
       if (request.method == "GET") // as opposed to "HEAD"
         stream.pump(input(), response);
     }
@@ -346,7 +349,7 @@ function createMappedDirectoryHandler(root, formats, flags)
     var relativePath = matches[1] || "/";
     var pathAndFormat = relativePath.split("!");
     relativePath = pathAndFormat[0];
-//    console.log(relativePath + " " +require('sjs:debug').inspect(request.parsedUrl));
+    //logging.debug(`relativePath=${relativePath}, url=${request.parsedUrl}`);
     var format;
     if (pathAndFormat[1])
       format = { name: pathAndFormat[1], mandatory: true };
@@ -377,7 +380,7 @@ function createMappedDirectoryHandler(root, formats, flags)
         if(flags.allowDirListing)
           served = listDirectory(request, response, root, relativePath, format, formats);
         if(!served) {
-          console.log("Could not render '"+file+"' in the requested format");
+          logging.info(`Could not render ${file} in the requested format`);
           writeErrorResponse(response, 406, "Not Acceptable", "Could not find an appropriate representation");
         }
       }
@@ -386,7 +389,7 @@ function createMappedDirectoryHandler(root, formats, flags)
       // normal file
       try {
         if (!serveFile(request, response, file, format, formats)) {
-          console.log("File '"+file+"' not found");
+          logging.info(`File ${file} not found`);
           writeErrorResponse(response, 404, "Not Found",
                              "File '"+matches[1]+"' not found");
         }
@@ -436,12 +439,12 @@ function createKeyholeHandler() {
     var descriptor;
     var keyhole_id, keyhole_path;
     [,keyhole_id, keyhole_path] = matches;
-    console.log("accessing keyhole #{keyhole_id} -- #{keyhole_path}");
+    logging.verbose("accessing keyhole #{keyhole_id} -- #{keyhole_path}");
     var keyhole = keyholes[keyhole_id];
 
     // no descriptor
     if (!keyhole || !(descriptor = keyhole[keyhole_path])) {
-      console.log("keyhole #{keyhole_id} -- #{keyhole_path} not found");
+      logging.verbose("keyhole #{keyhole_id} -- #{keyhole_path} not found");
       writeErrorResponse(response, 404, "Not Found");
       return;
     }
