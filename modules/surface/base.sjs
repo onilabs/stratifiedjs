@@ -571,6 +571,69 @@ __js var HtmlFragmentElement = exports.HtmlFragmentElement = Object.create(UICon
 
 ChildManagement.mixinto(HtmlFragmentElement);
 
+var makeDomNode = (function() {
+  /* convert HTML string -> dom node (used in HtmlFragmentElement).
+   * This function adapted from JQuery code (src/manipulation.js),
+   * which is distributed under the MIT licence, and is
+   * Copyright 2013 jQuery Foundation and other contributors
+   * http://jquery.com/
+   */
+  var rtagName = /<([\w:]+)/;
+  var wrapMap = {
+    // Support: IE 9
+    option: [ 1, "<select multiple='multiple'>", "</select>" ],
+
+    thead: [ 1, "<table>", "</table>" ],
+    tr: [ 2, "<table><tbody>", "</tbody></table>" ],
+    td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ],
+  };
+
+  // Support: IE 9
+  wrapMap.optgroup = wrapMap.option;
+
+  wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.col = wrapMap.thead;
+  wrapMap.th = wrapMap.td;
+
+  return function(html) {
+    var elem = document.createElement('surface-ui');
+    if(html === undefined) return elem;
+    html = html.replace(/^\s+/, '');
+
+    var tag = ( rtagName.exec( html ) || ["", ""] )[ 1 ].toLowerCase();
+    var wrap = wrapMap[ tag ];
+    if (wrap) {
+      elem.innerHTML = wrap[ 1 ] + html + wrap[ 2 ];
+      var initial_elem = elem;
+      var j = wrap[ 0 ];
+      while ( j-- ) {
+        elem = elem.firstChild;
+      }
+      if (elem.childElementCount == 1) {
+        elem = elem.firstChild;
+      } else {
+        // html generated multiple tags, append them to initial_elem and remove wrapper
+        while (elem.firstChild) {
+          initial_elem.appendChild(elem.firstChild);
+        }
+        elem = initial_elem;
+        elem.removeChild(elem.firstChild);
+      }
+    } else {
+      // no wrapping required:
+      elem.innerHTML = html;
+
+      // remove the surrogate if there is only one child.
+      // We do this, so that CSS rules work more predictably (so that there are no
+      // intermediate 'surface-ui' tags that have to be worked into CSS rules).
+      if (elem.childElementCount == 1 && elem.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
+        elem = elem.firstChild;
+      }
+    }
+    return elem;
+  };
+})();
+
+
 // HtmlFragmentElement.init needs to come *after* mixing in ChildManagement, so that
 // this.children is initialized
 
@@ -640,9 +703,7 @@ HtmlFragmentElement.init = func.seq(
         else
           parseArray(toArray(attribs.content), false);
         
-        // create a surrogate dompeer:
-        this.dompeer = document.createElement('surface-ui');
-        this.dompeer.innerHTML = html.replace(/^\s+/,'');
+        this.dompeer = makeDomNode(html);
         
         // replace UIElement placeholders with UIElements:
         indexed(placeholders) .. each  {
@@ -652,29 +713,18 @@ HtmlFragmentElement.init = func.seq(
           if (!old) {
             // placeholder not found in the dom... probably caused by
             // user-provided html not being valid
-            throw new Error("Invalid HTML (#{sanitize(html)})");
+            throw new Error("Invalid HTML: #{html}");
           }
           old.parentNode.replaceChild(part.dompeer, old);
           this.children.push(part);
-        }        
+        }
       }
       else {
         // content is a string (or will be coerced to one); 
         //XXX sanitize it!! - This might break existing surface code
 
         // create a surrogate dompeer: 
-        this.dompeer = document.createElement('surface-ui');
-        if (typeof attribs.content !== 'undefined') {
-          this.dompeer.innerHTML = attribs.content.replace(/^\s+/, '');
-        }
-      }
-
-      // Flattening:
-      // remove the surrogate again if there is only one child.
-      // We do this, so that CSS rules work more predictably (so that there are no 
-      // intermediate 'surface-ui' tags that have to be worked into CSS rules).
-      if (this.dompeer.childElementCount == 1 && this.dompeer.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
-        this.dompeer = this.dompeer.firstChild;
+        this.dompeer = makeDomNode(attribs.content);
       }
     }
 
