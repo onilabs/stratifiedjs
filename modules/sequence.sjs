@@ -660,6 +660,27 @@ function zip(/* sequences... */) {
 }
 exports.zip = zip;
 
+/**
+   @function indexed
+   @param {Sequence} [sequence]
+   @param {Optional Integer} [start]
+   @return {Stream}
+   @summary  Generate an indexed stream of pairs [index, val] with `index` beginning from
+             `start` (or 0 if no start given) and incrementing for each successive value.
+   @desc
+      Example usage:
+
+          indexed(["one", "two", "three"], 1) .. toArray()
+          // returns [[1, "one"], [2, "two"], [3, "three"]]
+
+*/
+function indexed(sequence, start) {
+  var i = start || 0;
+  return Stream(function(r) {
+    sequence .. each { |x| r([i++, x]) }
+  });
+}
+exports.indexed = indexed;
 
 /**
    @function reduce

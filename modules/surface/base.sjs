@@ -40,10 +40,10 @@ var tt = new Date();
 var sys = require('builtin:apollo-sys');
 
 waitfor {
-  var { each, isStream, toArray, join, map } = require('../sequence');
+  var { each, isStream, toArray, join, map, indexed } = require('../sequence');
 }
 and {
-  var { indexValuePairs, remove } = require('../array');
+  var { remove } = require('../array');
 } 
 and {
   var dom    = require('../xbrowser/dom');
@@ -293,7 +293,7 @@ UIElement.init = function(attribs) {
   this.mechanism = attribs.mechanism || func.nop;
   this.style = attribs.style || [];
   if (!Array.isArray(this.style)) this.style = [this.style];
-  indexValuePairs(this.style) .. each { 
+  indexed(this.style) .. each { 
     |style| 
     var [i,s] = style;
     if (typeof s == 'string') this.style[i] = CSS(s);
@@ -706,7 +706,7 @@ HtmlFragmentElement.init = func.seq(
         this.dompeer = makeDomNode(html);
         
         // replace UIElement placeholders with UIElements:
-        indexValuePairs(placeholders) .. each  {
+        indexed(placeholders) .. each  {
           |placeholder|
           var [idx, part] = placeholder;
           var old = this.select1("#__oni_placeholder#{idx}");

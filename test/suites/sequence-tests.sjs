@@ -2,6 +2,7 @@ var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 
 var s = require("sjs:sequence");
+var toArray = s.toArray;
 
 //----------------------------------------------------------------------
 // helpers
@@ -353,4 +354,12 @@ test("take() leaves the rest", [[1], [2,3,4]], function() {
   var head = seq .. s.take(1) .. s.toArray();
   var tail = seq .. s.toArray();
   return [head, tail];
+});
+
+test('indexed(["one","two","three"], 1)', [[1,"one"],[2,"two"],[3,"three"]], function() {
+  return s.indexed(["one","two","three"], 1) .. toArray;
+});
+
+test('indexed(["zero","one"])', [[0,"zero"],[1,"one"]], function() {
+  return s.indexed(["zero","one"]) .. toArray;
 });
