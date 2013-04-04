@@ -675,8 +675,8 @@ exports.zip = zip;
 
 */
 function indexed(sequence, start) {
-  var i = start || 0;
   return Stream(function(r) {
+    var i = start || 0;
     sequence .. each { |x| r([i++, x]) }
   });
 }

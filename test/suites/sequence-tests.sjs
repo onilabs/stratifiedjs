@@ -363,3 +363,11 @@ test('indexed(["one","two","three"], 1)', [[1,"one"],[2,"two"],[3,"three"]], fun
 test('indexed(["zero","one"])', [[0,"zero"],[1,"one"]], function() {
   return s.indexed(["zero","one"]) .. toArray;
 });
+
+test('indexed() stream restarts at 0', [[[0,0],[1,1]],[[0,0],[1,1]]], function() {
+  var indexedIntegers = s.indexed(s.integers());
+  var rv = [];
+  rv.push(indexedIntegers .. s.take(2) .. s.toArray);
+  rv.push(indexedIntegers .. s.take(2) .. s.toArray);
+  return rv;
+});
