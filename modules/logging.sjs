@@ -169,7 +169,7 @@ exports.setFormat = function(fmt) {
 
         >>> INFO: here goes!!!
 */
-customFormatFields = null;
+var customFormatFields = null;
 exports.defineField = function(key, val) {
   customFormatFields = customFormatFields || {};
   customFormatFields[key] = val;
