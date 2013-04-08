@@ -35,6 +35,7 @@ Cross-browser compatibility shims for the following ECMA-262 Edition 5 functions
 Array.isArray
 Array.prototype.indexOf
 Array.prototype.lastIndexOf
+Object.create
 Object.keys
 Function.prototype.bind
 
@@ -64,7 +65,6 @@ And these ones probably don't make sense to emulate at all:
 Object.getOwnPropertyNames
 Object.getPrototypeOf
 Object.getOwnPropertyDescriptor
-Object.create
 Object.defineProperty
 Object.defineProperties
 Object.seal
@@ -116,6 +116,17 @@ if (!Array.prototype.lastIndexOf) {
     }
     return -1;
   };
+}
+
+// Object.create
+if(!Object.create) {
+  // This implementation only supports the first argument (`proto`),
+  // not `properties`. `proto` cannot be null.
+  Object.create = function create(p) {
+    function Cls(){};
+    Cls.prototype = p;
+    return new Cls();
+  }
 }
 
 // Object.keys

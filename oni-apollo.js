@@ -5000,6 +5000,17 @@ return -1;
 }
 
 
+if(!Object.create){
+
+
+Object.create=function create(p){function Cls(){
+};
+Cls.prototype=p;
+return new Cls();
+};
+}
+
+
 if(!Object.keys){
 
 
