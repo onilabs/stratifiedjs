@@ -25,4 +25,18 @@ if(testUtil.isBrowser) {
         <tr><td>cell2</td></tr>
     `}).dompeer.outerHTML.replace(/\s+/g,'');
   });
+
+  test('substitutions in top-level tag', '<strong>content</strong>', function() {
+    return surface.Html({
+      content: `
+        ${surface.Html("<strong>content</strong>")}
+    `}).dompeer.outerHTML.replace(/\s+/g,'');
+  });
+
+  test('substitution in table-related tag', '<tr><td>cell</td></tr>', function() {
+    return surface.Html({
+      content: `
+        <tr>${surface.Html("<td>cell</td>")}</tr>
+    `}).dompeer.outerHTML.replace(/\s+/g,'');
+  });
 }

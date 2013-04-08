@@ -594,7 +594,7 @@ var makeDomNode = (function() {
   wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.col = wrapMap.thead;
   wrapMap.th = wrapMap.td;
 
-  return function(html) {
+  return function(html, substitutePlaceholders) {
     var elem = document.createElement('surface-ui');
     if(html === undefined) return elem;
     html = html.replace(/^\s+/, '');
@@ -603,6 +603,7 @@ var makeDomNode = (function() {
     var wrap = wrapMap[ tag ];
     if (wrap) {
       elem.innerHTML = wrap[ 1 ] + html + wrap[ 2 ];
+      if (substitutePlaceholders) substitutePlaceholders(elem);
       var initial_elem = elem;
       var j = wrap[ 0 ];
       while ( j-- ) {
@@ -621,6 +622,7 @@ var makeDomNode = (function() {
     } else {
       // no wrapping required:
       elem.innerHTML = html;
+      if (substitutePlaceholders) substitutePlaceholders(elem);
 
       // remove the surrogate if there is only one child.
       // We do this, so that CSS rules work more predictably (so that there are no
@@ -680,7 +682,8 @@ HtmlFragmentElement.init = func.seq(
             var part = arr[i];
             if (!quasi || i%2) {
               if (UIElement.isPrototypeOf(part)) {
-                html += "<span id='__oni_placeholder#{placeholders.length}'></span>";
+                var tag = part.dompeer.tagName;
+                html += "<#{tag} id='__oni_placeholder#{placeholders.length}'></#{tag}>";
                 placeholders.push(part);
               }
               else if (Array.isArray(part) || isStream(part)) {
@@ -703,21 +706,22 @@ HtmlFragmentElement.init = func.seq(
         else
           parseArray(toArray(attribs.content), false);
         
-        this.dompeer = makeDomNode(html);
-        
-        // replace UIElement placeholders with UIElements:
-        indexed(placeholders) .. each  {
-          |placeholder|
-          var [idx, part] = placeholder;
-          var old = this.select1("#__oni_placeholder#{idx}");
-          if (!old) {
-            // placeholder not found in the dom... probably caused by
-            // user-provided html not being valid
-            throw new Error("Invalid HTML: #{html}");
+        this.dompeer = makeDomNode(html) { |rootNode|
+          // replace UIElement placeholders with UIElements:
+          indexed(placeholders) .. each  {
+            |placeholder|
+            var [idx, part] = placeholder;
+            var old = rootNode.querySelector("#__oni_placeholder#{idx}");
+            if (!old) {
+              // placeholder not found in the dom... probably caused by
+              // user-provided html not being valid
+              throw new Error("Invalid HTML: #{html}");
+            }
+            old.parentNode.replaceChild(part.dompeer, old);
+            this.children.push(part);
           }
-          old.parentNode.replaceChild(part.dompeer, old);
-          this.children.push(part);
         }
+
       }
       else {
         // content is a string (or will be coerced to one); 
