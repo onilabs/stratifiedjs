@@ -38,10 +38,10 @@ Array.prototype.lastIndexOf
 Object.create
 Object.keys
 Function.prototype.bind
+String.prototype.trim
 
 XXX The following could also be done:
 
-String.prototype.trim
 Date.now
 Date.parse (for ISO parsing)
 Date.prototype.toISOString
@@ -121,7 +121,7 @@ if (!Array.prototype.lastIndexOf) {
 // Object.create
 if(!Object.create) {
   // This implementation only supports the first argument (`proto`),
-  // not `properties`. `proto` cannot be null.
+  // not `properties`. `proto` must be an Object or `null`.
   Object.create = function create(p) {
     function Cls(){};
     Cls.prototype = p;
