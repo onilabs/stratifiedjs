@@ -188,14 +188,19 @@ __js StyleElement.init = function(content, global) {
   }
   var elem = this.dompeer = document.createElement('style');
   elem.setAttribute('type', 'text/css');
-  elem.innerHTML = content;
+  if (elem.styleSheet) {
+    // IE
+    elem.styleSheet.cssText = content;
+  } else {
+    elem.appendChild(document.createTextNode(content));
+  }
 
   this.refCount = 0;
 };
 
 __js StyleElement.use = function() {
   if (this.refCount++ == 0)
-    document.head.appendChild(this.dompeer);
+    (document.head || document.getElementsByTagName("head")[0] /* IE<9 */).appendChild(this.dompeer);
 };
 __js StyleElement.unuse = function() {
   if (--this.refCount == 0)
@@ -597,7 +602,7 @@ var makeDomNode = (function() {
   return function(html, substitutePlaceholders) {
     var elem = document.createElement('surface-ui');
     if(html === undefined) return elem;
-    html = html.replace(/^\s+/, '');
+    html = html.trim();
 
     var tag = ( rtagName.exec( html ) || ["", ""] )[ 1 ].toLowerCase();
     var wrap = wrapMap[ tag ];
@@ -609,7 +614,7 @@ var makeDomNode = (function() {
       while ( j-- ) {
         elem = elem.firstChild;
       }
-      if (elem.childElementCount == 1) {
+      if (elem.childNodes.length == 1) {
         elem = elem.firstChild;
       } else {
         // html generated multiple tags, append them to initial_elem and remove wrapper
@@ -627,7 +632,7 @@ var makeDomNode = (function() {
       // remove the surrogate if there is only one child.
       // We do this, so that CSS rules work more predictably (so that there are no
       // intermediate 'surface-ui' tags that have to be worked into CSS rules).
-      if (elem.childElementCount == 1 && elem.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
+      if (elem.childNodes.length == 1 && elem.firstChild.nodeType == 1 /* ELEMENT_NODE */) {
         elem = elem.firstChild;
       }
     }
@@ -650,7 +655,7 @@ HtmlFragmentElement.init = func.seq(
   HtmlFragmentElement.init, 
   function(attribs) {
     
-    if (attribs.content instanceof HTMLElement) {
+    if (attribs.content instanceof Element) {
       // content is a DOM object. This is e.g. used by the
       // to create the RootElement, where attribs.content is set to 'document.body'
       this.dompeer = attribs.content;
