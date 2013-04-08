@@ -167,8 +167,14 @@ if (!Function.prototype.bind) {
   };
 }
 
-// WRITEME:
 // String.prototype.trim
+if (!String.prototype.trim) {
+  String.prototype.trim = function() {
+    return this.replace(/^\s+|\s+$/g, '');
+  }
+}
+
+// WRITEME:
 // Date.now
 // Date.parse (for ISO parsing)
 // Date.prototype.toISOString
