@@ -1,6 +1,18 @@
 var isBrowser = exports.isBrowser = require("builtin:apollo-sys").hostenv == 'xbrowser';
 var _ = require("../lib/underscore.js");
 
+var isIE = exports.isIE = function() {
+  return isBrowser && navigator.appName == "Microsoft Internet Explorer";
+}
+var ieVersion = exports.at_least_IE = function(min_version) {
+  if (!isIE()) return true;
+  return IE_version() >= min_version;
+}
+
+var IE_version = exports.IE_version = function() {
+  return parseInt(navigator.appVersion.match(/MSIE ([0-9]+)/)[1]);
+}
+
 var _currentRunner = null;
 function currentRunner() {
   if(!_currentRunner) {

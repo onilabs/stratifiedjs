@@ -1,6 +1,7 @@
 // We can't easily test the actual logging (output),
 // but we can at least test the logic & formatting.
 
+var testUtil = require('../lib/testUtil');
 var test = require('../lib/testUtil').test;
 var logging = require('sjs:logging');
 
@@ -93,8 +94,12 @@ test('logging to debug.console objects',
   };
 }).browserOnly();
 
-test("formatting quasis", "INFO: Hello " + require("sjs:debug").inspect({'subject':'world'}), function() {
-  var obj = {subject: "world"};
-  return logging.formatMessage(logging.INFO, `Hello ${obj}`);
-});
+if (testUtil.at_least_IE(8)) {
+  test("formatting quasis", "INFO: Hello " + require("sjs:debug").inspect({'subject':'world'}), function() {
+    var obj = {subject: "world"};
+    return logging.formatMessage(logging.INFO, `Hello ${obj}`);
+  });
+} else {
+  test("formatting quasis").skip("JSON not available in IE<8");
+}
   

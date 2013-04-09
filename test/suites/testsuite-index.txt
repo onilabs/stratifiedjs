@@ -1,6 +1,7 @@
 array-tests.sjs xbrowser,nodejs
 child-process-tests.sjs nodejs
 cutil-tests.sjs xbrowser,nodejs
+debug-tests.sjs xbrowser,nodejs
 dom-tests.sjs xbrowser
 function-tests.sjs xbrowser,nodejs
 google-tests.sjs xbrowser,nodejs

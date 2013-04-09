@@ -2,7 +2,7 @@ var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var logging = require("sjs:logging");
 
-if(testUtil.isBrowser) {
+if(testUtil.isBrowser && testUtil.at_least_IE(8)) {
   var surface = require('sjs:surface/base');
   var html = function(elem) {
     var html = elem.dompeer.outerHTML;

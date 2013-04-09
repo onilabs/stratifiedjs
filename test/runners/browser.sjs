@@ -29,7 +29,10 @@ BrowserRunner.prototype.result = function(status, message) {
   }
 
   var node = document.createElement("div");
-  node.innerHTML = str.sanitize("#{this.pad(this.testCounter-this.groupOffset,5)} #{this.pad(status.toUpperCase(),8)} #{message}");
+  if (status !== null) {
+    message = "#{this.pad(this.testCounter-this.groupOffset,5)} #{this.pad(status.toUpperCase(),8)} #{message}";
+  }
+  node.innerHTML = str.sanitize(message);
   node.setAttribute("class", "test " + "test-" + status);
   this.output().appendChild(node);
 };
@@ -45,6 +48,9 @@ BrowserRunner.prototype.dumpFailure = function(msg) {
 };
 BrowserRunner.prototype.dumpError = function(msg) {
   this.result('error', msg);
+};
+BrowserRunner.prototype.puts = function(s) {
+  this.result(null, s);
 };
 
 BrowserRunner.prototype.reset = function() {

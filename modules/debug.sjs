@@ -29,12 +29,15 @@
  * THE SOFTWARE.
  *
  */
+
 /**
    @module  debug
    @summary Helpers for debugging
    @home    sjs:debug
    @desc    Work-in-progress; pretty much a straight copy of nodejs's [util.inspect, etc](http://nodejs.org/api/util.html#util_util_inspect_object_showhidden_depth_colors) atm.
 */
+
+var { map, toArray, reduce, join } = require('./sequence');
 
 /**
   @function inspect
@@ -61,6 +64,7 @@ function inspect(obj, showHidden, depth, colors) {
 }
 exports.inspect = inspect;
 
+var elementType = typeof(Element) == 'undefined' ? null : Element;
 
 // http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
 var colors = {
@@ -195,9 +199,9 @@ __js function formatValue(ctx, value, recurseTimes) {
   if (array) {
     output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
   } else {
-    output = keys.map(function(key) {
+    output = keys .. map(function(key) {
       return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
-    });
+    }) .. toArray();
   }
 
   ctx.seen.pop();
@@ -207,6 +211,9 @@ __js function formatValue(ctx, value, recurseTimes) {
 
 
 function formatPrimitive(ctx, value) {
+  if (elementType && value instanceof elementType) {
+    return value.outerHTML;
+  }
   switch (typeof value) {
     case 'undefined':
       return ctx.stylize('undefined', 'undefined');
@@ -257,7 +264,12 @@ function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
 
 function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
   var name, str, desc;
-  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
+  if (Object.getOwnPropertyDescriptor) {
+    try {
+      desc = Object.getOwnPropertyDescriptor(value, key);
+    } catch(e) { /* IE8 only supports getOwnPropertyDescriptor on HTML elements */ }
+  }
+  if (!desc) desc = { value: value[key] };
   if (desc.get) {
     if (desc.set) {
       str = ctx.stylize('[Getter/Setter]', 'special');
@@ -281,13 +293,13 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
       }
       if (str.indexOf('\n') > -1) {
         if (array) {
-          str = str.split('\n').map(function(line) {
+          str = str.split('\n')..map(function(line) {
             return '  ' + line;
-          }).join('\n').substr(2);
+          })..join('\n').substr(2);
         } else {
-          str = '\n' + str.split('\n').map(function(line) {
+          str = '\n' + str.split('\n')..map(function(line) {
             return '   ' + line;
-          }).join('\n');
+          })..join('\n');
         }
       }
     } else {
@@ -316,11 +328,11 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
 
 function reduceToSingleString(output, base, braces) {
   var numLinesEst = 0;
-  var length = output.reduce(function(prev, cur) {
+  var length = output .. reduce(0, function(prev, cur) {
     numLinesEst++;
     if (cur.indexOf('\n') >= 0) numLinesEst++;
     return prev + cur.length + 1;
-  }, 0);
+  });
 
   if (length > 60) {
     return braces[0] +
