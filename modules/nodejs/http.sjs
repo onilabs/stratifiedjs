@@ -362,12 +362,17 @@ function withServer(config, server_loop) {
                   or {
                     handler(new ServerRequest(req, res));
                     if (!res.finished) {
-                      //config.log("Unfinished response");
+                      config.log("Unfinished response");
                       if(!res._header) {
                         config.log("Response without header; sending 500");
                         res.writeHead(500);
-                      } 
-                      res.end();
+                        res.end();
+                      }
+                      else {
+                        // headers have already been sent; only course of action is
+                        // to close the connection
+                        req.socket.destroy();
+                      }
                     }
                   }
                   retract { 
