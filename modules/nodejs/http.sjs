@@ -233,7 +233,7 @@ exports.runSimpleSSLServer = function(connectionHandler, ssl_opts, port, /* opt 
  @desc
     - Request body size is limited to 10MB.
 */
-function ServerRequest(req, res) {
+function ServerRequest(req, res, ssl) {
   /**
    @variable ServerRequest.request
    @summary [NodeJS http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest) object
@@ -248,8 +248,8 @@ function ServerRequest(req, res) {
    @variable ServerRequest.url
    @summary Full canonicalized request URL object in the format as returned by [http::parseURL].
    */
-  // XXX https
-  this.url = parseURL(canonicalizeURL(req.url, 'http://'+req.headers.host));
+  this.url = parseURL(canonicalizeURL(req.url, 
+                                      "http#{ssl ? 's' : ''}://#{req.headers.host}"));
   /**
    @variable ServerRequest.body
    @summary Request body (nodejs buffer, possibly empty)
@@ -271,6 +271,10 @@ function withServer(config, server_loop) {
     address: '0',
     capacity: 100,
     max_connections: 1000,
+    ssl: false,
+    key: undefined,
+    cert: undefined,
+    passphrase: undefined,
     log: x => process.stdout.write("#{address}: #{x}\n")
   }, config);
 
@@ -281,18 +285,28 @@ function withServer(config, server_loop) {
   // (pause/resume?), so we use a queue:
   var request_queue = Queue(config.capacity, true);
 
-  var server = builtin_http.createServer(
-    function(req, res) {
-      if (request_queue.count() == config.capacity) {
-        // XXX
-        config.log("Dropping request");
-        res.writeHead(500);
-        res.end();
-        return;        
-      }
-      request_queue.put([req, res]);
+  function dispatchRequest(req, res) {
+    if (request_queue.count() == config.capacity) {
+      // XXX
+      config.log('Dropping request');
+      res.writeHead(500);
+      res.end();
+      return;
     }
-  );
+    request_queue.put([req, res]);
+  }
+
+  var server;
+  if (!config.ssl)
+    server = builtin_http.createServer(dispatchRequest);
+  else
+    server = require('https').createServer(
+      {
+        key: undefined,
+        cert: undefined,
+        passphrase: undefined
+      } .. override(config),
+      dispatchRequest);
 
   // bind the socket:
   waitfor  {
@@ -360,7 +374,7 @@ function withServer(config, server_loop) {
                     config.log("Connection closed");
                   }
                   or {
-                    handler(new ServerRequest(req, res));
+                    handler(new ServerRequest(req, res, config.ssl));
                     if (!res.finished) {
                       config.log("Unfinished response");
                       if(!res._header) {
