@@ -161,7 +161,7 @@ function sjscompile(src, dest, req, etag) {
     src = __oni_rt.c1.compile(src, {globalReturn:true, filename:"__onimodulename"});
   }
   catch (e) {
-    logger.error("sjscompiler: #{req.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
+    logging.error("sjscompiler: #{req.url} failed to compile at line #{e.compileError.line}: #{e.compileError.message}");
     // communicate the compilation error to the caller in a little bit
     // of a round-about way: We create a compiled SJS file that throws
     // our compile error as an exception on execution
