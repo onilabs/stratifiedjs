@@ -175,4 +175,4 @@ Test.prototype.shouldSkip = function() {
   return this._skip || this.context.shouldSkip();
 }
 
-exports.assert = require("./assert");
+exports.assert = require('../assert');

@@ -63,7 +63,7 @@ NodejsReporter.prototype.run = function(results) {
         process.stderr.write(prefix + result.test.description + ' ... ');
         result = results.testFinished.wait();
         if (result.skipped) {
-          var msg = "SKIPPED";
+          var msg = "SKIP";
           if (result.reason) msg = "#{msg} (#{result.reason})"
           console.log(this.color('blue', msg));
         } else if (result.ok) {

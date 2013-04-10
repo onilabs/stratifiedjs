@@ -237,9 +237,10 @@ CompiledOptions.prototype = {
   // default options
   color: null,
   testSpecs: null,
-  showPassed: true,
-  showSkipped: true,
-  showFailed: true,
+  //TODO:
+  //showPassed: true,
+  //showSkipped: true,
+  //showFailed: true,
   logLevel: null,
   logCapture: true,
 }
