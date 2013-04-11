@@ -593,7 +593,7 @@ exports.pack = pack;
 
           // build a drum loop:
 
-          var drum = generate(function(emit) { emit("boom"); hold(400); }
+          var drum = generate(function(emit) { emit("boom"); hold(400); });
           var cymbal = generate(function(emit) {
             hold(100);
             emit("tsh");
@@ -602,7 +602,7 @@ exports.pack = pack;
             hold(100);
             emit("tsh");
             hold(100);
-          }
+          });
 
           var beats = combine(drum, cymbal);
 
