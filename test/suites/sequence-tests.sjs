@@ -2,6 +2,7 @@ var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 
 var s = require("sjs:sequence");
+var cutil = require("sjs:cutil");
 var toArray = s.toArray;
 
 //----------------------------------------------------------------------
@@ -370,4 +371,41 @@ test('indexed() stream restarts at 0', [[[0,0],[1,1]],[[0,0],[1,1]]], function()
   rv.push(indexedIntegers .. s.take(2) .. s.toArray);
   rv.push(indexedIntegers .. s.take(2) .. s.toArray);
   return rv;
+});
+
+test('eventStream()', [1,2,3,4], function() {
+  var evt = cutil.Event();
+  var result = [];
+  waitfor {
+    s.eventStream(evt) .. s.each {|item|
+      result.push(item);
+    }
+  } or {
+    hold(10);
+    evt.emit(1)
+    hold(10);
+    evt.emit(2)
+    evt.emit(3)
+    evt.emit(4)
+  }
+  return result;
+});
+
+test('combine', ['a','b','b','a','c'], function() {
+  var as = s.Stream() {|r|
+    r('a');
+    hold(5);
+    r('a');
+  }
+
+  var bs = s.Stream() {|r|
+    r('b');
+    r('b');
+  }
+
+  var cs = s.Stream() {|r|
+    hold(10);
+    r('c');
+  }
+  return s.combine(as, bs, cs) .. toArray();
 });
