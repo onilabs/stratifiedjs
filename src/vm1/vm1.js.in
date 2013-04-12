@@ -109,11 +109,18 @@ function adopt_native_stack(e, caller_module) {
     return;
   }
   var stack = String(e.stack);
+  var error_message = "Error: " + e.message;
+  //XXX does any runtime use a prefix other than "Error: "?
+  if (stack.lastIndexOf(error_message, 0) == 0) {
+    stack = stack.slice(error_message.length);
+  } else {
+    if (stack.lastIndexOf("Error", 0) == 0) stack = stack.slice(5);
+  }
+  stack = stack.trim();
   e.stack = "";
-  var lines = stack.split("\n"); 
+  var lines = stack.split("\n");
   var i;
-  // first line is 'Error' -> ignore
-  for (i=1; i<lines.length; i++) {
+  for (i=0; i<lines.length; i++) {
     // TODO: make this check more reliable
     if((caller_module && lines[i].indexOf(caller_module) != -1) ||
        lines[i].indexOf("oni-apollo-node.js") != -1 ||

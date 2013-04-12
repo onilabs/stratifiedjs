@@ -77,11 +77,18 @@ e.stack='';
 return;
 }
 var stack=String(e.stack);
+var error_message="Error: "+e.message;
+
+if(stack.lastIndexOf(error_message,0)==0){
+stack=stack.slice(error_message.length);
+}else{
+if(stack.lastIndexOf("Error",0)==0)stack=stack.slice(5);
+}
+stack=stack.trim();
 e.stack="";
 var lines=stack.split("\n");
 var i;
-
-for(i=1;i<lines.length;i++ ){
+for(i=0;i<lines.length;i++ ){
 
 if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("oni-apollo-node.js")!=-1||lines[i].indexOf("oni-apollo.js")!=-1){
 

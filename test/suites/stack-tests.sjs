@@ -2,20 +2,20 @@
  *  thus the use of a running "line" variable to provide a base.
  */
 
-var test = require('../lib/testUtil').test;
-var puts = require('sjs:logging').print;
-var clean_stack = function(e) { return String(e).replace(/module [^ ]*stack-tests.sjs/g, 'this_file').replace(/module [^ ]*lib/g, "lib").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, '').replace(/^Error(: [^\n]*)?\n/m, ''); }; // This could really do with some work ;)
+var test = require('../lib/testUtil').test, puts = require('sjs:logging').print;
+var clean_stack = function(e) { return String(e).replace(/module [^ ]*stack-tests.sjs/g, 'this_file').replace(/module [^ ]*lib/g, "lib").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, ''); }; // This could really do with some work ;)
+var remove_message = function(s) { return s.replace(/^Error(: [^\n]*)?\n/m, ''); };
 var line;
-var stack_from_running = function(f) {
+var stack_from_running = function(f, keep_message) {
   try {
     f();
   } catch(e) {
     //puts('\n---- STACK: -----\n' + (e.stack)); puts('\n---- CLEANED STACK: -----\n' + (clean_stack(e)));
-    return clean_stack(e);
+    var stack = clean_stack(e);
+    return keep_message === true ? stack : remove_message(stack);
   }
   throw new Error("fn " + f + " did not fail!");
 };
-
 
 line=20;
 test('regular stack traces', 'this_file:' + (line+2) + '\nthis_file:' + (line+3) + '\nthis_file:' + (line+5), function() {
@@ -494,4 +494,20 @@ test('callstack copying edgecase (Alt)', "this_file:#{line+3}\nthis_file:#{line+
     inner();
   }
   return stack_from_running(outer);
+});
+
+line=499;
+test('exception messages spanning multiple lines', "Error: line1\nline2\nline3\nthis_file:#{line+3}", function() {
+  function inner() {
+    throw new Error("line1\nline2\nline3");
+  }
+  return stack_from_running(inner, true);
+});
+
+line=507;
+test('empty exception messages', "Error: \nthis_file:#{line+3}", function() {
+  function inner() {
+    throw new Error();
+  }
+  return stack_from_running(inner, true);
 });
