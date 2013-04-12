@@ -118,7 +118,7 @@ exports.supplant = function(str, o) {
         // false
 */
 exports.startsWith = function(str, prefix) {
-  return str.indexOf(prefix) == 0;
+  return str.lastIndexOf(prefix, 0) === 0;
 }
 
 /**
@@ -137,7 +137,8 @@ exports.startsWith = function(str, prefix) {
         // false
 */
 exports.endsWith = function(str, suffix) {
-  return str.lastIndexOf(suffix) == str.length - suffix.length;
+  var endPos = str.length - suffix.length;
+  return str.indexOf(suffix, endPos) == endPos;
 }
 
 /**
