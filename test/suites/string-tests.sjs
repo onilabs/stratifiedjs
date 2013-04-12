@@ -91,3 +91,23 @@ test('supplant strictness', "No substitution found for \"who\"", function() {
 test('sanitize', "abc&amp;foo;def&gt;ght&lt;", function() {
   return str.sanitize("abc&foo;def>ght<");
 });
+
+test('startsWith("foo", "oo")', false, function() { return str.startsWith("foo", "oo"); });
+test('startsWith("foo", "foo")', true, function() { return str.startsWith("foo", "foo"); });
+test('startsWith("foo", "f")', true, function() { return str.startsWith("foo", "f"); });
+test('startsWith("one two one", "one")', true, function() { return str.startsWith("one two one", "one"); });
+
+test('endsWith("bar", "b")', false, function() { return str.endsWith("bar", "b"); });
+test('endsWith("bar", "bar")', true, function() { return str.endsWith("bar", "bar"); });
+test('endsWith("bar", "r")', true, function() { return str.endsWith("bar", "r"); });
+test('endsWith("one two one", "one")', true, function() { return str.endsWith("one two one", "one"); });
+
+test('strip("\\t foo ")', 'foo', function() { return str.strip("\t foo "); });
+test('strip(",,foo,", ",")', 'foo', function() { return str.strip(",,foo,", ","); });
+test('strip("foo,bar,", ",")', 'foo,bar', function() { return str.strip("foo,bar,", ","); });
+
+test('lstrip("\\t foo ")', 'foo ', function() { return str.lstrip("\t foo "); });
+test('lstrip("||foo|", "|")', 'foo|', function() { return str.lstrip("||foo|", "|"); });
+
+test('rstrip(" foo\\t ")', ' foo', function() { return str.rstrip(" foo\t "); });
+test('rstrip("|foo||", "|")', '|foo', function() { return str.rstrip("|foo||", "|"); });

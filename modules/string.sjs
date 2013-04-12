@@ -103,6 +103,124 @@ exports.supplant = function(str, o) {
 };
 
 /**
+  @function startsWith
+  @summary  Returns whether a string starts with another.
+  @param    {String} [string] The subject.
+  @param    {String} [prefix] The prefix to check for.
+  @return   {Boolean} Whether `string` starts with `prefix`.
+  @desc
+        // example:
+
+        startsWith("abcd", "ab")
+        // true
+        
+        startsWith("abcd", "bc")
+        // false
+*/
+exports.startsWith = function(str, prefix) {
+  return str.indexOf(prefix) == 0;
+}
+
+/**
+  @function endsWith
+  @summary  Returns whether a string ends with another.
+  @param    {String} [string] The subject.
+  @param    {String} [prefix] The suffix to check for.
+  @return   {Boolean} Whether `string` ends with `suffix`.
+  @desc
+        // example:
+
+        startsWith("abcd", "cd")
+        // true
+        
+        startsWith("abcd", "bc")
+        // false
+*/
+exports.endsWith = function(str, suffix) {
+  return str.lastIndexOf(suffix) == str.length - suffix.length;
+}
+
+/**
+  @function strip
+  @summary  Strips a string of leading and trailing characters.
+  @param    {String} [string] The string to strip.
+  @param    {String} [optional ch] The character to remove.
+  @return   {String} String with leading and trailing `ch` removed.
+  @desc
+    ### Notes:
+
+    If no `ch` argument is provided, `strip()` acts exactly like `str.trim()`,
+    removing all whitespace characters.
+
+        // example:
+
+        strip("\t abc ")
+        // "abc"
+        
+        strip("||a|b||c|", "|")
+        // "a|b||c"
+*/
+exports.strip = function(s, ch){
+  if (ch == undefined) return s.trim();
+  return s .. exports.lstrip(ch) .. exports.rstrip(ch);
+};
+
+/**
+  @function lstrip
+  @summary  Strips a string of leading characters.
+  @param    {String} [string] The string to strip.
+  @param    {String} [optional ch] The character to remove.
+  @return   {String} String with leading `ch` removed.
+  @desc
+    ### Notes:
+
+    If no `ch` argument is provided, `lstrip()` removes all leading whitespace.
+
+        // example:
+
+        strip("\t abc ")
+        // "abc "
+        
+        strip("||a|b||c|", "|")
+        // "a|b||c|"
+*/
+exports.lstrip = function(s, ch){
+  if (ch == undefined) return s.replace(/^\s+/,'');
+  while(s.charAt(0) == ch) {
+    s = s.slice(1);
+  }
+  return s;
+};
+
+/**
+  @function rstrip
+  @summary  Strips a string of trailing characters.
+  @param    {String} [string] The string to strip.
+  @param    {String} [optional ch] The character to remove.
+  @return   {String} String with trailing `ch` removed.
+  @desc
+    ### Notes:
+
+    If no `ch` argument is provided, `lstrip()` removes all trailing whitespace.
+
+        // example:
+
+        strip(" abc \t\n")
+        // " abc"
+        
+        strip("|a|b||c||", "|")
+        // "|a|b||c"
+*/
+exports.rstrip = function(s, ch){
+  if (ch == undefined) return s.replace(/\s+$/,'');
+  while(s.charAt( s.length-1 ) == ch) {
+    s = s.slice(0, -1)
+  }
+  return s;
+};
+
+
+/**
    @function utf16ToUtf8
    @summary  Convert a UTF-16 string to a UTF-8 string.
    @param    {String} [s] UTF-16 encoded string
