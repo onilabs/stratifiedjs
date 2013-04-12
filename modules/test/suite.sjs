@@ -73,8 +73,9 @@ var addSkipFunctions = function(cls) {
   object.extend(cls.prototype, SkipMixins);
 }
 
-var Context = function(desc, body) {
+var Context = context.Cls = function(desc, body, module_name) {
   this._skip = false;
+  this._module = module_name;
   this.parent = null;
   this.children = [];
   this.description = desc;
@@ -108,8 +109,19 @@ Context.prototype.withHooks = function(fn) {
 Context.prototype.collect = function() {
   this.body.call(this.state, this.state);
 }
+Context.prototype.fullDescription = function() {
+  if (this.parent == null) return this.description;
+  return this.parent.fullDescription() + ":" + this.description;
+}
+
+Context.prototype.module = function() {
+  if(this._module !== undefined) return this._module;
+  if(this.parent) return this.parent.module();
+  return null;
+}
+
 Context.prototype.toString = function() {
-  return "<#Context: #{this.description}>";
+  return "<#Context: #{this.description} (#{this._module}>";
 }
 
 Context.prototype.shouldSkip = function() {
@@ -157,7 +169,7 @@ var Test = function(description, body, context) {
 addSkipFunctions(Test);
 
 Test.prototype.toString = function() {
-  return "<#Test: #{this.description}>";
+  return "<#Test: #{this.fullDescription()}>";
 }
 
 Test.prototype.run = function() {
@@ -170,6 +182,13 @@ Test.prototype.run = function() {
   }
   runAllHooks('afterEach', this.context.hooks.after.each, this.state, first_error);
 }
+
+/* Returns the full name of this test, including parent contexts */
+Test.prototype.fullDescription = function() {
+  if(this.context == null) return this.description;
+  return this.context.fullDescription() + ":" + this.description;
+}
+
 
 Test.prototype.shouldSkip = function() {
   return this._skip || this.context.shouldSkip();

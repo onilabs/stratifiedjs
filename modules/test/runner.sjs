@@ -20,9 +20,6 @@ var Runner = exports.Runner = function(opts, reporter) {
   this.loading = Event();
   this.active_contexts = [];
   this.root_contexts = [];
-  if (opts.logLevel != null) {
-    logging.setLevel(opts.logLevel);
-  }
 }
 
 Runner.prototype.getModuleList = function(url) {
@@ -105,71 +102,99 @@ Runner.prototype.loadModule = function(module_name, base) {
   delete require.modules[require.resolve(canonical_name).path];
 
   this.collect() { ||
-    suite.context(module_name, -> require(canonical_name));
+    // construct a special toplevel context that knows its module path
+    var ctx = new suite.context.Cls(module_name, -> require(canonical_name), module_name);
+    this.withContext(ctx, -> ctx.collect());
   }
 };
 
 Runner.prototype.run = function(reporter) {
+  // use `reporter.run` if no reporter func given explicitly
   if (!reporter && this.reporter.run) {
     reporter = this.reporter.run.bind(this.reporter);
   }
-  var count_tests = function(accum, ctx) {
+
+  // count the number of tests, while marking them (and their parent contexts)
+  // as _enabled while disabling all other contexts
+  var total_tests = 0;
+  var preprocess_context = function(module, ctx) {
+    ctx._enabled = false;
     ctx.children .. each {|child|
       if (child.hasOwnProperty('children')) {
-        accum = count_tests(accum, child);
+        preprocess_context(module, child);
       } else {
-        accum += 1;
+        if (this.opts.testFilter.shouldRun(module, child)) {
+          total_tests++;
+          child._enabled = true;
+          var ctx = child.context;
+          while(ctx && !ctx._enabled) {
+            ctx._enabled = true;
+            ctx = ctx.parent;
+          }
+        } else {
+          child._enabled = false;
+        }
       }
     }
-    return accum;
-  }
-  var total = this.root_contexts .. reduce(0, count_tests);
-  var results = new Results(total);
+  }.bind(this);
 
-  var unusedFilters = this.opts.testFilter.unusedModuleFilters();
-  if (unusedFilters.length > 0) {
-    results.error("Unused module filters: #{unusedFilters .. join(", ")}");
-    return results;
-  }
-
-  waitfor {
-    if (reporter) reporter(results);
-  } and {
-    var runTest = function(test) {
-      var result = new TestResult(test);
-      results.testStart.emit(result);
-      try {
-        if (test.shouldSkip()) {
-          results._skip(result, test.skipReason);
-        } else {
-          test.run();
-          results._pass(result);
-        }
-      } catch (e) {
-        results._fail(result, e);
+  this.root_contexts .. each(ctx -> preprocess_context(ctx.module(), ctx));
+  var results = new Results(total_tests);
+  with(logging.logContext({level: this.opts.logLevel})) {
+    try {
+      var unusedFilters = this.opts.testFilter.unusedFilters();
+      if (unusedFilters.length > 0) {
+        throw new Error("Unused filters: #{unusedFilters .. join(", ")}");
       }
-      results.testFinished.emit(result);
-    }.bind(this);
 
-    var traverse = function(ctx) {
-      results.contextStart.emit(ctx);
-
-      ctx.withHooks() {||
-        ctx.children .. each {|child|
-          if (child.hasOwnProperty('children')) {
-            traverse(child);
-          } else {
-            runTest(child);
+      waitfor {
+        if (reporter) reporter(results);
+      } and {
+        var runTest = function(test) {
+          var result = new TestResult(test);
+          results.testStart.emit(result);
+          try {
+            if (test.shouldSkip()) {
+              results._skip(result, test.skipReason);
+            } else {
+              test.run();
+              results._pass(result);
+            }
+          } catch (e) {
+            results._fail(result, e);
           }
+          results.testFinished.emit(result);
+        };
+
+        var traverse = function(ctx) {
+          if (!ctx._enabled) {
+            logging.verbose("Skipping context: #{ctx}");
+            return;
+          }
+          results.contextStart.emit(ctx);
+
+          ctx.withHooks() {||
+            ctx.children .. each {|child|
+              if (child.hasOwnProperty('children')) {
+                traverse(child);
+              } else {
+                if (child._enabled) {
+                  runTest(child);
+                } else {
+                  logging.verbose("Skipping test: #{child}");
+                }
+              }
+            }
+          }
+          results.contextEnd.emit(ctx);
         }
+
+        this.root_contexts .. each(traverse);
+        results.end.emit();
       }
-
-      results.contextEnd.emit(ctx);
-    }.bind(this);
-
-    this.root_contexts .. each(traverse);
- 
-    results.end.emit();
+    } catch (e) {
+      results.error(e);
+    }
   }
   return results;
 }
@@ -218,7 +243,7 @@ var Results = exports.Results = function(total) {
 }
 
 Results.prototype.error = function(err) {
-  logging.error(err || "run failed");
+  logging.error(err.message);
   this.ok = () -> false;
 }
 
@@ -321,6 +346,10 @@ var SuiteFilter = function SuiteFilter(opts, base) {
       this.absolutePaths.push(this.file .. canonicalizeAgainst(CWD));
     }
   }
+  if (this.opts.test) {
+    this.used.test = false;
+    this.test = this.opts.test;
+  }
 }
 
 SuiteFilter.prototype.toString = function() {
@@ -336,6 +365,15 @@ SuiteFilter.prototype.shouldLoadModule = function(module_path) {
   return false;
 }
 
+SuiteFilter.prototype.shouldRun = function(test_fullname) {
+  if (!this.test) return true;
+  if (test_fullname.indexOf(this.test) != -1) {
+    this.used.test = true;
+    return true;
+  }
+  return false;
+}
+
 SuiteFilter.prototype._shouldLoadModule = function(module_path) {
   if(module_path == this.file) return true;
 
@@ -346,6 +384,7 @@ SuiteFilter.prototype._shouldLoadModule = function(module_path) {
 
 var buildTestFilter = exports._buildTestFilter = function(specs, base) {
   var always = () -> true;
+  var emptyList = () -> [];
 
   if (specs.length > 0 && !base) throw new Error("opts.base not defined");
   var filters = specs .. map(s -> new SuiteFilter(s, base)) .. toArray;
@@ -353,8 +392,8 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base) {
   if (specs.length == 0) {
     return {
       shouldLoadModule: always,
-      shouldRunTest: always,
-      unusedModuleFilters: () -> [],
+      shouldRun: always,
+      unusedFilters: emptyList,
     }
   }
 
@@ -368,11 +407,21 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base) {
     return result;
   }
 
+  var shouldRun = function(mod, test) {
+    var result = false;
+    var fullname = test.fullDescription();
+    filters .. each{|suiteFilter|
+      if (suiteFilter.shouldLoadModule(mod) && suiteFilter.shouldRun(fullname)) {
+        result = true;
+      }
+    }
+    return result;
+  }
+
   return {
     shouldLoadModule: shouldLoadModule,
-    // TODO: test_check...
-    shouldRunTest: always,
-    unusedModuleFilters: () -> (filters .. filter(s -> s.used.file === false) .. toArray),
+    shouldRun: shouldRun,
+    unusedFilters: () -> (filters .. filter(s -> (s.used.file === false || s.used.test === false)) .. toArray),
   }
 }
 
