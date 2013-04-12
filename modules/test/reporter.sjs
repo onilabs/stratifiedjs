@@ -1,6 +1,7 @@
 var sys = require('builtin:apollo-sys');
-var { map, join, each } = require('../sequence');
+var { map, join, each, skip } = require('../sequence');
 var logging = require('../logging');
+var debug = require('../debug');
 
 var ConsoleBuffer = exports.ConsoleBuffer = function() {
   this.reset();
@@ -9,6 +10,9 @@ ConsoleBuffer.prototype.reset = function() {
   this.messages = [];
 }
 ConsoleBuffer.prototype.log = function(m) {
+  if (arguments.length > 1) {
+    m = m + (arguments .. skip(1) .. map(debug.inspect) .. join(" "))
+  }
   m.split("\n") .. each {|line|
     this.messages.push(line);
   }

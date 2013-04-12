@@ -102,7 +102,7 @@ Context.prototype.withHooks = function(fn) {
   } catch(e) {
     first_error = e;
   }
-  runAllHooks('afterEach', this.hooks.before.each, this.state, first_error);
+  runAllHooks('afterAll', this.hooks.after.all, this.state, first_error);
 }
 
 Context.prototype.collect = function() {
@@ -168,7 +168,7 @@ Test.prototype.run = function() {
   } catch(e) {
     first_error = e;
   }
-  runAllHooks('afterEach', this.context.hooks.before.each, this.state, first_error);
+  runAllHooks('afterEach', this.context.hooks.after.each, this.state, first_error);
 }
 
 Test.prototype.shouldSkip = function() {

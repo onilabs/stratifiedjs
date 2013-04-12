@@ -1,7 +1,8 @@
 var suite = require("./suite.sjs");
 var { Event } = require("../cutil.sjs");
 var { isArrayLike } = require('../array');
-var { each, reduce, toArray, any, filter, map } = require('../sequence');
+var { each, reduce, toArray, any, filter, map, join } = require('../sequence');
+var { rstrip, startsWith } = require('../string');
 var object = require('../object');
 var sys = require('builtin:apollo-sys');
 var http = require('../http');
@@ -48,9 +49,18 @@ Runner.prototype.loadModules = function(modules, base) {
 }
 
 Runner.prototype.loadAll = function(opts) {
-  //TODO: support more methods of test discovery?
-  var suiteList = sys.canonicalizeURL(opts.suiteList, opts.base);
-  var modules = this.getModuleList(suiteList, opts.encoding || 'UTF-8');
+  var modules;
+  if (!opts.base) {
+    throw new Error("opts.base not defined");
+  }
+  if (opts.hasOwnProperty('moduleList')) {
+    var url = sys.canonicalizeURL(opts.moduleList, opts.base);
+    modules = this.getModuleList(url, opts.encoding || 'UTF-8');
+  } else if (opts.hasOwnProperty('modules')) {
+    modules = opts.modules;
+  } else {
+    throw new Error("no moduleList or modules property provided");
+  }
   this.loadModules(modules, opts.base);
 }
 
@@ -115,6 +125,12 @@ Runner.prototype.run = function(reporter) {
   }
   var total = this.root_contexts .. reduce(0, count_tests);
   var results = new Results(total);
+
+  var unusedFilters = this.opts.testFilter.unusedModuleFilters();
+  if (unusedFilters.length > 0) {
+    results.error("Unused module filters: #{unusedFilters .. join(", ")}");
+    return results;
+  }
 
   waitfor {
     if (reporter) reporter(results);
@@ -188,7 +204,6 @@ var Results = exports.Results = function(total) {
   this.succeeded = 0;
   this.failed = 0;
   this.skipped = 0;
-
   this.total = total;
 
   this.testResults = [];
@@ -200,6 +215,11 @@ var Results = exports.Results = function(total) {
   this.testSucceeded = Event();
   this.testFailed = Event();
   this.testSkipped = Event();
+}
+
+Results.prototype.error = function(err) {
+  logging.error(err || "run failed");
+  this.ok = () -> false;
 }
 
 Results.prototype.ok = function() {
@@ -271,40 +291,94 @@ exports.getRunOpts = function(opts, args) {
   }
   // TODO: proper option parsing!
   if (args.length > 0) {
-    opts.testSpecs = args.map(function(arg) {
+    result.testSpecs = args.map(function(arg) {
       return {
         file: arg,
       }
     });
   }
-  result.testFilter = buildTestFilter(opts.testSpecs);
+  result.testFilter = buildTestFilter(result.testSpecs || [], opts.base);
   return result;
 };
 
-var buildTestFilter = exports._buildTestFilter = function(specs) {
-  var always = () -> true;
-  var module_check = always, test_check = always;
-  var id = (x) -> x;
-  if (!specs || specs.length == 0) {
-    module_check = test_check = always;
-  } else {
-    var fileFilters = specs .. map(s -> s.file) .. filter(id) .. toArray;
-    if (fileFilters.length > 0) {
-      module_check = function(module_path) {
-        return fileFilters..any(f -> module_path.indexOf(f) != -1);
-      }
+
+var CWD = null;
+// In node.js we also allow paths relative to cwd()
+if (sys.hostenv = "nodejs") {
+  CWD = 'file://' + process.cwd() + '/';
+}
+var canonicalizeAgainst = (p, base) -> sys.canonicalizeURL(p, base)..rstrip('/');
+
+var SuiteFilter = function SuiteFilter(opts, base) {
+  this.opts = opts;
+  this.used = {};
+  this.base = base;
+  if (this.opts.file) {
+    this.file = opts.file;
+    this.used.file = false;
+    this.absolutePaths = [this.file .. canonicalizeAgainst(this.base)];
+    if (CWD) {
+      this.absolutePaths.push(this.file .. canonicalizeAgainst(CWD));
     }
-    // TODO: test_check...
-  }
-  return {
-    shouldLoadModule: module_check,
-    shouldRunTest: test_check
   }
 }
 
-exports.run = function(opts) {
+SuiteFilter.prototype.toString = function() {
+  return JSON.stringify(this.opts);
+}
+SuiteFilter.prototype.shouldLoadModule = function(module_path) {
+  if (!this.file) return true;
+
+  if (this._shouldLoadModule(module_path)) {
+    this.used.file = true;
+    return true;
+  }
+  return false;
+}
+
+SuiteFilter.prototype._shouldLoadModule = function(module_path) {
+  if(module_path == this.file) return true;
+
+  var absolutePath = module_path .. canonicalizeAgainst(this.base);
+  if (this.absolutePaths.indexOf(absolutePath) != -1) return true;
+  return this.absolutePaths .. any(p -> absolutePath .. startsWith(p + '/'));
+}
+
+var buildTestFilter = exports._buildTestFilter = function(specs, base) {
+  var always = () -> true;
+
+  if (specs.length > 0 && !base) throw new Error("opts.base not defined");
+  var filters = specs .. map(s -> new SuiteFilter(s, base)) .. toArray;
+
+  if (specs.length == 0) {
+    return {
+      shouldLoadModule: always,
+      shouldRunTest: always,
+      unusedModuleFilters: () -> [],
+    }
+  }
+
+  var shouldLoadModule = function(mod) {
+    var result = false;
+    filters .. each{|suiteFilter|
+      if (suiteFilter.shouldLoadModule(mod)) {
+        result = true;
+      }
+    }
+    return result;
+  }
+
+  return {
+    shouldLoadModule: shouldLoadModule,
+    // TODO: test_check...
+    shouldRunTest: always,
+    unusedModuleFilters: () -> (filters .. filter(s -> s.used.file === false) .. toArray),
+  }
+}
+
+exports.run = Runner.run = function(opts, args) {
   logging.debug(`GOT OPTS: ${opts}`);
-  var run_opts = exports.getRunOpts(opts);
+  var run_opts = exports.getRunOpts(opts, args);
   logging.debug(`GOT RUN_OPTS: ${run_opts}`);
   var reporter = opts.reporter || new (require("./reporter").DefaultReporter)(run_opts);
   var runner = new Runner(run_opts, reporter);

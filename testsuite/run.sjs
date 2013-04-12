@@ -6,7 +6,7 @@ require('./_init_checks.sjs');
 
 
 require("sjs:test/runner").run({
-	suiteList: "./index.txt",
+	moduleList: "./index.txt",
 	base: module.id,
 	default_opts: {
 		logLevel: require("sjs:logging").INFO,

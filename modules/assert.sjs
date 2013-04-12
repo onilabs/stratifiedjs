@@ -31,5 +31,6 @@ exports.catchError = function(fn) {
 }
   
 exports.eq = exports.equal = function(val, expected, desc) {
-  if (val !== expected) throw new AssertionError("Expected #{expected}, got #{val}", desc);
+  // TODO: use proper (and strict) equality
+  if (String(val) != String(expected)) throw new AssertionError("Expected #{expected}, got #{val}", desc);
 }
