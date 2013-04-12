@@ -409,3 +409,6 @@ test('combine', ['a','b','b','a','c'], function() {
   }
   return s.combine(as, bs, cs) .. toArray();
 });
+
+test('concat([1,2],[3,4])', [1,2,3,4], function () { return s.concat([1,2], [3,4]) .. toArray; });
+test('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2], [3,4]]) .. toArray; });

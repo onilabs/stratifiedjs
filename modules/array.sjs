@@ -36,7 +36,7 @@
 */
 
 var { Stream } = require('./sequence');
-var { isArrayLike, flatten } = require('builtin:apollo-sys');
+var { isArrayLike, flatten, expandSingleArgument } = require('builtin:apollo-sys');
 
 /**
    @function isArrayLike
@@ -95,14 +95,15 @@ exports.flatten = flatten;
 
 /**
   @function concat
-  @summary Concatenate an array of arrays into a single array.
-  @param   {Array} [arr] The array to flatten.
+  @summary Concatenate multiple arrays into a single array.
+  @param   {Array} [arr*] Multiple array arguments (or a single array of arrays) to concatenate.
   @return  {Array} A concatenated array of all sub-arrays in *arr*.
                    This method is similar to [array::flatten], except that
                    all elements of *arr* must be array-like, and the
                    concatenation is only applied once - it is not recursive.
 */
-exports.concat = function(arr) {
+exports.concat = function(/* array ... */) {
+  var arr = expandSingleArgument(arguments);
   rv = [];
   for (var i=0; i<arr.length; i++) {
     var sub = arr[i];

@@ -40,7 +40,7 @@
 
 */
 
-var {isArrayLike} = require('builtin:apollo-sys');
+var {isArrayLike, expandSingleArgument} = require('builtin:apollo-sys');
 
 //----------------------------------------------------------------------
 
@@ -534,6 +534,24 @@ function map(sequence, f) {
   });
 }
 exports.map = map;
+
+/**
+  @function concat
+  @summary Concatenate multiple sequences into a single sequence.
+  @param   {Sequence} [sequence*] Multiple Sequence arguments or a single array of Sequences
+  @return  {Stream} A stream containing all elements of each array in *arr*.
+                    This method acts like [array::concat], but operating
+                    on arbitrary sequences rather than only arrays.
+*/
+function concat(/* sequences ... */) {
+  var sequences = expandSingleArgument(arguments);
+  return Stream(function(r) {
+    sequences .. each { |seq|
+      seq .. each { |x| r(x); }
+    }
+  });
+}
+exports.concat = concat;
 
 /**
    @function pack

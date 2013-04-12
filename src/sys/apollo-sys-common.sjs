@@ -157,7 +157,7 @@ exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)};
 
 /**
    @function mergeObjects
-   @summary See [../../modules/object::extend]
+   @summary See [../../modules/object::merge]
 */
 exports.mergeObjects = function(/*source*/) {
   var rv = {};
