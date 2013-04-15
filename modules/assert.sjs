@@ -38,27 +38,82 @@
 
 // TODO: (tjc) document
 
-var AssertionError = exports.AssertionError = function(msg, desc) {
+var object = require('./object');
+var {each, all } = require('./sequence');
+var compare = require('./object/compare');
+var {inspect} = require('./debug');
+
+var AssertionError = exports.AssertionError = function(msg, desc, attrs) {
+  if (attrs) this .. object.extend(attrs);
   this.message = msg;
   if (desc) this.message += " (#{desc})";
 }
 exports.AssertionError.prototype = new Error();
+exports.AssertionError.prototype.__assertion_error = true;
 
-exports.ok = function(val, desc) {
-  if (!val) throw new AssertionError("Not truthy: #{val}", desc);
+exports.ok = exports.truthy = function(val, desc) {
+  if (!val) throw new AssertionError("Not OK: #{val}", desc);
 }
 
-exports.not_ok = function(val, desc) {
-  if (val) throw new AssertionError("Truthy: #{val}", desc);
+exports.notOk = exports.falsy = function(val, desc) {
+  if (val) throw new AssertionError("Not falsey: #{val}", desc);
 }
 
-exports.raises = function(fn, desc) {
+exports.fail = function(desc) {
+  throw new AssertionError("Failed", desc);
+}
+
+var raisesFilters = {
+  inherits: function(proto) {
+    if (typeof(proto) == 'function') proto = proto.prototype;
+    if (!proto) throw new Error("inherits must be passed a prototype object or constructor function");
+    return function(err) {
+      return proto.isPrototypeOf(err);
+    }
+  },
+  filter: function(filt) { return filt },
+  message: function(expected_message) {
+    if (expected_message.test) {
+      // support regexes
+      return (err) -> expected_message.test(err.message);
+    }
+    return (err) -> expected_message == err.message;
+  },
+};
+
+exports.raises = exports.throwsError = function(opts /* (optional) */, fn) {
+  var description;
+  if (arguments.length == 1) {
+    fn = arguments[0];
+    opts = {};
+  } else if (arguments.length > 2) {
+    throw new Error("Too many arguments to assert.raises()");
+  }
+
+  var checks = [];
+  opts .. object.ownPropertyPairs() .. each {|pair|
+    var [k,v] = pair;
+    if (k == 'desc') {
+      description = v;
+      continue;
+    }
+    if (!raisesFilters.hasOwnProperty(k)) {
+      throw new Error("Unknown option: " + k);
+    }
+    checks.push(raisesFilters[k](v));
+  }
+    
   try {
     fn();
   } catch(e) {
-    return e;
+    if (checks .. all((check) -> check(e))) {
+      // if all checks pass, it successfully raised the error we wanted
+      return e
+    } else {
+      require('./logging').info("assert.raises: ignoring thrown #{e}");
+    }
   }
-  throw new AssertionError("Nothing raised", desc);
+  throw new AssertionError("Expected exception not thrown", description);
 }
 
 exports.catchError = function(fn) {
@@ -70,7 +125,24 @@ exports.catchError = function(fn) {
   return null;
 }
   
-exports.eq = exports.equal = function(val, expected, desc) {
-  // TODO: use proper (and strict) equality
-  if (String(val) != String(expected)) throw new AssertionError("Expected #{expected}, got #{val}", desc);
+exports.eq = exports.equal = function(actual, expected, desc) {
+  var [eq, difference] = compare.describeEquals(actual, expected);
+  if (!eq) {
+    var msg = "Expected #{expected .. inspect}, got #{actual .. inspect}"
+    if (difference) msg += "\n[#{difference}]";
+    throw new AssertionError(msg, desc, {expected: expected, actual: actual});
+  }
 }
+
+exports.atomic = function(desc /* (optional) */, fn) {
+  if (arguments.length == 1) {
+    fn = desc;
+    desc = undefined;
+  }
+  waitfor {
+    return fn();
+  } or {
+    throw new AssertionError("Function is not atomic", desc);
+  }
+}
+

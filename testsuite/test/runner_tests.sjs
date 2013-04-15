@@ -158,7 +158,7 @@ context("filtering") {||
   test("fails suite if not all file filters were used") {||
     var run = runWithFilter([{file: "fixtures/test_1.sjs"}, {file: "fixtures/test_34.sjs"}]);
     run.files .. assert.eq(["test_1.sjs"]);
-    run.results.ok() .. assert.not_ok();
+    run.results.ok() .. assert.notOk();
   }
 
   test("on test name substring") {||
@@ -194,7 +194,7 @@ context("filtering") {||
 
   test("fails suite if unused") {||
     var run = runWithFilter([{test: "test three"}]);
-    run.results.ok() .. assert.not_ok();
+    run.results.ok() .. assert.notOk();
   }
 }
 
