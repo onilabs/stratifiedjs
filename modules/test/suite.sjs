@@ -135,7 +135,7 @@ var Context = context.Cls = function(desc, body, module_name) {
 addSkipFunctions(Context);
 
 Context.prototype.withHooks = function(fn) {
-  state = this.parent ? Object.create(this.parent.state) : {};
+  this.state = this.parent ? Object.create(this.parent.state) : {};
   runHooks(this.hooks.before.all, this.state);
   var first_error = null;
   try {
@@ -203,7 +203,6 @@ var Test = function(description, body, context) {
   this.description = description;
   this.body = body;
   this.context = context;
-  this.state = Object.create(context.state);
   this._skip = false;
 }
 addSkipFunctions(Test);
@@ -213,14 +212,15 @@ Test.prototype.toString = function() {
 }
 
 Test.prototype.run = function() {
-  runHooks(this.context.hooks.before.each, this.state);
+  var state = Object.create(this.context.state);
+  runHooks(this.context.hooks.before.each, state);
   var first_error = null;
   try {
-    this.body.call(this.state, this.state);
+    this.body.call(state, state);
   } catch(e) {
     first_error = e;
   }
-  runAllHooks('afterEach', this.context.hooks.after.each, this.state, first_error);
+  runAllHooks('afterEach', this.context.hooks.after.each, state, first_error);
 }
 
 /* Returns the full name of this test, including parent contexts */

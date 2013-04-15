@@ -1,6 +1,8 @@
 var {context, test, assert} = require("sjs:test/suite");
 var {Runner} = require("sjs:test/runner");
+var {each} = require("sjs:sequence");
 var logging = require("sjs:logging");
+var debug = require("sjs:debug");
 
 context("hooks") {||
   test("runs all before / after hooks") {||
@@ -220,5 +222,103 @@ context("logging") {||
 
     assert.ok(logging.getLevel(), original_level);
     assert.ok(test_log_level, new_level);
+  }
+}
+
+context("test state") {||
+  test("before / after shares state") {||
+    var runner = new Runner();
+    var before_all_state = null;
+    var after_all_state = null;
+    var before_each_state = [];
+    var after_each_state = [];
+    var test_state = [];
+
+    runner.collect() {||
+      context("ctx") {||
+
+        test.beforeAll { |state|
+          state.contextLevel = true;
+          before_all_state = state;
+        }
+        test.afterAll { |state|
+          after_all_state = state;
+        }
+
+        test.beforeEach { |state|
+          state.testLevel = true;
+          before_each_state.push(state);
+        }
+
+        test.afterEach { |state|
+          after_each_state.push(state);
+        }
+
+        test("test 1") { |state|
+          state.test1 = true;
+          test_state.push(state);
+        }
+        test("test 1") { |state|
+          state.test2 = true;
+          test_state.push(state);
+        }
+      }
+    }
+    var results = runner.run();
+    results.ok() .. assert.ok(debug.inspect(results));
+    
+    // context level states
+    assert.ok(before_all_state.contextLevel);
+    assert.ok(before_all_state === before_all_state);
+
+    assert.eq(before_each_state.length, 2);
+    assert.eq(after_each_state.length, 2);
+    assert.eq(test_state.length, 2);
+
+    var first_test_state = test_state[0];
+    var second_test_state = test_state[1];
+
+    // first test should have test1 and not property
+    assert.ok(first_test_state.hasOwnProperty('test1'));
+    assert.notOk('test2' in first_test_state);
+
+    // each test state should inherit from the context level state
+    assert.notOk(first_test_state.hasOwnProperty('contextLevel'));
+    assert.ok(first_test_state.contextLevel);
+    assert.ok(first_test_state.test1);
+    assert.ok(before_all_state.isPrototypeOf(first_test_state));
+    assert.ok(before_all_state.isPrototypeOf(second_test_state));
+
+    [before_each_state, after_each_state] .. each { |list|
+      assert.ok(list[0] === first_test_state);
+      assert.ok(list[1] === second_test_state);
+    }
+  }
+
+  test("context level state inherits from parent context") {||
+    var runner = new Runner();
+    var parent_state = null;
+    var ctx_state = null;
+
+    runner.collect() {||
+      context("parent ctx") {||
+        test.beforeAll {|state|
+          parent_state = state;
+        }
+        context("ctx") {||
+          test.beforeAll {|state|
+            ctx_state = state;
+          }
+          test("test", -> null);
+        }
+      }
+    }
+
+    var results = runner.run();
+    results.ok() .. assert.ok(debug.inspect(results));
+    
+    // context level states
+    assert.notOk(ctx_state == parent_state);
+    assert.ok(parent_state.isPrototypeOf(ctx_state), "parent is not prototype of ctx");
   }
 }
