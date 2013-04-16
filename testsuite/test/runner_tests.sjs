@@ -323,3 +323,44 @@ context("test state") {||
     assert.ok(parent_state.isPrototypeOf(ctx_state), "parent is not prototype of ctx");
   }
 }
+
+context("argument parsing") {||
+  var opts = {
+    base: module.id,
+    defaults: {
+      logLevel: null,
+      logCapture: null,
+      color: null,
+      testSpecs: null,
+    }
+  };
+  var parseSpecs = (args) -> runner.getRunOpts(opts, args).testSpecs
+
+  test('options') {||
+    runner.getRunOpts(opts, ['--color=auto']).color .. assert.eq('auto');
+    runner.getRunOpts(opts, ['--loglevel=info']).logLevel .. assert.eq(logging.INFO);
+    runner.getRunOpts(opts, ['--loglevel=INFO']).logLevel .. assert.eq(logging.INFO);
+    runner.getRunOpts(opts, ['--logcapture']).logCapture .. assert.eq(true);
+    runner.getRunOpts(opts, ['--no-logcapture']).logCapture .. assert.eq(false);
+  }
+
+  test('invalid options') {||
+    assert.raises({message: 'unknown color mode: whatever'}, -> runner.getRunOpts(opts, ['--color=whatever']));
+    assert.raises({message: 'unknown log level: LOUD'}, -> runner.getRunOpts(opts, ['--loglevel=loud']));
+    assert.raises({message: 'unknown option: "--foo"'}, -> runner.getRunOpts(opts, ['--foo']));
+    assert.raises(-> runner.getRunOpts(opts, ['--help']));
+  }
+
+  test('test specs') {||
+    parseSpecs(['filename']) .. assert.eq([{file: 'filename'}]);
+    parseSpecs(['filename:testname']) .. assert.eq([{file: 'filename', test:'testname'}]);
+    parseSpecs([':testname']) .. assert.eq([{test:'testname'}]);
+    parseSpecs([':testname:with : colons']) .. assert.eq([{test:'testname:with : colons'}]);
+    parseSpecs(['file1', ':text']) .. assert.eq([{file: 'file1'}, {test:'text'}]);
+    parseSpecs(['--', '--logcapture']) .. assert.eq([{file: '--logcapture'}]);
+  }
+
+  test('invalid test specs') {||
+    assert.raises({message: "empty testspec"}, -> parseSpecs(['']));
+  }
+}

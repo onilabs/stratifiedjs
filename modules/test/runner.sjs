@@ -41,7 +41,7 @@
 var suite = require("./suite.sjs");
 var { Event } = require("../cutil.sjs");
 var { isArrayLike } = require('../array');
-var { each, reduce, toArray, any, filter, map, join } = require('../sequence');
+var { each, reduce, toArray, any, filter, map, join, sort } = require('../sequence');
 var { rstrip, startsWith } = require('../string');
 var object = require('../object');
 var sys = require('builtin:apollo-sys');
@@ -356,13 +356,95 @@ exports.getRunOpts = function(opts, args) {
       args = process.argv.slice(1);
     }
   }
-  // TODO: proper option parsing!
+
   if (args.length > 0) {
-    result.testSpecs = args.map(function(arg) {
-      return {
-        file: arg,
+    var dashdash = require('sjs:dashdash');
+    var options = [
+      { name: "color",
+        type: 'string',
+        help: 'Terminal colors (on|off|auto)'
+      },
+      { name: 'logcapture',
+        type: 'bool',
+        help: 'enable log capture during running tests'
+      },
+      { name: 'no-logcapture',
+        type: 'bool',
+        help: 'disable log capture during running tests'
+      },
+      { name: 'loglevel',
+        type: 'string',
+        help: "set the log level (#{logging.levelNames .. object.ownValues .. sort .. join("|")})"
+      },
+      { names: ['help', 'h'],
+        type: 'bool',
+        help: "print this help"
+      },
+    ];
+    var parser = dashdash.createParser({options: options});
+    var printHelp = function() {
+      logging.error(
+"Usage: [options] [testspec [...]]
+
+Testspec formats:
+ - path/to/test.sjs
+ - path/to/test.sjs:text
+ - :text
+
+(a test will match if `text` appears anywhere in its context + test description)
+
+Options:
+
+" + parser.help()
+      );
+    }
+    try {
+      var parsed = parser.parse({argv: args, slice:0});
+      if (parsed.help) throw new Error();
+      
+      // process parsed options
+      parsed .. object.ownPropertyPairs .. each {|pair|
+        var [key, val] = pair;
+        if (key .. startsWith('_')) continue;
+        if (key == 'loglevel') {
+          key = 'logLevel';
+          val = val.toUpperCase();
+          if (!(val in logging)) {
+            throw new Error("unknown log level: #{val}");
+          }
+          val = logging[val];
+        }
+        else if (key == 'logcapture') key = 'logCapture';
+        else if (key == 'no_logcapture') {
+          key = 'logCapture';
+          val = false;
+        }
+        else if (key == 'color') {
+          if (['on','off', 'auto'].indexOf(val) == -1) {
+            throw new Error("unknown color mode: #{val}");
+          }
+        }
+        setOpt(key, val);
       }
-    });
+
+      // process testspecs
+      if (parsed._args.length > 0) {
+        result.testSpecs = parsed._args.map(function(arg) {
+          if (arg == '') throw new Error("empty testspec");
+          var parts = arg.split(':');
+          var spec = {};
+
+          if (parts[0]) spec.file = parts[0];
+          if (parts.length > 1) {
+            spec.test = parts.slice(1) .. join(':');
+          }
+          return spec;
+        });
+      }
+    } catch(e) {
+      printHelp();
+      throw e;
+    }
   }
   result.testFilter = buildTestFilter(result.testSpecs || [], opts.base);
   return result;
@@ -469,7 +551,18 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base) {
 
 exports.run = Runner.run = function(opts, args) {
   logging.debug(`GOT OPTS: ${opts}`);
-  var run_opts = exports.getRunOpts(opts, args);
+  try {
+    var run_opts = exports.getRunOpts(opts, args);
+  } catch(e) {
+    // quit if we're in node.js
+    if(process && process.exit) {
+      console.log(e.message);
+      process.exit(1);
+    } else {
+      // otherwise just propagate the error
+      throw e;
+    }
+  }
   logging.debug(`GOT RUN_OPTS: ${run_opts}`);
   var reporter = opts.reporter || new (require("./reporter").DefaultReporter)(run_opts);
   var runner = new Runner(run_opts, reporter);
