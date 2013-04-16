@@ -141,6 +141,20 @@ context("eq") {||
 }
 
 
+context("is") {||
+  test("uses ===") {||
+    assert.is(1, 1);
+
+    assert.raises(
+      {message: "Expected '1', got 1"},
+      -> assert.is(1, '1'));
+
+    assert.raises(
+      {message: 'Expected {}, got {}'},
+      -> assert.is({}, {}));
+  }
+}
+
 context("raises") {||
   var MyError = function(m) { this.message = m || "MyError"; };
   MyError.prototype = new Error();
@@ -269,5 +283,48 @@ context("atomic") {||
 
     assert.raises({message: "Function is not atomic (desc)"}, -> assert.atomic("desc", fn));
     assert.raises({message: "Function is not atomic"}, -> assert.atomic(fn));
+  }
+}
+
+context("type checking") { ||
+  test('by type name') {||
+    assert.string("foo");
+    assert.number(23);
+    assert.func(-> null);
+    assert.bool(true);
+    assert.object({});
+
+    assert.raises({message: 'string required'}, -> assert.string(123));
+    assert.raises({message: 'number required'}, -> assert.number('23'));
+    assert.raises({message: 'function required'}, -> assert.func({}));
+    assert.raises({message: 'boolean required'}, -> assert.bool(null));
+    assert.raises({message: 'object required'}, -> assert.object('str'));
+
+    assert.raises({message:'string required (mystr)'}, -> assert.string(123, 'mystr'));
+  }
+
+  test('arrayOf<Type>') {||
+    assert.arrayOfString(["foo"]);
+    assert.raises({message:'[string] required (desc)'}, -> assert.arrayOfString(123, 'desc'));
+    assert.raises({message:'[string] required'}, -> assert.arrayOfString(123));
+    assert.raises({message:'string required'}, -> assert.arrayOfString([123]));
+  }
+
+  test('optional<Type>') {||
+    assert.optionalString("foo");
+    assert.optionalString(undefined);
+    assert.optionalString(null);
+
+    assert.raises({message:'string required'}, -> assert.optionalString(123));
+    assert.raises({message:'string required'}, -> assert.optionalString([123]));
+  }
+
+  test('optionalArrayOf<Type>') {||
+    assert.optionalArrayOfString(["foo"]);
+    assert.optionalArrayOfString(undefined);
+    assert.optionalArrayOfString(null);
+
+    assert.raises({message:'[string] required'}, -> assert.optionalArrayOfString(123));
+    assert.raises({message:'string required'}, -> assert.optionalArrayOfString([123]));
   }
 }

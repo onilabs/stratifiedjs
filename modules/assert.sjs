@@ -43,6 +43,79 @@ var {each, all } = require('./sequence');
 var compare = require('./object/compare');
 var {inspect} = require('./debug');
 
+
+(function() {
+  // This block adopted from the `assert-plus` nodejs library,
+  // Copyright (c) 2012, Mark Cavage. All rights reserved.
+  // Distributed under the MIT licence
+  
+  // NOTE: this block must be the first in the file to touch `exports`, as it
+  // iterates over exported functions.
+
+  ///--- Internal
+
+  function capitalize(str) {
+    return (str.charAt(0).toUpperCase() + str.slice(1));
+  }
+
+  function uncapitalize(str) {
+    return (str.charAt(0).toLowerCase() + str.slice(1));
+  }
+
+  function _assert(arg, type, desc) {
+    var t = typeof (arg);
+    if (t !== type) {
+      throw new AssertionError("#{type} required", desc);
+    }
+  }
+
+  ///--- API
+
+  function array(arr, type, desc) {
+    if (!Array.isArray(arr)) {
+      throw new AssertionError("[#{type}] required", desc);
+    }
+
+    for (var i = 0; i < arr.length; i++) {
+      _assert(arr[i], type, desc, array);
+    }
+  }
+
+  ['bool', 'func', 'number', 'object', 'string'] .. each {|k|
+    var type = k;
+    if (k === 'bool') type = 'boolean';
+    if (k === 'func') type = 'function';
+    exports[k] = function(arg, desc) { _assert(arg, type, desc); }
+  
+    var name = 'arrayOf' + capitalize(k);
+
+    exports[name] = function (arg, name) {
+      array(arg, k, name);
+    };
+  }
+
+  exports .. object.keys .. each {|k|
+    var _name = 'optional' + capitalize(k);
+    var s = uncapitalize(k.replace('arrayOf', ''));
+    if (s === 'bool') s = 'boolean';
+    if (s === 'func') s = 'function';
+
+    if (k.indexOf('arrayOf') !== -1) {
+      exports[_name] = function (arg, name) {
+        if (arg != null) {
+          array(arg, s, name);
+        }
+      };
+    } else {
+      exports[_name] = function (arg, name) {
+        if (arg != null) {
+          _assert(arg, s, name);
+        }
+      };
+    }
+  }
+})();
+
 var AssertionError = exports.AssertionError = function(msg, desc, attrs) {
   if (attrs) this .. object.extend(attrs);
   this.message = msg;
@@ -144,5 +217,9 @@ exports.atomic = function(desc /* (optional) */, fn) {
   } or {
     throw new AssertionError("Function is not atomic", desc);
   }
+}
+
+exports.is = function(actual, expected, desc) {
+  if (actual !== expected) throw new AssertionError("Expected #{expected .. inspect}, got #{actual .. inspect}", desc);
 }
 
