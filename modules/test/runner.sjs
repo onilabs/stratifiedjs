@@ -184,7 +184,7 @@ Runner.prototype.run = function(reporter) {
     try {
       var unusedFilters = this.opts.testFilter.unusedFilters();
       if (unusedFilters.length > 0) {
-        throw new Error("Unused filters: #{unusedFilters .. join(", ")}");
+        throw new Error("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
       }
 
       waitfor {
@@ -334,14 +334,16 @@ exports.getRunOpts = function(opts, args) {
   // takes an options object and produces a version with
   // environmental options (from either `args`, process.args or location.hash) taken into account
   var result = new CompiledOptions();
+  var setOpt = function(k, v) {
+    if (!(k in result)) {
+      throw new Error("Unknown option: #{k}");
+    }
+    result[k] = v;
+  }
 
-  if (opts.default_opts) {
-    opts.default_opts .. object.ownPropertyPairs .. each {|prop|
-      var [k,v] = prop;
-      if (!(k in result)) {
-        throw new Error("Unknown option: #{k}");
-      }
-      result[k] = v;
+  if (opts.defaults) {
+    opts.defaults .. object.ownPropertyPairs .. each {|prop|
+      setOpt.apply(null, prop);
     }
   }
   

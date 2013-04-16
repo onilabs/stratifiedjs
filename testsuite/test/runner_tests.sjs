@@ -1,5 +1,6 @@
 var {context, test, assert} = require("sjs:test/suite");
-var {Runner} = require("sjs:test/runner");
+var runner = require("sjs:test/runner");
+var {Runner} = runner;
 var {each} = require("sjs:sequence");
 var logging = require("sjs:logging");
 var debug = require("sjs:debug");
@@ -112,7 +113,7 @@ context("filtering") {||
         'fixtures/test_12.sjs',
         'fixtures/test_2.sjs',
       ],
-      default_opts: {
+      defaults: {
         logCapture: false,
         logLevel: logging.VERBOSE,
         testSpecs: filters,
@@ -206,7 +207,7 @@ context("logging") {||
     var new_level = original_level + 10;
 
     var runner = new Runner({
-      default_opts: { logLevel: new_level }
+      defaults: { logLevel: new_level }
     });
 
     var test_log_level = null;

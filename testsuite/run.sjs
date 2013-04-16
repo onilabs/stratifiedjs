@@ -8,7 +8,7 @@ require('./_init_checks.sjs');
 require("sjs:test/runner").run({
 	moduleList: "./index.txt",
 	base: module.id,
-	default_opts: {
+	defaults: {
 		logLevel: require("sjs:logging").INFO,
 	}
 });
