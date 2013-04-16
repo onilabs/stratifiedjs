@@ -311,6 +311,8 @@ EventProto.wait = function wait() {
   return result;
 };
 
+EventProto.toString = function toString() { return "[object cutil.Event]"; }
+
 /**
   @function  Event.emit
   @param     {optional Object} [value]
@@ -397,6 +399,7 @@ ConditionProto.wait = function wait() {
   }
   return this.value;
 };
+ConditionProto.toString = function toString() { return "[object cutil.Condition]"; }
 
 /**
   @function  Condition.set
