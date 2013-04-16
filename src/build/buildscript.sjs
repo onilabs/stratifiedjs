@@ -30,6 +30,7 @@ function build_deps() {
                                                   "modules/nodejs/terminal.sjs",
                                                   "modules/jsondiffpatch.sjs",
                                                   "modules/marked.sjs",
+                                                  "modules/dashdash.sjs",
                                                   "tmp/version_stamp"]);
 
   PSEUDO("compiler");
@@ -191,6 +192,16 @@ function build_deps() {
         ["src/deps/marked/apollo-module-header.txt",
          "src/deps/marked/lib/marked.js",
          "src/deps/marked/apollo-module-footer.txt"]
+       );
+
+  // dashdash module
+  BUILD("modules/dashdash.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/dashdash/apollo-module-header.txt",
+         "src/deps/dashdash/lib/dashdash.js",
+         "src/deps/dashdash/apollo-module-footer.txt"]
        );
 
   //----------------------------------------------------------------------

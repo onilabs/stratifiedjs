@@ -1,0 +1,62 @@
+/*
+ * Oni Apollo 'dashdash' module
+ *
+ * Part of the Oni Apollo Standard Module Library
+ * Version: 'unstable'
+ * http://onilabs.com/apollo
+ *
+ * (c) 2013 Oni Labs, http://onilabs.com
+ *
+ *
+ *   **************************************************************
+ *   *    DO NOT EDIT dashdash.sjs - IT IS A GENERATED FILE! *
+ *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN      *
+ *   *    apollo/src/build/make-apollo                            *
+ *   **************************************************************
+ *
+ *
+ * This file is derived from the "dashdash" project
+ * (https://github.com/trentm/node-dashdash),
+ * which is available under the terms of the MIT License.
+ *
+ * Original License Text:
+ *
+ * # This is the MIT license
+ *
+ * Copyright (c) 2013 Trent Mick. All rights reserved.
+ * Copyright (c) 2013 Joyent Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/**
+  @module    dashdash
+  @summary   Commandline options parser
+  @home      sjs:dashdash
+  @desc      
+             This module tracks the [dashdash](https://github.com/trentm/node-dashdash) library by Trent Mick
+*/
+
+// TODO: (tjc) document.
+
+/** 
+  turn off docs from this point onwards:
+  @docsoff
+*/
