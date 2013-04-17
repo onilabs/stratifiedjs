@@ -540,8 +540,8 @@ exports.map = map;
   @summary Concatenate multiple sequences into a single sequence.
   @param   {::Sequence} [sequence...] Multiple Sequence arguments or a single array of Sequences
   @return  {::Stream} A stream sequentially combining all elements of each input sequence.
-                    This method acts like [array::concat], but operating
-                    on arbitrary sequences rather than only arrays.
+                    This method acts like the builtin Array.prototype.concat method,
+                    but operating on arbitrary sequences rather than only arrays.
 */
 function concat(/* sequences ... */) {
   var sequences = expandSingleArgument(arguments);
