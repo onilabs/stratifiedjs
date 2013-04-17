@@ -38,18 +38,29 @@
 
 // TODO: (tjc) document
 
-var suite = require("./suite.sjs");
-var { Event } = require("../cutil.sjs");
-var { isArrayLike } = require('../array');
-var { each, reduce, toArray, any, filter, map, join, sort } = require('../sequence');
-var { rstrip, startsWith } = require('../string');
-var object = require('../object');
-var sys = require('builtin:apollo-sys');
-var http = require('../http');
-var logging = require('../logging');
-var reporterModule = require('./reporter');
-var {UsageError} = reporterModule;
-var shellQuote = require('../shell-quote');
+// import deps in parallel, as roundtrips affect browser startup time significantly.
+waitfor {
+  var suite = require("./suite.sjs");
+} and {
+  var reporterModule = require('./reporter');
+  var {UsageError} = reporterModule;
+} and {
+  var { Event } = require("../cutil.sjs");
+} and {
+  var { isArrayLike } = require('../array');
+} and {
+  var { each, reduce, toArray, any, filter, map, join, sort } = require('../sequence');
+} and {
+  var { rstrip, startsWith } = require('../string');
+} and {
+  var object = require('../object');
+} and {
+  var sys = require('builtin:apollo-sys');
+} and {
+  var http = require('../http');
+} and {
+  var logging = require('../logging');
+}
 
 var NullRporter = {};
   
@@ -353,7 +364,7 @@ exports.getRunOpts = function(opts, args) {
       // TODO: need to parse this to split into arguments
       var argstring = decodeURIComponent(document.location.hash.slice(1));
       logging.debug("decoding: ", argstring);
-      args = shellQuote.parse(argstring);
+      args = require('../shell-quote').parse(argstring);
     } else {
       // first argument is the script that invoked us:
       args = process.argv.slice(1);
@@ -581,5 +592,14 @@ exports.run = Runner.run = function(opts, args) {
   var runner = new Runner(run_opts, reporter);
   runner.loadAll(opts);
   return runner.run();
+}
+
+
+if (suite.isBrowser) {
+  // preload modules that may be needed at runtime
+  spawn(function() {
+    require('../shell-quote');
+    require('../dashdash');
+  }());
 }
 

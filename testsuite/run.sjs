@@ -2,10 +2,13 @@
 // but we have an out-of-band test module to verify
 // that the runner works with enough confidence
 // to trust the rest of the test suite:
-require('./_init_checks.sjs');
+waitfor {
+	var runner = require("sjs:test/runner");
+} and {
+	require('./_init_checks.sjs');
+}
 
-
-require("sjs:test/runner").run({
+runner.run({
 	moduleList: "./index.txt",
 	base: module.id,
 	defaults: {
