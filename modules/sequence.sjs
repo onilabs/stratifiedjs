@@ -538,8 +538,8 @@ exports.map = map;
 /**
   @function concat
   @summary Concatenate multiple sequences into a single sequence.
-  @param   {Sequence} [sequence*] Multiple Sequence arguments or a single array of Sequences
-  @return  {Stream} A stream containing all elements of each array in *arr*.
+  @param   {::Sequence} [sequence...] Multiple Sequence arguments or a single array of Sequences
+  @return  {::Stream} A stream sequentially combining all elements of each input sequence.
                     This method acts like [array::concat], but operating
                     on arbitrary sequences rather than only arrays.
 */
