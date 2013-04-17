@@ -13,9 +13,11 @@ exports.quote = function (xs) {
 };
 
 exports.parse = function parse (s, env) {
-    if (!env) env = {};
     var chunker = /(['"])((\\\1|[^\1])*?)\1|(\\ |\S)+/g;
-    return s.match(chunker).map(function (s) {
+    var match = s.match(chunker);
+    if (!match) return [];
+    if (!env) env = {};
+    return match.map(function (s) {
         if (/^'/.test(s)) {
             return s
                 .replace(/^'|'$/g, '')
