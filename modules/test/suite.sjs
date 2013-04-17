@@ -41,7 +41,7 @@
 var _runner = null;
 var sys=require('builtin:apollo-sys');
 var object=require('../object');
-var isBrowser = exports.isBrowser = sys.hostenv == "browser";
+var isBrowser = exports.isBrowser = sys.hostenv == "xbrowser";
 var logging = require("sjs:logging");
 var { each } = require('../sequence');
 
@@ -100,7 +100,7 @@ SkipMixins.skip = function(reason) {
   this.skipReason = reason || null;
 }
 SkipMixins.skipIf = function(cond_fn, reason) {
-  if (cond_fn()) this.skip(skipReason);
+  if (cond_fn()) this.skip(reason);
 }
 SkipMixins.browserOnly = function(reason) {
   this.skipIf(-> !isBrowser, reason);

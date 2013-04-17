@@ -47,6 +47,9 @@ var object = require('../object');
 var sys = require('builtin:apollo-sys');
 var http = require('../http');
 var logging = require('../logging');
+var reporterModule = require('./reporter');
+var {UsageError} = reporterModule;
+var shellQuote = require('../shell-quote');
 
 var NullRporter = {};
   
@@ -184,7 +187,7 @@ Runner.prototype.run = function(reporter) {
     try {
       var unusedFilters = this.opts.testFilter.unusedFilters();
       if (unusedFilters.length > 0) {
-        throw new Error("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
+        throw new UsageError("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
       }
 
       waitfor {
@@ -204,6 +207,7 @@ Runner.prototype.run = function(reporter) {
             results._fail(result, e);
           }
           results.testFinished.emit(result);
+          if (suite.isBrowser) hold(0); // don't lock up the browser's UI thread
         };
 
         var traverse = function(ctx) {
@@ -233,7 +237,7 @@ Runner.prototype.run = function(reporter) {
         results.end.emit();
       }
     } catch (e) {
-      results.error(e);
+      results._error(e);
     }
   }
   return results;
@@ -282,8 +286,8 @@ var Results = exports.Results = function(total) {
   this.testSkipped = Event();
 }
 
-Results.prototype.error = function(err) {
-  logging.error(err.message);
+Results.prototype._error = function(err) {
+  logging.error(err);
   this.ok = () -> false;
 }
 
@@ -322,10 +326,6 @@ CompiledOptions.prototype = {
   // default options
   color: null,
   testSpecs: null,
-  //TODO:
-  //showPassed: true,
-  //showSkipped: true,
-  //showFailed: true,
   logLevel: null,
   logCapture: true,
 }
@@ -336,7 +336,7 @@ exports.getRunOpts = function(opts, args) {
   var result = new CompiledOptions();
   var setOpt = function(k, v) {
     if (!(k in result)) {
-      throw new Error("Unknown option: #{k}");
+      throw new UsageError("Unknown option: #{k}");
     }
     result[k] = v;
   }
@@ -350,7 +350,10 @@ exports.getRunOpts = function(opts, args) {
   if (args == undefined) {
     // if none provided, get args from the environment
     if (suite.isBrowser) {
-      throw new Error("todo..");
+      // TODO: need to parse this to split into arguments
+      var argstring = decodeURIComponent(document.location.hash.slice(1));
+      logging.debug("decoding: ", argstring);
+      args = shellQuote.parse(argstring);
     } else {
       // first argument is the script that invoked us:
       args = process.argv.slice(1);
@@ -375,6 +378,10 @@ exports.getRunOpts = function(opts, args) {
       { name: 'loglevel',
         type: 'string',
         help: "set the log level (#{logging.levelNames .. object.ownValues .. sort .. join("|")})"
+      },
+      { names: ['debug'],
+        type: 'bool',
+        help: "set logLevel=DEBUG before test runner begins"
       },
       { names: ['help', 'h'],
         type: 'bool',
@@ -423,6 +430,9 @@ Options:
           if (['on','off', 'auto'].indexOf(val) == -1) {
             throw new Error("unknown color mode: #{val}");
           }
+        } else if (key == 'debug') {
+          logging.setLevel(logging.DEBUG);
+          continue;
         }
         setOpt(key, val);
       }
@@ -443,7 +453,7 @@ Options:
       }
     } catch(e) {
       printHelp();
-      throw e;
+      throw new UsageError(e.message);
     }
   }
   result.testFilter = buildTestFilter(result.testSpecs || [], opts.base);
@@ -453,7 +463,7 @@ Options:
 
 var CWD = null;
 // In node.js we also allow paths relative to cwd()
-if (sys.hostenv = "nodejs") {
+if (sys.hostenv == "nodejs") {
   CWD = 'file://' + process.cwd() + '/';
 }
 var canonicalizeAgainst = (p, base) -> sys.canonicalizeURL(p, base)..rstrip('/');
@@ -479,6 +489,7 @@ var SuiteFilter = function SuiteFilter(opts, base) {
 SuiteFilter.prototype.toString = function() {
   return JSON.stringify(this.opts);
 }
+
 SuiteFilter.prototype.shouldLoadModule = function(module_path) {
   if (!this.file) return true;
 
@@ -549,23 +560,26 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base) {
   }
 }
 
+/**
+ * The top-level run function is the main entry point to the test
+ * functionality. Users should not need to instantiate Runner objects
+ * directly unless they are doing advanced things (like loading multiple
+ * test suites).
+ */
 exports.run = Runner.run = function(opts, args) {
-  logging.debug(`GOT OPTS: ${opts}`);
+  reporterModule.init();
+  logging.debug(`opts: ${opts}`);
   try {
     var run_opts = exports.getRunOpts(opts, args);
   } catch(e) {
-    // quit if we're in node.js
-    if(process && process.exit) {
-      console.log(e.message);
-      process.exit(1);
-    } else {
-      // otherwise just propagate the error
-      throw e;
-    }
+    var msg = (e instanceof UsageError) ? e.message : String(e);
+    console.error(msg);
+    reporterModule.die(e);
   }
-  logging.debug(`GOT RUN_OPTS: ${run_opts}`);
-  var reporter = opts.reporter || new (require("./reporter").DefaultReporter)(run_opts);
+  logging.debug(`run_opts: ${run_opts}`);
+  var reporter = opts.reporter || new reporterModule.DefaultReporter(run_opts);
   var runner = new Runner(run_opts, reporter);
   runner.loadAll(opts);
   return runner.run();
 }
+

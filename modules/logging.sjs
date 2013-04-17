@@ -333,7 +333,15 @@ var getPrinter = function(preferred_console_method) {
   return printerCache[preferred_console_method];
 };
 
-var getConsole = function() {
+/**
+  @function getConsole
+  @return   a Console object.
+  @summary  Returns the current console object in use by this module.
+  @desc
+    The returned object will be either the global `console` object,
+    or the most recent value given to [::setConsole].
+*/
+var getConsole = exports.getConsole = function() {
   if(consoleOverride) {
     return consoleOverride;
   }

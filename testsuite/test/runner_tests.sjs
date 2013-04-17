@@ -148,7 +148,7 @@ context("filtering") {||
     // assumes cwd is apollo root
     var run = runWithFilter([{file: "testsuite/test/fixtures/test_1.sjs"}]);
     run.files .. assert.eq(["test_1.sjs"]);
-  }.serverOnly("meaningless in a browser");
+  }.serverOnly("no cwd");
 
   test("requires exact match") {||
     var run = runWithFilter([{file: "test_1"}]);

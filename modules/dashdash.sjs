@@ -60,6 +60,11 @@
   turn off docs from this point onwards:
   @docsoff
 */
+
+// prevent errors in xbrowser env
+var sys = require('builtin:apollo-sys');
+var global = sys.getGlobal();
+var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
 /**
  * dashdash - yet another node.js optional parsing library
  */
