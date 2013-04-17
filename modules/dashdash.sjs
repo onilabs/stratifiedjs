@@ -9,7 +9,7 @@
  *
  *
  *   **************************************************************
- *   *    DO NOT EDIT dashdash.sjs - IT IS A GENERATED FILE! *
+ *   *    DO NOT EDIT dashdash.sjs - IT IS A GENERATED FILE!      *
  *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN      *
  *   *    apollo/src/build/make-apollo                            *
  *   **************************************************************
