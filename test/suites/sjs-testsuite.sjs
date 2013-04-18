@@ -1597,3 +1597,38 @@ test("destructuring var {x,y} = {y:'Y', z:'Z', x:'X'}", 'XYzxyz', function() {
   })();
   return rv + x + y + z;
 });
+
+function callWith(arg, f) { return f(arg); }
+test("object destructuring in lambda args", 3, function() {
+  return callWith({x: 1, y:2}, ({x, y}) -> x + y);
+});
+test("array destructuring in lambda args", 3, function() {
+  return callWith([1,2], ([x, y]) -> x + y);
+});
+
+test("destructuring in lambda args (no parens)", 3, function() {
+  return callWith({x: 1, y:2}, {x, y} -> x + y);
+});
+
+test("array destructuring in lambda args (no parens)", 3, function() {
+  return callWith([1,2], [x, y] -> x + y);
+});
+
+// TODO: uncomment these tests when they no longer cause syntax errors
+//test("object destructure in blocklambda args", 3, function() {
+//  callWith({x: 1, y:2}) {|{x, y}|
+//    return x + y;
+//  }
+//});
+
+//test("array destructure in blocklambda args", 3, function() {
+//  callWith([1,2]) { |[x, y]|
+//    return x + y;
+//  }
+//});
+
+//test("multuple destructure in blocklambda args", 15, function() {
+//  callWith([1,2], 3, {x:4, y:5}) { |[a,b], c, {x, y}|
+//    return a + b + c + d + x + y;
+//  }
+//});
