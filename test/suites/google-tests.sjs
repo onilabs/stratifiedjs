@@ -13,7 +13,8 @@ test('search(., {start:4})', true, function() {
 });
 
 test('siteSearch(., {start:4})', true, function() {
-  var results = g.siteSearch("stratified", "http://www.croczilla.com", {start:4});
+  var results = g.siteSearch("news", "http://cnn.com", {start:4});
+  console.log(results);
   return results.responseData.results[0].url != null;
 });
 
