@@ -348,16 +348,33 @@ var getConsole = exports.getConsole = function() {
   return sys.getGlobal().console;
 };
 
+var bind = function(fn, ctx) {
+  if (!fn.apply) {
+    // Probably IE's crippled console object.
+    // Since we can't pass multiple args, format them into one string.
+    return function() {
+      if (arguments.length == 0) return fn();
+      var msg = arguments[0];
+      for (var i=1; i<arguments.length; i++) {
+        msg += " " + debug.inspect(arguments[i]);
+      }
+      fn(msg);
+    }
+  }
+  return Function.prototype.bind.call(fn, ctx);
+  
+}
+
 var makePrinter = function(preferred_console_method) {
   // find a print function for the preferred_console_method,
   // falling back to whatever we can get
   var c = getConsole();
   if(c) {
     if(c[preferred_console_method]) {
-      return Function.prototype.bind.call(c[preferred_console_method], c);
+      return bind(c[preferred_console_method], c);
     }
     if(c.log) {
-      return Function.prototype.bind.call(c.log, c);
+      return bind(c.log, c);
     }
   }
   return function() {};
