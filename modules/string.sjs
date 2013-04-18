@@ -130,10 +130,10 @@ exports.startsWith = function(str, prefix) {
   @desc
         // example:
 
-        startsWith("abcd", "cd")
+        endsWith("abcd", "cd")
         // true
         
-        startsWith("abcd", "bc")
+        endsWith("abcd", "bc")
         // false
 */
 exports.endsWith = function(str, suffix) {
