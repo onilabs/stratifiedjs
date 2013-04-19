@@ -99,14 +99,14 @@ SkipMixins.skip = function(reason) {
   this._skip = true;
   this.skipReason = reason || null;
 }
-SkipMixins.skipIf = function(cond_fn, reason) {
-  if (cond_fn()) this.skip(reason);
+SkipMixins.skipIf = function(cond, reason) {
+  if (cond) this.skip(reason);
 }
 SkipMixins.browserOnly = function(reason) {
-  this.skipIf(-> !isBrowser, reason);
+  this.skipIf(!isBrowser, reason);
 }
 SkipMixins.serverOnly = function(reason) {
-  this.skipIf(-> isBrowser, reason);
+  this.skipIf(isBrowser, reason);
 }
 
 var addSkipFunctions = function(cls) {
