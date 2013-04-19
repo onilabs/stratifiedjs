@@ -85,6 +85,7 @@ function runEval(str) {
 function runCompile(filename) {
   return function() {
     var src = require("fs").readFileSync(filename);
+    filename = "'" + filename.replace(/\'/g,'\\\'') + "'";
     var compiled = __oni_rt.c1.compile(src, {globalReturn:true, filename:filename});
     require("util").puts(compiled);
   };
