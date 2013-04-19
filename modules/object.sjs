@@ -64,7 +64,7 @@ exports.keys = keys;
        See also [::keys].
 */
 function ownKeys(obj) {  
-  return Stream(function(r) { for (var p in obj) { if (hasOwnProperty.call(obj, p)) r(p) } });
+  return Stream(function(r) { for (var p in obj) { if (Object.prototype.hasOwnProperty.call(obj, p)) r(p) } });
 }
 exports.ownKeys = ownKeys;
 

@@ -361,7 +361,8 @@ exports.join = join;
       * If `sequence` is an Array, it will be destructively sorted in-place.
 */
 function sort(sequence, compare) {
-  return (sequence .. toArray).sort(compare);
+  var arr = (sequence .. toArray);
+  return arr.sort.apply(arr, Array.prototype.slice.call(arguments, 1));
 }
 exports.sort = sort;
 

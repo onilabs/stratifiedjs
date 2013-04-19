@@ -1,5 +1,6 @@
 var test = require('../lib/testUtil').test;
 var o = require("sjs:object");
+var {sort} = require("sjs:sequence");
 
 test('clone object', [{'a':1, 'b':2}, {'a':1}], function() {
   var Cls = function(a) {
@@ -53,3 +54,17 @@ test("merge multiple array arguments", {"a":1, "0": {"b":2}}, function() {
 	var b = {b:2};
 	return o.merge(a, [b]);
 });
+
+(function() {
+	var Obj = function(props) {
+		o.extend(this, props);
+		console.log(this);
+	};
+	Obj.prototype.c = 'cee';
+	var obj = new Obj({a:'aye', b:'bee'});
+
+	test("keys", ["a","b", "c"], function() { return obj .. o.keys() .. sort(); });
+	test("values", ["aye","bee", "cee"], function() { return obj .. o.values() .. sort(); });
+	test("ownKeys", ["a","b"], function() { return obj .. o.ownKeys() .. sort(); });
+	test("ownValues", ["aye","bee"], function() { return obj .. o.ownValues() .. sort(); });
+})();
