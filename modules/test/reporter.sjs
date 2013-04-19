@@ -46,7 +46,7 @@ var object = require('../object');
 var func = require('../function');
 var dom;
 
-var UsageError = exports.UsageError = function UsageError(m) {
+var UsageError = exports.UsageError = function(m) {
   this.message = m;
 }
 UsageError.prototype = new Error();
