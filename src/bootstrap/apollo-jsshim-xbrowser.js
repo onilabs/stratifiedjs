@@ -37,6 +37,7 @@ Array.prototype.indexOf
 Array.prototype.lastIndexOf
 Object.create
 Object.keys
+Object.getPrototypeOf
 Function.prototype.bind
 String.prototype.trim
 
@@ -63,7 +64,6 @@ Array.prototype.reduceRight
 And these ones probably don't make sense to emulate at all:
 
 Object.getOwnPropertyNames
-Object.getPrototypeOf
 Object.getOwnPropertyDescriptor
 Object.defineProperty
 Object.defineProperties
@@ -142,6 +142,18 @@ if(!Object.keys) {
         rv.push(p);
     return rv;
   };
+}
+
+// Object.getPrototypeOf
+if (!Object.getPrototypeOf) {
+    Object.getPrototypeOf = "".__proto__ === String.prototype
+        ? function (object) {
+            return object.__proto__;
+        }
+        : function (object) {
+            // May break if the constructor has been tampered with
+            return object.constructor.prototype;
+        };
 }
 
 // Function.prototype.bind

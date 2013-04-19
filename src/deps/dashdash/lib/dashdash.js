@@ -2,46 +2,7 @@
  * dashdash - yet another node.js optional parsing library
  */
 
-var assert = require('./assert');
-
-var format = function(str /*, replacements ... */) {
-    // upstream uses node.js' util/format function,
-    // which isn't available in the browser.
-    var str = arguments[0];
-    var idx = 1;
-    var args = arguments;
-    return str.replace(/%(.)/g, function(text, fmt) {
-        var obj = args[idx++];
-        if (fmt == 'j') return JSON.stringify(obj);
-        return String(obj);
-    });
-}
-
-var DEBUG = true;
-if (DEBUG) {
-    var debug = console.warn;
-} else {
-    var debug = function () {};
-}
-
-
-
 // ---- internal support stuff
-
-/**
- * Return a shallow copy of the given object;
- */
-function shallowCopy(obj) {
-    if (!obj) {
-        return (obj);
-    }
-    var copy = {};
-    Object.keys(obj).forEach(function (k) {
-        copy[k] = obj[k];
-    });
-    return (copy);
-}
-
 
 function space(n) {
     var s = '';
@@ -61,7 +22,7 @@ function textwrap(s, width) {
     var words = s.trim().split(/\s+/);
     var lines = [];
     var line = '';
-    words.forEach(function (w) {
+    words..each(function (w) {
         var newLength = line.length + w.length;
         if (line.length > 0)
             newLength += 1;
@@ -218,7 +179,7 @@ function Parser(config) {
     this.interspersed = (config.interspersed !== undefined
         ? config.interspersed : true);
 
-    this.options = config.options.map(function (o) { return shallowCopy(o); });
+    this.options = config.options..map(clone) .. toArray;
     this.optionFromName = {};
     this.optionFromEnv = {};
     for (var i = 0; i < this.options.length; i++) {
@@ -245,7 +206,7 @@ function Parser(config) {
                 format('config.options.%d.names is empty', i));
         }
         o.key = optionKeyFromName(o.names[0]);
-        o.names.forEach(function (n) {
+        o.names..each(function (n) {
             if (self.optionFromName[n]) {
                 throw new Error(format(
                     'option name collision: "%s" used in %j and %j',
@@ -253,7 +214,7 @@ function Parser(config) {
             }
             self.optionFromName[n] = o;
         });
-        env.forEach(function (n) {
+        env..each(function (n) {
             if (self.optionFromEnv[n]) {
                 throw new Error(format(
                     'option env collision: "%s" used in %j and %j',
@@ -301,7 +262,7 @@ Parser.prototype.parse = function parse(inputs) {
     // Setup default values
     var opts = {};
     var _order = [];
-    this.options.forEach(function (o) {
+    this.options..each(function (o) {
         if (o['default']) {
             opts[o.key] = o['default'];
         }
@@ -411,7 +372,7 @@ Parser.prototype.parse = function parse(inputs) {
     _args = _args.concat(args.slice(i));
 
     // Parse environment.
-    Object.keys(this.optionFromEnv).forEach(function (envname) {
+    ownKeys(this.optionFromEnv)..each(function (envname) {
         var val = env[envname];
         if (val === undefined)
             return;
@@ -487,7 +448,7 @@ Parser.prototype.help = function help(config) {
 
     var lines = [];
     var maxWidth = 0;
-    this.options.forEach(function (o) {
+    this.options..each(function (o) {
         var type = types[o.type];
         var arg = o.helpArg || type.helpArg || 'ARG';
         var line = '';
@@ -502,7 +463,8 @@ Parser.prototype.help = function help(config) {
                     return 0;
             })
         }
-        names.forEach(function (name, i) {
+        names..indexed..each(function (pair) {
+            var [i, name] = pair;
             if (i > 0)
                 line += ', ';
             if (name.length === 1) {
@@ -525,7 +487,8 @@ Parser.prototype.help = function help(config) {
         helpCol = maxWidth + indent.length + 2;
         helpCol = Math.min(Math.max(helpCol, minHelpCol), maxHelpCol);
     }
-    this.options.forEach(function (o, i) {
+    this.options..indexed..each(function (pair) {
+        [i, o] = pair;
         if (!o.help) {
             return;
         }
@@ -544,23 +507,23 @@ Parser.prototype.help = function help(config) {
             help += ' Environment: ';
             var type = types[o.type];
             var arg = o.helpArg || type.helpArg || 'ARG';
-            var envs = (Array.isArray(o.env) ? o.env : [o.env]).map(function (e) {
+            var envs = (Array.isArray(o.env) ? o.env : [o.env])..map(function (e) {
                 if (type.takesArg) {
                     return e + '=' + arg;
                 } else {
                     return e + '=1';
                 }
             });
-            help += envs.join(', ');
+            help += envs..join(', ');
         }
-        line += textwrap(help, maxCol - helpCol).join(
+        line += textwrap(help, maxCol - helpCol)..join(
             '\n' + space(helpCol));
         lines[i] = line;
     });
 
     var rv = '';
     if (lines.length > 0) {
-        rv = indent + lines.join('\n' + indent) + '\n';
+        rv = indent + lines..join('\n' + indent) + '\n';
     }
     return rv;
 };
@@ -584,7 +547,7 @@ function parse(config) {
     assert.object(config, 'config');
     assert.optionalArrayOfString(config.argv, 'config.argv');
     assert.optionalObject(config.env, 'config.env');
-    var config = shallowCopy(config);
+    var config = clone(config);
     var argv = config.argv;
     delete config.argv;
     var env = config.env;

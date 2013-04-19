@@ -44,6 +44,7 @@ var logging = require('../logging');
 var debug = require('../debug');
 var object = require('../object');
 var func = require('../function');
+var dom;
 
 var UsageError = exports.UsageError = function UsageError(m) {
   this.message = m;
@@ -186,12 +187,6 @@ var HtmlOutput = exports.HtmlOutput = function() {
 HtmlOutput.instance = null;
 HtmlOutput.elementId = 'console-output';
 
-var addCss = function(css) {
-  var elem = document.createElement("style");
-  elem.appendChild(document.createTextNode(css));
-  document.head.appendChild(elem);
-}
-
 HtmlOutput.prototype.prepareStyles = function() {
   var css = "
   body {
@@ -213,7 +208,7 @@ HtmlOutput.prototype.prepareStyles = function() {
   .yellow { color: #ed6; }
   .dim { color: #888; }
   ";
-  addCss(css);
+  dom.addCSS(css);
 };
 
 HtmlOutput.prototype._log = function(level, args) {
@@ -225,21 +220,21 @@ HtmlOutput.prototype._log = function(level, args) {
   this.print(elem);
 }
 
-var getScrollBottom = -> window.scrollY + window.innerHeight;
-var getDocumentHeight = -> document.documentElement.offsetHeight;
+var getScrollBottom = -> (window.pageYOffset || document.documentElement.scrollTop) + window.innerHeight;
+var getDocumentHeight = -> Math.max(document.documentElement.offsetHeight, document.body.offsetHeight);
 
 HtmlOutput.prototype.print = function(msg, endl) {
   var scrollBottom = getScrollBottom();
   var followOutput = getDocumentHeight() <= scrollBottom;
   if (msg === undefined) msg = '';
-  if (!(msg instanceof HTMLElement)) {
+  if (!(msg instanceof dom.HTMLElement)) {
     msg = document.createTextNode(msg);
   }
   this.output.appendChild(msg);
   if (endl !== false) this.output.appendChild(document.createElement('br'));
   if (followOutput) {
     var documentHeight = getDocumentHeight();
-    if (documentHeight > scrollBottom) window.scrollTo(window.scrollX, documentHeight);
+    if (documentHeight > scrollBottom) window.scrollTo(window.pageXOffset, documentHeight);
   }
 }
 
@@ -357,6 +352,7 @@ var INITIALIZED = false;
  */
 switch(sys.hostenv) {
   case "xbrowser":
+    dom = require('../xbrowser/dom');
     exports.DefaultReporter = HtmlReporter;
 
     exports.die = function(e) {
@@ -367,7 +363,7 @@ switch(sys.hostenv) {
     exports.init = function() {
       if (INITIALIZED) return;
       INITIALIZED = true;
-      window.addEventListener("hashchange", -> window.location.reload(), false);
+      window .. dom.addListener("hashchange", -> window.location.reload(), false);
       var cls = exports.HtmlOutput;
       if (!document.getElementById(cls.elementId)) {
         var instance = cls.instance = new cls();

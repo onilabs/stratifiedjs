@@ -54,9 +54,10 @@
   turn off docs from this point onwards:
   @docsoff
 */
-__js {
-exports.quote = function (xs) {
-    return xs.map(function (s) {
+
+var { map, join, toArray } = require('./sequence');
+var quote = exports.quote = function (xs) {
+    return xs .. map(function (s) {
         if (/["\s]/.test(s) && !/'/.test(s)) {
             return "'" + s.replace(/(['\\])/g, '\\$1') + "'";
         }
@@ -66,15 +67,15 @@ exports.quote = function (xs) {
         else {
             return s.replace(/([\\$`(){}!#&*|])/g, '\\$1');
         }
-    }).join(' ');
+    }) .. join(' ');
 };
 
-exports.parse = function parse (s, env) {
+var parse = exports.parse = function parse (s, env) {
     var chunker = /(['"])((\\\1|[^\1])*?)\1|(\\ |\S)+/g;
     var match = s.match(chunker);
     if (!match) return [];
     if (!env) env = {};
-    return match.map(function (s) {
+    return match .. map(function (s) {
         if (/^'/.test(s)) {
             return s
                 .replace(/^'|'$/g, '')
@@ -96,11 +97,10 @@ exports.parse = function parse (s, env) {
                 return parse('"' + s + '"', env);
             }
         );
-    });
+    }) .. toArray;
     
     function getVar (_, pre, key) {
         return pre + String(env[key] || '');
     }
 };
-} /* __js */
 

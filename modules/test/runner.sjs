@@ -450,7 +450,7 @@ Options:
 
       // process testspecs
       if (parsed._args.length > 0) {
-        result.testSpecs = parsed._args.map(function(arg) {
+        result.testSpecs = parsed._args .. map(function(arg) {
           if (arg == '') throw new Error("empty testspec");
           var parts = arg.split(':');
           var spec = {};
@@ -460,7 +460,7 @@ Options:
             spec.test = parts.slice(1) .. join(':');
           }
           return spec;
-        });
+        }) .. toArray;
       }
     } catch(e) {
       printHelp();

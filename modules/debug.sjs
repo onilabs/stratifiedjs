@@ -252,12 +252,13 @@ function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
       output.push('');
     }
   }
-  keys.forEach(function(key) {
+  for (var i=0; i<keys.length; i++) {
+    var key = keys[i];
     if (!key.match(/^\d+$/)) {
       output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
           key, true));
     }
-  });
+  };
   return output;
 }
 

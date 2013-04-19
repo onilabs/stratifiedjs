@@ -54,4 +54,5 @@
   turn off docs from this point onwards:
   @docsoff
 */
-__js {
+
+var { map, join, toArray } = require('./sequence');

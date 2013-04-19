@@ -65,3 +65,20 @@
 var sys = require('builtin:apollo-sys');
 var global = sys.getGlobal();
 var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
+var assert = require('./assert');
+var { each, map, join, indexed, toArray } = require('./sequence');
+var { ownKeys, clone } = require('./object');
+
+var format = function(str /*, replacements ... */) {
+    // upstream uses node.js' util/format function,
+    // which isn't available in the browser.
+    var str = arguments[0];
+    var idx = 1;
+    var args = arguments;
+    return str.replace(/%(.)/g, function(text, fmt) {
+        var obj = args[idx++];
+        if (fmt == 'j') return JSON.stringify(obj);
+        return String(obj);
+    });
+}
+

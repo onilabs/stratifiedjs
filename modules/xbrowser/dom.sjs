@@ -663,3 +663,11 @@ exports.removeCookie = function(name) {
 	exports.setCookie(name,"",-1);
 };
 
+/**
+ * @variable HTMLElement
+ * @summary The global HTMLElement (or Element) class constructor
+ * #desc
+ *    Set to the global HTMLElement variable. If HTMLElement is undefined,
+ *    this variable will alias Element instead (this is the case in some version of IE).
+ */
+exports.HTMLElement = typeof(HTMLElement) == 'undefined' ? Element : HTMLElement;
