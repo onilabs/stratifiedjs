@@ -494,8 +494,14 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
         }
       if (m)
         __oni_rt.modsrc[m] = content;
-      else
-        exports.eval(content, {filename:"inline_script"+(i+1)});
+      else {
+        var descriptor = {
+          id: document.location.href + "_inline_sjs_" + (i + 1),
+        };
+        var f = exports.eval("(function(module, __onimodulename){"+content+"\n})",
+                        {filename:"module #{descriptor.id}"});
+        f(descriptor);
+      }
     }
   };
   
