@@ -105,8 +105,8 @@ ReporterMixins = {
             var context = results.contextStart.wait();
             this.fmt.contextStart(context);
           } or {
-            results.contextEnd.wait();
-            this.fmt.contextEnd();
+            var ctx = results.contextEnd.wait();
+            this.fmt.contextEnd(ctx);
           }
         }
       } or {
@@ -142,12 +142,14 @@ Formatter.prototype.contextStart = function(context) {
   if (this.indentLevels == 0) {
     this.print();
   }
-  this.print(this.color({attribute: 'bright'}, "#{this.prefix}- #{context.description}:"));
+  var skipping = context.shouldSkip();
+  this.print(this.color({attribute: 'bright'}, "#{this.prefix}- #{context.description}: "), !skipping);
+  if (skipping) this.printSkip(context.skipReason);
   this.indentLevels++;
   this.prefix = repeatStr(this.indent, this.indentLevels);
 }
 
-Formatter.prototype.contextEnd = function() {
+Formatter.prototype.contextEnd = function(context) {
   this.indentLevels--;
   this.prefix = repeatStr(this.indent, this.indentLevels);
 }
@@ -156,11 +158,15 @@ Formatter.prototype.beginTest = function(result) {
     this.print(this.prefix + result.test.description + ' ... ', false);
 }
 
+Formatter.prototype.printSkip = function(reason) {
+  var msg = "SKIP";
+  if (reason) msg = "#{msg} (#{reason})"
+  this.print(this.color('blue', msg));
+}
+
 Formatter.prototype.endTest = function(result, capturedLogs) {
   if (result.skipped) {
-    var msg = "SKIP";
-    if (result.reason) msg = "#{msg} (#{result.reason})"
-    this.print(this.color('blue', msg));
+    this.printSkip(result.reason);
   } else if (result.ok) {
     this.print(this.color('green', "OK"));
   } else {

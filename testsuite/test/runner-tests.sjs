@@ -26,17 +26,15 @@ context("hooks") {||
     var runner = new Runner();
     var events = [];
 
-    runner.collect {||
-      context("ctx") {||
-        test.beforeAll( -> events.push("before all"));
-        test.beforeEach( -> events.push("before each 1"));
-        test.beforeEach( -> events.push("before each 2"));
-        test.afterEach( -> events.push("after each"));
-        test.afterAll( -> events.push("after all 1"));
-        test.afterAll( -> events.push("after all 2"));
-        test("1", -> events.push("test 1"));
-        test("1", -> events.push("test 2"));
-      }
+    runner.context("ctx") {||
+      test.beforeAll( -> events.push("before all"));
+      test.beforeEach( -> events.push("before each 1"));
+      test.beforeEach( -> events.push("before each 2"));
+      test.afterEach( -> events.push("after each"));
+      test.afterAll( -> events.push("after all 1"));
+      test.afterAll( -> events.push("after all 2"));
+      test("1", -> events.push("test 1"));
+      test("1", -> events.push("test 2"));
     }
     var results = runner.run();
     assert.ok(results.ok())
@@ -58,24 +56,22 @@ context("hooks") {||
   }
 
   test("runs nested before / after hooks") {||
-    var runner = new Runner();
+    var runner = new Runner({defaults: {logCapture: false}});
     var events = [];
 
-    runner.collect {||
-      context("parent") {||
-        test.beforeAll( -> events.push("parent before all"));
-        test.beforeEach( -> events.push("parent before each"));
-        test.afterEach( -> events.push("parent after each"));
-        test.afterAll( -> events.push("parent after all"));
-        test("parent test", -> events.push("parent test"));
+    runner.context("parent") {||
+      test.beforeAll( -> events.push("parent before all"));
+      test.beforeEach( -> events.push("parent before each"));
+      test.afterEach( -> events.push("parent after each"));
+      test.afterAll( -> events.push("parent after all"));
+      test("parent test", -> events.push("parent test"));
 
-        context("child") {||
-          test.beforeAll( -> events.push("child before all"));
-          test.beforeEach( -> events.push("child before each"));
-          test.afterEach( -> events.push("child after each"));
-          test.afterAll( -> events.push("child after all"));
-          test("child test", -> events.push("child test"));
-        }
+      context("child") {||
+        test.beforeAll( -> events.push("child before all"));
+        test.beforeEach( -> events.push("child before each"));
+        test.afterEach( -> events.push("child after each"));
+        test.afterAll( -> events.push("child after all"));
+        test("child test", -> events.push("child test"));
       }
     }
     var results = runner.run();
@@ -227,11 +223,9 @@ context("logging") {||
     });
 
     var test_log_level = null;
-    runner.collect() {||
-      context("test") {||
-        test("1") {||
-          test_log_level = logging.getLevel();
-        }
+    runner.context("test") {||
+      test("1") {||
+        test_log_level = logging.getLevel();
       }
     }
     var results = runner.run();
@@ -251,34 +245,31 @@ context("test state") {||
     var after_each_state = [];
     var test_state = [];
 
-    runner.collect() {||
-      context("ctx") {||
+    runner.context("ctx") {||
+      test.beforeAll { |state|
+        state.contextLevel = true;
+        before_all_state = state;
+      }
+      test.afterAll { |state|
+        after_all_state = state;
+      }
 
-        test.beforeAll { |state|
-          state.contextLevel = true;
-          before_all_state = state;
-        }
-        test.afterAll { |state|
-          after_all_state = state;
-        }
+      test.beforeEach { |state|
+        state.testLevel = true;
+        before_each_state.push(state);
+      }
 
-        test.beforeEach { |state|
-          state.testLevel = true;
-          before_each_state.push(state);
-        }
+      test.afterEach { |state|
+        after_each_state.push(state);
+      }
 
-        test.afterEach { |state|
-          after_each_state.push(state);
-        }
-
-        test("test 1") { |state|
-          state.test1 = true;
-          test_state.push(state);
-        }
-        test("test 1") { |state|
-          state.test2 = true;
-          test_state.push(state);
-        }
+      test("test 1") { |state|
+        state.test1 = true;
+        test_state.push(state);
+      }
+      test("test 1") { |state|
+        state.test2 = true;
+        test_state.push(state);
       }
     }
     var results = runner.run();
@@ -317,17 +308,15 @@ context("test state") {||
     var parent_state = null;
     var ctx_state = null;
 
-    runner.collect() {||
-      context("parent ctx") {||
+    runner.context("parent ctx") {||
+      test.beforeAll {|state|
+        parent_state = state;
+      }
+      context("ctx") {||
         test.beforeAll {|state|
-          parent_state = state;
+          ctx_state = state;
         }
-        context("ctx") {||
-          test.beforeAll {|state|
-            ctx_state = state;
-          }
-          test("test", -> null);
-        }
+        test("test", -> null);
       }
     }
 
@@ -399,23 +388,21 @@ context("global variable leaks") {||
   }
 
   var defineTests = function() {
-    context("root") {||
-      test('new global `foo`') {||
-        foo = 12;
-      }
-      test('new global `bar`') {||
-        bar = 12;
-      }
-      test('new global `foo` again') {||
-        foo = 12;
-      }
+    test('new global `foo`') {||
+      foo = 12;
+    }
+    test('new global `bar`') {||
+      bar = 12;
+    }
+    test('new global `foo` again') {||
+      foo = 12;
     }
   }
 
   test('fails on unexpected global') {||
     var watcher = new CollectWatcher();
     var runner = new Runner(opts, watcher);
-    runner.collect(defineTests);
+    runner.context("root", defineTests);
     runner.run();
 
     var results = watcher.results .. map(r -> [r.description, r.error ? r.error.message : null]) .. toArray();
@@ -430,7 +417,7 @@ context("global variable leaks") {||
     var watcher = new CollectWatcher();
     opts = runnerMod.getRunOpts(opts, ['--ignore-leaks'])
     var runner = new Runner(opts, watcher);
-    runner.collect(defineTests);
+    runner.context("root", defineTests);
     runner.run(watcher.run).ok() .. assert.ok();
   }
 }

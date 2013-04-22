@@ -94,7 +94,6 @@ Runner.prototype.getModuleList = function(url) {
 Runner.prototype.loadModules = function(modules, base) {
   modules .. each {|module|
     if (this.opts.testFilter.shouldLoadModule(module)) {
-      if (this.reporter.loading) this.reporter.loading(module);
       this.loadModule(module, base);
     } else {
       logging.verbose("skipping module: #{module}");
@@ -120,13 +119,6 @@ Runner.prototype.loadAll = function(opts) {
 
 Runner.prototype.withContext = function(ctx, fn) {
   var existing_contexts = this.active_contexts.slice();
-  if (existing_contexts.length > 0) {
-    var parent = existing_contexts[existing_contexts.length - 1];
-    ctx.parent = parent;
-    parent.children.push(ctx);
-  } else {
-    this.root_contexts.push(ctx);
-  }
   this.active_contexts.push(ctx);
 
   try {
@@ -139,15 +131,17 @@ Runner.prototype.withContext = function(ctx, fn) {
   }
 };
 
-Runner.prototype.currentContext = function(test) {
+Runner.prototype.currentContext = function() {
   if(this.active_contexts.length < 1) {
-    throw new Error("test defined without an active context");
+    throw new Error("there is no active test context");
   }
   return this.active_contexts[this.active_contexts.length-1];
 }
 
-Runner.prototype.collect = function(fn) {
-  suite._withRunner(this, fn);
+Runner.prototype.context = function(desc, fn) {
+  var ctx = new suite.context.Cls(desc, fn);
+  this.root_contexts.push(ctx);
+  return ctx;
 }
 
 Runner.prototype.loadModule = function(module_name, base) {
@@ -158,11 +152,12 @@ Runner.prototype.loadModule = function(module_name, base) {
   // XX maybe replace with require(., {reload:true}) mechanism when we have it.
   delete require.modules[require.resolve(canonical_name).path];
 
-  this.collect() { ||
-    // construct a special toplevel context that knows its module path
-    var ctx = new suite.context.Cls(module_name, -> require(canonical_name), module_name);
-    this.withContext(ctx, -> ctx.collect());
-  }
+  // construct a special toplevel context that knows its module path
+  var ctx = new suite.context.Cls(module_name, function() {
+    if (this.reporter.loading) this.reporter.loading(module_name);
+    require(canonical_name);
+  }.bind(this) , module_name);
+  this.root_contexts.push(ctx);
 };
 
 Runner.prototype.run = function(reporter) {
@@ -175,28 +170,46 @@ Runner.prototype.run = function(reporter) {
   // count the number of tests, while marking them (and their parent contexts)
   // as _enabled while disabling all other contexts
   var total_tests = 0;
+  var enable = function(ctx) {
+    while(ctx && !ctx._enabled) {
+      ctx._enabled = true;
+      ctx = ctx.parent;
+    }
+  };
+
   var preprocess_context = function(module, ctx) {
     ctx._enabled = false;
-    ctx.children .. each {|child|
-      if (child.hasOwnProperty('children')) {
-        preprocess_context(module, child);
-      } else {
-        if (opts.testFilter.shouldRun(module, child)) {
-          total_tests++;
-          child._enabled = true;
-          var ctx = child.context;
-          while(ctx && !ctx._enabled) {
-            ctx._enabled = true;
-            ctx = ctx.parent;
-          }
+
+    if (ctx.shouldSkip()) {
+      // skipped contexts can be enabled, but their children are never collected / run
+      if (opts.testFilter.shouldRun(module, ctx)) {
+        enable(ctx);
+      }
+      return;
+    }
+
+    this.withContext(ctx) {||
+      ctx.collect();
+      ctx.children .. each {|child|
+        if (child.hasOwnProperty('children')) {
+          preprocess_context(module, child);
         } else {
-          child._enabled = false;
+          if (opts.testFilter.shouldRun(module, child)) {
+            total_tests++;
+            child._enabled = true;
+            enable(child.context);
+          } else {
+            child._enabled = false;
+          }
         }
       }
     }
+  }.bind(this);
+
+  suite._withRunner(this) { ||
+    this.root_contexts .. each(ctx -> preprocess_context(ctx.module(), ctx));
   }
 
-  this.root_contexts .. each(ctx -> preprocess_context(ctx.module(), ctx));
   var results = new Results(total_tests);
 
   // ----------------------------
@@ -251,15 +264,17 @@ Runner.prototype.run = function(reporter) {
     }
     results.contextStart.emit(ctx);
 
-    ctx.withHooks() {||
-      ctx.children .. each {|child|
-        if (child.hasOwnProperty('children')) {
-          traverse(child);
-        } else {
-          if (child._enabled) {
-            runTest(child);
+    if (!ctx.shouldSkip()) {
+      ctx.withHooks() {||
+        ctx.children .. each {|child|
+          if (child.hasOwnProperty('children')) {
+            traverse(child);
           } else {
-            logging.verbose("Skipping test: #{child}");
+            if (child._enabled) {
+              runTest(child);
+            } else {
+              logging.verbose("Skipping test: #{child}");
+            }
           }
         }
       }
@@ -279,8 +294,6 @@ Runner.prototype.run = function(reporter) {
       waitfor {
         if (reporter) reporter(results);
       } and {
-
-
         this.root_contexts .. each(traverse);
         results.end.emit();
       }

@@ -43,7 +43,7 @@ var sys=require('builtin:apollo-sys');
 var object=require('../object');
 var isBrowser = exports.isBrowser = sys.hostenv == "xbrowser";
 var logging = require("sjs:logging");
-var { each } = require('../sequence');
+var { each, filter } = require('../sequence');
 
 var getRunner = function() {
   if (_runner == null) throw new Error("no active runner");
@@ -67,16 +67,14 @@ exports._withRunner = function(runner, fn) {
 
 var context = exports.context = function(desc, fn) {
   var ctx = new Context(desc, fn);
-  getRunner().withContext(ctx) {||
-    ctx.collect();
-  }
+  currentContext().addChild(ctx);
   return ctx;
 }
 
 var test = exports.test = function(desc, fn) {
   var ctx = currentContext();
   var test = new Test(desc, fn, ctx);
-  ctx.children.push(test);
+  ctx.addTest(test);
   return test;
 }
 // extend `test` with context-related methods
@@ -146,9 +144,20 @@ Context.prototype.withHooks = function(fn) {
   runAllHooks('afterAll', this.hooks.after.all, this.state, first_error);
 }
 
+Context.prototype.addTest = function(child) {
+  this.children.push(child);
+}
+
+Context.prototype.addChild = function(child) {
+  child.parent = this;
+  this.children.push(child);
+}
+
 Context.prototype.collect = function() {
+  if (this.children.length > 0) throw new Error("context collected twice: #{this.fullDescription()}");
   this.body.call(this.state, this.state);
 }
+
 Context.prototype.fullDescription = function() {
   if (this.parent == null) return this.description;
   return this.parent.fullDescription() + ":" + this.description;
@@ -161,7 +170,7 @@ Context.prototype.module = function() {
 }
 
 Context.prototype.toString = function() {
-  return "<#Context: #{this.description} (#{this._module}>";
+  return "<#Context: #{this.description} (#{this._module})>";
 }
 
 Context.prototype.shouldSkip = function() {
