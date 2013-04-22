@@ -8,7 +8,7 @@ var { waitforAll } = require('sjs:cutil');
 
 // suite with passing & failing tests
 var runner = new Runner({});
-runner.collect() {||
+runner.context("root") {||
   context("group 1") {||
     test("OK 1", -> assert.ok(true));
     test("FAIL 1", -> assert.ok(false));
@@ -23,10 +23,10 @@ runner.collect() {||
   context("group 3") {||
     context("group 4") {||
       test("OK 3", -> assert.ok(true));
-    }
-    test("FAIL 4", -> assert.ok(false));
-    test("FAIL 5", -> assert.ok(false));
-  }.skip();
+    }.skip();
+    test("FAIL 4", -> assert.ok(false)).skip();
+    test("FAIL 5", -> assert.ok(false)).skip();
+  }
 }
 
 var suite_result = runner.run();
@@ -39,14 +39,14 @@ var check = function(actual, expected, desc) {
 
 logging.debug(`got result: ${suite_result}`);
 check(suite_result.ok(), false, "result.ok()");
-check(suite_result.count(), 8, "result.count()");
+check(suite_result.count(), 7, "result.count()");
 check(suite_result.succeeded, 1, "result.succeeded");
 check(suite_result.failed, 3, "result.failed");
-check(suite_result.skipped, 4, "result.skipped");
+check(suite_result.skipped, 3, "result.skipped");
 
 var events = [];
 runner.run() {|results|
-  check(results.total, 8, "results.total");
+  check(results.total, 7, "results.total");
   var event_names = ['contextStart', 'contextEnd', 'testStart','testFinished', 'testSucceeded', 'testFailed', 'testSkipped'];
   var waiters = event_names .. map(function(key) {
     return function() {
@@ -70,6 +70,7 @@ runner.run() {|results|
 }
 
 check(events.join("\n"), "
+contextStart: root
 contextStart: group 1
 testStart: OK 1
 testSucceeded: OK 1
@@ -91,9 +92,6 @@ testFinished: FAIL 3
 contextEnd: group 2
 contextStart: group 3
 contextStart: group 4
-testStart: OK 3
-testSkipped: OK 3
-testFinished: OK 3
 contextEnd: group 4
 testStart: FAIL 4
 testSkipped: FAIL 4
@@ -102,6 +100,7 @@ testStart: FAIL 5
 testSkipped: FAIL 5
 testFinished: FAIL 5
 contextEnd: group 3
+contextEnd: root
 end
 ".trim());
 logging.verbose("test runner sanity check OK");
