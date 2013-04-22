@@ -488,7 +488,7 @@ Parser.prototype.help = function help(config) {
         helpCol = Math.min(Math.max(helpCol, minHelpCol), maxHelpCol);
     }
     this.options..indexed..each(function (pair) {
-        [i, o] = pair;
+        var [i, o] = pair;
         if (!o.help) {
             return;
         }

@@ -1,9 +1,25 @@
 var {context, test, assert} = require("sjs:test/suite");
-var runner = require("sjs:test/runner");
-var {Runner} = runner;
-var {each} = require("sjs:sequence");
+var runnerMod = require("sjs:test/runner");
+var {Runner} = runnerMod;
+var {each, map, toArray} = require("sjs:sequence");
 var logging = require("sjs:logging");
 var debug = require("sjs:debug");
+var sys = require("builtin:apollo-sys");
+
+function CollectWatcher() {
+  this.results = [];
+  this.run = function(results) {
+    waitfor{
+      while(true) {
+        var result = results.testFinished.wait();
+        this.results.push(result);
+        logging.info(`result: ${result}`);
+      }
+    } or {
+      results.end.wait();
+    }
+  }.bind(this);
+}
 
 context("hooks") {||
   test("runs all before / after hooks") {||
@@ -334,21 +350,21 @@ context("argument parsing") {||
       testSpecs: null,
     }
   };
-  var parseSpecs = (args) -> runner.getRunOpts(opts, args).testSpecs
+  var parseSpecs = (args) -> runnerMod.getRunOpts(opts, args).testSpecs
 
   test('options') {||
-    runner.getRunOpts(opts, ['--color=auto']).color .. assert.eq('auto');
-    runner.getRunOpts(opts, ['--loglevel=info']).logLevel .. assert.eq(logging.INFO);
-    runner.getRunOpts(opts, ['--loglevel=INFO']).logLevel .. assert.eq(logging.INFO);
-    runner.getRunOpts(opts, ['--logcapture']).logCapture .. assert.eq(true);
-    runner.getRunOpts(opts, ['--no-logcapture']).logCapture .. assert.eq(false);
+    runnerMod.getRunOpts(opts, ['--color=auto']).color .. assert.eq('auto');
+    runnerMod.getRunOpts(opts, ['--loglevel=info']).logLevel .. assert.eq(logging.INFO);
+    runnerMod.getRunOpts(opts, ['--loglevel=INFO']).logLevel .. assert.eq(logging.INFO);
+    runnerMod.getRunOpts(opts, ['--logcapture']).logCapture .. assert.eq(true);
+    runnerMod.getRunOpts(opts, ['--no-logcapture']).logCapture .. assert.eq(false);
   }
 
   test('invalid options') {||
-    assert.raises({message: 'unknown color mode: whatever'}, -> runner.getRunOpts(opts, ['--color=whatever']));
-    assert.raises({message: 'unknown log level: LOUD'}, -> runner.getRunOpts(opts, ['--loglevel=loud']));
-    assert.raises({message: 'unknown option: "--foo"'}, -> runner.getRunOpts(opts, ['--foo']));
-    assert.raises(-> runner.getRunOpts(opts, ['--help']));
+    assert.raises({message: 'unknown color mode: whatever'}, -> runnerMod.getRunOpts(opts, ['--color=whatever']));
+    assert.raises({message: 'unknown log level: LOUD'}, -> runnerMod.getRunOpts(opts, ['--loglevel=loud']));
+    assert.raises({message: 'unknown option: "--foo"'}, -> runnerMod.getRunOpts(opts, ['--foo']));
+    assert.raises(-> runnerMod.getRunOpts(opts, ['--help']));
   }
 
   test('test specs') {||
@@ -362,5 +378,59 @@ context("argument parsing") {||
 
   test('invalid test specs') {||
     assert.raises({message: "empty testspec"}, -> parseSpecs(['']));
+  }
+}
+
+context("global variable leaks") {||
+  var opts = {
+    base: module.id,
+    defaults:
+    {
+      logCapture: false,
+      allowedGlobals: ['bar'],
+    },
+  };
+
+  test.afterEach {||
+    // clean up any globals that may have been added
+    var g = sys.getGlobal();
+    delete g.foo;
+    delete g.bar;
+  }
+
+  var defineTests = function() {
+    context("root") {||
+      test('new global `foo`') {||
+        foo = 12;
+      }
+      test('new global `bar`') {||
+        bar = 12;
+      }
+      test('new global `foo` again') {||
+        foo = 12;
+      }
+    }
+  }
+
+  test('fails on unexpected global') {||
+    var watcher = new CollectWatcher();
+    var runner = new Runner(opts, watcher);
+    runner.collect(defineTests);
+    runner.run();
+
+    var results = watcher.results .. map(r -> [r.description, r.error ? r.error.message : null]) .. toArray();
+    assert.eq(results, [
+      ['new global `foo`', "Test introduced additional global variable(s): foo"],
+      ['new global `bar`', null],
+      ['new global `foo` again', null],
+    ]);
+  }
+
+  test('ignores unexpected globals if --ignore-leaks is given') {||
+    var watcher = new CollectWatcher();
+    opts = runnerMod.getRunOpts(opts, ['--ignore-leaks'])
+    var runner = new Runner(opts, watcher);
+    runner.collect(defineTests);
+    runner.run(watcher.run).ok() .. assert.ok();
   }
 }

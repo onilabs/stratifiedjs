@@ -49,7 +49,7 @@ waitfor {
 } and {
   var { isArrayLike } = require('../array');
 } and {
-  var { each, reduce, toArray, any, filter, map, join, sort } = require('../sequence');
+  var { each, reduce, toArray, any, filter, map, join, sort, concat } = require('../sequence');
 } and {
   var { rstrip, startsWith } = require('../string');
 } and {
@@ -163,6 +163,7 @@ Runner.prototype.loadModule = function(module_name, base) {
 };
 
 Runner.prototype.run = function(reporter) {
+  var opts = this.opts;
   // use `reporter.run` if no reporter func given explicitly
   if (!reporter && this.reporter.run) {
     reporter = this.reporter.run.bind(this.reporter);
@@ -177,7 +178,7 @@ Runner.prototype.run = function(reporter) {
       if (child.hasOwnProperty('children')) {
         preprocess_context(module, child);
       } else {
-        if (this.opts.testFilter.shouldRun(module, child)) {
+        if (opts.testFilter.shouldRun(module, child)) {
           total_tests++;
           child._enabled = true;
           var ctx = child.context;
@@ -190,10 +191,81 @@ Runner.prototype.run = function(reporter) {
         }
       }
     }
-  }.bind(this);
+  }
 
   this.root_contexts .. each(ctx -> preprocess_context(ctx.module(), ctx));
   var results = new Results(total_tests);
+
+  // ----------------------------
+  // Checking for unexpected global variables
+  var global = sys.getGlobal();
+  var getGlobals = function(existing) {
+    // if `existing` is defined, get only the globals that are not in `existing`.
+    // Otherwise return the names of all globals
+    var keys = object.ownKeys(global);
+    if (existing) {
+      keys = keys .. filter(k -> existing.indexOf(k) == -1);
+    } else {
+      if (opts.allowedGlobals) {
+        keys = keys .. concat(opts.allowedGlobals)
+      }
+    }
+    return keys .. toArray;
+  }
+  if (!opts.checkLeaks) { getGlobals = -> [] }
+
+
+  // ----------------------------
+  // run a single test
+  var runTest = function(test) {
+    var initGlobals = getGlobals();
+    var result = new TestResult(test);
+    results.testStart.emit(result);
+    try {
+      if (test.shouldSkip()) {
+        results._skip(result, test.skipReason);
+      } else {
+        test.run();
+        var extraGlobals = getGlobals(initGlobals);
+        if (extraGlobals.length > 0) {
+          throw new Error("Test introduced additional global variable(s): #{extraGlobals..sort..join(", ")}");
+        }
+        results._pass(result);
+      }
+    } catch (e) {
+      results._fail(result, e);
+    }
+    results.testFinished.emit(result);
+    if (suite.isBrowser) hold(0); // don't lock up the browser's UI thread
+  };
+
+  // ----------------------------
+  // traverse a test context
+  var traverse = function(ctx) {
+    if (!ctx._enabled) {
+      logging.verbose("Skipping context: #{ctx}");
+      return;
+    }
+    results.contextStart.emit(ctx);
+
+    ctx.withHooks() {||
+      ctx.children .. each {|child|
+        if (child.hasOwnProperty('children')) {
+          traverse(child);
+        } else {
+          if (child._enabled) {
+            runTest(child);
+          } else {
+            logging.verbose("Skipping test: #{child}");
+          }
+        }
+      }
+    }
+    results.contextEnd.emit(ctx);
+  }
+  
+  // ----------------------------
+  // run the tests
   with(logging.logContext({level: this.opts.logLevel})) {
     try {
       var unusedFilters = this.opts.testFilter.unusedFilters();
@@ -204,45 +276,7 @@ Runner.prototype.run = function(reporter) {
       waitfor {
         if (reporter) reporter(results);
       } and {
-        var runTest = function(test) {
-          var result = new TestResult(test);
-          results.testStart.emit(result);
-          try {
-            if (test.shouldSkip()) {
-              results._skip(result, test.skipReason);
-            } else {
-              test.run();
-              results._pass(result);
-            }
-          } catch (e) {
-            results._fail(result, e);
-          }
-          results.testFinished.emit(result);
-          if (suite.isBrowser) hold(0); // don't lock up the browser's UI thread
-        };
 
-        var traverse = function(ctx) {
-          if (!ctx._enabled) {
-            logging.verbose("Skipping context: #{ctx}");
-            return;
-          }
-          results.contextStart.emit(ctx);
-
-          ctx.withHooks() {||
-            ctx.children .. each {|child|
-              if (child.hasOwnProperty('children')) {
-                traverse(child);
-              } else {
-                if (child._enabled) {
-                  runTest(child);
-                } else {
-                  logging.verbose("Skipping test: #{child}");
-                }
-              }
-            }
-          }
-          results.contextEnd.emit(ctx);
-        }
 
         this.root_contexts .. each(traverse);
         results.end.emit();
@@ -339,6 +373,8 @@ CompiledOptions.prototype = {
   testSpecs: null,
   logLevel: null,
   logCapture: true,
+  allowedGlobals: [],
+  checkLeaks: true,
 }
 
 exports.getRunOpts = function(opts, args) {
@@ -390,6 +426,10 @@ exports.getRunOpts = function(opts, args) {
         type: 'string',
         help: "set the log level (#{logging.levelNames .. object.ownValues .. sort .. join("|")})"
       },
+      { name: 'ignore-leaks',
+        type: 'bool',
+        help: 'skip checking for leaked global variables'
+      },
       { names: ['debug'],
         type: 'bool',
         help: "set logLevel=DEBUG before test runner begins"
@@ -424,27 +464,41 @@ Options:
       parsed .. object.ownPropertyPairs .. each {|pair|
         var [key, val] = pair;
         if (key .. startsWith('_')) continue;
-        if (key == 'loglevel') {
-          key = 'logLevel';
-          val = val.toUpperCase();
-          if (!(val in logging)) {
-            throw new Error("unknown log level: #{val}");
-          }
-          val = logging[val];
+        switch(key) {
+          case 'loglevel':
+            key = 'logLevel';
+            val = val.toUpperCase();
+            if (!(val in logging)) {
+              throw new Error("unknown log level: #{val}");
+            }
+            val = logging[val];
+            break;
+
+          case 'logcapture':
+            key = 'logCapture';
+            break;
+
+          case 'no_logcapture':
+            key = 'logCapture';
+            val = false;
+            break;
+
+          case 'ignore_leaks':
+            key = 'checkLeaks';
+            val = false;
+            break;
+
+          case 'color':
+            if (['on','off', 'auto'].indexOf(val) == -1) {
+              throw new Error("unknown color mode: #{val}");
+            }
+            break;
+
+          case 'debug':
+            logging.setLevel(logging.DEBUG);
+            continue;
         }
-        else if (key == 'logcapture') key = 'logCapture';
-        else if (key == 'no_logcapture') {
-          key = 'logCapture';
-          val = false;
-        }
-        else if (key == 'color') {
-          if (['on','off', 'auto'].indexOf(val) == -1) {
-            throw new Error("unknown color mode: #{val}");
-          }
-        } else if (key == 'debug') {
-          logging.setLevel(logging.DEBUG);
-          continue;
-        }
+
         setOpt(key, val);
       }
 
