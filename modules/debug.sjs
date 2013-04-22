@@ -293,14 +293,13 @@ function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
         str = formatValue(ctx, desc.value, recurseTimes - 1);
       }
       if (str.indexOf('\n') > -1) {
+        str = str.split('\n')..map(function(line) {
+          return '  ' + line;
+        })..join('\n');
         if (array) {
-          str = str.split('\n')..map(function(line) {
-            return '  ' + line;
-          })..join('\n').substr(2);
+          str = str.substr(2);
         } else {
-          str = '\n' + str.split('\n')..map(function(line) {
-            return '   ' + line;
-          })..join('\n');
+          str = '\n' + str;
         }
       }
     } else {

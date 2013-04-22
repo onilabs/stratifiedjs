@@ -10,3 +10,11 @@ test("formatting an HTML element", '<span>hi!</span>', function() {
 	elem.innerHTML = "hi!";
 	return debug.inspect(elem).toLowerCase();
 }).browserOnly();
+
+test("splitting array elements over multiple lines", "[ [ 'aaaaaaaaaaaaaaaaaaaa',\n    'bbbbbbbbbbbbbbbbbbbb',\n    'cccccccccccccccccccc' ] ]", function() {
+	return debug.inspect([[
+		'aaaaaaaaaaaaaaaaaaaa',
+		'bbbbbbbbbbbbbbbbbbbb',
+		'cccccccccccccccccccc']]);
+});
+
