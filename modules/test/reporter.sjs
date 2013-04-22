@@ -233,7 +233,7 @@ HtmlOutput.prototype.print = function(msg, endl) {
   var scrollBottom = getScrollBottom();
   var followOutput = getDocumentHeight() <= scrollBottom;
   if (msg === undefined) msg = '';
-  if (!(msg instanceof dom.HTMLElement)) {
+  if (!dom.isHtmlElement(msg)) {
     msg = document.createTextNode(msg);
   }
   this.output.appendChild(msg);
@@ -275,6 +275,7 @@ HtmlReporter.prototype.color = function(col, text, endl) {
   }
     
   e.setAttribute('class', col);
+  if ('className' in e) e.className = col; // IE<8
   e.appendChild(document.createTextNode(text));
   return e;
 }

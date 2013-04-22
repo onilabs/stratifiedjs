@@ -664,10 +664,23 @@ exports.removeCookie = function(name) {
 };
 
 /**
- * @variable HTMLElement
- * @summary The global HTMLElement (or Element) class constructor
- * #desc
- *    Set to the global HTMLElement variable. If HTMLElement is undefined,
- *    this variable will alias Element instead (this is the case in some version of IE).
+ * @function isHtmlElement
+ * @summary  test whether an object is a HTMLElement
+ * @param    {Object}  the object to test
+ * @return   {Boolean} whether the argument is a HTMLElement
+ * @desc
+ *    Uses `instanceof HTMLElement` where possible, falling back to `Element`.
+ *    On older versions of IE, resorts to checking well-known property names
+ *    (which may give false positives).
  */
-exports.HTMLElement = typeof(HTMLElement) == 'undefined' ? Element : HTMLElement;
+var elementType = typeof(HTMLElement) == 'undefined' ? (typeof(Element) == 'undefined' ? null : Element) : HTMLElement;
+if (elementType) {
+  exports.isHtmlElement = function(obj) {
+    return obj instanceof elementType;
+  }
+} else {
+  // Used in IE<8
+  exports.isHtmlElement = function(obj) {
+    return obj && obj.nodeType;
+  }
+}

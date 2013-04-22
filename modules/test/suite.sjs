@@ -154,8 +154,12 @@ Context.prototype.addChild = function(child) {
 }
 
 Context.prototype.collect = function() {
-  if (this.children.length > 0) throw new Error("context collected twice: #{this.fullDescription()}");
+  if (this._collected) {
+    logging.verbose("Ignoring double-collection: #{this.fullDescription()}");
+    return;
+  }
   this.body.call(this.state, this.state);
+  this._collected = true;
 }
 
 Context.prototype.fullDescription = function() {
@@ -201,7 +205,7 @@ var runAllHooks = function(hook_type, hooks, state, first_error) {
       if(first_error != null) {
         first_error = e;
       } else {
-        logging.ERROR("Additional error in #{hook_type} hook:\n#{e}");
+        logging.error("Additional error in #{hook_type} hook:\n#{e}");
       }
     }
   }
@@ -244,3 +248,9 @@ Test.prototype.shouldSkip = function() {
 }
 
 exports.assert = require('../assert');
+
+var isIE = exports.isIE = function() { return isBrowser && __oni_rt.UA == 'msie'; }
+var ieVersion = exports.ieVersion = function() {
+  if (!exports.isIE()) return null;
+  return parseInt(navigator.appVersion.match(/MSIE ([0-9]+)/)[1]);
+}
