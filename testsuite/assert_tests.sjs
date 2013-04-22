@@ -53,7 +53,13 @@ context("eq") {||
     }
 
     test("for custom types") {||
+      var Foo = function() {
+        this.x = 1;
+      }
+      Foo.prototype.y = 2;
+      assert.eq(new Foo(), new Foo());
     }
+
     test('for nested nulls') {||
       assert.eq([ null, null, null ], [ null, null, null ]);
     }
@@ -77,6 +83,25 @@ context("eq") {||
       assert.raises(
         {message: "Expected 1, got '1'\n[expected is a Number, actual is a String]"},
         -> assert.eq("1", 1));
+    }
+
+    test("when custom types differ") {||
+      var Foo = function() {
+        this.x = 1;
+      }
+      Foo.prototype.y = 2;
+      var Bar = function(x) {
+        this.x = x;
+      }
+      Bar.prototype = new Foo();
+
+      assert.raises(
+        {message: /\[prototypes differ\]/},
+        -> assert.eq(new Foo(), new Bar(1)));
+
+      assert.raises(
+        {message: /\[objects differ at property 'x'\]/},
+        -> assert.eq(new Bar(1), new Bar(2)));
     }
 
     test("comparing arrays to objects") {||
