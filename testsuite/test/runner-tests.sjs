@@ -1,4 +1,5 @@
-var {context, test, assert} = require("sjs:test/suite");
+var suite = require("sjs:test/suite");
+var {context, test, assert} = suite;
 var runnerMod = require("sjs:test/runner");
 var {Runner} = runnerMod;
 var {each, map, toArray} = require("sjs:sequence");
@@ -420,4 +421,4 @@ context("global variable leaks") {||
     runner.context("root", defineTests);
     runner.run(watcher.run).ok() .. assert.ok();
   }
-}
+}.skipIf(suite.isIE() && suite.ieVersion() < 8, "not supported on IE<8");
