@@ -1,2 +1,0 @@
-assert_tests.sjs
-test/runner_tests.sjs

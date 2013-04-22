@@ -51,7 +51,7 @@ waitfor {
 } and {
   var { each, reduce, toArray, any, filter, map, join, sort, concat } = require('../sequence');
 } and {
-  var { rstrip, startsWith } = require('../string');
+  var { rstrip, startsWith, strip } = require('../string');
 } and {
   var object = require('../object');
 } and {
@@ -85,7 +85,10 @@ Runner.prototype.getModuleList = function(url) {
     contents = require('../nodejs/fs').readFile(path, 'UTF-8');
   }
   logging.debug(`module list contents: ${contents}`);
-  return contents.trim().split("\n");
+  return (contents.trim().split("\n")
+    .. map(strip)
+    .. filter(line -> line && !(line..startsWith('#')))
+  );
 }
 
 Runner.prototype.loadModules = function(modules, base) {
