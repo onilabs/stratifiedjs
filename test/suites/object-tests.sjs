@@ -58,7 +58,6 @@ test("merge multiple array arguments", {"a":1, "0": {"b":2}}, function() {
 (function() {
 	var Obj = function(props) {
 		o.extend(this, props);
-		console.log(this);
 	};
 	Obj.prototype.c = 'cee';
 	var obj = new Obj({a:'aye', b:'bee'});
