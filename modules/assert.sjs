@@ -39,7 +39,7 @@
 // TODO: (tjc) document
 
 var object = require('./object');
-var {each, all } = require('./sequence');
+var {each, all, find, toArray} = require('./sequence');
 var compare = require('./object/compare');
 var {inspect} = require('./debug');
 
@@ -132,6 +132,22 @@ exports.eq = exports.equal = function(actual, expected, desc) {
     var msg = "Expected #{expected .. inspect}, got #{actual .. inspect}"
     if (difference) msg += "\n[#{difference}]";
     throw new AssertionError(msg, desc, {expected: expected, actual: actual});
+  }
+}
+
+exports.contains = function(seq, expected, desc) {
+  var arr = seq..toArray;
+  if (arr.indexOf(expected) == -1) {
+    throw new AssertionError("Array #{arr .. inspect} does not contain #{expected .. inspect}", desc);
+  }
+}
+
+exports.containsEq = function(seq, expected, desc) {
+  var arr = seq..toArray;
+  var NONE = {};
+  var found = arr .. find(elem -> compare.equals(elem, expected), NONE);
+  if (found === NONE) {
+    throw new AssertionError("Array #{arr .. inspect} does not contain #{expected .. inspect}", desc);
   }
 }
 

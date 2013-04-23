@@ -165,6 +165,28 @@ context("eq") {||
   }
 }
 
+context("contains") {||
+  test("contains matches only identical objects (i.e indexOf)") {||
+    var arr = [0, {x:1}, 2];
+
+    assert.raises(
+      {message: "Array [ 0, { x: 1 }, 2 ] does not contain { x: 1 }"},
+      -> assert.contains(arr, {x:1}));
+
+    assert.contains(arr, arr[1]);
+  }
+
+  test("containsEq matches 'equal' objects") {||
+    var arr = [0, {x:1}, 2];
+
+    assert.raises(
+      {message: "Array [ 0, { x: 1 }, 2 ] does not contain { x: 2 }"},
+      -> assert.containsEq(arr, {x:2}));
+
+    assert.containsEq(arr, {x:1});
+    assert.containsEq(arr, arr[1]);
+  }
+}
 
 context("is") {||
   test("uses ===") {||
