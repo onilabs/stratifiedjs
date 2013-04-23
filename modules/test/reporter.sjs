@@ -39,11 +39,13 @@
 // TODO: (tjc) document
 
 var sys = require('builtin:apollo-sys');
-var { map, join, each, skip } = require('../sequence');
+var { map, join, each, reverse, skip } = require('../sequence');
 var logging = require('../logging');
 var debug = require('../debug');
 var object = require('../object');
 var func = require('../function');
+var string = require('../string');
+var shell_quote = require('../shell-quote');
 var dom;
 
 var UsageError = exports.UsageError = function(m) {
@@ -82,6 +84,7 @@ ConsoleBuffer.prototype.log = function(m) {
 
 ReporterMixins = {
   init: function(opts) {
+    this.opts = opts;
     if (opts.logCapture) {
       this.logCapture = new ConsoleBuffer();
     }
@@ -130,6 +133,12 @@ ReporterMixins = {
 var Formatter = function(opts, printer) {
   this.color = printer.color.bind(printer);
   this.print = printer.print.bind(printer);
+  this.printer = printer;
+
+  this.activeContexts = [];
+  this.printedContexts = [];
+  
+  this.quiet = !opts.showAll;
 }
 
 Formatter.prototype.reset = function() {
@@ -138,24 +147,38 @@ Formatter.prototype.reset = function() {
   this.prefix = '';
 }
 
-Formatter.prototype.contextStart = function(context) {
+Formatter.prototype.contextStart = function(context, force) {
+  if (this.quiet && !force) {
+    this.activeContexts.push(context);
+    return;
+  }
+
   if (this.indentLevels == 0) {
     this.print();
   }
   var skipping = context.shouldSkip();
   this.print(this.color({attribute: 'bright'}, "#{this.prefix}- #{context.description}: "), !skipping);
   if (skipping) this.printSkip(context.skipReason);
-  this.indentLevels++;
+  this.updateIndent(this.indentLevels + 1);
+}
+
+Formatter.prototype.contextEnd = function(context, force) {
+  if (this.quiet && !force) {
+    this.activeContexts.pop();
+    return;
+  }
+
+  this.updateIndent(this.indentLevels - 1);
+}
+
+Formatter.prototype.updateIndent = function(levels) {
+  this.indentLevels = levels;
   this.prefix = repeatStr(this.indent, this.indentLevels);
 }
 
-Formatter.prototype.contextEnd = function(context) {
-  this.indentLevels--;
-  this.prefix = repeatStr(this.indent, this.indentLevels);
-}
-
-Formatter.prototype.beginTest = function(result) {
-    this.print(this.prefix + result.test.description + ' ... ', false);
+Formatter.prototype.beginTest = function(result, force) {
+  if (this.quiet && !force) return;
+  this.print(this.prefix + result.test.description + ' ... ', false);
 }
 
 Formatter.prototype.printSkip = function(reason) {
@@ -164,13 +187,42 @@ Formatter.prototype.printSkip = function(reason) {
   this.print(this.color('blue', msg));
 }
 
+Formatter.prototype.printPendingContexts = function() {
+  var printedContexts = this.printedContexts;
+  var pending = this.activeContexts;
+
+  // skip already-printed contexts
+  printedContexts .. reverse .. each {|ctx|
+    var idx = this.activeContexts.indexOf(ctx);
+    if (idx != -1) {
+      pending = this.activeContexts.slice(idx+1);
+      break;
+    }
+  }
+
+  this.updateIndent(this.activeContexts.length - pending.length);
+  pending .. each {|ctx|
+    this.contextStart(ctx, true);
+  }
+
+  // update printed state
+  this.printedContexts = this.activeContexts.slice();
+}
+
 Formatter.prototype.endTest = function(result, capturedLogs) {
+  if (this.quiet && !result.ok) {
+    // need to print any missing context:
+    this.printPendingContexts();
+    this.beginTest(result, true);
+  }
+
   if (result.skipped) {
-    this.printSkip(result.reason);
+    if (!this.quiet) this.printSkip(result.reason);
   } else if (result.ok) {
-    this.print(this.color('green', "OK"));
+    if (!this.quiet) this.print(this.color('green', "OK"));
   } else {
-    this.print(this.color('red', "FAILED"));
+    this.print(this.color('red', "FAILED"), false);
+    this.printer.linkToTest(result.test.fullDescription());
     var prefix = this.prefix;
     this.print(this.color('yellow', String(result.error).split("\n") .. map((line) -> prefix + "| " + line) .. join("\n")));
     if (capturedLogs && capturedLogs.length > 0) {
@@ -213,6 +265,7 @@ HtmlOutput.prototype.prepareStyles = function() {
   .blue { color: #38e; }
   .yellow { color: #ed6; }
   .dim { color: #888; }
+  a { text-decoration: none; font-weight:bold; }
   ";
   dom.addCSS(css);
 };
@@ -296,7 +349,26 @@ HtmlReporter.prototype.report = function(results) {
     first = false;
     this.print(part, false);
   }
+  if (document.location.hash) {
+    var elem = document.createElement("a");
+    elem.appendChild(document.createTextNode("#"));
+    elem.setAttribute("class", "dim");
+    elem.setAttribute("href", "#");
+    this.print(" ", false);
+    this.print(elem, false);
+  }
+
   exports.exit(results.ok() ? 0 : 1);
+}
+
+HtmlReporter.prototype.linkToTest = function(testId) {
+  this.print(" ",false);
+  var elem = document.createElement("a");
+  testId = shell_quote.quote([testId]);
+  elem.setAttribute("href", "#" + encodeURIComponent(testId));
+  elem.innerHTML = "&para;";
+  elem.setAttribute("class", "dim");
+  this.print(elem);
 }
 
 
@@ -326,6 +398,17 @@ NodejsReporter.prototype.init = function(opts) {
 }
 
 ReporterMixins.mixInto(NodejsReporter);
+
+NodejsReporter.prototype.linkToTest = function(testId) {
+  this.print();
+  var base = this.opts.baseModule;
+  if (base == null) return; // can't formulate a command line without knowing the base module
+  if (!(base .. string.startsWith("file://"))) throw new Error("not a file-based URI: #{base}");
+  base = base.slice(7); // remove file://
+  base = require('nodejs:path').relative(process.cwd(), base); // realitivize
+  var args = ['apollo', base, testId];
+  this.print(this.color({attribute:'dim'}, this.fmt.prefix + "# " + shell_quote.quote(args)));
+}
 
 var repeatStr = function(str, levels) {
   return new Array(levels+1).join(str);

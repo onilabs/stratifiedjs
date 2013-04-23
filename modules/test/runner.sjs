@@ -391,6 +391,8 @@ CompiledOptions.prototype = {
   logCapture: true,
   allowedGlobals: [],
   checkLeaks: true,
+  showAll: true,
+  baseModule: null,
 }
 
 exports.getRunOpts = function(opts, args) {
@@ -408,6 +410,10 @@ exports.getRunOpts = function(opts, args) {
     opts.defaults .. object.ownPropertyPairs .. each {|prop|
       setOpt.apply(null, prop);
     }
+  }
+
+  if (opts.base) {
+    result.baseModule = opts.base;
   }
   
   if (args == undefined) {
@@ -445,6 +451,14 @@ exports.getRunOpts = function(opts, args) {
       { name: 'ignore-leaks',
         type: 'bool',
         help: 'skip checking for leaked global variables'
+      },
+      { names: ['show-failed','f'],
+        type: 'bool',
+        help: 'print only failed (or skipped) tests'
+      },
+      { names: ['show-all','a'],
+        type: 'bool',
+        help: 'print all tests'
       },
       { names: ['debug'],
         type: 'bool',
@@ -504,6 +518,18 @@ Options:
             val = false;
             break;
 
+          case 'f':
+          case 'show_failed':
+            key = 'showAll';
+            val = false;
+            break;
+
+          case 'a':
+          case 'show_all':
+            key = 'showAll';
+            val = true;
+            break;
+          
           case 'color':
             if (['on','off', 'auto'].indexOf(val) == -1) {
               throw new Error("unknown color mode: #{val}");
