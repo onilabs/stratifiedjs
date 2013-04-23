@@ -508,16 +508,24 @@ function resolveAliases(module, aliases) {
 }
 
 // helper to resolve hubs
-function resolveHubs(module, hubs, opts) {
+function resolveHubs(module, hubs, require_obj, parent, opts) {
   var path = module;
   var loader = opts.loader || default_loader;
   var src = opts.src || default_src_loader;
+
+  // apply hostenv-specific resolution if path is scheme-less
+  if (path.indexOf(":") == -1)
+    path = resolveSchemelessURL_hostenv(path, require_obj, parent);
+  
   var level = 10; // we allow 10 levels of rewriting indirection
   for (var i=0,hub; hub=hubs[i++]; ) {
     if (path.indexOf(hub[0]) == 0) {
       // we've got a match
       if (typeof hub[1] == "string") {
         path = hub[1] + path.substring(hub[0].length);
+        // make sure the resulting path is absolute:
+        if (path.indexOf(":") == -1)
+          path = resolveSchemelessURL_hostenv(path, require_obj, parent);
         i=0; // start resolution from beginning again
         if (--level == 0)
           throw "Too much indirection in hub resolution for module '"+module+"'";
@@ -682,12 +690,8 @@ function resolve(module, require_obj, parent, opts) {
   // apply local aliases:
   var path = resolveAliases(module, require_obj.alias);
   
-  // apply hostenv-specific resolution if path is scheme-less
-  if (path.indexOf(":") == -1)
-    path = resolveSchemelessURL_hostenv(path, require_obj, parent);
-  
   // apply global aliases
-  var resolveSpec = resolveHubs(path, exports.require.hubs, opts);
+  var resolveSpec = resolveHubs(path, exports.require.hubs, require_obj, parent, opts);
   
   // make sure we have an absolute url with '.' & '..' collapsed:
   resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent);  
