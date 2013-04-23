@@ -710,7 +710,9 @@ exports.combine = combine;
       Elements will appear in the output stream as soon as they are received.
 
       **Note**: the generated stream will never complete - it will continue waiting
-      for futher events until retracted.
+      for futher events until retracted. It will also only buffer events once iteration of
+      the stream has begun - i.e it will drop any events that occur between creation
+      of the stream and passing it to `each` (or another iterating function).
 
       ### Example:
 
