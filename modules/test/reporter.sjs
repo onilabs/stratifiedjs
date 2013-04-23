@@ -210,14 +210,14 @@ Formatter.prototype.printPendingContexts = function() {
 }
 
 Formatter.prototype.endTest = function(result, capturedLogs) {
-  if (this.quiet && !result.ok) {
+  if (this.quiet && !(result.passed)) {
     // need to print any missing context:
     this.printPendingContexts();
     this.beginTest(result, true);
   }
 
   if (result.skipped) {
-    if (!this.quiet) this.printSkip(result.reason);
+    this.printSkip(result.reason);
   } else if (result.ok) {
     if (!this.quiet) this.print(this.color('green', "OK"));
   } else {

@@ -319,15 +319,15 @@ TestResult.prototype._complete = function(state) {
 }
 
 TestResult.prototype.pass = function() {
-  this._complete({ok: true, skipped: false});
+  this._complete({ok: true, passed: true, skipped: false});
 }
 
 TestResult.prototype.fail = function(e) {
-  this._complete({ok: false, skipped: false, error: e});
+  this._complete({ok: false, passed: false, skipped: false, error: e});
 }
 
 TestResult.prototype.skip = function(reason) {
-  this._complete({ok: true, skipped: true, reason: reason});
+  this._complete({ok: true, passed: false, skipped: true, reason: reason});
 }
 
 var Results = exports.Results = function(total) {
