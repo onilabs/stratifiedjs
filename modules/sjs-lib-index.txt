@@ -42,11 +42,15 @@
 @dir nodejs   NodeJS-related modules
 @dir rpc      Remote Procedure Calling Support
 @dir surface  Lightweight cross-browser UI toolkit
+@dir test     Automated testing utilities
 @dir webapi   Bindings to popular web apis
 @dir xbrowser Modules with basic cross-browser functionality
 
 @module array           Functions for working with arrays
+@module assert          Assertion functions, primarily for use in tests
+@module compare         Functions for testing deep equality
 @module cutil           Functions and constructs for concurrent stratified programming
+@module dashdash        Options parser (tracking [node-dashdash library](https://github.com/trentm/node-dashdash))
 @module debug           Helpers for debugging
 @module docutil         Utilities for extracting documentation from StratifiedJS modules (Work in progress)
 @module function        Function composition helpers
@@ -59,6 +63,7 @@
 @module object          Functions for working with objects
 @module quasi           Functions for working with quasis
 @module sequence        Constructs for manipulating sequence structures (arrays, strings and more general streams)
+@module shell-quote     Functions for quoting / parsing unix-shell style arguments
 @module sjcl            Stanford JavaScript Crypto Library
 @module string          Functions for working with strings
 @module wraplib         Utility functions for wrapping plain JS libraries for SJS

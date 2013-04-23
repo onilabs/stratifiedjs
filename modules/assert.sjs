@@ -40,7 +40,7 @@
 
 var object = require('./object');
 var {each, all, find, toArray} = require('./sequence');
-var compare = require('./object/compare');
+var compare = require('./compare');
 var {inspect} = require('./debug');
 
 

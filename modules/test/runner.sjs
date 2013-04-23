@@ -262,7 +262,7 @@ Runner.prototype.run = function(reporter) {
       logging.verbose("Skipping context: #{ctx}");
       return;
     }
-    results.contextStart.emit(ctx);
+    if (!ctx.hide) results.contextStart.emit(ctx);
 
     if (!ctx.shouldSkip()) {
       ctx.withHooks() {||
@@ -279,7 +279,7 @@ Runner.prototype.run = function(reporter) {
         }
       }
     }
-    results.contextEnd.emit(ctx);
+    if (!ctx.hide) results.contextEnd.emit(ctx);
   }
   
   // ----------------------------

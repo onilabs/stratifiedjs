@@ -509,6 +509,67 @@ function filter(sequence, predicate) {
 exports.filter = filter;
 
 /**
+   @function partition
+   @altsyntax sequence .. partition(predicate)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [predicate] Predicate function
+   @return {[::Stream]} A pair of streams.
+   @summary  Create a pair of [passes, fails] streams from an input stream and a predicate.
+   @desc
+      The first is all the elements that satisfy `predicate`, the second is those that don't.
+      Generates two streams. The first contains all items `x` from `sequence` for which
+      `predicate(x)` is truthy, the second contains items where it is falsy. The
+      order of the original sequence is maintained in each output stream.
+
+      ### Example:
+
+          // print first 10 odd integers:
+
+          var [odds, evens] = integers(1,10) .. partition(x->x%2);
+          console.log("Odds: ", odds .. toArray);
+          console.log("Evens: ", evens .. toArray);
+          
+          // will print:
+          // Odds:  [ 1, 3, 5, 7, 9]
+          // Evens: [ 2, 4, 6, 8, 10]
+*/
+function partition(sequence, predicate) {
+
+  var buffers = [[], []];
+  var emitters = [null, null]
+  var drainer = null;
+  var noop = -> null;
+  var _resume = noop;
+
+  var streams = [0,1] .. map((idx) -> Stream(function(r) {
+    while(buffers[idx].length > 0) {
+      r(buffers[idx].shift());
+    }
+    emitters[idx] = r;
+    _resume();
+    drainer.waitforValue();
+  })) .. toArray;
+
+  drainer = spawn(function() {
+    // wait until one side wants results
+    waitfor() {
+      _resume = resume;
+    }
+    _resume = noop;
+
+    sequence .. each {|item|
+      var idx = predicate(item) ? 0 : 1;
+      var emitter = emitters[idx];
+      if (emitter) emitter(item);
+      else buffers[idx].push(item);
+    }
+  }());
+
+  return streams;
+}
+exports.partition = partition;
+
+/**
    @function map
    @altsyntax sequence .. map(f)
    @param {::Sequence} [sequence] Input sequence

@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'object/compare' module
+ * Oni Apollo 'compare' module
  * Functions for coparing objects for equality
  *
  * Part of the Oni Apollo Standard Module Library
@@ -33,9 +33,9 @@
  *
  */
 /**
-   @module  object/compare
-   @summary Functions for comparing objects for equality
-   @home    sjs:object/compare
+   @module  compare
+   @summary Rich object equality comparison
+   @home    sjs:compare
 */
 
 // TODO: (tjc) document

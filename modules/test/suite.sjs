@@ -66,6 +66,10 @@ exports._withRunner = function(runner, fn) {
 }
 
 var context = exports.context = function(desc, fn) {
+  if (arguments.length == 1 && typeof(desc == 'function')) {
+    fn = desc;
+    desc = undefined;
+  }
   var ctx = new Context(desc, fn);
   currentContext().addChild(ctx);
   return ctx;
@@ -117,6 +121,7 @@ var Context = context.Cls = function(desc, body, module_name) {
   this.parent = null;
   this.children = [];
   this.description = desc;
+  this.hide = desc === undefined;
   this.body = body;
   this.state = null;
   this.hooks = {
@@ -163,6 +168,8 @@ Context.prototype.collect = function() {
 }
 
 Context.prototype.fullDescription = function() {
+  if (this.hide) return this.parent.fullDescription();
+
   if (this.parent == null) return this.description;
   return this.parent.fullDescription() + ":" + this.description;
 }

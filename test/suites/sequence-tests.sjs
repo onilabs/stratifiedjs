@@ -412,3 +412,7 @@ test('combine', ['a','b','b','a','c'], function() {
 
 test('concat([1,2],[3,4])', [1,2,3,4], function () { return s.concat([1,2], [3,4]) .. toArray; });
 test('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2], [3,4]]) .. toArray; });
+
+test('partition(integers(1,10), x->x%2)', [[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], function() {
+  return s.partition(s.integers(1, 10), x -> x%2) .. s.map(s.toArray) .. s.toArray;
+});

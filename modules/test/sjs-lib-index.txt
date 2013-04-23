@@ -1,0 +1,6 @@
+@lib     Oni Apollo 'unstable' Standard Module Library - Test Modules
+@summary Automated testing utilities
+
+@module runner          Test suite runner
+@module reporter        Test suite reporters for each environment
+@module suite           Functions for defining test suites

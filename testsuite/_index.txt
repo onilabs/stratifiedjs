@@ -2,4 +2,6 @@
 ### regenerate it by running src/build/make-apollo
 
 assert-tests.sjs
+documentation-tests.sjs
+node/url-tests.sjs
 test/runner-tests.sjs
