@@ -1,4 +1,4 @@
-var test = require('../lib/testUtil').test;
+var test = require('./lib/testUtil').test;
 var debug = require('sjs:debug');
 
 test("formatting an object literal", "{ key: 'value' }", function() {

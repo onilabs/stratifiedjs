@@ -1,4 +1,4 @@
-var testUtil = require('../lib/testUtil');
+var testUtil = require('./lib/testUtil');
 var test = testUtil.test;
 
 test("-> 5*4", 20, function() {

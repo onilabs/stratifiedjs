@@ -1,4 +1,4 @@
-var test = require('../lib/testUtil').test;
+var test = require('./lib/testUtil').test;
 var cutil = require("sjs:cutil");
 
 test('waitforAll funcs', 3, function() {

@@ -2,7 +2,7 @@
  *  thus the use of a running "line" variable to provide a base.
  */
 
-var test = require('../lib/testUtil').test, puts = require('sjs:logging').print;
+var test = require('./lib/testUtil').test, puts = require('sjs:logging').print;
 var clean_stack = function(e) { return String(e).replace(/module [^ ]*stack-tests.sjs/g, 'this_file').replace(/module [^ ]*lib/g, "lib").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, ''); }; // This could really do with some work ;)
 var remove_message = function(s) { return s.replace(/^Error(: [^\n]*)?\n/m, ''); };
 var line;
@@ -123,7 +123,7 @@ test('stack from tail-call', 'this_file:' + (line+2) + '\nthis_file:' + (line+3)
 });
 
 line=125;
-var module = require('./lib/stack_js_module.js');
+var module = require('./fixtures/stack_js_module.js');
 test('stack from imported JS', (module.fail_normally.expected_stack_lines.join("\n")) + '\nthis_file:' + (line+4), function() {
   var caller = function() {
     module.fail_normally();

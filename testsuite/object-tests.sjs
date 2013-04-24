@@ -1,4 +1,4 @@
-var test = require('../lib/testUtil').test;
+var test = require('./lib/testUtil').test;
 var o = require("sjs:object");
 var {sort} = require("sjs:sequence");
 

@@ -1,4 +1,4 @@
-var testUtil = require('../lib/testUtil');
+var testUtil = require('./lib/testUtil');
 var test = testUtil.test;
 var lru = require('sjs:lru-cache');
 var { each } = require('sjs:sequence');

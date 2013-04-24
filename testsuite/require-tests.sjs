@@ -1,4 +1,4 @@
-var testUtil = require('../lib/testUtil');
+var testUtil = require('./lib/testUtil');
 var test = testUtil.test;
 var global = require("builtin:apollo-sys").getGlobal();
 var http = require('sjs:http');

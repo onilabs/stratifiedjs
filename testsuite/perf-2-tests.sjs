@@ -1,4 +1,4 @@
-var {test, time } = require('../lib/testUtil');
+var {test, time } = require('./lib/testUtil');
 
 
 

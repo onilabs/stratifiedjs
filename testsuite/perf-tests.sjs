@@ -1,5 +1,5 @@
 var http = require('sjs:http');
-var testUtil = require('../lib/testUtil');
+var testUtil = require('./lib/testUtil');
 var test = testUtil.test;
 var time = testUtil.time;
 var testCompilation = testUtil.testCompilation;

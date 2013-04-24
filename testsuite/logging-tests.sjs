@@ -1,8 +1,8 @@
 // We can't easily test the actual logging (output),
 // but we can at least test the logic & formatting.
 
-var testUtil = require('../lib/testUtil');
-var test = require('../lib/testUtil').test;
+var testUtil = require('./lib/testUtil');
+var test = require('./lib/testUtil').test;
 var logging = require('sjs:logging');
 
 test('default format', 'DEBUG: msg', function() {

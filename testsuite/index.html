@@ -16,14 +16,34 @@
 			} and {
 				require('./_init_checks.sjs');
 			}
+			var logging = require('sjs:logging');
+			// logging.setLevel(logging.DEBUG);
 
-			runner.run({
+			var opts = {
 				moduleList: "./_index.txt",
 				base: module.id,
 				defaults: {
-					logLevel: require("sjs:logging").INFO,
+					logLevel: logging.INFO,
+				},
+			};
+
+			try {
+				if(require('sjs:test/suite').isBrowser) {
+					runner.run(opts);
+				} else {
+					var rocket_ctrl = require('./lib/rocket_ctrl');
+					var rocket_port = '7071'
+
+					rocket_ctrl.withRocket(rocket_port) {||
+						var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
+						require('./lib/testContext').setBaseURL(rocket_base_url);
+						runner.run(opts);
+					}
 				}
-			});
+			} catch(e) {
+				if(e.message) console.log(e.message);
+				runner.exit(1);
+			}
 		</script>
 	</head>
 </html>

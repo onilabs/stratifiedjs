@@ -1,4 +1,4 @@
-var test = require('../lib/testUtil').test;
+var test = require('./lib/testUtil').test;
 var yql=require('sjs:webapi/yql');
 
 test("query", "Stratified", function() {
