@@ -57,6 +57,7 @@ function determineLocation() {
       if ((matches = /(.*)oni-apollo(.*).js(\?.*)?$/.exec(scripts[i].src))) {
         location.location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
         location.requirePrefix = scripts[i].getAttribute("require-prefix");
+        location.req_base = scripts[i].getAttribute("req-base") || document.location.href;
         break;
       }
     }
@@ -221,10 +222,8 @@ function getXDomainCaps_hostenv() {
    @function getTopReqParent_hostenv
    @summary Return top-level require parent (for converting relative urls in absolute ones)
 */
-var req_base;
 function getTopReqParent_hostenv() {
-  if (!req_base) req_base = document.location.href;
-  return req_base;
+  return determineLocation().req_base;
 }
 
 /**
