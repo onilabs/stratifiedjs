@@ -212,6 +212,7 @@ Runner.prototype.run = function(reporter) {
   }
 
   var results = new Results(total_tests);
+  var startTime = new Date();
 
   // ----------------------------
   // Checking for unexpected global variables
@@ -299,6 +300,7 @@ Runner.prototype.run = function(reporter) {
       } catch (e) {
         results._error(e);
       }
+      results.duration = new Date().getTime() - startTime.getTime();
       results.end.set();
     }
   }
@@ -336,6 +338,7 @@ var Results = exports.Results = function(total) {
   this.failed = 0;
   this.skipped = 0;
   this.total = total;
+  this.duration = 0;
 
   this.end = Condition();
   this.contextStart = Event();
@@ -350,6 +353,11 @@ var Results = exports.Results = function(total) {
 }
 
 Results.INSTANCES = [];
+
+Results.prototype.durationSeconds = function(precision) {
+  if (precision === undefined) precision = 2;
+  return (this.duration / 1000).toFixed(precision);
+}
 
 Results.prototype._error = function(err) {
   logging.error(err);

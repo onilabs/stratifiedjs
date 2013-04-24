@@ -353,6 +353,7 @@ HtmlReporter.prototype.report = function(results) {
     first = false;
     this.print(part, false);
   }
+  this.print(this.color({attribute: 'dim'}, " (in #{results.durationSeconds()}s)"), false);
   if (document.location.hash) {
     var elem = document.createElement("a");
     elem.appendChild(document.createTextNode("#"));
@@ -427,7 +428,8 @@ NodejsReporter.prototype.report = function(results) {
   if (results.failed > 0)    parts.push(this.color('red',   "#{results.failed} failed"));
   if (results.skipped > 0)   parts.push(this.color('cyan',  "#{results.skipped} skipped"));
   if (results.succeeded > 0) parts.push(this.color('green', "#{results.succeeded} passed"));
-  console.log("Ran #{results.count()} tests. #{parts.join(", ")}");
+  var durationDesc = this.color({attribute: 'dim'}, "(in #{results.durationSeconds()}s)");
+  console.log("Ran #{results.count()} tests. #{parts.join(", ")} #{durationDesc}");
 }
 
 NodejsReporter.prototype.loading = function(module) {
