@@ -45,11 +45,12 @@ waitfor {
   var reporterModule = require('./reporter');
   var {UsageError} = reporterModule;
 } and {
-  var { Event } = require("../cutil.sjs");
+  var { Condition, Event } = require("../cutil.sjs");
 } and {
   var { isArrayLike } = require('../array');
 } and {
-  var { each, reduce, toArray, any, filter, map, join, sort, concat } = require('../sequence');
+  var seq = require('../sequence');
+  var { each, reduce, toArray, any, filter, map, join, sort, concat } = seq;
 } and {
   var { rstrip, startsWith, strip } = require('../string');
 } and {
@@ -285,20 +286,20 @@ Runner.prototype.run = function(reporter) {
   // ----------------------------
   // run the tests
   with(logging.logContext({level: this.opts.logLevel})) {
-    try {
-      var unusedFilters = this.opts.testFilter.unusedFilters();
-      if (unusedFilters.length > 0) {
-        throw new UsageError("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
-      }
+    var unusedFilters = this.opts.testFilter.unusedFilters();
+    if (unusedFilters.length > 0) {
+      throw new UsageError("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
+    }
 
-      waitfor {
-        if (reporter) reporter(results);
-      } and {
+    waitfor {
+      if (reporter) reporter(results);
+    } and {
+      try {
         this.root_contexts .. each(traverse);
-        results.end.emit();
+      } catch (e) {
+        results._error(e);
       }
-    } catch (e) {
-      results._error(e);
+      results.end.set();
     }
   }
   return results;
@@ -336,20 +337,28 @@ var Results = exports.Results = function(total) {
   this.skipped = 0;
   this.total = total;
 
-  this.testResults = [];
-  this.end = Event();
+  this.end = Condition();
   this.contextStart = Event();
   this.contextEnd = Event();
   this.testStart = Event();
+  this._currentError = null;
   this.testFinished = Event();
   this.testSucceeded = Event();
   this.testFailed = Event();
   this.testSkipped = Event();
+  Results.INSTANCES.push(this);
 }
+
+Results.INSTANCES = [];
 
 Results.prototype._error = function(err) {
   logging.error(err);
-  this.ok = () -> false;
+  this.ok = -> false;
+}
+
+Results.prototype._uncaughtError = function(err) {
+  this._currentError = err; // attach this error to the current / next test, if any
+  this.ok = -> false;
 }
 
 Results.prototype.ok = function() {
@@ -359,25 +368,27 @@ Results.prototype.ok = function() {
 Results.prototype._fail = function(result, err) {
   result.fail(err);
   this.failed += 1;
-  this.testResults.push(result);
   this.testFailed.emit(result);
 }
 
 Results.prototype._pass = function(result) {
+  if (this._currentError != null) {
+    this._currentError = null;
+    return this._fail(result, this._currentError)
+  }
   result.pass(result);
   this.succeeded += 1;
-  this.testResults.push(result);
   this.testSucceeded.emit(result);
 }
+
 Results.prototype._skip = function(result, reason) {
   result.skip(reason);
   this.skipped += 1;
-  this.testResults.push(result);
   this.testSkipped.emit(result);
 }
 
 Results.prototype.count = function() {
-  return this.testResults.length;
+  return this.succeeded + this.skipped + this.failed;
 }
 
 var CompiledOptions = function(opts) {
@@ -691,21 +702,45 @@ exports.run = Runner.run = function(opts, args) {
   } catch(e) {
     var msg = (e instanceof UsageError) ? e.message : String(e);
     console.error(msg);
-    reporterModule.die(e);
+    throw new Error();
   }
   logging.debug(`run_opts: ${run_opts}`);
   var reporter = opts.reporter || new reporterModule.DefaultReporter(run_opts);
   var runner = new Runner(run_opts, reporter);
   runner.loadAll(opts);
   return runner.run();
-}
+};
 
+(function() {
+  //module-time one-off setup tasks
+  if (suite.isBrowser) {
+    exports.exit = -> null;
+    // preload modules that may be needed at runtime
+    spawn(function() {
+      require('../shell-quote');
+      require('../dashdash');
+    }());
+  } else {
+    exports.exit = (code) -> process.exit(code);
+  }
+  var onUncaught = function(handler) {
+    if (suite.isBrowser) {
+      window.onerror = handler;
+    } else {
+      process.on('uncaughtException', handler);
+    }
+  }
 
-if (suite.isBrowser) {
-  // preload modules that may be needed at runtime
-  spawn(function() {
-    require('../shell-quote');
-    require('../dashdash');
-  }());
-}
-
+  // Any uncaught exception fails the most recently created Result instance
+  // that has not yet ended.
+  // If all results instances have ended, it kills the process with an error status.
+  onUncaught(function(e) {
+    logging.error("Uncaught error: #{e}");
+    var instance = Results.INSTANCES .. seq.reverse .. seq.find(r -> !r.end.isSet);
+    if (instance == null) {
+      exports.exit(1);
+    } else {
+      instance._uncaughtError(e);
+    }
+  });
+})();

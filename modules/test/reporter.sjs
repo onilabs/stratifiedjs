@@ -116,6 +116,10 @@ ReporterMixins = {
         results.end.wait();
         this.print();
         this.report(results);
+        if (!results.ok()) {
+          this.print(this.color('red', 'FAILED'));
+          throw new Error();
+        }
       }
     } finally {
       if (this.logCapture) logging.setConsole(oldConsole);
@@ -357,8 +361,6 @@ HtmlReporter.prototype.report = function(results) {
     this.print(" ", false);
     this.print(elem, false);
   }
-
-  exports.exit(results.ok() ? 0 : 1);
 }
 
 HtmlReporter.prototype.linkToTest = function(testId) {
@@ -426,7 +428,6 @@ NodejsReporter.prototype.report = function(results) {
   if (results.skipped > 0)   parts.push(this.color('cyan',  "#{results.skipped} skipped"));
   if (results.succeeded > 0) parts.push(this.color('green', "#{results.succeeded} passed"));
   console.log("Ran #{results.count()} tests. #{parts.join(", ")}");
-  process.exit(results.ok() ? 0 : 1);
 }
 
 NodejsReporter.prototype.loading = function(module) {
@@ -445,11 +446,6 @@ switch(sys.hostenv) {
     dom = require('../xbrowser/dom');
     exports.DefaultReporter = HtmlReporter;
 
-    exports.die = function(e) {
-      window.onerror = -> true; // silence uncaught error reporting
-      throw e;
-    };
-
     exports.init = function() {
       if (INITIALIZED) return;
       INITIALIZED = true;
@@ -460,30 +456,12 @@ switch(sys.hostenv) {
         // TODO: should we make this configurable?
         sys.getGlobal().console = instance;
       }
-      window.onerror = function(err) {
-        console.error(err); return true;
-      };
     }
-
-    exports.exit = -> null;
 
     break;
   case "nodejs":
     exports.DefaultReporter = NodejsReporter;
-
-    exports.exit = (code) -> process.exit(code);
-
-    exports.die = -> exports.exit(1);
-
-    exports.init = function() {
-      if (INITIALIZED) return;
-      INITIALIZED = true;
-      process.on('uncaughtException', function(err) {
-        console.error(err);
-        exports.exit(1);
-        return true;
-      });
-    }
+    exports.init = function() { /* noop */ }
     break;
   default:
     logging.warn("unknown hostenv: #{sys.hostenv}");

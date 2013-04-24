@@ -22,9 +22,17 @@ function CollectWatcher() {
   }.bind(this);
 }
 
+var defaultOpts = {
+  base: module.id,
+  defaults: {
+    logCapture: false,
+    logLevel: logging.VERBOSE,
+  }
+}
+
 context("hooks") {||
   test("runs all before / after hooks") {||
-    var runner = new Runner();
+    var runner = new Runner(defaultOpts);
     var events = [];
 
     runner.context("ctx") {||
@@ -57,7 +65,7 @@ context("hooks") {||
   }
 
   test("runs nested before / after hooks") {||
-    var runner = new Runner({defaults: {logCapture: false}});
+    var runner = new Runner(defaultOpts);
     var events = [];
 
     runner.context("parent") {||
@@ -164,17 +172,19 @@ context("filtering") {||
   }.serverOnly("no cwd");
 
   test("requires exact match") {||
-    var run = runWithFilter([{file: "test_1"}]);
-    run.files .. assert.eq([]);
+    assert.raises(
+      {message: 'Some filters didn\'t match anything: {"file":"test_1"}'},
+      -> runWithFilter([{file: "test_1"}]));
 
-    var run = runWithFilter([{file: "fixtures/test"}]);
-    run.files .. assert.eq([]);
+    assert.raises(
+      {message: 'Some filters didn\'t match anything: {"file":"fixtures/test"}'},
+      -> runWithFilter([{file: "fixtures/test"}]));
   }
 
   test("fails suite if not all file filters were used") {||
-    var run = runWithFilter([{file: "fixtures/test_1.sjs"}, {file: "fixtures/test_34.sjs"}]);
-    run.files .. assert.eq(["test_1.sjs"]);
-    run.results.ok() .. assert.notOk();
+    assert.raises(
+      {message: 'Some filters didn\'t match anything: {"file":"fixtures/test_34.sjs"}'},
+      -> runWithFilter([{file: "fixtures/test_1.sjs"}, {file: "fixtures/test_34.sjs"}]));
   }
 
   test("on test name substring") {||
@@ -209,8 +219,9 @@ context("filtering") {||
   }
 
   test("fails suite if unused") {||
-    var run = runWithFilter([{test: "test three"}]);
-    run.results.ok() .. assert.notOk();
+    assert.raises(
+      {message: 'Some filters didn\'t match anything: {"test":"test three"}'},
+      -> runWithFilter([{test: "test three"}]));
   }
 
   test("running only skipped tests") {||
@@ -256,7 +267,7 @@ context("logging") {||
 
 context("test state") {||
   test("before / after shares state") {||
-    var runner = new Runner();
+    var runner = new Runner(defaultOpts);
     var before_all_state = null;
     var after_all_state = null;
     var before_each_state = [];
@@ -322,7 +333,7 @@ context("test state") {||
   }
 
   test("context level state inherits from parent context") {||
-    var runner = new Runner();
+    var runner = new Runner(defaultOpts);
     var parent_state = null;
     var ctx_state = null;
 
@@ -439,3 +450,50 @@ context("global variable leaks") {||
     runner.run(watcher.run).ok() .. assert.ok();
   }
 }.skipIf(suite.isIE() && suite.ieVersion() < 8, "not supported on IE<8");
+
+context("uncaught exceptions") {||
+  test("fail the next test, if there is one") {||
+    var watcher = new CollectWatcher();
+    var runner = new Runner(defaultOpts);
+    runner.context("root") {||
+      test("one") {||
+        spawn(function() {
+          hold(1);
+          logging.info("throwing");
+          throw new Error("strata error");
+        }());
+      }
+      test("two") {||
+        logging.info("test two starting");
+        hold(10);
+        logging.info("test two finished");
+      }
+    }
+    var results = runner.run(watcher.run);
+    logging.info("runner finished");
+    results.ok() .. assert.notOk();
+    watcher.results[0].ok .. assert.ok("first test not ok!");
+    watcher.results[1].ok .. assert.notOk("second test succeeded!");
+  }
+
+  test("fail the suite even if there is no test to fail") {||
+    var runner = new Runner(defaultOpts);
+    runner.context("root") {||
+      test.afterAll {||
+        hold(10);
+      }
+      test("one") {||
+        spawn(function() {
+          hold(1);
+          logging.info("throwing");
+          throw new Error("strata error");
+        }());
+      }
+    }
+    var results = runner.run();
+    results.ok() .. assert.notOk("results passed!");
+    results.failed .. assert.eq(0, "test failed");
+  }
+
+  //UNTESTABLE: kills the process if there is no unfinished test result instance.
+}
