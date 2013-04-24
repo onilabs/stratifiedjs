@@ -96,7 +96,7 @@ context("hooks") {||
 }
 
 context("filtering") {||
-  var runWithFilter = function (filters) {
+  var runWithFilter = function (filters, args) {
     var loaded = [];
     var tests_run = [];
     var contexts_run = [];
@@ -129,10 +129,10 @@ context("filtering") {||
       defaults: {
         logCapture: false,
         logLevel: logging.VERBOSE,
-        testSpecs: filters,
+        testSpecs: filters || [],
       }
     }
-    var results = Runner.run(opts, []);
+    var results = Runner.run(opts, args || []);
     return {
       files: loaded,
       results: results,
@@ -211,6 +211,23 @@ context("filtering") {||
   test("fails suite if unused") {||
     var run = runWithFilter([{test: "test three"}]);
     run.results.ok() .. assert.notOk();
+  }
+
+  test("running only skipped tests") {||
+    // i.e get a report of all skipped tests
+    var run = runWithFilter([], ['--skipped']);
+    run.tests .. assert.eq([
+      "fixtures/test_12.sjs:skipped_1",
+      "fixtures/test_12.sjs:skipped_2",
+    ]);
+    run.results.ok() .. assert.ok();
+  }
+
+  test("running only skipped tests with filter") {||
+    // i.e get a report of all skipped tests
+    var run = runWithFilter([{file: "fixtures/test_1.sjs"}], ['--skipped']);
+    run.tests .. assert.eq([]);
+    run.results.ok() .. assert.ok();
   }
 }
 
