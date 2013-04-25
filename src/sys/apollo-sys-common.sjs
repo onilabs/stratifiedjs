@@ -473,6 +473,11 @@ function makeRequire(parent) {
     return resolve(module, rf, parent, opts);
   };
 
+  rf.url = function(relative) { 
+    // Hack: We set a 'dummy' loader to prevent the resolver from appending '.sjs'
+    return resolve(relative, rf, parent, {loader: 'dummy'}).path;
+  };
+
   rf.path = ""; // default path is empty
   rf.alias = {};
 
