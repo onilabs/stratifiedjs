@@ -649,7 +649,7 @@ exports.getCookie = function(name) {
       (start = c.indexOf(name+"=")) == -1)
     return "";
   start += name.length+1;
-  end = c.indexOf(";", start);
+  var end = c.indexOf(";", start);
   if (end == -1) end = c.length;
   return unescape(c.substring(start,end));
 };

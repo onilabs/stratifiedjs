@@ -135,6 +135,14 @@ exports.eq = exports.equal = function(actual, expected, desc) {
   }
 }
 
+exports.notEq = exports.notEqual = function(actual, expected, desc) {
+  var eq = compare.eq(actual, expected);
+  if (eq) {
+    var msg = "Arguments are equal: #{expected .. inspect}"
+    throw new AssertionError(msg, desc);
+  }
+}
+
 exports.contains = function(seq, expected, desc) {
   var arr = seq..toArray;
   if (arr.indexOf(expected) == -1) {
@@ -165,6 +173,10 @@ exports.atomic = function(desc /* (optional) */, fn) {
 
 exports.is = function(actual, expected, desc) {
   if (actual !== expected) throw new AssertionError("Expected #{expected .. inspect}, got #{actual .. inspect}", desc);
+};
+
+exports.isNot = function(actual, expected, desc) {
+  if (actual === expected) throw new AssertionError("Both arguments equal: #{expected .. inspect}", desc);
 };
 
 

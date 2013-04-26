@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Apollo tests</title>
+		<!--[if lt IE 8]>
+			<script src="//cdnjs.cloudflare.com/ajax/libs/json2/20121008/json2.js"></script>
+		<![endif]-->
+		<script src="../oni-apollo.js"></script>
+		<script type="text/sjs">
+			// we use the test/runner module to run our tests,
+			// but we have an out-of-band test module to verify
+			// that the runner works with enough confidence
+			// to trust the rest of the test suite:
+			waitfor {
+				var runner = require("sjs:test/runner");
+			} and {
+				require('./init_checks.sjs');
+			}
+			var logging = require('sjs:logging');
+			// logging.setLevel(logging.DEBUG);
+
+			var opts = {
+				moduleList: "./_index.txt",
+				base: module.id,
+				defaults: {
+					logLevel: logging.INFO,
+				},
+			};
+
+			try {
+				if(require('sjs:test/suite').isBrowser) {
+					runner.run(opts);
+				} else {
+					var rocket_ctrl = require('./lib/rocket_ctrl');
+					var rocket_port = '7071'
+
+					// TODO: only start up rocket when we hit a test under integration/
+					rocket_ctrl.withRocket(rocket_port) {||
+						var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
+						require('./lib/testContext').setBaseURL(rocket_base_url);
+						runner.run(opts);
+					}
+				}
+			} catch(e) {
+				if(e.message) console.log(e.message);
+				runner.exit(1);
+			}
+		</script>
+	</head>
+</html>

@@ -1086,7 +1086,7 @@ EF_Switch.prototype.cont = function(idx, val) {
     ++idx
   }
   default:
-  throw "Invalid phase in Switch SJS node";
+  throw new Error("Invalid phase in Switch SJS node");
   }
 };
 
@@ -1696,7 +1696,7 @@ EF_Alt.prototype.cont = function(idx, val) {
         // (uncommon case; see comment below)
         if (this.pending == 1) {
           // only our collapsing branch is left; continue with it
-          cf = this.collapsing.cf;
+          var cf = this.collapsing.cf;
           this.collapsing = UNDEF;
           cf.cont(1);
         }
@@ -2259,7 +2259,7 @@ exports.Cont = function(lbl) {
 
 exports.BlBreak = function(env, lbl) {
   var e = new CFException('blb', lbl);
-  if (!env.blref) throw "Internal runtime error; no reference frame in BlBreak";
+  if (!env.blref) throw new Error("Internal runtime error; no reference frame in BlBreak");
   if (env.blref.unreturnable && !env.blref.toplevel) // the return scope is not active anymore!
     throw new Error("Blocklambda break to inactive scope");
   e.ef = env.blref;
@@ -2268,7 +2268,7 @@ exports.BlBreak = function(env, lbl) {
 
 exports.BlReturn = function(exp) {
   var e = new CFException('r', exp);
-  if (!this.blref) throw "Internal runtime error; no reference frame in BlReturn";
+  if (!this.blref) throw new Error("Internal runtime error; no reference frame in BlReturn");
   if (this.blref.unreturnable) { 
     if (this.blref.toplevel)
       throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");

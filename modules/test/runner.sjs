@@ -47,7 +47,8 @@ waitfor {
 } and {
   var { Condition, Event } = require("../cutil.sjs");
 } and {
-  var { isArrayLike } = require('../array');
+  var array = require('../array');
+  var { isArrayLike } = array;
 } and {
   var seq = require('../sequence');
   var { each, reduce, toArray, any, filter, map, join, sort, concat } = seq;
@@ -220,38 +221,67 @@ Runner.prototype.run = function(reporter) {
   var getGlobals = function(existing) {
     // if `existing` is defined, get only the globals that are not in `existing`.
     // Otherwise return the names of all globals
-    var keys = object.ownKeys(global);
+    var keys = object.ownKeys(global) .. toArray();
     if (existing) {
-      keys = keys .. filter(k -> existing.indexOf(k) == -1);
+      keys = keys .. array.difference(existing);
     } else {
       if (opts.allowedGlobals) {
-        keys = keys .. concat(opts.allowedGlobals)
+        keys = keys.concat(opts.allowedGlobals)
       }
     }
-    return keys .. toArray;
+    return keys;
+  }
+  var deleteGlobals = function(globals) {
+    globals .. each {|g|
+      try {
+        delete global[g];
+      } catch(e) {
+        global[g] = undefined; //IE
+      }
+    }
+  }
+  var checkGlobals = function(test, extraGlobals) {
+    var ignoreGlobals = test._getIgnoreGlobals();
+    if (ignoreGlobals === true) return true; // ignore all globals
+
+    extraGlobals = extraGlobals .. array.difference(ignoreGlobals);
+    if (extraGlobals.length > 0) {
+      throw new Error("Test introduced additional global variable(s): #{extraGlobals..sort..join(", ")}");
+    }
   }
   if (!opts.checkLeaks) { getGlobals = -> [] }
+  var defaultTimeout = opts.timeout;
 
 
   // ----------------------------
   // run a single test
   var runTest = function(test) {
     var initGlobals = getGlobals();
+    var extraGlobals = null;
     var result = new TestResult(test);
     results.testStart.emit(result);
     try {
       if (test.shouldSkip()) {
         results._skip(result, test.skipReason);
       } else {
-        test.run();
-        var extraGlobals = getGlobals(initGlobals);
-        if (extraGlobals.length > 0) {
-          throw new Error("Test introduced additional global variable(s): #{extraGlobals..sort..join(", ")}");
+        var testTimeout = test._getTimeout();
+        if (testTimeout == null) testTimeout = defaultTimeout;
+        waitfor {
+          test.run();
+        } or {
+          hold(testTimeout * 1000);
+          throw new Error("Test exceeded #{testTimeout}s timeout");
         }
+
+        extraGlobals = getGlobals(initGlobals);
+        checkGlobals(test, extraGlobals);
         results._pass(result);
       }
     } catch (e) {
       results._fail(result, e);
+    } finally {
+      if (extraGlobals == null) extraGlobals = getGlobals(initGlobals);
+      deleteGlobals(extraGlobals);
     }
     results.testFinished.emit(result);
     if (suite.isBrowser) hold(0); // don't lock up the browser's UI thread
@@ -413,6 +443,7 @@ CompiledOptions.prototype = {
   showAll: true,
   skippedOnly: false,
   baseModule: null,
+  timeout: 10,
 }
 
 exports.getRunOpts = function(opts, args) {
@@ -471,6 +502,10 @@ exports.getRunOpts = function(opts, args) {
       { name: 'skipped',
         type: 'bool',
         help: 'Just report skipped tests (don\'t run anything)'
+      },
+      { name: 'timeout',
+        type: 'number',
+        help: 'Set the default test timeout (in seconds). Set to 0 to disable.'
       },
       { name: 'ignore-leaks',
         type: 'bool',
@@ -540,6 +575,10 @@ Options:
           case 'ignore_leaks':
             key = 'checkLeaks';
             val = false;
+            break;
+
+          case 'timeout':
+            if (val == 0) val = undefined;
             break;
 
           case 'skipped':

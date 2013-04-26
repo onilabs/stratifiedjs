@@ -193,7 +193,7 @@ function request_hostenv(url, settings) {
   var url = exports.parseURL(url_string);
   var protocol = url.protocol;
   if(!(protocol === 'http' || protocol === 'https')) {
-    throw('Unsupported protocol: ' + protocol);
+    throw new Error('Unsupported protocol: ' + protocol);
   }
   var secure = (protocol == "https");
   var port = url.port || (secure ? 443 : 80);
@@ -319,7 +319,7 @@ function file_src_loader(path) {
     if ((matches = /(.*)\.sjs$/.exec(path))) {
       try {
         return file_src_loader(matches[1]);
-      } catch (e) { throw err + "\nand then\n"+e; }
+      } catch (e) { throw new Error(String(err.message || err) + "\nand then\n"+ String(e.message || e)); }
     }
     else
       throw err;

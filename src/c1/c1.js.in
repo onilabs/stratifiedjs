@@ -454,18 +454,18 @@ SemanticToken.prototype = {
 
   // expression starter function
 #ifdef VERBOSE_COMPILE_ERRORS
-  exsf: function(pctx) { throw "Unexpected token '" + this + "' (exsf missing)"; },
+  exsf: function(pctx) { throw new Error("Unexpected token '" + this + "' (exsf missing)"); },
 #else
-  exsf: function(pctx) { throw "Unexpected '" + this + "'"; },
+  exsf: function(pctx) { throw new Error("Unexpected '" + this + "'"); },
 #endif
   // expression continuation binding power
   excbp: 0,
 
   // expression continuation
 #ifdef VERBOSE_COMPILE_ERRORS
-  excf: function(left, pctx) { throw "Unexpected token '" + this + "' (excf missing)"; },
+  excf: function(left, pctx) { throw new Error("Unexpected token '" + this + "' (excf missing)"); },
 #else
-  excf: function(left, pctx) { throw "Unexpected '" + this + "'"; },
+  excf: function(left, pctx) { throw new Error("Unexpected '" + this + "'"); },
 #endif
   // statement function
   stmtf: null,
@@ -681,7 +681,7 @@ S("[").
 
 S(".").exc(270, function(l, pctx) {
   if (pctx.token.id != "<id>")
-    throw "Expected an identifier, found '"+pctx.token+"' instead";
+    throw new Error("Expected an identifier, found '"+pctx.token+"' instead");
   var name = pctx.token.value;
   scan(pctx);
   LOGM('dot_accessor')
@@ -712,7 +712,7 @@ S("(").
       var op = scan(pctx, ')');
       if (op.id != '->' &&
           op.id != '=>')
-        throw "Was expecting '->' or '=>' after empty parameter list, but saw '"+pctx.token.id+"'";
+        throw new Error("Was expecting '->' or '=>' after empty parameter list, but saw '"+pctx.token.id+"'");
       scan(pctx);
       return op.exsf(pctx);
     }
@@ -869,11 +869,11 @@ function parsePropertyName(token, pctx) {
   if (id == '"') {
     if ((token = scan(pctx)).id != "<string>" ||
         scan(pctx, undefined, TOKENIZER_IS).id != 'istr-"')
-      throw "Non-literal strings can't be used as property names ("+token+")";
+      throw new Error("Non-literal strings can't be used as property names ("+token+")");
     return '"'+token.value+'"';
   }
 #endif
-  throw "Invalid object literal syntax; property name expected, but saw "+token;
+  throw new Error("Invalid object literal syntax; property name expected, but saw "+token);
 }
 
 function parseBlock(pctx) {
@@ -911,7 +911,7 @@ function parseBlockLambda(start, pctx) {
       if (pars.length) 
         token = scan(pctx, ",");
       if (token.id != "<id>")
-        throw "Expected parameter name but found '"+token+"'";
+        throw new Error("Expected parameter name but found '"+token+"'");
       pars.push(token.value); 
       token = scan(pctx); // consume parameter
     }
@@ -965,7 +965,7 @@ S("{").
           var pars = [];
           var body = parseFunctionInner(pctx, pars);
           if (pars.length != 1)
-            throw "Exactly one parameter expected in property setter definition";
+            throw new Error("Exactly one parameter expected in property setter definition");
           props.push(["set", prop, pars[0], body]);
         }
 #endif // ECMA_GETTERS_SETTERS
@@ -977,12 +977,12 @@ S("{").
 #ifdef SJS_DESTRUCTURE
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
           if (prop.charAt(0) == "'" || prop.charAt(0) == '"')
-            throw "Quoted identifiers not allowed in destructuring patterns ("+prop+")";
+            throw new Error("Quoted identifiers not allowed in destructuring patterns ("+prop+")");
           props.push(["pat", prop, pctx.line]);
         }
 #endif // SJS_DESTRUCTURE
         else
-          throw "Unexpected token '"+pctx.token+"'";
+          throw new Error("Unexpected token '"+pctx.token+"'");
       }
       scan(pctx, "}", TOKENIZER_OP); // note the special tokenizer case here
       LOGM('obj_lit')
@@ -996,7 +996,7 @@ S("{").
   exc(260, function(l, pctx) {
     var start = pctx.token.id;
     if (start != "|" && start != "||")
-      throw "Unexpected token '"+pctx.token+"' - was expecting '|' or '||'";
+      throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     LOGM('fun_call')
     GEN_FUN_CALL(l, args, pctx);
@@ -1013,8 +1013,8 @@ S("}"); // note the special tokenizer case for object literals, above
 S(":");
 
 S("<eof>").
-  exs(function(pctx) { throw "Unexpected end of input (exs)"; }).
-  stmt(function(pctx) { throw "Unexpected end of input (stmt)"; });
+  exs(function(pctx) { throw new Error("Unexpected end of input (exs)"); }).
+  stmt(function(pctx) { throw new Error("Unexpected end of input (stmt)"); });
 
 // statements/misc
 
@@ -1041,7 +1041,7 @@ function parseFunctionInner(pctx, pars, implicit_return) {
     if (pars.length)
       token = scan(pctx, ",");
     if (token.id != "<id>")
-      throw "Expected parameter name but found '"+token+"'";
+      throw new Error("Expected parameter name but found '"+token+"'");
     pars.push(token.value);
     token = scan(pctx); // consume parameter
   }
@@ -1075,7 +1075,7 @@ S("function").
   }).
   // statement function form ('function declaration')
   stmt(function(pctx) {
-    if (pctx.token.id != "<id>") throw "Malformed function declaration";
+    if (pctx.token.id != "<id>") throw new Error("Malformed function declaration");
     var fname = pctx.token.value;
     scan(pctx);
     var pars = [];
@@ -1121,10 +1121,10 @@ S('"', TOKENIZER_IS).exs(function(pctx) {
       ++last;
       break;
     case "<eof>":
-      throw "Unterminated string";
+      throw new Error("Unterminated string");
       break;
     default:
-      throw "Internal parser error: Unknown token in string ("+pctx.token+")";
+      throw new Error("Internal parser error: Unknown token in string ("+pctx.token+")");
     }
     scan(pctx, undefined, TOKENIZER_IS);
   }
@@ -1186,10 +1186,10 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
       break;
 
     case '<eof>':
-      throw 'Unterminated string';
+      throw new Error('Unterminated string');
       break;
     default:
-      throw 'Internal parser error: Unknown token in string ('+pctx.token+')';
+      throw new Error('Internal parser error: Unknown token in string ('+pctx.token+')');
     }
     scan(pctx, undefined, TOKENIZER_QUASI);
   }
@@ -1206,7 +1206,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
 function parseQuasiInlineEscape(pctx) {
   // scan an identifier:
   var identifier = scan(pctx);
-  if (pctx.token.id != "<id>") throw "Unexpected " + pctx.token + " in quasi template";
+  if (pctx.token.id != "<id>") throw new Error("Unexpected " + pctx.token + " in quasi template");
   if (pctx.src.charAt(pctx.lastIndex) != '(') {
     // $variable
     return identifier.exsf(pctx);
@@ -1337,7 +1337,7 @@ S("for").stmt(function(pctx) {
     scan(pctx);
     //XXX check that start_exp is a valid LHS
     if (decls && decls.length > 1)
-      throw "More that one variable declaration in for-in loop";
+      throw new Error("More that one variable declaration in for-in loop");
     var obj_exp = parseExp(pctx);
     scan(pctx, ")");
     BEGIN_LOOP_SCOPE(pctx)
@@ -1348,7 +1348,7 @@ S("for").stmt(function(pctx) {
     GEN_FOR_IN(start_exp, decl, obj_exp, body, pctx)
   }
   else
-    throw "Unexpected token '"+pctx.token+"' in for-statement";
+    throw new Error("Unexpected token '"+pctx.token+"' in for-statement");
 });
 
 S("continue").stmt(function(pctx) {
@@ -1411,7 +1411,7 @@ S("switch").stmt(function(pctx) {
       scan(pctx);
     }
     else
-      throw "Invalid token '"+pctx.token+"' in switch statement";
+      throw new Error("Invalid token '"+pctx.token+"' in switch statement");
     scan(pctx, ":");
     LOGM('case_clause<')
     BEGIN_CASE_CLAUSE(clause_exp, pctx)
@@ -1429,7 +1429,7 @@ S("switch").stmt(function(pctx) {
 });
 
 S("throw").stmt(function(pctx) {
-  if (pctx.newline) throw "Illegal newline after throw";
+  if (pctx.newline) throw new Error("Illegal newline after throw");
   var exp = parseExp(pctx);
   parseStmtTermination(pctx);
   LOGM('throw')
@@ -1496,7 +1496,7 @@ S("try").stmt(function(pctx) {
     // conventional 'try'
     var crf = parseCRF(pctx);
     if (!crf[0] && !crf[1] && !crf[2])
-      throw "Missing 'catch', 'finally' or 'retract' after 'try'";
+      throw new Error("Missing 'catch', 'finally' or 'retract' after 'try'");
     LOGM('try')
     GEN_TRY(block, crf, pctx)
   }
@@ -1518,7 +1518,7 @@ S("try").stmt(function(pctx) {
   var block = parseBlock(pctx);
   var crf = parseCRF(pctx);
   if (!crf[0] && !crf[2])
-    throw "Missing 'catch' or 'finally' after 'try'";
+    throw new Error("Missing 'catch' or 'finally' after 'try'");
   LOGM('try')
   GEN_TRY(block, crf, pctx)
 });
@@ -1531,7 +1531,7 @@ S("waitfor").stmt(function(pctx) {
     scan(pctx, "{");
     var blocks = [parseBlock(pctx)];
     var op = pctx.token.value; // XXX maybe use syntax token
-    if (op != "and" && op != "or") throw "Missing 'and' or 'or' after 'waitfor' block";
+    if (op != "and" && op != "or") throw new Error("Missing 'and' or 'or' after 'waitfor' block");
     do {
       scan(pctx);
       scan(pctx, "{");
@@ -1548,7 +1548,7 @@ S("waitfor").stmt(function(pctx) {
     if (has_var) scan(pctx);
     var decls = [];
     if (pctx.token.id == ")") {
-      if (has_var) throw "Missing variables in waitfor(var)";
+      if (has_var) throw new Error("Missing variables in waitfor(var)");
     }
     else
       decls = parseVarDecls(pctx);
@@ -1582,7 +1582,7 @@ S("using").stmt(function(pctx) {
   }
   else {
     if (has_var)
-      throw "Syntax error in 'using' expression";
+      throw new Error("Syntax error in 'using' expression");
     exp = e1;
   }
   scan(pctx, ")");
@@ -1774,7 +1774,7 @@ function scan(pctx, id, tokenizer) {
   }
   
   if (id && (!pctx.token || pctx.token.id != id))
-    throw "Unexpected " + pctx.token;
+    throw new Error("Unexpected " + pctx.token);
   pctx.token = null;
   pctx.newline = 0;
   while (!pctx.token) {
@@ -1819,9 +1819,9 @@ function scan(pctx, id, tokenizer) {
       else if (matches[SA_REGEXLIT_MATCH])
         pctx.token = new Literal("<regex>", matches[SA_REGEXLIT_MATCH]);
       else if (matches[SA_INVALID_MATCH])
-        throw "Unexpected characters: '"+matches[SA_INVALID_MATCH]+"'";
+        throw new Error("Unexpected characters: '"+matches[SA_INVALID_MATCH]+"'");
       else
-        throw "Internal scanner error";
+        throw new Error("Internal scanner error");
       //print("sa:"+pctx.token);
     }
     else if (tokenizer == TOKENIZER_OP) { // tokenizer == TOKENIZER_OP
@@ -1890,7 +1890,7 @@ function scan(pctx, id, tokenizer) {
     }
 #endif
     else
-      throw "Internal scanner error: no tokenizer";
+      throw new Error("Internal scanner error: no tokenizer");
   }
   return pctx.token;
 }

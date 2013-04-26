@@ -125,7 +125,7 @@ exports.ownPropertyPairs = ownPropertyPairs;
    @summary Create an object from a [::Stream] `[key1,val1],[key2,val2],...` of property pairs
 */
 function pairsToObject(sequence, prototype) {
-  if (prototype === undefined) prototype = null;
+  if (prototype === undefined) prototype = Object.prototype;
   var rv = Object.create(prototype);
   sequence .. each {
     |prop|

@@ -173,10 +173,22 @@ exports.launch = function(command, args, options) {
       and signal that terminated the process.
 */
 exports.wait = function(child) {
-  waitfor(var code, signal) {
-    child.on(STREAMS_CLOSED_SIGNAL, resume);
-  } retract {
-    child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
+  var code, signal, error;
+  waitfor {
+    waitfor(code, signal) {
+      child.on(STREAMS_CLOSED_SIGNAL, resume);
+    } retract {
+      child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
+    }
+  } or {
+    waitfor(error) {
+      child.on('error', resume);
+    } retract {
+      child.removeListener('error', resume);
+    }
+  }
+  if(error !== undefined) {
+    throw error;
   }
   if(code != 0) {
     var err = new Error('child process exited with nonzero exit status: ' + code);

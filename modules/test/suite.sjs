@@ -95,28 +95,62 @@ test.afterEach = function(f) {
   currentContext().hooks.after.each.push(f);
 };
 
+function inheritedProperty(name, defaultValue) {
+  var fn = function() {
+    if (this[name] !== undefined) return this[name];
+    if(this.parent) return fn.apply(this.parent);
+    return defaultValue;
+  }
+  return fn;
+}
 
-var SkipMixins = {};
-SkipMixins.skip = function(reason) {
+var MetaMixins = {};
+MetaMixins._skip = false;
+MetaMixins._ignoreGlobals = [];
+MetaMixins._timeout = undefined;
+MetaMixins.skip = function(reason) {
   this._skip = true;
   this.skipReason = reason || null;
+  return this;
 }
-SkipMixins.skipIf = function(cond, reason) {
+MetaMixins.skipIf = function(cond, reason) {
   if (cond) this.skip(reason);
+  return this;
 }
-SkipMixins.browserOnly = function(reason) {
+MetaMixins.browserOnly = function(reason) {
   this.skipIf(!isBrowser, reason);
+  return this;
 }
-SkipMixins.serverOnly = function(reason) {
+MetaMixins.serverOnly = function(reason) {
   this.skipIf(isBrowser, reason);
+  return this;
+}
+MetaMixins.ignoreLeaks = function(globals) {
+  // globals may be multuple string arguments or a single array of strings
+  this._ignoreGlobals = arguments.length == 0 ? true : sys.expandSingleArgument(globals);
+  return this;
+}
+MetaMixins.timeout = function(t) {
+  this._timeout = t;
+  return this;
+}
+MetaMixins.shouldSkip = inheritedProperty('_skip', false);
+MetaMixins._getTimeout = inheritedProperty('_timeout', undefined);
+MetaMixins._getIgnoreGlobals = function() {
+  if (this._ignoreGlobals === true) return true;
+  var parentGlobals = [];
+  if (this.parent) parentGlobals = this.parent._getIgnoreGlobals();
+  if (parentGlobals === true) return true;
+
+  // otherwise, parentGlobals and my globals must both be lists:
+  return parentGlobals.concat(this._ignoreGlobals);
 }
 
-var addSkipFunctions = function(cls) {
-  object.extend(cls.prototype, SkipMixins);
+var addMetaFunctions = function(cls) {
+  object.extend(cls.prototype, MetaMixins);
 }
 
 var Context = context.Cls = function(desc, body, module_name) {
-  this._skip = false;
   this._module = module_name;
   this.parent = null;
   this.children = [];
@@ -135,7 +169,7 @@ var Context = context.Cls = function(desc, body, module_name) {
     },
   };
 }
-addSkipFunctions(Context);
+addMetaFunctions(Context);
 
 Context.prototype.withHooks = function(fn) {
   this.state = this.parent ? Object.create(this.parent.state) : {};
@@ -174,21 +208,12 @@ Context.prototype.fullDescription = function() {
   return this.parent.fullDescription() + ":" + this.description;
 }
 
-Context.prototype.module = function() {
-  if(this._module !== undefined) return this._module;
-  if(this.parent) return this.parent.module();
-  return null;
-}
+Context.prototype.module = inheritedProperty('_module', null);
 
 Context.prototype.toString = function() {
   return "<#Context: #{this.description} (#{this._module})>";
 }
 
-Context.prototype.shouldSkip = function() {
-  if (this._skip) return true;
-  if (this.parent) return this.parent.shouldSkip();
-  return false;
-}
 
 /* runHooks is fail-fast - i.e the first error encountered will be raised
  * (and no further hooks run). Use this for `before` hooks:
@@ -223,9 +248,9 @@ var Test = function(description, body, context) {
   this.description = description;
   this.body = body;
   this.context = context;
-  this._skip = false;
+  this.parent = context; // alias `context` as `parent`, for `inheritedProperty` to use
 }
-addSkipFunctions(Test);
+addMetaFunctions(Test);
 
 Test.prototype.toString = function() {
   return "<#Test: #{this.fullDescription()}>";
@@ -249,10 +274,6 @@ Test.prototype.fullDescription = function() {
   return this.context.fullDescription() + ":" + this.description;
 }
 
-
-Test.prototype.shouldSkip = function() {
-  return this._skip || this.context.shouldSkip();
-}
 
 exports.assert = require('../assert');
 

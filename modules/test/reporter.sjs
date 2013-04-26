@@ -214,14 +214,14 @@ Formatter.prototype.printPendingContexts = function() {
 }
 
 Formatter.prototype.endTest = function(result, capturedLogs) {
-  if (this.quiet && !(result.passed)) {
+  if (this.quiet && !(result.ok)) {
     // need to print any missing context:
     this.printPendingContexts();
     this.beginTest(result, true);
   }
 
   if (result.skipped) {
-    this.printSkip(result.reason);
+    if (!this.quiet) this.printSkip(result.reason);
   } else if (result.ok) {
     if (!this.quiet) this.print(this.color('green', "OK"));
   } else {
@@ -362,6 +362,7 @@ HtmlReporter.prototype.report = function(results) {
     this.print(" ", false);
     this.print(elem, false);
   }
+  this.print();
 }
 
 HtmlReporter.prototype.linkToTest = function(testId) {

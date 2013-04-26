@@ -54,11 +54,13 @@ var { remove } = require('../array');
 // logging
 
 var logReceivers = [];
+var originalConsole = null;
 
 function installLogger(logger) {
   var logging = require('../logging');
   logReceivers.push(logger);
   if(logReceivers.length == 1) { // this is the first logger
+    originalConsole = logging.getConsole();
     logging.setConsole({log: printToLoggers});
   }
 };
@@ -68,7 +70,7 @@ function uninstallLogger(logger) {
 
   if(logReceivers.length == 0) { // last logger removed
     var logging = require('../logging');
-    logging.setConsole();
+    logging.setConsole(originalConsole);
   }
 };
 

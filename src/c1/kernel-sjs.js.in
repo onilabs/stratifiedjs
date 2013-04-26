@@ -143,7 +143,7 @@ function begin_script(pctx) {
   }
   
   if (typeof pctx.scopes !== 'undefined')
-    throw "Internal parser error: Nested script";
+    throw new Error("Internal parser error: Nested script");
   // pctx.decl_scopes is where we collect declarations
   pctx.decl_scopes = [];
   // ... and pctx.stmt_scopes where we collect (block) statements. 
@@ -269,7 +269,7 @@ ph.prototype = {
     if (this.nblock_val)
       return this.nblock_val();
     else
-      throw "Illegal statement in __js block";
+      throw new Error("Illegal statement in __js block");
   }
 };
 
@@ -482,7 +482,7 @@ function ph_var_decl(d, pctx) {
 #ifdef SJS_DESTRUCTURE
     this.is_dest = true;
 #else
-  throw "Invalid expression in variable declaration";
+  throw new Error("Invalid expression in variable declaration");
 #endif
   this.is_empty = this.d.length<2;
   this.pctx = pctx;
@@ -501,7 +501,7 @@ ph_var_decl.prototype.collect_var_decls = function(vars) {
     this.d[0].collect_var_decls(vars);
   }
   catch (e) {
-    throw "Invalid syntax in variable declaration";
+    throw new Error("Invalid syntax in variable declaration");
   }
 #else
   vars.push(this.d[0].name); 
@@ -581,10 +581,10 @@ ph_try.prototype.nblock_val = function() {
   // this is currently only called in a forced (__js) non-blocking context
   var rv = "try{"+this.block.nb()+"}";
   if (this.crf[0]) {
-    if (this.crf[0][2]) throw "catchall statement not allowed in __js block";
+    if (this.crf[0][2]) throw new Error("catchall statement not allowed in __js block");
     rv += "catch("+this.crf[0][0]+"){"+this.crf[0][1].nb()+"}";
   }
-  if (this.crf[1]) throw "retract statement not allowed in __js block";
+  if (this.crf[1]) throw new Error("retract statement not allowed in __js block");
   if (this.crf[2])
     rv += "finally{"+this.crf[2].nb()+"}";
   return rv;
@@ -708,7 +708,7 @@ ph_collapse.prototype.val = function() {
     else if (top_decl_scope(pctx).bl)           \
       return new ph_bl_break(pctx, lbl);        \
     else                                        \
-      throw "Unexpected 'break' statement";
+      throw new Error("Unexpected 'break' statement");
 
 #define GEN_CONTINUE(lbl, pctx)                 \
     if (top_decl_scope(pctx).continue_scope)    \
@@ -716,7 +716,7 @@ ph_collapse.prototype.val = function() {
     else if (top_decl_scope(pctx).bl)           \
       return new ph_return(undefined, pctx);    \
     else                                        \
-      throw "Unexpected 'continue' statement";
+      throw new Error("Unexpected 'continue' statement");
 
 // control flow exception:
 function ph_cfe(f, pctx, lbl) {
@@ -753,7 +753,7 @@ function ph_bl_break(pctx, lbl) {
 }
 ph_bl_break.prototype = new ph(WHENDEBUG("ph_bl_break"));
 ph_bl_break.prototype.nblock_val = function() {
-  if (this.js_ctx) throw "Blocklamdas cannot contain 'break' statements in __js{...} contexts";
+  if (this.js_ctx) throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
   var rv = "return __oni_rt.BlBreak(this";
   if (this.lbl) rv += ",'"+this.lbl+"'";
   rv += ");";
@@ -811,7 +811,7 @@ ph_loop.prototype.nblock_val = function() {
     // while loop
     return "while("+this.test_exp.nb()+"){"+this.body.nb()+"}";
   }
-  else throw "Can't encode this loop as __js yet";
+  else throw new Error("Can't encode this loop as __js yet");
 };
 ph_loop.prototype.val = function() {
   var test = this.test_exp ? this.test_exp.v() : "1";
@@ -896,7 +896,7 @@ ph_literal.prototype.is_nblock = true;
 ph_literal.prototype.v = function() { return this.value; };
 ph_literal.prototype.nblock_val = function() { return this.value; };
 #ifdef SJS_DESTRUCTURE
-ph_literal.prototype.destruct = function() { if (this.value != "") throw "invalid pattern"; return "";};
+ph_literal.prototype.destruct = function() { if (this.value != "") throw new Error("invalid pattern"); return "";};
 ph_literal.prototype.collect_var_decls = function() { };
 #endif
 
@@ -914,7 +914,7 @@ ph_infix_op.prototype.is_value = true;
 
 #ifdef SJS_DESTRUCTURE
 ph_infix_op.prototype.collect_pars = function(pars) {
-  if (this.id != ',') throw "invalid parameter list syntax";
+  if (this.id != ',') throw new Error("invalid parameter list syntax");
   pars.push(this.left);
   if (this.right.collect_pars)
     this.right.collect_pars(pars);
@@ -1015,10 +1015,10 @@ function ph_assign_op(left, id, right, pctx) {
 #ifdef SJS_DESTRUCTURE
     {
       this.is_dest = true;
-      if (id != "=") throw "Invalid operator in destructuring assignment";
+      if (id != "=") throw new Error("Invalid operator in destructuring assignment");
     }
 #else
-    throw "Invalid left side in assignment";
+    throw new Error("Invalid left side in assignment");
 #endif
   this.left = left;
   this.id = id;
@@ -1115,7 +1115,7 @@ ph_prefix_op.prototype.val = function() {
 
 #define GEN_POSTFIX_OP(left, id, pctx) return new ph_postfix_op(left, id, pctx);
 function ph_postfix_op(left, id, pctx) {
-  if (!left.is_ref && !left.is_id) throw "Invalid argument for postfix op '"+id+"'";
+  if (!left.is_ref && !left.is_id) throw new Error("Invalid argument for postfix op '"+id+"'");
   this.left = left;
   this.id = id;
   this.line = pctx.line;
@@ -1140,7 +1140,7 @@ ph_postfix_op.prototype.val = function() {
 #ifdef SJS_ARROWS
 
 #ifndef SJS_DESTRUCTURE
-throw "Arrows require destructuring support!"
+throw new Error("Arrows require destructuring support!");
 #endif
 
 #define GEN_THIN_ARROW(body, pctx) GEN_THIN_ARROW_WITH_PARS(undefined, body, pctx)
@@ -1186,7 +1186,7 @@ function ph_arrow(pars_exp, body, pctx, bound) {
 
     }
     catch (e) {
-      throw "Invalid syntax in parameter list";
+      throw new Error("Invalid syntax in parameter list");
     }
   }
 
@@ -1294,7 +1294,7 @@ ph_envobj.prototype.nblock_val = function() {
 #ifdef SJS_DESTRUCTURE
 ph_envobj.prototype.destruct = 
 ph_envobj.prototype.collect_var_decls = function() {
-  throw "'"+this.name+"' not allowed in destructuring pattern";
+  throw new Error("'"+this.name+"' not allowed in destructuring pattern");
 };
 #endif
 
@@ -1389,7 +1389,7 @@ ph_dot_accessor.prototype.destruct = function(dpath, drefs) {
   return v+"[0]["+v+"[1]]="+dpath+";";
 };
 ph_dot_accessor.prototype.collect_var_decls = function(vars) {
-  throw "var declaration must not contain property accessor as lvalue";
+  throw new Error("var declaration must not contain property accessor as lvalue");
 };
 #endif
 
@@ -1695,7 +1695,7 @@ ph_suspend.prototype.val = function() {
   rv += "}, function() {";
   for (var i=0; i<this.decls.length;++i) {
     var name = this.decls[i][0].name;
-    if (name == "arguments") throw "Cannot use 'arguments' as variable name in waitfor()";
+    if (name == "arguments") throw new Error("Cannot use 'arguments' as variable name in waitfor()");
     rv += name+"=arguments["+i+"];";
   }
   rv += "})";
@@ -1723,7 +1723,7 @@ function gen_using(has_var, lhs, exp, body, pctx) {
   var rv;
   if (has_var) {
     //XXX this is suboptimal
-    if (!lhs.is_id) throw "Variable name expected in 'using' expression";
+    if (!lhs.is_id) throw new Error("Variable name expected in 'using' expression");
     rv = gen_var_compound([[lhs]], pctx);
     rv.stmts.push(new ph_using(lhs, exp, body, pctx));
     rv = rv.toBlock();
@@ -1802,7 +1802,7 @@ ph_lbl_stmt.prototype.nblock_val = function() {
 };
 ph_lbl_stmt.prototype.val = function() {
   // TODO
-  throw "labeled statements not implemented yet";
+  throw new Error("labeled statements not implemented yet");
 };
 
 

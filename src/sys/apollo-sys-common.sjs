@@ -501,7 +501,7 @@ function resolveAliases(module, aliases) {
   while ((alias_rest=ALIAS_REST.exec(rv)) &&
          (alias=aliases[alias_rest[1]])) {
     if (--level == 0)
-      throw "Too much aliasing in modulename '"+module+"'";
+      throw new Error("Too much aliasing in modulename '"+module+"'");
     rv = alias + alias_rest[2];
   }
   return rv;
@@ -528,7 +528,7 @@ function resolveHubs(module, hubs, require_obj, parent, opts) {
           path = resolveSchemelessURL_hostenv(path, require_obj, parent);
         i=0; // start resolution from beginning again
         if (--level == 0)
-          throw "Too much indirection in hub resolution for module '"+module+"'";
+          throw new Error("Too much indirection in hub resolution for module '"+module+"'");
       }
       else if (typeof hub[1] == "object") {
         if (hub[1].src) src = hub[1].src;
@@ -537,7 +537,7 @@ function resolveHubs(module, hubs, require_obj, parent, opts) {
         break;
       }
       else 
-        throw "Unexpected value for require.hubs element '"+hub[0]+"'"
+        throw new Error("Unexpected value for require.hubs element '"+hub[0]+"'");
     }
   }
 
@@ -576,7 +576,7 @@ function default_loader(path, parent, src_loader, opts) {
 
   var compile = exports.require.extensions[extension];
   if (!compile) 
-    throw "Unknown type '"+extension+"'";
+    throw new Error("Unknown type '"+extension+"'");
   
   var descriptor;
   if (!(descriptor = exports.require.modules[path])) {
@@ -662,7 +662,7 @@ function github_src_loader(path) {
   var user, repo, tag;
   try {
     [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
-  } catch(e) { throw "Malformed module id '"+path+"'"; }
+  } catch(e) { throw new Error("Malformed module id '"+path+"'"); }
   
   var url = exports.constructURL(github_api, 'repos', user, repo, "contents", path,{ref:tag});
 

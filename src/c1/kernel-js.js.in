@@ -42,7 +42,7 @@ function top_scope(pctx) {
 
 #define BEGIN_SCRIPT(pctx)                        \
   if (typeof pctx.scopes !== 'undefined')         \
-    throw "Internal parser error: Nested script"; \
+    throw new Error("Internal parser error: Nested script"); \
   pctx.scopes = [];                               \
   push_scope(pctx);
 

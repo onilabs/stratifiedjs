@@ -62,10 +62,10 @@ function flush_newlines(pctx) {
 //----------------------------------------------------------------------
 // contexts:
 
-#define BEGIN_SCRIPT(pctx)                        \
-  if (typeof pctx.scopes !== 'undefined')         \
-    throw "Internal parser error: Nested script"; \
-  pctx.scopes = [];                               \
+#define BEGIN_SCRIPT(pctx)                                   \
+  if (typeof pctx.scopes !== 'undefined')                    \
+    throw new Error("Internal parser error: Nested script"); \
+  pctx.scopes = [];                                          \
   push_scope(pctx);
 
 #define ADD_SCRIPT_STMT(stmt, pctx)             \
