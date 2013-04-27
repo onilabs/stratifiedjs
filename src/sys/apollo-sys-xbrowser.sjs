@@ -332,7 +332,10 @@ function request_hostenv(url, settings) {
       };
     }
 
-    if (opts.headers)
+    if (opts.headers && req.setRequestHeader) // XXX IE's
+                                              // XDomainRequest
+                                              // doesn't allow setting
+                                              // headers; we'll silently ignore for now
       for (var h in opts.headers)
         req.setRequestHeader(h, opts.headers[h]);
     if (opts.mime && req.overrideMimeType)
