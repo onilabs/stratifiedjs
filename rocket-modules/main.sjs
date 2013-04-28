@@ -148,12 +148,6 @@ function json2jsonp(src, dest, req) {
   dest.write(")");
 }
 
-// filter that wraps a module as 'modp':
-function modp(src, dest) {
-  src = stream.readAll(src);
-  dest.write("module("+require("../tmp/c1jsstr.js").compile(src, {keeplines:true})+");");
-}
-
 // filter that compiles sjs into '__oni_compiled_sjs_1' format:
 function sjscompile(src, dest, req, etag) {
   src = stream.readAll(src);
@@ -221,9 +215,6 @@ BaseFileFormatMap.prototype = {
                         cache: SJSCache
                       },
            src      : { mime: "text/plain" },
-           modp     : { mime: "text/javascript",
-                        filter: modp
-                      }
          },
   xml  : { none : { mime: "text/xml" },
            src  : { mime: "text/plain" }
