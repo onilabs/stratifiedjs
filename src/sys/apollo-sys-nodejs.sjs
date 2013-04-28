@@ -407,6 +407,9 @@ function getExtensions_hostenv() {
   return {
     // normal sjs modules
     'sjs': default_compiler,
+
+    // conductance configuration files
+    'mho': default_compiler,
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
     'js': function(src, descriptor) {
       var vm = __oni_rt.nodejs_require("vm");
