@@ -200,6 +200,10 @@ function request_hostenv(url, settings) {
 
   if (!opts.headers['Host'])
     opts.headers.Host = url.authority;
+
+  if (!opts.headers['User-Agent'])
+    opts.headers['User-Agent'] = "Oni Labs Apollo StratifiedJS engine"; //XXX should have a version here
+
   if (opts.body && !opts.headers['Transfer-Encoding']) {
     // opts.headers['Transfer-Encoding'] = 'chunked';
     // Some APIs (github, here's looking at you) don't accept chunked encoding, 
