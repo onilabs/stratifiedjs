@@ -28,4 +28,3 @@ integration/google-tests.sjs
 integration/http-tests.sjs
 integration/require-tests.sjs
 integration/yql-tests.sjs
-perf/perf-tests.sjs
