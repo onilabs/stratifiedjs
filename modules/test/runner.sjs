@@ -165,9 +165,7 @@ Runner.prototype.loadModule = function(module_name, base) {
 Runner.prototype.run = function(reporter) {
   var opts = this.opts;
   // use `reporter.run` if no reporter func given explicitly
-  if (!reporter && this.reporter.run) {
-    reporter = this.reporter.run.bind(this.reporter);
-  }
+  if (reporter == undefined) reporter = this.reporter;
 
   // count the number of tests, while marking them (and their parent contexts)
   // as _enabled while disabling all other contexts
@@ -212,7 +210,19 @@ Runner.prototype.run = function(reporter) {
     this.root_contexts .. each(ctx -> preprocess_context(ctx.module(), ctx));
   }
 
-  var results = new Results(total_tests);
+  // ----------------------------
+  // Call a given `reporter` method, if it exists
+  var report = function(key /*, ... */) {
+    var reporterFn = reporter[key];
+    if (reporterFn) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      reporterFn.apply(reporter, args);
+    }
+  }
+
+  // ----------------------------
+  // Create the results object
+  var results = new Results(report, total_tests);
   var startTime = new Date();
 
   // ----------------------------
@@ -252,14 +262,13 @@ Runner.prototype.run = function(reporter) {
   if (!opts.checkLeaks) { getGlobals = -> [] }
   var defaultTimeout = opts.timeout;
 
-
   // ----------------------------
   // run a single test
   var runTest = function(test) {
     var initGlobals = getGlobals();
     var extraGlobals = null;
     var result = new TestResult(test);
-    results.testStart.emit(result);
+    report('testBegin', result);
     try {
       if (test.shouldSkip()) {
         results._skip(result, test.skipReason);
@@ -283,7 +292,7 @@ Runner.prototype.run = function(reporter) {
       if (extraGlobals == null) extraGlobals = getGlobals(initGlobals);
       deleteGlobals(extraGlobals);
     }
-    results.testFinished.emit(result);
+    report('testEnd', result);
     if (suite.isBrowser) hold(0); // don't lock up the browser's UI thread
   };
 
@@ -294,7 +303,7 @@ Runner.prototype.run = function(reporter) {
       logging.verbose("Skipping context: #{ctx}");
       return;
     }
-    if (!ctx.hide) results.contextStart.emit(ctx);
+    if (!ctx.hide) report('contextBegin', ctx);
 
     if (!ctx.shouldSkip()) {
       ctx.withHooks() {||
@@ -311,29 +320,27 @@ Runner.prototype.run = function(reporter) {
         }
       }
     }
-    if (!ctx.hide) results.contextEnd.emit(ctx);
+    if (!ctx.hide) report('contextEnd', ctx);
   }
   
   // ----------------------------
   // run the tests
+  report('suiteBegin', results);
   with(logging.logContext({level: this.opts.logLevel})) {
     var unusedFilters = this.opts.testFilter.unusedFilters();
     if (unusedFilters.length > 0) {
       throw new UsageError("Some filters didn't match anything: #{unusedFilters .. join(", ")}");
     }
 
-    waitfor {
-      if (reporter) reporter(results);
-    } and {
-      try {
-        this.root_contexts .. each(traverse);
-      } catch (e) {
-        results._error(e);
-      }
-      results.duration = new Date().getTime() - startTime.getTime();
-      results.end.set();
+    try {
+      this.root_contexts .. each(traverse);
+    } catch (e) {
+      results._error(e);
     }
   }
+  results.duration = new Date().getTime() - startTime.getTime();
+  results.end.set();
+  report('suiteEnd', results);
   return results;
 }
 
@@ -363,7 +370,7 @@ TestResult.prototype.skip = function(reason) {
   this._complete({ok: true, passed: false, skipped: true, reason: reason});
 }
 
-var Results = exports.Results = function(total) {
+var Results = exports.Results = function(report, total) {
   this.succeeded = 0;
   this.failed = 0;
   this.skipped = 0;
@@ -371,14 +378,8 @@ var Results = exports.Results = function(total) {
   this.duration = 0;
 
   this.end = Condition();
-  this.contextStart = Event();
-  this.contextEnd = Event();
-  this.testStart = Event();
   this._currentError = null;
-  this.testFinished = Event();
-  this.testSucceeded = Event();
-  this.testFailed = Event();
-  this.testSkipped = Event();
+  this._report = report;
   Results.INSTANCES.push(this);
 }
 
@@ -406,7 +407,7 @@ Results.prototype.ok = function() {
 Results.prototype._fail = function(result, err) {
   result.fail(err);
   this.failed += 1;
-  this.testFailed.emit(result);
+  this._report('testFailed', result);
 }
 
 Results.prototype._pass = function(result) {
@@ -416,13 +417,13 @@ Results.prototype._pass = function(result) {
   }
   result.pass(result);
   this.succeeded += 1;
-  this.testSucceeded.emit(result);
+  this._report('testPassed', result);
 }
 
 Results.prototype._skip = function(result, reason) {
   result.skip(reason);
   this.skipped += 1;
-  this.testSkipped.emit(result);
+  this._report('testSkipped', result);
 }
 
 Results.prototype.count = function() {
@@ -754,6 +755,7 @@ exports.run = Runner.run = function(opts, args) {
   logging.debug(`run_opts: ${run_opts}`);
   var reporter = opts.reporter || new reporterModule.DefaultReporter(run_opts);
   var runner = new Runner(run_opts, reporter);
+  if (opts.init) { opts.init(runner); }
   runner.loadAll(opts);
   return runner.run();
 };

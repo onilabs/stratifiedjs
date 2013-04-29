@@ -39,7 +39,7 @@
 // TODO: (tjc) document
 
 var sys = require('builtin:apollo-sys');
-var { map, join, each, reverse, skip } = require('../sequence');
+var { map, join, each, reverse, skip, filter, toArray } = require('../sequence');
 var logging = require('../logging');
 var debug = require('../debug');
 var object = require('../object');
@@ -82,163 +82,157 @@ ConsoleBuffer.prototype.log = function(m) {
   }
 }
 
-ReporterMixins = {
+var fnseq = function() {
+  // like function.seq, but ignoring null / undefined values
+  var fns = arguments .. filter(x -> x != null) .. toArray;
+  if (fns.length == 1) return fns[0]; // no need to invoke `seq` in this case
+  return func.seq.apply(null, fns);
+}
+
+var repeatStr = function(str, levels) {
+  return new Array(levels+1).join(str);
+}
+  
+LogReporterMixins = {
   init: function(opts) {
     this.opts = opts;
     if (opts.logCapture) {
       this.logCapture = new ConsoleBuffer();
     }
-    this.fmt = new Formatter(opts, this);
+
+    this.activeContexts = [];
+    this.printedContexts = [];
+    
+    this.quiet = !opts.showAll;
+
+    this.indent = '  ';
+    this.updateIndent(0);
   },
-  run: function(results) {
-    var oldConsole = logging.getConsole();
-    if (this.logCapture) logging.setConsole(this.logCapture);
-    try {
-      waitfor {
-        this.fmt.reset();
-        while(true) {
-          waitfor {
-            var result = results.testStart.wait();
-            if (this.logCapture) this.logCapture.drain();
-            this.fmt.beginTest(result);
-            result = results.testFinished.wait();
-            this.fmt.endTest(result, this.logCapture && this.logCapture.messages);
-            if (this.logCapture) this.logCapture.reset();
-          } or {
-            var context = results.contextStart.wait();
-            this.fmt.contextStart(context);
-          } or {
-            var ctx = results.contextEnd.wait();
-            this.fmt.contextEnd(ctx);
-          }
-        }
-      } or {
-        results.end.wait();
-        this.print();
-        this.report(results);
-        if (!results.ok()) {
-          this.print(this.color('red', 'FAILED'));
-          throw new Error();
+
+  loading: function(module) {
+    this.print(this.color({attribute: 'dim'}, " [ loading #{module} ]"));
+  },
+
+  suiteBegin: function(results) {
+    if (this.logCapture) {
+      this.originalConsole = logging.getConsole();
+      logging.setConsole(this.logCapture);
+    }
+    this.updateIndent(0);
+  },
+
+  suiteEnd: function(results) {
+    if (this.logCapture) {
+      this.logCapture.drain();
+      logging.setConsole(this.originalConsole);
+    }
+    this.print();
+    this.report(results);
+    if (!results.ok()) {
+      this.print(this.color('red', 'FAILED'));
+      throw new Error();
+    }
+  },
+
+  contextBegin: function(context, force) {
+    if (this.quiet && !force) {
+      this.activeContexts.push(context);
+      return;
+    }
+
+    if (this.indentLevels == 0) {
+      this.print();
+    }
+    var skipping = context.shouldSkip();
+    this.print(this.color({attribute: 'bright'}, "#{this.prefix}- #{context.description}: "), !skipping);
+    if (skipping) this.printSkip(context.skipReason);
+    this.updateIndent(this.indentLevels + 1);
+  },
+
+  contextEnd: function(context, force) {
+    if (this.quiet && !force) {
+      this.activeContexts.pop();
+      return;
+    }
+    this.updateIndent(this.indentLevels - 1);
+  },
+
+  testBegin: function(result) {
+    if (this.logCapture) this.logCapture.drain();
+    if (this.quiet && !force) return;
+    this.print(this.prefix + result.test.description + ' ... ', false);
+  },
+
+  testEnd: function(result) {
+    if (this.quiet && !(result.ok)) {
+      // need to print any missing context:
+      this.printPendingContexts();
+      this.beginTest(result, true);
+    }
+
+    if (result.skipped) {
+      if (!this.quiet) this.printSkip(result.reason);
+    } else if (result.ok) {
+      if (!this.quiet) this.print(this.color('green', "OK"));
+    } else {
+      this.print(this.color('red', "FAILED"), false);
+      this.linkToTest(result.test.fullDescription());
+      var prefix = this.prefix;
+      this.print(this.color('yellow', String(result.error).split("\n") .. map((line) -> prefix + "| " + line) .. join("\n")));
+      if (this.logCapture && this.logCapture.messages.length > 0) {
+        this.print(prefix, false);
+        this.print(this.color('yellow', '-- Captured logging ---'));
+        this.logCapture.messages .. each {|m|
+          this.print(prefix, false);
+          this.print(this.color('yellow', m));
         }
       }
-    } finally {
-      if (this.logCapture) logging.setConsole(oldConsole);
     }
+
+    if (this.logCapture) this.logCapture.reset();
+  },
+
+  printSkip: function(reason) {
+    var msg = "SKIP";
+    if (reason) msg = "#{msg} (#{reason})"
+    this.print(this.color('blue', msg));
+  },
+
+  printPendingContexts: function() {
+    var printedContexts = this.printedContexts;
+    var pending = this.activeContexts;
+
+    // skip already-printed contexts
+    printedContexts .. reverse .. each {|ctx|
+      var idx = this.activeContexts.indexOf(ctx);
+      if (idx != -1) {
+        pending = this.activeContexts.slice(idx+1);
+        break;
+      }
+    }
+
+    this.updateIndent(this.activeContexts.length - pending.length);
+    pending .. each {|ctx|
+      this.contextBegin(ctx, true);
+    }
+
+    // update printed state
+    this.printedContexts = this.activeContexts.slice();
+  },
+
+  updateIndent: function(levels) {
+    this.indentLevels = levels;
+    this.prefix = repeatStr(this.indent, this.indentLevels);
   },
 
   mixInto: function (cls) {
-    cls.prototype.run = this.run;
-    cls.prototype.init = func.seq(cls.prototype.init, this.init);
-  }
+    this .. object.ownKeys .. each { |k|
+      if (k == 'mixInto') continue;
+      cls.prototype[k] = fnseq(cls.prototype[k], this[k]);
+    }
+  },
 };
 
-/** Responsible for formatting / printing test results.
- */
-var Formatter = function(opts, printer) {
-  this.color = printer.color.bind(printer);
-  this.print = printer.print.bind(printer);
-  this.printer = printer;
-
-  this.activeContexts = [];
-  this.printedContexts = [];
-  
-  this.quiet = !opts.showAll;
-}
-
-Formatter.prototype.reset = function() {
-  this.indentLevels = 0;
-  this.indent = '  ';
-  this.prefix = '';
-}
-
-Formatter.prototype.contextStart = function(context, force) {
-  if (this.quiet && !force) {
-    this.activeContexts.push(context);
-    return;
-  }
-
-  if (this.indentLevels == 0) {
-    this.print();
-  }
-  var skipping = context.shouldSkip();
-  this.print(this.color({attribute: 'bright'}, "#{this.prefix}- #{context.description}: "), !skipping);
-  if (skipping) this.printSkip(context.skipReason);
-  this.updateIndent(this.indentLevels + 1);
-}
-
-Formatter.prototype.contextEnd = function(context, force) {
-  if (this.quiet && !force) {
-    this.activeContexts.pop();
-    return;
-  }
-
-  this.updateIndent(this.indentLevels - 1);
-}
-
-Formatter.prototype.updateIndent = function(levels) {
-  this.indentLevels = levels;
-  this.prefix = repeatStr(this.indent, this.indentLevels);
-}
-
-Formatter.prototype.beginTest = function(result, force) {
-  if (this.quiet && !force) return;
-  this.print(this.prefix + result.test.description + ' ... ', false);
-}
-
-Formatter.prototype.printSkip = function(reason) {
-  var msg = "SKIP";
-  if (reason) msg = "#{msg} (#{reason})"
-  this.print(this.color('blue', msg));
-}
-
-Formatter.prototype.printPendingContexts = function() {
-  var printedContexts = this.printedContexts;
-  var pending = this.activeContexts;
-
-  // skip already-printed contexts
-  printedContexts .. reverse .. each {|ctx|
-    var idx = this.activeContexts.indexOf(ctx);
-    if (idx != -1) {
-      pending = this.activeContexts.slice(idx+1);
-      break;
-    }
-  }
-
-  this.updateIndent(this.activeContexts.length - pending.length);
-  pending .. each {|ctx|
-    this.contextStart(ctx, true);
-  }
-
-  // update printed state
-  this.printedContexts = this.activeContexts.slice();
-}
-
-Formatter.prototype.endTest = function(result, capturedLogs) {
-  if (this.quiet && !(result.ok)) {
-    // need to print any missing context:
-    this.printPendingContexts();
-    this.beginTest(result, true);
-  }
-
-  if (result.skipped) {
-    if (!this.quiet) this.printSkip(result.reason);
-  } else if (result.ok) {
-    if (!this.quiet) this.print(this.color('green', "OK"));
-  } else {
-    this.print(this.color('red', "FAILED"), false);
-    this.printer.linkToTest(result.test.fullDescription());
-    var prefix = this.prefix;
-    this.print(this.color('yellow', String(result.error).split("\n") .. map((line) -> prefix + "| " + line) .. join("\n")));
-    if (capturedLogs && capturedLogs.length > 0) {
-      this.print(prefix, false);
-      this.print(this.color('yellow', '-- Captured logging ---'));
-      capturedLogs .. each {|m|
-        this.print(prefix, false);
-        this.print(this.color('yellow', m));
-      }
-    }
-  }
-}
 
 var HtmlOutput = exports.HtmlOutput = function() {
   this.prepareStyles();
@@ -318,12 +312,7 @@ HtmlReporter.prototype.init = function(opts) {
   }
   this.console = exports.HtmlOutput.instance;
   this.print = this.console.print.bind(this.console);
-  this.fmt = new Formatter(opts, this);
 }
-
-HtmlReporter.prototype.loading = function(module) {
-  this.print(this.color({attribute: 'dim'}, " [ loading #{module} ]"));
-};
 
 HtmlReporter.prototype.color = function(col, text, endl) {
   var e = document.createElement('span');
@@ -336,7 +325,7 @@ HtmlReporter.prototype.color = function(col, text, endl) {
   e.appendChild(document.createTextNode(text));
   return e;
 }
-ReporterMixins.mixInto(HtmlReporter);
+LogReporterMixins.mixInto(HtmlReporter);
 
 
 HtmlReporter.prototype.report = function(results) {
@@ -401,7 +390,7 @@ NodejsReporter.prototype.init = function(opts) {
   }
 }
 
-ReporterMixins.mixInto(NodejsReporter);
+LogReporterMixins.mixInto(NodejsReporter);
 
 NodejsReporter.prototype.linkToTest = function(testId) {
   this.print();
@@ -411,13 +400,9 @@ NodejsReporter.prototype.linkToTest = function(testId) {
   base = base.slice(7); // remove file://
   base = require('nodejs:path').relative(process.cwd(), base); // realitivize
   var args = ['apollo', base, testId];
-  this.print(this.color({attribute:'dim'}, this.fmt.prefix + "# " + shell_quote.quote(args)));
+  this.print(this.color({attribute:'dim'}, this.prefix + "# " + shell_quote.quote(args)));
 }
 
-var repeatStr = function(str, levels) {
-  return new Array(levels+1).join(str);
-}
-  
 NodejsReporter.prototype.print = function(msg, endl) {
   if (msg === undefined) msg = '';
   process.stdout.write(String(msg));
@@ -432,10 +417,6 @@ NodejsReporter.prototype.report = function(results) {
   var durationDesc = this.color({attribute: 'dim'}, "(in #{results.durationSeconds()}s)");
   console.log("Ran #{results.count()} tests. #{parts.join(", ")} #{durationDesc}");
 }
-
-NodejsReporter.prototype.loading = function(module) {
-  console.log(this.color({attribute: 'dim'}, " [ loading #{module} ]"));
-};
 
 // initialization should only be performed once globally, so we 
 // use a module-level var to prevent double-initialization.

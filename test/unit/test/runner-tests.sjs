@@ -10,18 +10,7 @@ var sys = require("builtin:apollo-sys");
 
 function CollectWatcher() {
   this.results = [];
-  this.run = function(results) {
-    waitfor{
-      while(true) {
-        var result = results.testFinished.wait();
-        this.results.push(result);
-        logging.info(`result: ${result}`);
-      }
-    } or {
-      results.end.wait();
-    }
-  }.bind(this);
-
+  this.testEnd = (result) -> this.results.push(result);
   this.conciseResults = => this.results .. map(r -> [r.description, r.error ? r.error.message : null]) .. toArray();
 }
 
@@ -113,21 +102,8 @@ context("filtering") {||
     var contexts_run = [];
     var reporter = {
       loading: (mod) -> loaded.push(mod.split("/")[1]),
-      run: function(results) {
-        waitfor {
-          while(true) {
-            var testResult = results.testFinished.wait();
-            tests_run.push(testResult.test.fullDescription());
-          }
-        } or {
-          while(true) {
-            var ctx = results.contextStart.wait();
-            contexts_run.push(ctx.fullDescription());
-          }
-        } or {
-          results.end.wait();
-        }
-      }
+      testEnd: (result) -> tests_run.push(result.test.fullDescription()),
+      contextBegin: (ctx) -> contexts_run.push(ctx.fullDescription()),
     };
     var opts = {
       reporter: reporter,
@@ -495,7 +471,7 @@ context("uncaught exceptions") {||
         logging.info("test two finished");
       }
     }
-    var results = runner.run(watcher.run);
+    var results = runner.run(watcher);
     logging.info("runner finished");
     results.ok() .. assert.notOk();
     watcher.results[0].ok .. assert.ok("first test not ok!");
@@ -548,7 +524,7 @@ context("timeout") {||
         }
       }.timeout(0.3);
     }
-    runner.run(watcher.run);
+    runner.run(watcher);
     watcher.conciseResults() .. assert.eq([
       ["short", null],
       ["long", "Test exceeded 0.2s timeout"],

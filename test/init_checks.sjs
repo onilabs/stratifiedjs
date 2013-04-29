@@ -3,7 +3,7 @@
 var { Runner } = require("sjs:test/runner");
 var { context, assert, test } = require("sjs:test/suite");
 var logging = require("sjs:logging");
-var { map, toArray } = require('sjs:sequence');
+var { each, toArray } = require('sjs:sequence');
 var { waitforAll } = require('sjs:cutil');
 
 // suite with passing & failing tests
@@ -45,63 +45,60 @@ check(suite_result.failed, 3, "result.failed");
 check(suite_result.skipped, 3, "result.skipped");
 
 var events = [];
-runner.run() {|results|
-  check(results.total, 7, "results.total");
-  var event_names = ['contextStart', 'contextEnd', 'testStart','testFinished', 'testSucceeded', 'testFailed', 'testSkipped'];
-  var waiters = event_names .. map(function(key) {
-    return function() {
-      while(true) {
-        var testResult = results[key].wait();
-        if (testResult == undefined) {
-          events.push(key);
-        } else {
-          events.push("#{key}: #{testResult.description}");
-        }
-      }
-    }
-  });
+var reporter = {};
+var event_names = ['contextBegin', 'contextEnd', 'testBegin', 'testEnd', 'testPassed', 'testFailed', 'testSkipped', 'suiteEnd'];
 
-  waitfor {
-    waitforAll(waiters .. toArray);
-  } or {
-    results.end.wait();
-    events.push("end");
+reporter.suiteBegin = function(results) {
+  check(results.total, 7, "results.total");
+  events.push('suiteBegin');
+}
+
+event_names .. each {|key|
+  reporter[key] = function(testResult) {
+    if (testResult && testResult.description) {
+      events.push("#{key}: #{testResult.description}");
+    } else {
+      events.push(key);
+    }
   }
 }
 
+runner.run(reporter);
+
 check(events.join("\n"), "
-contextStart: root
-contextStart: group 1
-testStart: OK 1
-testSucceeded: OK 1
-testFinished: OK 1
-testStart: FAIL 1
+suiteBegin
+contextBegin: root
+contextBegin: group 1
+testBegin: OK 1
+testPassed: OK 1
+testEnd: OK 1
+testBegin: FAIL 1
 testFailed: FAIL 1
-testFinished: FAIL 1
+testEnd: FAIL 1
 contextEnd: group 1
-contextStart: group 2
-testStart: OK 2
+contextBegin: group 2
+testBegin: OK 2
 testSkipped: OK 2
-testFinished: OK 2
-testStart: FAIL 2
+testEnd: OK 2
+testBegin: FAIL 2
 testFailed: FAIL 2
-testFinished: FAIL 2
-testStart: FAIL 3
+testEnd: FAIL 2
+testBegin: FAIL 3
 testFailed: FAIL 3
-testFinished: FAIL 3
+testEnd: FAIL 3
 contextEnd: group 2
-contextStart: group 3
-contextStart: group 4
+contextBegin: group 3
+contextBegin: group 4
 contextEnd: group 4
-testStart: FAIL 4
+testBegin: FAIL 4
 testSkipped: FAIL 4
-testFinished: FAIL 4
-testStart: FAIL 5
+testEnd: FAIL 4
+testBegin: FAIL 5
 testSkipped: FAIL 5
-testFinished: FAIL 5
+testEnd: FAIL 5
 contextEnd: group 3
 contextEnd: root
-end
+suiteEnd
 ".trim());
 logging.verbose("test runner sanity check OK");
 
