@@ -16,6 +16,7 @@ function CollectWatcher() {
 
 var defaultOpts = {
   base: module.id,
+  exit: false,
   defaults: {
     logCapture: false,
     logLevel: logging.VERBOSE,
@@ -108,6 +109,7 @@ context("filtering") {||
     var opts = {
       reporter: reporter,
       base: module.id,
+      exit: false,
       modules: [
         'fixtures/test_1.sjs',
         'fixtures/test_12.sjs',
@@ -523,6 +525,10 @@ context("timeout") {||
           hold(250);
         }
       }.timeout(0.3);
+
+      test("no timeout") {||
+        hold(250);
+      }.timeout(null);
     }
     runner.run(watcher);
     watcher.conciseResults() .. assert.eq([
@@ -530,6 +536,7 @@ context("timeout") {||
       ["long", "Test exceeded 0.2s timeout"],
       ["timeout overridden", null],
       ["sub-test", null],
+      ["no timeout", null],
     ]);
   }
 }

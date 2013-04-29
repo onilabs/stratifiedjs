@@ -274,10 +274,11 @@ Runner.prototype.run = function(reporter) {
         results._skip(result, test.skipReason);
       } else {
         var testTimeout = test._getTimeout();
-        if (testTimeout == null) testTimeout = defaultTimeout;
+        if (testTimeout === undefined) testTimeout = defaultTimeout;
         waitfor {
           test.run();
         } or {
+          if(testTimeout == null) hold();
           hold(testTimeout * 1000);
           throw new Error("Test exceeded #{testTimeout}s timeout");
         }
@@ -743,21 +744,38 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base, skippedOn
  * test suites).
  */
 exports.run = Runner.run = function(opts, args) {
-  reporterModule.init();
-  logging.debug(`opts: ${opts}`);
-  try {
-    var run_opts = exports.getRunOpts(opts, args);
-  } catch(e) {
-    var msg = (e instanceof UsageError) ? e.message : String(e);
-    console.error(msg);
-    throw new Error();
+  var exit = opts.exit !== false;
+  var _run = function() {
+    reporterModule.init();
+    logging.debug(`opts: ${opts}`);
+    try {
+      var run_opts = exports.getRunOpts(opts, args);
+    } catch(e) {
+      var msg = (e instanceof UsageError) ? e.message : String(e);
+      console.error(msg);
+      if (exit) return exports.exit(1);
+      else throw new Error();
+    }
+    logging.debug(`run_opts: ${run_opts}`);
+    var reporter = opts.reporter || new reporterModule.DefaultReporter(run_opts);
+    var runner = new Runner(run_opts, reporter);
+    if (opts.init) { opts.init(runner); }
+    runner.loadAll(opts);
+    return runner.run();
+  };
+
+  if (!exit) {
+    // just run it, without catching exceptions
+    return _run();
+  } else {
+    try {
+      return _run();
+    } catch(e) {
+      // catch exceptions and turn them into process.exit()
+      if (e.message) console.log(e.message);
+      exports.exit(1);
+    }
   }
-  logging.debug(`run_opts: ${run_opts}`);
-  var reporter = opts.reporter || new reporterModule.DefaultReporter(run_opts);
-  var runner = new Runner(run_opts, reporter);
-  if (opts.init) { opts.init(runner); }
-  runner.loadAll(opts);
-  return runner.run();
 };
 
 (function() {

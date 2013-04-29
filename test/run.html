@@ -27,50 +27,45 @@
         },
       };
 
-      try {
-        if(!require('sjs:test/suite').isBrowser) {
-          // when running under node.js, our integration tests
-          // expect a rocket instance to be running on localhost:7071
-          var rocketInitialized = false, cleanup = -> null;
-          var startRocket = function() {
-            rocketInitialized = true;
-            var rocket_ctrl = require('./lib/rocket_ctrl');
-            var rocket_port = '7071'
+      if(!require('sjs:test/suite').isBrowser) {
+        // when running under node.js, our integration tests
+        // expect a rocket instance to be running on localhost:7071
+        var rocketInitialized = false, cleanup = -> null;
+        var startRocket = function() {
+          rocketInitialized = true;
+          var rocket_ctrl = require('./lib/rocket_ctrl');
+          var rocket_port = '7071'
 
-            waitfor() {
-              var ready = resume;
-              spawn(rocket_ctrl.withRocket(rocket_port) {||
-                var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
-                require('./lib/testContext').setBaseURL(rocket_base_url);
-                waitfor() {
-                  cleanup = resume;
-                  ready();
-                }
-              });
-            }
-          };
-
-          opts.init = function(runner) {
-            var func = require('sjs:function');
-            var string = require('sjs:string');
-
-            // inherit from runner.reporter, and amend its reporting functions
-            // with hooks to start/stop rocket integration server as necessary
-            var reporter = runner.reporter = Object.create(runner.reporter);
-            reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
-              if (!rocketInitialized && ctx.module() .. string.startsWith('integration/')) {
-                 startRocket();
+          waitfor() {
+            var ready = resume;
+            spawn(rocket_ctrl.withRocket(rocket_port) {||
+              var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
+              require('./lib/testContext').setBaseURL(rocket_base_url);
+              waitfor() {
+                cleanup = resume;
+                ready();
               }
             });
-            reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);
           }
-        }
+        };
 
-        runner.run(opts);
-      } catch(e) {
-        if(e.message) console.log(e.message);
-        runner.exit(1);
+        opts.init = function(runner) {
+          var func = require('sjs:function');
+          var string = require('sjs:string');
+
+          // inherit from runner.reporter, and amend its reporting functions
+          // with hooks to start/stop rocket integration server as necessary
+          var reporter = runner.reporter = Object.create(runner.reporter);
+          reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
+            if (!rocketInitialized && ctx.module() .. string.startsWith('integration/')) {
+                startRocket();
+            }
+          });
+          reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);
+        }
       }
+
+      runner.run(opts);
     </script>
   </head>
 </html>
