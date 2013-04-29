@@ -1,50 +1,76 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>Apollo tests</title>
-		<!--[if lt IE 8]>
-			<script src="//cdnjs.cloudflare.com/ajax/libs/json2/20121008/json2.js"></script>
-		<![endif]-->
-		<script src="../oni-apollo.js"></script>
-		<script type="text/sjs">
-			// we use the test/runner module to run our tests,
-			// but we have an out-of-band test module to verify
-			// that the runner works with enough confidence
-			// to trust the rest of the test suite:
-			waitfor {
-				var runner = require("sjs:test/runner");
-			} and {
-				require('./init_checks.sjs');
-			}
-			var logging = require('sjs:logging');
-			// logging.setLevel(logging.DEBUG);
+  <head>
+    <title>Apollo tests</title>
+    <!--[if lt IE 8]>
+      <script src="//cdnjs.cloudflare.com/ajax/libs/json2/20121008/json2.js"></script>
+    <![endif]-->
+    <script src="../oni-apollo.js"></script>
+    <script type="text/sjs">
+      // we use the test/runner module to run our tests,
+      // but we have an out-of-band test module to verify
+      // that the runner works with enough confidence
+      // to trust the rest of the test suite:
+      waitfor {
+        var runner = require("sjs:test/runner");
+      } and {
+        require('./init_checks.sjs');
+      }
+      var logging = require('sjs:logging');
+      // logging.setLevel(logging.DEBUG);
 
-			var opts = {
-				moduleList: "./_index.txt",
-				base: module.id,
-				defaults: {
-					logLevel: logging.INFO,
-				},
-			};
+      var opts = {
+        moduleList: "./_index.txt",
+        base: module.id,
+        defaults: {
+          logLevel: logging.INFO,
+        },
+      };
 
-			try {
-				if(require('sjs:test/suite').isBrowser) {
-					runner.run(opts);
-				} else {
-					var rocket_ctrl = require('./lib/rocket_ctrl');
-					var rocket_port = '7071'
+      try {
+        if(!require('sjs:test/suite').isBrowser) {
+          // when running under node.js, our integration tests
+          // expect a rocket instance to be running on localhost:7071
+          var rocketInitialized = false, cleanup = -> null;
+          var startRocket = function() {
+            rocketInitialized = true;
+            var rocket_ctrl = require('./lib/rocket_ctrl');
+            var rocket_port = '7071'
 
-					// TODO: only start up rocket when we hit a test under integration/
-					rocket_ctrl.withRocket(rocket_port) {||
-						var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
-						require('./lib/testContext').setBaseURL(rocket_base_url);
-						runner.run(opts);
-					}
-				}
-			} catch(e) {
-				if(e.message) console.log(e.message);
-				runner.exit(1);
-			}
-		</script>
-	</head>
+            waitfor() {
+              var ready = resume;
+              spawn(rocket_ctrl.withRocket(rocket_port) {||
+                var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
+                require('./lib/testContext').setBaseURL(rocket_base_url);
+                waitfor() {
+                  cleanup = resume;
+                  ready();
+                }
+              });
+            }
+          };
+
+          opts.init = function(runner) {
+            var func = require('sjs:function');
+            var string = require('sjs:string');
+
+            // inherit from runner.reporter, and amend its reporting functions
+            // with hooks to start/stop rocket integration server as necessary
+            var reporter = runner.reporter = Object.create(runner.reporter);
+            reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
+              if (!rocketInitialized && ctx.module() .. string.startsWith('integration/')) {
+                 startRocket();
+              }
+            });
+            reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);
+          }
+        }
+
+        runner.run(opts);
+      } catch(e) {
+        if(e.message) console.log(e.message);
+        runner.exit(1);
+      }
+    </script>
+  </head>
 </html>
