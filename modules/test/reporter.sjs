@@ -167,7 +167,7 @@ LogReporterMixins = {
     if (this.quiet && !(result.ok)) {
       // need to print any missing context:
       this.printPendingContexts();
-      this.beginTest(result, true);
+      this.testBegin(result, true);
     }
 
     if (result.skipped) {
