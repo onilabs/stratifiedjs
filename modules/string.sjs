@@ -142,6 +142,25 @@ exports.endsWith = function(str, suffix) {
 }
 
 /**
+  @function contains
+  @summary  Returns whether a string contains another.
+  @param    {String} [string] The subject.
+  @param    {String} [substring] The substring to check for.
+  @return   {Boolean} Whether `string` contains `substring`.
+  @desc
+        // example:
+
+        contains("abcd", "bc")
+        // true
+        
+        contains("abcd", "abd")
+        // false
+*/
+exports.contains = function(str, substr) {
+  return str.indexOf(substr) != -1;
+}
+
+/**
   @function strip
   @summary  Strips a string of leading and trailing characters.
   @param    {String} [string] The string to strip.
