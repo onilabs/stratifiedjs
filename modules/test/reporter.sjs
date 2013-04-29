@@ -157,7 +157,7 @@ LogReporterMixins = {
     this.updateIndent(this.indentLevels - 1);
   },
 
-  testBegin: function(result) {
+  testBegin: function(result, force) {
     if (this.logCapture) this.logCapture.drain();
     if (this.quiet && !force) return;
     this.print(this.prefix + result.test.description + ' ... ', false);
@@ -393,11 +393,11 @@ NodejsReporter.prototype.init = function(opts) {
 LogReporterMixins.mixInto(NodejsReporter);
 
 NodejsReporter.prototype.linkToTest = function(testId) {
+  var url = require('sjs:nodejs/url');
   this.print();
   var base = this.opts.baseModule;
   if (base == null) return; // can't formulate a command line without knowing the base module
-  if (!(base .. string.startsWith("file://"))) throw new Error("not a file-based URI: #{base}");
-  base = base.slice(7); // remove file://
+  base = base..url.toPath();
   base = require('nodejs:path').relative(process.cwd(), base); // realitivize
   var args = ['apollo', base, testId];
   this.print(this.color({attribute:'dim'}, this.prefix + "# " + shell_quote.quote(args)));

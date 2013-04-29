@@ -70,7 +70,21 @@ time("pi to 700 digits", function() { calculatePi(700); });
 
 var seq = require('sjs:sequence');
 
-time("seq.each(arr*200)*200)", function() { 
+time("sequence", function() {
+  var dummy;
+  seq.integers() .. 
+    seq.map(x => x*x) ..
+    seq.pack(next => [next(), next()]) ..
+    seq.map([x,y] => [x*y, x+y]) ..
+    seq.unpack(x=>x) ..
+    seq.take(10000) ..
+    seq.each { 
+      |x|
+      dummy = x;
+    }
+});
+
+time("seq.each(arr*200)*200)", function() {
   var arr = [];
   for (var i=0; i<200; ++i) arr.push(i);
   var accu = 0;
@@ -78,10 +92,12 @@ time("seq.each(arr*200)*200)", function() {
 });
 
 test("collection module", '', function() {}).skip('module retired');
-testCompilation("debug module", 
+testCompilation("debug module",
                 http.get("http://code.onilabs.com/apollo/latest/modules/debug.sjs"));
-testCompilation("http module", 
+testCompilation("http module",
                 http.get("http://code.onilabs.com/apollo/latest/modules/http.sjs"));
+//testCompilation("sequence module",
+//                http.get("http://code.onilabs.com/apollo/latest/modules/sequence.sjs"));
 
 
 var arr = [];
@@ -96,7 +112,7 @@ function alt_test() {
 }
 time("waitforFirst/10000", alt_test);
 
-time("tail recursion", function() {
+time("BROKEN: tail recursion", function() {
   
   function r(level) {
     hold(0);
@@ -106,9 +122,9 @@ time("tail recursion", function() {
   }
 
   return r(100000);
-}).serverOnly(); // browser hold(0) is too slow
+}).skip().serverOnly(); // browser hold(0) is too slow
 
-time("waitfor/and tail recursion", function() {
+time("BROKEN: waitfor/and tail recursion", function() {
   
   function r(level) {
     hold(0);
@@ -124,7 +140,5 @@ time("waitfor/and tail recursion", function() {
   }
 
   return r(100000);
-}).serverOnly(); // browser hold(0) is too slow
+}).skip().serverOnly(); // browser hold(0) is too slow
 
-//testCompilation("sequence module", 
-//                http.get("http://code.onilabs.com/apollo/latest/modules/sequence.sjs"));
