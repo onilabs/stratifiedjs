@@ -473,6 +473,11 @@ function makeRequire(parent) {
     return resolve(module, rf, parent, opts);
   };
 
+  rf.url = function(relative) { 
+    // Hack: We set a 'dummy' loader to prevent the resolver from appending '.sjs'
+    return resolve(relative, rf, parent, {loader: 'dummy'}).path;
+  };
+
   rf.path = ""; // default path is empty
   rf.alias = {};
 
@@ -637,18 +642,10 @@ function default_loader(path, parent, src_loader, opts) {
 }
 
 function http_src_loader(path) {
-  var src;
-  if (getXDomainCaps_hostenv() != 'none' ||
-      exports.isSameOrigin(path, document.location))
-    src = request_hostenv([path, {format:'compiled'}], {mime:'text/plain'});
-  else {
-    // hostenv is xdomain-restricted and not CORS capable. Attempt modp:
-    path += "!modp";
-    src = jsonp_hostenv(path,
-                        {forcecb:"module",
-                         cbfield:null});
-  }
-  return { src: src, loaded_from: path };
+  return { 
+    src:         request_hostenv([path, {format:'compiled'}], {mime:'text/plain'}), 
+    loaded_from: path 
+  };
 }
 
 
