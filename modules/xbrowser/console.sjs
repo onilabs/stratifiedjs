@@ -66,9 +66,9 @@ function installLogger(logger) {
 };
 
 function uninstallLogger(logger) {
-  logReceivers .. remove(logger);
+  var removed = logReceivers .. remove(logger);
 
-  if(logReceivers.length == 0) { // last logger removed
+  if(removed && logReceivers.length == 0) { // last logger removed
     var logging = require('../logging');
     logging.setConsole(originalConsole);
   }
@@ -267,7 +267,7 @@ function Console(opts) {
 
   if (opts.receivelog) installLogger(this);
                               
-  var div = document.createElement("div");
+  var container = makeDiv(null, "height:100%; width:100%;");
   var parent = opts.target ? (typeof(opts.target) == "string" ? document.getElementById(opts.target) : opts.target) : null;
   if (!parent) {
     parent = makeDiv(null, "position:fixed;bottom:0;left:0;width:100%;z-index:999;"+
@@ -275,16 +275,18 @@ function Console(opts) {
     document.getElementsByTagName("body")[0].appendChild(parent);
     this.root = parent;
   } else {
-    this.root = div;
+    this.root = container;
   }
+  var term = this.term = document.createElement("div");
+  this.root.appendChild(this.term);
   this.flipmode = isWebkitMobile; // console bottom?
-  setStyle(div, fontStyle+ "\
+  setStyle(term, fontStyle+ "\
 position:relative;\
 height:100%;\
 width:100%;\
 padding:0; margin:0; background:#fff;\
 border"+(opts.target?"":"-top")+": 1px solid #ccc;");
-  div.innerHTML = "\
+  term.innerHTML = "\
 <span style='display:block;cursor:row-resize;position:absolute;top:0px;border-top:1px solid #eee;left:0;right:0;height:2px;background:white;z-index:999'></span>
 <div style='margin:0;position:absolute;top:"+(this.flipmode?20:0)+"px;left:0;right:0px;bottom:"+(this.flipmode?0:20)+"px;overflow:auto'>
 </div>\
@@ -297,12 +299,12 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
     <input type='text' style='line-height:15px;-webkit-appearance: caret;"+fontStyle+"width:100%;margin:2px 0 0 0;border:0;padding:0;background:transparent;outline:none'/>\
   </div>\
 </div>";
-  parent.appendChild(div);
-  this.output = div.getElementsByTagName("div")[0];
-  this.closebutton = div.getElementsByTagName("a")[0];
-  this.clearbutton = div.getElementsByTagName("a")[1];
-  this.resizehandle = div.getElementsByTagName("span")[0];
-  this.cmdline = div.getElementsByTagName("input")[0];
+  parent.appendChild(container);
+  this.output = term.getElementsByTagName("div")[0];
+  this.closebutton = term.getElementsByTagName("a")[0];
+  this.clearbutton = term.getElementsByTagName("a")[1];
+  this.resizehandle = term.getElementsByTagName("span")[0];
+  this.cmdline = term.getElementsByTagName("input")[0];
   this.cmdloop_stratum = spawn this._cmdloop();
   try {
     this.history = (window["sessionStorage"] && window["JSON"] && window.sessionStorage.history) ? 
@@ -318,7 +320,9 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
   this.summonbutton = makeDiv("<div style='background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#eee));'><a title='Open Apollo Console' style='display:block;padding: 2px 8px 3px 10px;background:url("+icons.arrowblue+") no-repeat 10px 6px;width: 8px;height:17px'></a></div>", "\
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
 z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
-  document.getElementsByTagName("body")[0].appendChild(this.summonbutton);
+
+  container.appendChild(this.summonbutton);
+  container.appendChild(this.term);
   if (opts.target) {
     opts.collapsed = false;
     this.closebutton.parentNode.removeChild(this.closebutton);
@@ -364,7 +368,7 @@ Console.prototype = {
     } 
     and {
       while(true) {
-        // Can't wait for click on this.root here, because of
+        // Can't wait for click on this.term here, because of
         // Android bug http://code.google.com/p/android/issues/detail?id=8575
         waitfor {
           require('./dom').waitforEvent(this.closebutton, "click");
@@ -404,9 +408,9 @@ Console.prototype = {
           using (var mm = require('./dom').eventQueue(document, "mousemove")) {
             while (1) {
               var ev = mm.get();
-              var h = lasty - ev.clientY + this.root.clientHeight;
+              var h = lasty - ev.clientY + this.term.clientHeight;
               if (h > 70) {
-                this.root.style.height = h + "px";
+                this.term.style.height = h + "px";
                 lasty = ev.clientY;
               }
             }
@@ -431,7 +435,7 @@ Console.prototype = {
     @summary Collapses the console.
    */
   shut : function () {
-    this.root.style.display = "none";
+    this.term.style.display = "none";
     this.summonbutton.style.visibility = "visible";
     spawn (require('./dom').waitforEvent(this.summonbutton, "click"),
            this.expand());
@@ -442,7 +446,7 @@ Console.prototype = {
     @summary Restores a collapsed console.
    */
   expand : function () {
-    this.root.style.display = "block";
+    this.term.style.display = "block";
     this.summonbutton.style.visibility = "hidden";
     this.focus();
   },
@@ -459,35 +463,41 @@ Console.prototype = {
     this._append(e);
     var me = this;
     spawn((function() {
-      var result = document.createElement('div');
       waitfor {
+        var result = document.createElement('div');
+        waitfor {
+          try {
+            result = inspect_obj(require('builtin:apollo-sys').eval(cl, {filename:"commandline"}));
+          }
+          catch(ex) {
+            setStyle(result, 'color:red;');
+            // *sigh* IE6's Error.toString just prints '[object Error]'. hack:
+            var message = ex ? ex.toString() : "<Error>";
+            if (message == "[object Error]") message = ex.message || "<Error>";
+            var lines = message.split("\n");
+            result.innerHTML = join(map(lines, str.sanitize), "<br/>");
+          }
+        }
+        or {
+          try {
+            e.firstChild.innerHTML += "<a title='Cancel this stratum' style='text-decoration:underline;cursor:pointer;float:right'>abort</a>";
+            var b = e.firstChild.lastChild;
+            require('./dom').waitforEvent(b, "click");
+            result.innerHTML = "<span style='color:red'>Aborted</span>";
+          }
+          finally {
+            b.parentNode.removeChild(b);
+          }
+        }
+        e.appendChild(result);
+        if (!me.flipmode) 
+          me.output.scrollTop = me.output.scrollHeight;
+      } or {
         try {
-          result = inspect_obj(require('builtin:apollo-sys').eval(cl, {filename:"commandline"}));
-        }
-        catch(ex) {
-          setStyle(result, 'color:red;');
-          // *sigh* IE6's Error.toString just prints '[object Error]'. hack:
-          var message = ex ? ex.toString() : "<Error>";
-          if (message == "[object Error]") message = ex.message || "<Error>";
-          var lines = message.split("\n");
-          result.innerHTML = join(map(lines, str.sanitize), "<br/>");
-        }
+          this.cmdloop_stratum.waitforValue();
+        } catch(e) { /* retract (i.e shutdown) */ }
       }
-      or {
-        try {
-          e.firstChild.innerHTML += "<a title='Cancel this stratum' style='text-decoration:underline;cursor:pointer;float:right'>abort</a>";
-          var b = e.firstChild.lastChild;
-          require('./dom').waitforEvent(b, "click");
-          result.innerHTML = "<span style='color:red'>Aborted</span>";
-        }
-        finally {
-          b.parentNode.removeChild(b);
-        }
-      }
-      e.appendChild(result);
-      if (!me.flipmode) 
-        me.output.scrollTop = me.output.scrollHeight;
-    })());
+    }).bind(this)());
   },
 
   _log: function(args, color) {
@@ -546,8 +556,9 @@ Console.prototype = {
    */
   shutdown: function() {
     uninstallLogger(this);
-    // XXX this.cmdloop_stratum.abort();
     this.root.parentNode.removeChild(this.root);
+    this.cmdloop_stratum.abort();
+    this.shutdown = -> null;
   },
   
   /**

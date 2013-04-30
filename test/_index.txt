@@ -23,6 +23,7 @@ unit/stack-tests.sjs
 unit/string-tests.sjs
 unit/surface-tests.sjs
 unit/test/runner-tests.sjs
+unit/xbrowser/console-tests.sjs
 integration/documentation-tests.sjs
 integration/google-tests.sjs
 integration/http-tests.sjs
