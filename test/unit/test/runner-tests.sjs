@@ -17,10 +17,8 @@ function CollectWatcher() {
 var defaultOpts = {
   base: module.id,
   exit: false,
-  defaults: {
-    logCapture: false,
-    logLevel: logging.VERBOSE,
-  }
+  logCapture: false,
+  logLevel: logging.VERBOSE,
 }
 
 context("hooks") {||
@@ -106,21 +104,15 @@ context("filtering") {||
       testEnd: (result) -> tests_run.push(result.test.fullDescription()),
       contextBegin: (ctx) -> contexts_run.push(ctx.fullDescription()),
     };
-    var opts = {
+    var opts = defaultOpts .. merge({
       reporter: reporter,
-      base: module.id,
-      exit: false,
       modules: [
         'fixtures/test_1.sjs',
         'fixtures/test_12.sjs',
         'fixtures/test_2.sjs',
       ],
-      defaults: {
-        logCapture: false,
-        logLevel: logging.VERBOSE,
-        testSpecs: filters || [],
-      }
-    }
+      testSpecs: filters || [],
+    });
     var results = Runner.run(opts, args || []);
     return {
       files: loaded,
@@ -228,9 +220,9 @@ context("logging") {||
     var original_level = logging.getLevel();
     var new_level = original_level + 10;
 
-    var runner = new Runner({
-      defaults: { logLevel: new_level }
-    });
+    var runner = new Runner(defaultOpts .. merge({
+      logLevel: new_level
+    }));
 
     var test_log_level = null;
     runner.context("test") {||
@@ -342,12 +334,10 @@ context("test state") {||
 context("argument parsing") {||
   var opts = {
     base: module.id,
-    defaults: {
-      logLevel: null,
-      logCapture: null,
-      color: null,
-      testSpecs: null,
-    }
+    logLevel: null,
+    logCapture: null,
+    color: null,
+    testSpecs: null,
   };
   var parseSpecs = (args) -> runnerMod.getRunOpts(opts, args).testSpecs
 
@@ -397,15 +387,12 @@ context("global variable leaks") {||
 
   test.beforeEach {|s|
     s.watcher = new CollectWatcher();
-    s.opts = {
+    s.opts = defaultOpts .. merge({
       base: module.id,
-      defaults:
-      {
-        logCapture: false,
-        allowedGlobals: ['bar'],
-      },
-    };
-    s.runner = new Runner(s.opts, s.watcher);
+      allowedGlobals: ['bar'],
+      reporter: s.watcher,
+    });
+    s.runner = new Runner(s.opts);
   }
     
   test('fails on unexpected global') {|s|
@@ -448,8 +435,8 @@ context("global variable leaks") {||
   }
 
   test('ignores unexpected globals if --ignore-leaks is given') {|s|
-    var opts = runnerMod.getRunOpts(s.opts, ['--ignore-leaks'])
-    var runner = new Runner(opts, s.watcher);
+    var opts = runnerMod.getRunOpts(s.opts .. merge({reporter: s.watcher}), ['--ignore-leaks'])
+    var runner = new Runner(opts);
     runner.context("root", fooTest);
     runner.run(s.watcher.run).ok() .. assert.ok();
   }

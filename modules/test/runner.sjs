@@ -66,13 +66,14 @@ waitfor {
 
 var NullRporter = {};
   
-var Runner = exports.Runner = function(opts, reporter) {
+var Runner = exports.Runner = function(opts) {
   if (!(opts instanceof CompiledOptions)) {
     // build opts with no additional context
+    logging.verbose("compiling opts from input:", opts);
     opts = exports.getRunOpts(opts || {}, []);
   }
   this.opts = opts;
-  this.reporter = reporter || NullRporter;
+  this.reporter = opts.reporter || NullRporter;
   this.loading = Event();
   this.active_contexts = [];
   this.root_contexts = [];
@@ -436,50 +437,55 @@ var CompiledOptions = function(opts) {
 }
 CompiledOptions.prototype = {
   // default options
-  color: null,
-  testSpecs: null,
-  logLevel: null,
-  logCapture: true,
-  allowedGlobals: [],
-  checkLeaks: true,
-  showAll: true,
-  skippedOnly: false,
-  baseModule: null,
-  timeout: 10,
+  allowedGlobals : [],
+  checkLeaks     : true,
+  color          : null,
+  logCapture     : true,
+  logLevel       : null,
+  reporter       : null,
+  showAll        : true,
+  skippedOnly    : false,
+  testSpecs      : null,
+  timeout        : 10,
+  
+  // known options that have no default
+  base       : undefined,
+  moduleList : undefined,
+  modules    : undefined,
+  init       : undefined,
+  exit       : undefined,
 }
 
 exports.getRunOpts = function(opts, args) {
   // takes an options object and produces a version with
   // environmental options (from either `args`, process.args or location.hash) taken into account
-  var result = new CompiledOptions();
-  var setOpt = function(k, v) {
-    if (!(k in result)) {
-      throw new UsageError("Unknown option: #{k}");
-    }
-    result[k] = v;
-  }
 
-  if (opts.defaults) {
-    opts.defaults .. object.ownPropertyPairs .. each {|prop|
-      setOpt.apply(null, prop);
-    }
-  }
-
-  if (opts.base) {
-    result.baseModule = opts.base;
-  }
-  
   if (args == undefined) {
     // if none provided, get args from the environment
     if (suite.isBrowser) {
-      // TODO: need to parse this to split into arguments
       var argstring = decodeURIComponent(document.location.hash.slice(1));
-      logging.debug("decoding: ", argstring);
       args = require('../shell-quote').parse(argstring);
     } else {
       // first argument is the script that invoked us:
       args = process.argv.slice(1);
     }
+  }
+  if (args .. array.contains('--debug')) {
+    // special-case logging flag, as otherwise we miss debug info from parsing args
+    logging.setLevel(logging.DEBUG);
+  }
+
+  var result = new CompiledOptions(opts);
+  var setOpt = function(k, v) {
+    // warn on unknown options (only visible with --debug)
+    if (!(k in CompiledOptions.prototype)) {
+      logging.verbose("Unknown option: #{k}");
+    }
+    result[k] = v;
+  }
+
+  opts .. object.ownPropertyPairs .. each {|prop|
+    setOpt.apply(null, prop);
   }
 
   if (args.length > 0) {
@@ -606,7 +612,7 @@ Options:
             break;
 
           case 'debug':
-            logging.setLevel(logging.DEBUG);
+            // dealt with explicitly at the start of getRunOpts
             continue;
         }
 
@@ -749,16 +755,16 @@ exports.run = Runner.run = function(opts, args) {
     reporterModule.init();
     logging.debug(`opts: ${opts}`);
     try {
-      var run_opts = exports.getRunOpts(opts, args);
+      opts = exports.getRunOpts(opts, args);
     } catch(e) {
       var msg = (e instanceof UsageError) ? e.message : String(e);
       console.error(msg);
       if (exit) return exports.exit(1);
       else throw new Error();
     }
-    logging.debug(`run_opts: ${run_opts}`);
-    var reporter = opts.reporter || new reporterModule.DefaultReporter(run_opts);
-    var runner = new Runner(run_opts, reporter);
+    logging.debug(`opts: ${opts}`);
+    opts.reporter = opts.reporter || new reporterModule.DefaultReporter(opts);
+    var runner = new Runner(opts);
     if (opts.init) { opts.init(runner); }
     runner.loadAll(opts);
     return runner.run();

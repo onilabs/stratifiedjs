@@ -158,7 +158,7 @@ LogReporterMixins = {
   },
 
   testBegin: function(result, force) {
-    if (this.logCapture) this.logCapture.drain();
+    if (this.logCapture && !force) this.logCapture.drain();
     if (this.quiet && !force) return;
     this.print(this.prefix + result.test.description + ' ... ', false);
   },
@@ -395,7 +395,7 @@ LogReporterMixins.mixInto(NodejsReporter);
 NodejsReporter.prototype.linkToTest = function(testId) {
   var url = require('sjs:nodejs/url');
   this.print();
-  var base = this.opts.baseModule;
+  var base = this.opts.base;
   if (base == null) return; // can't formulate a command line without knowing the base module
   base = base..url.toPath();
   base = require('nodejs:path').relative(process.cwd(), base); // realitivize
