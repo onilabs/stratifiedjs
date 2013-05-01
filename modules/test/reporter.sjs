@@ -107,6 +107,7 @@ LogReporterMixins = {
 
     this.indent = '  ';
     this.updateIndent(0);
+    this.failures = [];
   },
 
   loading: function(module) {
@@ -126,9 +127,18 @@ LogReporterMixins = {
       this.logCapture.drain();
       logging.setConsole(this.originalConsole);
     }
+    this.updateIndent(0);
     this.print();
+    var ok = results.ok();
+    this.print(this.color({attribute: 'dim'}, '--------------------------------------------------------'));
+    if (!ok) {
+      this.print(this.color({attribute: 'dim'}, '# Failed tests:'));
+      this.failures .. each {|result| this.linkToTest(result.test.fullDescription(), false) };
+      this.print();
+    }
     this.report(results);
-    if (!results.ok()) {
+
+    if (!ok) {
       this.print(this.color('red', 'FAILED'));
       throw new Error();
     }
@@ -175,8 +185,9 @@ LogReporterMixins = {
     } else if (result.ok) {
       if (!this.quiet) this.print(this.color('green', "OK"));
     } else {
+      this.failures.push(result);
       this.print(this.color('red', "FAILED"), false);
-      this.linkToTest(result.test.fullDescription());
+      this.linkToTest(result.test.fullDescription(), true);
       var prefix = this.prefix;
       this.print(this.color('yellow', String(result.error).split("\n") .. map((line) -> prefix + "| " + line) .. join("\n")));
       if (this.logCapture && this.logCapture.messages.length > 0) {
@@ -354,12 +365,16 @@ HtmlReporter.prototype.report = function(results) {
   this.print();
 }
 
-HtmlReporter.prototype.linkToTest = function(testId) {
+HtmlReporter.prototype.linkToTest = function(testId, inline) {
   this.print(" ",false);
   var elem = document.createElement("a");
   testId = shell_quote.quote([testId]);
   elem.setAttribute("href", "#" + encodeURIComponent(testId));
-  elem.innerHTML = "&para;";
+  if (inline) {
+    elem.innerHTML = "&para;";
+  } else {
+    elem.appendChild(document.createTextNode(testId));
+  }
   elem.setAttribute("class", "dim");
   this.print(elem);
 }
@@ -392,11 +407,12 @@ NodejsReporter.prototype.init = function(opts) {
 
 LogReporterMixins.mixInto(NodejsReporter);
 
-NodejsReporter.prototype.linkToTest = function(testId) {
-  var url = require('sjs:nodejs/url');
-  this.print();
+NodejsReporter.prototype.linkToTest = function(testId, inline) {
   var base = this.opts.base;
   if (base == null) return; // can't formulate a command line without knowing the base module
+  if (inline) this.print(); // we can't print inline on the console, make a new line
+
+  var url = require('sjs:nodejs/url');
   base = base..url.toPath();
   base = require('nodejs:path').relative(process.cwd(), base); // realitivize
   var args = ['apollo', base, testId];

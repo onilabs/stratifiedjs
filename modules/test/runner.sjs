@@ -473,6 +473,7 @@ exports.getRunOpts = function(opts, args) {
   if (args .. array.contains('--debug')) {
     // special-case logging flag, as otherwise we miss debug info from parsing args
     logging.setLevel(logging.DEBUG);
+    opts.debug = true;
   }
 
   var result = new CompiledOptions(opts);
@@ -778,7 +779,11 @@ exports.run = Runner.run = function(opts, args) {
       return _run();
     } catch(e) {
       // catch exceptions and turn them into process.exit()
-      if (e.message) console.log(e.message);
+      if (opts.debug) {
+        console.log(String(e));
+      } else {
+        if (e.message) console.log(e.message);
+      }
       exports.exit(1);
     }
   }
