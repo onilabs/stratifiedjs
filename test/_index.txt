@@ -10,7 +10,6 @@ unit/logging-tests.sjs
 unit/lru-cache-tests.sjs
 unit/node/child-process-tests.sjs
 unit/node/stream-tests.sjs
-unit/node/url-tests.sjs
 unit/object-tests.sjs
 unit/quasi-tests.sjs
 unit/require-tests.sjs
@@ -22,6 +21,7 @@ unit/stack-tests.sjs
 unit/string-tests.sjs
 unit/surface-tests.sjs
 unit/test/runner-tests.sjs
+unit/url-tests.sjs
 unit/xbrowser/console-tests.sjs
 unit/xbrowser/dom-tests.sjs
 integration/documentation-tests.sjs

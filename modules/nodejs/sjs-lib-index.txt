@@ -8,4 +8,3 @@
 @module repl          Stratified read-eval-print loop for nodejs-based apollo
 @module stream        Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)
 @module terminal      Terminal functionality (tracking [node-terminal](https://github.com/mattijs/node-terminal))
-@module url           Utilities for converting between file:// URLs and filesystem paths

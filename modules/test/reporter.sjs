@@ -412,9 +412,9 @@ NodejsReporter.prototype.linkToTest = function(testId, inline) {
   if (base == null) return; // can't formulate a command line without knowing the base module
   if (inline) this.print(); // we can't print inline on the console, make a new line
 
-  var url = require('sjs:nodejs/url');
+  var url = require('sjs:url');
   base = base..url.toPath();
-  base = require('nodejs:path').relative(process.cwd(), base); // realitivize
+  base = require('nodejs:path').relative(process.cwd(), base);
   var args = ['apollo', base, testId];
   this.print(this.color({attribute:'dim'}, this.prefix + "# " + shell_quote.quote(args)));
 }

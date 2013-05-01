@@ -66,5 +66,6 @@
 @module shell-quote     Functions for quoting / parsing unix-shell style arguments
 @module sjcl            Stanford JavaScript Crypto Library
 @module string          Functions for working with strings
+@module url             Functions for manipulating URLs
 @module wraplib         Utility functions for wrapping plain JS libraries for SJS
 
