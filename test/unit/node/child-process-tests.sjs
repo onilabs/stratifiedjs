@@ -1,4 +1,4 @@
-var testUtil = require('../lib/testUtil')
+var testUtil = require('../../lib/testUtil')
 var testEq = testUtil.test;
 var { context, test, assert } = require('sjs:test/suite');
 

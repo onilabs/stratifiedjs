@@ -2,15 +2,14 @@
 ### regenerate it by running src/build/make-apollo
 unit/array-tests.sjs
 unit/assert-tests.sjs
-unit/child-process-tests.sjs
 unit/cutil-tests.sjs
 unit/debug-tests.sjs
-unit/dom-tests.sjs
 unit/function-tests.sjs
 unit/http-tests.sjs
 unit/logging-tests.sjs
 unit/lru-cache-tests.sjs
-unit/nodejs-stream-tests.sjs
+unit/node/child-process-tests.sjs
+unit/node/stream-tests.sjs
 unit/node/url-tests.sjs
 unit/object-tests.sjs
 unit/quasi-tests.sjs
@@ -24,6 +23,7 @@ unit/string-tests.sjs
 unit/surface-tests.sjs
 unit/test/runner-tests.sjs
 unit/xbrowser/console-tests.sjs
+unit/xbrowser/dom-tests.sjs
 integration/documentation-tests.sjs
 integration/google-tests.sjs
 integration/http-tests.sjs
