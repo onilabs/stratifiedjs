@@ -64,6 +64,19 @@ function remove(arr, elem) {
 exports.remove = remove;
 
 /**
+   @function contains
+   @altsyntax arr .. contains(elem)
+   @param {Array} [arr]
+   @param {Object} [elem] Element to check for
+   @return {Boolean} `true` if the element is in the array, `false` otherwise.
+   @summary Checks whether the given element is in the array.
+*/
+function contains(arr, elem) {
+  return (arr.indexOf(elem) != -1);
+}
+exports.contains = contains;
+
+/**
    @function cycle
    @param {Array} [arr]
    @return {sequence:Stream}
