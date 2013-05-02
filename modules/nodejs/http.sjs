@@ -43,7 +43,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 var builtin_http  = require('http');
 
 var { find, parallelize, generate, filter, each } = require('../sequence');
-var { parseURL, canonicalizeURL } = require('../http');
+var url = require('../url');
 var { Queue } = require('../cutil');
 var { override } = require('../object');
 var events = require('./events');
@@ -246,9 +246,9 @@ function ServerRequest(req, res, ssl) {
   this.response = res;
   /**
    @variable ServerRequest.url
-   @summary Full canonicalized request URL object in the format as returned by [http::parseURL].
+   @summary Full canonicalized request URL object in the format as returned by [url::parse].
    */
-  this.url = parseURL(canonicalizeURL(req.url, 
+  this.url = url.parse(url.normalize(req.url, 
                                       "http#{ssl ? 's' : ''}://#{req.headers.host}"));
   /**
    @variable ServerRequest.body

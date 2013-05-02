@@ -18,6 +18,7 @@ context('build URL') {||
   testFn(url, 'build', ["foo?a=b", {b:1}], "foo?a=b&b=1");
   testFn(url, 'build', ["foo?a=b", {b:[1,2]}], "foo?a=b&b=1&b=2");
   testFn(url, 'build', ["foo?a=b", [{b:[1,2]}]], "foo?a=b&b=1&b=2");
+  testFn(url, 'build', ["http://foo", "bar"], "http://foo/bar");
   testFn(url, 'build', [["http://foo", {bar:"x", zz:"w"}, {foo:[1,2,3]}]], "http://foo?bar=x&zz=w&foo=1&foo=2&foo=3");
   testFn(url, 'build', [[["http://foo", {bar:"x", zz:"w"}], [{foo:[1,2,3]}]]], "http://foo?bar=x&zz=w&foo=1&foo=2&foo=3");
 }
@@ -30,29 +31,6 @@ context("normalize URL") {||
   testFn(url, 'normalize', ["foo/bar.txt", "http://www.noendingslash"], "http://www.noendingslash/foo/bar.txt");
   testFn(url, 'normalize', [], "");
 }
-
-context("join URL") {||
-  test("combines multiple paths",
-    -> assert.eq(url.join("http://host/a/b/c", "d/e","f/g","h/i"), "http://host/a/b/c/d/e/f/g/h/i"));
-
-  test("normalizes result",
-    -> assert.eq(url.join("http://host/a/b/c", "../d/e","../f/g/","h/i"), "http://host/a/b/d/f/g/h/i"));
-
-  test("skips leading components if it finds an absolute path",
-    -> assert.eq(url.join("http://host/a/b/c", "d/e", "/f/g","/h/i", "j/k"), "http://host/h/i/j/k"));
-
-  test("absolute path as second argument",
-    -> assert.eq(url.join("http://host/a/b/c", "/d/e"), "http://host/d/e"));
-
-  test("with partial (path-only) URLs",
-    -> assert.eq(url.join("foo/bar", "baz"), "foo/bar/baz"));
-
-  test("with no trailing slash on the host",
-    -> assert.eq(url.join("http://host", "dir"), "http://host/dir"));
-}
-
-
-
 
 context("toPath") {||
   test("fails for non URL") {||

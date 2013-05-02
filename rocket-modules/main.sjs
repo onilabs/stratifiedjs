@@ -21,8 +21,9 @@
  *
  */
 
-var http = require('sjs:http');
-require.hubs.push(['rocket:', http.canonicalizeURL('./', module.id)]);
+var http = require('sjs:nodejs/http');
+var url = require('sjs:url');
+require.hubs.push(['rocket:', url.normalize('./', module.id)]);
 
 var fs = require('sjs:nodejs/fs');
 var serverfs = require('rocket:serverfs');
@@ -31,7 +32,7 @@ var print = function(s) { process.stdout.write(s+"\n") };
 var stream = require('sjs:nodejs/stream');
 var logging = require('sjs:logging');
 
-var compiler_version = (new Date(fs.stat(http.canonicalizeURL('../oni-apollo-node.js', module.id).substr(7)).mtime)).getTime();
+var compiler_version = (new Date(fs.stat(url.normalize('../oni-apollo-node.js', module.id) .. url.toPath).mtime)).getTime();
 
 //----------------------------------------------------------------------
 
@@ -57,7 +58,7 @@ function usage() {
 
 //----------------------------------------------------------------------
 
-var apollo_root = http.canonicalizeURL('../', module.id).substr(7);
+var apollo_root = url.normalize('../', module.id) .. url.toPath();
 var root = apollo_root;
 var verbosity = 0;
 var port = "7070";
@@ -305,11 +306,11 @@ waitfor {
   serverfs.setPathMap(pathMap);
   waitfor {
     if (!sslonly)
-      require('sjs:nodejs/http').runSimpleServer(requestHandler, port, host);
+      http.runSimpleServer(requestHandler, port, host);
   }
   and {
     if (ssl_keyfile) {
-      require('sjs:nodejs/http').runSimpleSSLServer(
+      http.runSimpleSSLServer(
         requestHandler,
         {
           key: fs.readFile(ssl_keyfile),
@@ -343,7 +344,7 @@ and {
 function requestHandler(req, res) {
   logging.debug("Handling #{req.method} request for #{req.url}");
   try {
-    req.parsedUrl = http.parseURL("#{req.protocol}://#{req.headers.host}#{req.url}");
+    req.parsedUrl = url.parse("#{req.protocol}://#{req.headers.host}#{req.url}");
     res.setHeader("Server", "OniRocket"); // XXX version
     if (cors)
       res.setHeader("Access-Control-Allow-Origin", "*");

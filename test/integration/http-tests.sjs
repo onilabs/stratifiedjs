@@ -3,6 +3,7 @@ var getHttpURL = require("../lib/testContext").getHttpURL;
 var testEq = testUtil.test;
 var {test, assert, context} = require('sjs:test/suite');
 var http = require('sjs:http');
+var url = require('sjs:url');
 
 context("request") {||
 
@@ -48,9 +49,7 @@ context("post") {||
   }).skip("machinery for this test is not in place atm");
 
   testEq("http.post 2", "a=1&b=b&c=3", function () {
-    return http.post(getHttpURL("/post_echo"),
-                                http.constructQueryString([{a:1,b:"b"},
-                                                          {c:3}]));
+    return http.post(getHttpURL("/post_echo"), url.buildQuery([{a:1,b:"b"}, {c:3}]));
   }).skip("machinery for this test is not in place atm");
 }
 

@@ -46,10 +46,10 @@
 /**
    @function  jsonp_hostenv
    @summary   Perform a cross-domain capable JSONP-style request. 
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url.build](#url/build))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return    {Object}
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url.buildQuery](#url/buildQuery).
    @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
    @setting {String} [forcecb] Force the name of the callback to the given string. 
 */
@@ -161,11 +161,11 @@ var readStream = exports.readStream = function readStream(stream) {
 /**
    @function request
    @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url.build](#url/build))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return {String|Object}
    @setting {String} [method="GET"] Request method.
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url.buildQuery](#url/buildQuery).
    @setting {String} [body] Request body.
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.

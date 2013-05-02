@@ -9,7 +9,7 @@ var {test, assert, context} = require('sjs:test/suite');
 var dataRoot = './fixtures';
 
 testEq('force extension/sjs', "a=1&b=2", function() {
-  return require('sjs:http.sjs').constructQueryString({a:1},{b:2});
+  return require('sjs:url.sjs').buildQuery({a:1},{b:2});
 });
 
 testEq('force extension/js', 42, function() {
@@ -23,7 +23,7 @@ testEq('"this" object in modules', this, function() {
 context("server-side") {||
   var child_process = require('sjs:nodejs/child-process');
   var path = require('nodejs:path');
-  var url = require('sjs:nodejs/url');
+  var url = require('sjs:url');
 
   var modulePath = path.join(url.toPath(module.id), '../');
   var apolloPath = path.join(modulePath, '../../apollo');

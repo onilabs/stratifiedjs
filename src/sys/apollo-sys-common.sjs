@@ -233,7 +233,7 @@ exports.parseURL.options = {
   @param {QUERYHASHARR} [hashes] Object(s) with key/value pairs.
   @return {String}
   @desc
-    See [../../modules/http::constructQueryString]
+    See [../../modules/url::buildQuery]
 */
 exports.constructQueryString = function(/*hashes*/) {
   var hashes = exports.flatten(arguments);
@@ -259,7 +259,7 @@ exports.constructQueryString = function(/*hashes*/) {
   @function constructURL
   @summary Build a URL string.
   @param {URLSPEC} [urlspec] Base string and optional path strings
-                   and query hashes. See [../../modules/http::constructURL] for full syntax.
+                   and query hashes. See [../../modules/url::build] for full syntax.
   @return {String}
 */
 exports.constructURL = function(/* url_spec */) {
@@ -371,10 +371,10 @@ exports.canonicalizeURL = function(url, base) {
 /**
    @function  jsonp
    @summary   Perform a cross-domain capable JSONP-style request. 
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url.build](#url/build))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return    {Object}
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url.buildQuery](#url/buildQuery).
    @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
    @setting {String} [forcecb] Force the name of the callback to the given string. 
 */
@@ -392,11 +392,11 @@ exports.getXDomainCaps = getXDomainCaps_hostenv; // to be implemented in hostenv
 /**
    @function request
    @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [http.constructURL](#http/constructURL))
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url.buil](#url/build))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return {String}
    @setting {String} [method="GET"] Request method.
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [http.constructQueryString](#http/constructQueryString).
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url.buildQuery](#url/buildQuery).
    @setting {String} [body] Request body.
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.

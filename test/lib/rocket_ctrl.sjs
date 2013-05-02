@@ -2,7 +2,7 @@ var util = require('util');
 var logging = require('sjs:logging');
 var http = require('sjs:http');
 var path = require('path');
-var url = require('sjs:nodejs/url');
+var url = require('sjs:url');
 var { supplant } = require("sjs:string");
 
 var isRunning = exports.isRunning = function(port) {

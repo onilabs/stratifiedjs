@@ -3,6 +3,9 @@ waitfor {
   var http = require('sjs:http');
 }
 and {
+  var url = require('sjs:url');
+}
+and {
   var dom = require('sjs:xbrowser/dom');
 }
 and {
@@ -119,8 +122,8 @@ exports.run = function(default_location, trail_parent, index_parent, main_parent
 */
 var getLibDocs = exports.getLibDocs = func.memoize(function(libpath) {
   try {
-    var url = http.constructURL(libpath, "sjs-lib-index.txt");
-    var docs = docutil.parseSJSLibDocs(http.get(url));
+    var u = url.build(libpath, "sjs-lib-index.txt");
+    var docs = docutil.parseSJSLibDocs(http.get(u));
     docs.path = libpath;
     return docs;
   }
@@ -627,8 +630,8 @@ function parseLocation(default_location) {
     window.location.replace("#"+default_location);
   var matches = /#(.*\/)([^:#]*)(?:\:\:([^:]*)(?:\:\:(.*))?)?/.exec(window.location.hash);
   if (!matches) return { path: "", module: "", classname: "", symbol: "" };
-  var loc = { 
-    path: http.canonicalizeURL(matches[1], window.location.href), // XXX want resolution like in require here
+  var loc = {
+    path: url.normalize(matches[1], window.location.href), // XXX want resolution like in require here
     module: matches[2],
     classname: matches[4] ? matches[3] : null,
     symbol: matches[4] ? matches[4] : matches[3]
@@ -639,9 +642,8 @@ function parseLocation(default_location) {
 }
 
 function parentPath(path) {
-  if (!http.parseURL(path).directory) return null;
-  return http.canonicalizeURL(http.constructURL(path, "../"), 
-                              window.location.href);
+  if (!url.parse(path).directory) return null;
+  return url.normalize(url.build(path, "../"), window.location.href);
 }
 
 function topDir(path) {
@@ -649,7 +651,7 @@ function topDir(path) {
 }
 
 function ensureSlash(path) {
-  return http.constructURL(path, "/");
+  return url.build(path, "/");
 }
 
 function makeSummaryHTML(obj, location) {

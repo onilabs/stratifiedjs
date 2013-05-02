@@ -4,7 +4,7 @@ context {|| // serverOnly
 var seq = require('sjs:sequence');
 var string = require('sjs:string');
 var {toArray, each, map, filter, find, sort} = seq;
-var url = require('sjs:nodejs/url');
+var url = require('sjs:url');
 
 var findAll = function(str, pattern) {
   var matches = [];

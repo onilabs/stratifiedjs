@@ -59,7 +59,7 @@ waitfor {
 } and {
   var sys = require('builtin:apollo-sys');
 } and {
-  var http = require('../http');
+  var urlMod = require("../url.sjs");
 } and {
   var logging = require('../logging');
 }
@@ -84,7 +84,7 @@ Runner.prototype.getModuleList = function(url) {
   if (suite.isBrowser) {
     contents = require('../http').get(url);
   } else {
-    var path = http.parseURL(url).path;
+    var path = urlMod.parse(url) .. urlMod.toPath;
     contents = require('../nodejs/fs').readFile(path, 'UTF-8');
   }
   logging.debug(`module list contents: ${contents}`);
@@ -110,7 +110,7 @@ Runner.prototype.loadAll = function(opts) {
     throw new Error("opts.base not defined");
   }
   if (opts.hasOwnProperty('moduleList')) {
-    var url = sys.canonicalizeURL(opts.moduleList, opts.base);
+    var url = urlMod.normalize(opts.moduleList, opts.base);
     modules = this.getModuleList(url, opts.encoding || 'UTF-8');
   } else if (opts.hasOwnProperty('modules')) {
     modules = opts.modules;
@@ -149,7 +149,7 @@ Runner.prototype.context = function(desc, fn) {
 
 Runner.prototype.loadModule = function(module_name, base) {
   // TODO: what about non-file URLs?
-  var canonical_name = sys.canonicalizeURL(module_name, base);
+  var canonical_name = urlMod.normalize(module_name, base);
 
   // ensure the module actually gets reloaded
   // XX maybe replace with require(., {reload:true}) mechanism when we have it.
@@ -649,7 +649,7 @@ var CWD = null;
 if (sys.hostenv == "nodejs") {
   CWD = 'file://' + process.cwd() + '/';
 }
-var canonicalizeAgainst = (p, base) -> sys.canonicalizeURL(p, base)..rstrip('/');
+var canonicalizeAgainst = (p, base) -> urlMod.normalize(p, base)..rstrip('/');
 
 var SuiteFilter = function SuiteFilter(opts, base) {
   this.opts = opts;

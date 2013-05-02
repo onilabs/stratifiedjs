@@ -404,7 +404,7 @@ var _loadedScripts = {};
 /**
   @function  script
   @summary   Load and execute a plain JavaScript file.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [http::constructURL])
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   @desc
     It is safe to call this function simultaneously from several strata,
     even for the same URL: The given URL will only be loaded **once**, and
@@ -517,13 +517,13 @@ exports.addCSS = function(cssCode) {
 /**
   at function css
   at summary Load a CSS file into the current document.
-  at param {URLSPEC} [url] Request URL (in the same format as accepted by [http::constructURL])
+  at param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   at desc
 */
 // XXX should be more robust: http://yui.yahooapis.com/2.8.1/build/get/get.js
 /*
 exports.css = function (url) {
-  var url = constructURL(arguments);
+  var url = sys.constructURL(arguments);
   var elem = document.createElement("link");
   elem.setAttribute("rel", "stylesheet");
   elem.setAttribute("type", "text/css");
