@@ -133,6 +133,7 @@ function generateWrapLib(debug, timeout) {
 
   /**
     @variable handle_error_and_value
+    @summary A handler for callback(error, value).
     @desc
       A handler which will provide a callback that expects two arguments: `err` and `value`.
       If `err` is truthy, it will be thrown as an exception. Otherwise, `value` will be
@@ -146,6 +147,7 @@ function generateWrapLib(debug, timeout) {
 
   /**
     @variable handle_error
+    @summary A handler for callback(error).
     @desc
       A handler which will provide a callback that expects a single argument: `err`.
       If invoked, it will raise `err`.
@@ -158,6 +160,7 @@ function generateWrapLib(debug, timeout) {
 
   /**
     @variable handle_success
+    @summary A handler for callback(value).
     @desc
       A handler which will provide a callback that expects a single argument: `value`.
       If invoked, it will return `value` to the caller.
@@ -260,6 +263,7 @@ function generateWrapLib(debug, timeout) {
 /**
   @function withDebug
   @param {Number} [timeout] Timeout
+  @summary Generate and return a debug version of the wraplib module
   @desc
     Returns a new version of the `wraplib` module with debug enabled,
     and `timeout` set to the given number of seconds. This object will have

@@ -730,7 +730,7 @@
 
   @function toCSV
   @param    {Array} [A]
-  @return   CSV encoding of `A`
+  @return   {String} CSV encoding of `A`
   @summary  Make a CSV file
 
   @function transpose

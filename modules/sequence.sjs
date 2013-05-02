@@ -91,7 +91,7 @@ exports.Stream = Stream;
 /**
    @function isStream
    @param {Object} [s] Object to test
-   @returns {Boolean}
+   @return {Boolean}
    @summary Returns `true` is `s` is a [::Stream], `false` otherwise.
 */
 function isStream(s) {

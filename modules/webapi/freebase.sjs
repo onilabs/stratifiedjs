@@ -32,7 +32,7 @@
 /**
   @module    webapi/freebase
   @summary   Bindings to the [Freebase](http://freebase.com) API
-  @home      sjs:webapi/freeebase
+  @home      sjs:webapi/freebase
 */
 var http = require("../http");
 var sys = require("builtin:apollo-sys");

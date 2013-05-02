@@ -43,7 +43,7 @@
 
 /**
   @module    marked
-  @summary   Markdown to Html Converter
+  @summary   Markdown to Html Converter (tracking the [marked library](https://github.com/chjj/marked))
   @home      sjs:marked
   @desc      
              This module tracks the [marked library](https://github.com/chjj/marked) by Christopher Jeffrey.

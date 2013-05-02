@@ -36,7 +36,9 @@
    @hostenv xbrowser
    @desc
       * High-level widgets for use with the [bootstrap::] module
-      * Work-in-progress     
+      * Work-in-progress
+
+  //TODO: document
 */
 
 var { map, toArray } = require('../sequence');

@@ -36,6 +36,8 @@
    @desc    AAT is an efficient bi-directional message exchange protocol over HTTP
 */
 
+//TODO: document
+
 var http = require('sjs:http');
 var { each } = require('sjs:sequence');
 var func = require('sjs:function');

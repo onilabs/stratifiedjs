@@ -258,8 +258,8 @@ exports.toPath = function(url) {
 }
 
 /**
-   @function fromPath
-   @summary Convert a filesystem path -> URL
+   @function fileURL
+   @summary Convert a filesystem path into a file:// URL
    @param {String} [path] The input path (absolute or relative)
    @return {String} An absolute file:// URL
    @desc

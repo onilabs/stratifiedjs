@@ -36,6 +36,8 @@
    @hostenv xbrowser
    @desc    Work-in-progress
 */
+//TODO: document
+
 var tt = new Date();
 var sys = require('builtin:apollo-sys');
 

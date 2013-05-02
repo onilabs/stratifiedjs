@@ -31,7 +31,7 @@
  */
 /**
   @module    cutil
-  @summary   Utility functions and constructs for concurrent stratified programming
+  @summary   Functions and constructs for concurrent stratified programming
   @home      sjs:cutil
 */
 

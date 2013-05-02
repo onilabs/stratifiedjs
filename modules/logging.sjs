@@ -335,7 +335,7 @@ var getPrinter = function(preferred_console_method) {
 
 /**
   @function getConsole
-  @return   a Console object.
+  @return   {Object}
   @summary  Returns the current console object in use by this module.
   @desc
     The returned object will be either the global `console` object,

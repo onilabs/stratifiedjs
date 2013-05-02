@@ -1,6 +1,6 @@
 @lib     Oni Apollo 'unstable' Standard Module Library - Xbrowser Modules
 @summary Basic cross-browser functionality
 
-@module console         Browser-based StratifiedJS console
+@module console         Cross-browser StratifiedJS console
 @module dom             Basic DOM functionality
 @module dom-shim        DOM polyfills for non-conformant browsers (IE8, IE9)

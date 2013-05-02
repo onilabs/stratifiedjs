@@ -1,4 +1,5 @@
 // box-layout components. work-in-progress
+// TODO: document
 
 //----------------------------------------------------------------------
 // DOM Measuring helpers

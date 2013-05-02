@@ -32,7 +32,7 @@
 /**
   @module    xbrowser/dom-shim
   @summary   DOM polyfills for non-conformant browsers (IE8, IE9)
-  @home      sjs:/xbrowser/dom-shim
+  @home      sjs:xbrowser/dom-shim
   @hostenv   xbrowser
   @desc
      * Will automatically be loaded by [dom::] module if required

@@ -4,4 +4,4 @@
 @module base      Core Surface functionality
 @module bootstrap Port of [Twitter Bootstrap](http://twitter.github.com/bootstrap/)
 @module bootstrap-widgets High-level [Twitter Bootstrap](http://twitter.github.com/bootstrap/) widgets
-#@module boxes WIP
+@module boxes

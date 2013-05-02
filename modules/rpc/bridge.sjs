@@ -35,6 +35,7 @@
    @home    sjs:rpc/bridge
 */
 
+//TODO: document
 
 /*
 Protocol:

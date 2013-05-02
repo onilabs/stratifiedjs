@@ -52,6 +52,7 @@
       
      
 */
+//TODO: document
 
 waitfor { var base = require('./base');                                        }
 and     { var { toArray, map, each, join, integers } = require('../sequence'); }
