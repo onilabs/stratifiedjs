@@ -4,6 +4,7 @@ var testEq = testUtil.test;
 var {test, assert, context} = require('sjs:test/suite');
 var http = require('sjs:http');
 var url = require('sjs:url');
+var sys = require('builtin:apollo-sys');
 
 context("request") {||
 
@@ -133,3 +134,16 @@ context("full return objects") {||
                         { method: 'HEAD', response: 'full' }).getHeader('Content-Type');
   });
 }
+
+context("raw return objects") {||
+  test('returns an unconsumed response stream', function() {
+    var response = http.request("http://code.onilabs.com/apollo/unstable/modules/http.sjs", { response: 'raw' });
+    assert.eq(response.headers['content-type'], 'text/plain');
+    var data = "";
+    var chunk;
+    while(chunk = sys.readStream(response)) {
+      data += chunk;
+    }
+    assert.ok(data.length > 1024);
+  });
+}.serverOnly();

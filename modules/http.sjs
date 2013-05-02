@@ -68,7 +68,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
    @setting {String} [mime] Override mime type.
-   @setting {String} [response='string'] whether to return the response text only ('string') or an object { content, getHeader } ('full') 
+   @setting {String} [response='string'] whether to return the response text only ('string'), an object { responseText, getResponseHeader } ('full') or the underlying nodejs request object ('raw' - only supported for nodejs hostenv)
    @setting {Boolean} [throwing=true] Throw exception on error.
    @desc
      ### Limitations:

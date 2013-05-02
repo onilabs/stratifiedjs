@@ -170,7 +170,7 @@ var readStream = exports.readStream = function readStream(stream) {
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
-   @setting {String} [response='string'] whether to return the response text only ('string') or an object { responseText, getResponseHeader } 
+   @setting {String} [response='string'] whether to return the response text only ('string'), an object { responseText, getResponseHeader } ('full') or the underlying request object ('raw' - supported in nodejs only)
    @setting {Boolean} [throwing=true] Throw exception on error.
    @setting {Integer} [max_redirects=5] Maximum number of redirects to follow.
 */
@@ -291,7 +291,9 @@ function request_hostenv(url, settings) {
     }
   }
   
-  // XXX support for returning streambuffer
+  if (opts.response == 'raw')
+    return response;
+
   response.setEncoding('utf8');
   response.data = "";
   var data;
