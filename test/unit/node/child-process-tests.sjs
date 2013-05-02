@@ -56,7 +56,8 @@ context {||
   });
 
   test('wait() throws error on spawn error') {||
-    assert.raises({message: "spawn EACCES"},
+    //message differs between node < 0.10 and > 0.10
+    assert.raises({message: /spawn EACCES|child process exited with nonzero exit status: 127/},
       -> child_process.run(".")); // "." will be a directory
   }
 

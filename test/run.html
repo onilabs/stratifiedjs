@@ -26,6 +26,12 @@
       };
 
       if(!require('sjs:test/suite').isBrowser) {
+        var [node_major, node_minor] = process.versions.node.split(".").map(i -> parseInt(i, 10));
+        logging.verbose("node version #{node_major}.#{node_minor}");
+        if (node_major == 0 && node_minor < 9) {
+            opts.allowedGlobals = ['errno']; // bug in child_process (and perhaps others), fixed in 0.9
+        }
+      
         // when running under node.js, our integration tests
         // expect a rocket instance to be running on localhost:7071
         var rocketInitialized = false, cleanup = -> null;
