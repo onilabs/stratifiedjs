@@ -338,6 +338,7 @@ context("argument parsing") {||
     logCapture: null,
     color: null,
     testSpecs: null,
+    bail: null,
   };
   var parseSpecs = (args) -> runnerMod.getRunOpts(opts, args).testSpecs
 
@@ -347,6 +348,7 @@ context("argument parsing") {||
     runnerMod.getRunOpts(opts, ['--loglevel=INFO']).logLevel .. assert.eq(logging.INFO);
     runnerMod.getRunOpts(opts, ['--logcapture']).logCapture .. assert.eq(true);
     runnerMod.getRunOpts(opts, ['--no-logcapture']).logCapture .. assert.eq(false);
+    runnerMod.getRunOpts(opts, ['--bail']).bail .. assert.eq(true);
   }
 
   test('invalid options') {||
@@ -524,6 +526,24 @@ context("timeout") {||
       ["timeout overridden", null],
       ["sub-test", null],
       ["no timeout", null],
+    ]);
+  }
+}
+
+context("bail") {||
+  test("stops after the first failure") {||
+    var watcher = new CollectWatcher();
+    var opts = runnerMod.getRunOpts(defaultOpts, ['--bail'])
+    var runner = new Runner(opts);
+    runner.context("root") {||
+      test("ok", -> null);
+      test("fail1", -> assert.fail());
+      test("fail2", -> assert.fail());
+    }
+    runner.run(watcher);
+    watcher.conciseResults() .. assert.eq([
+      ["ok", null],
+      ["fail1", "Failed"],
     ]);
   }
 }

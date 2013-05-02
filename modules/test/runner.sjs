@@ -262,6 +262,7 @@ Runner.prototype.run = function(reporter) {
   }
   if (!opts.checkLeaks) { getGlobals = -> [] }
   var defaultTimeout = opts.timeout;
+  var BAIL = false;
 
   // ----------------------------
   // run a single test
@@ -290,6 +291,7 @@ Runner.prototype.run = function(reporter) {
       }
     } catch (e) {
       results._fail(result, e);
+      if (opts.bail) BAIL = true;
     } finally {
       if (extraGlobals == null) extraGlobals = getGlobals(initGlobals);
       deleteGlobals(extraGlobals);
@@ -301,6 +303,7 @@ Runner.prototype.run = function(reporter) {
   // ----------------------------
   // traverse a test context
   var traverse = function(ctx) {
+    if (BAIL) return;
     if (!ctx._enabled) {
       logging.verbose("Skipping context: #{ctx}");
       return;
@@ -310,6 +313,7 @@ Runner.prototype.run = function(reporter) {
     if (!ctx.shouldSkip()) {
       ctx.withHooks() {||
         ctx.children .. each {|child|
+          if (BAIL) break;
           if (child.hasOwnProperty('children')) {
             traverse(child);
           } else {
@@ -447,6 +451,7 @@ CompiledOptions.prototype = {
   skippedOnly    : false,
   testSpecs      : null,
   timeout        : 10,
+  bail           : false,
   
   // known options that have no default
   base       : undefined,
@@ -528,6 +533,10 @@ exports.getRunOpts = function(opts, args) {
         type: 'bool',
         help: 'print all tests'
       },
+      { names: ['bail', 'b'],
+        type: 'bool',
+        help: "exit immediately after the first failure"
+      },
       { names: ['debug'],
         type: 'bool',
         help: "set logLevel=DEBUG before test runner begins"
@@ -593,6 +602,10 @@ Options:
           case 'skipped':
             key = 'skippedOnly';
             break;
+
+          case 'b':
+            key = 'bail';
+            break
 
           case 'f':
           case 'show_failed':
