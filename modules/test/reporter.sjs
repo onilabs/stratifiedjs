@@ -111,7 +111,12 @@ LogReporterMixins = {
   },
 
   loading: function(module) {
+    if (this.opts.listOnly) return;
     this.print(this.color({attribute: 'dim'}, " [ loading #{module} ]"));
+  },
+
+  listTest: function(test) {
+    console.log(test.fullDescription());
   },
 
   suiteBegin: function(results) {
@@ -313,7 +318,7 @@ HtmlOutput.prototype.info = makeLogger('info');
 HtmlOutput.prototype.error = makeLogger('error');
 HtmlOutput.prototype.warning = makeLogger('warning');
 
-var HtmlReporter = function() {
+var HtmlReporter = exports.HtmlReporter = function() {
   this.init.apply(this, arguments);
 }
 
@@ -380,7 +385,7 @@ HtmlReporter.prototype.linkToTest = function(testId, inline) {
 }
 
 
-var NodejsReporter = function() {
+var NodejsReporter = exports.NodejsReporter = function() {
   this.init.apply(this, arguments);
 };
 

@@ -168,8 +168,21 @@ Runner.prototype.run = function(reporter) {
   // use `reporter.run` if no reporter func given explicitly
   if (reporter == undefined) reporter = this.reporter;
 
+  // ----------------------------
+  // Call a given `reporter` method, if it exists
+  var report = function(key /*, ... */) {
+    var reporterFn = reporter[key];
+    if (reporterFn) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      reporterFn.apply(reporter, args);
+    }
+  }
+
   // count the number of tests, while marking them (and their parent contexts)
   // as _enabled while disabling all other contexts
+  //
+  // if opts.listOnly is true, this will call `reporter.listTest` with each test
+  // and then exit.
   var total_tests = 0;
   var enable = function(ctx) {
     while(ctx && !ctx._enabled) {
@@ -199,6 +212,7 @@ Runner.prototype.run = function(reporter) {
             total_tests++;
             child._enabled = true;
             enable(child.context);
+            if (opts.listOnly) report('listTest', child);
           } else {
             child._enabled = false;
           }
@@ -210,16 +224,7 @@ Runner.prototype.run = function(reporter) {
   suite._withRunner(this) { ||
     this.root_contexts .. each(ctx -> preprocess_context(ctx.module(), ctx));
   }
-
-  // ----------------------------
-  // Call a given `reporter` method, if it exists
-  var report = function(key /*, ... */) {
-    var reporterFn = reporter[key];
-    if (reporterFn) {
-      var args = Array.prototype.slice.call(arguments, 1);
-      reporterFn.apply(reporter, args);
-    }
-  }
+  if (opts.listOnly) return;
 
   // ----------------------------
   // Create the results object
@@ -517,6 +522,10 @@ exports.getRunOpts = function(opts, args) {
         type: 'bool',
         help: 'Just report skipped tests (don\'t run anything)'
       },
+      { names: ['list', 'l'],
+        type: 'bool',
+        help: 'Print out all full test names and then exit'
+      },
       { name: 'timeout',
         type: 'number',
         help: 'Set the default test timeout (in seconds). Set to 0 to disable.'
@@ -601,6 +610,11 @@ Options:
 
           case 'skipped':
             key = 'skippedOnly';
+            break;
+
+          case 'l':
+          case 'list':
+            key = 'listOnly';
             break;
 
           case 'b':
