@@ -31,12 +31,32 @@
  */
 
 /**
-   @module  assert
-   @summary Assertion functions for use in tests and to validate runtime assumptions
-   @home    sjs:assert
-*/
+  @module  assert
+  @summary Assertion functions, primarily for use in tests
+  @home    sjs:assert
 
-// TODO: (tjc) document
+  @desc
+    In addition to the functions listed here, this module exports some self-explanatory
+    type checking functions:
+
+    * string
+    * bool
+    * func
+    * number
+    * object
+
+    For each of these types, there is also a version that accepts an optional
+    argument (may be null/undefined), or an array of such elements, or an
+    optional array of such elements.
+
+    * optionalString
+    * arrayOfString
+    * optionalArrayOfString
+    * (etc ... )
+
+    All type-checking functions accept an optional second `desc` argument, which
+    will be included in the error message on failure.
+*/
 
 var object = require('./object');
 var {each, all, find, toArray} = require('./sequence');
@@ -44,6 +64,16 @@ var compare = require('./compare');
 var {inspect} = require('./debug');
 
 
+/**
+  @class AssertionError
+  @inherit Error
+  @summary Error type thrown by assertion failures.
+  @function AssertionError
+  @summary Create an AssertionError object
+  @param {String} [msg] Error message
+  @param {String} [desc] Descriptive text to include in the error message
+  @param {optional Object} [attrs] Additional properties to set on the error instance
+*/
 var AssertionError = exports.AssertionError = function(msg, desc, attrs) {
   if (attrs) this .. object.extend(attrs);
   this.message = msg;
@@ -52,14 +82,38 @@ var AssertionError = exports.AssertionError = function(msg, desc, attrs) {
 exports.AssertionError.prototype = new Error();
 exports.AssertionError.prototype.__assertion_error = true;
 
+
+/**
+  @function ok
+  @summary Assert that the argument is truthy
+  @param [arg]
+  @param {optional String} [desc] Description to add to the error message on failure.
+
+  @function truthy
+  @summary Alias for [::ok]
+*/
 exports.ok = exports.truthy = function(val, desc) {
   if (!val) throw new AssertionError("Not OK: #{val}", desc);
 }
 
+/**
+  @function notOk
+  @summary Assert that the argument is falsy
+  @param [arg]
+  @param {optional String} [desc] Description to add to the error message on failure.
+
+  @function falsy
+  @summary Alias for [::notOk]
+*/
 exports.notOk = exports.falsy = function(val, desc) {
   if (val) throw new AssertionError("Not falsey: #{val}", desc);
 }
 
+/**
+  @function fail
+  @summary Unconditionally raise an AssertionError
+  @param {optional String} [desc] Description to add to the error message.
+*/
 exports.fail = function(desc) {
   throw new AssertionError("Failed", desc);
 }
@@ -82,6 +136,20 @@ var raisesFilters = {
   },
 };
 
+
+/**
+  @function raises
+  @summary Assert that the function throws an exception.
+  @param {optional Object} [opts] Hash of settings
+  @param {Function} [fn]
+  @setting {Object|Function} [inherits] Only match exceptions that inherit from the given prototype or constructor function.
+  @setting {String|Regex} [message] Only match exceptions whose `.message` property equals `message` (or matches, in the case of a Regex).
+  @setting {Function} [filter] Only match exceptions where `filter(exc)` returns true.
+  @setting {String} [desc] Description to add to the error message on failure.
+
+  @function throwsError
+  @summary Alias for [::raises]
+*/
 exports.raises = exports.throwsError = function(opts /* (optional) */, fn) {
   var description;
   if (arguments.length == 1) {
@@ -117,6 +185,13 @@ exports.raises = exports.throwsError = function(opts /* (optional) */, fn) {
   throw new AssertionError("Expected exception not thrown", description);
 }
 
+/**
+  @function catchError
+  @summary Catch (and return) the error thrown by `fn`, if any
+  @param {Function} [fn]
+  @desc
+    Returns `null` if no exception is thrown.
+*/
 exports.catchError = function(fn) {
   try {
     fn();
@@ -126,6 +201,22 @@ exports.catchError = function(fn) {
   return null;
 }
   
+/**
+  @function equal
+  @summary Assert that `actual` and `expected` are equal
+  @param {Object} [actual]
+  @param {Object} [expected]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Equality is deep and strict, see [compare::equals] for the full semantics.
+
+    In the case of unequal objects, a specific reason for their inequality will be included
+    in the error thrown if possible (e.g "Objects differ at property 'foo'").
+    See [compare::describeEquals].
+
+  @function eq
+  @summary Alias for [::eq]
+*/
 exports.eq = exports.equal = function(actual, expected, desc) {
   var [eq, difference] = compare.describeEquals(actual, expected);
   if (!eq) {
@@ -135,6 +226,18 @@ exports.eq = exports.equal = function(actual, expected, desc) {
   }
 }
 
+/**
+  @function notEqual
+  @summary Assert that `actual` and `expected` are not equal
+  @param {Object} [actual]
+  @param {Object} [expected]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Equality is deep and strict, see [compare::equals] for the full semantics.
+
+  @function notEq
+  @summary Alias for [::notEqual]
+*/
 exports.notEq = exports.notEqual = function(actual, expected, desc) {
   var eq = compare.eq(actual, expected);
   if (eq) {
@@ -143,22 +246,56 @@ exports.notEq = exports.notEqual = function(actual, expected, desc) {
   }
 }
 
-exports.contains = function(seq, expected, desc) {
-  var arr = seq..toArray;
-  if (arr.indexOf(expected) == -1) {
-    throw new AssertionError("Array #{arr .. inspect} does not contain #{expected .. inspect}", desc);
-  }
-}
-
-exports.containsEq = function(seq, expected, desc) {
-  var arr = seq..toArray;
+var _contains = function(arr, expected) {
+  // quick check:
+  if (arr.indexOf(expected) != -1) return true;
   var NONE = {};
   var found = arr .. find(elem -> compare.equals(elem, expected), NONE);
-  if (found === NONE) {
+  return (found !== NONE);
+}
+
+/**
+  @function contains
+  @summary Assert that `seq` contains an element equal to `elem`
+  @param {sequence::Sequence} [seq]
+  @param {Object} [elem]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Uses [compare::equals] to compare elements using deep
+    equality rather than strict object identity.
+*/
+exports.contains = function(seq, expected, desc) {
+  var arr = seq..toArray;
+  if (!_contains(arr, expected)) {
     throw new AssertionError("Array #{arr .. inspect} does not contain #{expected .. inspect}", desc);
   }
 }
 
+/**
+  @function notContains
+  @summary Assert that `seq` does not contain an element equal to `elem`
+  @param {sequence::Sequence} [seq]
+  @param {Object} [elem]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    The opposite of [::contains]
+*/
+exports.notContains = function(seq, expected, desc) {
+  var arr = seq..toArray;
+  if (_contains(arr, expected)) {
+    throw new AssertionError("Array #{arr .. inspect} contains #{expected .. inspect}", desc);
+  }
+}
+
+/**
+  @function atomic
+  @summary Assert that `fn` completes without suspending
+  @param {Function} [fn]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Like [::contains], but uses [compare::equals] to compare elements using deep
+    equality rather than strict object identity.
+*/
 exports.atomic = function(desc /* (optional) */, fn) {
   if (arguments.length == 1) {
     fn = desc;
@@ -171,10 +308,28 @@ exports.atomic = function(desc /* (optional) */, fn) {
   }
 }
 
+/**
+  @function is
+  @summary Asserts that `actual` === `expected`
+  @param {Object} [actual]
+  @param {Object} [expected]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Uses the `===` operator. For deep equality, use [::equals]
+*/
 exports.is = function(actual, expected, desc) {
   if (actual !== expected) throw new AssertionError("Expected #{expected .. inspect}, got #{actual .. inspect}", desc);
 };
 
+/**
+  @function isNot
+  @summary Asserts that `actual` !== `expected`
+  @param {Object} [actual]
+  @param {Object} [expected]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Uses the `!==` operator. For deep equality, use [::notEquals]
+*/
 exports.isNot = function(actual, expected, desc) {
   if (actual === expected) throw new AssertionError("Both arguments equal: #{expected .. inspect}", desc);
 };
