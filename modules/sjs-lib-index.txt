@@ -48,7 +48,7 @@
 
 @module array           Functions for working with arrays
 @module assert          Assertion functions, primarily for use in tests
-@module compare         Functions for testing deep equality
+@module compare         Deep object equality comparison
 @module cutil           Functions and constructs for concurrent stratified programming
 @module dashdash        Options parser (tracking [node-dashdash library](https://github.com/trentm/node-dashdash))
 @module debug           Helpers for debugging

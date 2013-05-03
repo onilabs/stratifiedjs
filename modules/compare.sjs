@@ -34,18 +34,75 @@
  */
 /**
    @module  compare
-   @summary Rich object equality comparison
+   @summary Deep object equality comparison
    @home    sjs:compare
 */
 
-// TODO: (tjc) document
-
 __js {
 
+  /**
+    @function equals
+    @param {Object} [a]
+    @param {Object} [b]
+    @return {Boolean} whether the given objects are equal.
+    @summary Compares two objects for deep equality.
+    @desc
+      The rules for two objects to be considered equal here are:
+
+      * For simple types (i.e not an object or array), the strict
+        equality operator is used (===)
+
+      * Two arrays are equal if they have the same number of
+        elements and the respective elements from each array
+        are also equal (i.e elements are recursively compared).
+
+      * Two objects are equal if they have the same prototype,
+        the same keys, and the value of each key are also equal
+        (i.e values are recursively compared).
+
+      This function is adapted from the `isEqual` function
+      in the [underscore library](http://underscorejs.org/#isEqual),
+      and has the same semantics.
+  */
+
+  /**
+    @function eq
+    @summary alias for [::equals]
+  */
   exports.eq = exports.equals = function(actual, expected) {
     return eq(actual, expected, [], [], false)[0];
   }
 
+  /**
+    @function describeEquals
+    @param {Object} [a]
+    @param {Object} [b]
+    @summary Compare (and describe differences between) two objects.
+    @return {Array} Whether the given objects are equal, and a description if they are not.
+    @desc
+      The return value is an array of two elements. The first
+      is a boolean, and is the same value that [::equal] would return.
+      The second is an object that (when coerced to a string), describes
+      a reason the objects are not equal. The second argument will always
+      be null if the objects are equal, and may be null if no specific reason
+      is found (e.g for unequal primitives).
+
+      This function is mostly useful in tests, as the returnd
+      `description` gives the user a concrete reason why the
+      objects differ.
+
+      ### Examples:
+
+          var [eq, reason] = compare.describeEquals({a:1, b:2, c:3}, {a:1, b:2, c:33});
+          console.log("#{eq}, #{reason}");
+          >> false, objects differ at property 'c'
+
+          compare.describeEquals({a:1, b:2, c:3}, {a:1, b:2, c:3});
+          >> --> [true, null];
+
+          compare.describeEquals("one", "two");
+          >> --> [false, null];
+  */
   exports.describeEquals = function(actual, expected) {
     var result = eq(actual, expected, [], [], true);
     if (result[0]) result[1] = null; // `eq` difference messages are only meaningful in the negative case
