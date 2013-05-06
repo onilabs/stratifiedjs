@@ -226,6 +226,7 @@ function inspect_obj(obj, name) {
 
 // for emulating position:fixed on webkit:
 function viewportStick(el, offset) {
+
   offset = offset || 0;
   el.style.position = "absolute";
   el.style.bottom = "auto";
@@ -299,13 +300,11 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
     <input type='text' style='line-height:15px;-webkit-appearance: caret;"+fontStyle+"width:100%;margin:2px 0 0 0;border:0;padding:0;background:transparent;outline:none'/>\
   </div>\
 </div>";
-  parent.appendChild(container);
   this.output = term.getElementsByTagName("div")[0];
   this.closebutton = term.getElementsByTagName("a")[0];
   this.clearbutton = term.getElementsByTagName("a")[1];
   this.resizehandle = term.getElementsByTagName("span")[0];
   this.cmdline = term.getElementsByTagName("input")[0];
-  this.cmdloop_stratum = spawn this._cmdloop();
   try {
     this.history = (window["sessionStorage"] && window["JSON"] && window.sessionStorage.history) ? 
                  JSON.parse(sessionStorage.history) : [""];
@@ -321,8 +320,10 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
 z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
 
+  this.cmdloop_stratum = spawn this._cmdloop();
   container.appendChild(this.summonbutton);
   container.appendChild(this.term);
+  parent.appendChild(container);
   if (opts.target) {
     opts.collapsed = false;
     this.closebutton.parentNode.removeChild(this.closebutton);
