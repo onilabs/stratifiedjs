@@ -30,13 +30,15 @@ context("console") {||
   
   test("leaves no elements behind") {||
     var body = document.getElementsByTagName('body')[0];
-    var initial = body.childElementCount;
+    // childElementCount not supported on IE7
+    var elemCount = -> 'childElementCount' in body ? body.childElementCount : body.childNodes.length;
+    var initial = elemCount();
     assert.number(initial);
 
     var c = console();
     c.shutdown();
 
-    assert.eq(body.childElementCount, initial);
+    assert.eq(elemCount(), initial);
   }
 
   test("aborts its running strata on shutdown") {|s|
