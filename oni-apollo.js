@@ -5051,9 +5051,12 @@ Function.prototype.bind=function(obj){var slice=[].slice,args=slice.call(argumen
 
 
 },bound=function(){
-return self.apply(this instanceof nop?this:(obj||{}),args.concat(slice.call(arguments)));
+var subject=(obj||{});
 
-
+try{
+if(this instanceof nop)subject=this;
+}catch(e){}
+return self.apply(subject,args.concat(slice.call(arguments)));
 };
 
 

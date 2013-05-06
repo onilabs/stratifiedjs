@@ -164,12 +164,15 @@ if (!Function.prototype.bind) {
   // XXX We should fix simple things like 'length'
   Function.prototype.bind = function(obj) {
     var slice = [].slice,
-        args = slice.call(arguments, 1), 
-        self = this, 
-        nop = function () {}, 
+        args = slice.call(arguments, 1),
+        self = this,
+        nop = function () {},
         bound = function () {
-          return self.apply(this instanceof nop ? this : ( obj || {} ), 
-                            args.concat( slice.call(arguments) ) );    
+          var subject = (obj || {});
+          try {
+            if (this instanceof nop) subject = this;
+          } catch(e) { /* PhantomJS / Qt bug */ }
+          return self.apply(subject, args.concat( slice.call(arguments) ) );
     };
     // we insert nop into the prototype chain so that we can detect
     // 'new bound()':
