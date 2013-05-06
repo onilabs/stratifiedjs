@@ -38,6 +38,9 @@
 */
 
 var { map, toArray, reduce, join } = require('./sequence');
+var sys = require('builtin:apollo-sys');
+var isHtmlElement = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isHtmlElement : -> false;
+
 
 /**
   @function inspect
@@ -63,8 +66,6 @@ function inspect(obj, showHidden, depth, colors) {
   return formatValue(ctx, obj, (typeof depth === 'undefined' ? 2 : depth));
 }
 exports.inspect = inspect;
-
-var elementType = typeof(Element) == 'undefined' ? null : Element;
 
 // http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
 var colors = {
@@ -211,7 +212,7 @@ __js function formatValue(ctx, value, recurseTimes) {
 
 
 function formatPrimitive(ctx, value) {
-  if (elementType && value instanceof elementType) {
+  if (isHtmlElement(value)) {
     return value.outerHTML;
   }
   switch (typeof value) {
