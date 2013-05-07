@@ -7,7 +7,6 @@ test('clone object', function() {
   var Cls = function(a) {
     this.a = a;
   };
-  Cls.prototype = {};
   Cls.prototype.p = "proto!"
 
   var initial = new Cls(1);

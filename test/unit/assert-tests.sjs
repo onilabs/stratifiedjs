@@ -1,4 +1,5 @@
-var {context, test, assert} = require("sjs:test/suite");
+var suite = require("sjs:test/suite");
+var {context, test, assert} = suite;
 var {toArray} = require("sjs:sequence");
 
 var shouldFail = function(f) {
@@ -85,23 +86,42 @@ context("eq") {||
         -> assert.eq("1", 1));
     }
 
-    test("when custom types differ") {||
+    context("custom types") {||
       var Foo = function() {
         this.x = 1;
       }
       Foo.prototype.y = 2;
+
       var Bar = function(x) {
         this.x = x;
       }
-      Bar.prototype = new Foo();
+      Bar.prototype.y = 2;
 
-      assert.raises(
-        {message: /\[prototypes differ\]/},
-        -> assert.eq(new Foo(), new Bar(1)));
+      var FooBar = function(x) {
+        this.x = x;
+      }
+      FooBar.prototype = new Foo();
 
-      assert.raises(
-        {message: /\[objects differ at property 'x'\]/},
-        -> assert.eq(new Bar(1), new Bar(2)));
+
+      test("differ") {||
+        assert.raises(
+          {message: /\[prototypes differ\]/},
+          -> assert.eq(new Foo(), new Bar(1)));
+
+        assert.raises(
+          {message: /\[objects differ at property 'x'\]/},
+          -> assert.eq(new Bar(1), new Bar(2)));
+      }
+
+      test("differ by inheritance") {||
+        assert.raises(
+          {message: /\[prototypes differ\]/},
+          -> assert.eq(new Foo(), new FooBar(1)));
+
+        assert.raises(
+          {message: /\[objects differ at property 'x'\]/},
+          -> assert.eq(new FooBar(1), new FooBar(2)));
+      }.skipIf(suite.isIE() && suite.ieVersion() < 9, "requires native support for getPrototypeOf()");
     }
 
     test("comparing arrays to objects") {||
