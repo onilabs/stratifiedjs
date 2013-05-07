@@ -590,7 +590,7 @@ function findNode(selector, from, to, inclusive) {
       if (!Array.isArray(to)) to = [to];
       to = to .. map(elem -> elem ? null : elem.parentNode) .. toArray;
     }
-    traverseDOM(from, to) { |c| if (matchesSelector(c, selector)) return c }
+    traverseDOM(from, to) { |c| if (exports.matchesSelector(c, selector)) return c }
     return null;
   }
   catch(e) {

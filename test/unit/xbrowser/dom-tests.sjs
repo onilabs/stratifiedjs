@@ -1,6 +1,10 @@
+var suite = require('sjs:test/suite');
+var {context, test} = suite;
 var testUtil = require('../../lib/testUtil');
-var test = testUtil.test;
+var testEq = testUtil.test;
 var relativeURL = require("../../lib/testContext").getHttpURL;
+
+var IE7 = suite.isIE() && suite.ieVersion() < 8;
 
 if(testUtil.isBrowser) {
   var dom = require('sjs:xbrowser/dom');
@@ -15,7 +19,7 @@ if(testUtil.isBrowser) {
       elem.fireEvent("onclick");
   }
 
-  test('waitforEvent', true, function() {
+  testEq('waitforEvent', true, function() {
     waitfor {
       dom.waitforEvent(document, 'click');
       return true;
@@ -32,7 +36,7 @@ if(testUtil.isBrowser) {
     return false;
   });
 
-  test('eventQueue', true, function() {
+  testEq('eventQueue', true, function() {
     waitfor {
       using (var Q = dom.eventQueue(document, "click")) {
         for (var i=0; i<10; ++i) {
@@ -53,7 +57,7 @@ if(testUtil.isBrowser) {
     return true;
   });
 
-  test('cookies', true, function() {
+  testEq('cookies', true, function() {
     var data = "  "+Math.random()+"\n\n\tfoo";
     dom.setCookie("testcookie", data);
     hold(100);
@@ -66,7 +70,7 @@ if(testUtil.isBrowser) {
 
   var webserverJsonpTimeout = 5000;
 
-  test("dom.script", 77, function() {
+  testEq("dom.script", 77, function() {
     waitfor {
       waitfor {
         dom.script(relativeURL("unit/fixtures/testscript.js"));
@@ -80,7 +84,7 @@ if(testUtil.isBrowser) {
     return testscript_var;
   }).ignoreLeaks('testscript_var');
 
-  test("dom.script throwing", true, function() {
+  testEq("dom.script throwing", true, function() {
     waitfor {
       try {
         dom.script(relativeURL("unit/fixtures/nonexistant.js"));
@@ -92,50 +96,53 @@ if(testUtil.isBrowser) {
     return true;
   });
 
-  test("matchesSelector", true, function() {
-    var elem = document.createElement('div');
-    elem.innerHTML = "<div class='foo'><div id='bar'></div></div>";
-    return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
-  });
+  context("matchesSelector") {||
+    testEq("matchesSelector", true, function() {
+      var elem = document.createElement('div');
+      elem.innerHTML = "<div class='foo'><div id='bar'></div></div>";
+      return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
+    });
 
-  test("~matchesSelector", false, function() {
-    var elem = document.createElement('div');
-    elem.innerHTML = "<div class='foo'><div id='barx'></div></div>";
-    return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
-  });
+    testEq("~matchesSelector", false, function() {
+      var elem = document.createElement('div');
+      elem.innerHTML = "<div class='foo'><div id='barx'></div></div>";
+      return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
+    });
+  }.skipIf(IE7);
 
-  test("traverseDOM", true, function() {
+  testEq("traverseDOM", true, function() {
     var elem = document.createElement('div');
     elem.innerHTML = "<div data-x='foo'><div id='bar'></div></div>";
-    dom.traverseDOM(elem.firstChild.firstChild, elem) { 
+    dom.traverseDOM(elem.firstChild.firstChild, elem) {
       |e|
-      if (e.hasAttribute('data-x')) return true;
+      if (e.getAttribute('data-x')) return true;
     }
     return false;
   });
 
-  test("findNode", 'bar', function() {
-    var elem = document.createElement('div');
-    elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
-    var node = dom.findNode('.foo [data-x]',elem.firstChild.firstChild.firstChild, elem);
-    return node ? node.getAttribute('data-x') : null;
-  });
+  context("findNode") {||
+    testEq("findNode", 'bar', function() {
+      var elem = document.createElement('div');
+      elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
+      var node = dom.findNode('.foo [data-x]',elem.firstChild.firstChild.firstChild, elem);
+      return node ? node.getAttribute('data-x') : null;
+    });
 
-  test("findNode exclusive", 'not found', function() {
-    var elem = document.createElement('div');
-    elem.setAttribute('class', 'xyz');
-    elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
-    var node = dom.findNode('.xyz',elem.firstChild.firstChild.firstChild, elem);
-    return node ? 'found' : 'not found';
-  });
+    testEq("findNode exclusive", 'not found', function() {
+      var elem = document.createElement('div');
+      elem.setAttribute('class', 'xyz');
+      elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
+      var node = dom.findNode('.xyz',elem.firstChild.firstChild.firstChild, elem);
+      return node ? 'found' : 'not found';
+    });
 
-  test("findNode inclusive", 'found', function() {
-    var elem = document.createElement('div');
-    elem.setAttribute('class', 'xyz');
-    elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
-    var node = dom.findNode('.xyz',elem.firstChild.firstChild.firstChild, elem, true);
-    return node ? 'found' : 'not found';
-  });
-
+    testEq("findNode inclusive", 'found', function() {
+      var elem = document.createElement('div');
+      elem.setAttribute('class', 'xyz');
+      elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
+      var node = dom.findNode('.xyz',elem.firstChild.firstChild.firstChild, elem, true);
+      return node ? 'found' : 'not found';
+    });
+  }.skipIf(IE7);
 }
 

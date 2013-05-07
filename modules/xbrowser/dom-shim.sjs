@@ -200,7 +200,8 @@ if (objCtr.defineProperty) {
 
 exports.matchesSelector = function(elem, selector) {
   var nodes = elem.parentNode.querySelectorAll(selector);
-  for (var i=0; i<nodes.length; ++i)
-    if (nodes[i] == this) return true;
+  for (var i=0; i<nodes.length; ++i) {
+    if (nodes[i] === elem) return true;
+  }
   return false;
 };
