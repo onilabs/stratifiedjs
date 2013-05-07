@@ -1,3 +1,4 @@
+var suite = require('sjs:test/suite');
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var testParity = testUtil.testParity;
@@ -143,7 +144,7 @@ test("eval scoping 2", 1, function() { eval("var xyyyy=1"); if (this.xyyyy != un
 // optimize modes, the SJS version returns '2' (the ECMA correct
 // result)
 testParity("try { var x = function e() { return 1; }; e(); } catch(ex) { 2;}",
-           function() { try { var x= function e() { return 1; }; return e(); }catch(ex) {return 2;}});
+           function() { try { var x= function e() { return 1; }; return e(); }catch(ex) {return 2;}}).skipIf(suite.isIE(), 'IE bug');
 
 
 testParity("try { var x = function e(n) { return n==1?1:e(n-1)*n; }; x(5); } catch(ex) { 1;}",
@@ -1290,11 +1291,18 @@ test("{|| break}/for-in edge case", 2 /* was 1 with old blocklambda behaviour */
   return 1;
 });
 
+var forEach = function(arr, block) {
+  if (arr.forEach) return arr.forEach(block);
+  // emulate for old IE
+  for (var i=0; i<arr.length; i++) {
+    block(arr[i]);
+  }
+};
 test("{||} in JS forEach", 6, function() {
   var sum = 0;
-  [1,2,3,4,5].forEach { |x| 
-    sum+=x; 
-    if(x==3) return sum; 
+  forEach([1,2,3,4,5]) { |x|
+    sum+=x;
+    if(x==3) return sum;
   }
 });
 
