@@ -1,10 +1,15 @@
 var testUtil = require('../lib/testUtil');
+var logging = require('sjs:logging');
 var getHttpURL = require("../lib/testContext").getHttpURL;
 var testEq = testUtil.test;
-var {test, assert, context} = require('sjs:test/suite');
+var suite = require('sjs:test/suite');
+var {test, assert, context} = suite;
 var http = require('sjs:http');
 var url = require('sjs:url');
 var sys = require('builtin:apollo-sys');
+
+var IE9 = suite.isIE() && suite.ieVersion() < 10;
+var expected404Status = IE9 ? undefined : 404;
 
 context("request") {||
 
@@ -24,10 +29,10 @@ context("request") {||
     return http.request(getHttpURL("no_such_url"), {throwing:false});
   });
 
-  testEq('try {request("no_such_url")}catch(e){}', "404", function() {
-    try {return http.request(getHttpURL("no_such_url"));}catch(e) { return e.status.toString(); }
-  });
-
+  test('try {request("no_such_url")}catch(e){}') {||
+    assert.raises({filter: e -> e.status === expected404Status},
+      -> http.request(getHttpURL("no_such_url")));
+  }
 }
 
 context("get") {||
@@ -39,9 +44,10 @@ context("get") {||
     return http.get([getHttpURL("data/returnQuery.template"), { a: 1 }, {b: 2}]);
   }).skip("requires template filter");
 
-  testEq('try {get("invalid_url")}catch(e){}', "404", function() {
-    try {return http.get(getHttpURL("invalid_url"));}catch(e) { return e.status.toString(); }
-  });
+  test('try {get("invalid_url")}catch(e){}') {||
+    assert.raises({filter: e -> e.status === expected404Status},
+      -> http.get(getHttpURL("no_such_url")));
+  }
 }
 
 context("post") {||
@@ -132,6 +138,11 @@ context("full return objects") {||
   testEq('head request', 'text/plain', function() {
     return http.request("http://code.onilabs.com/apollo/unstable/modules/http.sjs",
                         { method: 'HEAD', response: 'full' }).getHeader('Content-Type');
+  }).skipIf(IE9);
+
+  testEq('get request', true, function() {
+    return http.request("http://code.onilabs.com/apollo/unstable/modules/http.sjs",
+                        { method: 'GET', response: 'full' }).content.length > 0;
   });
 }
 
