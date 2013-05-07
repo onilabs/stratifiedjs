@@ -32,11 +32,97 @@
 
 /**
    @module  test/runner
-   @summary Functions for collecting and running test suites
+   @summary Test suite runner
    @home    sjs:test/runner
-*/
+   @desc
+    The only function you should generally need to use from this module is [::run]. Its
+    purpose is to be the entry point for a "test script" that will run your project's
+    automated test suite. This will select a reporter appropiate for the current
+    runtime, parse command line options, and run all of your tests.
 
-// TODO: (tjc) document
+    Since you will generally want to run your test suite in both the console and the browser,
+    you will most likely want to make your test script a valid HTML file. For example:
+
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>My test suite</title>
+            <!--[if lt IE 8]>
+              <script src="//cdnjs.cloudflare.com/ajax/libs/json2/20121008/json2.js"></script>
+            <![endif]-->
+            <script src="../oni-apollo.js"></script>
+            <script type="text/sjs">
+              require("sjs:test/runner").run({
+                moduleList: "./index.txt",
+                base: module.id,
+              });
+            </script>
+          </head>
+        </html>
+
+    To run tests in your browser, just load this file in a browser. Note that due to security
+    settings in most browsers, you will need to serve it via a server (any server that
+    can serve files should do - apache, WEBrick, SimpleHTTPServer, etc).
+
+    In addition, the nodejs runner has rudimentary support for .html files. If you pass a .html
+    file to the `apollo` command-line tool, it'll strip out anything inside a
+    `<script type="text/sjs">` block and run that as if it were a plain `.sjs` file. So you
+    can run your tests in nodejs with this same file, using e.g:
+    
+        `apollo ./test/run.html`
+
+    ## Command-line arguments
+
+    In both nodejs and the browser, you can control the runner's operation by passing
+    command-line arguments. These are taken from `process.argv` on nodejs, and by parsing
+    `document.location` as a POSIX-shell format argument list on the browser.
+    The format should be the same in both cases, e.g:
+
+        # command line
+        apollo test/run.html --no-logcapture 'foo-tests:My first test'
+
+        # browser address
+        http://localhost:7070/test/run.html#--no-logcapture 'foo-tests:My first test'
+
+    Technically, the above browser address should be property url-encoded, like so:
+
+        http://localhost:7070/test/run.html#--no-logcapture%20%27foo-tests%3AMy%20first%20test%27
+
+    But for convenient interactive use, most browsers will accept unescaped characters
+    after the hash.
+
+    ## Available command-line options
+
+    Some of these options can be given explicit defaults by passing options into [::run].
+    In all cases, a present command-line option overrides any default supplied to [::run].
+
+    You can also just pass `--help` to your runner to print this help text:
+
+        Usage: [options] [testspec [...]]
+
+        Testspec formats:
+        - path/to/test.sjs
+        - path/to/test.sjs:text
+        - :text
+
+        (a test will match if `text` appears anywhere in its context + test description)
+
+        Options:
+
+            --color=ARG        Terminal colors (on|off|auto)
+            --logcapture       Enable log capture during running tests
+            --no-logcapture    Disable log capture during running tests
+            --loglevel=ARG     Set the log level (DEBUG|ERROR|INFO|VERBOSE|WARN)
+            --skipped          Just report skipped tests (don't run anything)
+            -l, --list         Print out all full test names and then exit
+            --timeout=NUM      Set the default test timeout (in seconds, 0 to disable)
+            --ignore-leaks     Skip checking for leaked global variables
+            -f, --show-failed  Print only failed (or skipped) tests
+            -a, --show-all     Print all tests
+            -b, --bail         Exit immediately after the first failure
+            --debug            Set logLevel=DEBUG before test runner begins
+            -h, --help         Print this help
+*/
 
 // import deps in parallel, as roundtrips affect browser startup time significantly.
 waitfor {
@@ -66,6 +152,23 @@ waitfor {
 
 var NullRporter = {};
   
+/**
+  @class Runner
+  @summary Test suite runner / collector
+  @desc
+    This class is for advanced usage only - most
+    users of this module should just use the [::run] function.
+
+  @function Runner
+  @param {optional Object} [settings]
+  @summary Create a runner object
+  @desc
+    Settings can either be `compiled` (the output of [::getRunOpts],
+    or plain (in which case they will automatically be passed
+    to [::getRunOpts] with empty `args`.
+
+    See [::run] for available settings.
+*/
 var Runner = exports.Runner = function(opts) {
   if (!(opts instanceof CompiledOptions)) {
     // build opts with no additional context
@@ -104,8 +207,16 @@ Runner.prototype.loadModules = function(modules, base) {
   }
 }
 
-Runner.prototype.loadAll = function(opts) {
+/**
+  @function Runner.loadAll
+  @summary Load all test modules
+  @desc
+    The list of modules to load is taken from
+    `opts.moduleList` or `opts.modules`.
+*/
+Runner.prototype.loadAll = function() {
   var modules;
+  var opts = this.opts;
   if (!opts.base) {
     throw new Error("opts.base not defined");
   }
@@ -120,6 +231,7 @@ Runner.prototype.loadAll = function(opts) {
   this.loadModules(modules, opts.base);
 }
 
+// Used by `./suite`
 Runner.prototype.withContext = function(ctx, fn) {
   var existing_contexts = this.active_contexts.slice();
   this.active_contexts.push(ctx);
@@ -134,6 +246,7 @@ Runner.prototype.withContext = function(ctx, fn) {
   }
 };
 
+// Used by `./suite`
 Runner.prototype.currentContext = function() {
   if(this.active_contexts.length < 1) {
     throw new Error("there is no active test context");
@@ -141,6 +254,16 @@ Runner.prototype.currentContext = function() {
   return this.active_contexts[this.active_contexts.length-1];
 }
 
+/**
+  @function Runner.context
+  @summary Create a top-level context
+  @param {String} [desc] Description
+  @param {Function} [fn] Block
+  @desc
+    This function acts much like [suite::context],
+    but allows defining tests directly on a `Runner`
+    instance rather than having tests in a separate module.
+*/
 Runner.prototype.context = function(desc, fn) {
   var ctx = new suite.context.Cls(desc, fn);
   this.root_contexts.push(ctx);
@@ -163,6 +286,14 @@ Runner.prototype.loadModule = function(module_name, base) {
   this.root_contexts.push(ctx);
 };
 
+/**
+  @function Runner.run
+  @summary Run all tests
+  @param {optional Object} [reporter] Reporter
+  @return {::Results}
+  @desc
+    If `reporter` is given, it overrides `opts.reporter`.
+*/
 Runner.prototype.run = function(reporter) {
   var opts = this.opts;
   // use `reporter.run` if no reporter func given explicitly
@@ -355,6 +486,42 @@ Runner.prototype.run = function(reporter) {
   return results;
 }
 
+/**
+  @class TestResult
+  @summary The result of a single test run
+  @desc
+    Instances of this class are created by [::Runner], you should
+    not need to create them yourself.
+
+  @constructor TestResult
+  @param {test/suite:Test} [test]
+
+  @variable TestResult.test
+  @summary The test
+
+  @variable TestResult.desctiption
+  @summary The test description
+
+  @variable TestResult.ok
+  @summary Whether this test result is ok
+  @desc
+    Skipped and Passed tests are considered "ok", Failed tests are not.
+
+  @variable TestResult.passed
+  @summary Whether this test passed
+
+  @variable TestResult.failed
+  @summary Whether this test failed
+
+  @variable TestResult.skipped
+  @summary Whether this test was skipped
+
+  @variable TestResult.reason
+  @summary The reason given for skipping this test
+  @desc
+    If this test was not skipped (or no `reason` was given to [suite::Test::skip]),
+    `reason` will be `undefined`.
+*/
 var TestResult = exports.TestResult = function(test) {
   this.test = test;
   this.description = test.description;
@@ -381,8 +548,42 @@ TestResult.prototype.skip = function(reason) {
   this._complete({ok: true, passed: false, skipped: true, reason: reason});
 }
 
+
+/**
+  @class Results
+  @summary The result of an test suite run
+  @desc
+    Instances of this class are created by [::Runner], you should
+    not need to create them yourself.
+
+  @constructor Results
+  @param {Function} [report]
+  @param {Number} [total]
+
+  @variable Results.passed
+  @summary Number of passed tests
+
+  @variable Results.failed
+  @summary Number of failed tests
+
+  @variable Results.skipped
+  @summary Number of skipped tests
+
+  @variable Results.total
+  @summary Total number of expected tests
+  @desc
+    This is set on instance initialization to the number
+    of tests we expect to run. If there are errors, the
+    number of tests actually run may be less than this.
+
+  @variable Results.duration
+  @summary Duration of this test run (in milliseconds)
+  @desc
+    This is only set once all tests have completed
+
+*/
 var Results = exports.Results = function(report, total) {
-  this.succeeded = 0;
+  this.passed = 0;
   this.failed = 0;
   this.skipped = 0;
   this.total = total;
@@ -396,6 +597,18 @@ var Results = exports.Results = function(report, total) {
 
 Results.INSTANCES = [];
 
+/**
+  @function Results.durationSeconds
+  @summary Return the suite duration in seconds
+  @param {Number} precision
+  @return {Number} Fixed-precision number of seconds
+  @desc
+    Returns a `precision`-digit decimal (e.g "3.14") of the number
+    of seconds this test suite took to run. If `precision` is
+    not given, it defaults to `2`.
+
+    Only returns a useful value once all tests are complete.
+*/
 Results.prototype.durationSeconds = function(precision) {
   if (precision === undefined) precision = 2;
   return (this.duration / 1000).toFixed(precision);
@@ -411,6 +624,17 @@ Results.prototype._uncaughtError = function(err) {
   this.ok = -> false;
 }
 
+/**
+  @function Results.ok
+  @summary whether the entire test run was acceptable
+  @desc
+    Reporters *must* check this value, rather than simply checking
+    for zero failed tests.
+    
+    For example, an uncaught error (from a spawned strata)
+    or from a context's `beforeAll` block will cause the
+    result to be "not ok" despite no specific test having failed.
+*/
 Results.prototype.ok = function() {
   return this.failed == 0;
 }
@@ -427,7 +651,7 @@ Results.prototype._pass = function(result) {
     return this._fail(result, this._currentError)
   }
   result.pass(result);
-  this.succeeded += 1;
+  this.passed += 1;
   this._report('testPassed', result);
 }
 
@@ -437,8 +661,20 @@ Results.prototype._skip = function(result, reason) {
   this._report('testSkipped', result);
 }
 
+/**
+  @function Results.count
+  @summary The number of tests that have run so far
+  @return {Number}
+  @desc
+    This number is always kept up to date (so it can be used
+    to update a progress bar, for example).
+
+    In some curcumstances it may never reach the value of
+    [::Results.total], e.g if errors prevent some tests from
+    even starting.
+*/
 Results.prototype.count = function() {
-  return this.succeeded + this.skipped + this.failed;
+  return this.passed + this.skipped + this.failed;
 }
 
 var CompiledOptions = function(opts) {
@@ -466,6 +702,21 @@ CompiledOptions.prototype = {
   exit       : undefined,
 }
 
+/**
+  @function getRunOpts
+  @summary Combine `opts` and command-line arguments
+  @param {Object} [settings]
+  @param {optional Array} [args] Array of string arguments
+  @desc
+    Like instantiating a [::Runner] instance directly, most users
+    should not need to use this function directly (use [::run] instead).
+
+    If `args` is not given, arguments will be taken from the environment
+    (`process.argv` on node.js, derived from `document.location.hash` in
+    a browser).
+
+    For possible `settings`, see [::run].
+*/
 exports.getRunOpts = function(opts, args) {
   // takes an options object and produces a version with
   // environmental options (from either `args`, process.args or location.hash) taken into account
@@ -508,15 +759,15 @@ exports.getRunOpts = function(opts, args) {
       },
       { name: 'logcapture',
         type: 'bool',
-        help: 'enable log capture during running tests'
+        help: 'Enable log capture during running tests'
       },
       { name: 'no-logcapture',
         type: 'bool',
-        help: 'disable log capture during running tests'
+        help: 'Disable log capture during running tests'
       },
       { name: 'loglevel',
         type: 'string',
-        help: "set the log level (#{logging.levelNames .. object.ownValues .. sort .. join("|")})"
+        help: "Set the log level (#{logging.levelNames .. object.ownValues .. sort .. join("|")})"
       },
       { name: 'skipped',
         type: 'bool',
@@ -528,31 +779,31 @@ exports.getRunOpts = function(opts, args) {
       },
       { name: 'timeout',
         type: 'number',
-        help: 'Set the default test timeout (in seconds). Set to 0 to disable.'
+        help: 'Set the default test timeout (in seconds, 0 to disable)'
       },
       { name: 'ignore-leaks',
         type: 'bool',
-        help: 'skip checking for leaked global variables'
+        help: 'Skip checking for leaked global variables'
       },
       { names: ['show-failed','f'],
         type: 'bool',
-        help: 'print only failed (or skipped) tests'
+        help: 'Print only failed (or skipped) tests'
       },
       { names: ['show-all','a'],
         type: 'bool',
-        help: 'print all tests'
+        help: 'Print all tests'
       },
       { names: ['bail', 'b'],
         type: 'bool',
-        help: "exit immediately after the first failure"
+        help: "Exit immediately after the first failure"
       },
       { names: ['debug'],
         type: 'bool',
-        help: "set logLevel=DEBUG before test runner begins"
+        help: "Set logLevel=DEBUG before test runner begins"
       },
       { names: ['help', 'h'],
         type: 'bool',
-        help: "print this help"
+        help: "Print this help"
       },
     ];
     var parser = dashdash.createParser({options: options});
@@ -671,6 +922,10 @@ Options:
 };
 
 
+/**
+  SuiteFilter is an internal class used for representing
+  parsed command-line filter arguments
+*/
 var CWD = null;
 // In node.js we also allow paths relative to cwd()
 if (sys.hostenv == "nodejs") {
@@ -727,6 +982,13 @@ SuiteFilter.prototype._shouldLoadModule = function(module_path) {
   return this.absolutePaths .. any(p -> absolutePath .. startsWith(p + '/'));
 }
 
+/**
+  build a `testFilter` object from an array of filter specs.
+  the result object has the following methods:
+   - shouldLoadModule(moduleUrl) -> Boolean
+   - shouldRun(test) -> Boolean
+   - unusedFilters() -> Boolean
+*/
 var buildTestFilter = exports._buildTestFilter = function(specs, base, skippedOnly) {
   var always = () -> true;
   var emptyList = () -> [];
@@ -772,11 +1034,57 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base, skippedOn
 }
 
 /**
- * The top-level run function is the main entry point to the test
- * functionality. Users should not need to instantiate Runner objects
- * directly unless they are doing advanced things (like loading multiple
- * test suites).
- */
+  @function run
+  @summary Run a test suite
+  @param {Object} [settings]
+  @param {optinal Array} [args]
+
+  @setting [base] **Required** - the base module URL that all relative module paths are be relative to.
+  @setting [moduleList] A relative path to a text file containing a list of module names (one module per line).
+  @setting [modules] An array of strings, each item being a relative module path.
+  @setting [allowedGlobals] An array of global variable names to ignore in leak checking. Use only as a last resort.
+  @setting [checkLeaks] Whether to fail tests that introduce global variable leaks (default `true`)
+  @setting [color] Use terminal colours: `null` (auto), `true`, or `false` (default `null`).
+  @setting [logCapture] Capture `sjs:logging` calls during tests and display them only for failed tests (default `true`).
+  @setting [logLevel] Set the log level during tests.
+  @setting [reporter] Custom reporter instance.
+  @setting [showAll] Print all test results (default `true`).
+  @setting [skippedOnly] Print skipped tests only.
+  @setting [timeout] Set the default test timeout, in seconds (default `10`).
+  @setting [bail] Stop running tests after the first failure (default `false`).
+  @setting [init] An initialization function which (if given) will be called with the [::Runner] instance as the first argument before any tests are loaded.
+  @setting [exit] Whether to exit the process with an appropriate status code after the test run (prevents useless stacktrace output).
+  @desc
+    This is the function used to configure and run an entire test suite.
+    It is designed to be called from your test runner script.
+
+    The only required settings are `base` and either `modules` or `moduleList`.
+
+    ### Example usage:
+
+        require('sjs:test/runner').run({
+          base: module.id,
+          modules: [
+            'foo-tests',
+            'bar-tests',
+            'integration/more-tests'
+          ]
+        });
+
+    Alternatively, say you have a module list file at `test-modules.txt` next to your test script with the following contents:
+
+        foo-tests.sjs
+        bar-tests.sjs
+        integration-more-tests.sjs
+
+    This is much easier to generate with a build script than the above inline-version (the .sjs extension is optional). To use
+    it in your test script, it's simply:
+
+        require('sjs:test/runner').run({
+          base: module.id,
+          moduleList: './test-modules.txt',
+        });
+*/
 exports.run = Runner.run = function(opts, args) {
   var exit = opts.exit !== false;
   var _run = function() {

@@ -346,9 +346,9 @@ LogReporterMixins.mixInto(HtmlReporter);
 
 HtmlReporter.prototype.report = function(results) {
   var parts = [];
-  if (results.failed > 0)    parts.push(this.color('red',   "#{results.failed} failed"));
-  if (results.skipped > 0)   parts.push(this.color('cyan',  "#{results.skipped} skipped"));
-  if (results.succeeded > 0) parts.push(this.color('green', "#{results.succeeded} passed"));
+  if (results.failed > 0)  parts.push(this.color('red',   "#{results.failed} failed"));
+  if (results.skipped > 0) parts.push(this.color('cyan',  "#{results.skipped} skipped"));
+  if (results.passed > 0)  parts.push(this.color('green', "#{results.passed} passed"));
   this.print(this.color({attribute: 'bright'}, "Ran #{results.count()} tests. "), false);
   var first = true;
   parts .. each {|part|
@@ -432,9 +432,9 @@ NodejsReporter.prototype.print = function(msg, endl) {
 
 NodejsReporter.prototype.report = function(results) {
   var parts = [];
-  if (results.failed > 0)    parts.push(this.color('red',   "#{results.failed} failed"));
-  if (results.skipped > 0)   parts.push(this.color('cyan',  "#{results.skipped} skipped"));
-  if (results.succeeded > 0) parts.push(this.color('green', "#{results.succeeded} passed"));
+  if (results.failed > 0)  parts.push(this.color('red',   "#{results.failed} failed"));
+  if (results.skipped > 0) parts.push(this.color('cyan',  "#{results.skipped} skipped"));
+  if (results.passed > 0)  parts.push(this.color('green', "#{results.passed} passed"));
   var durationDesc = this.color({attribute: 'dim'}, "(in #{results.durationSeconds()}s)");
   console.log("Ran #{results.count()} tests. #{parts.join(", ")} #{durationDesc}");
 }

@@ -1,5 +1,11 @@
 @lib     Oni Apollo 'unstable' Standard Module Library - Test Modules
 @summary Automated testing utilities
+@desc
+  For running tests, see [runner::]. For defining test cases, see
+  [suite::].
+
+  An appropriate reporter from the [reporter::] module will be used
+  automatically (you should not need to use it directly).
 
 @module runner          Test suite runner
 @module reporter        Test suite reporters for each environment

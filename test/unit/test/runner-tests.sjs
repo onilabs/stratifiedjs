@@ -466,7 +466,7 @@ context("uncaught exceptions") {||
     logging.info("runner finished");
     results.ok() .. assert.notOk();
     watcher.results[0].ok .. assert.ok("first test not ok!");
-    watcher.results[1].ok .. assert.notOk("second test succeeded!");
+    watcher.results[1].ok .. assert.notOk("second test passed!");
   }
 
   test("fail the suite even if there is no test to fail") {||

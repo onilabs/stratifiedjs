@@ -40,7 +40,7 @@ var check = function(actual, expected, desc) {
 logging.debug(`got result: ${suite_result}`);
 check(suite_result.ok(), false, "result.ok()");
 check(suite_result.count(), 7, "result.count()");
-check(suite_result.succeeded, 1, "result.succeeded");
+check(suite_result.passed, 1, "result.passed");
 check(suite_result.failed, 3, "result.failed");
 check(suite_result.skipped, 3, "result.skipped");
 
