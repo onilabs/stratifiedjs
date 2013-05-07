@@ -66,7 +66,7 @@ ConsoleBuffer.prototype.drain = function() {
   this.reset();
 }
 
-var formatLogArgs = function(args) {
+var formatLogArgs = exports._formatLogArgs = function(args) {
   if (args.length == 0 ) return '';
   var msg = args[0];
   if (args.length > 1) {
@@ -93,30 +93,23 @@ var repeatStr = function(str, levels) {
   return new Array(levels+1).join(str);
 }
   
-LogReporterMixins = {
+var ReporterMixins = {
   init: function(opts) {
     this.opts = opts;
     if (opts.logCapture) {
       this.logCapture = new ConsoleBuffer();
     }
-
-    this.activeContexts = [];
-    this.printedContexts = [];
-    
-    this.quiet = !opts.showAll;
-
-    this.indent = '  ';
-    this.updateIndent(0);
     this.failures = [];
-  },
-
-  loading: function(module) {
-    if (this.opts.listOnly) return;
-    this.print(this.color({attribute: 'dim'}, " [ loading #{module} ]"));
   },
 
   listTest: function(test) {
     console.log(test.fullDescription());
+  },
+
+  formatSkip: function(reason) {
+    var msg = "SKIP";
+    if (reason) msg = "#{msg} (#{reason})"
+    return msg;
   },
 
   suiteBegin: function(results) {
@@ -124,14 +117,44 @@ LogReporterMixins = {
       this.originalConsole = logging.getConsole();
       logging.setConsole(this.logCapture);
     }
-    this.updateIndent(0);
   },
 
   suiteEnd: function(results) {
     if (this.logCapture) {
-      this.logCapture.drain();
       logging.setConsole(this.originalConsole);
+      this.logCapture.drain();
     }
+  },
+
+  mixInto: function (cls) {
+    this .. object.ownKeys .. each { |k|
+      if (k == 'mixInto') continue;
+      cls.prototype[k] = fnseq(this[k], cls.prototype[k]);
+    }
+  },
+}
+
+var LogReporterMixins = {
+  init: function(opts) {
+    this.activeContexts = [];
+    this.printedContexts = [];
+    
+    this.quiet = !opts.showAll;
+
+    this.indent = '  ';
+    this.updateIndent(0);
+  },
+
+  loading: function(module) {
+    if (this.opts.listOnly) return;
+    this.print(this.color({attribute: 'dim'}, " [ loading #{module} ]"));
+  },
+
+  suiteBegin: function(results) {
+    this.updateIndent(0);
+  },
+
+  suiteEnd: function(results) {
     this.updateIndent(0);
     this.print();
     var ok = results.ok();
@@ -209,9 +232,7 @@ LogReporterMixins = {
   },
 
   printSkip: function(reason) {
-    var msg = "SKIP";
-    if (reason) msg = "#{msg} (#{reason})"
-    this.print(this.color('blue', msg));
+    this.print(this.color('blue', this.formatSkip(reason)));
   },
 
   printPendingContexts: function() {
@@ -244,8 +265,9 @@ LogReporterMixins = {
   mixInto: function (cls) {
     this .. object.ownKeys .. each { |k|
       if (k == 'mixInto') continue;
-      cls.prototype[k] = fnseq(cls.prototype[k], this[k]);
+      cls.prototype[k] = fnseq(this[k], cls.prototype[k]);
     }
+    ReporterMixins.mixInto(cls);
   },
 };
 
@@ -258,6 +280,15 @@ var HtmlOutput = exports.HtmlOutput = function() {
 }
 HtmlOutput.instance = null;
 HtmlOutput.elementId = 'console-output';
+
+// Static init method, sets global `console` variable
+HtmlOutput.init = function() {
+  if (!document.getElementById(this.elementId)) {
+    var instance = this.instance = new this();
+    // TODO: should we make this configurable?
+    sys.getGlobal().console = instance;
+  }
+}
 
 HtmlOutput.prototype.prepareStyles = function() {
   var css = "
@@ -384,6 +415,67 @@ HtmlReporter.prototype.linkToTest = function(testId, inline) {
   this.print(elem);
 }
 
+/** Karma Reporter **/
+var KarmaReporter = exports.KarmaReporter = function() {
+  this.init.apply(this, arguments);
+}
+
+KarmaReporter.prototype.init = function(opts) {
+  this.ctx = window.__karma__;
+}
+
+KarmaReporter.prototype.suiteBegin = function(results) {
+  this.ctx.info({total:results.total});
+};
+
+KarmaReporter.prototype.suiteEnd = function(results) {
+  if (!results.ok()) {
+    throw new Error();
+  }
+};
+
+KarmaReporter.prototype.testBegin = function(result) {
+  if (this.logCapture) this.logCapture.drain();
+  this.testStartTime = new Date();
+}
+
+KarmaReporter.prototype.testEnd = function(result) {
+  var fullDescription = result.test.fullDescription();
+  var report = {
+    description: fullDescription,
+    suite: [],
+    success: result.ok,
+    time: new Date().getTime() - this.testStartTime.getTime(),
+    log: []
+  };
+  if (result.skipped) {
+    report.log = this.formatSkip(result.test.skipReason).split("\n");
+  } else if (result.ok) {
+    // noop
+  } else {
+    this.failures.push(result);
+    var log = ["# " + this.linkToTest(fullDescription)];
+    log = log.concat(String(result.error).split("\n"));
+    if (this.logCapture && this.logCapture.messages.length > 0) {
+      log.push('-- Captured logging ---');
+      log = log.concat(this.logCapture.messages);
+    }
+    report.log = log;
+  }
+  this.ctx.result(report);
+
+  if (this.logCapture) this.logCapture.reset();
+};
+
+KarmaReporter.prototype.linkToTest = function(testId) {
+  return shell_quote.quote([testId]);
+}
+
+
+ReporterMixins.mixInto(KarmaReporter);
+
+
+/** NodeJS Reporter **/
 
 var NodejsReporter = exports.NodejsReporter = function() {
   this.init.apply(this, arguments);
@@ -449,18 +541,21 @@ var INITIALIZED = false;
 switch(sys.hostenv) {
   case "xbrowser":
     dom = require('../xbrowser/dom');
-    exports.DefaultReporter = HtmlReporter;
 
+    var consoleCls = null;
+    if (Object.prototype.hasOwnProperty.call(window, '__karma__')) {
+      exports.DefaultReporter = KarmaReporter;
+    } else {
+      exports.DefaultReporter = HtmlReporter;
+      consoleCls = HtmlOutput;
+    }
+
+    var onHashChange = -> window.location.reload();
     exports.init = function() {
       if (INITIALIZED) return;
       INITIALIZED = true;
-      window .. dom.addListener("hashchange", -> window.location.reload(), false);
-      var cls = exports.HtmlOutput;
-      if (!document.getElementById(cls.elementId)) {
-        var instance = cls.instance = new cls();
-        // TODO: should we make this configurable?
-        sys.getGlobal().console = instance;
-      }
+      window .. dom.addListener("hashchange", onHashChange, false);
+      consoleCls && consoleCls.init();
     }
 
     break;
