@@ -409,10 +409,10 @@ Parser.prototype.parse = function parse(inputs) {
             }
 
         // Short option
-        } else if (arg[0] === '-' && arg.length > 1) {
+        } else if (arg.charAt(0) === '-' && arg.length > 1) {
             var j = 1;
             while (j < arg.length) {
-                var name = arg[j];
+                var name = arg.charAt(j);
                 var val = arg.slice(j + 1);  // option val if it takes an arg
                 // debug('name: %s (val: %s)', name, val)
                 var option = this.optionFromName[name];
@@ -627,7 +627,7 @@ function createParser(config) {
  *      `dashdash.Parser` and `dashdash.Parser.parse`: options, interspersed,
  *      argv, env, slice.
  */
-function parse(config) {
+var parse = exports.parse = function parse(config) {
     assert.object(config, 'config');
     assert.optionalArrayOfString(config.argv, 'config.argv');
     assert.optionalObject(config.env, 'config.env');

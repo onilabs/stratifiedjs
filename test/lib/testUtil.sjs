@@ -43,7 +43,7 @@ exports.testFn = function(ctx /* optional */, method, args, expected) {
   var args_desc = args .. seq.map(JSON.stringify) .. seq.join(", ");
   var desc = method ? "#{method}(#{args_desc})" : args_desc;
   return suite.test(desc) {||
-    assert.ok(fn.apply(ctx, args), expected);
+    assert.eq(fn.apply(ctx, args), expected);
   }
 }
 

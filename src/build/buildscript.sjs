@@ -33,6 +33,7 @@ function build_deps() {
                                                   "modules/dashdash.sjs",
                                                   "modules/shell-quote.sjs",
                                                   "tmp/version_stamp",
+                                                  "test/unit/dashdash-tests.sjs",
                                                   "test/_index.txt"]);
 
   PSEUDO("compiler");
@@ -204,6 +205,14 @@ function build_deps() {
         ["src/deps/dashdash/apollo-module-header.txt",
          "src/deps/dashdash/lib/dashdash.js",
          "src/deps/dashdash/apollo-module-footer.txt"]
+       );
+
+  // dashdash tests
+  BUILD("test/unit/dashdash-tests.sjs",
+        ["cat $0 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/dashdash/test/basics.test.js"]
        );
 
   // shell-quote module

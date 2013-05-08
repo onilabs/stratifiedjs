@@ -3,6 +3,7 @@
 unit/array-tests.sjs
 unit/assert-tests.sjs
 unit/cutil-tests.sjs
+unit/dashdash-tests.sjs
 unit/debug-tests.sjs
 unit/function-tests.sjs
 unit/http-tests.sjs
@@ -14,6 +15,7 @@ unit/object-tests.sjs
 unit/quasi-tests.sjs
 unit/require-tests.sjs
 unit/sequence-tests.sjs
+unit/shell-quote-tests.sjs
 unit/sjcl-tests.sjs
 unit/sjs-2-tests.sjs
 unit/sjs-tests.sjs

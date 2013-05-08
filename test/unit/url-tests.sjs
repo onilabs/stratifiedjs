@@ -29,7 +29,6 @@ context("normalize URL") {||
   testFn(url, 'normalize', ["././foo/./bar.txt", "http://a.b/c/d/"], "http://a.b/c/d/foo/bar.txt");
   testFn(url, 'normalize', [".././foo/../bar.txt", "http://a.b/c/d/"], "http://a.b/c/bar.txt");
   testFn(url, 'normalize', ["foo/bar.txt", "http://www.noendingslash"], "http://www.noendingslash/foo/bar.txt");
-  testFn(url, 'normalize', [], "");
 }
 
 context("toPath") {||
