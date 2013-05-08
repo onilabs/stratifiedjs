@@ -3,6 +3,11 @@ var testEq = testUtil.test;
 var str = require('sjs:string');
 var {test, context, assert} = require('sjs:test/suite');
 
+context("isString") {||
+  test("on primitive", -> assert.ok(str.isString("str!")));
+  test("on object", -> assert.ok(str.isString(new String("str!"))));
+}
+
 testEq('utf16ToUtf8', 'c692', function() {
   // f with hook = U+0192 = c6 92 in utf-8
   var utf16 = '\u0192';

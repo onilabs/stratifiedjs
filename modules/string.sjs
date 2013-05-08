@@ -42,7 +42,7 @@
    @return  {Boolean}
 */
 function isString(obj) {
-  return typeof obj == 'string';
+  return typeof obj == 'string' || obj instanceof String;
 }
 exports.isString = isString;
 
