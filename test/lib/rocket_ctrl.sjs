@@ -1,4 +1,5 @@
 var util = require('util');
+var object = require('sjs:object');
 var logging = require('sjs:logging');
 var http = require('sjs:http');
 var path = require('path');
@@ -19,18 +20,26 @@ var isRunning = exports.isRunning = function(port) {
   }
 };
 
-var run = exports.run = function(port) {
+var run = exports.run = function(port, opts) {
   var child_process = require("sjs:nodejs/child-process");
+  opts = opts || {};
   // Point $APOLLO_ROCKET to a stable implementation if you have broken rocket but
   // still want to run the rest of the tests:
   var basedir = module.id .. url.toPath() .. path.join("../../../") .. path.resolve();
   logging.verbose("rocket basedir: #{basedir}");
   var rocket_exe = process.env['APOLLO_ROCKET'] || basedir .. path.join("rocket");
+
+  var args = ['--port', port];
+  if ('args' in opts) {
+    args = args.concat(opts.args);
+    delete opts.args;
+  }
+
   try {
-    child_process.run(rocket_exe, ['--port', port], {
+    child_process.run(rocket_exe, args, object.merge(opts, {
       cwd: basedir,
       customFds: [-1, -1, 2]
-    });
+    }));
   } catch(e) {
     throw new Error(supplant(
       "Rocket died: {message}\nstdout:{stdout}\nstderr:{stderr}", e));
@@ -51,7 +60,12 @@ var waitUntilRunning = exports.waitUntilRunning = function(port) {
   }
 };
 
-var withRocket = exports.withRocket = function(port, block) {
+var withRocket = exports.withRocket = function(port, opts, block) {
+  if (arguments.length == 2) {
+    [port, block] = arguments;
+    opts = undefined;
+  }
+
   if (exports.isRunning(port)) {
     logging.verbose("Reusing existing rocket on port #{port}");
     return block();
@@ -59,7 +73,7 @@ var withRocket = exports.withRocket = function(port, block) {
 
   waitfor {
     logging.verbose("Launching rocket on port #{port}");
-    exports.run(port);
+    exports.run(port, opts);
   } or {
     exports.waitUntilRunning(port);
     block();
