@@ -46,9 +46,45 @@
   @home      sjs:shell-quote
   @desc
              This module tracks the [node-shell-quote](https://github.com/substack/node-shell-quote) library by James Halliday.
-*/
 
-// TODO: (tjc) document.
+             It provides methods for parsing a string into multiple arguments, and for
+             encoding an array of arguments into a single string. It uses POSIX-like
+             syntax.
+             
+             **NOTE**: [::quote] is *not guaranteed* to safely sanitize data for use with any
+             specific shell. You should not rely on it for protecting against shell-injection.
+
+  @function quote
+  @param {Array} [args]
+  @return {String}
+  @summary Quote an array of arguments.
+  @desc
+    **NOTE**: this function is *not guaranteed* to safely sanitize data for use with any
+    specific shell. You should not rely on it for protecting against shell-injection.
+    
+    In general, you should not spawn new processes using any shell-like syntax. You should
+    instead use a function that accepts an array of arguments, as passing arguments in
+    this way prevents any chance of shel-injection.
+
+    ### Example:
+
+        console.log(quote([ 'a', 'b c d', '$f', '"g"' ]));
+        // a 'b c d' \$f '"g"'
+
+  @function parse
+  @param {String} [commandLine]
+  @param {optional Object} [env]
+  @return {Array}
+  @summary Parse a string into an array of arguments.
+  @desc
+    if `env` is provided, its values will be used as substitutions for any
+    variable references found.
+
+    ### Example:
+
+        parse('beep --boop="$PWD"', { PWD: '/home/robot' });
+        // --> [ 'beep', '--boop=/home/robot' ]
+*/
 
 /**
   turn off docs from this point onwards:
