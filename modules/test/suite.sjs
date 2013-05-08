@@ -34,16 +34,49 @@
    @module  test/suite
    @summary Functions for defining test suites
    @home    sjs:test/suite
-*/
+   @desc
+      Typically, exports from this module are imported into each test module's scope.
 
-// TODO: (tjc) document
+      ### Example usage:
+
+          var suite = require('sjs:test/suite');
+          var {test, context, assert} = suite;
+
+          context("addition") {||
+            test("one plus one") {||
+              assert.eq(1+1, 2);
+            }
+
+            test("negative result") {||
+              assert.eq(1 + (-9), -8);
+            }
+          }
+
+          context("subtraction") {||
+
+            test.beforeAll {|state|
+              state.subtractor = function(a,b) { return a - b };
+            }
+
+            test("1 - 2") {|state|
+              state.subtractor(1, 2) .. assert.eq(-1);
+            }
+          }.skipIf(suite.isBrowser, "Subtraction is not supported in the browser");
+
+*/
 
 var _runner = null;
 var sys=require('builtin:apollo-sys');
 var object=require('../object');
-var isBrowser = exports.isBrowser = sys.hostenv == "xbrowser";
 var logging = require("sjs:logging");
 var { each, filter } = require('../sequence');
+
+
+/**
+  @variable isBrowser
+  @summary whether the suite is being run in a browser
+*/
+var isBrowser = exports.isBrowser = sys.hostenv == "xbrowser";
 
 var getRunner = function() {
   if (_runner == null) throw new Error("no active runner");
@@ -65,6 +98,22 @@ exports._withRunner = function(runner, fn) {
   }
 }
 
+/**
+  @function context
+  @param {String} [desc] Context description
+  @return {::Context}
+  @summary Create and return a new test context.
+  @desc
+    A context is a way to group tests on a smaller scale
+    than at the module level. Any modifiers applied to the
+    context will be applied to each test.
+
+    If `desc` is not provided, the default reporters will not
+    print the context or indent its children.
+    This is useful if you just want group a set of tests
+    for the sake of applying some common trait (`skip`,
+    `beforeAll`, `timeout`, etc).
+*/
 var context = exports.context = function(desc, fn) {
   if (arguments.length == 1 && typeof(desc == 'function')) {
     fn = desc;
@@ -75,6 +124,27 @@ var context = exports.context = function(desc, fn) {
   return ctx;
 }
 
+/**
+  @function test
+  @param {String} [desc] Test description
+  @param {Function} [block] Test body
+  @return {::Test}
+  @summary Create and return a new test case.
+  @desc
+    The test will pass unless `body` throws an exception.
+    Typically, the body of the test will contain at least one
+    call to an [::assert] function.
+
+    ### Example:
+
+        test("will pass") {||
+          assert.ok(true);
+        }
+
+        test("will fail") {||
+          assert.eq(1, 2, "one doesn't equal two!");
+        }
+*/
 var test = exports.test = function(desc, fn) {
   var ctx = currentContext();
   var test = new Test(desc, fn, ctx);
@@ -82,19 +152,52 @@ var test = exports.test = function(desc, fn) {
   return test;
 }
 // extend `test` with context-related methods
+
+/**
+  @function test.beforeAll
+  @param {Function} [block]
+  @summary Run an action before any of this context's tests (or child contexts) are run
+*/
 test.beforeAll = function(f) {
   currentContext().hooks.before.all.push(f);
 };
+
+/**
+  @function test.beforeEach
+  @param {Function} [block]
+  @summary Run an action before each of this context's tests are run
+  @desc
+    Before every test is run, the `beforeEach` actions of *all* of its containing
+    contexts are run (starting with the outermost context).
+*/
 test.beforeEach = function(f) {
   currentContext().hooks.before.each.push(f);
 };
+
+/**
+  @function test.afterAll
+  @param {Function} [block]
+  @summary Run an action after all of this context's tests (and child contexts) are run
+*/
 test.afterAll = function(f) {
   currentContext().hooks.after.all.push(f);
 };
+
+/**
+  @function test.afterEach
+  @param {Function} [block]
+  @summary Run an action after each of this context's tests are run
+  @desc
+    After each test is run (regardless of its success), the `afterEach` actions of *all* of its containing
+    contexts are run (starting with the innermost context).
+*/
 test.afterEach = function(f) {
   currentContext().hooks.after.each.push(f);
 };
 
+// Helper for properties that, if not defined
+// on the current instance, can be inherited
+// from their containing context (recursively)
 function inheritedProperty(name, defaultValue) {
   var fn = function() {
     if (this[name] !== undefined) return this[name];
@@ -150,6 +253,54 @@ var addMetaFunctions = function(cls) {
   object.extend(cls.prototype, MetaMixins);
 }
 
+/**
+  @class Context
+  @summary Return value from [::context]
+  @desc
+    The methods on this object do exactly the same as
+    those on [::Test], but the settings they affect are
+    inherited by all tests inside this context, instead of
+    just a single test. See [::Test] for the documentation
+    on what these methods do.
+
+    The only exception is the `skip*` methods, which act slightly
+    differently: the body (block) of any skipped context will never
+    even be executed, which means that its child tests won't
+    be reported. This is so that you can guard
+    environment-specific code via `skip` declarations. e.g:
+
+        context("server stuff") {||
+          var fs = require("sjs:nodejs/fs");
+          test("fs.read()") {||
+            // ...
+          }
+        }.serverOnly();
+
+    When this suite is loaded in the browser, the outer context
+    prevents the `require('sjs:nodejs/fs')` line from ever
+    executing (it would throw an exception if it were executed
+    in a browser).
+
+
+  @function Context.skip
+  @param {optional String} [reason]
+
+  @function Context.skipIf
+  @param {Boolean} [condition]
+  @param {optional String} [reason]
+
+  @function Context.browserOnly
+  @param {optional String} [reason]
+
+  @function Context.serverOnly
+  @param {optional String} [reason]
+
+  @function Context.ignoreLeaks
+  @param {Array|String ...} [globals] Variable names
+
+  @function Context.timeout
+  @param {Number} [seconds]
+*/
 var Context = context.Cls = function(desc, body, module_name) {
   this._module = module_name;
   this.parent = null;
@@ -244,6 +395,46 @@ var runAllHooks = function(hook_type, hooks, state, first_error) {
   if (first_error) throw first_error;
 }
 
+
+/**
+  @class Test
+  @summary Return value from [::test]
+
+  @function Test.skip
+  @param {optional String} [reason]
+  @summary Unconditionally skip this test.
+
+  @function Test.skipIf
+  @param {Boolean} [condition]
+  @param {optional String} [reason]
+  @summary Skip this test only if `condition` is truthy..
+
+  @function Test.browserOnly
+  @param {optional String} [reason]
+  @summary Shortcut for `skipIf(!isBrowser, reason)`
+
+  @function Test.serverOnly
+  @param {optional String} [reason]
+  @summary Shortcut for `skipIf(isBrowser, reason)`
+
+  @function Test.ignoreLeaks
+  @param {Array|String ...} [globals] Variable names
+  @summary Ignore specific leaked global variables from tests in this context.
+  @desc
+    Use this function when you cannot prevent a test from creating
+    one or more global variables, but don't want to disable the test runner's
+    global variable leak detection entirely.
+
+    Global variables named in this list that are created during the test will
+    still be removed, but will not cause the test to fail.
+
+    Pass no arguments to ignore *all* globals created by
+    this test. Use only as a last resort.
+
+  @function Test.timeout
+  @param {Number} [seconds]
+  @summary Override the default timeout (in seconds) for this test. Pass `0` to disable.
+*/
 var Test = function(description, body, context) {
   this.description = description;
   this.body = body;
@@ -274,6 +465,17 @@ Test.prototype.fullDescription = function() {
   return this.context.fullDescription() + ":" + this.description;
 }
 
+
+/**
+  @variable assert
+  @summary Alias for the [../assert::] module
+  @desc
+    Since almost all tests will use the [../assert::] module, this
+    module re-exports it so that you can import the basic things
+    you'll need for a test in one line:
+
+        var {test, context, assert} = require('sjs:test/suite');
+*/
 
 exports.assert = require('../assert');
 

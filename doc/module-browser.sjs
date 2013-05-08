@@ -684,7 +684,10 @@ function resolveLink(id, location) {
   if (id.indexOf("::") == -1) return null; // ids we care about contain '::' 
   if (id.charAt(id.length-1) == ':') {
     // link to another module
-    return ["#"+location.path+id.substring(0, id.length-2), id.substring(0, id.length-2)];
+    id = id.substring(0, id.length-2);
+    var desc = id.replace(/^[.\/]*/, ''); // don't print relative path components
+    var target = url.normalize(id, location.path);
+    return ["#"+target, desc];
   }
   else if (id.charAt(0) != ':') {
     // 'absolute' link into another module of our lib

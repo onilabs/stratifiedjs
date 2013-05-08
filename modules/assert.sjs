@@ -215,7 +215,7 @@ exports.catchError = function(fn) {
     See [compare::describeEquals].
 
   @function eq
-  @summary Alias for [::eq]
+  @summary Alias for [::equal]
 */
 exports.eq = exports.equal = function(actual, expected, desc) {
   var [eq, difference] = compare.describeEquals(actual, expected);
