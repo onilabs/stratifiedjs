@@ -1,4 +1,4 @@
-var testEq = require('../lib/testUtil').test;
+var {test: testEq, testFn} = require('../lib/testUtil');
 var o = require("sjs:object");
 var {sort, toArray} = require("sjs:sequence");
 var {test, assert, context} = require('sjs:test/suite');
@@ -58,7 +58,7 @@ testEq("merge multiple array arguments", {"a":1, "0": {"b":2}}, function() {
 	return o.merge(a, [b]);
 });
 
-(function() {
+context {||
 	var Obj = function(props) {
 		o.extend(this, props);
 	};
@@ -69,4 +69,51 @@ testEq("merge multiple array arguments", {"a":1, "0": {"b":2}}, function() {
 	testEq("values", ["aye","bee", "cee"], function() { return obj .. o.values() .. sort(); });
 	testEq("ownKeys", ["a","b"], function() { return obj .. o.ownKeys() .. sort(); });
 	testEq("ownValues", ["aye","bee"], function() { return obj .. o.ownValues() .. sort(); });
-})();
+
+	testFn(o, "has", [obj, 'a'], true);
+	testFn(o, "hasOwn", [obj, 'a'], true);
+
+	testFn(o, "has", [obj, 'c'], true);
+	testFn(o, "hasOwn", [obj, 'c'], false);
+
+	context("get()") {||
+		testEq("own key", "aye", -> obj .. o.get('a'));
+		testEq("inherited key", "cee", -> obj .. o.get('c'));
+		test("missing key") {||
+			assert.raises({message: 'Object (object) has no key: d'}, -> obj .. o.get('d'));
+		}
+		testEq("missing key with default", 'default', -> obj .. o.get('d', 'default'));
+		testEq("missing key with undefined default", undefined, -> obj .. o.get('d', undefined));
+	}
+
+	context("getOwn()") {||
+		testEq("own key", "aye", -> obj .. o.getOwn('a'));
+		test("inherited key") {||
+			assert.raises({message: 'Object (object) has no key: c'}, -> obj .. o.getOwn('c'));
+		}
+	}
+
+	context("getPath") {||
+		var noChild = {'parent':{}};
+		var noGrandChild = {'parent':{'child':{}}};
+		var full = {'parent':{'child':{'grandchild':'found'}}};
+
+		testEq("valid path", 'found', -> full .. o.getPath('parent.child.grandchild'));
+
+		test("missing leaf") {||
+			assert.raises({message: "Object (object) has no key: grandchild (traversing: parent.child.grandchild)"},
+				-> noGrandChild .. o.getPath('parent.child.grandchild'));
+		}
+
+		test("missing branch") {||
+			assert.raises({message: "Object (string) has no key: child (traversing: parent.child.grandchild)"},
+				-> {'parent':'child'} .. o.getPath('parent.child.grandchild'));
+		}
+
+		testEq("missing leaf with default", 'default',
+			-> noGrandChild .. o.getPath('parent.child.grandchild', 'default'));
+
+		testEq("missing branch with default", 'default',
+			-> noChild .. o.getPath('parent.child.grandchild', 'default'));
+	}
+}

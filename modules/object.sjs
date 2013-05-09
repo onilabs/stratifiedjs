@@ -38,6 +38,103 @@
 var { each, map, Stream } = require('./sequence');
 var { extendObject, mergeObjects, flatten } = require('builtin:apollo-sys');
 
+var hasProperty = function(k) { return k in this; }
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+var _get = function(guard, args) {
+  var [subject, key, defaultValue] = args;
+  if (guard.call(subject, key)) {
+    return subject[key];
+  } else {
+    if (args.length < 3) {
+      // no defaultValue provided
+      require('sjs:logging').info(subject);
+      throw new Error("Object (#{typeof(subject)}) has no key: " + key);
+    }
+    require('sjs:logging').info('default:', defaultValue);
+    return defaultValue;
+  }
+  require('sjs:logging').info('found:', result);
+  return result;
+};
+
+/**
+  @function get
+  @param {Object} [subject]
+  @param {String} [prop]
+  @param {optional Object} [default]
+  @return {Object}
+  @summary Get a named property from an object.
+  @desc
+    Similar to accessing `subject[prop]`, except when the
+    property does not exist on the subject:
+
+    * returns `default` (if provided)
+    * otherwise, throws an error
+    
+    For accessing only "own" properties (i.e. ignoring
+    inherited properties), use [::getOwn].
+*/
+exports.get = function(subject, key, defaultValue) {
+  require('sjs:logging').info("getting: -> #{key}");
+  return _get(hasProperty, arguments);
+};
+
+/**
+  @function getOwn
+  @param {Object} [subject]
+  @param {String} [prop]
+  @param {optional Object} [default]
+  @return {Object}
+  @summary Get a named own property from an object.
+  @desc
+    Like [::get], but ignores inherited properties on `subject`.
+*/
+exports.getOwn = function(subject, key, defaultValue) {
+  return _get(hasOwnProperty, arguments);
+};
+
+(function() {
+  var sentinel = {};
+  exports.getPath = function(subject, path, defaultValue) {
+    var hasDefault = (arguments.length == 3);
+    var parts = path.split(".");
+    var obj = subject;
+
+    try {
+      if (hasDefault) {
+        for (var i=0; i<parts.length; i++) {
+          obj = exports.get(obj, parts[i], sentinel);
+          if (obj === sentinel) return defaultValue;
+        }
+      } else {
+        for (var i=0; i<parts.length; i++) {
+          obj = exports.get(obj, parts[i]);
+        }
+      }
+    } catch(e) {
+      throw new Error("#{e.message} (traversing: #{path})");
+    }
+    return obj;
+  };
+})();
+
+/**
+  @function has
+  @param {Object} [subject]
+  @param {String} [prop]
+  @return {Boolean}
+  @summary Return whether the given object has a property named `prop`.
+
+  @function hasOwn
+  @param {Object} [subject]
+  @param {String} [prop]
+  @return {Boolean}
+  @summary Return whether the given object has a non-inherited property named `prop`.
+*/
+exports.has = function(subject, key) { return hasProperty.call(subject, key); }
+exports.hasOwn = function(subject, key) { return hasOwnProperty.call(subject, key); }
+
 /**
    @function keys
    @param {Object} [obj]
@@ -64,7 +161,7 @@ exports.keys = keys;
        See also [::keys].
 */
 function ownKeys(obj) {  
-  return Stream(function(r) { for (var p in obj) { if (Object.prototype.hasOwnProperty.call(obj, p)) r(p) } });
+  return Stream(function(r) { for (var p in obj) { if (hasOwnProperty.call(obj, p)) r(p) } });
 }
 exports.ownKeys = ownKeys;
 
@@ -211,3 +308,4 @@ exports.override = function(/*dest, source...*/) {
   }
   return dest;
 };
+
