@@ -8,44 +8,59 @@ var {test, context, assert} = require('sjs:test/suite');
 var {each} = require('sjs:sequence');
 var {remove} = require('sjs:array');
 
-testEq('default format', 'DEBUG: msg', function() {
-  return logging.formatMessage(logging.DEBUG, 'msg');
-});
+test('default format') {||
+  logging.formatMessage(logging.DEBUG, ['msg']) .. assert.eq(['DEBUG:', 'msg'])
+};
 
-testEq('value substitution (/ string interpolation)', 'INFO: hello world', function() {
-  var who = "world";
-  return logging.formatMessage(logging.INFO, "hello #{who}");
+testEq("formatting quasis", ["INFO:", "Hello " + require("sjs:debug").inspect({'subject':'world'})], function() {
+  var obj = {subject: "world"};
+  return logging.formatMessage(logging.INFO, [`Hello ${obj}`]);
 });
+  
 
-testEq('print all log levels and revert', logging.getLevel(), function() {
-  logging.print(' ------ test output: ----');
+test('print all log levels and revert') {||
+  var messages = [];
+  var initial = {
+    level: logging.getLevel(),
+    console: logging.getConsole(),
+    fmt: logging.getFormatter(),
+  };
+  
+  var console = {
+    log: -> messages.push(Array.prototype.slice.call(arguments)),
+  }
+  var fmt = (rec) -> ['(test)', rec.level + ':'].concat(rec.args);
+
   using(logging.logContext({
     level: logging.DEBUG,
-    format: ' (test) {level}: {message}'
+    console: console,
+    formatter: fmt
   })) {
+    assert.eq(logging.getLevel(), logging.DEBUG);
+    assert.eq(logging.getConsole(), console);
+    assert.eq(logging.getFormatter(), fmt);
     logging.debug('debug');
     logging.verbose('verbose');
     logging.info('info');
     logging.warn('warn');
-    logging.error('error with JSON object: ', {error: "some error!"});
+    logging.error('message and', `quasi with ${'string'} and ${ {object:true} }`);
+    logging.error('error with object:', {error: "some error!"});
+    logging.error({error: "some error!"});
   }
-  return logging.getLevel();
-});
 
-testEq('custom format', 'custom: msg // INFO', function() {
-  using(logging.logContext({format: 'custom: {message} // {level}'})) {
-    return logging.formatMessage(logging.INFO, "msg");
-  }
-});
-
-testEq('defining a custom field function', 'INFO: message!', function() {
-  logging.defineField('excited_message', function() {
-    return this.message + '!';
-  });
-  using(logging.logContext({format: '{level}: {excited_message}'})) {
-    return logging.formatMessage(logging.INFO, 'message');
-  }
-});
+  assert.eq(logging.getLevel(), initial.level);
+  assert.eq(logging.getConsole(), initial.console);
+  assert.eq(logging.getFormatter(), initial.fmt);
+  messages .. assert.eq([
+    ['(test)', 'DEBUG:', 'debug'],
+    ['(test)', 'VERBOSE:', 'verbose'],
+    ['(test)', 'INFO:', 'info'],
+    ['(test)', 'WARN:', 'warn'],
+    ['(test)', 'ERROR:', 'message and', 'quasi with string and { object: true }'],
+    ['(test)', 'ERROR:', 'error with object:', { error: 'some error!' }],
+    ['(test)', 'ERROR:', { error: 'some error!' }],
+  ]);
+};
 
 testEq('enabled levels at INFO', {DEBUG: false, VERBOSE:false, INFO:true, WARN:true, ERROR:true}, function() {
   var levels = ['DEBUG', 'VERBOSE', 'INFO', 'WARN', 'ERROR'];
@@ -78,8 +93,8 @@ context {||
       var c = debug.console({receivelog: receivelog});
       // make a console that records log messages
       c.loggedMessages = [];
-      c.log = function(msg) {
-        this.loggedMessages.push(msg);
+      c.log = function() {
+        this.loggedMessages.push(Array.prototype.slice.call(arguments));
       };
       state.consoles.push(c);
       return c;
@@ -101,18 +116,9 @@ context {||
 
     noLogging..shutdown();
 
-    logging1.loggedMessages .. assert.eq(["INFO: message 1"]);
-    logging2.loggedMessages .. assert.eq(["INFO: message 1", "INFO: message 2"]);
+    logging1.loggedMessages .. assert.eq([['INFO:', 'message 1']]);
+    logging2.loggedMessages .. assert.eq([['INFO:', 'message 1'], ['INFO:', 'message 2']]);
     noLogging.loggedMessages .. assert.eq([]);
   }.browserOnly();
 }
 
-if (testUtil.at_least_IE(8)) {
-  testEq("formatting quasis", "INFO: Hello " + require("sjs:debug").inspect({'subject':'world'}), function() {
-    var obj = {subject: "world"};
-    return logging.formatMessage(logging.INFO, `Hello ${obj}`);
-  });
-} else {
-  testEq("formatting quasis").skip("JSON not available in IE<8");
-}
-  

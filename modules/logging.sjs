@@ -53,8 +53,8 @@
     `log` will be used instead.
 */
 
-var { merge } = require('./object');
-var { supplant } = require('./string');
+var { merge, hasOwn } = require('./object');
+var { supplant, isString } = require('./string');
 var quasi = require('./quasi');
 var sys = require('builtin:apollo-sys');
 var debug = require('./debug');
@@ -100,7 +100,7 @@ for (var i=0; i<levels.length; i++) {
 };
 
 var currentLevel = exports.INFO;
-var currentFormat = "{level}: {message}";
+var currentFormatter = (rec) -> [rec.level + ":"].concat(rec.args);
 
 /**
   @function getLevel
@@ -109,12 +109,7 @@ var currentFormat = "{level}: {message}";
 */
 exports.getLevel = function() { return currentLevel; }
 
-/**
-  @function getFormat
-  @summary Get the current log message format
-  @return {String} [format] the currently active log message format
-*/
-exports.getFormat = function() { return currentFormat; }
+exports.getFormatter = function() { return currentFormatter; }
 
 /**
   @function setLevel
@@ -132,47 +127,48 @@ exports.setLevel = function(lvl) {
 };
 
 /**
-  @function setFormat
-  @param {String} [newFormat] the new format string.
+  @function setFormatter
+  @param {Function} [newFormat] the new formater.
   @summary Set the output format of log messages
   @desc
-    The default format is `"{level}: {message}"`, substitutions
-    will be performed using [string::supplant].
+    A formatter function receives a single argument, `logRecord`.
+    It must return an array. This array will be passes as individual
+    arguments to the underlying console logging function.
 
-    Currently the only keys available for a format to include are
-    `level` and `message`.
+    The fields of the logRecord are:
+
+     * `level`: the level name of the call
+     * `args`: the arguments passed to the log call (an Array)
+
+    You should not perform expansion of non-string objects
+    (e.g using JSON.stringify) unless you have a good reason to - many
+    host `console` objects will show non-string arguments as an interactive
+    widget, which is more useful to the user than a plain JSON dump.
+
+    The default formatter is:
     
-    You can add your own fields using [::defineField]
-*/
-exports.setFormat = function(fmt) {
-  currentFormat = fmt;
-};
+        function(record) {
+          return [record.level + ":"].concat(record.args);
+        }
 
-/**
-  @function defineField
-  @param {String} [name] the field name
-  @param {Function} [fn] the function which will return the field value
-  @summary Define a new custom field to be used in the logging format string
-  @desc
-    After defining a field here, it can be used in [::setFormat].
+    This has the effect of turning a call like `logging.info("test!")`
+    into the output:
 
-    The function cannot be passed arguments, but will be called with `this` as the
-    current set of field values.
-    
-    e.g:
+        INFO: test!
 
-        logging.defineField('excited_message', function() {
-          return this.message + '!!!';
+    You might want to add the date to the end of each call. You could do
+    that using:
+
+        logging.setFormatter(function(record) {
+          return [new Date().toLocaleTimeString(), record.level + ':'].concat(record.args);
         });
-        logging.setFormat('{level}: {excited_message}');
-        logging.info("here goes");
-
-        >>> INFO: here goes!!!
+        
 */
-var customFormatFields = null;
-exports.defineField = function(key, val) {
-  customFormatFields = customFormatFields || {};
-  customFormatFields[key] = val;
+exports.setFormatter = function(fmt) {
+  if (!fmt instanceof Function) throw new Error("formatter must be a function");
+  // TODO: is this check too extreme? It could have side-effects
+  if (!Array.isArray(fmt({args: ['test'], level:'DEBUG'}))) throw new Error("Inavlid formatter (must return an array)");
+  currentFormatter = fmt;
 };
 
 /**
@@ -182,89 +178,104 @@ exports.defineField = function(key, val) {
 */
 exports.isEnabled = function(lvl) { return currentLevel >= lvl; };
 
-exports.formatMessage = function(lvl, message) {
-  if (quasi.isQuasi(message)) {
-    message = quasi.mapQuasi(message, debug.inspect).join("");
+// string arguments are not inspected (for easy concatentation of messages); everything else is.
+var inspect = function(v) {
+   if (isString(v)) return v;
+   return debug.inspect(v);
+}
+
+exports.formatMessage = function(lvl, args) {
+  args = Array.prototype.slice.call(args);
+  for (var i=0; i<args.length; i++) {
+    var message = args[i];
+    if (quasi.isQuasi(message)) {
+      args[i] = quasi.mapQuasi(message, inspect).join("");
+    }
   }
 
   var fields = {
     level: exports.levelNames[lvl],
-    message: message
+    args: args
   };
-  if(customFormatFields) {
-    fields = merge(customFormatFields, fields);
-  }
-  var rv = supplant(currentFormat, fields);
+  var rv = currentFormatter(fields);
   return rv;
 };
 
-exports.log = function(lvl, message, args, preferred_console_method) {
-  if(!message) throw new Error("Please supply both a level and a message");
+exports.log = function(lvl, args, preferred_console_method) {
+  if (!lvl instanceof Number) throw new Error("Not a valid log level: #{lvl}");
   if(!exports.isEnabled(lvl)) return;
-  message = exports.formatMessage(lvl, message);
-  getPrinter(preferred_console_method).apply(null, [message].concat(args));
+  args = exports.formatMessage(lvl, args);
+  getPrinter(preferred_console_method).apply(null, args);
 };
 
 var printfn = function(lvl, preferred_console_method) {
-  return function(message) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    return exports.log(lvl, message, args, preferred_console_method);
+  return function() {
+    return exports.log(lvl, arguments, preferred_console_method);
   }
 };
 
 /**
   @function print
-  @summary  Log the given string to the console, regardless of the current log level.
+  @summary  Print the given message to the console (if defined), regardless
+            of the current log level.
   @desc
-    Does not format the message in any way, unlike other `log` methods.
-  @param    {String} [message]
-  @param    {optional Object} [obj] an optional object to print - see the `obj` paramater in [::debug] for details.
+    Does not format or process its arguments in any way, unlike other `log` methods.
+  @param    {Object ...} [message]
 */
 exports.print = function() { getPrinter('log').apply(null, arguments); };
 
 /**
   @function debug
   @summary  Print the given message to the console when the current log level is DEBUG or higher
-  @param    {String} [message] The message to log
-  @param    {optional Object ...} [args] Any additional objects given to this function will be
-            passed through to the underlying log method.
-            In the node.js environment, these arguments object will be dumped as a JSON string.
-            In a browser, this often shows an expandable view of each object.
+  @param    {Object ...} [message] The objects to log
+  @desc
+    Typically `message` will be a string, but any objects are allowed. The appearance
+    of non-string objects will be up to the underlying `console` method. For example, most browsers
+    will render an interactive widget for Objects.
+
+    If any argument is a [quasi::Quasi] quote, all interpolated objects (except for those that
+    are already strings) will be passed through [debug::inspect]. e.g:
+
+        var name = "Bob"
+        var props = {
+          age: 29,
+          likes: "Ice cream"
+        };
+        logging.info(`Hello, ${name} - what nice properties you have: ${props}`);
+        
+        // prints:
+        // INFO: Hello Bob, what nice properties you have: { age: 29, likes: 'Ice cream' }
 */
 exports.debug = printfn(exports.DEBUG, 'debug');
 
 /**
   @function verbose
   @summary  Print the given message to the console when the current log level is VERBOSE or higher.
-            The arguments are interpreted as for [::debug].
-  @param    {String} [message]
-  @param    {optional Object} [args]
+            See [::debug] for more details.
+  @param    {Object ...} [message]
 */
 exports.verbose = printfn(exports.VERBOSE, 'debug');
 
 /**
   @function info
   @summary  Print the given message to the console when the current log level is INFO or higher.
-            The arguments are interpreted as for [::debug].
-  @param    {String} [message]
-  @param    {optional Object} [args]
+            See [::debug] for more details.
+  @param    {Object ...} [message]
 */
 exports.info = printfn(exports.INFO,'info');
 
 /**
   @function warn
   @summary  Print the given message to the console when the current log level is WARN or higher.
-            The arguments are interpreted as for [::debug].
-  @param    {String} [message]
-  @param    {optional Object} [args]
+            See [::debug] for more details.
+  @param    {Object ...} [message]
 */
 exports.warn = printfn(exports.WARN,'warn');
 /**
   @function error
   @summary  Print the given message to the console when the current log level is ERROR or higher.
-            The arguments are interpreted as for [::debug].
-  @param    {String} [message]
-  @param    {optional Object} [args]
+            See [::debug] for more details.
+  @param    {Object ...} [message]
 */
 exports.error = printfn(exports.ERROR,'error');
 
@@ -284,18 +295,21 @@ exports.error = printfn(exports.ERROR,'error');
         using(logging.logContext({level:logging.WARN}) {
           // some code that logs too much at INFO level
         }
-  @param    {Object} [settings] Settings for the context. Valid keys are `level` and `format`.
+  @param    {Object} [settings] Settings for the context. Valid keys are `level`, `console`, and `formatter`.
 */
 exports.logContext = function(settings) {
   var oldLevel = currentLevel;
-  var oldFormat = currentFormat;
-  exports.setLevel(settings.level || oldLevel);
-  exports.setFormat(settings.format || oldFormat);
+  var oldFormatter = currentFormatter;
+  var oldConsole = consoleOverride;
+  if (settings.level != undefined) exports.setLevel(settings.level);
+  if (settings.formatter != undefined) exports.setFormatter(settings.formatter);
+  if (settings.console != undefined) exports.setConsole(settings.console);
 
   var ret = {
     __finally__: function() {
-      exports.setLevel(oldLevel);
-      exports.setFormat(oldFormat);
+      if (settings.level != undefined) exports.setLevel(oldLevel);
+      if (settings.formatter != undefined) exports.setFormatter(oldFormatter);
+      if (settings.console != undefined) exports.setConsole(oldConsole);
     }
   };
   return ret;
@@ -351,14 +365,8 @@ var getConsole = exports.getConsole = function() {
 var bind = function(fn, ctx) {
   if (!fn.apply) {
     // Probably IE's crippled console object.
-    // Since we can't pass multiple args, format them into one string.
     return function() {
-      if (arguments.length == 0) return fn();
-      var msg = arguments[0];
-      for (var i=1; i<arguments.length; i++) {
-        msg += " " + debug.inspect(arguments[i]);
-      }
-      fn(msg);
+      return Function.prototype.apply.call(fn, ctx, arguments);
     }
   }
   return Function.prototype.bind.call(fn, ctx);
