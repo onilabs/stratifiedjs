@@ -1,0 +1,12 @@
+#!/bin/bash
+set -eux
+
+url="$1"
+my_ip="$(ip addr show dev p6p1 scope global | grep -E -o 'inet [^ /]+' | cut -f 2 -d ' ')"
+
+echo "${url/localhost/$my_ip}" | pyperclip -i
+
+notify-send "Karma URL copied to clipboard"
+
+
+cat # wait until killed
