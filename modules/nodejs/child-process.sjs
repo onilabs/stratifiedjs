@@ -36,8 +36,8 @@
   @home      sjs:nodejs/child-process
 */
 
-if (require('builtin:apollo-sys').hostenv != 'nodejs') 
-  throw new Error('The nodejs/events module only runs in a nodejs environment');
+if (require('builtin:apollo-sys').hostenv != 'nodejs')
+  throw new Error('The nodejs/child-process module only runs in a nodejs environment');
 
 var child_process = require('child_process');
 
@@ -45,6 +45,9 @@ var child_process = require('child_process');
 var version = /^(\d+)\.(\d+)\.(\d+)/.exec(process.versions.node);
 version = parseInt(version[1])*1000000 + parseInt(version[2])*1000 + parseInt(version[3]);
 var STREAMS_CLOSED_SIGNAL = version>7006 ? 'close' : 'exit';
+
+// support for detached processes was added in v0.7.10:
+var SUPPORTS_DETACHED = version>7009;
 
 /**
    @function exec
@@ -119,6 +122,8 @@ exports.exec = function(command, options) {
           or {
             hold(10000);
           }
+
+      **NOTE**: `detached` is not supported in nodejs v0.6 and earlier.
 */
 exports.run = function(command, args, options) {
   var stdout = [], stderr = [];
@@ -212,7 +217,7 @@ exports.wait = function(child) {
 */
 var kill = exports.kill = function(child, options) {
   function kill() {
-    if (options && options.detached) // signal the process group
+    if (SUPPORTS_DETACHED && options && options.detached) // signal the process group
       process.kill(-child.pid, options && options.killSignal);
     else // signal just the process
       child.kill(options && options.killSignal);

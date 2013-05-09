@@ -104,7 +104,7 @@ function EventQueue(emitter, event) {
 
   var me = this;
   this._handleEvent = function() {
-    me._queue.put(Array.prototype.slice.call(arguments, 0));
+    spawn me._queue.put(Array.prototype.slice.call(arguments, 0));
   };
   emitter.on(event, this._handleEvent);
 }
