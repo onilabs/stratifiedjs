@@ -179,7 +179,7 @@ function values(obj) {
 exports.values = values;
 
 /**
-  @function values
+  @function ownValues
   @param    {Object} [obj]
   @return   {sequence::Stream}
   @summary  Returns a [sequence::Stream] of the values of `obj`'s enumerable properties,
