@@ -144,8 +144,22 @@ function gen_block(code) {
 
 #define GEN_LBL_STMT(lbl, stmt, pctx) return lbl+": "+stmt;
 
+function gen_fun_pars(pars) {
+  var ret = "";
+  for(var i=0; i<pars.length; i++) {
+    if (i>0) ret += ",";
+    // XXX why are these sometimes strings?
+    if (pars[i].name) {
+      ret += pars[i].name;
+    } else {
+      ret += pars[i];
+    }
+  }
+  return ret;
+}
+
 #define GEN_FUN_DECL(fname, pars, body, pctx)           \
-  return "function "+fname+"("+pars.join(",")+")"+body;
+  return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
 
 #define GEN_VAR_DECL(decls, pctx)                \
   var rv = "var ";                               \
@@ -410,9 +424,9 @@ function quasi(parts) {
 
 #define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return)  \
   if (fname.length)                                       \
-    return "function "+fname+"("+pars.join(",")+")"+body; \
+    return "function "+fname+"("+gen_fun_pars(pars)+")"+body; \
   else                                                    \
-    return "function("+pars.join(",")+")"+body;
+    return "function("+gen_fun_pars(pars)+")"+body;
 
 #define GEN_CONDITIONAL(test, consequent, alternative, pctx) \
   return test+"?"+consequent+":"+alternative;
@@ -468,5 +482,5 @@ function quasi(parts) {
 #define GEN___JS(body, pctx) return "__js "+body;
 
 #define GEN_BLOCKLAMBDA(pars, body, pctx) \
-  return "{|"+pars.join(",")+"| "+body+"}";
+  return "{|"+gen_fun_pars(pars)+"| "+body+"}";
 

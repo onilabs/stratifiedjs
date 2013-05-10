@@ -1,4 +1,5 @@
 var suite = require('sjs:test/suite');
+var {context} = suite;
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var testParity = testUtil.testParity;
@@ -738,50 +739,6 @@ testParity("(function() {try{ throw 1; }finally{ throw 2;}})()", function() {
 testParity("(function() {try{ throw 1; }finally{ (function(){ return 2 })()}})()", function() {
   try { throw 1 }finally { (function(){return 2})(); } return 3; });
 
-test("destructuring [a,,c] = [1,2,3]", 4, function() {
-  var a,c;
-  [a,,c] = [1,2,3];
-  return a+c;
-});
-
-test("destructuring [a,,[,c]] = [1,2,[3,4,5]]", 5, function() {
-  var a,c;
-  [a,,[,c]] = [1,2,[3,4,5]];
-  return a+c;
-});
-
-test("destructuring [a,,[,c]] = [1,(hold(0),2),[3,f(),5]]", 5, function() {
-  var a,c;
-  function f() { hold(10); return 4; }
-  [a,,[,c]] = [1,(hold(0),2),[3,f(),5]];
-  return a+c;
-});
-
-test("destructuring ({a:c, b:d}) = {a:1, b:2, c: 3, d: 4}", 3, function() {
-  var c,d;
-  ({a:c, b:d}) = {a:1, b:2, c: 3, d: 4}
-  return c+d;
-});
-
-test("destructuring  [a,,{x:[,c]}] = [1,(hold(0),2),{a:1, b:2, x:[3,f(),5]}]", 5, function() {
-  var a,c;
-  function f() { hold(10); return 4; }
-  [a,,{x:[,c]}] = [1,(hold(0),2),{a:1, b:2, x:[3,f(),5]}];
-  return a+c;
-});
-
-test("destructuring  [a.x.y,,b,{x:[,c.z]}] = [1,(hold(0),2),10,{a:1, b:2, x:[3,f(),5]}];", 15, function() {
-  var a={x:{}},b,c={};
-  function f() { hold(10); return 4; }
-  [a.x.y,,b,{x:[,c.z]}] = [1,(hold(0),2),10,{a:1, b:2, x:[3,f(),5]}];
-  return a.x.y+b+c.z;
-});
-
-test("destructuring ({x,y}) = {y:1, z:3, x:5}", 6, function() {
-  var x,y;
-  ({x,y}) = {y:1, z:3, x:5};
-  return x+y;
-});
 
 test('reentrant edge case in waitfor/or 5', 3, function() {
   var x = 0;
@@ -1155,7 +1112,12 @@ test("'this' pointer in async for-in bug", 1212331, function() {
 
 test("({|| 1})()", undefined, function() { return ({|| 1})() });
 test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
-     function() { return ({|x,y,z| hold(10); x+y+z })(1,2,3) }).skip("Old blocklambda behaviour");
+     function() {
+      var bl = ({|x,y,z| hold(10); x+y+z });
+      return bl(1,2,3);
+    }
+).skip("Old blocklambda behaviour");
+
 function accu3(f) {
   var rv = 0;
   for (var i=1;i<4;++i) rv += f(i);
@@ -1546,97 +1508,178 @@ test('non-bracketed expressions in quasi', true, function() {
   return compareQuasiArrays(x.parts, result);
 });
 
-test("destructuring var [a,,c] = ['A','B','C'];", 'ACac', function() {
-  var a='a',c='c';
-  var rv = (function() { 
-    var [a,,c] = ['A','B','C'];
+context("destructuring") {||
+  test("destructuring [a,,c] = [1,2,3]", 4, function() {
+    var a,c;
+    [a,,c] = [1,2,3];
     return a+c;
-  })();
-    
-  return rv + a + c;
-});
+  });
 
-test("destructuring var [a,,[,c]] = ['A','B',['X','C','Y']]", 'ACac', function() {
-  var a='a',c='c';
-  var rv = (function() {
-    var [a,,[,c]] = ['A','B',['X','C','Y']];
+  test("destructuring [a,,[,c]] = [1,2,[3,4,5]]", 5, function() {
+    var a,c;
+    [a,,[,c]] = [1,2,[3,4,5]];
     return a+c;
-  })();
+  });
 
-  return rv + a + c;
-});
-
-test("destructuring var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]]", 'ACac', function() {
-  var a='a',c='c';
-  function f() { hold(10); return 'C'; }
-  var rv = (function() { 
-    var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]];
+  test("destructuring [a,,[,c]] = [1,(hold(0),2),[3,f(),5]]", 5, function() {
+    var a,c;
+    function f() { hold(10); return 4; }
+    [a,,[,c]] = [1,(hold(0),2),[3,f(),5]];
     return a+c;
-  })();
+  });
 
-  return rv + a + c;
-});
+  test("destructuring ({a:c, b:d}) = {a:1, b:2, c: 3, d: 4}", 3, function() {
+    var c,d;
+    ({a:c, b:d}) = {a:1, b:2, c: 3, d: 4}
+    return c+d;
+  });
 
-test("destructuring var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}", 'abABabcd', function() {
-  var a='a',b='b',c='c',d='d';
-  var rv = (function() {
-    var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}
-    return a+b+c+d;
-  })();
-  return rv + a + b + c + d;
-});
+  test("destructuring  [a,,{x:[,c]}] = [1,(hold(0),2),{a:1, b:2, x:[3,f(),5]}]", 5, function() {
+    var a,c;
+    function f() { hold(10); return 4; }
+    [a,,{x:[,c]}] = [1,(hold(0),2),{a:1, b:2, x:[3,f(),5]}];
+    return a+c;
+  });
 
-test("destructuring  var [a,,{x:[,c]}] = ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}]", 
-     'ACxacx', function() {
-  var a='a', c='c', x='x';
-  function f() { hold(10); return 'C'; }
-  var rv = (function() {
-    var [a,,{x:[,c]}] =  ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}];
-    return a + c + x;
-  })();
-  return rv + a + c + x;
-});
+  test("destructuring  [a.x.y,,b,{x:[,c.z]}] = [1,(hold(0),2),10,{a:1, b:2, x:[3,f(),5]}];", 15, function() {
+    var a={x:{}},b,c={};
+    function f() { hold(10); return 4; }
+    [a.x.y,,b,{x:[,c.z]}] = [1,(hold(0),2),10,{a:1, b:2, x:[3,f(),5]}];
+    return a.x.y+b+c.z;
+  });
 
-test("destructuring var {x,y} = {y:'Y', z:'Z', x:'X'}", 'XYzxyz', function() {
-  var x='x',y='y', z='z';
-  var rv = (function() {
-    var {x,y} = {y:'Y', z:'Z', x:'X'};
-    return x + y + z;
-  })();
-  return rv + x + y + z;
-});
+  test("destructuring ({x,y}) = {y:1, z:3, x:5}", 6, function() {
+    var x,y;
+    ({x,y}) = {y:1, z:3, x:5};
+    return x+y;
+  });
 
-function callWith(arg, f) { return f(arg); }
-test("object destructuring in lambda args", 3, function() {
-  return callWith({x: 1, y:2}, ({x, y}) -> x + y);
-});
-test("array destructuring in lambda args", 3, function() {
-  return callWith([1,2], ([x, y]) -> x + y);
-});
+  test("destructuring var [a,,c] = ['A','B','C'];", 'ACac', function() {
+    var a='a',c='c';
+    var rv = (function() { 
+      var [a,,c] = ['A','B','C'];
+      return a+c;
+    })();
+      
+    return rv + a + c;
+  });
 
-test("destructuring in lambda args (no parens)", 3, function() {
-  return callWith({x: 1, y:2}, {x, y} -> x + y);
-});
+  test("destructuring var [a,,[,c]] = ['A','B',['X','C','Y']]", 'ACac', function() {
+    var a='a',c='c';
+    var rv = (function() {
+      var [a,,[,c]] = ['A','B',['X','C','Y']];
+      return a+c;
+    })();
 
-test("array destructuring in lambda args (no parens)", 3, function() {
-  return callWith([1,2], [x, y] -> x + y);
-});
+    return rv + a + c;
+  });
 
-// TODO: uncomment these tests when they no longer cause syntax errors
-//test("object destructure in blocklambda args", 3, function() {
-//  callWith({x: 1, y:2}) {|{x, y}|
-//    return x + y;
-//  }
-//});
+  test("destructuring var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]]", 'ACac', function() {
+    var a='a',c='c';
+    function f() { hold(10); return 'C'; }
+    var rv = (function() { 
+      var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]];
+      return a+c;
+    })();
 
-//test("array destructure in blocklambda args", 3, function() {
-//  callWith([1,2]) { |[x, y]|
-//    return x + y;
-//  }
-//});
+    return rv + a + c;
+  });
 
-//test("multuple destructure in blocklambda args", 15, function() {
-//  callWith([1,2], 3, {x:4, y:5}) { |[a,b], c, {x, y}|
-//    return a + b + c + d + x + y;
-//  }
-//});
+  test("destructuring var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}", 'abABabcd', function() {
+    var a='a',b='b',c='c',d='d';
+    var rv = (function() {
+      var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}
+      return a+b+c+d;
+    })();
+    return rv + a + b + c + d;
+  });
+
+  test("destructuring  var [a,,{x:[,c]}] = ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}]", 
+      'ACxacx', function() {
+    var a='a', c='c', x='x';
+    function f() { hold(10); return 'C'; }
+    var rv = (function() {
+      var [a,,{x:[,c]}] =  ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}];
+      return a + c + x;
+    })();
+    return rv + a + c + x;
+  });
+
+  test("destructuring var {x,y} = {y:'Y', z:'Z', x:'X'}", 'XYzxyz', function() {
+    var x='x',y='y', z='z';
+    var rv = (function() {
+      var {x,y} = {y:'Y', z:'Z', x:'X'};
+      return x + y + z;
+    })();
+    return rv + x + y + z;
+  });
+
+  function callWith(/* args ..., fn */) {
+    var len = arguments.length;
+    var args = Array.prototype.slice.call(arguments, 0, len - 1);
+    var f = arguments[len-1];
+    //console.log(args);
+    //console.log(f);
+    return f.apply(null, args);
+  }
+
+  context("lambda paramaters") {||
+    test("object destructuring", 3, function() {
+      return callWith({x: 1, y:2}, ({x, y}) -> x + y);
+    });
+    test("array destructuring", 3, function() {
+      return callWith([1,2], ([x, y]) -> x + y);
+    });
+
+    context("(no parens)") {||
+      test("object destructuring", 3, function() {
+        return callWith({x: 1, y:2}, {x, y} -> x + y);
+      });
+
+      test("array destructuring", 3, function() {
+        return callWith([1,2], [x, y] -> x + y);
+      });
+    }
+  }
+
+  context("blocklambda args") {||
+    test("object destructure", 3, function() {
+      callWith({x: 1, y:2}) {|{x, y}|
+        return x + y;
+      }
+    });
+
+    test("array destructure", 3, function() {
+      callWith([1,2]) { |[x, y]|
+        return x + y;
+      }
+    });
+
+    test("multuple destructure", 15, function() {
+      callWith([1,2], 3, {x:4, y:5}) { |[a,b], c, {x, y}|
+        return a + b + c + x + y;
+      }
+    });
+  }
+
+  context("function args") {||
+    test("object destructure", 3, function() {
+      return (function({x, y}) {
+        return x + y;
+      })({x: 1, y:2});
+    });
+
+    test("array destructure", 3, function() {
+      return(function([x, y]) {
+        return x + y;
+      })([1,2]);
+    });
+
+    test("multuple destructure", 15, function() {
+      return (function([a,b], c, {x, y}) {
+        return a + b + c + x + y;
+      })([1,2], 3, {x:4, y:5});
+    });
+  }
+
+}

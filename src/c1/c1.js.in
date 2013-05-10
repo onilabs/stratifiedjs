@@ -772,8 +772,8 @@ S("void").pre(240);
 S("typeof").pre(240);
 S("+").pre(240).ifx(220);
 S("-").pre(240).ifx(220);
-S("~").pre(240);  
-S("!").pre(240);  
+S("~").pre(240); 
+S("!").pre(240);
 
 S("*").ifx(230);
 S("/").ifx(230);
@@ -903,23 +903,18 @@ function parseBlockLambdaBody(pctx) {
   END_BLAMBDABODY(pctx)
 }
 function parseBlockLambda(start, pctx) {
-  var token = scan(pctx);
-  var pars = [];
   // collect parameters
-  if (start == "|") {
-    while (token.id != "|") {
-      if (pars.length) 
-        token = scan(pctx, ",");
-      if (token.id != "<id>")
-        throw new Error("Expected parameter name but found '"+token+"'");
-      pars.push(token.value); 
-      token = scan(pctx); // consume parameter
-    }
-    scan(pctx, "|");
+  var pars;
+  if (start == '||') {
+    pars = [];
+    scan(pctx);
+  } else {
+    pars = parseFunctionParams(pctx, '|', '|');
   }
+
   var body = parseBlockLambdaBody(pctx);
   LOGM('blocklambda')
-  GEN_BLOCKLAMBDA(pars, body, pctx)  
+  GEN_BLOCKLAMBDA(pars, body, pctx)
 }
 #endif // SJS_BLOCKLAMBDA
 
@@ -962,8 +957,8 @@ S("{").
           // property setter
           prop = parsePropertyName(pctx.token, pctx);
           scan(pctx);
-          var pars = [];
-          var body = parseFunctionInner(pctx, pars);
+          var pars = parseFunctionParams(pctx);
+          var body = parseFunctionBody(pctx);
           if (pars.length != 1)
             throw new Error("Exactly one parameter expected in property setter definition");
           props.push(["set", prop, pars[0], body]);
@@ -1033,28 +1028,51 @@ function parseFunctionBody(pctx, implicit_return) {
   END_FBODY(pctx, implicit_return)
 }
 
-// inner function parsing helper: scans everything from '(' onwards;
-// returns pars in inout var, and body as rv
-function parseFunctionInner(pctx, pars, implicit_return) {
-  var token = scan(pctx, "(");
-  while (token.id != ")") {
-    if (pars.length)
-      token = scan(pctx, ",");
-    if (token.id != "<id>")
-      throw new Error("Expected parameter name but found '"+token+"'");
-    pars.push(token.value);
-    token = scan(pctx); // consume parameter
+function parseFunctionParam(pctx) {
+  var t = pctx.token;
+  scan(pctx);
+  var left = t.exsf(pctx);
+  while (pctx.token.id != '|' && pctx.token.excbp > BP_COMMA) {
+    t = pctx.token;
+    scan(pctx);
+    left = t.excf(left, pctx);
   }
-  scan(pctx, ")");
-  return parseFunctionBody(pctx, implicit_return);
+  return left;
+}
+
+function parseFunctionParams(pctx, starttok, endtok) {
+  if (!starttok) { starttok = '('; endtok = ')'; }
+  var pars = [];
+  scan(pctx, starttok);
+  while (pctx.token.id != endtok) {
+    if (pars.length)
+      scan(pctx, ",");
+    switch(pctx.token.id) {
+#ifdef SJS_DESTRUCTURE
+      case "{":
+      case "[":
+        pars.push(parseFunctionParam(pctx));
+        break;
+#endif
+      case "<id>":
+        pars.push(pctx.token.exsf(pctx));
+        scan(pctx);
+        break;
+      default:
+        throw new Error("Expected function parameter but found '"+pctx.token+"'");
+    }
+    token = pctx.token;
+  }
+  scan(pctx, endtok);
+  return pars;
 }
 
 #ifdef METHOD_DEFINITIONS
 // parse an abbreviated-syntax method (as in { x() { ... }, y() { ... } })
 function parseMethod(pctx) {
   //console.log("**** Deprecated method definition syntax in "+pctx.filename+":"+pctx.line);
-  var pars = [];
-  var body = parseFunctionInner(pctx, pars, true);
+  var pars = parseFunctionParams(pctx);
+  var body = parseFunctionBody(pctx, true);
   LOGM('method_exp()')
   GEN_FUN_EXP("", pars, body, pctx, true)
 }
@@ -1068,8 +1086,8 @@ S("function").
       fname = pctx.token.value;
       scan(pctx);
     }
-    var pars = [];
-    var body = parseFunctionInner(pctx, pars);
+    var pars = parseFunctionParams(pctx);
+    var body = parseFunctionBody(pctx);
     LOGM('fun_exp('+(fname||'')+')')
     GEN_FUN_EXP(fname, pars, body, pctx, false)
   }).
@@ -1078,8 +1096,8 @@ S("function").
     if (pctx.token.id != "<id>") throw new Error("Malformed function declaration");
     var fname = pctx.token.value;
     scan(pctx);
-    var pars = [];
-    var body = parseFunctionInner(pctx, pars);
+    var pars = parseFunctionParams(pctx);
+    var body = parseFunctionBody(pctx);
     LOGM('fun_decl')
     GEN_FUN_DECL(fname, pars, body, pctx)
   });

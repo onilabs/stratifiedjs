@@ -371,7 +371,7 @@ function ph_fun_exp(fname, pars, body, pctx, implicit_return) {
   // (e.g. our testcase:
   // var x = function e(n) { return n==1?1:e(n-1)*n; }; x(5); } )
 
-  this.code = "function "+fname+"("+pars.join(",")+"){"+body+"}";
+  this.code = "function "+fname+gen_function_header(pars)+body+"}";
 }
 ph_fun_exp.prototype = new ph(WHENDEBUG("ph_fun_exp"));
 //ph_fun_exp.prototype.is_literal = true; funs are special kinds of literals; we override 'v' instead:
@@ -392,7 +392,7 @@ function gen_fun_decl(fname, pars, body, pctx) {
 }
 
 function ph_fun_decl(fname, pars, body, pctx) {
-  this.code = "function "+fname+"("+pars.join(",")+"){"+body+"}";
+  this.code = "function "+fname+gen_function_header(pars)+body+"}";
 }
 ph_fun_decl.prototype = new ph(WHENDEBUG("ph_fun_decl"));
 ph_fun_decl.prototype.is_fun_decl = true;
@@ -1143,6 +1143,46 @@ ph_postfix_op.prototype.val = function() {
 throw new Error("Arrows require destructuring support!");
 #endif
 
+function gen_function_header(pars) {
+  // Given a list of params, generate a function header.
+  // The `header` includes both the param list *as well as* the
+  // start of the function body, since both params and body initializer
+  // may be needed to implement param destructuring.
+  // i.e minimal function header is "(){"
+  var code = "";
+  var trivial = true;
+  var vars = [];
+  if (!pars.length) return "(){";
+
+  var assignments = "";
+  
+  try {
+    for (var i=0;i<pars.length;++i) {
+      if (trivial && !(pars[i] instanceof ph_identifier))
+        trivial = false;
+
+      pars[i].collect_var_decls(vars);
+      assignments += pars[i].destruct('arguments['+i+']');
+    }
+
+    if (trivial) {
+      // no destructuring required
+      return "(" + vars.join(",") + "){";
+    }
+
+    if (vars.length) {
+      code += "var "+vars.join(',')+";"
+    }
+
+    code += assignments;
+    return '(){' + code;
+  } catch (e) {
+    throw new Error("Invalid syntax in parameter list");
+  }
+
+}
+
+
 #define GEN_THIN_ARROW(body, pctx) GEN_THIN_ARROW_WITH_PARS(undefined, body, pctx)
 #define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx) return new ph_arrow(pars, body, pctx);
 #define GEN_FAT_ARROW(body, pctx) GEN_FAT_ARROW_WITH_PARS(undefined, body, pctx)
@@ -1155,40 +1195,17 @@ function ph_arrow(pars_exp, body, pctx, bound) {
   this.line = pctx.line;
   this.bound = bound;
 
-  this.code = 'function(){';
+  this.code = 'function';
 
-  // XXX currently we're always encoding parameters as variables (var
-  // x, y, ...) and then assign from arguments (x=arguments[0],
-  // y=arguments[1], ...). This is required for the general
-  // destructuring syntax, but we could add a specialized case if all
-  // parameters are simple identifiers. In that case we could encode
-  // the function as normal (function(x,y,...) { })
+  var pars = [];
   if (pars_exp) {
-    var pars, // array of positional parameters (destructuring expressions)
-        vars = [], 
-        assignments = "";
-    
-    try {
-      if (pars_exp.collect_pars) 
-        pars_exp.collect_pars(pars=[]);
-      else
-        pars = [pars_exp];
-      for (var i=0;i<pars.length;++i) {
-        pars[i].collect_var_decls(vars);
-        assignments += pars[i].destruct('arguments['+i+']');
-      }
-
-      if (vars.length) {
-        this.code += "var "+vars.join(',')+";"
-      }
-
-      this.code += assignments;
-
-    }
-    catch (e) {
-      throw new Error("Invalid syntax in parameter list");
-    }
+    if (pars_exp.collect_pars) 
+      pars_exp.collect_pars(pars);
+    else
+      pars.push(pars_exp);
   }
+
+  this.code += gen_function_header(pars);
 
   if (pctx.js_ctx) {
     this.code += "return "+body.nb()+"}";
@@ -1782,7 +1799,7 @@ ph_using.prototype.val = function() {
 #define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_blocklambda(pars, body, pctx);
 
 function ph_blocklambda(pars, body, pctx) {
-  this.code = "__oni_rt.Bl(function("+pars.join(",")+"){"+body+"})";
+  this.code = "__oni_rt.Bl(function"+gen_function_header(pars)+body+"})";
 }
 ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));
 ph_blocklambda.prototype.val = function() { return this.code; };

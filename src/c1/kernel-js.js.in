@@ -102,8 +102,17 @@ function top_scope(pctx) {
 
 #define GEN_LBL_STMT(lbl, stmt, pctx) return lbl+": "+stmt;
 
+function gen_fun_pars(pars) {
+  var ret = "";
+  for(var i=0; i<pars.length; i++) {
+    if (i>0) ret += ",";
+    ret += pars[i].name;
+  }
+  return ret;
+}
+
 #define GEN_FUN_DECL(fname, pars, body, pctx)           \
-  return "function "+fname+"("+pars.join(",")+")"+body;
+  return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
 
 #define GEN_VAR_DECL(decls, pctx)                \
   var rv = "var ";                               \
@@ -243,7 +252,7 @@ function top_scope(pctx) {
 #define GEN_FUN_CALL(l, args, pctx) return l+"("+args.join(",")+")";
 
 #define GEN_FUN_EXP(fname, pars, body, pctx, dummy)            \
-  return "function "+fname+"("+pars.join(",")+")"+body;
+  return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
 
 #define GEN_CONDITIONAL(test, consequent, alternative, pctx) \
   return test+"?"+consequent+":"+alternative;

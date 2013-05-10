@@ -2299,7 +2299,7 @@ if(implicit_return&&pctx.js_ctx)body="return "+body;
 
 
 
-this.code="function "+fname+"("+pars.join(",")+"){"+body+"}";
+this.code="function "+fname+gen_function_header(pars)+body+"}";
 }
 ph_fun_exp.prototype=new ph();
 
@@ -2318,7 +2318,7 @@ return gen_var_decl([[new ph_identifier(fname,pctx),new ph_fun_exp("",pars,body,
 
 }
 
-function ph_fun_decl(fname,pars,body,pctx){this.code="function "+fname+"("+pars.join(",")+"){"+body+"}";
+function ph_fun_decl(fname,pars,body,pctx){this.code="function "+fname+gen_function_header(pars)+body+"}";
 
 }
 ph_fun_decl.prototype=new ph();
@@ -2967,6 +2967,46 @@ return rv;
 
 
 
+function gen_function_header(pars){var code="";
+
+
+
+
+
+
+var trivial=true;
+var vars=[];
+if(!pars.length)return "(){";
+
+var assignments="";
+
+try{
+for(var i=0;i<pars.length;++i){
+if(trivial&&!(pars[i] instanceof ph_identifier))trivial=false;
+
+
+pars[i].collect_var_decls(vars);
+assignments+=pars[i].destruct('arguments['+i+']');
+}
+
+if(trivial){
+
+return "("+vars.join(",")+"){";
+}
+
+if(vars.length){
+code+="var "+vars.join(',')+";";
+}
+
+code+=assignments;
+return '(){'+code;
+}catch(e){
+throw new Error("Invalid syntax in parameter list");
+}
+
+}
+
+
 
 
 function ph_arrow(pars_exp,body,pctx,bound){this.is_nblock=pctx.allow_nblock;
@@ -2975,40 +3015,17 @@ this.js_ctx=pctx.js_ctx;
 this.line=pctx.line;
 this.bound=bound;
 
-this.code='function(){';
+this.code='function';
 
-
-
-
-
-
-
+var pars=[];
 if(pars_exp){
-var pars,vars=[],assignments="";
+if(pars_exp.collect_pars)pars_exp.collect_pars(pars);else pars.push(pars_exp);
 
 
 
-try{
-if(pars_exp.collect_pars)pars_exp.collect_pars(pars=[]);else pars=[pars_exp];
-
-
-
-for(var i=0;i<pars.length;++i){
-pars[i].collect_var_decls(vars);
-assignments+=pars[i].destruct('arguments['+i+']');
 }
 
-if(vars.length){
-this.code+="var "+vars.join(',')+";";
-}
-
-this.code+=assignments;
-
-}catch(e){
-
-throw new Error("Invalid syntax in parameter list");
-}
-}
+this.code+=gen_function_header(pars);
 
 if(pctx.js_ctx){
 this.code+="return "+body.nb()+"}";
@@ -3528,7 +3545,7 @@ return rv;
 
 
 
-function ph_blocklambda(pars,body,pctx){this.code="__oni_rt.Bl(function("+pars.join(",")+"){"+body+"})";
+function ph_blocklambda(pars,body,pctx){this.code="__oni_rt.Bl(function"+gen_function_header(pars)+body+"})";
 
 }
 ph_blocklambda.prototype=new ph();
@@ -3956,21 +3973,16 @@ scan(pctx,"}");
 
 var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exbl(this,["+1,"])");
 }
-function parseBlockLambda(start,pctx){var token=scan(pctx);
+function parseBlockLambda(start,pctx){var pars;
 
-var pars=[];
 
-if(start=="|"){
-while(token.id!="|"){
-if(pars.length)token=scan(pctx,",");
-
-if(token.id!="<id>")throw new Error("Expected parameter name but found '"+token+"'");
-
-pars.push(token.value);
-token=scan(pctx);
+if(start=='||'){
+pars=[];
+scan(pctx);
+}else{
+pars=parseFunctionParams(pctx,'|','|');
 }
-scan(pctx,"|");
-}
+
 var body=parseBlockLambdaBody(pctx);
 
 return new ph_blocklambda(pars,body,pctx);
@@ -4052,20 +4064,41 @@ scan(pctx,"}");
 var decls=pctx.decl_scopes.pop();var flags=1;if(decls.notail)flags+=8;if(implicit_return)flags+=32;return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,"+pctx.filename+",["+flags,"])");
 }
 
+function parseFunctionParam(pctx){var t=pctx.token;
 
-
-function parseFunctionInner(pctx,pars,implicit_return){var token=scan(pctx,"(");
-
-while(token.id!=")"){
-if(pars.length)token=scan(pctx,",");
-
-if(token.id!="<id>")throw new Error("Expected parameter name but found '"+token+"'");
-
-pars.push(token.value);
-token=scan(pctx);
+scan(pctx);
+var left=t.exsf(pctx);
+while(pctx.token.id!='|'&&pctx.token.excbp>110){
+t=pctx.token;
+scan(pctx);
+left=t.excf(left,pctx);
 }
-scan(pctx,")");
-return parseFunctionBody(pctx,implicit_return);
+return left;
+}
+
+function parseFunctionParams(pctx,starttok,endtok){if(!starttok){
+starttok='(';endtok=')'}
+var pars=[];
+scan(pctx,starttok);
+while(pctx.token.id!=endtok){
+if(pars.length)scan(pctx,",");
+
+switch(pctx.token.id){case "{":
+
+case "[":
+pars.push(parseFunctionParam(pctx));
+break;
+case "<id>":
+pars.push(pctx.token.exsf(pctx));
+scan(pctx);
+break;
+default:
+throw new Error("Expected function parameter but found '"+pctx.token+"'");
+}
+token=pctx.token;
+}
+scan(pctx,endtok);
+return pars;
 }
 
 
@@ -4077,8 +4110,8 @@ if(pctx.token.id=="<id>"){
 fname=pctx.token.value;
 scan(pctx);
 }
-var pars=[];
-var body=parseFunctionInner(pctx,pars);
+var pars=parseFunctionParams(pctx);
+var body=parseFunctionBody(pctx);
 
 return new ph_fun_exp(fname,pars,body,pctx,false);
 }).stmt(function(pctx){
@@ -4087,8 +4120,8 @@ if(pctx.token.id!="<id>")throw new Error("Malformed function declaration");
 
 var fname=pctx.token.value;
 scan(pctx);
-var pars=[];
-var body=parseFunctionInner(pctx,pars);
+var pars=parseFunctionParams(pctx);
+var body=parseFunctionBody(pctx);
 
 return gen_fun_decl(fname,pars,body,pctx);
 });
