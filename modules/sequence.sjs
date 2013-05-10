@@ -381,7 +381,7 @@ function reverse(sequence) {
   //else
   var rv = [];
   sequence .. each { |x| rv.unshift(x) }
-  return rv;  
+  return rv;
 }
 exports.reverse = reverse;
 
@@ -389,7 +389,7 @@ exports.reverse = reverse;
    @function count
    @altsyntax sequence .. count
    @param {::Sequence} [sequence] Input sequence
-   @return {Integer} 
+   @return {Integer}
    @summary Count number of elements in the sequence
 */
 function count(sequence) {
@@ -405,9 +405,9 @@ exports.count = count;
    XXX not sure we need this
 
 function toStream(sequence) {
-  if (typeof sequence == 'function') 
+  if (typeof sequence == 'function')
     return sequence;
-  else 
+  else
     return function(r) {
       each(sequence, r);
     }
@@ -424,7 +424,7 @@ exports.toStream = toStream;
    @return {::Stream}
    @summary  Takes `count` items from `sequence`
    @desc
-      Generates a stream that contains at most the first `count` items from 
+      Generates a stream that contains at most the first `count` items from
       `sequence` (or fewer, if `sequence` contains fewer items).
 
       ### Example:
@@ -451,14 +451,13 @@ exports.take = take;
    @return {::Stream}
    @summary  Skip `count` items from `sequence`
    @desc
-      Generates a stream that contains all items from 
+      Generates a stream that contains all items from
       `sequence` starting from the `count+1`th item.
 
       ### Example:
 
           each(skip([1,2,3,4,5], 3), function(x) { console.log(x) }) // -> 4,5
 
-          // same as above, with double dot and blocklamdba syntax:
 
           [1,2,3,4,5] .. skip(3) .. each { |x| console.log(x) }
 */
@@ -466,10 +465,10 @@ function skip(sequence, count) {
   // XXX could special-case this for array sequences for better performance
   return Stream(function(r) {
     var n = count;
-      sequence .. each { 
-        |x| 
-        if (n > 0) { --n; continue; } 
-        r(x) 
+      sequence .. each {
+        |x|
+        if (n > 0) { --n; continue; }
+        r(x)
       }
   });
 }
@@ -499,9 +498,9 @@ exports.skip = skip;
 */
 function filter(sequence, predicate) {
   return Stream(function(r) {
-    sequence .. each { 
-      |x| 
-      if (predicate(x)) 
+    sequence .. each {
+      |x|
+      if (predicate(x))
         r(x);
     }
   });
@@ -1000,7 +999,7 @@ exports.parallelize = parallelize;
 /* NOT PART OF DOCUMENTED API YET
    @function makeIterator
    @summary To be documented
-*/   
+*/
 function makeIterator(sequence) {
   var eos = {}, next_upstream;
   var stratum = spawn (function() {
@@ -1014,8 +1013,8 @@ function makeIterator(sequence) {
   var x;
   var have_peeked = false;
   return {
-    hasMore: function() { 
-      if (!have_peeked) 
+    hasMore: function() {
+      if (!have_peeked)
         x = next_upstream();
       have_peeked = true;
       return x !== eos;
@@ -1029,7 +1028,7 @@ function makeIterator(sequence) {
     destroy: function() {
       stratum.abort();
     }
-  };             
+  };
 }
 exports.makeIterator = makeIterator;
 
@@ -1042,7 +1041,7 @@ var MAX_PRECISE_INT = 9007199254740992; // 2^53
    @function integers
    @param {optional Integer} [start=0] Start integer
    @param {optional Integer} [end=2^53] End integer
-   @return {::Stream} 
+   @return {::Stream}
    @summary Generate a stream of integers from `start` to `end`
    @desc
      ### Example:
@@ -1059,7 +1058,7 @@ exports.integers = integers;
 
 /**
    @function fib
-   @return {::Stream} 
+   @return {::Stream}
    @summary Generate a stream of [Fibonacci numbers](http://en.wikipedia.org/wiki/Fibonacci_number) beginning with 1
    @desc
      ### Example:
