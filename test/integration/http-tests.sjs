@@ -120,16 +120,17 @@ context("jsonp") {||
   }).skip("wontfix/cantfix");
 
 
-  function twitterSearchIframe(opts) {
+
+  function searchIframe() {
     waitfor {
-      return http.jsonp("http://search.twitter.com/search.json",opts);
+      return http.jsonp(["http://ajax.googleapis.com/ajax/services/search/web", {v: "1.0", q : 'stratifiedjs' }], {iframe:true});
     } or {hold(webserverJsonpTimeout);return "timeout"; }
   }
 
   testEq("http.jsonp iframe cache issue", true, function () {
-    var a = twitterSearchIframe();
+    var a = searchIframe();
     // if the iframe caches (some browsers), the jsonp callback will not be called
-    var b = twitterSearchIframe();
+    var b = searchIframe();
     return (a != "timeout") && (b != "timeout");
   });
 }.ignoreLeaks('_oni_jsonpcb');
