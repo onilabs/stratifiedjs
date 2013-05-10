@@ -45,7 +45,7 @@ module.exports = function(karma) {
       'Chrome',
       'PhantomJS',
       'tools/bin/manual-browser',
-      'tools/bin/android-browser',
+      // 'tools/bin/android-browser',
     ],
 
 
@@ -61,6 +61,7 @@ module.exports = function(karma) {
     // plugins to load
     plugins: [
       'karma-chrome-launcher'
+      ,'karma-firefox-launcher'
       ,'karma-script-launcher'
       ,'karma-phantomjs-launcher'
     ],
