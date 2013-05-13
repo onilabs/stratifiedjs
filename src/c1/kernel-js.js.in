@@ -103,12 +103,7 @@ function top_scope(pctx) {
 #define GEN_LBL_STMT(lbl, stmt, pctx) return lbl+": "+stmt;
 
 function gen_fun_pars(pars) {
-  var ret = "";
-  for(var i=0; i<pars.length; i++) {
-    if (i>0) ret += ",";
-    ret += pars[i].name;
-  }
-  return ret;
+  return pars.join(",");
 }
 
 #define GEN_FUN_DECL(fname, pars, body, pctx)           \
