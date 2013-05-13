@@ -724,8 +724,13 @@ exports.getRunOpts = function(opts, args) {
   if (args == undefined) {
     // if none provided, get args from the environment
     if (suite.isBrowser) {
-      var argstring = decodeURIComponent(document.location.hash.slice(1));
-      args = require('../shell-quote').parse(argstring);
+      var karma = window.__karma__;
+      if (karma && karma.argv !== undefined) {
+        args = karma.argv;
+      } else {
+        var argstring = decodeURIComponent(document.location.hash.slice(1));
+        args = require('../shell-quote').parse(argstring);
+      }
     } else {
       // first argument is the script that invoked us:
       args = process.argv.slice(1);

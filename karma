@@ -54,8 +54,6 @@ var action = function () {
 var rocketCtl = require('./test/lib/rocket_ctrl')
 try {
   if (command == 'start') {
-    // insert our config file
-    args = ['-c', 'tools/karma/conf.js'].concat(args);
     rocketCtl.withRocket(rocketPort, {stdio: 'inherit'}, action);
   } else {
     action();

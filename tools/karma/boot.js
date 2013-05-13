@@ -1,31 +1,51 @@
 // plain JS, loaded in the browser to bootstrap our test suite
 (function() {
   var karma = window.__karma__;
+  var DEBUG = /debug\.html([#?].*)?$/.test(window.top.location.href);
+  var FAIL = function(msg) {
+    karma.result({
+      description: msg,
+      suite: [],
+      success: false,
+      time: 0,
+      log: []
+    });
+    karma.complete();
+    if(DEBUG) alert(msg);
+  }
   karma.start = function (config) {
-    config = config || {};
-    var argv = Array.prototype.slice.call((config && config.argv) || ['--list']);
-    if(/debug\.html(#.*)?$/.test(window.top.location.href)) {
-      argv = undefined; // take argv from document.location.href, just like the default HTML runner
-    }
-    karma.argv = argv;
+    try {
+      console.log(DEBUG);
+      config = config || {};
+      var suitePath;
 
-    require.hubs.unshift(['sjs:', '/rocket/__oni/apollo/modules/']);
-    
-    // TODO: can we paramaterize this require() call so that others can use boot.js?
-    require('/rocket/tools/karma/run',
-
-      {callback: function(err, val) {
-        if(err) {
-          karma.result({
-            description: err.message || "",
-            suite: [],
-            success: false,
-            time: 0,
-            log: []
-          });
+      if(DEBUG) {
+        var suiteMatch = window.top.location.href.match(/[?&]suite=([^&#]+)/);
+        suitePath = suiteMatch && suiteMatch[1];
+        if (!suitePath) {
+          return FAIL("When using debug.html you must specify your suite and arguments in the URL query params - e.g. debug.html?suite=test/run.html#--help");
         }
-        karma.complete();
-      }});
+      } else {
+        var argv = karma.argv = Array.prototype.slice.call((config && config.clientArgs) || []);
+        suitePath = argv.shift();
+      }
+
+      if (!suitePath) {
+        console.log(suitePath);
+        return FAIL("Please specify path to your suite script as the first argument");
+      }
+
+      console.log("using suite: " + suitePath);
+      require.hubs.unshift(['sjs:', '/rocket/__oni/apollo/modules/']);
+    
+      require('/rocket/' + suitePath,
+        {callback: function(err, val) {
+          if(err) FAIL(err.message || "");
+          else karma.complete();
+        }});
+    } catch(e) {
+      FAIL(e.message || "");
+    }
   };
 })();
 
