@@ -397,18 +397,6 @@ function getHubs_hostenv() {
   ];
 }
 
-function html_sjs_extractor(html, descriptor) {
-  var re = /<script (?:[^>]+ )?type=['"]text\/sjs['"][^>]*>((.|\n)*?)<\/script>/mg; // (fix vim highlighting) /
-  var match;
-  var src = '';
-  while(match = re.exec(html)) {
-    src += match[1];
-    src += ';'
-  }
-  if (!src) throw new Error("No sjs found in HTML file");
-  return default_compiler(src, descriptor);
-}
-
 function getExtensions_hostenv() {
   return {
     // normal sjs modules

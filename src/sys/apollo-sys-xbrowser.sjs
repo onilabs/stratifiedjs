@@ -414,7 +414,9 @@ function getExtensions_hostenv() {
     'js': function(src, descriptor) {
       var f = new Function("module", "exports", src);
       f.apply(descriptor.exports, [descriptor, descriptor.exports]);
-    }
+    },
+
+    'html': html_sjs_extractor
   };
 }
 

@@ -492,9 +492,21 @@ function makeRequire(parent) {
     rf.hubs = getHubs_hostenv();
     rf.modules = {};
     // module compiler functions indexed by extension:
-    rf.extensions = getExtensions_hostenv(); 
+    rf.extensions = getExtensions_hostenv();
   }
   return rf;
+}
+
+function html_sjs_extractor(html, descriptor) {
+  var re = /<script (?:[^>]+ )?type=['"]text\/sjs['"][^>]*>((.|\n)*?)<\/script>/mg; // (fix vim highlighting) /
+  var match;
+  var src = '';
+  while(match = re.exec(html)) {
+    src += match[1];
+    src += ';'
+  }
+  if (!src) throw new Error("No sjs found in HTML file");
+  return default_compiler(src, descriptor);
 }
 
 // helper to resolve aliases
