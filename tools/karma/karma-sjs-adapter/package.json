@@ -1,0 +1,7 @@
+{
+  "name": "karma-sjs-adapter",
+  "version": "0.0.1",
+  "description": "SJS karma plugin",
+  "main": "index.js",
+  "private": true
+}

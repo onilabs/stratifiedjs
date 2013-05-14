@@ -15,7 +15,6 @@
   }
   karma.start = function (config) {
     try {
-      console.log(DEBUG);
       config = config || {};
       var suitePath;
 
@@ -31,7 +30,6 @@
       }
 
       if (!suitePath) {
-        console.log(suitePath);
         return FAIL("Please specify path to your suite script as the first argument");
       }
 

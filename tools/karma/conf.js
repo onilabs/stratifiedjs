@@ -3,16 +3,15 @@ module.exports = function(karma) {
 
     basePath: '../../',
 
-    frameworks: [],
+    frameworks: [
+      'sjs',
+    ],
 
     files: [
       'test/json2.js', // required for IE<8 only
-      'oni-apollo.js',
-      'tools/karma/boot.js',
     ],
 
     proxies: {
-      '/rocket/': 'http://' + process.env['ROCKET_HOST'] + '/'
     },
 
     exclude: [],
@@ -64,6 +63,7 @@ module.exports = function(karma) {
       ,'karma-firefox-launcher'
       ,'karma-script-launcher'
       ,'karma-phantomjs-launcher'
+      ,'karma-sjs-adapter'
     ],
   });
 };

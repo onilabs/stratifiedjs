@@ -724,7 +724,6 @@ exports.getRunOpts = function(opts, args) {
   if (args == undefined) {
     // if none provided, get args from the environment
     if (suite.isBrowser) {
-      var karma = window.__karma__;
       if (karma && karma.argv !== undefined) {
         args = karma.argv;
       } else {
@@ -1129,10 +1128,13 @@ exports.run = Runner.run = function(opts, args) {
   }
 };
 
+var karma;
 (function() {
   //module-time one-off setup tasks
   if (suite.isBrowser) {
+    karma = window.__karma__;
     exports.exit = -> null;
+    if (karma) exports.exit = function(code) { throw new Error(); };
     // preload modules that may be needed at runtime
     spawn(function() {
       require('../shell-quote');
