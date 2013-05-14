@@ -634,7 +634,27 @@ function default_loader(path, parent, src_loader, opts) {
 
         return descriptor;
       })();
+      pendingHook.parentModules = [parent];
+    } else {
+      pendingHook.parentModules.push(parent);
     }
+    
+    // traverse this module's parents to detect loops:
+    var dependents = {};
+    var q = [parent];
+    while(q.length > 0) {
+      var dep = q.shift();
+      if (dep === path) {
+        throw new Error("Circular module dependency loading #{path}");
+      }
+      if (dependents.hasOwnProperty(dep)) continue;
+      else dependents[dep] = true;
+      var pending = pendingLoads[dep];
+      if (pending) {
+        q = q.concat(pending.parentModules);
+      }
+    }
+
     try {
       var descriptor = pendingHook.waitforValue();
     }

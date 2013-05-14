@@ -81,3 +81,9 @@ testEq('utf8 characters in modules: U+0192', 402, function() {
   var data = require(dataRoot + '/utf8').test2();
   return data.charCodeAt(data.length-1);
 });
+
+test('circular reference throws an exception') {||
+  assert.raises(
+    {message: /^Circular module dependency loading .*circular_a\.sjs$/},
+    -> require('./fixtures/circular_a'));
+};
