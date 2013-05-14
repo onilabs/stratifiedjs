@@ -67,6 +67,58 @@ function inspect(obj, showHidden, depth, colors) {
 }
 exports.inspect = inspect;
 
+/**
+  @function prompt
+  @summary Prompt the user for input
+  @param {String} [message] The message to display when asking for input.
+  @return {String} The user's response
+  @desc
+    In a browser, this delegates to the builtin `window.prompt` method.
+    In nodejs, this uses the `readline` module to get user input
+    from `process.stdin`.
+
+    An error will be thrown if the user cancels the prompt or if
+    process.stdin cannot be read (because it is closed or has ended).
+*/
+var prompt = exports.prompt = (function() {
+  var fail = function() { throw new Error("stdin closed"); }
+  switch (sys.hostenv) {
+    case 'nodejs':
+      return function(msg) {
+        var stdin = processs.stdin;
+        if (stdin.destroyed) fail();
+        var events = require('sjs:nodejs/events');
+        var iface = require("nodejs:readline").createInterface(stdin, process.stdout);
+        try {
+          var answer = null;
+          waitfor {
+            waitfor (answer) {
+              iface.question(msg, resume);
+            }
+          } or {
+            // documentation claims this:
+            events.waitforEvent(iface, 'close');
+          } or {
+            // evidence suggests this:
+            events.waitforEvent(stdin, 'close');
+          }
+          if (answer == null) fail()
+        } finally {
+          iface.close();
+        }
+        return answer.replace(/\n$/, '');
+      };
+    case 'xbrowser':
+      return function(msg) {
+        var answer = window.prompt(msg);
+        if (answer == null) {
+          fail();
+        }
+      }
+  }
+})();
+
+
 // http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
 var colors = {
   'bold' : [1, 22],
