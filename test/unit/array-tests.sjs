@@ -14,3 +14,13 @@ test("contains") {||
 	assert.ok([1,2,3] .. array.contains(2));
 	assert.notOk([1,2,3] .. array.contains(5));
 }
+
+context("cmp") {||
+	test("on two equal arrays", -> [1,2,3] .. array.cmp([1,2,3]) .. assert.eq(0));
+	test("first element (a smaller)", -> [0,2,3] .. array.cmp([1,2,3]) .. assert.eq(-1));
+	test("first element (b smaller)", -> [1,2,3] .. array.cmp([0,2,3]) .. assert.eq(1));
+	test("last element (a smaller)", -> [1,2,2] .. array.cmp([1,2,3]) .. assert.eq(-1));
+	test("last element (b smaller)", -> [1,2,3] .. array.cmp([1,2,2]) .. assert.eq(1));
+	test("a shorter", -> [1,2] .. array.cmp([1,2,3]) .. assert.eq(-1));
+	test("b shorter", -> [1,2,3] .. array.cmp([1,2]) .. assert.eq(1));
+}

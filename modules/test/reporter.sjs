@@ -68,11 +68,7 @@ ConsoleBuffer.prototype.drain = function() {
 
 var formatLogArgs = exports._formatLogArgs = function(args) {
   if (args.length == 0 ) return '';
-  var msg = args[0];
-  if (args.length > 1) {
-    msg += (args .. skip(1) .. map(debug.inspect) .. join(" "))
-  }
-  return msg;
+  return args .. map(s -> string.isString(s) ? s : debug.inspect(s)) .. join(" ");
 }
 
 ConsoleBuffer.prototype.log = function(m) {

@@ -1,5 +1,7 @@
 var testUtil = require('../lib/testUtil');
-var test = testUtil.test;
+var testEq = testUtil.test;
+var testFn = testUtil.testFn;
+var {test, context, assert} = require('sjs:test/suite');
 
 var s = require("sjs:sequence");
 var cutil = require("sjs:cutil");
@@ -20,35 +22,42 @@ var withDecreasingTimeout = function(fn) {
   };
 };
 
+var nonRepeatableSequence = function(arr) {
+  var arr = arr.slice();
+  var seq = s.Stream() {|emit| while(arr.length > 0) emit(arr.shift());}
+  return seq;
+};
+
+var even = (x) -> x % 2 == 0;
 
 //----------------------------------------------------------------------
 // tests
 
-test("each(['a','b','c'], f)", 'abc', function() {
+testEq("each(['a','b','c'], f)", 'abc', function() {
   var rv = "";
   s.each(['a','b','c'], function(x) { rv += x });
   return rv;
 });
 
-test("each(['a','b','c']) {|x| ...}", 'abc', function() {
+testEq("each(['a','b','c']) {|x| ...}", 'abc', function() {
   var rv = "";
   s.each(['a','b','c']) { |x| rv += x };
   return rv;
 });
 
-test("['a','b','c'] .. each{|x| ...}", 'abc', function() {
+testEq("['a','b','c'] .. each{|x| ...}", 'abc', function() {
   var rv = "";
   ['a','b','c'] .. s.each { |x| rv += x };
   return rv;
 });
 
-test("'abc' .. each{|x| ...}", 'abc', function() {
+testEq("'abc' .. each{|x| ...}", 'abc', function() {
   var rv = "";
   'abc' .. s.each { |x| rv += x };
   return rv;
 });
 
-test("['a','b','c'] .. iterate{ |next| ...}", 'abc', function() {
+testEq("['a','b','c'] .. iterate{ |next| ...}", 'abc', function() {
   var rv = "", eos = {};
   ['a','b','c'] .. s.iterate(eos) { 
     |next|
@@ -59,7 +68,7 @@ test("['a','b','c'] .. iterate{ |next| ...}", 'abc', function() {
   return rv;
 });
 
-test("['a','b','c'] .. iterate{ |next| hold(.) ...}", 'abcx', function() {
+testEq("['a','b','c'] .. iterate{ |next| hold(.) ...}", 'abcx', function() {
   var rv = "", eos = 'x';
   ['a','b','c'] .. s.iterate(eos) { 
     |next|
@@ -75,7 +84,7 @@ test("['a','b','c'] .. iterate{ |next| hold(.) ...}", 'abcx', function() {
   return rv;
 });
 
-test("'abcdefghij' .. parallelize(5) .. each", 'abcdefghij', function() {
+testEq("'abcdefghij' .. parallelize(5) .. each", 'abcdefghij', function() {
   var rv = '';
   var eachs = 0, max_concurrent_eachs = 0;
   'abcdefghij' .. s.parallelize(5) .. s.each {
@@ -91,7 +100,7 @@ test("'abcdefghij' .. parallelize(5) .. each", 'abcdefghij', function() {
 });
 
 
-test("'abcdefghij' .. parallelize(5) .. iterate", 'abcdefghij', function() {
+testEq("'abcdefghij' .. parallelize(5) .. iterate", 'abcdefghij', function() {
   var rv = '';
   var loops = 0;
   'abcdefghij' .. s.parallelize(5) .. s.iterate {
@@ -107,49 +116,56 @@ test("'abcdefghij' .. parallelize(5) .. iterate", 'abcdefghij', function() {
   return rv;
 });
 
-test("isStream()", true, function() {
+testEq("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
 
-test("skip", "45", function() {
+testEq("skip", "45", function() {
   var rv = '';
   [1,2,3,4,5] .. s.skip(3) .. s.each { |x| rv += x }
   return rv;
 });
 
-test('toArray on an array does nothing', true, function() {
-  var a = [1,2,3];
-  return a === s.toArray(a);
-});
+context('toArray') {||
+  test('toArray on empty stream') {||
+    var seq = s.Stream({|r| null });
+    seq .. toArray .. assert.eq([]);
+  };
 
-test('toArray on `arguments`', {wasArray: false, isArray: true, value: [1,2,3]}, function() {
-  var args = null;
-  (function() {
-    args = arguments;
-  })(1,2,3);
-  var arr = s.toArray(args);
-  return {
-    wasArray: args instanceof Array,
-    isArray: arr instanceof Array,
-    value: arr
-  }
-});
+  testEq('toArray on an array does nothing', true, function() {
+    var a = [1,2,3];
+    return a === s.toArray(a);
+  });
 
-test('each is ordered', [1,2,3], function() {
+  testEq('toArray on `arguments`', {wasArray: false, isArray: true, value: [1,2,3]}, function() {
+    var args = null;
+    (function() {
+      args = arguments;
+    })(1,2,3);
+    var arr = s.toArray(args);
+    return {
+      wasArray: args instanceof Array,
+      isArray: arr instanceof Array,
+      value: arr
+    }
+  });
+}
+
+testEq('each is ordered', [1,2,3], function() {
   var res = [];
   s.each([1,2,3],
     withDecreasingTimeout(function(elem) { res.push(elem); }));
   return res;
 });
 
-test('parallelized each is temporaly ordered', [3,2,1], function() {
+testEq('parallelized each is temporaly ordered', [3,2,1], function() {
   var res = [];
   [1,2,3] .. s.parallelize .. s.each(
     withDecreasingTimeout(function(elem) { res.push(elem); }));
   return res;
 });
 
-test('each doesn\'t swallow all exceptions', 'expected error', function() {
+testEq('each doesn\'t swallow all exceptions', 'expected error', function() {
   try {
     s.each([1,2,3], function() { throw new Error("expected error"); });
     return "no error thrown!"
@@ -158,7 +174,7 @@ test('each doesn\'t swallow all exceptions', 'expected error', function() {
   }
 });
 
-test('parallelized map', {order: [3,2,1], result: [6,4,2]}, function() {
+testEq('parallelized map', {order: [3,2,1], result: [6,4,2]}, function() {
   var order = [];
   var result = [1,2,3] .. s.parallelize .. s.map(
     withDecreasingTimeout(function(elem) {
@@ -168,7 +184,7 @@ test('parallelized map', {order: [3,2,1], result: [6,4,2]}, function() {
   return {order: order, result: result};
 });
 
-test('map', {order: [1,2,3], result: [2,4,6]}, function() {
+testEq('map', {order: [1,2,3], result: [2,4,6]}, function() {
   var order = [];
   var result = s.map([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -178,7 +194,7 @@ test('map', {order: [1,2,3], result: [2,4,6]}, function() {
   return {order: order, result: result};
 });
 
-test('find returns early', {checked: [1,2], result: 2}, function() {
+testEq('find returns early', {checked: [1,2], result: 2}, function() {
   var order = [];
   var result = s.find([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -188,7 +204,7 @@ test('find returns early', {checked: [1,2], result: 2}, function() {
   return {checked: order, result: result};
 });
 
-test('parallelized find returns early', {checked: [3,2], result: 2}, function() {
+testEq('parallelized find returns early', {checked: [3,2], result: 2}, function() {
   var order = [];
   var result = [1,2,3] .. s.parallelize .. s.find(
     withDecreasingTimeout(function(elem) {
@@ -198,7 +214,7 @@ test('parallelized find returns early', {checked: [3,2], result: 2}, function() 
   return {checked: order, result: result};
 });
 
-test('find / parallelized find return undefined if not found',
+testEq('find / parallelized find return undefined if not found',
     [undefined, undefined],
     function() {
   var fn = function() { return false; };
@@ -209,7 +225,7 @@ test('find / parallelized find return undefined if not found',
   ];
 });
 
-test('filter', {checked: [1,2,3], result: [1,3]}, function() {
+testEq('filter', {checked: [1,2,3], result: [1,3]}, function() {
   var checked = [];
   var result = s.filter([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -219,7 +235,7 @@ test('filter', {checked: [1,2,3], result: [1,3]}, function() {
   return {checked:checked, result:result};
 });
 
-test('parallelized filter', {checked: [3,2,1], result: [3,1]}, function() {
+testEq('parallelized filter', {checked: [3,2,1], result: [3,1]}, function() {
   var checked = [];
   var result = [1,2,3] .. s.parallelize .. s.filter(
     withDecreasingTimeout(function(elem) {
@@ -229,15 +245,15 @@ test('parallelized filter', {checked: [3,2,1], result: [3,1]}, function() {
   return {checked:checked, result:result};
 });
 
-test('reduce', 6, function() {
+testEq('reduce', 6, function() {
   return s.reduce([1,2,3], 0, function(accum, el) { return accum + el; });
 });
 
-test('reduce1', 6, function() {
+testEq('reduce1', 6, function() {
   return s.reduce1([1,2,3], function(accum, el) { return accum + el; });
 });
 
-test('reduce1 on empty array', 'reduce1 on empty sequence', function() {
+testEq('reduce1 on empty array', 'reduce1 on empty sequence', function() {
   try {
     return s.reduce1([], function() { throw 'should not be run'; }, 'reduce1 on empty sequence');
   } catch(e) {
@@ -245,7 +261,7 @@ test('reduce1 on empty array', 'reduce1 on empty sequence', function() {
   }
 });
 
-test('parallel any returns early', {checked: [3, 2], result: true}, function() {
+testEq('parallel any returns early', {checked: [3, 2], result: true}, function() {
   var checked = [];
   var result = [1,2,3] .. s.parallelize .. s.any(
     withDecreasingTimeout(function(elem) {
@@ -255,7 +271,7 @@ test('parallel any returns early', {checked: [3, 2], result: true}, function() {
   return {checked:checked, result:result};
 });
 
-test('any returns early', {checked: [1, 2], result: true}, function() {
+testEq('any returns early', {checked: [1, 2], result: true}, function() {
   var checked = [];
   var result = s.any([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -265,13 +281,13 @@ test('any returns early', {checked: [1, 2], result: true}, function() {
   return {checked:checked, result:result};
 });
 
-test('any returns false when there is no match', false, function() {
+testEq('any returns false when there is no match', false, function() {
   var c = [1,2,3];
   var fn = function() { return false; };
   return s.any(c, fn);
 });
 
-test('parallelized all returns early', {checked: [3, 2], result: false}, function() {
+testEq('parallelized all returns early', {checked: [3, 2], result: false}, function() {
   var checked = [];
   var result = [1,2,3] .. s.parallelize .. s.all(
     withDecreasingTimeout(function(elem) {
@@ -281,7 +297,7 @@ test('parallelized all returns early', {checked: [3, 2], result: false}, functio
   return {checked:checked, result:result};
 });
 
-test('all returns early', {checked: [1, 2], result: false}, function() {
+testEq('all returns early', {checked: [1, 2], result: false}, function() {
   var checked = [];
   var result = s.all([1,2,3],
     withDecreasingTimeout(function(elem) {
@@ -291,19 +307,19 @@ test('all returns early', {checked: [1, 2], result: false}, function() {
   return {checked:checked, result:result};
 });
 
-test('all / parallelized all returns true when all match', [true, true], function() {
+testEq('all / parallelized all returns true when all match', [true, true], function() {
   var c = [1,2,3];
   var fn = function() { return true; };
   return [s.all(c, fn), s.all(s.parallelize(c), fn)];
 });
 
-test('generate', [1,2,3], function() {
+testEq('generate', [1,2,3], function() {
   var i=0;
   function generator() { return ++i; }
   return s.generate(generator) .. s.take(3) .. s.toArray ;
 });
 
-test('parallelize scaling', 10000, function() {
+testEq('parallelize scaling', 10000, function() {
   var i=0;
   s.integers() .. s.parallelize(10000) .. s.each { 
     |x|
@@ -315,7 +331,7 @@ test('parallelize scaling', 10000, function() {
   return i;
 });
 
-test('parallelize teardown', '123ff.', function() {
+testEq('parallelize teardown', '123ff.', function() {
   var rv='';
   s.integers(1) .. s.parallelize .. s.each {
     |x|
@@ -327,7 +343,7 @@ test('parallelize teardown', '123ff.', function() {
   return rv;
 });
 
-test('parallelize teardown on exception', '12345fffffe.', function() {
+testEq('parallelize teardown on exception', '12345fffffe.', function() {
   var rv='';
   try {
     s.integers(1) .. s.parallelize(5) .. s.each {
@@ -349,31 +365,74 @@ test('parallelize teardown on exception', '12345fffffe.', function() {
 })
 
 
-test("take() leaves the rest", [[1], [2,3,4]], function() {
-  var arr = [1,2,3,4];
-  var seq = s.Stream() {|emit| while(arr.length > 0) emit(arr.shift());}
-  var head = seq .. s.take(1) .. s.toArray();
-  var tail = seq .. s.toArray();
-  return [head, tail];
-});
+context('take and skip') {||
+  test("take(0)") {||
+    s.take(0, [1,2,3]) .. toArray .. assert.eq([]);
+  }
 
-test('indexed(["one","two","three"], 1)', [[1,"one"],[2,"two"],[3,"three"]], function() {
-  return s.indexed(["one","two","three"], 1) .. toArray;
-});
+  test("take with a negative argument") {||
+    s.take(-1, [1,2,3]) .. toArray .. assert.eq([]);
+  }
 
-test('indexed(["zero","one"])', [[0,"zero"],[1,"one"]], function() {
-  return s.indexed(["zero","one"]) .. toArray;
-});
+  testEq("take() leaves the rest", [[1], [2,3,4]], function() {
+    var arr = [1,2,3,4];
+    var seq = nonRepeatableSequence([1,2,3,4]);
+    var head = seq .. s.take(1) .. s.toArray();
+    var tail = seq .. s.toArray();
+    return [head, tail];
+  });
 
-test('indexed() stream restarts at 0', [[[0,0],[1,1]],[[0,0],[1,1]]], function() {
-  var indexedIntegers = s.indexed(s.integers());
-  var rv = [];
-  rv.push(indexedIntegers .. s.take(2) .. s.toArray);
-  rv.push(indexedIntegers .. s.take(2) .. s.toArray);
-  return rv;
-});
+  test('skipWhile') {||
+    [2,4,6,7,8,9,10] .. s.skipWhile(even) .. s.toArray .. assert.eq([7,8,9,10]);
+  }
 
-test('eventStream()', [1,2,3,4], function() {
+  test('takeWhile') {||
+    [2,4,6,7,8,9,10] .. s.takeWhile(even) .. s.toArray .. assert.eq([2,4,6]);
+  }
+}
+
+context('at') {||
+  test('first element', -> [1,2,3] .. s.at(0) .. assert.eq(1));
+  test('first element (by negative index)', -> [1,2,3] .. s.at(-3) .. assert.eq(1));
+  test('last element', -> [1,2,3] .. s.at(2) .. assert.eq(3));
+  test('last element (by negative index)', -> [1,2,3] .. s.at(-1) .. assert.eq(3));
+  test('middle element (by negative index)', -> [1,2,3] .. s.at(-2) .. assert.eq(2));
+  test('beyond array bounds') {||
+    assert.raises({ inherits: s.SequenceExhausted },
+      -> [1,2,3] .. s.at(3));
+
+    assert.raises({ inherits: s.SequenceExhausted },
+      -> [1,2,3] .. s.at(300));
+
+    assert.raises({ inherits: s.SequenceExhausted },
+      -> [1,2,3] .. s.at(-4));
+
+    assert.raises({ inherits: s.SequenceExhausted },
+      -> [1,2,3] .. s.at(-300));
+  }
+  test('beyond last element (with default)', -> [1,2,3] .. s.at(5, undefined) .. assert.eq(undefined));
+  test('beyond first element (with default)', -> [1,2,3] .. s.at(-5, 'default') .. assert.eq('default'));
+}
+
+context('indexed') {||
+  testEq('indexed(["one","two","three"], 1)', [[1,"one"],[2,"two"],[3,"three"]], function() {
+    return s.indexed(["one","two","three"], 1) .. toArray;
+  });
+
+  testEq('indexed(["zero","one"])', [[0,"zero"],[1,"one"]], function() {
+    return s.indexed(["zero","one"]) .. toArray;
+  });
+
+  testEq('stream restarts at 0', [[[0,0],[1,1]],[[0,0],[1,1]]], function() {
+    var indexedIntegers = s.indexed(s.integers());
+    var rv = [];
+    rv.push(indexedIntegers .. s.take(2) .. s.toArray);
+    rv.push(indexedIntegers .. s.take(2) .. s.toArray);
+    return rv;
+  });
+}
+
+testEq('eventStream()', [1,2,3,4], function() {
   var evt = cutil.Event();
   var result = [];
   waitfor {
@@ -391,7 +450,7 @@ test('eventStream()', [1,2,3,4], function() {
   return result;
 });
 
-test('combine', ['a','b','b','a','c'], function() {
+testEq('combine', ['a','b','b','a','c'], function() {
   var as = s.Stream() {|r|
     r('a');
     hold(5);
@@ -410,14 +469,14 @@ test('combine', ['a','b','b','a','c'], function() {
   return s.combine(as, bs, cs) .. toArray();
 });
 
-test('concat([1,2],[3,4])', [1,2,3,4], function () { return s.concat([1,2], [3,4]) .. toArray; });
-test('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2], [3,4]]) .. toArray; });
+testEq('concat([1,2],[3,4])', [1,2,3,4], function () { return s.concat([1,2], [3,4]) .. toArray; });
+testEq('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2], [3,4]]) .. toArray; });
 
-test('partition(integers(1,10), x->x%2)', [[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], function() {
+testEq('partition(integers(1,10), x->x%2)', [[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], function() {
   return s.partition(s.integers(1, 10), x -> x%2) .. s.map(s.toArray) .. s.toArray;
 });
 
-test('eventStream() only buffers events while iterating', [2,3,4], function() {
+testEq('eventStream() only buffers events while iterating', [2,3,4], function() {
   var evt = cutil.Event();
   var result = [];
   var stream = s.eventStream(evt)
@@ -435,3 +494,136 @@ test('eventStream() only buffers events while iterating', [2,3,4], function() {
   }
   return result;
 });
+
+context('head') {||
+  test('fails on an empty array') {||
+    assert.raises({
+      inherits: s.SequenceExhausted,
+      message: 'sequence exhausted'},
+      -> s.head([]));
+  }
+
+  test('fails on an empty stream') {||
+    assert.raises({
+      inherits: s.SequenceExhausted,
+      message: 'sequence exhausted'},
+      -> s.head(s.Stream {|r| }));
+  }
+
+  test('consumes and returns the first element of a nonempty sequence') {||
+    var seq = nonRepeatableSequence(['one','two','three']);
+    s.head(seq) .. assert.eq('one');
+    s.toArray(seq) .. assert.eq(['two', 'three']);
+  }
+
+  test('waits for non-atomic values') {||
+    var seq = s.Stream {|r|
+      hold(100);
+      r('one');
+      
+      // head() should not wait for this second value:
+      hold(1000 * 10);
+      r('two');
+    };
+    s.head(seq) .. assert.eq('one');
+  }
+}.timeout(0.5);
+
+context('zip') {||
+  test('zip on same-sized arrays') {||
+    s.zip([1,2,3], ['one','two','three']) .. toArray .. assert.eq([
+      [1, 'one'],
+      [2, 'two'],
+      [3, 'three'],
+    ]);
+  }
+
+  test('zip on uneven arrays') {||
+    s.zip([1,2,3], ['one']) .. toArray .. assert.eq([[1, 'one']]);
+  }
+
+  test('zipLongest on uneven arrays') {||
+    s.zipLongest([1,2,3], ['one']) .. toArray .. assert.eq([
+      [1, 'one'],
+      [2, undefined],
+      [3, undefined],
+    ]);
+
+    s.zipLongest([1], ['one','two','three']) .. toArray .. assert.eq([
+      [1, 'one'],
+      [undefined, 'two'],
+      [undefined, 'three'],
+    ]);
+  }
+}
+
+
+test('groupBy') {||
+  [2,4,6,7,9,10] .. s.groupBy(even) .. s.toArray .. assert.eq([
+    [true, [2, 4, 6]],
+    [false, [7, 9]],
+    [true, [10]],
+  ]);
+
+  ['one', 'two', 'three', 'four'] .. s.groupBy(x -> x.length) .. s.toArray .. assert.eq([
+    [3, ['one', 'two']],
+    [5, ['three']],
+    [4, ['four']],
+  ]);
+
+  ['one', 'two', 'three', 'four'] .. s.groupBy('length') .. s.toArray .. assert.eq([
+    [3, ['one', 'two']],
+    [5, ['three']],
+    [4, ['four']],
+  ]);
+
+  [1,1,2,'2',{},{}] .. s.groupBy(null) .. s.toArray .. assert.eq([
+    [1, [1, 1]],
+    [2, [2]],
+    ['2', ['2']],
+    [{}, [{}]],
+    [{}, [{}]],
+  ]);
+}
+
+context('sortBy') {||
+  var input = [
+    'zz',
+    'lsdfjd',
+    'a',
+    'abcd',
+    'jjj',
+  ].slice();
+  
+  var expected = [
+    'a',
+    'zz',
+    'jjj',
+    'abcd',
+    'lsdfjd'
+  ];
+
+  test('property name', -> input.slice() .. s.sortBy('length') .. assert.eq(expected));
+  test('key function', -> input.slice() .. s.sortBy(x -> x.length) .. assert.eq(expected));
+}
+
+context('slice') {||
+  var seq = [0,1,2,3,4,5];
+  test('parity with array.slice()') {||
+    // just brute force all interesting indexes for our input
+    var indexes = [undefined, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
+    indexes .. s.each {|start|
+      indexes .. s.each {|end|
+        var args = [start];
+        if (end !== undefined) args.push(end);
+
+        var desc = "seq .. slice(#{args.join(",")})";
+        var result = seq .. s.slice(start, end);
+        var expected = seq.slice.apply(seq, args);
+        assert.ok(result .. s.isStream(), "result is not a stream");
+        result .. toArray .. assert.eq(expected, desc);
+        result .. toArray .. assert.eq(expected, "(re-enumerate) #{desc}");
+      }
+    }
+  }
+}.timeout(1);

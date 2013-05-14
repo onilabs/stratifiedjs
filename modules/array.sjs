@@ -187,3 +187,35 @@ __js exports.haveCommonElements = function(a, b) {
   }
   return false;
 };
+
+/**
+  @function cmp
+  @param {Array} a
+  @param {Array} b
+  @summary Compare two arrays by their corresponding elements.
+  @return {Number} -1, 0 or 1
+  @desc
+    The return value is -1 if `a` is less than `b`,
+    1 if it is greater than, and 0 otherwise.
+
+    Elements are compared with their native ordering (i.e `&lt;` and `&gt;`).
+    Arrays are equal if their elements are all equal (and have the same length).
+    Otherwise, they are ordered according to the first differing element. If
+    one array ends before a differing element is found, it is considered
+    less than the longer array.
+*/
+var cmp = exports.cmp = function cmp(a,b) {
+  var i=0;
+  var ai, bi;
+  var al = a.length;
+  var bl = b.length;
+  var minl = Math.min(al, bl);
+  for (var i=0; i<minl; i++) {
+    ai = a[i];
+    bi = b[i];
+    if (ai < bi) return -1;
+    else if (ai > bi) return 1;
+  }
+  if (al === bl) return 0;
+  return al < bl ? -1 : 1;
+};

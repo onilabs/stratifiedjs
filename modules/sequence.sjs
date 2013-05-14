@@ -82,11 +82,32 @@ var {isArrayLike, expandSingleArgument} = require('builtin:apollo-sys');
 
 */
 var STREAM_TOKEN = {};
-function Stream(S) {
+var Stream = function(S) {
   S.__oni_stream = STREAM_TOKEN;
   return S;
 }
 exports.Stream = Stream;
+
+/**
+  @function toStream
+  @param {::Sequence} [sequence]
+  @return {::Stream}
+  @summary return a Stream
+  @desc
+    If `sequence` is a stream, it is returned unmodified.
+    Oterhwise, a new Stream is created that iterates over the
+    given sequence.
+
+    This function can be useful for example to create an
+    immutable stream fron a mutable array. Note that any
+    mutation to `sequence` after passing it in will be
+    reflected in the resulting stream (i.e it merely
+    references the original array, it does not duplicate it).
+*/
+var toStream = function(arr) {
+  if (isStream(arr)) return arr;
+  return Stream({|r| each(arr, r)});
+}
 
 /**
    @function isStream
@@ -146,6 +167,19 @@ function each(sequence, r) {
     throw new Error("sequence::each: Unsupported sequence type '#{sequence}'");
 }
 exports.each = each;
+
+/**
+  @function exhaust
+  @param {Sequence} [seq]
+  @summary Force the sequence to be fully evaluated
+  @desc
+    Blocks until the sequence has finished.
+*/
+var noop = function() {};
+function exhaust(seq) {
+  each(seq, noop);
+}
+exports.exhaust = exhaust;
 
 /**
    @function iterate
@@ -326,6 +360,174 @@ function toArray(sequence) {
 exports.toArray = toArray;
 
 /**
+  @class SequenceExhausted
+  @summary Exception thrown when trying to get an element from an empty sequence
+*/
+function SequenceExhausted(msg) {
+  this.message = msg;
+}
+SequenceExhausted.prototype = new Error();
+exports.SequenceExhausted = SequenceExhausted;
+
+/**
+  @function head
+  @param {Sequence} [seq]
+  @param {optional Object} [defaultValue]
+  @summary Get the first item from a sequence
+  @desc
+    If `seq` is empty, `defaultValue` is returned if it was given.
+    Otherwise, this function raises a [::SequenceExhausted] error.
+*/
+function head(seq, defaultValue) {
+  var args = arguments;
+  seq .. each {|elem| return elem; }
+  if (args.length > 1) return defaultValue;
+  throw new SequenceExhausted('sequence exhausted');
+}
+exports.head = head;
+
+/**
+  @function at
+  @param {Sequence} [sequence]
+  @param {Number} [index]
+  @param {optional Object} [defaultValue]
+  @summary returns the `index`th item from `sequence`.
+  @desc
+    This function acts similarly to the array index operator,
+    but it works on sequences, and supports negative indexes
+    (accessing elements relative to the end of the sequence).
+
+    If there is no element at `index`, `defaultValue` will be returned
+    (or a SequenceExhausted error thrown if no `defaultValue` was given).
+    
+    i.e for *positive* indexes, the code:
+    
+        sequence.at(seq, n)
+
+    Is similar to:
+
+        toArray(seq)[n]
+
+    While:
+    
+        sequence.at(seq, -n);
+
+    Is similar to:
+
+        var arr = toArray(seq);
+        arr[arr.length - n];
+
+    The differences are:
+
+    - If there is no element at `index`, `defaultValue` will be returned
+      (or a SequenceExhausted error thrown if no `defaultValue` was given).
+    - Evaluation stops as soon as the index is reached (i.e you
+      can take the 10th item of an infinite sequence).
+    - For a positive `index`, only one element is held in memory.
+    - For a negative `index`, only `abs(index)` elements are held in memory.
+
+*/
+function at(seq, n, defaultValue) {
+  var tail = seq;
+  if (n < 0) {
+    var size = -n;
+    tail = padEnd(seq, size).tail();
+    // if we accumulated less than `size`, there weren't enough elements:
+    if (tail.length < size) tail = [];
+  } else if (n>0) {
+    tail = skip(seq, n);
+  }
+  var headArgs = [tail];
+  if (arguments.length > 2) headArgs.push(defaultValue);
+  return head.apply(null, headArgs);
+};
+exports.at = at;
+
+/**
+  @function slice
+  @summary Array.slice implementation for arbitrary sequences
+  @param {Sequence} [sequence]
+  @param {Number} [start]
+  @param {optional Number} [end]
+  @return {::Stream}
+  @desc
+    This function operates exactly like [Array.slice][],
+    except that it accepts any [::Sequence], and returns a [::Stream].
+
+    The implementation only evaluates as many elements as required, for example
+    you can take the slice of an infinite sequence if both `start` and `end`
+    are positive:
+
+        seq.integers() .. seq.slice(2, 8) .. seq.toArray();
+        // [ 2, 3, 4, 5, 6, 7 ]
+
+    [Array.slice]: https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/slice
+*/
+function slice(sequence, start, end) {
+  // drop leading values:
+  var dropped = 0;
+  if (start !== undefined && start !== 0) {
+    if (start > 0) {
+      sequence = skip(sequence, start);
+      dropped = start;
+    } else {
+      var pad = padEnd(sequence, -start);
+      sequence = pad.tail();
+      dropped = pad.count();
+    }
+  }
+
+  // then trailing
+  if (end !== undefined) {
+    if (end >= 0) {
+      sequence = take(sequence, Math.max(0, end-dropped)) .. toArray();
+    } else {
+      // end is negative; so we drop from the end.
+      // Note that `padEnd` is non-replayable, so we make a stream that
+      // replays it each time.
+      var orig = sequence;
+      sequence = Stream {|r| padEnd(orig, -end) .. each(r) };
+    }
+  }
+
+  // Some paths will end up with an array, some a Stream.
+  // We want to always return a stream for consistency
+  return toStream(sequence);
+};
+exports.slice = slice;
+
+// NOTE: padEnd is a single-shot sequence,
+// as it maintains state (available via the `tail` method).
+// Users of `padEnd` should not return it directly,
+// since we want all library functions to be restartable.
+var padEnd = function(seq, padding) {
+  var started = false;
+  var buf = [];
+  var count = 0;
+  var s = Stream(function(r) {
+    if (started) throw new Error("Can't restart single-shot stream");
+    started = true;
+    seq .. each {|e|
+      buf.push(e);
+      if(buf.length > padding) {
+        count++;
+        r(buf.shift());
+      }
+    }
+  });
+  s.tail = function() {
+    if (!started) exhaust(s);
+    return buf;
+  }
+  s.count = function() {
+    if (!started) exhaust(s);
+    return count;
+  }
+  return s;
+}
+
+
+/**
    @function join
    @altsyntax sequence .. join(separator)
    @param {::Sequence} [sequence] Input sequence
@@ -359,12 +561,70 @@ exports.join = join;
       * `compare` must be a **non-blocking** function.
 
       * If `sequence` is an Array, it will be destructively sorted in-place.
+
+      See also [::sortBy].
 */
 function sort(sequence, compare) {
   var arr = (sequence .. toArray);
   return arr.sort.apply(arr, Array.prototype.slice.call(arguments, 1));
 }
 exports.sort = sort;
+
+/**
+  @function sortBy
+  @param {::Sequence} [sequence] Input sequence
+  @param {Function|String} [key] Function or property name which determines sort order.
+  @return {Array}
+  @summary Sort the sequence elements into an Array
+  @desc
+    Sorts the input sequence according to the ordering obtained by
+    calling `key` on each input.
+
+    If `key` is a string, it will be converted into a property acessor. i.e
+    passing `'length'` is equivalent to passing `(x) -> x.length`.
+
+    Example:
+
+        ['five', 'four', 'three', 'two', 'one'] .. seq.sortBy('length');
+        // -> [ 'two', 'one', 'five', 'four', 'three' ]
+    
+    If `sequence` is an array, it will be sorted in-place (and returned).
+
+    The sort operation is stable if the runtime's Array.sort implementation
+    is stable.
+
+    Keys are evaluated once per input element, and the `key` function may
+    be blocking (unlike the comparison function given to [::sort]).
+*/
+
+function sortBy(sequence, key) {
+  key = keyFn(key);
+  var arr = sequence .. toArray();
+  var expanded = new Array(arr.length);
+  for (var i=0; i<arr.length; i++) {
+    expanded[i] = [arr[i], key(arr[i])];
+  }
+  expanded.sort(function(a,b) {
+    // grab the result of `key(item)` for both pairs:
+    a = a[1];
+    b = b[1];
+    return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+  });
+  // copy sorted elements into original array
+  for (var i=0; i<arr.length; i++) {
+    arr[i] = expanded[i][0];
+  }
+  return arr;
+};
+exports.sortBy = sortBy;
+
+// helpers for key functions
+var identity = (x) -> x;
+var keyFn = function(key) {
+  if (key == null) return identity;
+  if ((typeof key) == 'string') return (x) -> x[key];
+  return key;
+}
 
 /**
    @function reverse
@@ -438,10 +698,36 @@ exports.toStream = toStream;
 function take(sequence, count) {
   return Stream(function(r) {
     var n = count;
-      sequence .. each { |x| r(x); if (--n <= 0) return }
+    if (n > 0) sequence .. each { |x| r(x); if (--n <= 0) return }
   });
 }
 exports.take = take;
+
+/**
+  @fucntion takeWhile
+  @param {::Sequence} [sequence]
+  @param {Function} [predicate]
+  @return {Stream}
+  @summary Emit leading elements where `predicate(x)` returns true.
+  @desc
+    Returns a {Stream} which will emit only the leading
+    elements in [sequence] which satisfy `predicate`.
+
+    ### Example:
+
+        var even = (x) -> x%2 == 0;
+        [0, 2, 4, 5, 6, 7, 8] .. seq.takeWhile(even) .. seq.toArray();
+        // -> [0, 2, 4]
+*/
+function takeWhile(seq, fn) {
+  return Stream(function(r) {
+    seq .. each {|item|
+      if (fn(item)) r(item);
+      else return;
+    }
+  });
+};
+exports.takeWhile = takeWhile;
 
 /**
    @function skip
@@ -474,6 +760,37 @@ function skip(sequence, count) {
 }
 exports.skip = skip;
 
+/**
+  @fucntion skipWhile
+  @param {::Sequence} [sequence]
+  @param {Function} [predicate]
+  @return {Stream}
+  @summary Skip leading elements where `predicate(x)` returns true.
+  @desc
+    Returns a {Stream} which will skip the leading
+    elements in [sequence] which satisfy `predicate`.
+
+    ### Example:
+
+        var even = (x) -> x%2 == 0;
+        [0, 2, 4, 5, 6, 7, 8] .. seq.skipWhile(even) .. seq.toArray();
+        // -> [5, 6, 7, 8]
+*/
+function skipWhile(seq, fn) {
+  return Stream {|emit|
+    var done = false;
+    seq .. each {|item|
+      if(done) emit(item);
+      else {
+        if (!fn(item)) {
+          done = true;
+          emit(item);
+        }
+      }
+    }
+  }
+};
+exports.skipWhile = skipWhile;
 
 /**
    @function filter
@@ -787,6 +1104,60 @@ function unpack(sequence, u) {
 }
 exports.unpack = unpack;
 
+/**
+  @function groupBy
+  @param {Sequence} [seq]
+  @param {optional Function|String} [key] Function or property name to group by.
+  @summary Group sequential elements by their key.
+  @return {Stream}
+  @desc
+    Return a stream that emits groups of sequential elements
+    with the same key (the result of passing each element to the
+    provided `key` function).
+
+    Each emitted group has two elements: the key value, and the
+    array of matched elements.
+    
+
+    ### Example:
+    
+        // group numbers by their remainder modulo 3:
+
+        [3,6,9,11,2,3] .. seq.groupBy(n->n%3) .. seq.each(console.log)
+        // will print:
+        // [ 0, [ 3, 6, 9 ] ]
+        // [ 2, [ 11, 2 ] ]
+        // [ 0, [ 3 ] ]
+
+    Note that the last `3` forms a new group with the key `0` - if
+    you want to only have each key appear once, you'll need to
+    pass in a sequence that is already sorted by `key`
+    (see [::sortBy]).
+*/
+function groupBy(seq, key) {
+  key = keyFn(key);
+  return Stream(function(r) {
+    var group = [];
+    var groupKey = {};
+    var currentKey = {};
+    var emit = function(empty) {
+      if (group.length === 0) return;
+      r([groupKey, group]);
+      group = [];
+    };
+
+    seq .. each {|item|
+      currentKey = key(item);
+      if (currentKey !== groupKey) {
+        emit();
+        groupKey = currentKey;
+      }
+      group.push(item);
+    }
+    emit();
+  });
+};
+exports.groupBy = groupBy;
 
 /**
    @function zip
@@ -813,8 +1184,8 @@ function zip(/* sequences... */) {
     try {
       while (1) {
         var x = [];
-        iterators .. each { 
-          |iter| 
+        iterators .. each {
+          |iter|
           if (!iter.hasMore()) return;
           x.push(iter.next());
         }
@@ -827,6 +1198,51 @@ function zip(/* sequences... */) {
   });
 }
 exports.zip = zip;
+
+/**
+  @function zipLongest
+  @summary like [::zip], but continues for as long as the longest input.
+  @desc
+    See [::zip].
+
+    While `zip` stops at the end of the shortest input sequence,
+    `zipLongest` emits items until all sequences have ended.
+    `undefined` is used where there are no more input elements in a given
+    position.
+
+    ### Example:
+
+        zipLongest([1,2,3,4], ['one','two']) .. toArray()
+
+        // -> [[1, 'one'], [2, 'two'], [3, undefined], [4, undefined]]
+*/
+function zipLongest(/* sequences... */) {
+  var sequences = arguments;
+  return Stream(function(r) {
+    var iterators = sequences .. map(seq => makeIterator(seq)) .. toArray;
+    try {
+      var done = false;
+      while (!done) {
+        var x = [];
+        var done = true;
+        iterators .. each {
+          |iter|
+          var item;
+          if (iter.hasMore()) {
+            done = false;
+            item = iter.next();
+          }
+          x.push(item);
+        }
+        if (!done) r(x);
+      }
+    }
+    finally {
+      iterators .. each { |iter| iter.destroy() }
+    }
+  });
+};
+exports.zipLongest = zipLongest;
 
 /**
    @function indexed
