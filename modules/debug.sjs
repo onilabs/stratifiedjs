@@ -85,7 +85,7 @@ var prompt = exports.prompt = (function() {
   switch (sys.hostenv) {
     case 'nodejs':
       return function(msg) {
-        var stdin = processs.stdin;
+        var stdin = process.stdin;
         if (stdin.destroyed) fail();
         var events = require('sjs:nodejs/events');
         var iface = require("nodejs:readline").createInterface(stdin, process.stdout);
