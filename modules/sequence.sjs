@@ -170,7 +170,7 @@ exports.each = each;
 
 /**
   @function exhaust
-  @param {Sequence} [seq]
+  @param {::Sequence} [seq]
   @summary Force the sequence to be fully evaluated
   @desc
     Blocks until the sequence has finished.
@@ -371,7 +371,7 @@ exports.SequenceExhausted = SequenceExhausted;
 
 /**
   @function head
-  @param {Sequence} [seq]
+  @param {::Sequence} [seq]
   @param {optional Object} [defaultValue]
   @summary Get the first item from a sequence
   @desc
@@ -388,7 +388,7 @@ exports.head = head;
 
 /**
   @function at
-  @param {Sequence} [sequence]
+  @param {::Sequence} [sequence]
   @param {Number} [index]
   @param {optional Object} [defaultValue]
   @summary returns the `index`th item from `sequence`.
@@ -446,7 +446,7 @@ exports.at = at;
 /**
   @function slice
   @summary Array.slice implementation for arbitrary sequences
-  @param {Sequence} [sequence]
+  @param {::Sequence} [sequence]
   @param {Number} [start]
   @param {optional Number} [end]
   @return {::Stream}
@@ -707,10 +707,10 @@ exports.take = take;
   @fucntion takeWhile
   @param {::Sequence} [sequence]
   @param {Function} [predicate]
-  @return {Stream}
+  @return {::Stream}
   @summary Emit leading elements where `predicate(x)` returns true.
   @desc
-    Returns a {Stream} which will emit only the leading
+    Returns a {::Stream} which will emit only the leading
     elements in [sequence] which satisfy `predicate`.
 
     ### Example:
@@ -764,10 +764,10 @@ exports.skip = skip;
   @fucntion skipWhile
   @param {::Sequence} [sequence]
   @param {Function} [predicate]
-  @return {Stream}
+  @return {::Stream}
   @summary Skip leading elements where `predicate(x)` returns true.
   @desc
-    Returns a {Stream} which will skip the leading
+    Returns a {::Stream} which will skip the leading
     elements in [sequence] which satisfy `predicate`.
 
     ### Example:
@@ -1106,10 +1106,10 @@ exports.unpack = unpack;
 
 /**
   @function groupBy
-  @param {Sequence} [seq]
+  @param {::Sequence} [seq]
   @param {optional Function|String} [key] Function or property name to group by.
   @summary Group sequential elements by their key.
-  @return {Stream}
+  @return {::Stream}
   @desc
     Return a stream that emits groups of sequential elements
     with the same key (the result of passing each element to the
@@ -1246,9 +1246,9 @@ exports.zipLongest = zipLongest;
 
 /**
    @function indexed
-   @param {Sequence} [sequence]
+   @param {::Sequence} [sequence]
    @param {Optional Integer} [start]
-   @return {Stream}
+   @return {::Stream}
    @summary  Generate an indexed stream of pairs [index, val] with `index` beginning from
              `start` (or 0 if no start given) and incrementing for each successive value.
    @desc
