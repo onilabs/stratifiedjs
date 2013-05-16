@@ -505,24 +505,24 @@ testEq('eventStream() only buffers events while iterating', [2,3,4], function() 
   return result;
 });
 
-context('head') {||
+context('first') {||
   test('fails on an empty array') {||
     assert.raises({
       inherits: s.SequenceExhausted,
       message: 'sequence exhausted'},
-      -> s.head([]));
+      -> s.first([]));
   }
 
   test('fails on an empty stream') {||
     assert.raises({
       inherits: s.SequenceExhausted,
       message: 'sequence exhausted'},
-      -> s.head(s.Stream {|r| }));
+      -> s.first(s.Stream {|r| }));
   }
 
   test('consumes and returns the first element of a nonempty sequence') {||
     var seq = nonRepeatableSequence(['one','two','three']);
-    s.head(seq) .. assert.eq('one');
+    s.first(seq) .. assert.eq('one');
     s.toArray(seq) .. assert.eq(['two', 'three']);
   }
 
@@ -531,11 +531,11 @@ context('head') {||
       hold(100);
       r('one');
       
-      // head() should not wait for this second value:
+      // first() should not wait for this second value:
       hold(1000 * 10);
       r('two');
     };
-    s.head(seq) .. assert.eq('one');
+    s.first(seq) .. assert.eq('one');
   }
 }.timeout(0.5);
 

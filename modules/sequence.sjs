@@ -370,21 +370,25 @@ SequenceExhausted.prototype = new Error();
 exports.SequenceExhausted = SequenceExhausted;
 
 /**
-  @function head
+  @function first
   @param {::Sequence} [seq]
   @param {optional Object} [defaultValue]
   @summary Get the first item from a sequence
   @desc
     If `seq` is empty, `defaultValue` is returned if it was given.
     Otherwise, this function raises a [::SequenceExhausted] error.
+
+    Note that if `seq` is a non-repeatable [::Stream],
+    it doesn't just "peek" at the first item - it will consume
+    (and return) it.
 */
-function head(seq, defaultValue) {
+function first(seq, defaultValue) {
   var args = arguments;
   seq .. each {|elem| return elem; }
   if (args.length > 1) return defaultValue;
   throw new SequenceExhausted('sequence exhausted');
 }
-exports.head = head;
+exports.first = first;
 
 /**
   @function at
@@ -437,9 +441,9 @@ function at(seq, n, defaultValue) {
   } else if (n>0) {
     tail = skip(seq, n);
   }
-  var headArgs = [tail];
-  if (arguments.length > 2) headArgs.push(defaultValue);
-  return head.apply(null, headArgs);
+  var firstArgs = [tail];
+  if (arguments.length > 2) firstArgs.push(defaultValue);
+  return first.apply(null, firstArgs);
 };
 exports.at = at;
 
