@@ -480,7 +480,7 @@ function slice(sequence, start, end) {
   // then trailing
   if (end !== undefined) {
     if (end >= 0) {
-      sequence = take(sequence, Math.max(0, end-dropped)) .. toArray();
+      sequence = take(sequence, Math.max(0, end-dropped));
     } else {
       // end is negative; so we drop from the end.
       // Note that `padEnd` is non-replayable, so we make a stream that
@@ -490,8 +490,8 @@ function slice(sequence, start, end) {
     }
   }
 
-  // Some paths will end up with an array, some a Stream.
-  // We want to always return a stream for consistency
+  // slice(-n) will end up setting `sequence` to an Array, but we
+  // want to return a stream from all code paths for consistency
   return toStream(sequence);
 };
 exports.slice = slice;

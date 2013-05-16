@@ -28,6 +28,16 @@ var nonRepeatableSequence = function(arr) {
   return seq;
 };
 
+var countSlowly = function(interval) {
+  return s.Stream {|emit|
+    s.integers() .. s.each {|i|
+      emit(i);
+      hold(interval);
+    }
+  }
+};
+
+
 var even = (x) -> x % 2 == 0;
 
 //----------------------------------------------------------------------
@@ -626,4 +636,34 @@ context('slice') {||
       }
     }
   }
-}.timeout(1);
+
+  test('infinite emitter') {||
+    s.integers() .. s.slice(1, 5) .. toArray .. assert.eq([1,2,3,4]);
+    s.integers() .. s.slice(1, -5) .. s.take(4) .. toArray .. assert.eq([1,2,3,4]);
+  }
+
+  test('slow emitter') {||
+    var emitted = [];
+    var receivedNeg = [];
+    var receivedPos = [];
+    var interval = 50;
+
+    waitfor {
+      countSlowly(interval) .. s.each(x-> emitted.push(x));
+    } or {
+      countSlowly(interval) .. s.slice(0, -2) .. s.each(x -> receivedNeg.push(x));
+    } or {
+      countSlowly(interval) .. s.slice(0, 10) .. s.each(x -> receivedPos.push(x));
+    } or {
+      hold((interval * 4) + (interval / 2));
+    }
+    emitted .. assert.eq([0,1,2,3,4]);
+    
+    // even though the stream never ended, the negative-end slice should
+    // have started emitting with a buffer of 2
+    receivedNeg .. assert.eq([0,1,2], "negative end index");
+
+    // and the positive slice should have emitted everything so far
+    receivedPos .. assert.eq([0,1,2,3,4], "positive end index");
+  }
+}
