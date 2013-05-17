@@ -108,6 +108,7 @@ var toStream = function(arr) {
   if (isStream(arr)) return arr;
   return Stream({|r| each(arr, r)});
 }
+exports.toStream = toStream;
 
 /**
    @function isStream
@@ -708,7 +709,7 @@ function take(sequence, count) {
 exports.take = take;
 
 /**
-  @fucntion takeWhile
+  @function takeWhile
   @param {::Sequence} [sequence]
   @param {Function} [predicate]
   @return {::Stream}
@@ -765,7 +766,7 @@ function skip(sequence, count) {
 exports.skip = skip;
 
 /**
-  @fucntion skipWhile
+  @function skipWhile
   @param {::Sequence} [sequence]
   @param {Function} [predicate]
   @return {::Stream}

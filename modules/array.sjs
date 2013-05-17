@@ -190,8 +190,8 @@ __js exports.haveCommonElements = function(a, b) {
 
 /**
   @function cmp
-  @param {Array} a
-  @param {Array} b
+  @param {Array} [a]
+  @param {Array} [b]
   @summary Compare two arrays by their corresponding elements.
   @return {Number} -1, 0 or 1
   @desc
