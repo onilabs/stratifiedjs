@@ -457,7 +457,8 @@ exports.at = at;
   @return {::Stream}
   @desc
     This function operates exactly like [Array.slice][],
-    except that it accepts any [::Sequence], and returns a [::Stream].
+    except that it accepts any [::Sequence] as input and returns
+    a [::Sequence] as output.
 
     The implementation only evaluates as many elements as required, for example
     you can take the slice of an infinite sequence if both `start` and `end`
@@ -467,6 +468,10 @@ exports.at = at;
         // [ 2, 3, 4, 5, 6, 7 ]
 
     [Array.slice]: https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/slice
+
+    Note that you must not rely on this function returning an array,
+    even though it will do so from some code paths. If you need an array,
+    you should always call [::toArray] on the result.
 */
 function slice(sequence, start, end) {
   // drop leading values:
@@ -494,10 +499,7 @@ function slice(sequence, start, end) {
       sequence = Stream {|r| padEnd(orig, -end) .. each(r) };
     }
   }
-
-  // slice(-n) will end up setting `sequence` to an Array, but we
-  // want to return a stream from all code paths for consistency
-  return toStream(sequence);
+  return sequence;
 };
 exports.slice = slice;
 

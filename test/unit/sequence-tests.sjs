@@ -630,7 +630,6 @@ context('slice') {||
         var desc = "seq .. slice(#{args.join(",")})";
         var result = seq .. s.slice(start, end);
         var expected = seq.slice.apply(seq, args);
-        assert.ok(result .. s.isStream(), "result is not a stream");
         result .. toArray .. assert.eq(expected, desc);
         result .. toArray .. assert.eq(expected, "(re-enumerate) #{desc}");
       }
