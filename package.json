@@ -12,7 +12,7 @@
   "main": "oni-apollo-node",
   "bin": { "apollo": "apollo", "rocket": "rocket" },
   "devDependencies": {
-    "karma": "https://github.com/gfxmonk/karma/archive/6bd8aa31d0b725ecf0979cfc318064701f7ed831.tar.gz"
+    "karma": "https://github.com/gfxmonk/karma/archive/master.tar.gz"
   },
   "engines": { "node": ">=0.4.1" }
 }
