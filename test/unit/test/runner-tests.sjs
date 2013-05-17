@@ -21,25 +21,37 @@ var defaultOpts = {
   logLevel: logging.VERBOSE,
 }
 
-context("hooks") {||
-  test("runs all before / after hooks") {||
-    var runner = new Runner(defaultOpts);
-    var events = [];
+var throwError = function() { throw new Error("thrown error"); }
 
-    runner.context("ctx") {||
-      test.beforeAll( -> events.push("before all"));
-      test.beforeEach( -> events.push("before each 1"));
-      test.beforeEach( -> events.push("before each 2"));
-      test.afterEach( -> events.push("after each"));
-      test.afterAll( -> events.push("after all 1"));
-      test.afterAll( -> events.push("after all 2"));
-      test("1", -> events.push("test 1"));
-      test("1", -> events.push("test 2"));
+// blanket check to make sure no test runs modify the log level:
+test.beforeEach{|s|
+  s.initialLogLevel = logging.getLevel();
+}
+test.afterEach{|s|
+  assert.eq(logging.getLevel(), s.initialLogLevel, 'test has modified log level!');
+}
+
+context("hooks") {||
+  test.beforeEach {|s|
+    s.runner = new Runner(defaultOpts);
+    s.events = [];
+  }
+
+  test("runs all before / after hooks") {|s|
+    s.runner.context("ctx") {||
+      test.beforeAll( -> s.events.push("before all"));
+      test.beforeEach( -> s.events.push("before each 1"));
+      test.beforeEach( -> s.events.push("before each 2"));
+      test.afterEach( -> s.events.push("after each"));
+      test.afterAll( -> s.events.push("after all 1"));
+      test.afterAll( -> s.events.push("after all 2"));
+      test("1", -> s.events.push("test 1"));
+      test("1", -> s.events.push("test 2"));
     }
-    var results = runner.run();
+    var results = s.runner.run();
     assert.ok(results.ok())
     assert.equal(results.count(), 2)
-    assert.equal(events, [
+    assert.equal(s.events, [
       'before all',
         'before each 1',
         'before each 2',
@@ -55,42 +67,120 @@ context("hooks") {||
     ]);
   }
 
-  test("runs nested before / after hooks") {||
-    var runner = new Runner(defaultOpts);
-    var events = [];
-
-    runner.context("parent") {||
-      test.beforeAll( -> events.push("parent before all"));
-      test.beforeEach( -> events.push("parent before each"));
-      test.afterEach( -> events.push("parent after each"));
-      test.afterAll( -> events.push("parent after all"));
-      test("parent test", -> events.push("parent test"));
+  test("runs nested before / after hooks") {|s|
+    s.runner.context("parent") {||
+      test.beforeAll( -> s.events.push("parent before all"));
+      test.beforeEach( -> s.events.push("parent before each 1"));
+      test.beforeEach( -> s.events.push("parent before each 2"));
+      test.afterEach( -> s.events.push("parent after each 1"));
+      test.afterEach( -> s.events.push("parent after each 2"));
+      test.afterAll( -> s.events.push("parent after all"));
+      test("parent test", -> s.events.push("parent test"));
 
       context("child") {||
-        test.beforeAll( -> events.push("child before all"));
-        test.beforeEach( -> events.push("child before each"));
-        test.afterEach( -> events.push("child after each"));
-        test.afterAll( -> events.push("child after all"));
-        test("child test", -> events.push("child test"));
+        test.beforeAll( -> s.events.push("child before all"));
+        test.beforeEach( -> s.events.push("child before each"));
+        test.afterEach( -> s.events.push("child after each"));
+        test.afterAll( -> s.events.push("child after all"));
+        test("child test", -> s.events.push("child test"));
       }
     }
-    var results = runner.run();
+    var results = s.runner.run();
     assert.ok(results.ok())
     assert.equal(results.count(), 2)
-    assert.equal(events, [
+    assert.equal(s.events, [
       'parent before all',
-        'parent before each',
+        'parent before each 1',
+        'parent before each 2',
           'parent test',
-        'parent after each',
+        'parent after each 1',
+        'parent after each 2',
 
         'child before all',
-          'child before each',
-            'child test',
-          'child after each',
+          'parent before each 1',
+          'parent before each 2',
+            'child before each',
+              'child test',
+            'child after each',
+          'parent after each 1',
+          'parent after each 2',
         'child after all',
         
       'parent after all',
     ]);
+  }
+
+  test("stops on first error in before hooks") {|s|
+    s.runner.context("parent") {||
+      test.beforeEach{||
+        s.events.push('parent before each');
+        throwError();
+      }
+
+      context("child") {||
+        test.beforeEach {||
+          s.events.push('child before each');
+        }
+        test("child test", -> s.events.push("child test"));
+      }
+    }
+    var results = s.runner.run();
+    assert.equal(s.events, [
+      'parent before each',
+    ]);
+    assert.notOk(results.ok())
+    assert.equal(results.count(), 1)
+  }
+
+  test("fails if there is an error in afterEach hooks (after running all hooks)") {|s|
+    var watcher = new CollectWatcher();
+    s.runner.context("grandparent") {||
+      test.afterEach{||
+        s.events.push('grandparent after each');
+        throw new Error('grandparent afterEach error');
+      }
+
+      context("parent") {||
+        test.afterEach{||
+          s.events.push('parent after each');
+          throw new Error('parent afterEach error');
+        }
+
+        context("child") {||
+          test.afterEach {||
+            s.events.push('child after each');
+          }
+          test("child test 1", -> s.events.push('child test 1'));
+          test("child test 2") {||
+            s.events.push('child test 2');
+            throw new Error("child test error");
+          }
+        }
+      }
+    }
+    var results = s.runner.run(watcher);
+    assert.eq(s.events, [
+      'child test 1',
+      'child after each',
+      'parent after each',
+      'grandparent after each',
+
+      'child test 2',
+      'child after each',
+      'parent after each',
+      'grandparent after each',
+    ]);
+    assert.eq(watcher.conciseResults(), [
+      ['child test 1', 'parent afterEach error'],
+      ['child test 2', 'child test error'],
+    ]);
+    assert.notOk(results.ok())
+    assert.equal(results.count(), 2)
+    assert.equal(results.passed, 0)
+    assert.equal(results.failed, 2)
+  }
+
+  test("fails the suite if an afterAll hook fails") {||
   }
 }
 

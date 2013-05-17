@@ -385,7 +385,7 @@ var runAllHooks = function(hook_type, hooks, state, first_error) {
     try {
       h.call(state, state);
     } catch(e) {
-      if(first_error != null) {
+      if(first_error == null) {
         first_error = e;
       } else {
         logging.error("Additional error in #{hook_type} hook:\n#{e}");
@@ -449,14 +449,28 @@ Test.prototype.toString = function() {
 
 Test.prototype.run = function() {
   var state = Object.create(this.context.state);
-  runHooks(this.context.hooks.before.each, state);
+
+  var beforeEachHooks = [];
+  var afterEachHooks = [];
+
+  var ctx = this.context;
+  while(ctx) {
+    // beforeEach hooks run from outermost to innermost
+    beforeEachHooks = ctx.hooks.before.each.concat(beforeEachHooks);
+    
+    // beforeEach hooks run from innermost to outermost
+    afterEachHooks = afterEachHooks.concat(ctx.hooks.after.each);
+    ctx = ctx.parent;
+  }
+
+  runHooks(beforeEachHooks, state);
   var first_error = null;
   try {
     this.body.call(state, state);
   } catch(e) {
     first_error = e;
   }
-  runAllHooks('afterEach', this.context.hooks.after.each, state, first_error);
+  runAllHooks('afterEach', afterEachHooks, state, first_error);
 }
 
 /* Returns the full name of this test, including parent contexts */
