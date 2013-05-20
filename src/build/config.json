@@ -4,5 +4,8 @@
   "version" : "unstable",
 
   /* Version number which will be inserted into package.json: */
-  "npm_version" : "999.0.0-unstable"
+  "npm": {
+    "version": "0.13.0-1-development",
+    "private": true
+  }
 }

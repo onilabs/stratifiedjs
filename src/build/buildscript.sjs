@@ -290,7 +290,8 @@ function replacements_from_config(target) {
   var src = fs.readFile(target).toString();
 
   var repl = src.replace(/Version: '[^']*'/g, "Version: '"+config.version+"'")
-                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"')
+                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm.version+'"')
+                .replace(/"private"\s*:\s*[^,]*/, '"private" : '+config.npm['private']+'')
                 .replace(/Apollo '[^']*' Standard Module Library/g, 
                          "Apollo '"+config.version+"' Standard Module Library");
 
