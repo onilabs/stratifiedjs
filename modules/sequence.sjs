@@ -1025,55 +1025,6 @@ function combine(/* streams ... */) {
 exports.combine = combine;
 
 /**
-   @function eventStream
-   @param {cutil::Event} [event] An event.
-   @return {::Stream}
-   @summary  Builds a continuous stream from `cutil::Event` emissions.
-   @desc
-      Elements will appear in the output stream as soon as they are received.
-
-      **Note**: the generated stream will never complete - it will continue waiting
-      for futher events until retracted. It will also only buffer events once iteration of
-      the stream has begun - i.e it will drop any events that occur between creation
-      of the stream and passing it to `each` (or another iterating function).
-
-      ### Example:
-
-          // Assume dataStore.recordAdded is a `cutil.Event` object
-          // which emits the record each time a new record is added.
-          
-          var newRecord = dataStore.recordAdded;
-          
-          var people = eventStream(newRecord) .. filter(p -> p.isPerson());
-          var firstTenPeople = people .. take(10);
-*/
-var eventStream = function(eventEmitter) {
-  return Stream(function(emit) {
-    var buffer = [];
-    var noop = () -> null;
-    var collect = noop;
-    waitfor {
-      // buffer is synchronous, so we won't miss any events
-      while(true) {
-        buffer.push(eventEmitter.wait());
-        spawn(collect());
-      }
-    } and {
-      while(true) {
-        collect = noop;
-        while(buffer.length > 0) {
-          emit(buffer.shift());
-        }
-        waitfor() {
-          collect = resume
-        }
-      }
-    }
-  });
-}
-exports.eventStream = eventStream;
-
-/**
    @function unpack
    @altsyntax sequence .. unpack(u)
    @param {::Sequence} [sequence] Input sequence

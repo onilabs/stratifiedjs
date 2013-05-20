@@ -36,7 +36,7 @@
 */
 
 var sys  = require('builtin:apollo-sys');
-var { each } = require('sjs:sequence');
+var { each, Stream } = require('sjs:sequence');
 var { remove } = require('sjs:array');
 
 /**
@@ -280,38 +280,15 @@ var SemaphoreProto = {
 };
 
 
-// TODO: pause / resume, in line with node events?
-// TODO: wrap node's EventEmitters to provide the same API? e.g
-//       var dataEvent = new NodeEvents.Event(someEventEmitter, 'data');
-/**
-  @class    Event
-  @summary  An event that can be waited upon and emitted multiple times.
-  @function Event
-*/
-function Event() {
-  var rv = Object.create(EventProto);
-  rv.waiting = [];
-  return rv;
-};
-exports.Event = Event;
-
-var EventProto = {};
+var BaseEventProto = {};
 /**
   @function  Event.wait
   @summary   Block until this event is next emitted, and return the emitted value (if given).
 */
 
-EventProto.wait = function wait() {
-  var result = this.value;
-  waitfor(result) {
-    this.waiting.push(resume);
-  } retract {
-    this.waiting .. remove(resume);
-  }
-  return result;
+BaseEventProto.init = function init() {
+  this.waiting = [];
 };
-
-EventProto.toString = function toString() { return "[object cutil.Event]"; }
 
 /**
   @function  Event.emit
@@ -323,12 +300,25 @@ EventProto.toString = function toString() { return "[object cutil.Event]"; }
     If `val` is provided, it will be the return value of all
     outstanding `wait()` calls.
 */
-EventProto.emit = function emit(value) {
+BaseEventProto.emit = function emit(value) {
   if(this.waiting.length == 0) return;
   var waiting = this.waiting;
   this.waiting = [];
   spawn(waiting .. each { |resume| resume(value) });
 };
+
+BaseEventProto.wait = function wait() {
+  var result = this.value;
+  waitfor(result) {
+    this.waiting.push(resume);
+  } retract {
+    this.waiting .. remove(resume);
+  }
+  return result;
+};
+
+BaseEventProto.toString = function toString() { return "[object cutil.Event]"; }
+
 
 /**
    @function Event.restartLoop
@@ -355,7 +345,7 @@ EventProto.emit = function emit(value) {
            }
          }
 */
-EventProto.restartLoop = function restartLoop(f) {
+BaseEventProto.restartLoop = function restartLoop(f) {
   while (1) {
     waitfor {
       this.wait();
@@ -366,6 +356,21 @@ EventProto.restartLoop = function restartLoop(f) {
     }
   }
 };
+
+/**
+  @class    Event
+  @summary  An event that can be waited upon and emitted multiple times.
+  @function Event
+*/
+function Event() {
+  var rv = Object.create(EventProto);
+  rv.init.call(rv, arguments);
+  return rv;
+};
+exports.Event = Event;
+
+var EventProto = Object.create(BaseEventProto);
+exports._BaseEventProto = BaseEventProto;
 
 /**
   @class    Condition

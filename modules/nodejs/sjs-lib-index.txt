@@ -2,7 +2,6 @@
 @summary Collection of [nodejs](http://nodejs.org)-related modules.
 
 @module child-process Stratified wrapper of [nodejs's child_process lib](http://nodejs.org/api/child_process.html)
-@module events        Stratified wrapper for [nodejs events](http://nodejs.org/api/events.html)
 @module fs            Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)
 @module http          HTTP server functionality
 @module repl          Stratified read-eval-print loop for nodejs-based apollo

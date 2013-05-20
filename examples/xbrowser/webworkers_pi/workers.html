@@ -2,7 +2,7 @@
   <head>
     <script src="../../../oni-apollo.js"></script>
     <script type="text/sjs">
-      var dom = require('sjs:xbrowser/dom');
+      var events = require('sjs:events');
 
       //----------------------------------------------------------------------
       // main program logic:
@@ -20,7 +20,7 @@
       function doPrompt() {
         var div = createDiv("Calculate Pi to <input type='text' value='10000'/> "+
                             "digits. <button>Start</button>");
-        dom.waitforEvent(div.lastChild, 'click');
+        events.waitforNext(div.lastChild, 'click');
         var digits = div.querySelector('input').value;
         document.body.removeChild(div);
         return digits;
@@ -46,7 +46,7 @@
         }
         or {
           // wait for click on cancel button:
-          dom.waitforEvent(div.lastChild, 'click');
+          events.waitforNext(div.lastChild, 'click');
           document.body.removeChild(div);
         }
       }
