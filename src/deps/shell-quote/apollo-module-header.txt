@@ -64,7 +64,7 @@
     
     In general, you should not spawn new processes using any shell-like syntax. You should
     instead use a function that accepts an array of arguments, as passing arguments in
-    this way prevents any chance of shel-injection.
+    this way prevents any chance of shell-injection.
 
     ### Example:
 
