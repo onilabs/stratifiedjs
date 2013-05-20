@@ -90,6 +90,7 @@ HostEventProto.init = function(emitters, events, filter, eventTransformer) {
     if (eventTransformer)
       arg = eventTransformer(arg);
     if (filter && !filter(arg)) return;
+    if (this._transformEvent) arg = this._transformEvent(arg);
     self.emit(arg);
   };
   this._stopped = false;
@@ -147,6 +148,15 @@ if (sys.hostenv == 'nodejs') {
   }
   HostEventProto._unlisten = function(emitter, event) {
     removeListener(emitter, event, this._handleEvent);
+  }
+  if (__oni_rt.UA == 'msie') {
+    HostEventProto._transformEvent = function(evt) {
+      var ret = {};
+      for (var p in evt) {
+        ret[p] = evt[p];
+      }
+      return ret;
+    }
   }
 }
 
