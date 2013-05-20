@@ -1,0 +1,10 @@
+#!/bin/bash
+set -eux
+# (this file should be run from the repository root)
+suite="test/run.html"
+if [ "$RUNNER" = node ]; then
+	./apollo "$suite"
+else
+	[ "$RUNNER" = karma ];
+	./karma.sjs --browsers=PhantomJS --single-run -- "$suite"
+fi

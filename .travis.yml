@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+  - "0.10"
+  - "0.8"
+  - "0.6"
+env:
+  global:
+    - PHANTOMJS_BIN=phantomjs
+  matrix:
+    - RUNNER=node
+    - RUNNER=karma
+matrix:
+  # no need to run karma against old nodejs versions
+  exclude:
+    - nodejs: "0.8"
+      env: RUNNER=karma
+    - nodejs: "0.6"
+      env: RUNNER=karma
+script: "./tools/bin/travis-tests"
