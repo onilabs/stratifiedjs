@@ -4,7 +4,7 @@ var seq = require('sjs:sequence');
 var str = require('sjs:string');
 var path = require('nodejs:path');
 var fs = require('sjs:nodejs/fs');
-var {waitforNext} = require('sjs:events');
+var {wait} = require('sjs:events');
 var childProcess = require('sjs:nodejs/child-process');
 var url = require('sjs:url');
 var rootDir = url.normalize('./', module.id) .. url.toPath();
@@ -73,7 +73,7 @@ var action = function () {
       }
     }
   } or {
-    process .. waitforNext('SIGINT');
+    process .. wait('SIGINT');
   }
 }
 

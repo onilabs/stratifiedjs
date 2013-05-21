@@ -17,13 +17,13 @@
 /*10*/
 /*11*/  spawn (function() {
 /*12*/    while(1) { 
-/*13*/      require('sjs:events').waitforNext('button2', 'click');
+/*13*/      require('sjs:events').wait('button2', 'click');
 /*14*/      spawn throwError();
 /*15*/    }
 /*16*/  })();
 /*17*/ 
 /*18*/  while (1) {
-/*19*/    require('sjs:events').waitforNext('button3', 'click');
+/*19*/    require('sjs:events').wait('button3', 'click');
 /*20*/    throwError();
 /*21*/  }
 /*22*/

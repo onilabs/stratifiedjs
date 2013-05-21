@@ -363,9 +363,9 @@ UIElement.select = function(selector) {
 UIElement.waitforEvent = function(event, selector) {
   var ev;
   if (!selector)
-    ev = events.waitforNext(this.dompeer, event);
+    ev = events.wait(this.dompeer, event);
   else
-    ev = events.waitforNext(this.dompeer, event,
+    ev = events.wait(this.dompeer, event,
                             ev => dom.findNode(selector, ev.target, this.dompeer));
   dom.stopEvent(ev);
   return ev;
@@ -925,7 +925,7 @@ function mixinCommandAPI(elem, attrib, method_name) {
   method_name = method_name || 'waitforCommand';
   elem[method_name] = function() {
     var me = this;
-    var ev = events.waitforNext(this.dompeer, 'click', function(ev) {
+    var ev = events.wait(this.dompeer, 'click', function(ev) {
       if ((ev.node = dom.findNode("[#{attrib}]", ev.target, me.dompeer))) {
         dom.stopEvent(ev);
         return true;

@@ -5311,7 +5311,7 @@ mechanism.dropdowns = function() {
       var current = ev.node;
       current.parentNode.classList.add('open');
       try {
-        ev = events.waitforNext(window, '!click');
+        ev = events.wait(window, '!click');
         if (domFindData('toggle', 'dropdown', ev.target, this.dompeer) == current) {
           // we could stop the event here, to prevent the dropdown from reappearing, 
           // but that is bad form: there might be other capturing listenern that 
@@ -5418,7 +5418,7 @@ mechanism.modal = function() {
   // XXX should really only run one instance in each tree of ui components
   // XXX or maybe get rid of it altogether
   while (1) {
-    var ev = events.waitforNext(this.dompeer, 'click', function(e) {
+    var ev = events.wait(this.dompeer, 'click', function(e) {
       if (e.node = domFindData('toggle', 'modal', e.target, this.dompeer)) {
         dom.stopEvent(e);
         return true;
@@ -5435,13 +5435,13 @@ mechanism.modal = function() {
       modal.style.display = 'block';
       modal.classList.add('in');
       waitfor {
-        events.waitforNext(document, 'keyup', e -> e.which == 27);
+        events.wait(document, 'keyup', e -> e.which == 27);
       }
       or {
-        events.waitforNext(backdrop, 'click');
+        events.wait(backdrop, 'click');
       }
       or {
-        events.waitforNext(modal, 'click', e -> domFindData('dismiss', 'modal', e.target, modal));
+        events.wait(modal, 'click', e -> domFindData('dismiss', 'modal', e.target, modal));
       }
     }
     finally {

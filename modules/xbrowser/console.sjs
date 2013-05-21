@@ -203,7 +203,7 @@ function inspect_obj(obj, name) {
   spawn((function() {
     var toggle = rv.firstChild.firstChild;
     while (true) {
-      events.waitforNext(toggle, 'click');
+      events.wait(toggle, 'click');
       var children = makeDiv(null, "margin-left:15px");
       var props = Object.keys(obj);
       props.sort();
@@ -216,7 +216,7 @@ function inspect_obj(obj, name) {
       }
       rv.appendChild(children);
       toggle.firstChild.style.backgroundImage = "url("+icons.treeopen+")";
-      events.waitforNext(toggle, 'click');
+      events.wait(toggle, 'click');
       toggle.firstChild.style.backgroundImage = "url("+icons.treeclosed+")";
       rv.removeChild(children);
       children = null;
@@ -375,16 +375,16 @@ Console.prototype = {
         // Can't wait for click on this.term here, because of
         // Android bug http://code.google.com/p/android/issues/detail?id=8575
         waitfor {
-          events.waitforNext(this.closebutton, "click");
+          events.wait(this.closebutton, "click");
           this.shut();
         }
         or {
-          var ev = events.waitforNext(this.output, "click");
+          var ev = events.wait(this.output, "click");
           if (dom.eventTarget(ev) == this.output)
             this.focus();
         }
         or {
-          events.waitforNext(this.clearbutton, "click");
+          events.wait(this.clearbutton, "click");
           this.clear();
         }
       };
@@ -402,11 +402,11 @@ Console.prototype = {
     }
     and {
       while (true) {
-        var ev = events.waitforNext(this.resizehandle,"mousedown");
+        var ev = events.wait(this.resizehandle,"mousedown");
         var lasty = ev.clientY;
         document.documentElement.style.webkitUserSelect = "none";
         waitfor {
-          events.waitforNext(document, "mouseup");
+          events.wait(document, "mouseup");
         }
         or {
           using (var mm = events.Queue(document, "mousemove")) {
@@ -441,7 +441,7 @@ Console.prototype = {
   shut : function () {
     this.term.style.display = "none";
     this.summonbutton.style.visibility = "visible";
-    spawn (events.waitforNext(this.summonbutton, "click"),
+    spawn (events.wait(this.summonbutton, "click"),
            this.expand());
   },
   
@@ -486,7 +486,7 @@ Console.prototype = {
           try {
             e.firstChild.innerHTML += "<a title='Cancel this stratum' style='text-decoration:underline;cursor:pointer;float:right'>abort</a>";
             var b = e.firstChild.lastChild;
-            events.waitforNext(b, "click");
+            events.wait(b, "click");
             result.innerHTML = "<span style='color:red'>Aborted</span>";
           }
           finally {

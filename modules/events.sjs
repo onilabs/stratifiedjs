@@ -162,7 +162,7 @@ if (sys.hostenv == 'nodejs') {
 
 
 /**
-  @function waitforNext
+  @function wait
   @summary Wait for a single event only.
   @param     {ArrayElement|EventEmitter} [emitters] Object or objects to watch.
   @param     {Array|String} [events] Event name (or array of names) to watch for.
@@ -179,7 +179,7 @@ if (sys.hostenv == 'nodejs') {
     
     A call to this function:
     
-        var result = event.waitforNext(emitter, eventName);
+        var result = event.wait(emitter, eventName);
     
     is essentially a shortcut for the following code:
 
@@ -187,7 +187,7 @@ if (sys.hostenv == 'nodejs') {
         var result = e.wait();
         e.stop();
 */
-function waitforNext() {
+function wait() {
   var event = HostEvent.apply(null, arguments);
   try {
     var result = event.wait();
@@ -196,7 +196,7 @@ function waitforNext() {
   }
   return result;
 };
-exports.waitforNext = waitforNext;
+exports.wait = wait;
 
 
 /**
