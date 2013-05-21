@@ -62,7 +62,10 @@ context("fileURL") {||
         process.chdir(s.cwd);
       }
 
-      test("resolves a relative path", -> assert.eq(url.fileURL("foo/bar"), "file:///tmp/foo/bar"));
+      test("resolves a relative path") {||
+        var resolved = url.fileURL("foo/bar");
+        assert.ok(resolved.match(/^file:\/\/.*\/tmp\/foo\/bar$/), resolved);
+      }
     }
   }
 
