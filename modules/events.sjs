@@ -67,9 +67,27 @@ var sys = require('builtin:apollo-sys');
           console.log("Thanks for clicking!");
         }
 
-     * In the browser, [xbrowser/dom::attachEvent] is used to bind the event
-       listener - so you can prefix events with "!" to have the event fire
-       during the "capture" phase.
+    ### Notes
+
+    * If the underlying event emitter passes a single argument to listener functions,
+      this argument will be returned from `wait()`. But if multiple arguments are passed
+      to the listener, an array of all arguments will be returned from `wait()`.
+
+    * In the browser, [xbrowser/dom::attachEvent] is used to bind the event
+      listener - so you can prefix events with "!" to have the event fire
+      during the "capture" phase.
+
+    * If using a [::Queue] or [::Stream], events may be held for some time before
+      they get handled. So calls that influence the internal handling of the event
+      (such as [dom::stopEvent]), should be called from the `transform` function,
+      rather than after the event is retrieved.
+
+    * IE multiplexes all events onto a global event object. To ensure events 
+      are the same events that were put in, the implementation 
+      clones events on IE before emitting them. 
+      This means that calls such as [dom::stopEvent] will **never** work on IE if 
+      performed on the return value of [::HostEvent::wait]. To have any effect, these
+      calls must be performed from the `transform` function.
 */
 function HostEvent(emitter, event) {
   var rv = Object.create(HostEventProto);
