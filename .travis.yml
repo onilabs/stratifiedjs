@@ -13,6 +13,8 @@ matrix:
       env: t=unit
     - node_js: "0.6"
       env: t=unit
+    - node_js: "0.11"
+      env: t=unit
   
   # integration tests shouldn't fail the build, as they're often rate-limit issues
   allow_failures:
@@ -20,6 +22,8 @@ matrix:
       env: t=integration
     - node_js: "0.10"
       env: r=KARMA t=integration
+    - node_js: "0.11"
+      env: t=unit
 notifications:
   email: false
 script: "./tools/bin/travis-tests"
