@@ -15,6 +15,3 @@ marked/ git://github.com/chjj/marked.git 2439b9b6caaafdd2e3e1423e87c678de796d16b
 
 # dashdash:
 dashdash/ git://github.com/trentm/node-dashdash.git 8378adbcf9b7ba3aeb3c96db9e7f5432cc765239
-
-# shell-quote:
-shell-quote/ git://github.com/substack/node-shell-quote.git ce51b1fb92de142b81c7718e85389389302f326f

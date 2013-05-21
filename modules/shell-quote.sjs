@@ -9,13 +9,6 @@
  * (c) 2013 Oni Labs, http://onilabs.com
  *
  *
- *   **************************************************************
- *   *    DO NOT EDIT shell-quote.sjs - IT IS A GENERATED FILE!   *
- *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN      *
- *   *    apollo/src/build/make-apollo                            *
- *   **************************************************************
- *
- *
  * This file is derived from the "node-shell-quote" project
  * (https://github.com/substack/node-shell-quote),
  * which is available under the terms of the MIT License:
@@ -45,15 +38,21 @@
   @summary   Quote and parse shell commands
   @home      sjs:shell-quote
   @desc
-             This module tracks the [node-shell-quote](https://github.com/substack/node-shell-quote) library by James Halliday.
+    This module is based on the [node-shell-quote](https://github.com/substack/node-shell-quote) library by James Halliday.
 
-             It provides methods for parsing a string into multiple arguments, and for
-             encoding an array of arguments into a single string. It uses POSIX-like
-             syntax.
-             
-             **NOTE**: [::quote] is *not guaranteed* to safely sanitize data for use with any
-             specific shell. You should not rely on it for protecting against shell-injection.
+    It provides methods for parsing a string into multiple arguments, and for
+    encoding an array of arguments into a single string. It uses POSIX-like
+    syntax.
+    
+    **NOTE**: [::quote] is *not guaranteed* to safely sanitize data for use with any
+    specific shell. You should not rely on it for protecting against shell-injection.
+*/
 
+var { map, join, toArray } = require('./sequence');
+var DQ_SPECIAL_CHARS = '["\\$`(){}!#&*|]';
+
+
+/**
   @function quote
   @param {Array} [args]
   @return {String}
@@ -70,7 +69,23 @@
 
         console.log(quote([ 'a', 'b c d', '$f', '"g"' ]));
         // a 'b c d' \$f '"g"'
+*/
+exports.quote = function (xs) {
+  var dqSpecial = new RegExp('(' + DQ_SPECIAL_CHARS + ')', 'g');
+  return xs .. map(function (s) {
+    if (/["\s]/.test(s) && !/'/.test(s)) {
+      return "'" + s.replace(/(['\\])/g, '\\$1') + "'";
+    }
+    else if (/["'\s]/.test(s)) {
+      return '"' + s.replace(dqSpecial, '\\$1') + '"';
+    }
+    else {
+      return s.replace(dqSpecial, '\\$1');
+    }
+  })..join(' ');
+};
 
+/**
   @function parse
   @param {String} [commandLine]
   @param {optional Object} [env]
@@ -85,58 +100,48 @@
         parse('beep --boop="$PWD"', { PWD: '/home/robot' });
         // --> [ 'beep', '--boop=/home/robot' ]
 */
+exports.parse = function(s, env) {
+  var BARE_TOKEN = "((?:\\\\.|[^\\s'\"])+)";
+  var REF_CHARS = '(\\w+|[*@#?$!0_-])';
+  var REF = '\\$\\{' + REF_CHARS + '\\}|\\$' + REF_CHARS + '';
+  var DOUBLE_QUOTE_CONTENT = '(?:\\\\(' + DQ_SPECIAL_CHARS + ')|([^"$])|' + REF + ')';
+  var SINGLE_QUOTE = "(?:'([^']*)')";
+  var DOUBLE_QUOTE = '(?:"((?:' + DOUBLE_QUOTE_CONTENT + ')*)")';
+  var QUOTED = SINGLE_QUOTE + '|' + DOUBLE_QUOTE;
 
-/**
-  turn off docs from this point onwards:
-  @docsoff
-*/
+  var doubleQuoteReplace = new RegExp('\\\\(' + DQ_SPECIAL_CHARS + ')|' + REF, 'g');
+  var bareReplace = new RegExp('\\\\(.)|' + REF, 'g');
 
-var { map, join, toArray } = require('./sequence');
-var quote = exports.quote = function (xs) {
-    return xs .. map(function (s) {
-        if (/["\s]/.test(s) && !/'/.test(s)) {
-            return "'" + s.replace(/(['\\])/g, '\\$1') + "'";
-        }
-        else if (/["'\s]/.test(s)) {
-            return '"' + s.replace(/(["\\$`(){}!#&*|])/g, '\\$1') + '"';
-        }
-        else {
-            return s.replace(/([\\$`(){}!#&*|])/g, '\\$1');
-        }
-    }) .. join(' ');
-};
+  var CHUNK = BARE_TOKEN + '|' + QUOTED;
+  var chunk = new RegExp(CHUNK, 'g');
+  // multiple sequential chunks are treated as one output token
+  var chunker = new RegExp('(?:' + CHUNK + ')+' , 'g');
 
-var parse = exports.parse = function parse (s, env) {
-    var chunker = /(['"])((\\\1|[^\1])*?)\1|(\\ |\S)+/g;
-    var match = s.match(chunker);
-    if (!match) return [];
-    if (!env) env = {};
-    return match .. map(function (s) {
-        if (/^'/.test(s)) {
-            return s
-                .replace(/^'|'$/g, '')
-                .replace(/\\(["'\\$`(){}!#&*|])/g, '$1')
-            ;
-        }
-        else if (/^"/.test(s)) {
-            return s
-                .replace(/^"|"$/g, '')
-                .replace(/(^|[^\\])\$(\w+)/g, getVar)
-                .replace(/(^|[^\\])\${(\w+)}/g, getVar)
-                .replace(/\\([ "'\\$`(){}!#&*|])/g, '$1')
-            ;
-        }
-        else return s.replace(
-            /(['"])((\\\1|[^\1])*?)\1|[^'"]+/g,
-            function (s, q) {
-                if (/^['"]/.test(s)) return parse(s, env);
-                return parse('"' + s + '"', env);
-            }
-        );
-    }) .. toArray;
-    
-    function getVar (_, pre, key) {
-        return pre + String(env[key] || '');
-    }
+  var match = s.match(chunker);
+  if (!match) return [];
+  if (!env) env = {};
+
+  return match..map(function (s) {
+    s = s.replace(chunk, function(m, bare, single, dbl) {
+      var start = m.charAt(m.offst);
+      switch(start) {
+        case "'": return single;
+        case '"': return dbl.replace(doubleQuoteReplace, replaceContent);
+        default: return bare.replace(bareReplace, replaceContent);
+      }
+    });
+    return s;
+  }) .. toArray();
+
+  function replaceContent(match, escaped, ref1, ref2) {
+    if (escaped) return escaped;
+    return getVar(ref1 || ref2);
+  };
+  
+  function getVar (key) {
+    var r = typeof env === 'function' ? env(key) : env[key];
+    if (r === undefined) r = '';
+    return String(r);
+  }
 };
 

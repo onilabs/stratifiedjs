@@ -31,7 +31,6 @@ function build_deps() {
                                                   "modules/jsondiffpatch.sjs",
                                                   "modules/marked.sjs",
                                                   "modules/dashdash.sjs",
-                                                  "modules/shell-quote.sjs",
                                                   "tmp/version_stamp",
                                                   "test/unit/dashdash-tests.sjs",
                                                   "test/_index.txt"]);
@@ -213,16 +212,6 @@ function build_deps() {
          replacements_from_config
         ],
         ["src/deps/dashdash/test/basics.test.js"]
-       );
-
-  // shell-quote module
-  BUILD("modules/shell-quote.sjs",
-        ["cat $0 $1 $2 > $TARGET",
-         replacements_from_config
-        ],
-        ["src/deps/shell-quote/apollo-module-header.txt",
-         "src/deps/shell-quote/index.js",
-         "src/deps/shell-quote/apollo-module-footer.txt"]
        );
 
   //----------------------------------------------------------------------
