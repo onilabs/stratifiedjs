@@ -109,12 +109,22 @@ function adopt_native_stack(e, caller_module) {
     return;
   }
   var stack = String(e.stack);
-  var error_message = "Error: " + e.message;
-  //XXX does any runtime use a prefix other than "Error: "?
-  if (stack.lastIndexOf(error_message, 0) == 0) {
-    stack = stack.slice(error_message.length);
+  // Remove default toString() output, which can take form:
+  // - <msg>
+  // - <type>
+  // - <type>: <msg>
+  var firstColon = stack.indexOf(': ');
+  var msgStart = (firstColon === -1) ? 0 : firstColon + 2;
+  
+  // if firstColon appears after a newline, it's not the one we want
+  if (stack.lastIndexOf('\n', msgStart) != -1) msgStart = 0;
+
+  var msg = String(e.message);
+  if (msg && stack.lastIndexOf(msg, msgStart) == msgStart) {
+    stack = stack.slice(msgStart + msg.length);
   } else {
-    if (stack.lastIndexOf("Error", 0) == 0) stack = stack.slice(5);
+    // remove sole <type>, assuming type ends with 'Error'
+    stack = stack.replace(/^\w*Error/, '');
   }
   stack = stack.trim();
   e.stack = "";

@@ -66,12 +66,22 @@ e.stack='';
 return;
 }
 var stack=String(e.stack);
-var error_message="Error: "+e.message;
 
-if(stack.lastIndexOf(error_message,0)==0){
-stack=stack.slice(error_message.length);
+
+
+
+var firstColon=stack.indexOf(': ');
+var msgStart=(firstColon===-1)?0:firstColon+2;
+
+
+if(stack.lastIndexOf('\n',msgStart)!=-1)msgStart=0;
+
+var msg=String(e.message);
+if(msg&&stack.lastIndexOf(msg,msgStart)==msgStart){
+stack=stack.slice(msgStart+msg.length);
 }else{
-if(stack.lastIndexOf("Error",0)==0)stack=stack.slice(5);
+
+stack=stack.replace(/^\w*Error/,'');
 }
 stack=stack.trim();
 e.stack="";

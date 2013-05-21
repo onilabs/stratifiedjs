@@ -10,7 +10,7 @@ var stack_from_running = function(f, keep_message) {
   try {
     f();
   } catch(e) {
-    //puts('\n---- STACK: -----\n' + (e.stack)); puts('\n---- CLEANED STACK: -----\n' + (clean_stack(e)));
+    //puts('\n---- ERR: -----\n' + String(e)); puts('\n---- STACK: -----\n' + (e.stack)); puts('\n---- CLEANED STACK: -----\n' + (clean_stack(e)));
     var stack = clean_stack(e);
     return keep_message === true ? stack : remove_message(stack);
   }
@@ -508,6 +508,14 @@ line=507;
 test('empty exception messages', "Error: \nthis_file:#{line+3}", function() {
   function inner() {
     throw new Error();
+  }
+  return stack_from_running(inner, true);
+});
+
+line=515;
+test('Builtin error subclass exception messages', "TypeError: err\nthis_file:#{line+3}", function() {
+  function inner() {
+    throw new TypeError("err");
   }
   return stack_from_running(inner, true);
 });
