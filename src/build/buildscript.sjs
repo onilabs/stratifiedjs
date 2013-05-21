@@ -31,7 +31,6 @@ function build_deps() {
                                                   "modules/jsondiffpatch.sjs",
                                                   "modules/marked.sjs",
                                                   "modules/dashdash.sjs",
-                                                  "modules/shell-quote.sjs",
                                                   "tmp/version_stamp",
                                                   "test/unit/dashdash-tests.sjs",
                                                   "test/_index.txt"]);
@@ -215,16 +214,6 @@ function build_deps() {
         ["src/deps/dashdash/test/basics.test.js"]
        );
 
-  // shell-quote module
-  BUILD("modules/shell-quote.sjs",
-        ["cat $0 $1 $2 > $TARGET",
-         replacements_from_config
-        ],
-        ["src/deps/shell-quote/apollo-module-header.txt",
-         "src/deps/shell-quote/index.js",
-         "src/deps/shell-quote/apollo-module-footer.txt"]
-       );
-
   //----------------------------------------------------------------------
   // test index
   var testPattern = '*-tests.sjs';
@@ -290,7 +279,8 @@ function replacements_from_config(target) {
   var src = fs.readFile(target).toString();
 
   var repl = src.replace(/Version: '[^']*'/g, "Version: '"+config.version+"'")
-                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm_version+'"')
+                .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm.version+'"')
+                .replace(/"private"\s*:\s*[^,]*/, '"private" : '+config.npm['private']+'')
                 .replace(/Apollo '[^']*' Standard Module Library/g, 
                          "Apollo '"+config.version+"' Standard Module Library");
 
