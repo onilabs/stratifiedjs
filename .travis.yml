@@ -4,11 +4,8 @@ node_js:
   - "0.8"
   - "0.6"
 env:
-  global:
-    - PHANTOMJS_BIN=phantomjs
-  matrix:
-    - RUNNER=node
-    - RUNNER=karma
+  - RUNNER=node
+  - RUNNER=karma
 matrix:
   # no need to run karma against old nodejs versions
   exclude:
@@ -16,4 +13,8 @@ matrix:
       env: RUNNER=karma
     - nodejs: "0.6"
       env: RUNNER=karma
+notifications:
+  email:
+    on_success: change
+    on_failure: change
 script: "./tools/bin/travis-tests"

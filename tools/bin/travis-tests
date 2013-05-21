@@ -6,5 +6,6 @@ if [ "$RUNNER" = node ]; then
 	./apollo "$suite"
 else
 	[ "$RUNNER" = karma ];
-	./karma.sjs --browsers=PhantomJS --single-run -- "$suite"
+	export PHANTOMJS_BIN=phantomjs
+	./karma.sjs --browsers=PhantomJS --single-run run -- "$suite"
 fi
