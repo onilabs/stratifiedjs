@@ -1,18 +1,25 @@
 language: node_js
 node_js:
   - "0.10"
-  - "0.8"
-  - "0.6"
 env:
-  - RUNNER=node
-  - RUNNER=karma
+  - t=unit
+  - t=integration
+  - r=KARMA t=integration
+  - r=KARMA t=unit
 matrix:
-  # no need to run karma against old nodejs versions
-  exclude:
-    - nodejs: "0.8"
-      env: RUNNER=karma
-    - nodejs: "0.6"
-      env: RUNNER=karma
+  # just run unit tests on old node versions
+  include:
+    - node_js: "0.8"
+      env: t=unit
+    - node_js: "0.6"
+      env: t=unit
+  
+  # integration tests shouldn't fail the build, as they're often rate-limit issues
+  allow_failures:
+    - node_js: "0.10"
+      env: t=integration
+    - node_js: "0.10"
+      env: r=KARMA t=integration
 notifications:
   email:
     on_success: change

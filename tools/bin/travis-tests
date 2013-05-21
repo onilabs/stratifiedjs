@@ -1,11 +1,21 @@
 #!/bin/bash
-set -eux
-# (this file should be run from the repository root)
-suite="test/run.html"
-if [ "$RUNNER" = node ]; then
-	./apollo "$suite"
+# this file should be run from the repository root
+# expects $r (runner: NODE|KARMA|<unset>)
+#         $t (suite:  unit|integration)
+
+set -ex
+if [ -z "$r" ]; then
+	r="NODE";
+fi
+set -u
+RUNNER="$r"
+SUITE="$t"
+
+run="test/run.html"
+if [ "$RUNNER" = NODE ]; then
+	./apollo "$run" $SUITE
 else
-	[ "$RUNNER" = karma ];
+	[ "$RUNNER" = KARMA ];
 	export PHANTOMJS_BIN=phantomjs
-	./karma.sjs --browsers=PhantomJS --single-run run -- "$suite"
+	./karma.sjs start tools/karma/conf.js --browsers=PhantomJS --single-run -- "$run" $SUITE
 fi
