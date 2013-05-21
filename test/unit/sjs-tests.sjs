@@ -68,8 +68,8 @@ testParity("function A(x) { return {f:function() { return x; }}; } var a=A(10), 
 test("waitfor { return (hold(1000), 2); } or { return (hold(100), 1); } or { return (hold(1000), 3);}", 1,
      function() { waitfor { return (hold(1000), 2); } or { return (hold(100), 1); } or { return (hold(1000), 3);} });
 
-test("function h(i) { return (hold(1000+i), 2+i) @ (hold(100+i), 1+i) @ (hold(1000+i), 3+i); } h(0) @ h(1) @ h(2) @ h(500);", 1,
-     function() { function h(i) { waitfor { return (hold(1000+i), 2+i) } or { return (hold(100+i), 1+i) } or { return (hold(1000+i), 3+i); } } waitfor { return h(0) } or { return h(1) } or { return h(2) } or { return h(500); } });
+test("function h(i) { return (hold(1000+i), 2+i) @ (hold(100+i), 1+i) @ (hold(1000+i), 3+i); } h(0) @ h(100) @ h(200) @ h(500);", 1,
+     function() { function h(i) { waitfor { return (hold(1000+i), 2+i) } or { return (hold(100+i), 1+i) } or { return (hold(1000+i), 3+i); } } waitfor { return h(0) } or { return h(100) } or { return h(200) } or { return h(500); } });
 
 test("Empty function/too much recursion bug: function par() {} par(1,2); 3;", 3,
      function() { function par() {} par(1,2); return 3; });
