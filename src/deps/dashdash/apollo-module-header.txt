@@ -48,37 +48,8 @@
 
 /**
   @module    dashdash
-  @summary   Commandline options parser
+  @summary   Options parser (tracking [node-dashdash library](https://github.com/trentm/node-dashdash))
   @home      sjs:dashdash
-  @desc      
-             This module tracks the [dashdash](https://github.com/trentm/node-dashdash) library by Trent Mick
-*/
-
-// TODO: (tjc) document.
-
-/** 
-  turn off docs from this point onwards:
-  @docsoff
-*/
-
-// prevent errors in xbrowser env
-var sys = require('builtin:apollo-sys');
-var global = sys.getGlobal();
-var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
-var assert = require('./assert');
-var { each, map, join, indexed, toArray } = require('./sequence');
-var { ownKeys, clone } = require('./object');
-
-var format = function(str /*, replacements ... */) {
-    // upstream uses node.js' util/format function,
-    // which isn't available in the browser.
-    var str = arguments[0];
-    var idx = 1;
-    var args = arguments;
-    return str.replace(/%(.)/g, function(text, fmt) {
-        var obj = args[idx++];
-        if (fmt == 'j') return JSON.stringify(obj);
-        return String(obj);
-    });
-}
-
+  @desc
+This module tracks the [dashdash](https://github.com/trentm/node-dashdash) library by Trent Mick.
+The original library is written for node.js, but this version works in all environments.

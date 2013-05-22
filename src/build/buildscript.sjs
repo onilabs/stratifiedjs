@@ -198,12 +198,27 @@ function build_deps() {
 
   // dashdash module
   BUILD("modules/dashdash.sjs",
-        ["cat $0 $1 $2 > $TARGET",
+        ["cat $0 $1 $2 $3 $4 > $TARGET",
          replacements_from_config
         ],
         ["src/deps/dashdash/apollo-module-header.txt",
+         "tmp/dashdash-readme.md",
+         "src/deps/dashdash/apollo-module-endheader.txt",
          "src/deps/dashdash/lib/dashdash.js",
          "src/deps/dashdash/apollo-module-footer.txt"]
+       );
+
+  // Convert blocks like:
+  // ```javascript
+  // [ ... ]
+  // ```
+  //
+  // from the dashdash readme into regular markdown
+  BUILD("tmp/dashdash-readme.md",
+        ["sed -E -e '/```.*/,/^```/s/^/    /' -e '/```.*/d' -e 's/^#/###/' $0 > $TARGET",
+          replacements_from_config
+        ],
+        ["src/deps/dashdash/README.md"]
        );
 
   // dashdash tests

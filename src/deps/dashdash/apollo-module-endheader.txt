@@ -1,0 +1,77 @@
+
+*/
+
+/**
+  @function parse
+  @param {Settings} [settings]
+  @setting {Object} [config]
+  @setting {Array} [argv]
+  @setting {Object} [env]
+  @summary Parse an array of arguments.
+  @desc
+    Create a parser and parse the given `argv` (or `process.argv` if no
+    `argv` option is given).
+
+    See the [dashdash::] module docs for more information and examples.
+ */
+
+/**
+  @class Parser
+  @constructor Parser
+
+  @function createParser
+  @param {Object} [config]
+  @param {Boolean} [interspersed] Default true.
+  @summary Create a [::Parser].
+  @desc
+    See the [dashdash::] module docs for more information and examples.
+
+  @function Parser.parse
+  @summary Parse an array of arguments.
+  @param {optional Array} [argv] Array of string arguments.
+  @desc
+    `argv` should always be provided in a browser environment. In the
+    nodejs environment it may be omitted, in which case the arguments
+    will be taken from `process.argv`.
+
+    See the [dashdash::] module docs for more information and examples.
+
+  @function Parser.help
+  @param {Settings} [options]
+  @setting {Number|String} [indent] Number of indent spaces (or a string to be used)
+  @setting {Number} [maxCol] Maximum line width (default 80).
+
+  @summary Return a help string for this parser.
+  @desc
+    Only the most commonly-used options are listed here.
+    See the [dashdash::] module docs for a full list of options.
+ */
+
+
+
+/**
+  turn off docs from this point onwards:
+  @docsoff
+*/
+
+// prevent errors in xbrowser env
+var sys = require('builtin:apollo-sys');
+var global = sys.getGlobal();
+var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
+var assert = require('./assert');
+var { each, map, join, indexed, toArray } = require('./sequence');
+var { ownKeys, clone } = require('./object');
+
+var format = function(str /*, replacements ... */) {
+    // upstream uses node.js' util/format function,
+    // which isn't available in the browser.
+    var str = arguments[0];
+    var idx = 1;
+    var args = arguments;
+    return str.replace(/%(.)/g, function(text, fmt) {
+        var obj = args[idx++];
+        if (fmt == 'j') return JSON.stringify(obj);
+        return String(obj);
+    });
+}
+

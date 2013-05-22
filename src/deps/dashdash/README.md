@@ -1,21 +1,7 @@
-A light, featureful and explicit option parsing library for node.js.
-
-[Why another one? See below](#why). tl;dr: The others I've tried are one of
-too loosey goosey (not explicit), too big/too many deps, or ill specified.
-YMMV.
-
-Follow <a href="https://twitter.com/intent/user?screen_name=trentmick" target="_blank">@trentmick</a>
-for updates to node-dashdash.
-
-# Install
-
-    npm install dashdash
-
-
 # Usage
 
 ```javascript
-var dashdash = require('dashdash');
+var dashdash = require('sjs:dashdash');
 
 // Specify the options. Minimally `name` (or `names`) and `type`
 // must be given for each.
@@ -40,11 +26,11 @@ console.log("args:", opts._args);
 
 # Longer Example
 
-A more realistic [starter script "foo.js"](./examples/foo.js) is as follows.
+A more realistic starter script "foo.js" is as follows.
 This also shows using `parser.help()` for formatted option help.
 
 ```javascript
-var dashdash = require('./lib/dashdash');
+var dashdash = require('sjs:dashdash');
 
 var options = [
     {
@@ -184,7 +170,7 @@ Parser construction (i.e. `dashdash.createParser(CONFIG)`) takes the
 following fields:
 
 - `options` (Array of option specs). Required. See the
-  [Option specs](#option-specs) section below.
+  `Option specs` section below.
 
 - `interspersed` (Boolean). Option. Default is true. If true this allows
   interspersed arguments and options. I.e.:
@@ -284,31 +270,3 @@ The `parser.help(...)` function is configurable as follows:
   environment variables (via the `env` option spec attribute), then
   append mentioned of those envvars to the help string.
 
-
-# Why
-
-Why another node.js option parsing lib?
-
-- `nopt` really is just for "tools like npm". Implicit opts (e.g. '--no-foo'
-works for every '--foo'). Can't disable abbreviated opts. Can't do multiple
-usages of same opt, e.g. '-vvv' (I think). Can't do grouped short opts.
-
-- `optimist` has surprise interpretation of options (at least to me).
-  Implicit opts mean ambiguities and poor error handling for fat-fingering.
-  `process.exit` calls makes it hard to use as a libary.
-
-- `optparse` Incomplete docs. Is this an attempted clone of Python's `optparse`.
-  Not clear. Some divergence. `parser.on("name", ...)` API is weird.
-
-- `argparse` Dep on underscore. No thanks just for option processing.
-  `find lib | wc -l` -> `26`. Overkill.
-  Argparse is a bit different anyway. Not sure I want that.
-
-- `posix-getopt` No type validation. Though that isn't a killer. AFAIK can't
-  have a long opt without a short alias. I.e. no `getopt_long` semantics.
-  Also, no whizbang features like generated help output.
-
-
-# License
-
-MIT. See LICENSE.txt.
