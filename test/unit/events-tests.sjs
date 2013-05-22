@@ -1,6 +1,5 @@
 var {test, context, assert} = require('sjs:test/suite');
 
-var cutil = require('sjs:cutil');
 var s = require('sjs:sequence');
 var events = require('sjs:events');
 var array = require('sjs:array');
@@ -84,6 +83,51 @@ if (sys.hostenv == 'nodejs') {
     },
   }
 }
+
+
+
+context("Emitter") {||
+  test('block/resume') {||
+    var result = (function() {
+      var e = events.Emitter();
+      waitfor {
+        e.wait();
+        return 1;
+      } or {
+        e.emit();
+        hold(100);
+        return 2;
+      }
+    })();
+    assert.eq(result, 1);
+  }
+
+  test('retract from wait()') {||
+    var e = events.Emitter();
+    waitfor {
+      e.wait();
+    } or {
+      hold(100);
+    }
+    assert.eq(e.waiting, []);
+  };
+
+  test('setting with a value') {||
+    var e = events.Emitter();
+    var results = [];
+    waitfor {
+      results.push(e.wait());
+      results.push(e.wait());
+    } or {
+      e.emit("first");
+      hold(100);
+      e.emit("second");
+      hold();
+    }
+    assert.eq(results, ["first", "second"]);
+  };
+}
+
 context() {||
   test.beforeEach {|s|
     s.emitter = new HostEmitter();
@@ -95,15 +139,15 @@ context() {||
     assert.eq(s.emitter.listeners('click').length, 0, 'test left listeners attached!');
   }
 
-  context("HostEvent") {||
+  context("HostEmitter") {||
     test("captures specific event and unregisters listener") {|s|
       var result = [];
       waitfor {
-        using (var event = events.HostEvent(s.emitter.raw, 'click')) {
+        using (var emitter = events.HostEmitter(s.emitter.raw, 'click')) {
           assert.eq(s.emitter.listeners('click').length, 1);
           while(true) {
             logging.info("waiting");
-            var e = event.wait().detail;
+            var e = emitter.wait().detail;
             logging.info("got");
             result.push(e);
             logging.info(`got event: ${e}`);
@@ -123,12 +167,12 @@ context() {||
     test("captures multiple events from multiple emitters") {|s|
       var result = [];
       var emitter2 = new HostEmitter();
-      using (var event = events.HostEvent([s.emitter.raw, emitter2.raw], ['click', 'drag'])) {
+      using (var emitter = events.HostEmitter([s.emitter.raw, emitter2.raw], ['click', 'drag'])) {
         assert.eq(s.emitter.listeners('click').length, 1);
         assert.eq(s.emitter.listeners('drag').length, 1);
         waitfor {
           while(true) {
-            result.push(event.wait().detail);
+            result.push(emitter.wait().detail);
           }
         } or {
           s.emitter.trigger('click', 1);
@@ -203,17 +247,17 @@ context() {||
     }
 
     test('queues sjs events') {||
-      var event = cutil.Event();
-      runTest(event, null) {||
-        event.emit({detail: 1});
-        event.emit({detail: 2});
-        event.emit({detail: 3});
+      var emitter = events.Emitter();
+      runTest(emitter, null) {||
+        emitter.emit({detail: 1});
+        emitter.emit({detail: 2});
+        emitter.emit({detail: 3});
       }
     }
 
     test('queues native events') {|s|
-      var event = events.from(s.emitter.raw, 'click');
-      runTest(event, null) {||
+      var emitter = events.from(s.emitter.raw, 'click');
+      runTest(emitter, null) {||
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
         s.emitter.trigger('click', 3);
@@ -228,19 +272,19 @@ context() {||
       }
     }
 
-    test('leaves underlying event running when `bound` is false') {|s|
-      var event = events.from(s.emitter.raw, 'click');
-      using(var q = events.Queue(event, {bound: false})) {
+    test('leaves underlying emitter running when `bound` is false') {|s|
+      var emitter = events.from(s.emitter.raw, 'click');
+      using(var q = events.Queue(emitter, {bound: false})) {
         assert.eq(s.emitter.listeners('click').length, 1);
       }
       assert.eq(s.emitter.listeners('click').length, 1);
-      event.stop();
+      emitter.stop();
     }
 
     test('multiple randomly-timed events') {|s|
-      var event = events.from(s.emitter.raw, 'click');
+      var emitter = events.from(s.emitter.raw, 'click');
       waitfor {
-        using (var Q = events.Queue(event)) {
+        using (var Q = events.Queue(emitter)) {
           for (var i=0; i<10; ++i) {
             hold(Math.random()*100);
             Q.get();
@@ -264,7 +308,7 @@ context() {||
 
 context("Stream") {||
   test('basic iteration') {||
-    var evt = cutil.Event();
+    var evt = events.Emitter();
     var result = [];
     waitfor {
       events.Stream(evt) .. s.each {|item|
@@ -282,7 +326,7 @@ context("Stream") {||
   };
 
   test('buffers up to one item if iteration blocks') {||
-    var evt = cutil.Event();
+    var evt = events.Emitter();
     var result = [];
     waitfor {
       events.Stream(evt) .. s.each {|item|
@@ -302,7 +346,7 @@ context("Stream") {||
   }
 
   test('only buffers once iteration begins') {||
-    var evt = cutil.Event();
+    var evt = events.Emitter();
     var result = [];
     var stream = events.Stream(evt);
     waitfor {

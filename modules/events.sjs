@@ -31,7 +31,7 @@
  */
 /**
   @module    events
-  @summary   Stratified utilities for native events and [cutil::Event] objects.
+  @summary   Stratified utilities for native event emitters and [::Emitter] objects.
   @home      sjs:events
 */
 
@@ -39,10 +39,79 @@ var cutil = require('./cutil');
 var seq = require('./sequence');
 var sys = require('builtin:apollo-sys');
 
+var BaseEmitterProto = Object.create(cutil._Waitable);
+
 /**
-  @class     HostEvent
-  @summary   A [cutil::Event] subclass that wraps a "host" event emitter.
-  @function  HostEvent
+  @function  Emitter.wait
+  @summary   Block until the next event is emitted by this object, and return the emitted value (if given).
+
+  @function  Emitter.emit
+  @param     {optional Object} [value]
+  @summary   Emit event with optional `value`
+  @desc
+    Resumes all strata that are waiting on this emitter object.
+
+    If `val` is provided, it will be the return value of all
+    outstanding `wait()` calls.
+*/
+BaseEmitterProto.toString = function toString() { return "[object Emitter]"; }
+
+
+/**
+   @function Emitter.restartLoop
+   @altsyntax emitter.restartLoop { || ... }
+   @param {Function} [f] Function to execute
+   @summary (Re-)start a function everytime an event is emitted
+   @desc
+     The code
+
+         emitter.restartLoop {
+           ||
+           some_code
+         }
+
+     is equivalent to
+
+         while (1) {
+           waitfor {
+             emitter.wait();
+           }
+           or {
+             some_code
+             hold();
+           }
+         }
+*/
+BaseEmitterProto.restartLoop = function restartLoop(f) {
+  while (1) {
+    waitfor {
+      this.wait();
+    }
+    or {
+      f();
+      hold();
+    }
+  }
+};
+
+/**
+  @class    Emitter
+  @summary  An event emitter that can be waited upon and emitted multiple times.
+  @function Emitter
+*/
+function Emitter() {
+  var rv = Object.create(EmitterProto);
+  rv.init.call(rv, arguments);
+  return rv;
+};
+exports.Emitter = Emitter;
+
+var EmitterProto = Object.create(BaseEmitterProto);
+
+/**
+  @class     HostEmitter
+  @summary   An [::Emitter] subclass that wraps a "host" event emitter.
+  @function  HostEmitter
   @param     {ArrayElement|EventEmitter} [emitters] Object or objects to watch.
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Function} [filter] Function through which received
@@ -55,14 +124,14 @@ var sys = require('builtin:apollo-sys');
     A "host" event emitter is an `EventEmitter` object when running in nodejs,
     and a DOM element in the browser.
 
-    Note that since creating a `HostEvent` adds a listener to the
-    underlying emitter, you *must* call `event.stop()` when you are finished
+    Note that since creating a `HostEmitter` adds a listener to the
+    underlying emitter, you *must* call `emitter.stop()` when you are finished
     with this object to prevent resource leaks.
 
     Instead of calling `stop()` explicitly, you can pass this object to a
     `using` block, e.g.:
 
-        using (var click = cutil.HostEvent(elem, 'click')) {
+        using (var click = cutil.HostEmitter(elem, 'click')) {
           click.wait();
           console.log("Thanks for clicking!");
         }
@@ -86,20 +155,20 @@ var sys = require('builtin:apollo-sys');
       are the same events that were put in, the implementation 
       clones events on IE before emitting them. 
       This means that calls such as [dom::stopEvent] will **never** work on IE if 
-      performed on the return value of [::HostEvent::wait]. To have any effect, these
+      performed on the return value of [::HostEmitter::wait]. To have any effect, these
       calls must be performed from the `transform` function.
 */
-function HostEvent(emitter, event) {
-  var rv = Object.create(HostEventProto);
+function HostEmitter(emitter, event) {
+  var rv = Object.create(HostEmitterProto);
   rv.init.apply(rv, arguments);
   return rv;
 };
-exports.HostEvent = HostEvent;
-exports.from = HostEvent;
+exports.HostEmitter = HostEmitter;
+exports.from = HostEmitter;
 
-var HostEventProto = Object.create(cutil._BaseEventProto);
-HostEventProto.init = function(emitters, events, filter, eventTransformer) {
-  cutil._BaseEventProto.init.call(this);
+var HostEmitterProto = Object.create(BaseEmitterProto);
+HostEmitterProto.init = function(emitters, events, filter, eventTransformer) {
+  BaseEmitterProto.init.call(this);
   this.emitters = sys.expandSingleArgument([emitters]);
   this.events = sys.expandSingleArgument([events]);
   var self = this;
@@ -115,7 +184,7 @@ HostEventProto.init = function(emitters, events, filter, eventTransformer) {
   this._start();
 }
 
-HostEventProto._start = function() {
+HostEmitterProto._start = function() {
   this.emitters .. seq.each {|emitter|
     this.events .. seq.each {|event|
       this._listen(emitter, event, this._handleEvent);
@@ -124,15 +193,15 @@ HostEventProto._start = function() {
 };
 
 /**
-  @function HostEvent.stop
+  @function HostEmitter.stop
   @summary Stop listening for events
   @desc
     You must call this method when you are finished with this
-    object. [::HostEvent.__finally__] is an alias for this method,
+    object. [::HostEmitter.__finally__] is an alias for this method,
     so you can pass this object into a `using` block to avoid
     having to explicitly call `stop()`.
 */
-HostEventProto.stop = function() {
+HostEmitterProto.stop = function() {
   if (this._stopped) return;
   this.emitters .. seq.each {|emitter|
     this.events .. seq.each {|event|
@@ -142,33 +211,33 @@ HostEventProto.stop = function() {
 };
 
 /**
-  @function HostEvent.__finally__
-  @summary Alias for [::HostEvent.stop]
+  @function HostEmitter.__finally__
+  @summary Alias for [::HostEmitter.stop]
   @desc
-    This alias allows you to pass a [::HostEvent] instance to
+    This alias allows you to pass a [::HostEmitter] instance to
     a `using` block rather than explicitly calling `stop` when
     you are finished with it.
 */
-HostEventProto.__finally__ = HostEventProto.stop;
+HostEmitterProto.__finally__ = HostEmitterProto.stop;
 
 if (sys.hostenv == 'nodejs') {
-  HostEventProto._listen = function(emitter, event) {
+  HostEmitterProto._listen = function(emitter, event) {
     emitter.on(event, this._handleEvent);
   }
-  HostEventProto._unlisten = function(emitter, event) {
+  HostEmitterProto._unlisten = function(emitter, event) {
     emitter.removeListener(event, this._handleEvent);
   }
 } else {
   // xbrowser
   var {addListener, removeListener} = require('sjs:xbrowser/dom');
-  HostEventProto._listen = function(emitter, event) {
+  HostEmitterProto._listen = function(emitter, event) {
     addListener(emitter, event, this._handleEvent);
   }
-  HostEventProto._unlisten = function(emitter, event) {
+  HostEmitterProto._unlisten = function(emitter, event) {
     removeListener(emitter, event, this._handleEvent);
   }
   if (__oni_rt.UA == 'msie') {
-    HostEventProto._transformEvent = function(evt) {
+    HostEmitterProto._transformEvent = function(evt) {
       var ret = {};
       for (var p in evt) {
         ret[p] = evt[p];
@@ -193,24 +262,24 @@ if (sys.hostenv == 'nodejs') {
   @desc
     This function waits for a single event and then stops
     listening for further events. It takes exactly the same arguments
-    as [::HostEvent].
+    as [::HostEmitter].
     
     A call to this function:
     
-        var result = event.wait(emitter, eventName);
+        var result = events.wait(emitter, eventName);
     
     is essentially a shortcut for the following code:
 
-        var e = event.HostEvent(emitter, eventName);
+        var e = events.HostEmitter(emitter, eventName);
         var result = e.wait();
         e.stop();
 */
 function wait() {
-  var event = HostEvent.apply(null, arguments);
+  var emitter = HostEmitter.apply(null, arguments);
   try {
-    var result = event.wait();
+    var result = emitter.wait();
   } finally {
-    event.stop();
+    emitter.stop();
   }
   return result;
 };
@@ -219,15 +288,15 @@ exports.wait = wait;
 
 /**
   @class Queue
-  @summary Listens for specified events and stores them in a queue.
+  @summary Watches an [::Emitter] and stores its events in a queue.
 
   @function  Queue
   @summary Constructs a new event queue.
   @return  {::Queue}
-  @param   {Event|Object} [source] [::HostEvent], [cutil::Event] or host object.
+  @param   {Emitter|Object} [source] [::HostEmitter], [::Emitter] or host object.
   @param   {Settings} [opts]
   @setting {Number} [capacity] Maximum number of events to buffer in the queue (default 100).
-  @setting {Boolean} [bound] Whether to `stop` the underlying event when this Queue is stopped (default `true`).
+  @setting {Boolean} [bound] Whether to `stop` the underlying emitter when this Queue is stopped (default `true`).
   @desc
 
     The returned [::Queue] object proceeds to listen for
@@ -238,9 +307,9 @@ exports.wait = wait;
     [::Queue::__finally__] method, it can be used in a
     `using` block:
 
-        var event = require('sjs:event');
+        var events = require('sjs:events');
 
-        using (var Q = events.Queue(event)) {
+        using (var Q = events.Queue(emitter)) {
           while (true) {
             var data = Q.get();
             ...
@@ -256,18 +325,20 @@ exports.wait = wait;
 
     ### Shorthand for host events:
 
-    Normally, you would pass a [cutil::Event] or [::HostEvent] as the `source` argument. For convenience,
+    Normally, you would pass a [::Emitter] or [::HostEmitter] as the `source` argument. For convenience,
     you may use the following shortcut to create a queue directly from a host event emitter:
 
         var q = events.Queue(emitter, 'click');
         // equivalent to:
-        // var q = events.queue(events.hostevent(emitter, 'click'));
+        // var q = events.queue(events.HostEmitter(emitter, 'click'));
+        
+        // or:
         
         var q = events.Queue(emitter, ['click', 'drag']);
         // equivalent to:
-        // var q = events.Queue(events.HostEvent(emitter, ['click', 'drag']));
+        // var q = events.Queue(events.HostEmitter(emitter, ['click', 'drag']));
 
-    If you need to pass additional arguments to [::HostEvent] or pass settings to [::Queue], you'll need to use
+    If you need to pass additional arguments to [::HostEmitter] or pass settings to [::Queue], you'll need to use
     the longer form.
 */
 function Queue(source, opts) {
@@ -281,8 +352,8 @@ var QueueProto = {
   init: function(source, opts) {
     if (Array.isArray(opts) || typeof(opts) == 'string') {
       // Queue(emitter, events) is shorthand for:
-      // Queue(HostEvent(emitter, events))
-      source = HostEvent(source, opts);
+      // Queue(HostEmitter(emitter, events))
+      source = HostEmitter(source, opts);
       opts = {bound: true};
     }
     var opts = opts || {};
@@ -354,14 +425,13 @@ QueueProto.__finally__ = QueueProto.stop;
 
 
 /**
-   @function Event.stream
-   @param {optional Number} [maxSize] Maximum number of events to buffer.
+   @function Stream
    @return {sequence::Stream}
-   @summary  Builds a continuous stream from this event's emissions.
+   @summary  Builds a continuous stream from an [::Emitter]'s events.
    @desc
       Up to one event is buffered - that is, if you call:
 
-          eventSource.stream .. seq.each {|event|
+          emitter .. events.Stream .. seq.each {|event|
             doSomething(event);
           }
 
@@ -375,12 +445,12 @@ QueueProto.__finally__ = QueueProto.stop;
 
       ### Example:
 
-          // Assume dataStore.recordAdded is a `cutil.Event` object
+          // Assume dataStore.recordAdded is an [::Emitter] object
           // which emits the record each time a new record is added.
           
           var newRecord = dataStore.recordAdded;
           
-          var people = eventStream(newRecord) .. filter(p -> p.isPerson());
+          var people = events.Stream(newRecord) .. filter(p -> p.isPerson());
           var firstTenPeople = people .. take(10);
 */
 var noop = () -> null;

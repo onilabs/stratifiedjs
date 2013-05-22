@@ -131,7 +131,9 @@ waitfor {
   var reporterModule = require('./reporter');
   var {UsageError} = reporterModule;
 } and {
-  var { Condition, Event } = require("../cutil.sjs");
+  var { Condition } = require("../cutil.sjs");
+} and {
+  var { Emitter } = require("../events.sjs");
 } and {
   var array = require('../array');
   var { isArrayLike } = array;
@@ -177,7 +179,7 @@ var Runner = exports.Runner = function(opts) {
   }
   this.opts = opts;
   this.reporter = opts.reporter || NullRporter;
-  this.loading = Event();
+  this.loading = Emitter();
   this.active_contexts = [];
   this.root_contexts = [];
 }

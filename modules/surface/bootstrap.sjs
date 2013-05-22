@@ -5294,7 +5294,7 @@ var mechanism = exports.mechanism = {};
 
 mechanism.dropdowns = function() {
   var ignore = false;
-  using (var Q = events.Queue(events.HostEvent(this.dompeer, 'click', function (e){
+  using (var Q = events.Queue(events.HostEmitter(this.dompeer, 'click', function (e){
     if ((e.node = domFindData('toggle', 'dropdown', e.target, this.dompeer))) {
       dom.stopEvent(e);
       if (ignore) { // see explanation below
@@ -5330,7 +5330,7 @@ mechanism.dropdowns = function() {
 };
 
 mechanism.tabs = function() {
-  using (var Q = events.Queue(events.HostEvent(this.dompeer, 'click', function(e) {
+  using (var Q = events.Queue(events.HostEmitter(this.dompeer, 'click', function(e) {
     if (domFindData('toggle', ['tab','pill'], e.target, this.dompeer)) {
       dom.stopEvent(e);
       return true;
@@ -5368,7 +5368,7 @@ mechanism.tabs = function() {
 };
 
 mechanism.collapsing = function() {
-  using (var Q = events.Queue(events.HostEvent(this.dompeer, 'click', function(e) {
+  using (var Q = events.Queue(events.HostEmitter(this.dompeer, 'click', function(e) {
     if (e.node = domFindData('toggle', 'collapse', e.target, this.dompeer)) {
       dom.stopEvent(e);
       return true;
@@ -5397,7 +5397,7 @@ mechanism.collapsing = function() {
 };
 
 mechanism.alert = function() {
-  using (var Q = events.Queue(events.HostEvent(this.dompeer, 'click', function(e) {
+  using (var Q = events.Queue(events.HostEmitter(this.dompeer, 'click', function(e) {
     if (e.node = domFindData('dismiss', 'alert', e.target, this.dompeer)) {
       dom.stopEvent(e);
       return true;
