@@ -140,6 +140,7 @@ exports.generate = generate;
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to execute for each `item` in `sequence`
    @summary Executes `f(item)` for each `item` in `sequence`
+   @return The `sequence` that was passed in.
    @desc
      ### Example:
 
@@ -166,6 +167,7 @@ function each(sequence, r) {
       r(sequence.charAt(i));
   else
     throw new Error("sequence::each: Unsupported sequence type '#{sequence}'");
+  return sequence;
 }
 exports.each = each;
 
@@ -810,6 +812,9 @@ exports.skipWhile = skipWhile;
       Generates a stream that contains all items `x` from `sequence` for which
       `predicate(x)` is truthy.
 
+      If `predicate` is not given, the identity function is used - that is, the
+      result will include all truthy items.
+
       ### Example:
 
           // print first 10 odd integers:
@@ -820,7 +825,9 @@ exports.skipWhile = skipWhile;
 
           integers() .. filter(x=>x%2) .. take(10) .. each { |x| console.log(x) }
 */
+var id = (x) -> x;
 function filter(sequence, predicate) {
+  if (!predicate) predicate = id;
   return Stream(function(r) {
     sequence .. each {
       |x|

@@ -245,6 +245,10 @@ testEq('filter', {checked: [1,2,3], result: [1,3]}, function() {
   return {checked:checked, result:result};
 });
 
+test('filter with no arguments') {||
+  s.filter([1,true, 0, 3, null]) .. s.toArray() .. assert.eq([1, true, 3]);
+};
+
 testEq('parallelized filter', {checked: [3,2,1], result: [3,1]}, function() {
   var checked = [];
   var result = [1,2,3] .. s.parallelize .. s.filter(
