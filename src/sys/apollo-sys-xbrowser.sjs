@@ -118,6 +118,7 @@ function jsonp_indoc(url, opts) {
   elem.setAttribute("src", url);
   elem.setAttribute("async", "async"); //XXX ?
   elem.setAttribute("type", "text/javascript");
+  var complete = false;
   waitfor (var rv) {
     window[jsonp_cb_obj][cb] = resume;
     document.getElementsByTagName("head")[0].appendChild(elem);
@@ -125,14 +126,18 @@ function jsonp_indoc(url, opts) {
     waitfor() {
       if (elem.addEventListener)
         elem.addEventListener("error", resume, false);
-      else // IE
-        elem.attachEvent("onerror", resume);
+      else { // IE<9
+        var readystatechange = function() {
+          if (elem.readyState == 'loaded' && !complete) resume()
+        }
+        elem.attachEvent("onreadystatechange", readystatechange);
+      }
     }
     finally {
       if (elem.removeEventListener)
         elem.removeEventListener("error", resume, false);
       else // IE
-        elem.detachEvent("onerror", resume);
+        elem.detachEvent("onreadystatechange", readystatechange);
     }
     // this line never reached unless there is an error
     throw new Error("Could not complete JSONP request to '"+url+"'");
@@ -141,6 +146,7 @@ function jsonp_indoc(url, opts) {
     elem.parentNode.removeChild(elem);
     delete window[jsonp_cb_obj][cb];
   }
+  complete = true;
   return rv;
 }
 

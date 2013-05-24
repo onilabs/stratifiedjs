@@ -9,7 +9,7 @@ var url = require('sjs:url');
 var sys = require('builtin:apollo-sys');
 
 var IE9 = suite.isIE() && suite.ieVersion() < 10;
-var expected404Status = IE9 ? undefined : 404;
+var expected404Status = 404;
 
 context("request") {||
 
@@ -75,65 +75,56 @@ context("xml") {||
 }
 
 context("jsonp") {||
-  var webserverJsonpTimeout = 5000;
+  if (suite.isBrowser) {
+    // browser jsonp actually gets the `cp` url dynamically since it's
+    // run as vanilla JS code:
+    var jsonpType = 'js';
+    var errorMessage = /Could not complete JSONP request to/;
+  } else {
+    // Server doesn't require us to get the `cb` argument right, but can only deal with
+    // legitimate JSON responses (it won't execute JS):
+    var jsonpType = 'json';
+    var errorMessage = /Failed GET request to/;
+  }
 
   function testJsonpRequest(opts) {
-    waitfor {
-      return http.jsonp(getHttpURL("data/returnJsonp.template"), [{query: {data:"bananas"}},opts]).data;
-    }
-    or {
-      hold(webserverJsonpTimeout);
-      return "timeout";
-    }
+    return http.jsonp(getHttpURL("integration/fixtures/jsonp." + jsonpType), [opts]).data;
   }
 
-  testEq("jsonp", "bananas", function () {
-    return testJsonpRequest();
-  }).skip("requires template filter");
+  test("jsonp") {||
+    testJsonpRequest() .. assert.eq("result");
+  };
 
-  testEq("jsonp in iframe", "bananas", function () {
-    return testJsonpRequest({iframe:true});
-  }).skip("requires template filter");
+  test("jsonp iframe") {||
+    testJsonpRequest({iframe:true}) .. assert.eq("result");
+  };
 
-  testEq("jsonp forcecb", "bananas", function () {
-    return testJsonpRequest({forcecb:"foobar"});
-  }).skip("requires template filter");
+  test("jsonp forcecb") {||
+    testJsonpRequest({forcecb:"foobar"}) .. assert.eq("result");
+  }
 
-  testEq("jsonp/indoc bad url should throw", "notfound", function () {
-    waitfor {
-      try {
-        return http.jsonp("nonexistingurl");
-      } catch (e) {
-        return "notfound";
-      }
-    } or {hold(webserverJsonpTimeout);return "timeout"; }
-  });
+  test("jsonp/indoc bad url should throw") {||
+    assert.raises({message: errorMessage},
+      -> http.jsonp(getHttpURL("nonexistingurl")));
+  }
 
-  testEq("jsonp/in iframe bad url should throw", "notfound", function () {
-    waitfor {
-      try {
-        return http.jsonp("nonexistingurl", {iframe:true});
-      } catch (e) {
-        return "notfound";
-      }
-    } or {hold(webserverJsonpTimeout);return "timeout"; }
-  }).skip("wontfix/cantfix");
-
-
+  test("jsonp/iframe bad url should throw") {||
+    assert.raises({message: errorMessage},
+      -> http.jsonp(getHttpURL("nonexistingurl"), {iframe: true}));
+  }.skip("wontfix/cantfix");
 
   function searchIframe() {
-    waitfor {
-      return http.jsonp(["http://ajax.googleapis.com/ajax/services/search/web", {v: "1.0", q : 'stratifiedjs' }], {iframe:true});
-    } or {hold(webserverJsonpTimeout);return "timeout"; }
+    return http.jsonp(["http://ajax.googleapis.com/ajax/services/search/web", {v: "1.0", q : 'stratifiedjs' }], {iframe:true});
   }
 
-  testEq("http.jsonp iframe cache issue", true, function () {
-    var a = searchIframe();
+  test("http.jsonp iframe cache issue") {||
+    searchIframe() .. assert.ok();
     // if the iframe caches (some browsers), the jsonp callback will not be called
-    var b = searchIframe();
-    return (a != "timeout") && (b != "timeout");
-  });
-}.ignoreLeaks('_oni_jsonpcb');
+    // (causing a timeout)
+    searchIframe() .. assert.ok();
+  }.timeout(10);
+
+}.ignoreLeaks('_oni_jsonpcb').timeout(5);
 
 context("full return objects") {||
   testEq('head request', 'text/plain', function() {
