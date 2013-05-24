@@ -62,7 +62,7 @@
           var reporter = runner.reporter = Object.create(runner.reporter);
           reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
             if (!rocketInitialized && ctx.module() .. string.startsWith('integration/')) {
-                startRocket();
+              startRocket();
             }
           });
           reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);
