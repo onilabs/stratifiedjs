@@ -532,7 +532,7 @@ context("global variable leaks") {||
     runner.context("root", fooTest);
     runner.run(s.watcher.run).ok() .. assert.ok();
   }
-}.skipIf(suite.isIE() && suite.ieVersion() < 8, "not supported on IE<8");
+}.skipIf(suite.isIE() && suite.ieVersion() < 9, "not supported on IE<9");
 
 context("uncaught exceptions") {||
   test("fail the next test, if there is one") {||
