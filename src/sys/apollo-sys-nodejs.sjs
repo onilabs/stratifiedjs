@@ -284,9 +284,11 @@ function request_hostenv(url, settings) {
         }
         err.data = response.data;
         throw err;
-        }
-      else if (opts.response == 'string')
+      } else if (opts.response == 'string') {
+        // if we don't let the response drain, it can prevent node from exiting
+        response.resume();
         return "";
+      }
       // else fall through
     }
   }
@@ -310,7 +312,6 @@ function request_hostenv(url, settings) {
       getHeader: name -> response.headers[name.toLowerCase()]
     };
   }
-      
 };
 
 function file_src_loader(path) {

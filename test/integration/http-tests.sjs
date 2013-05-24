@@ -25,9 +25,9 @@ context("request") {||
     return http.request(getHttpURL("data/returnQuery.template"), {query:{a:1,b:2}});
   }).skip("requires template filter");
 
-  testEq('request("no_such_url", {throwing:false})', "", function() {
-    return http.request(getHttpURL("no_such_url"), {throwing:false});
-  });
+  test('request("no_such_url", {throwing:false})') {||
+    http.request(getHttpURL("no_such_url"), {throwing:false}) .. assert.eq("");
+  };
 
   test('try {request("no_such_url")}catch(e){}') {||
     assert.raises({filter: e -> e.status === expected404Status},
