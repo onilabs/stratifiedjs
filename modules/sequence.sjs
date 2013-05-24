@@ -140,7 +140,7 @@ exports.generate = generate;
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to execute for each `item` in `sequence`
    @summary Executes `f(item)` for each `item` in `sequence`
-   @return The `sequence` that was passed in.
+   @return {::Sequence} The `sequence` that was passed in.
    @desc
      ### Example:
 
