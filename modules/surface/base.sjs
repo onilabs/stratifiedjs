@@ -357,13 +357,13 @@ UIElement.select = function(selector) {
       * Stops further propagation of the event
       * To listen for an event during the capturing phase, prefix the event name with a '!'
 */
-UIElement.waitforEvent = function(event, selector) {
+UIElement.waitforEvent = function(event, selector, filter) {
   var ev;
   if (!selector) 
-    ev = dom.waitforEvent(this.dompeer, event);
+    ev = dom.waitforEvent(this.dompeer, event, filter);
   else
     ev = dom.waitforEvent(this.dompeer, event,
-                          ev => dom.findNode(selector, ev.target, this.dompeer));
+                          ev => dom.findNode(selector, ev.target, this.dompeer) && (!filter || filter(ev)));
   dom.stopEvent(ev);
   return ev;
 };
