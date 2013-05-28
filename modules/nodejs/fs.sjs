@@ -41,7 +41,6 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 
 var fs = require('fs'); // builtin fs
-var events = require('./events');
 
 var fs_binding = process.binding('fs');
 var write = fs_binding.write;

@@ -36,7 +36,7 @@
 */
 
 var sys  = require('builtin:apollo-sys');
-var { each } = require('sjs:sequence');
+var { each, Stream } = require('sjs:sequence');
 var { remove } = require('sjs:array');
 
 /**
@@ -280,30 +280,23 @@ var SemaphoreProto = {
 };
 
 
-// TODO: pause / resume, in line with node events?
-// TODO: wrap node's EventEmitters to provide the same API? e.g
-//       var dataEvent = new NodeEvents.Event(someEventEmitter, 'data');
-/**
-  @class    Event
-  @summary  An event that can be waited upon and emitted multiple times.
-  @function Event
-*/
-function Event() {
-  var rv = Object.create(EventProto);
-  rv.waiting = [];
-  return rv;
+// shared prototype for events.Emitter, events.HostEmitter & cutil.Condition objects
+// (undocumented)
+var Waitable = {};
+exports._Waitable = Waitable;
+Waitable.init = function() {
+  this.waiting = [];
+}
+
+Waitable.emit = function emit(value) {
+  if(this.waiting.length == 0) return;
+  var waiting = this.waiting;
+  this.waiting = [];
+  spawn(waiting .. each { |resume| resume(value) });
 };
-exports.Event = Event;
 
-var EventProto = {};
-/**
-  @function  Event.wait
-  @summary   Block until this event is next emitted, and return the emitted value (if given).
-*/
-
-EventProto.wait = function wait() {
-  var result = this.value;
-  waitfor(result) {
+Waitable.wait = function wait() {
+  waitfor(var result) {
     this.waiting.push(resume);
   } retract {
     this.waiting .. remove(resume);
@@ -311,61 +304,6 @@ EventProto.wait = function wait() {
   return result;
 };
 
-EventProto.toString = function toString() { return "[object cutil.Event]"; }
-
-/**
-  @function  Event.emit
-  @param     {optional Object} [value]
-  @summary   Emit event with optional `value`
-  @desc
-    Resumes all strata that are waiting on this event object.
-
-    If `val` is provided, it will be the return value of all
-    outstanding `wait()` calls.
-*/
-EventProto.emit = function emit(value) {
-  if(this.waiting.length == 0) return;
-  var waiting = this.waiting;
-  this.waiting = [];
-  spawn(waiting .. each { |resume| resume(value) });
-};
-
-/**
-   @function Event.restartLoop
-   @altsyntax event.restartLoop { || ... }
-   @param {Function} [f] Function to execute
-   @summary (Re-)start a function everytime the event is emitted
-   @desc
-     The code
-
-         event.restartLoop {
-           ||
-           some_code
-         }
-
-     is equivalent to
-
-         while (1) {
-           waitfor {
-             event.wait();
-           }
-           or {
-             some_code
-             hold();
-           }
-         }
-*/
-EventProto.restartLoop = function restartLoop(f) {
-  while (1) {
-    waitfor {
-      this.wait();
-    }
-    or {
-      f();
-      hold();
-    }
-  }
-};
 
 /**
   @class    Condition
@@ -379,13 +317,16 @@ EventProto.restartLoop = function restartLoop(f) {
 */
 function Condition() {
   var rv = Object.create(ConditionProto);
-  rv._ev = Event();
-  rv.clear();
+  rv.init();
   return rv;
 };
 exports.Condition = Condition;
 
-var ConditionProto = {};
+var ConditionProto = Object.create(Waitable);
+ConditionProto.init = function() {
+  Waitable.init.call(this);
+  this.clear();
+}
 
 /**
   @function  Condition.wait
@@ -395,11 +336,12 @@ var ConditionProto = {};
 */
 ConditionProto.wait = function wait() {
   if (!this.isSet) {
-    this.value = this._ev.wait();
+    this.value = Waitable.wait.call(this);
   }
   return this.value;
 };
-ConditionProto.toString = function toString() { return "[object cutil.Condition]"; }
+
+ConditionProto.toString = function toString() { return "[object Condition]"; }
 
 /**
   @function  Condition.set
@@ -416,7 +358,7 @@ ConditionProto.set = function set(value) {
   if(this.isSet) return; // noop
   this.isSet = true;
   this.value = value;
-  this._ev.emit(value);
+  Waitable.emit.call(this, value);
 };
 
 /**

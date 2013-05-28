@@ -9,6 +9,9 @@ and {
   var dom = require('sjs:xbrowser/dom');
 }
 and {
+  var events = require('sjs:events');
+}
+and {
   var ui = require('./ui');
 }
 and {
@@ -91,7 +94,7 @@ exports.run = function(default_location, trail_parent, index_parent, main_parent
         }
       }
       or {
-        dom.waitforEvent(window, "hashchange");
+        events.wait(window, "hashchange");
         location = parseLocation(default_location);
       }
     }
@@ -292,11 +295,11 @@ Please also hit the 'retry' button and see if this fixes things:
 ");
   using (view.show(domparent)) {
     try {
-      dom.waitforEvent(view.elems.ok, 'click');
+      events.wait(view.elems.ok, 'click');
     }
     or {
       // escape key
-      dom.waitforEvent(document, 'keydown', function(e) { return e.keyCode == 27; });
+      events.wait(document, 'keydown', function(e) { return e.keyCode == 27; });
     }
   }
 }
@@ -315,7 +318,7 @@ function doLoadingDialog(domparent) {
     "<span class='mb-warning'> Still Loading... 
      <a name='retry' href='javascript:void(0)'>Retry</a> </span>");
   using(view.show(domparent)) {
-    dom.waitforEvent(view.elems.retry, 'click');
+    events.wait(view.elems.retry, 'click');
   }
 }
 
@@ -365,10 +368,10 @@ function makeErrorView(location, txt) {
       view.elems.url.value = window.location.hash.substr(1);
     view.elems.url.focus();
     try {
-      dom.waitforEvent(view.elems.url, "keypress", function(e) { return e.keyCode == 13; });
+      events.wait(view.elems.url, "keypress", function(e) { return e.keyCode == 13; });
     }
     or { 
-      dom.waitforEvent(view.elems.go, "click");
+      events.wait(view.elems.go, "click");
     }
     window.location.replace("#"+view.elems.url.value);
   };

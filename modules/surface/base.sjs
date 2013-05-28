@@ -46,10 +46,13 @@ waitfor {
 }
 and {
   var { remove } = require('../array');
-} 
+}
 and {
-  var dom    = require('../xbrowser/dom');
-} 
+  var dom = require('../xbrowser/dom');
+}
+and {
+  var events = require('../events');
+}
 and {
   var func = require('../function');
 }
@@ -359,10 +362,10 @@ UIElement.select = function(selector) {
 */
 UIElement.waitforEvent = function(event, selector, filter) {
   var ev;
-  if (!selector) 
-    ev = dom.waitforEvent(this.dompeer, event, filter);
+  if (!selector)
+    ev = events.wait(this.dompeer, event, filter);
   else
-    ev = dom.waitforEvent(this.dompeer, event,
+    ev = events.wait(this.dompeer, event,
                           ev => dom.findNode(selector, ev.target, this.dompeer) && (!filter || filter(ev)));
   dom.stopEvent(ev);
   return ev;
@@ -922,7 +925,7 @@ function mixinCommandAPI(elem, attrib, method_name) {
   method_name = method_name || 'waitforCommand';
   elem[method_name] = function() {
     var me = this;
-    var ev = dom.waitforEvent(this.dompeer, 'click', function(ev) {
+    var ev = events.wait(this.dompeer, 'click', function(ev) {
       if ((ev.node = dom.findNode("[#{attrib}]", ev.target, me.dompeer))) {
         dom.stopEvent(ev);
         return true;

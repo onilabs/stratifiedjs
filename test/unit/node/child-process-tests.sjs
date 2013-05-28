@@ -7,7 +7,7 @@ context {||
   var logging = require('sjs:logging');
   var cutil = require('sjs:cutil');
   var seq = require('sjs:sequence');
-  var events = require('sjs:nodejs/events');
+  var events = require('sjs:events');
   var child_process = require('sjs:nodejs/child-process');
   var fs = require('sjs:nodejs/fs');
   var NODE_VERSION = process.versions['node'].split('.').map(x -> parseInt(x));
@@ -155,7 +155,7 @@ context {||
       });
 
       child.pid .. isRunning() .. assert.ok("child pid not running! (#{child.pid})");
-      using (var q = events.eventQueue(child.stdout, 'data')) {
+      using (var q = events.Queue(events.from(child.stdout, 'data'))) {
         var pid;
         var lines = [];
 

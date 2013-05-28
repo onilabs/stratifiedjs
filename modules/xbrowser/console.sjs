@@ -49,6 +49,7 @@ var { extend } = require('../object');
 var str = require('../string');
 var { each, map, join } = require('../sequence');
 var { remove } = require('../array');
+var dom, events; // set in Console.init
 
 //----------------------------------------------------------------------
 // logging
@@ -202,7 +203,7 @@ function inspect_obj(obj, name) {
   spawn((function() {
     var toggle = rv.firstChild.firstChild;
     while (true) {
-      require('./dom').waitforEvent(toggle, 'click');
+      events.wait(toggle, 'click');
       var children = makeDiv(null, "margin-left:15px");
       var props = Object.keys(obj);
       props.sort();
@@ -215,7 +216,7 @@ function inspect_obj(obj, name) {
       }
       rv.appendChild(children);
       toggle.firstChild.style.backgroundImage = "url("+icons.treeopen+")";
-      require('./dom').waitforEvent(toggle, 'click');
+      events.wait(toggle, 'click');
       toggle.firstChild.style.backgroundImage = "url("+icons.treeclosed+")";
       rv.removeChild(children);
       children = null;
@@ -259,6 +260,8 @@ exports.console = function(opts) {
 };
 
 function Console(opts) {
+  dom = require('./dom');
+  events = require('../events');
   opts = extend({
     collapsed : true,
     height: 200,
@@ -335,7 +338,7 @@ z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:p
 Console.prototype = {
   _cmdloop: function() {
     waitfor {
-      using (var Q = require('./dom').eventQueue(this.cmdline, 'keydown')) {
+      using (var Q = events.Queue(events.from(this.cmdline, 'keydown'))) {
         while (true) {
           var key = Q.get().keyCode;
           //        this.log(key);
@@ -372,16 +375,16 @@ Console.prototype = {
         // Can't wait for click on this.term here, because of
         // Android bug http://code.google.com/p/android/issues/detail?id=8575
         waitfor {
-          require('./dom').waitforEvent(this.closebutton, "click");
+          events.wait(this.closebutton, "click");
           this.shut();
         }
         or {
-          var ev = require('./dom').waitforEvent(this.output, "click");
-          if (require('./dom').eventTarget(ev) == this.output)
+          var ev = events.wait(this.output, "click");
+          if (dom.eventTarget(ev) == this.output)
             this.focus();
         }
         or {
-          require('./dom').waitforEvent(this.clearbutton, "click");
+          events.wait(this.clearbutton, "click");
           this.clear();
         }
       };
@@ -389,7 +392,7 @@ Console.prototype = {
     and {
       if (isWebkitMobile) {
         // emulate position:fixed on webkit:
-        using (var Q2 = require('./dom').eventQueue(document.getElementsByTagName("body")[0], 'touchmove touchend')) {
+        using (var Q2 = events.Queue(events.from(document.getElementsByTagName("body")[0], ['touchmove', 'touchend']))) {
           while(true) {
             viewportStick(this.summonbutton);
             Q2.get();
@@ -399,14 +402,14 @@ Console.prototype = {
     }
     and {
       while (true) {
-        var ev = require('./dom').waitforEvent(this.resizehandle,"mousedown");
+        var ev = events.wait(this.resizehandle,"mousedown");
         var lasty = ev.clientY;
         document.documentElement.style.webkitUserSelect = "none";
         waitfor {
-          require('./dom').waitforEvent(document, "mouseup");
+          events.wait(document, "mouseup");
         }
         or {
-          using (var mm = require('./dom').eventQueue(document, "mousemove")) {
+          using (var mm = events.Queue(document, "mousemove")) {
             while (1) {
               var ev = mm.get();
               var h = lasty - ev.clientY + this.term.clientHeight;
@@ -438,7 +441,7 @@ Console.prototype = {
   shut : function () {
     this.term.style.display = "none";
     this.summonbutton.style.visibility = "visible";
-    spawn (require('./dom').waitforEvent(this.summonbutton, "click"),
+    spawn (events.wait(this.summonbutton, "click"),
            this.expand());
   },
   
@@ -483,7 +486,7 @@ Console.prototype = {
           try {
             e.firstChild.innerHTML += "<a title='Cancel this stratum' style='text-decoration:underline;cursor:pointer;float:right'>abort</a>";
             var b = e.firstChild.lastChild;
-            require('./dom').waitforEvent(b, "click");
+            events.wait(b, "click");
             result.innerHTML = "<span style='color:red'>Aborted</span>";
           }
           finally {

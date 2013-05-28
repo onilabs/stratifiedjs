@@ -84,43 +84,6 @@ test('Semaphore: block/resume on acquire', 1, function() {
   }
 });
 
-test('Event: block/resume', 1, function() {
-  var e = cutil.Event();
-  waitfor {
-    e.wait();
-    return 1;
-  } or {
-    e.emit();
-    hold(100);
-    return 2;
-  }
-});
-
-test('Event: retract from wait()', [], function() {
-  var e = cutil.Event();
-  waitfor {
-    e.wait();
-  } or {
-    hold(100);
-  }
-  return e.waiting;
-});
-
-test('Event: setting with a value', ["first", "second"], function() {
-  var e = cutil.Event();
-  var results = [];
-  waitfor {
-    results.push(e.wait());
-    results.push(e.wait());
-  } or {
-    e.emit("first");
-    hold(100);
-    e.emit("second");
-    hold();
-  }
-  return results;
-});
-
 test('Condition: not blocking if already set', 1, function() {
   var c = cutil.Condition();
   c.set();

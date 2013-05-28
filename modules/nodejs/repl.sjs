@@ -40,7 +40,7 @@ var sys = require('builtin:apollo-sys');
 if (sys.hostenv != 'nodejs') 
   throw new Error('The nodejs/repl module only runs in a nodejs environment');
 
-var events = require('./events');
+var events = require('../events');
 var debug = require('../debug');
 
 var disableColors = true;
@@ -69,22 +69,24 @@ exports.runREPL = function() {
 
   try {
     itf = require('readline').createInterface(stdin, process.stdout);
-    using (var lines = events.eventQueue(itf, 'line')) {
-      while (1) {
-        switchPrompt('input');
-        itf.prompt();
-        waitfor {
-          var cl = lines.get()[0];
-        }
-        or {
-          events.waitforEvent(itf, "SIGINT");
-          write("<^C again to quit>");
+    using (var sigint = events.HostEmitter(itf, 'SIGINT')) {
+      using (var lines = events.Queue(itf, 'line')) {
+        while (1) {
+          switchPrompt('input');
           itf.prompt();
-          events.waitforEvent(itf, "SIGINT");
-          return;
+          waitfor {
+            var cl = lines.get();
+          }
+          or {
+            sigint.wait();
+            write("<^C again to quit>");
+            itf.prompt();
+            sigint.wait();
+            return;
+          }
+          switchPrompt('busy');
+          evalCommandLine(cl, sigint);
         }
-        switchPrompt('busy');
-        evalCommandLine(cl);
       }
     }
   }
@@ -99,7 +101,7 @@ exports.runREPL = function() {
   }
 };
 
-function evalCommandLine(cl) {
+function evalCommandLine(cl, interrupt) {
   var stratum = spawn require('builtin:apollo-sys').eval(cl, {filename:'repl'});
 
   waitfor {
@@ -107,15 +109,15 @@ function evalCommandLine(cl) {
   }
   or {
     // when the user enters CTRL-C, we push into background:
-    events.waitforEvent(itf, "SIGINT");
+    interrupt.wait();
     trackInBackground(stratum);
   }
 }
 
 //----------------------------------------------------------------------
-// prompt 
+// prompt
 
-var promptType; 
+var promptType;
 var inputPrompt = 'apollo> ';
 
 function switchPrompt(type) {

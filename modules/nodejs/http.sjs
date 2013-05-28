@@ -46,7 +46,7 @@ var { find, parallelize, generate, filter, each } = require('../sequence');
 var url = require('../url');
 var { Queue } = require('../cutil');
 var { override } = require('../object');
-var events = require('./events');
+var events = require('../events');
 
 //----------------------------------------------------------------------
 // XXX nodejs < v8 backfill:
@@ -96,7 +96,7 @@ function receiveBody(request) {
     while (1) { 
       rv = concatBuffers(
         [rv, 
-         events.waitforEvent(request, 'data')[0]
+         events.wait(request, 'data')[0]
         ]);
       __js if (rv.length > 1024*1024*10) throw "Request body too large";
     }
@@ -116,7 +116,7 @@ function handleRequest(connectionHandler, request, response, protocol) {
     connectionHandler(request, response);
   }
   or {
-    events.waitforEvent(request, 'close');
+    events.wait(request, 'close');
     throw "Connection closed";
   }
   catch (e) {
@@ -310,7 +310,7 @@ function withServer(config, server_loop) {
 
   // bind the socket:
   waitfor  {
-    var error = events.waitforEvent(server, 'error')[0];
+    var error = events.wait(server, 'error')[0];
     throw new Error("Cannot bind #{config.address}: #{error}");
   }
   or { 
@@ -321,11 +321,11 @@ function withServer(config, server_loop) {
     // so to shut down things cleanly, we need to wait for the process
     // to complete (or fail)
     waitfor {
-      events.waitforEvent(server, 'listening');
+      events.wait(server, 'listening');
       try { server.close(); } catch(e) { /* ignore */ }
       // xxx close any connection that might have snuck in
     } or {
-      events.waitforEvent(server, 'error');
+      events.wait(server, 'error');
     }
   }
 
@@ -334,7 +334,7 @@ function withServer(config, server_loop) {
 
   // run our server_loop :
   waitfor {
-    var error = events.waitforEvent(server, 'error')[0];
+    var error = events.wait(server, 'error')[0];
     throw new Error("#{config.address}: #{error}");
   }
   or {
@@ -344,7 +344,7 @@ function withServer(config, server_loop) {
     config.log("Listening on #{address}");
 
     waitfor {
-      server .. events.waitforEvent('close');
+      server .. events.wait('close');
       server_closed = true;
     }
     and {
@@ -356,7 +356,7 @@ function withServer(config, server_loop) {
           eachRequest: function(handler) { 
             waitfor {
               if (!server_closed)
-                server .. events.waitforEvent('close');
+                server .. events.wait('close');
             }
             or {
               generate(-> request_queue.get()) ..
@@ -370,7 +370,7 @@ function withServer(config, server_loop) {
                   |req_res|
                   var [req,res] = req_res;
                   waitfor {
-                    events.waitforEvent(req, 'close');
+                    events.wait(req, 'close');
                     config.log("Connection closed");
                   }
                   or {
@@ -468,7 +468,7 @@ function Router(routes, port, host) {
       waitfor {
         // if the connection is closed, we automatically abort any
         // route currently in progress
-        events.waitforEvent(req, 'close');        
+        events.wait(req, 'close');        
         console.log('connection closed');
       }
       or {

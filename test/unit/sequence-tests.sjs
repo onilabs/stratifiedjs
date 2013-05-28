@@ -4,7 +4,6 @@ var testFn = testUtil.testFn;
 var {test, context, assert} = require('sjs:test/suite');
 
 var s = require("sjs:sequence");
-var cutil = require("sjs:cutil");
 var toArray = s.toArray;
 
 //----------------------------------------------------------------------
@@ -446,24 +445,6 @@ context('indexed') {||
   });
 }
 
-testEq('eventStream()', [1,2,3,4], function() {
-  var evt = cutil.Event();
-  var result = [];
-  waitfor {
-    s.eventStream(evt) .. s.each {|item|
-      result.push(item);
-    }
-  } or {
-    hold(10);
-    evt.emit(1)
-    hold(10);
-    evt.emit(2)
-    evt.emit(3)
-    evt.emit(4)
-  }
-  return result;
-});
-
 testEq('combine', ['a','b','b','a','c'], function() {
   var as = s.Stream() {|r|
     r('a');
@@ -488,25 +469,6 @@ testEq('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2],
 
 testEq('partition(integers(1,10), x->x%2)', [[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], function() {
   return s.partition(s.integers(1, 10), x -> x%2) .. s.map(s.toArray) .. s.toArray;
-});
-
-testEq('eventStream() only buffers events while iterating', [2,3,4], function() {
-  var evt = cutil.Event();
-  var result = [];
-  var stream = s.eventStream(evt)
-  waitfor {
-    evt.emit(1)
-    hold(10);
-    evt.emit(2)
-    hold(10);
-    evt.emit(3)
-    evt.emit(4)
-  } or {
-    stream .. s.each {|item|
-      result.push(item);
-    }
-  }
-  return result;
 });
 
 context('first') {||

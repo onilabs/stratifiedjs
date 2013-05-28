@@ -8,54 +8,6 @@ var IE7 = suite.isIE() && suite.ieVersion() < 8;
 
 if(testUtil.isBrowser) {
   var dom = require('sjs:xbrowser/dom');
-  function synthesizeClick(elem) {
-    elem = elem || document;
-    if (document.createEvent) {
-      var click = document.createEvent("MouseEvents");
-      click.initEvent("click", true, true);
-      elem.dispatchEvent(click);
-    }
-    else // IE
-      elem.fireEvent("onclick");
-  }
-
-  testEq('waitforEvent', true, function() {
-    waitfor {
-      dom.waitforEvent(document, 'click');
-      return true;
-    }
-    or {
-      hold(0);
-      synthesizeClick();
-      hold();
-    }
-    or {
-      // timeout
-      hold(1000);
-    }
-    return false;
-  });
-
-  testEq('eventQueue', true, function() {
-    waitfor {
-      using (var Q = dom.eventQueue(document, "click")) {
-        for (var i=0; i<10; ++i) {
-          hold(Math.random()*100);
-          Q.get();
-        }
-      }
-    }
-    and {
-      for (var j=0; j<10; ++j) {
-        hold(Math.random()*100);
-        synthesizeClick();
-      }
-    }
-    if (Q.count() != 0) throw "Not all events consumed";
-    synthesizeClick();
-    if (Q.count() != 0) throw "Queue still listening when it shouldn't";
-    return true;
-  });
 
   testEq('cookies', true, function() {
     var data = "  "+Math.random()+"\n\n\tfoo";
