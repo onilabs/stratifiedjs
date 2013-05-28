@@ -31,7 +31,7 @@
  */
 /**
   @module    events
-  @summary   Stratified utilities for native event emitters and [::Emitter] objects.
+  @summary   Event emitter and utilities for dealing with events.
   @home      sjs:events
 */
 

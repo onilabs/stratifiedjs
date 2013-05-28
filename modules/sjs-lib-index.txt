@@ -53,7 +53,7 @@
 @module dashdash        Options parser (tracking [node-dashdash library](https://github.com/trentm/node-dashdash))
 @module debug           Helpers for debugging
 @module docutil         Utilities for extracting documentation from StratifiedJS modules (Work in progress)
-@module event           Native event wrappers and utilities
+@module events          Event emitter and utilities for dealing with events.
 @module function        Function composition helpers
 @module http            Functions for performing HTTP requests and working with URLs
 @module jsondiffpatch   Diff & patch for JSON objects
