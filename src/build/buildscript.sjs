@@ -74,7 +74,12 @@ function build_deps() {
   // sys module
 
   // common part:
-  STRINGIFY("tmp/apollo-sys-common.sjs.min", "src/sys/apollo-sys-common.sjs",
+  BUILD("tmp/apollo-sys-common.sjs",
+    ["cp $0 $TARGET", replacements_from_config],
+    ["src/sys/apollo-sys-common.sjs"]
+  );
+
+  STRINGIFY("tmp/apollo-sys-common.sjs.min", "tmp/apollo-sys-common.sjs",
             { pre: "__oni_rt.modsrc['builtin:apollo-sys-common.sjs']=", post: ";" });
   
   // xbrowser hostenv-specific part:
@@ -110,7 +115,7 @@ function build_deps() {
   // apollo lib
 
   // xbrowser version:
-  BUILD("oni-apollo.js", 
+  BUILD("oni-apollo.js",
         ["cat $0 $1 $2 $3 $4 $5 $6 $7 > $TARGET",
          replacements_from_config
         ],

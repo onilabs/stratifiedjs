@@ -52,6 +52,16 @@
   @summary Dynamically evaluate SJS code
   @desc
     Returns the last expression from `code`.
+
+  @variable version
+  @summary The current SJS version string
+  @desc
+    The version string returned will include the text "-development" if using
+    a non-released version (i.e from the git repo, or loaded from
+    an unstable branch of code.onilabs.com.
+
+    If SJS is installed by a package manager (e.g. npm),
+    this will match the package version string.
 */
 
 throw new Error("sys.sjs is a builtin, but attempted to load from disk");

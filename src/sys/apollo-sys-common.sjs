@@ -786,7 +786,12 @@ exports.require.modules['builtin:apollo-sys.sjs'] = {
 var sysId = exports.resolve('sjs:sys').path;
 exports.require.modules[sysId] = {
   id: sysId,
-  exports: {hostenv: exports.hostenv, getGlobal:exports.getGlobal, eval: exports.eval},
+  exports: {
+    hostenv: exports.hostenv,
+    getGlobal:exports.getGlobal,
+    eval: exports.eval,
+    "version": "__replaced__",
+  },
   loaded_from: "[builtin]",
   loaded_by: "[toplevel]",
   required_by: { "[toplevel]":1 }
