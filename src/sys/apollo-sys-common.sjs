@@ -624,6 +624,7 @@ function default_loader(path, parent, src_loader, opts) {
           required_by: {},
           require: makeRequire(path)
         };
+        if (opts.main) descriptor.require.main = descriptor;
         compile(src, descriptor);
         // It is important that we only set
         // exports.require.modules[module] AFTER compilation, because

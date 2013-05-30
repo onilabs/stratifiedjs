@@ -38,7 +38,8 @@ function runSJScript(url) {
           console.log(err.toString());
           process.exit(1);
         }
-      }
+      },
+      main: true
     });
   };
 }
