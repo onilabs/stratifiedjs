@@ -518,6 +518,10 @@ context('zip') {||
     s.zip([1,2,3], ['one']) .. toArray .. assert.eq([[1, 'one']]);
   }
 
+  test('zip on empty arrays') {||
+    s.zip([], []) .. toArray .. assert.eq([]);
+  }
+
   test('zipLongest on uneven arrays') {||
     s.zipLongest([1,2,3], ['one']) .. toArray .. assert.eq([
       [1, 'one'],

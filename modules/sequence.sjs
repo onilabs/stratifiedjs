@@ -1382,7 +1382,8 @@ exports.parallelize = parallelize;
    @summary To be documented
 */
 function makeIterator(sequence) {
-  var eos = {}, next_upstream;
+  var eos = {};
+  var next_upstream = -> eos;
   var stratum = spawn (function() {
     sequence .. iterate(eos) {
       |next|
