@@ -64,13 +64,13 @@ var UNDEF; // == undefined
 
 /**
    @variable hostenv
-   @summary Host environment that we're running in (currently one of 'nodejs' or 'xbrowser') 
+   @summary see [../../modules/sys::hostenv]
 */
 exports.hostenv = __oni_rt.hostenv;
 
 /**
    @function getGlobal
-   @summary returns global object (i.e. window or global, depending on host environment)
+   @summary see [../../modules/sys::getGlobal]
 */
 exports.getGlobal = function() { return __oni_rt.G; };
 
@@ -437,8 +437,11 @@ exports.makeMemoizedFunction = function(f, keyfn) {
 };
 
 //----------------------------------------------------------------------
-// stratified eval
 
+/**
+   @function eval
+   @summary see [../../modules/sys::eval]
+*/
 exports.eval = eval_hostenv;
 
 //----------------------------------------------------------------------
@@ -772,6 +775,18 @@ exports.require = makeRequire(getTopReqParent_hostenv());
 exports.require.modules['builtin:apollo-sys.sjs'] = {
   id: 'builtin:apollo-sys.sjs',
   exports: exports,
+  loaded_from: "[builtin]",
+  loaded_by: "[toplevel]",
+  required_by: { "[toplevel]":1 }
+};
+
+// we export a minimal sjs:sys module which has system-related functionality,
+// without the rest of this module's incidental exports
+// (which are implementation details for use only by the stdlib).
+var sysId = exports.resolve('sjs:sys').path;
+exports.require.modules[sysId] = {
+  id: sysId,
+  exports: {hostenv: exports.hostenv, getGlobal:exports.getGlobal, eval: exports.eval},
   loaded_from: "[builtin]",
   loaded_by: "[toplevel]",
   required_by: { "[toplevel]":1 }
