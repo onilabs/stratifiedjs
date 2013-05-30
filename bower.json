@@ -1,0 +1,11 @@
+{
+  "name": "stratifiedjs",
+  "version" : "0.13.0-1-development",
+  "author" : "Alexander Fritze <alex@onilabs.com>",
+  "homepage" : "http://onilabs.com/apollo",
+  "private" : true,
+  "main": ["oni-apollo.js"],
+  "ignore": ["src", "test"],
+  "dependencies": {
+  }
+}

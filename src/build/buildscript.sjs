@@ -243,7 +243,7 @@ function build_deps() {
   PSEUDO("test/_index.txt"); // it's backed by a file, but its dependencies are not enumerable
 
   //----------------------------------------------------------------------
-  // version stamping for module files and package.json:
+  // version stamping for module files and *.json:
 
   // helper to recursively read all files in given directory
   function walkdir(path, cb) {
@@ -271,6 +271,7 @@ function build_deps() {
             walkdir("modules", replace_in);
             walkdir("rocket-modules", replace_in);
             replace_in("package.json");
+            replace_in("bower.json");
           },
           "touch $TARGET"
         ],
