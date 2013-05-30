@@ -7,13 +7,14 @@ set -ex
 if [ -z "$r" ]; then
 	r="NODE";
 fi
+export PATH="$(pwd):$PATH"
 set -u
 RUNNER="$r"
 SUITE="$t"
 
 run="test/run.html"
 if [ "$RUNNER" = NODE ]; then
-	./apollo "$run" $SUITE
+	apollo "$run" $SUITE
 else
 	[ "$RUNNER" = KARMA ];
 	export PHANTOMJS_BIN=phantomjs
