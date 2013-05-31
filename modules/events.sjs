@@ -367,7 +367,17 @@ var QueueProto = {
     self._strata = spawn(function() {
       while(true) {
         var next = self.source.wait();
-        spawn(self._queue.put(next));
+        if (self._queue.size == capacity) {
+          // We've exceeded the capacity of the queue and we need to
+          // drop events.  
+          // XXX should we treat this as fatal??
+          // At least make sure there'll be a warning appearing in the
+          // console (note the 'spawn' which ensures that the 'throw'
+          // doesn't abort this stratum):
+          spawn (function(ev) { throw new Error("Dropping event #{ev}") })(next);
+        }
+        else
+          self._queue.put(next);
       }
     }());
     self.events = seq.Stream {|emit|
