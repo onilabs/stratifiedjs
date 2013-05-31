@@ -298,7 +298,6 @@ exports.wait = wait;
   @setting {Number} [capacity] Maximum number of events to buffer in the queue (default 100).
   @setting {Boolean} [bound] Whether to `stop` the underlying emitter when this Queue is stopped (default `true`).
   @desc
-
     The returned [::Queue] object proceeds to listen for
     events immediately in the background, and continues to do so until
     [::Queue::stop] is called.
