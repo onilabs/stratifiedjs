@@ -71,5 +71,6 @@ context("fileURL") {||
 
   test("keeps an absolute path", -> assert.eq(url.fileURL("/foo/bar"), "file:///foo/bar"));
   test("escapes URL characters", -> assert.eq(url.fileURL("/foo/ bar"), "file:///foo/%20bar"));
+  test("keeps trailing slash", -> assert.eq(url.fileURL("/foo/bar/"), "file:///foo/bar/"));
 }
 

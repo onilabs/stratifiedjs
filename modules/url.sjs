@@ -36,7 +36,7 @@
 */
 
 var sys = require('builtin:apollo-sys');
-var {startsWith} = require('sjs:string');
+var {startsWith, endsWith} = require('sjs:string');
 
 /**
   @function  buildQuery
@@ -232,6 +232,13 @@ if (sys.hostenv == 'xbrowser') {
   };
 } else {
   pathMod = require('nodejs:path');
+  var _resolve = pathMod.resolve;
+  pathMod.resolve = function(p) {
+    // nodejs strips trailing "/", which we wanted to keep
+    var result = _resolve.apply(this, arguments);
+    if(p .. endsWith(pathMod.sep)) result += '/';
+    return result;
+  }
 }
 
 /**
