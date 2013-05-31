@@ -50,6 +50,8 @@ var __oni_rt={};(function(exports){var UNDEF;
 
 
 
+
+
 function CFException_toString(){var rv=this.name+": "+this.message;
 
 if(this.__oni_stack){
@@ -209,11 +211,15 @@ ef.parent_idx=idx;
 
 
 
-this.child_frame.quench();
+if(this.child_frame)this.child_frame.quench();
+
+
+
 
 },abort:function(){
 
-return this.child_frame.abort();
+if(this.child_frame)return this.child_frame.abort();
+
 
 
 
@@ -487,10 +493,6 @@ return this;
 }
 return this.returnToParent(val);
 }
-};
-
-EF_Seq.prototype.quench=function(){if(this.child_frame)this.child_frame.quench();
-
 };
 
 EF_Seq.prototype.abort=function(){if(!this.child_frame){
@@ -2031,6 +2033,8 @@ exports.UA=UA;
 exports.G=window;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
+
+
 
 
 

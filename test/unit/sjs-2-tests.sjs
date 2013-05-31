@@ -657,3 +657,27 @@ test("async blocklambda break in waitfor/and", 'ac', function() {
 
   return rv;
 });
+
+test('reentrant quench/abort', 'ok', function() {
+
+  // This used to produce a "Cannot call method 'quench' of null"
+  // error in the runtime.
+
+  // The code causes 'quench' and 'abort' to be called on the 'Sc'
+  // execution frame of the call 'r()'. This execution frame doesn't
+  // have a child frame, which caused the quench call to fail. Now we
+  // check for null child frames in EF_Proto.quench/abort, fixing this
+  // bug.
+  var r, stratum;
+  waitfor {
+    waitfor() {
+      r = resume;
+    }
+    stratum.abort();
+  }
+  and {
+    stratum = spawn (hold(0),r());
+  }
+  return 'ok';
+});
+

@@ -248,13 +248,17 @@ var EF_Proto = {
   // in our call tree. See also the tertiary waitfor/and/or sjs-testsuite testcases
   // 153-156.
   quench: function() {
-    this.child_frame.quench();
+    // see sjs-2-test 'reentrant quench/abort' for why we need to
+    // check for 'this.child_frame' here and in 'abort'
+    if (this.child_frame) 
+      this.child_frame.quench();
   },
 
   abort: function() {
-    // XXX do we have to worry about reentrant abortion in the generic
-    // case, or is everything covered by our handling in Seq?
-    return this.child_frame.abort();
+    // see sjs-2-test 'reentrant quench/abort' for why we need to
+    // check for 'this.child_frame' here and in 'quench'
+    if (this.child_frame)
+      return this.child_frame.abort();
   },
 
   returnToParent: function(val) {
@@ -511,7 +515,7 @@ setEFProto(EF_Seq.prototype={});
 EF_Seq.prototype.type = "Seq";
 #endif
 EF_Seq.prototype.cont = function(idx, val) {
-#ifdef DEBUG_VM
+#ifdef DEBUG_VM_XX
   var getType = function(val) {
     var sub = val && val.type;
     return "Seq/" + (sub || "??");
@@ -566,10 +570,6 @@ EF_Seq.prototype.cont = function(idx, val) {
     return this.returnToParent(val);
   }
 };
-
-EF_Seq.prototype.quench = function() {
-  if (this.child_frame) this.child_frame.quench();
-};  
 
 EF_Seq.prototype.abort = function() {
   //  LOG("Seq: aborting")
@@ -656,6 +656,9 @@ function EF_Sc(ndata, env) {
   this.pars = [];
 }
 setEFProto(EF_Sc.prototype={});
+#ifdef EF_TYPES
+EF_Sc.prototype.type = "Sc";
+#endif
 
 EF_Sc.prototype.cont = function(idx, val) {
   if (is_ef(val)) {
