@@ -241,6 +241,61 @@ exports.rstrip = function(s, ch){
 
 
 /**
+  @function split
+  @summary  Split a string on a separator
+  @param    {String} [string] The string to split
+  @param    {String} [sep] The separator to split on
+  @param    {optional Number} [limit] The maximum number of times to split
+  @return   {Array} Array of strings
+  @desc
+    This function is similar to the Javascript
+    [String.prototype.split method](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split),
+    however if `limit` is provided the remining string will be returned
+    in an additional element, rather than discarded.
+
+    ### Example:
+
+        split("a.b.c.d", ".")
+        // ['a','b','c','d']
+        
+        split("one=two=three", "=", 1)
+        // ['one', 'two=three']
+*/
+exports.split = function(s, sep, limit) {
+  var split = s.split(sep);
+  if (limit !== undefined && split.length > limit + 1) {
+    split.splice(limit, split.length, split.slice(limit).join(sep));
+  }
+  return split;
+}
+
+/**
+  @function rsplit
+  @summary  Split a string on a separator (starting from the end)
+  @param    {String} [string] The string to split
+  @param    {String} [sep] The separator to split on
+  @param    {optional Number} [limit] The maximum number of times to split
+  @return   {Array} Array of strings
+  @desc
+    Just like [::split], except when `limit` is given the splits
+    at the end of the string are performed, rather than the start.
+
+    ### Example:
+
+        rsplit("one=two=three", "=", 1)
+        // ['one=two', 'three']
+*/
+exports.rsplit = function(s, sep, limit) {
+  var split = s.split(sep);
+  if (limit !== undefined && split.length > limit + 1) {
+    var excess = split.length - limit;
+    split.splice(0, excess, split.slice(0, excess).join(sep));
+  }
+  return split;
+}
+
+
+/**
    @function utf16ToUtf8
    @summary  Convert a UTF-16 string to a UTF-8 string.
    @param    {String} [s] UTF-16 encoded string

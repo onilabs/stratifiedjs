@@ -1,5 +1,6 @@
 var testUtil = require('../lib/testUtil');
 var testEq = testUtil.test;
+var testFn = testUtil.testFn;
 var str = require('sjs:string');
 var {test, context, assert} = require('sjs:test/suite');
 
@@ -123,4 +124,16 @@ context('strip') {||
 
   testEq('rstrip(" foo\\t ")', ' foo', function() { return str.rstrip(" foo\t "); });
   testEq('rstrip("|foo||", "|")', '|foo', function() { return str.rstrip("|foo||", "|"); });
+}
+
+context('split') {||
+  testFn(str, 'split', ['a b c d', ' ', 2], ['a','b','c d']);
+  testFn(str, 'split', ['a b c d', ' ', 1], ['a','b c d']);
+  testFn(str, 'split', ['a b c', ' ', 2], ['a','b','c']);
+  testFn(str, 'split', ['a b', ' ', 2], ['a','b']);
+
+  testFn(str, 'rsplit', ['a b c d', ' ', 2], ['a b','c', 'd']);
+  testFn(str, 'rsplit', ['a b c d', ' ', 1], ['a b c', 'd']);
+  testFn(str, 'rsplit', ['a b c', ' ', 2], ['a','b','c']);
+  testFn(str, 'rsplit', ['a b', ' ', 2], ['a','b']);
 }
