@@ -231,13 +231,15 @@ if (sys.hostenv == 'xbrowser') {
     join: function(a,b) { return (a..rstrip('/')) + '/' + (b .. lstrip('/')) },
   };
 } else {
-  pathMod = require('nodejs:path');
-  var _resolve = pathMod.resolve;
-  pathMod.resolve = function(p) {
-    // nodejs strips trailing "/", which we wanted to keep
-    var result = _resolve.apply(this, arguments);
-    if(p .. endsWith(pathMod.sep)) result += '/';
-    return result;
+  var np = require('nodejs:path');
+  pathMod = {
+    join: np.join,
+    resolve: function(p) {
+      // nodejs strips trailing "/", which we wanted to keep
+      var result = np.resolve.apply(this, arguments);
+      if(p .. endsWith(np.sep)) result += '/';
+      return result;
+    }
   }
 }
 
