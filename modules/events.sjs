@@ -39,6 +39,10 @@ var cutil = require('./cutil');
 var seq = require('./sequence');
 var sys = require('builtin:apollo-sys');
 
+/**
+  @class    Emitter
+  @summary  An event emitter that can be waited upon and emitted multiple times.
+*/
 var BaseEmitterProto = Object.create(cutil._Waitable);
 
 /**
@@ -95,8 +99,6 @@ BaseEmitterProto.restartLoop = function restartLoop(f) {
 };
 
 /**
-  @class    Emitter
-  @summary  An event emitter that can be waited upon and emitted multiple times.
   @function Emitter
 */
 function Emitter() {
