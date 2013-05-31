@@ -96,7 +96,7 @@ function receiveBody(request) {
     while (1) { 
       rv = concatBuffers(
         [rv, 
-         events.wait(request, 'data')[0]
+         events.wait(request, 'data')
         ]);
       __js if (rv.length > 1024*1024*10) throw "Request body too large";
     }
@@ -310,7 +310,7 @@ function withServer(config, server_loop) {
 
   // bind the socket:
   waitfor  {
-    var error = events.wait(server, 'error')[0];
+    var error = events.wait(server, 'error');
     throw new Error("Cannot bind #{config.address}: #{error}");
   }
   or { 
@@ -334,7 +334,7 @@ function withServer(config, server_loop) {
 
   // run our server_loop :
   waitfor {
-    var error = events.wait(server, 'error')[0];
+    var error = events.wait(server, 'error');
     throw new Error("#{config.address}: #{error}");
   }
   or {
