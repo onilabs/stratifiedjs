@@ -123,7 +123,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
              event will be passed before passing the return value on to
              *filter* and/or emitting it.
   @desc
-    A "host" event emitter is an `EventEmitter` object when running in nodejs,
+    A "host" event emitter is a native [nodejs EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) object when running in nodejs,
     and a DOM element in the browser.
 
     Note that since creating a `HostEmitter` adds a listener to the
@@ -297,7 +297,7 @@ exports.wait = wait;
   @return  {::Queue}
   @param   {Emitter|Object} [source] [::HostEmitter], [::Emitter] or host object.
   @param   {Settings} [opts]
-  @setting {Number} [capacity] Maximum number of events to buffer in the queue (default 100).
+  @setting {Number} [capacity] Maximum number of events to buffer in the queue (default 100). Events will be dropped if the queue grows beyond this size. For each dropped event an exception will be reported in the console.
   @setting {Boolean} [bound] Whether to `stop` the underlying emitter when this Queue is stopped (default `true`).
   @desc
     The returned [::Queue] object proceeds to listen for
