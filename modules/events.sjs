@@ -367,7 +367,7 @@ var QueueProto = {
     self._strata = spawn(function() {
       while(true) {
         var next = self.source.wait();
-        if (self._queue.size == capacity) {
+        if (self._queue.count() == capacity) {
           // We've exceeded the capacity of the queue and we need to
           // drop events.  
           // XXX should we treat this as fatal??
