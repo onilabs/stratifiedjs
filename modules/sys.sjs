@@ -29,21 +29,28 @@
  *
  */
 
-// NOTE: this file contains no actual implementation - it is a builtin,
-// defined in src/sys/apollo-sys-common. This file exists solely for
-// the purpose of documentation.
-
 /**
   @module    sys
   @summary   SJS runtime utilities
   @home      sjs:sys
+*/
 
+var s = require('builtin:apollo-sys');
+module.exports = {
+
+/**
   @variable hostenv
   @summary Host environment that we're running in (currently one of 'nodejs' or 'xbrowser')
+*/
+  hostenv: s.hostenv,
 
+/**
   @function getGlobal
   @summary Returns the global object (i.e. window or global, depending on [::hostenv])
+*/
+  getGlobal:s.getGlobal,
 
+/**
   @function eval
   @param {String} [code]
   @param {optional Settings} [settings]
@@ -52,7 +59,10 @@
   @summary Dynamically evaluate SJS code
   @desc
     Returns the last expression from `code`.
+*/
+  eval: s.eval,
 
+/**
   @variable version
   @summary The current SJS version string
   @desc
@@ -63,5 +73,7 @@
     If SJS is installed by a package manager (e.g. npm),
     this will match the package version string.
 */
-
-throw new Error("sys.sjs is a builtin, but attempted to load from disk");
+  // NOTE: version property is in double-quotes so
+  // the buildscript treats it like JSON
+  "version" : "0.13.0-1-development",
+};

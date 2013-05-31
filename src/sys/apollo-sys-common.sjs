@@ -780,23 +780,6 @@ exports.require.modules['builtin:apollo-sys.sjs'] = {
   required_by: { "[toplevel]":1 }
 };
 
-// we export a minimal sjs:sys module which has system-related functionality,
-// without the rest of this module's incidental exports
-// (which are implementation details for use only by the stdlib).
-var sysId = exports.resolve('sjs:sys').path;
-exports.require.modules[sysId] = {
-  id: sysId,
-  exports: {
-    hostenv: exports.hostenv,
-    getGlobal:exports.getGlobal,
-    eval: exports.eval,
-    "version": "__replaced__",
-  },
-  loaded_from: "[builtin]",
-  loaded_by: "[toplevel]",
-  required_by: { "[toplevel]":1 }
-};
-
 exports.init = function(cb) {
   init_hostenv();
   cb();
