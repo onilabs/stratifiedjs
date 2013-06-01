@@ -94,8 +94,8 @@ exports.Stream = Stream;
   @return {::Stream}
   @summary return a Stream
   @desc
-    If `sequence` is a stream, it is returned unmodified.
-    Oterhwise, a new Stream is created that iterates over the
+    If `sequence` is a [::Stream], it is returned unmodified.
+    Otherwise, a new [::Stream] is created that iterates over the
     given sequence.
 
     This function can be useful for example to create an
@@ -126,6 +126,21 @@ exports.isStream = isStream;
    @param {Function} [generator_func] Generator Function.
    @return {::Stream}
    @summary Create a (infinite) stream of successive invocations of `generator_func`
+   @desc
+     `generate(f)` is a shorthand for `Stream(function(r) { while(true) r(f()) })`.
+
+     ### Example:
+
+         var rand = generate(Math.random);
+
+         rand .. take(10) .. toArray; // -> [... 10 random numbers ...]
+
+     Note that, in general, a generated stream will be non-replayable. E.g. 
+     subsequent playbacks of the `rand` stream will (in general) yield 
+     different results:
+
+         rand .. take(10) .. toArray; // -> [... 10 random numbers ...]
+         rand .. take(10) .. toArray; // -> [... 10 different random numbers ...]
 */
 function generate(generator_func) {
   return Stream(function(r) { while(1) r(generator_func()) });
@@ -174,8 +189,10 @@ exports.each = each;
 /**
   @function exhaust
   @param {::Sequence} [seq]
-  @summary Force the sequence to be fully evaluated
+  @summary Force the sequence to be fully evaluated.
   @desc
+    A shorthand for `seq .. each { || }`
+
     Blocks until the sequence has finished.
 */
 var noop = function() {};
@@ -364,7 +381,7 @@ exports.toArray = toArray;
 
 /**
   @class SequenceExhausted
-  @summary Exception thrown when trying to get an element from an empty sequence
+  @summary Exception thrown by [::first] and [::at] when accessing a non-existent element.
 */
 function SequenceExhausted(msg) {
   this.message = msg;
@@ -381,9 +398,9 @@ exports.SequenceExhausted = SequenceExhausted;
     If `seq` is empty, `defaultValue` is returned if it was given.
     Otherwise, this function raises a [::SequenceExhausted] error.
 
-    Note that if `seq` is a non-repeatable [::Stream],
-    it doesn't just "peek" at the first item - it will consume
-    (and return) it.
+    Note that if `seq` is a non-repeatable [::Stream] 
+    (e.g. a stream such as `generate(Math.random)`),
+    it doesn't just "peek" at the first item - it will consume (and return) it.
 */
 function first(seq, defaultValue) {
   var args = arguments;
@@ -405,7 +422,7 @@ exports.first = first;
     (accessing elements relative to the end of the sequence).
 
     If there is no element at `index`, `defaultValue` will be returned
-    (or a SequenceExhausted error thrown if no `defaultValue` was given).
+    (or a [::SequenceExhausted] error thrown if no `defaultValue` was given).
     
     i.e for *positive* indexes, the code:
     
@@ -668,22 +685,6 @@ function count(sequence) {
 }
 exports.count = count;
 
-/*
-   @function toStream
-  
-   XXX not sure we need this
-
-function toStream(sequence) {
-  if (typeof sequence == 'function')
-    return sequence;
-  else
-    return function(r) {
-      each(sequence, r);
-    }
-  }
-}
-exports.toStream = toStream;
-*/
 
 /**
    @function take
@@ -719,8 +720,8 @@ exports.take = take;
   @return {::Stream}
   @summary Emit leading elements where `predicate(x)` returns true.
   @desc
-    Returns a {::Stream} which will emit only the leading
-    elements in [sequence] which satisfy `predicate`.
+    Returns a [::Stream] which will emit only the leading
+    elements in `sequence` which satisfy `predicate`.
 
     ### Example:
 
@@ -776,8 +777,8 @@ exports.skip = skip;
   @return {::Stream}
   @summary Skip leading elements where `predicate(x)` returns true.
   @desc
-    Returns a {::Stream} which will skip the leading
-    elements in [sequence] which satisfy `predicate`.
+    Returns a [::Stream] which will skip the leading
+    elements in `sequence` which satisfy `predicate`.
 
     ### Example:
 
@@ -843,7 +844,7 @@ exports.filter = filter;
    @altsyntax sequence .. partition(predicate)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [predicate] Predicate function
-   @return {[::Stream]} A pair of streams.
+   @return {::Stream} A pair of streams.
    @summary  Create a pair of [passes, fails] streams from an input stream and a predicate.
    @desc
       The first is all the elements that satisfy `predicate`, the second is those that don't.
@@ -932,8 +933,9 @@ exports.map = map;
   @summary Concatenate multiple sequences into a single sequence.
   @param   {::Sequence} [sequence...] Multiple Sequence arguments or a single array of Sequences
   @return  {::Stream} A stream sequentially combining all elements of each input sequence.
-                    This method acts like the builtin Array.prototype.concat method,
-                    but operating on arbitrary sequences rather than only arrays.
+  @desc                  
+      This method acts like the builtin Array.prototype.concat method,
+      but operating on arbitrary sequences rather than only arrays.
 */
 function concat(/* sequences ... */) {
   var sequences = expandSingleArgument(arguments);
@@ -992,46 +994,6 @@ function pack(sequence, p, pad) {
 exports.pack = pack;
 
 /**
-   @function combine
-   @param {::Stream} [stream...] One or more streams
-   @return {::Stream}
-   @summary  Combines multiple streams into a single output stream.
-   @desc
-      Elements appear in the output stream as soon as they are received.
-
-      ### Example:
-
-          // build a drum loop:
-
-          var drum = generate(function(emit) { emit("boom"); hold(400); });
-          var cymbal = generate(function(emit) {
-            hold(100);
-            emit("tsh");
-            hold(100);
-            emit("tsh");
-            hold(100);
-            emit("tsh");
-            hold(100);
-          });
-
-          var beats = combine(drum, cymbal);
-
-          // `beats` will emit a new element every 100ms, following the pattern:
-          // ['boom', 'tsh', 'tsh', 'tsh', 'boom', 'tsh', 'tsh' ... ]
-*/
-function combine(/* streams ... */) {
-  var cutil = require('./cutil');
-  var streams = arguments;
-  return Stream(function(emit) {
-    var include_stream = function(s) {
-      s .. each(emit);
-    }
-    cutil.waitforAll(include_stream, streams);
-  });
-}
-exports.combine = combine;
-
-/**
    @function unpack
    @altsyntax sequence .. unpack(u)
    @param {::Sequence} [sequence] Input sequence
@@ -1070,20 +1032,70 @@ function unpack(sequence, u) {
 exports.unpack = unpack;
 
 /**
+   @function combine
+   @param {::Stream} [stream...] One or more streams
+   @return {::Stream}
+   @summary  Combines multiple streams into a single output stream.
+   @desc
+      Elements appear in the output stream as soon as they are received.
+
+      ### Example:
+
+          // build a drum loop:
+
+          var drum = Stream(function(emit) { 
+            while (true) { 
+              emit("boom"); 
+              hold(400); 
+            }
+          });
+
+          var cymbal = Stream(function(emit) {
+            while (true) { 
+              hold(100);
+              emit("tsh");
+              hold(100);
+              emit("tsh");
+              hold(100);
+              emit("tsh");
+              hold(100);
+            }
+          });
+
+          var beats = combine(drum, cymbal);
+
+          // `beats` will emit a new element every 100ms, following the pattern:
+          // ['boom', 'tsh', 'tsh', 'tsh', 'boom', 'tsh', 'tsh' ... ]
+*/
+function combine(/* streams ... */) {
+  var cutil = require('./cutil');
+  var streams = arguments;
+  return Stream(function(emit) {
+    var include_stream = function(s) {
+      s .. each(emit);
+    }
+    cutil.waitforAll(include_stream, streams);
+  });
+}
+exports.combine = combine;
+
+/**
   @function groupBy
+  @altsyntax sequence .. groupBy([key])
   @param {::Sequence} [seq]
   @param {optional Function|String} [key] Function or property name to group by.
   @summary Group sequential elements by their key.
   @return {::Stream}
   @desc
-    Return a stream that emits groups of sequential elements
+    Return a stream that emits groups of adjacent elements
     with the same key (the result of passing each element to the
-    provided `key` function).
+    provided `key` function, or if `key` is a string, 
+    the result of applying `elem[key]`, or if no `key` is provided, 
+    the element itself). Keys will be compared with `===`.
 
     Each emitted group has two elements: the key value, and the
     array of matched elements.
     
-
     ### Example:
     
         // group numbers by their remainder modulo 3:
@@ -1138,7 +1150,10 @@ exports.groupBy = groupBy;
 
           // zip a character sequence with the corresponsing character position:
 
-          zip(integers(1), "This is a string") .. each { |x| console.log("#{x[0]}:#{x[1]}") }
+          zip(integers(1), "This is a string") .. each { 
+            |x| 
+            console.log("#{x[0]}:#{x[1]}") 
+          }
 
           // -> 1:T, 2:h, 3:i, 4:s, 5: , 6:i, 7:s, ...
 */
@@ -1166,11 +1181,12 @@ exports.zip = zip;
 
 /**
   @function zipLongest
+  @param {::Sequence} [sequence...] One or more sequences
   @summary like [::zip], but continues for as long as the longest input.
   @desc
     See [::zip].
 
-    While `zip` stops at the end of the shortest input sequence,
+    While [::zip] stops at the end of the shortest input sequence,
     `zipLongest` emits items until all sequences have ended.
     `undefined` is used where there are no more input elements in a given
     position.
@@ -1211,15 +1227,16 @@ exports.zipLongest = zipLongest;
 
 /**
    @function indexed
+   @altsyntax sequence .. indexed([start])
    @param {::Sequence} [sequence]
-   @param {Optional Integer} [start]
+   @param {optional Integer} [start=0]
    @return {::Stream}
    @summary  Generate an indexed stream of pairs [index, val] with `index` beginning from
              `start` (or 0 if no start given) and incrementing for each successive value.
    @desc
       Example usage:
 
-          indexed(["one", "two", "three"], 1) .. toArray()
+          ["one", "two", "three"] .. indexed(1) .. toArray()
           // returns [[1, "one"], [2, "two"], [3, "three"]]
 
 */
@@ -1294,7 +1311,7 @@ exports.reduce1 = reduce1;
 
 /**
    @function find
-   @altsyntax sequence .. find(p, defval)
+   @altsyntax sequence .. find(p, [defval])
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [p] Predicate function
    @param {optional Object} [defval=undefined] Default value to return if no match is found
