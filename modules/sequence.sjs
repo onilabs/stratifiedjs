@@ -186,20 +186,8 @@ function each(sequence, r) {
 }
 exports.each = each;
 
-/**
-  @function exhaust
-  @param {::Sequence} [seq]
-  @summary Force the sequence to be fully evaluated.
-  @desc
-    A shorthand for `seq .. each { || }`
-
-    Blocks until the sequence has finished.
-*/
 var noop = function() {};
-function exhaust(seq) {
-  each(seq, noop);
-}
-exports.exhaust = exhaust;
+function exhaust(seq) { each(seq, noop); }
 
 /**
    @function iterate
@@ -869,7 +857,6 @@ function partition(sequence, predicate) {
   var buffers = [[], []];
   var emitters = [null, null]
   var drainer = null;
-  var noop = -> null;
   var _resume = noop;
 
   var streams = [0,1] .. map((idx) -> Stream(function(r) {
