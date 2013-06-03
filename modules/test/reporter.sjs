@@ -192,7 +192,7 @@ var LogReporterMixins = {
   },
 
   testBegin: function(result, force) {
-    if (this.logCapture && !force) this.logCapture.drain();
+    if (this.logCapture && !force) this.logCapture.reset();
     if (this.quiet && !force) return;
     this.print(this.prefix + result.test.description + ' ... ', false);
   },
