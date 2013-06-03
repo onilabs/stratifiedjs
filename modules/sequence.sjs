@@ -95,15 +95,30 @@ exports.Stream = Stream;
   @summary return a Stream
   @desc
     If `sequence` is a [::Stream], it is returned unmodified.
-    Otherwise, a new [::Stream] is created that iterates over the
-    given sequence.
+    Otherwise, it returns a new [::Stream] that iterates over the
+    given sequence, like so:
 
-    This function can be useful for example to create an
-    immutable stream fron a mutable array. Note that any
-    mutation to `sequence` after passing it in will be
-    reflected in the resulting stream (i.e it merely
-    references the original array, it does not duplicate it).
-*/
+        return Stream(function (emit) {
+          seq .. each(emit);
+        });
+
+    This function is not often necessary, but can help in tests or
+    other cass where you have an array but want to ensure that your
+    code works when given a [::Stream].
+
+    You can also use this function to give some code access to an
+    array's elements but not the ability to modify the array,
+    without the overhead of copying the array.
+
+    ### Example
+        
+        var arr = [1,2,3,4];
+        someFn(arr .. toStream());
+
+        // someFn can iterate over the elements in `arr`,
+        // but it cannot modify `arr` directly.
+
+    */
 var toStream = function(arr) {
   if (isStream(arr)) return arr;
   return Stream({|r| each(arr, r)});
