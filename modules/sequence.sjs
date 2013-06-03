@@ -205,21 +205,21 @@ var noop = function() {};
 function exhaust(seq) { each(seq, noop); }
 
 /**
-   @function iterate
-   @altsyntax sequence .. iterate([eos]) { |next| ... }
+   @function consume
+   @altsyntax sequence .. consume([eos]) { |next| ... }
    @param {::Sequence} [sequence] Input sequence
    @param {optional Object} [eos=undefined] End of sequence marker
    @param {Function} [loop] Iteration loop
    @summary Execute an iteration loop for the given sequence
    @desc
      Calls function `loop` with one parameter, a `next` function which,
-     when called within the scope of `loop`, will return successive 
-     elements from `sequence`. If there are no more elements in `sequence`, 
+     when called within the scope of `loop`, will return successive
+     elements from `sequence`. If there are no more elements in `sequence`,
      calls to `next()` will yield `eos`.
 
      ### Example:
 
-         iterate([1,2,3,4], function(next) { 
+         consume([1,2,3,4], function(next) {
            var x;
            while ((x = next()) !== undefined)
              console.log(x);
@@ -227,7 +227,7 @@ function exhaust(seq) { each(seq, noop); }
 
          // same as above, using double dot & blocklambda call syntax:
          
-         [1,2,3,4] .. iterate { 
+         [1,2,3,4] .. consume {
            |next|
            var x;
            while ((x = next()) !== undefined)
@@ -236,8 +236,8 @@ function exhaust(seq) { each(seq, noop); }
      
 */
 
-/* 
-   Support for parallel streams makes the 'iterate' implementation quite complicated.
+/*
+   Support for parallel streams makes the 'consume' implementation quite complicated.
    Here's what it would looks like if we disallowed parallel streams, i.e. 'each(stream,f)'
    would guarantee to never call 'f' reentrantly when 'f' blocks:
 
@@ -280,7 +280,7 @@ function exhaust(seq) { each(seq, noop); }
      }
   }
 */
-function iterate(/* sequence, [opt]eos, loop */) {
+function consume(/* sequence, [opt]eos, loop */) {
   var sequence, eos, loop;
   if (arguments.length > 2)
     [sequence, eos, loop] = arguments;
@@ -345,7 +345,7 @@ function iterate(/* sequence, [opt]eos, loop */) {
   }
 
 }
-exports.iterate = iterate;
+exports.consume = consume;
 
 
 /**
@@ -977,7 +977,7 @@ function pack(sequence, p, pad) {
   return Stream(function(r) {
     var eos = {}, next_item;
 
-    sequence .. iterate(eos) { 
+    sequence .. consume(eos) { 
       |next_upstream| 
 
       function next() {
@@ -1368,7 +1368,7 @@ function parallelize(sequence, max_strata) {
   max_strata = max_strata || 10;
   return Stream(function(r) {
     var eos = {}, count = 0;
-    sequence .. iterate(eos) {
+    sequence .. consume(eos) {
       |next|
       function dispatch() {
         var x = next();
@@ -1404,7 +1404,7 @@ function makeIterator(sequence) {
   var eos = {};
   var next_upstream = -> eos;
   var stratum = spawn (function() {
-    sequence .. iterate(eos) {
+    sequence .. consume(eos) {
       |next|
       next_upstream = next;
       hold();

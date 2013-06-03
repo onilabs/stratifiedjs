@@ -66,9 +66,9 @@ testEq("'abc' .. each{|x| ...}", 'abc', function() {
   return rv;
 });
 
-testEq("['a','b','c'] .. iterate{ |next| ...}", 'abc', function() {
+testEq("['a','b','c'] .. consume{ |next| ...}", 'abc', function() {
   var rv = "", eos = {};
-  ['a','b','c'] .. s.iterate(eos) { 
+  ['a','b','c'] .. s.consume(eos) { 
     |next|
     var x;
     while((x = next()) != eos)
@@ -77,9 +77,9 @@ testEq("['a','b','c'] .. iterate{ |next| ...}", 'abc', function() {
   return rv;
 });
 
-testEq("['a','b','c'] .. iterate{ |next| hold(.) ...}", 'abcx', function() {
+testEq("['a','b','c'] .. consume{ |next| hold(.) ...}", 'abcx', function() {
   var rv = "", eos = 'x';
-  ['a','b','c'] .. s.iterate(eos) { 
+  ['a','b','c'] .. s.consume(eos) { 
     |next|
     var x;
     hold(10);
@@ -109,10 +109,10 @@ testEq("'abcdefghij' .. parallelize(5) .. each", 'abcdefghij', function() {
 });
 
 
-testEq("'abcdefghij' .. parallelize(5) .. iterate", 'abcdefghij', function() {
+testEq("'abcdefghij' .. parallelize(5) .. consume", 'abcdefghij', function() {
   var rv = '';
   var loops = 0;
-  'abcdefghij' .. s.parallelize(5) .. s.iterate {
+  'abcdefghij' .. s.parallelize(5) .. s.consume {
     |next|
     var x;
     ++loops;
