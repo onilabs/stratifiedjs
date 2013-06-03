@@ -413,15 +413,7 @@ Runner.prototype.run = function(reporter) {
       if (test.shouldSkip()) {
         results._skip(result, test.skipReason);
       } else {
-        var testTimeout = test._getTimeout();
-        if (testTimeout === undefined) testTimeout = defaultTimeout;
-        waitfor {
-          test.run();
-        } or {
-          if(testTimeout == null) hold();
-          hold(testTimeout * 1000);
-          throw new Error("Test exceeded #{testTimeout}s timeout");
-        }
+        test.run(defaultTimeout);
 
         extraGlobals = getGlobals(initGlobals);
         checkGlobals(test, extraGlobals);
@@ -688,7 +680,7 @@ CompiledOptions.prototype = {
   checkLeaks     : true,
   color          : null,
   logCapture     : true,
-  logLevel       : null,
+  logLevel       : logging.INFO,
   reporter       : null,
   showAll        : true,
   skippedOnly    : false,

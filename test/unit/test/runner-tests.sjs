@@ -618,6 +618,34 @@ context("timeout") {||
       ["no timeout", null],
     ]);
   }
+
+  test("does not skip or abourt hooks on timeout") {||
+    var watcher = new CollectWatcher();
+    var opts = runnerMod.getRunOpts(defaultOpts, ['--timeout=0.2'])
+    var hooksCompleted = 0;
+    var bodiesCompleted = 0;
+    var runner = new Runner(opts);
+    runner.context("root") {||
+      test.afterEach {||
+        hold(300);
+        hooksCompleted += 1;
+      }
+      test("quick") {||
+        bodiesCompleted += 1;
+      }
+      test("slow") {||
+        hold(250);
+        bodiesCompleted += 1;
+      }
+    }
+    runner.run(watcher);
+    watcher.conciseResults() .. assert.eq([
+      ["quick",null],
+      ["slow", "Test exceeded 0.2s timeout"],
+    ]);
+    assert.eq(hooksCompleted, 2);
+    assert.eq(bodiesCompleted, 1);
+  }
 }
 
 context("bail") {||

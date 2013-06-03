@@ -447,7 +447,10 @@ Test.prototype.toString = function() {
   return "<#Test: #{this.fullDescription()}>";
 }
 
-Test.prototype.run = function() {
+Test.prototype.run = function(defaultTimeout) {
+  var timeout = this._getTimeout();
+  if (timeout === undefined) timeout = defaultTimeout;
+
   var state = Object.create(this.context.state);
 
   var beforeEachHooks = [];
@@ -466,7 +469,13 @@ Test.prototype.run = function() {
   runHooks(beforeEachHooks, state);
   var first_error = null;
   try {
-    this.body.call(state, state);
+    waitfor {
+      this.body.call(state, state);
+    } or {
+      if (timeout == null) hold();
+      hold(timeout * 1000);
+      throw new Error("Test exceeded #{timeout}s timeout");
+    }
   } catch(e) {
     first_error = e;
   }
