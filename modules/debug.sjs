@@ -263,7 +263,7 @@ __js function formatValue(ctx, value, recurseTimes) {
 
 function formatPrimitive(ctx, value) {
   if (isHtmlElement(value)) {
-    return value.outerHTML;
+    return '[HTML: ' + (value.outerHTML || value.data) + ']';
   }
   switch (typeof value) {
     case 'undefined':

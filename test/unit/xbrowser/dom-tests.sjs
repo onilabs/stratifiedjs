@@ -1,5 +1,5 @@
 var suite = require('sjs:test/suite');
-var {context, test} = suite;
+var {context, test, assert} = suite;
 var testUtil = require('../../lib/testUtil');
 var testEq = testUtil.test;
 var relativeURL = require("../../lib/testContext").getHttpURL;
@@ -96,5 +96,11 @@ if(testUtil.isBrowser) {
       return node ? 'found' : 'not found';
     });
   }.skipIf(IE7);
+
+  context('isElement') {||
+    test('on DOM node', -> dom.isHtmlElement(document.createElement('div')) .. assert.ok);
+    test('on non-html DOM node', -> dom.isHtmlElement(document.createElement('some-elem')) .. assert.ok);
+    test('on text DOM node', -> dom.isHtmlElement(document.createTextNode('txt')) .. assert.ok);
+  }
 }
 
