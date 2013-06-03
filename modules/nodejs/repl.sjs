@@ -194,10 +194,7 @@ function write(str, id) {
 }
 
 function writeErr(e, id) {
-  var message = (e instanceof Error) ? e.name+": "+e.message : 'Exception: '+e.toString();
-  if (e.fileName && e.fileName != 'repl')
-    message += "\n    in "+e.fileName+(e.lineNumber ? ":"+e.lineNumber : "");
-  write(message, id);
+  write(String(e), id);
 }
 
 function writeVal(val, id) {
