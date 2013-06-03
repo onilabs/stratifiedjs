@@ -7,13 +7,11 @@ env:
   - r=KARMA t=integration
   - r=KARMA t=unit
 matrix:
-  # just run unit tests on old node versions
+  # just run unit tests on other node versions
   include:
-    - node_js: "0.8"
-      env: t=unit
-    - node_js: "0.6"
-      env: t=unit
     - node_js: "0.11"
+      env: t=unit
+    - node_js: "0.8"
       env: t=unit
   
   # integration tests shouldn't fail the build, as they're often rate-limit issues
@@ -23,6 +21,8 @@ matrix:
     - node_js: "0.10"
       env: r=KARMA t=integration
     - node_js: "0.11"
+      env: t=unit
+    - node_js: "0.6"
       env: t=unit
 notifications:
   email: false
