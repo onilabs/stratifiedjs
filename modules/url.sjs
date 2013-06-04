@@ -232,12 +232,13 @@ if (sys.hostenv == 'xbrowser') {
   };
 } else {
   var np = require('nodejs:path');
+  var sep = np.sep || '/'; // `sep` introduced in nodejs 0.8
   pathMod = {
     join: np.join,
     resolve: function(p) {
       // nodejs strips trailing "/", which we wanted to keep
       var result = np.resolve.apply(this, arguments);
-      if(p .. endsWith(np.sep)) result += '/';
+      if(p .. endsWith(sep)) result += '/';
       return result;
     }
   }
