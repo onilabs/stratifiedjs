@@ -5,7 +5,7 @@ test("formatting an object literal", "{ key: 'value' }", function() {
 	return debug.inspect({key: "value"});
 });
 
-test("formatting an HTML element", '<span>hi!</span>', function() {
+test("formatting an HTML element", '[html: <span>hi!</span>]', function() {
 	var elem = document.createElement("span");
 	elem.innerHTML = "hi!";
 	return debug.inspect(elem).toLowerCase();
