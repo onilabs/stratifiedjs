@@ -31,6 +31,8 @@
         if (node_major == 0 && node_minor < 9) {
             opts.allowedGlobals = ['errno']; // bug in child_process (and perhaps others), fixed in 0.9
         }
+
+        var func = require('sjs:function');
       
         // when running under node.js, our integration tests
         // expect a rocket instance to be running on localhost:7071
@@ -40,21 +42,13 @@
           var rocket_ctrl = require('./lib/rocket_ctrl');
           var rocket_port = '7071'
 
-          waitfor() {
-            var ready = resume;
-            spawn(rocket_ctrl.withRocket(rocket_port) {||
-              var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
-              require('./lib/testContext').setBaseURL(rocket_base_url);
-              waitfor() {
-                cleanup = resume;
-                ready();
-              }
-            });
-          }
+          var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
+          var ctx = func.breaking(brk -> rocket_ctrl.withRocket(rocket_port, brk));
+          cleanup = ctx.resume;
+          require('./lib/testContext').setBaseURL(rocket_base_url);
         };
 
         opts.init = function(runner) {
-          var func = require('sjs:function');
           var string = require('sjs:string');
 
           // inherit from runner.reporter, and amend its reporting functions

@@ -1,13 +1,14 @@
 var testUtil = require('../lib/testUtil');
-var test = testUtil.test;
+var testEq = testUtil.test;
 var f = require('sjs:function');
+var {test, context, assert} = require('sjs:test/suite');
 
 
-test('seq', 2, function() {
+testEq('seq', 2, function() {
   return f.seq(-> hold(0), -> 1, -> 2)();
 });
 
-test("'this' in seq", 12, function() {
+testEq("'this' in seq", 12, function() {
   var x = 1;
   var obj = {
     x: 2,
@@ -16,13 +17,13 @@ test("'this' in seq", 12, function() {
   return obj.foo(2,3);
 });
 
-test('par', 36, function() {
+testEq('par', 36, function() {
   var rv = 0;
   f.par({|x,y| hold(0); rv += 1*x*y }, {|x,y| rv += 2*x*y }, {|x,y| hold(100); rv += 3*x*y})(2,3);
   return rv;
 });
 
-test("'this' in par", 18, function() {
+testEq("'this' in par", 18, function() {
   var x = 1, rv=0;
   var obj = {
     x: 2,
@@ -32,7 +33,7 @@ test("'this' in par", 18, function() {
   return rv;
 });
 
-test('bound 1', 3, function() {
+testEq('bound 1', 3, function() {
   var x = 0;
   function G() { ++x; hold(100); }
   var g = f.bound(G, 3);
@@ -42,7 +43,7 @@ test('bound 1', 3, function() {
   }
 });
 
-test('bound 2', 0, function() {
+testEq('bound 2', 0, function() {
   var x = 0;
   function G() { ++x; if (x>3) throw new Error(x); hold(10); --x; }
   var g = f.bound(G, 3);
@@ -50,7 +51,7 @@ test('bound 2', 0, function() {
   return x;
 });
 
-test('rate limit', true, function() {
+testEq('rate limit', true, function() {
   var invocations = 0;
   function G() { ++invocations; hold(0); }
   var g = f.rateLimit(G, 6);
@@ -63,7 +64,7 @@ test('rate limit', true, function() {
   return invocations<=2;
 });
 
-test('exclusive', 'TRATCRBTD', function() {
+testEq('exclusive', 'TRATCRBTD', function() {
   var rv = "";
   var g = f.exclusive(function() { try {rv+='T'; hold(100);} retract {rv+='R';} });
   waitfor {
@@ -83,7 +84,7 @@ test('exclusive', 'TRATCRBTD', function() {
   return rv;
 });
 
-test('deferred 1', 'Cb(A)', function() {
+testEq('deferred 1', 'Cb(A)', function() {
   var g = f.deferred(function() { hold(0); return 'A'; });
   var ret;
   g().then({|v| ret("Cb(#{v})")}, {|e| ret("Eb(#{e})")});
@@ -91,7 +92,7 @@ test('deferred 1', 'Cb(A)', function() {
   return rv;
 });
 
-test('deferred 2', 'Eb(A)', function() {
+testEq('deferred 2', 'Eb(A)', function() {
   var g = f.deferred(function() { hold(0); throw 'A'; });
   var ret;
   g().then({|v| ret("Cb(#{v})")}, {|e| ret("Eb(#{e})")});
@@ -99,7 +100,7 @@ test('deferred 2', 'Eb(A)', function() {
   return rv;
 });
 
-test('deferred 3', 'Eb(.)', function() {
+testEq('deferred 3', 'Eb(.)', function() {
   var g = f.deferred(function() { hold(0); return 'A'; });
   var ret;
   var d = g();
@@ -108,7 +109,7 @@ test('deferred 3', 'Eb(.)', function() {
   return rv;
 });
 
-test('memoize 1', 1, function() {
+testEq('memoize 1', 1, function() {
   var c = 0;
   var g = f.memoize(function(x) {
     if (x == 42) ++c;
@@ -121,7 +122,7 @@ test('memoize 1', 1, function() {
   return c;
 });
 
-test('memoize 2', 3, function() {
+testEq('memoize 2', 3, function() {
   var c = 0;
   var g = f.memoize(function(x) {
     hold(100);
@@ -148,7 +149,7 @@ test('memoize 2', 3, function() {
   return c;
 });
 
-test('memoize with custom key', 2, function() {
+testEq('memoize with custom key', 2, function() {
   var c = 0;
   var g = f.memoize(function(x) {
     if (x == 42) ++c;
@@ -164,7 +165,7 @@ test('memoize with custom key', 2, function() {
 });
 
 
-test('memoize retraction', 2, function() {
+testEq('memoize retraction', 2, function() {
   var c = 0;
   var g = f.memoize(function(x) {
     ++c;
@@ -182,10 +183,56 @@ test('memoize retraction', 2, function() {
   return c;
 });
 
-test('sequential', 0, function() {
+testEq('sequential', 0, function() {
   var x = 0;
   function G() { ++x; if (x>1) throw new Error(x); hold(10); --x; }
   var g = f.sequential(G);
   waitfor { g(); } and { g(); } and { g(); } and { g(); } and { g(); }
   return x;
 });
+
+context('breaking') {||
+  test('without error') {||
+    var events = [];
+    var context = function(block) {
+      events.push('tx init');
+      block('yielded');
+      events.push('tx finish');
+    };
+
+    var block = f.breaking {|ret|
+      events.push('block init')
+      context(ret);
+      events.push('block finish');
+    };
+    events.push(block.val);
+    block.resume();
+    events .. assert.eq([
+      'block init',
+      'tx init',
+      'yielded',
+      'tx finish',
+      'block finish']);
+  };
+
+  test('throwing an error') {||
+    var events = [];
+    var context = function(block) {
+      events.push('tx init');
+      try {
+        block('yielded');
+      } catch(e) {
+        events.push(e.message);
+      } finally {
+        events.push('tx finish');
+      }
+    };
+
+    var block = f.breaking {|ret|
+      context(ret);
+    };
+    events.push(block.val);
+    block.resume(new Error('err'));
+    events .. assert.eq(['tx init', 'yielded', 'err', 'tx finish']);
+  };
+}
