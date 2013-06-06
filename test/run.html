@@ -32,6 +32,8 @@
             opts.allowedGlobals = ['errno']; // bug in child_process (and perhaps others), fixed in 0.9
         }
 
+        var cutil = require('sjs:cutil');
+        var string = require('sjs:string');
         var func = require('sjs:function');
       
         // when running under node.js, our integration tests
@@ -43,13 +45,12 @@
           var rocket_port = '7071'
 
           var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
-          var ctx = func.breaking(brk -> rocket_ctrl.withRocket(rocket_port, brk));
+          var ctx = cutil.breaking(brk -> rocket_ctrl.withRocket(rocket_port, brk));
           cleanup = ctx.resume;
           require('./lib/testContext').setBaseURL(rocket_base_url);
         };
 
         opts.init = function(runner) {
-          var string = require('sjs:string');
 
           // inherit from runner.reporter, and amend its reporting functions
           // with hooks to start/stop rocket integration server as necessary
