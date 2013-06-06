@@ -92,7 +92,7 @@ exports.Stream = Stream;
   @function toStream
   @param {::Sequence} [sequence]
   @return {::Stream}
-  @summary return a Stream
+  @summary Return a Stream
   @desc
     If `sequence` is a [::Stream], it is returned unmodified.
     Otherwise, it returns a new [::Stream] that iterates over the
@@ -103,7 +103,7 @@ exports.Stream = Stream;
         });
 
     This function is not often necessary, but can help in tests or
-    other cass where you have an array but want to ensure that your
+    other cases where you have an array but want to ensure that your
     code works when given a [::Stream].
 
     You can also use this function to give some code access to an

@@ -112,6 +112,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
 
 /**
   @class     HostEmitter
+  @inherit   ::Emitter
   @summary   An [::Emitter] subclass that wraps a "host" event emitter.
   @function  HostEmitter
   @param     {ArrayElement|EventEmitter} [emitters] Object or objects to watch.
@@ -437,6 +438,7 @@ QueueProto.__finally__ = QueueProto.stop;
 
 /**
    @function Stream
+   @param {::Emitter} [emitter]
    @return {sequence::Stream}
    @summary  Builds a continuous stream from an [::Emitter]'s events.
    @desc
