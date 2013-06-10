@@ -1,63 +1,64 @@
-var test = require('../lib/testUtil').test;
+var {test, context, assert} = require('sjs:test/suite');
+var testEq = require('../lib/testUtil').test;
 var cutil = require("sjs:cutil");
 
-test('waitforAll funcs', 3, function() {
+testEq('waitforAll funcs', 3, function() {
   var x = 0;
   function one() { hold(Math.random()*100); ++x; }
   cutil.waitforAll([one, one, one]);
   return x;
 });
 
-test('waitforAll funcs + arg', 3, function() {
+testEq('waitforAll funcs + arg', 3, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a[1]; }
   cutil.waitforAll([one, one, one], [[2,1,3]]);
   return x;
 });
 
-test('waitforAll args', 6, function() {
+testEq('waitforAll args', 6, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a; }
   cutil.waitforAll(one, [1,2,3]);
   return x;
 });
 
-test('waitforAll args 2nd par', 3, function() {
+testEq('waitforAll args 2nd par', 3, function() {
   var x = 0;
   function one(a,i) { hold(Math.random()*100); x+=i; }
   cutil.waitforAll(one, [5,6,7]);
   return x;
 });
 
-test('waitforAll args 2nd+3rd par', 18, function() {
+testEq('waitforAll args 2nd+3rd par', 18, function() {
   var x = 0;
   function one(a,i,arr) { hold(Math.random()*100); x+=arr[i]; }
   cutil.waitforAll(one, [5,6,7]);
   return x;
 });
 
-test('waitforFirst funcs', 1, function() {
+testEq('waitforFirst funcs', 1, function() {
   var x = 0;
   function one() { hold(Math.random()*100); ++x; }
   cutil.waitforFirst([one, one, one]);
   return x;
 });
 
-test('waitforFirst funcs + arg', 3, function() {
+testEq('waitforFirst funcs + arg', 3, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a[1]; }
   cutil.waitforFirst([one, one, one], [[3,3,3]]);
   return x;
 });
 
-test('waitforFirst args', 6, function() {
+testEq('waitforFirst args', 6, function() {
   var x = 0;
   function one(a) { hold(Math.random()*100); x+=a; }
   cutil.waitforFirst(one, [6,6,6]);
   return x;
 });
 
-test('Semaphore: blocking on acquire', 1, function() {
+testEq('Semaphore: blocking on acquire', 1, function() {
   var S = cutil.Semaphore(1);
   S.acquire();
   waitfor {
@@ -70,7 +71,7 @@ test('Semaphore: blocking on acquire', 1, function() {
   }
 });
 
-test('Semaphore: block/resume on acquire', 1, function() {
+testEq('Semaphore: block/resume on acquire', 1, function() {
   var S = cutil.Semaphore(1);
   S.acquire();
   waitfor {
@@ -84,7 +85,7 @@ test('Semaphore: block/resume on acquire', 1, function() {
   }
 });
 
-test('Condition: not blocking if already set', 1, function() {
+testEq('Condition: not blocking if already set', 1, function() {
   var c = cutil.Condition();
   c.set();
   waitfor {
@@ -95,7 +96,7 @@ test('Condition: not blocking if already set', 1, function() {
   }
 });
 
-test('Condition: clearing and re-setting', 1, function() {
+testEq('Condition: clearing and re-setting', 1, function() {
   var c = cutil.Condition();
   waitfor {
     c.wait();
@@ -111,7 +112,7 @@ test('Condition: clearing and re-setting', 1, function() {
   }
 });
 
-test('Condition: setting with a value', ["result!", "result!", "result!"], function() {
+testEq('Condition: setting with a value', ["result!", "result!", "result!"], function() {
   var c = cutil.Condition();
   var results = [];
   waitfor {
@@ -131,7 +132,7 @@ test('Condition: setting with a value', ["result!", "result!", "result!"], funct
 });
 
 
-test('makeBoundedFunction 1', 3, function() {
+testEq('makeBoundedFunction 1', 3, function() {
   var x = 0;
   function f() { ++x; hold(100); }
   var g = cutil.makeBoundedFunction(f, 3);
@@ -141,7 +142,7 @@ test('makeBoundedFunction 1', 3, function() {
   }
 }).skip('function removed');
 
-test('makeBoundedFunction 2', 0, function() {
+testEq('makeBoundedFunction 2', 0, function() {
   var x = 0;
   function f() { ++x; if (x>3) throw new Error(x); hold(10); --x; }
   var g = cutil.makeBoundedFunction(f, 3);
@@ -149,7 +150,7 @@ test('makeBoundedFunction 2', 0, function() {
   return x;
 }).skip('function removed');
 
-test('Queue: producer/consumer', 1000, function() {
+testEq('Queue: producer/consumer', 1000, function() {
   var rv = 0;
   var q = new (cutil.Queue)(100);
   waitfor {
@@ -163,7 +164,7 @@ test('Queue: producer/consumer', 1000, function() {
   return rv;
 });
 
-test('Queue: producer/consumer (async get)', 100, function() {
+testEq('Queue: producer/consumer (async get)', 100, function() {
   var rv = 0;
   var q = new (cutil.Queue)(10);
   waitfor {
@@ -179,7 +180,7 @@ test('Queue: producer/consumer (async get)', 100, function() {
   return rv;
 });
 
-test('Queue: producer/consumer blocking', 100, function() {
+testEq('Queue: producer/consumer blocking', 100, function() {
   var q = new (cutil.Queue)(100);
   waitfor {
     waitfor {
@@ -198,7 +199,7 @@ test('Queue: producer/consumer blocking', 100, function() {
   return 0;
 });
 
-test('Queue: producer/consumer (async put)', 100, function() {
+testEq('Queue: producer/consumer (async put)', 100, function() {
   var rv = 0;
   var q = new (cutil.Queue)(10);
   waitfor {
@@ -215,7 +216,7 @@ test('Queue: producer/consumer (async put)', 100, function() {
   return rv;
 });
 
-test('Queue: producer/consumer (async put/get)', 100, function() {
+testEq('Queue: producer/consumer (async put/get)', 100, function() {
   var rv = 0;
   var q = new (cutil.Queue)(10);
   waitfor {
@@ -233,7 +234,7 @@ test('Queue: producer/consumer (async put/get)', 100, function() {
   return rv;
 });
 
-test('makeMemoizedFunction 1', 1, function() {
+testEq('makeMemoizedFunction 1', 1, function() {
   var c = 0;
   var f = cutil.makeMemoizedFunction(function(x) {
     if (x == 42) ++c;
@@ -246,7 +247,7 @@ test('makeMemoizedFunction 1', 1, function() {
   return c;
 }).skip('function removed');
 
-test('makeMemoizedFunction 2', 3, function() {
+testEq('makeMemoizedFunction 2', 3, function() {
   var c = 0;
   var f = cutil.makeMemoizedFunction(function(x) {
     hold(100);
@@ -273,7 +274,7 @@ test('makeMemoizedFunction 2', 3, function() {
   return c;
 }).skip('function removed');
 
-test('makeMemoizedFunction with custom key', 2, function() {
+testEq('makeMemoizedFunction with custom key', 2, function() {
   var c = 0;
   var f = cutil.makeMemoizedFunction(function(x) {
     if (x == 42) ++c;
@@ -289,7 +290,7 @@ test('makeMemoizedFunction with custom key', 2, function() {
 }).skip('function removed');
 
 
-test('makeMemoizedFunction retraction', 2, function() {
+testEq('makeMemoizedFunction retraction', 2, function() {
   var c = 0;
   var f = cutil.makeMemoizedFunction(function(x) {
     ++c;
@@ -307,7 +308,7 @@ test('makeMemoizedFunction retraction', 2, function() {
   return c;
 }).skip('function removed');
 
-test('Semaphore.synchronize', 1, function() {
+testEq('Semaphore.synchronize', 1, function() {
   var S = cutil.Semaphore(1);
   var x = 0;
   waitfor {
@@ -332,7 +333,7 @@ test('Semaphore.synchronize', 1, function() {
                 }
 });
 
-test('Queue: async put/get + interspersed peek', 100, function() {
+testEq('Queue: async put/get + interspersed peek', 100, function() {
   var rv = 0;
   var q = new (cutil.Queue)(10);
   waitfor {
@@ -360,3 +361,50 @@ test('Queue: async put/get + interspersed peek', 100, function() {
   if (!at_least_one_peek) return false;
   return rv;
 });
+
+
+context('breaking') {||
+  test('without error') {||
+    var events = [];
+    var context = function(block) {
+      events.push('tx init');
+      block('yielded');
+      events.push('tx finish');
+    };
+
+    var block = cutil.breaking {|ret|
+      events.push('block init')
+      context(ret);
+      events.push('block finish');
+    };
+    events.push(block.val);
+    block.resume();
+    events .. assert.eq([
+      'block init',
+      'tx init',
+      'yielded',
+      'tx finish',
+      'block finish']);
+  };
+
+  test('throwing an error') {||
+    var events = [];
+    var context = function(block) {
+      events.push('tx init');
+      try {
+        block('yielded');
+      } catch(e) {
+        events.push(e.message);
+      } finally {
+        events.push('tx finish');
+      }
+    };
+
+    var block = cutil.breaking {|ret|
+      context(ret);
+    };
+    events.push(block.val);
+    block.resume(new Error('err'));
+    events .. assert.eq(['tx init', 'yielded', 'err', 'tx finish']);
+  };
+}
