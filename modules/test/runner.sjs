@@ -908,7 +908,7 @@ Options:
             spec.test = parts.slice(1) .. join(':');
           }
           return spec;
-        }) .. toArray;
+        });
       }
     } catch(e) {
       printHelp();
@@ -993,7 +993,7 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base, skippedOn
   var defaultAction = (mod, test) -> skippedOnly ? test.shouldSkip() : true;
 
   if (specs.length > 0 && !base) throw new Error("opts.base not defined");
-  var filters = specs .. map(s -> new SuiteFilter(s, base)) .. toArray;
+  var filters = specs .. map(s -> new SuiteFilter(s, base));
 
   if (specs.length == 0) {
     return {

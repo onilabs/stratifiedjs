@@ -189,7 +189,7 @@ testEq('parallelized map', {order: [3,2,1], result: [6,4,2]}, function() {
     withDecreasingTimeout(function(elem) {
       order.push(elem);
       return elem * 2;
-    })) .. s.toArray;
+    }));
   return {order: order, result: result};
 });
 
@@ -199,8 +199,20 @@ testEq('map', {order: [1,2,3], result: [2,4,6]}, function() {
     withDecreasingTimeout(function(elem) {
       order.push(elem);
       return elem * 2;
-    })) .. s.toArray;
+    }));
+  assert.notOk(s.isStream(result));
   return {order: order, result: result};
+});
+
+testEq('transform', {order: [1,2,3], result: [2,4,6]}, function() {
+  var order = [];
+  var result = s.transform([1,2,3],
+    withDecreasingTimeout(function(elem) {
+      order.push(elem);
+      return elem * 2;
+    }));
+  assert.ok(s.isStream(result));
+  return {order: order, result: result .. toArray()};
 });
 
 testEq('find returns early', {checked: [1,2], result: 2}, function() {
@@ -468,7 +480,7 @@ testEq('concat([1,2],[3,4])', [1,2,3,4], function () { return s.concat([1,2], [3
 testEq('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2], [3,4]]) .. toArray; });
 
 testEq('partition(integers(1,10), x->x%2)', [[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], function() {
-  return s.partition(s.integers(1, 10), x -> x%2) .. s.map(s.toArray) .. s.toArray;
+  return s.partition(s.integers(1, 10), x -> x%2) .. s.map(s.toArray);
 });
 
 context('first') {||

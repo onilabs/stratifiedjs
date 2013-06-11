@@ -11,7 +11,7 @@ var sys = require("builtin:apollo-sys");
 function CollectWatcher() {
   this.results = [];
   this.testEnd = (result) -> this.results.push(result);
-  this.conciseResults = => this.results .. map(r -> [r.description, r.error ? r.error.message : null]) .. toArray();
+  this.conciseResults = => this.results .. map(r -> [r.description, r.error ? r.error.message : null]);
 }
 
 var defaultOpts = {

@@ -881,7 +881,7 @@ function partition(sequence, predicate) {
     emitters[idx] = r;
     _resume();
     drainer.waitforValue();
-  })) .. toArray;
+  }));
 
   drainer = spawn(function() {
     // wait until one side wants results
@@ -907,11 +907,15 @@ exports.partition = partition;
    @altsyntax sequence .. map(f)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to apply to each element of `sequence`
-   @return {::Stream}
-   @summary  Create a stream `f(x)` of elements `x` of `sequence`
+   @return {Array}
+   @summary  Create an array `f(x)` of elements `x` of `sequence`
    @desc
-      Generates a stream of elements `f(x1), f(x2), f(x3),...` where `x1, x2, x3, ..` 
+      Generates an array of elements `[f(x1), f(x2), f(x3),...]` where `x1, x2, x3, ..` 
       are successive elements from `sequence`.
+
+      This function is eager - it will fully consume the input sequence before returning
+      its result. If you want a lazy version which returns a stream of
+      items and doesn't perform operations until they are required, use [::transform].
 
       ### Example:
 
@@ -924,11 +928,31 @@ exports.partition = partition;
           integers() .. map(x=>x*x) .. take(10) .. each { |x| console.log(x) }
 */
 function map(sequence, f) {
+  var r=[];
+  sequence .. each {|x| r.push(f(x)) }
+  return r;
+}
+exports.map = map;
+
+/**
+   @function transform
+   @altsyntax sequence .. transform(f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [f] Function to apply to each element of `sequence`
+   @return {::Stream}
+   @summary  Create a stream `f(x)` of elements `x` of `sequence`
+   @desc
+      Acts like [::map], but lazily - it returns a stream instead of an Array.
+
+      Note that if you iterate over the resulting stream more than once,
+      the results will be re-computed each time.
+*/
+function transform(sequence, f) {
   return Stream(function(r) {
     sequence .. each { |x| r(f(x)) }
   });
 }
-exports.map = map;
+exports.transform = transform;
 
 /**
   @function concat
@@ -1162,7 +1186,7 @@ exports.groupBy = groupBy;
 function zip(/* sequences... */) {
   var sequences = arguments;
   return Stream(function(r) {
-    var iterators = sequences .. map(seq => makeIterator(seq)) .. toArray;
+    var iterators = sequences .. map(seq => makeIterator(seq));
     try {
       while (1) {
         var x = [];
@@ -1202,7 +1226,7 @@ exports.zip = zip;
 function zipLongest(/* sequences... */) {
   var sequences = arguments;
   return Stream(function(r) {
-    var iterators = sequences .. map(seq => makeIterator(seq)) .. toArray;
+    var iterators = sequences .. map(seq => makeIterator(seq));
     try {
       var done = false;
       while (!done) {

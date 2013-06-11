@@ -54,8 +54,7 @@ function ButtonDropdown(title, items) {
 
   var menu = items .. 
     map(item ->
-        `<li><a href='#' data-command='${item[1]}'>${item[0]}</a></li>`) ..
-    toArray;
+        `<li><a href='#' data-command='${item[1]}'>${item[0]}</a></li>`);
 
   return `
     <div class='btn-group' style='border:1px solid green'>

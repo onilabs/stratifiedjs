@@ -182,27 +182,25 @@ function cssToRgba(css_color) {
   var rgba;
   if (matches[1]) {
     // 6 digit hex string
-    rgba = matches[1].match(/.{2}/g) .. map(c => parseInt(c,16)) .. toArray;
+    rgba = matches[1].match(/.{2}/g) .. map(c => parseInt(c,16));
     rgba.push(1);
   }
   else if (matches[2]) {
     // 3 digit hex string
-    rgba = matches[2].split('') .. map(c => parseInt(c+c,16)) .. toArray;
+    rgba = matches[2].split('') .. map(c => parseInt(c+c,16));
     rgba.push(1);
   }
   else if (matches[3]) {
     // rgb(.)
     rgba = matches[3].split(",") .. 
-      map(n => n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n)) ..
-      toArray;
+      map(n => n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n));
     rgba.push(1);
     if (rgba.length != 4) throw new Error("invalid css color "+css_color);
   }
   else if (matches[4]) {
     // rgba(.)
     rgba = matches[4].split(",") .. 
-      map(n => n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n)) ..
-      toArray;
+      map(n => n.indexOf("%") > -1 ? parseFloat(n)*2.55 : parseFloat(n));
     if (rgba.length != 4) throw new Error("invalid css color "+css_color);
   }
   else if (matches[5]) {

@@ -35,7 +35,7 @@
    @home    sjs:object
 */
 
-var { each, map, Stream } = require('./sequence');
+var { each, transform, Stream } = require('./sequence');
 var { extendObject, mergeObjects, flatten } = require('builtin:apollo-sys');
 
 var hasProperty = function(k) { return k in this; }
@@ -160,7 +160,7 @@ exports.keys = keys;
 
        See also [::keys].
 */
-function ownKeys(obj) {  
+function ownKeys(obj) {
   return Stream(function(r) { for (var p in obj) { if (hasOwnProperty.call(obj, p)) r(p) } });
 }
 exports.ownKeys = ownKeys;
@@ -174,7 +174,7 @@ exports.ownKeys = ownKeys;
             including those defined on `obj`'s prototype chain.
 */
 function values(obj) {
-  return keys(obj) .. map(k => obj[k]);
+  return keys(obj) .. transform(k => obj[k]);
 }
 exports.values = values;
 
@@ -186,7 +186,7 @@ exports.values = values;
             excluding those defined on `obj`'s prototype chain.
 */
 function ownValues(obj) {
-  return ownKeys(obj) .. map(k => obj[k]);
+  return ownKeys(obj) .. transform(k => obj[k]);
 }
 exports.ownValues = ownValues;
 
@@ -198,7 +198,7 @@ exports.ownValues = ownValues;
             enumerable properties, including those defined on `obj`'s prototype chain.
 */
 function propertyPairs(obj) {
-  return keys(obj) .. map(k => [k,obj[k]]);
+  return keys(obj) .. transform(k => [k,obj[k]]);
 }
 exports.propertyPairs = propertyPairs;
 
@@ -210,7 +210,7 @@ exports.propertyPairs = propertyPairs;
             enumerable properties, excluding those defined on `obj`'s prototype chain.
 */
 function ownPropertyPairs(obj) {
-  return ownKeys(obj) .. map(k => [k,obj[k]]);
+  return ownKeys(obj) .. transform(k => [k,obj[k]]);
 }
 exports.ownPropertyPairs = ownPropertyPairs;
 

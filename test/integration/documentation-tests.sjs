@@ -33,7 +33,7 @@ context {|| // serverOnly
       var items = fs.readdir(base);
       var [dirs, files] = (items
         .. seq.partition(f -> fs.isDirectory(expand(f)))
-        .. seq.map(toArray) .. toArray);
+        .. seq.map(toArray));
 
       emit([base, dirs, files]);
       dirs .. seq.each(d -> walkDir(expand(d)));
@@ -48,9 +48,9 @@ context {|| // serverOnly
 
   walk(moduleRoot) {|item|
     var [base, dirs, files] = item;
-    var sjsFiles = files .. filter(isSJS) .. sort .. toArray;
+    var sjsFiles = files .. filter(isSJS) .. sort;
     if (sjsFiles.length == 0) continue;
-    var modules = sjsFiles .. map(removeSJS) .. toArray;
+    var modules = sjsFiles .. map(removeSJS);
 
     dirsFound++;
     context(path.basename(base)) {||
@@ -62,10 +62,10 @@ context {|| // serverOnly
 
         var expectedDirs = dirs .. filter(function(d) {
           return fs.readdir(path.join(base, d)) .. find(isSJS);
-        }) .. sort .. toArray;
+        }) .. sort;
 
-        indexDoc.dirs .. ownKeys .. sort .. toArray .. assert.eq(expectedDirs, "directory list");
-        indexDoc.modules .. ownKeys .. sort .. toArray .. assert.eq(modules .. sort ..toArray, "module list");
+        indexDoc.dirs .. ownKeys .. sort .. assert.eq(expectedDirs, "directory list");
+        indexDoc.modules .. ownKeys .. sort .. assert.eq(modules .. sort, "module list");
       }
 
       seq.zip(sjsFiles, modules) .. each {|pair|
@@ -77,7 +77,7 @@ context {|| // serverOnly
         var moduleDoc = docutil.parseModuleDocs(moduleSrc);
 
         var topLevel = sym -> !string.contains(sym, '.');
-        var documentedSymbols = moduleDoc.symbols .. ownKeys .. filter(topLevel) .. sort .. toArray;
+        var documentedSymbols = moduleDoc.symbols .. ownKeys .. filter(topLevel) .. sort;
 
         var moduleIndexDoc = indexDoc.modules[module];
 
@@ -94,7 +94,7 @@ context {|| // serverOnly
             var err = null;
             var moduleExports;
             try {
-              moduleExports = require(moduleDoc.home) .. ownKeys .. sort .. toArray;
+              moduleExports = require(moduleDoc.home) .. ownKeys .. sort;
             } catch(e) {
               err = e;
             }

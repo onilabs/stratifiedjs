@@ -251,7 +251,7 @@ function createTransportHandler(transportSink) {
 
         var in_messages = 
           (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) .. 
-          map(mes -> { type: 'message', data: mes}) .. toArray;
+          map(mes -> { type: 'message', data: mes});
 
         transport.exchangeMessages(in_messages, out_messages);
         console.log("new transport #{transport.id}");
@@ -267,7 +267,7 @@ function createTransportHandler(transportSink) {
         else {
           var in_messages = 
             (req.body.length ? JSON.parse(req.body.toString('utf8')) : []) ..
-            map(mes -> { type: 'message', data: mes}) .. toArray;
+            map(mes -> { type: 'message', data: mes});
 
           transport.exchangeMessages(in_messages, 
                                      out_messages);

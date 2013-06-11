@@ -131,7 +131,7 @@ exports.parse = function(s, env) {
       }
     });
     return s;
-  }) .. toArray();
+  });
 
   function replaceContent(match, escaped, ref1, ref2) {
     if (escaped) return escaped;

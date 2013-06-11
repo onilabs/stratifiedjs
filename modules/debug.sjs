@@ -37,7 +37,7 @@
    @desc    Work-in-progress; pretty much a straight copy of nodejs's [util.inspect, etc](http://nodejs.org/api/util.html#util_util_inspect_object_showhidden_depth_colors) atm.
 */
 
-var { map, toArray, reduce, join } = require('./sequence');
+var { map, reduce, join } = require('./sequence');
 var sys = require('builtin:apollo-sys');
 var isHtmlElement = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isHtmlElement : -> false;
 
@@ -252,7 +252,7 @@ __js function formatValue(ctx, value, recurseTimes) {
   } else {
     output = keys .. map(function(key) {
       return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
-    }) .. toArray();
+    });
   }
 
   ctx.seen.pop();

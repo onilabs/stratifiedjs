@@ -179,7 +179,7 @@ function Parser(config) {
     this.interspersed = (config.interspersed !== undefined
         ? config.interspersed : true);
 
-    this.options = config.options..map(clone) .. toArray;
+    this.options = config.options..map(clone);
     this.optionFromName = {};
     this.optionFromEnv = {};
     for (var i = 0; i < this.options.length; i++) {

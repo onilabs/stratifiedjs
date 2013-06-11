@@ -506,7 +506,7 @@ function makeSymbolView(location) {
       var name = p.name||'.';
       var def = p.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(p.defval,location)+"</span>" : "";
       return "<tr><td class='mb-td-symbol'>#{name}</td><td><span class='mb-type'>#{makeTypeHTML(p.valtype,location)}</span>#{def}#{makeSummaryHTML(p,location)}</td></tr>";
-    }) .. toArray;
+    });
     if (args.length)
       ui.makeView("<table>"+args.join("")+"</table>").show(view.elems.details);
 
@@ -514,7 +514,7 @@ function makeSymbolView(location) {
     var settings = (docs.setting || []) .. map(function(s) {
       var def = s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "";
       return "<tr><td class='mb-td-symbol'>#{s.name}</td><td><span class='mb-type'>#{makeTypeHTML(s.valtype, location)}</span>#{def}#{makeSummaryHTML(s, location)}</td></tr>";
-    }) .. toArray;
+    });
     if (settings.length)
       ui.makeView("<h3>Settings</h3><table>"+settings.join("")+"</table>").show(view.elems.details);
 
@@ -522,7 +522,7 @@ function makeSymbolView(location) {
     var attribs = (docs.attrib || []) .. map(function(s) {
       var def = s.defval? "<span class='mb-defval'>Default: "+makeTypeHTML(s.defval,location)+"</span>" : "";
       return "<tr><td class='mb-td-symbol'>#{s.name}</td><td><span class='mb-type'>#{makeTypeHTML(s.valtype, location)}</span>#{def}#{makeSummaryHTML(s, location)}</td></tr>";
-    }) .. toArray;
+    });
     if (attribs.length)
       ui.makeView("<h3>Attribs</h3><table>"+attribs.join("")+"</table>").show(view.elems.details);
 

@@ -367,7 +367,7 @@ function findNode(selector, from, to, inclusive) {
   try {
     if (inclusive && to) {
       if (!Array.isArray(to)) to = [to];
-      to = to .. map(elem -> elem ? null : elem.parentNode) .. toArray;
+      to = to .. map(elem -> elem ? null : elem.parentNode);
     }
     traverseDOM(from, to) { |c| if (exports.matchesSelector(c, selector)) return c }
     return null;
