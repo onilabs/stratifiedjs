@@ -4,11 +4,11 @@
 var path = require('path');
 var fs   = require('fs');
 var apollo_home = path.dirname(fs.realpathSync(__filename));
-var apollo_node = require(apollo_home + '/oni-apollo-node');
+var apollo_node = require(apollo_home + '/oni-stratifiedjs-node');
 
 function usage() {
   return (
-    "Usage: apollo [options] [script.sjs [arguments]]\n\n" +
+    "Usage: sjs [options] [script.sjs [arguments]]\n\n" +
     "Without a script.sjs argument you get dropped into a stratified REPL\n\n" +
     "Options:\n" +
     "  -h, --help          display this help message\n" +

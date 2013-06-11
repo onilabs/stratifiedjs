@@ -9,14 +9,14 @@ For an overview see [onilabs.com/apollo](http://onilabs.com/apollo).
 
 Please post questions to the [Apollo Google Group](http://groups.google.com/group/oni-apollo/topics).
 
-oni-apollo.js
+oni-stratifiedjs.js
 -------------
 
  - Client-side cross-browser StratifiedJS runtime.
  - ~15kB gzipped, MIT-licensed.
  - For more information please read the docs at [onilabs.com/apollo](http://onilabs.com/apollo).
 
-oni-apollo-node.js, 'apollo' executable
+oni-stratifiedjs-node.js, 'apollo' executable
 ---------------------------------------
 
  - Server-side StratifiedJS runtime for NodeJS.
@@ -40,8 +40,8 @@ modules/
 src/
 ----
 
- - build tools and source code from which oni-apollo.js and
-   oni-apollo-node.js are assembled.
+ - build tools and source code from which oni-stratifiedjs.js and
+   oni-stratifiedjs-node.js are assembled.
 
 
 How to build
@@ -51,7 +51,7 @@ Everything is already pre-built.
 
 No need to compile anything unless you change something in the src/
 directory. In that case, you can use the src/build/make-apollo tool to
-reassemble oni-apollo.js and oni-apollo-node.js. The build process
+reassemble oni-stratifiedjs.js and oni-stratifiedjs-node.js. The build process
 should work on most unixy environments out of the box (in particular
 it requires CPP - the C preprocessor).
 
@@ -66,7 +66,7 @@ For server-side use, you can just execute the `apollo` executable
 
 Alternatively you can install with npm (see the package.json script).
 
-For client-side use, just include the oni-apollo.js file in your html,
+For client-side use, just include the oni-stratifiedjs.js file in your html,
 as described at [onilabs.com/apollo](http://onilabs.com/apollo).
 
 
@@ -82,8 +82,8 @@ the module will be requested from
 
     LOCATION_WHERE_ONI_APOLLO_JS_WAS_LOADED_FROM/modules
 
-This location can only be inferred if you load oni-apollo.js in the
-'normal' way. If you rename oni-apollo.js to something else, or you
+This location can only be inferred if you load oni-stratifiedjs.js in the
+'normal' way. If you rename oni-stratifiedjs.js to something else, or you
 don't load it through a &lt;script> tag, you'll need to manually
 configure the 'sjs' hub before you can make calls such as
 `require('sjs:http')`.
@@ -99,8 +99,8 @@ To (re-)configure the 'sjs hub', you can use code such as this:
 
 Note that many browsers cannot load modules over the `file:`
 protocol. You can use `rocket` to serve up the apollo directory
-locally. Alternatively, you can serve oni-apollo.js and the modules/
-directory with a different web server, or load oni-apollo.js &
+locally. Alternatively, you can serve oni-stratifiedjs.js and the modules/
+directory with a different web server, or load oni-stratifiedjs.js &
 modules/ from http://code.onilabs.com/ as described at
 [onilabs.com/apollo](http://onilabs.com/apollo).
 

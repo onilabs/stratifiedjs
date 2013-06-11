@@ -26,7 +26,7 @@ context("server-side") {||
   var url = require('sjs:url');
 
   var modulePath = path.join(url.toPath(module.id), '../');
-  var apolloPath = path.join(modulePath, '../../apollo');
+  var apolloPath = path.join(modulePath, '../../sjs');
   var dataPath = path.join(modulePath, dataRoot);
 
   var run_with_env = function(args, env)

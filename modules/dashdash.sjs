@@ -374,7 +374,7 @@ var sys = require('builtin:apollo-sys');
 var global = sys.getGlobal();
 var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
 var assert = require('./assert');
-var { each, map, join, indexed, toArray } = require('./sequence');
+var { each, map, join, indexed } = require('./sequence');
 var { ownKeys, clone } = require('./object');
 
 var format = function(str /*, replacements ... */) {

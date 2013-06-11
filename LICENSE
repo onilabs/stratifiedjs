@@ -1,18 +1,18 @@
-Oni Apollo: Multi-Platform StratifiedJS Implementation
-======================================================
+Oni StratifiedJS: Multi-Platform StratifiedJS Implementation
+============================================================
 
 (c) 2010-2013 Oni Labs, http://onilabs.com
 
-The Oni Apollo distribution is made available as open-source.
+The Oni StratifiedJS distribution is made available as open-source.
 
 All client-side components of the distribution are licensed under the MIT License.
 Some server-side components are licensed under the GPL v2.
 
-The upshot is that if you use Apollo purely on the client-side via the 
-cross-browser oni-apollo.js runtime and the standard module library, there are no 
-restrictions placed on your application. 
-If you use Apollo on the server-side, or you use the StratifiedJS compiler 
-or virtual machine directly (i.e. not via oni-apollo.js) in another product, 
+The upshot is that if you use StratifiedJS purely on the client-side via the
+cross-browser oni-stratifiedjs.js runtime and the standard module library, there
+are no restrictions placed on your application.
+If you use StratifiedJS on the server-side, or you use the StratifiedJS compiler
+or virtual machine directly (i.e. not via oni-stratifiedjs.js) in another product,
 then that product also needs to be licensed under the GPL.
 
 Alternative licensing available; for enquiries please contact alex@onilabs.com
@@ -23,19 +23,18 @@ For exact licensing terms, please see individual files. As an overview:
 - The modules contained in the Standard Module Library
   (modules/*) are licensed under the MIT License.
 
-- The Apollo bootstraping code (src/bootstrap/*) is licensed under the
-  MIT License.
+- The bootstraping code (src/bootstrap/*) is licensed under the MIT License.
 
-- The Apollo system module code (src/sys/*) is licensed under the MIT License.
+- The system module code (src/sys/*) is licensed under the MIT License.
 
-- The client-side cross-browser StratifiedJS runtime (oni-apollo.js)
+- The client-side cross-browser StratifiedJS runtime (oni-stratifiedjs.js)
   is licensed under the MIT License.
 
-- The Apollo compiler and virtual machine code (src/c1/* and
+- The compiler and virtual machine code (src/c1/* and
   src/vm1/*) is licensed under the GPL v2.
 
 - The server-side Node.JS-based StratifiedJS runtime
-  (oni-apollo-node.js) is licensed under the GPL v2.
+  (oni-stratifiedjs-node.js) is licensed under the GPL v2.
 
 - The Oni Rocket Web Server modules (src/rocket-modules/*)
   are licensed under the GPL v2.

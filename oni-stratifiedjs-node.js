@@ -1,23 +1,14 @@
 /*
  * Oni Apollo StratifiedJS Runtime
- * Client-side Cross-Browser implementation
- * 
+ * Server-side NodeJS-based implementation
+ *
  * Version: 'unstable'
  * http://onilabs.com/apollo
  *
- * (c) 2010-2011 Oni Labs, http://onilabs.com
+ * (c) 2011 Oni Labs, http://onilabs.com
  *
- * This file is licensed under the terms of the MIT License:
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * This file is licensed under the terms of the GPL v2, see
+ * http://www.gnu.org/licenses/gpl-2.0.html
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -28,7 +19,7 @@
  * THE SOFTWARE.
  *
  */
-var __oni_rt={};(function(exports){var UNDEF;
+global.__oni_rt={};(function(exports){var UNDEF;
 
 
 
@@ -98,7 +89,7 @@ var lines=stack.split("\n");
 var i;
 for(i=0;i<lines.length;i++ ){
 
-if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("oni-apollo-node.js")!=-1||lines[i].indexOf("oni-apollo.js")!=-1){
+if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("oni-stratifiedjs-node.js")!=-1||lines[i].indexOf("oni-stratifiedjs.js")!=-1){
 
 
 
@@ -679,9 +670,7 @@ rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a fu
 
 
 rv=this.l[0][this.l[1]].apply(this.l[0],this.pars);
-}else if((UA!="msie")&&!testIsFunction(this.l[0][this.l[1]])){
-
-
+}else if(!testIsFunction(this.l[0][this.l[1]])){
 
 
 
@@ -709,11 +698,7 @@ case 2:
 
 
 var ctor=this.l;
-if(ctor&&(ctor==Array||ctor==Boolean||ctor==Date||ctor==Error||ctor==EvalError||ctor==Function||ctor==Math||ctor==Number||ctor==Object||ctor==RangeError||ctor==ReferenceError||ctor==RegExp||ctor==String||ctor==SyntaxError||ctor==TypeError||ctor==URIError||ctor==window.XMLHttpRequest||ctor==window.ActiveXObject||ctor==window.XDomainRequest||!ctor.apply)){
-
-
-
-
+if(ctor&&(/\{ \[native code\] \}$/.exec(ctor.toString())||ctor==Buffer)){
 
 
 var pars=this.pars;
@@ -735,9 +720,7 @@ rv=new CFException("t",new Error("'"+ctor+"' is not a function"),this.ndata[1],t
 
 
 
-var f=new Function();
-f.prototype=ctor.prototype;
-this.o=new f();
+this.o=Object.create(ctor.prototype);
 rv=ctor.apply(this.o,this.pars);
 if(is_ef(rv)){
 
@@ -1612,7 +1595,7 @@ ef.cont(2,arguments);
 }catch(e){
 
 var s=function(){throw e};
-setTimeout(s,0);
+process.nextTick(s);
 }
 };
 
@@ -2012,23 +1995,11 @@ return a instanceof b},'in':function(a,b){
 return a in b}};
 
 
-
-
-var UA=navigator.userAgent.toLowerCase();
-if(UA.indexOf(" chrome/")>=0)UA="chrome";else if(UA.indexOf(" firefox/")>=0)UA="firefox";else if(UA.indexOf(" safari/")>=0)UA="safari";else if(UA.indexOf(" msie ")>=0)UA="msie";else UA="unknown";
-
-
-
-
-
-
-
-
-
-exports.hostenv="xbrowser";
+var UA="nodejs";
+exports.hostenv="nodejs";
 exports.UA=UA;
 
-exports.G=window;
+exports.G=global;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
 
@@ -4925,7 +4896,7 @@ return pctx.token;
 }
 
 
-})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n\n\n\n\nexports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\nexports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\n\n\nexports.isArrayLike=function(obj){return Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\'))||!!(typeof NodeList==\'function\'&&obj instanceof NodeList);\n\n\n\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.flatten=function(arr,rv){var rv=rv||[];\n\nvar l=arr.length;\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))exports.flatten(elem,rv);else rv.push(elem);\n\n\n\n}\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.expandSingleArgument=function(args){if(args.length==1&&exports.isArrayLike(args[0]))args=args[0];\n\n\nreturn args;\n};\n\n\n\n\n\n\n\n\n\nexports.isQuasi=function(obj){return (obj instanceof __oni_rt.QuasiProto);\n\n};\n\n\n\n\n\n\nexports.Quasi=function(arr){return __oni_rt.Quasi.apply(__oni_rt,arr)};\n\n\n\n\n\n\nexports.mergeObjects=function(){var rv={};\n\nvar sources=exports.expandSingleArgument(arguments);\nfor(var i=0;i<sources.length;i++ ){\nexports.extendObject(rv,sources[i]);\n}\nreturn rv;\n};\n\n\n\n\n\nexports.extendObject=function(dest,source){for(var o in source){\n\nif(Object.hasOwnProperty.call(source,o))dest[o]=source[o];\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction URI(){}\nURI.prototype={toString:function(){\nreturn \"#{this.protocol}://#{this.authority}#{this.relative}\";\n\n}};\n\n\nexports.parseURL=function(str){var o=exports.parseURL.options,m=o.parser.exec(str),uri=new URI(),i=14;\n\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\n\nuri[o.q.name]={};\nuri[o.key[12]].replace(o.q.parser,function($0,$1,$2){if($1)uri[o.q.name][$1]=$2;\n\n});\n\nreturn uri;\n};\nexports.parseURL.options={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],q:{name:\"queryKey\",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\nexports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv=url_spec[0];\n\n\nfor(var i=1;i<l;++i){\nvar comp=url_spec[i];\nif(typeof comp!=\"string\")break;\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\nexports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\nexports.canonicalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol){\na.directory=base.directory;\nif(!a.path&&(a.query||a.anchor))a.file=base.file;\n\n}else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"&&pout.length>1)pout.pop();else pout.push(c);\n\n\n\n}\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\nexports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.request=request_hostenv;\n\n\n\n\n\n\nexports.makeMemoizedFunction=function(f,keyfn){var lookups_in_progress={};\n\n\nvar memoizer=function(){var key=keyfn?keyfn.apply(this,arguments):arguments[0];\n\nvar rv=memoizer.db[key];\nif(typeof rv!==\'undefined\')return rv;\nif(!lookups_in_progress[key])lookups_in_progress[key]=spawn (function(args){\nreturn memoizer.db[key]=f.apply(this,args);\n\n})(arguments);\ntry{\nreturn lookups_in_progress[key].waitforValue();\n}finally{\n\nif(lookups_in_progress[key].waiting()==0){\nlookups_in_progress[key].abort();\ndelete lookups_in_progress[key];\n}\n}\n};\n\nmemoizer.db={};\nreturn memoizer;\n};\n\n\n\n\n\n\n\nexports.eval=eval_hostenv;\n\n\n\n\nvar pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\nvar opts=exports.extendObject({},settings);\n\nif(opts.callback){\n(spawn (function(){try{\n\nvar rv=requireInner(module,rf,parent,opts);\n}catch(e){\n\nopts.callback(e);return 1;\n}\nopts.callback(UNDEF,rv);\n})());\n}else return requireInner(module,rf,parent,opts);\n\n\n};\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},settings);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.url=function(relative){return resolve(relative,rf,parent,{loader:\'dummy\'}).path;\n\n\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=getHubs_hostenv();\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\nreturn rf;\n}\n\nfunction html_sjs_extractor(html,descriptor){var re=/<script (?:[^>]+ )?type=[\'\"]text\\/sjs[\'\"][^>]*>((.|\\n)*?)<\\/script>/mg;\n\nvar match;\nvar src=\'\';\nwhile(match=re.exec(html)){\nsrc+=match[1];\nsrc+=\';\';\n}\nif(!src)throw new Error(\"No sjs found in HTML file\");\nreturn default_compiler(src,descriptor);\n}\n\n\nfunction resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw new Error(\"Too much aliasing in modulename \'\"+module+\"\'\");\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\nfunction resolveHubs(module,hubs,require_obj,parent,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nif(path.indexOf(hub[0])==0){\n\nif(typeof hub[1]==\"string\"){\npath=hub[1]+path.substring(hub[0].length);\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\ni=0;\nif(--level==0)throw new Error(\"Too much indirection in hub resolution for module \'\"+module+\"\'\");\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\n\nbreak;\n}else throw new Error(\"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\");\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src};\n}\n\n\nfunction default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){var f;\n\n\nif(compiled_src_tag.exec(src)){\n\n\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",src);\nf(descriptor,descriptor.exports,descriptor.require,\"module #{descriptor.id}\");\n}else{\n\nf=exports.eval(\"(function(module,exports,require, __onimodulename){\"+src+\"\\n})\",{filename:\"module #{descriptor.id}\"});\n\nf(descriptor,descriptor.exports,descriptor.require);\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts){var extension=/.+\\.([^\\.\\/]+)$/.exec(path)[1];\n\n\n\nvar compile=exports.require.extensions[extension];\nif(!compile)throw new Error(\"Unknown type \'\"+extension+\"\'\");\n\n\nvar descriptor;\nif(!(descriptor=exports.require.modules[path])){\n\nvar pendingHook=pendingLoads[path];\nif(!pendingHook){\npendingHook=pendingLoads[path]=spawn (function(){var src,loaded_from;\n\nif(typeof src_loader===\"string\"){\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}else if(path in __oni_rt.modsrc){\n\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\nvar descriptor={id:path,exports:{},loaded_from:loaded_from,loaded_by:parent,required_by:{},require:makeRequire(path)};\n\n\n\n\n\n\n\nif(opts.main)descriptor.require.main=descriptor;\ncompile(src,descriptor);\n\n\n\n\n\nexports.require.modules[path]=descriptor;\n\nreturn descriptor;\n})();\npendingHook.parentModules=[parent];\n}else{\npendingHook.parentModules.push(parent);\n}\n\n\nvar dependents={};\nvar q=[parent];\nwhile(q.length>0){\nvar dep=q.shift();\nif(dep===path){\nthrow new Error(\"Circular module dependency loading #{path}\");\n}\nif(dependents.hasOwnProperty(dep))continue;else dependents[dep]=true;\n\nvar pending=pendingLoads[dep];\nif(pending){\nq=q.concat(pending.parentModules);\n}\n}\n\ntry{\nvar descriptor=pendingHook.waitforValue();\n}finally{\n\n\nif(pendingHook.waiting()==0)delete pendingLoads[path];\n\n}\n}\n\nif(!descriptor.required_by[parent])descriptor.required_by[parent]=1;else ++descriptor.required_by[parent];\n\n\n\n\nreturn descriptor.exports;\n}\n\nfunction http_src_loader(path){return {src:request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'}),loaded_from:path};\n\n\n\n\n}\n\n\n\n\n\n\nvar github_api=\"https://api.github.com/\";\nvar github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw new Error(\"Malformed module id \'\"+path+\"\'\")}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\n\nvar resolveSpec=resolveHubs(path,exports.require.hubs,require_obj,parent,opts);\n\n\nresolveSpec.path=exports.canonicalizeURL(resolveSpec.path,parent);\n\n\nif(resolveSpec.loader==default_loader&&resolveSpec.path.charAt(resolveSpec.path.length-1)!=\'/\'){\n\n\nvar matches=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\nif(!matches||!exports.require.extensions[matches[1]])resolveSpec.path+=\".sjs\";\n\n}\n\nif(parent==getTopReqParent_hostenv())parent=\"[toplevel]\";\n\n\nreturn resolveSpec;\n}\n\n\n\n\n\nexports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){var resolveSpec=resolve(module,require_obj,parent,opts);\n\n\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts);\nif(opts.copyTo){\nexports.extendObject(opts.copyTo,module);\n}\n\nreturn module;\n}\n\n\nexports.require=makeRequire(getTopReqParent_hostenv());\n\nexports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",loaded_by:\"[toplevel]\",required_by:{\"[toplevel]\":1}};\n\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']="var location;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction determineLocation(){if(!location){\n\nlocation={};\nvar scripts=document.getElementsByTagName(\"script\"),matches;\nfor(var i=0;i<scripts.length;++i){\nif((matches=/(.*)oni-apollo(.*).js(\\?.*)?$/.exec(scripts[i].src))){\nlocation.location=exports.canonicalizeURL(matches[1]+\"modules/\",document.location.href);\nlocation.requirePrefix=scripts[i].getAttribute(\"require-prefix\");\nlocation.req_base=scripts[i].getAttribute(\"req-base\")||document.location.href;\nbreak;\n}\n}\n}\nreturn location;\n}\n\n\n\n\nif(determineLocation().requirePrefix){\n__oni_rt.G[determineLocation().requirePrefix]={require:__oni_rt.sys.require};\n}else __oni_rt.G.require=__oni_rt.sys.require;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction jsonp_hostenv(url,settings){var opts=exports.mergeObjects({iframe:false,cbfield:\"callback\"},settings);\n\n\n\n\n\n\n\n\n\n\nurl=exports.constructURL(url,opts.query);\nif(opts.iframe||opts.forcecb)return jsonp_iframe(url,opts);else return jsonp_indoc(url,opts);\n\n\n\n};\n\nvar jsonp_req_count=0;\nvar jsonp_cb_obj=\"_oni_jsonpcb\";\nfunction jsonp_indoc(url,opts){if(!window[jsonp_cb_obj])window[jsonp_cb_obj]={};\n\n\nvar cb=\"cb\"+(jsonp_req_count++ );\nvar cb_query={};\ncb_query[opts.cbfield]=jsonp_cb_obj+\".\"+cb;\nurl=exports.constructURL(url,cb_query);\nvar elem=document.createElement(\"script\");\nelem.setAttribute(\"src\",url);\nelem.setAttribute(\"async\",\"async\");\nelem.setAttribute(\"type\",\"text/javascript\");\nvar complete=false;\nwaitfor(var rv){\nwindow[jsonp_cb_obj][cb]=resume;\ndocument.getElementsByTagName(\"head\")[0].appendChild(elem);\n\nwaitfor(){\nif(elem.addEventListener)elem.addEventListener(\"error\",resume,false);else{\n\n\nvar readystatechange=function(){if(elem.readyState==\'loaded\'&&!complete)resume();\n\n};\nelem.attachEvent(\"onreadystatechange\",readystatechange);\n}\n}finally{\n\nif(elem.removeEventListener)elem.removeEventListener(\"error\",resume,false);else elem.detachEvent(\"onreadystatechange\",readystatechange);\n\n\n\n}\n\nthrow new Error(\"Could not complete JSONP request to \'\"+url+\"\'\");\n}finally{\n\nelem.parentNode.removeChild(elem);\ndelete window[jsonp_cb_obj][cb];\n}\ncomplete=true;\nreturn rv;\n}\n\nfunction jsonp_iframe(url,opts){var cb=opts.forcecb||\"R\";\n\nvar cb_query={};\nif(opts.cbfield)cb_query[opts.cbfield]=cb;\n\nurl=exports.constructURL(url,cb_query);\nvar iframe=document.createElement(\"iframe\");\ndocument.getElementsByTagName(\"head\")[0].appendChild(iframe);\nvar doc=iframe.contentWindow.document;\nwaitfor(var rv){\ndoc.open();\niframe.contentWindow[cb]=resume;\n\n\nhold(0);\ndoc.write(\"\\x3Cscript type=\'text/javascript\' src=\\\"\"+url+\"\\\">\\x3C/script>\");\ndoc.close();\n}finally{\n\niframe.parentNode.removeChild(iframe);\n}\n\n\nhold(0);\nreturn rv;\n};\n\n\nvar XHR_caps;\nvar activex_xhr_ver;\n\nfunction getXHRCaps(){if(!XHR_caps){\n\nXHR_caps={};\n\nif(__oni_rt.G.XMLHttpRequest)XHR_caps.XHR_ctor=function(){\nreturn new XMLHttpRequest()};else XHR_caps.XHR_ctor=function(){\n\nif(typeof activex_xhr_ver!==\'undefined\')return new ActiveXObject(activex_xhr_ver);\n\n\nfor(var v in {\"MSXML2.XMLHTTP.6.0\":1,\"MSXML2.XMLHTTP.3.0\":1,\"MSXML2.XMLHTTP\":1}){\n\n\n\n\ntry{\nvar req=new ActiveXObject(v);\nactivex_xhr_ver=v;\nreturn req;\n}catch(e){\n}\n}\nthrow new Error(\"Browser does not support XMLHttpRequest\");\n};\n\n\nXHR_caps.XHR_CORS=(\"withCredentials\" in XHR_caps.XHR_ctor());\nif(!XHR_caps.XHR_CORS)XHR_caps.XDR=(typeof __oni_rt.G.XDomainRequest!==\'undefined\');\n\nXHR_caps.CORS=(XHR_caps.XHR_CORS||XHR_caps.XDR)?\"CORS\":\"none\";\n}\nreturn XHR_caps;\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return getXHRCaps().CORS;\n\n}\n\n\n\n\n\nfunction getTopReqParent_hostenv(){return determineLocation().req_base;\n\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(req_obj.path&&req_obj.path.length)url_string=exports.constructURL(req_obj.path,url_string);\n\n\nreturn exports.canonicalizeURL(url_string,parent);\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction request_hostenv(url,settings){var opts=exports.mergeObjects({method:\"GET\",body:null,response:\'string\',throwing:true},settings);\n\n\n\n\n\n\n\n\n\n\n\nurl=exports.constructURL(url,opts.query);\n\nvar caps=getXHRCaps();\nif(!caps.XDR||exports.isSameOrigin(url,document.location)){\nvar req=caps.XHR_ctor();\nreq.open(opts.method,url,true,opts.username||\"\",opts.password||\"\");\n}else{\n\n\nreq=new XDomainRequest();\nreq.open(opts.method,url);\n}\n\nwaitfor(var error){\nif(typeof req.onerror!==\'undefined\'){\nreq.onload=function(){resume()};\nreq.onerror=function(){resume(true)};\n}else{\n\nreq.onreadystatechange=function(evt){if(req.readyState!=4)return;else resume();\n\n\n\n\n};\n}\n\nif(opts.headers&&req.setRequestHeader)for(var h in opts.headers)req.setRequestHeader(h,opts.headers[h]);\n\n\n\n\n\nif(opts.mime&&req.overrideMimeType)req.overrideMimeType(opts.mime);\n\nreq.send(opts.body);\n}retract{\n\nreq.abort();\n}\n\n\nif(error||(typeof req.status!==\'undefined\'&&!(req.status.toString().charAt(0) in {\'0\':1,\'2\':1}))){\n\n\nif(opts.throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url+\"\'\";\nif(req.statusText)txt+=\": \"+req.statusText;\nif(req.status)txt+=\" (\"+req.status+\")\";\nvar err=new Error(txt);\nerr.status=req.status;\nerr.data=req.responseText;\nthrow err;\n}else if(opts.response==\'string\'){\n\nreturn \"\";\n}\n\n}\nif(opts.response==\'string\')return req.responseText;else{\n\n\n\nreturn {content:req.responseText,getHeader:name->req.getResponseHeader(name)};\n\n\n\n}\n}\n\n\n\n\nfunction getHubs_hostenv(){return [[\"sjs:\",determineLocation().location?determineLocation().location:{src:function(path){\n\n\n\nthrow new Error(\"Can\'t load module \'\"+path+\"\': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load oni-apollo.js in the normal way through a <script> element.\");\n\n}}],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:http_src_loader}],[\"x-wmapp1:\",{src:http_src_loader}],[\"local:\",{src:http_src_loader}]];\n\n\n\n\n\n\n\n\n\n\n\n\n}\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'app!sjs\':default_compiler,\'api\':default_compiler,\'js\':function(src,descriptor){\n\n\n\n\n\n\n\n\n\n\n\nvar f=new Function(\"module\",\"exports\",src);\n\nf.apply(descriptor.exports,[descriptor,descriptor.exports]);\n},\'html\':html_sjs_extractor};\n\n\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){if(__oni_rt.UA==\"msie\"&&__oni_rt.G.execScript)return eval_msie(code,settings);\n\n\n\nvar filename=(settings&&settings.filename)||\"sjs_eval_code\";\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\n\n\nvar IE_resume_counter=0;\n__oni_rt.IE_resume={};\nfunction eval_msie(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\ntry{\nwaitfor(var rv,isexception){\nvar rc=++IE_resume_counter;\n__oni_rt.IE_resume[rc]=resume;\nvar js=__oni_rt.c1.compile(\"try{\"+code+\"\\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume[\"+rc+\"](rv[0],rv[1])) }\",{filename:filename,mode:mode});\n\n\n__oni_rt.G.execScript(js);\n}\nif(isexception)throw rv;\n}finally{\n\ndelete __oni_rt.IE_resume[rc];\n}\nreturn rv;\n}\n\n\n\n\nfunction init_hostenv(){}\n\n\n\n\nif(!__oni_rt.G.__oni_rt_no_script_load){\nfunction runScripts(){var scripts=document.getElementsByTagName(\"script\");\n\n\n\n\n\n\n\n\n\nvar ss=[];\nfor(var i=0;i<scripts.length;++i){\nif(scripts[i].getAttribute(\"type\")==\"text/sjs\"){\nvar s=scripts[i];\nss.push(s);\n}\n}\n\nfor(var i=0;i<ss.length;++i){\nvar s=ss[i];\nvar m=s.getAttribute(\"module\");\n\nvar content=s.textContent||s.innerHTML;\nif(__oni_rt.UA==\"msie\"){\n\ncontent=content.replace(/\\r\\n/,\"\");\n}\nif(m)__oni_rt.modsrc[m]=content;else{\n\n\nvar descriptor={id:document.location.href+\"_inline_sjs_\"+(i+1)};\n\n\nvar f=exports.eval(\"(function(module, __onimodulename){\"+content+\"\\n})\",{filename:\"module #{descriptor.id}\"});\n\nf(descriptor);\n}\n}\n};\n\nif(document.readyState===\"complete\"){\nrunScripts();\n}else{\n\n\nif(__oni_rt.G.addEventListener)__oni_rt.G.addEventListener(\"load\",runScripts,true);else __oni_rt.G.attachEvent(\"onload\",runScripts);\n\n\n\n}\n}\n\n\n";if(!Array.isArray){
+})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n\n\n\n\nexports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\nexports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\n\n\nexports.isArrayLike=function(obj){return Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\'))||!!(typeof NodeList==\'function\'&&obj instanceof NodeList);\n\n\n\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.flatten=function(arr,rv){var rv=rv||[];\n\nvar l=arr.length;\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))exports.flatten(elem,rv);else rv.push(elem);\n\n\n\n}\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.expandSingleArgument=function(args){if(args.length==1&&exports.isArrayLike(args[0]))args=args[0];\n\n\nreturn args;\n};\n\n\n\n\n\n\n\n\n\nexports.isQuasi=function(obj){return (obj instanceof __oni_rt.QuasiProto);\n\n};\n\n\n\n\n\n\nexports.Quasi=function(arr){return __oni_rt.Quasi.apply(__oni_rt,arr)};\n\n\n\n\n\n\nexports.mergeObjects=function(){var rv={};\n\nvar sources=exports.expandSingleArgument(arguments);\nfor(var i=0;i<sources.length;i++ ){\nexports.extendObject(rv,sources[i]);\n}\nreturn rv;\n};\n\n\n\n\n\nexports.extendObject=function(dest,source){for(var o in source){\n\nif(Object.hasOwnProperty.call(source,o))dest[o]=source[o];\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction URI(){}\nURI.prototype={toString:function(){\nreturn \"#{this.protocol}://#{this.authority}#{this.relative}\";\n\n}};\n\n\nexports.parseURL=function(str){var o=exports.parseURL.options,m=o.parser.exec(str),uri=new URI(),i=14;\n\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\n\nuri[o.q.name]={};\nuri[o.key[12]].replace(o.q.parser,function($0,$1,$2){if($1)uri[o.q.name][$1]=$2;\n\n});\n\nreturn uri;\n};\nexports.parseURL.options={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],q:{name:\"queryKey\",parser:/(?:^|&)([^&=]*)=?([^&]*)/g},parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\nexports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv=url_spec[0];\n\n\nfor(var i=1;i<l;++i){\nvar comp=url_spec[i];\nif(typeof comp!=\"string\")break;\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\nexports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\nexports.canonicalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol){\na.directory=base.directory;\nif(!a.path&&(a.query||a.anchor))a.file=base.file;\n\n}else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"&&pout.length>1)pout.pop();else pout.push(c);\n\n\n\n}\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\nexports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\nexports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nexports.request=request_hostenv;\n\n\n\n\n\n\nexports.makeMemoizedFunction=function(f,keyfn){var lookups_in_progress={};\n\n\nvar memoizer=function(){var key=keyfn?keyfn.apply(this,arguments):arguments[0];\n\nvar rv=memoizer.db[key];\nif(typeof rv!==\'undefined\')return rv;\nif(!lookups_in_progress[key])lookups_in_progress[key]=spawn (function(args){\nreturn memoizer.db[key]=f.apply(this,args);\n\n})(arguments);\ntry{\nreturn lookups_in_progress[key].waitforValue();\n}finally{\n\nif(lookups_in_progress[key].waiting()==0){\nlookups_in_progress[key].abort();\ndelete lookups_in_progress[key];\n}\n}\n};\n\nmemoizer.db={};\nreturn memoizer;\n};\n\n\n\n\n\n\n\nexports.eval=eval_hostenv;\n\n\n\n\nvar pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\nvar opts=exports.extendObject({},settings);\n\nif(opts.callback){\n(spawn (function(){try{\n\nvar rv=requireInner(module,rf,parent,opts);\n}catch(e){\n\nopts.callback(e);return 1;\n}\nopts.callback(UNDEF,rv);\n})());\n}else return requireInner(module,rf,parent,opts);\n\n\n};\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},settings);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.url=function(relative){return resolve(relative,rf,parent,{loader:\'dummy\'}).path;\n\n\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=getHubs_hostenv();\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\nreturn rf;\n}\n\nfunction html_sjs_extractor(html,descriptor){var re=/<script (?:[^>]+ )?type=[\'\"]text\\/sjs[\'\"][^>]*>((.|\\n)*?)<\\/script>/mg;\n\nvar match;\nvar src=\'\';\nwhile(match=re.exec(html)){\nsrc+=match[1];\nsrc+=\';\';\n}\nif(!src)throw new Error(\"No sjs found in HTML file\");\nreturn default_compiler(src,descriptor);\n}\n\n\nfunction resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw new Error(\"Too much aliasing in modulename \'\"+module+\"\'\");\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\nfunction resolveHubs(module,hubs,require_obj,parent,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nif(path.indexOf(hub[0])==0){\n\nif(typeof hub[1]==\"string\"){\npath=hub[1]+path.substring(hub[0].length);\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\ni=0;\nif(--level==0)throw new Error(\"Too much indirection in hub resolution for module \'\"+module+\"\'\");\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\n\nbreak;\n}else throw new Error(\"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\");\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src};\n}\n\n\nfunction default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){var f;\n\n\nif(compiled_src_tag.exec(src)){\n\n\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",src);\nf(descriptor,descriptor.exports,descriptor.require,\"module #{descriptor.id}\");\n}else{\n\nf=exports.eval(\"(function(module,exports,require, __onimodulename){\"+src+\"\\n})\",{filename:\"module #{descriptor.id}\"});\n\nf(descriptor,descriptor.exports,descriptor.require);\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts){var extension=/.+\\.([^\\.\\/]+)$/.exec(path)[1];\n\n\n\nvar compile=exports.require.extensions[extension];\nif(!compile)throw new Error(\"Unknown type \'\"+extension+\"\'\");\n\n\nvar descriptor;\nif(!(descriptor=exports.require.modules[path])){\n\nvar pendingHook=pendingLoads[path];\nif(!pendingHook){\npendingHook=pendingLoads[path]=spawn (function(){var src,loaded_from;\n\nif(typeof src_loader===\"string\"){\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}else if(path in __oni_rt.modsrc){\n\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\nvar descriptor={id:path,exports:{},loaded_from:loaded_from,loaded_by:parent,required_by:{},require:makeRequire(path)};\n\n\n\n\n\n\n\nif(opts.main)descriptor.require.main=descriptor;\ncompile(src,descriptor);\n\n\n\n\n\nexports.require.modules[path]=descriptor;\n\nreturn descriptor;\n})();\npendingHook.parentModules=[parent];\n}else{\npendingHook.parentModules.push(parent);\n}\n\n\nvar dependents={};\nvar q=[parent];\nwhile(q.length>0){\nvar dep=q.shift();\nif(dep===path){\nthrow new Error(\"Circular module dependency loading #{path}\");\n}\nif(dependents.hasOwnProperty(dep))continue;else dependents[dep]=true;\n\nvar pending=pendingLoads[dep];\nif(pending){\nq=q.concat(pending.parentModules);\n}\n}\n\ntry{\nvar descriptor=pendingHook.waitforValue();\n}finally{\n\n\nif(pendingHook.waiting()==0)delete pendingLoads[path];\n\n}\n}\n\nif(!descriptor.required_by[parent])descriptor.required_by[parent]=1;else ++descriptor.required_by[parent];\n\n\n\n\nreturn descriptor.exports;\n}\n\nfunction http_src_loader(path){return {src:request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'}),loaded_from:path};\n\n\n\n\n}\n\n\n\n\n\n\nvar github_api=\"https://api.github.com/\";\nvar github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw new Error(\"Malformed module id \'\"+path+\"\'\")}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\n\nvar resolveSpec=resolveHubs(path,exports.require.hubs,require_obj,parent,opts);\n\n\nresolveSpec.path=exports.canonicalizeURL(resolveSpec.path,parent);\n\n\nif(resolveSpec.loader==default_loader&&resolveSpec.path.charAt(resolveSpec.path.length-1)!=\'/\'){\n\n\nvar matches=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\nif(!matches||!exports.require.extensions[matches[1]])resolveSpec.path+=\".sjs\";\n\n}\n\nif(parent==getTopReqParent_hostenv())parent=\"[toplevel]\";\n\n\nreturn resolveSpec;\n}\n\n\n\n\n\nexports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){var resolveSpec=resolve(module,require_obj,parent,opts);\n\n\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts);\nif(opts.copyTo){\nexports.extendObject(opts.copyTo,module);\n}\n\nreturn module;\n}\n\n\nexports.require=makeRequire(getTopReqParent_hostenv());\n\nexports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",loaded_by:\"[toplevel]\",required_by:{\"[toplevel]\":1}};\n\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-nodejs.sjs']="function jsonp_hostenv(url,settings){\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar opts=exports.mergeObjects({cbfield:\"callback\",forcecb:\"jsonp\"},settings);\n\n\n\n\n\n\n\nvar query={};\nquery[opts.cbfield]=opts.forcecb;\n\nvar parser=/^[^{]*({[^]+})[^}]*$/;\nvar data=parser.exec(request_hostenv([url,opts.query,query]));\n\n\n\n\ndata[1]=data[1].replace(/([^\\\\])\\\\x/g,\"$1\\\\u00\");\n\ntry{\nreturn JSON.parse(data[1]);\n}catch(e){\n\nthrow new Error(\"Invalid jsonp response from \"+exports.constructURL(url)+\" (\"+e+\")\");\n}\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return \"*\";\n\n}\n\n\n\n\n\nvar req_base;\nfunction getTopReqParent_hostenv(){if(!req_base)req_base=\"file://\"+process.cwd()+\"/\";\n\nreturn req_base;\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(/^\\.?\\.?\\//.exec(url_string))return exports.canonicalizeURL(url_string,parent);else return \"nodejs:\"+url_string;\n\n\n\n\n}\n\n\n\n\nvar readStream=exports.readStream=function readStream(stream){if(stream.readable===false)return null;\n\n\n\n\nvar data=null;\n\nwaitfor{\nwaitfor(var exception){\nstream.on(\'error\',resume);\nstream.on(\'end\',resume);\n}finally{\n\nstream.removeListener(\'error\',resume);\nstream.removeListener(\'end\',resume);\n}\nif(exception)throw exception;\n}or{\n\nwaitfor(data){\nstream.on(\'data\',resume);\n}finally{\n\nstream.removeListener(\'data\',resume);\n}\n}or{\n\n\n\nstream.resume();\nhold();\n}finally{\n\nif(stream.readable)stream.pause();\n\n}\n\nreturn data;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nfunction request_hostenv(url,settings){var opts=exports.mergeObjects({method:\"GET\",headers:{},response:\'string\',throwing:true,max_redirects:5},settings);\n\n\n\n\n\n\n\n\n\n\n\n\nvar url_string=exports.constructURL(url,opts.query);\n\n\nvar url=exports.parseURL(url_string);\nvar protocol=url.protocol;\nif(!(protocol===\'http\'||protocol===\'https\')){\nthrow new Error(\'Unsupported protocol: \'+protocol);\n}\nvar secure=(protocol==\"https\");\nvar port=url.port||(secure?443:80);\n\nif(!opts.headers[\'Host\'])opts.headers.Host=url.authority;\n\n\nif(!opts.headers[\'User-Agent\'])opts.headers[\'User-Agent\']=\"Oni Labs Apollo StratifiedJS engine\";\n\n\nif(opts.body&&!opts.headers[\'Transfer-Encoding\']){\n\n\n\nopts.body=new Buffer(opts.body);\nopts.headers[\'Content-Length\']=opts.body.length;\n}else{\n\nopts.headers[\'Content-Length\']=0;\n}\nvar auth;\nif(typeof opts.username!=\'undefined\'&&typeof opts.password!=\'undefined\')auth=opts.username+\":\"+opts.password;\n\nvar request=__oni_rt.nodejs_require(protocol).request({method:opts.method,host:url.host,port:port,path:url.relative||\'/\',headers:opts.headers,auth:auth});\n\n\n\n\n\n\n\nrequest.end(opts.body);\n\nwaitfor{\nwaitfor(var err){\nrequest.on(\'error\',resume);\n}finally{\n\nrequest.removeListener(\'error\',resume);\n}\nthrow new Error(err);\n}or{\n\nwaitfor(var response){\nrequest.on(\'response\',resume);\n}finally{\n\nrequest.removeListener(\'response\',resume);\n}\n}retract{\n\n\n\nrequest.on(\'error\',function(){});\nrequest.abort();\n}\n\nif(response.statusCode<200||response.statusCode>=300){\nswitch(response.statusCode){case 300:\ncase 301:case 302:case 303:case 307:\nif(opts.max_redirects>0){\n\nopts.headers.host=null;\n--opts.max_redirects;\n\n\n\nreturn request_hostenv(exports.canonicalizeURL(response.headers[\'location\'],url_string),opts);\n\n\n}\n\ndefault:\nif(opts.throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url_string+\"\'\";\ntxt+=\" (\"+response.statusCode+\")\";\nvar err=new Error(txt);\n\nerr.status=response.statusCode;\nerr.request=request;\nerr.response=response;\n\nresponse.setEncoding(\'utf8\');\nresponse.data=\"\";\nvar data;\nwhile(data=readStream(response)){\nresponse.data+=data;\n}\nerr.data=response.data;\nthrow err;\n}else if(opts.response==\'string\'){\n\nresponse.resume();\nreturn \"\";\n}\n\n}\n}\n\nif(opts.response==\'raw\')return response;\n\n\nresponse.setEncoding(\'utf8\');\nresponse.data=\"\";\nvar data;\nwhile(data=readStream(response)){\nresponse.data+=data;\n}\n\nif(opts.response==\'string\')return response.data;else{\n\n\n\nreturn {content:response.data,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n}\n};\n\nfunction file_src_loader(path){waitfor(var err,data){\n\n\n__oni_rt.nodejs_require(\'fs\').readFile(path.substr(7),resume);\n}\nif(err){\n\n\nvar matches;\nif((matches=/(.*)\\.sjs$/.exec(path))){\ntry{\nreturn file_src_loader(matches[1]);\n}catch(e){throw new Error(String(err.message||err)+\"\\nand then\\n\"+String(e.message||e))}\n}else throw err;\n\n\n}\nreturn {src:data.toString(),loaded_from:path};\n}\n\n\nfunction nodejs_loader(path,parent,dummy_src,opts){path=path.substr(7);\n\n\n\n\n\n\nvar base;\nif(!(/^file:/.exec(parent)))base=getTopReqParent_hostenv();else base=parent;\n\n\n\n\nbase=base.substr(7);\n\nvar mockModule={paths:__oni_rt.nodejs_require(\'module\')._nodeModulePaths(base)};\n\n\n\nvar resolved=\"\";\ntry{\nresolved=__oni_rt.nodejs_require(\'module\')._resolveFilename(path,mockModule);\n\nif(resolved instanceof Array)resolved=resolved[1];\n\nif(resolved.indexOf(\'.\')==-1)return __oni_rt.nodejs_require(resolved);\n}catch(e){\n}\n\nvar matches;\nif(!(matches=/.+\\.([^\\.\\/]+)$/.exec(path))){\ntry{\n\nresolved=__oni_rt.nodejs_require(\'module\')._resolveFilename(path+\".sjs\",mockModule);\n\nif(resolved instanceof Array)resolved=resolved[1];\n\n\nreturn default_loader(\"file://\"+resolved,parent,file_src_loader,opts);\n}catch(e){\n}\n}else if(resolved&&matches[1]!=\"js\"){\n\n\nif(exports.require.extensions[matches[1]])return default_loader(\"file://\"+resolved,parent,file_src_loader,opts);\n\n}\n\nif(resolved==\"\")throw new Error(\"nodejs module at \'\"+path+\"\' not found\");\nreturn __oni_rt.nodejs_require(resolved);\n}\n\nfunction getHubs_hostenv(){return [[\"sjs:\",\"file://\"+__oni_rt.nodejs_apollo_lib_dir],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:file_src_loader}],[\"nodejs:\",{loader:nodejs_loader}]];\n\n\n\n\n\n\n\n\n}\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'mho\':default_compiler,\'js\':function(src,descriptor){\n\n\n\n\n\n\n\nvar vm=__oni_rt.nodejs_require(\"vm\");\n\nvar sandbox=vm.createContext(global);\nsandbox.module=descriptor;\nsandbox.exports=descriptor.exports;\nsandbox.require=descriptor.require;\nvm.runInNewContext(src,sandbox,\"module \"+descriptor.id);\n},\'html\':html_sjs_extractor};\n\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\nfunction init_hostenv(){var init_path=process.env[\'APOLLO_INIT\'];\n\nif(init_path){\nvar node_fs=__oni_rt.nodejs_require(\'fs\');\nvar files=init_path.split(\':\');\nfor(var i=0;i<files.length;i++ ){\nvar path=files[i];\nif(!path)continue;\ntry{\npath=node_fs.realpathSync(path);\nexports.require(\'file://\'+path);\n}catch(e){\nconsole.error(\"Error loading init script at \"+path+\": \"+e);\nthrow e;\n}\n}\n}\n};\n\n\n";var rt=global.__oni_rt;
 
 
 
@@ -4966,8 +4937,13 @@ return pctx.token;
 
 
 
+var path=require('path');
+var fs=require('fs');
 
+global.__oni_rt.nodejs_require=require;
+global.__oni_rt.nodejs_apollo_lib_dir=path.join(path.dirname(fs.realpathSync(__filename)),'modules/');
 
+var sys=rt.G.eval("(function(exports) {"+rt.c1.compile(rt.modsrc['builtin:apollo-sys-common.sjs'],{filename:"'apollo-sys-common.sjs'"})+"\n"+rt.c1.compile(rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'],{filename:"'apollo-sys-"+rt.hostenv+".sjs'"})+"})");
 
 
 
@@ -4977,201 +4953,9 @@ return pctx.token;
 
 
 
+sys(exports);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Array.isArray=function(o){return Object.prototype.toString.call(o)==='[object Array]';
-
-};
-}
-
-
-if(!Array.prototype.indexOf){
-Array.prototype.indexOf=function(val){var len=this.length>>>0;
-
-var i=Math.floor(arguments[1]||0);
-if(i<0)i=Math.max(len-Math.abs(i),0);
-
-for(;i<len;++i){
-if(i in this&&this[i]===val)return i;
-
-}
-return -1;
-};
-}
-
-
-if(!Array.prototype.lastIndexOf){
-Array.prototype.lastIndexOf=function(val){var len=this.length>>>0;
-
-var i=arguments[1]===undefined?len:Math.floor(arguments[1]);
-if(i>=0)i=Math.min(i,len-1);else i+=len;
-
-
-
-
-for(;i>=0;--i){
-if(i in this&&this[i]===val)return i;
-
-}
-return -1;
-};
-}
-
-
-if(!Object.create){
-
-
-Object.create=function create(p){function Cls(){
-};
-Cls.prototype=p;
-return new Cls();
-};
-}
-
-
-if(!Object.keys){
-
-
-
-
-Object.keys=function(o){var rv=[],p;
-
-for(p in o)if(Object.prototype.hasOwnProperty.call(o,p))rv.push(p);
-
-
-return rv;
-};
-}
-
-
-if(!Object.getPrototypeOf){
-Object.getPrototypeOf="".__proto__===String.prototype?function(object){
-return object.__proto__;
-
-}:function(object){
-return object.constructor.prototype;
-
-
-};
-}
-
-
-if(!Function.prototype.bind){
-
-
-
-
-Function.prototype.bind=function(obj){var slice=[].slice,args=slice.call(arguments,1),self=this,nop=function(){
-
-
-
-},bound=function(){
-var subject=(obj||{});
-
-try{
-if(this instanceof nop)subject=this;
-}catch(e){}
-return self.apply(subject,args.concat(slice.call(arguments)));
-};
-
-
-nop.prototype=self.prototype;
-bound.prototype=new nop();
-return bound;
-};
-}
-
-
-if(!String.prototype.trim){
-String.prototype.trim=function(){return this.replace(/^\s+|\s+$/g,'');
-
-};
-}
-
-
-
-
-
-
-
-if(!__oni_rt.sys){
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-__oni_rt.G.eval("(function(exports) {"+__oni_rt.c1.compile(__oni_rt.modsrc['builtin:apollo-sys-common.sjs'],{filename:"'apollo-sys-common.sjs'"})+"\n"+__oni_rt.c1.compile(__oni_rt.modsrc['builtin:apollo-sys-'+__oni_rt.hostenv+'.sjs'],{filename:"'apollo-sys-"+__oni_rt.hostenv+".sjs'"})+"})({})");
-
-
-
-
-
-delete __oni_rt.modsrc['builtin:apollo-sys-common.sjs'];
-delete __oni_rt.modsrc['builtin:apollo-sys-'+__oni_rt.hostenv+'.sjs'];
-}
-
-
+delete rt.modsrc['builtin:apollo-sys-common.sjs'];
+delete rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'];
 
 
