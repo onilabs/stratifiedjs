@@ -328,8 +328,11 @@ exports.canonicalizeURL = function(url, base) {
   // convert relative->absolute:
   if (base && (base = exports.parseURL(base)) &&
       (!a.protocol || a.protocol == base.protocol)) {
-    if (!a.directory && !a.protocol)
+    if (!a.directory && !a.protocol) {
       a.directory = base.directory;
+      if (!a.path && (a.query || a.anchor))
+        a.file = base.file;
+    }
     else if (a.directory && a.directory.charAt(0) != '/') {
       // a is relative to base.directory
       a.directory = (base.directory || "/") + a.directory;
@@ -340,7 +343,7 @@ exports.canonicalizeURL = function(url, base) {
         a.authority = base.authority;
     }
   }
-  
+
   // collapse "." & "..":
   var pin = a.directory.split("/");
   var l = pin.length;
