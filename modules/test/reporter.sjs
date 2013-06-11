@@ -47,6 +47,7 @@ var func = require('../function');
 var string = require('../string');
 var shell_quote = require('../shell-quote');
 var dom;
+var SJS_ROOT_URI = require.url('sjs:');
 
 var UsageError = exports.UsageError = function(m) {
   this.message = m;
@@ -68,7 +69,11 @@ ConsoleBuffer.prototype.drain = function() {
 
 var formatLogArgs = exports._formatLogArgs = function(args) {
   if (args.length == 0 ) return '';
-  return args .. map(s -> string.isString(s) ? s : debug.inspect(s)) .. join(" ");
+  return args .. map(function(s) {
+    if (string.isString(s)) return s;
+    if (s instanceof Error) return String(s);
+    return debug.inspect(s);
+  }) .. join(" ");
 }
 
 ConsoleBuffer.prototype.log = function(m) {
@@ -213,7 +218,15 @@ var LogReporterMixins = {
       this.print(this.color('red', "FAILED"), false);
       this.linkToTest(result.test.fullDescription(), true);
       var prefix = this.prefix;
-      this.print(this.color('yellow', String(result.error).split("\n") .. map((line) -> prefix + "| " + line) .. join("\n")));
+      String(result.error).split("\n") .. each {|line|
+        var col = {foreground: 'yellow', attribute: 'bright'};
+        if (line.trim() .. string.startsWith("at module " + SJS_ROOT_URI)) {
+          // internal module, make it dimmer
+          delete col.attribute;
+        }
+        line = prefix + "| " + line;
+        this.print(this.color(col, line));
+      }
       if (this.logCapture && this.logCapture.messages.length > 0) {
         this.print(prefix, false);
         this.print(this.color('yellow', '-- Captured logging ---'));
@@ -304,9 +317,10 @@ HtmlOutput.prototype.prepareStyles = function() {
   .green { color: #6d6; }
   .cyan { color: #6ce; }
   .blue { color: #38e; }
-  .yellow { color: #ed6; }
-  .dim { color: #888; }
-  a { text-decoration: none; font-weight:bold; }
+  .yellow { color: #dc6; }
+  .yellow.bright { color: #fe7; }
+  .dim { opacity: 0.6; }
+  a { text-decoration: none; font-weight:bold; color: inherit;}
   ";
   dom.addCSS(css);
 };
