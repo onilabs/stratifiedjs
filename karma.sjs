@@ -1,4 +1,4 @@
-#!/usr/bin/env apollo
+#!/usr/bin/env sjs
 var object = require('sjs:object');
 var seq = require('sjs:sequence');
 var str = require('sjs:string');

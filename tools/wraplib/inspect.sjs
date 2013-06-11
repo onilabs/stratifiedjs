@@ -1,4 +1,4 @@
-#!/usr/bin/env apollo
+#!/usr/bin/env sjs
 /*
  * Oni Apollo's wraplib inspector tool
  * A developer tool to inspect the coverage of sjs modules that wrap native JS

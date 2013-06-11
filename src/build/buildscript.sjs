@@ -23,8 +23,8 @@ function build_deps() {
   BUILD("clean", ["rm -rf tmp", function() { log('all done')}]); 
 
   PSEUDO("build");
-  BUILD("build", function() { log('all done') }, ["oni-apollo.js", 
-                                                  "oni-apollo-node.js",
+  BUILD("build", function() { log('all done') }, ["oni-stratifiedjs.js", 
+                                                  "oni-stratifiedjs-node.js",
                                                   "modules/numeric.sjs",
                                                   "modules/sjcl.sjs",
                                                   "modules/nodejs/terminal.sjs",
@@ -115,7 +115,7 @@ function build_deps() {
   // apollo lib
 
   // xbrowser version:
-  BUILD("oni-apollo.js",
+  BUILD("oni-stratifiedjs.js",
         ["cat $0 $1 $2 $3 $4 $5 $6 $7 > $TARGET",
          replacements_from_config
         ],
@@ -130,7 +130,7 @@ function build_deps() {
          "src/build/config.json"]);
 
   // nodejs version:
-  BUILD("oni-apollo-node.js", 
+  BUILD("oni-stratifiedjs-node.js", 
         ["cat $0 $1 $2 $3 $4 $5 $6 > $TARGET",
          replacements_from_config
         ],
@@ -146,7 +146,7 @@ function build_deps() {
   //----------------------------------------------------------------------
   // standard module library:
   // (many of the modules don't need to be built from source; they just
-  //  live under the apollo/modules directory directly.)
+  //  live under the modules directory directly.)
 
   // numeric module
   BUILD("modules/numeric.sjs",

@@ -1,7 +1,7 @@
 {
   "name": "stratifiedjs",
   "description": "StratifiedJS Framework",
-  "author" : "Alexander Fritze <alex@onilabs.com>",
+  "author" : "Oni Labs <maintainers@onilabs.com>",
   "version" : "0.13.0-1-development",
   "homepage" : "http://onilabs.com/apollo",
   "private" : true,
@@ -10,8 +10,8 @@
     "url": "git://github.com/onilabs/apollo.git"
   },
   "keywords": ["stratifiedjs", "async", "language"],
-  "main": "oni-apollo-node",
-  "bin": { "apollo": "apollo", "rocket": "rocket" },
+  "main": "oni-stratifiedjs-node",
+  "bin": { "sjs": "sjs", "rocket": "rocket" },
   "devDependencies": {
     "karma": "https://github.com/gfxmonk/karma/archive/master.tar.gz"
   },

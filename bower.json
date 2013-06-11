@@ -4,7 +4,7 @@
   "author" : "Alexander Fritze <alex@onilabs.com>",
   "homepage" : "http://onilabs.com/apollo",
   "private" : true,
-  "main": ["oni-apollo.js"],
+  "main": ["oni-stratifiedjs.js"],
   "ignore": ["src", "test"],
   "dependencies": {
   }

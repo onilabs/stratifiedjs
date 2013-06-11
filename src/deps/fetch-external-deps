@@ -1,4 +1,4 @@
-#!/usr/bin/env apollo
+#!/usr/bin/env sjs
 
 var dirname = require('path').dirname;
 var fs      = require('sjs:nodejs/fs');

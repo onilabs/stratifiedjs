@@ -118,7 +118,7 @@ function evalCommandLine(cl, interrupt) {
 // prompt
 
 var promptType;
-var inputPrompt = 'apollo> ';
+var inputPrompt = 'sjs> ';
 
 function switchPrompt(type) {
   if (type == promptType) return;
@@ -137,7 +137,7 @@ function switchPrompt(type) {
 
 function updatePrompts() {
   // we show the numbe of background strata in our input prompt:
-  inputPrompt = 'apollo'+(bgStrata.length ? '['+bgStrata.length+']> ' : '> ');
+  inputPrompt = 'sjs'+(bgStrata.length ? '['+bgStrata.length+']> ' : '> ');
 
   // if we currently show the input prompt, update it:
   if (promptType == 'input') {
