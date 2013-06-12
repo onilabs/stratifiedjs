@@ -74,7 +74,7 @@ exports.key = defaultKey;
 */
 exports.get = function () {
   if (!exports.key) {
-    throw "No Last.fm API key supplied";
+    throw new Error("No Last.fm API key supplied");
   }
   if (exports.key == defaultKey) {
     //require("../xbrowser/console").warn() ??

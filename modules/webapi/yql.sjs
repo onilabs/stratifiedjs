@@ -81,11 +81,11 @@ exports.query = function (statement, params) {
   }
   var rv = http.jsonp([url, { q: statement, format: "json"}, params]);
   if (rv["error"]) {
-    throw rv.error.description; // syntax error
+    throw new Error(rv.error.description); // syntax error
   }
   if (rv.query && rv.query.results && rv.query.results.error) {
     var error = rv.query.results.error;
-    throw error.description || error; // content error
+    throw new Error(error.description || error); // content error
   }
   return rv.query;
 };
