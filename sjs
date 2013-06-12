@@ -4,7 +4,7 @@
 var path = require('path');
 var fs   = require('fs');
 var apollo_home = path.dirname(fs.realpathSync(__filename));
-var apollo_node = require(apollo_home + '/oni-stratifiedjs-node');
+var apollo_node = require(apollo_home + '/stratified-node');
 
 function usage() {
   return (

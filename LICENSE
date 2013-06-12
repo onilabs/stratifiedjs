@@ -9,10 +9,10 @@ All client-side components of the distribution are licensed under the MIT Licens
 Some server-side components are licensed under the GPL v2.
 
 The upshot is that if you use StratifiedJS purely on the client-side via the
-cross-browser oni-stratifiedjs.js runtime and the standard module library, there
+cross-browser stratified.js runtime and the standard module library, there
 are no restrictions placed on your application.
 If you use StratifiedJS on the server-side, or you use the StratifiedJS compiler
-or virtual machine directly (i.e. not via oni-stratifiedjs.js) in another product,
+or virtual machine directly (i.e. not via stratified.js) in another product,
 then that product also needs to be licensed under the GPL.
 
 Alternative licensing available; for enquiries please contact alex@onilabs.com
@@ -27,14 +27,14 @@ For exact licensing terms, please see individual files. As an overview:
 
 - The system module code (src/sys/*) is licensed under the MIT License.
 
-- The client-side cross-browser StratifiedJS runtime (oni-stratifiedjs.js)
+- The client-side cross-browser StratifiedJS runtime (stratified.js)
   is licensed under the MIT License.
 
 - The compiler and virtual machine code (src/c1/* and
   src/vm1/*) is licensed under the GPL v2.
 
 - The server-side Node.JS-based StratifiedJS runtime
-  (oni-stratifiedjs-node.js) is licensed under the GPL v2.
+  (stratified-node.js) is licensed under the GPL v2.
 
 - The Oni Rocket Web Server modules (src/rocket-modules/*)
   are licensed under the GPL v2.

@@ -32,7 +32,7 @@ var init = function(logger, customFileHandlers, files) {
     };
   }
   files.push(mkFilePattern('../boot.js'));
-  files.push(mkFilePattern('../../../oni-stratifiedjs.js'));
+  files.push(mkFilePattern('../../../stratified.js'));
 }
 
 

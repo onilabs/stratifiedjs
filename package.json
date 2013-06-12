@@ -10,7 +10,7 @@
     "url": "git://github.com/onilabs/apollo.git"
   },
   "keywords": ["stratifiedjs", "async", "language"],
-  "main": "oni-stratifiedjs-node",
+  "main": "stratified-node",
   "bin": { "sjs": "sjs", "rocket": "rocket" },
   "devDependencies": {
     "karma": "https://github.com/gfxmonk/karma/archive/master.tar.gz"

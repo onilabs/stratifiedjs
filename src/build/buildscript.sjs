@@ -23,8 +23,8 @@ function build_deps() {
   BUILD("clean", ["rm -rf tmp", function() { log('all done')}]); 
 
   PSEUDO("build");
-  BUILD("build", function() { log('all done') }, ["oni-stratifiedjs.js", 
-                                                  "oni-stratifiedjs-node.js",
+  BUILD("build", function() { log('all done') }, ["stratified.js", 
+                                                  "stratified-node.js",
                                                   "modules/numeric.sjs",
                                                   "modules/sjcl.sjs",
                                                   "modules/nodejs/terminal.sjs",
@@ -115,7 +115,7 @@ function build_deps() {
   // apollo lib
 
   // xbrowser version:
-  BUILD("oni-stratifiedjs.js",
+  BUILD("stratified.js",
         ["cat $0 $1 $2 $3 $4 $5 $6 $7 > $TARGET",
          replacements_from_config
         ],
@@ -130,7 +130,7 @@ function build_deps() {
          "src/build/config.json"]);
 
   // nodejs version:
-  BUILD("oni-stratifiedjs-node.js", 
+  BUILD("stratified-node.js", 
         ["cat $0 $1 $2 $3 $4 $5 $6 > $TARGET",
          replacements_from_config
         ],

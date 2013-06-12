@@ -22,7 +22,7 @@
 
     By default, the `sjs:` scheme resolves to
 
-        http:// [Path where 'oni-stratifiedjs.js' was loaded from] /modules/
+        http:// [Path where 'stratified.js' was loaded from] /modules/
 
     on the client-side, and to 
 

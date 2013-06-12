@@ -54,7 +54,7 @@ function determineLocation() {
     location = {};
     var scripts = document.getElementsByTagName("script"), matches;
     for (var i=0; i<scripts.length; ++i) {
-      if ((matches = /(.*)oni-stratifiedjs(.*).js(\?.*)?$/.exec(scripts[i].src))) {
+      if ((matches = /(.*)stratified(.*).js(\?.*)?$/.exec(scripts[i].src))) {
         location.location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
         location.requirePrefix = scripts[i].getAttribute("require-prefix");
         location.req_base = scripts[i].getAttribute("req-base") || document.location.href;
@@ -390,7 +390,7 @@ function getHubs_hostenv() {
                   determineLocation().location : 
                   { src: function(path) { 
                       throw new Error("Can't load module '"+path+
-                                      "': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load oni-stratifiedjs.js in the normal way through a <script> element."); }
+                                      "': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load stratified.js in the normal way through a <script> element."); }
                   } ],
     ["github:",   {src:github_src_loader}],
     ["http:",     {src:http_src_loader}],

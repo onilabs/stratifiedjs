@@ -89,7 +89,7 @@ var lines=stack.split("\n");
 var i;
 for(i=0;i<lines.length;i++ ){
 
-if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("oni-stratifiedjs-node.js")!=-1||lines[i].indexOf("oni-stratifiedjs.js")!=-1){
+if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("stratified-node.js")!=-1||lines[i].indexOf("stratified.js")!=-1){
 
 
 

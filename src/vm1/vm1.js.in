@@ -133,8 +133,8 @@ function adopt_native_stack(e, caller_module) {
   for (i=0; i<lines.length; i++) {
     // TODO: make this check more reliable
     if((caller_module && lines[i].indexOf(caller_module) != -1) ||
-       lines[i].indexOf("oni-stratifiedjs-node.js") != -1 ||
-       lines[i].indexOf("oni-stratifiedjs.js") != -1 ) {
+       lines[i].indexOf("stratified-node.js") != -1 ||
+       lines[i].indexOf("stratified.js") != -1 ) {
       // we've hit an apollo stack line.
       break;
     }
