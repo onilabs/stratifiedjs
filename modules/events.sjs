@@ -115,7 +115,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
   @inherit   ::Emitter
   @summary   An [::Emitter] subclass that wraps a "host" event emitter.
   @function  HostEmitter
-  @param     {ArrayElement|EventEmitter} [emitters] Object or objects to watch.
+  @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Function} [filter] Function through which received
              events will be passed. An event will only be emitted if this
@@ -254,7 +254,7 @@ if (sys.hostenv == 'nodejs') {
 /**
   @function wait
   @summary Wait for a single event only.
-  @param     {ArrayElement|EventEmitter} [emitters] Object or objects to watch.
+  @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Function} [filter] Function through which received
              events will be passed. An event will only be emitted if this
