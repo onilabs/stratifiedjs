@@ -14,7 +14,7 @@ SUITE="$t"
 
 run="test/run.html"
 if [ "$RUNNER" = NODE ]; then
-	apollo "$run" $SUITE
+	sjs "$run" $SUITE
 else
 	[ "$RUNNER" = KARMA ];
 	export PHANTOMJS_BIN=phantomjs
