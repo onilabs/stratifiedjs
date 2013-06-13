@@ -28,7 +28,5 @@ unit/url-tests.sjs
 unit/xbrowser/console-tests.sjs
 unit/xbrowser/dom-tests.sjs
 integration/documentation-tests.sjs
-integration/google-tests.sjs
 integration/http-tests.sjs
 integration/require-tests.sjs
-integration/yql-tests.sjs

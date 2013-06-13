@@ -43,7 +43,6 @@
 @dir rpc      Remote Procedure Calling Support
 @dir surface  Lightweight cross-browser UI toolkit
 @dir test     Automated testing utilities
-@dir webapi   Bindings to popular web apis
 @dir xbrowser Modules with basic cross-browser functionality
 
 @module array           Functions for working with arrays
