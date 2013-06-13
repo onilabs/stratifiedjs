@@ -1,4 +1,0 @@
-#!/bin/bash
-
-APOLLO_HOME=`dirname $0`/../..
-$APOLLO_HOME/apollo $APOLLO_HOME/src/build/buildscript.sjs "$@"
