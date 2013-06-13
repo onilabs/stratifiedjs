@@ -48,7 +48,7 @@
 
 /**
   @module    dashdash
-  @summary   Options parser (tracking [node-dashdash library](https://github.com/trentm/node-dashdash))
+  @summary   Options parser (tracking the [node-dashdash library](https://github.com/trentm/node-dashdash))
   @home      sjs:dashdash
   @desc
 This module tracks the [dashdash](https://github.com/trentm/node-dashdash) library by Trent Mick.
