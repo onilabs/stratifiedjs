@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'nodejs/fs' module
+ * StratifiedJS 'nodejs/fs' module
  * Stratified wrapper of nodejs filesystem functionality
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *

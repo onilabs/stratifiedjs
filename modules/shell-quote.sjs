@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'shell-quote' module
+ * StratifiedJS 'shell-quote' module
  * Quote and parse shell commands
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *

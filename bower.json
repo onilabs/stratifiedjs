@@ -1,8 +1,8 @@
 {
   "name": "stratifiedjs",
-  "version" : "0.13.0-1-development",
-  "author" : "Alexander Fritze <alex@onilabs.com>",
-  "homepage" : "http://onilabs.com/apollo",
+  "version" : "0.14.0",
+  "author" : "Oni Labs <maintainers@onilabs.com>",
+  "homepage" : "http://onilabs.com/stratifiedjs",
   "private" : true,
   "main": ["stratified.js"],
   "ignore": ["src", "test"],

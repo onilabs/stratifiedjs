@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'nodejs/stream' module
+ * StratifiedJS 'nodejs/stream' module
  * Stratified helpers for dealing nodejs's async streams
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *

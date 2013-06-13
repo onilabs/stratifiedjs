@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'numeric' module
+ * StratifiedJS 'numeric' module
  * Functions for numeric linear algebra computations 
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *

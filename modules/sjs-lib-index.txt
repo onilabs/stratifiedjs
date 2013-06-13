@@ -1,4 +1,4 @@
-@lib     Oni Apollo 'unstable' Standard Module Library
+@lib     Oni Apollo '0.14.0' Standard Module Library
 @summary Standard collection of modules for client and server-side stratified programming with 
          [Oni Apollo](http://onilabs.com/apollo)
 @desc

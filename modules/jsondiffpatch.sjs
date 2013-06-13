@@ -1,18 +1,18 @@
 /*
- * Oni Apollo 'jsondiffpatch' module
+ * StratifiedJS 'jsondiffpatch' module
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2012 Oni Labs, http://onilabs.com
  *
  *
- *   **************************************************************
- *   *    DO NOT EDIT jsondiffpatch.sjs - IT IS A GENERATED FILE! *
- *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN      *
- *   *    apollo/src/build/make-apollo                            *
- *   **************************************************************
+ *   ***************************************************************
+ *   *    DO NOT EDIT jsondiffpatch.sjs - IT IS A GENERATED FILE!  *
+ *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
+ *   *    stratifiedjs/src/build/make-sjs                          *
+ *   ***************************************************************
  *
  *
  * This file is derived from the "JsonDiffPatch" project 

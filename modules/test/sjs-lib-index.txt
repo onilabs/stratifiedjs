@@ -1,4 +1,4 @@
-@lib     Oni Apollo 'unstable' Standard Module Library - Test Modules
+@lib     Oni Apollo '0.14.0' Standard Module Library - Test Modules
 @summary Automated testing utilities
 @desc
   For running tests, see [runner::]. For defining test cases, see

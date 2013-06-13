@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'test/suite' module
+ * StratifiedJS 'test/suite' module
  * Functions for defining test suites
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *

@@ -1,4 +1,4 @@
-@lib     Oni Apollo 'unstable' Standard Module Library - Surface UI Toolkit
+@lib     Oni Apollo '0.14.0' Standard Module Library - Surface UI Toolkit
 @summary Lightweight cross-browser UI toolkit
 
 @module base      Core Surface functionality

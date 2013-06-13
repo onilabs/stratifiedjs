@@ -2,12 +2,12 @@
   "name": "stratifiedjs",
   "description": "StratifiedJS Framework",
   "author" : "Oni Labs <maintainers@onilabs.com>",
-  "version" : "0.13.0-1-development",
-  "homepage" : "http://onilabs.com/apollo",
+  "version" : "0.14.0",
+  "homepage" : "http://onilabs.com/stratifiedjs",
   "private" : true,
   "repository":   {
     "type": "git",
-    "url": "git://github.com/onilabs/apollo.git"
+    "url": "git://github.com/onilabs/stratifiedjs.git"
   },
   "keywords": ["stratifiedjs", "async", "language"],
   "main": "stratified-node",

@@ -1,9 +1,9 @@
 /*
- * Oni Apollo 'sys' module
+ * StratifiedJS 'sys' module
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
@@ -75,5 +75,5 @@ module.exports = {
 */
   // NOTE: version property is in double-quotes so
   // the buildscript treats it like JSON
-  "version" : "0.13.0-1-development",
+  "version" : "0.14.0",
 };

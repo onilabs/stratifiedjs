@@ -1,4 +1,4 @@
-@lib     Oni Apollo 'unstable' Standard Module Library - Xbrowser Modules
+@lib     Oni Apollo '0.14.0' Standard Module Library - Xbrowser Modules
 @summary Basic cross-browser functionality
 
 @module console         Cross-browser StratifiedJS console

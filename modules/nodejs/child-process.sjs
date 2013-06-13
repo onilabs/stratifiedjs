@@ -1,10 +1,10 @@
 /*
- * Oni Apollo 'nodejs/child-process' module
+ * StratifiedJS 'nodejs/child-process' module
  * Stratified wrapper for nodejs events
  *
- * Part of the Oni Apollo Standard Module Library
- * Version: 'unstable'
- * http://onilabs.com/apollo
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.14.0'
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
