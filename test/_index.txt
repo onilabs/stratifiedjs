@@ -22,7 +22,6 @@ unit/sjs-2-tests.sjs
 unit/sjs-tests.sjs
 unit/stack-tests.sjs
 unit/string-tests.sjs
-unit/surface-tests.sjs
 unit/test/runner-tests.sjs
 unit/url-tests.sjs
 unit/xbrowser/console-tests.sjs

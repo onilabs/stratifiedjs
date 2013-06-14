@@ -41,7 +41,6 @@
     
 @dir nodejs   NodeJS-related modules
 @dir rpc      Remote Procedure Calling Support
-@dir surface  Lightweight cross-browser UI toolkit
 @dir test     Automated testing utilities
 @dir xbrowser Modules with basic cross-browser functionality
 
