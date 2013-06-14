@@ -69,7 +69,7 @@
     `<script type="text/sjs">` block and run that as if it were a plain `.sjs` file. So you
     can run your tests in nodejs with this same file, using e.g:
     
-        `apollo ./test/run.html`
+        apollo ./test/run.html
 
     ## Command-line arguments
 
