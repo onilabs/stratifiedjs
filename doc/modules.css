@@ -82,6 +82,12 @@
   text-decoration: none;
 }
 
+
+.mb-trail > b {
+    padding: 0 2px 0 2px;
+    opacity:0.5;
+}
+
 .mb-trail > a:hover {
   text-decoration: underline;
 }

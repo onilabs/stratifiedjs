@@ -167,7 +167,7 @@ function makeTrailView() {
     var path_docs = getPathDocs(location.path);
     if (path_docs) {
       while (path_docs.parent) {
-        html = "&nbsp;<b>&gt;</b>&nbsp;<a href='#"+path_docs.path+"'>"+
+        html = "&nbsp;<b>&raquo;</b>&nbsp;<a href='#"+path_docs.path+"'>"+
           topDir(path_docs.path) +"</a>" + html;
         path_docs = path_docs.parent;
       }
