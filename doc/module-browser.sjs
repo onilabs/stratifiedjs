@@ -174,11 +174,10 @@ function makeTrailView() {
       html = "<a href='#"+path_docs.path+"'>"+
         (path_docs.lib || "Unnamed Module Collection") +"</a>" + html;
     }
-/*    if (location.module) {
-      if (html.length) html += "&nbsp;<b>&gt;</b>&nbsp;"
+    if (location.module) {
+      if (html.length) html += "&nbsp;<b>&raquo;</b>&nbsp;"
       html += "<a href='#"+location.path+location.module+"'>"+location.module+"</a>";
     }
-*/
     view.replace("<div class='mb-top mb-trail'>"+html+"</div>");
   };
   return view;
