@@ -1,6 +1,0 @@
-@lib     StratifiedJS '0.14.0' Standard Module Library - RPC
-@summary Remote Procedure Calling Support
-
-@module aat-client Asymmetric AJAX Transport Client
-@module aat-server Asymmetric AJAX Transport Server
-@module bridge     API bridge

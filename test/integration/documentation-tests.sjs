@@ -184,7 +184,7 @@ context {|| // serverOnly
   }
 
   test("sanity check") {||
-    assert.ok(dirsFound > 4, "only traversed #{dirsFound} dirs - is this check working?");
+    assert.ok(dirsFound > 3, "only traversed #{dirsFound} dirs - is this check working?");
   }
 
 }.serverOnly();

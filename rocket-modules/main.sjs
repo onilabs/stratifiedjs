@@ -246,20 +246,6 @@ var PublicFileFormatMap = new BaseFileFormatMap();
 //};
 
 //----------------------------------------------------------------------
-// API Bridge
-
-// load in api modules just like normal sjs modules:
-require.extensions['api'] = require.extensions['sjs'];
-        
-function getBridgeAPI(name) {
-  var api_module = "file://"+path.join(root, name+".api");
-  logging.info("API #{api_module} requested");
-  var api = require(api_module);
-  return require('sjs:rpc/bridge').API(api);
-}
-
-
-//----------------------------------------------------------------------
 
 var pathMap = [
   {
@@ -272,20 +258,6 @@ var pathMap = [
         mapIndexToDir: true
       }
     )      
-  },
-  {
-    // bridge-over-aat v2 endpoint:
-    pattern: /__oni\/aat\/(2)$/,
-    handler: require('sjs:rpc/aat-server').createTransportHandler(
-      function(transport) {
-        require('sjs:rpc/bridge').accept(getBridgeAPI, transport);
-      }
-    )
-  },
-  {
-    // "keyhole", where we can map dynamic files:
-    pattern: /__oni\/keyhole\/([^\/]+)\/(.*)$/,
-    handler: serverfs.createKeyholeHandler()
   },
   {
     // main server root

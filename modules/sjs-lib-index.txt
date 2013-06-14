@@ -40,7 +40,6 @@
         // the location above.
     
 @dir nodejs   NodeJS-related modules
-@dir rpc      Remote Procedure Calling Support
 @dir test     Automated testing utilities
 @dir xbrowser Modules with basic cross-browser functionality
 
