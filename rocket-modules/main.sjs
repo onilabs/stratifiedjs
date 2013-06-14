@@ -177,7 +177,7 @@ function gen_app_html(src, dest, req, etag) {
        <head>
          <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>
          <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-         <script src='/__oni/apollo/stratified.js'></script>
+         <script src='/__oni/sjs/stratified.js'></script>
          <script type='text/sjs'>
            require('#{app_name}!sjs');
          </script>
@@ -263,8 +263,8 @@ function getBridgeAPI(name) {
 
 var pathMap = [
   {
-    // we map the apollo client lib + modules under __oni/apollo:
-    pattern: /__oni\/apollo(\/.*)$/,
+    // we map the sjs client lib + modules under __oni/sjs:
+    pattern: /__oni\/sjs(\/.*)$/,
     handler: serverfs.createMappedDirectoryHandler(
       apollo_root,
       PublicFileFormatMap,

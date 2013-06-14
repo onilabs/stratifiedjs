@@ -33,7 +33,7 @@
         return FAIL("Please specify path to your suite script as the first argument");
       }
 
-      require.hubs.unshift(['sjs:', '/rocket/__oni/apollo/modules/']);
+      require.hubs.unshift(['sjs:', '/rocket/__oni/sjs/modules/']);
     
       require('/rocket/' + suitePath,
         {callback: function(err, val) {
