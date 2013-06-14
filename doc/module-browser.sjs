@@ -161,7 +161,7 @@ var getModuleDocs = func.memoize(function(modulepath) {
 
 function makeTrailView() {
   var view = ui.makeView(
-    "<div class='mb-top mb-trail'>Oni Apollo Documentation Browser</div>");
+    "<div class='mb-top mb-trail'>StratifiedJS Documentation Browser</div>");
   view.update = function(location) {
     var html = "";
     var path_docs = getPathDocs(location.path);
@@ -356,8 +356,8 @@ function makeErrorView(location, txt) {
  <h3>#{txt}</h3>
  <p>Were you looking for one of these:</p>
  <ul>
-   <li><a href='http://code.onilabs.com/apollo/latest/doc/modules.html'>Latest Stable Apollo Standard Library Docs</a></li>
-   <li><a href='http://code.onilabs.com/apollo/unstable/doc/modules.html'>Latest Unstable (GitHub trunk) Apollo Standard Library Docs</a></li>
+   <li><a href='http://code.onilabs.com/sjs/latest/doc/modules.html'>Latest Stable StratifiedJS Standard Library Docs</a></li>
+   <li><a href='http://code.onilabs.com/sjs/unstable/doc/modules.html'>Latest Unstable (GitHub trunk) StratifiedJS Standard Library Docs</a></li>
  </ul>
  <p>Otherwise, please enter a URL pointing to a module library (a directory with a file 'sjs-lib-index.txt'), or an SJS module:</p>
 <input name='url' type='text' style='width:30em' value='http://'></input><button name='go'>Go</button>
@@ -663,7 +663,7 @@ function makeSummaryHTML(obj, location) {
     rv += "<div class='note'>" + 
     markup("**Deprecated:** "+obj.deprecated, location) + "</div>";
   if (obj.hostenv)
-    rv += "<div class='note'><b>Note:</b> This #{obj.type} only works in the '#{obj.hostenv}' version of Apollo.</div>";
+    rv += "<div class='note'><b>Note:</b> This #{obj.type} only works in the '#{obj.hostenv}' version of StratifiedJS.</div>";
   return rv;
 }
 

@@ -1,9 +1,9 @@
 /*
- * Oni Apollo StratifiedJS Runtime
+ * Oni StratifiedJS Runtime
  * Server-side NodeJS-based implementation
  *
  * Version: ' '
- * http://onilabs.com/apollo
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *

@@ -9,11 +9,11 @@
  * (c) 2012 Oni Labs, http://onilabs.com
  *
  *
- *   ***********************************************************
- *   *    DO NOT EDIT sjcl.sjs - IT IS A GENERATED FILE!       *
- *   *    EDIT THE SOURCE CODE UNDER apollo/src/deps AND RUN   * 
- *   *    apollo/src/build/make-apollo                         *
- *   ***********************************************************
+ *   ***************************************************************
+ *   *    DO NOT EDIT sjcl.sjs - IT IS A GENERATED FILE!           *
+ *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
+ *   *    stratifiedjs/src/build/make-sjs                          *
+ *   ***************************************************************
  *
  *
  * This file is derived from the "Stanford JavaScript Crypto Library" project 

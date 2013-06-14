@@ -1,6 +1,6 @@
 /*
  * StratifiedJS 'nodejs/repl' module
- * Read-eval-print loop for nodejs-based apollo
+ * Read-eval-print loop
  *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: '0.14.0'
@@ -31,7 +31,7 @@
  */
 /**
   @module  nodejs/repl
-  @summary Stratified read-eval-print loop for nodejs-based apollo
+  @summary Stratified read-eval-print loop
   @home    sjs:nodejs/repl
   @hostenv nodejs
 */

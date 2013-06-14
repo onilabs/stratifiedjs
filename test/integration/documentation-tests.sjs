@@ -58,14 +58,20 @@ context {|| // serverOnly
       var indexDoc = docutil.parseSJSLibDocs(indexContents);
 
       test("module index includes all modules") {|s|
+        
+        // modules we intentionally aren't documenting yet
+        var HIDDEN = ['docutil'];
+
         indexDoc.type .. assert.eq('lib');
 
         var expectedDirs = dirs .. filter(function(d) {
           return fs.readdir(path.join(base, d)) .. find(isSJS);
         }) .. sort;
 
+        var expectedModules = modules .. filter(m -> !(HIDDEN .. array.contains(m)));
+
         indexDoc.dirs .. ownKeys .. sort .. assert.eq(expectedDirs, "directory list");
-        indexDoc.modules .. ownKeys .. sort .. assert.eq(modules .. sort, "module list");
+        indexDoc.modules .. ownKeys .. sort .. assert.eq(expectedModules .. sort, "module list");
       }
 
       seq.zip(sjsFiles, modules) .. each {|pair|

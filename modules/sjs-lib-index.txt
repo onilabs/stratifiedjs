@@ -1,9 +1,9 @@
-@lib     Oni Apollo '0.14.0' Standard Module Library
+@lib     StratifiedJS '0.14.0' Standard Module Library
 @summary Standard collection of modules for client and server-side stratified programming with 
-         [Oni Apollo](http://onilabs.com/apollo)
+         [StratifiedJS](http://onilabs.com/stratifiedjs)
 @desc
     This Library is the standard collection of modules
-    accompanying [Oni Apollo](http://onilabs.com/apollo).
+    accompanying [StratifiedJS](http://onilabs.com/stratifiedjs).
 
     The Library is still under heavy development - the module content
     and organization of modules might change from one release to the
@@ -26,7 +26,7 @@
 
     on the client-side, and to 
 
-        file:// [Path to 'apollo' executable] /modules/
+        file:// [Path to 'sjs' executable] /modules/
 
     on the server.
 
@@ -34,7 +34,7 @@
     up a *hub redirect*; e.g. to mirror the Library on your own server:
 
         require.hubs.unshift(["sjs:",
-                              "http://mydomain.com/apollo-mirror/"]);
+                              "http://mydomain.com/sjs-mirror/"]);
 
         // all modules addressed as sjs:' will now be loaded from
         // the location above.
@@ -49,7 +49,7 @@
 @module assert          Assertion functions, primarily for use in tests
 @module compare         Deep object equality comparison
 @module cutil           Functions and constructs for concurrent stratified programming
-@module dashdash        Options parser (tracking [node-dashdash library](https://github.com/trentm/node-dashdash))
+@module dashdash        Options parser (tracking the [node-dashdash library](https://github.com/trentm/node-dashdash))
 @module debug           Helpers for debugging
 @module events          Event emitter and utilities for dealing with events.
 @module function        Function composition helpers

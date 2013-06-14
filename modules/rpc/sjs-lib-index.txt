@@ -1,4 +1,4 @@
-@lib     Oni Apollo '0.14.0' Standard Module Library - RPC
+@lib     StratifiedJS '0.14.0' Standard Module Library - RPC
 @summary Remote Procedure Calling Support
 
 @module aat-client Asymmetric AJAX Transport Client
