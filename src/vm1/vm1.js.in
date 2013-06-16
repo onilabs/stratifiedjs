@@ -195,6 +195,41 @@ CFException.prototype = {
 //----------------------------------------------------------------------
 // Execution Frames
 
+/*
+  Note on `ReturnToParentContinuation` & global `cont` function
+
+  In SJS, we can (asynchronously) build large execution frame trees in
+  a tail-safe way. To ensure that we we can also unravel these trees
+  without blowing the JS stack (by a long chain of
+  cont-returnToParent-cont-returnToParent-... calls), we need to code
+  calls that tear down a tree in continuation passing style.
+
+  Grep the code for ReturnToParentContinuation for more notes.
+
+*/
+function ReturnToParentContinuation(frame, idx, val) {
+  this.frame = frame;
+  this.idx = idx;
+  this.val = val;
+}
+ReturnToParentContinuation.prototype = {
+  execute: function() { return this.frame.cont(this.idx, this.val) }
+};
+
+/*
+  Execution frames' `cont` methods should never be called directly,
+  but always be through this global function. It takes care of
+  executing any `ReturnToParentContinuation`s that the callee might
+  return.
+*/
+function cont(frame, idx, val) {
+  var rv = frame.cont(idx, val);
+  while (rv instanceof ReturnToParentContinuation) {
+    rv = rv.execute();
+  }
+  return rv;
+}
+
 function is_ef(obj) {
   return obj && obj.__oni_ef;
 }
@@ -289,7 +324,14 @@ var EF_Proto = {
 
     if (this.async) {
       if (this.parent) {
-        this.parent.cont(this.parent_idx, val);
+        // we would like to call 
+        //   this.parent.cont(this.parent_idx, val) 
+        // here, but this might blow the JS stack.
+        // We encode in continuation-passing style instead; the topmost `cont`
+        // parent of this code path knows how to handle 
+        // ReturnToParentContinuation
+        return new ReturnToParentContinuation(this.parent, this.parent_idx, val);
+
         // remove parent to aid gc; we can only do this if val != this
         // (par and alt call through returnToParent via abortInner, which in the 
         // async case returns their own EF)
@@ -585,7 +627,7 @@ EF_Seq.prototype.abort = function() {
 #ifdef HOTPATH
 function I_seq(ndata, env) {
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL)
-    return (new EF_Seq(ndata, env)).cont(1);
+    return cont(new EF_Seq(ndata, env), 1);
 
   var sc = NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_SHORTCIRCUIT_OR |
                                 NDATA_SEQ_FLAG_SHORTCIRCUIT_AND); 
@@ -625,7 +667,7 @@ function I_seq(ndata, env) {
 }
 #else // !HOTPATH
 function I_seq(ndata, env) {
-  return (new EF_Seq(ndata, env)).cont(1);
+  return cont(new EF_Seq(ndata, env), 1);
 }
 #endif // HOTPATH
 exports.Seq = makeINCtor(I_seq);
@@ -699,7 +741,7 @@ EF_Sc.prototype.cont = function(idx, val) {
 };
 
 function I_sc(ndata, env) {
-  return (new EF_Sc(ndata, env)).cont(0);
+  return cont(new EF_Sc(ndata, env), 0);
 }
 
 exports.Sc = makeINCtor(I_sc);
@@ -949,7 +991,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
 };
 
 function I_fcall(ndata, env) {
-  return (new EF_Fcall(ndata, env)).cont(0);
+  return cont(new EF_Fcall(ndata, env), 0);
 }
 
 exports.Fcall = makeINCtor(I_fcall);
@@ -1002,7 +1044,7 @@ EF_If.prototype.cont = function(idx, val) {
 };
 
 function I_if(ndata, env) {
-  return (new EF_If(ndata, env)).cont(0);
+  return cont(new EF_If(ndata, env), 0);
 }
 
 exports.If = makeINCtor(I_if);
@@ -1104,7 +1146,7 @@ EF_Switch.prototype.cont = function(idx, val) {
 };
 
 function I_switch(ndata, env) {
-  return (new EF_Switch(ndata, env)).cont(0);
+  return cont(new EF_Switch(ndata, env), 0);
 }
 
 exports.Switch = makeINCtor(I_switch);
@@ -1257,7 +1299,7 @@ EF_Try.prototype.abort = function() {
     }
     else {
       // attempt to execute retract/finally blocks synchronously:
-      if (this.cont(0, UNDEF) != this)
+      if (cont(this, 0, UNDEF) != this)
         return;
       // ... else fall through. we need to block
     }
@@ -1266,7 +1308,7 @@ EF_Try.prototype.abort = function() {
 };
 
 function I_try(ndata, env) {
-  return (new EF_Try(ndata, env)).cont(0);
+  return cont(new EF_Try(ndata, env), 0);
 }
 
 exports.Try = makeINCtor(I_try);
@@ -1378,7 +1420,7 @@ EF_Loop.prototype.cont = function(idx, val) {
 };
 
 function I_loop(ndata, env) {
-  return (new EF_Loop(ndata, env)).cont(NDATA_LOOP_INIT_STATE(), true);
+  return cont(new EF_Loop(ndata, env), NDATA_LOOP_INIT_STATE(), true);
 }
 
 exports.Loop = makeINCtor(I_loop);
@@ -1486,7 +1528,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
 };
 
 function I_forin(ndata, env) {
-  return (new EF_ForIn(ndata, env)).cont(0);
+  return cont(new EF_ForIn(ndata, env), 0);
 }
 
 exports.ForIn = makeINCtor(I_forin);
@@ -1634,7 +1676,7 @@ EF_Par.prototype.setChildFrame = function(ef, idx) {
 };
 
 function I_par(ndata, env) {
-  return (new EF_Par(ndata, env)).cont(-1);
+  return cont(new EF_Par(ndata, env), -1);
 }
 
 exports.Par = makeINCtor(I_par);
@@ -1711,7 +1753,7 @@ EF_Alt.prototype.cont = function(idx, val) {
           // only our collapsing branch is left; continue with it
           var cf = this.collapsing.cf;
           this.collapsing = UNDEF;
-          cf.cont(1);
+          cont(cf, 1);
         }
         return;
       }
@@ -1826,7 +1868,7 @@ EF_Alt.prototype.docollapse = function(branch, cf) {
 };
 
 function I_alt(ndata, env) {
-  return (new EF_Alt(ndata, env)).cont(-1);
+  return cont(new EF_Alt(ndata, env), -1);
 }
 
 exports.Alt = makeINCtor(I_alt);
@@ -1855,7 +1897,7 @@ var ResumeQueue = {
     this.messages = [];
     for (var i=0; i<ms.length; ++i) {
       var m = ms[i];
-      m[0].cont(m[1],m[2]);
+      cont(m[0],m[1],m[2]);
     }
   }
 };
@@ -1904,7 +1946,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
   // XXX We could return something from resumefunc
   var resumefunc = function() {
     try {
-      ef.cont(2, arguments)
+      cont(ef, 2, arguments)
     }
     catch(e) {
       var s = function() { throw e; };
@@ -1946,7 +1988,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
         }
         // ... else fall through
       }
-      return this.cont(3, null);
+      return cont(this, 3, null);
     }
     
     if (is_ef(val)) {
@@ -2031,7 +2073,7 @@ EF_Suspend.prototype.abort = function() {
 };
 
 function I_sus(ndata, env) {
-  return (new EF_Suspend(ndata, env)).cont(0);
+  return cont(new EF_Suspend(ndata, env), 0);
 }
 
 exports.Suspend = makeINCtor(I_sus);
@@ -2087,7 +2129,7 @@ EF_SpawnWaitFrame.prototype.abort = function() {
 }
 EF_SpawnWaitFrame.prototype.cont = function(val) {
   if (this.parent)
-    this.parent.cont(this.parent_idx, val);
+    cont(this.parent, this.parent_idx, val);
 }
 
 function I_spawn(ndata, env) {
@@ -2104,7 +2146,7 @@ function I_spawn(ndata, env) {
                              NDATA_SPAWN_LINE(),
                              env.file);
       while (waitarr.length)
-        waitarr.shift().cont(val);
+        cont(waitarr.shift(), val);
     },
     value : function() {
       if (!async) { picked_up=true; return val; }
@@ -2156,11 +2198,11 @@ function I_spawn(ndata, env) {
     }
     else
       while (waitarr.length)
-        waitarr.shift().cont(val);
+        cont(waitarr.shift(), val);
     
   }
   var ef = new EF_Spawn(ndata, env, notifyAsync, notifyVal);
-  ef.cont(0);
+  cont(ef, 0);
   return stratum;
 }
   
@@ -2212,7 +2254,7 @@ EF_Collapse.prototype.quench = function() {};
 EF_Collapse.prototype.abort = function() {};
 
 function I_collapse(ndata, env) {
-  return (new EF_Collapse(ndata, env)).cont(0);
+  return cont(new EF_Collapse(ndata, env), 0);
 }
   
 exports.Collapse = makeINCtor(I_collapse);
@@ -2233,7 +2275,7 @@ exports.Hold = function(/*args*/) {
               quench: function() { sus = null; this.co.cancel(); }
 #endif
             };
-  sus.co = setTimeout(function() { if (sus && sus.parent) sus.parent.cont(sus.parent_idx, UNDEF); },
+  sus.co = setTimeout(function() { if (sus && sus.parent) cont(sus.parent, sus.parent_idx, UNDEF); },
                       arguments[0]);
   return sus;
 };
