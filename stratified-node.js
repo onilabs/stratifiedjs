@@ -1895,7 +1895,7 @@ if(fold.docollapse(this.env.branch,this))return true;
 
 this.async=true;
 return this;
-}else if(idx==1)this.returnToParent(true);else this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata[0],this.env.file));
+}else if(idx==1)return this.returnToParent(true);else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata[0],this.env.file));
 
 
 

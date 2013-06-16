@@ -2243,10 +2243,10 @@ EF_Collapse.prototype.cont = function(idx, val) {
     return this;
   }
   else if (idx == 1) // returning from collapsing
-    this.returnToParent(true);
+    return this.returnToParent(true);
   else 
-    this.returnToParent(new CFException("t", "Internal error in SJS runtime (collapse)",
-                                        this.NDATA_COLLAPSE_LINE(), this.env.file));
+    return this.returnToParent(new CFException("t", "Internal error in SJS runtime (collapse)",
+                                               this.NDATA_COLLAPSE_LINE(), this.env.file));
 };
 
 // don't need to do anything for quenching/aborting. we'll never be prodded by upstream after an abort.
