@@ -93,10 +93,10 @@ testEq("['a','b','c'] .. consume{ |next| hold(.) ...}", 'abcx', function() {
   return rv;
 });
 
-testEq("'abcdefghij' .. parallelize(5) .. each", 'abcdefghij', function() {
+testEq("'abcdefghij' .. each.par(5)", 'abcdefghij', function() {
   var rv = '';
   var eachs = 0, max_concurrent_eachs = 0;
-  'abcdefghij' .. s.parallelize(5) .. s.each {
+  'abcdefghij' .. s.each.par(5) {
     |x|
     ++eachs;
     max_concurrent_eachs = Math.max(eachs, max_concurrent_eachs);
@@ -105,23 +105,6 @@ testEq("'abcdefghij' .. parallelize(5) .. each", 'abcdefghij', function() {
     --eachs;
   }
   if (max_concurrent_eachs != 5) return "Parallelism didn't feed through";
-  return rv;
-});
-
-
-testEq("'abcdefghij' .. parallelize(5) .. consume", 'abcdefghij', function() {
-  var rv = '';
-  var loops = 0;
-  'abcdefghij' .. s.parallelize(5) .. s.consume {
-    |next|
-    var x;
-    ++loops;
-    while (x = next()) {
-      rv += x;
-      hold(Math.random()*100);
-    }
-  }
-  if (loops != 5) return "Parallelism didn't feed through";
   return rv;
 });
 
@@ -167,9 +150,9 @@ testEq('each is ordered', [1,2,3], function() {
   return res;
 });
 
-testEq('parallelized each is temporaly ordered', [3,2,1], function() {
+testEq('each.par is temporaly ordered', [3,2,1], function() {
   var res = [];
-  [1,2,3] .. s.parallelize .. s.each(
+  [1,2,3] .. s.each.par(
     withDecreasingTimeout(function(elem) { res.push(elem); }));
   return res;
 });
@@ -183,9 +166,9 @@ testEq('each doesn\'t swallow all exceptions', 'expected error', function() {
   }
 });
 
-testEq('parallelized map', {order: [3,2,1], result: [6,4,2]}, function() {
+testEq('map.par', {order: [3,2,1], result: [6,4,2]}, function() {
   var order = [];
-  var result = [1,2,3] .. s.parallelize .. s.map(
+  var result = [1,2,3] .. s.map.par(
     withDecreasingTimeout(function(elem) {
       order.push(elem);
       return elem * 2;
@@ -215,6 +198,18 @@ testEq('transform', {order: [1,2,3], result: [2,4,6]}, function() {
   return {order: order, result: result .. toArray()};
 });
 
+testEq('transform.par', {order: [3,2,1], result: [6,4,2]}, function() {
+  var order = [];
+  var result = [1,2,3] .. s.transform.par(
+    withDecreasingTimeout(function(elem) {
+      order.push(elem);
+      return elem * 2;
+    }));
+  assert.ok(s.isStream(result));
+  return {order: order, result: result .. toArray()};
+});
+
+
 testEq('find returns early', {checked: [1,2], result: 2}, function() {
   var order = [];
   var result = s.find([1,2,3],
@@ -225,9 +220,9 @@ testEq('find returns early', {checked: [1,2], result: 2}, function() {
   return {checked: order, result: result};
 });
 
-testEq('parallelized find returns early', {checked: [3,2], result: 2}, function() {
+testEq('find.par returns early', {checked: [3,2], result: 2}, function() {
   var order = [];
-  var result = [1,2,3] .. s.parallelize .. s.find(
+  var result = [1,2,3] .. s.find.par(
     withDecreasingTimeout(function(elem) {
       order.push(elem);
       return elem == 2;
@@ -235,13 +230,13 @@ testEq('parallelized find returns early', {checked: [3,2], result: 2}, function(
   return {checked: order, result: result};
 });
 
-testEq('find / parallelized find return undefined if not found',
+testEq('find / find.par return undefined if not found',
     [undefined, undefined],
     function() {
   var fn = function() { return false; };
   var c = [1,2,3];
   return [
-    s.find(s.parallelize(c), fn),
+    s.find.par(c, fn),
     s.find(c, fn)
   ];
 });
@@ -260,9 +255,9 @@ test('filter with no arguments') {||
   s.filter([1,true, 0, 3, null]) .. s.toArray() .. assert.eq([1, true, 3]);
 };
 
-testEq('parallelized filter', {checked: [3,2,1], result: [3,1]}, function() {
+testEq('filter.par', {checked: [3,2,1], result: [3,1]}, function() {
   var checked = [];
-  var result = [1,2,3] .. s.parallelize .. s.filter(
+  var result = [1,2,3] .. s.filter.par(
     withDecreasingTimeout(function(elem) {
       checked.push(elem);
       return elem != 2;
@@ -286,9 +281,9 @@ testEq('reduce1 on empty array', 'reduce1 on empty sequence', function() {
   }
 });
 
-testEq('parallel any returns early', {checked: [3, 2], result: true}, function() {
+testEq('any.par returns early', {checked: [3, 2], result: true}, function() {
   var checked = [];
-  var result = [1,2,3] .. s.parallelize .. s.any(
+  var result = [1,2,3] .. s.any.par(
     withDecreasingTimeout(function(elem) {
       checked.push(elem);
       return elem == 2;
@@ -312,9 +307,9 @@ testEq('any returns false when there is no match', false, function() {
   return s.any(c, fn);
 });
 
-testEq('parallelized all returns early', {checked: [3, 2], result: false}, function() {
+testEq('all.par returns early', {checked: [3, 2], result: false}, function() {
   var checked = [];
-  var result = [1,2,3] .. s.parallelize .. s.all(
+  var result = [1,2,3] .. s.all.par(
     withDecreasingTimeout(function(elem) {
       checked.push(elem);
       return elem != 2;
@@ -332,10 +327,10 @@ testEq('all returns early', {checked: [1, 2], result: false}, function() {
   return {checked:checked, result:result};
 });
 
-testEq('all / parallelized all returns true when all match', [true, true], function() {
+testEq('all / all.par returns true when all match', [true, true], function() {
   var c = [1,2,3];
   var fn = function() { return true; };
-  return [s.all(c, fn), s.all(s.parallelize(c), fn)];
+  return [s.all(c, fn), s.all.par(c, fn)];
 });
 
 testEq('generate', [1,2,3], function() {
@@ -344,21 +339,21 @@ testEq('generate', [1,2,3], function() {
   return s.generate(generator) .. s.take(3) .. s.toArray ;
 });
 
-testEq('parallelize scaling', 10000, function() {
+testEq('each.par scaling', 10000, function() {
   var i=0;
-  s.integers() .. s.parallelize(10000) .. s.each { 
+  s.integers() .. s.each.par(10000) { 
     |x|
     
     if (++i == 10000) break;
-//    if (i%1000 == 0) process.stdout.write('.');
+    //if (i%1000 == 0) process.stdout.write('.');
     hold();
   }
   return i;
 });
 
-testEq('parallelize teardown', '123ff.', function() {
+testEq('each.par teardown', '123ff.', function() {
   var rv='';
-  s.integers(1) .. s.parallelize .. s.each {
+  s.integers(1) .. s.each.par {
     |x|
     rv += x;
     if (x == 3) break;
@@ -368,10 +363,10 @@ testEq('parallelize teardown', '123ff.', function() {
   return rv;
 });
 
-testEq('parallelize teardown on exception', '12345fffffe.', function() {
+testEq('each.par teardown on exception', '12345fffffe.', function() {
   var rv='';
   try {
-    s.integers(1) .. s.parallelize(5) .. s.each {
+    s.integers(1) .. s.each.par(5) {
       |x|
       try {
         rv += x; 

@@ -66,8 +66,8 @@ var {isArrayLike, expandSingleArgument} = require('builtin:apollo-sys');
    @desc
      A streaming function `S` is a function with signature `S(r)`, where `r`, the *receiver function*, is a 
      function of a single argument.
-     When called, `S(r)` must sequentially invokes `r(x)` with the stream's data elements 
-     `x=x1,x2,x3,...` until the stream is empty.
+     When called, `S(r)` must sequentially invoke `r(x)` with the stream's data elements 
+     `x=x1,x2,x3,...` until the stream is empty. `S` must not invoke `r` reentrantly.
 
      ### Example:
      
@@ -217,6 +217,10 @@ function exhaust(seq) { each(seq, noop); }
      elements from `sequence`. If there are no more elements in `sequence`,
      calls to `next()` will yield `eos`.
 
+     It is *not* safe to call `next()` concurrently from multiple
+     strata. If you need to do that, sequentialize access to `next`
+     using e.g. [function::sequential].
+
      ### Example:
 
          consume([1,2,3,4], function(next) {
@@ -236,114 +240,69 @@ function exhaust(seq) { each(seq, noop); }
      
 */
 
-/*
-   Support for parallel streams makes the 'consume' implementation quite complicated.
-   Here's what it would looks like if we disallowed parallel streams, i.e. 'each(stream,f)'
-   would guarantee to never call 'f' reentrantly when 'f' blocks:
-
-   function iterate_single_stratum_version(/ * sequence, [opt]eos, loop* /) {
-
-     var sequence, eos, loop;
-     if (arguments.length > 2)
-       [sequence, eos, loop] = arguments;
-     else
-       [sequence, loop] = arguments;
-
-     var emit_next,want_next;
-
-     function next() {
-       waitfor(var rv) {
-         emit_next = resume;
-         want_next();
-       }
-       return rv;
-     }
-
-     waitfor {
-       waitfor() { want_next = resume }
-       sequence .. each { 
-         |x|
-         waitfor() { 
-           want_next = resume;
-           emit_next(x);
-         }
-       }
-       while (1) {
-         waitfor() {
-           want_next = resume;
-           emit_next(eos);
-         }
-       }
-     }
-     or {
-       loop(next);
-     }
-  }
-*/
 function consume(/* sequence, [opt]eos, loop */) {
+  
   var sequence, eos, loop;
   if (arguments.length > 2)
     [sequence, eos, loop] = arguments;
   else
     [sequence, loop] = arguments;
-
-  var wants = []; // wants are issued by loops ready to receive their
-                  // next value; for a n-parallel stream there can be n concurrent wants
-  var waitfor_loop; // set by waitfor_all_loops
-  var active_loops = 0;
-
-  function waitfor_all_loops() {
-    waitfor(var loop) { waitfor_loop = resume }
-    waitfor {
-      ++active_loops;
-      loop.value();
-      if (--active_loops == 0) return;
+  
+  var emit_next, want_next;
+  
+  // Note: it is *not* safe to call `next` concurrently from multiple
+  // strata! We could guard against that by wrapping the function in
+  // [function::sequential], but since it's an uncommon thing, let's
+  // leave the responsibility with the caller.
+  var next = function() {
+    if (emit_next) throw new Error("Must not make concurrent calls to a `consume` loop's `next` function.");
+    waitfor(var rv) {
+      emit_next = resume;
+      want_next();
     }
-    and {
-      waitfor_all_loops();
-    }
-  }
+    finally { emit_next = undefined; }
+    return rv;
+  };
 
-  function runLoop(getNext, x) {
-    var have_x = true;
-    function next() {
-      if (!have_x) {
-        if (getNext) {
-          waitfor(x, getNext) { wants.push(resume); getNext(); }
-        }
-        else
-          return eos;
-      }
-      else
-        have_x = false; // we use the getNext from the closure in the following next() call
-      return x;
-    }
-
-    waitfor_loop(spawn loop(next));
-  }
-
+  // We do two things at the same time:
+  // - retrieve elements from sequence 's' using 'each'
+  // - run the user provided 'loop'
+  // element retrieval is paced by calls the user makes to 'next' in 'loop'
   waitfor {
-    waitfor_all_loops()
+    // Element retrieval
+    
+    // First wait until the user loop requests the first element:
+    waitfor() { want_next = resume }
+
+    // Now play the sequence:
+    sequence .. each { 
+      |x|
+      // Emit x to the user loop, and wait for the next element to be
+      // requested. Note how we *first* set up the 'want_next'
+      // listener and then emit x. This ensures that everything works
+      // in the synchronous case, where 'emit_next' causes 'want_next'
+      // to be called synchronously.
+      waitfor() {
+        want_next = resume;
+        emit_next(x);
+      }
+    }
+
+    // The sequence has finished. Emit 'eos' until exiting of the
+    // user loop pulls down the waitfor-or:
+    while (1) {
+      waitfor() {
+        want_next = resume;
+        emit_next(eos);
+      }
+    }
   }
   or {
-    sequence .. each {
-      |x|
-      // for a parallel stream this function will be called reentrantly!
-
-      waitfor() {
-        if (!wants.length)
-          runLoop(resume, x);
-        else
-          wants.shift()(x, resume);
-      }
-    }
-    // there should be at least one loop waiting
-    // ASSERT(wants.length >= 1)
-    while (wants.length)
-      wants.shift()(eos);
-    hold(); // we wait for all the loops to terminate
+    // User loop; this also dictates the lifetime of the whole
+    // waitfor-or: When the user loop exits, the whole waitfor-or gets
+    // torn down.
+    loop(next);
   }
-
 }
 exports.consume = consume;
 
@@ -807,9 +766,9 @@ exports.skipWhile = skipWhile;
 
 /**
    @function filter
-   @altsyntax sequence .. filter(predicate)
+   @altsyntax sequence .. filter([predicate])
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [predicate] Predicate function
+   @param {optional Function} [predicate] Predicate function
    @return {::Stream}
    @summary  Create a stream of elements of `sequence` that satisfy `predicate`
    @desc
@@ -1378,48 +1337,6 @@ function any(sequence, p) {
 }
 exports.any = any;
 
-/**
-   @function parallelize
-   @altsyntax sequence .. parallelize([max_strata])
-   @param {::Sequence} [sequence] Input sequence
-   @param {optional Integer} [max_strata=10] Maximum number of parallel strata to spawn
-   @return {::Stream}
-   @summary  Parallelize a sequence
-   @desc
-      Generates a parallelized stream from `sequence`.
-*/
-function parallelize(sequence, max_strata) {
-  max_strata = max_strata || 10;
-  return Stream(function(r) {
-    var eos = {}, count = 0;
-    sequence .. consume(eos) {
-      |next|
-      function dispatch() {
-        var x = next();
-        if (x === eos) return;
-        waitfor {
-          ++count;
-          r(x);
-          if (count-- == max_strata) dispatch();
-        }
-        and {
-          if (count < max_strata) dispatch();
-        }
-        and {
-          // by adding another dispatch() call clause here, we ensure
-          // that we don't build a long linear chain of dispatch
-          // calls, but a tree. this greatly aids scaling with large
-          // parallelism
-          if (count < max_strata) dispatch();
-        }
-      }
-      dispatch();
-    }
-  })
-}
-exports.parallelize = parallelize;
-
-
 /* NOT PART OF DOCUMENTED API YET
    @function makeIterator
    @summary To be documented
@@ -1501,4 +1418,264 @@ function fib() {
   })
 }
 exports.fib = fib;
+
+//----------------------------------------------------------------------
+// parallel sequence operations
+
+/**
+   @function each.par
+   @altsyntax sequence .. each.par([max_strata]) { |item| ... }
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `f`. (undefined == unbounded)
+   @param {Function} [f] Function to execute for each `item` in `sequence`
+   @return {::Sequence} The `sequence` that was passed in.
+   @summary Executes `f(item)` for each `item` in `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
+*/
+each.par = function(/* seq, max_strata, r */) {
+  var seq, max_strata, r;
+  if (arguments.length === 2)
+    [seq, r] = arguments;
+  else /* arguments.length == 3 */
+    [seq, max_strata, r] = arguments;
+
+  if (!max_strata) max_strata = -1;
+
+  var eos = {};
+  seq .. consume(eos) {
+    |next|
+
+    // flag shared between all `inner` calls that indicates whether
+    // one of them is currently in a (blocking) call to `next`. `next`
+    // must not be called from multiple strata concurrently.
+    var waiting_for_next = false;
+
+    // depth counter for asynchronising the generation of our `inner`
+    // nodes; see below
+    var depth = 0;
+
+    /* 
+       inner() operates in two modes: If `r` doesn't block, then
+       we stay in a loop ('sync' mode)
+
+           while (1) { var x = next(); r(x); }
+
+       If `r` blocks and we haven't exhausted our maximum number of
+       strata, then we run a concurrent call to `inner` (see
+       `async_trigger`), effectively building a tree of waitfor/and
+       `inner` nodes. This also puts the current `inner` node into
+       'async' mode: We break out of the 'sync' mode loop when r() is
+       done to give the node a chance to drop out of the tree (by
+       tail-call machinery). 
+
+       Note: It appears that this function could be written in a much
+       simpler way, e.g. replacing the async_trigger call with a
+       direct call to `inner`, or removing the while()-loop and just
+       always building a recursive tree. There are reasons though why
+       the function is structured in the way it is:
+
+         - We want it to be tail-call safe, so that we can run in
+           bounded memory.
+
+         - It needs to perform well even when both the upstream and
+           downstream are non-blocking (and all combinations of
+           blocking/non-blocking)
+    */
+    function inner() { 
+      var async = false;
+      waitfor {
+        waitfor() { var async_trigger = resume; }
+        async = true;
+        inner();
+      }
+      and {
+        while (1) {
+          waiting_for_next = true;
+          var x = next();
+          if (x === eos) return;
+          waiting_for_next = false;
+
+          if (--max_strata === 0) {
+            r(x);
+            ++max_strata;
+            if (waiting_for_next) return;
+          }
+          else {  
+            waitfor {
+              r(x);
+              ++max_strata;
+              if (!async && !waiting_for_next) continue;
+            }
+            and {
+              // the hold(0) is necessary to put us into
+              // tail-recursive mode, so that we don't blow the stack
+              // when next() generates data without blocking.  for
+              // performance reasons we only do this only after having
+              // built the tree to a certain depth:
+              if (++depth % 100 == 0)
+                hold(0); 
+              if (!waiting_for_next) {
+                async_trigger();
+              }
+            }
+            break;
+          }
+        }
+        if (max_strata === 1) {
+          // we're operating at the strata limit; process the next
+          // item from upstream:
+          inner();
+        }
+      }
+    }
+    // kick things off:
+    inner();
+  }
+  return seq;
+};
+
+/**
+   @function map.par
+   @altsyntax sequence .. map.par([max_strata], f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `f`. (undefined == unbounded)
+   @param {Function} [f] Function to apply to each element of `sequence`
+   @return {Array}
+   @summary  Create an array `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
+   @desc
+      The order of the resulting array will be determined by the order in 
+      which the concurrent calls to `f` complete.
+*/
+map.par = function(/* sequence, max_strata, f */) {
+  var sequence, max_strata, f;
+  if (arguments.length === 2)
+    [sequence, f] = arguments;
+  else /* arguments.length == 3 */
+    [sequence, max_strata, f] = arguments;
+
+  var r=[];
+  sequence .. each.par(max_strata) {|x| r.push(f(x)) }
+  return r;
+};
+
+/**
+   @function transform.par
+   @altsyntax sequence .. transform.par([max_strata], f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `f`. (undefined == unbounded)
+   @param {Function} [f] Function to apply to each element of `sequence`
+   @return {::Stream}
+   @summary  Create a stream `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
+   @desc
+      The order of the resulting stream will be determined by the order in 
+      which the concurrent calls to `f` complete.
+*/
+transform.par = function(/* sequence, max_strata, f */) {
+  var sequence, max_strata, f;
+  if (arguments.length === 2)
+    [sequence, f] = arguments;
+  else /* arguments.length == 3 */
+    [sequence, max_strata, f] = arguments;
+
+  return Stream(function(r) {
+    sequence .. each.par(max_strata) { |x| r(f(x)) }
+  });
+};
+
+/**
+   @function find.par
+   @altsyntax sequence .. find.par([max_strata], p, [defval])
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `p`. (undefined == unbounded)
+   @param {Function} [p] Predicate function
+   @param {optional Object} [defval=undefined] Default value to return if no match is found
+   @return {Object} Matching element or `defval` if no match was found
+   @summary Find first element `x` of `sequence` for which `p(x)` is truthy. Up to `max_strata` concurrent calls to `f` will be performed at any one time.
+*/
+find.par = function(/* sequence, max_strata, p, defval */) {
+  var sequence, max_strata, p, defval;
+  if (typeof arguments[1] == 'function')
+    [sequence, p, defval] = arguments;
+  else
+    [sequence, max_strata, p, defval] = arguments;
+
+  sequence .. each.par(max_strata) { |x| if (p(x)) return x }
+  return defval;
+};
+
+/**
+   @function filter.par
+   @altsyntax sequence .. filter.par([max_strata], [predicate])
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `predicate`. (undefined == unbounded)
+   @param {optional Function} [predicate] Predicate function (default = identity function).
+   @return {::Stream}
+   @summary  Create a stream of elements of `sequence` that satisfy `predicate`. Up to `max_strata` concurrent calls to `predicate` will be performed at any one time.
+   @desc
+      The order of the resulting stream will be determined by the order in 
+      which the concurrent calls to `predicate` complete.
+*/
+filter.par = function(/* sequence, max_strata, predicate */) {
+  var sequence, max_strata, predicate;
+  if (arguments.length == 1)
+    [sequence] = arguments;
+  else if (arguments.length == 2) {
+    if (typeof arguments[1] == 'function')
+      [sequence, predicate] = arguments;
+    else
+      [sequence, max_strata] = arguments;
+  }
+  else
+    [sequence, max_strata, predicate] = arguments;
+      
+  if (!predicate) predicate = id;
+
+  return Stream(function(r) {
+    sequence .. each.par(max_strata) {
+      |x|
+      if (predicate(x))
+        r(x);
+    }
+  });
+};
+
+
+/**
+   @function all.par
+   @altsyntax sequence .. all.par([max_strata], p)
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `p`. (undefined == unbounded)
+   @param {Function} [p] Predicate function
+   @return {Boolean} 
+   @summary Returns `true` if `p(x)` is truthy for all elements in `sequence`, `false` otherwise. Up to `max_strata` concurrent calls to `p` will be performed at any one time.
+*/
+all.par = function(/* sequence, max_strata, p */) {
+  var sequence, max_strata, p;
+  if (arguments.length == 2) 
+    [sequence, p] = arguments;
+  else
+    [sequence, max_strata, p] = arguments;
+
+  sequence .. each.par(max_strata) { |x| if (!p(x)) return false }
+  return true;
+};
+
+/**
+   @function any.par
+   @altsyntax sequence .. any.par([max_strata], p)
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `p`. (undefined == unbounded)
+   @param {Function} [p] Predicate function
+   @return {Boolean} 
+   @summary Returns `true` if `p(x)` is truthy for any elements in `sequence`, `false` otherwise. Up to `max_strata` concurrent calls to `p` will be performed at any one time.
+*/
+any.par = function(/* sequence, max_strata, p */) {
+  var sequence, max_strata, p;
+  if (arguments.length == 2) 
+    [sequence, p] = arguments;
+  else
+    [sequence, max_strata, p] = arguments;
+
+  sequence .. each.par(max_strata) { |x| if (p(x)) return true }
+  return false;
+};
 
