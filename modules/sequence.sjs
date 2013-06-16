@@ -874,17 +874,19 @@ exports.partition = partition;
 
       This function is eager - it will fully consume the input sequence before returning
       its result. If you want a lazy version which returns a stream of
-      items and doesn't perform operations until they are required, use [::transform].
+      items and doesn't perform operations until they are required, use [::transform]. 
+      
+      `seq .. map(f)` is in effect equivalent to `seq .. transform(f) .. toArray`.
 
       ### Example:
 
           // print first 10 squares:
 
-          each(take(map(integers(), x=>x*x), 10), function(x) { console.log(x) })
+          each(map(take(integers(), 10), x=>x*x), function(x) { console.log(x) })
 
           // same as above, with double dot and blocklamdba syntax:
 
-          integers() .. map(x=>x*x) .. take(10) .. each { |x| console.log(x) }
+          integers() .. take(10) .. map(x=>x*x) .. each { |x| console.log(x) }
 */
 function map(sequence, f) {
   var r=[];
@@ -901,10 +903,37 @@ exports.map = map;
    @return {::Stream}
    @summary  Create a stream `f(x)` of elements `x` of `sequence`
    @desc
-      Acts like [::map], but lazily - it returns a stream instead of an Array.
+      Acts like [::map], but lazily - it returns a [::Stream] instead of an Array.
 
-      Note that if you iterate over the resulting stream more than once,
-      the results will be re-computed each time.
+      ### Example:
+
+          // print first 10 squares:
+
+          each(take(transform(integers(), x=>x*x), 10), function(x) { console.log(x) })
+
+          // same as above, with double dot and blocklamdba syntax:
+
+          integers() .. transform(x=>x*x) .. take(10) .. each { |x| console.log(x) }
+
+      Note that, because `transform` is lazy, if you iterate over the
+      resulting stream more than once, the results will be re-computed
+      each time:
+
+          var squares = [1,2,3,4] .. transform(x=>x*x);
+
+          squares .. each { |x| ... } // squares will be calculated as we iterate
+          ...
+          squares .. each { |x| ... } // squares will be calculated *again* 
+          
+      This is in contrast to [::map], which generates an array:
+
+          var squares = [1,2,3,4] .. map(x=>x*x);
+          // squares have now been calculated and put into an array
+          
+          squares .. each { |x| ... } // no recalculation here
+          ...
+          squares .. each { |x| ... } // neither here
+
 */
 function transform(sequence, f) {
   return Stream(function(r) {
