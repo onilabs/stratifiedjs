@@ -73,9 +73,9 @@ var seq = require('sjs:sequence');
 time("sequence", function() {
   var dummy;
   seq.integers() .. 
-    seq.map(x => x*x) ..
+    seq.transform(x => x*x) ..
     seq.pack(next => [next(), next()]) ..
-    seq.map([x,y] => [x*y, x+y]) ..
+    seq.transform([x,y] => [x*y, x+y]) ..
     seq.unpack(x=>x) ..
     seq.take(10000) ..
     seq.each { 
