@@ -112,7 +112,7 @@ function alt_test() {
 }
 time("waitforFirst/10000", alt_test);
 
-time("BROKEN: tail recursion", function() {
+time("tail recursion", function() {
   
   function r(level) {
     hold(0);
@@ -122,9 +122,9 @@ time("BROKEN: tail recursion", function() {
   }
 
   return r(100000);
-}).skip().serverOnly(); // browser hold(0) is too slow
+}).serverOnly(); // browser hold(0) is too slow
 
-time("BROKEN: waitfor/and tail recursion", function() {
+time("waitfor/and tail recursion", function() {
   
   function r(level) {
     hold(0);
@@ -140,5 +140,5 @@ time("BROKEN: waitfor/and tail recursion", function() {
   }
 
   return r(100000);
-}).skip().serverOnly(); // browser hold(0) is too slow
+}).serverOnly(); // browser hold(0) is too slow
 
