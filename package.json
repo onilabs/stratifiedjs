@@ -2,9 +2,9 @@
   "name": "stratifiedjs",
   "description": "StratifiedJS Framework",
   "author" : "Oni Labs <maintainers@onilabs.com>",
-  "version" : "0.14.0",
+  "version" : "0.14.0-alpha.2",
   "homepage" : "http://onilabs.com/stratifiedjs",
-  "private" : true,
+  "private" : false,
   "repository":   {
     "type": "git",
     "url": "git://github.com/onilabs/stratifiedjs.git"
@@ -13,7 +13,7 @@
   "main": "stratified-node",
   "bin": { "sjs": "sjs", "rocket": "rocket" },
   "devDependencies": {
-    "karma": "https://github.com/gfxmonk/karma/archive/master.tar.gz"
+    "karma": "https://github.com/gfxmonk/karma/archive/75827fa22b99768a4dc9152547df14070510fa6b.tar.gz"
   },
   "engines": { "node": ">=0.4.1" }
 }
