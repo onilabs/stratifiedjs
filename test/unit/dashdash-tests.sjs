@@ -607,7 +607,7 @@ cases .. seq.indexed .. seq.each {|pair|
     if (typeof (argv) === 'string') {
         argv = argv.split(/\s+/);
     }
-    // remove `nodejs`, in line with apollo's argv
+    // remove `nodejs`, in line with sjs's argv
     argv = argv.slice(1);
     var env = c.env;
     delete c.env;

@@ -128,19 +128,19 @@ context("jsonp") {||
 
 context("full return objects") {||
   testEq('head request', 'text/plain', function() {
-    return http.request("http://code.onilabs.com/apollo/unstable/modules/http.sjs",
+    return http.request("http://code.onilabs.com/stratifiedjs/unstable/modules/http.sjs",
                         { method: 'HEAD', response: 'full' }).getHeader('Content-Type');
   }).skipIf(IE9);
 
   testEq('get request', true, function() {
-    return http.request("http://code.onilabs.com/apollo/unstable/modules/http.sjs",
+    return http.request("http://code.onilabs.com/stratifiedjs/unstable/modules/http.sjs",
                         { method: 'GET', response: 'full' }).content.length > 0;
   });
 }
 
 context("raw return objects") {||
   test('returns an unconsumed response stream', function() {
-    var response = http.request("http://code.onilabs.com/apollo/unstable/modules/http.sjs", { response: 'raw' });
+    var response = http.request("http://code.onilabs.com/stratifiedjs/unstable/modules/http.sjs", { response: 'raw' });
     assert.eq(response.headers['content-type'], 'text/plain');
     var data = "";
     var chunk;

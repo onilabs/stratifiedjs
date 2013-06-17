@@ -1,8 +1,8 @@
 /*
  * C1 Stratified JavaScript parser 
  *
- * Part of Oni Apollo
- * http://onilabs.com/apollo
+ * Part of StratifiedJS
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
@@ -29,7 +29,7 @@
  
   kernel-js.js.in    : plain JS compiler (just for sanity checking)
   kernel-jsmin.js.in : JS/SJS minifier/stringifier
-  kernel-sjs.js.in   : SJS compiler (targetting apollo vm)
+  kernel-sjs.js.in   : SJS compiler (targetting stratifiedjs vm)
 
  Which kernel file is included is determined by preprocessor flags;
  see below.

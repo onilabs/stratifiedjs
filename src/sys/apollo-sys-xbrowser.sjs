@@ -3,8 +3,8 @@
  *
  * Cross-browser ('xbrowser') version
  *
- * Part of the Oni Apollo StratifiedJS Runtime
- * http://onilabs.com/apollo
+ * Part of the StratifiedJS Runtime
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
@@ -390,7 +390,7 @@ function getHubs_hostenv() {
                   determineLocation().location : 
                   { src: function(path) { 
                       throw new Error("Can't load module '"+path+
-                                      "': The location of the apollo standard module lib is unknown - it can only be inferred automatically if you load stratified.js in the normal way through a <script> element."); }
+                                      "': The location of the StratifiedJS standard module lib is unknown - it can only be inferred automatically if you load stratified.js in the normal way through a <script> element."); }
                   } ],
     ["github:",   {src:github_src_loader}],
     ["http:",     {src:http_src_loader}],

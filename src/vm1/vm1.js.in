@@ -1,8 +1,8 @@
 /*
- * VM1 Stratified JavaScript Virtual Machine 
+ * VM1 Stratified JavaScript Virtual Machine
  *
- * Part of Oni Apollo
- * http://onilabs.com/apollo
+ * Part of StratifiedJS
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011-2013 Oni Labs, http://onilabs.com
  *
@@ -135,7 +135,7 @@ function adopt_native_stack(e, caller_module) {
     if((caller_module && lines[i].indexOf(caller_module) != -1) ||
        lines[i].indexOf("stratified-node.js") != -1 ||
        lines[i].indexOf("stratified.js") != -1 ) {
-      // we've hit an apollo stack line.
+      // we've hit an sjs stack line.
       break;
     }
     e.__oni_stack.push([lines[i]]);

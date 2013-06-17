@@ -1,6 +1,6 @@
 var testUtil = require('../lib/testUtil');
 var testEq = testUtil.test;
-var global = require("builtin:apollo-sys").getGlobal();
+var global = require('sjs:sys').getGlobal();
 var http = require('sjs:http');
 var logging = require('sjs:logging');
 var { merge } = require('sjs:object');
@@ -26,17 +26,17 @@ context("server-side") {||
   var url = require('sjs:url');
 
   var modulePath = path.join(url.toPath(module.id), '../');
-  var apolloPath = path.join(modulePath, '../../sjs');
+  var sjsPath = path.join(modulePath, '../../sjs');
   var dataPath = path.join(modulePath, dataRoot);
 
   var run_with_env = function(args, env)
   {
-    return child_process.run(apolloPath, args, {
+    return child_process.run(sjsPath, args, {
       env: merge(process.env, env || process.env)
     });
   }
   
-  test('apollo -e') {|s|
+  test('sjs -e') {|s|
     var result = run_with_env(['-e', 'require("util").puts("hi");'], null);
     result .. assert.eq({stdout: 'hi\n', stderr: ''})
   }

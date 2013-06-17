@@ -23,11 +23,11 @@ var isRunning = exports.isRunning = function(port) {
 var run = exports.run = function(port, opts) {
   var child_process = require("sjs:nodejs/child-process");
   opts = opts || {};
-  // Point $APOLLO_ROCKET to a stable implementation if you have broken rocket but
+  // Point $ROCKET to a stable implementation if you have broken rocket but
   // still want to run the rest of the tests:
   var basedir = module.id .. url.toPath() .. path.join("../../../") .. path.resolve();
   logging.verbose("rocket basedir: #{basedir}");
-  var rocket_exe = process.env['APOLLO_ROCKET'] || basedir .. path.join("rocket");
+  var rocket_exe = process.env['ROCKET'] || basedir .. path.join("rocket");
 
   var args = ['--port', port];
   if ('args' in opts) {

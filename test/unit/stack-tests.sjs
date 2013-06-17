@@ -251,9 +251,9 @@ test('tail call (ef concating)', "this_file:#{line+2}\nthis_file:#{line+7}\nthis
 
 line=252;
 test('long recursive callstack pruning', true, function() {
-  // less depth in browser-based apollo, because every hold(0) is a
+  // less depth in browser-based sjs, because every hold(0) is a
   // timeout, taking much longer that nextTick on nodejs
-  var depth = require('builtin:apollo-sys').hostenv == 'nodejs' ? 1000 : 100;
+  var depth = require('sjs:sys').hostenv == 'nodejs' ? 1000 : 100;
 
   function recurse() {
     hold(0);
@@ -273,9 +273,9 @@ test('long recursive callstack pruning', true, function() {
 
 line=274;
 test('long recursive callstack pruning 2', true, function() {
-  // less depth in browser-based apollo, because every hold(0) is a
+  // less depth in browser-based sjs, because every hold(0) is a
   // timeout, taking much longer that nextTick on nodejs
-  var depth = require('builtin:apollo-sys').hostenv == 'nodejs' ? 1000 : 100;
+  var depth = require('sjs:sys').hostenv == 'nodejs' ? 1000 : 100;
 
   function recurse1() {
     hold(0);

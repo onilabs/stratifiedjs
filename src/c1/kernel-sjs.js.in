@@ -1,8 +1,8 @@
 /*
- * C1 SJS -> Apollo VM compiler kernel 
+ * C1 SJS -> StratifiedJS VM compiler kernel 
  *
- * Part of Oni Apollo
- * http://onilabs.com/apollo
+ * Part of StratifiedJS
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *

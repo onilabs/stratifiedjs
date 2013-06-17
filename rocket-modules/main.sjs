@@ -2,11 +2,11 @@
  * Oni Rocket Web Application Server
  * Main application module
  *
- * Part of Oni Apollo
+ * Part of StratifiedJS
  * Version: '0.14.0'
- * http://onilabs.com/apollo
+ * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2013 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the GPL v2, see
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -58,8 +58,8 @@ function usage() {
 
 //----------------------------------------------------------------------
 
-var apollo_root = url.normalize('../', module.id) .. url.toPath();
-var root = apollo_root;
+var sjs_root = url.normalize('../', module.id) .. url.toPath();
+var root = sjs_root;
 var verbosity = 0;
 var port = "7070";
 var ssl_port = "4430";
@@ -252,7 +252,7 @@ var pathMap = [
     // we map the sjs client lib + modules under __oni/sjs:
     pattern: /__oni\/sjs(\/.*)$/,
     handler: serverfs.createMappedDirectoryHandler(
-      apollo_root,
+      sjs_root,
       PublicFileFormatMap,
       { allowDirListing: true,
         mapIndexToDir: true

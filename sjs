@@ -3,8 +3,8 @@
 
 var path = require('path');
 var fs   = require('fs');
-var apollo_home = path.dirname(fs.realpathSync(__filename));
-var apollo_node = require(apollo_home + '/stratified-node');
+var sjs_home = path.dirname(fs.realpathSync(__filename));
+var sjs_node = require(sjs_home + '/stratified-node');
 
 function usage() {
   return (
@@ -15,7 +15,7 @@ function usage() {
     "  -d, --dev           load development mode (src/build/devmode.sjs)\n" +
     "  -e, --eval STR      evaluate STR\n" +
     "  -c, --compile FILE  compile FILE\n" +
-    "\nDocumentation is at http://onilabs.com/apollo");
+    "\nDocumentation is at http://onilabs.com/stratifiedjs");
 }
 
 
@@ -28,7 +28,7 @@ function runSJScript(url) {
       // Note that file: URLs *must* be absolute paths.
       url = "file://" + fs.realpathSync(url);
     }
-    apollo_node.require(url, {
+    sjs_node.require(url, {
       // we provide a callback to prevent nodejs from showing a useless
       // call stack when there is an error:
       callback: function(err) {
@@ -47,7 +47,7 @@ function runSJScript(url) {
 function runRepl(beforeHook) {
   return function() {
     var runRepl = function() {
-      apollo_node.require('sjs:nodejs/repl', {
+      sjs_node.require('sjs:nodejs/repl', {
         callback: function(err, m) {
           if (err) throw err;
           m.runREPL();
@@ -65,11 +65,11 @@ function runRepl(beforeHook) {
 };
 
 function loadDevExtensions(next) {
-  apollo_node.require("./src/build/devmode", {callback:
+  sjs_node.require("./src/build/devmode", {callback:
     function(err, devmode) {
       if(err) throw err;
       process.stdout.write("devmode loaded (try `dev.eval` and `dev.build`)\n");
-      apollo_node.getGlobal().dev = devmode;
+      sjs_node.getGlobal().dev = devmode;
       return next();
     }
   });
@@ -77,9 +77,9 @@ function loadDevExtensions(next) {
 
 function runEval(str) {
   return function() {
-    // XXX eval'd code will be operating on global scope; place apollo's 'require' function there:
-    apollo_node.getGlobal().require = apollo_node.require;
-    return apollo_node.eval(str);
+    // XXX eval'd code will be operating on global scope; place sjs's 'require' function there:
+    sjs_node.getGlobal().require = sjs_node.require;
+    return sjs_node.eval(str);
   };
 };
 
@@ -150,4 +150,4 @@ process.on('uncaughtException',function(error){
   console.warn('Uncaught: '+error.toString());
 })
 
-apollo_node.init(main);
+sjs_node.init(main);

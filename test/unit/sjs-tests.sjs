@@ -4,6 +4,8 @@ var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var testParity = testUtil.testParity;
 
+var sys =  require('sjs:sys');
+
 testParity("9+6", function() { return 9 + 6; });
 testParity("9-6", function() { return 9 - 6; });
 testParity("false && true", function() { return false && true; });
@@ -118,9 +120,9 @@ test("suspended throw in if-altern", 1, function() { try { if(false) return 3; e
 
 test("empty strings", 0, function() { var a=""; return a.length; });
 
-test("sjs eval scoping 1", 1, function() { var xx = 0; require('builtin:apollo-sys').eval("xx=1"); return xx; }).skip("SJS eval always operates in global scope (like window.eval)");
+test("sjs eval scoping 1", 1, function() { var xx = 0; sys.eval("xx=1"); return xx; }).skip("SJS eval always operates in global scope (like window.eval)");
 
-test("sjs eval scoping 2", 1, function() { require('builtin:apollo-sys').eval("var yyy=1;"); return yyy; }).ignoreLeaks('yyy');
+test("sjs eval scoping 2", 1, function() { sys.eval("var yyy=1;"); return yyy; }).ignoreLeaks('yyy');
 
 testParity("(function() { try { return 1; } catch(e) { return 2; } finally { return 3; }})()", function() { try { return 1; } catch(e) { return 2; } finally { return 3; }});
 
@@ -164,7 +166,7 @@ testParity("var a={x:1}; delete a.x; a.x === undefined",
 // delete on 'window'. That's ok by the standard (window is a 'host
 // object'), so to test deletion we create an intermediate object
 // "deletetest":
-var global = require("builtin:apollo-sys").getGlobal();
+var global = sys.getGlobal();
 test("delete scoping", true, function() {
   global.deletetest = {};
   global.deletetest.x = 3;
@@ -1451,7 +1453,7 @@ function compareQuasiArrays(x,y) {
   var rv;
   if (x.length != y.length) return 'x.length != y.length';
   for (var i=0; i<x.length; ++i) {
-    if (require('builtin:apollo-sys').isQuasi(x[i])) { 
+    if (require('sjs:quasi').isQuasi(x[i])) { 
       if ((rv = compareQuasiArrays(x[i].parts, y[i])) != true) return "child: #{rv}";
     }
     else

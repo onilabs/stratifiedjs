@@ -319,7 +319,7 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
     this.history = [""];
   }
   this.history_p = this.history.length -1;
-  this.summonbutton = makeDiv("<div style='background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#eee));'><a title='Open Apollo Console' style='display:block;padding: 2px 8px 3px 10px;background:url("+icons.arrowblue+") no-repeat 10px 6px;width: 8px;height:17px'></a></div>", "\
+  this.summonbutton = makeDiv("<div style='background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#eee));'><a title='Open StratifiedJS Console' style='display:block;padding: 2px 8px 3px 10px;background:url("+icons.arrowblue+") no-repeat 10px 6px;width: 8px;height:17px'></a></div>", "\
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
 z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
 

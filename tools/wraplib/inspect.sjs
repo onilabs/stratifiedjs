@@ -1,8 +1,8 @@
 #!/usr/bin/env sjs
 /*
- * Oni Apollo's wraplib inspector tool
+ * Oni StratifiedJS' wraplib inspector tool
  * A developer tool to inspect the coverage of sjs modules that wrap native JS
- * libraries using apollo's `wraplib` module.
+ * libraries using sjs's `wraplib` module.
  *
  * Usage: inspect.sjs module
  *

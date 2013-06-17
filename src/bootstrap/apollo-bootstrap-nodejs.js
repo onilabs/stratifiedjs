@@ -3,8 +3,8 @@
  *
  * NodeJS-based ('nodejs') version
  *
- * Part of the Oni Apollo StratifiedJS Runtime
- * http://onilabs.com/apollo
+ * Part of the Oni StratifiedJS Runtime
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
@@ -43,7 +43,7 @@ var path = require('path');
 var fs = require('fs');
 
 global.__oni_rt.nodejs_require = require;
-global.__oni_rt.nodejs_apollo_lib_dir = path.join(path.dirname(fs.realpathSync(__filename)), 'modules/');
+global.__oni_rt.nodejs_sjs_lib_dir = path.join(path.dirname(fs.realpathSync(__filename)), 'modules/');
 
 var sys = rt.G.eval("(function(exports) {"+
                     rt.c1.compile(rt.modsrc['builtin:apollo-sys-common.sjs'],

@@ -1,10 +1,10 @@
 /*
- * Oni Apollo system module ('builtin:apollo-sys') hostenv-specific part
+ * Oni StratifiedJS system module ('builtin:apollo-sys') hostenv-specific part
  *
  * NodeJS-based ('nodejs') version
  *
- * Part of the Oni Apollo StratifiedJS Runtime
- * http://onilabs.com/apollo
+ * Part of the StratifiedJS Runtime
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *
@@ -202,7 +202,7 @@ function request_hostenv(url, settings) {
     opts.headers.Host = url.authority;
 
   if (!opts.headers['User-Agent'])
-    opts.headers['User-Agent'] = "Oni Labs Apollo StratifiedJS engine"; //XXX should have a version here
+    opts.headers['User-Agent'] = "Oni Labs StratifiedJS engine"; //XXX should have a version here
 
   if (opts.body && !opts.headers['Transfer-Encoding']) {
     // opts.headers['Transfer-Encoding'] = 'chunked';
@@ -340,7 +340,7 @@ function nodejs_loader(path, parent, dummy_src, opts) {
   // strip off 'nodejs:'
   path = path.substr(7);
   // resolve using node's require mechanism in this order:
-  //  native nodejs module, apollo-native module (based on known extensions), other nodejs module
+  //  native nodejs module, sjs-native module (based on known extensions), other nodejs module
 
   var base;
   if (!(/^file:/.exec(parent))) // e.g. we are being loaded from a http module
@@ -378,8 +378,8 @@ function nodejs_loader(path, parent, dummy_src, opts) {
     catch (e) {}
   }
   else if (resolved && matches[1]!="js") {
-    // see if this is an apollo-known extension (but NOT js!)
-    if (exports.require.extensions[matches[1]]) // yup; load as apollo-native module
+    // see if this is an sjs-known extension (but NOT js!)
+    if (exports.require.extensions[matches[1]]) // yup; load as sjs-native module
       return default_loader("file://"+resolved, parent, file_src_loader, opts);
   }
 
@@ -389,7 +389,7 @@ function nodejs_loader(path, parent, dummy_src, opts) {
 
 function getHubs_hostenv() {
   return [
-    ["sjs:", "file://"+__oni_rt.nodejs_apollo_lib_dir ],
+    ["sjs:", "file://"+__oni_rt.nodejs_sjs_lib_dir ],
     ["github:", {src: github_src_loader} ],
     ["http:", {src: http_src_loader} ],
     ["https:", {src: http_src_loader} ],
@@ -431,7 +431,7 @@ function eval_hostenv(code, settings) {
 
 
 //----------------------------------------------------------------------
-// Called once apollo itself is initialized.
+// Called once sjs itself is initialized.
 // Loads any user-defined init scripts from $SJS_INIT.
 function init_hostenv() {
   var init_path = process.env['SJS_INIT'];

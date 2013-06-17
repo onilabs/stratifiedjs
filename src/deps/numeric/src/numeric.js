@@ -1,7 +1,7 @@
 var numeric = exports;
 
 // numeric generates many functions dynamically, and this leads to
-// scope problems.  As a quick-and-dirty workaround for Apollo, we
+// scope problems.  As a quick-and-dirty workaround for StratifiedJS, we
 // reflect the numeric object into the global scope as '__numeric':
 require('builtin:apollo-sys').getGlobal().__numeric = numeric;
 

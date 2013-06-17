@@ -65,11 +65,11 @@
     can serve files should do - apache, WEBrick, SimpleHTTPServer, etc).
 
     In addition, the nodejs runner has rudimentary support for .html files. If you pass a .html
-    file to the `apollo` command-line tool, it'll strip out anything inside a
+    file to the `sjs` command-line tool, it'll strip out anything inside a
     `<script type="text/sjs">` block and run that as if it were a plain `.sjs` file. So you
     can run your tests in nodejs with this same file, using e.g:
     
-        apollo ./test/run.html
+        sjs ./test/run.html
 
     ## Command-line arguments
 
@@ -79,7 +79,7 @@
     The format should be the same in both cases, e.g:
 
         # command line
-        apollo test/run.html --no-logcapture 'foo-tests:My first test'
+        sjs test/run.html --no-logcapture 'foo-tests:My first test'
 
         # browser address
         http://localhost:7070/test/run.html#--no-logcapture 'foo-tests:My first test'

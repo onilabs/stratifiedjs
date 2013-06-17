@@ -42,7 +42,7 @@
     `console` object, no logging will occur. In that case,
     you can either use a tool like Firebug Lite
     (http://getfirebug.com/firebuglite) to emulate a console,
-    or create an apollo console using the [xbrowser/console::]
+    or create an sjs console using the [xbrowser/console::]
     module.
 
     Note that where possible, an appropriate `console` method
@@ -117,7 +117,7 @@ exports.getFormatter = function() { return currentFormatter; }
   @summary Set the current logging level
   @desc
     This is a global setting, so it will affect all `logging`
-    performed throughout the current apollo runtime.
+    performed throughout the current stratifiedjs runtime.
 */
 exports.setLevel = function(lvl) {
   if(lvl === undefined) {

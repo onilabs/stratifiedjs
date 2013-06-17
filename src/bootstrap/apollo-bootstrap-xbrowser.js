@@ -1,10 +1,10 @@
 /*
- * Oni Apollo JS bootstrap code, hostenv-specific part
+ * StratifiedJS bootstrap code, hostenv-specific part
  *
  * Cross-browser ('xbrowser') version
  *
- * Part of the Oni Apollo StratifiedJS Runtime
- * http://onilabs.com/apollo
+ * Part of the StratifiedJS Runtime
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *

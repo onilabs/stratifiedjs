@@ -1,7 +1,7 @@
 Oni StratifiedJS - Multi-Platform Stratified JavaScript Implementation
 ======================================================================
 
-Oni StratifiedJS (previously known as "Oni Apollo" is the reference
+Oni StratifiedJS (previously known as "Oni Apollo") is the reference
 [StratifiedJS Language](http://onilabs.com/reference) implementation + a
 supporting set of modules. It runs server-side (based on NodeJS) as well
 as client-side (cross-browser).

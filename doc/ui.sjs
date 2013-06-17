@@ -1,5 +1,5 @@
 /*
- * Oni Apollo 'ui' module
+ * StratifiedJS 'ui' module
  * Functions for constructing HTML UIs
  *
  * (c) 2011 Oni Labs, http://onilabs.com

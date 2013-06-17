@@ -1,8 +1,8 @@
 /*
- * Oni Apollo JS cross-browser shim code
+ * Oni StratifiedJS cross-browser shim code
  *
- * Part of the Oni Apollo StratifiedJS Runtime
- * http://onilabs.com/apollo
+ * Part of the Oni StratifiedJS Runtime
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *

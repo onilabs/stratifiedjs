@@ -1,8 +1,8 @@
 /*
  * Oni Apollo system module ('builtin:apollo-sys') common part
  *
- * Part of the Oni Apollo StratifiedJS Runtime
- * http://onilabs.com/apollo
+ * Part of the StratifiedJS Runtime
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2010-2013 Oni Labs, http://onilabs.com
  *
@@ -32,7 +32,7 @@
    @summary 'common' part of built-in Apollo system module
    @desc
 
-   The apollo system module, accessible as
+   The StratifiedJS system module, accessible as
    `require('builtin:apollo-sys')`, is spread over two parts: the 'common'
    part, and the 'hostenv' specific part (where hostenv currently is
    one of 'xbrowser' or 'nodejs' - see [apollo-sys-xbrowser::] and
@@ -76,7 +76,7 @@ exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
    @function isArrayLike
-   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of Apollo, a NodeList.
+   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of StratifiedJS, a NodeList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
    @desc

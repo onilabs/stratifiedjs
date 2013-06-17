@@ -2,9 +2,9 @@
  * Oni Rocket Web Application Server
  * Server filesystem module
  *
- * Part of Oni Apollo
+ * Part of StratifiedJS
  * Version: '0.14.0'
- * http://onilabs.com/apollo
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
  *

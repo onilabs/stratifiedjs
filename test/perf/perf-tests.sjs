@@ -93,11 +93,11 @@ time("seq.each(arr*200)*200)", function() {
 
 test("collection module", '', function() {}).skip('module retired');
 testCompilation("debug module",
-                http.get("http://code.onilabs.com/apollo/latest/modules/debug.sjs"));
+                http.get("http://code.onilabs.com/sjs/latest/modules/debug.sjs"));
 testCompilation("http module",
-                http.get("http://code.onilabs.com/apollo/latest/modules/http.sjs"));
+                http.get("http://code.onilabs.com/sjs/latest/modules/http.sjs"));
 //testCompilation("sequence module",
-//                http.get("http://code.onilabs.com/apollo/latest/modules/sequence.sjs"));
+//                http.get("http://code.onilabs.com/sjs/latest/modules/sequence.sjs"));
 
 
 var arr = [];

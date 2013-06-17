@@ -229,7 +229,7 @@ context("filtering") {||
   }
 
   test("supports paths relative to cwd()") {||
-    // assumes cwd is apollo root
+    // assumes cwd is stratifiedjs root
     var run = runWithFilter([{file: "test/unit/test/fixtures/test_1.sjs"}]);
     run.files .. assert.eq(["test_1.sjs"]);
   }.serverOnly("no cwd");

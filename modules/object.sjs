@@ -156,7 +156,7 @@ exports.keys = keys;
              i.e. excluding those defined on `obj`'s prototype chain.
    @desc     
        Note that you can also use the ECMA-263/5 function `Object.keys` - 
-       on older JS engines Apollo adds a shim to emulate this function. 
+       on older JS engines StratifiedJS adds a shim to emulate this function. 
 
        See also [::keys].
 */
