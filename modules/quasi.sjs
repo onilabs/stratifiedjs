@@ -160,8 +160,8 @@ exports.joinQuasis = joinQuasis;
 
 /**
    @function mapQuasi
-   @param {::Quasi} [quasi...] A quasi
-   @param {::Quasi} [quasi...] A converter function
+   @param {::Quasi} [quasi] A quasi
+   @param {Function} [fn] A converter function
    @return {::Array}
    @summary Replaces each embedded (interpolated) value in quasi with the result of `fn(value)`,
             and returns these values interleaved with the literals from the quasi

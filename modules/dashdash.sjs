@@ -332,8 +332,7 @@ The `parser.help(...)` function is configurable as follows:
 
 /**
   @class Parser
-  @constructor Parser
-
+  @summary Use [::createParser] to create a Parser.
   @function createParser
   @param {Object} [config]
   @param {Boolean} [interspersed] Default true.

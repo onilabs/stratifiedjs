@@ -253,7 +253,7 @@ if (sys.hostenv == 'nodejs') {
 
 /**
   @function wait
-  @summary Wait for a single event only.
+  @summary Wait for a single firing of a DOM or nodejs event.
   @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Function} [filter] Function through which received
@@ -261,7 +261,7 @@ if (sys.hostenv == 'nodejs') {
              function returns a value == true.
   @param     {optional Function} [eventTransformer] Function through which an
              event will be passed before passing the return value on to
-             *filter* and/or emitting it.
+             `filter` and/or emitting it.
   @desc
     This function waits for a single event and then stops
     listening for further events. It takes exactly the same arguments

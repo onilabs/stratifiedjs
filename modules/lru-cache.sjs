@@ -48,7 +48,7 @@ var CacheProto = Cache.prototype = {};
 /**
    @function makeCache
    @summary  Construct an initialized [::Cache] object
-   @param {Number} [maxsize] Maximum size to which the cache is allowed to grow before items
+   @param {Number} [maxsize] Maximum size (in number of items) to which the cache is allowed to grow before items
                              will be disposed
 */
 exports.makeCache = function(maxsize) {

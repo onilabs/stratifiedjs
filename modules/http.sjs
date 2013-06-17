@@ -58,11 +58,11 @@ exports.getXDomainCaps = sys.getXDomainCaps;
 /**
    @function request
    @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
+   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return {String|Object}
    @setting {String} [method="GET"] Request method.
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [::constructQueryString].
+   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url::buildQuery].
    @setting {String} [body] Request body.
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.
@@ -127,7 +127,7 @@ exports.request = sys.request;
 /**
   @function  get
   @summary   Perform a HTTP GET request and return the response text.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [::request].
   @return    {String}
   @shortcut  request
@@ -157,7 +157,7 @@ exports.get = exports.request;
 /** 
   @function  post
   @summary   Perform a HTTP POST request and return the response text.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   @param     {String|null} [body] Request body.
   @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [::request].
   @return    {String} 
@@ -189,7 +189,7 @@ exports.post = function(url, body, settings) {
 /**
   @function  json
   @summary   Perform a HTTP GET request and parse the response text as a JSON object.
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [::request].
   @shortcut  get
   @return    {Object}
@@ -240,10 +240,10 @@ exports.json = function(/*url, settings*/) {
 /**
   @function  jsonp
   @summary   Perform a cross-domain capable JSONP-style request. 
-  @param {URLSPEC} [url] Request URL (in the same format as accepted by [::constructURL])
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
   @param {optional Object} [settings] Hash of settings (or array of hashes)
   @return    {Object}
-  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [::constructQueryString].
+  @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url::buildQuery].
   @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
   @setting {String} [forcecb] Force the name of the callback to the given string.
   @desc

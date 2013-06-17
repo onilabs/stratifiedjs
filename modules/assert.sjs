@@ -32,30 +32,32 @@
 
 /**
   @module  assert
-  @summary Assertion functions, primarily for use in tests
+  @summary Assertion functions, primarily for use in tests.
   @home    sjs:assert
 
   @desc
-    In addition to the functions listed here, this module exports some self-explanatory
-    type checking functions:
+    Each of the assertion functions throws an [::AssertionError] if its given assertion fails.
 
-    * string
-    * bool
-    * func
-    * number
-    * object
+    In addition to the functions listed here, this module exports some self-explanatory
+    type checking functions which test whether their `arg` is of the given type:
+
+    * string(arg, [desc])
+    * bool(arg, [desc])
+    * func(arg, [desc])
+    * number(arg, [desc])
+    * object(arg, [desc])
+
+    (The optional `desc` argument will be included in the error message on failure.)
 
     For each of these types, there is also a version that accepts an optional
-    argument (may be null/undefined), or an array of such elements, or an
+    argument (may be `null` or `undefined`), or an array of such elements, or an
     optional array of such elements.
 
-    * optionalString
-    * arrayOfString
-    * optionalArrayOfString
+    * optionalString(arg, [desc])
+    * arrayOfString(arg, [desc])
+    * optionalArrayOfString(arg, [desc])
     * (etc ... )
 
-    All type-checking functions accept an optional second `desc` argument, which
-    will be included in the error message on failure.
 */
 
 var object = require('./object');
@@ -68,7 +70,7 @@ var {inspect} = require('./debug');
   @class AssertionError
   @inherit Error
   @summary Error type thrown by assertion failures.
-  @function AssertionError
+  @constructor AssertionError
   @summary Create an AssertionError object
   @param {String} [msg] Error message
   @param {String} [desc] Descriptive text to include in the error message
@@ -139,14 +141,14 @@ var raisesFilters = {
 
 /**
   @function raises
-  @summary Assert that the function throws an exception.
+  @summary Assert that the function call `fn()` throws an exception.
   @param {optional Object} [opts] Hash of settings
   @param {Function} [fn]
   @setting {Object|Function} [inherits] Only match exceptions that inherit from the given prototype or constructor function.
   @setting {String|Regex} [message] Only match exceptions whose `.message` property equals `message` (or matches, in the case of a Regex).
   @setting {Function} [filter] Only match exceptions where `filter(exc)` returns true.
   @setting {String} [desc] Description to add to the error message on failure.
-
+  @return  {Object} Error object thrown by `fn()`
   @function throwsError
   @summary Alias for [::raises]
 */
@@ -187,8 +189,9 @@ exports.raises = exports.throwsError = function(opts /* (optional) */, fn) {
 
 /**
   @function catchError
-  @summary Catch (and return) the error thrown by `fn`, if any
+  @summary Catch (and return) the error thrown by `fn()`, if any
   @param {Function} [fn]
+  @return {Object} Exception object thrown by `fn()` or `null`
   @desc
     Returns `null` if no exception is thrown.
 */
@@ -289,12 +292,9 @@ exports.notContains = function(seq, expected, desc) {
 
 /**
   @function atomic
-  @summary Assert that `fn` completes without suspending
-  @param {Function} [fn]
+  @summary Assert that `fn()` completes without suspending
   @param {optional String} [desc] Descriptive text to include in the error message
-  @desc
-    Like [::contains], but uses [compare::equals] to compare elements using deep
-    equality rather than strict object identity.
+  @param {Function} [fn] 
 */
 exports.atomic = function(desc /* (optional) */, fn) {
   if (arguments.length == 1) {
