@@ -42,7 +42,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 var builtin_http  = require('http');
 
-var { find, parallelize, generate, filter, each } = require('../sequence');
+var { find, generate, filter, each } = require('../sequence');
 var url = require('../url');
 var { Queue } = require('../cutil');
 var { override } = require('../object');
@@ -98,132 +98,11 @@ function receiveBody(request) {
         [rv, 
          events.wait(request, 'data')
         ]);
-      __js if (rv.length > 1024*1024*10) throw "Request body too large";
+      __js if (rv.length > 1024*1024*10) throw new Error("Request body too large");
     }
   }
   return rv;
 }
-
-
-//----------------------------------------------------------------------
-// DEPRECATED API
-
-// helper to receive a body before handling a request
-function handleRequest(connectionHandler, request, response, protocol) {
-  request.protocol = protocol;
-  waitfor {
-    request.body = receiveBody(request); 
-    connectionHandler(request, response);
-  }
-  or {
-    events.wait(request, 'close');
-    throw "Connection closed";
-  }
-  catch (e) {
-    console.log("exception thrown by connection handler: "+e.toString());
-    response.destroy(); // XXX is this the best cleanup we can do?
-  }
-}
-
-/**
-   @function runSimpleServer
-   @deprecated Use [::server] or [::router] instead.
-   @summary Run a simple HTTP server.
-   @param {Function} [connectionHandler] Function to be invoked for each request
-   @param {Integer} [port] Port to listen on
-   @param {optional String} [host] IP address to listen on. (If not specified, the server will
-                                   listen on all IP addresses, i.e. INADDR_ANY.)
-   @desc
-     `runSimpleServer` will start a HTTP server on the given
-     `host:port` and **block until aborted**, or throw an exception if the
-     server cannot be started.
-
-     For an incoming request `req` (see [nodejs
-     http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest)),
-     `runSimpleServer` will first receive any request body (up to a maximum size of 
-     10MB - larger requests will be ignored). 
-     The request body will be stored as a nodejs Buffer on `req.body`, and
-     `connectionHandler` will be called with arguments `(req,resp)`. The protocol (`"http"`) 
-     will be stored on `req.protocol`.
-     For details about `resp` see [nodejs
-     http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse).
-
-     When `runSimpleServer` is aborted, the underlying [nodejs
-     http.Server](http://nodejs.org/docs/latest/api/http.html#http.Server)
-     will be closed. This will make it stop accepting new connections, but
-     existing connections might not be closed.
-
-     **Example:**
-
-         function echo(req, resp) {
-           resp.end(require('util').inspect(req));
-         }
-
-         // Run server for 60s:
-         waitfor {
-           require('sjs:nodejs/http').runSimpleServer(echo, 12345);
-         }
-         or { 
-           hold(60*1000);
-         }
-         console.log('Server stopped');
- */
-exports.runSimpleServer = function(connectionHandler, port, /* opt */ host) {
-  var server = builtin_http.createServer(function(req, res) { 
-    __js handleRequest(connectionHandler, req, res, 'http');
-  });
-  try {
-    server.listen(port, host);
-    hold();
-  }
-  finally {
-    try { server.close(); } catch(e) { }
-  }
-};
-
-/**
-   @function runSimpleSSLServer
-   @summary Run a simple HTTPS server.
-   @param {Function} [connectionHandler] Function to be invoked for each request
-   @param {Object} [ssl_opts] SSL options as described [here](http://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener)
-   @param {Integer} [port] Port to listen on
-   @param {optional String} [host] IP address to listen on. (If not specified, the server will
-                                   listen on all IP addresses, i.e. INADDR_ANY.)
-   @desc
-     `runSimpleSSLServer` will start a HTTPS server on the given
-     `host:port` and **block until aborted**, or throw an exception if the
-     server cannot be started.
-
-     For an incoming request `req` (see [nodejs
-     http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest)),
-     `runSimpleServer` will first receive any request body (up to a maximum size of 
-     10MB - larger requests will be ignored). 
-     The request body will be stored as a nodejs Buffer on `req.body`, and
-     `connectionHandler` will be called with arguments `(req,resp)`. The protocol (`"https"`) 
-     will be stored on `req.protocol`. 
-     For details about `resp` see [nodejs
-     http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse).
-
-     When `runSimpleServer` is aborted, the underlying [nodejs
-     http.Server](http://nodejs.org/docs/latest/api/http.html#http.Server)
-     will be closed. This will make it stop accepting new connections, but
-     existing connections might not be closed.
- */
-exports.runSimpleSSLServer = function(connectionHandler, ssl_opts, port, /* opt */ host) {
-  var server = require('https').createServer(
-    ssl_opts,
-    function(req, res) { 
-      __js handleRequest(connectionHandler, req, res, 'https');
-    });
-
-  try {
-    server.listen(port, host);
-    hold();
-  }
-  finally {
-    try { server.close(); } catch(e) { }
-  }
-};
 
 //----------------------------------------------------------------------
 
@@ -246,7 +125,7 @@ function ServerRequest(req, res, ssl) {
   this.response = res;
   /**
    @variable ServerRequest.url
-   @summary Full canonicalized request URL object in the format as returned by [url::parse].
+   @summary Full canonicalized request URL object in the format as returned by [../url::parse].
    */
   this.url = url.parse(url.normalize(req.url, 
                                       "http#{ssl ? 's' : ''}://#{req.headers.host}"));
@@ -260,8 +139,61 @@ function ServerRequest(req, res, ssl) {
 
 /**
    @function withServer
-   @summary Work in progress
+   @altsyntax withServer(settings) { |server| ... }
+   @altsyntax withServer(address) { |server| ... }
+   @summary Run a HTTP(S) server.
+   @param {Object} [settings] Server configuration
+   @param {Function} [block] Function which will be passed a [::Server]. When `block` exits, the server will be shut down.
+   @setting {String} [address="0"] Address to listen on, in the format `"ipaddress:port"` or `"port"`. If  `ipaddress` is not specified, the server will listen on all IP addresses. If `port` is `"0"`, an arbitrary free port will be chosen.
+   @setting {Integer} [max_connections=1000] Maximum number of concurrent requests.
+   @setting {Integer} [capacity=100] Maximum number of unhandled requests that the server will queue up before it starts dropping requests (with a 500 status code). The server only queues requests when there is no active [Server::eachRequest] call, or when there are already `max_connections` active concurrent connections.
+   @setting {Boolean} [ssl=false] Whether to run a HTTP server or a HTTPS server.
+   @setting {String}  [key] The server private key in PEM format. (Required when `ssl=true`.)
+   @setting {String}  [cert] The server certificate in PEM format. (Required when `ssl=true`.)
+   @setting {String}  [passphrase] Optional passphrase to decrypt an encrypted private `key`.
+   @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, debug output will logged to `process.stdout`.
+   @desc
+      `withServer` will start a HTTP(S) server according to the given 
+      configuration and pass a [::Server] instance to `block`. The server will
+      be shut down when `block` exits.
+      
+      ### Example:
+
+          withServer('localhost:7080') {
+            |server|
+
+            console.log("Listening on #{server.address}");
+
+            server.eachRequest {
+              |req|
+              // echo request object back to client:
+              req.response.end(require('sjs:debug').inspect(req));
+            }
+          }
 */
+
+/**
+   @class Server
+   @summary A HTTP(S) server instance, as created by [::withServer].
+
+   @variable Server.nodeServer
+   @summary The underlying [nodejs
+     http.Server](http://nodejs.org/docs/latest/api/http.html#http_class_http_server) or [nodejs
+     https.Server](http://nodejs.org/docs/latest/api/https.html#https_class_https_server)
+
+  @variable Server.address
+  @summary Address that the server is listening on (`"host:port"` string)
+
+  @function Server.close
+  @summary  Stop accepting new connections. Existing connections will not be closed.
+
+  @function Server.eachRequest
+  @altsyntax server.eachRequest { |req| ... }
+  @param {Function} [handler_block] Handler which will be called with a [::ServerRequest] when a request is received.
+  @summary Concurrently calls `handler_block` with a [::ServerRequest] to handle incoming requests. 
+  @desc See [::withServer] for details of how to configure the maximum number of concurrent requests (`max_connections`) and for a typical usage example.
+*/
+
 function withServer(config, server_loop) {
   // detangle configuration:
   if (typeof config != 'object')
@@ -269,8 +201,8 @@ function withServer(config, server_loop) {
 
   config = override({ 
     address: '0',
-    capacity: 100,
     max_connections: 1000,
+    capacity: 100,
     ssl: false,
     key: undefined,
     cert: undefined,
@@ -282,7 +214,8 @@ function withServer(config, server_loop) {
   //var address; // hoisted; will be filled in in waitfor/or below
 
   // It is not quite clear how we can accept nodejs sockets on demand
-  // (pause/resume?), so we use a queue:
+  // (pause/resume?), so we use a queue 
+
   var request_queue = Queue(config.capacity, true);
 
   function dispatchRequest(req, res) {
@@ -352,7 +285,7 @@ function withServer(config, server_loop) {
         {
           nodeServer: server,
           address: address,
-          stop: -> server.close(),
+          stop: function() { try { server.close() } catch(e) {} },
           eachRequest: function(handler) { 
             waitfor {
               if (!server_closed)
@@ -365,8 +298,7 @@ function withServer(config, server_loop) {
                   config.log("Pending connection closed");
                   return false;
                 }) ..
-                parallelize(config.max_connections) ..
-                each {
+                each.par(config.max_connections) {
                   |req_res|
                   var [req,res] = req_res;
                   waitfor {
@@ -413,179 +345,3 @@ function withServer(config, server_loop) {
 }
 exports.withServer = withServer;
 
-//----------------------------------------------------------------------
-// REMOVE
-//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-/**
- @class Router
- @summary HTTP path router
- @desc
-   Use function [::router] to construct a new Router object.
-
- @function router
- @summary  Constructs a new [::Router] object.
- @param    {Array} [routes] Array of routes; see [::Router::routes] for format
- @param    {Integer} [port] Port to listen on (0 to automatically assign free port).
- @param    {optional String} [host='INADDR_ANY'] IP address to listen on. If not
-           specified, the server will listen on all IP addresses, i.e. INADDR_ANY.
- @desc
-   **Example:**
-   
-       using (var router = require('sjs:nodejs/http').router(
-                [ ['/ping', function(r) { hold(1000); return 'pong'; }],
-                  [/.*$/,   function(r) { return r.url.path; }] ],
-                8090)) {
-         console.log('Listening on '+router.address().port);
-         waitfor() {
-           router.routes.unshift(['/stop', resume]);
-         }
-         console.log('Stopping router');
-       }
- */
-
-
-
-
-
-
-
-exports.router = function router(routes, port, /* opt */ host) {
-  return new Router(routes, port, host);
-};
-
-function Router(routes, port, host) {
-  /**
-   @variable Router.routes
-   @summary  Array of routes
-   @desc
-     TODO: document format
-   */
-  this.routes = routes || [];
-  var me = this;
-  this._server = builtin_http.createServer(
-    function(req, res) {
-      waitfor {
-        // if the connection is closed, we automatically abort any
-        // route currently in progress
-        events.wait(req, 'close');        
-        console.log('connection closed');
-      }
-      or {
-        var sr = new ServerRequest(req, res);
-        console.log(sr.url.path);
-//        console.log(sr.request.headers);
-        var matches;
-        var route = routes .. find(function (r) {
-          if (typeof r[0] == 'string') {
-            if (r[0] != sr.url.path) return false;
-            matches = [r[0]];
-            return true;
-          }
-          else if (typeof r[0] == 'object' && r[0].exec) {
-            // regexp match
-            return (matches = r[0].exec(sr.url.path));
-          }
-        });
-        if (route) {
-          var handler;
-          if (typeof route[1] == 'object') {
-            if (route[1].hasOwnProperty(sr.request.method))
-              handler = route[1][sr.request.method];
-          }
-          else if (sr.request.method == "GET")
-            handler = route[1];
-          if (!handler)
-            throw 405; // 'method not allowed'
-          
-          // parse flags:
-          for (var i=2; i<route.length; ++i) {
-            switch(route[i]) {
-            case 'cors':
-              sr.response.setHeader("Access-Control-Allow-Origin", "*");
-              break;
-            default:
-              console.log('unknown flag '+route[i]+' on route '+route[0]+' ignored.');
-            }
-          }
-
-          // execute handler:
-          var result = handler(sr, matches);
-          if (!sr.response.finished) 
-            sr.response.end(""+result);
-        }
-        else {
-          // Not found
-          throw 404;
-        }
-        
-      }
-      catch (e) {
-        if (!isHTMLStatusCodeException(e)) { 
-          console.log('Error in request handler for '+req.url+': '+e);
-          if (!res.finished && res.connection.writable) {
-            if (!res._headerSent) 
-              res.writeHead(500);
-            res.end();
-          }
-        }
-        else {
-          if (!res.finished && res.connection.writable) {
-            if (!res._headerSent) 
-              res.writeHead(statusCodeFromException(e), reasonPhraseFromException(e));
-            else 
-            console.log("Can't send error code "+statusCodeFromException(e)+" - header already sent.");              
-            res.end();
-          }
-          else {
-            console.log("Can't send error code "+statusCodeFromException(e)+" - connection is not writable");
-          }
-        }
-      }
-    });
-  waitfor () {
-    this._server.listen(port, host, resume);
-  }
-}
-
-// We allow handlers to throw html status code numbers or [code, reason-phrase] arrays
-function isHTMLStatusCodeException(x) {
-  return (typeof x == 'number') || (Array.isArray(x) && typeof x[0] == 'number');
-}
-function statusCodeFromException(x) {
-  return typeof x == 'number' ? x : x[0];
-}
-function reasonPhraseFromException(x) {
-  return typeof x == 'number' ? undefined : x[1];
-}
- 
-/**
- @function Router.address
- @summary  Returns the address that the server is listening on.
- @return {Object} Bound address in the form 
-                  {address: IP_String, family: FAMILY_Int, port: PORT_Int}.
-*/
-Router.prototype.address = function() { return this._server.address(); };
-
-/**
- @function Router.stop
- @summary  Stop listening for new connections. Unbind port.
- @desc
-   Note that calling [::Router::stop] does not abort pending connections.
- */
-Router.prototype.stop = function() { 
-  // XXX even after we stop the server, any open connections will
-  // still be serviced. Make sure we send 400's:
-  this.routes = [];
-  try {  
-    this._server.close(); 
-  }
-  catch(e) {} 
-};
-
-/**
- @function Router.__finally__
- @summary Calls [::Router::stop].
-          Allows [::Router] to be managed by a `using` construct. 
-*/
-Router.prototype.__finally__ = function() { this.stop(); };

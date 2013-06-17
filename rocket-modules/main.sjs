@@ -21,7 +21,9 @@
  *
  */
 
-var http = require('sjs:nodejs/http');
+var { withServer } = require('sjs:nodejs/http');
+var { each } = require('sjs:sequence');
+var { Condition } = require('sjs:cutil');
 var url = require('sjs:url');
 require.hubs.push(['rocket:', url.normalize('./', module.id)]);
 
@@ -271,29 +273,53 @@ var pathMap = [
   }
 ];
 
+serverfs.setPathMap(pathMap);
+
 //----------------------------------------------------------------------
 
+var server_configs = [];
+if (!sslonly) {
+  server_configs.push({ 
+    address: "#{host}:#{port}",
+    log: x => logging.debug("#{host}:#{port}: #{x}\n")
+  });
+}
+
+if (ssl_keyfile) {
+  server_configs.push({
+    address: "#{host}:#{ssl_port}",
+    log: x => logging.debug("#{host}:#{ssl_port}: #{x}\n"),
+    ssl: true,
+    key: fs.readFile(ssl_keyfile),
+    cert: fs.readFile(ssl_certfile),
+    passphrase: ssl_pw || undefined
+  });
+}
+
+var all_servers_running = Condition();
 
 waitfor {
-  serverfs.setPathMap(pathMap);
-  waitfor {
-    if (!sslonly)
-      http.runSimpleServer(requestHandler, port, host);
-  }
-  and {
-    if (ssl_keyfile) {
-      http.runSimpleSSLServer(
-        requestHandler,
-        {
-          key: fs.readFile(ssl_keyfile),
-          cert: fs.readFile(ssl_certfile),
-          passphrase: ssl_pw || undefined
-        },
-        ssl_port, host);
+  // run the server(s):
+
+  var n_running = 0;
+
+  server_configs .. each.par {
+    |conf|
+    withServer(conf) {
+      |server|
+
+      if (++n_running == server_configs.length) 
+        all_servers_running.set();
+
+      server.eachRequest(requestHandler);
     }
   }
 }
-and {
+or {
+  // display some information when all servers are running
+
+  all_servers_running.wait();
+
   if(logging.isEnabled(logging.ERROR)) {
     // print intro unless logging is set to completely OFF
     print("");
@@ -309,14 +335,18 @@ and {
     print("   |    * Log level: #{logging.levelNames[logging.getLevel()]}");
     print("");
   }
+  hold();
 }
 
 //----------------------------------------------------------------------
 
-function requestHandler(req, res) {
+function requestHandler(server_request) {
+  var {request:req, response:res} = server_request;
+
   logging.debug("Handling #{req.method} request for #{req.url}");
   try {
-    req.parsedUrl = url.parse("#{req.protocol}://#{req.headers.host}#{req.url}");
+    req.parsedUrl = server_request.url;
+    req.body = server_request.body;
     res.setHeader("Server", "OniRocket"); // XXX version
     if (cors)
       res.setHeader("Access-Control-Allow-Origin", "*");
