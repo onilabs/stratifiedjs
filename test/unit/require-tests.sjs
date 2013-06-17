@@ -41,10 +41,10 @@ context("server-side") {||
     result .. assert.eq({stdout: 'hi\n', stderr: ''})
   }
   
-  test('hub resolution via $APOLLO_INIT') {|s|
+  test('hub resolution via $SJS_INIT') {|s|
     var hub_path = path.join(dataPath, 'literal-hub.sjs');
     var script = 'require("util").puts(require("literal:exports.hello=\'HELLO!\'").hello);';
-    var result = run_with_env(['-e', script], {APOLLO_INIT: hub_path});
+    var result = run_with_env(['-e', script], {SJS_INIT: hub_path});
     result .. assert.eq({stdout: 'HELLO!\n', stderr: ''});
   }
 

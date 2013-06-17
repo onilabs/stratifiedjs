@@ -432,9 +432,9 @@ function eval_hostenv(code, settings) {
 
 //----------------------------------------------------------------------
 // Called once apollo itself is initialized.
-// Loads any user-defined init scripts from $APOLLO_INIT.
+// Loads any user-defined init scripts from $SJS_INIT.
 function init_hostenv() {
-  var init_path = process.env['APOLLO_INIT'];
+  var init_path = process.env['SJS_INIT'];
   if(init_path) {
     var node_fs = __oni_rt.nodejs_require('fs');
     var files = init_path.split(':');
