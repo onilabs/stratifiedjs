@@ -147,7 +147,8 @@ function main() {
 };
 
 process.on('uncaughtException',function(error){
-  console.warn('Uncaught: '+error.toString());
+  console.error('Uncaught: '+error.toString());
+  process.exit(1);
 })
 
 sjs_node.init(main);
