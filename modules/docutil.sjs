@@ -266,6 +266,10 @@ exports.parseModuleDocs = function(src, module) {
         summary: matches[paramDescription]
       };
       break;
+    case "altsyntax":
+      if (!curr.altsyntax) curr.altsyntax = [];
+      curr.altsyntax.push(value);
+      break;
     default:
       curr[prop] = value;
     }

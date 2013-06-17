@@ -495,7 +495,7 @@ function makeSymbolView(location) {
     }
 
     if (docs.altsyntax)
-      signature += "<br>"+docs.altsyntax.replace(/\[[^\]]+\]/g, "<span class='mb-optarg'>$&</span>");
+      signature += docs.altsyntax .. map(altsyntax -> "<br>"+altsyntax.replace(/\[[^\]]+\]/g, "<span class='mb-optarg'>$&</span>")) .. join;
 
     ui.makeView("<h3>"+signature+"</h3>").show(view.elems.details);
 
