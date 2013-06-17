@@ -59,7 +59,7 @@ function usage() {
 //----------------------------------------------------------------------
 
 var sjs_root = url.normalize('../', module.id) .. url.toPath();
-var root = sjs_root;
+var root = process.cwd();
 var verbosity = 0;
 var port = "7070";
 var ssl_port = "4430";
