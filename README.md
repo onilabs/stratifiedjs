@@ -1,27 +1,50 @@
-Oni Apollo - Multi-Platform StratifiedJS Implementation
-=======================================================
+Oni StratifiedJS - Multi-Platform Stratified JavaScript Implementation
+======================================================================
 
-Oni Apollo is a [StratifiedJS](http://stratifiedjs.org) implementation
-+ a supporting set of modules. It runs server-side (based on NodeJS)
-as well as client-side (cross-browser).
+Oni StratifiedJS (previously known as "Oni Apollo" is the reference
+[StratifiedJS Language](http://onilabs.com/reference) implementation + a
+supporting set of modules. It runs server-side (based on NodeJS) as well
+as client-side (cross-browser).
 
-For an overview see [onilabs.com/apollo](http://onilabs.com/apollo).
+For an overview see [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
 
-Please post questions to the [Apollo Google Group](http://groups.google.com/group/oni-apollo/topics).
+Please post questions to the [StratifiedJS Google Group](http://groups.google.com/group/oni-apollo/topics).
+
+
+How to run/install
+------------------
+
+For server-side use, you can just execute the `sjs` executable
+(provided you have nodejs installed).
+
+For client-side use, just include `stratified.js` in your html,
+as described at [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
+
+Prebuilt packages:
+------------------
+
+Users of the [bower](http://bower.io/) or [npm](https://npmjs.org/)
+package managers can install the `stratifiedjs` package using either of
+these tools. `npm` users should install globally (`npm install -g`)
+to add the `sjs` and `rocket` binaries in your `$PATH`.
+
+
+What's in this repository:
+==========================
 
 stratified.js
 -------------
 
  - Client-side cross-browser StratifiedJS runtime.
- - ~15kB gzipped, MIT-licensed.
- - For more information please read the docs at [onilabs.com/apollo](http://onilabs.com/apollo).
+ - ~25kB gzipped, MIT-licensed.
+ - For more information please read the docs at [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
 
-stratified-node.js, 'apollo' executable
+stratified-node.js, 'sjs' executable
 ---------------------------------------
 
  - Server-side StratifiedJS runtime for NodeJS.
- - If you've got NodeJS installed, just run `apollo` to get a serverside SJS REPL.
- - See also this [Apollo Google Group post](https://groups.google.com/forum/#!topic/oni-apollo/ZDkxczAZcgw)
+ - If you've got NodeJS installed, just run `sjs` to get a serverside SJS REPL.
+ - See also this [StratifiedJS Google Group post](https://groups.google.com/forum/#!topic/oni-apollo/ZDkxczAZcgw)
 
 rocket, rocket-modules/
 -----------------------
@@ -32,8 +55,8 @@ rocket, rocket-modules/
 modules/
 --------
 
- - 'Oni Apollo Standard Module Library'
- - All MIT-licensed. 
+ - 'Oni StratifiedJS Standard Module Library'
+ - All MIT-licensed.
  - Runs server-side or client-side.
  - Documentation at [onilabs.com/modules](http://onilabs.com/modules).
 
@@ -47,27 +70,13 @@ src/
 How to build
 ------------
 
-Everything is already pre-built. 
+Everything is already pre-built.
 
 No need to compile anything unless you change something in the src/
-directory. In that case, you can use the src/build/make-apollo tool to
+directory. In that case, you can use the src/build/make-sjs tool to
 reassemble stratified.js and stratified-node.js. The build process
 should work on most unixy environments out of the box (in particular
 it requires CPP - the C preprocessor).
-
-
-How to run/install
-------------------
-
-No need to install anything.
-
-For server-side use, you can just execute the `apollo` executable
-(provided you have nodejs installed).
-
-Alternatively you can install with npm (see the package.json script).
-
-For client-side use, just include the stratified.js file in your html,
-as described at [onilabs.com/apollo](http://onilabs.com/apollo).
 
 
 Considerations for client-side use
@@ -78,9 +87,9 @@ such as
 
     var http = require('sjs:http');
 
-the module will be requested from 
+the module will be requested from
 
-    LOCATION_WHERE_ONI_APOLLO_JS_WAS_LOADED_FROM/modules
+    LOCATION_WHERE_STRATIFIED_JS_WAS_LOADED_FROM/modules
 
 This location can only be inferred if you load stratified.js in the
 'normal' way. If you rename stratified.js to something else, or you
@@ -90,17 +99,17 @@ configure the 'sjs' hub before you can make calls such as
 
 To (re-)configure the 'sjs hub', you can use code such as this:
 
-    require.hubs.unshift( 
-      ["sjs:", 
-       "http://code.mydomain.com/apollo-mirror/modules/"] 
+    require.hubs.unshift(
+      ["sjs:",
+       "http://code.mydomain.com/sjs-mirror/modules/"]
       ]);
     // all modules addressed as 'sjs:' will now be loaded from the
     // location above.
 
 Note that many browsers cannot load modules over the `file:`
-protocol. You can use `rocket` to serve up the apollo directory
+protocol. You can use `rocket` to serve up the current directory
 locally. Alternatively, you can serve stratified.js and the modules/
 directory with a different web server, or load stratified.js &
 modules/ from http://code.onilabs.com/ as described at
-[onilabs.com/apollo](http://onilabs.com/apollo).
+[onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
 
