@@ -624,19 +624,24 @@ function makeLibView(location) {
 
 // we expect window.location to be of the form:
 //
-//    # http://foo.bar//modulelib/  [ module  [ [ ::class ] ::symbol ] ]
+//    # [http://foo.bar/modulelib/]  [ module  [ [ ::class ] ::symbol ] ]
 //
 // we parse this into {path, module, classname, symbol}
+//
+// If URL is not given, we use default_location (or window.location href)
 function parseLocation(default_location) {
   if (!window.location.hash)
     window.location.replace("#"+default_location);
-  var matches = /#(.*\/)([^:#]*)(?:\:\:([^:]*)(?:\:\:(.*))?)?/.exec(window.location.hash);
+  var matches = /#(.*\/)?([^:/#]*)(?:\:\:([^:]*)(?:\:\:(.*))?)?/.exec(window.location.hash);
   if (!matches) return { path: "", module: "", classname: "", symbol: "" };
+  var [, matchUrl, module, classname, symbol] = matches;
+  var relativeBase = default_location || window.location.href;
   var loc = {
-    path: url.normalize(matches[1], window.location.href), // XXX want resolution like in require here
-    module: matches[2],
-    classname: matches[4] ? matches[3] : null,
-    symbol: matches[4] ? matches[4] : matches[3]
+    base: relativeBase,
+    path: url.normalize(matchUrl || "", relativeBase), // XXX want resolution like in require here
+    module: module,
+    classname: symbol ? classname : null,
+    symbol: symbol ? symbol : classname
   };
   // we don't want .sjs extensions in module names:
   if (/\.sjs$/.test(loc.module)) loc.module = loc.module.substr(0,loc.module.length-4);
