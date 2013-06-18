@@ -148,7 +148,10 @@ function main() {
 
 process.on('uncaughtException',function(error){
   console.error('Uncaught: '+error.toString());
-//  process.exit(1);
+  if (process.listeners('uncaughtException').length == 1) {
+    // the user has not installed a handler - kill the process
+    process.exit(1);
+  }
 })
 
 sjs_node.init(main);
