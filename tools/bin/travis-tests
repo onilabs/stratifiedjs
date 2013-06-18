@@ -18,5 +18,5 @@ if [ "$RUNNER" = NODE ]; then
 else
 	[ "$RUNNER" = KARMA ];
 	export PHANTOMJS_BIN=phantomjs
-	./karma.sjs start tools/karma/conf.js --browsers=PhantomJS --single-run -- "$run" $SUITE
+	./tools/bin/karma.sjs start tools/karma/conf.js --browsers=PhantomJS --single-run -- "$run" $SUITE
 fi

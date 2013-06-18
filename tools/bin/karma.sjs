@@ -7,7 +7,7 @@ var fs = require('sjs:nodejs/fs');
 var {wait} = require('sjs:events');
 var childProcess = require('sjs:nodejs/child-process');
 var url = require('sjs:url');
-var rootDir = url.normalize('./', module.id) .. url.toPath();
+var toolsDir = url.normalize('../', module.id) .. url.toPath();
 
 // ------------------------------------------------------------------
 // node_modules-based lookups are busted in the face of symlinks, so
@@ -17,7 +17,7 @@ var rootDir = url.normalize('./', module.id) .. url.toPath();
 
 var existingNodePath = process.env.NODE_PATH;
 var existingPaths = existingNodePath ? existingNodePath.split(path.delimiter) : [];
-var pluginPath = path.join(rootDir, 'tools/karma');
+var pluginPath = path.join(toolsDir, 'karma');
 var karmaPath = __oni_rt.nodejs_require.resolve('karma');
 
 var karmaBase = path.normalize(path.join(karmaPath, '../../'));
@@ -80,7 +80,7 @@ var action = function () {
 // -----------------------------------------------
 // run rocket if we're starting a karma server
 
-var rocketCtl = require('./test/lib/rocket_ctrl')
+var rocketCtl = require('../../test/lib/rocket_ctrl')
 try {
   if (command == 'start') {
     rocketCtl.withRocket(rocketPort, {stdio: 'inherit'}, action);
