@@ -75,5 +75,5 @@ module.exports = {
 */
   // NOTE: version property is in double-quotes so
   // the buildscript treats it like JSON
-  "version" : "0.14.0",
+  "version" : "0.14.0-1-development",
 };
