@@ -44,7 +44,7 @@
 @dir xbrowser Modules with basic cross-browser functionality
 
 @module array           Functions for working with arrays
-@module assert          Assertion functions, primarily for use in tests
+@module assert          Assertion functions, primarily for use in tests.
 @module compare         Deep object equality comparison
 @module cutil           Functions and constructs for concurrent stratified programming
 @module dashdash        Options parser (tracking the [node-dashdash library](https://github.com/trentm/node-dashdash))
