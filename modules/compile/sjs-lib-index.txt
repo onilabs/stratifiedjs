@@ -1,0 +1,6 @@
+@lib     Oni Apollo '0.14.0' Standard Module Library - Compilation Utilities
+@summary SJS compilation utilities
+
+@module minify        SJS source code minifier
+@module sjs           SJS Compiler
+@module stringify     SJS source code stringifier

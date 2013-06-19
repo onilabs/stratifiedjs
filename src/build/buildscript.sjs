@@ -20,10 +20,13 @@ function build_deps() {
   // top-level targets:
 
   PSEUDO("clean");
-  BUILD("clean", ["rm -rf tmp", function() { log('all done')}]); 
+  BUILD("clean", ["rm -rf \
+    tmp \
+    modules/compile/*js \
+    ", function() { log('all done')}]);
 
   PSEUDO("build");
-  BUILD("build", function() { log('all done') }, ["stratified.js", 
+  BUILD("build", function() { log('all done') }, ["stratified.js",
                                                   "stratified-node.js",
                                                   "modules/numeric.sjs",
                                                   "modules/sjcl.sjs",
@@ -32,6 +35,10 @@ function build_deps() {
                                                   "modules/marked.sjs",
                                                   "modules/dashdash.sjs",
                                                   "tmp/version_stamp",
+                                                  "modules/compile/deps.js",
+                                                  "modules/compile/sjs.sjs",
+                                                  "modules/compile/minify.sjs",
+                                                  "modules/compile/stringify.sjs",
                                                   "test/unit/dashdash-tests.sjs",
                                                   "test/_index.txt"]);
 
@@ -43,17 +50,34 @@ function build_deps() {
   //----------------------------------------------------------------------
   // c1
 
-  // minifier (used by MINIFY):
-  CPP("tmp/c1jsmin.js", "-DC1_KERNEL_JSMIN",  
-      ["src/c1/c1.js.in", "src/c1/kernel-jsmin.js.in"]); 
+  var jsHeader = "src/headers/__js.txt", jsFooter = "src/footers/__js.txt", compileFooter = "src/footers/compiler-main.sjs";
+  var compilerSources = function(js) {
+    return [jsHeader, js, jsFooter, compileFooter];
+  }
+
+  CPP("tmp/c1jsmin.js", "-DC1_KERNEL_JSMIN",
+      ["src/c1/c1.js.in", "src/c1/kernel-jsmin.js.in"]);
   // stringifier (used by STRINGIFY):
-  CPP("tmp/c1jsstr.js", "-DC1_KERNEL_JSMIN -DSTRINGIFY", 
-      ["src/c1/c1.js.in", "src/c1/kernel-jsmin.js.in"]); 
+  CPP("tmp/c1jsstr.js", "-DC1_KERNEL_JSMIN -DSTRINGIFY",
+      ["src/c1/c1.js.in", "src/c1/kernel-jsmin.js.in"]);
+  // deps analyser:
+  CPP("modules/compile/deps.js", "-DC1_KERNEL_DEPS",
+      ["src/c1/c1.js.in", "src/c1/kernel-deps.js.in"]);
+
   // SJS compiler:
-  CPP("tmp/c1.js", "-DC1_KERNEL_SJS", 
-      ["src/c1/c1.js.in", "src/c1/kernel-sjs.js.in"]); 
-  MINIFY("tmp/c1.js.min", "tmp/c1.js", 
+  CPP("tmp/c1.js", "-DC1_KERNEL_SJS",
+      ["src/c1/c1.js.in", "src/c1/kernel-sjs.js.in"]);
+  MINIFY("tmp/c1.js.min", "tmp/c1.js",
          { pre: "(function(exports){", post: "})(__oni_rt.c1={});" });
+
+  // runtime compiler modules
+  CONCAT("modules/compile/minify.sjs", compilerSources("tmp/c1jsmin.js"));
+  CONCAT("modules/compile/stringify.sjs", compilerSources("tmp/c1jsstr.js"))
+  BUILD("modules/compile/sjs.sjs",
+    // the sed command brings in the first comment from kernel-sjs.in (i.e the docs)
+    "sed '/@docsoff/q' $0 > $TARGET; echo 'exports.compile = __oni_rt.c1.compile;' >> $TARGET; cat $1 >> $TARGET",
+    ["src/c1/kernel-sjs.js.in", compileFooter]);
+
 
   //----------------------------------------------------------------------
   // vm1
@@ -322,7 +346,7 @@ function MINIFY(target, source, flags) {
       if (process.env['APOLLO_MINIFY'] == 'false') {
         var out = src;
       } else {
-        var c = require('../../tmp/c1jsmin.js');
+        var c = require('../../modules/compile/minify.sjs');
         var out = c.compile(src, flags);
       }
       var pre = flags.pre || "";
@@ -330,7 +354,7 @@ function MINIFY(target, source, flags) {
       fs.writeFile(target, pre + out + post);
       return target;
     },
-    [source, "tmp/c1jsmin.js"]);
+    [source, "modules/compile/minify.sjs"]);
 }
 
 function STRINGIFY(target, source, flags) {
@@ -340,21 +364,27 @@ function STRINGIFY(target, source, flags) {
     function() {
       log("* Stringifying "+target);
       var src = fs.readFile(source).toString();
-      var c = require('../../tmp/c1jsstr.js');
+      var c = require('../../modules/compile/stringify.sjs');
       var out = c.compile(src, flags);
       var pre = flags.pre || "";
       var post = flags.post || "";
       fs.writeFile(target, pre + out + post);
       return target;
     },
-    [source, "tmp/c1jsstr.js"]);
+    [source, "modules/compile/stringify.sjs"]);
 }
 
 // CPP: run C preprocessor
 function CPP(target, defs, deps) {
-  var cmd = "cpp -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers";
+  var cmd = "cpp -C -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers";
   var extraflags = process.env['APOLLO_CFLAGS'] || '';
   BUILD(target, cmd + " " + extraflags + " " + defs + " $0 $TARGET", deps);
+}
+
+function CONCAT(target, files) {
+  var sh = "cat";
+  for (var i=0; i<files.length; i++) sh += " $" + i;
+  BUILD(target, [sh + " > $TARGET", replacements_from_config], files);
 }
 
 //----------------------------------------------------------------------

@@ -2,6 +2,9 @@
 ### regenerate it by running src/build/make-sjs
 unit/array-tests.sjs
 unit/assert-tests.sjs
+unit/bundle-tests.sjs
+unit/compile/minify-tests.sjs
+unit/compile/stringify-tests.sjs
 unit/cutil-tests.sjs
 unit/dashdash-tests.sjs
 unit/debug-tests.sjs

@@ -39,12 +39,14 @@
         // all modules addressed as sjs:' will now be loaded from
         // the location above.
     
+@dir compile  SJS compilation utilities
 @dir nodejs   NodeJS-related modules
 @dir test     Automated testing utilities
 @dir xbrowser Modules with basic cross-browser functionality
 
 @module array           Functions for working with arrays
 @module assert          Assertion functions, primarily for use in tests.
+@module bundle          Create SJS code bundles
 @module compare         Deep object equality comparison
 @module cutil           Functions and constructs for concurrent stratified programming
 @module dashdash        Options parser (tracking the [node-dashdash library](https://github.com/trentm/node-dashdash))

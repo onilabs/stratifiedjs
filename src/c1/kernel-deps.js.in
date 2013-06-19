@@ -1,0 +1,447 @@
+/*
+ * C1 JS/SJS->require() analysis compiler kernel  
+ *
+ * Part of StratifiedJS
+ * http://onilabs.com/apollo
+ *
+ * (c) 2013 Oni Labs, http://onilabs.com
+ *
+ * This file is licensed under the terms of the GPL v2, see
+ * http://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
+//----------------------------------------------------------------------
+// helpers:
+
+function push_scope(pctx) {
+  pctx.scopes.push({
+    stmts:[],
+    assignments: [],
+  });
+}
+function pop_scope(pctx) {
+  return pctx.scopes.pop();
+}
+function top_scope(pctx) {
+  return pctx.scopes[pctx.scopes.length-1];
+}
+
+var process_script = function(stmts) {
+  stmts = seq(stmts);
+  return stmts.flatten();
+}
+
+var seq = function(exprs) {
+  var r = Dynamic;
+  for (var i=0; i<exprs.length; i++) {
+    // console.log("sequencing " + r + " with " + exprs[i]);
+    if (exprs[i]) r = r.seq(exprs[i]);
+    // console.log(" -> " + r);
+  }
+  return r;
+}
+
+var toDynamic = function() { return Dynamic; };
+
+// Generic Data types:
+
+var Maybe = function(x) { return x === undefiend ? Nothing() : Just(x); };
+
+var Just = function(x) {
+  return {
+    defined: function() { return true; },
+    map: function(f) { return Just(f(x)); },
+    get: function() { return x; },
+    toString: function () { return "Just(" + x + ")"; },
+  };
+};
+
+var Nothing = function() {
+  return {
+    defined: function() { return false; },
+    map: function() { return this; },
+    get: function(d) { return d; },
+    toString: function() { return "Nothing()"; },
+  };
+};
+
+var map = function(arr, fn) {
+  // [a] -> (a -> b) -> [b]
+  var res = [];
+  for (var i=0; i<arr.length; i++) {
+    res[i] = fn(arr[i]);
+  }
+  return res;
+}
+var mapM = function(arr, fn) {
+  // [Maybe a] -> (a -> b) -> [Maybe b]
+  var res = [];
+  for (var i=0; i<arr.length; i++) {
+    res[i] = arr[i].map(fn);
+  }
+  return res;
+}
+
+var flattenM = function(arr) {
+  // [Maybe a] -> Maybe [a]
+  var ret = [];
+  for (var i=0; i<arr.length; i++) {
+    if (!(arr[i].defined())) { return Nothing(); }
+    ret[i] = arr[i].get();
+  }
+  return Just(ret);
+}
+
+var filterM = function(arr) {
+  // [Maybe a] -> [a]
+  var ret = [];
+  for (var i=0; i<arr.length; i++) {
+    if (arr[i] instanceof Nothing) continue;
+    ret[i] = arr[i].get();
+  }
+  return ret;
+}
+
+
+// Minimal AST
+
+// Dynamic also serves as the base for other syntax types:
+var Dynamic = {
+  // combinators
+  seq: function(other) { return other; },
+  dot: function(prop) { return Dynamic; },
+  call: function(args) { return Dynamic; },
+
+  // values
+  staticVal: Nothing,                   // statically-determined value (an eval()-able string)
+  text: Nothing,                        // source code representation
+  flatten: function() { return []; },  // Return all non-dynamic children
+  toString: function() { return "Dynamic()"; },
+};
+
+// Identifier
+var Id = function(text, scope) {
+  this._text = text;
+  this.scope = (scope || []).slice();
+};
+Id.prototype = Object.create(Dynamic);
+Id.prototype.dot = function(prop) {
+  return new Id(this.text().get() + "." + prop, this.scope);
+};
+Id.prototype.call = function(args) {
+  return new Call(this, args);
+};
+Id.prototype.text = function() {
+  if (!this._resolved) {
+    this._resolved = (function() {
+      var result = Just(this._text);
+      if (this._text.indexOf(".") != -1) {
+        return result;
+      }
+
+      var text = this._text;
+      for (var i=this.scope.length - 1; i>=0; i--) {
+        var name = this.scope[i][0];
+        var val = this.scope[i][1];
+        if(val && name.text().get(null) === text) {
+          return val.text();
+        }
+      }
+      return result;
+    }).call(this);
+  }
+  return this._resolved;
+};
+Id.prototype.toString = function() { return "Id(" + this.text() + ")"; };
+
+// A sequence of AST nodes (well, just two - successive sequences form a stick)
+var Seq = function(a,b) {
+  this.a = a;
+  this.b = b;
+  // console.log(" # " + this);
+};
+Seq.prototype = Object.create(Dynamic);
+Seq.prototype.seq = function(other) { return new Seq(this, other); };
+Seq.prototype.flatten = function() { return this.a.flatten().concat(this.b.flatten()); };
+Seq.prototype.toString = function() { return "Seq(" + this.a + "," + this.b + ")"; };
+
+// A function call
+var Call = function(prop, args) {
+  this.prop = prop;
+  this.args = args;
+  // console.log(" # " + this);
+};
+Call.prototype = Object.create(Dynamic);
+Call.prototype.seq = function(other) { return new Seq(this, other); };
+Call.prototype.flatten = function() {
+  var call_args = [];
+  var args = this.args;
+  var prop = this.prop;
+  for (var i=0; i<args.length; i++) {
+    var val = args[i].staticVal().get(null);
+    if (val == null) {
+      return [];
+    }
+    call_args[i] = val;
+  }
+  // console.log("call prop: " + prop.text());
+  return prop.text().map(function(ident) {
+    switch(ident) {
+      case "require":
+        return [["require", call_args]];
+        break;
+      case "require.hubs.unshift":
+        return [["hub_insert", call_args]];
+        break;
+      case "require.hubs.push":
+        return [["hub_append", call_args]];
+        break;
+      default: return [];
+    }
+  }).get([]);
+};
+Call.prototype.toString = function() { return "Call(" + this.prop + "," + this.args + ")"; };
+
+// A primitive literal
+var Lit = function(val) {
+  this.val = val;
+  // console.log(" # " + this);
+};
+Lit.prototype = Object.create(Dynamic);
+Lit.prototype.staticVal = function() { return Just(eval(this.val)); };
+Lit.prototype.toString = function() { return "Literal(" + this.staticVal() + ")"; };
+
+
+// an Array literal
+var ArrayLit = function(arr) {
+  this.arr = arr;
+  // console.log(" # " + this);
+};
+ArrayLit.prototype = Object.create(Dynamic);
+ArrayLit.prototype.staticVal = function() {
+  var arr = this.arr;
+  var maybeVals = [];
+  for (var i=0; i<arr.length; i++) {
+    maybeVals[i] = arr[i].staticVal();
+  }
+  return flattenM(maybeVals);
+};
+ArrayLit.prototype.toString = function() {
+  var join = function(vals) { return vals.join(","); };
+  return "[" + this.staticVal().map(join) + "]";
+};
+
+// an Object literal
+var ObjectLit = function(pars) {
+  this.pars = pars;
+  // console.log(" # " + this);
+}
+ObjectLit.prototype = Object.create(Dynamic);
+ObjectLit.prototype.staticVal = function() {
+  var pars = this.pars;
+  var obj = {};
+  for (var i=0; i<pars.length; i++) {
+    var elem = pars[i];
+    elem[1].staticVal().map(function(v) {
+      obj[elem[0]] = v;
+    });
+  }
+  return Just(obj);
+};
+ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().map(JSON.stringify) + ")"; };
+
+//----------------------------------------------------------------------
+// misc:
+
+#define HANDLE_NEWLINES(n, pctx) /* */
+  
+//----------------------------------------------------------------------
+// contexts:
+
+#define BEGIN_SCRIPT(pctx)                                   \
+  if (typeof pctx.scopes !== 'undefined')                    \
+    throw new Error("Internal parser error: Nested script"); \
+  pctx.scopes = [];                                          \
+  push_scope(pctx);
+
+#define ADD_SCRIPT_STMT(stmt, pctx) if(stmt) top_scope(pctx).stmts.push(stmt);
+
+#define END_SCRIPT(pctx)                        \
+  return process_script(pop_scope(pctx).stmts);
+
+#define BEGIN_FBODY(pctx,dummy) /* */
+
+#define ADD_FBODY_STMT(stmt, pctx) /* */
+
+#define END_FBODY(pctx,dummy) return Dynamic;
+
+#define BEGIN_BLOCK(pctx) push_scope(pctx);
+
+#define ADD_BLOCK_STMT(stmt, pctx) top_scope(pctx).stmts.push(stmt);
+
+#define END_BLOCK(pctx) return seq(pop_scope(pctx).stmts);
+
+#define BEGIN_CASE_CLAUSE(cexp, pctx) /* */
+
+#define ADD_CASE_CLAUSE_STMT(stmt, pctx) /* */
+
+#define END_CASE_CLAUSE(pctx) /* */
+
+#define BEGIN_LOOP_SCOPE(pctx)   /* */
+#define END_LOOP_SCOPE(pctx)     /* */
+#define BEGIN_SWITCH_SCOPE(pctx) /* */
+#define END_SWITCH_SCOPE(pctx)   /* */
+
+
+#define BEGIN_BLAMBDABODY(pctx) /* */
+
+#define ADD_BLAMBDABODY_STMT(stmt, pctx) /* */
+
+#define END_BLAMBDABODY(pctx) return Dynamic;
+
+
+//----------------------------------------------------------------------
+// statements:
+#define GEN_EMPTY_STMT(pctx) return Dynamic;
+
+#define GEN_EXP_STMT(exp, pctx) return exp;
+
+#define GEN_LBL_STMT(lbl, stmt, pctx) return stmt;
+
+#define GEN_FUN_DECL(fname, pars, body, pctx) return Dynamic;
+
+#define GEN_VAR_DECL(decls, pctx)                 \
+  for (var i=0; i<decls.length; ++i) {            \
+    if (decls[i].length == 2) {                   \
+      top_scope(pctx).assignments.push(decls[i]); \
+      GEN_EXP_STMT(decls[i][1], pctx);            \
+    }                                             \
+  };
+
+#define GEN_IF(test, consequent, alternative, pctx) return Dynamic;
+
+#define GEN_DO_WHILE(body, test, pctx) return Dynamic;
+
+#define GEN_WHILE(test, body, pctx) return Dynamic;
+
+#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx) return Dynamic;
+
+#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx) return Dynamic;
+
+#define GEN_CONTINUE(lbl, pctx) return Dynamic;
+
+#define GEN_BREAK(lbl, pctx) return Dynamic;
+
+#define GEN_RETURN(exp, pctx) return exp;
+
+#define GEN_WITH(exp, body, pctx) return body;
+
+#define GEN_SWITCH(exp, clauses, pctx) return Dynamic;
+
+#define GEN_THROW(exp, pctx) return Dynamic;
+
+function gen_crf(crf) {
+  var rv = Dynamic;
+  if (crf[2])
+    rv = rv.seq(crf[2]);
+  return rv;
+}
+
+#define GEN_TRY(block, crf, pctx) return block.seq(gen_crf(pctx));
+
+//----------------------------------------------------------------------
+// expressions:
+
+#define GEN_INFIX_OP(left, id, right, pctx) return right;
+#define GEN_ASSIGN_OP(left, id, right, pctx) \
+  if (id == '=') top_scope(pctx).assignments.push([left, right]);
+#define GEN_PREFIX_OP(id, right, pctx) return right;
+#define GEN_POSTFIX_OP(left, id, pctx) return left;
+
+#ifdef SJS_ARROWS
+#define GEN_THIN_ARROW(body, ptcx) return Dynamic;
+#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx) return Dynamic;
+// note the intentional space in ' =>' below; it is to fix cases like '= => ...'
+#define GEN_FAT_ARROW(body, ptcx) return Dynamic;
+#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx) return Dynamic;
+#endif
+
+#ifdef SJS_DOUBLEDOT
+#define GEN_DOUBLEDOT_CALL(l,r,pctx) return l.seq(r);
+#endif
+
+#define GEN_LITERAL(type, value, pctx) return new Lit(value);
+
+#ifdef INTERPOLATING_STRINGS
+#define GEN_INTERPOLATING_STR(parts, pctx) return Dynamic;
+#endif // INTERPOLATING_STRINGS
+
+#ifdef QUASIS
+#define GEN_QUASI(parts, pctx) return Dynamic;
+#endif // QUASIS
+
+
+#define GEN_IDENTIFIER(value, pctx) return new Id(value, top_scope(pctx).assignments);
+
+#define GEN_OBJ_LIT(props, pctx)             \
+  var rv = [];                               \
+  for (var i=0; i<props.length; ++i) {       \
+    if (props[i][0] == "prop") {             \
+      rv.push([props[i][1], props[i][2]]);   \
+    }                                        \
+  }                                          \
+  return new ObjectLit(rv);
+
+#define GEN_ARR_LIT(elements, pctx) return new ArrayLit(elements);
+
+#define GEN_ELISION(pctx) return Dynamic;
+
+#define GEN_DOT_ACCESSOR(l, name, pctx) return l.dot(name);
+
+#define GEN_NEW(exp, args, pctx) return Dynamic;
+
+#define GEN_IDX_ACCESSOR(l, idxexp, pctx) return l.dot(idxexp);
+
+#define GEN_FUN_CALL(l, args, pctx) return l.call(args);
+
+#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return) return Dynamic;
+
+#define GEN_CONDITIONAL(test, consequent, alternative, pctx) return Dynamic;
+
+#define GEN_GROUP(e, pctx) return e;
+
+#define GEN_THIS(pctx) return new Id("this");
+
+#define GEN_TRUE(pctx) return new Lit("true");
+
+#define GEN_FALSE(pctx) return new Lit("false");
+
+#define GEN_NULL(pctx) return new Lit("null");
+
+#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)  \
+  var rv = Dynamic;                               \
+  for (var i=0; i<blocks.length; ++i){            \
+    rv = rv.seq(blocks[i]);                       \
+  }                                               \
+  return rv;
+
+#define BEGIN_SUSPEND_BLOCK(pctx) /*nothing*/
+#define END_SUSPEND_BLOCK(pctx) /*nothing*/
+#define GEN_SUSPEND(has_var, decls, block, crf, pctx)  return block;
+#define GEN_COLLAPSE(pctx) /* */
+#define GEN_USING(has_var, lhs, exp, body, pctx)  return body;
+#define BEGIN___JS_BLOCK(pctx)
+#define END___JS_BLOCK(pctx)
+#define GEN___JS(body, pctx) return Dynamic;
+#define GEN_BLOCKLAMBDA(pars, body, pctx) return Dynamic;
+
+

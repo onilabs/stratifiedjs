@@ -58,6 +58,14 @@ __oni_rt.sys = exports;
 // https://groups.google.com/d/msg/oni-apollo/fNMz2W8S5mU/sYCgrriYj1MJ
 var UNDEF; // == undefined
 
+// __oni_rt_bundle is the well-known location where
+// bundle scripts will preload module sources.
+// Bundles will define this object themselves
+// if they are loaded before us.
+if (!(__oni_rt.G.__oni_rt_bundle)) {
+  __oni_rt.G.__oni_rt_bundle = {};
+}
+
 //----------------------------------------------------------------------
 // helper functions that we use internally and export for use by other
 // libraries; accessible through require('builtin:apollo-sys')
@@ -743,6 +751,17 @@ function resolve(module, require_obj, parent, opts) {
 
   if (parent == getTopReqParent_hostenv())
     parent = "[toplevel]";
+
+  var preload = __oni_rt.G.__oni_rt_bundle;
+  var path = resolveSpec.path;
+  var contents = preload[path];
+  if (contents !== undefined) {
+    resolveSpec.src = function() {
+      // once loaded, we remove src from memory to save space
+      delete preload[path];
+      return {src:contents, loaded_from: path+"#bundle"};
+    };
+  }
 
   return resolveSpec;
 }

@@ -17,7 +17,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- */
+*/
+/**
+   @module  compile/sjs
+   @summary SJS Compiler
+   @home    sjs:compile/sjs
+
+   @function compile
+   @summary  Compile a string of SJS source code into JavasScript
+   @param    {String} [src]
+   @param    {optional Object} [settings]
+   @setting  {String} [filename]
+   @return   {String} Compiled JavaScript
+
+
+@docsoff */
+
 
 #ifdef DEBUG_C1
 // XXX figure out why normal CPP stringification is screwed
