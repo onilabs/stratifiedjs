@@ -247,7 +247,7 @@ function makeIndexView() {
 
 function makeIndexModuleEntry(location, module) {
   var view = ui.makeView(
-    "<li>
+    "<li class='module'>
        <h3><a href='##{location.moduleLink(module)}'>#{module}</a></h3>
        <ul name='symbols'></ul>
      </li>");
@@ -274,7 +274,7 @@ function makeIndexModuleEntry(location, module) {
 
 function makeIndexDirEntry(location, dir) {
   var view = ui.makeView(
-    "<li>
+    "<li class='directory'>
        <h3><a href='##{location.relativeLink(url.normalize(location.path + dir))}'>#{dir}</a></h3>
      </li>");
 

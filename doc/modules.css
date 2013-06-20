@@ -108,8 +108,13 @@
     cursor: pointer;
 }
 
+.mb-index li.directory a {
+    color: #484848;
+    font-weight: bold;
+}
+
 .mb-top a {
-    color: #333;
+    color: #444;
 }
 
 .mb-top a > code {
