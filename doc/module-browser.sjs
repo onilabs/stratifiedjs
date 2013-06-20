@@ -18,6 +18,9 @@ and {
   var func = require('sjs:function');
 }
 and {
+  var string = require('sjs:string');
+}
+and {
   var { each, map, toArray, join, reduce } = require('sjs:sequence');
 }
 and {
@@ -42,12 +45,13 @@ dom.addCSS(
 //----------------------------------------------------------------------
 // main program loop
 
-exports.run = function(default_location, trail_parent, index_parent, main_parent) {
+exports.run = function(doc_root, trail_parent, index_parent, main_parent) {
 
   // construct our main ui:
   var top_view, index_view, trail_view;
   top_view = ui.makeView(
     "<div class='mb-top mb-main' name='main'></div>");
+  doc_root = url.normalize(doc_root, document.location.href);
 
   using(top_view.show(main_parent)) {
 
@@ -62,7 +66,7 @@ exports.run = function(default_location, trail_parent, index_parent, main_parent
     // Note how the update() calls and the construction of the main view
     // will automatically be aborted if the location changes while we're still
     // busy.
-    var location = parseLocation(default_location);
+    var location = parseLocation(doc_root);
     while (1) {
       waitfor {
         waitfor {
@@ -95,7 +99,7 @@ exports.run = function(default_location, trail_parent, index_parent, main_parent
       }
       or {
         events.wait(window, "hashchange");
-        location = parseLocation(default_location);
+        location = parseLocation(doc_root);
       }
     }
   }
@@ -167,16 +171,16 @@ function makeTrailView() {
     var path_docs = getPathDocs(location.path);
     if (path_docs) {
       while (path_docs.parent) {
-        html = "&nbsp;<b>&raquo;</b>&nbsp;<a href='#"+path_docs.path+"'>"+
+        html = "&nbsp;<b>&raquo;</b>&nbsp;<a href='#"+location.relativeLink(path_docs.path)+"'>"+
           topDir(path_docs.path) +"</a>" + html;
         path_docs = path_docs.parent;
       }
-      html = "<a href='#"+path_docs.path+"'>"+
+      html = "<a href='#"+location.relativeLink(path_docs.path)+"'>"+
         (path_docs.lib || "Unnamed Module Collection") +"</a>" + html;
     }
     if (location.module) {
       if (html.length) html += "&nbsp;<b>&raquo;</b>&nbsp;"
-      html += "<a href='#"+location.path+location.module+"'>"+location.module+"</a>";
+      html += "<a href='#"+location.moduleLink()+"'>"+location.module+"</a>";
     }
     view.replace("<div class='mb-top mb-trail'>"+html+"</div>");
   };
@@ -203,9 +207,9 @@ function makeIndexView() {
       entries = {}; selection = null;
 
       if (lib_docs) {
-        (entries["./"] = makeIndexDirEntry(lib_docs.path, "./")).show(view.elems.list);
+        (entries["./"] = makeIndexDirEntry(location, "./")).show(view.elems.list);
         if (lib_docs.parent) {
-          (entries["../"] = makeIndexDirEntry(lib_docs.parent.path, "../")).show(view.elems.list);
+          (entries["../"] = makeIndexDirEntry(location, "../")).show(view.elems.list);
         }
         // create a sorted list of modules & directories:
         var l = [];
@@ -215,7 +219,7 @@ function makeIndexView() {
         }
         keys(lib_docs.dirs) .. each {
           |dir|
-          l.push([dir, makeIndexDirEntry(location.path+dir+"/", dir+"/")]);
+          l.push([dir, makeIndexDirEntry(location, dir+"/")]);
         }
         l.sort((a,b) -> a[0]<b[0] ? -1 : (a[0]>b[0] ? 1 : 0));
         l .. each {|e| (entries[e[0]] = e[1]).show(view.elems.list) };
@@ -244,7 +248,7 @@ function makeIndexView() {
 function makeIndexModuleEntry(location, module) {
   var view = ui.makeView(
     "<li>
-       <h3><a href='##{location.path}#{module}'>#{module}</a></h3>
+       <h3><a href='##{location.moduleLink(module)}'>#{module}</a></h3>
        <ul name='symbols'></ul>
      </li>");
 
@@ -256,7 +260,7 @@ function makeIndexModuleEntry(location, module) {
     if (!module_docs) return; // no docs; nothing much we can do
     var symbols_template = 
       values(merge(module_docs.symbols, module_docs.classes)) ..
-      map(symbol => "<li><a href='##{location.path}#{module}::#{symbol.name}'>#{symbol.name}</a></li>") ..
+      map(symbol => "<li><a href='##{location.moduleLink(module)}::#{symbol.name}'>#{symbol.name}</a></li>") ..
       join;
     (symbols_view = ui.makeView(symbols_template)).show(view.elems.symbols);
   };
@@ -268,10 +272,10 @@ function makeIndexModuleEntry(location, module) {
   return view;
 }
 
-function makeIndexDirEntry(path, dir) {
+function makeIndexDirEntry(location, dir) {
   var view = ui.makeView(
     "<li>
-       <h3><a href='##{path}'>#{dir}</a></h3>
+       <h3><a href='##{location.relativeLink(url.normalize(location.path + dir))}'>#{dir}</a></h3>
      </li>");
 
   view.select = function() {};
@@ -407,7 +411,7 @@ function makeModuleView(location) {
     if (!symbols[s.type]) symbols[s.type] = [];
     symbols[s.type].push(
         "<tr>
-           <td class='mb-td-symbol'><a href='##{location.path}#{location.module}::#{s.name}'>#{s.name}</a></td>
+           <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{s.name}'>#{s.name}</a></td>
            <td>#{makeSummaryHTML(s,location)}</td>
          </tr>");
   }
@@ -442,7 +446,7 @@ function makeSymbolView(location) {
   var view;
   if (!location.classname) {
     view = ui.makeView(
-      "<h2><a href='##{location.path}#{location.module}'>#{location.module}</a>::#{location.symbol}</h2>"+
+      "<h2><a href='##{location.moduleLink()}'>#{location.module}</a>::#{location.symbol}</h2>"+
         (docs.type != "class" ?
          "<div class='mb-require'><code>require('#{mdocs.home||(location.path+location.module)}').#{location.symbol};</code></div>" : "")+
       "<div name='summary' class='mb-summary'></div>
@@ -453,7 +457,7 @@ function makeSymbolView(location) {
   else {
     var name = docs['static'] ? location.classname + "." + location.symbol : location.symbol;
     var template =         
-      "<h2><a href='##{location.path}#{location.module}'>#{location.module}</a>::<a href='##{location.path}#{location.module}::#{location.classname}'>#{location.classname}</a>::#{name}</h2>"+
+      "<h2><a href='##{location.moduleLink()}'>#{location.module}</a>::<a href='##{location.moduleLink()}::#{location.classname}'>#{location.classname}</a>::#{name}</h2>"+
       (docs.type == "ctor" || docs['static'] || docs.type == "proto"? 
        "<div class='mb-require'><code>require('#{mdocs.home || (location.path+location.module)}').#{name};</code></div>" : "")+
       "<div name='summary' class='mb-summary'></div>
@@ -554,7 +558,7 @@ function makeSymbolView(location) {
       if (!symbols[type]) symbols[type] = [];
       symbols[type].push(
           "<tr>
-             <td class='mb-td-symbol'><a href='##{location.path}#{location.module}::#{docs.name}::#{s.name}'>#{s.name}</a></td>
+             <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{docs.name}::#{s.name}'>#{s.name}</a></td>
              <td>#{makeSummaryHTML(s, location)}</td>
            </tr>");
     }
@@ -594,7 +598,7 @@ function makeLibView(location) {
   var modules = values(docs.modules) .. 
     reduce("", (p,m) -> p +
     "<tr>
-      <td class='mb-td-symbol'><a href='##{location.path}#{m.name}'>#{m.name}</a></td>
+      <td class='mb-td-symbol'><a href='##{location.pathLink()}#{m.name}'>#{m.name}</a></td>
       <td>#{makeSummaryHTML(m, location)}</td>
      </tr>"
   );
@@ -606,7 +610,7 @@ function makeLibView(location) {
   var dirs = values(docs.dirs) .. 
     reduce("", (p,d) -> p +
     "<tr>
-      <td class='mb-td-symbol'><a href='##{location.path}#{d.name}'>#{d.name}</a></td>
+      <td class='mb-td-symbol'><a href='##{location.pathLink()}#{d.name}'>#{d.name}</a></td>
       <td>#{makeSummaryHTML(d,location)}</td>
      </tr>"
    );
@@ -618,6 +622,32 @@ function makeLibView(location) {
   return view;
 }
 
+// Location object: location of some symbol / reference
+// Includes methods for making links that are relative to
+// the doc_root for this module browser.
+function Location(root, path, module, classname, symbol) {
+  this.root = root;
+  this.path = path;
+  this.module = module;
+  this.classname = classname;
+  this.symbol = symbol;
+}
+Location.prototype.pathLink = function() {
+  var path = this.relativeLink(this.path);
+  // don't bother to recalculate
+  this.pathLink = -> path;
+  return path;
+}
+Location.prototype.moduleLink = function(mod) {
+  if (mod === undefined) mod = this.module;
+  return this.relativeLink(this.path + mod);
+}
+Location.prototype.relativeLink = function(href) {
+  if (href .. string.startsWith(this.root)) {
+    href = href.substr(this.root.length);
+  }
+  return href;
+}
 
 //----------------------------------------------------------------------
 // helpers
@@ -629,20 +659,21 @@ function makeLibView(location) {
 // we parse this into {path, module, classname, symbol}
 //
 // If URL is not given, we use default_location (or window.location href)
-function parseLocation(default_location) {
-  if (!window.location.hash)
-    window.location.replace("#"+default_location);
-  var matches = /#(.*\/)?([^:/#]*)(?:\:\:([^:]*)(?:\:\:(.*))?)?/.exec(window.location.hash);
-  if (!matches) return { path: "", module: "", classname: "", symbol: "" };
+function parseLocation(doc_root) {
+  var hash = window.location.hash || "#" + doc_root;
+  //if (!window.location.hash)
+  //  window.location.replace("#"+doc_root);
+  var matches = /#(.*\/)?([^:/#]*)(?:\:\:([^:]*)(?:\:\:(.*))?)?/.exec(hash);
+
+  if (!matches) return new Location(doc_root, "", "", "", "");
   var [, matchUrl, module, classname, symbol] = matches;
-  var relativeBase = default_location || window.location.href;
-  var loc = {
-    base: relativeBase,
-    path: url.normalize(matchUrl || "", relativeBase), // XXX want resolution like in require here
-    module: module,
-    classname: symbol ? classname : null,
-    symbol: symbol ? symbol : classname
-  };
+  var loc = new Location(
+    doc_root,
+    url.normalize(matchUrl || "", doc_root), // XXX want resolution like in require here
+    module,
+    symbol ? classname : null,
+    symbol ? symbol : classname
+  );
   // we don't want .sjs extensions in module names:
   if (/\.sjs$/.test(loc.module)) loc.module = loc.module.substr(0,loc.module.length-4);
   return loc;
@@ -682,30 +713,36 @@ function makeTypeHTML(type, location) {
   for (var i=0; i<type.length; ++i) {
     var resolved = resolveLink(type[i].replace('optional ',''), location);
     if (!resolved) continue;
-    type[i] = (type[i].indexOf('optional') != -1 ? "optional ":"") + "<a href='"+resolved[0]+"'>"+resolved[1]+"</a>";
+    type[i] = (type[i].indexOf('optional') != -1 ? "optional ":"") + "<a href='"+location.relativeLink(resolved[0])+"'>"+resolved[1]+"</a>";
   }
   return type.join("|");
 }
 
 function resolveLink(id, location) {
   if (id.indexOf("::") == -1) return null; // ids we care about contain '::' 
+  var resolved = null;
   if (id.charAt(id.length-1) == ':') {
     // link to another module
     id = id.substring(0, id.length-2);
     var desc = id.replace(/^[.\/]*/, ''); // don't print relative path components
     var target = url.normalize(id, location.path);
-    return ["#"+target, desc];
+    resolved = [target, desc];
   }
   else if (id.charAt(0) != ':') {
     // 'absolute' link into another module of our lib
     // e.g. "cutil::Semaphore::acquire"
-    return ["#"+location.path+id, "<code>"+id+"</code>"];
+    resolved = [location.path+id, "<code>"+id+"</code>"];
   }
   else {
     // 'relative' link into our module
     // e.g. "::Semaphore::acquire", or "::foo"
-    return ["#"+location.path+location.module+id, "<code>"+id.substring(2)+"</code>"];
+    resolved = [location.path+location.module+id, "<code>"+id.substring(2)+"</code>"];
   }
+  if (!resolved) return null;
+
+  // relativize the link:
+  resolved[0] = "#" + location.relativeLink(resolved[0]);
+  return resolved;
 }
 
 
