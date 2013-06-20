@@ -503,12 +503,32 @@ function makeRequire(parent) {
   }
   else {
     // we're the root
-    rf.hubs = getHubs_hostenv();
+    rf.hubs = augmentHubs(getHubs_hostenv());
     rf.modules = {};
     // module compiler functions indexed by extension:
     rf.extensions = getExtensions_hostenv();
   }
   return rf;
+}
+
+function augmentHubs(hubs) {
+  // add additional methods to the `require.hubs` array:
+  hubs.addDefault = function(hub) {
+    if (!this.defined(hub[0])) {
+      this.push(hub);
+      return true;
+    }
+    return false;
+  };
+  hubs.defined = function(prefix) {
+    for (var i=0; i<this.length; i++) {
+      var h = this[i][0];
+      var l = Math.min(h.length, prefix.length);
+      if (h.substr(0, l) == prefix.substr(0,l)) return true;
+    }
+    return false;
+  };
+  return hubs;
 }
 
 function html_sjs_extractor(html, descriptor) {

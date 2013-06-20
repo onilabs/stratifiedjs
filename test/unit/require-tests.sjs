@@ -87,3 +87,31 @@ test('circular reference throws an exception') {||
     {message: /^Circular module dependency loading .*circular_a\.sjs$/},
     -> require('./fixtures/circular_a'));
 };
+
+context('hubs.defined()') {||
+  test('sjs:', -> require.hubs.defined("sjs:") .. assert.eq(true));
+  test('github:', -> require.hubs.defined("github:") .. assert.eq(true));
+  test('sj', -> require.hubs.defined("sj") .. assert.eq(true));
+  test('sjs:somemod', -> require.hubs.defined("sjs:somemod") .. assert.eq(true));
+  test('sjs_', -> require.hubs.defined("sjs_") .. assert.eq(false));
+}
+
+context('hubs.addDefault()') {||
+  test.beforeEach {|s|
+    s.hublen = require.hubs.length;
+  }
+  test.afterEach {|s|
+    while(require.hubs.length > s.hublen) require.hubs.pop();
+  }
+
+  test('for new hub') {|s|
+    require.hubs.addDefault(['newhub:', 'file:///']) .. assert.ok();
+    require.hubs.length .. assert.eq(s.hublen + 1);
+  }
+
+  test('for existing hub') {|s|
+    require.hubs.addDefault(['sjs:somemod', 'file:///']) .. assert.notOk();
+    require.hubs.addDefault(['sj', 'file:///']) .. assert.notOk();
+    require.hubs.length .. assert.eq(s.hublen);
+  }
+}
