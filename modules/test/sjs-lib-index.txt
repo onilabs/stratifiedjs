@@ -1,4 +1,4 @@
-@lib     StratifiedJS '0.14.0' Standard Module Library - Test Modules
+@lib     StratifiedJS '0.14.0-1-development' Standard Module Library - Test Modules
 @summary Automated testing utilities
 @desc
   For running tests, see [runner::]. For defining test cases, see

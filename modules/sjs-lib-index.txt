@@ -1,4 +1,4 @@
-@lib     StratifiedJS '0.14.0' Standard Module Library
+@lib     StratifiedJS '0.14.0-1-development' Standard Module Library
 @summary Standard collection of modules for client and server-side stratified programming with 
          [StratifiedJS](http://onilabs.com/stratifiedjs)
 @desc

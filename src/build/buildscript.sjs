@@ -326,8 +326,8 @@ function replacements_from_config(target) {
   var repl = src.replace(/Version: '[^']*'/g, "Version: '"+config.version+"'")
                 .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm.version+'"')
                 .replace(/"private"\s*:\s*[^,]*/, '"private" : '+config.npm['private']+'')
-                .replace(/Apollo '[^']*' Standard Module Library/g, 
-                         "Apollo '"+config.version+"' Standard Module Library");
+                .replace(/StratifiedJS '[^']*' Standard Module Library/g, 
+                         "StratifiedJS '"+config.version+"' Standard Module Library");
 
   if (repl != src)
     fs.writeFile(target, repl);

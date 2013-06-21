@@ -1,4 +1,4 @@
-@lib     StratifiedJS '0.14.0' Standard Module Library - NodeJS Modules
+@lib     StratifiedJS '0.14.0-1-development' Standard Module Library - NodeJS Modules
 @summary Collection of [nodejs](http://nodejs.org)-related modules.
 
 @module child-process Stratified wrapper of [nodejs's child_process lib](http://nodejs.org/api/child_process.html)
