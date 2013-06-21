@@ -3,9 +3,10 @@ node_js:
   - "0.10"
 env:
   - t=unit
+  - t=unit BROWSERS=PhantomJS
+  - t=unit BROWSERS=Firefox
   - t=integration
-  - r=KARMA t=integration
-  - r=KARMA t=unit
+  - t=integration BROWSERS=PhantomJS,Firefox
 matrix:
   # just run unit tests on other node versions
   include:
@@ -16,14 +17,15 @@ matrix:
     - node_js: "0.6"
       env: t=unit
   
-  # integration tests shouldn't fail the build, as they're often rate-limit issues
   allow_failures:
     - node_js: "0.10"
       env: t=integration
     - node_js: "0.10"
-      env: r=KARMA t=integration
+      env: t=integration BROWSERS=PhantomJS,Firefox
+    - node_js: "0.10"
+      env: t=unit BROWSERS=Firefox
     - node_js: "0.11"
       env: t=unit
 notifications:
   email: false
-script: "./tools/bin/travis-tests"
+script: "./tools/bin/sjs-tests"

@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+# All vars are optional:
+# $NODEJS, $NPM, $SJS_ROOT
+# $BROWSERS (e.g PhantomJS,Firefox - used for karma)
+# $r -- runner: comma-separated list of karma,nodejs
+# $t -- test suite:  unit|integration
+
+import os,sys,subprocess
+TRAVIS = os.environ.get('TRAVIS', 'false') == 'true'
+browsers = os.environ.get('BROWSERS', 'PhantomJS').strip().split(',')
+suite = os.environ.get('t', None)
+args = sys.argv[1:] if suite is None else [suite]
+
+sjs_root = os.environ.get('SJS_ROOT', None)
+if sjs_root is not None: os.chdir(sjs_root)
+
+default_runners = 'node,karma'
+
+if TRAVIS:
+	# use presence of BROWSERS to imply node/karma runner
+	default_runners = 'karma' if 'BROWSERS' in os.environ else 'node'
+
+runners = os.environ.get('r', default_runners).lower().split(',')
+
+if TRAVIS and 'karma' in runners:
+	if browsers != ['PhantomJS']:
+		os.environ['DISPLAY'] = ':99'
+		subprocess.check_call(["sh", "-e", "/etc/init.d/xvfb", "start"])
+		import time; time.sleep(3)
+
+node = os.environ.get('NODEJS', 'node')
+npm = os.environ.get('NPM', 'npm')
+
+testmod = 'test/run.html'
+
+try:
+	for runner in runners:
+		if runner == 'node':
+			subprocess.check_call([node, 'sjs', testmod] + args)
+		elif runner == 'karma':
+			if not os.path.exists('node_modules/karma'):
+				subprocess.check_call([os.environ['NPM'], 'install'])
+
+			subprocess.check_call([
+				node, 'sjs',
+				'tools/bin/karma.sjs',
+				'start',
+				'tools/karma/conf.js',
+				'--log-level=debug',
+				'--single-run',
+				'--single-run',
+				'--browsers=' + ','.join(browsers),
+				'--',
+				testmod] + args)
+		else:
+			raise AssertionError("Unknown runner: %s" % (runner,))
+
+except subprocess.CalledProcessError as e:
+	print(str(e), file=sys.stderr)
+	sys.exit(1)
