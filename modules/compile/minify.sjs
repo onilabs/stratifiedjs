@@ -1,4 +1,6 @@
 __js {
+
+
 /*
  * C1 Stratified JavaScript parser 
  *
@@ -127,6 +129,13 @@ for C1_KERNEL_SJS:  OBSOLETE! VERBOSE EXCEPTIONS ARE ALWAYS USED NOW, NOT
    
 */
 /* #define DEBUG_C1 1 */
+
+
+
+
+
+
+
 
 /*
 
@@ -1006,19 +1015,25 @@ S("{").
           var exp = parseExp(pctx, 110); // only parse up to comma
           props.push(["prop",prop,exp]);
         }
+
+
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
           if (prop.charAt(0) == "'" || prop.charAt(0) == '"')
             throw new Error("Quoted identifiers not allowed in destructuring patterns ("+prop+")");
           props.push(["pat", prop, pctx.line]);
         }
+
         else
           throw new Error("Unexpected token '"+pctx.token+"'");
       }
       scan(pctx, "}", TOKENIZER_OP); // note the special tokenizer case here
       
       var rv = "{";                                                       for (var i=0; i<props.length; ++i) {                                  if (i!=0) rv += ",";                                                if (props[i][0] == "prop") {                                          rv += props[i][1] +":"+props[i][2];                               }                                                                   if (props[i][0] == "method") {                                        rv += props[i][1] +(props[i][2].replace(/^[^(]+/,''));            }                                                                   else if (props[i][0] == "pat")                                        rv += props[i][1];                                                else if (props[i][0] == "get")                                        rv += "get " + props[i][1]+"()"+props[i][2];                      else if (props[i][0] == "set")                                        rv += "set " + props[i][1]+"("+props[i][2]+")"+props[i][3];     }                                                                   rv += "}";                                                          return rv;
+
     }
+
   }).
+
   // block lambda call:
   exc(260, function(l, pctx) {
     var start = pctx.token.id;
@@ -1028,6 +1043,7 @@ S("{").
     
     return l+"("+ args.join(",")+")";;
   }).
+
   // block:
   stmt(parseBlock);
 
@@ -1079,10 +1095,12 @@ function parseFunctionParams(pctx, starttok, endtok) {
     if (pars.length)
       scan(pctx, ",");
     switch(pctx.token.id) {
+
       case "{":
       case "[":
         pars.push(parseFunctionParam(pctx));
         break;
+
       case "<id>":
         pars.push(pctx.token.exsf(pctx));
         scan(pctx);

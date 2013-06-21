@@ -1,4 +1,6 @@
 __js {
+
+
 /*
  * C1 Stratified JavaScript parser 
  *
@@ -127,6 +129,13 @@ for C1_KERNEL_SJS:  OBSOLETE! VERBOSE EXCEPTIONS ARE ALWAYS USED NOW, NOT
    
 */
 /* #define DEBUG_C1 1 */
+
+
+
+
+
+
+
 
 /*
 
@@ -1020,8 +1029,11 @@ S("{").
       scan(pctx, "}", TOKENIZER_OP); // note the special tokenizer case here
       
       var rv = "{";                                                       for (var i=0; i<props.length; ++i) {                                  if (i!=0) rv += ",";                                                if (props[i][0] == "prop") {                                          var v = props[i][1].replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"');       rv += v +":"+props[i][2];                               }                                                                   else if (props[i][0] == "method") {                                          var v = props[i][1].replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"');       rv += v+(props[i][2].replace(/^[^(]+/,''));                       }                                                                   else if (props[i][0] == "pat")                                        rv += props[i][1];                                                else if (props[i][0] == "get")                                        rv += "get " + props[i][1]+"()"+props[i][2];                      else if (props[i][0] == "set")                                        rv += "set " + props[i][1]+"("+props[i][2]+")"+props[i][3];     }                                                                   rv += "}";                                                          return rv;
+
     }
+
   }).
+
   // block lambda call:
   exc(260, function(l, pctx) {
     var start = pctx.token.id;
@@ -1031,6 +1043,7 @@ S("{").
     
     return l+"("+ args.join(",")+")";;
   }).
+
   // block:
   stmt(parseBlock);
 
@@ -1082,10 +1095,12 @@ function parseFunctionParams(pctx, starttok, endtok) {
     if (pars.length)
       scan(pctx, ",");
     switch(pctx.token.id) {
+
       case "{":
       case "[":
         pars.push(parseFunctionParam(pctx));
         break;
+
       case "<id>":
         pars.push(pctx.token.exsf(pctx));
         scan(pctx);

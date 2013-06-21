@@ -3,7 +3,7 @@
  * StratifiedJS 'bundle' module
  *
  * Part of the StratifiedJS Standard Module Library
- * Version: '0.14.0'
+ * Version: '0.14.0-1-development'
  * http://onilabs.com/apollo
  *
  * (c) 2013 Oni Labs, http://onilabs.com

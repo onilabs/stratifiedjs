@@ -2,7 +2,7 @@
  * StratifiedJS 'sys' module
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.14.0'
+ * Version: '0.14.0-1-development'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com

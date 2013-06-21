@@ -1,3 +1,5 @@
+
+
 /*
  * C1 Stratified JavaScript parser 
  *
@@ -126,6 +128,13 @@ for C1_KERNEL_SJS:  OBSOLETE! VERBOSE EXCEPTIONS ARE ALWAYS USED NOW, NOT
    
 */
 /* #define DEBUG_C1 1 */
+
+
+
+
+
+
+
 
 /*
 
