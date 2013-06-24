@@ -39,13 +39,20 @@
 // TODO: (tjc) document
 
 var sys = require('builtin:apollo-sys');
-var { map, join, each, reverse, skip, filter, toArray } = require('../sequence');
+var seq = require('../sequence');
+var { map, transform, join, each, reverse, skip, filter, toArray } = seq;
 var logging = require('../logging');
 var debug = require('../debug');
 var object = require('../object');
 var func = require('../function');
 var string = require('../string');
+var {padLeft} = string;
 var shell_quote = require('../shell-quote');
+var diff;
+try {
+  diff = require('./diff');
+} catch(e) { }
+
 var dom;
 var SJS_ROOT_URI = require.url('sjs:');
 
@@ -67,13 +74,15 @@ ConsoleBuffer.prototype.drain = function() {
   this.reset();
 }
 
+var consoleInspect = function(s) {
+  if (string.isString(s)) return s;
+  if (s instanceof Error) return String(s);
+  return debug.inspect(s);
+}
+
 var formatLogArgs = exports._formatLogArgs = function(args) {
   if (args.length == 0 ) return '';
-  return args .. map(function(s) {
-    if (string.isString(s)) return s;
-    if (s instanceof Error) return String(s);
-    return debug.inspect(s);
-  }) .. join(" ");
+  return args .. map(consoleInspect) .. join(" ");
 }
 
 ConsoleBuffer.prototype.log = function(m) {
@@ -217,24 +226,8 @@ var LogReporterMixins = {
       this.failures.push(result);
       this.print(this.color('red', "FAILED"), false);
       this.linkToTest(result.test.fullDescription(), true);
-      var prefix = this.prefix;
-      String(result.error).split("\n") .. each {|line|
-        var col = {foreground: 'yellow', attribute: 'bright'};
-        if (line.trim() .. string.startsWith("at module " + SJS_ROOT_URI)) {
-          // internal module, make it dimmer
-          delete col.attribute;
-        }
-        line = prefix + "| " + line;
-        this.print(this.color(col, line));
-      }
-      if (this.logCapture && this.logCapture.messages.length > 0) {
-        this.print(prefix, false);
-        this.print(this.color('yellow', '-- Captured logging ---'));
-        this.logCapture.messages .. each {|m|
-          this.print(prefix, false);
-          this.print(this.color('yellow', m));
-        }
-      }
+      this.printError(result.error);
+      this.printCapturedLogging();
     }
 
     if (this.logCapture) this.logCapture.reset();
@@ -242,6 +235,124 @@ var LogReporterMixins = {
 
   printSkip: function(reason) {
     this.print(this.color('blue', this.formatSkip(reason)));
+  },
+
+  printDiff: function(err) {
+    if (!diff) return;
+    if (!this.opts.diff) return;
+    var {actual, expected} = err;
+    var inspected = false;
+    try {
+      var aString = string.isString(err.actual);
+      var eString = string.isString(err.expected);
+      if (aString != eString) {
+        // incomparable types
+        return;
+      }
+
+      if (!aString) {
+        actual = JSON.stringify(actual, null, 2);
+        expected = JSON.stringify(expected, null, 2);
+        inspected = true;
+      }
+    } catch(e) {
+      // not JSON serializable
+      return;
+    }
+    if (actual == expected) {
+      // no visible difference
+      return;
+    }
+
+    var addedColor = {background: 'red'};
+    var removedColor = {background: 'green'};
+    var lineno = 1;
+    var diffs = diff.diffWords(expected, actual);
+
+    // if there are no non-whitespace diffs, add markers and perform character-wise diff
+    if (!inspected) {
+      var hasVisibleChars = (d) -> /\S/.test(d.value);
+      var isChange = (d) -> (d.added || d.removed);
+      if (!seq.any(diffs, d -> isChange(d) && hasVisibleChars(d))) {
+        var showNewlines = x -> x.replace(/\n/g, '<nl>\n');
+        diffs = diff.diffChars(showNewlines(expected) , showNewlines(actual));
+      }
+    }
+    
+    // exclude noisy diffs:
+    var common = diffs .. filter(d -> !(d.added || d.removed)) .. toArray();
+    if (
+      // no common parts
+      common.length == 0
+      ||
+      // small number of tiny common parts:
+      (common.length < 4 && !(common .. seq.any(d -> d.value.length > 3)))
+    ) {
+      return;
+    }
+
+    var pieces = seq.Stream {|emit|
+      diffs .. seq.indexed .. each {|[diffIdx, str]|
+        var col = 'normal';
+        if (str.added) col = addedColor;
+        else if (str.removed) col = removedColor;
+        str.value.split('\n') .. each {|line|
+          emit([lineno++, this.color(col, line)]);
+        }
+        lineno--; // last list elem didn't actually end with a newline
+      }
+    } .. toArray();
+
+    var snd = x -> x[1];
+    var lines = pieces
+      .. seq.groupBy([lineno, _] -> lineno)
+      .. map([lineno, chunks] -> [lineno, chunks .. map(snd)]);
+    if (lines.length > 4) {
+      var gutterWidth = String(lines.length).length;
+      lines = lines .. transform(function([lineno, line]) {
+        var gutter = this.color({attribute:'dim'}, padLeft(lineno, gutterWidth) + ' | ');
+        return [lineno, [gutter].concat(line)];
+      }.bind(this));
+    }
+
+    this.print();
+    this.print(this.color('cyan', this.prefix + "[diff: "), false);
+    this.print(this.color(addedColor, "actual"), false);
+    this.print(' ',false);
+    this.print(this.color(removedColor, "expected"), false);
+    this.print(this.color('cyan', "]\n"));
+
+    lines .. each {|[lineno, chunks]|
+      this.print(this.prefix,false);
+      chunks .. each(c => this.print(c, false));
+      this.print();
+    }
+    this.print();
+  },
+
+  printError: function(err) {
+    if (err.actual !== undefined && err.expected !== undefined) {
+      this.printDiff(err);
+    }
+    String(err).split("\n") .. each {|line|
+      var col = {foreground: 'yellow', attribute: 'bright'};
+      if (line.trim() .. string.startsWith("at module " + SJS_ROOT_URI)) {
+        // internal module, make it dimmer
+        delete col.attribute;
+      }
+      line = this.prefix + "| " + line;
+      this.print(this.color(col, line));
+    }
+  },
+
+  printCapturedLogging: function() {
+    if (!this.logCapture || this.logCapture.messages.length == 0) return;
+    this.print(this.prefix, false);
+    this.print(this.color('yellow', '-- Captured logging ---'));
+    this.logCapture.messages .. each {|m|
+      this.print(this.prefix, false);
+      this.print(this.color('yellow', m));
+    }
   },
 
   printPendingContexts: function() {
@@ -303,7 +414,7 @@ HtmlOutput.prototype.prepareStyles = function() {
   var css = "
   body {
     background: #232230;
-    color:#ccc;
+    color:#eee;
     font-family: monospace;
     white-space: pre-wrap;
     font-size: 12pt;
@@ -314,6 +425,9 @@ HtmlOutput.prototype.prepareStyles = function() {
     color: #ddd;
     font-weight: bold;
   }
+
+  .bg-red { background: #b44; }
+  .bg-green { background: #494; }
   .green { color: #6d6; }
   .cyan { color: #6ce; }
   .blue { color: #38e; }
@@ -364,6 +478,7 @@ var HtmlReporter = exports.HtmlReporter = function() {
 }
 
 HtmlReporter.prototype.init = function(opts) {
+  if (opts.headless === true) return; // used in tests, we construct a reporter not connected to the actual console
   if (!exports.HtmlOutput.instance) {
     throw new Error("HtmlReporter instantiated before HtmlOutput.instance set");
   }
@@ -374,7 +489,9 @@ HtmlReporter.prototype.init = function(opts) {
 HtmlReporter.prototype.color = function(col, text, endl) {
   var e = document.createElement('span');
   if (typeof col != 'string') {
-    col = object.ownValues(col) .. join(' ');
+    col = object.ownPropertyPairs(col)
+      .. map([attr, val] -> attr == 'background'?'bg-'+val:val)
+      .. join(' ');
   }
     
   e.setAttribute('class', col);

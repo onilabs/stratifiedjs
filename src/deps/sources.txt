@@ -15,3 +15,6 @@ marked/ git://github.com/chjj/marked.git 2439b9b6caaafdd2e3e1423e87c678de796d16b
 
 # dashdash:
 dashdash/ git://github.com/trentm/node-dashdash.git 8378adbcf9b7ba3aeb3c96db9e7f5432cc765239
+
+# jsdiff:
+jsdiff/ git://github.com/kpdecker/jsdiff.git 1f4bf7a708fc1121bb49e3b10d2ec7218c52a210

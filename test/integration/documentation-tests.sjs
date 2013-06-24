@@ -57,10 +57,10 @@ context {|| // serverOnly
       var indexContents = fs.readFile(path.join(base, indexFilename)).toString();
       var indexDoc = docutil.parseSJSLibDocs(indexContents);
 
+      // modules we intentionally aren't documenting yet
+      var HIDDEN = ['docutil', 'diff'];
+
       test("module index includes all modules") {|s|
-        
-        // modules we intentionally aren't documenting yet
-        var HIDDEN = ['docutil'];
 
         indexDoc.type .. assert.eq('lib');
 
@@ -76,6 +76,7 @@ context {|| // serverOnly
 
       seq.zip(sjsFiles, modules) .. each {|pair|
         var [filename, module] = pair;
+        if (HIDDEN .. array.contains(module)) continue;
 
         var fullPath = path.join(base, filename);
         var relativePath = path.relative(moduleRoot, fullPath);

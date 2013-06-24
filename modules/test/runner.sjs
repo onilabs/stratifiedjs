@@ -687,6 +687,7 @@ CompiledOptions.prototype = {
   testSpecs      : null,
   timeout        : 10,
   bail           : false,
+  diff           : true,
   
   // known options that have no default
   base       : undefined,
@@ -762,6 +763,14 @@ exports.getRunOpts = function(opts, args) {
       { name: 'no-logcapture',
         type: 'bool',
         help: 'Disable log capture during running tests'
+      },
+      { name: 'diff',
+        type: 'bool',
+        help: 'Enable diffs for failed assertions'
+      },
+      { name: 'no-diff',
+        type: 'bool',
+        help: 'Disable diffs for failed assertions'
       },
       { name: 'loglevel',
         type: 'string',
@@ -1043,6 +1052,7 @@ var buildTestFilter = exports._buildTestFilter = function(specs, base, skippedOn
   @setting [allowedGlobals] An array of global variable names to ignore in leak checking. Use only as a last resort.
   @setting [checkLeaks] Whether to fail tests that introduce global variable leaks (default `true`)
   @setting [color] Use terminal colours: `null` (auto), `true`, or `false` (default `null`).
+  @setting [diff] Print diffs for failed assertions. (default `true`).
   @setting [logCapture] Capture `sjs:logging` calls during tests and display them only for failed tests (default `true`).
   @setting [logLevel] Set the log level during tests.
   @setting [reporter] Custom reporter instance.

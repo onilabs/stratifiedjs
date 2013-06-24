@@ -34,6 +34,7 @@ function build_deps() {
                                                   "modules/jsondiffpatch.sjs",
                                                   "modules/marked.sjs",
                                                   "modules/dashdash.sjs",
+                                                  "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
                                                   "modules/compile/deps.js",
                                                   "modules/compile/sjs.sjs",
@@ -235,6 +236,13 @@ function build_deps() {
          "src/deps/dashdash/apollo-module-endheader.txt",
          "src/deps/dashdash/lib/dashdash.js",
          "src/deps/dashdash/apollo-module-footer.txt"]
+       );
+
+  // test/diff module
+  CONCAT("modules/test/diff.sjs",
+        ["src/deps/jsdiff/apollo-module-header.txt",
+         "src/deps/jsdiff/diff.js",
+         "src/deps/jsdiff/apollo-module-footer.txt"]
        );
 
   // Convert blocks like:
