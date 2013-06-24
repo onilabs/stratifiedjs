@@ -294,6 +294,93 @@ exports.rsplit = function(s, sep, limit) {
   return split;
 }
 
+/**
+  @function padRight
+  @summary  Pad a string (on the right) to a minimum length
+  @param    {String} [string]
+  @param    {Number} [len] The target string length
+  @param    {optional String} [pad] The padding character to use (default: `' '`)
+  @return   {String} String at least `len` characters long
+  @desc
+    Extends the input string by appending the `pad` character until
+    the string is `len` characters long.
+
+    Inputs that are already larger than `pad` are not changed.
+
+    ### Example:
+
+        padRight("str", 5);
+        // 'str  '
+        
+        padRight("str", 5, '-');
+        // 'str--'
+*/
+exports.padRight = function(s, len, ch) {
+  if (!ch) ch = ' ';
+  s = String(s);
+  while(s.length < len) s += ch;
+  return s;
+}
+
+/**
+  @function padRight
+  @summary  Pad a string (on the left) to a minimum length
+  @param    {String} [string]
+  @param    {Number} [len] The target string length
+  @param    {optional String} [pad] The padding character to use (default: `' '`)
+  @return   {String} String at least `len` characters long
+  @desc
+    Extends the input string by prepending the `pad` character until
+    the string is `len` characters long.
+
+    Inputs that are already larger than `pad` are not changed.
+
+    ### Example:
+
+        padLeft("str", 5);
+        // '  str'
+        
+        padLeft("x", 5, '-');
+        // '--str'
+*/
+exports.padLeft = function(s, len, ch) {
+  if (!ch) ch = ' ';
+  s = String(s);
+  while(s.length < len) s = ch + s;
+  return s;
+}
+
+/**
+  @function padBoth
+  @summary  Pad a string (on both sides) to a minimum length
+  @param    {String} [string]
+  @param    {Number} [len] The target string length
+  @param    {optional String} [pad] The padding character to use (default: `' '`)
+  @return   {String} String at least `len` characters long
+  @desc
+    Extends the input string to length `len` by adding `pad`
+    characters to the beginning and end of a string.
+
+    Inputs that are already larger than `pad` are not changed.
+
+    ### Example:
+
+        padBoth("str", 5);
+        // ' str '
+        
+        padBoth('uneven string', 20, '-')
+        // '----uneven string---'
+
+*/
+exports.padBoth = function(s, len, ch) {
+  if (!ch) ch = ' ';
+  s = String(s);
+  var t = len - s.length;
+  for(var lp = Math.ceil(t/2); lp > 0; lp--) s = ch + s;
+  for(var rp = Math.floor(t/2); rp > 0; rp--) s += ch;
+  return s;
+}
+
 
 /**
    @function utf16ToUtf8

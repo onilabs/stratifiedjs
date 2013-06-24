@@ -137,3 +137,22 @@ context('split') {||
   testFn(str, 'rsplit', ['a b c', ' ', 2], ['a','b','c']);
   testFn(str, 'rsplit', ['a b', ' ', 2], ['a','b']);
 }
+
+context('padding') {||
+  testFn(str, 'padLeft', ['x', 5     ], '    x');
+  testFn(str, 'padLeft', ['x', 5, '-'], '----x');
+  testFn(str, 'padRight',['x', 5     ], 'x    ');
+  testFn(str, 'padRight',['x', 5, '-'], 'x----');
+
+  testFn(str, 'padBoth', ['x' , 5     ], '  x  ');
+  testFn(str, 'padBoth', ['x' , 5, '-'], '--x--');
+  testFn(str, 'padBoth', ['xy', 5     ], '  xy ');
+  testFn(str, 'padBoth', ['xy', 5, '-'], '--xy-');
+  testFn(str, 'padBoth', ['xy', 6     ], '  xy  ');
+  testFn(str, 'padBoth', ['xy', 6, '-'], '--xy--');
+
+  testFn(str, 'padLeft', [123, 2], '123');
+  testFn(str, 'padRight',[123, 2], '123');
+  testFn(str, 'padBoth', [123, 2], '123');
+
+}
