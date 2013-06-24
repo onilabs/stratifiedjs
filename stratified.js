@@ -304,9 +304,14 @@ if(this.child_frame)this.child_frame.quench();
 
 },abort:function(){
 
-if(this.child_frame)return this.child_frame.abort();
+if(!this.child_frame){
 
 
+
+
+this.aborted=true;
+return this;
+}else return this.child_frame.abort();
 
 
 },returnToParent:function(val){
@@ -589,8 +594,9 @@ if(this.aborted){
 if(is_ef(val)){
 val.quench();
 val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
 }
-break;
 }
 if((++idx==this.ndata.length&&this.tailcall)||(val instanceof CFException)){
 
@@ -603,17 +609,6 @@ return this;
 }
 return this.returnToParent(val);
 }
-};
-
-EF_Seq.prototype.abort=function(){if(!this.child_frame){
-
-
-
-this.aborted=true;
-return this;
-}else return this.child_frame.abort();
-
-
 };
 
 function I_seq(ndata,env){return cont(new EF_Seq(ndata,env),1);
@@ -661,6 +656,16 @@ this.pars.push(val);
 var rv;
 while(this.i<this.ndata.length){
 rv=execIN(this.ndata[this.i],this.env);
+if(this.aborted){
+
+if(is_ef(rv)){
+rv.quench();
+rv=rv.abort();
+if(!is_ef(rv))return this.returnToParent(rv);
+
+}
+}
+
 ++this.i;
 if((rv instanceof CFException))return this.returnToParent(rv);
 if(is_ef(rv)){
@@ -669,6 +674,7 @@ return this;
 }
 this.pars.push(rv);
 }
+this.child_frame=null;
 
 
 try{
@@ -748,6 +754,16 @@ if(this.i==3)this.l=val;else this.pars.push(val);
 var rv;
 while(this.i<this.ndata.length){
 rv=execIN(this.ndata[this.i],this.env);
+if(this.aborted){
+
+if(is_ef(rv)){
+rv.quench();
+rv=rv.abort();
+if(!is_ef(rv))return this.returnToParent(rv);
+
+}
+}
+
 ++this.i;
 if((rv instanceof CFException))return this.returnToParent(rv);
 if(is_ef(rv)){
@@ -760,6 +776,8 @@ if(this.i==3)this.l=rv;else this.pars.push(rv);
 
 
 }
+
+this.child_frame=null;
 
 
 try{
@@ -941,6 +959,16 @@ EF_If.prototype.cont=function(idx,val){switch(idx){case 0:
 
 
 val=execIN(this.ndata[0],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
+}
+}
+
 
 case 1:
 if((val instanceof CFException))break;
@@ -1005,6 +1033,15 @@ EF_Switch.prototype.cont=function(idx,val){switch(this.phase){case 0:
 
 if(idx==0){
 val=execIN(this.ndata[0],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
+}
+}
 }
 if((val instanceof CFException))return this.returnToParent(val);
 if(is_ef(val)){
@@ -1030,6 +1067,15 @@ if(++idx>=this.ndata[1].length)return this.returnToParent(null);
 
 this.child_frame=null;
 val=execIN(this.ndata[1][idx][0],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
+}
+}
 }
 this.phase=2;
 val=0;
@@ -1050,6 +1096,15 @@ return this.returnToParent(val);
 }
 this.child_frame=null;
 val=execIN(this.ndata[1][idx][1],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
+}
+}
 ++idx;
 }
 default:
@@ -1099,6 +1154,7 @@ switch(this.state){case 0:
 
 this.state=1;
 val=execIN(this.ndata[1],this.env);
+
 if(is_ef(val)){
 this.setChildFrame(val);
 return this;
@@ -1247,6 +1303,16 @@ return this.returnToParent(val);
 }
 
 val=execIN(this.ndata[1],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
+}
+}
+
 if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val,2);
@@ -1296,8 +1362,9 @@ if(this.aborted){
 if(is_ef(val)){
 val.quench();
 val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
 }
-return this.returnToParent(val);
 }
 ++idx;
 if(is_ef(val)){
@@ -1311,6 +1378,16 @@ idx=1;
 if(this.ndata[2]){
 
 val=execIN(this.ndata[2],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
+}
+}
+
 if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val,0);
@@ -1320,16 +1397,6 @@ return this;
 idx=0;
 }
 }
-};
-
-EF_Loop.prototype.abort=function(){if(!this.child_frame){
-
-
-this.aborted=true;
-return this;
-}else return this.child_frame.abort();
-
-
 };
 
 function I_loop(ndata,env){return cont(new EF_Loop(ndata,env),ndata[0],true);
@@ -1363,6 +1430,16 @@ this.setChildFrame(val,idx);
 
 if(idx==0){
 val=execIN(this.ndata[0],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+if(!is_ef(val))return this.returnToParent(val);
+
+}
+}
+
 if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val,1);

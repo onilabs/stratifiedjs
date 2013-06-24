@@ -292,7 +292,12 @@ var EF_Proto = {
   abort: function() {
     // see sjs-2-test 'reentrant quench/abort' for why we need to
     // check for 'this.child_frame' here and in 'quench'
-    if (this.child_frame)
+    if (!this.child_frame) {
+      // reentrant abortion
+      this.aborted = true;
+      return this;
+    }
+    else
       return this.child_frame.abort();
   },
 
@@ -597,8 +602,9 @@ EF_Seq.prototype.cont = function(idx, val) {
         if (is_ef(val)) {
           val.quench(); // not sure this is needed here XXX
           val = val.abort();
+          if (!is_ef(val))
+            return this.returnToParent(val);
         }
-        break;
       }
       if ((++idx == this.ndata.length && this.tailcall) || is_cfx(val)) {
         // tail call optimization: 
@@ -613,17 +619,6 @@ EF_Seq.prototype.cont = function(idx, val) {
   }
 };
 
-EF_Seq.prototype.abort = function() {
-  //  LOG("Seq: aborting")
-  if (!this.child_frame) {
-    // reentrant abortion
-    this.aborted = true;
-    return this;
-  }
-  else
-    return this.child_frame.abort();
-};
-
 #ifdef HOTPATH
 function I_seq(ndata, env) {
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL)
@@ -636,6 +631,16 @@ function I_seq(ndata, env) {
   var l = ndata.length;
   while (idx<l) {
     val = execIN(ndata[idx++], env);
+    if (this.aborted) {
+      // a reentrant abortion
+      if (is_ef(val)) {
+        val.quench(); // not sure this is needed here XXX
+        val = val.abort();
+        if (!is_ef(val))
+          return this.returnToParent(val);
+      }
+    }
+
     if (is_cfx(val)) break;
     if (is_ef(val)) {
       // need to create an execution frame for ourselves... 
@@ -718,6 +723,16 @@ EF_Sc.prototype.cont = function(idx, val) {
     var rv;
     while (this.i<this.ndata.length) {
       rv = execIN(this.ndata[this.i], this.env);
+      if (this.aborted) {
+        // a reentrant abortion
+        if (is_ef(rv)) {
+          rv.quench(); // not sure this is needed here XXX
+          rv = rv.abort();
+          if (!is_ef(rv))
+            return this.returnToParent(rv);
+        }
+      }
+
       ++this.i;
       if (is_cfx(rv)) return this.returnToParent(rv);
       if (is_ef(rv)) {
@@ -726,7 +741,8 @@ EF_Sc.prototype.cont = function(idx, val) {
       }
       this.pars.push(rv);
     }
-    
+    this.child_frame = null;
+
     // alright, we've got the pars, let's do the call:
     try {
         rv = this.NDATA_SC_L().apply(this.env, this.pars);
@@ -813,6 +829,16 @@ EF_Fcall.prototype.cont = function(idx, val) {
     var rv;
     while (this.i<this.ndata.length) {
       rv = execIN(this.ndata[this.i], this.env);
+      if (this.aborted) {
+        // a reentrant abortion
+        if (is_ef(rv)) {
+          rv.quench(); // not sure this is needed here XXX
+          rv = rv.abort();
+          if (!is_ef(rv))
+            return this.returnToParent(rv);
+        }
+      }
+
       ++this.i;
       if (is_cfx(rv)) return this.returnToParent(rv);
       if (is_ef(rv)) {
@@ -826,6 +852,8 @@ EF_Fcall.prototype.cont = function(idx, val) {
         this.pars.push(rv);
     }
     
+    this.child_frame = null;
+
     // alright, we've got the left side + pars, let's do the call:
     try {
       switch (this.NDATA_FCALL_MODE()) {
@@ -1024,6 +1052,16 @@ EF_If.prototype.cont = function(idx, val) {
   case 0:
   //  LOG("IF: exec test")
   val = execIN(this.NDATA_IF_TEST(), this.env);
+    if (this.aborted) {
+      // a reentrant abortion
+      if (is_ef(val)) {
+        val.quench(); // not sure this is needed here XXX
+        val = val.abort();
+        if (!is_ef(val))
+          return this.returnToParent(val);
+      }
+    }
+
   //  LOG("IF: test execed:"+val)
   case 1:
   if (is_cfx(val)) break;
@@ -1093,6 +1131,15 @@ EF_Switch.prototype.cont = function(idx, val) {
   case 0: // evaluate switch expression
   if (idx == 0) {
     val = execIN(this.NDATA_SWITCH_EXP(), this.env);
+    if (this.aborted) {
+      // a reentrant abortion
+      if (is_ef(val)) {
+        val.quench(); // not sure this is needed here XXX
+        val = val.abort();
+        if (!is_ef(val))
+          return this.returnToParent(val);
+      }
+    }
   }
   if (is_cfx(val)) return this.returnToParent(val);
   if (is_ef(val)) {
@@ -1118,6 +1165,15 @@ EF_Switch.prototype.cont = function(idx, val) {
     // test next clause:
     this.child_frame = null; // prevent callstack copying; stack-tests 21
     val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][0], this.env);
+    if (this.aborted) {
+      // a reentrant abortion
+      if (is_ef(val)) {
+        val.quench(); // not sure this is needed here XXX
+        val = val.abort();
+        if (!is_ef(val))
+          return this.returnToParent(val);
+      }
+    }
   }
   this.phase = 2;
   val = 0;
@@ -1138,7 +1194,16 @@ EF_Switch.prototype.cont = function(idx, val) {
     }
     this.child_frame = null; // prevent callstack copying; stack-tests 22
     val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][1], this.env);
-    ++idx
+    if (this.aborted) {
+      // a reentrant abortion
+      if (is_ef(val)) {
+        val.quench(); // not sure this is needed here XXX
+        val = val.abort();
+        if (!is_ef(val))
+          return this.returnToParent(val);
+      }
+    }
+    ++idx;
   }
   default:
   throw new Error("Invalid phase in Switch SJS node");
@@ -1197,6 +1262,7 @@ EF_Try.prototype.cont = function(idx, val) {
     case 0:
     this.state = 1;
     val = execIN(this.NDATA_TRY_TRY_BLOCK(), this.env);
+
     if (is_ef(val)) {
       this.setChildFrame(val);
       return this;
@@ -1352,6 +1418,16 @@ EF_Loop.prototype.cont = function(idx, val) {
         }
         // perform loop test
         val = execIN(this.NDATA_LOOP_TEST(), this.env);
+        if (this.aborted) {
+          // a reentrant abortion
+          if (is_ef(val)) {
+            val.quench(); // not sure this is needed here XXX
+            val = val.abort();
+            if (!is_ef(val))
+              return this.returnToParent(val);
+          }
+        }
+
         if (is_ef(val)) {
           this.child_frame = null; // prevent callstack copying; stack-tests 26
           this.setChildFrame(val, 2);
@@ -1401,8 +1477,9 @@ EF_Loop.prototype.cont = function(idx, val) {
             if (is_ef(val)) {
               val.quench(); // not sure this is needed here XXX
               val = val.abort();
+              if (!is_ef(val))
+                return this.returnToParent(val);
             }
-            return this.returnToParent(val);
           }
           ++idx;
           if (is_ef(val)) {
@@ -1416,6 +1493,16 @@ EF_Loop.prototype.cont = function(idx, val) {
       if (this.NDATA_LOOP_INC())  {
         // perform inc
         val = execIN(this.NDATA_LOOP_INC(), this.env);
+        if (this.aborted) {
+          // a reentrant abortion
+          if (is_ef(val)) {
+            val.quench(); // not sure this is needed here XXX
+            val = val.abort();
+            if (!is_ef(val))
+              return this.returnToParent(val);
+          }
+        }
+
         if (is_ef(val)) {
           this.child_frame = null; // prevent callstack copying; stack-tests 27
           this.setChildFrame(val, 0);
@@ -1425,16 +1512,6 @@ EF_Loop.prototype.cont = function(idx, val) {
       idx = 0;
     }
   }
-};
-
-EF_Loop.prototype.abort = function() {
-  if (!this.child_frame) {
-    // reentrant abortion
-    this.aborted = true;
-    return this;
-  }
-  else
-    return this.child_frame.abort();
 };
 
 function I_loop(ndata, env) {
@@ -1473,6 +1550,16 @@ EF_ForIn.prototype.cont = function(idx, val) {
   else {
     if (idx == 0) {
       val = execIN(this.NDATA_FORIN_OBJ(), this.env);
+      if (this.aborted) {
+        // a reentrant abortion
+        if (is_ef(val)) {
+          val.quench(); // not sure this is needed here XXX
+          val = val.abort();
+          if (!is_ef(val))
+            return this.returnToParent(val);
+        }
+      }
+
       if (is_ef(val)) {
         this.child_frame = null; // prevent callstack copying
         this.setChildFrame(val, 1);

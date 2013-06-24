@@ -681,7 +681,7 @@ test('reentrant quench/abort', 'ok', function() {
   return 'ok';
 });
 
-test('reentrant stratum abort', 'stratum aborted|a|c', function() {
+test('reentrant stratum abort', 'stratum aborted|a|b|c', function() {
 
   var rv = '';
 
@@ -690,22 +690,23 @@ test('reentrant stratum abort', 'stratum aborted|a|c', function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
         stratum.abort();
+        rv += '|a';
         hold(0); // this should be aborted
-        rv += 'x';
+        rv += 'X';
       }
       retract {
-        rv += '|a';
+        rv += '|b';
       } 
     })();
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'y'; } catch(e) { rv += String(e).substr(7,15); }
+   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
    hold(0);
    rv += '|c';
   return rv;
 });
 
-test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|c', function() {
+test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|b|c', function() {
 
   var rv = '';
 
@@ -724,24 +725,25 @@ test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|c', fu
         bl_caller { 
           ||
           stratum.abort();
+          rv += '|a';
           hold(0); // this should be aborted
-          rv += 'x';
+          rv += 'X';
         }
       }
       retract {
-        rv += '|a';
+        rv += '|b';
       } 
     })();
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'y'; } catch(e) { rv += String(e).substr(7,15); }
+   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
    hold(100);
    rv += '|c';
   return rv;
 });
 
 
-test('reentrant stratum abort via loop & resume', 'stratum aborted|a|c', function() {
+test('reentrant stratum abort via loop & resume', 'stratum aborted|a|b|c', function() {
 
   var rv = '';
 
@@ -759,12 +761,13 @@ test('reentrant stratum abort via loop & resume', 'stratum aborted|a|c', functio
             console.log('hitting weird retract');
           }
           stratum.abort();
+          rv += '|a';
           hold(0); // this should be aborted
-          rv += 'x';
+          rv += 'X';
         }
       }
       retract {
-        rv += '|a';
+        rv += '|b';
       } 
     })();
 
@@ -772,7 +775,7 @@ test('reentrant stratum abort via loop & resume', 'stratum aborted|a|c', functio
   spawn (hold(100),R());
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'y'; } catch(e) { rv += String(e).substr(7,15); }
+   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
    hold(100);
    rv += '|c';
   return rv;
