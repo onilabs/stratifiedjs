@@ -681,3 +681,100 @@ test('reentrant quench/abort', 'ok', function() {
   return 'ok';
 });
 
+test('reentrant stratum abort', 'stratum aborted|a|c', function() {
+
+  var rv = '';
+
+  var stratum = spawn (
+    function() {
+      hold(0); // ensure 'stratum' var is filled in
+      try {
+        stratum.abort();
+        hold(0); // this should be aborted
+        rv += 'x';
+      }
+      retract {
+        rv += '|a';
+      } 
+    })();
+
+   // wait for stratum to finish
+   try { stratum.value(); rv += 'y'; } catch(e) { rv += String(e).substr(7,15); }
+   hold(0);
+   rv += '|c';
+  return rv;
+});
+
+test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|c', function() {
+
+  var rv = '';
+
+  function bl_caller(f) {
+    while (1) {
+      hold(0);
+      f();
+      hold(0);
+    }
+  }
+
+  var stratum = spawn (
+    function() {
+      hold(0); // ensure 'stratum' var is filled in
+      try {
+        bl_caller { 
+          ||
+          stratum.abort();
+          hold(0); // this should be aborted
+          rv += 'x';
+        }
+      }
+      retract {
+        rv += '|a';
+      } 
+    })();
+
+   // wait for stratum to finish
+   try { stratum.value(); rv += 'y'; } catch(e) { rv += String(e).substr(7,15); }
+   hold(100);
+   rv += '|c';
+  return rv;
+});
+
+
+test('reentrant stratum abort via loop & resume', 'stratum aborted|a|c', function() {
+
+  var rv = '';
+
+  var R;
+
+  var stratum = spawn (
+    function() {
+      hold(0); // ensure 'stratum' var is filled in
+      try {
+        while (1) {
+          waitfor() {
+            R = resume;
+          }
+          retract {
+            console.log('hitting weird retract');
+          }
+          stratum.abort();
+          hold(0); // this should be aborted
+          rv += 'x';
+        }
+      }
+      retract {
+        rv += '|a';
+      } 
+    })();
+
+  hold(0);
+  spawn (hold(100),R());
+
+   // wait for stratum to finish
+   try { stratum.value(); rv += 'y'; } catch(e) { rv += String(e).substr(7,15); }
+   hold(100);
+   rv += '|c';
+  return rv;
+});
+

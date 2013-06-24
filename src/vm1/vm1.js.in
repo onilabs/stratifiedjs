@@ -1394,10 +1394,18 @@ EF_Loop.prototype.cont = function(idx, val) {
           }
             
           // perform body
+          this.child_frame = null; // ensure correct reentrant aborting & prevent callstack copying 
           val = execIN(this.NDATA_LOOP_BODY(idx), this.env);
+          if (this.aborted) {
+            // a reentrant abortion
+            if (is_ef(val)) {
+              val.quench(); // not sure this is needed here XXX
+              val = val.abort();
+            }
+            return this.returnToParent(val);
+          }
           ++idx;
           if (is_ef(val)) {
-            this.child_frame = null; // prevent callstack copying; stack-tests 24 & 25
             this.setChildFrame(val, idx);
             return this;
           }
@@ -1417,6 +1425,16 @@ EF_Loop.prototype.cont = function(idx, val) {
       idx = 0;
     }
   }
+};
+
+EF_Loop.prototype.abort = function() {
+  if (!this.child_frame) {
+    // reentrant abortion
+    this.aborted = true;
+    return this;
+  }
+  else
+    return this.child_frame.abort();
 };
 
 function I_loop(ndata, env) {

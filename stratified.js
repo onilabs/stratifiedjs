@@ -1289,10 +1289,18 @@ if(idx>=this.ndata.length)break;
 }
 
 
+this.child_frame=null;
 val=execIN(this.ndata[idx+1],this.env);
+if(this.aborted){
+
+if(is_ef(val)){
+val.quench();
+val=val.abort();
+}
+return this.returnToParent(val);
+}
 ++idx;
 if(is_ef(val)){
-this.child_frame=null;
 this.setChildFrame(val,idx);
 return this;
 }
@@ -1312,6 +1320,16 @@ return this;
 idx=0;
 }
 }
+};
+
+EF_Loop.prototype.abort=function(){if(!this.child_frame){
+
+
+this.aborted=true;
+return this;
+}else return this.child_frame.abort();
+
+
 };
 
 function I_loop(ndata,env){return cont(new EF_Loop(ndata,env),ndata[0],true);
