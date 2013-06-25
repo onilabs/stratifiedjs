@@ -48,8 +48,6 @@ try:
 				'tools/bin/karma.sjs',
 				'start',
 				'tools/karma/conf.js',
-				'--log-level=debug',
-				'--single-run',
 				'--single-run',
 				'--browsers=' + ','.join(browsers),
 				'--',
