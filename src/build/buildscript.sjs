@@ -111,6 +111,9 @@ function build_deps() {
   STRINGIFY("tmp/apollo-sys-xbrowser.sjs.min", "src/sys/apollo-sys-xbrowser.sjs",
             { pre: "__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']=", post: ";" });
 
+  STRINGIFY("tmp/apollo-sys-xbrowser.sjs.min", "src/sys/apollo-sys-xbrowser.sjs",
+            { pre: "__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']=", post: ";" });
+
   // nodejs hostenv-specific part:
   STRINGIFY("tmp/apollo-sys-nodejs.sjs.min", "src/sys/apollo-sys-nodejs.sjs",
             { pre: "__oni_rt.modsrc['builtin:apollo-sys-nodejs.sjs']=", post: ";" });

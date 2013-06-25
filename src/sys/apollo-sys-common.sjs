@@ -605,21 +605,26 @@ var compiled_src_tag = /^\/\*\__oni_compiled_sjs_1\*\//;
 function default_compiler(src, descriptor) {
   //var start = new Date();
   var f;
-  if (compiled_src_tag.exec(src)) {
+  if (typeof(src) === 'function') {
+    f = src;
+  }
+  else if (compiled_src_tag.exec(src)) {
     //console.log("#{descriptor.id} precompiled");
     // great; src is already compiled
     // XXX apparently eval is faster on FF, but eval is tricky with 
     // precompiled code, because of IE, where we need execScript
+
     f = new Function("module", "exports", "require", "__onimodulename", src);
-    f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}");
   }
   else {
     f = exports.eval("(function(module,exports,require, __onimodulename){"+src+"\n})",
                      {filename:"module #{descriptor.id}"});
-    f(descriptor, descriptor.exports, descriptor.require);
   }
+  f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}");
   //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
 }
+// used when precompiling modules - must be kept in sync with the above f() call
+default_compiler.module_args = ['module', 'exports', 'require', '__onimodulename'];
 
 function default_loader(path, parent, src_loader, opts) {
   // determine compiler function based on extension:
