@@ -13,7 +13,7 @@
   "main": "stratified-node",
   "bin": { "sjs": "sjs", "rocket": "rocket" },
   "devDependencies": {
-    "karma": "https://github.com/gfxmonk/karma/archive/80332d5cf761df7b65f1967046b7647430a3d561.tar.gz"
+    "karma": "https://github.com/gfxmonk/karma/archive/c3c17d04a409b4825175cf0e7301e0c4dfa8926d.tar.gz"
   },
   "engines": { "node": ">=0.4.1" }
 }
