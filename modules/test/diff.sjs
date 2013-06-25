@@ -59,6 +59,11 @@
  */
 
 /**
+  @module    test/diff
+  @summary   String diff utilities (tracking the [jsdifflibrary](https://github.com/kpdecker/jsdiff))
+  @home      sjs:test/diff
+  @desc
+
 This module tracks the [jsdiff](https://github.com/kpdecker/jsdiff) library by Kevin Decker.
 
 It is not yet documented / exposed, as it doesn't work in some browsers. It will throw an
