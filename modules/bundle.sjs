@@ -362,6 +362,16 @@ exports.create = function(opts) {
       logging.debug("normalizing path: #{path}");
       path = url.fileURL(path);
       logging.debug("-> #{path}");
+    } else {
+      // resolve up to one alias
+      // (this will mainly be used for 'sjs:')
+      require.hubs .. each {|[prefix, dest]|
+        if (!str.isString(dest)) continue;
+        if (path .. str.startsWith(prefix)) {
+          path = dest + path.slice(prefix.length);
+          break;
+        }
+      }
     }
     return path;
   }
