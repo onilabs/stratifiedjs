@@ -58,6 +58,7 @@ function determineLocation() {
         location.location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
         location.requirePrefix = scripts[i].getAttribute("require-prefix");
         location.req_base = scripts[i].getAttribute("req-base") || document.location.href;
+        location.main = scripts[i].getAttribute("main");
         break;
       }
     }
@@ -490,8 +491,8 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
     //var ss = Array.prototype.slice.call(scripts, 0);
     var ss = [];
     for (var i=0; i<scripts.length; ++i) {
-      if (scripts[i].getAttribute("type") == "text/sjs") {
-        var s = scripts[i];
+      var s = scripts[i];
+      if (s.getAttribute("type") == "text/sjs") {
         ss.push(s);
       }
     }
@@ -515,6 +516,11 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
                         {filename:"module #{descriptor.id}"});
         f(descriptor);
       }
+    }
+
+    var mainModule = determineLocation().main;
+    if(mainModule) {
+      require(mainModule, {main:true});
     }
   };
   
