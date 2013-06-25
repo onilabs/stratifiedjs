@@ -20,42 +20,32 @@ module.exports = function(karma) {
     // possible values: 'dots', 'progress', 'junit', 'growl', 'coverage'
     reporters: ['progress'],
 
-
     // web server port
     port: 9876,
-
 
     // cli runner port
     runnerPort: 9100,
 
-
     colors: true,
-
 
     // possible values: karma.LOG_DISABLE || karma.LOG_ERROR || karma.LOG_WARN || karma.LOG_INFO || karma.LOG_DEBUG
     logLevel: karma.LOG_INFO,
 
-
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: false,
 
-
     browsers: [
-      'Chrome',
       'PhantomJS',
       'tools/bin/manual-browser',
       // 'tools/bin/android-browser',
     ],
 
-
     // If browser does not capture in given timeout [ms], kill it
-    captureTimeout: 60000,
-
+    captureTimeout: 0,
 
     // Continuous Integration mode
     // if true, it capture browsers, run tests and exit
     singleRun: false,
-
 
     // plugins to load
     plugins: [
