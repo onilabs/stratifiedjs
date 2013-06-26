@@ -532,11 +532,12 @@ function augmentHubs(hubs) {
 }
 
 function html_sjs_extractor(html, descriptor) {
-  var re = /<script (?:[^>]+ )?type=['"]text\/sjs['"][^>]*>((.|\n)*?)<\/script>/mg; // (fix vim highlighting) /
+  var re = /<script (?:[^>]+ )?(?:type=['"]text\/sjs['"]|main=['"]([^'"]+)['"])[^>]*>((.|\n)*?)<\/script>/mg; // (fix vim highlighting) /
   var match;
   var src = '';
   while(match = re.exec(html)) {
-    src += match[1];
+    if (match[1]) src += 'require("' + match[1] + '")';
+    else src += match[2];
     src += ';'
   }
   if (!src) throw new Error("No sjs found in HTML file");

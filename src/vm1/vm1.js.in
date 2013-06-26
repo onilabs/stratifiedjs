@@ -946,14 +946,19 @@ EF_Fcall.prototype.cont = function(idx, val) {
         // ctor is one of the 'builtin' functions. we need to
         // construct it in a single stage:
         var pars = this.pars;
+        
+#ifdef NOEVAL
+        // we could use this in the general case, but it's ~5x slower.
+        rv = new (Function.prototype.bind.apply(ctor, [null].concat(pars)));
+#else
         var command = "new ctor(";
         for (var i=0; i<pars.length; ++i) {
           if (i) command +=",";
           command += "pars["+i+"]";
         }
         command += ")";
-
         rv = eval(command);
+#endif // NOEVAL
       }
       else if (!testIsFunction(ctor)) {
         rv = new CFException("t",
@@ -967,7 +972,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
 #ifdef NODEJS
         this.o = Object.create(ctor.prototype);
 #else
-        var f = new Function();
+        var f = function() {};
         f.prototype = ctor.prototype;
         this.o = new f();
 #endif

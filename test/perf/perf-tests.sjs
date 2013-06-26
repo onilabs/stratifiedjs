@@ -142,3 +142,18 @@ time("waitfor/and tail recursion", function() {
   return r(100000);
 }).serverOnly(); // browser hold(0) is too slow
 
+time("custom constructor", function() {
+  function Cls(a) {
+    if(a != 1) throw new Error("wrong argument");
+  }
+
+  for (var i=0; i<20000; i++) {
+    new Cls(1);
+  }
+});
+
+time("builtin constructor", function() {
+  for (var i=0; i<20000; i++) {
+    new Array();
+  }
+});

@@ -89,6 +89,12 @@ function build_deps() {
   MINIFY("tmp/vm1client.js.min", "tmp/vm1client.js", 
          { pre: "var __oni_rt={};(function(exports){", 
            post: "exports.modules={};exports.modsrc={};})(__oni_rt);" });
+
+  // client-side AOT
+  CPP("tmp/vm1client-aot.js", "-DCLIENTSIDE -DNOEVAL", ["src/vm1/vm1.js.in"]);
+  MINIFY("tmp/vm1client-aot.js.min", "tmp/vm1client-aot.js", 
+         { pre: "var __oni_rt={};(function(exports){", 
+           post: "exports.modules={};exports.modsrc={};})(__oni_rt);" });
   
   // nodejs-based:
   CPP("tmp/vm1node.js", "-DNODEJS", ["src/vm1/vm1.js.in"]);
@@ -164,7 +170,7 @@ function build_deps() {
   // precompiled xbrowser version
   CONCAT("stratified-aot.js",
         ["src/headers/oni-apollo.js.txt",
-         "tmp/vm1client.js.min",
+         "tmp/vm1client-aot.js.min",
          "tmp/c1.js.min",
          "tmp/apollo-jsshim-xbrowser.js.min",
          "tmp/apollo-sys-xbrowser-aot.js",
