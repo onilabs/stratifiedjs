@@ -8,7 +8,7 @@
 
 var fs = require('sjs:nodejs/fs');
 var { extend } = require('sjs:object');
-var { each } = require('sjs:sequence');
+var { each, transform, join } = require('sjs:sequence');
 var util = require('util');
 
 //----------------------------------------------------------------------
@@ -28,6 +28,7 @@ function build_deps() {
   PSEUDO("build");
   BUILD("build", function() { log('all done') }, ["stratified.js",
                                                   "stratified-node.js",
+                                                  "stratified-aot.js",
                                                   "modules/numeric.sjs",
                                                   "modules/sjcl.sjs",
                                                   "modules/nodejs/terminal.sjs",
@@ -111,8 +112,14 @@ function build_deps() {
   STRINGIFY("tmp/apollo-sys-xbrowser.sjs.min", "src/sys/apollo-sys-xbrowser.sjs",
             { pre: "__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']=", post: ";" });
 
-  STRINGIFY("tmp/apollo-sys-xbrowser.sjs.min", "src/sys/apollo-sys-xbrowser.sjs",
-            { pre: "__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']=", post: ";" });
+  // xbrowser-aot version of apollo-sys-common
+  // (embeds compiled JS directly)
+  COMPILE("tmp/apollo-sys-xbrowser-aot.js",
+        ["src/sys/apollo-sys-common.sjs",
+         "src/sys/apollo-sys-xbrowser.sjs"],
+        { pre: "(function(exports) {",
+          post: "})({})",
+        });
 
   // nodejs hostenv-specific part:
   STRINGIFY("tmp/apollo-sys-nodejs.sjs.min", "src/sys/apollo-sys-nodejs.sjs",
@@ -143,10 +150,7 @@ function build_deps() {
   // apollo lib
 
   // xbrowser version:
-  BUILD("stratified.js",
-        ["cat $0 $1 $2 $3 $4 $5 $6 $7 > $TARGET",
-         replacements_from_config
-        ],
+  CONCAT("stratified.js",
         ["src/headers/oni-apollo.js.txt",
          "tmp/vm1client.js.min",
          "tmp/c1.js.min",
@@ -155,7 +159,16 @@ function build_deps() {
          "tmp/apollo-jsshim-xbrowser.js.min",
          "tmp/apollo-bootstrap-common.js.min",
          "tmp/apollo-bootstrap-xbrowser.js.min",
-         "src/build/config.json"]);
+         ]);
+
+  // precompiled xbrowser version
+  CONCAT("stratified-aot.js",
+        ["src/headers/oni-apollo.js.txt",
+         "tmp/vm1client.js.min",
+         "tmp/c1.js.min",
+         "tmp/apollo-jsshim-xbrowser.js.min",
+         "tmp/apollo-sys-xbrowser-aot.js",
+         ]);
 
   // nodejs version:
   BUILD("stratified-node.js", 
@@ -304,7 +317,7 @@ function build_deps() {
             log("* version stamping");
             function replace_in(m) {
               if (/.+\.(sjs|txt|json)$/.test(m)) {
-                log('Replacing version in '+m);
+                log('- Replacing version in '+m);
                 replacements_from_config(m);
               }
             }
@@ -385,17 +398,44 @@ function STRINGIFY(target, source, flags) {
     [source, "modules/compile/stringify.sjs"]);
 }
 
+// COMPILE: compile SJS -> JS
+function COMPILE(target, sources, flags) {
+  BUILD(
+    target,
+    function() {
+      log("* Compiling "+target);
+      var c = require('../../tmp/c1.js');
+      var pre = flags.pre || "";
+      var post = flags.post || "";
+      var body = sources .. transform(function(source) {
+        var contents = fs.readFile(source).toString();
+        var flags = {
+          filename:"'#{source.replace(/.*\//,'')}'",
+          globalreturn:true
+        };
+        return c.compile(contents, flags);
+      }) .. join("\n");
+      fs.writeFile(target, pre + body + post);
+      return target;
+    },
+    sources.concat(["tmp/c1.js"]));
+}
+
+
 // CPP: run C preprocessor
 function CPP(target, defs, deps) {
+  log("* Preprocessing: "+target);
   var cmd = "cpp -C -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers";
   var extraflags = process.env['APOLLO_CFLAGS'] || '';
   BUILD(target, cmd + " " + extraflags + " " + defs + " $0 $TARGET", deps);
 }
 
 function CONCAT(target, files) {
+  log("* Concatenating: "+target);
   var sh = "cat";
   for (var i=0; i<files.length; i++) sh += " $" + i;
-  BUILD(target, [sh + " > $TARGET", replacements_from_config], files);
+  var deps = files.concat(["src/build/config.json"]);
+  BUILD(target, [sh + " > $TARGET", replacements_from_config], deps);
 }
 
 //----------------------------------------------------------------------
@@ -498,7 +538,7 @@ function _run_task(target, task, deps) {
     // do some replacements first:
     task = task.replace(/\$(\d+)/g, function(m,n) { return deps[n]; });
     task = task.replace(/\$TARGET/g, target);
-    log("* Executing shell command: '"+task+"'");
+    //log("* Executing shell command: '"+task+"'");
     require('sjs:nodejs/child-process').exec(task);
   }
   else 
