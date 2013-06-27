@@ -35,7 +35,7 @@ function runSJScript(url) {
         if (err) {
           err = err.toString().replace(/^Error: Cannot load module/, "Error executing");
           err = err.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
-          console.log(err.toString());
+          console.error(err.toString());
           process.exit(1);
         }
       },

@@ -489,6 +489,7 @@ if (require.main === module) {
   var opts = parser.parse({argv:process.argv});
 
   if (opts.help) {
+    process.stderr.write("Usage: sjs sjs:bundle [OPTIONS] [SOURCE [...]]\n\n");
     process.stderr.write(parser.help());
     process.exit(0);
   }
@@ -500,11 +501,12 @@ if (require.main === module) {
   opts.sources = opts._args;
 
   if (opts.config) {
-    opts .. object.extend(fs.readFile(opts.config).toString() .. JSON.parse());
+    var config = fs.readFile(opts.config).toString() .. JSON.parse();
+    opts = object.merge(config, opts);
   }
 
   if (!(opts.dump || opts.bundle)) {
-    process.stderr.write("Error: One of --bundle or --dump options are required");
+    console.error("Error: One of --bundle or --dump options are required");
     process.exit(1);
   }
 
