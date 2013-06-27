@@ -9,6 +9,7 @@
     "type": "git",
     "url": "git://github.com/onilabs/stratifiedjs.git"
   },
+  "main": "stratified-node.js",
   "keywords": ["stratifiedjs", "async", "language"],
   "main": "stratified-node",
   "bin": { "sjs": "sjs", "rocket": "rocket" },
