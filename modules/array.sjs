@@ -188,6 +188,21 @@ __js exports.haveCommonElements = function(a, b) {
   return false;
 };
 
+/** 
+    @function areEquivalentArrays
+    @param {Array} [a] Array
+    @param {Array} [b] Array
+    @return {Boolean} True if `a` and `b` have the same elements (under `===`)
+    @summary Shallow Array comparison
+*/
+__js exports.areEquivalentArrays = function(a, b) {
+  if (a.length != b.length) return false;
+  for (var i=0; i<a.length; ++i) {
+      if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 /**
   @function cmp
   @param {Array} [a]
