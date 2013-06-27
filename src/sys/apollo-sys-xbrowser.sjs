@@ -512,6 +512,7 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
         var descriptor = {
           id: document.location.href + "_inline_sjs_" + (i + 1),
         };
+        require.main = descriptor;
         var f = exports.eval("(function(module, __onimodulename){"+content+"\n})",
                         {filename:"module #{descriptor.id}"});
         f(descriptor);
