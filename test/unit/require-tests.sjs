@@ -26,7 +26,7 @@ context("server-side") {||
   var url = require('sjs:url');
 
   var modulePath = path.join(url.toPath(module.id), '../');
-  var sjsPath = path.join(modulePath, '../../sjs');
+  var sjsPath = require('sjs:sys').executable;
   var dataPath = path.join(modulePath, dataRoot);
 
   var run_with_env = function(args, env)
