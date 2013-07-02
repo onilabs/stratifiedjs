@@ -322,6 +322,7 @@ The `parser.help(...)` function is configurable as follows:
   @setting {Object} [config]
   @setting {Array} [argv]
   @setting {Object} [env]
+  @setting {Number} [slice]
   @summary Parse an array of arguments.
   @desc
     Create a parser and parse the given `argv` (or `process.argv` if no
@@ -343,6 +344,10 @@ The `parser.help(...)` function is configurable as follows:
   @function Parser.parse
   @summary Parse an array of arguments.
   @param {optional Array} [argv] Array of string arguments.
+  @param {Settings} [settings]
+  @setting {Array} [argv]
+  @setting {Object} [env]
+  @setting {Number} [slice]
   @desc
     `argv` should always be provided in a browser environment. In the
     nodejs environment it may be omitted, in which case the arguments
