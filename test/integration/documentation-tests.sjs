@@ -139,6 +139,7 @@ context {|| // serverOnly
                     'type',
                     'summary',
                     'desc',
+                    'hostenv',
               ];
               switch(symdoc.type) {
                 case 'function':
@@ -156,7 +157,6 @@ context {|| // serverOnly
                     'setting',
                     'deprecated',
                     'altsyntax',
-                    'hostenv',
                     'shortcut',
                   ]);
 
