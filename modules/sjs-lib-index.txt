@@ -47,7 +47,7 @@
 @module array           Functions for working with arrays
 @module assert          Assertion functions, primarily for use in tests.
 @module bundle          Create SJS code bundles
-@module compare         Deep object equality comparison
+@module compare         Deep or shallow object equality comparisons
 @module cutil           Functions and constructs for concurrent stratified programming
 @module dashdash        Options parser (tracking the [node-dashdash library](https://github.com/trentm/node-dashdash))
 @module debug           Helpers for debugging

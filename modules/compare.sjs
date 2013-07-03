@@ -34,7 +34,7 @@
  */
 /**
    @module  compare
-   @summary Deep object equality comparison
+   @summary Deep or shallow object equality comparisons
    @home    sjs:compare
 */
 
@@ -44,8 +44,9 @@ __js {
     @function equals
     @param {Object} [a]
     @param {Object} [b]
+    @param {optional Boolean} [deep=true]
     @return {Boolean} whether the given objects are equal.
-    @summary Compares two objects for deep equality.
+    @summary Compares two objects for equality.
     @desc
       The rules for two objects to be considered equal here are:
 
@@ -54,11 +55,14 @@ __js {
 
       * Two arrays are equal if they have the same number of
         elements and the respective elements from each array
-        are also equal (i.e elements are recursively compared).
+        are also equal.
 
       * Two objects are equal if they have the same prototype,
-        the same keys, and the value of each key are also equal
-        (i.e values are recursively compared).
+        the same keys, and the values of each key are also equal.
+      
+      Child objects (elements of an array and properties of an object)
+      are recursively compared with `eq` if `deep` is true (or not given).
+      If `deep` is false, child elements will be compared with `===`,
 
       This function is adapted from the `isEqual` function
       in the [underscore library](http://underscorejs.org/#isEqual),
@@ -69,14 +73,33 @@ __js {
     @function eq
     @summary alias for [::equals]
   */
-  exports.eq = exports.equals = function(actual, expected) {
-    return eq(actual, expected, [], [], false)[0];
+  exports.eq = exports.equals = function(actual, expected, deep) {
+    return eq(actual, expected, [], [], deep !== false, false)[0];
   }
+
+  /**
+    @function shallowEquals
+    @param {Object} [a]
+    @param {Object} [b]
+    @return {Boolean} whether the given objects are shallow-equal.
+    @summary Shortcut for `eq(a, b, false)`
+    @desc
+      see [::eq]
+  */
+
+  /**
+    @function shallowEq
+    @summary alias for [::shallowEquals]
+  */
+  exports.shallowEq = exports.shallowEquals = function(actual, expected) {
+    return eq(actual, expected, [], [], false, false)[0];
+  };
 
   /**
     @function describeEquals
     @param {Object} [a]
     @param {Object} [b]
+    @param {optional Boolean} [deep=true]
     @summary Compare (and describe differences between) two objects.
     @return {Array} Whether the given objects are equal, and a description if they are not.
     @desc
@@ -103,8 +126,8 @@ __js {
           compare.describeEquals("one", "two");
           >> --> [false, null];
   */
-  exports.describeEquals = function(actual, expected) {
-    var result = eq(actual, expected, [], [], true);
+  exports.describeEquals = function(actual, expected, deep) {
+    var result = eq(actual, expected, [], [], deep !== false, true);
     if (result[0]) result[1] = null; // `eq` difference messages are only meaningful in the negative case
     return result;
   }
@@ -112,7 +135,11 @@ __js {
   // recursive comparison function for `exports.eq`.
   var toString = Object.prototype.toString;
   var cleanObjectName = function(n) { return n.replace(/^\[object |\]$/g, ''); }
-  var eq = function(a, b, aStack, bStack, describe) {
+  var simpleEq = function(a, b) {
+    // takes the same args as `eq`, but only does trivial comparison (used for shallow eq)
+    return [a === b, null];
+  };
+  var eq = function(a, b, aStack, bStack, deep, describe) {
     // Identical objects are equal. `0 === -0`, but they aren't identical.
     // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
     if (a === b) return [true, null];
@@ -147,6 +174,7 @@ __js {
     if (typeof a != 'object' || typeof b != 'object') {
       return [false, describe && ('expected is a ' + (typeof b) + ', actual is a ' + (typeof a))];
     }
+
     // Assume equality for cyclic structures. The algorithm for detecting cyclic
     // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
     var length = aStack.length;
@@ -158,6 +186,8 @@ __js {
     // Add the first object to the stack of traversed objects.
     aStack.push(a);
     bStack.push(b);
+
+    var childEq = deep ? eq : simpleEq;
     var size = 0, result = [true, null];
     // Recursively compare objects and arrays.
     if (className == '[object Array]') {
@@ -167,7 +197,7 @@ __js {
       if (result[0]) {
         // Deep compare the contents, ignoring non-numeric properties.
         while (size--) {
-          result = eq(a[size], b[size], aStack, bStack, describe);
+          result = childEq(a[size], b[size], aStack, bStack, deep, describe);
           if (!result[0]) {
             if (describe) result[1] = new FieldDifference(size, result[1]);
             break;
@@ -187,7 +217,7 @@ __js {
           if (!b.hasOwnProperty(key)) {
             result = [false, 'properties differ']
           } else {
-            result = eq(a[key], b[key], aStack, bStack, describe);
+            result = childEq(a[key], b[key], aStack, bStack, deep, describe);
             if(describe && !result[0]) {
               result[1] = new FieldDifference(key, result[1]);
             }

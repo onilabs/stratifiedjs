@@ -202,11 +202,20 @@ exports.catchError = function(fn) {
     return e;
   }
   return null;
-}
+};
   
+var _eq = function(actual, expected, desc, deep) {
+  var [eq, difference] = compare.describeEquals(actual, expected, deep);
+  if (!eq) {
+    var msg = "Expected #{expected .. inspect}, got #{actual .. inspect}"
+    if (difference) msg += "\n[#{difference}]";
+    throw new AssertionError(msg, desc, {expected: expected, actual: actual});
+  }
+};
+
 /**
   @function equal
-  @summary Assert that `actual` and `expected` are equal
+  @summary Assert that `actual` and `expected` are deep-equal
   @param {Object} [actual]
   @param {Object} [expected]
   @param {optional String} [desc] Descriptive text to include in the error message
@@ -221,17 +230,29 @@ exports.catchError = function(fn) {
   @summary Alias for [::equal]
 */
 exports.eq = exports.equal = function(actual, expected, desc) {
-  var [eq, difference] = compare.describeEquals(actual, expected);
-  if (!eq) {
-    var msg = "Expected #{expected .. inspect}, got #{actual .. inspect}"
-    if (difference) msg += "\n[#{difference}]";
-    throw new AssertionError(msg, desc, {expected: expected, actual: actual});
-  }
-}
+  return _eq(actual, expected, desc, true);
+};
+
+/**
+  @function shallowEqual
+  @summary Assert that `actual` and `expected` are shallow-equal
+  @param {Object} [actual]
+  @param {Object} [expected]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Just like [::equal], except that child properties / elements of `actual` and
+    `expected` are compared with `===`, not deep equality.
+
+  @function shallowEq
+  @summary Alias for [::shallowEqual]
+*/
+exports.shallowEq = exports.shallowEqual = function(actual, expected, desc) {
+  return _eq(actual, expected, desc, false);
+};
 
 /**
   @function notEqual
-  @summary Assert that `actual` and `expected` are not equal
+  @summary Assert that `actual` and `expected` are not deep-equal
   @param {Object} [actual]
   @param {Object} [expected]
   @param {optional String} [desc] Descriptive text to include in the error message
@@ -241,13 +262,33 @@ exports.eq = exports.equal = function(actual, expected, desc) {
   @function notEq
   @summary Alias for [::notEqual]
 */
-exports.notEq = exports.notEqual = function(actual, expected, desc) {
-  var eq = compare.eq(actual, expected);
+var _notEq = function(actual, expected, desc, deep) {
+  var eq = compare.eq(actual, expected, deep);
   if (eq) {
     var msg = "Arguments are equal: #{expected .. inspect}"
     throw new AssertionError(msg, desc);
   }
-}
+};
+
+exports.notEq = exports.notEqual = function(actual, expected, desc) {
+  return _notEq(actual, expected, desc, true);
+};
+
+/**
+  @function notShallowEq
+  @summary Assert that `actual` and `expected` are not shallow-equal
+  @param {Object} [actual]
+  @param {Object} [expected]
+  @param {optional String} [desc] Descriptive text to include in the error message
+  @desc
+    Equality is shallow and strict, like [::shallowEq].
+
+  @function notShallowEq
+  @summary Alias for [::notShallowEqual]
+*/
+exports.notShallowEq = exports.notShallowEqual = function(actual, expected, desc) {
+  return _notEq(actual, expected, desc, false);
+};
 
 var _contains = function(arr, expected) {
   // quick check:

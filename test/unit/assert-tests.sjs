@@ -191,6 +191,28 @@ context("eq") {||
   }
 }
 
+
+context("shallow equality") {||
+  test("shallowEq") {||
+    var child = {b:1};
+    var childClone = {b:1};
+    assert.raises(
+      {message: "Expected { a: { b: 1 } }, got { a: { b: 1 } }\n" +
+          "[objects differ at property 'a']"},
+      -> assert.shallowEq({a:child}, {a:childClone}));
+
+    assert.shallowEq({a:child}, {a:child});
+  }
+ 
+  test("notShallowEq") {||
+    assert.notShallowEq(1, 2);
+    assert.notShallowEq({a: [1,2,3]}, {a: [1,2,3]});
+    assert.raises(
+      {message: "Arguments are equal: { a: 1 }"},
+      -> assert.notShallowEq({a:1}, {a:1}));
+  }
+}
+
 context("contains") {||
   test("contains") {||
     var arr = [0, {x:1}, 2];
