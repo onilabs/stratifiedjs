@@ -647,9 +647,10 @@ Parser.prototype.parse = function parse(inputs) {
         inputs = {argv: arguments[0], slice: arguments[1]};
     }
 
+    if (inputs === undefined) inputs = {};
     assert.object(inputs, 'inputs');
     assert.optionalArrayOfString(inputs.argv, 'inputs.argv');
-    assert.optionalNumber(slice, 'slice');
+    assert.optionalNumber(inputs.slice, 'inputs.slice');
     var argv = inputs.argv || require('sjs:sys').argv();
     var slice = inputs.slice !== undefined ? inputs.slice : 0;
     var args = argv.slice(slice);
