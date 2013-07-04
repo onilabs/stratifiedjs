@@ -54,7 +54,7 @@ test('parse', function (t) {
 test('old Parser.parse() API', function (t) {
     var options = [{name: 'v', type: 'bool'}];
     var parser = new dashdash.Parser({options: options});
-    var opts = parser.parse('tool.js -v'.split(/\s+/g));
+    var opts = parser.parse('-v'.split(/\s+/g));
     debug('opts:', opts);
     t.ok(opts.v);
     opts = parser.parse('-v'.split(/\s+/g), 0);
@@ -66,7 +66,7 @@ test('old Parser.parse() API', function (t) {
 test('slice', function (t) {
     var options = [{name: 'v', type: 'bool'}];
     var parser = new dashdash.Parser({options: options});
-    var opts = parser.parse({argv: 'tool.js -v'.split(/\s+/g)});
+    var opts = parser.parse({argv: '-v'.split(/\s+/g)});
     t.ok(opts.v);
     t.equal(opts._args.length, 0);
     var opts = parser.parse({argv: '-v'.split(/\s+/g), slice: 0});
@@ -607,8 +607,8 @@ cases .. seq.indexed .. seq.each {|pair|
     if (typeof (argv) === 'string') {
         argv = argv.split(/\s+/);
     }
-    // remove `nodejs`, in line with sjs's argv
-    argv = argv.slice(1);
+    // remove nodejs & module path, in line with sys.argv()
+    argv = argv.slice(2);
     var env = c.env;
     delete c.env;
     var envStr = '';

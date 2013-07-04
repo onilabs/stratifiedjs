@@ -74,7 +74,7 @@
     ## Command-line arguments
 
     In both nodejs and the browser, you can control the runner's operation by passing
-    command-line arguments. These are taken from `process.argv` on nodejs, and by parsing
+    command-line arguments. These are taken from `sys.argv()` on nodejs, and by parsing
     `document.location` as a POSIX-shell format argument list on the browser.
     The format should be the same in both cases, e.g:
 
@@ -707,7 +707,7 @@ CompiledOptions.prototype = {
     should not need to use this function directly (use [::run] instead).
 
     If `args` is not given, arguments will be taken from the environment
-    (`process.argv` on node.js, derived from `document.location.hash` in
+    (`sys.argv()` on node.js, derived from `document.location.hash` in
     a browser).
 
     For possible `settings`, see [::run].
@@ -726,8 +726,7 @@ exports.getRunOpts = function(opts, args) {
         args = require('../shell-quote').parse(argstring);
       }
     } else {
-      // first argument is the script that invoked us:
-      args = process.argv.slice(1);
+      args = require('../sys').argv();
     }
   }
   if (args .. array.contains('--debug')) {

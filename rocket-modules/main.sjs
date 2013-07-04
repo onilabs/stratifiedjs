@@ -71,8 +71,9 @@ var sslonly = false;
 var host = "localhost";
 var cors = false;
 
-for (var i=1; i<process.argv.length; ++i) {
-  var flag = process.argv[i];
+var argv = require('sjs:sys').argv();
+for (var i=0; i<argv.length; ++i) {
+  var flag = argv[i];
   switch (flag) {
   case "-h":
   case "--help":
@@ -87,27 +88,27 @@ for (var i=1; i<process.argv.length; ++i) {
     verbosity -= 1;
     break;
   case "--port":
-    port = process.argv[++i];
+    port = argv[++i];
     break;
   case "--sslport":
-    ssl_port = process.argv[++i];
+    ssl_port = argv[++i];
     break;
   case "--ssl":
-    ssl_keyfile = process.argv[++i];
-    ssl_certfile = process.argv[++i];
+    ssl_keyfile = argv[++i];
+    ssl_certfile = argv[++i];
     break;
   case "--sslpw":
-    ssl_pw = process.argv[++i];
+    ssl_pw = argv[++i];
     break;
   case "--sslonly":
     sslonly = true;
     break;
   case "--host":
-    host = process.argv[++i];
+    host = argv[++i];
     if (host == "any") host = undefined;
     break;
   case "--root":
-    root = process.argv[++i];
+    root = argv[++i];
     break;
   case "--cors":
     cors = true;

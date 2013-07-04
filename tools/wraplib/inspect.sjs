@@ -161,13 +161,15 @@ var main = exports.main = function(obj) {
 	return errors;
 }
 
-	// TODO: skip this when module is require()d
-if(process.argv.length < 2) throw "Please provide an argument!";
-var module_name = process.argv[1];
-if(module_name.indexOf(":") == -1) {
-	// assume a path:
-	var fs = require("nodejs:fs");
-	module_name = fs.realpathSync(module_name);
+if (require.main === module) {
+	var argv = require('sjs:sys').argv();
+	if(argv.length != 1) throw "Please supply exactly one argument!";
+	var module_name = argv[0];
+	if(module_name.indexOf(":") == -1) {
+		// assume a path:
+		var fs = require("nodejs:fs");
+		module_name = fs.realpathSync(module_name);
+	}
+	var errors = main(require(module_name));
+	process.exit(errors);
 }
-var errors = main(require(module_name));
-process.exit(errors);

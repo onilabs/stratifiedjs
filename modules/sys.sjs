@@ -95,6 +95,26 @@ module.exports = {
         var sjsPath = sys.executable;
         childProcess.run(nodePath, [sjsPath,  ... ]);
 */
+
+/**
+  @function argv
+  @summary Return the current command line arugments.
+  @hostenv nodejs
+  @desc
+    **Note**: This function returns only the actual command line
+    arguments passed to your script, unlike the builtin `process.argv`
+    which contains:
+
+        [
+          'path/to/node',
+          'path/to/main-module.sjs',
+          ... // actual arguments
+        ]
+
+    This allows `sys.argv()` to be independent of a particular runtime's choice
+    of `argv` format.
+*/
 if (s.hostenv === 'nodejs') {
   module.exports.executable = s.canonicalizeURL("../sjs", module.id) .. require('sjs:url').toPath();
+  module.exports.argv = -> process.argv.slice(2); // remove `node` and main SJS module
 }

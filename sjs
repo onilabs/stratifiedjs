@@ -66,7 +66,7 @@ function processArgs() {
   // default run function - execute REPL with no hooks
   var run = runRepl(null);
 
-  for (var i=1; i<process.argv.length; ++i) {
+  for (var i=2; i<process.argv.length; ++i) {
     var flag = process.argv[i];
     switch (flag) {
     case "-h":
@@ -83,12 +83,15 @@ function processArgs() {
       run = runEval(str);
       break;
     default:
+      // we assume 'flag' is a script. remove everything up to now from
+      // argv (except `node`) and exec it:
+      process.ARGV = process.argv = [process.argv[0]].concat(process.argv.slice(i));
+      if (flag == '--') {
+        return run;
+      }
       if (flag[0] == '-') {
         throw new Error("Unknown flag '"+flag+"'\n" + usage());
       }
-      // we assume 'flag' is a script. remove everything up to now from
-      // path and exec it:
-      process.ARGV = process.argv = process.argv.slice(i);
       run = runSJScript(flag);
       return run;
     }
@@ -97,8 +100,6 @@ function processArgs() {
 }
 
 function main() {
-  process.ARGV = process.argv = process.argv.slice(1); // remove 'node' from argv
-
   try {
     var run = processArgs();
   } catch(e) {

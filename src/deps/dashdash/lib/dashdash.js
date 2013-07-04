@@ -234,9 +234,9 @@ Parser.prototype.optionTakesArg = function optionTakesArg(option) {
  *
  * @param inputs {Object}
  *      - argv {Array} Optional. The argv to parse. Defaults to
- *        `process.argv`.
+ *        `sys.argv()`.
  *      - slice {Number} The index into argv at which options/args begin.
- *        Default is 2, as appropriate for `process.argv`.
+ *        Default is 0, as appropriate for `sys.argv()`.
  *      - env {Object} Optional. The env to use for 'env' entries in the
  *        option specs. Defaults to `process.env`.
  * @returns {Object} Parsed `opts`. It has special keys `_args` (the
@@ -253,9 +253,9 @@ Parser.prototype.parse = function parse(inputs) {
 
     assert.object(inputs, 'inputs');
     assert.optionalArrayOfString(inputs.argv, 'inputs.argv');
-    //assert.optionalNumber(slice, 'slice');
-    var argv = inputs.argv || process.argv;
-    var slice = inputs.slice !== undefined ? inputs.slice : 1;
+    assert.optionalNumber(slice, 'slice');
+    var argv = inputs.argv || require('sjs:sys').argv();
+    var slice = inputs.slice !== undefined ? inputs.slice : 0;
     var args = argv.slice(slice);
     var env = inputs.env || process.env;
 

@@ -69,7 +69,7 @@ The original library is written for node.js, but this version works in all envir
         }
     ];
     
-    // Shortcut form. As called it infers `process.argv`. See below for
+    // Shortcut form. As called it infers `sys.argv()`. See below for
     // the longer form to use methods like `.help()` on the Parser object.
     var opts = dashdash.parse({options: options});
     
@@ -110,7 +110,7 @@ This also shows using `parser.help()` for formatted option help.
     
     var parser = dashdash.createParser({options: options});
     try {
-        var opts = parser.parse(process.argv);
+        var opts = parser.parse();
     } catch (e) {
         console.error('foo: error: %s', e.message);
         process.exit(1);
@@ -320,12 +320,12 @@ The `parser.help(...)` function is configurable as follows:
   @function parse
   @param {Settings} [settings]
   @setting {Object} [config]
-  @setting {Array} [argv]
+  @setting {Array} [argv=require('sjs:sys').argv()]
   @setting {Object} [env]
-  @setting {Number} [slice]
+  @setting {Number} [slice=0]
   @summary Parse an array of arguments.
   @desc
-    Create a parser and parse the given `argv` (or `process.argv` if no
+    Create a parser and parse the given `argv` (or [sys::argv]`()` if no
     `argv` option is given).
 
     See the [dashdash::] module docs for more information and examples.
@@ -343,15 +343,15 @@ The `parser.help(...)` function is configurable as follows:
 
   @function Parser.parse
   @summary Parse an array of arguments.
-  @param {optional Array} [argv] Array of string arguments.
+  @param {optional Array} [argv=sys.argv()] Array of string arguments.
   @param {Settings} [settings]
   @setting {Array} [argv]
   @setting {Object} [env]
-  @setting {Number} [slice]
+  @setting {Number} [slice=0]
   @desc
     `argv` should always be provided in a browser environment. In the
     nodejs environment it may be omitted, in which case the arguments
-    will be taken from `process.argv`.
+    will be taken from [sys::argv].
 
     See the [dashdash::] module docs for more information and examples.
 
@@ -376,7 +376,7 @@ The `parser.help(...)` function is configurable as follows:
 // prevent errors in xbrowser env
 var sys = require('builtin:apollo-sys');
 var global = sys.getGlobal();
-var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
+var process = sys.hostenv == 'xbrowser' ? {env: {}} : global.process;
 var assert = require('./assert');
 var { each, map, join, indexed } = require('./sequence');
 var { ownKeys, clone } = require('./object');
@@ -630,9 +630,9 @@ Parser.prototype.optionTakesArg = function optionTakesArg(option) {
  *
  * @param inputs {Object}
  *      - argv {Array} Optional. The argv to parse. Defaults to
- *        `process.argv`.
+ *        `sys.argv()`.
  *      - slice {Number} The index into argv at which options/args begin.
- *        Default is 2, as appropriate for `process.argv`.
+ *        Default is 0, as appropriate for `sys.argv()`.
  *      - env {Object} Optional. The env to use for 'env' entries in the
  *        option specs. Defaults to `process.env`.
  * @returns {Object} Parsed `opts`. It has special keys `_args` (the
@@ -649,9 +649,9 @@ Parser.prototype.parse = function parse(inputs) {
 
     assert.object(inputs, 'inputs');
     assert.optionalArrayOfString(inputs.argv, 'inputs.argv');
-    //assert.optionalNumber(slice, 'slice');
-    var argv = inputs.argv || process.argv;
-    var slice = inputs.slice !== undefined ? inputs.slice : 1;
+    assert.optionalNumber(slice, 'slice');
+    var argv = inputs.argv || require('sjs:sys').argv();
+    var slice = inputs.slice !== undefined ? inputs.slice : 0;
     var args = argv.slice(slice);
     var env = inputs.env || process.env;
 

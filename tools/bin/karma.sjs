@@ -46,7 +46,7 @@ if (process.env[envKey]) {
 // ------------------
 // run karma
 
-var args = process.argv.slice(1);
+var args = require('sjs:sys').argv();
 var idx = args.indexOf('--');
 var leadingArgs = idx == -1 ? args : args.slice(0, idx);
 var command = (leadingArgs .. seq.filter(x -> !(x .. str.startsWith('-'))) .. seq.toArray)[0];

@@ -5,12 +5,12 @@
   @function parse
   @param {Settings} [settings]
   @setting {Object} [config]
-  @setting {Array} [argv]
+  @setting {Array} [argv=require('sjs:sys').argv()]
   @setting {Object} [env]
-  @setting {Number} [slice]
+  @setting {Number} [slice=0]
   @summary Parse an array of arguments.
   @desc
-    Create a parser and parse the given `argv` (or `process.argv` if no
+    Create a parser and parse the given `argv` (or [sys::argv]`()` if no
     `argv` option is given).
 
     See the [dashdash::] module docs for more information and examples.
@@ -28,15 +28,15 @@
 
   @function Parser.parse
   @summary Parse an array of arguments.
-  @param {optional Array} [argv] Array of string arguments.
+  @param {optional Array} [argv=sys.argv()] Array of string arguments.
   @param {Settings} [settings]
   @setting {Array} [argv]
   @setting {Object} [env]
-  @setting {Number} [slice]
+  @setting {Number} [slice=0]
   @desc
     `argv` should always be provided in a browser environment. In the
     nodejs environment it may be omitted, in which case the arguments
-    will be taken from `process.argv`.
+    will be taken from [sys::argv].
 
     See the [dashdash::] module docs for more information and examples.
 
@@ -61,7 +61,7 @@
 // prevent errors in xbrowser env
 var sys = require('builtin:apollo-sys');
 var global = sys.getGlobal();
-var process = sys.hostenv == 'xbrowser' ? {argv: [], env: {}} : global.process;
+var process = sys.hostenv == 'xbrowser' ? {env: {}} : global.process;
 var assert = require('./assert');
 var { each, map, join, indexed } = require('./sequence');
 var { ownKeys, clone } = require('./object');

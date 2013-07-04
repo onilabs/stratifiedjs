@@ -15,7 +15,7 @@ var options = [
     }
 ];
 
-// Shortcut form. As called it infers `process.argv`. See below for
+// Shortcut form. As called it infers `sys.argv()`. See below for
 // the longer form to use methods like `.help()` on the Parser object.
 var opts = dashdash.parse({options: options});
 
@@ -58,7 +58,7 @@ var options = [
 
 var parser = dashdash.createParser({options: options});
 try {
-    var opts = parser.parse(process.argv);
+    var opts = parser.parse();
 } catch (e) {
     console.error('foo: error: %s', e.message);
     process.exit(1);

@@ -10,6 +10,7 @@ var fs = require('sjs:nodejs/fs');
 var { extend } = require('sjs:object');
 var { each, transform, join } = require('sjs:sequence');
 var util = require('util');
+var sys = require('sjs:sys');
 
 //----------------------------------------------------------------------
 // BUILD DEPENDENCIES
@@ -554,7 +555,7 @@ function _run_task(target, task, deps) {
 // Build the given target:
 function build_target(target) {
   // make sure we're in the right path:
-  var apollo_home = require('path').dirname(fs.realpath(process.argv[0]))+"/../../";
+  var apollo_home = require('path').dirname(sys.executable);
   process.chdir(apollo_home);
   
   // make sure there's a tmp dir:
@@ -586,8 +587,9 @@ function usage() {
 
 function process_args() {
   var targets = [];
-  for (var i=1; i<process.argv.length; ++i) {
-    var flag = process.argv[i];
+  var argv = sys.argv();
+  for (var i=0; i<argv.length; ++i) {
+    var flag = argv[i];
     switch(flag) {
     case "-h":
     case "--help":
@@ -595,7 +597,7 @@ function process_args() {
       process.exit(0);
       break;
     default:
-      return process.argv.slice(i);
+      return argv.slice(i);
       break;
     }
   }
