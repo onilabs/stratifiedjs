@@ -145,6 +145,7 @@ function ServerRequest(req, res, ssl) {
    @param {Object} [settings] Server configuration
    @param {Function} [block] Function which will be passed a [::Server]. When `block` exits, the server will be shut down.
    @setting {String} [address="0"] Address to listen on, in the format `"ipaddress:port"` or `"port"`. If  `ipaddress` is not specified, the server will listen on all IP addresses. If `port` is `"0"`, an arbitrary free port will be chosen.
+   @setting {String} [fd] Adopt an open file descriptor (if given, `address` is used only for information).
    @setting {Integer} [max_connections=1000] Maximum number of concurrent requests.
    @setting {Integer} [capacity=100] Maximum number of unhandled requests that the server will queue up before it starts dropping requests (with a 500 status code). The server only queues requests when there is no active [Server::eachRequest] call, or when there are already `max_connections` active concurrent connections.
    @setting {Boolean} [ssl=false] Whether to run a HTTP server or a HTTPS server.
@@ -207,6 +208,7 @@ function withServer(config, server_loop) {
     key: undefined,
     cert: undefined,
     passphrase: undefined,
+    fd: undefined,
     log: x => process.stdout.write("#{address}: #{x}\n")
   }, config);
 
@@ -247,7 +249,18 @@ function withServer(config, server_loop) {
     throw new Error("Cannot bind #{config.address}: #{error}");
   }
   or { 
-    waitfor() { server.listen(port, host, resume); }
+    waitfor() {
+      var listenSrc = port;
+      if (config.fd !== undefined) {
+        // XXX no public API for this:
+        var Pipe = process.binding('pipe_wrap').Pipe;
+        var handle = new Pipe();
+        handle.open(config.fd);
+        server._handle = handle;
+        listenSrc = {_handle: handle};
+      }
+      server.listen(listenSrc, host, resume);
+    }
   } 
   retract {
     // There is no clear way of aborting the socket binding process,
