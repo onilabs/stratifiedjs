@@ -60,3 +60,38 @@ sys(exports);
 delete rt.modsrc['builtin:apollo-sys-common.sjs'];
 delete rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs']; 
 
+// entry point used by `sjs` script (and other npm-based executables)
+exports.run = function(url) {
+  exports.init(function() {
+    if (url.indexOf(":") == -1) {
+      // scheme-less; we assume its a file.
+      // Note that file: URLs *must* be absolute paths.
+      url = "file://" + fs.realpathSync(url);
+    }
+    exports.require(url, {
+      // we provide a callback to prevent nodejs from showing a useless
+      // call stack when there is an error:
+      callback: function(err) {
+        if (err) {
+          err = err.toString().replace(/^Error: Cannot load module/, "Error executing");
+          err = err.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
+          console.error(err.toString());
+          process.exit(1);
+        }
+      },
+      main: true
+    });
+  });
+};
+
+
+// install SJS-compatible error handler (prints proper
+// stack traces).
+process.on('uncaughtException',function(error){
+  console.error('Uncaught: '+error.toString());
+  if (process.listeners('uncaughtException').length == 1) {
+    // the user has not installed a handler - kill the process
+    process.exit(1);
+  }
+});
+

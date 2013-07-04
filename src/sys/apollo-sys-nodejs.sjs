@@ -432,8 +432,13 @@ function eval_hostenv(code, settings) {
 
 //----------------------------------------------------------------------
 // Called once sjs itself is initialized.
-// Loads any user-defined init scripts from $SJS_INIT.
+//  - Loads any user-defined init scripts from $SJS_INIT.
+var _sjs_initialized = false;
 function init_hostenv() {
+  // init exactly once
+  if (_sjs_initialized) return;
+  _sjs_initialized = true;
+
   var init_path = process.env['SJS_INIT'];
   if(init_path) {
     var node_fs = __oni_rt.nodejs_require('fs');

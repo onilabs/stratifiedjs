@@ -14,7 +14,6 @@ function usage() {
     "  -h, --help          display this help message\n" +
     "  -d, --dev           load development mode (src/build/devmode.sjs)\n" +
     "  -e, --eval STR      evaluate STR\n" +
-    "  -c, --compile FILE  compile FILE\n" +
     "\nDocumentation is at http://onilabs.com/stratifiedjs");
 }
 
@@ -23,36 +22,14 @@ function usage() {
 
 function runSJScript(url) {
   return function() {
-    if (url.indexOf(":") == -1) {
-      // scheme-less; we assume its a file.
-      // Note that file: URLs *must* be absolute paths.
-      url = "file://" + fs.realpathSync(url);
-    }
-    sjs_node.require(url, {
-      // we provide a callback to prevent nodejs from showing a useless
-      // call stack when there is an error:
-      callback: function(err) {
-        if (err) {
-          err = err.toString().replace(/^Error: Cannot load module/, "Error executing");
-          err = err.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
-          console.error(err.toString());
-          process.exit(1);
-        }
-      },
-      main: true
-    });
+    sjs_node.run(url);
   };
 }
 
 function runRepl(beforeHook) {
   return function() {
     var runRepl = function() {
-      sjs_node.require('sjs:nodejs/repl', {
-        callback: function(err, m) {
-          if (err) throw err;
-          m.runREPL();
-        }
-      });
+      sjs_node.run('sjs:nodejs/repl');
     };
 
     // Drop into REPL:
@@ -83,15 +60,6 @@ function runEval(str) {
   };
 };
 
-function runCompile(filename) {
-  return function() {
-    var src = require("fs").readFileSync(filename);
-    filename = "'" + filename.replace(/\'/g,'\\\'') + "'";
-    var compiled = __oni_rt.c1.compile(src, {globalReturn:true, filename:filename});
-    require("util").puts(compiled);
-  };
-};
-
 // -------------------- process options & run --------------------
 
 function processArgs() {
@@ -113,12 +81,6 @@ function processArgs() {
       ++i;
       var str = process.argv[i];
       run = runEval(str);
-      break;
-    case '-c':
-    case '--compile':
-      ++i;
-      var filename = process.argv[i];
-      run = runCompile(filename);
       break;
     default:
       if (flag[0] == '-') {
@@ -145,13 +107,5 @@ function main() {
   }
   return run();
 };
-
-process.on('uncaughtException',function(error){
-  console.error('Uncaught: '+error.toString());
-  if (process.listeners('uncaughtException').length == 1) {
-    // the user has not installed a handler - kill the process
-    process.exit(1);
-  }
-})
 
 sjs_node.init(main);

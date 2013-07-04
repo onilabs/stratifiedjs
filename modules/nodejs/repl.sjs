@@ -201,3 +201,7 @@ function writeVal(val, id) {
   if (val === undefined) return;
   write(debug.inspect(val, false, 2, itf.enabled && !disableColors), id);
 }
+
+if (require.main === module) {
+  exports.runREPL();
+}
