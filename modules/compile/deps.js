@@ -118,6 +118,7 @@ general:
    #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    #define QUASIS: allow quasi templates (`foo#{bar}baz`)
    #define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
+   #define ONE_SIDED_CONDITIONALS: allows `foo ? bar` expressions (i.e. `foo ? bar : baz` without alternative `baz`). in the `false` case they yield `undefined`
 
 for C1_KERNEL_JSMIN:
    #define STRINGIFY  : encodes minified js/sjs as a string.

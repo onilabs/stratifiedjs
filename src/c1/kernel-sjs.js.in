@@ -1611,10 +1611,10 @@ function ph_conditional(t, c, a, pctx) {
 ph_conditional.prototype = new ph(WHENDEBUG("ph_conditional"));
 ph_conditional.prototype.is_value = true;
 ph_conditional.prototype.nblock_val = function() {
-    return this.t.nb()+"?"+this.c.nb()+":"+this.a.nb();
+    return this.t.nb()+"?"+this.c.nb()+":"+(this.a ? this.a.nb() : "undefined");
 };
 ph_conditional.prototype.val = function() {
-    return "__oni_rt.If("+this.t.v()+","+this.c.v()+","+this.a.v()+")";
+    return "__oni_rt.If("+this.t.v()+","+this.c.v()+","+(this.a ? this.a.v() : "undefined")+")";
 };
 
 #define GEN_NEW(exp, args, pctx) return new ph_new(exp, args);

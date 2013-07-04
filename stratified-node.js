@@ -841,13 +841,13 @@ if(ctor&&(/\{ \[native code\] \}$/.exec(ctor.toString())||ctor==Buffer)){
 
 
 var pars=this.pars;
+
 var command="new ctor(";
 for(var i=0;i<pars.length;++i){
 if(i)command+=",";
 command+="pars["+i+"]";
 }
 command+=")";
-
 rv=eval(command);
 }else if(!testIsFunction(ctor)){
 
@@ -2633,6 +2633,7 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
+
 pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,continue_scope:0,break_scope:0});
 
 
@@ -3996,10 +3997,10 @@ this.is_nblock=pctx.allow_nblock&&t.is_nblock&&c.is_nblock&&a.is_nblock;
 }
 ph_conditional.prototype=new ph();
 ph_conditional.prototype.is_value=true;
-ph_conditional.prototype.nblock_val=function(){return this.t.nb()+"?"+this.c.nb()+":"+this.a.nb();
+ph_conditional.prototype.nblock_val=function(){return this.t.nb()+"?"+this.c.nb()+":"+(this.a?this.a.nb():"undefined");
 
 };
-ph_conditional.prototype.val=function(){return "__oni_rt.If("+this.t.v()+","+this.c.v()+","+this.a.v()+")";
+ph_conditional.prototype.val=function(){return "__oni_rt.If("+this.t.v()+","+this.c.v()+","+(this.a?this.a.v():"undefined")+")";
 
 };
 
@@ -4582,8 +4583,10 @@ S("||").ifx(140);
 
 S("?").exc(130,function(test,pctx){var consequent=parseExp(pctx,110);
 
+if(pctx.token.id==":"){
 scan(pctx,":");
 var alternative=parseExp(pctx,110);
+}
 
 return new ph_conditional(test,consequent,alternative,pctx);
 });

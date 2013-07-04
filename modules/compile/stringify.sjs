@@ -119,6 +119,7 @@ general:
    #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    #define QUASIS: allow quasi templates (`foo#{bar}baz`)
    #define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
+   #define ONE_SIDED_CONDITIONALS: allows `foo ? bar` expressions (i.e. `foo ? bar : baz` without alternative `baz`). in the `false` case they yield `undefined`
 
 for C1_KERNEL_JSMIN:
    #define STRINGIFY  : encodes minified js/sjs as a string.
@@ -1018,11 +1019,19 @@ S("{").
           var exp = parseExp(pctx, 110); // only parse up to comma
           props.push(["prop",prop,exp]);
         }
+
+
+
+
+
+
+
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
           if (prop.charAt(0) == "'" || prop.charAt(0) == '"')
             throw new Error("Quoted identifiers not allowed in destructuring patterns ("+prop+")");
           props.push(["pat", prop, pctx.line]);
         }
+
         else
           throw new Error("Unexpected token '"+pctx.token+"'");
       }
