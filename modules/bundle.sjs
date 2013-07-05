@@ -486,7 +486,7 @@ if (require.main === module) {
     ]
   });
 
-  var opts = parser.parse({argv:process.argv});
+  var opts = parser.parse();
 
   if (opts.help) {
     process.stderr.write("Usage: sjs sjs:bundle [OPTIONS] [SOURCE [...]]\n\n");
