@@ -138,12 +138,13 @@ exports.pump = function(src, dest, fn) {
 
   @constructor ReadableStringStream
   @param    {String} [data] The data for this stream to emit
+  @param    {optional Boolean} [paused=false] If this flag is not set, the stream will start emitting (asynchronous) events as soon as it is constructed.
 */
-var ReadableStringStream = exports.ReadableStringStream = function(data) {
+var ReadableStringStream = exports.ReadableStringStream = function(data, paused) {
   this.data = data;
-  this.paused = false;
+  this.paused = paused || false;
   this.done = false;
-  this.resume();
+  if (!this.paused) this.resume();
 };
 
 require('util').inherits(ReadableStringStream, require('stream').Stream);
