@@ -156,3 +156,16 @@ context('padding') {||
   testFn(str, 'padBoth', [123, 2], '123');
 
 }
+
+context('unindent') {||
+  testFn(str, 'unindent', ['foo'], 'foo');
+  testFn(str, 'unindent', ['  foo'], 'foo');
+  testFn(str, 'unindent', ['  foo', 1], ' foo');
+  testFn(str, 'unindent', ['  foo  \n  bar  \n   baz'], 'foo  \nbar  \n baz');
+  testFn(str, 'unindent', ['  foo  \n  bar  \n   baz', 2], 'foo  \nbar  \n baz');
+  testFn(str, 'unindent', ['  foo  \n  bar  \n   baz', 1], ' foo  \n bar  \n  baz');
+  testFn(str, 'unindent', ['\t  foo  \n   bar  \n  \t baz'], 'foo  \nbar  \n baz');
+  testFn(str, 'unindent', ['\t  foo  \n   bar  \n  \t baz', 2], ' foo  \n bar  \n\t baz');
+  testFn(str, 'unindent', ['  foo  \n bar  \n   baz'], 'foo  \n bar  \n baz');
+
+}

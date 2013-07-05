@@ -381,6 +381,26 @@ exports.padBoth = function(s, len, ch) {
   return s;
 }
 
+/**
+   @function unindent
+   @summary  Remove leading whitespace from every line in the given string.
+   @param    {String} [s] 
+   @param    {optional Integer} [c=0] Number of whitespace characters to 
+             remove from every line (spaces and tabs both count as one 
+             whitespace character). If `c==0`, remove as many leading 
+             whitespace characters as found on the first line.
+   @desc
+     Note: If a line in `s` does not contain `c` leading whitespace characters, 
+           this particular line will be left untouched by `unindent`.
+*/
+exports.unindent = function(s, c) { 
+  if (!c) {
+    var matches = /^([ \t]+)/.exec(s);
+    if (!matches) return s;
+    c = matches[1].length;
+  }
+  return s.replace(new RegExp("^[ \\t]{#{c}}", "mg"), '');
+};
 
 /**
    @function utf16ToUtf8
