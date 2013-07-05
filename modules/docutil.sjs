@@ -37,7 +37,7 @@
 */
 
 var { merge } = require('./object');
-var { sanitize } = require('./string');
+var { sanitize, unindent } = require('./string');
 
 // comment regexps for parseSource
 var PAT_NBCOMMENT = "\\/\\/.*|#!.*";
@@ -146,7 +146,7 @@ var extractDocFields = exports.extractDocFields = function(docs) {
       else if (matches[1] == 'docsoff')
         ++docsoff;
       else if (docsoff<=0) {
-        var val = sanitize(trimLeadingNewlineAndTrailingSpace(matches[2]));
+        var val = unindent(sanitize(trimLeadingNewlineAndTrailingSpace(matches[2])));
         if (!val.length) val = 'true';
         fields.push([matches[1], val]);
       }
