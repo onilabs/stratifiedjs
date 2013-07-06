@@ -356,7 +356,7 @@ exports.matchesSelector = matchesSelectorFunc ?
 
 /**
    @function findNode
-   @summary Traverse DOM botton-up beginning at `from` up to element(s) `to` and return first element that matches `selector` or `null` if no such element is found
+   @summary Traverse DOM bottom-up beginning at `from` up to element(s) `to` and return first element that matches `selector` or `null` if no such element is found
    @param {String} [selector] CSS selector
    @param {DOMElement} [from] DOM element at which to start traversal
    @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal
