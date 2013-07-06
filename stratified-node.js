@@ -3993,7 +3993,7 @@ function ph_conditional(t,c,a,pctx){this.t=t;
 this.c=c;
 this.a=a;
 this.line=t.line;
-this.is_nblock=pctx.allow_nblock&&t.is_nblock&&c.is_nblock&&a.is_nblock;
+this.is_nblock=pctx.allow_nblock&&t.is_nblock&&c.is_nblock&&(a===undefined||a.is_nblock);
 }
 ph_conditional.prototype=new ph();
 ph_conditional.prototype.is_value=true;

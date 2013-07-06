@@ -781,3 +781,16 @@ test('reentrant stratum abort via loop & resume', 'stratum aborted|a|b|c', funct
   return rv;
 });
 
+test("single-sided conditional: true ? 'yes'", 'yes', function() {
+  return true ? 'yes';
+});
+
+test("single-sided conditional: false ? 'yes'", undefined, function() {
+  return false ? 'yes';
+});
+
+test("single-sided conditional: true ? blocking_yes()", 'yes', function() {
+  function blocking_yes() { hold(0); return 'yes'; }
+  return true ? blocking_yes();
+});
+
