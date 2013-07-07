@@ -1263,6 +1263,37 @@ function indexed(sequence, start) {
 exports.indexed = indexed;
 
 /**
+  @function intersperse
+  @altsyntax sequence .. intersperse(elem)
+  @param {::Sequence} [sequence] 
+  @param {Object} [elem] Element to intersperse
+  @summary Generate a stream with `elem` inserted in between adjacent elements of `sequence`.
+  @desc
+    ### Example:
+
+        ['a','b','c'] .. intersperse('-') 
+
+        // -> 'a', '-', 'b', '-', 'c'
+*/
+function intersperse(sequence, elem) {
+  return Stream(function(r) {
+    var first = true;
+    sequence .. each { 
+      |x|
+      if (first) {
+        r(x);
+        first = false;
+      }
+      else {
+        r(elem);
+        r(x);
+      }
+    }
+  });
+}
+exports.intersperse = intersperse;
+
+/**
    @function reduce
    @altsyntax sequence .. reduce(initial, f)
    @param {::Sequence} [sequence] Input sequence

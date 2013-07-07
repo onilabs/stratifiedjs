@@ -660,3 +660,18 @@ context('slice') {||
     receivedPos .. assert.eq([0,1,2,3,4], "positive end index");
   }
 }
+
+context('intersperse') {||
+  testEq('[1, 2, 3] .. intersperse(4)', [1,4,2,4,3], function() {
+    return [1, 2, 3] .. s.intersperse(4) .. s.toArray;
+  });
+
+  testEq('[1] .. intersperse(4)', [1], function() {
+    return [1] .. s.intersperse(4) .. s.toArray;
+  });
+
+  testEq('[] .. intersperse(4)', [], function() {
+    return [] .. s.intersperse(4) .. s.toArray;
+  });
+
+}
