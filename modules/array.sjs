@@ -79,7 +79,7 @@ exports.contains = contains;
 /**
    @function cycle
    @param {Array} [arr]
-   @return {sequence:Stream}
+   @return {sequence::Stream}
    @summary Returns an infinite [sequence::Stream] of values `arr[0], arr[1], ..., arr[arr.length-1], arr[0], arr[1], ...`
    @desc
      * Throws an exception is the array is empty
