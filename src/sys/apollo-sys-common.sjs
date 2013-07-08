@@ -661,9 +661,10 @@ function default_loader(path, parent, src_loader, opts) {
           exports: {},
           loaded_from: loaded_from,
           loaded_by: parent,
-          required_by: {},
-          require: makeRequire(path)
+          required_by: {}
         };
+        descriptor.require = makeRequire(descriptor);
+
         if (opts.main) descriptor.require.main = descriptor;
         compile(src, descriptor);
         // It is important that we only set
@@ -675,27 +676,26 @@ function default_loader(path, parent, src_loader, opts) {
 
         return descriptor;
       })();
-      pendingHook.parentModules = [parent];
-    } else {
-      pendingHook.parentModules.push(parent);
     }
-    
-    // traverse this module's parents to detect loops:
-    var dependents = {};
-    var q = [parent];
-    while(q.length > 0) {
-      var dep = q.shift();
-      if (dep === path) {
-        throw new Error("Circular module dependency loading #{path}");
-      }
-      if (dependents.hasOwnProperty(dep)) continue;
-      else dependents[dep] = true;
-      var pending = pendingLoads[dep];
-      if (pending) {
-        q = q.concat(pending.parentModules);
+    else {
+      // there is already a load pending for this module.
+      // traverse this module's parent chain to detect loops:
+      var p = parent;
+      // We deliberately only traverse up to toplevel-1; there
+      // are legitimate usecases in conductance where the *url* .../foo.sjs
+      // loads the *module* .../foo.sjs.
+      // In practice this means that in rare cases a cycle might only
+      // be detected on the second loop.
+      while (p.loaded_by) { 
+        if (path === p.id)
+          throw new Error("Circular module dependency loading #{path}");
+        p = p.loaded_by;
       }
     }
 
+      // 
+    
+    // wait for load to complete:
     try {
       var descriptor = pendingHook.waitforValue();
     }
@@ -706,10 +706,10 @@ function default_loader(path, parent, src_loader, opts) {
     }
   }
   
-  if (!descriptor.required_by[parent])
-    descriptor.required_by[parent] = 1;
+  if (!descriptor.required_by[parent.id])
+    descriptor.required_by[parent.id] = 1;
   else
-    ++descriptor.required_by[parent];
+    ++descriptor.required_by[parent.id];
   
   return descriptor.exports;
 }
@@ -764,7 +764,7 @@ function resolve(module, require_obj, parent, opts) {
   var resolveSpec = resolveHubs(path, exports.require.hubs, require_obj, parent, opts);
   
   // make sure we have an absolute url with '.' & '..' collapsed:
-  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent);  
+  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);  
 
   // XXX hack - this should go into something like a loader.resolve() function
   if (resolveSpec.loader == default_loader && 
@@ -774,9 +774,6 @@ function resolve(module, require_obj, parent, opts) {
     if (!matches || !exports.require.extensions[matches[1]])
       resolveSpec.path += ".sjs";
   }
-
-  if (parent == getTopReqParent_hostenv())
-    parent = "[toplevel]";
 
   var preload = __oni_rt.G.__oni_rt_bundle;
   var path = resolveSpec.path;
@@ -824,8 +821,7 @@ exports.require.modules['builtin:apollo-sys.sjs'] = {
   id: 'builtin:apollo-sys.sjs',
   exports: exports,
   loaded_from: "[builtin]",
-  loaded_by: "[toplevel]",
-  required_by: { "[toplevel]":1 }
+  required_by: { "[system]":1 }
 };
 
 exports.init = function(cb) {

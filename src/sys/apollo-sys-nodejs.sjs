@@ -93,10 +93,17 @@ function getXDomainCaps_hostenv() {
    @function getTopReqParent_hostenv
    @summary Return top-level require parent (for converting relative urls in absolute ones)
 */
-var req_base;
+var req_base_descr;
 function getTopReqParent_hostenv() {
-  if (!req_base) req_base = "file://"+process.cwd()+"/";
-  return req_base;
+  if (!req_base_descr) {
+    var base = "file://"+process.mainModule.filename;
+    req_base_descr = {
+      id: base,
+      loaded_from: base,
+      required_by: { "[system]":1 }
+    };
+  }
+  return req_base_descr;
 }
 
 /**
@@ -104,12 +111,12 @@ function getTopReqParent_hostenv() {
    @summary Resolve a scheme-less URL (for the require-mechanism)
    @param {String} [url_string] Scheme-less URL to be converted
    @param {Object} [req_obj] require-object
-   @param {String} [parent] parent url (possibly undefined if loading from top-level)
+   @param {Object} [parent] parent descriptor 
    @return {String} Absolute URL
 */
 function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
   if (/^\.?\.?\//.exec(url_string))
-    return exports.canonicalizeURL(url_string, parent);
+    return exports.canonicalizeURL(url_string, parent.id);
   else
     return "nodejs:"+url_string;
 }
@@ -336,17 +343,16 @@ function file_src_loader(path) {
 
 // load a builtin nodejs module:
 function nodejs_loader(path, parent, dummy_src, opts) {
-
   // strip off 'nodejs:'
   path = path.substr(7);
   // resolve using node's require mechanism in this order:
   //  native nodejs module, sjs-native module (based on known extensions), other nodejs module
 
   var base;
-  if (!(/^file:/.exec(parent))) // e.g. we are being loaded from a http module
-    base = getTopReqParent_hostenv();
+  if (!(/^file:/.exec(parent.id))) // e.g. we are being loaded from a http module
+    base = getTopReqParent_hostenv().id;
   else 
-    base = parent;
+    base = parent.id;
   // strip 'file://'
   base = base.substr(7);
 
