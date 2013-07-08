@@ -4,7 +4,7 @@
  *
  * Part of the StratifiedJS Standard Module Library
  * Version: '0.14.0-1-development'
- * http://onilabs.com/apollo
+ * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
  *
@@ -58,7 +58,7 @@
     This module can be imported from SJS code, but it can also be directly
     invoked from the command line by running e.g:
 
-        apollo sjs:bundle --help
+        sjs sjs:bundle --help
 
     Although multiple functions are exported from this module, most users
     will only need to use [::create].
@@ -74,7 +74,7 @@
     Once the bundle has been downloaded by your browser,
     require(moduleName) will load `moduleName` from the bundle,
     rather than requesting the module file over HTTP. Normally you
-    should place this file before `oni-apollo.js`, so that the
+    should place this file before `stratified.js`, so that the
     bundled modules will be ready by the time your inline SJS is
     executed.
 
@@ -333,7 +333,7 @@ exports.writeBundle = writeBundle;
     The settings provided to this function match the options given
     to this module when run from the command line.
 
-    Run `apollo sjs:bundle --help` to see a full
+    Run `sjs sjs:bundle --help` to see a full
     description of what these options do.
 
     ### Example:
@@ -430,7 +430,7 @@ if (require.main === module) {
         help: (
           'Set the runtime URL (or server path) for an on-disk location, e.g: ' +
           '--alias=components=/static/sjs/components ' +
-          '--alias=/lib/nodejs/apollo=http://example.org/apollo ' +
+          '--alias=/lib/nodejs/sjs=http://example.org/sjs ' +
           "NOTE: The URLs used here must match the URLs used by your running application, " +
           "otherwise the bundled version will be ignored."
         ),
@@ -458,7 +458,7 @@ if (require.main === module) {
       {
         name: 'dump',
         type: 'bool',
-        help: "Print dpeendency info (JSON)",
+        help: "Print dependency info (JSON)",
       },
       {
         name: 'bundle',
