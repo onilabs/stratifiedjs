@@ -69,6 +69,7 @@
    @setting {Boolean} [smartLists=true] Use smarter list behavior than the original markdown. May eventually be default with the old behavior moved into `pedantic`.
    @setting {Boolean} [smartypants=false] Use "smart" typographic punctuation for things like quotes and dashes.
    @setting {String}  [langPrefix='lang-'] Set the prefix for code block classes.
+   @setting {Boolean} [escapeCode=true] Whether to escape ampersands in code blocks. (Oni Labs enhancement; the normal marked behaviour is to escape)
    @desc
      If code-highlighting is desired, pass in a `highlight` function with 
      signature `function highlight(code, lang)`. 

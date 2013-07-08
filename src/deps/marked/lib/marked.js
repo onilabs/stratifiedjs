@@ -652,7 +652,7 @@ InlineLexer.prototype.output = function(src) {
     if (cap = this.rules.code.exec(src)) {
       src = src.substring(cap[0].length);
       out += '<code>'
-        + escape(cap[2], true)
+        + escape(cap[2], this.options.escapeCode)
         + '</code>';
       continue;
     }
@@ -851,7 +851,7 @@ Parser.prototype.tok = function() {
       }
 
       if (!this.token.escaped) {
-        this.token.text = escape(this.token.text, true);
+        this.token.text = escape(this.token.text, this.options.escapeCode);
       }
 
       return '<pre><code'
@@ -1120,7 +1120,8 @@ marked.defaults = {
   silent: false,
   highlight: null,
   langPrefix: 'lang-',
-  smartypants: false
+  smartypants: false,
+  escapeCode: true
 };
 
 /**

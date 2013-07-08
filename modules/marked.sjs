@@ -69,6 +69,7 @@
    @setting {Boolean} [smartLists=true] Use smarter list behavior than the original markdown. May eventually be default with the old behavior moved into `pedantic`.
    @setting {Boolean} [smartypants=false] Use "smart" typographic punctuation for things like quotes and dashes.
    @setting {String}  [langPrefix='lang-'] Set the prefix for code block classes.
+   @setting {Boolean} [escapeCode=true] Whether to escape ampersands in code blocks. (Oni Labs enhancement; the normal marked behaviour is to escape)
    @desc
      If code-highlighting is desired, pass in a `highlight` function with 
      signature `function highlight(code, lang)`. 
@@ -738,7 +739,7 @@ InlineLexer.prototype.output = function(src) {
     if (cap = this.rules.code.exec(src)) {
       src = src.substring(cap[0].length);
       out += '<code>'
-        + escape(cap[2], true)
+        + escape(cap[2], this.options.escapeCode)
         + '</code>';
       continue;
     }
@@ -937,7 +938,7 @@ Parser.prototype.tok = function() {
       }
 
       if (!this.token.escaped) {
-        this.token.text = escape(this.token.text, true);
+        this.token.text = escape(this.token.text, this.options.escapeCode);
       }
 
       return '<pre><code'
@@ -1206,7 +1207,8 @@ marked.defaults = {
   silent: false,
   highlight: null,
   langPrefix: 'lang-',
-  smartypants: false
+  smartypants: false,
+  escapeCode: true
 };
 
 /**
