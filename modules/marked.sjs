@@ -60,20 +60,23 @@
    @param {String} [text] Markdown text to convert
    @param {optional Object} [settings] Hash of settings
    @summary Convert Markdown text to HTML
-   @setting {Boolean} [pedantic=false] Conform to obscure parts of markdown.pl as much as possible. Don't fix any of the original markdown bugs or poor behavior.
-   @setting {Boolean} [gfm=true] Enable github flavored markdown.
-   @setting {Boolean} [sanitize=false] Sanitize the output. Ignore any HTML that has been input.
+   @setting {Boolean} [gfm=true] Enable [github flavored markdown](https://help.github.com/articles/github-flavored-markdown).
    @setting {Function} [highlight] A callback to highlight code blocks (see below).
-   @setting {Boolean} [tables=true] Enable GFM tables. Requires `gfm:true`.
    @setting {Boolean} [breaks=false] Enable GFM line breaks.
+   @setting {Boolean} [tables=true] Enable GFM tables. Requires `gfm:true`.
+   @setting {Boolean} [pedantic=false] Conform to obscure parts of markdown.pl as much as possible. Don't fix any of the original markdown bugs or poor behavior.
+   @setting {Boolean} [sanitize=false] Sanitize the output. Ignore any HTML that has been input.
+   @setting {Boolean} [smartLists=true] Use smarter list behavior than the original markdown. May eventually be default with the old behavior moved into `pedantic`.
+   @setting {Boolean} [smartypants=false] Use "smart" typographic punctuation for things like quotes and dashes.
+   @setting {String}  [langPrefix='lang-'] Set the prefix for code block classes.
    @desc
      If code-highlighting is desired, pass in a `highlight` function with 
-     signature `function highlight(code, lang)`. The function must be **non-blocking**, 
-     i.e. not use any asynchronous constructs, like `require()` or `hold()` calls, 
-     and return the marked up code as a string.
+     signature `function highlight(code, lang)`. 
+     The function must be **non-blocking**, i.e. not use any asynchronous constructs, 
+     like `require()` or `hold()` calls, and return the marked up code as a string.
 
      `lang` will be the language identifier, as specified by GFM, or `undefined` if not
-     given. `code` is the code to mark up. 
+     given. `code` is the code to mark up.
 */
 
 /** 
@@ -153,7 +156,7 @@ block.normal = merge({}, block);
  */
 
 block.gfm = merge({}, block.normal, {
-  fences: /^ *(`{3,}|~{3,}) *(\w+)? *\n([\s\S]+?)\s*\1 *(?:\n+|$)/,
+  fences: /^ *(`{3,}|~{3,}) *(\S+)? *\n([\s\S]+?)\s*\1 *(?:\n+|$)/,
   paragraph: /^/
 });
 
@@ -357,19 +360,15 @@ Lexer.prototype.token = function(src, top) {
     // list
     if (cap = this.rules.list.exec(src)) {
       src = src.substring(cap[0].length);
+      bull = cap[2];
 
       this.tokens.push({
         type: 'list_start',
-        ordered: isFinite(cap[2])
+        ordered: bull.length > 1
       });
 
       // Get each top-level item.
       cap = cap[0].match(this.rules.item);
-
-      // Get bullet.
-      if (this.options.smartLists) {
-        bull = block.bullet.exec(cap[0])[0];
-      }
 
       next = false;
       l = cap.length;
@@ -396,7 +395,7 @@ Lexer.prototype.token = function(src, top) {
         // Backpedal if it does not belong in this list.
         if (this.options.smartLists && i !== l - 1) {
           b = block.bullet.exec(cap[i+1])[0];
-          if (bull !== b && !(bull[1] === '.' && b[1] === '.')) {
+          if (bull !== b && !(bull.length > 1 && b.length > 1)) {
             src = cap.slice(i + 1).join('\n') + src;
             i = l - 1;
           }
@@ -439,7 +438,7 @@ Lexer.prototype.token = function(src, top) {
         type: this.options.sanitize
           ? 'paragraph'
           : 'html',
-        pre: cap[1] === 'pre',
+        pre: cap[1] === 'pre' || cap[1] === 'script',
         text: cap[0]
       });
       continue;
@@ -626,8 +625,8 @@ InlineLexer.rules = inline;
  * Static Lexing/Compiling Method
  */
 
-InlineLexer.output = function(src, links, opt) {
-  var inline = new InlineLexer(links, opt);
+InlineLexer.output = function(src, links, options) {
+  var inline = new InlineLexer(links, options);
   return inline.output(src);
 };
 
@@ -763,7 +762,7 @@ InlineLexer.prototype.output = function(src) {
     // text
     if (cap = this.rules.text.exec(src)) {
       src = src.substring(cap[0].length);
-      out += escape(cap[0]);
+      out += escape(this.smartypants(cap[0]));
       continue;
     }
 
@@ -806,6 +805,19 @@ InlineLexer.prototype.outputLink = function(cap, link) {
       : '')
       + '>';
   }
+};
+
+/**
+ * Smartypants Transformations
+ */
+
+InlineLexer.prototype.smartypants = function(text) {
+  if (!this.options.smartypants) return text;
+  return text
+    .replace(/--/g, '\u2014')
+    .replace(/'([^']*)'/g, '\u2018$1\u2019')
+    .replace(/"([^"]*)"/g, '\u201C$1\u201D')
+    .replace(/\.{3}/g, '\u2026');
 };
 
 /**
@@ -1094,14 +1106,81 @@ function merge(obj) {
  * Marked
  */
 
-function marked(src, opt) {
+function marked(src, opt, callback) {
+  if (callback || typeof opt === 'function') {
+    if (!callback) {
+      callback = opt;
+      opt = null;
+    }
+
+    if (opt) opt = merge({}, marked.defaults, opt);
+
+    var highlight = opt.highlight
+      , tokens
+      , pending
+      , i = 0;
+
+    try {
+      tokens = Lexer.lex(src, opt)
+    } catch (e) {
+      return callback(e);
+    }
+
+    pending = tokens.length;
+
+    var done = function(hi) {
+      var out, err;
+
+      if (hi !== true) {
+        delete opt.highlight;
+      }
+
+      try {
+        out = Parser.parse(tokens, opt);
+      } catch (e) {
+        err = e;
+      }
+
+      opt.highlight = highlight;
+
+      return err
+        ? callback(err)
+        : callback(null, out);
+    };
+
+    if (!highlight || highlight.length < 3) {
+      return done(true);
+    }
+
+    if (!pending) return done();
+
+    for (; i < tokens.length; i++) {
+      (function(token) {
+        if (token.type !== 'code') {
+          return --pending || done();
+        }
+        return highlight(token.text, token.lang, function(err, code) {
+          if (code == null || code === token.text) {
+            return --pending || done();
+          }
+          token.text = code;
+          token.escaped = true;
+          --pending || done();
+        });
+      })(tokens[i]);
+    }
+
+    return;
+  }
   try {
     if (opt) opt = merge({}, marked.defaults, opt);
     return Parser.parse(Lexer.lex(src, opt), opt);
   } catch (e) {
     e.message += '\nPlease report this to https://github.com/chjj/marked.';
     if ((opt || marked.defaults).silent) {
-      return 'An error occured:\n' + e.message;
+      return '<p>An error occured:</p><pre>'
+        + escape(e.message + '', true)
+        + '</pre>';
     }
     throw e;
   }
@@ -1126,7 +1205,8 @@ marked.defaults = {
   smartLists: false,
   silent: false,
   highlight: null,
-  langPrefix: 'lang-'
+  langPrefix: 'lang-',
+  smartypants: false
 };
 
 /**

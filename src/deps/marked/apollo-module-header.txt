@@ -60,20 +60,23 @@
    @param {String} [text] Markdown text to convert
    @param {optional Object} [settings] Hash of settings
    @summary Convert Markdown text to HTML
-   @setting {Boolean} [pedantic=false] Conform to obscure parts of markdown.pl as much as possible. Don't fix any of the original markdown bugs or poor behavior.
-   @setting {Boolean} [gfm=true] Enable github flavored markdown.
-   @setting {Boolean} [sanitize=false] Sanitize the output. Ignore any HTML that has been input.
+   @setting {Boolean} [gfm=true] Enable [github flavored markdown](https://help.github.com/articles/github-flavored-markdown).
    @setting {Function} [highlight] A callback to highlight code blocks (see below).
-   @setting {Boolean} [tables=true] Enable GFM tables. Requires `gfm:true`.
    @setting {Boolean} [breaks=false] Enable GFM line breaks.
+   @setting {Boolean} [tables=true] Enable GFM tables. Requires `gfm:true`.
+   @setting {Boolean} [pedantic=false] Conform to obscure parts of markdown.pl as much as possible. Don't fix any of the original markdown bugs or poor behavior.
+   @setting {Boolean} [sanitize=false] Sanitize the output. Ignore any HTML that has been input.
+   @setting {Boolean} [smartLists=true] Use smarter list behavior than the original markdown. May eventually be default with the old behavior moved into `pedantic`.
+   @setting {Boolean} [smartypants=false] Use "smart" typographic punctuation for things like quotes and dashes.
+   @setting {String}  [langPrefix='lang-'] Set the prefix for code block classes.
    @desc
      If code-highlighting is desired, pass in a `highlight` function with 
-     signature `function highlight(code, lang)`. The function must be **non-blocking**, 
-     i.e. not use any asynchronous constructs, like `require()` or `hold()` calls, 
-     and return the marked up code as a string.
+     signature `function highlight(code, lang)`. 
+     The function must be **non-blocking**, i.e. not use any asynchronous constructs, 
+     like `require()` or `hold()` calls, and return the marked up code as a string.
 
      `lang` will be the language identifier, as specified by GFM, or `undefined` if not
-     given. `code` is the code to mark up. 
+     given. `code` is the code to mark up.
 */
 
 /** 

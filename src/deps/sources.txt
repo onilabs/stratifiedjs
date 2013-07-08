@@ -11,7 +11,7 @@ node-terminal/ git://github.com/mattijs/node-terminal.git 00e6fa30b196a3a709b025
 JsonDiffPatch/ git://github.com/benjamine/JsonDiffPatch.git 2b7ef07a253e41aad4ed4d938ab701baec2b00db
 
 # marked:
-marked/ git://github.com/chjj/marked.git 2439b9b6caaafdd2e3e1423e87c678de796d16ba
+marked/ git://github.com/chjj/marked.git 922dd964950a64ca0808952847a1a4e00d42f7b6
 
 # dashdash:
 dashdash/ git://github.com/trentm/node-dashdash.git 8378adbcf9b7ba3aeb3c96db9e7f5432cc765239
