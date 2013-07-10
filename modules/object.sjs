@@ -48,13 +48,10 @@ var _get = function(guard, args) {
   } else {
     if (args.length < 3) {
       // no defaultValue provided
-      require('sjs:logging').info(subject);
       throw new Error("Object (#{typeof(subject)}) has no key: " + key);
     }
-    require('sjs:logging').info('default:', defaultValue);
     return defaultValue;
   }
-  require('sjs:logging').info('found:', result);
   return result;
 };
 
@@ -76,7 +73,6 @@ var _get = function(guard, args) {
     inherited properties), use [::getOwn].
 */
 exports.get = function(subject, key, defaultValue) {
-  require('sjs:logging').info("getting: -> #{key}");
   return _get(hasProperty, arguments);
 };
 

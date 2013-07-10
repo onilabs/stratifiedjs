@@ -387,6 +387,15 @@ context('breaking') {||
       'block finish']);
   };
 
+  test('when block itself throws an error') {||
+    var err = new Error("error thrown by `breaking` block");
+    assert.raises({message: err.message}) {||
+      cutil.breaking {|brk|
+        throw err;
+      }
+    };
+  };
+
   test('throwing an error') {||
     var events = [];
     var context = function(block) {

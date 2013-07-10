@@ -511,16 +511,23 @@ QueueProto = {
 */
 exports.breaking = function(block) {
   var cont;
-  waitfor(var rv) {
+  waitfor(var err, rv) {
     var ready = resume;
-    spawn block {|result|
-      waitfor(var err) {
-        cont = resume;
-        ready(result);
+    spawn (function() {
+      try { // catch exceptions in `block` setup
+        block {|result|
+          waitfor(var err) {
+            cont = resume;
+            ready(null, result);
+          }
+          if (err) throw err;
+        }
+      } catch(err) {
+        ready(err);
       }
-      if (err) throw err;
-    }
+    })();
   }
+  if(err) throw err;
   return { val: rv, resume: cont };
 }
 
