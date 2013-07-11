@@ -493,7 +493,7 @@ Runner.prototype.run = function(reporter) {
   @variable TestResult.test
   @summary The test
 
-  @variable TestResult.desctiption
+  @variable TestResult.description
   @summary The test description
 
   @variable TestResult.ok
