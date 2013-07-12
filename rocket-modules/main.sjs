@@ -105,7 +105,7 @@ for (var i=0; i<argv.length; ++i) {
     break;
   case "--host":
     host = argv[++i];
-    if (host == "any") host = undefined;
+    if (host == "any") host = '';
     break;
   case "--root":
     root = argv[++i];
