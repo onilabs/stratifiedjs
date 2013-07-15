@@ -66,6 +66,10 @@ context("server-side") {||
     result .. assert.eq({stdout: '42\n', stderr: ''});
   }
 
+  test('require inside a .js file is synchronous') {||
+    require('./fixtures/testmodule.js').dynamicRequire() .. assert.eq(1);
+  }.skip('BROKEN');
+
 }.serverOnly();
 
 testEq('export to "this"', 42, function() {
