@@ -10,9 +10,6 @@ var object = require('sjs:object');
 var seq = require('sjs:sequence');
 var dashdash = require('sjs:dashdash');
 
-// ---- globals
-
-var TEST_FILTER = process.env.TEST_FILTER;
 
 // shim to run dashdash's upstream tests without (much) modification
 var t = assert;
@@ -728,9 +725,6 @@ cases .. seq.indexed .. seq.each {|[num, c]|
         });
     }
     var testName = "case #{num}: #{envStr}#{argv.join(' ')}";
-    if (TEST_FILTER && !~testName.indexOf(TEST_FILTER)) {
-        return;
-    }
     test(testName, function (t) {
         debug('--', num)
         debug('c: ', c)
