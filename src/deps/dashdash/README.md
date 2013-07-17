@@ -152,6 +152,56 @@ $ FOO_VERBOSE=1 node foo.js
 # args: []
 ```
 
+Boolean options will interpret the empty string as unset, '0' as false
+and anything else as true.
+
+```shell
+$ FOO_VERBOSE= node examples/foo.js                 # not set
+# opts: { _order: [], _args: [] }
+# args: []
+
+$ FOO_VERBOSE=0 node examples/foo.js                # '0' is false
+# opts: { verbose: [ false ],
+  _order: [ { key: 'verbose', value: false, from: 'env' } ],
+  _args: [] }
+# args: []
+
+$ FOO_VERBOSE=1 node examples/foo.js                # true
+# opts: { verbose: [ true ],
+  _order: [ { key: 'verbose', value: true, from: 'env' } ],
+  _args: [] }
+# args: []
+
+$ FOO_VERBOSE=boogabooga node examples/foo.js       # true
+# opts: { verbose: [ true ],
+  _order: [ { key: 'verbose', value: true, from: 'env' } ],
+  _args: [] }
+# args: []
+```
+
+Non-booleans can be used as well. Strings:
+
+```shell
+$ FOO_FILE=data.txt node examples/foo.js
+# opts: { file: 'data.txt',
+  _order: [ { key: 'file', value: 'data.txt', from: 'env' } ],
+  _args: [] }
+# args: []
+```
+
+Numbers:
+
+```shell
+$ FOO_TIMEOUT=5000 node examples/foo.js
+# opts: { timeout: 5000,
+  _order: [ { key: 'timeout', value: 5000, from: 'env' } ],
+  _args: [] }
+# args: []
+
+$ FOO_TIMEOUT=blarg node examples/foo.js
+foo: error: arg for "FOO_TIMEOUT" is not a positive integer: "blarg"
+```
+
 With the `includeEnv: true` config to `parser.help()` the environment
 variable can also be included in **help output**:
 

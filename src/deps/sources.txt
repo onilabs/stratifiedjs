@@ -14,7 +14,7 @@ JsonDiffPatch/ git://github.com/benjamine/JsonDiffPatch.git 2b7ef07a253e41aad4ed
 marked/ git://github.com/chjj/marked.git 922dd964950a64ca0808952847a1a4e00d42f7b6
 
 # dashdash:
-dashdash/ git://github.com/trentm/node-dashdash.git 8378adbcf9b7ba3aeb3c96db9e7f5432cc765239
+dashdash/ git://github.com/trentm/node-dashdash.git cf94c5989381d17315beb5b675a9dd25410c00b5
 
 # jsdiff:
 jsdiff/ git://github.com/kpdecker/jsdiff.git 1f4bf7a708fc1121bb49e3b10d2ec7218c52a210

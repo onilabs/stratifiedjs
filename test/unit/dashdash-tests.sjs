@@ -10,6 +10,9 @@ var object = require('sjs:object');
 var seq = require('sjs:sequence');
 var dashdash = require('sjs:dashdash');
 
+// ---- globals
+
+var TEST_FILTER = process.env.TEST_FILTER;
 
 // shim to run dashdash's upstream tests without (much) modification
 var t = assert;
@@ -499,13 +502,11 @@ var cases = [
     {
         options: [ {name: 'v', env: 'FOO_VERBOSE', type: 'bool'} ],
         argv: 'node foo.js',
-        // No '0' or 'false' interp, just empty string or not.
-        // TODO: still debatable behaviour
         env: {FOO_VERBOSE: '0'},
         expect: {
-            v: true,
+            v: false,
             _args: [],
-            _order: [ {key: 'v', value: true, from: 'env'} ]
+            _order: [ {key: 'v', value: false, from: 'env'} ]
         }
     },
     {
@@ -514,6 +515,32 @@ var cases = [
         env: {FOO_VERBOSE: ''},
         /* JSSTYLED */
         expect: { _args: [] }
+    },
+
+    // env help
+    {
+        options: [
+            {names: ['a'], type: 'string', env: 'A', help: 'Phrase'},
+            {names: ['b'], type: 'string', env: 'B', help: 'Sentence.'},
+            {names: ['c'], type: 'string', env: 'C', help: 'Question?'},
+            {names: ['d'], type: 'string', env: 'D', help: 'Exclamation!'},
+            {names: ['e'], type: 'string', env: 'E', help: ' '},
+            {names: ['f'], type: 'string', env: 'F', help: ''},
+            {names: ['g'], type: 'string', env: 'G'},
+            {names: ['h'], type: 'bool', env: 'H'},
+        ],
+        argv: 'node tool.js --help',
+        helpOptions: { includeEnv: true },
+        expectHelp: [
+            /-a ARG\s+Phrase. Environment: A=ARG/,
+            /-b ARG\s+Sentence. Environment: B=ARG/,
+            /-c ARG\s+Question\? Environment: C=ARG/,
+            /-d ARG\s+Exclamation! Environment: D=ARG/,
+            /-e ARG\s+Environment: E=ARG/,
+            /-f ARG\s+Environment: F=ARG/,
+            /-g ARG\s+Environment: G=ARG/,
+            /-h\s+Environment: H=1/,
+        ]
     },
 
     // env (number)
@@ -591,17 +618,100 @@ var cases = [
         /* JSSTYLED */
         expect: { foo_bar_: true, _args: [] }
     },
-];
 
-cases .. seq.indexed .. seq.each {|pair|
-    var [i, c] = pair;
+    // issue #1: 'env' not taking precendence over 'default'
+    {
+        options: [ {
+            names: ['file', 'f'],
+            env: 'FOO_FILE',
+            'default': 'default.file',
+            type: 'string'
+        } ],
+        argv: 'node foo.js',
+        expect: { file: 'default.file', _args: [] }
+    },
+    {
+        options: [ {
+            names: ['file', 'f'],
+            env: 'FOO_FILE',
+            'default': 'default.file',
+            type: 'string'
+        } ],
+        env: {FOO_FILE: 'env.file'},
+        argv: 'node foo.js',
+        expect: { file: 'env.file', _args: [] }
+    },
+    {
+        options: [ {
+            names: ['file', 'f'],
+            env: 'FOO_FILE',
+            'default': 'default.file',
+            type: 'string'
+        } ],
+        argv: 'node foo.js -f argv.file',
+        env: {FOO_FILE: 'env.file'},
+        expect: { file: 'argv.file', _args: [] }
+    },
+
+    {
+        options: [ {
+            names: ['verbose', 'v'],
+            env: 'FOO_VERBOSE',
+            'default': false,
+            type: 'bool'
+        } ],
+        argv: 'node foo.js',
+        expect: { verbose: false, _args: [] }
+    },
+    {
+        options: [ {
+            names: ['verbose', 'v'],
+            env: 'FOO_VERBOSE',
+            'default': false,
+            type: 'bool'
+        } ],
+        argv: 'node foo.js',
+        env: {FOO_VERBOSE: '1'},
+        expect: { verbose: true, _args: [] }
+    },
+    {
+        options: [ {
+            names: ['verbose', 'v'],
+            env: 'FOO_VERBOSE',
+            'default': false,
+            type: 'bool'
+        } ],
+        argv: 'node foo.js',
+        env: {FOO_VERBOSE: '0'},
+        expect: { verbose: false, _args: [] }
+    },
+    {
+        options: [ {
+            names: ['verbose', 'v'],
+            env: 'FOO_VERBOSE',
+            'default': false,
+            type: 'bool'
+        } ],
+        argv: 'node foo.js -v',
+        env: {FOO_VERBOSE: '0'},
+        expect: { verbose: true, _args: [] }
+    },
+];
+cases .. seq.indexed .. seq.each {|[num, c]|
     var expect = c.expect;
     delete c.expect;
-    var expectHelp = c.expectHelp;
-    if (typeof (expectHelp) === 'string') {
-        expectHelp = new RegExp(expectHelp);
+    var expectHelps = c.expectHelp;
+    if (!Array.isArray(expectHelps)) {
+        expectHelps = expectHelps ? [expectHelps] : [];
+        for (var i = 0; i < expectHelps.length; i++) {
+            if (typeof (expectHelps[i]) === 'string') {
+                expectHelps[i] = new RegExp(expectHelps[i]);
+            }
+        }
     }
     delete c.expectHelp;
+    var helpOptions = c.helpOptions;
+    delete c.helpOptions;
     var argv = c.argv;
     delete c.argv;
     if (typeof (argv) === 'string') {
@@ -613,13 +723,16 @@ cases .. seq.indexed .. seq.each {|pair|
     delete c.env;
     var envStr = '';
     if (env) {
-        env .. object.ownKeys .. seq.each {|e|
-            envStr += format('%s=%s ', e, env[e]);
-        }
+        env .. object.ownKeys .. seq.each(function(e) {
+            envStr += "#{e}=#{env[e]}";
+        });
     }
-    var testName = "case #{i}: #{envStr}#{argv.join(' ')}";
+    var testName = "case #{num}: #{envStr}#{argv.join(' ')}";
+    if (TEST_FILTER && !~testName.indexOf(TEST_FILTER)) {
+        return;
+    }
     test(testName, function (t) {
-        debug('--', i)
+        debug('--', num)
         debug('c: ', c)
         var parser = new dashdash.Parser(c);
         var opts;
@@ -633,9 +746,12 @@ cases .. seq.indexed .. seq.each {|pair|
             debug('opts: ', opts)
             t.eq(opts, expect);
         }
-        if (expectHelp) {
-            var help = parser.help();
-            t.ok(expectHelp.test(help), "help did not match#{expectHelp}: \"#{help}\"");
+        if (expectHelps.length) {
+            var help = parser.help(helpOptions);
+            expectHelps.forEach(function (eH) {
+                t.ok(eH.test(help), format(
+                    'help did not match '+eH+': "'+help+'"', eH, help));
+            });
         }
         t.end();
     });

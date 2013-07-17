@@ -1,5 +1,6 @@
 /**
- * dashdash - yet another node.js optional parsing library
+ * dashdash - A light, featureful and explicit option parsing library for
+ * node.js.
  */
 
 // ---- internal support stuff
@@ -57,7 +58,7 @@ function optionKeyFromName(name) {
 // ---- Option types
 
 function parseBool(option, optstr, arg) {
-    return true;
+    return Boolean(arg);
 }
 
 function parseString(option, optstr, arg) {
@@ -259,15 +260,8 @@ Parser.prototype.parse = function parse(inputs) {
     var slice = inputs.slice !== undefined ? inputs.slice : 0;
     var args = argv.slice(slice);
     var env = inputs.env || process.env;
-
-    // Setup default values
     var opts = {};
     var _order = [];
-    this.options..each(function (o) {
-        if (o['default']) {
-            opts[o.key] = o['default'];
-        }
-    });
 
     function addOpt(option, optstr, key, val, from) {
         var type = types[option.type];
@@ -383,10 +377,19 @@ Parser.prototype.parse = function parse(inputs) {
         var takesArg = self.optionTakesArg(option);
         if (takesArg) {
             addOpt(option, envname, option.key, val, 'env');
-        } else if (val) {
-            // For now, we make VAR=<empty-string> NOT set the value
-            // false. It is as if the VAR was not set.
-            addOpt(option, envname, option.key, true, 'env');
+        } else if (val !== '') {
+            // Boolean envvar handling:
+            // - VAR=<empty-string>     not set (as if the VAR was not set)
+            // - VAR=0                  false
+            // - anything else          true
+            addOpt(option, envname, option.key, (val !== '0'), 'env');
+        }
+    });
+
+    // Apply default values.
+    this.options..each(function (o) {
+        if (o['default'] !== undefined && opts[o.key] === undefined) {
+            opts[o.key] = o['default'];
         }
     });
 
@@ -464,8 +467,7 @@ Parser.prototype.help = function help(config) {
                     return 0;
             })
         }
-        names..indexed..each(function (pair) {
-            var [i, name] = pair;
+        names..indexed..each(function ([i, name]) {
             if (i > 0)
                 line += ', ';
             if (name.length === 1) {
@@ -488,9 +490,8 @@ Parser.prototype.help = function help(config) {
         helpCol = maxWidth + indent.length + 2;
         helpCol = Math.min(Math.max(helpCol, minHelpCol), maxHelpCol);
     }
-    this.options..indexed..each(function (pair) {
-        var [i, o] = pair;
-        if (!o.help) {
+    this.options..indexed..each(function ([i,o]) {
+        if (!o.help && !(config.includeEnv && o.env)) {
             return;
         }
         var line = lines[i];
@@ -500,12 +501,15 @@ Parser.prototype.help = function help(config) {
         } else {
             line += '\n' + space(helpCol);
         }
-        var help = o.help;
+        var help = (o.help || '').trim();
         if (o.env && o.env.length && config.includeEnv) {
             if (help.length && !~'.!?'.indexOf(help.slice(-1))) {
                 help += '.';
             }
-            help += ' Environment: ';
+            if (help.length) {
+                help += ' ';
+            }
+            help += 'Environment: ';
             var type = types[o.type];
             var arg = o.helpArg || type.helpArg || 'ARG';
             var envs = (Array.isArray(o.env) ? o.env : [o.env])..map(function (e) {
