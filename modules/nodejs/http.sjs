@@ -284,8 +284,17 @@ function withServer(config, server_loop) {
     throw new Error("#{config.address}: #{error}");
   }
   or {
-    var {port, family, address} = server.address() || {};
-    address = family=='IPv6' ? "[#{address}]:#{port}" : "#{address}:#{port}";
+    var address;
+
+    if (config.fd !== undefined) {
+      // when inheriting an FD, address() is not defined. Just show whatever was
+      // passed in (for information's sake, we can't actually tell if it's correct)
+      address = config.address || 'FD #{config.fd}';
+    } else {
+      var {port, family, address} = server.address() || {};
+      address = family=='IPv6' ? "[#{address}]:#{port}" : "#{address}:#{port}";
+    }
+
 
     config.log("Listening on #{address}");
 
