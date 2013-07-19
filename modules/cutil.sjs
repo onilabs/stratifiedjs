@@ -447,7 +447,7 @@ QueueProto = {
   @function breaking
   @summary Pause a piece of code's execution and resume it later
   @param {Function} [block]
-  @return {Object} An object with `val` and `resume` properties
+  @return {Object} An object with `value` and `resume` properties
   @desc
     **Warning**: You should not use this function unless you're certain you
     need it, since it creates opportunity to leak resources if
@@ -490,7 +490,7 @@ QueueProto = {
           }
         }
 
-        ctx.val
+        ctx.value
         // -> the argument given to `brk` - in this case, our file object
         
         ctx.resume
@@ -528,6 +528,6 @@ exports.breaking = function(block) {
     })();
   }
   if(err) throw err;
-  return { val: rv, resume: cont };
+  return { value: rv, resume: cont };
 }
 

@@ -377,7 +377,7 @@ context('breaking') {||
       context(ret);
       events.push('block finish');
     };
-    events.push(block.val);
+    events.push(block.value);
     block.resume();
     events .. assert.eq([
       'block init',
@@ -412,7 +412,7 @@ context('breaking') {||
     var block = cutil.breaking {|ret|
       context(ret);
     };
-    events.push(block.val);
+    events.push(block.value);
     block.resume(new Error('err'));
     events .. assert.eq(['tx init', 'yielded', 'err', 'tx finish']);
   };
