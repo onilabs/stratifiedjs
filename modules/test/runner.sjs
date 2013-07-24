@@ -803,6 +803,10 @@ exports.getRunOpts = function(opts, args) {
         type: 'bool',
         help: "Exit immediately after the first failure"
       },
+      { names: ['no-bail'],
+        type: 'bool',
+        help: "Don't exit immediately after the first failure (default)"
+      },
       { names: ['debug'],
         type: 'bool',
         help: "Set logLevel=DEBUG before test runner begins"
@@ -877,6 +881,11 @@ Options:
           case 'b':
             key = 'bail';
             break
+
+          case 'no_bail':
+            key = 'bail';
+            val = false;
+            break;
 
           case 'f':
           case 'show_failed':
