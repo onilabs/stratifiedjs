@@ -768,7 +768,7 @@ exports.skipWhile = skipWhile;
    @function filter
    @altsyntax sequence .. filter([predicate])
    @param {::Sequence} [sequence] Input sequence
-   @param {optional Function} [predicate] Predicate function
+   @param {optional Function} [predicate=Id] Predicate function
    @return {::Stream}
    @summary  Create a stream of elements of `sequence` that satisfy `predicate`
    @desc
@@ -1011,12 +1011,16 @@ exports.pack = pack;
    @function unpack
    @altsyntax sequence .. unpack(u)
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [u] Unpacking function
+   @param {Function} [u=Id] Unpacking function
    @return {::Stream}
    @summary  For a single elements of `sequence`, emit multiple values into the output stream
    @desc
       Calls `u(x)` for each element `x` of `sequence`. `u(x)` is assumed to return a [::Sequence]
       which will be flattened into the output stream.
+
+      If `u` is not provided, the identity function `Id = x -> x` will be used, i.e. 
+      each item of `sequence` is assumed to be a sequence itself which will be 
+      flattened into the output stream.
 
       ### Example:
 
@@ -1036,6 +1040,7 @@ exports.pack = pack;
           integers() .. unpack(n => integers(1,n))
 */
 function unpack(sequence, u) {
+  if (!u) u = id;
   return Stream(function(r) {
     sequence .. each { 
       |x| 
