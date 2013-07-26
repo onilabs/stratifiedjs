@@ -1483,6 +1483,52 @@ exports.fib = fib;
 // parallel sequence operations
 
 /**
+   @function buffer
+   @altsyntax sequence .. buffer(count)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Integer} [count] Maximum number of elements of input stream to buffer
+   @return {::Stream}
+   @summary Create a buffered stream from a given input stream
+   @desc
+      The returned stream will buffer up to `count` elements from the input stream, if 
+      the downstream receiver is not fast enough to retrieve items.
+      Buffering will only being when the stream is being iterated.
+
+      ### Example:
+
+         integers() .. 
+         take(10) .. 
+         transform(x->(hold(0),console.log("Sent: #{x}"),x)) ..
+         buffer(5) ..
+         each { |x|
+           console.log("Received: #{x}");
+           hold(100);
+         }
+         // prints:
+         //   Sent: 0, Received: 0, Sent: 1, Sent: 2, Sent: 3, Sent: 4, Sent: 5, 
+         //   Received: 1, Sent: 6, Received: 2, Sent: 7, Received: 3, Sent: 8, 
+         //   Received: 4, Sent: 9, Received: 5, Received: 6, Received: 7, Received: 8,
+         //   Received: 9
+*/
+function buffer(seq, count) {
+  return Stream(function(r) {
+    var Q = require('./cutil').Queue(count-1), eos = {};
+    waitfor {
+      seq .. each { |x| Q.put(x); }
+      Q.put(eos);
+    }
+    and {
+      while (1) {
+        var x = Q.get();
+        if (x === eos) return;
+        r(x);
+      }
+    }
+  });
+}
+exports.buffer = buffer;
+
+/**
    @function each.par
    @altsyntax sequence .. each.par([max_strata]) { |item| ... }
    @param {::Sequence} [sequence] Input sequence

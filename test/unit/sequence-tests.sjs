@@ -675,3 +675,37 @@ context('intersperse') {||
   });
 
 }
+
+context('buffer') {||
+  testEq('integers .. hold .. buffer(5) .. each { hold }', 
+         'S0R0S1S2S3S4S5R1S6R2S7R3S8R4S9R5R6R7R8R9', 
+         function() {
+           var rv = '';
+           s.integers() .. 
+             s.take(10) .. 
+             s.transform(x->(hold(0),rv+="S#{x}",x)) ..
+             s.buffer(5) ..
+             s.each { 
+               |x|
+               rv+="R#{x}";
+               hold(100);
+             }
+           return rv;
+         });
+
+  testEq('integers .. buffer(5) .. each { hold }', 
+         'S0S1S2S3S4R0S5R1S6R2S7R3S8R4S9R5R6R7R8R9', 
+         function() {
+           var rv = '';
+           s.integers() .. 
+             s.take(10) .. 
+             s.transform(x->(rv+="S#{x}",x)) ..
+             s.buffer(5) ..
+             s.each { 
+               |x|
+               rv+="R#{x}";
+               hold(100);
+             }
+           return rv;
+         });
+}
