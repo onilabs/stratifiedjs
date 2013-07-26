@@ -363,6 +363,52 @@ testEq('Queue: async put/get + interspersed peek', 100, function() {
 });
 
 
+testEq('Queue size 0 (i.e. put only allowed when there\'s a get)', 'acdb0db1db2db3db4', function() {
+  var Q = cutil.Queue(0);
+  var rv = '';
+  waitfor {
+    rv += 'a';
+    for (var i=0; i<5;++i) {
+      Q.put(i);
+      rv += 'b';
+    }
+      
+  }
+  and {
+    rv += 'c';
+    for (var j=0; j<5; ++j) {
+      rv += 'd';
+      rv += Q.get();
+    }
+  }
+  return rv;
+});
+
+testEq('Retraction with queue size 0', 'ok', function() {
+  var Q = cutil.Queue(0);
+  var rv = '';
+
+  // attempt a get(), priming the Queue to accept put()s:
+  waitfor {
+    Q.get();
+    return 'not reached 1';
+  }
+  or {
+    hold(10);
+  }
+  // the get() is retracted; the Queue should be unprimed:
+  waitfor {
+    Q.put('x');
+    return 'not reached 2';
+  }
+  or {
+    hold(10);
+  }
+
+  return 'ok';
+});
+
+
 context('breaking') {||
   test('without error') {||
     var events = [];

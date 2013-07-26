@@ -380,7 +380,8 @@ ConditionProto.clear = function clear() {
   @function Queue
   @summary Creates a bounded FIFO queue datastructure.
   @param   {Integer} [capacity] Maximum number of items to which the queue will
-           be allowed to grow.
+           be allowed to grow. A capacity of zero means that the Queue will only 
+           accept puts when there is a pending get.
   @param   {optional Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [::Semaphore]).
 */
 function Queue(capacity, sync) {
@@ -421,10 +422,19 @@ QueueProto = {
     @return {item} Item retrieved from front of queue.
    */
   get: function() {
-    this.S_nonempty.acquire();
-    var item = this.items.shift();
+    // release a slot *now*, so that a queue of size 0 can accept a put now:
     this.S_nonfull.release();
-    return item;
+
+    try {
+      this.S_nonempty.acquire();
+      var item = this.items.shift();
+      return item;
+    }
+    retract {
+      // we've been retracted while waiting for a put; need to re-accquire the slot
+      // we released earlier
+      this.S_nonfull.acquire();
+    }
   },
 
   /**
