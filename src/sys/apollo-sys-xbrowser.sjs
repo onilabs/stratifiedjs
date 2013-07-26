@@ -288,7 +288,7 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
      [apollo-sys.getXDomainCaps](#apollo-sys/getXDomainCaps). If this function
      returns "CORS" then success of cross-domain requests depends on
      whether the server allows the access (see
-     <http://www.w3.org/TR/cors/>).
+     http://www.w3.org/TR/cors/).
 
      In the xbrowser host environment, the standard XMLHttpRequest can
      handle cross-domain requests on compatible browsers (any recent
@@ -380,6 +380,7 @@ function request_hostenv(url, settings) {
   else {
     // response == 'full'
     return {
+      status: req.status,
       content: req.responseText,
       getHeader: name -> req.getResponseHeader(name)
     };
