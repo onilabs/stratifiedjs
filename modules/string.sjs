@@ -389,6 +389,7 @@ exports.padBoth = function(s, len, ch) {
              remove from every line (spaces and tabs both count as one 
              whitespace character). If `c==0`, remove as many leading 
              whitespace characters as found on the first line.
+   @return   {String} Unindented string
    @desc
      Note: If a line in `s` does not contain `c` leading whitespace characters, 
            this particular line will be left untouched by `unindent`.
@@ -400,6 +401,17 @@ exports.unindent = function(s, c) {
     c = matches[1].length;
   }
   return s.replace(new RegExp("^[ \\t]{#{c}}", "mg"), '');
+};
+
+/**
+   @function capitalize
+   @summary  Capitalize first character of the string
+   @param    {String} [s]
+   @return   {String} Capitalized string
+*/
+exports.capitalize = function(s) {
+  if (s.length == 0) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
 /**

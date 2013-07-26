@@ -169,3 +169,10 @@ context('unindent') {||
   testFn(str, 'unindent', ['  foo  \n bar  \n   baz'], 'foo  \n bar  \n baz');
 
 }
+
+context('capitalize') {||
+  testFn(str, 'capitalize', ['foo bar'], 'Foo bar');  
+  testFn(str, 'capitalize', [' foo bar'], ' foo bar');  
+  testFn(str, 'capitalize', ['f'], 'F');  
+  testFn(str, 'capitalize', [''], '');
+}
