@@ -1497,7 +1497,7 @@ exports.fib = fib;
    @desc
       The returned stream will buffer up to `count` elements from the input stream, if 
       the downstream receiver is not fast enough to retrieve items.
-      Buffering will only being when the stream is being iterated.
+      Buffering will only begin when the stream is being iterated.
 
       ### Example:
 
