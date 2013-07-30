@@ -63,6 +63,7 @@
 var object = require('./object');
 var {each, all, find, toArray} = require('./sequence');
 var compare = require('./compare');
+var string = require('./string');
 var {inspect} = require('./debug');
 
 
@@ -290,44 +291,58 @@ exports.notShallowEq = exports.notShallowEqual = function(actual, expected, desc
   return _notEq(actual, expected, desc, false);
 };
 
-var _contains = function(arr, expected) {
-  // quick check:
-  if (arr.indexOf(expected) != -1) return true;
-  var NONE = {};
-  var found = arr .. find(elem -> compare.equals(elem, expected), NONE);
-  return (found !== NONE);
+var _contains = function(container, expected) {
+  var result = [container];
+
+  if (string.isString(container)) {
+    result[1] = string.contains(container, expected);
+  } else {
+    container = result[0] = container .. toArray();
+    // quick check:
+    if (container.indexOf(expected) != -1) result[1] = true;
+    else {
+      var NONE = {};
+      var found = container .. find(elem -> compare.equals(elem, expected), NONE);
+      result[1] = (found !== NONE);
+    }
+  }
+  return result;
 }
 
 /**
   @function contains
-  @summary Assert that `seq` contains an element equal to `elem`
-  @param {sequence::Sequence} [seq]
-  @param {Object} [elem]
+  @summary Assert that `container` contains `item`
+  @param {sequence::Sequence|String} [container]
+  @param {Object} [item]
   @param {optional String} [desc] Descriptive text to include in the error message
   @desc
-    Uses [compare::equals] to compare elements using deep
-    equality rather than strict object identity.
+    If `container` is a sequence or array, this method asserts
+    that `item` is an element of it (using [compare::equals] to compare
+    elements with deep equality).
+
+    If `container` is a string, this function asserts that `item`
+    appears within it (i.e is a substring).
 */
 exports.contains = function(seq, expected, desc) {
-  var arr = seq..toArray;
-  if (!_contains(arr, expected)) {
-    throw new AssertionError("Array #{arr .. inspect} does not contain #{expected .. inspect}", desc);
+  var [arr, contains] = _contains(seq, expected);
+  if (!contains) {
+    throw new AssertionError("#{arr .. inspect} does not contain #{expected .. inspect}", desc);
   }
 }
 
 /**
   @function notContains
-  @summary Assert that `seq` does not contain an element equal to `elem`
-  @param {sequence::Sequence} [seq]
-  @param {Object} [elem]
+  @summary Assert that `container` does not contain `item`
+  @param {sequence::Sequence|String} [container]
+  @param {Object} [item]
   @param {optional String} [desc] Descriptive text to include in the error message
   @desc
     The opposite of [::contains]
 */
 exports.notContains = function(seq, expected, desc) {
-  var arr = seq..toArray;
-  if (_contains(arr, expected)) {
-    throw new AssertionError("Array #{arr .. inspect} contains #{expected .. inspect}", desc);
+  var [arr, contains] = _contains(seq, expected);
+  if (contains) {
+    throw new AssertionError("#{arr .. inspect} contains #{expected .. inspect}", desc);
   }
 }
 

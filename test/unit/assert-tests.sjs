@@ -220,8 +220,14 @@ context("contains") {||
     assert.contains(arr, arr[1]);
     assert.contains(arr, {x:1});
     assert.raises(
-      {message: "Array [ 0, { x: 1 }, 2 ] does not contain { x: 2 }"},
+      {message: "[ 0, { x: 1 }, 2 ] does not contain { x: 2 }"},
       -> assert.contains(arr, {x:2}));
+
+    assert.contains("the lil string", "lil string");
+
+    assert.raises(
+      {message: "'the big string' does not contain 'lil string'"},
+      -> assert.contains("the big string", "lil string"));
   }
 
   test("notContains") {||
@@ -229,12 +235,16 @@ context("contains") {||
 
     assert.notContains(arr, {x:2});
     assert.raises(
-      {message: "Array [ 0, { x: 1 }, 2 ] contains { x: 1 }"},
+      {message: "[ 0, { x: 1 }, 2 ] contains { x: 1 }"},
       -> assert.notContains(arr, {x:1}));
 
     assert.raises(
-      {message: "Array [ 0, { x: 1 }, 2 ] contains { x: 1 }"},
+      {message: "[ 0, { x: 1 }, 2 ] contains { x: 1 }"},
       -> assert.notContains(arr, arr[1]));
+
+    assert.raises(
+      {message: "'the big string' contains 'g string'"},
+      -> assert.notContains("the big string", "g string"));
   }
 }
 
