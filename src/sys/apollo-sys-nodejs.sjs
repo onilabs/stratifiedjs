@@ -180,6 +180,7 @@ var readStream = exports.readStream = function readStream(stream) {
    @setting {String} [response='string'] whether to return the response text only ('string'), an object `{ status, getHeader, content }` ('full') or the underlying request object ('raw' - supported in nodejs only)
    @setting {Boolean} [throwing=true] Throw exception on error.
    @setting {Integer} [max_redirects=5] Maximum number of redirects to follow.
+   @setting {Object} [agent=undefined] nodejs hostenv only: [Agent](http://nodejs.org/api/http.html#http_class_http_agent) to use for the connection pooling
 */
 function request_hostenv(url, settings) {
   var opts = exports.mergeObjects({
@@ -192,6 +193,7 @@ function request_hostenv(url, settings) {
                                      response : 'string',
                                      throwing : true,
                                      max_redirects : 5
+                                     // agent : undefined
                                   },
                                   settings);
   var url_string = exports.constructURL(url, opts.query);
@@ -230,7 +232,8 @@ function request_hostenv(url, settings) {
     port: port,
     path: url.relative || '/',
     headers: opts.headers,
-    auth: auth
+    auth: auth,
+    agent: opts.agent
   });
   request.end(opts.body); 
 

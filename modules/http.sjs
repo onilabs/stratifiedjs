@@ -70,6 +70,8 @@ exports.getXDomainCaps = sys.getXDomainCaps;
    @setting {String} [mime] Override mime type.
    @setting {String} [response='string'] whether to return the response text only ('string'), an object `{ status, content, getHeader }` ('full') or the underlying nodejs request object ('raw' - only supported for nodejs hostenv)
    @setting {Boolean} [throwing=true] Throw exception on error.
+   @setting {Object}  [agent=undefined] nodejs hostenv only: [Agent](http://nodejs.org/api/http.html#http_class_http_agent) to use for the connection pooling
+
    @desc
      ### Limitations:
 
