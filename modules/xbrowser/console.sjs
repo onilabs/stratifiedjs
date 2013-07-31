@@ -62,7 +62,11 @@ function installLogger(logger) {
   logReceivers.push(logger);
   if(logReceivers.length == 1) { // this is the first logger
     originalConsole = logging.getConsole();
-    logging.setConsole({log: printToLoggers});
+    logging.setConsole({
+      log: makePrinter('log'),
+      warn: makePrinter('warn'),
+      error: makePrinter('error'),
+    });
   }
 };
 
@@ -75,19 +79,23 @@ function uninstallLogger(logger) {
   }
 };
 
+var makePrinter = function(method) {
+  return function() {
+    var logArgs = arguments;
+    logReceivers .. each {
+      |c|
+      c[method].apply(c, logArgs);
+    }
+  };
+};
+
 /**
   @function log
   @summary Log the given object to all Stratfied JS consoles created with *receivelog* = *true*.
   @param {Object} [obj] Object to log.
   @deprecated since 0.13 - use the functions in the [../logging::] module instead.
 */
-var printToLoggers = exports.log = function() {
-  var logArgs = arguments;
-  logReceivers .. each {
-    |c|
-    c.log.apply(c, logArgs);
-  }
-};
+exports.log = makePrinter('log');
 
 //----------------------------------------------------------------------
 // console helpers
@@ -509,9 +517,16 @@ Console.prototype = {
     var e = document.createElement("div");
     setStyle(e, fontStyle+"border-bottom: 1px solid #eee; padding: 6px 15px 4px 20px;" + 
                             (color ? ("color:" + color) : ""));
-//    e.innerHTML = str.sanitize(s.toString()); 
     for (var i = 0; i < args.length; ++i) {
-      e.appendChild(inspect_obj(args[i]));
+      var obj = args[i];
+      if (str.isString(obj)) {
+        var div = makeDiv(null, "white-space: pre-wrap; display:inline;");
+        div.appendChild(document.createTextNode(obj));
+        e.appendChild(div);
+      } else {
+        e.appendChild(inspect_obj(obj));
+      }
+      e.appendChild(document.createTextNode(" "));
     }
     this._append(e);
   },
