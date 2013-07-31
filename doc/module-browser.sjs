@@ -150,9 +150,9 @@ function getPathDocs(libpath) {
 }
 
 var getModuleDocs = func.memoize(function(modulepath) {
-  try { 
+  try {
     if (modulepath.charAt(modulepath.length-1) == '/') return null;
-    var docs = docutil.parseModuleDocs(http.get(modulepath + ".sjs"));
+    var docs = docutil.parseModuleDocs(http.get(modulepath + ".sjs?format=src"));
     return docs;
   }
   catch (e) {
