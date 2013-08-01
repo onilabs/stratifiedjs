@@ -359,7 +359,7 @@ var getConsole = exports.getConsole = function() {
   if(consoleOverride) {
     return consoleOverride;
   }
-  return sys.getGlobal().console;
+  return defaultConsole();
 };
 
 var bind = function(fn, ctx) {
@@ -388,3 +388,14 @@ var makePrinter = function(preferred_console_method) {
   return function() {};
 };
 
+var defaultConsole = -> sys.getGlobal().console;
+if (__oni_rt.hostenv == 'nodejs') {
+  // On nodejs, the default console prints to both stdout & stderr depending on the level.
+  // We want all `logging` to go to stderr, so we make a fake console that always calls
+  // console.warn or console.error
+  defaultConsole = -> {
+    log: console.warn,
+    warn: console.warn,
+    error: console.error,
+  };
+}

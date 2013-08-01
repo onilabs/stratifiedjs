@@ -122,3 +122,35 @@ context {||
   }.browserOnly();
 }
 
+
+context("nodejs") {||
+  test("all log levels go to stderr") {||
+    try {
+    var result = require('sjs:nodejs/child-process').run(process.execPath, [
+      require('sjs:sys').executable,
+        '-e',
+        "var l = require('sjs:logging');
+        l.setLevel(l.DEBUG);
+        l.debug('debug');
+        l.verbose('verbose');
+        l.info('info');
+        l.warn('warn');
+        l.error('error');
+        console.log('log');
+        "]);
+    } catch (e) {
+      logging.info(e.stderr);
+      throw e;
+    }
+
+    result.stdout .. assert.eq("log\n");
+    result.stderr.split('\n') .. assert.eq([
+      'DEBUG: debug',
+      'VERBOSE: verbose',
+      'INFO: info',
+      'WARN: warn',
+      'ERROR: error',
+      '',
+    ]);
+  }
+}.serverOnly();
