@@ -5,11 +5,12 @@ var http = require('sjs:http');
 var logging = require('sjs:logging');
 var { merge } = require('sjs:object');
 var {test, assert, context} = require('sjs:test/suite');
+var Url = require('sjs:url');
 
 var dataRoot = './fixtures';
 
 testEq('force extension/sjs', "a=1&b=2", function() {
-  return require('sjs:url.sjs').buildQuery({a:1},{b:2});
+  return Url.buildQuery({a:1},{b:2});
 });
 
 testEq('force extension/js', 42, function() {
@@ -23,9 +24,8 @@ testEq('"this" object in modules', this, function() {
 context("server-side") {||
   var child_process = require('sjs:nodejs/child-process');
   var path = require('nodejs:path');
-  var url = require('sjs:url');
 
-  var modulePath = path.join(url.toPath(module.id), '../');
+  var modulePath = path.join(Url.toPath(module.id), '../');
   var sjsPath = require('sjs:sys').executable;
   var dataPath = path.join(modulePath, dataRoot);
 
@@ -51,6 +51,21 @@ context("server-side") {||
   test('loading .sjs from NODE_PATH') {|s|
     var script = 'try{}or{}; require("util").puts(require("nodejs:child1.sjs").child1_function1());';
     var result = run_with_env(['-e', script], {NODE_PATH: dataPath});
+    result .. assert.eq({stdout: '42\n', stderr: ''});
+  }
+
+  test('loading relative module from cwd()') {|s|
+    var script = 'console.log(require("./fixtures/child1").child1_function1())';
+    var orig = process.cwd();
+    try {
+      process.chdir(Url.normalize('./', module.id) .. Url.toPath);
+      var result = run_with_env(['-e', script]);
+    } catch(e) {
+      logging.warn(e.stderr);
+      throw e;
+    } finally {
+      process.chdir(orig);
+    }
     result .. assert.eq({stdout: '42\n', stderr: ''});
   }
 

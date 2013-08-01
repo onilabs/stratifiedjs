@@ -510,6 +510,7 @@ function makeRequire(parent) {
   }
   return rf;
 }
+exports._makeRequire = makeRequire;
 
 function augmentHubs(hubs) {
   // add additional methods to the `require.hubs` array:

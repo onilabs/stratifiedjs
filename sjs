@@ -55,7 +55,10 @@ function loadDevExtensions(next) {
 function runEval(str) {
   return function() {
     // XXX eval'd code will be operating on global scope; place sjs's 'require' function there:
-    sjs_node.getGlobal().require = sjs_node.require;
+    var cwdModule = {
+      id: 'file://' + encodeURIComponent(process.cwd()).replace(/%2[fF]/g, '/') + '/'
+    };
+    sjs_node.getGlobal().require = sjs_node._makeRequire(cwdModule);
     return sjs_node.eval(str);
   };
 };
