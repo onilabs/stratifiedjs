@@ -373,6 +373,46 @@ test("async blocklambda break", 'ac', function() {
   return rv;
 });
 
+test("nested blocklambda break", 'ac', function() {
+  var rv = '';
+
+  function exec(x) { x() } 
+
+  exec {
+    ||
+    thrice {
+      ||
+      rv += 'a';
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+
+  return rv;
+});
+
+test("async nested blocklambda break", 'ac', function() {
+  var rv = '';
+
+  function exec(x) { x() } 
+
+  exec {
+    ||
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+    rv += 'c';
+  }
+
+  return rv;
+});
+
+
 test("async blocklambda break in do-while", 'ac', function() {
   var rv = '';
 
