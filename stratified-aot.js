@@ -524,17 +524,31 @@ exports.Bl=makeINCtor(I_blocklambda);
 
 
 
-
 function EF_Seq(ndata,env){this.ndata=ndata;
 
 this.env=env;
 
 if(ndata[0]&8){
+if(ndata[0]&64){
+this.env=copyEnv(env);
+this.env.blref=env.blscope;
+this.env.blscope=this;
+}else{
+
+
 env.blref=this;
 env.blscope=this;
+}
 }else if(ndata[0]&1){
 
 this.env=copyEnv(env);
+if(ndata[0]&64)this.env.blref=env.blscope;
+
+
+
+
+
+
 this.env.blscope=null;
 }
 
@@ -2670,8 +2684,7 @@ pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,continue_scope:0,brea
 
 if(bl){
 var prev=pctx.decl_scopes[pctx.decl_scopes.length-2];
-if(!prev.bl)prev.notail=true;
-
+prev.notail=true;
 }
 }
 
@@ -4703,7 +4716,7 @@ add_stmt(stmt,pctx);;
 }
 scan(pctx,"}");
 
-var decls=pctx.decl_scopes.pop();return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exbl(this,["+1,"])");
+var decls=pctx.decl_scopes.pop();var flags=1+64;if(decls.notail)flags+=8;return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exbl(this,["+flags,"])");
 }
 function parseBlockLambda(start,pctx){var pars;
 

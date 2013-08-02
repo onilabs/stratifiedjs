@@ -412,6 +412,27 @@ test("async nested blocklambda break", 'ac', function() {
   return rv;
 });
 
+test("tail-called async nested blocklambda break", 'a', function() {
+  var rv = '';
+
+  function exec(x) { x() } 
+
+  // exec must not tail-call thrice here, or the 'break' won't find
+  // it's targeted scope
+  exec {
+    ||
+    thrice {
+      ||
+      rv += 'a';
+      hold(0);
+      break;
+      rv += 'b';
+    }
+  }
+
+  return rv;
+});
+
 
 test("async blocklambda break in do-while", 'ac', function() {
   var rv = '';

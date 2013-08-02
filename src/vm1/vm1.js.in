@@ -514,7 +514,7 @@ exports.Bl = makeINCtor(I_blocklambda);
 #define NDATA_SEQ_FLAG_NOTAILCALL 8
 #define NDATA_SEQ_FLAG_UNRETURNABLE 16
 #define NDATA_SEQ_FLAG_IMPLICIT_RETURN 32 
-
+#define NDATA_SEQ_FLAG_BLOCKLAMBDA 64
 // ndata[1..end] contains sequence of instruction nodes
 
 /*
@@ -528,12 +528,27 @@ function EF_Seq(ndata, env) {
   this.env = env;
 
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) {
-    env.blref = this; // note down function execution frame in environment
-    env.blscope = this;
+    if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_BLOCKLAMBDA) {
+      this.env = copyEnv(env);
+      this.env.blref = env.blscope; // `break` in our scope targets our parent's scope
+      this.env.blscope = this; // we're a scope for any `break`s in nested blocklambdas
+    }
+    else {
+      // XXX no need to copy env here?
+      env.blref = this; // note down function execution frame in environment
+      env.blscope = this;
+    }
   }
   else if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
     this.env = copyEnv(env);
-    this.env.blscope = null; // clear blocklambda break-scope at function boundary
+    if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_BLOCKLAMBDA)
+      this.env.blref = env.blscope; // `break` in our scope targets our parent's scope
+
+    // we're a function (blocklambda or normal) but NOT a scope 
+    // for any `break`s in child frames (otherwise the compiler would
+    // have marked us 'notailcall'). clear blscope so that targeted `break` calls will
+    // find their way to the correct scope:
+    this.env.blscope = null; 
   }
 
   this.tailcall = !(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
