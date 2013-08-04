@@ -10,7 +10,8 @@ var url = require('sjs:url');
 var toolsDir = url.normalize('../', module.id) .. url.toPath();
 
 // ------------------------------------------------------------------
-// node_modules-based lookups are busted in the face of symlinks, so
+// node_modules-based lookups are broken in the face of symlinks
+// (which npm itself recommends for development), so
 // we explicitly make sure $NODE_PATH has:
 // - tools/karma (our plugin location)
 // - karma/index.js/../node_modules (so we can use karma's http-proxy)
@@ -48,10 +49,18 @@ if (process.env[envKey]) {
 
 var args = require('sjs:sys').argv();
 var idx = args.indexOf('--');
-var leadingArgs = idx == -1 ? args : args.slice(0, idx);
-var command = (leadingArgs .. seq.filter(x -> !(x .. str.startsWith('-'))) .. seq.toArray)[0];
+var karmaArgs = idx == -1 ? args : args.slice(0, idx);
+var clientArgs = idx == -1 ? [] : args.slice(idx+1);
+var command = (karmaArgs .. seq.filter(x -> !(x .. str.startsWith('-'))) .. seq.toArray)[0];
 
 var action = function () {
+  if (command != 'run' && clientArgs.length > 0) {
+    // karma only lets us pass arguments via the `run` command.
+    // So we do it via an enironment variable (understood by the karma-sjs-adapter)
+    // for other commands
+    args = karmaArgs;
+    process.env['KARMA_CLIENT_ARGS'] = JSON.stringify(clientArgs);
+  }
   var child = childProcess.launch(karmaBin, args, {stdio:'inherit', detached: true, env:process.env});
   waitfor {
     try {

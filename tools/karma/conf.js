@@ -1,6 +1,5 @@
-module.exports = function(karma) {
-  karma.configure({
-
+module.exports = function(config) {
+  config.set({
     basePath: '../../',
 
     frameworks: [
@@ -28,15 +27,14 @@ module.exports = function(karma) {
 
     colors: true,
 
-    // possible values: karma.LOG_DISABLE || karma.LOG_ERROR || karma.LOG_WARN || karma.LOG_INFO || karma.LOG_DEBUG
-    logLevel: karma.LOG_INFO,
+    logLevel: config.LOG_INFO,
 
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: false,
 
     browsers: [
       'PhantomJS',
-      'tools/bin/manual-browser',
+      // 'tools/bin/manual-browser',
       // 'tools/bin/android-browser',
     ],
 

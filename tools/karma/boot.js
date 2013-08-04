@@ -13,9 +13,9 @@
     karma.complete();
     if(DEBUG) alert(msg);
   }
-  karma.start = function (config) {
+  karma.start = function () {
     try {
-      config = config || {};
+      var config = karma.config;
       var suitePath;
 
       if(DEBUG) {
@@ -25,12 +25,11 @@
           return FAIL("When using debug.html you must specify your suite and arguments in the URL query params - e.g. debug.html?suite=test/run.html#--help");
         }
       } else {
-        var argv = karma.argv = Array.prototype.slice.call((config && config.clientArgs) || []);
-        suitePath = argv.shift();
+        suitePath = (config.args || [])[0];
       }
 
       if (!suitePath) {
-        return FAIL("Please specify path to your suite script as the first argument");
+        return FAIL(JSON.stringify(config) + "Please specify path to your suite script as the first argument");
       }
 
       require.hubs.unshift(['sjs:', '/rocket/__oni/sjs/modules/']);

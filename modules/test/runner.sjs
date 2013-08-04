@@ -719,8 +719,8 @@ exports.getRunOpts = function(opts, args) {
   if (args == undefined) {
     // if none provided, get args from the environment
     if (suite.isBrowser) {
-      if (karma && karma.argv !== undefined) {
-        args = karma.argv;
+      if (karma && karma.config !== undefined) {
+        args = (karma.config.args || []).slice(1); // args[0] is the testsuite path
       } else {
         var argstring = decodeURIComponent(document.location.hash.slice(1));
         args = require('../shell-quote').parse(argstring);

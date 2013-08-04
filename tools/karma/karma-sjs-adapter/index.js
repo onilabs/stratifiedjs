@@ -1,14 +1,18 @@
-var karmaProxy = require('karma/lib/proxy');
+var karmaProxy = require('karma/lib/middleware/proxy');
 var httpProxy = require('http-proxy');
 var path = require('path');
 
-var init = function(logger, customFileHandlers, files) {
+var init = function(logger, customFileHandlers, files, client) {
   var log = logger.create('sjs-adapter');
   var rocketURL = 'http://localhost:' + (process.env.ROCKET_PORT || '7071') + '/';
+  if (process.env.hasOwnProperty("KARMA_CLIENT_ARGS")) {
+    client.args = JSON.parse(process.env.KARMA_CLIENT_ARGS);
+    log.debug("Set client.args = ", client.args);
+  }
   log.debug('Adding proxy for ' + rocketURL);
   var proxyConfig = { '/rocket/': rocketURL };
   var proxy = new httpProxy.RoutingProxy({changeOrigin: true});
-  var handler = karmaProxy.createProxyHandler(proxy, proxyConfig);
+  var handler = karmaProxy.create(proxyConfig, true);
 
   customFileHandlers.push({
     urlRegex: /^\/rocket\//,
@@ -36,7 +40,7 @@ var init = function(logger, customFileHandlers, files) {
 }
 
 
-init.$inject = ['logger', 'customFileHandlers', 'config.files'];
+init.$inject = ['logger', 'customFileHandlers', 'config.files', 'config.client'];
 
 // PUBLISH DI MODULE
 module.exports = {
