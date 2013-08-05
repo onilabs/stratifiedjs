@@ -3,5 +3,11 @@
   "version": "0.0.1",
   "description": "SJS karma plugin",
   "main": "index.js",
+  "peerDependencies": {
+    "karma": ">=0.9.6"
+  },
+  "bin": {
+    "karma-sjs": "karma.sjs"
+  },
   "private": true
 }

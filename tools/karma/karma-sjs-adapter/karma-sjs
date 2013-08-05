@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+var fs = require('fs');
+var path = require('path');
+var base = path.dirname(fs.realpathSync(__filename));
+
+var sjs = require('stratifiedjs');
+sjs.run(path.join(base, 'karma.sjs'));

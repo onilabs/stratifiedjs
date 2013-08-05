@@ -32,9 +32,9 @@
         return FAIL(JSON.stringify(config) + "Please specify path to your suite script as the first argument");
       }
 
-      require.hubs.unshift(['sjs:', '/rocket/__oni/sjs/modules/']);
+      require.hubs.unshift(['sjs:', '/__sjs/__sjs/modules/']);
     
-      require('/rocket/' + suitePath,
+      require('/__sjs/' + suitePath,
         {callback: function(err, val) {
           if(err) FAIL(err.message || "");
           else karma.complete();
