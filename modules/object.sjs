@@ -48,7 +48,7 @@ var _get = function(guard, args) {
   } else {
     if (args.length < 3) {
       // no defaultValue provided
-      throw new Error("Object (#{typeof(subject)}) has no key: " + key);
+      throw new Error("Object (#{typeof(subject)}) has no property: " + key);
     }
     return defaultValue;
   }
@@ -92,9 +92,44 @@ exports.getOwn = function(subject, key, defaultValue) {
 
 (function() {
   var sentinel = {};
+  /**
+    @function getPath
+    @param {Object} [subject]
+    @param {String|Array} [path]
+    @param {optional Object} [default]
+    @return {Object}
+    @summary Get a nested property from an object.
+    @desc
+      `path` can be a dotted string (`"a.b.c"`) or
+      an array of keys (`['a','b','c']`).
+
+      If `default` is provided, it will be returned when the
+      subject has no such property. If no default is provided,
+      an error will be raised on the first missing property in
+      a path.
+
+      ### Example:
+
+          var o = {parent: {child: {name: "bob" } } };
+
+          o .. getPath('parent.child.name');
+          // "bob"
+          
+          o .. getPath(['parent', 'child', 'name']);
+          // "bob"
+          
+          o .. getPath('parent.name');
+          // Throws an error
+          
+          o .. getPath('parent.name', "no name!");
+          // "no name!"
+          
+          [["one", "two"]] .. getPath([0, 1]);
+          // "two"
+  */
   exports.getPath = function(subject, path, defaultValue) {
     var hasDefault = (arguments.length == 3);
-    var parts = path.split(".");
+    var parts = Array.isArray(path) ? path : path.split(".");
     var obj = subject;
 
     try {

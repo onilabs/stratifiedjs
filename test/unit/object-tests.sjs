@@ -80,7 +80,7 @@ context {||
 		testEq("own key", "aye", -> obj .. o.get('a'));
 		testEq("inherited key", "cee", -> obj .. o.get('c'));
 		test("missing key") {||
-			assert.raises({message: 'Object (object) has no key: d'}, -> obj .. o.get('d'));
+			assert.raises({message: 'Object (object) has no property: d'}, -> obj .. o.get('d'));
 		}
 		testEq("missing key with default", 'default', -> obj .. o.get('d', 'default'));
 		testEq("missing key with undefined default", undefined, -> obj .. o.get('d', undefined));
@@ -89,7 +89,7 @@ context {||
 	context("getOwn()") {||
 		testEq("own key", "aye", -> obj .. o.getOwn('a'));
 		test("inherited key") {||
-			assert.raises({message: 'Object (object) has no key: c'}, -> obj .. o.getOwn('c'));
+			assert.raises({message: 'Object (object) has no property: c'}, -> obj .. o.getOwn('c'));
 		}
 	}
 
@@ -101,12 +101,12 @@ context {||
 		testEq("valid path", 'found', -> full .. o.getPath('parent.child.grandchild'));
 
 		test("missing leaf") {||
-			assert.raises({message: "Object (object) has no key: grandchild (traversing: parent.child.grandchild)"},
+			assert.raises({message: "Object (object) has no property: grandchild (traversing: parent.child.grandchild)"},
 				-> noGrandChild .. o.getPath('parent.child.grandchild'));
 		}
 
 		test("missing branch") {||
-			assert.raises({message: "Object (string) has no key: child (traversing: parent.child.grandchild)"},
+			assert.raises({message: "Object (string) has no property: child (traversing: parent.child.grandchild)"},
 				-> {'parent':'child'} .. o.getPath('parent.child.grandchild'));
 		}
 
