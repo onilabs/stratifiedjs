@@ -43,7 +43,7 @@ var isHtmlElement = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isHt
 
 /**
   @function inspect
-  @summary Echos the value of a value. Trys to print the value out
+  @summary Returns a formatted version of a value. Tries to format the value
   in the best way possible given the different types.
  
   @param {Object} [obj] The object to print out.
