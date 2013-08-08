@@ -1,9 +1,2 @@
 @lib     StratifiedJS '0.14.0-1-development' Standard Module Library - NodeJS Modules
 @summary Collection of [nodejs](http://nodejs.org)-related modules.
-
-@module child-process Stratified wrapper of [nodejs's child_process lib](http://nodejs.org/api/child_process.html)
-@module fs            Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)
-@module http          HTTP server functionality
-@module repl          Stratified read-eval-print loop
-@module stream        Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)
-@module terminal      Terminal functionality (tracking [node-terminal](https://github.com/mattijs/node-terminal))

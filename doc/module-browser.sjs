@@ -21,10 +21,10 @@ and {
   var string = require('sjs:string');
 }
 and {
-  var { each, map, toArray, join, reduce } = require('sjs:sequence');
+  var { each, map, toArray, join, reduce, at } = require('sjs:sequence');
 }
 and {
-  var { values, keys, merge } = require('sjs:object');
+  var { ownPropertyPairs, ownValues, ownKeys, merge, extend, get, clone } = require('sjs:object');
 }
 and {
   var docutil = require('sjs:docutil');
@@ -139,14 +139,59 @@ var getLibDocs = exports.getLibDocs = func.memoize(function(libpath) {
   }
 });
 
+var getIndex = func.memoize(function(root) {
+  var u = url.build(root, "sjs-lib-index.json");
+  var contents;
+  try {
+    contents = http.get(u);
+  } catch(e) {
+    if (e.status && e.status == 404) {
+      return null;
+    }
+    throw e;
+  }
+  return JSON.parse(contents);
+});
+
+
 // retrieve documentation for lib at path, as well as parents
 function getPathDocs(libpath) {
-  var rv = getLibDocs(libpath);
-  var current = rv;
-  while (current && (libpath = parentPath(libpath))) {
-    current = current.parent = getLibDocs(libpath);
+  var docs = [];
+  var current;
+  while (libpath) {
+    current = getLibDocs(libpath);
+    if (!current) break;
+    docs.unshift(current);
+    libpath = parentPath(libpath);
   }
-  return rv;
+
+  var index = getIndex(docs[0].path);
+  // if we have an index, extend all directory docs with
+  // information from their entry in the index
+  // (contains modules, dirs and summary)
+  for (var i=0; i<docs.length; i++) {
+    var doc = docs[i];
+    doc.parent = docs[i-1];
+    if (index) {
+      if (i > 0) {
+        var name = doc.path.match(/([^\/]+)\/$/) .. at(1);
+        index = index.dirs .. get(name);
+      }
+      if (index) {
+        doc = docs[i] = doc .. clone();
+        // merge
+        ['dirs','modules'] .. each {|key|
+          doc[key] = merge(doc[key], index[key]);
+        }
+
+        // override
+        ['summary'] .. each {|key|
+          doc[key] = doc[key] || index[key];
+        }
+      }
+    }
+  }
+  return docs .. at(-1);
 }
 
 var getModuleDocs = func.memoize(function(modulepath) {
@@ -203,7 +248,7 @@ function makeIndexView() {
       var lib_docs = getPathDocs(location.path);
 
       // remove previous entries:
-      values(entries) .. each { |e| e.hide() }
+      ownValues(entries) .. each { |e| e.hide() }
       entries = {}; selection = null;
 
       if (lib_docs) {
@@ -213,13 +258,14 @@ function makeIndexView() {
         }
         // create a sorted list of modules & directories:
         var l = [];
-        keys(lib_docs.modules) .. each { 
+        ownKeys(lib_docs.modules) .. each { 
           |module|
           l.push([module, makeIndexModuleEntry(location, module)])
         }
-        keys(lib_docs.dirs) .. each {
+        ownKeys(lib_docs.dirs) .. each {
           |dir|
-          l.push([dir, makeIndexDirEntry(location, dir+"/")]);
+          dir += '/';
+          l.push([dir, makeIndexDirEntry(location, dir)]);
         }
         l.sort((a,b) -> a[0]<b[0] ? -1 : (a[0]>b[0] ? 1 : 0));
         l .. each {|e| (entries[e[0]] = e[1]).show(view.elems.list) };
@@ -258,10 +304,10 @@ function makeIndexModuleEntry(location, module) {
     // we expand our view to include symbols:
     var module_docs = getModuleDocs(location.path + module);
     if (!module_docs) return; // no docs; nothing much we can do
-    var symbols_template = 
-      values(merge(module_docs.symbols, module_docs.classes)) ..
-      map(symbol => "<li><a href='##{location.moduleLink(module)}::#{symbol.name}'>#{symbol.name}</a></li>") ..
-      join;
+    var symbols_template = merge(module_docs.symbols, module_docs.classes)
+      .. ownKeys
+      .. map(name -> "<li><a href='##{location.moduleLink(module)}::#{name}'>#{name}</a></li>")
+      .. join;
     (symbols_view = ui.makeView(symbols_template)).show(view.elems.symbols);
   };
   view.deselect = function() { 
@@ -291,9 +337,11 @@ function makeIndexDirEntry(location, dir) {
 function doInternalErrorDialog(txt, domparent) {
   var view = ui.makeView("
 <div class='mb-error'>
-<h1>:-(</h1><b>#{txt}</b><br>You shouldn't have seen this error; please report to info@onilabs.com.<br>
-Please also hit the 'retry' button and see if this fixes things: 
+<h1>:-(</h1><pre>#{txt .. string.sanitize}</pre>
+<p>You shouldn't have seen this error; please report to info@onilabs.com.</p>
+<p>Please also hit the 'retry' button and see if this fixes things: 
 <button name='ok'>retry</button>
+</p>
 </div>
 ");
   using (view.show(domparent)) {
@@ -406,12 +454,12 @@ function makeModuleView(location) {
  
   // collect symbols (XXX really want classes in symbols hash to start with)
   var symbols = {};
-  values(merge(docs.symbols, docs.classes)) .. each {
-    |s|
+  merge(docs.symbols, docs.classes) .. ownPropertyPairs .. each {
+    |[name, s]|
     if (!symbols[s.type]) symbols[s.type] = [];
     symbols[s.type].push(
         "<tr>
-           <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{s.name}'>#{s.name}</a></td>
+           <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{name}'>#{name}</a></td>
            <td>#{makeSummaryHTML(s,location)}</td>
          </tr>");
   }
@@ -439,6 +487,7 @@ function makeSymbolView(location) {
       throw "Class '"+location.classname+"' not found in documentation";
   }
 
+  var name = location.symbol;
   docs = docs.symbols[location.symbol] || docs.classes[location.symbol];
   if (!docs) 
     throw "Symbol '"+location.symbol+"' not found in documentation";
@@ -474,9 +523,9 @@ function makeSymbolView(location) {
     // function signature
     var signature;
     if (docs.type != 'ctor' && location.classname && !docs['static'])
-      signature = location.classname.toLowerCase()+"."+docs.name;
+      signature = location.classname.toLowerCase()+"."+location.symbol;
     else {
-      signature = docs.name;
+      signature = location.symbol;
       if (docs.type == 'ctor' && !docs.nonew) {
         if (signature.indexOf('.') != -1)
           signature = '('+signature+')';
@@ -542,23 +591,23 @@ function makeSymbolView(location) {
   else if (docs.type == "class") {
     var template; 
     if (docs.inherit)
-      template = "<h3>Class #{docs.name} inherits #{makeTypeHTML(docs.inherit,location)}</h3>";
+      template = "<h3>Class #{location.symbol} inherits #{makeTypeHTML(docs.inherit,location)}</h3>";
     else
-      template = "<h3>Class #{docs.name}</h3>";
+      template = "<h3>Class #{location.symbol}</h3>";
     ui.makeView(template).show(view.elems.details);
       
 
     // collect symbols
     var symbols = {};
-    values(docs.symbols) .. each { 
-      |s|
+    docs.symbols .. ownPropertyPairs .. each { 
+      |[name, s]|
       var type = s.type;
       if (s['static'])
         type = 'static-'+type;
       if (!symbols[type]) symbols[type] = [];
       symbols[type].push(
           "<tr>
-             <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{docs.name}::#{s.name}'>#{s.name}</a></td>
+             <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{location.symbol}::#{name}'>#{name}</a></td>
              <td>#{makeSummaryHTML(s, location)}</td>
            </tr>");
     }
@@ -595,10 +644,10 @@ function makeLibView(location) {
 
   // collect modules & dirs:
 
-  var modules = values(docs.modules) .. 
-    reduce("", (p,m) -> p +
+  var modules = docs.modules .. ownPropertyPairs ..
+    reduce("", (p,[name, m]) -> p +
     "<tr>
-      <td class='mb-td-symbol'><a href='##{location.pathLink()}#{m.name}'>#{m.name}</a></td>
+      <td class='mb-td-symbol'><a href='##{location.pathLink()}#{name}'>#{name}</a></td>
       <td>#{makeSummaryHTML(m, location)}</td>
      </tr>"
   );
@@ -607,10 +656,10 @@ function makeLibView(location) {
     ui.makeView("<h3>Modules</h3><table>#{modules}</table>").show(view.elems.modules);
   }
 
-  var dirs = values(docs.dirs) .. 
-    reduce("", (p,d) -> p +
+  var dirs = docs.dirs .. ownPropertyPairs ..
+    reduce("", (p,[name, d]) -> p +
     "<tr>
-      <td class='mb-td-symbol'><a href='##{location.pathLink()}#{d.name}'>#{d.name}</a></td>
+      <td class='mb-td-symbol'><a href='##{location.pathLink()}#{name}'>#{name}</a></td>
       <td>#{makeSummaryHTML(d,location)}</td>
      </tr>"
    );

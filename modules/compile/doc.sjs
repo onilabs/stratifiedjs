@@ -41,10 +41,11 @@ var Path = require('nodejs:path');
 var { ownValues, ownPropertyPairs, pairsToObject, hasOwn, ownKeys, merge } = require('../object');
 var str = require('../string');
 var docutil = require('../docutil');
-var { each, map } = require('../sequence');
+var { each, map, transform } = require('../sequence');
 var logging = require('../logging');
 var array = require('../array');
 var assert = require('../assert');
+var {pairsToObject} = require('../object');
 
 var INDEX_BASENAME = 'sjs-lib-index';
 var INDEX_FILENAME = "#{INDEX_BASENAME}.txt";
@@ -52,7 +53,7 @@ var OUTPUT_FILENAME = "#{INDEX_BASENAME}.json";
 var EXT = '.sjs';
 
 exports.compile = function(root, outputPath) {
-  var info = exports.scanDirectory(root);
+  var info = exports.summarizeLib(root);
   if (!info) {
     console.error("No modules found");
     process.exit(1);
@@ -66,33 +67,38 @@ exports.compile = function(root, outputPath) {
 
 
 var summarizeSymbols = function(symbols) {
-  ret = {};
-  symbols .. ownValues .. each {|sym|
-    assert.ok(sym.name);
-    ret[sym.name] = {
-      type: sym.type,
-    };
-  }
-  return ret;
+  return symbols
+    .. ownPropertyPairs
+    .. transform([name, sym] -> [name, {type: sym.type}])
+    .. pairsToObject();
 };
 
-var moduleSymbols = function(module) {
-  var ret = summarizeSymbols(module.symbols);
-
-  // add classes and their symbols
-  module.classes .. ownValues .. each {|cls|
-    ret[cls.name] = {
-      type: 'class',
-      children: summarizeSymbols(cls.symbols),
-    };
-  }
-  return ret;
+var summarizeClasses = function(classes) {
+  return classes
+    .. ownPropertyPairs
+    .. transform(
+        [name, cls] -> [name, {
+          type: 'class',
+          symbols: summarizeSymbols(cls.symbols),
+        }])
+    .. pairsToObject();
 };
 
-exports.scanDirectory = function(dir) {
+var summarizeModule = function(module) {
+  return {
+    type: 'module',
+    classes: summarizeClasses(module.classes),
+    symbols: summarizeSymbols(module.symbols),
+    summary: module.summary,
+  };
+};
+
+exports.summarizeLib = function(dir) {
   logging.debug("Scanning: #{dir}");
   var entries = fs.readdir(dir);
   var symbols = {};
+  var dirs = {};
+  var modules = {};
 
   if (!( entries .. array.contains(INDEX_FILENAME))) {
     logging.info("SKIP: #{dir}");
@@ -104,9 +110,9 @@ exports.scanDirectory = function(dir) {
   entries .. each {|ent|
     var path = Path.join(dir, ent);
     if (fs.stat(path).isDirectory()) {
-      var details = exports.scanDirectory(path);
-      if (details) {
-        symbols[ent + '/'] = details;
+      var lib = exports.summarizeLib(path);
+      if (lib) {
+        dirs[ent] = lib;
       }
     } else {
       if (ent .. str.startsWith(INDEX_BASENAME + '.')) {
@@ -114,20 +120,18 @@ exports.scanDirectory = function(dir) {
       } else {
         var mod = exports.readModule(path);
         if (mod) {
-          assert.ok(mod.name);
-          symbols[mod.name] = {
-            type: "module",
-            children: moduleSymbols(mod),
-          };
+          var [name, mod] = mod;
+          modules[name] = summarizeModule(mod);
         }
       }
     }
   }
 
   return {
-    type: "directory",
+    type: "lib",
     summary: dirInfo.summary,
-    children: symbols,
+    dirs: dirs,
+    modules: modules,
   };
 };
 
@@ -140,8 +144,11 @@ exports.readModule = function(path) {
   logging.debug("Reading: #{path}");
   var name = Path.basename(path, EXT);
   var mod = docutil.parseModuleDocs(fs.readFile(path));
-  mod.name = name;
-  return mod;
+  if (mod.nodoc) {
+    logging.debug('@nodoc found, omitting...');
+    return null;
+  }
+  return [name, mod];
 };
 
 var readDirectory = function(path) {

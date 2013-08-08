@@ -6,7 +6,3 @@
 
   An appropriate reporter from the [reporter::] module will be used
   automatically (you should not need to use it directly).
-
-@module runner          Test suite runner
-@module reporter        Test suite reporters for each environment
-@module suite           Functions for defining test suites

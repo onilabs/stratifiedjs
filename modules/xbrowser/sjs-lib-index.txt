@@ -1,6 +1,2 @@
 @lib     StratifiedJS '0.14.0-1-development' Standard Module Library - Xbrowser Modules
 @summary Basic cross-browser functionality
-
-@module console         Cross-browser StratifiedJS console
-@module dom             Basic DOM functionality
-@module dom-shim        DOM polyfills for non-conformant browsers (IE8, IE9)
