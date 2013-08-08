@@ -1388,6 +1388,17 @@ test("complicated blocklambda return", 111, function() {
   return rv;
 });
 
+test("BROKEN: nested blocklambda return", "inner", function() {
+  function f(bl) { bl() };
+  f {||
+    f {||
+      return "inner";
+    }
+    return "outer";
+  }
+  return "toplevel";
+}).skip();
+
 test("BROKEN: detached blocklambda return", 'a', function() {
   function f(g) {
     spawn g();
