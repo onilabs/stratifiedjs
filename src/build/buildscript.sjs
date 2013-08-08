@@ -36,6 +36,7 @@ function build_deps() {
                                                   "modules/jsondiffpatch.sjs",
                                                   "modules/marked.sjs",
                                                   "modules/dashdash.sjs",
+                                                  "modules/sjs-lib-index.json",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
                                                   "modules/compile/deps.js",
@@ -288,6 +289,14 @@ function build_deps() {
         ],
         ["src/deps/dashdash/test/basics.test.js"]
        );
+
+  //----------------------------------------------------------------------
+  // module index
+  BUILD("modules/sjs-lib-index.json",
+      ["./sjs sjs:compile/doc modules"],
+      ["stratified-node.js"]
+      );
+  PSEUDO("modules/sjs-lib-index.json"); // it's backed by a file, but its dependencies are not enumerable
 
   //----------------------------------------------------------------------
   // test index

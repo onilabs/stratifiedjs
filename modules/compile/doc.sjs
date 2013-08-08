@@ -90,25 +90,24 @@ var moduleSymbols = function(module) {
 };
 
 exports.scanDirectory = function(dir) {
-  logging.info("Scanning: #{dir}");
+  logging.debug("Scanning: #{dir}");
   var entries = fs.readdir(dir);
   var symbols = {};
-  var dirs = [];
 
   if (!( entries .. array.contains(INDEX_FILENAME))) {
-    logging.info("directory #{dir} has no #{INDEX_FILENAME}, skipping...");
+    logging.info("SKIP: #{dir}");
     return null;
   }
+
+  var dirInfo = readDirectory(dir);
 
   entries .. each {|ent|
     var path = Path.join(dir, ent);
     if (fs.stat(path).isDirectory()) {
-      symbols[ent] = {
-        type: "directory",
-        children: exports.scanDirectory(path),
-        summary: "TODO: default summary",
-      };
-      dirs.push(ent);
+      var details = exports.scanDirectory(path);
+      if (details) {
+        symbols[ent + '/'] = details;
+      }
     } else {
       if (ent .. str.startsWith(INDEX_BASENAME + '.')) {
         continue;
@@ -125,20 +124,30 @@ exports.scanDirectory = function(dir) {
     }
   }
 
-  return symbols;
+  return {
+    type: "directory",
+    summary: dirInfo.summary,
+    children: symbols,
+  };
 };
 
 exports.readModule = function(path) {
-  logging.info("Reading: #{path}");
   if (! (path .. str.endsWith(EXT))) {
     logging.debug("Skipping non-SJS file");
     return null;
-  } else {
-    var name = Path.basename(path, EXT);
-    var mod = docutil.parseModuleDocs(fs.readFile(path));
-    mod.name = name;
-    return mod;
   }
+
+  logging.debug("Reading: #{path}");
+  var name = Path.basename(path, EXT);
+  var mod = docutil.parseModuleDocs(fs.readFile(path));
+  mod.name = name;
+  return mod;
+};
+
+var readDirectory = function(path) {
+  path = Path.join(path, INDEX_FILENAME);
+  logging.debug("Reading: #{path}");
+  return docutil.parseSJSLibDocs(fs.readFile(path));
 };
 
 if (require.main === module) {
