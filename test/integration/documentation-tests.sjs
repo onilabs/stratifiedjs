@@ -57,26 +57,7 @@ context {|| // serverOnly
       var indexContents = fs.readFile(path.join(base, indexFilename)).toString();
       var indexDoc = docutil.parseSJSLibDocs(indexContents);
 
-      // modules we intentionally aren't documenting yet
-      var HIDDEN = ['docutil', 'diff'];
-
-      test("module index includes all modules") {|s|
-
-        indexDoc.type .. assert.eq('lib');
-
-        var expectedDirs = dirs .. filter(function(d) {
-          return fs.readdir(path.join(base, d)) .. find(isSJS);
-        }) .. sort;
-
-        var expectedModules = modules .. filter(m -> !(HIDDEN .. array.contains(m)));
-
-        indexDoc.dirs .. ownKeys .. sort .. assert.eq(expectedDirs, "directory list");
-        indexDoc.modules .. ownKeys .. sort .. assert.eq(expectedModules .. sort, "module list");
-      }
-
-      seq.zip(sjsFiles, modules) .. each {|pair|
-        var [filename, module] = pair;
-        if (HIDDEN .. array.contains(module)) continue;
+      seq.zip(sjsFiles, modules) .. each {|[filename, module]|
 
         var fullPath = path.join(base, filename);
         var relativePath = path.relative(moduleRoot, fullPath);
@@ -86,17 +67,7 @@ context {|| // serverOnly
         var topLevel = sym -> !string.contains(sym, '.');
         var documentedSymbols = moduleDoc.symbols .. ownKeys .. filter(topLevel) .. sort;
 
-        var moduleIndexDoc = indexDoc.modules[module];
-
         var moduleTests = context(filename) {||
-          test("matches module index") {|s|
-            moduleDoc.module .. assert.eq(relativePath .. removeSJS, 'module ID');
-            moduleDoc.home .. assert.eq("sjs:#{moduleDoc.module}", 'module home');
-            if (moduleIndexDoc.summary) {
-              moduleDoc.summary .. assert.eq(moduleIndexDoc.summary, 'module summary');
-            }
-          }
-
           context{||
             var err = null;
             var moduleExports;
@@ -130,7 +101,6 @@ context {|| // serverOnly
               var symdoc = moduleDoc.symbols[sym];
 
               assert.ok(/^[a-zA-Z][_a-zA-Z0-9]*$/.test(sym), "Invalid symbol: #{sym}");
-              assert.eq(symdoc.name, sym);
               assert.ok(symdoc.summary, "missing summary for #{sym}");
 
               // general known keys across all symbols
@@ -176,9 +146,14 @@ context {|| // serverOnly
             }
           }
         }
+
         // if there's a "TODO: document" in the module, skip these tests.
         if (/TODO:( \([a-z]+\))? document/.test(moduleSrc)) {
           moduleTests.skip("TODO");
+        }
+
+        if (moduleDoc.nodoc) {
+          moduleTests.skip("@nodoc");
         }
       }
     }
