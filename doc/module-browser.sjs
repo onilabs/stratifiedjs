@@ -182,12 +182,12 @@ function getPathDocs(libpath) {
         // merge
         ['dirs','modules'] .. each {|key|
           doc[key] = merge(doc[key], index[key]);
-        }
+        };
 
         // override
         ['summary'] .. each {|key|
           doc[key] = doc[key] || index[key];
-        }
+        };
       }
     }
   }
