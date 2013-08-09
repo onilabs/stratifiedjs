@@ -223,7 +223,9 @@ exports.mkdir = function(path, mode) {
 
 /**
    @function readdir
-   @summary To be documented
+   @summary `readdir(3)` system call. Reads the contents of a directory.
+   @param {String} [path]
+   @return {Array} Array of names of the files in the directory excluding `'.'` and `'..'`.
 */
 exports.readdir = function(path) {
   waitfor (var err, files) { fs.readdir(path, resume); }
