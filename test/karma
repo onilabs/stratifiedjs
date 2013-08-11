@@ -1,0 +1,10 @@
+#!/bin/bash
+set -eu
+if [ "$#" -lt 0 ]; then
+	echo "missing an action"
+	exit 1
+fi
+action="$1"
+shift
+base="$(dirname "$(dirname "$(readlink -f "$0")")")"
+"$base/tools/bin/karma.sjs" "$action" tools/karma/conf.js "$@"

@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu
+here="$(dirname "$(readlink -f "$0")")"
+cd "$here/.."
+"$here/karma" run -- test/run.html "$@"
