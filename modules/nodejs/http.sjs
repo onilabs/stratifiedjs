@@ -151,6 +151,7 @@ function ServerRequest(req, res, ssl) {
    @setting {Boolean} [ssl=false] Whether to run a HTTP server or a HTTPS server.
    @setting {String}  [key] The server private key in PEM format. (Required when `ssl=true`.)
    @setting {String}  [cert] The server certificate in PEM format. (Required when `ssl=true`.)
+   @setting {Array}   [ca] Optional array of authority certificates. (Only used when `ssl=true`.)
    @setting {String}  [passphrase] Optional passphrase to decrypt an encrypted private `key`.
    @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, debug output will logged to `process.stdout`.
    @desc
@@ -207,6 +208,7 @@ function withServer(config, server_loop) {
     ssl: false,
     key: undefined,
     cert: undefined,
+    ca: undefined,
     passphrase: undefined,
     fd: undefined,
     log: x => process.stdout.write("#{address}: #{x}\n")
@@ -239,6 +241,7 @@ function withServer(config, server_loop) {
       {
         key: undefined,
         cert: undefined,
+        ca: undefined,
         passphrase: undefined
       } .. override(config),
       dispatchRequest);
