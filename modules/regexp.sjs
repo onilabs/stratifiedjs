@@ -33,7 +33,7 @@
 /**
    @module  regexp
    @summary Functions for working with regular expressions
-   @home    sjs:quasi
+   @home    sjs:regexp
 */
 
 /**
