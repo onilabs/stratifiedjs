@@ -728,6 +728,8 @@ exports.getRunOpts = function(opts, args) {
     } else {
       args = require('../sys').argv();
     }
+  } else {
+    args = args .. toArray();
   }
   if (args .. array.contains('--debug')) {
     // special-case logging flag, as otherwise we miss debug info from parsing args
