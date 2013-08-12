@@ -24,7 +24,7 @@
    @home    sjs:compile/sjs
 
    @function compile
-   @summary  Compile a string of SJS source code into JavasScript
+   @summary  Compile a string of SJS source code into JavaScript
    @param    {String} [src]
    @param    {optional Object} [settings]
    @setting  {String} [filename]
