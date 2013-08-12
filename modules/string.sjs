@@ -109,13 +109,13 @@ exports.supplant = function(str, o) {
   @param    {String} [prefix] The prefix to check for.
   @return   {Boolean} Whether `string` starts with `prefix`.
   @desc
-        // example:
+        ### Example:
 
-        startsWith("abcd", "ab")
-        // true
-        
-        startsWith("abcd", "bc")
-        // false
+            startsWith("abcd", "ab")
+            // true
+            
+            startsWith("abcd", "bc")
+            // false
 */
 exports.startsWith = function(str, prefix) {
   return str.lastIndexOf(prefix, 0) === 0;

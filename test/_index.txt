@@ -17,6 +17,7 @@ unit/node/child-process-tests.sjs
 unit/node/stream-tests.sjs
 unit/object-tests.sjs
 unit/quasi-tests.sjs
+unit/regexp-tests.sjs
 unit/require-tests.sjs
 unit/sequence-tests.sjs
 unit/shell-quote-tests.sjs
