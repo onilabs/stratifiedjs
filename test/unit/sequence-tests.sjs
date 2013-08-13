@@ -4,6 +4,7 @@ var testFn = testUtil.testFn;
 var {test, context, assert} = require('sjs:test/suite');
 
 var s = require("sjs:sequence");
+var {Quasi} = require("sjs:quasi");
 var toArray = s.toArray;
 
 //----------------------------------------------------------------------
@@ -709,4 +710,14 @@ context('buffer') {||
              }
            return rv;
          });
+}
+
+context("join") {||
+  test("with string separator") {||
+    nonRepeatableSequence([1,2,3]) .. s.join(" ") .. assert.eq("1 2 3");
+  }
+
+  test("with quasi separator") {||
+    nonRepeatableSequence([1,2,3]) .. s.join(`|`) .. assert.eq(Quasi(['', 1, '|', 2, '|', 3]));
+  }
 }

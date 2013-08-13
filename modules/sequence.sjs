@@ -40,7 +40,7 @@
 
 */
 
-var {isArrayLike} = require('builtin:apollo-sys');
+var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
 
 //----------------------------------------------------------------------
 
@@ -525,6 +525,10 @@ var padEnd = function(seq, padding) {
 */
 function join(sequence, separator) {
   separator = separator || '';
+  if (separator .. isQuasi) {
+    var quasi = require('./quasi');
+    return sequence .. transform(quasi.toQuasi) .. intersperse(separator) .. quasi.joinQuasis;
+  }
   return (sequence .. toArray).join(separator);
 }
 exports.join = join;

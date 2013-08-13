@@ -125,21 +125,22 @@ exports.Quasi = Quasi;
 
 /**
    @function joinQuasis
-   @param {::Quasi} [quasi...] One or more quasis
+   @param {::Quasi|::Array} [quasi...] An array of quasis or multiple quasi arguments
    @return {::Quasi}
-   @summary Concatenate several quasis 
+   @summary Concatenate several quasis
    @desc
      ### Example:
      
          joinQuasis(`a#{b}c`, `d#{e}f`, `#{g}h`)
 
-     results in 
+     results in
 
          `a#{b}cd#{e}f#{g}h`
 
 */
 function joinQuasis(/*arguments*/) {
-  return arguments .. 
+  var quasis = arguments.length == 1 ? arguments[0] : arguments;
+  return quasis ..
     reduce(Quasi([]), function(accu, quasi) {
       var l = accu.parts.length;
       if (l%2) {
@@ -186,3 +187,18 @@ function mapQuasi(quasi, fn) {
   return result;
 };
 exports.mapQuasi = mapQuasi;
+
+/**
+   @function toQuasi
+   @param {Object} [val]
+   @return {::Quasi}
+   @summary Wrap a value in a quasi if it is not already one.
+   @desc
+     If `val` is not a quasi, it is wrapped as an interpolated value,
+     i.e `\`${val}\``.
+
+*/
+exports.toQuasi = function(val) {
+  if (exports.isQuasi(val)) return val;
+  return `$val`;
+};

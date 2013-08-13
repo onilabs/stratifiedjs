@@ -3,6 +3,7 @@ var test = testUtil.test;
 var {context, assert} = require('sjs:test/suite');
 
 var { Quasi, isQuasi, joinQuasis, mapQuasi } = require("sjs:quasi");
+var { Stream } = require('sjs:sequence');
 
 context("syntax") {||
   test('braced quasi', ["", 1], function() { var x=1; return `${x}`.parts});
@@ -37,6 +38,14 @@ context("join") {||
   test('joinQuasis(`a`,`${2}b`) equals `a${2}b`', `a${2}b`, function() { return joinQuasis(`a`,`${2}b`); });
   test('joinQuasis(`a${1}`,`${2}b`) equals `a${1}${2}b`', `a${1}${2}b`, function() { return joinQuasis(`a${1}`,`${2}b`); });
   test('joinQuasis(`a${1}`,`${2}b`, `${3}`) equals `a${1}${2}b${3}`', `a${1}${2}b${3}`, function() { return joinQuasis(`a${1}`,`${2}b`, `${3}`); });
+  test('joinQuasis on a sequence', `a${1}${2}b${3}`, function() {
+    var seq = Stream {|e|
+      e(`a${1}`);
+      e(`${2}b`);
+      e(`${3}`);
+    }
+    return joinQuasis(seq);
+  });
 }
 
 context("map") {||
