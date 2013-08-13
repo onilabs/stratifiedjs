@@ -60,6 +60,9 @@ var init = function(logger, customFileHandlers, files, client) {
       // TODO: use `mime` if we ever need it
       response.setHeader('Content-Type', 'text/plain');
 
+      response.setHeader('Cache-Control', 'no-store');
+      response.setHeader('Expires', '-1');
+
       response.writeHead(200);
 
       log.debug('serving: ' + path);

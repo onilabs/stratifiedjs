@@ -16,6 +16,9 @@
   karma.start = function () {
     try {
       var config = karma.config;
+      // ensure config.args is an array in the local window context
+      // (otherwise, prototype methods may be missing)
+      config.args = [].concat(config.args || []);
       var suitePath;
 
       if(DEBUG) {
@@ -25,7 +28,7 @@
           return FAIL("When using debug.html you must specify your suite and arguments in the URL query params - e.g. debug.html?suite=test/run.html#--help");
         }
       } else {
-        suitePath = (config.args || [])[0];
+        suitePath = config.args[0];
       }
 
       if (!suitePath) {
