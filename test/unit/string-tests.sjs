@@ -127,6 +127,8 @@ context('strip') {||
 }
 
 context('split') {||
+  var NPG = ''.match(/(.)?/)[1]; // non-participating group result. This varies across browser, but we take whatever we get in `split`
+
   testFn(str, 'split', ['a b c d', ' ', 2], ['a','b','c d']);
   testFn(str, 'split', ['a b c d', ' ', 1], ['a','b c d']);
   testFn(str, 'split', ['a b c', ' ', 2], ['a','b','c']);
@@ -136,6 +138,75 @@ context('split') {||
   testFn(str, 'rsplit', ['a b c d', ' ', 1], ['a b c', 'd']);
   testFn(str, 'rsplit', ['a b c', ' ', 2], ['a','b','c']);
   testFn(str, 'rsplit', ['a b', ' ', 2], ['a','b']);
+
+  testFn(str, 'split', ['a b  c d', / /, 2], ['a','b', ' c d']);
+  testFn(str, 'split', ['bbaaccaaddaaee', /aa/, 2], ['bb', 'cc', 'ddaaee']);
+  testFn(str, 'split', ['a b  c d', /( )/, 2], ['a', ' ', 'b', ' ', ' c d']);
+  testFn(str, 'split', ['a b    ', /( +)/], ['a',' ', 'b', '    ', '']);
+  testFn(str, 'split', ['a b .c', /( +(\.)?)/], ['a',' ', NPG, 'b', ' .', '.', 'c']);
+
+  testFn(str, 'rsplit', [' a  b c d', / /, 2], [' a  b','c', 'd']);
+  testFn(str, 'rsplit', ['aabbaaccaaddaaee', /aa/, 2], ['aabbaacc', 'dd', 'ee']);
+  testFn(str, 'rsplit', ['a b  c d', /( )/, 2], ['a b ', ' ', 'c', ' ', 'd']);
+  testFn(str, 'rsplit', ['a b    ', /( +)/], ['a',' ', 'b', '    ', '']);
+  testFn(str, 'rsplit', ['a b .c', /( +(\.)?)/], ['a',' ', NPG, 'b', ' .', '.', 'c']);
+
+  test('split edge cases') {||
+    // from http://stevenlevithan.com/demo/split.cfm
+    var split = str.split;
+    ''..split()                                   .. assert.eq([""]);
+    ''..split(/./)                                .. assert.eq([""]);
+    ''..split(/.?/)                               .. assert.eq([]);
+    ''..split(/.??/)                              .. assert.eq([]);
+    'ab'..split(/a*/)                             .. assert.eq(["", "b"]);
+    'ab'..split(/a*?/)                            .. assert.eq(["a", "b"]);
+    'ab'..split(/(?:ab)/)                         .. assert.eq(["", ""]);
+    'ab'..split(/(?:ab)*/)                        .. assert.eq(["", ""]);
+    'ab'..split(/(?:ab)*?/)                       .. assert.eq(["a", "b"]);
+    'test'..split('')                             .. assert.eq(["t", "e", "s", "t"]);
+    'test'..split()                               .. assert.eq(["test"]);
+    '111'..split(1)                               .. assert.eq(["", "", "", ""]);
+    'test'..split(/(?:)/, 2)                      .. assert.eq(["t", "e", "st"]);
+    'test'..split(/(?:)/, undefined)              .. assert.eq(["t", "e", "s", "t"]);
+    'a'..split(/-/)                               .. assert.eq(["a"]);
+    'a'..split(/-?/)                              .. assert.eq(["a"]);
+    'a'..split(/-??/)                             .. assert.eq(["a"]);
+    'a'..split(/a/)                               .. assert.eq(["", ""]);
+    'a'..split(/a?/)                              .. assert.eq(["", ""]);
+    'a'..split(/a??/)                             .. assert.eq(["a"]);
+    'ab'..split(/-/)                              .. assert.eq(["ab"]);
+    'ab'..split(/-?/)                             .. assert.eq(["a", "b"]);
+    'ab'..split(/-??/)                            .. assert.eq(["a", "b"]);
+    'a-b'..split(/-/)                             .. assert.eq(["a", "b"]);
+    'a-b'..split(/-?/)                            .. assert.eq(["a", "b"]);
+    'a-b'..split(/-??/)                           .. assert.eq(["a", "-", "b"]);
+    'a--b'..split(/-/)                            .. assert.eq(["a", "", "b"]);
+    'a--b'..split(/-?/)                           .. assert.eq(["a", "", "b"]);
+    'a--b'..split(/-??/)                          .. assert.eq(["a", "-", "-", "b"]);
+    ''..split(/()()/)                             .. assert.eq([]);
+    '.'..split(/()()/)                            .. assert.eq(["."]);
+    '.'..split(/(.?)(.?)/)                        .. assert.eq(["", ".", "", ""]);
+    '.'..split(/(.??)(.??)/)                      .. assert.eq(["."]);
+    '.'..split(/(.)?(.)?/)                        .. assert.eq(["", ".", NPG, ""]);
+    'tesst'..split(/(s)*/)                        .. assert.eq(["t", NPG, "e", "s", "t"]);
+    'tesst'..split(/(s)*?/)                       .. assert.eq(["t", NPG, "e", NPG, "s", NPG, "s", NPG, "t"]);
+    'tesst'..split(/(s*)/)                        .. assert.eq(["t", "", "e", "ss", "t"]);
+    'tesst'..split(/(s*?)/)                       .. assert.eq(["t", "", "e", "", "s", "", "s", "", "t"]);
+    'tesst'..split(/(?:s)*/)                      .. assert.eq(["t", "e", "t"]);
+    'tesst'..split(/(?=s+)/)                      .. assert.eq(["te", "s", "st"]);
+    'test'..split('t')                            .. assert.eq(["", "es", ""]);
+    'test'..split('es')                           .. assert.eq(["t", "t"]);
+    'test'..split(/t/)                            .. assert.eq(["", "es", ""]);
+    'test'..split(/es/)                           .. assert.eq(["t", "t"]);
+    'test'..split(/(t)/)                          .. assert.eq(["", "t", "es", "t", ""]);
+    'test'..split(/(es)/)                         .. assert.eq(["t", "es", "t"]);
+    'test'..split(/(t)(e)(s)(t)/)                 .. assert.eq(["", "t", "e", "s", "t", ""]);
+    '.'..split(/(((.((.??)))))/)                  .. assert.eq(["", ".", ".", ".", "", "", ""]);
+    '.'..split(/(((((.??)))))/)                   .. assert.eq(["."]);
+
+    ('A<B>bold</B>and' +
+      '<CODE>coded</CODE>')..split(/<(\/)?([^<>]+)>/) .. assert.eq(["A", NPG, "B", "bold", "/", "B", "and", NPG, "CODE", "coded", "/", "CODE", ""]);
+  }
 }
 
 context('padding') {||

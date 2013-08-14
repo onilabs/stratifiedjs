@@ -36,6 +36,17 @@
    @home    sjs:regexp
 */
 
+
+/**
+  @function isRegExp
+  @summary  Test if a given value is a RegExp
+  @param    {Object} [re]
+  @return   {Boolean}
+*/
+exports.isRegExp = function(re) {
+  return typeof re === 'object' && Object.prototype.toString.call(re) === '[object RegExp]';
+}
+
 /**
   @function escape
   @summary  Make a string safe for insertion into a regular expression.
@@ -83,13 +94,53 @@ exports.escape = function(str) {
 exports.findAll = function(str, re) {
   var rv = [];
   var match;
+  if (!re.global) throw new Error("regex must include the /g flag");
   while (match = re.exec(str)) {
-    if (rv.length == 1 && match.index == rv[0].index) {
-      // detect infinite loop
-      throw new Error("invalid regexp (zero-width match or missing /g flag)");
-    }
     rv.push(match);
+    if (re.lastIndex === match.index) re.lastIndex++; // avoid infinite loop
   }
   return rv;
 };
 
+
+/* Used internally by the string.split() function when a regexp split is required
+ * Adapted from http://blog.stevenlevithan.com/archives/cross-browser-split:
+ *   Cross-Browser Split 1.1.1
+ *   Copyright 2007-2012 Steven Levithan <stevenlevithan.com>
+ *   Available under the MIT License
+ *   ECMAScript compliant, uniform cross-browser split method
+ */
+exports._splitRe = function(s, sep, limit) {
+  var split = [];
+  var lastLastIdx = 0;
+  var lastLength, lastIdx;
+  var indexes = [];
+  var flags = (sep.ignoreCase ? "i" : "") +
+              (sep.multiline  ? "m" : "") +
+              (sep.extended   ? "x" : "") + // Proposed for ES6
+              (sep.sticky     ? "y" : ""); // Firefox 3+
+  // Make `global`
+  sep = new RegExp(sep.source, flags + "g");
+  var matches = s .. exports.findAll(sep);
+  for (var i=0; i<matches.length; i++) {
+    var match=matches[i];
+    lastIdx = match.index + match[0].length;
+    if (lastIdx > lastLastIdx) {
+      split.push(s.slice(lastLastIdx, match.index));
+
+      if (match.length > 1 && match.index < s.length)
+        Array.prototype.push.apply(split, match.slice(1));
+
+
+      lastLength = match[0].length;
+      lastLastIdx = lastIdx;
+      if (limit !== undefined) indexes.push([split.length, match]);
+    }
+  }
+  if (lastLastIdx === s.length) {
+    if (lastLength || !sep.test("")) split.push("");
+  } else
+    split.push(s.slice(lastLastIdx));
+
+  return [indexes, split];
+};

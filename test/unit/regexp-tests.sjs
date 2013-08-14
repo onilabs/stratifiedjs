@@ -35,7 +35,12 @@ context('findAll') {||
     assert.raises( -> "foof far faz" .. regexp.findAll(/f./));
   }
 
-  test("rejects a zero-width regexp") {||
-    assert.raises( -> "foof far faz" .. regexp.findAll(/()/g));
+  test("handles a zero-width regexp") {||
+    // not actually useful, but we need to make sure it doesn't loop infinitely
+    "abc" .. regexp.findAll(/()/g) .. map(m -> [m[0], m.index]) .. assert.eq([
+      ["", 0],
+      ["", 1],
+      ["", 2],
+      ["", 3]]);
   }
 }

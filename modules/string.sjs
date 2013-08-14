@@ -46,6 +46,11 @@ function isString(obj) {
 }
 exports.isString = isString;
 
+function isRegExp(re) {
+  // copied from ./regexp to reduce imports
+  return typeof re === 'object' && Object.prototype.toString.call(re) === '[object RegExp]';
+}
+
 /**
   @function sanitize
   @summary  Make a string safe for insertion into html.
@@ -244,14 +249,26 @@ exports.rstrip = function(s, ch){
   @function split
   @summary  Split a string on a separator
   @param    {String} [string] The string to split
-  @param    {String} [sep] The separator to split on
+  @param    {String|RegExp} [sep] The separator to split on
   @param    {optional Number} [limit] The maximum number of times to split
   @return   {Array} Array of strings
   @desc
     This function is similar to the Javascript
-    [String.prototype.split method](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split),
-    however if `limit` is provided the remining string will be returned
-    in an additional element, rather than discarded.
+    [String.prototype.split method](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split).
+
+    The main changes are:
+
+    ### Consistent behaviour when `sep` is a RegExp:
+
+    If the underlying implementation deals improperly with a RegExp `sep`,
+    (commonly the case on older webkits and IE), a fallback is used to ensure
+    operation in accordance with the ECMAScript spec.
+
+    ### Different interpretation of `limit`
+
+    If `limit` is provided, the remainder of the string after `limit` splits have
+    occurred will be returned as an additional element, rather than discarded
+    (which is the behaviour of Javascript's builtin `split` method).
 
     ### Example:
 
@@ -261,19 +278,12 @@ exports.rstrip = function(s, ch){
         split("one=two=three", "=", 1)
         // ['one', 'two=three']
 */
-exports.split = function(s, sep, limit) {
-  var split = s.split(sep);
-  if (limit !== undefined && split.length > limit + 1) {
-    split.splice(limit, split.length, split.slice(limit).join(sep));
-  }
-  return split;
-}
 
 /**
   @function rsplit
   @summary  Split a string on a separator (starting from the end)
   @param    {String} [string] The string to split
-  @param    {String} [sep] The separator to split on
+  @param    {String|RegExp} [sep] The separator to split on
   @param    {optional Number} [limit] The maximum number of times to split
   @return   {Array} Array of strings
   @desc
@@ -285,14 +295,63 @@ exports.split = function(s, sep, limit) {
         rsplit("one=two=three", "=", 1)
         // ['one=two', 'three']
 */
-exports.rsplit = function(s, sep, limit) {
-  var split = s.split(sep);
-  if (limit !== undefined && split.length > limit + 1) {
-    var excess = split.length - limit;
-    split.splice(0, excess, split.slice(0, excess).join(sep));
+(function() {
+  // when first required, we check the runtime for correctness with regexp splits. If it's
+  // incorrect, we fallback to our own implementation
+  var _checked = false, _goodImpl;
+  function goodImpl() {
+    if (!_checked) {
+      _goodImpl = 'ax'.split(/()|(x)/).length === 4;
+      exports.split.useNative = _goodImpl;
+      _checked = true;
+    }
+    return _goodImpl;
+  };
+
+  exports.split = function(s, sep, limit) {
+    var split;
+    if (sep .. isRegExp) {
+      if (limit === undefined && goodImpl()) {
+        split = s.split(sep)
+      } else {
+        var [indexes, split] = require('./regexp')._splitRe(s, sep, limit);
+        if (limit !== undefined && indexes.length > limit) {
+          var [elems, {index: offset, 0: {length}}] = indexes[limit-1];
+          split.splice(elems, split.length, s.slice(offset + length));
+        }
+      }
+    } else {
+      split = s.split(sep);
+      if (limit !== undefined && split.length > limit + 1) {
+        split.splice(limit, split.length, split.slice(limit).join(sep));
+      }
+    }
+    return split;
+  };
+
+  exports.rsplit = function(s, sep, limit) {
+    var split;
+    if (sep .. isRegExp) {
+      if (limit === undefined && goodImpl()) {
+        split = s.split(sep)
+      } else {
+        var [indexes, split] = require('./regexp')._splitRe(s, sep, limit);
+        if (limit !== undefined && indexes.length > limit) {
+          var [elems, {length: splitElems, index: offset}] = indexes[indexes.length - limit];
+          split.splice(0, elems - (splitElems - 1), s.slice(0, offset));
+        }
+      }
+    } else {
+      split = s.split(sep);
+      if (limit !== undefined && split.length > limit + 1) {
+        var excess = split.length - limit;
+        split.splice(0, excess, split.slice(0, excess).join(sep));
+      }
+    }
+    return split;
   }
-  return split;
-}
+
+})();
 
 /**
   @function padRight
