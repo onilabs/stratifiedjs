@@ -858,8 +858,7 @@ Options:
             break;
 
           case 'no_logcapture':
-            key = 'logCapture';
-            val = false;
+            key = 'no_logCapture';
             break;
 
           case 'ignore_leaks':
@@ -884,11 +883,6 @@ Options:
             key = 'bail';
             break
 
-          case 'no_bail':
-            key = 'bail';
-            val = false;
-            break;
-
           case 'f':
           case 'show_failed':
             key = 'showAll';
@@ -910,6 +904,11 @@ Options:
           case 'debug':
             // dealt with explicitly at the start of getRunOpts
             continue;
+        }
+
+        if (key .. startsWith('no_')) {
+          val = false;
+          key = key.slice(3);
         }
 
         setOpt(key, val);
