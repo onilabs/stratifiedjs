@@ -156,4 +156,14 @@ context("error diffing") {||
 			'<dim:9 | >',
 		]);
 	}
+
+	test("whitespace-only diff on an inspected object") {|s|
+		s.diff(['a','b',' c'], ['a','b','  c']) .. assert.eq([
+			'<dim:1 | >[<nl>',
+			'<dim:2 | >  "a",<nl>',
+			'<dim:3 | >  "b",<nl>',
+			'<dim:4 | >  " <green: >c"<nl>',
+			'<dim:5 | >]',
+		]);
+	}
 }.skipIf(suite.isIE() && suite.ieVersion() < 9, "known bug");

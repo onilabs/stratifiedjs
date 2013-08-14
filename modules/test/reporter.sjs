@@ -270,13 +270,11 @@ var LogReporterMixins = {
     var diffs = diff.diffWords(expected, actual);
 
     // if there are no non-whitespace diffs, add markers and perform character-wise diff
-    if (!inspected) {
-      var hasVisibleChars = (d) -> /\S/.test(d.value);
-      var isChange = (d) -> (d.added || d.removed);
-      if (!seq.any(diffs, d -> isChange(d) && hasVisibleChars(d))) {
-        var showNewlines = x -> x.replace(/\n/g, '<nl>\n');
-        diffs = diff.diffChars(showNewlines(expected) , showNewlines(actual));
-      }
+    var hasVisibleChars = (d) -> /[^\n]/.test(d.value);
+    var isChange = (d) -> (d.added || d.removed);
+    if (!seq.any(diffs, d -> isChange(d) && hasVisibleChars(d))) {
+      var showNewlines = x -> x.replace(/\n/g, '<nl>\n');
+      diffs = diff.diffChars(showNewlines(expected) , showNewlines(actual));
     }
     
     // exclude noisy diffs:
