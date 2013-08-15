@@ -284,7 +284,7 @@ exports.notEq = exports.notEqual = function(actual, expected, desc) {
   @desc
     Equality is shallow and strict, like [::shallowEq].
 
-  @function notShallowEq
+  @function notShallowEqual
   @summary Alias for [::notShallowEqual]
 */
 exports.notShallowEq = exports.notShallowEqual = function(actual, expected, desc) {

@@ -382,7 +382,7 @@ exports.padRight = function(s, len, ch) {
 }
 
 /**
-  @function padRight
+  @function padLeft
   @summary  Pad a string (on the left) to a minimum length
   @param    {String} [string]
   @param    {Number} [len] The target string length

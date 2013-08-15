@@ -91,7 +91,7 @@ var makePrinter = function(method) {
 
 /**
   @function log
-  @summary Log the given object to all Stratfied JS consoles created with *receivelog* = *true*.
+  @summary Log the given object to all Stratfied JS consoles created with `receivelog = true`.
   @param {Object} [obj] Object to log.
   @deprecated since 0.13 - use the functions in the [../logging::] module instead.
 */

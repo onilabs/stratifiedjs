@@ -161,7 +161,7 @@ var extractDocFields = exports.extractDocFields = function(docs) {
    @summary TODO: document me
 */
 exports.parseSJSLibDocs = function(src) {
-  var lib = { type: "lib", dirs: {}, modules: {} };
+  var lib = { type: "lib", children: {} };
   var fields = extractDocFields([src]);
   var prop, value, matches;
   for (var i=0; i<fields.length; ++i) {
@@ -169,11 +169,11 @@ exports.parseSJSLibDocs = function(src) {
     switch (prop) {
     case "module":
       if (!(matches = /^([^ \t]+)(?:[ \t]+(.+))?[ \t]*$/.exec(value))) break;
-      lib.modules[matches[1]] = {type:"module", summary:matches[2]};
+      lib.children[matches[1]] = {type:"module", summary:matches[2]};
       break;
     case "dir":
       if (!(matches = /^([^ \t]+)(?:[ \t]+(.+))?[ \t]*$/.exec(value))) break;
-      lib.dirs[matches[1]] = {type:"dir", summary:matches[2]};
+      lib.children[matches[1] + '/'] = {type:"dir", summary:matches[2]};
       break;
     default:
       lib[prop] = value;
@@ -192,7 +192,7 @@ var paramRE = /^(?:\{([^\}]+)\})?(?:[\t ]*\[([^\]=]+)(?:\=((?:[^\[\]]|\[[^\[\]]*
 var paramType = 1, paramName = 2, paramDefault = 3, paramDescription = 4;
 
 exports.parseModuleDocs = function(src, module) {
-  var module = merge({ type: "module", symbols: {}, classes: {} }, module);
+  var module = merge({ type: "module", children: {}, }, module);
   var curr = module; // 'curr' determines where 'param', 'return', 'setting', 'attrib' are appended to
   var fields = extractDocFields(extractDocComments(src));
 
@@ -201,45 +201,47 @@ exports.parseModuleDocs = function(src, module) {
     [prop,value] = fields[i];
     switch (prop) {
     case "class":
-      curr = { type: "class", symbols: {} };
-      module.classes[value] = curr;
+      curr = { type: "class", children: {} };
+      module.children[value] = curr;
       break;
     case "function":
     case "variable":
     case "constructor":
-      // append to module or class depending on name
+      // append to existing symbol for a dotted name
       var matches = /(.+)\.([^.]+)/.exec(value);
       // class member?
-      if (matches && module.classes[matches[1]]) {
-        //if (!module.classes[matches[1]])
-        //  module.classes[matches[1]] = { symbols:{}};
-        curr = module.classes[matches[1]].symbols[matches[2]] = { type: prop };
+      if (matches && module.children[matches[1]] && module.children[matches[1]].children) {
+        curr = module.children[matches[1]].children[matches[2]] = { type: prop };
       }
-      else if (module.classes[value]) {
+      else if (module.children[value]) {
+        if (!module.children[value].children) {
+          throw new Error("symbol #{value} defined twice");
+        }
+        // add class members
         if (prop == 'function') {
           // creation function: a ctor that isn't being called with 'new'
-          curr = module.classes[value].symbols[value] = { type: "ctor",
-                                                          nonew: true,
-                                                          "return": {type:"return", valtype:"::"+value},
-                                                          summary: "Create a #{value} object."
-                                                        };
+          curr = module.children[value].children[value] = { type: "ctor",
+                                                            nonew: true,
+                                                            "return": {type:"return", valtype:"::"+value},
+                                                            summary: "Create a #{value} object."
+                                                          };
         }
         else if (prop == 'constructor') {
           // constructor
-          curr = module.classes[value].symbols[value] = { type: "ctor", 
-                                                          "return": {type:"return", valtype:"::"+value}, 
-                                                          summary: "Constructor for "+value+" object."};
+          curr = module.children[value].children[value] = { type: "ctor",
+                                                            "return": {type:"return", valtype:"::"+value},
+                                                            summary: "Constructor for "+value+" object."};
         }
         else {
           // prototype
-          curr = module.classes[value].symbols[value] = { type: "proto",
-                                                          summary: "Prototype for [::"+value+"] objects."};
+          curr = module.children[value].children[value] = { type: "proto",
+                                                            summary: "Prototype for [::"+value+"] objects."};
         }
           
       }
       else {
         // top-level symbol
-        curr= module.symbols[value] = { type: prop };
+        curr= module.children[value] = { type: prop };
       }
       break;
     case "param":

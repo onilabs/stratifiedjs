@@ -21,7 +21,7 @@ and {
   var string = require('sjs:string');
 }
 and {
-  var { each, map, toArray, join, reduce, at } = require('sjs:sequence');
+  var { each, map, toArray, join, reduce, at, transform, filter, sort } = require('sjs:sequence');
 }
 and {
   var { ownPropertyPairs, ownValues, ownKeys, merge, extend, get, clone } = require('sjs:object');
@@ -119,8 +119,7 @@ exports.run = function(doc_root, trail_parent, index_parent, main_parent) {
   libpath -> null ||
   { type: "lib", 
     path: URLSTRING,
-    modules: {name1: {type:"module", name:name1, summary: STRING|null}, name2: ..., ...},
-    dirs: {name1: {type:"dir", name:name1, summary: STRING|null}, name2: ..., ...},
+    children: {name1: {type:"module|dir", name:name1, summary: STRING|null}, name2: ..., ...},
     OPT lib: STRING, // short name
     OPT summary: STRING,
     OPT desc: STRING
@@ -168,19 +167,19 @@ function getPathDocs(libpath) {
   var index = getIndex(docs[0].path);
   // if we have an index, extend all directory docs with
   // information from their entry in the index
-  // (contains modules, dirs and summary)
+  // (contains children and summary)
   for (var i=0; i<docs.length; i++) {
     var doc = docs[i];
     doc.parent = docs[i-1];
     if (index) {
       if (i > 0) {
-        var name = doc.path.match(/([^\/]+)\/$/) .. at(1);
-        index = index.dirs .. get(name);
+        var name = doc.path.match(/([^\/]+\/)$/) .. at(1);
+        index = index.children .. get(name);
       }
       if (index) {
         doc = docs[i] = doc .. clone();
         // merge
-        ['dirs','modules'] .. each {|key|
+        ['children'] .. each {|key|
           doc[key] = merge(doc[key], index[key]);
         };
 
@@ -258,17 +257,13 @@ function makeIndexView() {
         }
         // create a sorted list of modules & directories:
         var l = [];
-        ownKeys(lib_docs.modules) .. each { 
-          |module|
-          l.push([module, makeIndexModuleEntry(location, module)])
-        }
-        ownKeys(lib_docs.dirs) .. each {
-          |dir|
-          dir += '/';
-          l.push([dir, makeIndexDirEntry(location, dir)]);
-        }
-        l.sort((a,b) -> a[0]<b[0] ? -1 : (a[0]>b[0] ? 1 : 0));
-        l .. each {|e| (entries[e[0]] = e[1]).show(view.elems.list) };
+        lib_docs.children
+          .. ownKeys
+          .. sort
+          .. each {|name|
+            var v = entries[name] = makeIndexEntry(location, name);
+            v.show(view.elems.list);
+          };
       }
       // else ... we didn't find any lib_docs; so no modules we can list
     }
@@ -291,6 +286,12 @@ function makeIndexView() {
   return view;
 }
 
+function makeIndexEntry(location, name) {
+  if (name .. string.endsWith('/'))
+    return makeIndexDirEntry(location, name);
+  return makeIndexModuleEntry(location, name);
+};
+
 function makeIndexModuleEntry(location, module) {
   var view = ui.makeView(
     "<li class='module'>
@@ -304,7 +305,7 @@ function makeIndexModuleEntry(location, module) {
     // we expand our view to include symbols:
     var module_docs = getModuleDocs(location.path + module);
     if (!module_docs) return; // no docs; nothing much we can do
-    var symbols_template = merge(module_docs.symbols, module_docs.classes)
+    var symbols_template = module_docs.children
       .. ownKeys
       .. map(name -> "<li><a href='##{location.moduleLink(module)}::#{name}'>#{name}</a></li>")
       .. join;
@@ -452,24 +453,23 @@ function makeModuleView(location) {
   ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
  
-  // collect symbols (XXX really want classes in symbols hash to start with)
-  var symbols = {};
-  merge(docs.symbols, docs.classes) .. ownPropertyPairs .. each {
+  var children = {};
+  docs.children .. ownPropertyPairs .. each {
     |[name, s]|
-    if (!symbols[s.type]) symbols[s.type] = [];
-    symbols[s.type].push(
+    if (!children[s.type]) children[s.type] = [];
+    children[s.type].push(
         "<tr>
            <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{name}'>#{name}</a></td>
            <td>#{makeSummaryHTML(s,location)}</td>
          </tr>");
   }
   
-  if (symbols['function'])
-    ui.makeView("<h3>Functions</h3><table>"+symbols['function'].join("")+"</table>").show(view.elems.symbols);
-  if (symbols['variable'])
-    ui.makeView("<h3>Variables</h3><table>"+symbols['variable'].join("")+"</table>").show(view.elems.symbols);
-  if (symbols['class'])
-    ui.makeView("<h3>Classes</h3><table>"+symbols['class'].join("")+"</table>").show(view.elems.symbols);
+  if (children['function'])
+    ui.makeView("<h3>Functions</h3><table>"+children['function'].join("")+"</table>").show(view.elems.symbols);
+  if (children['variable'])
+    ui.makeView("<h3>Variables</h3><table>"+children['variable'].join("")+"</table>").show(view.elems.symbols);
+  if (children['class'])
+    ui.makeView("<h3>Classes</h3><table>"+children['class'].join("")+"</table>").show(view.elems.symbols);
 
   return view;
 }
@@ -483,13 +483,13 @@ function makeSymbolView(location) {
   
   var docs = mdocs;
   if (location.classname) {
-    if (!mdocs.classes || !(docs = mdocs.classes[location.classname])) 
+    if (!(docs = mdocs.children[location.classname]))
       throw "Class '"+location.classname+"' not found in documentation";
   }
 
   var name = location.symbol;
-  docs = docs.symbols[location.symbol] || docs.classes[location.symbol];
-  if (!docs) 
+  docs = docs.children[location.symbol];
+  if (!docs)
     throw "Symbol '"+location.symbol+"' not found in documentation";
 
   var view;
@@ -598,30 +598,30 @@ function makeSymbolView(location) {
       
 
     // collect symbols
-    var symbols = {};
-    docs.symbols .. ownPropertyPairs .. each { 
+    var children = {};
+    docs.children .. ownPropertyPairs .. each { 
       |[name, s]|
       var type = s.type;
       if (s['static'])
         type = 'static-'+type;
-      if (!symbols[type]) symbols[type] = [];
-      symbols[type].push(
+      if (!children[type]) children[type] = [];
+      children[type].push(
           "<tr>
              <td class='mb-td-symbol'><a href='##{location.moduleLink()}::#{location.symbol}::#{name}'>#{name}</a></td>
              <td>#{makeSummaryHTML(s, location)}</td>
            </tr>");
     }
     
-    if (symbols['ctor'])
-      ui.makeView("<table>"+symbols['ctor'].join("")+"</table>").show(view.elems.details);
-    if (symbols['proto'])
-      ui.makeView("<table>"+symbols['proto'].join("")+"</table>").show(view.elems.details);
-    if (symbols['static-function'])
-      ui.makeView("<h3>Static Functions</h3><table>"+symbols['static-function'].join("")+"</table>").show(view.elems.details);
-    if (symbols['function'])
-      ui.makeView("<h3>Methods</h3><table>"+symbols['function'].join("")+"</table>").show(view.elems.details);
-    if (symbols['variable'])
-      ui.makeView("<h3>Member Variables</h3><table>"+symbols['variable'].join("")+"</table>").show(view.elems.details);
+    if (children['ctor'])
+      ui.makeView("<table>"+children['ctor'].join("")+"</table>").show(view.elems.details);
+    if (children['proto'])
+      ui.makeView("<table>"+children['proto'].join("")+"</table>").show(view.elems.details);
+    if (children['static-function'])
+      ui.makeView("<h3>Static Functions</h3><table>"+children['static-function'].join("")+"</table>").show(view.elems.details);
+    if (children['function'])
+      ui.makeView("<h3>Methods</h3><table>"+children['function'].join("")+"</table>").show(view.elems.details);
+    if (children['variable'])
+      ui.makeView("<h3>Member Variables</h3><table>"+children['variable'].join("")+"</table>").show(view.elems.details);
 
   }
 
@@ -642,10 +642,11 @@ function makeLibView(location) {
   ui.makeView(makeSummaryHTML(docs, location)).show(view.elems.summary);
   ui.makeView(makeDescriptionHTML(docs, location)).show(view.elems.desc);
 
-  // collect modules & dirs:
+  // collect children:
 
-  var modules = docs.modules .. ownPropertyPairs ..
-    reduce("", (p,[name, m]) -> p +
+  var modules = docs.children .. ownPropertyPairs
+    .. filter([k,v] -> v.type == 'module')
+    .. reduce("", (p,[name, m]) -> p +
     "<tr>
       <td class='mb-td-symbol'><a href='##{location.pathLink()}#{name}'>#{name}</a></td>
       <td>#{makeSummaryHTML(m, location)}</td>
@@ -656,8 +657,9 @@ function makeLibView(location) {
     ui.makeView("<h3>Modules</h3><table>#{modules}</table>").show(view.elems.modules);
   }
 
-  var dirs = docs.dirs .. ownPropertyPairs ..
-    reduce("", (p,[name, d]) -> p +
+  var dirs = docs.children .. ownPropertyPairs
+    .. filter([k,v] -> v.type == 'dir')
+    .. reduce("", (p,[name, d]) -> p +
     "<tr>
       <td class='mb-td-symbol'><a href='##{location.pathLink()}#{name}'>#{name}</a></td>
       <td>#{makeSummaryHTML(d,location)}</td>

@@ -66,29 +66,22 @@ exports.compile = function(root, outputPath) {
 };
 
 
-var summarizeSymbols = function(symbols) {
-  return symbols
+var summarizeSymbols = function(children) {
+  return children
     .. ownPropertyPairs
-    .. transform([name, sym] -> [name, {type: sym.type}])
-    .. pairsToObject();
-};
-
-var summarizeClasses = function(classes) {
-  return classes
-    .. ownPropertyPairs
-    .. transform(
-        [name, cls] -> [name, {
-          type: 'class',
-          symbols: summarizeSymbols(cls.symbols),
-        }])
-    .. pairsToObject();
+    .. transform(function([name, sym]) {
+        var obj = {type: sym.type};
+        if (sym.children) {
+          obj.children = summarizeSymbols(obj.children);
+        }
+        return [name, obj];
+    }) .. pairsToObject();
 };
 
 var summarizeModule = function(module) {
   return {
     type: 'module',
-    classes: summarizeClasses(module.classes),
-    symbols: summarizeSymbols(module.symbols),
+    children: summarizeSymbols(module.children),
     summary: module.summary,
   };
 };
@@ -96,9 +89,7 @@ var summarizeModule = function(module) {
 exports.summarizeLib = function(dir) {
   logging.debug("Scanning: #{dir}");
   var entries = fs.readdir(dir);
-  var symbols = {};
-  var dirs = {};
-  var modules = {};
+  var children = {};
 
   if (!( entries .. array.contains(INDEX_FILENAME))) {
     logging.info("SKIP: #{dir}");
@@ -112,7 +103,7 @@ exports.summarizeLib = function(dir) {
     if (fs.stat(path).isDirectory()) {
       var lib = exports.summarizeLib(path);
       if (lib) {
-        dirs[ent] = lib;
+        children[ent + '/'] = lib;
       }
     } else {
       if (ent .. str.startsWith(INDEX_BASENAME + '.')) {
@@ -121,7 +112,7 @@ exports.summarizeLib = function(dir) {
         var mod = exports.readModule(path);
         if (mod) {
           var [name, mod] = mod;
-          modules[name] = summarizeModule(mod);
+          children[name] = summarizeModule(mod);
         }
       }
     }
@@ -130,8 +121,7 @@ exports.summarizeLib = function(dir) {
   return {
     type: "lib",
     summary: dirInfo.summary,
-    dirs: dirs,
-    modules: modules,
+    children: children,
   };
 };
 
@@ -143,7 +133,12 @@ exports.readModule = function(path) {
 
   logging.debug("Reading: #{path}");
   var name = Path.basename(path, EXT);
-  var mod = docutil.parseModuleDocs(fs.readFile(path));
+  try {
+    var mod = docutil.parseModuleDocs(fs.readFile(path));
+  } catch(e) {
+    e.message = "Failed to process module #{path}: #{e.message}";
+    throw e;
+  }
   if (mod.nodoc) {
     logging.debug('@nodoc found, omitting...');
     return null;
