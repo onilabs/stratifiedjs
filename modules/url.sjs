@@ -163,6 +163,24 @@ exports.build = sys.constructURL;
   @return {Object} Parsed URL as described at <http://stevenlevithan.com/demo/parseuri/js/> (using 'strict' mode).
   @desc
      Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
+
+     **Note:** this function does *NOT* decode the URL components.
+
+     For example, `parse('http://example.com/file%20name').file`
+     will return `'file%20name'`, not 'file name'.
+
+     In addition to the above description of the `parseuri` function, the
+     object returned has a single method:
+
+      * `params()` -> returns an object populated from the query string.
+        Unlike the keys of the parsed URL, both keys & values are URL-decoded.
+
+        The behaviour when a key is specified more than once is for the last
+        value to override previous values.
+
+        The presence of invalid (non-UTF-8) escape sequences in a query string
+        will cause this function to throw an error, since this is the behaviour
+        of decodeURIComponent.
 */
 exports.parse = sys.parseURL;
 
@@ -278,6 +296,6 @@ exports.toPath = function(url) {
       environment, since there is no concept of a working directory there.
 */
 exports.fileURL = function(path) {
-  return 'file://' + encodeURIComponent(pathMod.resolve(path)).replace(/%2[fF]/g, '/');
+  return 'file://' + encodeURI(pathMod.resolve(path));
 }
 

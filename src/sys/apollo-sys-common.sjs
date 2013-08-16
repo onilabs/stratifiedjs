@@ -209,30 +209,31 @@ URI.prototype = {
     return "#{this.protocol}://#{this.authority}#{this.relative}";
   }
 };
+URI.prototype.params = function() {
+  if (!this._params) {
+    var rv = {};
+    this.query.replace(parseURLOptions.qsParser, function(_,k,v) {
+      if (k) rv[decodeURIComponent(k)] = decodeURIComponent(v);
+    });
+    this._params = rv;
+  }
+  return this._params;
+};
+
+var parseURLOptions = {
+  key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+  qsParser: /(?:^|&)([^&=]*)=?([^&]*)/g,
+  // We're only using the 'strict' mode parser:
+  parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+}
 
 exports.parseURL = function(str) {
-  var o = exports.parseURL.options,
+  var o = parseURLOptions,
   m = o.parser.exec(str),
   uri = new URI(),
   i = 14;
-  
   while (i--) uri[o.key[i]] = m[i] || "";
-  
-  uri[o.q.name] = {};
-  uri[o.key[12]].replace(o.q.parser, function($0, $1, $2) {
-    if ($1) uri[o.q.name][$1] = $2;
-  });
-  
   return uri;
-};
-exports.parseURL.options = {
-	key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
-	q:   {
-		name:   "queryKey",
-		parser: /(?:^|&)([^&=]*)=?([^&]*)/g
-	},
-  // We're only using the 'strict' mode parser:
-	parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/
 };
 
 /**

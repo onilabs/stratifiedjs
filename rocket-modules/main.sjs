@@ -145,7 +145,7 @@ logging.setLevel(logLevel);
 
 // helper filter to wrap a file in a jsonp response:
 function json2jsonp(src, dest, req) {
-  var callback = req.parsedUrl.queryKey['callback'];
+  var callback = req.parsedUrl.params()['callback'];
   if (!callback) callback = "callback";
   dest.write(callback + "(");
   stream.pump(src, dest);

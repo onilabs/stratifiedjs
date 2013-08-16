@@ -354,7 +354,7 @@ function createMappedDirectoryHandler(root, formats, flags)
     if (pathAndFormat[1])
       format = { name: pathAndFormat[1], mandatory: true };
     else 
-      format = { name: request.parsedUrl.queryKey.format || "none" };
+      format = { name: request.parsedUrl.params().format || "none" };
 
     var file = relativePath ? path.join(root, relativePath) : root;
     if (process.platform == "win32") {

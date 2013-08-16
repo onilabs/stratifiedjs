@@ -1,3 +1,3 @@
-<%=uri.queryKey["callback"]%>({
-  "data": "<%=uri.queryKey["data"]%>"
+<%=uri.params()["callback"]%>({
+  "data": "<%=uri.params()["data"]%>"
 });

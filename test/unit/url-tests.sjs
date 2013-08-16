@@ -10,6 +10,17 @@ context('build query string') {||
   testFn(url, 'buildQuery', [[[null,[{a:1,b:["x","y"]},{c:3}],[[]]]]], "a=1&b=x&b=y&c=3");
 }
 
+context('parsing') {||
+  test('decodes query string') {||
+    url.parse('http://example.com?q%20s=x%26').params() .. assert.eq({'q s':'x&'});
+  }
+
+  test('params() fails for invalid utf-8 sequences') {||
+    var u = url.parse('http://example.com?q=%c3%28');
+    assert.raises( -> u.params());
+  }
+}
+
 context('build URL') {||
   testFn(url, 'build', ["foo.txt"], "foo.txt");
   testFn(url, 'build', ["foo", "bar", "foo.txt"], "foo/bar/foo.txt");

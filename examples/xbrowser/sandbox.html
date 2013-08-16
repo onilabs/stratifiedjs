@@ -22,7 +22,7 @@ initLogging();
 
 var cmd = document.location.getParameter ? 
   document.location.getParameter('cmd') :
-  require('sjs:url').parse(document.location).queryKey.cmd;
+  require('sjs:url').parse(document.location).params().cmd;
 if (cmd) c.exec(decodeURIComponent(cmd));
 
 c.focus();
