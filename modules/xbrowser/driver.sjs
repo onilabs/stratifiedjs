@@ -251,22 +251,33 @@ fns.assertHidden = (elem, desc) -> fns.assertVisibility(elem, false, desc);
 fns.assertShown = (elem, desc) -> fns.assertVisibility(elem, true, desc);
 fns.hasClass = (elem, cls) -> elem.classList.contains(cls);
 
+var DEFAULT_TIMEOUT = 2; // seconds
+var DEFAULT_INTERVAL = 100; // ms
 fns.waitforSuccess = function(fn, desc, timeout, interval) {
-	var result;
-	exports.waitforCondition(function() {
+	timeout = timeout || DEFAULT_TIMEOUT;
+	interval = interval || DEFAULT_INTERVAL;
+	var lastError;
+	waitfor {
+		var result;
 		try {
 			result = fn();
 		} catch(e) {
-			return false;
+			lastError = e;
+			hold(interval);
 		}
-		return true;
-	}, desc, timeout, interval);
-	return result;
+		return result;
+	} or {
+		hold(timeout * 1000);
+		if (lastError) throw lastError;
+		var msg = "Timed out after #{timeout}s"
+		if (desc) msg += " (#{desc})"
+		throw new AssertionError(msg);
+	}
 }
 
 fns.waitforCondition = function(fn, desc, timeout, interval) {
-	timeout = timeout || 2; // seconds
-	interval = interval || 100; // ms
+	timeout = timeout || DEFAULT_TIMEOUT;
+	interval = interval || DEFAULT_INTERVAL;
 	waitfor {
 		var result;
 		while(!(result = fn())) {
