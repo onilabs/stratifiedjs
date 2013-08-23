@@ -340,3 +340,55 @@ exports.override = function(/*dest, source...*/) {
   return dest;
 };
 
+
+/**
+   @function construct
+   @param {Object} [proto] Prototype to inherit from
+   @param {Arguments} [arguments] Arguments to pass to `_init`
+   @return {Object} The newly-constructed object
+   @summary Create and initialize a new object
+   @desc
+      This function is shorthand for the following construction pattern
+      given a prototype object that has an optional `_init` initialization method:
+
+          var rv = Object.create(proto);
+          if (rv._init) rv._init.apply(rv, args);
+          return rv;
+*/
+exports.construct = function(proto, args) {
+  var rv = Object.create(proto);
+  if (rv._init) rv._init.apply(rv, args);
+  return rv;
+};
+
+/**
+   @function Constructor
+   @param {Object} [proto] Prototype to inherit from
+   @return {Object} An object constructor
+   @summary Create a constructor function for the given prototype.
+   @desc
+      
+      This function builds a constructor function for the given prototype.
+      The returned function can be used to construct an object without the `new` keyword.
+
+      See [::construct] for details on how the object is created.
+
+      ### Eample:
+
+          var ClsProto = {};
+          ClsProto._init = function(val) {
+            this.value = val;
+          };
+          var Cls = Constructor(ClsProto);
+
+          var instance = Cls(1);
+          instance.value;
+            // 1
+
+          ObjProto.isPrototypeOf(instance);
+            // true
+
+*/
+exports.Constructor = function(proto) {
+  return () -> exports.construct(proto, arguments);
+};
