@@ -6,5 +6,5 @@ if [ "$#" -lt 0 ]; then
 fi
 action="$1"
 shift
-base="$(dirname "$(dirname "$(readlink -f "$0")")")"
+base="$(dirname "$(cd "$(dirname "$0")" && pwd)")"
 "$base/tools/bin/karma.sjs" "$action" tools/karma/conf.js "$@"
