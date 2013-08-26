@@ -137,6 +137,20 @@ function ServerRequest(req, res, ssl) {
   this.body = receiveBody(this.request);
 }
 
+var getConnections = function(server) {
+  if (server.getConnections) {
+    waitfor(var err, rv) {
+      server.getConnections(resume);
+    }
+    if (err) throw err;
+    return rv;
+  } else {
+    // Old sync API
+    return server.connections;
+  }
+};
+
+
 /**
    @function withServer
    @altsyntax withServer(settings) { |server| ... }
@@ -311,7 +325,8 @@ function withServer(config, server_loop) {
           nodeServer: server,
           address: address,
           stop: function() { try { server.close() } catch(e) {} },
-          eachRequest: function(handler) { 
+          getConnections: -> server .. getConnections(),
+          eachRequest: function(handler) {
             waitfor {
               if (!server_closed)
                 server .. events.wait('close');
@@ -360,8 +375,9 @@ function withServer(config, server_loop) {
     if (!server_closed) {
       try { server.close(); } catch(e) { /* ignore */ }
     }
-    if (server.connections) {
-      config.log("Server closed, but #{server.connections} lingering open connections");
+    var connections = server .. getConnections();
+    if (connections) {
+      config.log("Server closed, but #{connections} lingering open connections");
       // XXX close connections
     }
     else 
