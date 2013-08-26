@@ -47,6 +47,7 @@ var url = require('../url');
 var { Queue } = require('../cutil');
 var { override } = require('../object');
 var events = require('../events');
+var logging = require('../logging');
 
 //----------------------------------------------------------------------
 // XXX nodejs < v8 backfill:
@@ -167,7 +168,7 @@ var getConnections = function(server) {
    @setting {String}  [cert] The server certificate in PEM format. (Required when `ssl=true`.)
    @setting {Array}   [ca] Optional array of authority certificates. (Only used when `ssl=true`.)
    @setting {String}  [passphrase] Optional passphrase to decrypt an encrypted private `key`.
-   @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, debug output will logged to `process.stdout`.
+   @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, uses [../logging::info]
    @desc
       `withServer` will start a HTTP(S) server according to the given 
       configuration and pass a [::Server] instance to `block`. The server will
@@ -225,7 +226,7 @@ function withServer(config, server_loop) {
     ca: undefined,
     passphrase: undefined,
     fd: undefined,
-    log: x => process.stdout.write("#{address}: #{x}\n")
+    log: x => logging.info(address, ":", x)
   }, config);
 
   var [,host,port] = /^(?:(.*)?\:)?(\d+)$/.exec(config.address);
