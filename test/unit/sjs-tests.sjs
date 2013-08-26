@@ -1,5 +1,6 @@
 var suite = require('sjs:test/suite');
-var {context} = suite;
+var {context, assert} = suite;
+var logging = require('sjs:logging');
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
 var testParity = testUtil.testParity;
@@ -84,6 +85,31 @@ test("Evaluation order: var x; (function() { x=1;})() @ (function() {x=2;})(); x
 test("var x=0; (function() { try { x=2; hold(1000); } finally { x=1; } })() @ 3; x", 1, function() { var x=0; waitfor {(function() { try { x=2; hold(1000); } finally { x=1; } })() } or { 3; } return x; });
 
 test("'\r'== String.fromCharCode(13)", true, function() { return '\r'==String.fromCharCode(13); });
+
+suite.test('BROKEN: maximum SJS stack depth is at least 1/5th of JS', function() {
+  var sjs=0,js=0;
+  var _sjs = function() {
+    sjs++;
+    return _sjs();
+  }
+  try {
+    _sjs();
+  } catch(e) { /* ... */ }
+
+  __js {
+  var _js =
+  function() {
+    js++;
+    return _js();
+  }
+  }
+  try {
+    _js();
+  } catch(e) { /* ... */ }
+  var ratio = js / sjs;
+  logging.info("Got #{js} JS stack depth, and #{sjs} SJS stack depth");
+  assert.ok(ratio < 5, "sjs:js maximum stack size ratio is #{ratio}");
+}).skip();
 
 function obj_with_foo_member() { this.foo = 1; }
 test("new obj",  1, function() { var obj = new obj_with_foo_member(); return obj.foo;});
