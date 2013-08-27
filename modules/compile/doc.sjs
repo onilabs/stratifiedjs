@@ -72,7 +72,7 @@ var summarizeSymbols = function(children) {
     .. transform(function([name, sym]) {
         var obj = {type: sym.type};
         if (sym.children) {
-          obj.children = summarizeSymbols(obj.children);
+          obj.children = summarizeSymbols(sym.children);
         }
         return [name, obj];
     }) .. pairsToObject();

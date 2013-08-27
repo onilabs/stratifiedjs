@@ -191,6 +191,12 @@ exports.parseSJSLibDocs = function(src) {
 var paramRE = /^(?:\{([^\}]+)\})?(?:[\t ]*\[([^\]=]+)(?:\=((?:[^\[\]]|\[[^\[\]]*\])+))?\])?(?:[\t ]*\n?\r?(.(?:.|\n|\r)*))?$/;
 var paramType = 1, paramName = 2, paramDefault = 3, paramDescription = 4;
 
+var leadingVowel = /^[aeiou]/i;
+var english_a = function(word) {
+  if (leadingVowel.test(word)) return "an #{word}";
+  return "a #{word}";
+};
+
 exports.parseModuleDocs = function(src, module) {
   var module = merge({ type: "module", children: {}, }, module);
   var curr = module; // 'curr' determines where 'param', 'return', 'setting', 'attrib' are appended to
@@ -223,14 +229,14 @@ exports.parseModuleDocs = function(src, module) {
           curr = module.children[value].children[value] = { type: "ctor",
                                                             nonew: true,
                                                             "return": {type:"return", valtype:"::"+value},
-                                                            summary: "Create a #{value} object."
+                                                            summary: "Create #{english_a(value)} object."
                                                           };
         }
         else if (prop == 'constructor') {
           // constructor
           curr = module.children[value].children[value] = { type: "ctor",
                                                             "return": {type:"return", valtype:"::"+value},
-                                                            summary: "Constructor for "+value+" object."};
+                                                            summary: "Constructor for "+english_a(value)+" object."};
         }
         else {
           // prototype
