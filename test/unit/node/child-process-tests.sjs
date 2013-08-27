@@ -1,4 +1,5 @@
 var { context, test, assert } = require('sjs:test/suite');
+var { integers, take, any } = require('sjs:sequence');
 
 context {||
   var testUtil = require('../../lib/testUtil')
@@ -20,6 +21,23 @@ context {||
     testEq('exec("echo 2 >&2")', {stdout: '', stderr: '2\n'}, function() {
       return child_process.exec('echo 2 >&2');
     });
+  }
+
+  context('isRunning') {||
+    test('returns true for a running PID') {||
+      child_process.isRunning({pid: process.pid}) .. assert.truthy();
+    }
+
+    test("returns true for a running PID that we don't own") {||
+      child_process.isRunning({pid: 1}) .. assert.truthy();
+    }
+
+    test("returns false for a non-running PID") {||
+      // can't exhaustively check for non-running PIDs, just try a bunch
+      // of pids greater than our own (since we probably started recently)
+      var pids = integers(process.pid, undefined, 100) .. take(50);
+      pids .. any(p -> child_process.isRunning({pid: p})) .. assert.ok();
+    }
   }
 
   //-------------------------------------------------------------

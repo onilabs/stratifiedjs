@@ -214,6 +214,9 @@ exports.wait = function(child) {
    @setting {Boolean} [detached=false] If `true`, the process to be killed is assumed to be
                       a process group leader, and the process group will be killed instead
                       of just the process.
+   @desc
+     If `wait` is true and the process is not currently running, no kill is performed - this
+     function returns immediately.
 */
 var kill = exports.kill = function(child, options) {
   function kill() {
@@ -226,6 +229,7 @@ var kill = exports.kill = function(child, options) {
   if(options && options.wait === false) {
     kill();
   } else {
+    if (!child .. isRunning()) return;
     waitfor() {
       child.on(STREAMS_CLOSED_SIGNAL, resume);
       kill();
@@ -236,3 +240,16 @@ var kill = exports.kill = function(child, options) {
   }
 };
 
+/**
+  @function isRunning
+  @summary Check whether the given process is running
+  @return {Boolean}
+  @param {Object} [child]
+*/
+var isRunning = exports.isRunning = function(child) {
+  try {
+    return process.kill(child.pid, 0);
+  } catch(e) {
+    return e.code === 'EPERM';
+  }
+};
