@@ -1452,6 +1452,7 @@ var MAX_PRECISE_INT = 9007199254740992; // 2^53
    @function integers
    @param {optional Integer} [start=0] Start integer
    @param {optional Integer} [end=2^53] End integer
+   @param {optional Integer} [skip=1] Amount to increment each number
    @return {::Stream}
    @summary Generate a stream of integers from `start` to `end`
    @desc
@@ -1459,11 +1460,15 @@ var MAX_PRECISE_INT = 9007199254740992; // 2^53
      
          // print integers from 1 to 100:
          integers(1,100) .. each { |x| console.log(x) }
+
+         // print even integers from 0 to 100:
+         integers(0,100,2) .. each { |x| console.log(x) }
 */
-function integers(start, end) {
-  if (start == undefined) start = 0;
-  if (end == undefined) end = MAX_PRECISE_INT;
-  return Stream(function(r) { for (var i=start;i<= end;++i) r(i) });
+function integers(start, end, skip) {
+  if (start === undefined) start = 0;
+  if (end === undefined) end = MAX_PRECISE_INT;
+  if (skip === undefined) skip = 1;
+  return Stream(function(r) { for (var i=start;i<= end;i+=skip) r(i) });
 }
 exports.integers = integers;
 

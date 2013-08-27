@@ -637,6 +637,10 @@ context('slice') {||
     s.integers() .. s.slice(1, -5) .. s.take(4) .. toArray .. assert.eq([1,2,3,4]);
   }
 
+  test('integers with skip') {||
+    s.integers(0, 10, 2) .. toArray .. assert.eq([0,2,4,6,8,10]);
+  }
+
   test('slow emitter') {||
     var emitted = [];
     var receivedNeg = [];
