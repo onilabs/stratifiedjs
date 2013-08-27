@@ -80,7 +80,7 @@ exports.hostenv = __oni_rt.hostenv;
    @function getGlobal
    @summary see [../../modules/sys::getGlobal]
 */
-exports.getGlobal = function() { return __oni_rt.G; };
+__js exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
    @function isArrayLike
@@ -90,7 +90,7 @@ exports.getGlobal = function() { return __oni_rt.G; };
    @desc
      See [../../modules/array::isArrayLike]
 */
-exports.isArrayLike = function(obj) {
+__js exports.isArrayLike = function(obj) {
   return Array.isArray(obj) || 
          !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
          !!(typeof NodeList == 'function' && obj instanceof NodeList);
@@ -106,7 +106,7 @@ exports.isArrayLike = function(obj) {
   @desc
     See [../../modules/array::flatten]
 */
-exports.flatten = function(arr, rv) {
+__js exports.flatten = function(arr, rv) {
   var rv = rv || [];
   var l=arr.length;
   for (var i=0; i<l; ++i) {
@@ -137,7 +137,7 @@ exports.flatten = function(arr, rv) {
 
       Note that flattening is only applied if a single argument is given, and flattening is non-recursive.
 */
-exports.expandSingleArgument = function(args) {
+__js exports.expandSingleArgument = function(args) {
   if (args.length == 1 && exports.isArrayLike(args[0]))
     args = args[0];
   return args;
@@ -151,7 +151,7 @@ exports.expandSingleArgument = function(args) {
    @desc
      See [../../modules/quasi::isQuasi]
 */
-exports.isQuasi = function(obj) {
+__js exports.isQuasi = function(obj) {
   return (obj instanceof __oni_rt.QuasiProto);
 };
 
@@ -167,7 +167,7 @@ exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)};
    @function mergeObjects
    @summary See [../../modules/object::merge]
 */
-exports.mergeObjects = function(/*source*/) {
+__js exports.mergeObjects = function(/*source*/) {
   var rv = {};
   var sources = exports.expandSingleArgument(arguments);
   for (var i=0; i<sources.length; i++) {
@@ -180,7 +180,7 @@ exports.mergeObjects = function(/*source*/) {
    @function extendObject
    @summary See [../../modules/object::extend]
 */
-exports.extendObject = function(dest, source) {
+__js exports.extendObject = function(dest, source) {
   for (var o in source) {
     if (Object.hasOwnProperty.call(source, o)) dest[o] = source[o];
   }
@@ -203,38 +203,40 @@ exports.extendObject = function(dest, source) {
   MIT License
   http://blog.stevenlevithan.com/archives/parseuri
 */
+__js {
 function URI() {}
-URI.prototype = {
-  toString: function() {
-    return "#{this.protocol}://#{this.authority}#{this.relative}";
-  }
-};
-URI.prototype.params = function() {
-  if (!this._params) {
-    var rv = {};
-    this.query.replace(parseURLOptions.qsParser, function(_,k,v) {
-      if (k) rv[decodeURIComponent(k)] = decodeURIComponent(v);
-    });
-    this._params = rv;
-  }
-  return this._params;
-};
+  URI.prototype = {
+    toString: function() {
+      return "#{this.protocol}://#{this.authority}#{this.relative}";
+    }
+  };
+  URI.prototype.params = function() {
+    if (!this._params) {
+      var rv = {};
+      this.query.replace(parseURLOptions.qsParser, function(_,k,v) {
+        if (k) rv[decodeURIComponent(k)] = decodeURIComponent(v);
+      });
+      this._params = rv;
+    }
+    return this._params;
+  };
 
-var parseURLOptions = {
-  key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
-  qsParser: /(?:^|&)([^&=]*)=?([^&]*)/g,
-  // We're only using the 'strict' mode parser:
-  parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+  var parseURLOptions = {
+    key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+    qsParser: /(?:^|&)([^&=]*)=?([^&]*)/g,
+    // We're only using the 'strict' mode parser:
+    parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+  }
+
+  exports.parseURL = function(str) {
+    var o = parseURLOptions,
+    m = o.parser.exec(str),
+    uri = new URI(),
+    i = 14;
+    while (i--) uri[o.key[i]] = m[i] || "";
+    return uri;
+  };
 }
-
-exports.parseURL = function(str) {
-  var o = parseURLOptions,
-  m = o.parser.exec(str),
-  uri = new URI(),
-  i = 14;
-  while (i--) uri[o.key[i]] = m[i] || "";
-  return uri;
-};
 
 /**
   @function  constructQueryString
@@ -244,7 +246,7 @@ exports.parseURL = function(str) {
   @desc
     See [../../modules/url::buildQuery]
 */
-exports.constructQueryString = function(/*hashes*/) {
+__js exports.constructQueryString = function(/*hashes*/) {
   var hashes = exports.flatten(arguments);
   var hl = hashes.length;
   var parts = [];
@@ -271,7 +273,7 @@ exports.constructQueryString = function(/*hashes*/) {
                    and query hashes. See [../../modules/url::build] for full syntax.
   @return {String}
 */
-exports.constructURL = function(/* url_spec */) {
+__js exports.constructURL = function(/* url_spec */) {
   var url_spec = exports.flatten(arguments);
   var l = url_spec.length;
   var rv = url_spec[0];
@@ -308,7 +310,7 @@ exports.constructURL = function(/* url_spec */) {
   @param {String} [url1] First URL.
   @param {String} [url2] Second URL.
 */
-exports.isSameOrigin = function(url1, url2) {
+__js exports.isSameOrigin = function(url1, url2) {
   var a1 = exports.parseURL(url1).authority;
   if (!a1) return true;
   var a2 = exports.parseURL(url2).authority;
@@ -324,7 +326,7 @@ exports.isSameOrigin = function(url1, url2) {
   @param {optional String} [base] URL which will be taken as a base if *url* is relative.
   @return {String} Canonicalized URL.
 */
-exports.canonicalizeURL = function(url, base) {
+__js exports.canonicalizeURL = function(url, base) {
 
   if (__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32') {
     // special case for mapping Windows paths in nodejs hostenv

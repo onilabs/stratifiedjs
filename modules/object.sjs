@@ -300,7 +300,7 @@ exports.merge = mergeObjects;
     The return type when given either an Array or an `arguments` object will
     be a new Array with the same elements as `source`.
 */
-exports.clone = function(obj) {
+__js exports.clone = function(obj) {
   if (require('builtin:apollo-sys').isArrayLike(obj)) {
     return Array.prototype.slice.call(obj);
   }
