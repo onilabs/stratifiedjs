@@ -2200,19 +2200,102 @@ exports.Collapse=makeINCtor(I_collapse);
 
 
 
+exports.G=window;
+
+
+
+
 
 function dummy(){}
 
-exports.Hold=function(){if(!arguments.length)return {__oni_ef:true,quench:dummy,abort:dummy};
 
+
+var hold0,clear0;
+if(exports.G.setImmediate){
+hold0=exports.G.setImmediate;
+clear0=exports.G.clearImmediate;
+}else if(exports.G.postMessage&&!exports.G.importScripts){
+
+var postMessageIsAsync=true;
+var oldOnMessage=exports.G.onmessage;
+exports.G.onmessage=function(){postMessageIsAsync=false;
+
+};
+exports.G.postMessage("","*");
+exports.G.onmessage=oldOnMessage;
+if(postMessageIsAsync){
+
+
+var MESSAGE_PREFIX="com.onilabs.hold0"+Math.random();
+
+var tasks={};
+
+function isStringAndStartsWith(string,putativeStart){return typeof string==='string'&&string.substring(0,putativeStart.length)===putativeStart;
+
+}
+
+function onGlobalMessage(event){if(event.source===exports.G&&isStringAndStartsWith(event.data,MESSAGE_PREFIX)){
+
+
+var id=event.data.substring(MESSAGE_PREFIX.length);
+var f;
+if((f=tasks[id])){
+delete tasks[id];
+f();
+}
+}
+}
+
+if(exports.G.addEventListener){
+exports.G.addEventListener("message",onGlobalMessage,false);
+}else{
+
+exports.G.attachEvent("onmessage",onGlobalMessage);
+}
+
+var id_counter=1;
+
+var hold0=function(f){var id=id_counter++ ;
+
+tasks[id]=f;
+exports.G.postMessage(MESSAGE_PREFIX+id,"*");
+return id;
+};
+
+var clear0=function(id){delete tasks[id];
+
+};
+}
+}
+
+if(!hold0){
+hold0=function(co){return setTimeout(s,0)};
+clear0=clearTimeout;
+}
+
+exports.Hold=function(duration_ms){if(duration_ms===UNDEF)return {__oni_ef:true,quench:dummy,abort:dummy};
+
+
+if(duration_ms===0){
+var sus={__oni_ef:true,abort:dummy,quench:function(){
+
+sus=null;clear0(this.co)},co:hold0(function(){
+if(sus&&sus.parent)cont(sus.parent,sus.parent_idx,UNDEF);
+
+
+})};
+
+return sus;
+}else{
 
 var sus={__oni_ef:true,abort:dummy,quench:function(){
 
 sus=null;clearTimeout(this.co)}};
 
-sus.co=setTimeout(function(){if(sus&&sus.parent)cont(sus.parent,sus.parent_idx,UNDEF)},arguments[0]);
+sus.co=setTimeout(function(){if(sus&&sus.parent)cont(sus.parent,sus.parent_idx,UNDEF)},duration_ms);
 
 return sus;
+}
 };
 
 exports.Throw=function(exp,line,file){return new CFException("t",exp,line,file)};
@@ -2324,7 +2407,6 @@ if(UA.indexOf(" chrome/")>=0)UA="chrome";else if(UA.indexOf(" firefox/")>=0)UA="
 exports.hostenv="xbrowser";
 exports.UA=UA;
 
-exports.G=window;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
 

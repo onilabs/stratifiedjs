@@ -122,7 +122,7 @@ time("tail recursion", function() {
   }
 
   return r(100000);
-}).serverOnly(); // browser hold(0) is too slow
+});
 
 time("waitfor/and tail recursion", function() {
   
@@ -140,7 +140,7 @@ time("waitfor/and tail recursion", function() {
   }
 
   return r(100000);
-}).serverOnly(); // browser hold(0) is too slow
+});
 
 time("custom constructor", function() {
   function Cls(a) {

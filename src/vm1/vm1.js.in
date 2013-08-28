@@ -2383,26 +2383,113 @@ function I_collapse(ndata, env) {
 }
   
 exports.Collapse = makeINCtor(I_collapse);
+
+//----------------------------------------------------------------------
+
+#if defined (CLIENTSIDE)
+exports.G = window;
+#elif defined (NODEJS)
+exports.G = global;
+#endif
+
   
 //----------------------------------------------------------------------
 // builtin strict functions
 
 function dummy() {}
 
-exports.Hold = function(/*args*/) {
-  if (!arguments.length)
+// setTimeout has a minimum delay of 4ms; we want hold(0) to be faster
+// see e.g. https://github.com/NobleJS/setImmediate/blob/master/setImmediate.js
+var hold0, clear0;
+if (exports.G.setImmediate) {
+  hold0 = exports.G.setImmediate;
+  clear0 = exports.G.clearImmediate;
+}
+else if (exports.G.postMessage && !exports.G.importScripts) {
+  var postMessageIsAsync = true;
+  var oldOnMessage = exports.G.onmessage;
+  exports.G.onmessage = function() {
+    postMessageIsAsync = false;
+  };
+  exports.G.postMessage("", "*");
+  exports.G.onmessage = oldOnMessage;
+  if (postMessageIsAsync) {
+    // install an event handler on `global` for the `message` event;
+    // draws heavily from https://github.com/NobleJS/setImmediate/blob/master/setImmediate.js
+    var MESSAGE_PREFIX = "com.onilabs.hold0" + Math.random();
+
+    var tasks = {};
+
+    function isStringAndStartsWith(string, putativeStart) {
+      return typeof string === 'string' && string.substring(0, putativeStart.length) === putativeStart;
+    }
+    
+    function onGlobalMessage(event) {
+      if (event.source === exports.G && 
+          isStringAndStartsWith(event.data, MESSAGE_PREFIX)) {
+        var id = event.data.substring(MESSAGE_PREFIX.length);
+        var f;
+        if ((f = tasks[id])) {
+          delete tasks[id];
+          f();
+        }
+      }
+    }
+
+    if (exports.G.addEventListener) {
+      exports.G.addEventListener("message", onGlobalMessage, false);
+    }
+    else {
+      exports.G.attachEvent("onmessage", onGlobalMessage);
+    }
+
+    var id_counter = 1;
+
+    var hold0 = function(f) {
+      var id = id_counter++;
+      tasks[id] = f;
+      exports.G.postMessage(MESSAGE_PREFIX + id, "*");
+      return id;
+    };
+    
+    var clear0 = function(id) {
+      delete tasks[id];
+    };
+  }
+}
+
+if (!hold0) {
+  hold0 = function(co) { return setTimeout(s, 0) };
+  clear0 = clearTimeout;
+}
+
+exports.Hold = function(duration_ms) {
+  if (duration_ms === UNDEF)
     return { __oni_ef: true, quench: dummy, abort: dummy };
-  var sus = { __oni_ef: true,
-              abort: dummy,
+  if (duration_ms === 0) {
+    var sus = { __oni_ef: true, 
+                abort: dummy,
+                quench: function() { sus = null; clear0(this.co); },
+                co: hold0(function() { 
+                  if (sus && sus.parent) 
+                    cont(sus.parent, sus.parent_idx, UNDEF);
+                })
+              };
+    return sus;
+  }
+  else {
+    var sus = { __oni_ef: true,
+                abort: dummy,
 #if defined (CLIENTSIDE) || defined (NODEJS)
-              quench: function() { sus = null; clearTimeout(this.co); }
+                quench: function() { sus = null; clearTimeout(this.co); }
 #else
-              quench: function() { sus = null; this.co.cancel(); }
+                quench: function() { sus = null; this.co.cancel(); }
 #endif
-            };
-  sus.co = setTimeout(function() { if (sus && sus.parent) cont(sus.parent, sus.parent_idx, UNDEF); },
-                      arguments[0]);
-  return sus;
+              };
+    sus.co = setTimeout(function() { if (sus && sus.parent) cont(sus.parent, sus.parent_idx, UNDEF); },
+                        duration_ms);
+    return sus;
+  }
 };
 
 exports.Throw = function(exp, line, file) { return new CFException("t", exp, line, file); };
@@ -2519,8 +2606,3 @@ exports.hostenv = "nodejs";
 #endif
 exports.UA = UA;
 
-#if defined (CLIENTSIDE)
-exports.G = window;
-#elif defined (NODEJS)
-exports.G = global;
-#endif
