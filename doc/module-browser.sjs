@@ -31,7 +31,7 @@ and {
 }
 and {
   // preload:
-  spawn require('./showdown');
+  spawn require('sjs:marked');
 }
 
 //----------------------------------------------------------------------
@@ -769,7 +769,8 @@ function makeTypeHTML(type, location) {
   return type.join("|");
 }
 
-function resolveLink(id, location) {
+function resolveLink(id, location, markdown) {
+  var codeBlock = markdown ? (c) -> "`#{c}`" : (c) -> "<code>#{c}</code>";
   if (id.indexOf("::") == -1) return null; // ids we care about contain '::' 
   var resolved = null;
   if (id.charAt(id.length-1) == ':') {
@@ -782,12 +783,12 @@ function resolveLink(id, location) {
   else if (id.charAt(0) != ':') {
     // 'absolute' link into another module of our lib
     // e.g. "cutil::Semaphore::acquire"
-    resolved = [location.path+id, "<code>"+id+"</code>"];
+    resolved = [location.path+id, codeBlock(id)];
   }
   else {
     // 'relative' link into our module
     // e.g. "::Semaphore::acquire", or "::foo"
-    resolved = [location.path+location.module+id, "<code>"+id.substring(2)+"</code>"];
+    resolved = [location.path+location.module+id, codeBlock(id.substring(2))];
   }
   if (!resolved) return null;
 
@@ -798,6 +799,13 @@ function resolveLink(id, location) {
 
 
 function markup(text, location) {
-  function resolve(id) { return resolveLink(id, location); }
-  return require('./showdown').makeHTML(text, resolve);
+  if (!text) return undefined;
+  // try to linkify everything that looks like a doc reference
+  text = text.replace(/\[([^ \]]+)\](?![\[\(])/g, function(orig, dest) {
+    var resolved = resolveLink(dest, location, true);
+    if (!resolved) return orig;
+    var [link, dest] = resolved;
+    return "[#{dest}](#{link})";
+  });
+  return require('sjs:marked').convert(text, {sanitize:true});
 }
