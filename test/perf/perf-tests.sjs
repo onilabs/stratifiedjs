@@ -91,6 +91,12 @@ time("seq.each(arr*200)*200)", function() {
   seq.each(arr, function() { seq.each(arr, function(v) { accu += v; }) });
 });
 
+time("integers.. take(100000) .. filter .. transform .. each", function() {
+  var accu = 0;
+  seq.integers() .. seq.take(100000) .. seq.filter(x -> x%2) ..
+    seq.transform(x -> x*x) .. seq.each { |x| accu+=x }
+});
+
 test("collection module", '', function() {}).skip('module retired');
 testCompilation("debug module",
                 http.get("http://code.onilabs.com/sjs/latest/modules/debug.sjs"));
