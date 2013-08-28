@@ -118,11 +118,16 @@ exports.summarizeLib = function(dir) {
     }
   }
 
-  return {
+  var rv = {
     type: "lib",
-    summary: dirInfo.summary,
     children: children,
   };
+
+  ['summary', 'version'] .. each {|key|
+    if (dirInfo .. hasOwn(key)) rv[key] = dirInfo[key];
+  };
+
+  return rv;
 };
 
 exports.readModule = function(path) {

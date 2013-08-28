@@ -1,2 +1,2 @@
-@lib     Oni Apollo '0.14.0-1-development' Standard Module Library - Compilation Utilities
+@lib     StratifiedJS Standard Module Library - Compilation Utilities
 @summary SJS compilation utilities

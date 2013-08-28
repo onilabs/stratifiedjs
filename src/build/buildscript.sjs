@@ -36,7 +36,6 @@ function build_deps() {
                                                   "modules/jsondiffpatch.sjs",
                                                   "modules/marked.sjs",
                                                   "modules/dashdash.sjs",
-                                                  "modules/sjs-lib-index.json",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
                                                   "modules/compile/deps.js",
@@ -44,6 +43,7 @@ function build_deps() {
                                                   "modules/compile/minify.sjs",
                                                   "modules/compile/stringify.sjs",
                                                   "test/unit/dashdash-tests.sjs",
+                                                  "modules/sjs-lib-index.json",
                                                   "test/_index.txt"]);
 
   PSEUDO("compiler");
@@ -293,8 +293,11 @@ function build_deps() {
   //----------------------------------------------------------------------
   // module index
   BUILD("modules/sjs-lib-index.json",
-      ["./sjs sjs:compile/doc modules"],
-      ["stratified-node.js"]
+      [
+        function() { console.log("* Generating sjs-lib-index.json"); },
+        "./sjs sjs:compile/doc modules"
+      ],
+      ["stratified-node.js", "tmp/version_stamp"]
       );
   PSEUDO("modules/sjs-lib-index.json"); // it's backed by a file, but its dependencies are not enumerable
 
@@ -364,6 +367,7 @@ function replacements_from_config(target) {
   var src = fs.readFile(target).toString();
 
   var repl = src.replace(/Version: '[^']*'/g, "Version: '"+config.version+"'")
+                .replace(/@version\s*.*/, '@version '+config.version)
                 .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm.version+'"')
                 .replace(/"private"\s*:\s*[^,]*/, '"private" : '+config.npm['private']+'')
                 .replace(/StratifiedJS '[^']*' Standard Module Library/g, 

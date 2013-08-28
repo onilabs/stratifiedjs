@@ -1,2 +1,2 @@
-@lib     StratifiedJS '0.14.0-1-development' Standard Module Library - Xbrowser Modules
+@lib     StratifiedJS Standard Module Library - Xbrowser Modules
 @summary Basic cross-browser functionality

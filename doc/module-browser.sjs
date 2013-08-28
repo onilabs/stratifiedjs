@@ -219,8 +219,9 @@ function makeTrailView() {
           topDir(path_docs.path) +"</a>" + html;
         path_docs = path_docs.parent;
       }
+      var version = path_docs.version ? " (v#{path_docs.version})" : "";
       html = "<a href='#"+location.relativeLink(path_docs.path)+"'>"+
-        (path_docs.lib || "Unnamed Module Collection") +"</a>" + html;
+        (path_docs.lib || "Unnamed Module Collection")+ version +"</a>" + html;
     }
     if (location.module) {
       if (html.length) html += "&nbsp;<b>&raquo;</b>&nbsp;"
