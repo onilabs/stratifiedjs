@@ -91,10 +91,101 @@ time("seq.each(arr*200)*200)", function() {
   seq.each(arr, function() { seq.each(arr, function(v) { accu += v; }) });
 });
 
+__js  var sync_seq = {
+  integers: function() {
+    return seq.Stream(function(r) {
+      for (var i=0; i<100000; ++i)
+        r(i);
+    })
+  },
+  
+  each: function(sequence, f) {
+    try {
+      sequence(f);
+    }
+    catch (e) {
+      throw e;
+    }
+  },
+  
+  filter: function(sequence, f) {
+    return seq.Stream(function(r) {
+      sequence .. sync_seq.each(function(x) { try { if (f(x)) r(x) } catch(e) { throw e; }});
+    })
+  },
+  
+  transform: function(sequence, f) {
+    return seq.Stream(function(r) {
+      sequence .. sync_seq.each(function(x) { r(f(x)) });
+    })
+  }
+};
+
+
+__js function baseline_opt_seq_test() {
+  var accu = 0;
+  function wrap(x) { 
+    return function() {
+      try {
+        return x.apply(this, arguments);
+      }
+      catch (e) {
+        console.log(e);
+      }
+    }
+  }
+  sync_seq.integers() .. 
+    sync_seq.filter(wrap(x -> x%2)) .. 
+    sync_seq.transform(wrap(x -> x*x)) .. 
+    sync_seq.each(wrap(function(x){ accu+=x }));
+}
+
+time("[baseline all opt] integers(0, 100000) .. filter .. transform .. each", 
+     baseline_opt_seq_test);
+
+
+
+time("[func opt] integers(0, 100000) .. filter .. transform .. each", function() {
+  var accu = 0;
+
+  __js var mod2 = x -> x%2;
+  __js var square = x -> x*x;
+  __js var add = x -> accu+=x;
+
+  seq.integers(0,100000) .. seq.filter(mod2) ..
+    seq.transform(square) .. seq.each(add)
+});
+
+time("[harness opt] integers(0, 100000) .. filter .. transform .. each", function() {
+  var accu = 0;
+
+  var mod2 = x -> x%2;
+  var square = x -> x*x;
+  var add = x -> accu+=x;
+
+  sync_seq.integers(0,100000) .. sync_seq.filter(mod2) ..
+    sync_seq.transform(square) .. sync_seq.each(add)
+});
+
+
+
 time("integers.. take(100000) .. filter .. transform .. each", function() {
   var accu = 0;
   seq.integers() .. seq.take(100000) .. seq.filter(x -> x%2) ..
     seq.transform(x -> x*x) .. seq.each { |x| accu+=x }
+});
+
+
+time("integers.. take(100000) .. filter .. transform .. toArray", function() {
+  var accu = 0;
+  seq.integers() .. seq.take(100000) .. seq.filter(x -> x%2) ..
+    seq.transform(x -> x*x) .. seq.toArray;
+});
+
+time("integers.. take(100000) .. filter .. map", function() {
+  var accu = 0;
+  seq.integers() .. seq.take(100000) .. seq.filter(x -> x%2) ..
+    seq.map(x -> x*x);
 });
 
 test("collection module", '', function() {}).skip('module retired');
