@@ -321,6 +321,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_DOUBLEDOT 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
+#define ONE_SIDED_CONDITIONALS 1
 #include "kernel-jsmin.js.in"
 
 #ifdef STRINGIFY
@@ -364,6 +365,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_DOUBLEDOT 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
+#define ONE_SIDED_CONDITIONALS 1
 #include "kernel-deps.js.in"
 
 #else

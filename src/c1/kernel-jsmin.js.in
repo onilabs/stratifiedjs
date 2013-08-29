@@ -419,7 +419,7 @@ function quasi(parts) {
     return "function("+gen_fun_pars(pars)+")"+body;
 
 #define GEN_CONDITIONAL(test, consequent, alternative, pctx) \
-  return test+"?"+consequent+":"+alternative;
+  return test+"?"+consequent+(alternative === undefined ? "" : ":"+alternative);
 
 #define GEN_GROUP(e, pctx) return "("+e+")";
 

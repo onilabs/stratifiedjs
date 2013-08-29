@@ -1020,8 +1020,10 @@ S("||").ifx(140);
 
 S("?").exc(130, function(test, pctx) {
   var consequent = parseExp(pctx, 110);
-  scan(pctx, ":");
-  var alternative = parseExp(pctx, 110);
+  if (pctx.token.id == ":") {
+    scan(pctx, ":");
+    var alternative = parseExp(pctx, 110);
+  }
   
   return Dynamic;
 });
