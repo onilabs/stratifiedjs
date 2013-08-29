@@ -92,8 +92,9 @@ var compiler = require('./compile/deps.js');
 var fs = require('sjs:nodejs/fs');
 var url = require('sjs:url');
 var seq = require('sjs:sequence');
-var {each, toArray, map} = seq;
+var {each, toArray, map, transform} = seq;
 var str = require('sjs:string');
+var {split, rsplit} = str;
 var object = require('sjs:object');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
@@ -121,21 +122,21 @@ var shouldExcude = function(path, bases) {
 */
 function findDependencies(sources, settings) {
   var deps = {};
-  var aliases = settings.aliases || [];
+  var resources = settings.resources || [];
   var hubs = settings.hubs || [];
   var excludes = (settings.ignore || []).concat(['builtin:']);
   var strict = settings.strict !== false; // true by default
-  logging.verbose("aliases:", aliases);
+  logging.verbose("resources:", resources);
 
   var getId = function(id) {
-    aliases .. each {|[alias, path]|
+    resources .. each {|[alias, path]|
       logging.debug("checking if #{id} startswith #{path}");
       if (id .. str.startsWith(path)) {
         return alias + id.substr(path.length);
       }
     }
     if (!(id .. str.startsWith('file://'))) return id;
-    throw new Error("No module ID found for #{id} (missing an alias?)");
+    throw new Error("No module ID found for #{id} (missing a resource mapping?)");
   }
 
   var resolveHubs = function(requireName, depth) {
@@ -185,7 +186,7 @@ function findDependencies(sources, settings) {
     if (shouldExcude(requireName, excludes)) return;
     if (parent && parent.deps) parent.deps.push(resolved.path);
 
-    if (deps.hasOwnProperty(resolved.path)) {
+    if (deps .. object.hasOwn(resolved.path)) {
       logging.debug("(already processed)");
       return;
     }
@@ -322,8 +323,8 @@ exports.writeBundle = writeBundle;
   @summary Generate a module bundle from the given sources (including dependencies)
   @param {Settings} [settings]
   @setting {Array} [sources] Array of source module names to scan
-  @setting {Array} [alias] Array of alias strings
-  @setting {Array} [hub] Array of hub strings
+  @setting {Object} [resources] Resource locations (a mapping of server-side path to client-side URL)
+  @setting {Object} [hubs] Additional hub locations
   @setting {String} [bundle] File path of bundle file to write
   @setting {Bool} [compile] Precompile to JS (larger file size but quicker startup)
   @setting {Bool} [skip_failed] Skip modules that can't be resolved / loaded
@@ -340,14 +341,15 @@ exports.writeBundle = writeBundle;
 
         bundle.create({
           bundle:"bundle.js",
-          alias: [
-            # the current working directory corresponds to /static when running in a browser
-            "./=/static"
-          ],
-          hub: [
+          resources: {
+            # the current working directory (on the server) corresponds to /static/ (in a browser)
+            "./": "/static/"
+          },
+          hubs: {
             # the dependency analyser should look for "lib:foo" under "components/foo"
-            "lib:=components/"
-          ],
+            # (this is only required for hubs that are not already in `require.hubs`)
+            "lib:": "components/"
+          },
           sources: [
             "app/main.sjs",
             "sjs:sequence"
@@ -363,7 +365,7 @@ exports.create = function(opts) {
       path = url.fileURL(path);
       logging.debug("-> #{path}");
     } else {
-      // resolve up to one alias
+      // resolve up to one hub alias
       // (this will mainly be used for 'sjs:')
       require.hubs .. each {|[prefix, dest]|
         if (!str.isString(dest)) continue;
@@ -376,17 +378,26 @@ exports.create = function(opts) {
     return path;
   }
 
-  var aliases = (opts.alias || []) .. map(function(spec) {
-    var [path, alias] = spec .. str.rsplit('=');
-    assert.ok(alias, "invalid alias: #{spec}");
-    return [alias, expandPath(path)];
-  }) .. toArray;
+  var toPairs = function(obj, splitter) {
+    // yields ownPropertyPairs if `obj` is an object
+    // calls `splitter` on each value if `obj` is an array
+    // (this assumes elements of `obj` are all strings)
+    if (obj === undefined) return [];
+    if (Array.isArray(obj)) {
+      return obj .. transform(function(s) {
+        var rv = splitter(s);
+        if (rv.length !== 2) {
+          throw new Error("Invalid format: #{s}");
+        }
+        return rv;
+      });
+    } else {
+      return obj .. object.ownPropertyPairs;
+    }
+  };
 
-  var hubs = (opts.hub || []) .. map(function(spec) {
-    var [prefix, path] = spec .. str.split('=');
-    assert.ok(path, "invalid hub: #{spec}");
-    return [prefix, expandPath(path)];
-  }) .. toArray;
+  var resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1)) .. map([path, alias] -> [alias, expandPath(path)]);
+  var hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1))  .. map([prefix, path] -> [prefix, expandPath(path)]);
 
   var ignore = (opts.ignore || []) .. map(expandPath) .. toArray;
   var exclude = (opts.exclude || []) .. map(expandPath) .. toArray;
@@ -397,7 +408,7 @@ exports.create = function(opts) {
   };
 
   var deps = findDependencies(opts.sources, commonSettings .. object.merge({
-    aliases: aliases,
+    resources: resources,
     hubs: hubs,
     ignore: ignore,
   }));
@@ -425,12 +436,12 @@ if (require.main === module) {
         type: 'arrayOfBool',
       },
       {
-        name: 'alias',
+        name: 'resource',
         type: 'arrayOfString',
         help: (
           'Set the runtime URL (or server path) for an on-disk location, e.g: ' +
-          '--alias=components=/static/sjs/components ' +
-          '--alias=/lib/nodejs/sjs=http://example.org/sjs ' +
+          '--resource components=/static/sjs/components ' +
+          '--resource /lib/nodejs/sjs=http://example.org/sjs ' +
           "NOTE: The URLs used here must match the URLs used by your running application, " +
           "otherwise the bundled version will be ignored."
         ),
@@ -440,8 +451,8 @@ if (require.main === module) {
         type: 'arrayOfString',
         help: (
           'Add a compile-time require.hub alias - only used to resolve ' +
-          'files at bundle-time (see `--alias` for configuring runtime URLs). e.g.: ' +
-          '--bundle=lib:=components'
+          'files at bundle-time (see `--resource` for configuring runtime URLs). e.g.: ' +
+          '--bundle lib:=components/'
         ),
       },
       {
@@ -496,7 +507,16 @@ if (require.main === module) {
 
   if (opts.verbose) {
     logging.setLevel(logging.getLevel() + (opts.verbose.length * 10));
-  }
+  };
+
+  // pluralize "resource" and "hub" config keys from dashdash
+  [ ['resource', 'resources']
+    ['hub', 'hubs' ]
+  ] .. each {|[orig,plural]|
+    if (opts .. object.hasOwn(orig)) {
+      opts[plural] = opts[orig];
+    }
+  };
   
   opts.sources = opts._args;
 

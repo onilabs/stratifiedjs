@@ -30,7 +30,7 @@ context {||
 
   test("includes module dependencies") {||
     var modules = createBundle({
-      alias: ["#{modulesPath}=/apollo/"],
+      resources: ["#{modulesPath}=/apollo/"],
       sources: ['sjs:xbrowser/console'],
     });
 
@@ -45,9 +45,9 @@ context {||
     ]);
   }
 
-  test("alias sources are expanded") {||
+  test("resources sources are expanded") {||
     var modules = createBundle({
-      alias: ["sjs:=/apollo/"],
+      resources: ["sjs:=/apollo/"],
       sources: ['sjs:string'],
       compile: true,
     });
@@ -55,9 +55,18 @@ context {||
     modules .. object.ownKeys .. assert.contains('HOST/apollo/string.sjs');
   }
 
+  test("resources can be givan as object properties") {||
+    var modules = createBundle({
+      resources: {"sjs:": "/apollo/"},
+      sources: ['sjs:string'],
+    });
+
+    modules .. object.ownKeys .. assert.contains('HOST/apollo/string.sjs');
+  }
+
   test("precompilation produces JS function sources") {||
     var modules = createBundle({
-      alias: ["#{modulesPath}=/apollo/"],
+      resources: ["#{modulesPath}=/apollo/"],
       sources: ['sjs:xbrowser/console'],
       compile: true,
     });
