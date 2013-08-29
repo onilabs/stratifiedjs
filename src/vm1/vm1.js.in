@@ -117,7 +117,7 @@ function adopt_native_stack(e, caller_module) {
   var msgStart = (firstColon === -1) ? 0 : firstColon + 2;
   
   // if firstColon appears after a newline, it's not the one we want
-  if (stack.lastIndexOf('\n', msgStart) != -1) msgStart = 0;
+  if (stack.lastIndexOf('\n', msgStart) !== -1) msgStart = 0;
 
   var msg = String(e.message);
   if (msg && stack.lastIndexOf(msg, msgStart) == msgStart) {
@@ -132,9 +132,9 @@ function adopt_native_stack(e, caller_module) {
   var i;
   for (i=0; i<lines.length; i++) {
     // TODO: make this check more reliable
-    if((caller_module && lines[i].indexOf(caller_module) != -1) ||
-       lines[i].indexOf("stratified-node.js") != -1 ||
-       lines[i].indexOf("stratified.js") != -1 ) {
+    if((caller_module && lines[i].indexOf(caller_module) !== -1) ||
+       lines[i].indexOf("stratified-node.js") !== -1 ||
+       lines[i].indexOf("stratified.js") !== -1 ) {
       // we've hit an sjs stack line.
       break;
     }
@@ -233,6 +233,7 @@ function cont(frame, idx, val) {
 function is_ef(obj) {
   return obj && obj.__oni_ef;
 }
+exports.is_ef = is_ef;
 
 function setEFProto(t) { for (var p in EF_Proto) t[p] = EF_Proto[p]; }
 //function setEFProto(t) { t.__proto__ = EF_Proto; }
@@ -265,6 +266,8 @@ var EF_Proto = {
   toString: function() { return "<suspended SJS>"; },
 #endif
   __oni_ef : true,
+
+  wait: function() { return this; },
 
   setChildFrame: function(ef, idx) {
     if (this.child_frame && this.child_frame.callstack) {
@@ -314,7 +317,7 @@ var EF_Proto = {
       }
       else if (is_ef(val))
         val.swallow_r = this.swallow_r; // pass down flag to child
-      else if (this.swallow_r != 2)
+      else if (this.swallow_r !== 2)
         val = UNDEF; // only 'return' returns a value to parent
     }
   
@@ -369,7 +372,6 @@ function execIN(node, env) {
   if (!node || node.__oni_dis != token_dis) {
     return node; // a literal value
   }
-  
   return node.exec(node.ndata, env);
 }
 exports.ex = execIN;
@@ -399,15 +401,19 @@ exports.exbl = function(env, args) {
 
 //   exec: instruction executor function
 //   returns IN constructor function which returns a instruction object
-function makeINCtor(exec) {
-  return function(/* ndata */) {
-    return {
-      exec: exec,
-      ndata: arguments,
-      __oni_dis: token_dis
-    };
-  }
-}
+// For some reason instruction objects created directly without makeINCtor execute slightly faster on chrome and ff 
+// -> removing use of makeINCtor
+//
+//function makeINCtor(exec) {
+//  return function(/* ndata */) {
+//    return {
+//      exec: exec,
+//      ndata: arguments,
+//      __oni_dis: token_dis
+//    };
+//  }
+//}
+
 
 //----------------------------------------------------------------------
 // Execution environment
@@ -469,7 +475,14 @@ function I_call(ndata, env) {
     return e;
   }
 }
-exports.C = makeINCtor(I_call);
+//exports.C = makeINCtor(I_call);
+exports.C = function(f, line) {
+  return {
+    exec: I_call,
+    ndata: [f, line],
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Nb : instruction node for non-blocking, argument-less javascript code 
@@ -489,17 +502,32 @@ function I_nblock(ndata, env) {
     return e;
   }
 }
-exports.Nb = makeINCtor(I_nblock);
+//exports.Nb = makeINCtor(I_nblock);
+exports.Nb = function(f, line) {
+  return {
+    exec: I_nblock,
+    ndata: [f, line],
+    __oni_dis: token_dis
+  };
+};
+
 
 //----------------------------------------------------------------------
 // Bl : instruction node for block lambdas
 
 // structure of ndata array:
-#define NDATA_BLOCKLAMBDA_JSFUNC() ndata[0]
+#define NDATA_BLOCKLAMBDA_JSFUNC() ndata
 function I_blocklambda(ndata, env) {
   return NDATA_BLOCKLAMBDA_JSFUNC().bind(env);
 }
-exports.Bl = makeINCtor(I_blocklambda);
+//exports.Bl = makeINCtor(I_blocklambda);
+exports.Bl = function(f) {
+  return {
+    exec: I_blocklambda,
+    ndata: f,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Seq : instruction node for sequential execution of child nodes
@@ -690,7 +718,14 @@ function I_seq(ndata, env) {
   return cont(new EF_Seq(ndata, env), 1);
 }
 #endif // HOTPATH
-exports.Seq = makeINCtor(I_seq);
+//exports.Seq = makeINCtor(I_seq);
+exports.Seq = function() {
+  return {
+    exec: I_seq,
+    ndata: arguments,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Sc : simple strict function call
@@ -775,7 +810,14 @@ function I_sc(ndata, env) {
   return cont(new EF_Sc(ndata, env), 0);
 }
 
-exports.Sc = makeINCtor(I_sc);
+//exports.Sc = makeINCtor(I_sc);
+exports.Sc = function() {
+  return {
+    exec: I_sc,
+    ndata: arguments,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Fcall : instruction node for calling a function 
@@ -919,7 +961,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
                   accessing X.getElementsByTagName throws an
                   exception "Wrong number of arguments or invalid
                   property assignment"             */
-               (UA != "msie") &&
+               (UA !== "msie") &&
 #endif
                !testIsFunction(this.l[0][this.l[1]])) {
         // XXX examine if this test is useful anyway. does it give
@@ -1042,7 +1084,14 @@ function I_fcall(ndata, env) {
   return cont(new EF_Fcall(ndata, env), 0);
 }
 
-exports.Fcall = makeINCtor(I_fcall);
+//exports.Fcall = makeINCtor(I_fcall);
+exports.Fcall = function() {
+  return {
+    exec: I_fcall,
+    ndata: arguments,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // If : instruction node for executing 'if'
@@ -1105,7 +1154,14 @@ function I_if(ndata, env) {
   return cont(new EF_If(ndata, env), 0);
 }
 
-exports.If = makeINCtor(I_if);
+//exports.If = makeINCtor(I_if);
+exports.If = function(t,c,a) {
+  return {
+    exec: I_if,
+    ndata: [t,c,a],
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Switch: instruction node for executing 'switch() { case/default }'
@@ -1234,7 +1290,14 @@ function I_switch(ndata, env) {
   return cont(new EF_Switch(ndata, env), 0);
 }
 
-exports.Switch = makeINCtor(I_switch);
+//exports.Switch = makeINCtor(I_switch);
+exports.Switch = function(exp, clauses) {
+  return {
+    exec: I_switch,
+    ndata: [exp, clauses],
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Try : instruction node for try/catch/finally
@@ -1365,7 +1428,7 @@ EF_Try.prototype.cont = function(idx, val) {
 };
 
 EF_Try.prototype.quench = function() {
-  if (this.state != 4) // don't quench inside finally block
+  if (this.state !== 4) // don't quench inside finally block
     this.child_frame.quench();
 };
 
@@ -1373,10 +1436,10 @@ EF_Try.prototype.abort = function() {
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
   this.parent = UNDEF;
-  ASSERT(this.aborted != true) // sanity check; aborted before
+  ASSERT(this.aborted !== true) // sanity check; aborted before
   this.aborted = true;
-  ASSERT(this.state != 3) // sanity check; aborted before
-  if (this.state != 4) { // don't abort finally block
+  ASSERT(this.state !== 3) // sanity check; aborted before
+  if (this.state !== 4) { // don't abort finally block
     var val = this.child_frame.abort();
     if (is_ef(val)) {
       // we need to wait for the try or catch block, and then let
@@ -1385,7 +1448,7 @@ EF_Try.prototype.abort = function() {
     }
     else {
       // attempt to execute retract/finally blocks synchronously:
-      if (cont(this, 0, UNDEF) != this)
+      if (cont(this, 0, UNDEF) !== this)
         return;
       // ... else fall through. we need to block
     }
@@ -1397,7 +1460,14 @@ function I_try(ndata, env) {
   return cont(new EF_Try(ndata, env), 0);
 }
 
-exports.Try = makeINCtor(I_try);
+//exports.Try = makeINCtor(I_try);
+exports.Try = function() {
+  return {
+    exec: I_try,
+    ndata: arguments,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Loop : instruction node for looping constructs
@@ -1538,7 +1608,14 @@ function I_loop(ndata, env) {
   return cont(new EF_Loop(ndata, env), NDATA_LOOP_INIT_STATE(), true);
 }
 
-exports.Loop = makeINCtor(I_loop);
+//exports.Loop = makeINCtor(I_loop);
+exports.Loop = function() {
+  return {
+    exec: I_loop,
+    ndata: arguments,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // ForIn : instruction node for 'for-in' loops
@@ -1656,7 +1733,14 @@ function I_forin(ndata, env) {
   return cont(new EF_ForIn(ndata, env), 0);
 }
 
-exports.ForIn = makeINCtor(I_forin);
+//exports.ForIn = makeINCtor(I_forin);
+exports.ForIn = function(obj,loop) {
+  return {
+    exec: I_forin,
+    ndata: [obj,loop],
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Par : stratified par construct
@@ -1804,7 +1888,14 @@ function I_par(ndata, env) {
   return cont(new EF_Par(ndata, env), -1);
 }
 
-exports.Par = makeINCtor(I_par);
+//exports.Par = makeINCtor(I_par);
+exports.Par = function() {
+  return {
+    exec: I_par,
+    ndata: arguments,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Alt : stratified alt construct
@@ -1996,7 +2087,14 @@ function I_alt(ndata, env) {
   return cont(new EF_Alt(ndata, env), -1);
 }
 
-exports.Alt = makeINCtor(I_alt);
+//exports.Alt = makeINCtor(I_alt);
+exports.Alt = function() {
+  return {
+    exec: I_alt,
+    ndata: arguments,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // Suspend: stratified suspend operation
@@ -2201,7 +2299,14 @@ function I_sus(ndata, env) {
   return cont(new EF_Suspend(ndata, env), 0);
 }
 
-exports.Suspend = makeINCtor(I_sus);
+//exports.Suspend = makeINCtor(I_sus);
+exports.Suspend = function(s,r) {
+  return {
+    exec: I_sus,
+    ndata: [s,r],
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // spawn
@@ -2331,13 +2436,20 @@ function I_spawn(ndata, env) {
   return stratum;
 }
   
-exports.Spawn = makeINCtor(I_spawn);
+//exports.Spawn = makeINCtor(I_spawn);
+exports.Spawn = function(line, exp) {
+  return {
+    exec: I_spawn,
+    ndata: [line, exp],
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 // collapse
 
 // structure of ndata array:
-#define NDATA_COLLAPSE_LINE() ndata[0]
+#define NDATA_COLLAPSE_LINE() ndata
 
 // continuation index:
 // 0: start
@@ -2382,7 +2494,14 @@ function I_collapse(ndata, env) {
   return cont(new EF_Collapse(ndata, env), 0);
 }
   
-exports.Collapse = makeINCtor(I_collapse);
+//exports.Collapse = makeINCtor(I_collapse);
+exports.Collapse = function(line) {
+  return {
+    exec: I_collapse,
+    ndata: line,
+    __oni_dis: token_dis
+  }
+};
 
 //----------------------------------------------------------------------
 
@@ -2465,9 +2584,10 @@ if (!hold0) {
 
 exports.Hold = function(duration_ms) {
   if (duration_ms === UNDEF)
-    return { __oni_ef: true, quench: dummy, abort: dummy };
+    return { __oni_ef: true, wait: function() { return this; }, quench: dummy, abort: dummy };
   if (duration_ms === 0) {
     var sus = { __oni_ef: true, 
+                wait: function() { return this },
                 abort: dummy,
                 quench: function() { sus = null; clear0(this.co); },
                 co: hold0(function() { 
@@ -2479,6 +2599,7 @@ exports.Hold = function(duration_ms) {
   }
   else {
     var sus = { __oni_ef: true,
+                wait: function() { return this },
                 abort: dummy,
 #if defined (CLIENTSIDE) || defined (NODEJS)
                 quench: function() { sus = null; clearTimeout(this.co); }

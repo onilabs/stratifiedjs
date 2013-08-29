@@ -136,7 +136,7 @@ var firstColon=stack.indexOf(': ');
 var msgStart=(firstColon===-1)?0:firstColon+2;
 
 
-if(stack.lastIndexOf('\n',msgStart)!=-1)msgStart=0;
+if(stack.lastIndexOf('\n',msgStart)!==-1)msgStart=0;
 
 var msg=String(e.message);
 if(msg&&stack.lastIndexOf(msg,msgStart)==msgStart){
@@ -151,7 +151,7 @@ var lines=stack.split("\n");
 var i;
 for(i=0;i<lines.length;i++ ){
 
-if((caller_module&&lines[i].indexOf(caller_module)!=-1)||lines[i].indexOf("stratified-node.js")!=-1||lines[i].indexOf("stratified.js")!=-1){
+if((caller_module&&lines[i].indexOf(caller_module)!==-1)||lines[i].indexOf("stratified-node.js")!==-1||lines[i].indexOf("stratified.js")!==-1){
 
 
 
@@ -252,6 +252,7 @@ return rv;
 function is_ef(obj){return obj&&obj.__oni_ef;
 
 }
+exports.is_ef=is_ef;
 
 function setEFProto(t){for(var p in EF_Proto)t[p]=EF_Proto[p]}
 
@@ -278,8 +279,10 @@ target_ef.callstack=src_ef.callstack;
 
 
 var EF_Proto={toString:function(){
-return "<suspended SJS>"},__oni_ef:true,setChildFrame:function(ef,idx){
+return "<suspended SJS>"},__oni_ef:true,wait:function(){
 
+
+return this},setChildFrame:function(ef,idx){
 
 if(this.child_frame&&this.child_frame.callstack){
 
@@ -326,7 +329,7 @@ if(val.type=="r"){
 if(!val.ef||val.ef==this)val=val.val;
 
 }
-}else if(is_ef(val))val.swallow_r=this.swallow_r;else if(this.swallow_r!=2)val=UNDEF;
+}else if(is_ef(val))val.swallow_r=this.swallow_r;else if(this.swallow_r!==2)val=UNDEF;
 
 
 
@@ -384,7 +387,6 @@ function execIN(node,env){if(!node||node.__oni_dis!=token_dis){
 
 return node;
 }
-
 return node.exec(node.ndata,env);
 }
 exports.ex=execIN;
@@ -414,15 +416,19 @@ return rv;
 
 
 
-function makeINCtor(exec){return function(){
-return {exec:exec,ndata:arguments,__oni_dis:token_dis};
 
 
 
 
 
-};
-}
+
+
+
+
+
+
+
+
 
 
 
@@ -482,7 +488,14 @@ e=new CFException("t",e,ndata[1],env.file);
 return e;
 }
 }
-exports.C=makeINCtor(I_call);
+
+exports.C=function(f,line){return {exec:I_call,ndata:[f,line],__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -500,16 +513,31 @@ e=new CFException("t",e,ndata[1],env.file);
 return e;
 }
 }
-exports.Nb=makeINCtor(I_nblock);
+
+exports.Nb=function(f,line){return {exec:I_nblock,ndata:[f,line],__oni_dis:token_dis};
 
 
 
 
 
-function I_blocklambda(ndata,env){return ndata[0].bind(env);
+};
+
+
+
+
+
+
+function I_blocklambda(ndata,env){return ndata.bind(env);
 
 }
-exports.Bl=makeINCtor(I_blocklambda);
+
+exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -628,7 +656,14 @@ return this.returnToParent(val);
 function I_seq(ndata,env){return cont(new EF_Seq(ndata,env),1);
 
 }
-exports.Seq=makeINCtor(I_seq);
+
+exports.Seq=function(){return {exec:I_seq,ndata:arguments,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -707,7 +742,14 @@ function I_sc(ndata,env){return cont(new EF_Sc(ndata,env),0);
 
 }
 
-exports.Sc=makeINCtor(I_sc);
+
+exports.Sc=function(){return {exec:I_sc,ndata:arguments,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -832,7 +874,7 @@ rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a fu
 
 
 rv=this.l[0][this.l[1]].apply(this.l[0],this.pars);
-}else if((UA!="msie")&&!testIsFunction(this.l[0][this.l[1]])){
+}else if((UA!=="msie")&&!testIsFunction(this.l[0][this.l[1]])){
 
 
 
@@ -944,7 +986,14 @@ function I_fcall(ndata,env){return cont(new EF_Fcall(ndata,env),0);
 
 }
 
-exports.Fcall=makeINCtor(I_fcall);
+
+exports.Fcall=function(){return {exec:I_fcall,ndata:arguments,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -1001,7 +1050,14 @@ function I_if(ndata,env){return cont(new EF_If(ndata,env),0);
 
 }
 
-exports.If=makeINCtor(I_if);
+
+exports.If=function(t,c,a){return {exec:I_if,ndata:[t,c,a],__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -1125,7 +1181,14 @@ function I_switch(ndata,env){return cont(new EF_Switch(ndata,env),0);
 
 }
 
-exports.Switch=makeINCtor(I_switch);
+
+exports.Switch=function(exp,clauses){return {exec:I_switch,ndata:[exp,clauses],__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -1245,7 +1308,7 @@ return this.returnToParent(val);
 }
 };
 
-EF_Try.prototype.quench=function(){if(this.state!=4)this.child_frame.quench();
+EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
 
 
 };
@@ -1257,7 +1320,7 @@ EF_Try.prototype.abort=function(){this.parent=UNDEF;
 
 this.aborted=true;
 
-if(this.state!=4){
+if(this.state!==4){
 var val=this.child_frame.abort();
 if(is_ef(val)){
 
@@ -1266,7 +1329,7 @@ this.setChildFrame(val);
 }else{
 
 
-if(cont(this,0,UNDEF)!=this)return;
+if(cont(this,0,UNDEF)!==this)return;
 
 
 }
@@ -1278,7 +1341,14 @@ function I_try(ndata,env){return cont(new EF_Try(ndata,env),0);
 
 }
 
-exports.Try=makeINCtor(I_try);
+
+exports.Try=function(){return {exec:I_try,ndata:arguments,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -1412,7 +1482,14 @@ function I_loop(ndata,env){return cont(new EF_Loop(ndata,env),ndata[0],true);
 
 }
 
-exports.Loop=makeINCtor(I_loop);
+
+exports.Loop=function(){return {exec:I_loop,ndata:arguments,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -1525,7 +1602,14 @@ function I_forin(ndata,env){return cont(new EF_ForIn(ndata,env),0);
 
 }
 
-exports.ForIn=makeINCtor(I_forin);
+
+exports.ForIn=function(obj,loop){return {exec:I_forin,ndata:[obj,loop],__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -1670,7 +1754,14 @@ function I_par(ndata,env){return cont(new EF_Par(ndata,env),-1);
 
 }
 
-exports.Par=makeINCtor(I_par);
+
+exports.Par=function(){return {exec:I_par,ndata:arguments,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -1859,7 +1950,14 @@ function I_alt(ndata,env){return cont(new EF_Alt(ndata,env),-1);
 
 }
 
-exports.Alt=makeINCtor(I_alt);
+
+exports.Alt=function(){return {exec:I_alt,ndata:arguments,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -2022,7 +2120,14 @@ function I_sus(ndata,env){return cont(new EF_Suspend(ndata,env),0);
 
 }
 
-exports.Suspend=makeINCtor(I_sus);
+
+exports.Suspend=function(s,r){return {exec:I_sus,ndata:[s,r],__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -2144,7 +2249,14 @@ cont(ef,0);
 return stratum;
 }
 
-exports.Spawn=makeINCtor(I_spawn);
+
+exports.Spawn=function(line,exp){return {exec:I_spawn,ndata:[line,exp],__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -2167,7 +2279,7 @@ EF_Collapse.prototype.__oni_collapse=true;
 EF_Collapse.prototype.cont=function(idx,val){if(idx==0){
 
 var fold=this.env.fold;
-if(!fold)return new CFException("t",new Error("Unexpected collapse statement"),this.ndata[0],this.env.file);
+if(!fold)return new CFException("t",new Error("Unexpected collapse statement"),this.ndata,this.env.file);
 
 
 if(fold.docollapse(this.env.branch,this))return true;
@@ -2175,7 +2287,7 @@ if(fold.docollapse(this.env.branch,this))return true;
 
 this.async=true;
 return this;
-}else if(idx==1)return this.returnToParent(true);else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata[0],this.env.file));
+}else if(idx==1)return this.returnToParent(true);else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata,this.env.file));
 
 
 
@@ -2191,7 +2303,14 @@ function I_collapse(ndata,env){return cont(new EF_Collapse(ndata,env),0);
 
 }
 
-exports.Collapse=makeINCtor(I_collapse);
+
+exports.Collapse=function(line){return {exec:I_collapse,ndata:line,__oni_dis:token_dis};
+
+
+
+
+
+};
 
 
 
@@ -2268,11 +2387,12 @@ hold0=function(co){return setTimeout(s,0)};
 clear0=clearTimeout;
 }
 
-exports.Hold=function(duration_ms){if(duration_ms===UNDEF)return {__oni_ef:true,quench:dummy,abort:dummy};
+exports.Hold=function(duration_ms){if(duration_ms===UNDEF)return {__oni_ef:true,wait:function(){
 
-
+return this},quench:dummy,abort:dummy};
 if(duration_ms===0){
-var sus={__oni_ef:true,abort:dummy,quench:function(){
+var sus={__oni_ef:true,wait:function(){
+return this},abort:dummy,quench:function(){
 
 sus=null;clear0(this.co)},co:hold0(function(){
 if(sus&&sus.parent)cont(sus.parent,sus.parent_idx,UNDEF);
@@ -2283,7 +2403,8 @@ if(sus&&sus.parent)cont(sus.parent,sus.parent_idx,UNDEF);
 return sus;
 }else{
 
-var sus={__oni_ef:true,abort:dummy,quench:function(){
+var sus={__oni_ef:true,wait:function(){
+return this},abort:dummy,quench:function(){
 
 sus=null;clearTimeout(this.co)}};
 
