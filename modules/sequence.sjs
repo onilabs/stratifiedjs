@@ -42,6 +42,10 @@
 
 var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
 
+// identity function:
+__js var identity = (x) -> x;
+
+
 //----------------------------------------------------------------------
 
 /**
@@ -81,12 +85,14 @@ var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
          S { |x| console.log(x*x) }  // -> 1,4,9,...,100
 
 */
-var STREAM_TOKEN = {};
-var Stream = function(S) {
-  S.__oni_stream = STREAM_TOKEN;
-  return S;
+__js {
+  var STREAM_TOKEN = {};
+  var Stream = function(S) {
+    S.__oni_stream = STREAM_TOKEN;
+    return S;
+  }
+  exports.Stream = Stream;
 }
-exports.Stream = Stream;
 
 /**
   @function toStream
@@ -119,11 +125,14 @@ exports.Stream = Stream;
         // but it cannot modify `arr` directly.
 
     */
-var toStream = function(arr) {
-  if (isStream(arr)) return arr;
-  return Stream({|r| each(arr, r)});
+__js {
+  var toStream = function(arr) {
+    if (isStream(arr)) return arr;
+    return Stream(function(r) { each(arr, r)});
+  };
+
+  exports.toStream = toStream;
 }
-exports.toStream = toStream;
 
 /**
    @function isStream
@@ -131,10 +140,12 @@ exports.toStream = toStream;
    @return {Boolean}
    @summary Returns `true` is `s` is a [::Stream], `false` otherwise.
 */
-function isStream(s) {
-  return s && s.__oni_stream == STREAM_TOKEN;
+__js {
+  function isStream(s) {
+    return s && s.__oni_stream === STREAM_TOKEN;
+  }
+  exports.isStream = isStream;
 }
-exports.isStream = isStream;
 
 /**
    @function generate
@@ -185,24 +196,54 @@ exports.generate = generate;
          // using double dot & blocklambda call syntax:
          [1,2,3,4] .. each { |x| console.log(x) }
 */
-function each(sequence, r) {
-  if (typeof sequence == 'function')
-    sequence(r);
-  else if (isArrayLike(sequence)) {
-    for (var i=0,l=sequence.length; i<l; ++i)
-      r(sequence[i]);
-  }
-  else if (typeof sequence == 'string')
-    for (var i=0,l=sequence.length; i<l; ++i)
-      r(sequence.charAt(i));
-  else
-    throw new Error("sequence::each: Unsupported sequence type '#{sequence}'");
-  return sequence;
-}
-exports.each = each;
 
-var noop = function() {};
-function exhaust(seq) { each(seq, noop); }
+/* 
+slightly non-trivial implementation to optimize performance in the
+non-synchronous case:
+*/
+__js {
+  function each(sequence, r) {
+    if (typeof sequence === 'function')
+      return sequence(r);
+    else if (isArrayLike(sequence)) {
+      for (var i=0, l=sequence.length; i<l; ++i) {
+        var res = r(sequence[i]);
+        if (__oni_rt.is_ef(res))
+          return async_each(sequence, r, i, res);
+      }
+    }
+    else if (typeof sequence === 'string') {
+      for (var i=0, l=sequence.length; i<l; ++i) {
+        var res = r(sequence.charAt(i));
+        if (__oni_rt.is_ef(res))
+          return async_each(sequence, r, i, res);
+      }
+    }
+    else 
+      throw new Error("Unsupported sequence type '#{sequence}'");
+    return sequence;
+  }
+
+  exports.each = each;
+}
+
+function async_each(arr, r, i, ef) {
+  ef.wait();
+  var l = arr.length;
+  if (typeof arr === 'string') {
+    for (++i; i<l; ++i)
+      r(arr.charAt(i));
+  }
+  else { // == array
+    for (++i; i<l; ++i)
+      r(arr[i]);
+  }
+  return arr;
+}
+
+
+__js var noop = function() {};
+__js function exhaust(seq) { return each(seq, noop); }
 
 /**
    @function consume
@@ -610,8 +651,7 @@ function sortBy(sequence, key) {
 };
 exports.sortBy = sortBy;
 
-// helpers for key functions
-var identity = (x) -> x;
+// helper for key functions
 var keyFn = function(key) {
   if (key == null) return identity;
   if ((typeof key) == 'string') return (x) -> x[key];
@@ -792,9 +832,8 @@ exports.skipWhile = skipWhile;
 
           integers() .. filter(x=>x%2) .. take(10) .. each { |x| console.log(x) }
 */
-var id = (x) -> x;
 function filter(sequence, predicate) {
-  if (!predicate) predicate = id;
+  if (!predicate) predicate = identity;
   return Stream(function(r) {
     sequence .. each {
       |x|
@@ -892,12 +931,34 @@ exports.partition = partition;
 
           integers() .. take(10) .. map(x=>x*x) .. each { |x| console.log(x) }
 */
+/*
+  equivalent, but sometimes slower implementation:
+  var map = (seq,f) -> seq .. transform(f) .. toArray;
+*/
+
 function map(sequence, f) {
-  var r=[];
-  sequence .. each {|x| r.push(f(x)) }
-  return r;
+  var rv = [];
+  map_inner(rv, sequence, f);
+  return rv;
 }
 exports.map = map;
+
+__js {
+  function map_inner(rv, sequence, f) {
+    return each(sequence, function(x) {
+      var res = f(x);
+      if (__oni_rt.is_ef(res))
+        return async_map_value(rv, res);
+      rv.push(res);
+    });
+  }
+
+}
+
+function async_map_value(rv, val) {
+  val = val.wait();
+  rv.push(val);
+}
 
 /**
    @function transform
@@ -939,12 +1000,29 @@ exports.map = map;
           squares .. each { |x| ... } // neither here
 
 */
-function transform(sequence, f) {
+
+/*
+  equivalent but sometimes slower implementation:
+  var transform = (seq,f) -> Stream(r -> seq .. each { |x| r(f(x)) })
+*/
+__js function transform(sequence, f) {
   return Stream(function(r) {
-    sequence .. each { |x| r(f(x)) }
+    function rf(x) {
+      var inner = f(x);
+      if (__oni_rt.is_ef(inner))
+        return async_rf(inner, r);
+      return r(inner);
+    }
+    return each(sequence, rf);
   });
 }
+
 exports.transform = transform;
+
+function async_rf(fx, r) {
+  fx = fx.wait();
+  return r(fx);
+}
 
 /**
   @function concat
@@ -1044,7 +1122,7 @@ exports.pack = pack;
           integers() .. unpack(n => integers(1,n))
 */
 function unpack(sequence, u) {
-  if (!u) u = id;
+  if (!u) u = identity;
   return Stream(function(r) {
     sequence .. each { 
       |x| 
@@ -1447,7 +1525,6 @@ exports.makeIterator = makeIterator;
 //----------------------------------------------------------------------
 // Utility sequences:
 
-var MAX_PRECISE_INT = 9007199254740992; // 2^53
 /**
    @function integers
    @param {optional Integer} [start=0] Start integer
@@ -1464,13 +1541,33 @@ var MAX_PRECISE_INT = 9007199254740992; // 2^53
          // print even integers from 0 to 100:
          integers(0,100,2) .. each { |x| console.log(x) }
 */
-function integers(start, end, skip) {
-  if (start === undefined) start = 0;
-  if (end === undefined) end = MAX_PRECISE_INT;
-  if (skip === undefined) skip = 1;
-  return Stream(function(r) { for (var i=start;i<= end;i+=skip) r(i) });
+/* 
+slightly non-trivial implementation to optimize performance in the
+non-synchronous case:
+*/
+__js {
+  var MAX_PRECISE_INT = 9007199254740992; // 2^53
+
+  function integers(start, end, skip) {
+    if (start === undefined) start = 0;
+    if (end === undefined) end = MAX_PRECISE_INT;
+    if (skip === undefined) skip = 1;
+    return Stream(function(r) { 
+      for (var i=start;i<= end;i+=skip) {
+        var res = r(i);
+        if (__oni_rt.is_ef(res))
+          return stream_async_integers(res, r, i, end, skip);
+      }
+    });
+  }
+  exports.integers = integers;
 }
-exports.integers = integers;
+
+function stream_async_integers(ef, r, i, end, skip) {
+  ef.wait();
+  for (i+=skip;i<=end;i+=skip)
+    r(i);
+}
 
 /**
    @function fib
@@ -1747,7 +1844,7 @@ filter.par = function(/* sequence, max_strata, predicate */) {
   else
     [sequence, max_strata, predicate] = arguments;
       
-  if (!predicate) predicate = id;
+  if (!predicate) predicate = identity;
 
   return Stream(function(r) {
     sequence .. each.par(max_strata) {
