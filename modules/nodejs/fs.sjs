@@ -42,9 +42,6 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 var fs = require('fs'); // builtin fs
 
-var fs_binding = process.binding('fs');
-var write = fs_binding.write;
-
 //----------------------------------------------------------------------
 // low-level:
 
@@ -281,7 +278,7 @@ exports.open = function(path, flags, mode) {
 exports.write = function(fd, buffer, offset, length, position /*=null*/) {
   if (position === undefined) position = null;
   waitfor (var err, written) {
-    write(fd, buffer, offset, length, position, resume);
+    fs.write(fd, buffer, offset, length, position, resume);
   }
   if (err) throw err;
   return written;
