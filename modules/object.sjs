@@ -36,7 +36,7 @@
 */
 
 var { each, transform, Stream } = require('./sequence');
-var { extendObject, mergeObjects, flatten } = require('builtin:apollo-sys');
+var { extendObject, mergeObjects, flatten, isArrayLike } = require('builtin:apollo-sys');
 
 var hasProperty = function(k) { return k in this; }
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -301,7 +301,7 @@ exports.merge = mergeObjects;
     be a new Array with the same elements as `source`.
 */
 __js exports.clone = function(obj) {
-  if (require('builtin:apollo-sys').isArrayLike(obj)) {
+  if (isArrayLike(obj)) {
     return Array.prototype.slice.call(obj);
   }
   return exports.extend({}, obj);
