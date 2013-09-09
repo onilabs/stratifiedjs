@@ -27,5 +27,10 @@ matrix:
     - node_js: "0.11"
       env: t=unit
 notifications:
-  email: false
+  email:
+    recipients:
+      - commits@onilabs.com
+    on_success: change
+    on_failure: always
+
 script: "./tools/bin/sjs-tests"
