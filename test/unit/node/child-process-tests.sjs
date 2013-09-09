@@ -8,6 +8,7 @@ context {||
   var logging = require('sjs:logging');
   var cutil = require('sjs:cutil');
   var seq = require('sjs:sequence');
+  var array = require('sjs:array');
   var events = require('sjs:events');
   var child_process = require('sjs:nodejs/child-process');
   var fs = require('sjs:nodejs/fs');
@@ -38,7 +39,7 @@ context {||
       var pids = integers(process.pid, undefined, 100) .. take(50);
       pids .. any(p -> child_process.isRunning({pid: p})) .. assert.ok();
     }
-  }
+  }.skipIf(NODE_VERSION .. array.cmp([0,8]) < 0, "process.kill() returns no result before 0.8");
 
   //-------------------------------------------------------------
   context('run (an array of args)') {||
@@ -225,6 +226,6 @@ context {||
           'interrupted child'
         ]);
       }
-    }.skipIf(NODE_VERSION[0] == 0 && NODE_VERSION[1] < 8, 'detached support introduced in node 0.8')
+    }.skipIf(NODE_VERSION .. array.cmp([0,8]) < 0, 'detached support introduced in node 0.8')
   }.timeout(4);
 }.serverOnly();

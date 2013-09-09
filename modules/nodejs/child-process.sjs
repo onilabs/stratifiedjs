@@ -40,14 +40,18 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/child-process module only runs in a nodejs environment');
 
 var child_process = require('child_process');
+var array = require('../array');
+
+var version = process.versions.node.split('.').map(n -> parseInt(n, 10));
 
 // event emitted by child processes when stdout/stderr have closed has changed in node v0.7.7:
-var version = /^(\d+)\.(\d+)\.(\d+)/.exec(process.versions.node);
-version = parseInt(version[1])*1000000 + parseInt(version[2])*1000 + parseInt(version[3]);
-var STREAMS_CLOSED_SIGNAL = version>7006 ? 'close' : 'exit';
+var STREAMS_CLOSED_SIGNAL = array.cmp(version, [0,7,7]) >= 0 ? 'close' : 'exit';
 
 // support for detached processes was added in v0.7.10:
-var SUPPORTS_DETACHED = version>7009;
+var SUPPORTS_DETACHED = array.cmp(version, [0,7,10]) >= 0;
+
+// returning a value from `kill` was added in 0.8
+var KILL_RETURNS_RESULT = array.cmp(version, [0,8]) >= 0;
 
 /**
    @function exec
@@ -229,7 +233,7 @@ var kill = exports.kill = function(child, options) {
   if(options && options.wait === false) {
     kill();
   } else {
-    if (!child .. isRunning()) return;
+    if (KILL_RETURNS_RESULT && !child .. isRunning()) return;
     waitfor() {
       child.on(STREAMS_CLOSED_SIGNAL, resume);
       kill();
@@ -246,10 +250,15 @@ var kill = exports.kill = function(child, options) {
   @return {Boolean}
   @param {Object} [child]
 */
-var isRunning = exports.isRunning = function(child) {
-  try {
-    return process.kill(child.pid, 0);
-  } catch(e) {
-    return e.code === 'EPERM';
-  }
-};
+var isRunning = exports.isRunning = function() {
+  if (!KILL_RETURNS_RESULT) return function() {
+    throw new Error("isRunning() requires nodejs version 0.8 or greater");
+  };
+  return function(child) {
+    try {
+      return process.kill(child.pid, 0);
+    } catch(e) {
+      return e.code === 'EPERM';
+    }
+  };
+}();
