@@ -4,7 +4,7 @@ var fs = require('fs');
 var init = function(logger, customFileHandlers, files, client) {
   var log = logger.create('sjs-adapter');
 
-  if (process.env.hasOwnProperty("KARMA_CLIENT_ARGS")) {
+  if (Object.prototype.hasOwnProperty.call(process.env, "KARMA_CLIENT_ARGS")) {
     client.args = JSON.parse(process.env.KARMA_CLIENT_ARGS);
     log.debug("Set client.args = ", client.args);
   }
