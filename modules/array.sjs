@@ -55,6 +55,7 @@ exports.isArrayLike = isArrayLike;
    @return {Boolean} `true` if the element was removed, `false` if `elem` is not in `arr`.
    @summary Removes the first element in the array equal (under `===`) to `elem`. 
 */
+__js {
 function remove(arr, elem) {
   var idx = arr.indexOf(elem);
   if (idx == -1) return false;
@@ -62,6 +63,7 @@ function remove(arr, elem) {
   return true;
 }
 exports.remove = remove;
+}
 
 /**
    @function contains

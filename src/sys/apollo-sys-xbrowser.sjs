@@ -49,7 +49,7 @@
 
 
 var location;
-function determineLocation() {
+__js function determineLocation() {
   if (!location) {
     location = {};
     var scripts = document.getElementsByTagName("script"), matches;
@@ -229,7 +229,7 @@ function getXDomainCaps_hostenv() {
    @function getTopReqParent_hostenv
    @summary Return top-level require parent (for converting relative urls in absolute ones)
 */
-function getTopReqParent_hostenv() {
+__js function getTopReqParent_hostenv() {
   var base = determineLocation().req_base;
   return { id: base,
            loaded_from: base, 
@@ -245,7 +245,7 @@ function getTopReqParent_hostenv() {
    @param {Object} [parent] Module parent (possibly undefined if loading from top-level)
    @return {String} Absolute URL
 */
-function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
+__js function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
   if (req_obj.path && req_obj.path.length)
     url_string = exports.constructURL(req_obj.path, url_string);
   return exports.canonicalizeURL(url_string, parent.id);
@@ -390,7 +390,7 @@ function request_hostenv(url, settings) {
 //----------------------------------------------------------------------
 // initial list of hubs and extensions:
 
-function getHubs_hostenv() {
+__js function getHubs_hostenv() {
   return [
     ["sjs:", determineLocation().location ? 
                   determineLocation().location : 

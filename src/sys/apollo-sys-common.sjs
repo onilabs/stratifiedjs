@@ -160,7 +160,7 @@ __js exports.isQuasi = function(obj) {
    @summary Create a Quasi
    @summary See [../../modules/quasi::Quasi]
 */
-exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)};
+__js exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)};
 
 
 /**
@@ -469,7 +469,7 @@ var pendingLoads = {};
 function makeRequire(parent) {
   // make properties of this require function accessible in requireInner:
   var rf = function(module, settings) {
-    var opts = exports.extendObject({}, settings);
+    __js var opts = exports.extendObject({}, settings);
     if (opts.callback) {
       (spawn (function() {
         try { 
@@ -484,6 +484,8 @@ function makeRequire(parent) {
     else
       return requireInner(module, rf, parent, opts);
   };
+
+  __js {
 
   rf.resolve = function(module, settings) {
     var opts = exports.extendObject({}, settings);
@@ -511,11 +513,14 @@ function makeRequire(parent) {
     // module compiler functions indexed by extension:
     rf.extensions = getExtensions_hostenv();
   }
+
+  } // __js
+
   return rf;
 }
 exports._makeRequire = makeRequire;
 
-function augmentHubs(hubs) {
+__js function augmentHubs(hubs) {
   // add additional methods to the `require.hubs` array:
   hubs.addDefault = function(hub) {
     if (!this.defined(hub[0])) {
@@ -549,7 +554,7 @@ function html_sjs_extractor(html, descriptor) {
 }
 
 // helper to resolve aliases
-function resolveAliases(module, aliases) {
+__js function resolveAliases(module, aliases) {
   var ALIAS_REST = /^([^:]+):(.*)$/;
   var alias_rest, alias;
   var rv = module;
@@ -564,7 +569,7 @@ function resolveAliases(module, aliases) {
 }
 
 // helper to resolve hubs
-function resolveHubs(module, hubs, require_obj, parent, opts) {
+__js function resolveHubs(module, hubs, require_obj, parent, opts) {
   var path = module;
   var loader = opts.loader || default_loader;
   var src = opts.src || default_src_loader;
@@ -601,7 +606,7 @@ function resolveHubs(module, hubs, require_obj, parent, opts) {
 }
 
 // default module loader
-function default_src_loader(path) {
+__js function default_src_loader(path) {
   throw new Error("Don't know how to load module at "+path);
 }
 
@@ -760,7 +765,7 @@ function github_src_loader(path) {
 }
 
 // resolve module id to {path,loader,src}
-function resolve(module, require_obj, parent, opts) {
+__js function resolve(module, require_obj, parent, opts) {
   // apply local aliases:
   var path = resolveAliases(module, require_obj.alias);
   
@@ -797,7 +802,7 @@ function resolve(module, require_obj, parent, opts) {
    @function resolve
    @summary  Apollo's internal URL resolver
 */
-exports.resolve = function(url, require_obj, parent, opts) {
+__js exports.resolve = function(url, require_obj, parent, opts) {
   require_obj = require_obj || exports.require;
   parent = parent || getTopReqParent_hostenv();
   opts = opts || {};
@@ -819,9 +824,9 @@ function requireInner(module, require_obj, parent, opts) {
 }
 
 // top-level require function:
-exports.require = makeRequire(getTopReqParent_hostenv());
+__js exports.require = makeRequire(getTopReqParent_hostenv());
 
-exports.require.modules['builtin:apollo-sys.sjs'] = {
+__js exports.require.modules['builtin:apollo-sys.sjs'] = {
   id: 'builtin:apollo-sys.sjs',
   exports: exports,
   loaded_from: "[builtin]",
