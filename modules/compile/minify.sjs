@@ -359,7 +359,7 @@ function flush_newlines(pctx) {
 
 
 function gen_block(code) {
-  if (code.length && code[code.length-1]==";")
+  if (code.length && code.charAt(code.length-1)==";")
     code = code.substr(0,code.length-1);
   return "{"+code+"}";
 }
