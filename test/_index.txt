@@ -20,6 +20,7 @@ unit/quasi-tests.sjs
 unit/regexp-tests.sjs
 unit/require-tests.sjs
 unit/sequence-tests.sjs
+unit/service-tests.sjs
 unit/shell-quote-tests.sjs
 unit/sjcl-tests.sjs
 unit/sjs-2-tests.sjs
