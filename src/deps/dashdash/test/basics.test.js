@@ -742,7 +742,7 @@ cases .. seq.indexed .. seq.each {|[num, c]|
         }
         if (expectHelps.length) {
             var help = parser.help(helpOptions);
-            expectHelps.forEach(function (eH) {
+            expectHelps .. seq.each(function (eH) {
                 t.ok(eH.test(help), format(
                     'help did not match '+eH+': "'+help+'"', eH, help));
             });
