@@ -2383,7 +2383,7 @@ var clear0=function(id){delete tasks[id];
 }
 
 if(!hold0){
-hold0=function(co){return setTimeout(s,0)};
+hold0=function(co){return setTimeout(co,0)};
 clear0=clearTimeout;
 }
 
