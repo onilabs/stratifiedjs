@@ -38,6 +38,8 @@
 var sys   = require('builtin:apollo-sys');
 var cutil  = require('./cutil');
 
+exports.isFunction = (f) -> (typeof f == "function");
+
 /**
    @function seq
    @summary Sequential function composition
