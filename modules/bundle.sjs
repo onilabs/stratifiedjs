@@ -226,6 +226,7 @@ function findDependencies(sources, settings) {
   };
   logging.debug("ROOT:", root);
   sources .. each {|mod|
+    logging.debug("Adding source: #{mod}");
     addRequire(mod, root);
   }
 
@@ -507,12 +508,10 @@ if (require.main === module) {
 
   if (opts.verbose) {
     logging.setLevel(logging.getLevel() + (opts.verbose.length * 10));
-  };
+  }
 
   // pluralize "resource" and "hub" config keys from dashdash
-  [ ['resource', 'resources']
-    ['hub', 'hubs' ]
-  ] .. each {|[orig,plural]|
+  ;[ ['resource', 'resources'], ['hub', 'hubs' ] ] .. each {|[orig,plural]|
     if (opts .. object.hasOwn(orig)) {
       opts[plural] = opts[orig];
     }
@@ -522,7 +521,7 @@ if (require.main === module) {
 
   if (opts.config) {
     var config = fs.readFile(opts.config).toString() .. JSON.parse();
-    opts = object.merge(config, opts);
+    opts = object.merge(opts, config);
   }
 
   if (!(opts.dump || opts.bundle)) {
