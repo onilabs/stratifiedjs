@@ -182,7 +182,7 @@ __js exports.mergeObjects = function(/*source*/) {
 */
 __js exports.extendObject = function(dest, source) {
   for (var o in source) {
-    if (Object.hasOwnProperty.call(source, o)) dest[o] = source[o];
+    if (Object.prototype.hasOwnProperty.call(source, o)) dest[o] = source[o];
   }
   return dest;
 };
@@ -769,8 +769,9 @@ __js function resolve(module, require_obj, parent, opts) {
   // apply local aliases:
   var path = resolveAliases(module, require_obj.alias);
   
+  var hubs = exports.require.hubs;
   // apply global aliases
-  var resolveSpec = resolveHubs(path, exports.require.hubs, require_obj, parent, opts);
+  var resolveSpec = resolveHubs(path, hubs, require_obj, parent, opts);
   
   // make sure we have an absolute url with '.' & '..' collapsed:
   resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);  
@@ -785,14 +786,54 @@ __js function resolve(module, require_obj, parent, opts) {
   }
 
   var preload = __oni_rt.G.__oni_rt_bundle;
-  var path = resolveSpec.path;
-  var contents = preload[path];
-  if (contents !== undefined) {
-    resolveSpec.src = function() {
-      // once loaded, we remove src from memory to save space
-      delete preload[path];
-      return {src:contents, loaded_from: path+"#bundle"};
-    };
+  var pendingHubs = false;
+  if (preload.h) {
+    // check for any unresolved hubs:
+    var deleteHubs = [];
+    for (var k in preload.h) {
+      if (!Object.prototype.hasOwnProperty.call(preload.h, k)) continue;
+      var entries = preload.h[k];
+      var parent = getTopReqParent_hostenv();
+      var resolved = resolveHubs(k, hubs, exports.require, parent, {});
+      if (resolved.path === k) {
+        // hub not yet installed
+        pendingHubs = true;
+        continue;
+      }
+
+      for (var i=0; i<entries.length; i++) {
+        var ent = entries[i];
+        preload.m[resolved.path + ent[0]] = ent[1];
+      }
+      deleteHubs.push(k);
+    }
+
+    if (!pendingHubs) delete preload.h;
+    else {
+      // delete now-resolved hubs
+      for (var i=0; i<deleteHubs.length; i++)
+        delete preload.h[deleteHubs[i]];
+    }
+  }
+
+  if (preload.m) {
+    var path = resolveSpec.path;
+    var contents = preload.m[path];
+    if (contents !== undefined) {
+      resolveSpec.src = function() {
+        // once loaded, we remove src from memory to save space
+        delete preload.m[path];
+        var empty = true;
+        for (var k in preload.m) {
+          if (Object.prototype.hasOwnProperty.call(preload.m, k)) {
+            empty = false;
+            break;
+          }
+        }
+        if(empty) delete preload.m;
+        return {src:contents, loaded_from: path+"#bundle"};
+      };
+    }
   }
 
   return resolveSpec;

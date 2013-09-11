@@ -92,10 +92,11 @@ var compiler = require('./compile/deps.js');
 var fs = require('sjs:nodejs/fs');
 var url = require('sjs:url');
 var seq = require('sjs:sequence');
-var {each, toArray, map, transform} = seq;
+var { each, toArray, map, transform, filter, concat, sort, any } = seq;
 var str = require('sjs:string');
-var {split, rsplit} = str;
+var { split, rsplit, startsWith } = str;
 var object = require('sjs:object');
+var { hasOwn, ownKeys, ownValues, ownPropertyPairs } = object;
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
 
@@ -129,30 +130,23 @@ function findDependencies(sources, settings) {
   logging.verbose("resources:", resources);
 
   var getId = function(id) {
-    resources .. each {|[alias, path]|
+    // rationalize full paths *back* into hub shorthand using only
+    // explicitly-referenced hubs (and then those in aliases), assuming that all
+    // such hubs will be configured on the client
+    var aliases = usedHubs .. ownPropertyPairs .. concat(resources);
+    var depth=0;
+    aliases .. each {|[name, path]|
       logging.debug("checking if #{id} startswith #{path}");
       if (id .. str.startsWith(path)) {
-        return alias + id.substr(path.length);
+        id = name + id.substr(path.length);
+        logging.debug("Shortened -> #{id}");
       }
     }
     if (!(id .. str.startsWith('file://'))) return id;
     throw new Error("No module ID found for #{id} (missing a resource mapping?)");
   }
 
-  var resolveHubs = function(requireName, depth) {
-    if (depth === undefined) depth = 0;
-    if (depth > 10) throw new Error("Too much hub indirection");
-    hubs .. each {|[alias, path]|
-      logging.debug("checking if #{requireName} startswith #{alias}");
-      if (requireName .. str.startsWith(alias)) {
-        var resolved = path + (requireName.substr(alias.length));
-        logging.verbose("resolved #{requireName} -> #{resolved}");
-        return resolveHubs(resolved, depth+1);
-      }
-    }
-    return requireName;
-  }
-
+  var usedHubs = {};
 
   function addRequire(requireName, parent) {
     if (shouldExcude(requireName, excludes)) return;
@@ -166,8 +160,8 @@ function findDependencies(sources, settings) {
     var src;
     var resolved;
 
-    // resolve relative require names & configured hubs
-    requireName = resolveHubs(requireName);
+    // resolve relative require names & builtin hubs
+    requireName = resolveHubs(requireName, hubs, usedHubs);
     if (! (requireName .. str.contains(":"))) {
       requireName = url.normalize(requireName, parent.path);
       logging.debug("normalized to " + requireName);
@@ -230,7 +224,17 @@ function findDependencies(sources, settings) {
     addRequire(mod, root);
   }
 
-  return deps;
+  // filter out usedHubs that didn't end up with any modules under them
+  usedHubs .. ownKeys .. toArray() .. each {|h|
+    if (!deps .. ownValues .. any(v -> v.id && v.id .. startsWith(h))) {
+      delete usedHubs[h];
+    }
+  }
+
+  return {
+    hubs: usedHubs,
+    modules: deps,
+  };
 }
 exports.findDependencies = findDependencies;
 
@@ -284,13 +288,42 @@ function writeBundle(deps, path, settings) {
     write("(function() {");
     write("if(typeof(__oni_rt_bundle) == 'undefined')__oni_rt_bundle={};");
     write("var o = document.location.origin, b=__oni_rt_bundle;");
+    write("if(!b.h) b.h={};");
+    write("if(!b.m) b.m={};");
+
+    var hubNames = deps.hubs .. ownKeys .. sort();
+    hubNames .. each {|name|
+      logging.debug("Adding hub: #{name}");
+      var nameExpr = JSON.stringify(name);
+      // ensure bundle.hubs[name] is an array
+      write(";if(!b.h[#{nameExpr}])b.h[#{nameExpr}]=[];");
+    }
 
     var addPath = function(path) {
       if (shouldExcude(path, excludes)) return;
-      var dep = deps[path];
+      logging.debug("Adding path #{path}");
+      var dep = deps.modules[path];
       var id = dep.id;
       if (!id) {
         throw new Error("No ID for #{dep.path}");
+      }
+
+      var setContents;
+      var idExpr = JSON.stringify(id);
+      if (id .. str.startsWith('/')) {
+        idExpr = "o+#{idExpr}";
+      }
+
+      hubNames .. each {|name|
+        if (id .. str.startsWith(name)) {
+          // if ID starts with a known hub, add it to the appropriate hub array
+          setContents = (c) -> write("b.h[#{JSON.stringify(name)}].push([#{JSON.stringify(id.substr(name.length))}, #{c}]);");
+          break;
+        }
+      }
+      if (!setContents) {
+        // if ID is not hub-based, write it as an absolute module ID
+        setContents = (c) -> write("b.m[#{idExpr}]=#{c};");
       }
 
       var resolved = require.resolve(dep.path);
@@ -303,16 +336,12 @@ function writeBundle(deps, path, settings) {
       var percentage = ((minifiedSize/initialSize) * 100).toFixed(2);
       logging.info("Bundled #{id} [#{percentage}%]");
 
-      var idExpr = JSON.stringify(id);
-      if (id .. str.startsWith('/')) {
-        idExpr = "o+#{idExpr}";
-      }
-      write("b[#{idExpr}]=#{contents};");
+      setContents(contents);
     }.bind(this);
 
     if (!strict) addPath = relax(addPath);
 
-    deps .. object.ownKeys .. seq.sort .. each(addPath);
+    deps.modules .. object.ownKeys .. seq.sort .. each(addPath);
     write("})();");
   }
   logging.info("wrote #{path}");
@@ -359,22 +388,40 @@ exports.writeBundle = writeBundle;
 
         // wrote "bundle.js"
 */
+
+var resolveHubs = function(path, localAliases, usedHubs) {
+  // resolve up to one hub alias
+  // if usedHubs is provided, its keys will be populated
+  // with any aliases used
+  var changed = true;
+  var depth = 0;
+  var aliases = require.hubs .. filter(h -> h[1] .. str.isString());
+  if (localAliases) aliases = localAliases .. concat(aliases);
+  while(changed) {
+    if(depth++ > 10) throw new Error("Too much hub recursion");
+    changed = false;
+    aliases .. each {|[prefix, dest]|
+      logging.debug("checking if #{path} startswith #{prefix}");
+      if (path .. str.startsWith(prefix)) {
+        if (usedHubs && !usedHubs .. hasOwn(prefix)) {
+          usedHubs[prefix] = dest;
+        }
+        path = dest + path.slice(prefix.length);
+        logging.verbose("resolved -> #{path}");
+        changed = true;
+        break;
+      }
+    }
+  }
+  return path;
+};
+
 exports.create = function(opts) {
   var expandPath = function(path) {
     if (!(path .. str.contains(':'))) {
       logging.debug("normalizing path: #{path}");
       path = url.fileURL(path);
       logging.debug("-> #{path}");
-    } else {
-      // resolve up to one hub alias
-      // (this will mainly be used for 'sjs:')
-      require.hubs .. each {|[prefix, dest]|
-        if (!str.isString(dest)) continue;
-        if (path .. str.startsWith(prefix)) {
-          path = dest + path.slice(prefix.length);
-          break;
-        }
-      }
     }
     return path;
   }
@@ -528,6 +575,8 @@ if (require.main === module) {
     console.error("Error: One of --bundle or --dump options are required");
     process.exit(1);
   }
+
+  if (opts.dump) opts.bundle = null;
 
   var deps = exports.create(opts);
 
