@@ -23,7 +23,10 @@ function build_deps() {
   PSEUDO("clean");
   BUILD("clean", ["rm -rf \
     tmp \
-    modules/compile/*js \
+    modules/compile/*.js \
+    modules/compile/minify.sjs \
+    modules/compile/stringify.sjs \
+    modules/compile/sjs.sjs \
     ", function() { log('all done')}]);
 
   PSEUDO("build");
