@@ -331,7 +331,7 @@ function interpolating_string(parts) {
   return rv+'"';
 #endif
 }
-#endif // INTERPOLATING_STRINGS
+#endif /* INTERPOLATING_STRINGS */
 
 #ifdef QUASIS
 #define GEN_QUASI(parts, pctx) return quasi(parts);
@@ -350,7 +350,7 @@ function quasi(parts) {
   }
   return rv + '`';
 }
-#endif // QUASIS
+#endif /* QUASIS */
 
 
 #define GEN_IDENTIFIER(value, pctx) return value;

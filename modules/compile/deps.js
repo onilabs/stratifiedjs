@@ -1130,7 +1130,7 @@ S("{").
   exs(function(pctx) {
     var start = pctx.token.id;
     if (start == "|" || start == "||") {
-      // block lambda
+      // block lambda */
       return parseBlockLambda(start, pctx);
     }
     else {

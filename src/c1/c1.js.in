@@ -337,7 +337,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
    @setting  {Boolean} [keeplines] Maintain line numbers
    @return   {String} Minified SJS as a string literal
 */
-#else // !STRINGIFY
+#else /* !STRINGIFY */
 /**
    @module  compile/minify
    @summary SJS source code minifier
@@ -350,7 +350,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
    @setting  {Boolean} [keeplines] Maintain line numbers
    @return   {String} Minified SJS
 */
-#endif // STRINGIFY
+#endif /* STRINGIFY */
 
 
 #elif defined(C1_KERNEL_DEPS)
@@ -410,7 +410,7 @@ Hash.prototype = {
 #ifdef SJS_ARROWS
 #ifdef SJS_DOUBLEDOT
 #define PAT_OPERATOR2 ==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=
-#else // !SJS_DOUBLEDOT
+#else /* !SJS_DOUBLEDOT */
 #define PAT_OPERATOR2 ==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
 #endif
 #else
@@ -971,18 +971,18 @@ function parseBlockLambda(start, pctx) {
   LOGM('blocklambda')
   GEN_BLOCKLAMBDA(pars, body, pctx)
 }
-#endif // SJS_BLOCKLAMBDA
+#endif /* SJS_BLOCKLAMBDA */
 
 S("{").
   exs(function(pctx) {
 #ifdef SJS_BLOCKLAMBDA
     var start = pctx.token.id;
     if (start == "|" || start == "||") {
-      // block lambda
+      // block lambda */
       return parseBlockLambda(start, pctx);
     }
     else {
-#endif // SJS_BLOCKLAMBDA
+#endif /* SJS_BLOCKLAMBDA */
       // object literal:
       var props = [];
       while (pctx.token.id != "}") {
@@ -1018,19 +1018,19 @@ S("{").
             throw new Error("Exactly one parameter expected in property setter definition");
           props.push(["set", prop, pars[0], body]);
         }
-#endif // ECMA_GETTERS_SETTERS
+#endif /* ECMA_GETTERS_SETTERS */
 #ifdef METHOD_DEFINITIONS
         else if (pctx.token.id == "(") {
           props.push(["method",prop,parseMethod(pctx)]);
         }
-#endif // METHOD_DEFINITIONS
+#endif /* METHOD_DEFINITIONS */
 #ifdef SJS_DESTRUCTURE
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
           if (prop.charAt(0) == "'" || prop.charAt(0) == '"')
             throw new Error("Quoted identifiers not allowed in destructuring patterns ("+prop+")");
           props.push(["pat", prop, pctx.line]);
         }
-#endif // SJS_DESTRUCTURE
+#endif /* SJS_DESTRUCTURE */
         else
           throw new Error("Unexpected token '"+pctx.token+"'");
       }
@@ -1039,7 +1039,7 @@ S("{").
       GEN_OBJ_LIT(props, pctx)
 #ifdef SJS_BLOCKLAMBDA
     }
-#endif // SJS_BLOCKLAMBDA
+#endif /* SJS_BLOCKLAMBDA */
   }).
 #ifdef SJS_BLOCKLAMBDA
   // block lambda call:
@@ -1051,7 +1051,7 @@ S("{").
     LOGM('fun_call')
     GEN_FUN_CALL(l, args, pctx);
   }).
-#endif // SJS_BLOCKLAMBD
+#endif /* SJS_BLOCKLAMBD */
   // block:
   stmt(parseBlock);
 
@@ -1638,7 +1638,7 @@ S("waitfor").stmt(function(pctx) {
   }    
 });
 
-#endif // SJS
+#endif /* SJS */
 
 #ifdef SJS_USING
 S("using").stmt(function(pctx) {
@@ -1663,7 +1663,7 @@ S("using").stmt(function(pctx) {
   LOGM('using')
   GEN_USING(has_var, lhs, exp, body, pctx)
 });
-#endif // SJS_USING
+#endif /* SJS_USING */
 
 #ifdef SJS___JS
 S("__js").stmt(function(pctx) {
@@ -1675,7 +1675,7 @@ S("__js").stmt(function(pctx) {
   LOGM('__js')
   GEN___JS(body, pctx)
 });
-#endif // SJS___JS
+#endif /* SJS___JS */
 
 
 // reserved keywords:

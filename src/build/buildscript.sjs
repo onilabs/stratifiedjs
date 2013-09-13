@@ -562,7 +562,7 @@ function _run_task(target, task, deps) {
     task = task.replace(/\$(\d+)/g, function(m,n) { return deps[n]; });
     task = task.replace(/\$TARGET/g, target);
     //log("* Executing shell command: '"+task+"'");
-    require('sjs:nodejs/child-process').exec(task);
+    require('sjs:nodejs/child-process').run('bash', ['-c', task], {stdio:'inherit'});
   }
   else 
     throw new Error("Unknown task type in builder '"+target+"'");    

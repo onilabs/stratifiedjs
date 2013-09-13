@@ -383,11 +383,11 @@ function gen_crf(crf) {
 
 #ifdef INTERPOLATING_STRINGS
 #define GEN_INTERPOLATING_STR(parts, pctx) return Dynamic;
-#endif // INTERPOLATING_STRINGS
+#endif /* INTERPOLATING_STRINGS */
 
 #ifdef QUASIS
 #define GEN_QUASI(parts, pctx) return Dynamic;
-#endif // QUASIS
+#endif /* QUASIS */
 
 
 #define GEN_IDENTIFIER(value, pctx) return new Id(value, top_scope(pctx).assignments);

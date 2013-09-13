@@ -713,11 +713,11 @@ function I_seq(ndata, env) {
   }
   return val;
 }
-#else // !HOTPATH
+#else /* !HOTPATH */
 function I_seq(ndata, env) {
   return cont(new EF_Seq(ndata, env), 1);
 }
-#endif // HOTPATH
+#endif /* HOTPATH */
 //exports.Seq = makeINCtor(I_seq);
 exports.Seq = function() {
   return {
@@ -999,7 +999,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
                ctor == window.XDomainRequest ||
 #endif
                    !ctor.apply /* this last one catches things like XMLHttpRequest on platforms other than opera */)) {
-#endif // !NODEJS
+#endif /* !NODEJS */
         // ctor is one of the 'builtin' functions. we need to
         // construct it in a single stage:
         var pars = this.pars;
@@ -1015,7 +1015,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
         }
         command += ")";
         rv = eval(command);
-#endif // NOEVAL
+#endif /* NOEVAL */
       }
       else if (!testIsFunction(ctor)) {
         rv = new CFException("t",

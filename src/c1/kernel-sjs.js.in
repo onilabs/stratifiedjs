@@ -1001,7 +1001,7 @@ ph_interpolating_str.prototype.val = function() {
   return '__oni_rt.Sc('+this.line+',__oni_rt.join_str,'+this.parts.join(',')+')';
 };
 
-#endif // INTERPOLATING_STRINGS
+#endif /* INTERPOLATING_STRINGS */
 
 #ifdef QUASIS
 #define GEN_QUASI(parts, pctx) return new ph_quasi_template(parts, pctx);
@@ -1022,7 +1022,7 @@ ph_quasi_template.prototype.val = function() {
   }
   return rv + ")";
 };
-#endif // QUASIS
+#endif /* QUASIS */
 
 #define GEN_ASSIGN_OP(left, id, right, pctx) return new ph_assign_op(left, id, right, pctx);
 function ph_assign_op(left, id, right, pctx) {
@@ -1248,7 +1248,7 @@ ph_arrow.prototype.nb = function() {
     return this.code;
 };
 
-#endif // SJS_ARROWS
+#endif /* SJS_ARROWS */
 
 #ifdef SJS_DOUBLEDOT
 #define GEN_DOUBLEDOT_CALL(l,r,pctx) return gen_doubledot_call(l, r, pctx);
@@ -1268,7 +1268,7 @@ function gen_doubledot_call(l, r, pctx) {
     return new ph_fun_call(r, [l], pctx);
 }
 
-#endif // SJS_DOUBLEDOT
+#endif /* SJS_DOUBLEDOT */
 
 
 #define GEN_IDENTIFIER(name, pctx) return gen_identifier(name, pctx);
@@ -1789,13 +1789,13 @@ ph_using.prototype.val = function() {
     "__oni_rt.Nb(function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},"+this.line+"),0)),this)},"+this.line+")";
   return rv;
 };
-#endif // SJS_USING
+#endif /* SJS_USING */
 
 #ifdef SJS___JS
 #define BEGIN___JS_BLOCK(pctx) if (pctx.allow_nblock) ++pctx.js_ctx;
 #define END___JS_BLOCK(pctx) if (pctx.allow_nblock) --pctx.js_ctx;
 #define GEN___JS(body, pctx) body.is_nblock=pctx.allow_nblock; return body;
-#endif // SJS___JS
+#endif /* SJS___JS */
 
 
 #ifdef SJS_BLOCKLAMBDA
@@ -1821,7 +1821,7 @@ function ph_blocklambda(pars, body, pctx) {
 ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));
 ph_blocklambda.prototype.val = function() { return this.code; };
 
-#endif // SJS_BLOCKLAMBDA
+#endif /* SJS_BLOCKLAMBDA */
 
 #define GEN_LBL_STMT(lbl, stmt, pctx) return new ph_lbl_stmt(lbl, stmt);
 
