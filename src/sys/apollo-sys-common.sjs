@@ -432,9 +432,9 @@ exports.makeMemoizedFunction = function(f, keyfn) {
     var rv = memoizer.db[key];
     if (typeof rv !== 'undefined') return rv;
     if (!lookups_in_progress[key])
-      lookups_in_progress[key] = spawn (function(args) {
-        return memoizer.db[key] = f.apply(this, args);
-      })(arguments);
+      lookups_in_progress[key] = spawn (function(self, args) {
+        return memoizer.db[key] = f.apply(self, args);
+      })(this, arguments);
     try {
       return lookups_in_progress[key].waitforValue();
     }

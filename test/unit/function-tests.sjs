@@ -183,6 +183,23 @@ testEq('memoize retraction', 2, function() {
   return c;
 });
 
+test("'this' in memoize") {||
+  var obj = {};
+  var bodyThis, keyThis;
+
+  var fn = f.memoize(function() {
+    bodyThis = this;
+  }, function() {
+    keyThis = this;
+  });
+
+  fn.call(obj);
+
+  assert.ok(bodyThis === obj);
+  assert.ok(keyThis === obj);
+}
+
+
 testEq('sequential', 0, function() {
   var x = 0;
   function G() { ++x; if (x>1) throw new Error(x); hold(10); --x; }
