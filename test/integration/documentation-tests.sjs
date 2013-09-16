@@ -67,12 +67,14 @@ context {|| // serverOnly
         var topLevel = sym -> !string.contains(sym, '.');
         var documentedSymbols = moduleDoc.symbols .. ownKeys .. filter(topLevel) .. sort;
 
+        var home = 'sjs:' + fullPath.slice(moduleRoot.length + 1).replace(/\.sjs$/,'');
+
         var moduleTests = context(filename) {||
           context{||
             var err = null;
             var moduleExports;
             try {
-              moduleExports = require(moduleDoc.home) .. ownKeys .. sort;
+              moduleExports = require(home) .. ownKeys .. sort;
             } catch(e) {
               err = e;
             }
@@ -94,6 +96,10 @@ context {|| // serverOnly
               //}.skipIf(['numeric',] .. array.contains(module), "whitelisted")
             }
           }.skipIf(moduleDoc.hostenv && moduleDoc.hostenv != sys.hostenv, moduleDoc.hostenv)
+
+          test('has the correct `home` path') {||
+            assert.eq(home, moduleDoc.home);
+          }
 
           test("documentation is valid") {|s|
             logging.info("documented exports: #{documentedSymbols .. join(", ")}");

@@ -31,6 +31,7 @@
 /**
    @module    service
    @summary   Structures for simple dependency injection
+   @home      sjs:service
 */
 
 var { Constructor, hasOwn, ownKeys, ownPropertyPairs } = require('./object');
