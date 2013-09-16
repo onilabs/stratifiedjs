@@ -1,6 +1,4 @@
 __js {
-
-
 /*
  * C1 Stratified JavaScript parser 
  *
@@ -99,44 +97,37 @@ __js {
 (These flags are also valid in kernel files)
 
 one of these required:
-   #define C1_KERNEL_JS
-   #define C1_KERNEL_SJS
-   #define C1_KERNEL_DEPS
-   #define C1_KERNEL_JSMIN  : compiles with the given kernel (and sets #define SJS appropriately)
+   define C1_KERNEL_JS
+   define C1_KERNEL_SJS
+   define C1_KERNEL_DEPS
+   define C1_KERNEL_JSMIN  : compiles with the given kernel (and sets #define SJS appropriately)
 
 general:
-   #define DEBUG_C1 : c1 debugging
-   #define VERBOSE_COMPILE_ERRORS : extra detail on compile errors (only interesting when debugging c1)
-   #define ECMA_GETTERS_SETTERS : allow ecma-style getters/setters
-   #define SJS : parse core SJS statements (set below)
-   #define MULTILINE_STRINGS : allow strings to include newlines; map to '\n' (set below)
-   #define SJS_USING: parse SJS's "using" keyword
-   #define SJS___JS: parse SJS's "__js" keyword
-   #define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
-   #define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
-   #define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
-   #define SJS_DOUBLEDOT: allow double dot call syntax
-   #define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
-   #define QUASIS: allow quasi templates (`foo#{bar}baz`)
-   #define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
-   #define ONE_SIDED_CONDITIONALS: allows `foo ? bar` expressions (i.e. `foo ? bar : baz` without alternative `baz`). in the `false` case they yield `undefined`
+   define DEBUG_C1 : c1 debugging
+   define VERBOSE_COMPILE_ERRORS : extra detail on compile errors (only interesting when debugging c1)
+   define ECMA_GETTERS_SETTERS : allow ecma-style getters/setters
+   define SJS_CORE : parse core SJS statements (set below)
+   define MULTILINE_STRINGS : allow strings to include newlines; map to '\n' (set below)
+   define SJS_USING: parse SJS's "using" keyword
+   define SJS___JS: parse SJS's "__js" keyword
+   define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
+   define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
+   define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
+   define SJS_DOUBLEDOT: allow double dot call syntax
+   define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
+   define QUASIS: allow quasi templates (`foo#{bar}baz`)
+   define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
+   define ONE_SIDED_CONDITIONALS: allows `foo ? bar` expressions (i.e. `foo ? bar : baz` without alternative `baz`). in the `false` case they yield `undefined`
 
 for C1_KERNEL_JSMIN:
-   #define STRINGIFY  : encodes minified js/sjs as a string.
+   define STRINGIFY  : encodes minified js/sjs as a string.
 
 for C1_KERNEL_SJS:  OBSOLETE! VERBOSE EXCEPTIONS ARE ALWAYS USED NOW, NOT
                     PREDICATED ON THIS FLAG ANYMORE
-   #define VERBOSE_EXCEPTIONS: add lineNumber/fileName info to VM nodes.
+   define VERBOSE_EXCEPTIONS: add lineNumber/fileName info to VM nodes.
    
 */
-/* #define DEBUG_C1 1 */
-
-
-
-
-
-
-
+/* define DEBUG_C1 1 */
 
 /*
 
@@ -178,7 +169,7 @@ END_LOOP_SCOPE(pctx)
 BEGIN_SWITCH_SCOPE(pctx)
 END_SWITCH_SCOPE(pctx)
 
-- if #defined SJS_BLOCKLAMBDA is set:
+- if SJS_BLOCKLAMBDA is defined:
 BEGIN_BLAMBDABODY(pctx)
 ADD_BLAMBDABODY_STMT(stmt, pctx)
 END_BLAMBDABODY(pctx)
@@ -263,32 +254,32 @@ GEN_TRY(block, crf, pctx)
     crf is [ [catch_id,catch_block,catchall?]|null, retract_block|null, finally_block|null ]
     (instead of the non-SJS version above)
 
-- if #define SJS_USING is set:
+- if SJS_USING is set:
 
 GEN_USING(isvar, vname, exp, body, pctx)
 
-- if #define SJS___JS is set:
+- if SJS___JS is set:
 
 BEGIN___JS_BLOCK(pctx)
 END___JS_BLOCK(pctx)
 GEN___JS(body, pctx)
 
-- if #define SJS_BLOCKLAMBDA is set:
+- if SJS_BLOCKLAMBDA is set:
 GEN_BLOCKLAMBDA(pars, body, pctx)
 
-- if #define SJS_ARROWS is set:
+- if SJS_ARROWS is set:
 GEN_THIN_ARROW(body_exp, pctx)
 GEN_THIN_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
 GEN_FAT_ARROW(body_exp, pctx)
 GEN_FAT_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
 
-- if #define SJS_DOUBLEDOT is set
+- if SJS_DOUBLEDOT is set
 GEN_DOUBLEDOT_CALL(l, r, pctx)
 
-- if #define INTERPOLATING_STRINGS is set:
+- if INTERPOLATING_STRINGS is set:
 GEN_INTERPOLATING_STR(parts, pctx)
 
-- if #define QUASIS is set:
+- if QUASIS is set:
 GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 
 */
@@ -522,11 +513,11 @@ Hash.prototype = {
 // Tokenizer
 
 // PAT_NBWS == \s+ without \n
-//#define [ \f\r\t\v\u00A0\u2028\u2029]+ \\s+
+//define [ \f\r\t\v\u00A0\u2028\u2029]+ \\s+
 // we ignore '//'-style comments as well as hashbangs (XXX not quite right)
 
 // whitespace/comments with newlines
-// doesn't work on IE: #define PAT_COMMENT \/\*[^]*?\*\/
+// doesn't work on IE: define PAT_COMMENT \/\*[^]*?\*\/
 
 
 
@@ -1021,30 +1012,19 @@ S("{").
           var exp = parseExp(pctx, 110); // only parse up to comma
           props.push(["prop",prop,exp]);
         }
-
-
-
-
-
-
-
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
           if (prop.charAt(0) == "'" || prop.charAt(0) == '"')
             throw new Error("Quoted identifiers not allowed in destructuring patterns ("+prop+")");
           props.push(["pat", prop, pctx.line]);
         }
-
         else
           throw new Error("Unexpected token '"+pctx.token+"'");
       }
       scan(pctx, "}", TOKENIZER_OP); // note the special tokenizer case here
       
       var rv = "{";                                                       for (var i=0; i<props.length; ++i) {                                  if (i!=0) rv += ",";                                                if (props[i][0] == "prop") {                                          var v = props[i][1].replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"');       rv += v +":"+props[i][2];                               }                                                                   else if (props[i][0] == "method") {                                          var v = props[i][1].replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"');       rv += v+(props[i][2].replace(/^[^(]+/,''));                       }                                                                   else if (props[i][0] == "pat")                                        rv += props[i][1];                                                else if (props[i][0] == "get")                                        rv += "get " + props[i][1]+"()"+props[i][2];                      else if (props[i][0] == "set")                                        rv += "set " + props[i][1]+"("+props[i][2]+")"+props[i][3];     }                                                                   rv += "}";                                                          return rv;
-
     }
-
   }).
-
   // block lambda call:
   exc(260, function(l, pctx) {
     var start = pctx.token.id;
@@ -1054,7 +1034,6 @@ S("{").
     
     return l+"("+ args.join(",")+")";;
   }).
-
   // block:
   stmt(parseBlock);
 
@@ -1106,12 +1085,10 @@ function parseFunctionParams(pctx, starttok, endtok) {
     if (pars.length)
       scan(pctx, ",");
     switch(pctx.token.id) {
-
       case "{":
       case "[":
         pars.push(parseFunctionParam(pctx));
         break;
-
       case "<id>":
         pars.push(pctx.token.exsf(pctx));
         scan(pctx);

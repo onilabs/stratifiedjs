@@ -22,16 +22,16 @@
 /*
 Preprocessor flags:
 
-#define CLIENTSIDE    : for browser-based VM (as opposed to rocket-hosted)
-#define NODEJS        : for nodejs VM (as opposed to rocket/clientside)
+define CLIENTSIDE    : for browser-based VM (as opposed to rocket-hosted)
+define NODEJS        : for nodejs VM (as opposed to rocket/clientside)
 
-#define DEBUG_VM      : VM debugging
+define DEBUG_VM      : VM debugging
 
-#define HOTPATH       : don't build execution frames unless we have to
+define HOTPATH       : don't build execution frames unless we have to
 
 OBSOLETE FLAGS:
     verbose exceptions are always on now; not predicated on this flag anymore:
-#define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
+define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
                              (requires compiling c1 with VERBOSE_EXCEPTIONS to
                               get correct values)
                              XXX We should actually only amend Error objects
@@ -41,10 +41,10 @@ OBSOLETE FLAGS:
 
 
     we really don't want async resume:
-#define ASYNC_RESUME  : obsolete asynchronous resume code path
+define ASYNC_RESUME  : obsolete asynchronous resume code path
 
 */
-/* #define DEBUG_VM 1 */
+/* define DEBUG_VM 1 */
 #ifdef DEBUG_VM
 #define EF_TYPES
 #define LOG(x) console.log(x);
@@ -62,7 +62,7 @@ OBSOLETE FLAGS:
 var UNDEF; // == undefined
 
 // on firefox this seems to help, on v8 it doesn't :-/
-//#define HOTPATH 1
+//define HOTPATH 1
 
 // maximum size of callstack that we'll record in tail-recursive scenarios:
 #define MAX_CALLSTACK 20
@@ -78,7 +78,7 @@ var UNDEF; // == undefined
 }
 */
 
-//#define is_cfx(obj) (obj && obj.__oni_cfx)
+//define is_cfx(obj) (obj && obj.__oni_cfx)
 #define is_cfx(obj) (obj instanceof CFException)
 /*function is_cfx(obj) {
   return obj && obj.__oni_cfx;
