@@ -100,7 +100,7 @@ one of these required:
    define C1_KERNEL_JS
    define C1_KERNEL_SJS
    define C1_KERNEL_DEPS
-   define C1_KERNEL_JSMIN  : compiles with the given kernel (and sets #define SJS appropriately)
+   define   : compiles with the given kernel (and sets #define SJS appropriately)
 
 general:
    define DEBUG_C1 : c1 debugging
@@ -119,7 +119,7 @@ general:
    define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
    define ONE_SIDED_CONDITIONALS: allows `foo ? bar` expressions (i.e. `foo ? bar : baz` without alternative `baz`). in the `false` case they yield `undefined`
 
-for C1_KERNEL_JSMIN:
+for :
    define STRINGIFY  : encodes minified js/sjs as a string.
 
 for C1_KERNEL_SJS:  OBSOLETE! VERBOSE EXCEPTIONS ARE ALWAYS USED NOW, NOT
@@ -591,7 +591,7 @@ SemanticToken.prototype = {
     this.excf = function(left, pctx) {
       var right = parseExp(pctx, bp);
       
-      return gen_infix_op(left,  this.id,  right,  pctx);
+      return gen_infix_op(left, this.id, right, pctx);
     };
     return this;
   },
@@ -602,7 +602,7 @@ SemanticToken.prototype = {
     this.excf = function(left, pctx) {
       var right = parseExp(pctx, bp);
       
-      return left+ this.id+ right;
+      return left+this.id+right;
     };
     return this;
   },
@@ -611,14 +611,14 @@ SemanticToken.prototype = {
     return this.exs(function(pctx) {
       var right = parseExp(pctx, bp);
       
-      return gen_prefix_op(this.id,  right,  pctx);
+      return gen_prefix_op(this.id, right, pctx);
     });
   },
   // encode postfix operation
   pst: function(bp) {
     return this.exc(bp, function(left, pctx) {
       
-      return left +  this.id + " ";
+      return left + this.id + " ";
     });
   }  
 };
@@ -633,7 +633,7 @@ Literal.prototype.tokenizer = TOKENIZER_OP;
 Literal.prototype.toString = function() { return "literal '"+this.value+"'"; };
 Literal.prototype.exsf = function(pctx) {
   
-  return  this.value;
+  return this.value;
 };
 
 //-----
@@ -756,7 +756,7 @@ S("[").
     var idxexp = parseExp(pctx);
     scan(pctx, "]");
     
-    return l+"["+ idxexp+"]";
+    return l+"["+idxexp+"]";
   });
 
 S(".").exc(270, function(l, pctx) {
@@ -765,7 +765,7 @@ S(".").exc(270, function(l, pctx) {
   var name = pctx.token.value;
   scan(pctx);
   
-  return l+"."+ name;
+  return l+"."+name;
 });
 
 S("new").exs(function(pctx) {
@@ -780,7 +780,7 @@ S("new").exs(function(pctx) {
     scan(pctx, ")");
   }
   
-  return "new "+exp+"("+ args.join(",")+")";
+  return "new "+exp+"("+args.join(",")+")";
 });
 
 S("(").
@@ -829,7 +829,7 @@ S("(").
     }
 
     
-    return l+"("+ args.join(",")+")";
+    return l+"("+args.join(",")+")";
   });
 
 S("..").exc(255, function(l, pctx) {
@@ -885,7 +885,7 @@ S("?").exc(130, function(test, pctx) {
     var alternative = parseExp(pctx, 110);
   }
   
-  return test+"?"+ consequent+( alternative === undefined ? "" : ":"+ alternative);
+  return test+"?"+consequent+(alternative === undefined ? "" : ":"+alternative);
 });
 
 S("=").asg(120, true);
@@ -906,26 +906,26 @@ S("->")
   .exs(function(pctx) {
     var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
     
-    return gen_prefix_op('->',  body,  pctx);
+    return gen_prefix_op('->', body, pctx);
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     var body = parseExp(pctx, 119.5);
     
-    return gen_infix_op(left,  '->',   body,   pctx);
+    return gen_infix_op(left, '->', body, pctx);
   });
 S("=>")
   // prefix form without parameters expression
   .exs(function(pctx) {
     var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
     
-    return gen_prefix_op(' =>',  body,  pctx);
+    return gen_prefix_op(' =>', body, pctx);
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     var body = parseExp(pctx, 119.5);
     
-    return gen_infix_op(left,  '=>',   body,   pctx);
+    return gen_infix_op(left, '=>', body, pctx);
   });
 
 S("spawn").pre(115);
@@ -952,7 +952,7 @@ function parseBlock(pctx) {
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
     
-    top_scope( pctx).stmts.push(stmt+flush_newlines( pctx));
+    top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
   }
   scan(pctx, "}");
   
@@ -965,7 +965,7 @@ function parseBlockLambdaBody(pctx) {
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
     
-    top_scope( pctx).stmts.push(stmt+flush_newlines( pctx));;
+    top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));;
   }
   scan(pctx, "}");
   
@@ -983,7 +983,7 @@ function parseBlockLambda(start, pctx) {
 
   var body = parseBlockLambdaBody(pctx);
   
-  return "{|"+gen_fun_pars(pars)+"| "+ body+"}";
+  return "{|"+gen_fun_pars(pars)+"| "+body+"}";
 }
 
 S("{").
@@ -1029,7 +1029,7 @@ S("{").
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     
-    return l+"("+ args.join(",")+")";;
+    return l+"("+args.join(",")+")";;
   }).
   // block:
   stmt(parseBlock);
@@ -1055,7 +1055,7 @@ function parseFunctionBody(pctx, implicit_return) {
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
     
-    top_scope( pctx).stmts.push(stmt+flush_newlines( pctx));
+    top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
   }
   scan(pctx, "}");
   
@@ -1111,7 +1111,7 @@ S("function").
     var pars = parseFunctionParams(pctx);
     var body = parseFunctionBody(pctx);
     
-    if (fname.length)                                           return "function "+fname+"("+gen_fun_pars( pars)+")"+ body;   else                                                        return "function("+gen_fun_pars( pars)+")"+ body;
+    if (fname.length)                                           return "function "+fname+"("+gen_fun_pars(pars)+")"+body;   else                                                        return "function("+gen_fun_pars(pars)+")"+body;
   }).
   // statement function form ('function declaration')
   stmt(function(pctx) {
@@ -1121,7 +1121,7 @@ S("function").
     var pars = parseFunctionParams(pctx);
     var body = parseFunctionBody(pctx);
     
-    return "function "+fname+"("+gen_fun_pars( pars)+")"+ body;
+    return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
   });
 
 S("this", TOKENIZER_OP).exs(function(pctx) {  return "this"; });
@@ -1255,7 +1255,7 @@ function parseQuasiInlineEscape(pctx) {
       if (args.length) scan(pctx, ',');
       args.push(parseExp(pctx, 110)); // only parse up to comma
     }
-    return identifier.exsf(pctx)+"("+ args.join(",")+")";
+    return identifier.exsf(pctx)+"("+args.join(",")+")";
   }
 }
 
@@ -1309,31 +1309,31 @@ S("if").stmt(function(pctx) {
     alternative = parseStmt(pctx);
   }
   
-  var rv = "if("+test+")"+ consequent;                   if ( alternative !== null){                              if(  alternative[0] != "{")                              rv += "else "+ alternative;                          else                                                    rv += "else"+ alternative;                         }                                                     return rv;
+  var rv = "if("+test+")"+consequent;                   if (alternative !== null){                              if( alternative[0] != "{")                              rv += "else "+alternative;                          else                                                    rv += "else"+alternative;                         }                                                     return rv;
 });
 
 S("while").stmt(function(pctx) {
   scan(pctx, "(");
   var test = parseExp(pctx);
   scan(pctx, ")");
-  
+  /* */
   var body = parseStmt(pctx);
+  /* */
   
-  
-  return "while("+test+")"+ body;
+  return "while("+test+")"+body;
 });
 
 S("do").stmt(function(pctx) {
-  
+  /* */
   var body = parseStmt(pctx);
-  
+  /* */
   scan(pctx, "while");
   scan(pctx, "(");
   var test = parseExp(pctx);
   scan(pctx, ")");
   parseStmtTermination(pctx);
   
-  return "do "+body+"while("+ test+");";
+  return "do "+body+"while("+test+");";
 });
 
 S("for").stmt(function(pctx) {
@@ -1359,11 +1359,11 @@ S("for").stmt(function(pctx) {
     if (pctx.token.id != ")")
       inc_exp = parseExp(pctx);
     scan(pctx, ")");
-    
+    /* */
     var body = parseStmt(pctx);
+    /* */
     
-    
-    var rv = "for(";                                                        if (start_exp) {                                                           rv += start_exp + ";";                                                 }                                                                       else if ( decls) {                                                       var d = (function( decls,  pctx) {                                            var rv = "var ";                                 for (var i=0; i< decls.length; ++i) {               if (i) rv += ",";                                rv +=  decls[i][0];                               if ( decls[i].length == 2)                          rv += "="+ decls[i][1];                       }                                                return rv+";"; })( decls,  pctx);                          rv += d;                                                                }                                                                       else                                                                      rv += ";";                                                            if ( test_exp) rv +=  test_exp;                                           rv += ";";                                                              if ( inc_exp) rv +=  inc_exp;                                             rv += ")";                                                              rv +=  body;                                                             return rv;
+    var rv = "for(";                                                        if (start_exp) {                                                           rv += start_exp + ";";                                                 }                                                                       else if (decls) {                                                       var d = (function(decls, pctx) {                                            var rv = "var ";                                 for (var i=0; i<decls.length; ++i) {               if (i) rv += ",";                                rv += decls[i][0];                               if (decls[i].length == 2)                          rv += "="+decls[i][1];                       }                                                return rv+";"; })(decls, pctx);                          rv += d;                                                                }                                                                       else                                                                      rv += ";";                                                            if (test_exp) rv += test_exp;                                           rv += ";";                                                              if (inc_exp) rv += inc_exp;                                             rv += ")";                                                              rv += body;                                                             return rv;
   }
   else if (pctx.token.id == "in") {
     scan(pctx);
@@ -1372,12 +1372,12 @@ S("for").stmt(function(pctx) {
       throw new Error("More than one variable declaration in for-in loop");
     var obj_exp = parseExp(pctx);
     scan(pctx, ")");
-    
+    /* */
     var body = parseStmt(pctx);
-    
+    /* */
     var decl = decls ? decls[0] : null;
     
-    var rv = "for(";                                        if (start_exp) {                                            rv += start_exp;                                        }                                                       else {                                                  rv += "var "+ decl[0];                                   if ( decl.length > 1)                                      rv += "=" + decl[1];                                   }                                                       rv += " in " +  obj_exp + ")";                           rv +=  body;                                             return rv;
+    var rv = "for(";                                        if (start_exp) {                                            rv += start_exp;                                        }                                                       else {                                                  rv += "var "+decl[0];                                   if (decl.length > 1)                                      rv += "=" +decl[1];                                   }                                                       rv += " in " + obj_exp + ")";                           rv += body;                                             return rv;
   }
   else
     throw new Error("Unexpected token '"+pctx.token+"' in for-statement");
@@ -1420,7 +1420,7 @@ S("with").stmt(function(pctx) {
   scan(pctx, ")");
   var body = parseStmt(pctx);
   
-  return "with("+exp+")"+ body;
+  return "with("+exp+")"+body;
 });
 
 S("case");
@@ -1431,7 +1431,7 @@ S("switch").stmt(function(pctx) {
   var exp = parseExp(pctx);
   scan(pctx, ")");
   scan(pctx, "{");
-  
+  /* */
   var clauses = [];
   while (pctx.token.id != "}") {
     var clause_exp = null;
@@ -1446,18 +1446,18 @@ S("switch").stmt(function(pctx) {
       throw new Error("Invalid token '"+pctx.token+"' in switch statement");
     scan(pctx, ":");
     
-    push_scope( pctx);                              top_scope( pctx).exp = clause_exp;
+    push_scope(pctx);                              top_scope(pctx).exp = clause_exp;
     while (pctx.token.id != "case" && pctx.token.id != "default" && pctx.token.id != "}") {
       var stmt = parseStmt(pctx);
       
-      top_scope( pctx).stmts.push(stmt+flush_newlines( pctx));
+      top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
     }
     clauses.push((function(pctx) {  var scope = pop_scope(pctx);                      var rv;                                           if (scope.exp)                                      rv = "case "+scope.exp+":";                     else                                                rv = "default:";                                return rv + scope.stmts.join(""); })(pctx));
   }
-  
+  /* */
   scan(pctx, "}");
   
-  return "switch("+exp+")"+gen_block( clauses.join(""));
+  return "switch("+exp+")"+gen_block(clauses.join(""));
 });
 
 S("throw").stmt(function(pctx) {
@@ -1520,7 +1520,7 @@ S("try").stmt(function(pctx) {
     if (!crf[0] && !crf[1] && !crf[2])
       throw new Error("Missing 'catch', 'finally' or 'retract' after 'try'");
     
-    return "try"+block+gen_crf( crf);
+    return "try"+block+gen_crf(crf);                                    
   }
   else {
     var blocks = [block];
@@ -1531,7 +1531,7 @@ S("try").stmt(function(pctx) {
     } while (pctx.token.value == op);
     var crf = parseCRF(pctx);
     
-    var rv = "waitfor";                               for (var i=0; i< blocks.length; ++i){                if (i) rv += op;                                  rv +=  blocks[i];                                }                                                 rv += gen_crf( crf);                               return rv;
+    var rv = "waitfor";                               for (var i=0; i<blocks.length; ++i){                if (i) rv += op;                                  rv += blocks[i];                                }                                                 rv += gen_crf(crf);                               return rv;
   }
 });
 
@@ -1549,7 +1549,7 @@ S("waitfor").stmt(function(pctx) {
     } while (pctx.token.value == op);
     var crf = parseCRF(pctx);
     
-    var rv = "waitfor";                               for (var i=0; i< blocks.length; ++i){                if (i) rv += op;                                  rv +=  blocks[i];                                }                                                 rv += gen_crf( crf);                               return rv;
+    var rv = "waitfor";                               for (var i=0; i<blocks.length; ++i){                if (i) rv += op;                                  rv += blocks[i];                                }                                                 rv += gen_crf(crf);                               return rv;
   }
   else {
     // suspend form
@@ -1565,13 +1565,13 @@ S("waitfor").stmt(function(pctx) {
     scan(pctx, ")");
     scan(pctx, "{");
     
-    
+    /*nothing*/
     var block = parseBlock(pctx);
     var crf = parseCRF(pctx);
     
+    /*nothing*/
     
-    
-    var rv = "waitfor(";                                   if (has_var) rv += "var ";                             for (var i=0; i< decls.length; ++i) {                     if (i) rv += ",";                                      rv +=  decls[i][0];                                     if ( decls[i].length == 2)                                rv += "="+ decls[i][1];                             }                                                      rv += ")" +  block;                                     rv += gen_crf( crf);                                    return rv;
+    var rv = "waitfor(";                                   if (has_var) rv += "var ";                             for (var i=0; i<decls.length; ++i) {                     if (i) rv += ",";                                      rv += decls[i][0];                                     if (decls[i].length == 2)                                rv += "="+decls[i][1];                             }                                                      rv += ")" + block;                                     rv += gen_crf(crf);                                    return rv;
   }    
 });
 
@@ -1596,7 +1596,7 @@ S("using").stmt(function(pctx) {
   scan(pctx, ")");
   var body = parseStmt(pctx);
   
-  var rv = "using(";                                if (has_var) rv += "var ";                        if ( lhs) rv +=  lhs + "=";                         rv +=  exp + ")";                                  return rv +  body;
+  var rv = "using(";                                if (has_var) rv += "var ";                        if (lhs) rv += lhs + "=";                         rv += exp + ")";                                  return rv + body;
 });
 
 S("__js").stmt(function(pctx) {
@@ -1691,7 +1691,7 @@ function parseScript(pctx) {
   while (pctx.token.id != "<eof>") {
     var stmt = parseStmt(pctx);
     
-    top_scope( pctx).stmts.push(stmt+flush_newlines( pctx));;
+    top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));;
   }
   return pop_scope(pctx).stmts.join("");
 }
@@ -1709,7 +1709,7 @@ function parseStmt(pctx) {
     // XXX should maybe code this in non-recursive style:
     var stmt = parseStmt(pctx);
     
-    return t.value+": "+ stmt;
+    return t.value+": "+stmt;
   }
   else {
     // an expression statement
@@ -1792,7 +1792,7 @@ function scan(pctx, id, tokenizer) {
         if (m) {
           pctx.line += m.length;
           pctx.newline += m.length;
-          add_newlines(m.length, pctx);
+          add_newlines(m.length,pctx);
         }
         // go round loop again
       }
@@ -1828,7 +1828,7 @@ function scan(pctx, id, tokenizer) {
         if (m) {
           pctx.line += m.length;
           pctx.newline += m.length;
-          add_newlines(m.length, pctx);
+          add_newlines(m.length,pctx);
         }
         // go round loop again
       }

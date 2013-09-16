@@ -448,9 +448,9 @@ function COMPILE(target, sources, flags) {
 // CPP: run C preprocessor
 function CPP(target, defs, deps) {
   log("* Preprocessing: "+target);
-  var cmd = "cpp -C -P -undef -Wundef -std=c99 -traditional-cpp -nostdinc -Wtrigraphs -fdollars-in-identifiers";
+  var cmd = "tools/bin/filepp -u -w -re";
   var extraflags = process.env['APOLLO_CFLAGS'] || '';
-  BUILD(target, cmd + " " + extraflags + " " + defs + " $0 $TARGET", deps);
+  BUILD(target, cmd + " " + extraflags + " " + defs + " $0 -o $TARGET", deps);
 }
 
 function CONCAT(target, files) {

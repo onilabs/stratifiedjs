@@ -1,0 +1,1492 @@
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.TH FILEPP 1 "Feb 27 2007"  "Version: 1.8.0"
+.\" Please update the above date whenever this man page is modified.
+.SH NAME
+filepp \- A generic file preprocessor
+.SH SYNOPSIS
+.B filepp
+.RI [ options ]
+.I filename(s)
+.SH DESCRIPTION
+\fBfilepp\fP is a generic file preprocessor designed to allow the
+functionality provided by the C preprocessor \fBcpp\fP(1) to be used
+with any file type.  \fBfilepp\fP is designed to be easily customised
+and extended.
+.SH OPTIONS
+\fBfilepp\fP accepts the following command line options:
+.TP
+.BI \-b
+Suppress blank lines originating from include files (this has no
+effect on the top-level file).
+.TP
+.BI \-c
+Read input from STDIN instead of a file.  Note: if both \fB-c\fP and
+input files are specified, both are used as inputs in the order
+given.
+.TP
+.BI \-D macro
+Predefine \fImacro\fP to have a definition of  `\|\fB1\fP\|'.
+.TP
+.BI \-D macro = defn
+Predefine \fImacro\fP to have a definition of \fIdefn\fP.
+.TP
+.BI \-d
+Output debugging information.
+.TP
+.BI \-dd
+Output verbose debugging information.  This option shows all normal
+debugging information, plus the full list of defined macros every time
+the list changes.
+.TP
+.BI \-dl
+Output light debugging information.  This option shows minimal
+debugging information.
+.TP
+.BI \-dpre char
+Prefix all debugging information with \fIchar\fP (can be character or
+string), can be used to make debugging easier to read.
+.TP
+.BI \-dpost char
+Postfix all debugging information with \fIchar\fP (can be character or
+string), this defaults to a newline.  If \fIchar\fP does not contain a
+newline, then no newline will be printed after debugging messages.
+(Newlines can be put in \fIchar\fP using the \_\_NEWLINE\_\_ macro.)
+.TP
+.BI \-ds
+Print debugging info on stdout rather than stderr.
+.TP
+.BI \-e
+Define all environment variables as macros with prefix \fBenvchar\fP.
+.TP
+.BI \-ec " char"
+Set \fBenvchar\fP (prefix of environment variables defined as macros)
+to \fIchar\fP, defaults to \fB$\fP. (Note: this option only takes
+effect at the time the environment variables are converted to
+macros).
+.TP
+.BI -ecn
+Set \fBenvchar\fP (prefix of environment variables defined as macros)
+to nothing (no prefix).
+.TP
+.BI \-h
+Show summary of options.
+.TP
+.BI \-I dir
+Append directory \fIdir\fP to the list of directories searched for
+include files.
+.TP
+.BI \-imacros " file"
+Reads in macros from \fIfile\fP, but discards everything else in the
+file.
+.TP
+.BI \-k
+Turn off parsing of all keywords.  This is useful if you just want to
+use the macro expansion facilities of \fBfilepp\fP.  With this option
+all keywords found will be ignored, \fBfilepp\fP will just replace any
+macros specified with the \fB-D\fP\fImacro\fP=\fIdefn\fP option.
+.TP
+.BI \-kc " char"
+Set keyword prefix character to \fIchar\fP (can also be a string).
+All \fBfilepp\fP keywords are prefixed with the character \fB#\fP by
+default.  This option allows the prefix to be changed to something
+else.
+.TP
+.BI \-lc " char"
+Set line continuation character to \fIchar\fP (can also be a string).
+When the line continuation character is found with a newline following
+it, it and the newline are replaced by the line continuation
+replacement character. Default is \fB\\\fP (\fBcpp\fP(1) style).
+.TP
+.BI \-lec " char"
+Set optional keyword line end character to \fIchar\fP (can also be a string).
+This allows extra characters to be placed at the end of a line
+containing a keyword.  The extra characters will be ignored.  This is
+useful if keywords are to be embedded in HTML or C style
+comments.  For example, to embed keywords in an HTML comment the
+keyword prefix character could be set to \fB<--!#\fP and the optional
+keyword line end character set to \fB-->\fP.  An example keyword would
+then be:
+
+\fB<!--#include "header.h" -->\fP
+
+In the case the optional keyword line end characters \fB-->\fP would be
+ignored.
+.TP
+.BI \-lr " char"
+Set line continuation replacement character to \fIchar\fP (can also be
+a string).  Default is a null string (\fBcpp\fP(1) style).
+.TP
+.BI \-lrn
+Set line continuation replacement character to be a newline.
+.TP
+.BI \-m " module.pm"
+Load module \fImodule.pm\fP.  \fImodule.pm\fP is a \fBperl\fP(1) module which
+can be used to extend or modify the behaviour of \fBfilepp\fP.  See
+section \fBFILEPP MODULES\fP for details of modules included with
+filepp and \fBFILEPP MODULE API\fP for details on how to write
+your own modules.
+.TP
+.BI \-M dir
+Append directory \fIdir\fP to the list of directories searched for
+filepp modules.  This list defaults to the directory the filepp
+modules are installed (if any) plus the default Perl module paths.
+(Note: this adds the directory to the Perl @INC list.)
+.TP
+.BI \-mp " char"
+Prefix all macros with \fIchar\fP.  Macros are defined in the normal
+way, but will only be replaced when found prefixed with \fIchar\fP.
+For example, filepp macros will behave similar to Bourne shell (\fBsh\fP(1))
+variables if \fIchar\fP is set to \fB$\fP.
+.TP
+.BI \-mpnk
+Turns off macro prefixes within keywords.  When using a macro prefix
+character this option allows macros to be used without the prefix in
+keyword processing.  For example, if the macro prefix is \fB$\fP then
+and \fB#if\fP would be written as:
+
+\fB#if $MACRO == 1\fP
+
+Using the \fBmpnk\fP option allows the \fB#if\fP to be written as:
+
+\fB#if MACRO == 1\fP
+
+.TP
+.BI \-o " \fIname\fP"
+Write output to \fIname\fP instead of STDOUT.  If there is only one
+input file and it has the same name as the output file, the original
+input file will be backed-up as \fIname~\fP.
+.TP
+.BI \-ov
+Overwrite mode, causes the output file to overwrite the input file.
+Useful when modifying a large number of files at once, eg:
+
+\fBfilepp\fP -ov -DTHIS=THAT *
+
+The original input file(s) will be backed-up as \fIname~\fP.
+.TP
+.BI \-ovc " \fBIN\fP=\fBOUT\fP"
+Similar to overwrite mode, the difference is the output filename is
+input filename with \fBIN\fP part converted to \fBOUT\fP.  For
+example, to process a set of files all ending with .in and have the
+output files all ending in .out do:
+
+\fBfilepp\fP -ovc .in=.out *.in
+
+In this case a file called \fItest.in\fP will be processed and the
+output file will be \fItest.out\fP.  Note: if the input file does not
+contain \fBIN\fP then the output file will have the same name as the
+input file and the original input file(s) will be backed-up as
+\fIname~\fP!
+.TP
+.BI \-pb
+Preserve blank lines.  Using this option attempts to keep as many
+lines in the output file as are in the input file, so all blank lines
+which normally would not get printed are printed.  Useful when
+comparing intput file with output.
+.TP
+.BI \-re
+Treat keyword and macro prefix characters and line continuation
+character as Perl regular expressions instead of normal strings.
+.TP
+.BI \-s
+Run \fBfilepp\fP in safe mode.  This turns off the \fBpragma\fP keyword.
+.TP
+.BI \-U macro
+Undefine previously defined \fImacro\fP.
+.TP
+.BI \-u
+Undefine all currently defined macros, including predefined ones.
+.TP
+.BI \-v
+Show version of program.
+.TP
+.BI \-w
+Turn on word boundaries when replacing macros.  When word boundaries
+are on, macros will only be replaced if the macro appears in the text
+as a word.  For example, by default \fImacro\fP would be replaced in
+both cases of the following text:
+
+\fImacro as word, macroNOTaword\fP
+
+but only the first occurrence would be replaced with the \fB-w\fP
+option.
+
+With this option enabled \fBfilepp\fP will only replace macros which
+contain alphanumeric characters.  International (non-ASCII) character
+sets can be supported using Perl's locale handling.
+
+.SH KEYWORDS
+\fBfilepp\fP supports the following keywords:
+.TP
+.BR #include " <\fIFILE\fP>"
+Include a file in the file being processed.  This variant is used for
+"system" include files.  It searches for a file named \fIFILE\fP in a
+list of directories specified by you.  Directories are specified with
+the command option `-I'.  \fBfilepp\fP does not predefine any system
+directories in which to search for files.
+.TP
+.BR #include " ""FILE"""
+Include a file in the file being processed.  This variant is used for
+include files of your own project.  It searches for a file named
+\fIFILE\fP first in the current directory, then in the list of
+directories specified with the command option `-I'.  The current
+directory is the directory the base input file is in.
+.TP
+.BR #define " \fImacro\fP"
+Define the macro \fImacro\fP to have a definition of `1'.  \fImacro\fP can
+then be used with the keywords \fB#ifdef\fP and \fB#ifndef\fP.
+.TP
+.BR #define " \fImacro\fP \fIdefn\fP"
+Define the macro \fImacro\fP to have the value \fIdefn\fP.
+\fImacro\fP can then be used with the keywords \fB#ifdef\fP and
+\fP#ifndef\fP.  Also, all instances of \fImacro\fP following the
+\fB#define\fP statement will be replaced with the string \fIdefn\fP.
+The string \fIdefn\fP is taken to be all the characters on the line
+following \fImacro\fP.
+.TP
+.BR #define " \fImacro(arg1, arg2, ...)\fP \fIdefn\fP"
+Define the macro \fImacro\fP to have the value \fIdefn\fP with
+arguments \fI(arg1, arg2, ...)\fP.  \fImacro\fP can be used as
+follows:
+
+\fB#define\fP \fImacro(foo)\fP defn with foo in
+
+Now when replacing occurs:
+
+\fImacro(bar)\fP
+
+will become:
+
+defn with bar in
+
+Macros can have any number of comma separated arguments.
+
+Macros can also have variable numbers of arguments if the final macro ends
+in ..., for example:
+
+\fB#define\fP \fIerror(string, args...)\fP fprintf(stderr, string, args);
+
+Here the first argument given becomes \fIstring\fP and all other
+arguments will become \fIargs\fP. If called as:
+\fIerror("%d,%s", i, string)\fP it will give
+
+fprintf(stderr, "%d,%s", i, string);
+
+Also, if a macro with a variable number of arguments is passed no
+arguments for the variable argument, then commas can be optionally
+removed from the definition by preceding the definition with "##".
+For example:
+
+\fB#define\fP \fIerror(string, args...)\fP fprintf(stderr, string, ##args);
+
+If this is called as: \fIerror("empty")\fP then result will be:
+
+fprintf(stderr, "empty");
+
+The comma immediately before \fI##args\fP has been removed.
+
+.TP
+.BR #if " \fIexpr\fP"
+A conditional statement, \fIexpr\fP will be evaluated to true (1) or
+false (0).  If \fIexpr\fP evaluates to true, the text between the
+\fB#if\fP and the next \fB#else\fP or \fB#endif\fP will be included.
+If \fIexpr\fP evaluates to false, the text between the \fB#if\fP and
+the next \fB#else\fP or \fB#endif\fP will be ignored.  \fIexpr\fP can
+use all the usual cpp style comparisons (==, !=, <, >, etc.).
+Multiple comparisons can be combined with and (&&) and or (||).  The
+\fBdefined\fP keyword can also be used to check if macros are defined.
+For example:
+
+\fI#if defined macro && macro == defn\fP
+
+Note: filepp's \fB#if\fP does not work in exactly the same way as
+\fBcpp\fP(1)'s \fB#if\fP.  \fBcpp\fP(1)'s \fB#if\fP only does numerical style
+comparisons.  Filepp's \fB#if\fP statement can also compare strings
+and regular expressions using \fBperl\fP(1)'s full range of comaprison
+operations.  For example, to test if two strings are exactly equal
+use:
+
+\fI#if "MACRO" eq "string"\fP
+
+To test if strings are not equal use \fIne\fP instead of \fIeq\fP.
+Regular expressions can also be tested, for example to test if a macro
+has any whitespace in it use:
+
+\fI#if "MACRO" =~ /\\s/\fP
+
+To test if a macro does not have any whitespace in it \fI=~\fP can be
+replaced with \fI!~\fP.
+
+Perl experts: \fB#if\fP works by first parsing \fIexpr\fP for the
+\fBdefined\fP keyword and checking if the macro it refers to is
+defined, replacing it with 1 if it is and 0 if it isn't.  It then
+checks \fIexpr\fP for any other macros and replaces them with their
+definition.  Finally it passes \fIexpr\fP through Perl's \fBeval\fP
+function, which returns true or false.
+.TP
+.BR #elif " \fIexpr\fP"
+\fB#elif\fP stands for "else if".  Like \fB#else\fP, it goes in the
+middle of a \fB#if\fP[\fBn\fP][\fBdef\fP]-\fB#endif\fP pair and
+subdivides it; it does not require a matching \fB#endif\fP of its own.
+Like \fB#if\fP, the \fB#elif\fP directive includes an expression to be
+tested.
+.TP
+.BR #ifdef " \fImacro\fP"
+A conditional statement, if \fImacro\fP has been defined the text
+between the \fB#ifdef\fP and the next \fB#else\fP or \fB#endif\fP will
+be included.  If \fImacro\fP has not been defined the text between the
+\fB#ifdef\fP and the next \fB#else\fP or \fB#endif\fP will be ignored.
+.TP
+.BR #ifndef " \fImacro\fP"
+The reverse case of the \fB#ifdef\fP conditional.
+.TP
+.BR #else
+The \fB#else\fP directive can be added to a conditional to provide
+alternative text to be used if the condition is false.
+.TP
+.BR #endif
+Used to terminate a conditional statement.  Normal processing resumes
+following the \fB#endif\fP.
+.TP
+.BR #undef " \fImacro\fP"
+Undefine a previously defined macro.
+.TP
+.BR #error " \fImesg\fP"
+Causes \fBfilepp\fP to exit with the error message \fImesg\fP.
+.TP
+.BR #warning " \fImesg\fP"
+Causes \fBfilepp\fP to issue the warning message \fImesg\fP.
+.TP
+.BR #comment " \fImesg\fP"
+As \fBfilepp\fP is supposed to be a generic file preprocessor, it
+cannot support any known comment styles, therefore it defines its own
+with this keyword.  All lines starting with \fB#comment\fP are treated
+as comments and removed by \fBfilepp\fP.
+.TP
+.BR #pragma " \fBfilepp\fP \fIfunction arg1, arg2, ...\fP"
+The \fB#pragma\fP keyword immediately followed by the word
+\fBfilepp\fP allows the user to execute a Perl function during
+parsing.  The word immediately following \fBfilepp\fP is taken as the
+name of the function and the remainder of the line is taken to be a
+comma separated list of arguments to the function.  Any of the \fBfilepp\fP
+internal functions (see section \fBFILEPP MODULE API\fP) can be called
+with the \fB#pragma\fP keyword.
+
+\fIWarning:\fP There are obvious security risks with allowing
+arbitrary functions to be run, so the -s (safe mode) command line
+option has been added which turns the \fB#pragma\fP keyword off.
+
+.SH PREDEFINED MACROS
+\fBfilepp\fP supports a set of predefined macros.  All the predefined
+macros are of the form \fB__MACRO__\fP, where \fBMACRO\fP is:
+.TP
+.BR FILE
+This macro expands to the name of the current input file.
+.TP
+.BR LINE
+This macro expands to the current input line number.
+.TP
+.BR DATE
+This macro expands to a string that describes the date on which the
+preprocessor is being run.  The string contains eleven characters and
+looks like "Feb 27 2007".
+.TP
+.BR ISO_DATE
+This macro expands to a string that describes the date on which the
+preprocessor is being run.  The string is in the format specified by
+ISO 8601 (YYYY-MM-DD) and looks like "2007-02-27".
+.TP
+.BR TIME
+This macro expands to a string that describes the time at which the
+preprocessor is being run.  The string contains eight characters and
+looks like "20:02:16".
+.TP
+.BR BASE_FILE
+This macro expands to the name of the main input file.
+.TP
+.BR INCLUDE_LEVEL
+This macro expands to a decimal integer constant that represents the
+depth of nesting in include files.  The value of this macro is
+incremented on every \fB#include\fP directive and decremented at every
+end of file.
+.TP
+.BR NEWLINE
+This macro expands to a newline.
+.TP
+.BR TAB
+This macro expands to a tab.
+.TP
+.BR NULL
+This macro expands to nothing.  It is useful if you want to define
+something to be nothing.
+.TP
+.BR VERSION
+This macro expands to a string constant which describes the version
+number of \fBfilepp\fP.  The string is a sequence of decimal numbers
+separated by periods and looks like "1.8.0".
+.TP
+.BR FILEPP_INPUT
+This macro expands to a string constant which says the file was
+generated automatically from the current \fBBASE_FILE\fP and looks
+like "Generated automatically from ./filepp.1.in by filepp".
+
+.SH FILEPP MODULES
+The following modules are included with the main filepp distribution:
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH FOR MODULE - for.pm
+The for module implements a simple for loop. Its file name is
+\fBfor.pm\fP.
+.PP
+The for loop is similar in functionality to that of other programming
+languages such as Perl or or C.  It has a single variable (a filepp
+macro) which is assigned a numerical value.  This numerical value
+changes by a set increment on each iteration through the loop.  The
+loop termiates when the value no longer passes a comparison test.
+.PP
+The for module implements the following keywords:
+.TP
+.BR #for " \fImacro\fP \fIstart\fP \fIcompare\fP \fIend\fP \fIincrement\fP"
+The \fB#for\fP keyword is functionally equivalent to the following Perl
+or C style loop:
+
+for(\fImacro\fP=\fIstart\fP; \fImacro\fP \fIcompare\fP \fIend\fP;
+\fImacro\fP+=\fIincrement\fP)
+
+The \fB#for\fP keyword requires the following space separated
+parameters:
+
+\fImacro\fP : The name of the macro to which the for loop should
+assign its numerical value.
+
+\fIstart\fP : The value \fImacro\fP should be assigned at the start of
+the loop.  \fIstart\fP should be a numerical value.
+
+\fIcompare\fP : The comparison to make between the current value of
+\fImacro\fP and the value \fIend\fP to determine when the loop should
+terminate.  Valid values for \fIcompare\fP are <, >, >=, <=.
+
+\fIend\fP : the for loop will terminate when the test 
+
+ \fI macro compare end \fP
+
+fails.  \fIend\fP should be a numerical value.
+
+\fIincrement\fP : The value to increment \fImacro\fP on each iteration
+of the loop.  At the end of each iteration the value of
+\fIincrement\fP is added to the current value of \fImacro\fP.
+\fIincrement\fP should be a numerical value.
+
+.TP
+.BR #endfor
+The \fB#endfor\fP keyword is used to signify the end of the loop.
+Everything within the opening \fB#for\fP and the closing \fB#endfor\fP
+will be processed on each iteration of the loop.
+.PP
+
+Example usage:
+
+\fB#for\fP COUNTER 10 > 1 -2.5
+
+  COUNTER
+
+\fB#endfor\fP
+
+In the above example COUNTER will be defined to have values 10, 7.5,
+5 and 2.5 for each successive iteration through the loop.
+
+Nested loops are also possible, as is changing the value of the macro
+within the loop.  \fIstart\fP, \fIend\fP and \fIincrement\fP should
+all be numerical values, however it is possible to use macros instead
+provided the macros are defined to have numerical values.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH FOREACH MODULE - foreach.pm
+The foreach module implements a simple foreach loop. Its file name is
+\fBforeach.pm\fP.
+.PP
+The foreach loop is similar in functionality to that of other programming
+languages such as Perl.  It takes a list of values separated by a user
+definable delimiter (',' by default).  It then iterates through all
+values in the list, defining a macro to be each individual value for
+each iteration of the loop.  The loop terminates when all values have
+been used.
+.PP
+The foreach module implements the following keywords:
+.TP
+.BR #foreach " \fImacro\fP \fIlist\fP"
+The \fB#foreach\fP keyword is functionally equivalent to the following Perl
+style loop:
+
+foreach \fImacro\fP (split(/\fIdelim\fP/, \fIlist\fP))
+
+The \fB#foreach\fP keyword requires the following space separated
+parameters:
+
+\fImacro\fP : The name of the macro to which the foreach loop should
+assign the current list value.
+
+\fIlist\fP : The list of values, separated by \fIdelim\fP (see
+\fB#foreachdelim\fP keyword for how to set \fIdelim\fP). \fIlist\fP
+can also be a macro or contain macros.
+
+The loop will run from the \fB#foreach\fP keyword to the next
+\fB#endforeach\fP keyword.
+
+.TP
+.BR #endforeach
+The \fB#endforeach\fP keyword is used to signify the end of the loop.
+Everything within the opening \fB#foreach\fP and the closing \fB#endforeach\fP
+will be processed on each iteration of the loop.
+.PP
+
+Example usage:
+
+\fB#foreach\fP VALUE one, two, three, four
+
+  VALUE
+
+\fB#endforeach\fP
+
+In the above example VALUE will be defined to have values one, two,
+three and four for each successive iteration through the loop.
+
+Nested loops are also possible.
+
+.PP
+.TP
+.BR #foreachdelim " /\fIdelim\fP/"
+The \fB#foreachdelim\fP keyword is used to set the delimiter used in
+each list.  The delimiter can be any character, string or regular
+expression.  The delimiter should be enclosed in forward slashes, in
+the same style as Perl regular expressions.   The default value for
+\fIdelim\fP is ','.  To set the delimiter to be a single space do:
+
+\fB#foreachdelim\fP / /
+
+To set \fIdelim\fP to be any amount of white space do:
+
+\fB#foreachdelim\fP /\\s\+/
+
+See the Perl documentation on regular expressions for more advanced
+uses.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH LITERAL MODULE - literal.pm
+The literal module prevents macros appearing in literal strings from
+being replaced.  A literal string is defined as having the form:
+
+\fI"literal string with\fP \fBmacro\fP \fIin"\fP
+
+In the above example, \fBmacro\fP will not be replaced.
+
+The behaviour of the literal module can be reveresed by defining the
+macro \fBLITERAL_REVERSE\fP before loading the module, for example:
+
+filepp -D\fBLITERAL_REVERSE\fP -m literal.pm \fI<files>\fP
+
+This has the effect of only replacing macros which appear in strings.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH TOUPPER MODULE - toupper.pm
+The toupper module converts all lowercase letters to uppercase.
+.SH TOLOWER MODULE - tolower.pm
+The tolower module converts all uppercase letters to lowercase.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH C/C++ COMMENT MODULE - c-comment.pm
+The c-comment module removes all C style:
+
+\fI/* comment */\fP
+
+and C++ style:
+
+\fI// comment\fP
+
+comments from a file.  C and C++ comments are removed after keywords
+have been processed.  If you wish to remove C and C++ comments before
+keywords are processed, define the macro \fBREMOVE_C_COMMENTS_FIRST\fP
+before loading the module, eg:
+
+\fBfilepp -DREMOVE_C_COMMENTS_FIRST -m c-comment.pm\fP
+
+.SH HASH COMMENT MODULE - hash-comment.pm
+The hash-comment module removes all comments of the style:
+
+\fI# comment\fP
+
+from a file.  This is the commenting style used by Perl, Bourne Shell,
+C Shell and many other programs and configuration files.  Hash
+comments are removed after keywords have been processed.  If you wish
+to remove hash comments before keywords are processed, define the
+macro \fBREMOVE_HASH_COMMENTS_FIRST\fP before loading the module
+(Note: if you do this and also use # as the keyword character then the
+keywords will be removed BEFORE they are processed).
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH FUNCTION MODULE - function.pm
+The function module allows the user write macros which call Perl functions.
+Its file name is \fBfunction.pm\fP.
+.PP
+The function module allows macros of the form:
+
+\fImacro(arg1, arg2, arg3, ...)\fP
+
+to be added to a file.  When the macro is found, it will run a
+function from a Perl module, with arguments \fIarg1\fP, \fIarg2\fP,
+\fIarg3\fP, \fI...\fP passed to the function.  The function must
+return a string.  The returned string will replace the call to the
+function in the output.  The function can have any number of
+arguments.  If the function has no arguments it should be called with
+an empty argument list:
+
+\fImacro()\fP
+
+If the word \fImacro\fP is found in the input file without being
+followed by a \fI(\fP it will be ignored.
+.PP
+To use the function module, the user must provide a Perl function
+which optionally takes in arguments and returns a string.  The
+function can either be one of filepp's internal functions or one of
+the user's own provided in a Perl module.  The function can be added
+in two ways.  The first way is through the \fBfunction\fP keyword:
+.TP
+.BR #function " \fImacro\fP \fIfunction\fP"
+\fImacro\fP is the name of the macro which is used to signify a call
+to the function in the input file and \fIfunction\fP is the name of
+the function to be called.
+.PP
+The second method of adding a function is to call the Perl function:
+.TP
+.BR Function::AddFunction(\fI$macro\fP, \fI$function\fP)
+which has the same inputs as the \fBfunction\fP keyword.
+.PP
+Functions can be removed either through the keyword:
+.TP
+.BR #rmfunction " \fImacro\fP"
+or through the Perl function
+.TP
+.BR Function::RemoveFunction(\fI$macro\fP)
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH MATHS MODULE - maths.pm
+The module provides a set of macros which perform mathematical
+operations.  When the macros are encoutered in an input file, they are
+evaluated and the result is returned in the output.
+.PP
+The maths module includes the following macros:
+.TP
+.BR "add(a, b, c, ...)"
+Takes in any number of arguments and returns their sum: (a + b + c + ...)
+.TP
+.BR "sub(a, b)"
+Returns a minus b: (a - b)
+.TP
+.BR "mul(a, b, c, ...)"
+Takes in any number of arguments and returns their product:
+(a * b * c * ...)
+.TP
+.BR "div(a, b)"
+Returns a over b: (a / b)
+.TP
+.BR "abs(a)"
+Returns the absoulte value of a.
+.TP
+.BR "atan2(a, b)"
+Returns the arctangent of a/b in the range -pi to pi.
+.TP
+.BR "cos(a)"
+Returns the cosine of a in radians.
+.TP
+.BR "exp(a)"
+Returns the e to the power of a.
+.TP
+.BR "int(a)"
+Returns the integer portion of a.
+.TP
+.BR "log(a)"
+Returns the natural logarithm (base e) of a.
+.TP
+.BR "rand(a)"
+Returns a random fractional number between the range 0 and a.  If a is
+omitted, returns a value between 0 and 1.
+.TP
+.BR "sin(a)"
+Returns the sine of a in radians.
+.TP
+.BR "sqrt(a)"
+Returns the square root of a.
+.TP
+.BR "srand(a)"
+Sets the random number seed for rand().
+.PP
+The maths module also defines pi as M_PI as e as M_E. 
+.PP
+The maths macros are implemented using the \fBfunction.pm\fP module.
+Nested macros are allowed, as is passing other macros with numerical
+defintions as arguments.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH FORMAT MODULE - format.pm
+This module provides a set of macros for formating strings and
+numbers.
+.PP
+The format module provides the following macros:
+.TP
+.BR "printf(format, arg1, arg2, ...)"
+The \fBprintf\fP macro behaves in the same way as the Perl/C function
+printf.  It takes in a format string followed by a list of arguments
+to print.  See the \fBprintf\fP(3) man page or Perl documentation for
+full details of the \fBprintf\fP function.
+.TP
+.BR "toupper(string)"
+Converts input string to upper case.
+.TP
+.BR "toupperfirst(string)"
+Converts first character of input string to upper case.
+.TP
+.BR "tolower(string)"
+Converts input string to lower case.
+.TP
+.BR "tolowerfirst(string)"
+Converts first character of input string to lower case.
+.TP
+.BR "substr(string, offset, length)"
+Extracts a substring from input \fIstring\fP.  \fBsubstr\fP behaves in
+the same way as the Perl substr function.  \fIoffset\fP is used to
+specifiy the first character of the string to output (negative for
+offset from end of string), \fIlength\fP is the length of the string
+to output.  If length is omitted everything from the offset is
+returned.  For further information on \fBsubstr\fP see the Perl
+documentation.
+.PP
+The format macros are implemented using the \fBfunction.pm\fP module.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH BIGDEF MODULE - bigdef.pm
+The bigdef module allows easy definition of multi-line macros. Its
+file name is \fBbigdef.pm\fP.
+.PP
+A multi-line macro is a macro which has a definition which spans more
+than one line.  The normal way to define these is to place a line
+continuation character at the end of each line in the definition.
+However, this can be annoying and unreadable for large multi-line
+macros.  The bigdef module tries to improve on this by providing two
+keywords:
+.TP
+.BR #bigdef " \fImacro\fP \fIdefinition...\fP"
+The \fB#bigdef\fP keyword has the same syntax as \fB#define\fP, the
+only difference being the macro definition is everything following the
+macro name including all following lines up to the next
+\fB#endbigdef\fP keyword.
+.TP
+.BR #endbigdef
+Ends a bigdef.  Everything between this keyword and the last
+preceding \fB#bigdef\fP is included in the macro.
+.PP
+Any keywords found in the definition will be evaluated as normal AT
+THE TIME THE MACRO IS DEFINED and any output from these will be
+included in the definition.
+
+Note: The difference between bigfunc and bigdef is the time keywords
+in the definition are evaluated.  Bigdef evaluates them as the macro
+is DEFINED, bigfunc evaluates them whenever the macro is REPLACED.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH BIGFUNC MODULE - bigfunc.pm
+The bigfunc module allows easy definition of multi-line macros. Its
+file name is \fBbigfunc.pm\fP.
+.PP
+A multi-line macro is a macro which has a definition which spans more
+than one line.  The normal way to define these is to place a line
+continuation character at the end of each line in the definition.
+However, this can be annoying and unreadable for large multi-line
+macros.  The bigfunc module tries to improve on this by providing two
+keywords:
+.TP
+.BR #bigfunc " \fImacro\fP \fIdefinition...\fP"
+The \fB#bigfunc\fP keyword has the same syntax as \fB#define\fP, the
+only difference being the macro definition is everything following the
+macro name including all following lines up to the next
+\fB#endbigfunc\fP keyword.
+.TP
+.BR #endbigfunc
+Ends a bigfunc.  Everything between this keyword and the last
+preceding \fB#bigfunc\fP is included in the macro.
+.PP
+Any keywords found in the definition will be evaluated as normal AT
+THE TIME THE MACRO IS REPLACED and any output from these will be
+included in the definition.
+
+Note: The difference between bigfunc and bigdef is the time keywords
+in the definition are evaluated.  Bigdef evaluates them as the macro
+is DEFINED, bigfunc evaluates them whenever the macro is REPLACED.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH DEFPLUS MODULE - defplus.pm
+The defplus module allows extra information to be appended to an
+existing macro. Its file name is \fBdefplus.pm\fP.
+.PP
+The defplus module allows further things to be appended to existing
+macros. The module implements one keyword:
+.TP
+.BR #defplus " \fImacro\fP \fIdefinition...\fP"
+The \fB#defplus\fP keyword has the same syntax as \fB#define\fP, the
+only difference being if the macro is already defined then
+\fIdefinition\fP is appended to the existing definition of the macro.
+If the macro is undefined then \fB#defplus\fP behaves in exactly the
+same way as \fB#define\fP.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH REGEXP MODULE - regexp.pm
+The regexp module allows Perl regular expression replacement to be
+done with filepp. Its file name is \fBregexp.pm\fP.
+.PP
+Perl regular expression replacement allows a regular expression to be
+searched for and replaced with something else.  Regular expressions
+are defined as follows:
+.TP
+.BR #regexp " /\fIregexp\fP/\fIreplacement\fP/"
+It is very similar to the Perl syntax and the following Perl code will
+be executed on each line of the input file:
+.TP
+.BR $line " =~ s/\fIregexp\fP/\fIreplacement\fP/g"
+For users who don't understand Perl, this means replace all
+occurrences of \fIregexp\fP in the current line with
+\fIreplacement\fP.
+.PP
+A full description of regular expressions and possible replacements is
+beyond the scope of this man page.  More information can be found in
+the Perl documentation using the command:
+.TP
+.BR perldoc " \fBperlre\fP"
+.PP
+Any number of regular expressions can be defined.  Each regular
+expression is evaluated once for each line of the input file.  Regular
+expressions are evaluated in the order they are defined.
+.PP
+Regular expressions can be undefined in the following way:
+.TP
+.BR #rmregexp " /\fIregexp\fP/\fIreplacement\fP/"
+This will remove the specified regular expression.
+.PP
+In debugging mode the current list of regular expressions can be
+viewed using the pragma keyword:
+.TP
+.BR #pragma " \fBfilepp\fP \fIShowRegexp\fP"
+When not in debugging mode, this will produce no output.
+.PP
+A single regular expression can also be defined on the command line
+using the \fIREGEXP\fP macro, for example:
+.PP
+filepp -D\fIREGEXP\fP=/\fIregexp\fP/\fIreplacement\fP/ -m regexp.pm inputfile
+.PP
+Note: the \fIREGEXP\fP macro must be defined BEFORE the regexp module
+is loaded, putting -D\fIREGEXP\fP... after -m regexp.pm will not work.
+When using the command line approach, if the \fIREGEXP\fP macro is
+successfully parsed as a regular expression it will be undefined from
+the normal filepp macro list before processing starts.  Care should
+obviously be taken when escaping special characters in the shell with
+command line regexps.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH BLC MODULE - blc.pm
+The Bracket Line Continuation module causes lines to be continued if
+they have more open brackets: "(" than close brackets: ")" on a line.
+The line will be continued until an equal number of open and close
+brackets are found.
+
+Brackets can be prevented from being counted for line continuation by
+escaping them with a backslash: "\(" and "\)".  Any brackets found
+with a preceding backslash will be ignored when deciding if line
+continuation should be done and then have the backslash removed once
+the full line has been found.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH C MACROS MODULE - cmacros.pm
+The cmacros module causes the definition of the following predefined
+macros to be quoted: \fBDATE, TIME, VERSION, BASE_FILE, FILE,\fP
+(note: predefined macros are written as __MACRO__).
+
+This makes the macros more "C" like, as the C preprocessor also puts
+quotes around these macros.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH C MACROS MODULE - cpp.pm
+The cpp makes filepp behave in a similar manner to a C preprocessor \fBcpp\fP(1).
+
+DISCLAIMER: filepp is not meant to be a drop in replacement for a C
+preprocessor even with this module.  I would not recommend using
+filepp as a C preprocessor unless you fully understand how it differs
+from a real C preprocessor.  The output from filepp with the cpp
+module will not be the same as a real C preprocessor.
+.PP
+.\"  Hey Emacs! This file is -*- nroff -*- source.
+.\" Generated automatically from ./filepp.1.in by filepp version 1.8.0
+.\" filepp is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; see the file COPYING.  If not, write to
+.\" the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.\"
+.SH GRAB MODULE - grab.pm
+The grab module is used to grab input before processing. Its file name
+is \fBgrab.pm\fP. 
+.PP
+The grab module is mainly for use in other modules, such as for.pm and
+bigfunc.pm.  It grabs all input from a file before any processing is
+done on it.  This allows other modules to do processing on the
+original input data before the main processing is done.  For example,
+the for module will store the original input inside a loop and re-use
+it each time the loop is processed.
+.TP
+.BR #grab " \fImacro\fP \fIdefinition...\fP"
+The grab module will start grabbing of all input from the grab
+keyword, onwards.
+.TP
+.BR #endgrab
+Ends a grab.  Everything between this keyword and the last
+preceding \fB#grab\fP will be grabbed and stored for use in other
+modules.
+.PP
+Grabs can be nested if required.
+.PP
+When calling grab from another module, use the following functions:
+.TP
+.BR Grab::StartGrab(\fI$startkeyword\fP, \fI$endkeyword\fP)
+\fI$startkeyword\fP is the keyword that StartGrab is called from.
+\fI$endkeyword\fP is the keyword that grabbing should stop at. 
+.TP
+.BR \fI@List\fP = Grab::GetInput()
+Returns a Perl list containing all input grabbed from when grab was last
+run.
+.TP
+.BR \fI$line\fP = Grab::GetInputLine()
+Returns the line number of the input file where grabbing last started.
+
+.PP
+
+
+.SH FILEPP MODULE API
+The behaviour of \fBfilepp\fP can be modified or extended through the use
+of modules.  \fBfilepp\fP modules are in fact \fBperl\fP(1) modules, and the rest
+of this section assumes the reader has a knowledge of Perl.
+
+\fBfilepp\fP modules are \fBperl\fP(1) modules which extend or modify \fBfilepp\fP's
+behaviour by either calling or replacing \fBfilepp\fP's internal functions.
+\fBfilepp\fP has the Perl package name \fBFilepp\fP so its internal
+functions can be called within modules either as
+\fBFilepp::function()\fP or just \fBfunction()\fP.  Any of \fBfilepp\fP's
+internal functions can be called or replaced from within a \fBfilepp\fP
+module, the most useful ones are:
+.TP
+.BR Debug(\fI$string\fP, \fI$number\fP)
+Print \fI$string\fP as debugging information if debugging is enabled.  \fI$number\fP
+is optional and can be used to set the debugging level at which \fI$string\fP
+should be printed, lower numbers being higher priority.  Command line
+option \fBd\fP prints all debugging info for 2 and below, option
+\fBdd\fP prints all debugging information for 3 and below and option
+\fBdl\fP prints all debugging information for 1 and below.  If \fI$number\fP
+is not provided, defaults to 1.
+.TP
+.BR AddProcessor(\fI$function\fP, \fI$pos\fP, \fI$type\fP)
+Allows the module to add a function named \fI$function\fP to \fBfilepp\fP's
+processing chain.  The processing chain is a set of functions which
+are run on each line of a file as it is processed.  The default
+functions in the processing chain are \fBParseKeywords\fP which does
+keyword parsing and \fBReplaceDefines\fP which does macro replacement.
+Further functions can be added to the chain, with each function taking
+a string (the current line) as input and returning the processed
+string as output.
+
+By default, or if \fI$pos\fP is set to 0, the processor is added to the
+end of the processing chain.  If \fI$pos\fP is set to 1 the processor is
+added to the start of the processing chain.
+
+\fI$type\fP controls what the processor is run on.  There are three options
+for this, 0 (default): the processor runs on everything passed to the
+processing chain; 1: the processor runs on full lines only; 2: the
+processor runs on part lines only (a part line is the text following a
+keyword such as \fBif\fP which needs to be parsed for macros).
+
+Both \fI$pos\fP and \fI$type\fP are optional parameters.
+.TP
+.BR AddProcessorAfter(\fI$function\fP, \fI$existing\fP, \fI$type\fP)
+Adds function \fI$function\fP to the processing chain directly after existing
+processor \fI$existing\fP.  If \fI$existing\fP is not found then \fI$function\fP is added
+to the end of the processing chain.  Regular expression matching is
+used to compare \fI$existing\fP with the names of the functions in the
+processing chain.
+
+\fI$type\fP is optional.
+.TP
+.BR AddProcessorBefore(\fI$function\fP, \fI$existing\fP, \fI$type\fP)
+Adds function \fI$function\fP to the processing chain directly before
+existing processor \fI$existing\fP.  If \fI$existing\fP is not found then \fI$function\fP
+is added to the start of the processing chain.  Regular expression
+matching is used to compare \fI$existing\fP with the names of the functions
+in the processing chain.
+
+\fI$type\fP is optional.
+.TP
+.BR RemoveProcessor(\fI$function\fP)
+Removes the processor function \fI$function\fP from the processing chain.
+.TP
+.BR \fI$string\fP = ReplaceDefines(\fI$string\fP)
+Replaces all macros in \fI$string\fP with their definitions and returns the
+processed string.
+.TP
+.BR AddKeyword(\fI$string\fP, \fI$function\fP)
+Add the keyword named \fI$string\fP.  When the keyword is found in text
+processing the function named \fI$function\fP will be run with everything
+following the keyword passed as a single argument.
+.TP
+.BR RemoveKeyword(\fI$string\fP)
+Removes the keyword named \fI$string\fP.
+.TP
+.BR RemoveAllKeywords()
+Removes all the keywords currently defined for \fBfilepp\fP (used for the
+-k command line option).
+.TP
+.BR AddIfword(\fI$string\fP)
+Adds keyword named \fI$string\fP to Ifword list.  An Ifword takes in the
+string following the keyword and optionally parses it, returning a 1
+if the string parses to true and 0 for false.  The default Ifwords are
+\fBif\fP, \fBifdef\fP and \fBifndef\fP.
+.TP
+.BR RemoveIfword(\fI$string\fP)
+Removes keyword named \fI$string\fP from Ifword list (note: this does NOT
+remove the keyword, use \fBRemoveKeyword\fP for that).
+.TP
+.BR AddElseword(\fI$string\fP)
+Adds keyword named \fI$string\fP to Elseword list.  An Elseword takes in the
+string following the keyword and optionally parses it, returning a 1
+if the string parses to true and 0 for false.  The default Elsewords are
+\fBelse\fP and \fBelif\fP.
+.TP
+.BR RemoveElseword(\fI$string\fP)
+Removes keyword named \fI$string\fP from Elseword list.
+.TP
+.BR AddEndifword(\fI$string\fP)
+Adds keyword named \fI$string\fP to Endifword list.  An Endifword should
+return a 1 to indicate successful termination of the if block.  If the
+Endifword returns 0 the Endifword is ignored and filepp assumes the
+current if block carries on after the Endifword.  The default
+Endifword is \fBendif\fP.
+.TP
+.BR RemoveEndifword(\fI$string\fP)
+Removes keyword named \fI$string\fP from Endifword list.
+.TP
+.BR AddIncludePath(\fI$string\fP)
+Adds the include path \fI$string\fP to the list of directories to search for
+include files (used for the -I command line option).
+.TP
+.BR AddModulePath(\fI$string\fP)
+Adds the path \fI$string\fP to the list of directories to search for filepp
+modules (used for the -M command line option).
+.TP
+.BR AddOpenInputFunc(\fI$function\fP)
+Adds a \fI$function\fP to a list of functions to be run each time a new base
+input file is opened.
+.TP
+.BR AddCloseInputFunc(\fI$function\fP)
+Adds a \fI$function\fP to a list of functions to be run each time a new base
+input file is closed.
+.TP
+.BR AddOpenOutputFunc(\fI$function\fP)
+Adds a \fI$function\fP to a list of functions to be run each time an output
+file is opened.
+.TP
+.BR AddCloseOutputFunc(\fI$function\fP)
+Adds a \fI$function\fP to a list of functions to be run each time an output
+file is closed.
+.TP
+.BR AddInputFile(\fI$string\fP)
+Adds another input file to the list of files to be processed (used for
+adding input files at the command line).
+.TP
+.BR ChangeOutputFile(\fI$string\fP)
+Closes the current output file and attempts to open a new one named
+\fI$string\fP.
+.TP
+.BR SetKeywordchar(\fI$string\fP)
+Set the initial keyword char to \fI$string\fP (used for the -kc command line
+option).
+.TP
+.BR SetContchar(\fI$string\fP)
+Set the line continuation char to \fI$string\fP (used for the -lc command
+line option).
+.TP
+.BR SetContrepchar(\fI$string\fP)
+Set the line continuation replacement char to \fI$string\fP (used for the -lr
+command line option).
+.TP
+.BR SetOptLineEndchar(\fI$string\fP)
+Set the optional keyword line end character to \fI$string\fP (used for the
+-lec command line option).
+.TP
+.BR SetBlankSupp(1/0)
+Turns blank-line suppression on/off (1 = suppress, 0 = don't
+suppress).  When blank-line suppression is on, blank lines in input
+files will not be copied to the output.  Unlike the corresponding
+command-line option (-b), this function can also have effect in the
+top-level file.  The setting of blank-line suppression applies to the
+current file being processed and all files included in the current
+file.
+.TP
+.BR ResetBlankSupp()
+Resets blank-line suppression to the command-line specified value.
+This only affects the output of blank lines from the current file
+being processed and all files included in the current file.  In the
+top-level file, this always turns blank-line suppression off.
+.TP
+.BR SetEatTrail(\fI$string\fP)
+If \fI$string\fP is a macro, whenever the macro is replaced all blank space
+between the macro's replacement and the next character on the line
+will be eaten.  For example, if macro \fIfoo\fP is defined to
+\fIbar\fP and \fIfoo\fP has been set to have it's trail eaten, the
+following:
+
+ eat my foo trail
+
+is replaced with
+
+ eat my bartrail
+
+.TP
+.BR CheckEatTrail(\fI$string\fP)
+Returns 1 if macro \fI$string\fP will have it's tail eaten, 0 otherwise.
+.TP
+.BR SetEnvchar(\fI$string\fP)
+Set the prefix of environment variables converted to macros
+(\fBenvchar\fP) to \fI$string\fP (used for -ec and -ecn command line
+options).
+.TP
+.BR DefineEnv()
+Define all environment variables as macros with prefix \fBenvchar\fP
+(used for -e command line option).
+.TP
+.BR SetOutput(1/0)
+Turns writing of parsed input file to output file on/off.  This takes
+either 1 (output on) or 0 (output off) as input.  When the output is
+turned off, the only output produced from \fBfilepp\fP will be that
+generated by modules.
+.TP
+.BR SetWordBoundaries(1/0)
+Turns on(1) or off(0) word boundary checking when replacing macros
+(used for the -w command line option).
+.TP
+.BR SetCharPerlre(1/0)
+Turns on(1) or off(0) allowing of keyword prefix char and line
+continuation char to be Perl regular expressions (used for the -re
+command line option).
+.TP
+.BR UndefAll()
+Undefines all currently defined macros, including predefined ones
+(used for the -u command line option).
+.TP
+.BR UseModule(\fI$string\fP)
+Loads a \fBperl\fP(1) module named \fI$string\fP using the Perl command
+\fBrequire\fP (used for the -m command line option).
+.TP
+.BR SetParseLineEnd(\fI$function\fP)
+Sets the function to determine if line continuation should be done on
+current line to \fI$function\fP.
+.TP
+.BR \fI$string\fP = GetNextLine()
+Returns the next line (after line continuation has been dealt with) of
+the input file currently being processed.  Returns NULL for end of
+file.
+.TP
+.BR Write(\fI$string\fP)
+Writes \fI$string\fP to the current output file.
+.TP
+.BR Output(\fI$string\fP)
+Conditionally writes \fI$string\fP to the current output file.  If output is
+turned on then writes \fI$string\fP.  Output is toggled off/on using
+SetOutput function.
+
+.PP
+In addition all the standard \fBfilepp\fP keywords have equivalent functions
+which optionally take a single argument.  The functions have the same
+name as the keyword, only with a capital first letter (eg:
+\fB#define\fP \fIstring\fP calls the function
+\fBDefine(\fP\fIstring\fP\fB)\fP).
+
+A full description of the \fBParse\fP function and all the other
+\fBfilepp\fP internal functions is beyond the scope of this man page.  The
+\fBfilepp\fP script is well commented and hopefully readable by a Perl
+programmer, so use the source Luke!
+
+.SH BUGS
+\fBfilepp\fP has no known bugs, only "features".  If you find any
+"features", please report them to the author.
+.SH COPYING
+Copyright (C) 2000-2007 Darren Miller
+.PP
+\fBfilepp\fP is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+.PP
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+.PP
+You should have received a copy of the GNU General Public License
+along with this program; see the file COPYING.  If not, write to
+the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+.SH "SEE ALSO"
+.BR \fBcpp\fP(1),
+.BR \fBperl\fP(1)
+.SH AUTHOR
+Darren Miller <darren@cabaret.demon.co.uk>.
