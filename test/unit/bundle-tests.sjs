@@ -13,7 +13,7 @@ context {||
 
   var createBundle = function(settings) {
     var tmpfile = '/tmp/sjs-test-bundle.js';
-    bundle.create(settings .. object.merge({"bundle":tmpfile}));
+    bundle.create(settings .. object.merge({"output":tmpfile}));
     var contents = fs.readFile(tmpfile).toString();
 
     // set up some "globals"

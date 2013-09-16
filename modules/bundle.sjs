@@ -117,7 +117,7 @@ var shouldExcude = function(path, bases) {
   @param {Settings} [settings]
   @return {Object}
   @desc
-    Returns a structure suitable for passing to [::writeBundle].
+    Returns a structure suitable for passing to [::generateBundle].
     
     Most code should not need to use this function directly - see [::create].
 */
@@ -250,17 +250,18 @@ var relax = function(fn) {
 }
 
 /**
-  @function writeBundle
+  @function generateBundle
   @summary generate a .js bundle file from the given module sources
   @param {Object} [deps] The result of [::findDependencies]
   @param {String} [path] The output path
   @param {Settings} [settings]
+  @return {sequence::Stream} Stream of Strings
   @desc
     Creates a bundle file from the given set of module sources.
     
     Most code should not need to use this function directly - see [::create].
 */
-function writeBundle(deps, path, settings) {
+function generateBundle(deps, settings) {
   var compile;
   if (settings.compile) {
     var compiler = require('./compile/sjs');
@@ -278,13 +279,7 @@ function writeBundle(deps, path, settings) {
   var strict = settings.strict !== false; // true by default
   var excludes = (settings.exclude || []);
 
-  using (var output = fs.open(path, 'w')) {
-    var {Buffer} = require('nodejs:buffer');
-    var write = function(data) {
-      var buf = new Buffer(data + "\n");
-      fs.write(output, buf, 0, buf.length);
-    };
-
+  var rv = seq.Stream {|write|
     write("(function() {");
     write("if(typeof(__oni_rt_bundle) == 'undefined')__oni_rt_bundle={};");
     write("var o = document.location.origin, b=__oni_rt_bundle;");
@@ -296,7 +291,7 @@ function writeBundle(deps, path, settings) {
       logging.debug("Adding hub: #{name}");
       var nameExpr = JSON.stringify(name);
       // ensure bundle.hubs[name] is an array
-      write(";if(!b.h[#{nameExpr}])b.h[#{nameExpr}]=[];");
+      write("if(!b.h[#{nameExpr}])b.h[#{nameExpr}]=[];");
     }
 
     var addPath = function(path) {
@@ -344,9 +339,9 @@ function writeBundle(deps, path, settings) {
     deps.modules .. object.ownKeys .. seq.sort .. each(addPath);
     write("})();");
   }
-  logging.info("wrote #{path}");
+  return rv;
 }
-exports.writeBundle = writeBundle;
+exports.generateBundle = generateBundle;
 
 /**
   @function create
@@ -355,7 +350,7 @@ exports.writeBundle = writeBundle;
   @setting {Array} [sources] Array of source module names to scan
   @setting {Object} [resources] Resource locations (a mapping of server-side path to client-side URL)
   @setting {Object} [hubs] Additional hub locations
-  @setting {String} [bundle] File path of bundle file to write
+  @setting {String} [output] File path of bundle file to write
   @setting {Bool} [compile] Precompile to JS (larger file size but quicker startup)
   @setting {Bool} [skip_failed] Skip modules that can't be resolved / loaded
   @setting {Array} [ignore] Array of ignored paths (to skip entirely)
@@ -364,13 +359,17 @@ exports.writeBundle = writeBundle;
     The settings provided to this function match the options given
     to this module when run from the command line.
 
+    If `output` is given, the file will be written and nothing returned.
+    Otherwise, the resulting bundle wil be returned as a {sequence::Stream} of
+    (JavaScript) source code strings.
+
     Run `sjs sjs:bundle --help` to see a full
     description of what these options do.
 
     ### Example:
 
         bundle.create({
-          bundle:"bundle.js",
+          output:"bundle.js",
           resources: {
             # the current working directory (on the server) corresponds to /static/ (in a browser)
             "./": "/static/"
@@ -448,7 +447,6 @@ exports.create = function(opts) {
   var hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1))  .. map([prefix, path] -> [prefix, expandPath(path)]);
 
   var ignore = (opts.ignore || []) .. map(expandPath) .. toArray;
-  var exclude = (opts.exclude || []) .. map(expandPath) .. toArray;
 
   var commonSettings = {
     strict: !opts.skip_failed,
@@ -461,13 +459,27 @@ exports.create = function(opts) {
     ignore: ignore,
   }));
 
-  if (opts.bundle) {
-    writeBundle(deps, opts.bundle, commonSettings .. object.merge({
-      exclude: exclude,
-    }));
+  if (opts.dump) {
+    return deps;
   }
 
-  return deps;
+  var exclude = (opts.exclude || []) .. map(expandPath) .. toArray;
+  var contents = generateBundle(deps, commonSettings .. object.merge({
+    exclude: exclude,
+  }));
+
+  if (opts.output) {
+    using (var output = fs.open(opts.output, 'w')) {
+      var {Buffer} = require('nodejs:buffer');
+      contents .. each { |line|
+        var buf = new Buffer(line + "\n");
+        fs.write(output, buf, 0, buf.length);
+      }
+      logging.info("wrote #{opts.output}");
+    }
+  } else {
+    return contents;
+  }
 }
 
 if (require.main === module) {
@@ -500,7 +512,7 @@ if (require.main === module) {
         help: (
           'Add a compile-time require.hub alias - only used to resolve ' +
           'files at bundle-time (see `--resource` for configuring runtime URLs). e.g.: ' +
-          '--bundle lib:=components/'
+          '--hub lib:=components/'
         ),
       },
       {
@@ -520,7 +532,7 @@ if (require.main === module) {
         help: "Print dependency info (JSON)",
       },
       {
-        name: 'bundle',
+        name: 'output',
         type: 'string',
         helpArg: 'FILE',
         help: "Write bundle to FILE",
@@ -571,12 +583,12 @@ if (require.main === module) {
     opts = object.merge(opts, config);
   }
 
-  if (!(opts.dump || opts.bundle)) {
-    console.error("Error: One of --bundle or --dump options are required");
+  if (!(opts.dump || opts.output)) {
+    console.error("Error: One of --output or --dump options are required");
     process.exit(1);
   }
 
-  if (opts.dump) opts.bundle = null;
+  if (opts.dump) opts.output = null;
 
   var deps = exports.create(opts);
 
