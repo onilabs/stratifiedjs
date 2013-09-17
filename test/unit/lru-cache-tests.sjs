@@ -61,3 +61,69 @@ test('discard multiple 2', true, function() {
   if (cache.get('x') != 'y') return 5;
   return true;
 });
+
+test('manual discard mru', true, function() {
+  var cache = lru.makeCache(1000);
+  cache.put('a', 'x');
+  cache.put('b', 'y');
+  cache.put('c', 'z');
+  if (cache.discard('c') != true) return 1;
+  if (cache.get('c') != undefined) return 2;
+  if (cache.get('a') != 'x') return 3;
+  if (cache.get('b') != 'y') return 4;
+  cache.put('c', 'z');
+  if (cache.get('c') != 'z') return 5;
+  return true;
+});
+
+test('manual discard middle', true, function() {
+  var cache = lru.makeCache(1000);
+  cache.put('a', 'x');
+  cache.put('c', 'z');
+  cache.put('b', 'y');
+  if (cache.discard('c') != true) return 1;
+  if (cache.get('c') != undefined) return 2;
+  if (cache.get('a') != 'x') return 3;
+  if (cache.get('b') != 'y') return 4;
+  cache.put('c', 'z');
+  if (cache.get('c') != 'z') return 5;
+  return true;
+});
+
+test('manual discard lru / single item in cache', true, function() {
+  var cache = lru.makeCache(3);
+  cache.put('a', 'x');
+  cache.put('b', 'y');
+  cache.put('c', 'z', 3); // this `put` will also clear the sentinel; moving 'c' into lru position
+  if (cache.discard('c') != true) return 1;
+  if (cache.get('c') != undefined) return 2;
+  if (cache.get('a') != undefined) return 3;
+  if (cache.get('b') != undefined) return 4;
+  cache.put('a', 'x');
+  cache.put('b', 'y');
+  if (cache.get('a') != 'x') return 5;
+  if (cache.get('b') != 'y') return 6;
+  cache.put('c', 'z');
+  if (cache.get('c') != 'z') return 7;
+  return true;
+});
+
+test('manual discard lru / multiple items in cache', true, function() {
+  var cache = lru.makeCache(3);
+  cache.put('a', 'x');
+  cache.put('b', 'y');
+  cache.put('c', 'z', 3); // this `put` will also clear the sentinel; moving 'c' into lru position
+  cache.put('a', 'x'); // this `put` will clear 'c' and move 'a' into lru
+  cache.put('b', 'y'); // this `put` will clear 'c' and move 'a' into lru
+
+  if (cache.discard('a') != true) return 1;
+  if (cache.get('c') != undefined) return 2;
+  if (cache.get('a') != undefined) return 3;
+  if (cache.get('b') != 'y') return 4;
+  cache.put('a', 'x');
+  cache.put('c', 'z');
+  if (cache.get('a') != 'x') return 5;
+  if (cache.get('b') != 'y') return 6;
+  if (cache.get('c') != 'z') return 7;
+  return true;
+});

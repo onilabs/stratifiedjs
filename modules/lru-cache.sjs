@@ -48,7 +48,7 @@ var CacheProto = Cache.prototype = {};
 /**
    @function makeCache
    @summary  Construct an initialized [::Cache] object
-   @param {Number} [maxsize] Maximum size (in number of items) to which the cache is allowed to grow before items
+   @param {Number} [maxsize] Maximum size to which the cache is allowed to grow before items
                              will be disposed
 */
 exports.makeCache = function(maxsize) {
@@ -138,9 +138,9 @@ CacheProto.get = function(key) {
   if (!entry) return null;
   
   // entry is now the most-recently used item:
-  if (entry != this.mru) {
+  if (entry !== this.mru) {
     // splice out of linked list:
-    if (entry != this.lru)
+    if (entry !== this.lru)
       entry.older.younger = entry.younger;
     else {
       this.lru = entry.younger;
@@ -155,3 +155,41 @@ CacheProto.get = function(key) {
   return entry.value;
 };
 
+/**
+   @function Cache.discard
+   @summary Removes an item from the cache
+   @param {String} [key] Item to remove
+   @return {Boolean} `true` if the item was removed; `false` if the item was not found
+*/
+CacheProto.discard = function(key) {
+  key = keyPrefix + key;
+  var entry = this.index[key];
+  if (!entry) return false;
+
+  this.size -= entry.size;
+  delete this.index[key];
+
+  // splice out of linked list:
+  if (entry === this.lru) {
+    if (entry === this.mru) {
+      // we've delete the last item in the cache; reinitialize with sentinel:
+      this.lru = this.mru = { 
+        key: "sentinel", // note: deliberately no prefix here
+        size: 0
+      };
+    }
+    else {
+      this.lru = entry.younger;
+      entry.younger.older = undefined;
+    }
+  }
+  else if (entry === this.mru) {
+    entry.older.younger = undefined;
+    this.mru = entry.older;
+  }
+  else {
+    entry.older.younger = entry.younger;
+    entry.younger.older = entry.older;
+  }
+  return true;
+};
