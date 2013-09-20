@@ -81,11 +81,23 @@ context("server-side") {||
     result .. assert.eq({stdout: '42\n', stderr: ''});
   }
 
+  test('require.resolve() on valid nodejs modules') {||
+    require.resolve('nodejs:karma').path .. assert.eq(path.join(path.dirname(sjsPath), 'node_modules', 'karma', 'lib', 'index.js'));
+  }
+
+  test('require.resolve() on missing nodejs modules') {||
+    require.resolve('nodejs:this_module_intentionally_missing').path .. assert.eq('this_module_intentionally_missing');
+  }
+
   test('require inside a .js file is synchronous') {||
     require('./fixtures/testmodule.js').dynamicRequire() .. assert.eq(1);
   }.skip('BROKEN');
 
 }.serverOnly();
+
+test('require.resolve() on sjs modules') {||
+  require.resolve('sjs:test/suite').path .. assert.eq(Url.normalize('../../modules/test/suite.sjs', module.id));
+}
 
 testEq('export to "this"', 42, function() {
   return require(dataRoot + '/parent').export_to_this;

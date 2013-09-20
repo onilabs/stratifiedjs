@@ -345,34 +345,29 @@ function file_src_loader(path) {
   return { src: data.toString(), loaded_from: path };
 }
 
-// load a builtin nodejs module:
-function nodejs_loader(path, parent, dummy_src, opts) {
-  // strip off 'nodejs:'
-  path = path.substr(7);
-  // resolve using node's require mechanism in this order:
-  //  native nodejs module, sjs-native module (based on known extensions), other nodejs module
-
+function nodejs_mockModule(parent) {
   var base;
   if (!(/^file:/.exec(parent.id))) // e.g. we are being loaded from a http module
     base = getTopReqParent_hostenv().id;
-  else 
+  else
     base = parent.id;
   // strip 'file://'
   base = base.substr(7);
 
-  var mockModule = { 
-    paths: __oni_rt.nodejs_require('module')._nodeModulePaths(base) 
+  return {
+    paths: __oni_rt.nodejs_require('module')._nodeModulePaths(base)
   };
+};
 
-  var resolved="";
-  try {
-    resolved = __oni_rt.nodejs_require('module')._resolveFilename(path, mockModule);
-    // compatibility with older nodejs (e.g. v0.7.0):
-    if (resolved instanceof Array) resolved = resolved[1];
+// load a builtin nodejs module:
+function nodejs_loader(path, parent, dummy_src, opts, spec) {
+  // resolve using node's require mechanism in this order:
+  //  native nodejs module, sjs-native module (based on known extensions), other nodejs module
 
-    if (resolved.indexOf('.') == -1) return __oni_rt.nodejs_require(resolved); // native module
-  }
-  catch (e) {}
+  var resolved=spec._resolved; // nodejs-resolved module path, or "" if nodejs couldn't resolve it
+  if (resolved && resolved.indexOf('.') == -1) return __oni_rt.nodejs_require(resolved); // native module
+
+  var mockModule = spec._mockModule;
   // if the url doesn't have an extension, try .sjs (even if we already resolved a module):
   var matches;
   if (!(matches = /.+\.([^\.\/]+)$/.exec(path))) {
@@ -393,9 +388,27 @@ function nodejs_loader(path, parent, dummy_src, opts) {
       return default_loader("file://"+resolved, parent, file_src_loader, opts);
   }
 
-  if (resolved == "") throw new Error("nodejs module at '"+path+"' not found");
+  if (!resolved) throw new Error("nodejs module at '"+path+"' not found");
   return __oni_rt.nodejs_require(resolved);
 }
+
+__js nodejs_loader.resolve = function(spec, parent) {
+  var path = spec.path.substr(7); // strip nodejs:
+  spec._mockModule = nodejs_mockModule(parent || getTopReqParent_hostenv());
+  try {
+    path = __oni_rt.nodejs_require('module')._resolveFilename(path, spec._mockModule);
+    // compatibility with older nodejs (e.g. v0.7.0):
+    if (path instanceof Array) path = path[1];
+    spec._resolved = path;
+  } catch(e) {
+    // TODO: should really throw here, but there are cases where nodejs can't
+    // resolve a module but we can still load it
+    // (e.g if it's on the nodejs path but with a .sjs extension)
+    spec._resolved = "";
+  }
+  spec.path = path;
+}
+
 
 function getHubs_hostenv() {
   return [

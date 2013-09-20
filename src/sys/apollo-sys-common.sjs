@@ -723,6 +723,16 @@ function default_loader(path, parent, src_loader, opts) {
   return descriptor.exports;
 }
 
+__js default_loader.resolve = function(spec) {
+  var p = spec.path;
+  if (p.charAt(p.length-1) != '/') {
+    // native modules are compiled based on extension:
+    var matches = /.+\.([^\.\/]+)$/.exec(p);
+    if (!matches || !exports.require.extensions[matches[1]])
+      spec.path += ".sjs";
+  }
+}
+
 function http_src_loader(path) {
   return { 
     src:         request_hostenv([path, {format:'compiled'}], {mime:'text/plain'}), 
@@ -776,14 +786,7 @@ __js function resolve(module, require_obj, parent, opts) {
   // make sure we have an absolute url with '.' & '..' collapsed:
   resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);  
 
-  // XXX hack - this should go into something like a loader.resolve() function
-  if (resolveSpec.loader == default_loader && 
-      resolveSpec.path.charAt(resolveSpec.path.length-1) != '/') {
-    // native modules are compiled based on extension:
-    var matches = /.+\.([^\.\/]+)$/.exec(resolveSpec.path);
-    if (!matches || !exports.require.extensions[matches[1]])
-      resolveSpec.path += ".sjs";
-  }
+  if (resolveSpec.loader.resolve) resolveSpec.loader.resolve(resolveSpec, parent);
 
   var preload = __oni_rt.G.__oni_rt_bundle;
   var pendingHubs = false;
@@ -856,7 +859,7 @@ function requireInner(module, require_obj, parent, opts) {
   var resolveSpec = resolve(module, require_obj, parent, opts);
 
   // now perform the load:
-  module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts);
+  module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts, resolveSpec);
   if (opts.copyTo) {
     exports.extendObject(opts.copyTo, module);
   }
