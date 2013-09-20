@@ -1242,3 +1242,15 @@ module.exports.convert = module.exports;
 
 } /* __js */
 
+if (require.main === module) {
+  var fs = require('sjs:nodejs/fs');
+  var { each }  = require('sjs:sequence');
+  var args = require('sjs:sys').argv();
+  if (args.length > 0) {
+    args .. each {|f|
+      fs.readFile(f, 'utf-8') .. module.exports.convert .. console.log;
+    }
+  } else {
+    process.stdin .. require('sjs:nodejs/stream').readAll() .. module.exports.convert .. console.log;
+  }
+}
