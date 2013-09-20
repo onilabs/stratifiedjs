@@ -485,6 +485,39 @@ function makeRequire(parent) {
       return requireInner(module, rf, parent, opts);
   };
 
+  rf.merge = function(/* modules */) {
+    var rv = {}, args = arguments;
+
+    // helper to build a binary recursion tree to load the modules in parallel:
+    // XXX we really want to use cutil::waitforAll here
+    function inner(i, l) {
+      if (l === 1) {
+        var module = rf(args[i]);
+        // XXX wish we could use exports.extendObject here, but we
+        // want the duplicate symbol check
+        for (var o in module) {
+          if (rv[o] !== undefined) 
+            throw new Error("require.merge(.) name clash while merging module '#{args[i]}': Symbol '#{o}' defined in multiple modules");
+          rv[o] = module[o];
+        }
+      }
+      else {
+        var split = Math.floor(l/2);
+        waitfor {
+          inner(i, split);
+        }
+        and {
+          inner(i+split, l-split);
+        }
+      }
+    }
+
+    // kick off the load:
+    inner(0, args.length);
+
+    return rv;
+  };
+
   __js {
 
   rf.resolve = function(module, settings) {
