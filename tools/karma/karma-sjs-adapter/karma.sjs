@@ -4,7 +4,7 @@ var str = require('sjs:string');
 var path = require('nodejs:path');
 var fs = require('sjs:nodejs/fs');
 
-var karmaPath = __oni_rt.nodejs_require.resolve('karma');
+var karmaPath = require.resolve('nodejs:karma').path;
 var karmaBase = path.normalize(path.join(karmaPath, '../../'));
 var karmaBin = path.join(karmaBase, 'bin/karma');
 
@@ -29,4 +29,6 @@ if (command != 'run' && clientArgs.length > 0) {
   process.argv = process.argv.slice(0, 2).concat(karmaArgs);
   process.env['KARMA_CLIENT_ARGS'] = JSON.stringify(clientArgs);
 }
-__oni_rt.nodejs_require(karmaBin);
+var loader = (require.hubs .. seq.find(h -> h[0] == 'nodejs:'))[1].loader;
+if(!loader) throw new Error("Can't find nodejs require() loader");
+require(karmaBin, {loader: loader});
