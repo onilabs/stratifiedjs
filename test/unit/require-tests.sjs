@@ -3,6 +3,7 @@ var testEq = testUtil.test;
 var global = require('sjs:sys').getGlobal();
 var http = require('sjs:http');
 var logging = require('sjs:logging');
+var { find } = require('sjs:sequence');
 var { merge } = require('sjs:object');
 var {test, assert, context} = require('sjs:test/suite');
 var Url = require('sjs:url');
@@ -96,7 +97,9 @@ context("server-side") {||
 }.serverOnly();
 
 test('require.resolve() on sjs modules') {||
-  require.resolve('sjs:test/suite').path .. assert.eq(Url.normalize('../../modules/test/suite.sjs', module.id));
+  var sjsRoot = (require.hubs .. find(h -> h[0] === 'sjs:'))[1];
+  assert.ok(sjsRoot);
+  require.resolve('sjs:test/suite').path .. assert.eq(Url.normalize(sjsRoot + 'test/suite.sjs', module.id));
 }
 
 testEq('export to "this"', 42, function() {
