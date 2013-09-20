@@ -492,12 +492,25 @@ function makeRequire(parent) {
     // XXX we really want to use cutil::waitforAll here
     function inner(i, l) {
       if (l === 1) {
-        var module = rf(args[i]);
+        var descriptor = args[i];
+        var id, settings, exclude;
+        __js if (typeof descriptor === 'string') {
+          id = descriptor;
+          exclude = [];
+        }
+        else {
+          id = descriptor.id;
+          settings = descriptor.settings;
+          exclude = descriptor.exclude || [];
+        }
+
+        var module = rf(id, settings);
         // XXX wish we could use exports.extendObject here, but we
         // want the duplicate symbol check
-        for (var o in module) {
+        __js for (var o in module) {
+          if (exclude.indexOf(o) !== -1) continue;
           if (rv[o] !== undefined) 
-            throw new Error("require.merge(.) name clash while merging module '#{args[i]}': Symbol '#{o}' defined in multiple modules");
+            throw new Error("require.merge(.) name clash while merging module '#{id}': Symbol '#{o}' defined in multiple modules");
           rv[o] = module[o];
         }
       }
