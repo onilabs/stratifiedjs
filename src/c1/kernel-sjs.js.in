@@ -1270,6 +1270,12 @@ function gen_doubledot_call(l, r, pctx) {
 
 #endif /* SJS_DOUBLEDOT */
 
+#ifdef SJS_ALTERNATE_NAMESPACE
+#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx) return new ph_identifier("__oni_altns", pctx);
+#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx) \
+    return new ph_dot_accessor(new ph_identifier("__oni_altns", pctx), value, pctx);
+#endif
+
 
 #define GEN_IDENTIFIER(name, pctx) return gen_identifier(name, pctx);
 function gen_identifier(name, pctx) {

@@ -64,6 +64,8 @@ exports.runREPL = function() {
   // XXX repl will be operating on global scope; place our 'require'
   // function there:
   sys.getGlobal().require = sys.require;
+  // and our alternative identifier namespace:
+  sys.getGlobal().__oni_altns = {};
 
   var stdin = process.openStdin();
 

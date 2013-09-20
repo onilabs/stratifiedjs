@@ -113,6 +113,7 @@ general:
    define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
    define SJS_DOUBLEDOT: allow double dot call syntax
+   define SJS_ALTERNATE_NAMESPACE: allow '@' and '@identifier'
    define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    define QUASIS: allow quasi templates (`foo#{bar}baz`)
    define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
@@ -282,6 +283,10 @@ GEN_FAT_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
 - if SJS_DOUBLEDOT is set
 GEN_DOUBLEDOT_CALL(l, r, pctx)
 
+- if SJS_ALTERNATE_NAMESPACE is set
+GEN_ALTERNATE_NAMESPACE_OBJ(pctx)
+GEN_ALTERNATE_NAMESPACE_IDENTIFIER(name, pctx)
+
 - if INTERPOLATING_STRINGS is set:
 GEN_INTERPOLATING_STR(parts, pctx)
 
@@ -304,6 +309,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
 #define SJS_DOUBLEDOT 1
+#define SJS_ALTERNATE_NAMESPACE 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #define ONE_SIDED_CONDITIONALS 1
@@ -319,6 +325,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
 #define SJS_DOUBLEDOT 1
+#define SJS_ALTERNATE_NAMESPACE 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #define ONE_SIDED_CONDITIONALS 1
@@ -363,6 +370,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
 #define SJS_DOUBLEDOT 1
+#define SJS_ALTERNATE_NAMESPACE 1
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #define ONE_SIDED_CONDITIONALS 1
@@ -422,8 +430,14 @@ Hash.prototype = {
 #else
 #define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()`]
 #endif
+
+#ifdef SJS_ALTERNATE_NAMESPACE
+#define PAT_IDENTIFIER [$@_\w]+
+#else
 // XXX unicode
 #define PAT_IDENTIFIER [$_\w]+
+#endif
+
 // symbols that can appear in an 'statement/argument position':
 #define PAT_ARGSYMBOL PAT_OPERATOR2|PAT_OPERATOR1|PAT_IDENTIFIER
 // symbols that can appear in an 'operator position':
@@ -599,18 +613,50 @@ Literal.prototype.exsf = function(pctx) {
   GEN_LITERAL(this.id, this.value, pctx)
 };
 
+#ifdef SJS_ALTERNATE_NAMESPACE
+//-----
+function Identifier(value) {
+  if (value.charAt(0) === '@') {
+    this.alternate = true;
+    this.id = "<@id>";
+    this.value = value.substr(1);
+  }
+  else
+    this.value = value;
+}
+Identifier.prototype = new Literal("<id>");
+Identifier.prototype.exsf = function(pctx) {
+  if (this.alternate === true) {
+    if (this.value.length) {
+      LOGM('@identifier('+this.value+')')
+      GEN_ALTERNATE_NAMESPACE_IDENTIFIER(this.value, pctx)
+    }
+    else {
+      LOGM('@ object')
+      GEN_ALTERNATE_NAMESPACE_OBJ(pctx)
+    }
+  }
+  else {
+    LOGM('identifier('+this.value+')')
+    GEN_IDENTIFIER(this.value, pctx)
+  }
+};
+#else /* ! SJS_ALTERNATE_NAMESPACE */
 //-----
 function Identifier(value) {
   this.value = value;
 }
 Identifier.prototype = new Literal("<id>");
+Identifier.prototype.alternate = false;
 Identifier.prototype.exsf = function(pctx) {
   LOGM('identifier('+this.value+')')
   GEN_IDENTIFIER(this.value, pctx)
 };
+
 #ifndef VERBOSE_COMPILE_ERRORS
 Identifier.prototype.toString = function() { return "identifier '"+this.value+"'";};
 #endif
+#endif /* SJS_ALTERNATE_NAMESPACE */
 
 //-----
 // base syntax table

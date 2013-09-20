@@ -113,6 +113,7 @@ general:
    define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
    define SJS_DOUBLEDOT: allow double dot call syntax
+   define SJS_ALTERNATE_NAMESPACE: allow '@' and '@identifier'
    define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    define QUASIS: allow quasi templates (`foo#{bar}baz`)
    define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
@@ -274,6 +275,10 @@ GEN_FAT_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
 
 - if SJS_DOUBLEDOT is set
 GEN_DOUBLEDOT_CALL(l, r, pctx)
+
+- if SJS_ALTERNATE_NAMESPACE is set
+GEN_ALTERNATE_NAMESPACE_OBJ(pctx)
+GEN_ALTERNATE_NAMESPACE_IDENTIFIER(name, pctx)
 
 - if INTERPOLATING_STRINGS is set:
 GEN_INTERPOLATING_STR(parts, pctx)
@@ -627,6 +632,7 @@ function gen_crf(crf) {
 
 
 
+
 //----------------------------------------------------------------------
 // Helpers
 
@@ -651,7 +657,8 @@ Hash.prototype = {
 
 
 
-// XXX unicode
+
+
 // symbols that can appear in an 'statement/argument position':
 // symbols that can appear in an 'operator position':
 
@@ -659,11 +666,11 @@ Hash.prototype = {
 
 
 // tokenizer for tokens in a statement/argument position:
-var TOKENIZER_SA = /(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\[\/\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA = /(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\[\/\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
 
 
 // tokenizer for tokens in an operator position:
-var TOKENIZER_OP = /(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$_\w]+))/g;
+var TOKENIZER_OP = /(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
 
 
 // tokenizer for tokens in an interpolating string position:
@@ -769,14 +776,31 @@ Literal.prototype.exsf = function(pctx) {
 
 //-----
 function Identifier(value) {
-  this.value = value;
+  if (value.charAt(0) === '@') {
+    this.alternate = true;
+    this.id = "<@id>";
+    this.value = value.substr(1);
+  }
+  else
+    this.value = value;
 }
 Identifier.prototype = new Literal("<id>");
 Identifier.prototype.exsf = function(pctx) {
-  
-  return new Id(this.value, top_scope(pctx).assignments);
+  if (this.alternate === true) {
+    if (this.value.length) {
+      
+      return (new Id("__oni_altns")).dot(this.value);
+    }
+    else {
+      
+      return new Id("__oni_altns");
+    }
+  }
+  else {
+    
+    return new Id(this.value, top_scope(pctx).assignments);
+  }
 };
-Identifier.prototype.toString = function() { return "identifier '"+this.value+"'";};
 
 //-----
 // base syntax table

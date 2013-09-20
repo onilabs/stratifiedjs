@@ -624,17 +624,17 @@ function default_compiler(src, descriptor) {
     // XXX apparently eval is faster on FF, but eval is tricky with 
     // precompiled code, because of IE, where we need execScript
 
-    f = new Function("module", "exports", "require", "__onimodulename", src);
+    f = new Function("module", "exports", "require", "__onimodulename", "__oni_altns", src);
   }
   else {
-    f = exports.eval("(function(module,exports,require, __onimodulename){"+src+"\n})",
+    f = exports.eval("(function(module,exports,require, __onimodulename, __oni_altns){"+src+"\n})",
                      {filename:"module #{descriptor.id}"});
   }
-  f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}");
+  f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}", {});
   //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
 }
 // used when precompiling modules - must be kept in sync with the above f() call
-default_compiler.module_args = ['module', 'exports', 'require', '__onimodulename'];
+default_compiler.module_args = ['module', 'exports', 'require', '__onimodulename', '__oni_altns'];
 
 function default_loader(path, parent, src_loader, opts) {
   // determine compiler function based on extension:
