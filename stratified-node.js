@@ -4449,7 +4449,7 @@ var TOKENIZER_OP=/(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(
 var TOKENIZER_IS=/((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 
 
-var TOKENIZER_QUASI=/((?:\\.|\$(?![\{a-zA-Z_$])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$]))/g;
+var TOKENIZER_QUASI=/((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
 
 
 
@@ -5168,7 +5168,7 @@ return new ph_quasi_template(parts,pctx);;
 function parseQuasiInlineEscape(pctx){var identifier=scan(pctx);
 
 
-if(pctx.token.id!="<id>")throw new Error("Unexpected "+pctx.token+" in quasi template");
+if(pctx.token.id!=="<id>"&&pctx.token.id!=="<@id>")throw new Error("Unexpected "+pctx.token+" in quasi template");
 if(pctx.src.charAt(pctx.lastIndex)!='('){
 
 return identifier.exsf(pctx);

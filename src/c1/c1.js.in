@@ -499,7 +499,7 @@ var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 
 #ifdef QUASIS
 // tokenizer for tokens in an quasi-literal:
-var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$]))/g;
+var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
 #define QUASI_CONTENT_MATCH 1
 #define QUASI_ESCAPED_NEWLINE_MATCH 2
 #define QUASI_NEWLINE_MATCH 3
@@ -1325,7 +1325,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
 function parseQuasiInlineEscape(pctx) {
   // scan an identifier:
   var identifier = scan(pctx);
-  if (pctx.token.id != "<id>") throw new Error("Unexpected " + pctx.token + " in quasi template");
+  if (pctx.token.id !== "<id>" && pctx.token.id !== "<@id>") throw new Error("Unexpected " + pctx.token + " in quasi template");
   if (pctx.src.charAt(pctx.lastIndex) != '(') {
     // $variable
     return identifier.exsf(pctx);

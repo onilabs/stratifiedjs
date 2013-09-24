@@ -65,7 +65,8 @@ exports.runREPL = function() {
   // function there:
   sys.getGlobal().require = sys.require;
   // and our alternative identifier namespace:
-  sys.getGlobal().__oni_altns = {};
+  if (sys.getGlobal().__oni_altns === undefined)
+    sys.getGlobal().__oni_altns = {};
 
   var stdin = process.openStdin();
 
