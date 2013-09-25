@@ -1,6 +1,7 @@
 var {test, context, assert} = require('sjs:test/suite');
 
-var s = require('sjs:sequence');
+var seq = require('sjs:sequence');
+var obj = require('sjs:object');
 var events = require('sjs:events');
 var array = require('sjs:array');
 var sys = require('builtin:apollo-sys');
@@ -226,6 +227,52 @@ context() {||
     }
   }
 
+  context('when') {||
+    var allEvents = [
+      { type: "boring", value: 0 },
+      { type: "important", value: 1 },
+      { type: "important", value: 2 },
+      { type: "important", value: 3 },
+    ];
+
+    var opts = {
+      filter: x -> x.type == 'important',
+      transform: x -> x.detail,
+    };
+
+    test("operates synchronously by default") {|s|
+      var log = [];
+      waitfor {
+        events.when(s.emitter.raw, 'click', opts) {|e|
+          log.push(e.value);
+          if (e.value == 3) break;
+          hold(100);
+        }
+      } and {
+        allEvents .. seq.each {|e|
+          s.emitter.trigger('click', e);
+          hold(50);
+        }
+      }
+      log .. assert.eq([1,3]);
+    }
+
+    test("buffers events when `queue` specified") {|s|
+      var log = [];
+      waitfor {
+        events.when(s.emitter.raw, 'click', opts .. obj.merge({queue: true})) {|e|
+          log.push(e.value);
+          if (e.value == 3) break;
+          hold(100);
+        }
+      } and {
+        allEvents .. seq.each {|e|
+          s.emitter.trigger('click', e);
+        }
+      }
+      log .. assert.eq([1, 2, 3]);
+    }
+  }
 
   context('Queue') {||
     var runTest = function(emitter, opts, triggerBlock) {

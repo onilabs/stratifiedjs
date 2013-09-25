@@ -178,7 +178,7 @@ HostEmitterProto.init = function(emitters, events, filter, eventTransformer) {
   this._handleEvent = function(val) {
     var arg = (arguments.length == 1) ? val : Array.prototype.slice.call(arguments);
     if (eventTransformer)
-      arg = eventTransformer(arg);
+      arg = eventTransformer(arg) || arg;
     if (filter && !filter(arg)) return;
     if (this._transformEvent) arg = this._transformEvent(arg);
     self.emit(arg);
@@ -288,6 +288,55 @@ function wait() {
 };
 exports.wait = wait;
 
+/**
+  @function when
+  @summary   Run a function each time an event occurs
+  @param     {Array|Obect} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
+  @param     {Array|String} [events] Event name (or array of names) to watch for.
+  @param     {optional Settings} [opts]
+  @param     {Function} [block]
+  @setting   {Function} [filter] Only act on events where `filter(e)` returns truthy.
+  @setting   {Function} [transform] Function which will be immediately called on each
+                                    event before it's acted on.
+
+
+  @param     {optional Function} [filter] Function through which received
+             events will be passed. An event will only be emitted if this
+             function returns a value == true.
+  @param     {optional Function} [eventTransformer] Function through which an
+             event will be passed before passing the return value on to
+             `filter` and/or emitting it.
+  @desc
+    This function waits indefinitely (or until retracted) for events
+    from the given source, and calls `block(e)` as each event arrives.
+
+    By default, events will be dealt with synchronously - any events that
+    occur during a call to `block(e)` will be missed if `block` suspends.
+    However, if you set `opts.queue` to `true`, events will be buffered
+    in a [::Queue] until they can be processed.
+*/
+var when = exports.when = function(emitters, events, options, block) {
+  if (block === undefined) {
+    block = options;
+    options = {};
+  }
+
+  var host_emitter = HostEmitter(emitters, events, options.filter, options.transform);
+  if (options.queue) {
+    using(var q = Queue(host_emitter)) {
+      while (true) {
+        block(q.get());
+      }
+    }
+  }
+  else {
+    using(host_emitter) {
+      while(true) {
+        block(host_emitter.wait());
+      }
+    }
+  }
+};
 
 /**
   @class Queue
