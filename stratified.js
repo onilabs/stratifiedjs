@@ -2939,6 +2939,7 @@ function top_stmt_scope(pctx){return pctx.stmt_scopes[pctx.stmt_scopes.length-1]
 
 
 
+
 function begin_script(pctx){switch(pctx.mode){case "debug":
 
 
@@ -3736,8 +3737,10 @@ this.is_nblock=pctx.allow_nblock&&left.is_nblock&&right.is_nblock&&!this.is_dest
 }
 ph_assign_op.prototype=new ph();
 ph_assign_op.prototype.is_value=true;
-ph_assign_op.prototype.nblock_val=function(){return this.left.nb()+this.id+this.right.nb();
+ph_assign_op.prototype.nblock_val=function(){var right=this.right.nb();
 
+if(this.left.name==='__oni_altns')right='Object.create('+right+')';
+return this.left.nb()+this.id+right;
 };
 ph_assign_op.prototype.val=function(){var rv;
 
@@ -3763,8 +3766,9 @@ throw {mes:"Invalid left side in destructuring assignment ",line:this.line};
 
 
 
-
-rv="__oni_rt.Sc("+this.line+",function(_oniX){return "+this.left.nb()+this.id+"_oniX;},"+this.right.v()+")";
+var arg='_oniX';
+if(this.left.name==='__oni_altns')arg='Object.create('+arg+')';
+rv="__oni_rt.Sc("+this.line+",function(_oniX){return "+this.left.nb()+this.id+arg+";},"+this.right.v()+")";
 
 
 }else{
@@ -3965,8 +3969,9 @@ ph_identifier.prototype.is_nblock=true;
 ph_identifier.prototype.is_id=true;
 ph_identifier.prototype.is_value=true;
 ph_identifier.prototype.nblock_val=function(){return this.name};
-ph_identifier.prototype.destruct=function(dpath){return this.name+"="+dpath+";";
+ph_identifier.prototype.destruct=function(dpath){if(this.name==='__oni_altns')dpath='Object.create('+dpath+')';
 
+return this.name+"="+dpath+";";
 };
 ph_identifier.prototype.collect_var_decls=function(vars){vars.push(this.name);
 

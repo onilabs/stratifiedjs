@@ -1,8 +1,8 @@
 var suite = require('sjs:test/suite');
-var {context, assert} = suite;
+var {test, context, assert} = suite;
 var logging = require('sjs:logging');
 var testUtil = require('../lib/testUtil');
-var test = testUtil.test;
+var testEq = testUtil.test;
 var testParity = testUtil.testParity;
 
 var sys =  require('sjs:sys');
@@ -68,25 +68,25 @@ testParity("function A(x) { var G = function G() { return x; }; return {f:functi
 testParity("function A(x) { return {f:function() { return x; }}; } var a=A(10), b=A(20); a.f();",
            function() { function A(x) { return {f:function() { return x;}}; } var a=A(10), b=A(20); return a.f();});
 
-test("waitfor { return (hold(1000), 2); } or { return (hold(100), 1); } or { return (hold(1000), 3);}", 1,
+testEq("waitfor { return (hold(1000), 2); } or { return (hold(100), 1); } or { return (hold(1000), 3);}", 1,
      function() { waitfor { return (hold(1000), 2); } or { return (hold(100), 1); } or { return (hold(1000), 3);} });
 
-test("function h(i) { return (hold(1000+i), 2+i) @ (hold(100+i), 1+i) @ (hold(1000+i), 3+i); } h(0) @ h(100) @ h(200) @ h(500);", 1,
+testEq("function h(i) { return (hold(1000+i), 2+i) @ (hold(100+i), 1+i) @ (hold(1000+i), 3+i); } h(0) @ h(100) @ h(200) @ h(500);", 1,
      function() { function h(i) { waitfor { return (hold(1000+i), 2+i) } or { return (hold(100+i), 1+i) } or { return (hold(1000+i), 3+i); } } waitfor { return h(0) } or { return h(100) } or { return h(200) } or { return h(500); } });
 
-test("Empty function/too much recursion bug: function par() {} par(1,2); 3;", 3,
+testEq("Empty function/too much recursion bug: function par() {} par(1,2); 3;", 3,
      function() { function par() {} par(1,2); return 3; });
 
 function par() {}
-test("Evaluation order: var x; par((function() { x=1;})(), (function() {x=2;})()); x", 2,  function() { var x; par((function() { x=1;})(), (function() {x=2;})()); return x; });
+testEq("Evaluation order: var x; par((function() { x=1;})(), (function() {x=2;})()); x", 2,  function() { var x; par((function() { x=1;})(), (function() {x=2;})()); return x; });
 
-test("Evaluation order: var x; (function() { x=1;})() @ (function() {x=2;})(); x", 1,  function() { var x; waitfor {(function() { x=1;})()} or {(function() {x=2;})()}; return x; });
+testEq("Evaluation order: var x; (function() { x=1;})() @ (function() {x=2;})(); x", 1,  function() { var x; waitfor {(function() { x=1;})()} or {(function() {x=2;})()}; return x; });
 
-test("var x=0; (function() { try { x=2; hold(1000); } finally { x=1; } })() @ 3; x", 1, function() { var x=0; waitfor {(function() { try { x=2; hold(1000); } finally { x=1; } })() } or { 3; } return x; });
+testEq("var x=0; (function() { try { x=2; hold(1000); } finally { x=1; } })() @ 3; x", 1, function() { var x=0; waitfor {(function() { try { x=2; hold(1000); } finally { x=1; } })() } or { 3; } return x; });
 
-test("'\r'== String.fromCharCode(13)", true, function() { return '\r'==String.fromCharCode(13); });
+testEq("'\r'== String.fromCharCode(13)", true, function() { return '\r'==String.fromCharCode(13); });
 
-suite.test('BROKEN: maximum SJS stack depth is at least 1/5th of JS', function() {
+test('BROKEN: maximum SJS stack depth is at least 1/5th of JS', function() {
   var sjs=0,js=0;
   var _sjs = function() {
     sjs++;
@@ -112,51 +112,51 @@ suite.test('BROKEN: maximum SJS stack depth is at least 1/5th of JS', function()
 }).skip();
 
 function obj_with_foo_member() { this.foo = 1; }
-test("new obj",  1, function() { var obj = new obj_with_foo_member(); return obj.foo;});
+testEq("new obj",  1, function() { var obj = new obj_with_foo_member(); return obj.foo;});
 function obj_with_proto() {}
 obj_with_proto.prototype = { bar:1 };
-test("new obj with proto", 1, function() { var obj = new obj_with_proto(); return obj.bar; });
+testEq("new obj with proto", 1, function() { var obj = new obj_with_proto(); return obj.bar; });
 function obj_with_proto_plus_args(x) { this.baz-=x; }
 obj_with_proto_plus_args.prototype = { baz: 10, getBaz: function() { return this.baz;} };
-test("new obj with proto (args)", 1, function() { var obj = new obj_with_proto_plus_args(9); return obj.getBaz(); });
-test("new Array", 1, function() { var obj = new Array; obj.push(1); return obj[0]; });
-test("new Array(5)", 1, function() { var obj = new Array(5); return obj.length-4; });
+testEq("new obj with proto (args)", 1, function() { var obj = new obj_with_proto_plus_args(9); return obj.getBaz(); });
+testEq("new Array", 1, function() { var obj = new Array; obj.push(1); return obj[0]; });
+testEq("new Array(5)", 1, function() { var obj = new Array(5); return obj.length-4; });
 
 testParity("var a= 2; try { throw 'foo'; }catch(e) { if (e=='foo')a=1; } a;", 
 function() { var a = 2; try { 1; throw 'foo'; }catch(e) { if(e=='foo')a=1; } return a; });
 
-test("this pointer in try", 1, function() { var a ={i:2, foo:function() { try { this.i--; throw "foo"; } catch(e) {  } return this.i; }}; return a.foo(); });
+testEq("this pointer in try", 1, function() { var a ={i:2, foo:function() { try { this.i--; throw "foo"; } catch(e) {  } return this.i; }}; return a.foo(); });
 
 
-test("this pointer in catch", 1, function() { var a ={i:2, foo:function() { try { throw "foo"; } catch(e) { this.i--; } return this.i; }}; return a.foo(); });
+testEq("this pointer in catch", 1, function() { var a ={i:2, foo:function() { try { throw "foo"; } catch(e) { this.i--; } return this.i; }}; return a.foo(); });
 
-test("this pointer in 'if'", 1, function() { var a ={i:2, foo:function() { if(!this.i==2) return 42; else return this.i-1; }}; return a.foo(); });
+testEq("this pointer in 'if'", 1, function() { var a ={i:2, foo:function() { if(!this.i==2) return 42; else return this.i-1; }}; return a.foo(); });
 
-test("this pointer in for-loop", 1, function() { var i=20; var a = { i:1, foo: function() { for (var x=0; x<this.i; ++x) ; return x; } }; return a.foo(); });
+testEq("this pointer in for-loop", 1, function() { var i=20; var a = { i:1, foo: function() { for (var x=0; x<this.i; ++x) ; return x; } }; return a.foo(); });
 
-test("this pointer in for-in", 1, function() { var a = { i:1, foo: function(o) { for (var x in o) { return this.i; } } }; return a.foo([2,3,4]) });
+testEq("this pointer in for-in", 1, function() { var a = { i:1, foo: function(o) { for (var x in o) { return this.i; } } }; return a.foo([2,3,4]) });
 
-test("throw in if-test", 1, function() { try { if((function(){throw "foo"})()) return 2; else return 3; } catch(e) { return 1 }});
+testEq("throw in if-test", 1, function() { try { if((function(){throw "foo"})()) return 2; else return 3; } catch(e) { return 1 }});
 
-test("suspended throw in if-test", 1, function() { try { if((function(){hold(1); throw "foo"})()) return 2; else return 3; } catch(e) { return 1 }});
+testEq("suspended throw in if-test", 1, function() { try { if((function(){hold(1); throw "foo"})()) return 2; else return 3; } catch(e) { return 1 }});
 
-test("suspended throw in if-conseq", 1, function() { try { if(true) {hold(1); throw 2;} else return 3; } catch(e) { return 1 }});
+testEq("suspended throw in if-conseq", 1, function() { try { if(true) {hold(1); throw 2;} else return 3; } catch(e) { return 1 }});
 
-test("suspended throw in if-altern", 1, function() { try { if(false) return 3; else{hold(1); throw 2;} } catch(e) { return 1 }});
+testEq("suspended throw in if-altern", 1, function() { try { if(false) return 3; else{hold(1); throw 2;} } catch(e) { return 1 }});
 
-test("empty strings", 0, function() { var a=""; return a.length; });
+testEq("empty strings", 0, function() { var a=""; return a.length; });
 
-test("sjs eval scoping 1", 1, function() { var xx = 0; sys.eval("xx=1"); return xx; }).skip("SJS eval always operates in global scope (like window.eval)");
+testEq("sjs eval scoping 1", 1, function() { var xx = 0; sys.eval("xx=1"); return xx; }).skip("SJS eval always operates in global scope (like window.eval)");
 
-test("sjs eval scoping 2", 1, function() { sys.eval("var yyy=1;"); return yyy; }).ignoreLeaks('yyy');
+testEq("sjs eval scoping 2", 1, function() { sys.eval("var yyy=1;"); return yyy; }).ignoreLeaks('yyy');
 
 testParity("(function() { try { return 1; } catch(e) { return 2; } finally { return 3; }})()", function() { try { return 1; } catch(e) { return 2; } finally { return 3; }});
 
-test("return from catch", 1, function() { try { throw "error not caught!"; } catch(e) { return 1 } });
+testEq("return from catch", 1, function() { try { throw "error not caught!"; } catch(e) { return 1 } });
 
-test("eval scoping 1", 1, function() { var xx = 0; eval("xx=1"); return xx; }); 
+testEq("eval scoping 1", 1, function() { var xx = 0; eval("xx=1"); return xx; }); 
 
-test("eval scoping 2", 1, function() { eval("var xyyyy=1"); if (this.xyyyy != undefined) return -1; try { return xyyyy; } catch (e) { return e.toString(); } }).skip("edge case that we won't fix in VM1");
+testEq("eval scoping 2", 1, function() { eval("var xyyyy=1"); if (this.xyyyy != undefined) return -1; try { return xyyyy; } catch (e) { return e.toString(); } }).skip("edge case that we won't fix in VM1");
 
 
 // XXX This test fails in normal & optimize modes on IE (but not in
@@ -193,7 +193,7 @@ testParity("var a={x:1}; delete a.x; a.x === undefined",
 // object'), so to test deletion we create an intermediate object
 // "deletetest":
 var global = sys.getGlobal();
-test("delete scoping", true, function() {
+testEq("delete scoping", true, function() {
   global.deletetest = {};
   global.deletetest.x = 3;
   if (!global.deletetest.x) return "global not set!";
@@ -205,127 +205,127 @@ test("delete scoping", true, function() {
   };
 }).ignoreLeaks('deletetest');
 
-test("arguments property", 42, function() {
+testEq("arguments property", 42, function() {
   return (function() { return arguments[0]; })(42);
 });
 
-test("arguments length", 5, function() {
+testEq("arguments length", 5, function() {
   return (function() { return arguments.length; })(0,1,2,3,4);
 });
 
-test("arguments callee", 24, function() {
+testEq("arguments callee", 24, function() {
   return (function(x) { return x<=1 ? 1 : x*arguments.callee(x-1); })(4);
 });
 
-test("cancellation 1", 1, function() {
+testEq("cancellation 1", 1, function() {
   var x=0; waitfor { x=2; hold(200); x=3; } or { hold(100); } x=1; hold(300); return x; });
 
-test("cancellation 2", 1, function() {
+testEq("cancellation 2", 1, function() {
   var x=0; waitfor { hold(0); x=2; hold(200); x=3; } or { hold(100); } x=1; hold(300); return x; });
 
-test("waitfor() reentrancy 1", 1, function() {
+testEq("waitfor() reentrancy 1", 1, function() {
   var x=0; waitfor() { hold(0); x=2; resume(); x=3; } x=1; return x; });
 
-test("waitfor() reentrancy 2", 1, function() {
+testEq("waitfor() reentrancy 2", 1, function() {
   var x=0; waitfor() {  x=2; resume(); x=3; } x=1; return x; });
 
-test("waitfor() reentrancy 3", 1, function() {
+testEq("waitfor() reentrancy 3", 1, function() {
   var x=0; waitfor() {  x=2; resume(); hold(0); x=3; } x=1; return x; });
 
-test("waitfor() reentrancy 4", 1, function() {
+testEq("waitfor() reentrancy 4", 1, function() {
   waitfor(var x=0) { resume(1); } return x; });
 
-test("waitfor() reentrancy 5", 1, function() {
+testEq("waitfor() reentrancy 5", 1, function() {
   waitfor(var x=0) { waitfor { hold(1000); } or { resume(1);} } return x; });
 
-test("waitfor() reentrancy 6", 1, function() {
+testEq("waitfor() reentrancy 6", 1, function() {
   var x=0; waitfor() { hold(0); x=1; resume(); } return x; });
 
-test("waitfor() reentrancy 7", 1, function() {
+testEq("waitfor() reentrancy 7", 1, function() {
   var x=0; waitfor() { hold(0); x=1; if(resume()) {hold(0);x=2;} else {hold(0);x=3;} } hold(100);return x; });
 
-test("waitfor() inner abort 1", 1, function() {
+testEq("waitfor() inner abort 1", 1, function() {
   var x=0; waitfor() {  hold(0); x=2; resume(); hold(100); x=3; } x=1; hold(200); return x; });
 
-test("waitfor() inner abort 2", 1, function() {
+testEq("waitfor() inner abort 2", 1, function() {
   var x=0; waitfor() {  hold(0); x=2; setTimeout(resume, 0); hold(100); x=3; } x=1; hold(200); return x; });
 
-test("waitfor() inner abort 3", 1, function() {
+testEq("waitfor() inner abort 3", 1, function() {
   var x=0; waitfor() {  x=2; resume(); hold(10); x=3; } x=1; hold(20); return x; });
 
-test("waitfor() inner abort 4", 1, function() {
+testEq("waitfor() inner abort 4", 1, function() {
   var x=0; waitfor() { try { x=2; resume(); hold(100); x=3; } retract{ x=1;} } return x; });
 
-test("waitfor() inner abort 5", 1, function() {
+testEq("waitfor() inner abort 5", 1, function() {
   var x=0; waitfor() { try { hold(10); x=2; resume(); hold(100); x=3; } retract{ x=1;} } return x; });
 
-test("waitfor() inner abort 6", 1, function() {
+testEq("waitfor() inner abort 6", 1, function() {
   var x=0; waitfor() { try { hold(10); x=2; resume(); hold(10); x=3; } retract{ x=1;} } hold(20); return x; });
 
-test("waitfor{}and{}catch(){}", 1, function() {
+testEq("waitfor{}and{}catch(){}", 1, function() {
   var x=0; waitfor { x=2; hold(1000); x=3; } and { x=4; throw 1; }catch(e) { x=e; } return x; });
 
-test("waitfor{}and{}catch(){}finally{}", 1, function() {
+testEq("waitfor{}and{}catch(){}finally{}", 1, function() {
   var x=0; waitfor { x=2; hold(1000); x=3; } and { x=4; throw 5; }catch(e) { x=e; }finally { hold(10); x=1; } return x; });
 
-test("waitfor{}and{}finally{}", 1, function() {
+testEq("waitfor{}and{}finally{}", 1, function() {
   var x=0; waitfor { x=2; } and { x=4; }finally { x=1; } return x; });
 
-test("waitfor{}or{}catch(){}", 1, function() {
+testEq("waitfor{}or{}catch(){}", 1, function() {
   var x=0; waitfor { x=2; hold(1000); x=3; } or { x=4; throw 1; }catch(e) { x=e; } return x; });
 
-test("waitfor{}or{}catch(){}finally{}", 1, function() {
+testEq("waitfor{}or{}catch(){}finally{}", 1, function() {
   var x=0; waitfor { x=2; hold(1000); x=3; } or { x=4; throw 5; }catch(e) { x=e; }finally { x=1; } return x; });
 
-test("waitfor{}or{}finally{}", 1, function() {
+testEq("waitfor{}or{}finally{}", 1, function() {
   var x=0; waitfor { x=2; } or { x=4; }finally { x=1; } return x; });
 
-test("waitfor{}or{}retract{}", 1, function() {
+testEq("waitfor{}or{}retract{}", 1, function() {
   var x=0; waitfor { waitfor { x=2; hold(100); x=6 } or { x=3; hold(100); x=4; } retract{x=1} } or { x=5 } return x; });
 
-test("waitfor{}or{}retract{}finally{}", 1, function() {
+testEq("waitfor{}or{}retract{}finally{}", 1, function() {
   var x=0; waitfor { waitfor { x=2; hold(100); x=6 } or { x=3; hold(100); x=4; } retract{x=7}finally{x=1} } or { x=5 } return x; });
 
-test("waitfor(){}finally{}", 1, function() {
+testEq("waitfor(){}finally{}", 1, function() {
   var x=0; waitfor() { x=2;hold(10); x=3; resume(); x=4; } finally{ x=1; } return x; });
 
-test("waitfor(){}catch(){}", 1, function() {
+testEq("waitfor(){}catch(){}", 1, function() {
   var x=0; waitfor() { x=2;hold(10); throw 1; x=4; } catch(e) {x=e;} return x; });
 
-test("waitfor(){}finally{} resume scope", true, function() {
+testEq("waitfor(){}finally{} resume scope", true, function() {
   var x = false; waitfor() { var r = resume; resume(); } finally { x = (r===resume); } return x; });
 
-test("waitfor(){}c(){}r{}f{} resume scope 2", true, function() {
+testEq("waitfor(){}c(){}r{}f{} resume scope 2", true, function() {
   var x = false; waitfor() { resume(); } catch(e){}retract{}finally{} try{ x = (resume == undefined)} catch(e) {x=true} return x; });
 
-test("waitfor(){} resume scope", true, function() {
+testEq("waitfor(){} resume scope", true, function() {
   var x = false; waitfor() { resume(); } try{ x = (resume == undefined)} catch(e) {x=true} return x; });
 
-test("waitfor(){}catch(){} resume scope", true, function() {
+testEq("waitfor(){}catch(){} resume scope", true, function() {
   var x = false; waitfor() { var r = resume; throw "error" } catch(e) { x = (r===resume); } return x; });
 
-test("waitfor(){}retract{}", 1, function() {
+testEq("waitfor(){}retract{}", 1, function() {
   var x=0; waitfor { waitfor() { x=2; } retract {x=1;} } or { x=5; } return x; });
 
-test("waitfor(){}retract{} resume scope", true, function() {
+testEq("waitfor(){}retract{} resume scope", true, function() {
   var x=0; waitfor { waitfor() { var r = resume; x=2; } retract {x=(r===resume);} } or { x=5; } return x; });
 
-test("!amending of non-Error exceptions", true, function() {
+testEq("!amending of non-Error exceptions", true, function() {
   try { throw "foo"; } catch(e) { return e.file === undefined; } });
 
-test("amending of Error exceptions", true, function() {
+testEq("amending of Error exceptions", true, function() {
   try { throw new Error("foo"); } catch(e) { return e.file !== undefined; } });
 
-test("amending of Error exceptions", true, function() {
+testEq("amending of Error exceptions", true, function() {
   try { var e = new Error("foo"); throw e; } catch(e) { return e.file !== undefined; } });
 
-test("amending of Error exceptions 3", true, function() {
+testEq("amending of Error exceptions 3", true, function() {
   try { asdasdasdasd; } catch(e) { return e.file !== undefined; } });
 
-test("!overwriting of own property 'toString' in Error exceptions", true, function() {
+testEq("!overwriting of own property 'toString' in Error exceptions", true, function() {
   try { var e = new Error("foo"); e.toString = "xxx"; throw e; } catch(e) { return e.toString == "xxx" } });
 
-test("automatic semicolon insertion bug", 1, function() {
+testEq("automatic semicolon insertion bug", 1, function() {
   // this didn't parse because "2" was scanned in an arg position by
   // our double-barrel tokenizer
   var a = "1"
@@ -333,19 +333,19 @@ test("automatic semicolon insertion bug", 1, function() {
   return a.length;
 });
 
-test("multiline strings", true, function() {
+testEq("multiline strings", true, function() {
   var a = "1
 2";
   return a === "1\n2";
 });
 
-test("multiline strings; newline escaping", true, function() {
+testEq("multiline strings; newline escaping", true, function() {
   var a = "1\
 2";
   return a === "12";
 });
 
-test('reentrant resume in waitfor/or', 1, function() {
+testEq('reentrant resume in waitfor/or', 1, function() {
   waitfor {
     waitfor () {
       var r = resume;
@@ -358,7 +358,7 @@ test('reentrant resume in waitfor/or', 1, function() {
   }
 });
 
-test('reentrant resume in waitfor/and', 1, function() {
+testEq('reentrant resume in waitfor/and', 1, function() {
   waitfor {
     waitfor () {
       var r = resume;
@@ -371,7 +371,7 @@ test('reentrant resume in waitfor/and', 1, function() {
   }
 });
 
-test('reentrant edge case in waitfor/or', 2, function() {
+testEq('reentrant edge case in waitfor/or', 2, function() {
   // We might revisit this behaviour
   var x = 1;
   waitfor {
@@ -389,7 +389,7 @@ test('reentrant edge case in waitfor/or', 2, function() {
   }
 });
 
-test('reentrant edge case in waitfor/or 2', 3, function() {
+testEq('reentrant edge case in waitfor/or 2', 3, function() {
   // We might revisit this behaviour
   var x = 1;
   waitfor {
@@ -411,7 +411,7 @@ test('reentrant edge case in waitfor/or 2', 3, function() {
   }
 });
 
-test('reentrant edge case in waitfor/or 3', 2, function() {
+testEq('reentrant edge case in waitfor/or 3', 2, function() {
   var x = 1;
   waitfor {
     waitfor () {
@@ -433,7 +433,7 @@ test('reentrant edge case in waitfor/or 3', 2, function() {
   }
 });
 
-test('reentrant edge case in waitfor/or 4', 3, function() {
+testEq('reentrant edge case in waitfor/or 4', 3, function() {
   var x = 1;
   waitfor {
     waitfor () {
@@ -459,7 +459,7 @@ test('reentrant edge case in waitfor/or 4', 3, function() {
   }
 });
 
-test('reentrant edge case in waitfor/and', 2, function() {
+testEq('reentrant edge case in waitfor/and', 2, function() {
   // We might revisit this behaviour
   var x = 1;
   waitfor {
@@ -477,7 +477,7 @@ test('reentrant edge case in waitfor/and', 2, function() {
   }
 });
 
-test('reentrant edge case in waitfor/and 2', 3, function() {
+testEq('reentrant edge case in waitfor/and 2', 3, function() {
   // We might revisit this behaviour
   var x = 1;
   waitfor {
@@ -499,7 +499,7 @@ test('reentrant edge case in waitfor/and 2', 3, function() {
   }
 });
 
-test('reentrant edge case in waitfor/and 3', 2, function() {
+testEq('reentrant edge case in waitfor/and 3', 2, function() {
   var x = 1;
   waitfor {
     waitfor () {
@@ -521,7 +521,7 @@ test('reentrant edge case in waitfor/and 3', 2, function() {
   }
 });
 
-test('reentrant edge case in waitfor/and 4', 3, function() {
+testEq('reentrant edge case in waitfor/and 4', 3, function() {
   var x = 1;
   waitfor {
     waitfor () {
@@ -547,7 +547,7 @@ test('reentrant edge case in waitfor/and 4', 3, function() {
   }
 });
 
-test('spawn', 1, function() {
+testEq('spawn', 1, function() {
   var x = 0;
   waitfor {
     waitfor () {
@@ -567,7 +567,7 @@ test('spawn', 1, function() {
   }
 });
 
-test('spawn 2', 1, function() {
+testEq('spawn 2', 1, function() {
   waitfor {
     waitfor() {
       var r = resume;
@@ -582,7 +582,7 @@ test('spawn 2', 1, function() {
   }
 });
 
-test('continue in for-in', 1, function() {
+testEq('continue in for-in', 1, function() {
   var a = [1,2,3];
   for (var x in a) {
     continue;
@@ -591,7 +591,7 @@ test('continue in for-in', 1, function() {
   return 1;
 });
 
-test('abortion of hold(.) - IE clearTimeout bug', 1, function() {
+testEq('abortion of hold(.) - IE clearTimeout bug', 1, function() {
   var x = 0;
   waitfor {
     while (true) {
@@ -608,27 +608,27 @@ test('abortion of hold(.) - IE clearTimeout bug', 1, function() {
   return x;
 });
 
-test("arguments modification (dot)", 6, function() {
+testEq("arguments modification (dot)", 6, function() {
   return (function() { arguments.x=5; return arguments.x+arguments[1]; })(0,1,2,3,4);
 });
 
-test("arguments modification (idx)", 6, function() {
+testEq("arguments modification (idx)", 6, function() {
   return (function() { arguments['x']=5; return arguments['x']+arguments[1]; })(0,1,2,3,4);
 });
 
-test("arguments modification (assign)", 5, function() {
+testEq("arguments modification (assign)", 5, function() {
   return (function() { arguments=5; return arguments; })(0,1,2,3,4);
 });
 
-test("arguments modification (var assign)", 6, function() {
+testEq("arguments modification (var assign)", 6, function() {
   return (function() { /*var arguments=5; return arguments;*/ })(0,1,2,3,4);
 }).skip("edge case that we won't fix in VM1");
 
-test("regex apply (NON-STANDARD; NOT SUPPORTED ANYMORE)", "foo", function() {
+testEq("regex apply (NON-STANDARD; NOT SUPPORTED ANYMORE)", "foo", function() {
   var a = { x: "abcfoobar"}; return /(foo)/(a.x)[1];
 }).skip("using regexps as functions is non-standard JS");
 
-test("catch scope in waitfor/resume", 1, function() {
+testEq("catch scope in waitfor/resume", 1, function() {
   try {
     waitfor {
       waitfor() { var r = resume; }
@@ -648,20 +648,20 @@ test("catch scope in waitfor/resume", 1, function() {
   }
 });
 
-test("regex parser bug", "http://foo", function() {
+testEq("regex parser bug", "http://foo", function() {
   function urlhost(uri) {
     return (/^https?:\/\/[^/]*/).exec(uri)[0];
   }
   return urlhost("http://foo/bar");
 });
 
-test("incorrectly calling function with 'this' object bug", true, function() {
+testEq("incorrectly calling function with 'this' object bug", true, function() {
   if (global !== this) throw "Incorrect this object to begin with";
   var a = { foo : function() { return (function(){return this == global;})()  } };
   return a.foo();
 });
 
-test('cancel spawn', 1, function() {
+testEq('cancel spawn', 1, function() {
   var x = 0;
   waitfor {
     var stratum = spawn (hold(0),x += 100);
@@ -674,7 +674,7 @@ test('cancel spawn', 1, function() {
   return x;
 });
 
-test('cancel spawn 2', 1, function() {
+testEq('cancel spawn 2', 1, function() {
   var x = 0;
   waitfor {
     var stratum = spawn (function() {
@@ -691,7 +691,7 @@ test('cancel spawn 2', 1, function() {
   return x;
 });
 
-test('spawn/waitforValue', 30, function() {
+testEq('spawn/waitforValue', 30, function() {
   var x = 0;
   var stratum = spawn (hold(100), 10);
   waitfor {
@@ -718,7 +718,7 @@ test('spawn/waitforValue', 30, function() {
   return x;
 });
 
-test('spawn/waitforValue/throw', 30, function() {
+testEq('spawn/waitforValue/throw', 30, function() {
   var x = 0;
   var stratum = spawn (function() { hold(100); throw 10; })();
   waitfor {
@@ -768,7 +768,7 @@ testParity("(function() {try{ throw 1; }finally{ (function(){ return 2 })()}})()
   try { throw 1 }finally { (function(){return 2})(); } return 3; });
 
 
-test('reentrant edge case in waitfor/or 5', 3, function() {
+testEq('reentrant edge case in waitfor/or 5', 3, function() {
   var x = 0;
   waitfor {
     try {
@@ -796,7 +796,7 @@ test('reentrant edge case in waitfor/or 5', 3, function() {
   return x;
 });
 
-test('reentrant edge case in waitfor/or 6', 3, function() {
+testEq('reentrant edge case in waitfor/or 6', 3, function() {
   var x = 0;
   waitfor {
     try {
@@ -823,7 +823,7 @@ test('reentrant edge case in waitfor/or 6', 3, function() {
   return x;
 });
 
-test('reentrant edge case in waitfor/and 5', 3, function() {
+testEq('reentrant edge case in waitfor/and 5', 3, function() {
   var x = 0;
   waitfor {
     try {
@@ -854,7 +854,7 @@ test('reentrant edge case in waitfor/and 5', 3, function() {
   }
 });
 
-test('reentrant edge case in waitfor/and 6', 3, function() {
+testEq('reentrant edge case in waitfor/and 6', 3, function() {
   var x = 0;
   waitfor {
     try {
@@ -884,27 +884,27 @@ test('reentrant edge case in waitfor/and 6', 3, function() {
   }
 });
 
-test("break across funcs (sync)", 1, 
+testEq("break across funcs (sync)", 1, 
      function() { 
 /*     function foo() { break; }; 
        try { while (1) { foo(); return 2;} } catch(e) { return 1; } return 3; 
 */
      }).skip("Now caught at compile time");
 
-test("break across funcs (async)", 1, 
+testEq("break across funcs (async)", 1, 
      function() { 
 /*       function foo() { hold(0); break; }; 
        try { while (1) { foo(); return 2;} } catch(e) { return 1; } return 3; 
 */
      }).skip("Now caught at compile time");
 
-test("with 1", 1, function() {
+testEq("with 1", 1, function() {
   var a = 10, b = { a: 1 };
   with (b) 
     return a;
 });
 
-test("with 2", 1, function() {
+testEq("with 2", 1, function() {
   var a = 10, b = { a: 1 };
   with (hold(0),b) {
     hold(0);
@@ -912,7 +912,7 @@ test("with 2", 1, function() {
   }
 });
 
-test("with 3", 1, function() {
+testEq("with 3", 1, function() {
   var a = 10, b = { a: 1 };
   var x;
   with (b) { 
@@ -922,7 +922,7 @@ test("with 3", 1, function() {
   return x;
 });
 
-test("collapse 1", 1, 
+testEq("collapse 1", 1, 
      function() { 
        var a = 0;
        waitfor {
@@ -938,7 +938,7 @@ test("collapse 1", 1,
        return a;
      });
 
-test("collapse 2", 1, 
+testEq("collapse 2", 1, 
      function() { 
        var a = 0;
        waitfor {
@@ -952,7 +952,7 @@ test("collapse 2", 1,
        return a;
      });
 
-test("collapse 3", 1, 
+testEq("collapse 3", 1, 
      function() { 
        var a = 0;
        waitfor {
@@ -968,7 +968,7 @@ test("collapse 3", 1,
        return a;
      });
 
-test("collapse 4", 3, 
+testEq("collapse 4", 3, 
      function() { 
        var a = 0;
        waitfor {
@@ -996,7 +996,7 @@ test("collapse 4", 3,
        return a;
      });
 
-test("collapse 5", 3,
+testEq("collapse 5", 3,
      function() {
        var a = 0;
        waitfor {
@@ -1025,7 +1025,7 @@ test("collapse 5", 3,
        return a;
      });
 
-test("collapse abort", 107, 
+testEq("collapse abort", 107, 
      function() { 
        var a = 0;
        waitfor {
@@ -1046,7 +1046,7 @@ test("collapse abort", 107,
        return a;
      });
 
-test("complex collapse abort", 127, 
+testEq("complex collapse abort", 127, 
      function() { 
        var a = 0;
        waitfor {
@@ -1074,7 +1074,7 @@ test("complex collapse abort", 127,
        return a;
      });
 
-test("complex collapse abort 2", 126, 
+testEq("complex collapse abort 2", 126, 
      function() { 
        var a = 0;
        waitfor {
@@ -1108,7 +1108,7 @@ test("complex collapse abort 2", 126,
        return a;
      });
 
-test('spawn/waitforValue/abort', [
+testEq('spawn/waitforValue/abort', [
   'first: waiting on stratum',
   'second: aborting stratum',
   'error: stratum aborted'], function() {
@@ -1131,15 +1131,15 @@ test('spawn/waitforValue/abort', [
   return log;
 });
 
-test("'this' pointer in async for-in bug", 1212331, function() { 
+testEq("'this' pointer in async for-in bug", 1212331, function() { 
   var rv;
   var a = { i:1212331, foo: function(o) { for (var x in o) { hold(0); rv = this.i; } } }; 
   a.foo([2,3,4]); 
   return rv;
 });
 
-test("({|| 1})()", undefined, function() { return ({|| 1})() });
-test("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
+testEq("({|| 1})()", undefined, function() { return ({|| 1})() });
+testEq("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
      function() {
       var bl = ({|x,y,z| hold(10); x+y+z });
       return bl(1,2,3);
@@ -1151,11 +1151,11 @@ function accu3(f) {
   for (var i=1;i<4;++i) rv += f(i);
   return rv;
 }
-test("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } }).skip("Old blocklambda behaviour");
-test("accu3 { |x| if (x==2) return x; }", 2,
+testEq("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } }).skip("Old blocklambda behaviour");
+testEq("accu3 { |x| if (x==2) return x; }", 2,
      function() { accu3 { |x| if (x==2) return x; } });
 
-test("waitfor { ({|| return 1; })() } or { hold() }", 1, function() {
+testEq("waitfor { ({|| return 1; })() } or { hold() }", 1, function() {
   waitfor {
     ({|| return 1; })() 
   }
@@ -1163,7 +1163,7 @@ test("waitfor { ({|| return 1; })() } or { hold() }", 1, function() {
     hold();
   }
 });
-test("waitfor { hold(10); ({|x| hold(10); return 1; })((hold(10),1)) } or { hold() }", 1, function() {
+testEq("waitfor { hold(10); ({|x| hold(10); return 1; })((hold(10),1)) } or { hold() }", 1, function() {
   waitfor {
     hold(10);
     ({|x| hold(10); return x; })((hold(10),1)) 
@@ -1173,7 +1173,7 @@ test("waitfor { hold(10); ({|x| hold(10); return 1; })((hold(10),1)) } or { hold
   }
 });
 
-test("nested {|| return}", 2, function() {
+testEq("nested {|| return}", 2, function() {
 
   var x = 0;
 
@@ -1199,14 +1199,14 @@ test("nested {|| return}", 2, function() {
   return d + x;
 });
 
-test("{ || break; }", 5, function() {
+testEq("{ || break; }", 5, function() {
   for (var i=0; i<10; ++i) {
     ({ || if (i==5) break; })()
   }
   return i;
 }).skip('Old blocklambda behaviour');
 
-test("nested {|| break}", 11 /* was 2 with old blocklambda behaviour */, function() {
+testEq("nested {|| break}", 11 /* was 2 with old blocklambda behaviour */, function() {
 
   var x = 0;
 
@@ -1238,7 +1238,7 @@ test("nested {|| break}", 11 /* was 2 with old blocklambda behaviour */, functio
 // the following four 'break' edge cases used to be problematic when we had
 // tail-called EF_Switch and EF_ForIn:
 
-test("break/switch edge case", 1, function() {
+testEq("break/switch edge case", 1, function() {
   switch (1) {
   case 1:
     hold(0);
@@ -1248,7 +1248,7 @@ test("break/switch edge case", 1, function() {
 });
 
 
-test("{|| break}/switch edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
+testEq("{|| break}/switch edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
   while (1) {
     var a = {||break };
     switch (1) {
@@ -1261,7 +1261,7 @@ test("{|| break}/switch edge case", 2 /* was 1 with old blocklambda behaviour */
   return 1;
 });
 
-test("break/for-in edge case", 1, function() {
+testEq("break/for-in edge case", 1, function() {
   for (var x in [1]) {
     hold(0);
     break;
@@ -1269,7 +1269,7 @@ test("break/for-in edge case", 1, function() {
   return 1;
 });
 
-test("{|| break}/for-in edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
+testEq("{|| break}/for-in edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
   while (1) {
     var a = {||break };
     for (var x in [1]) {
@@ -1288,7 +1288,7 @@ var forEach = function(arr, block) {
     block(arr[i]);
   }
 };
-test("{||} in JS forEach", 6, function() {
+testEq("{||} in JS forEach", 6, function() {
   var sum = 0;
   forEach([1,2,3,4,5]) { |x|
     sum+=x;
@@ -1296,16 +1296,16 @@ test("{||} in JS forEach", 6, function() {
   }
 });
 
-test("__js { var i,a=0; for(i=0;i<10;++i) ++a; }", 10, 
+testEq("__js { var i,a=0; for(i=0;i<10;++i) ++a; }", 10, 
      function() { __js { var i,a=0; for(i=0;i<10;++i) ++a; } return a; });
 
-test("__js try/catch", 10,
+testEq("__js try/catch", 10,
      function() { var a=0; __js { try { throw 10; } catch(e) { a=e } } return a;});
 
-test("__js do/while", 10,
+testEq("__js do/while", 10,
      function() { var a= 0,i=10; __js { do{ a+=1; }while(--i); } return a; });
 
-test("__js switch/case", 3,
+testEq("__js switch/case", 3,
      function() { var a=0,i=3;
                   __js {
                     switch(i) {
@@ -1319,7 +1319,7 @@ test("__js switch/case", 3,
                   return a;
                 });
 
-test("blocklambda pulled into argument list: f(a) {||...}", 43, function() {
+testEq("blocklambda pulled into argument list: f(a) {||...}", 43, function() {
   function f(a,b) {
     var rv = {val:a};
     b(rv);
@@ -1329,7 +1329,7 @@ test("blocklambda pulled into argument list: f(a) {||...}", 43, function() {
   return f(42) { |x| ++x.val };
 });
 
-test("blocklambda with newlines", 43, function() {
+testEq("blocklambda with newlines", 43, function() {
   var a = 
     {
     
@@ -1340,7 +1340,7 @@ test("blocklambda with newlines", 43, function() {
   a(42);
 });
 
-test("blocklambda with newline pulled into argument list", 43, function() {
+testEq("blocklambda with newline pulled into argument list", 43, function() {
   function f(a,b) {
     var rv = {val:a};
     b(rv);
@@ -1355,7 +1355,7 @@ test("blocklambda with newline pulled into argument list", 43, function() {
   return rv;
 });
 
-test("interpolating vs non-interpolating strings", true, function() {
+testEq("interpolating vs non-interpolating strings", true, function() {
   var a = "1
 \#{ #\{ # { #} #x
 
@@ -1373,14 +1373,14 @@ test("interpolating vs non-interpolating strings", true, function() {
   return a === b;
 });
 
-test("string interpolation", true, function() {
+testEq("string interpolation", true, function() {
   function x() { hold(0); return 42; }
   var a = "interpolated";
   var x = "This is an #{ a } string #{ x()+1 } #{ '#{}' } #{ (-> "#{1+1}")() }#{3}";
   return x === 'This is an interpolated string 43 #{} 23';
 });
 
-test("complicated blocklambda return", 111, function() {
+testEq("complicated blocklambda return", 111, function() {
   var rv = 0;
 
   var signal;
@@ -1414,7 +1414,7 @@ test("complicated blocklambda return", 111, function() {
   return rv;
 });
 
-test("BROKEN: nested blocklambda return", "inner", function() {
+testEq("BROKEN: nested blocklambda return", "inner", function() {
   function f(bl) { bl() };
   f {||
     f {||
@@ -1425,7 +1425,7 @@ test("BROKEN: nested blocklambda return", "inner", function() {
   return "toplevel";
 }).skip();
 
-test("BROKEN: detached blocklambda return", 'a', function() {
+testEq("BROKEN: detached blocklambda return", 'a', function() {
   function f(g) {
     spawn g();
     hold(10);
@@ -1435,7 +1435,7 @@ test("BROKEN: detached blocklambda return", 'a', function() {
   return rv;
 }).skip();
 
-test("BROKEN: complex detached blocklambda return", 111, function() {
+testEq("BROKEN: complex detached blocklambda return", 111, function() {
   var rv = 0;
 
   var signal;
@@ -1470,19 +1470,19 @@ test("BROKEN: complex detached blocklambda return", 111, function() {
   return rv;
 }).skip();
 
-test("BROKEN: comments across strings", 1, function() {
+testEq("BROKEN: comments across strings", 1, function() {
   return /* " */ 2; /* " */1;
 }).skip();
 
-test('BROKEN: interpolation edge case 1 "#{1}"', '1', function() {
+testEq('BROKEN: interpolation edge case 1 "#{1}"', '1', function() {
   return "#{1}";
 }).skip();
 
-test('interpolation edge case 2 "#{1}2"', '12', function() {
+testEq('interpolation edge case 2 "#{1}2"', '12', function() {
   return "#{1}2";
 });
 
-test('BROKEN: interpolation edge case 3 "#{1}#{2}"', '12', function() {
+testEq('BROKEN: interpolation edge case 3 "#{1}#{2}"', '12', function() {
   return "#{1}#{2}";
 }).skip();
 
@@ -1499,7 +1499,7 @@ function compareQuasiArrays(x,y) {
   return true;
 }
 
-test('quasis', true, function() {
+testEq('quasis', true, function() {
   function x() { hold(0); return 42; }
   var a = "interpolated";
   var x = `${"ab"}This is an ${ a } string ${ x()+1 }${ '#{}' } ${ (-> `${1+1}`)() }${3}`;
@@ -1519,19 +1519,19 @@ test('quasis', true, function() {
   return compareQuasiArrays(x.parts, result);
 });
 
-test('multiline quasi', true, function() {
+testEq('multiline quasi', true, function() {
   var a = `1
 2`;
   return a.parts[0] == '1\n2';
 });
 
-test('multiline quasi; newline escaping', true, function() {
+testEq('multiline quasi; newline escaping', true, function() {
   var a = `1\
 2`;
   return a.parts[0] == '12';
 });
 
-test('non-bracketed expressions in quasi', true, function() {
+testEq('non-bracketed expressions in quasi', true, function() {
   function x(i) { i=i||0; hold(0); return 42+i; }
   var a = "interpolated";
   var x = `This is an $a string $x() $x(1)$x(2)\$x`;
@@ -1548,52 +1548,52 @@ test('non-bracketed expressions in quasi', true, function() {
 });
 
 context("destructuring") {||
-  test("destructuring [a,,c] = [1,2,3]", 4, function() {
+  testEq("destructuring [a,,c] = [1,2,3]", 4, function() {
     var a,c;
     [a,,c] = [1,2,3];
     return a+c;
   });
 
-  test("destructuring [a,,[,c]] = [1,2,[3,4,5]]", 5, function() {
+  testEq("destructuring [a,,[,c]] = [1,2,[3,4,5]]", 5, function() {
     var a,c;
     [a,,[,c]] = [1,2,[3,4,5]];
     return a+c;
   });
 
-  test("destructuring [a,,[,c]] = [1,(hold(0),2),[3,f(),5]]", 5, function() {
+  testEq("destructuring [a,,[,c]] = [1,(hold(0),2),[3,f(),5]]", 5, function() {
     var a,c;
     function f() { hold(10); return 4; }
     [a,,[,c]] = [1,(hold(0),2),[3,f(),5]];
     return a+c;
   });
 
-  test("destructuring ({a:c, b:d}) = {a:1, b:2, c: 3, d: 4}", 3, function() {
+  testEq("destructuring ({a:c, b:d}) = {a:1, b:2, c: 3, d: 4}", 3, function() {
     var c,d;
     ({a:c, b:d}) = {a:1, b:2, c: 3, d: 4}
     return c+d;
   });
 
-  test("destructuring  [a,,{x:[,c]}] = [1,(hold(0),2),{a:1, b:2, x:[3,f(),5]}]", 5, function() {
+  testEq("destructuring  [a,,{x:[,c]}] = [1,(hold(0),2),{a:1, b:2, x:[3,f(),5]}]", 5, function() {
     var a,c;
     function f() { hold(10); return 4; }
     [a,,{x:[,c]}] = [1,(hold(0),2),{a:1, b:2, x:[3,f(),5]}];
     return a+c;
   });
 
-  test("destructuring  [a.x.y,,b,{x:[,c.z]}] = [1,(hold(0),2),10,{a:1, b:2, x:[3,f(),5]}];", 15, function() {
+  testEq("destructuring  [a.x.y,,b,{x:[,c.z]}] = [1,(hold(0),2),10,{a:1, b:2, x:[3,f(),5]}];", 15, function() {
     var a={x:{}},b,c={};
     function f() { hold(10); return 4; }
     [a.x.y,,b,{x:[,c.z]}] = [1,(hold(0),2),10,{a:1, b:2, x:[3,f(),5]}];
     return a.x.y+b+c.z;
   });
 
-  test("destructuring ({x,y}) = {y:1, z:3, x:5}", 6, function() {
+  testEq("destructuring ({x,y}) = {y:1, z:3, x:5}", 6, function() {
     var x,y;
     ({x,y}) = {y:1, z:3, x:5};
     return x+y;
   });
 
-  test("destructuring var [a,,c] = ['A','B','C'];", 'ACac', function() {
+  testEq("destructuring var [a,,c] = ['A','B','C'];", 'ACac', function() {
     var a='a',c='c';
     var rv = (function() { 
       var [a,,c] = ['A','B','C'];
@@ -1603,7 +1603,7 @@ context("destructuring") {||
     return rv + a + c;
   });
 
-  test("destructuring var [a,,[,c]] = ['A','B',['X','C','Y']]", 'ACac', function() {
+  testEq("destructuring var [a,,[,c]] = ['A','B',['X','C','Y']]", 'ACac', function() {
     var a='a',c='c';
     var rv = (function() {
       var [a,,[,c]] = ['A','B',['X','C','Y']];
@@ -1613,7 +1613,7 @@ context("destructuring") {||
     return rv + a + c;
   });
 
-  test("destructuring var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]]", 'ACac', function() {
+  testEq("destructuring var [a,,[,c]] = ['A',(hold(0),1),[2,f(),3]]", 'ACac', function() {
     var a='a',c='c';
     function f() { hold(10); return 'C'; }
     var rv = (function() { 
@@ -1624,7 +1624,7 @@ context("destructuring") {||
     return rv + a + c;
   });
 
-  test("destructuring var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}", 'abABabcd', function() {
+  testEq("destructuring var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}", 'abABabcd', function() {
     var a='a',b='b',c='c',d='d';
     var rv = (function() {
       var {a:c, b:d} = {a:'A', b:'B', c: 'C', d: 'D'}
@@ -1633,7 +1633,7 @@ context("destructuring") {||
     return rv + a + b + c + d;
   });
 
-  test("destructuring  var [a,,{x:[,c]}] = ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}]", 
+  testEq("destructuring  var [a,,{x:[,c]}] = ['A',(hold(0),1),{a:1, b:2, x:[3,f(),4]}]", 
       'ACxacx', function() {
     var a='a', c='c', x='x';
     function f() { hold(10); return 'C'; }
@@ -1644,7 +1644,7 @@ context("destructuring") {||
     return rv + a + c + x;
   });
 
-  test("destructuring var {x,y} = {y:'Y', z:'Z', x:'X'}", 'XYzxyz', function() {
+  testEq("destructuring var {x,y} = {y:'Y', z:'Z', x:'X'}", 'XYzxyz', function() {
     var x='x',y='y', z='z';
     var rv = (function() {
       var {x,y} = {y:'Y', z:'Z', x:'X'};
@@ -1663,38 +1663,38 @@ context("destructuring") {||
   }
 
   context("lambda paramaters") {||
-    test("object destructuring", 3, function() {
+    testEq("object destructuring", 3, function() {
       return callWith({x: 1, y:2}, ({x, y}) -> x + y);
     });
-    test("array destructuring", 3, function() {
+    testEq("array destructuring", 3, function() {
       return callWith([1,2], ([x, y]) -> x + y);
     });
 
     context("(no parens)") {||
-      test("object destructuring", 3, function() {
+      testEq("object destructuring", 3, function() {
         return callWith({x: 1, y:2}, {x, y} -> x + y);
       });
 
-      test("array destructuring", 3, function() {
+      testEq("array destructuring", 3, function() {
         return callWith([1,2], [x, y] -> x + y);
       });
     }
   }
 
   context("blocklambda args") {||
-    test("object destructure", 3, function() {
+    testEq("object destructure", 3, function() {
       callWith({x: 1, y:2}) {|{x, y}|
         return x + y;
       }
     });
 
-    test("array destructure", 3, function() {
+    testEq("array destructure", 3, function() {
       callWith([1,2]) { |[x, y]|
         return x + y;
       }
     });
 
-    test("multuple destructure", 15, function() {
+    testEq("multuple destructure", 15, function() {
       callWith([1,2], 3, {x:4, y:5}) { |[a,b], c, {x, y}|
         return a + b + c + x + y;
       }
@@ -1702,23 +1702,73 @@ context("destructuring") {||
   }
 
   context("function args") {||
-    test("object destructure", 3, function() {
+    testEq("object destructure", 3, function() {
       return (function({x, y}) {
         return x + y;
       })({x: 1, y:2});
     });
 
-    test("array destructure", 3, function() {
+    testEq("array destructure", 3, function() {
       return(function([x, y]) {
         return x + y;
       })([1,2]);
     });
 
-    test("multuple destructure", 15, function() {
+    testEq("multuple destructure", 15, function() {
       return (function([a,b], c, {x, y}) {
         return a + b + c + x + y;
       })([1,2], 3, {x:4, y:5});
     });
   }
 
+}
+
+context('@altns') {||
+  test.beforeAll{|s|
+    s._at = @;
+  }
+  test.afterAll{|s|
+    @ = s._at;
+  }
+
+  test("Assigning to @ directly") {||
+    @ = require("sjs:assert");
+    @ok(true);
+    assert.raises( -> @ok(false));
+  }
+
+  test("Assigning to @ inherits from the given object (preventing mutation)") {||
+    var obj = {x: 1, y: 2, z: 3};
+    @ = obj;
+    assert.eq(@x, 1);
+    @x = 2;
+    assert.eq(obj.x, 1);
+  }
+
+  test("Assigning to @ inside destructure") {||
+    var obj = {x: 1, y: 2, z: 3};
+    var [_, @] = ['ignored',obj];
+    assert.eq(@x, 1);
+    @x = 2;
+    assert.eq(obj.x, 1);
+  }
+
+  //test("destructure multiple assignment") {||
+  //  var seq = require('sjs:sequence');
+  //  var @seq = { @each } = require('sjs:sequence');
+  //  @seq .. assert.eq(seq);
+  //  @each .. assert.eq(seq.each);
+  //}
+
+  //test("destructure assignment of @keys") {||
+  //  @ = {};
+  //  { a: @a, b: @b, c: @c } = { a: 1, b: 2, c:3 };
+  //  assert.eq([@a, @b, @c], [1,2,3]);
+  //}
+
+  //test("shorthand destructure assignment of @keys") {||
+  //  @ = {};
+  //  { @a, @b, @c } = { a: 1, b: 2, c:3 };
+  //  assert.eq([@a, @b, @c], [1,2,3]);
+  //}
 }

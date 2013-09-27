@@ -134,6 +134,12 @@ function top_stmt_scope(pctx) {
 
 #define HANDLE_NEWLINES(n, pctx) /**/
 
+#ifdef SJS_ALTERNATE_NAMESPACE
+#define WRAP_RHS_IF_ALTNS(left, right) if(left.name === '__oni_altns') right = 'Object.create('+right+')'
+#else
+#define WRAP_RHS_IF_ALTNS(left, right) /**/
+#endif
+
 //----------------------------------------------------------------------
 // contexts:
 
@@ -1054,7 +1060,9 @@ function ph_assign_op(left, id, right, pctx) {
 ph_assign_op.prototype = new ph(WHENDEBUG("ph_assign_op"));
 ph_assign_op.prototype.is_value = true;
 ph_assign_op.prototype.nblock_val = function() {
-    return this.left.nb()+this.id+this.right.nb();
+  var right = this.right.nb();
+  WRAP_RHS_IF_ALTNS(this.left, right);
+  return this.left.nb()+this.id+right;
 };
 ph_assign_op.prototype.val = function() {
     var rv;
@@ -1082,9 +1090,10 @@ ph_assign_op.prototype.val = function() {
     else if (!this.left.is_ref || this.left.is_nblock) {
       // 'normal' assignment; left is an id or a ref that we can
       // use as nblock_val.
-
+      var arg = '_oniX';
+      WRAP_RHS_IF_ALTNS(this.left, arg);
       rv = "__oni_rt.Sc("+this.line+",function(_oniX){return "+
-        this.left.nb()+this.id+"_oniX;},"+this.right.v()+
+        this.left.nb()+this.id+arg+";},"+this.right.v()+
         ")";
     }
     else {
@@ -1306,6 +1315,7 @@ ph_identifier.prototype.is_value = true;
 ph_identifier.prototype.nblock_val = function() { return this.name; };
 #ifdef SJS_DESTRUCTURE
 ph_identifier.prototype.destruct = function(dpath) {
+  WRAP_RHS_IF_ALTNS(this, dpath);
   return this.name + "=" + dpath + ";";
 };
 ph_identifier.prototype.collect_var_decls = function(vars) {
