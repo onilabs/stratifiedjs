@@ -959,7 +959,10 @@ S(",").ifx(110, true);
 // helper to parse a token into a valid property name:
 function parsePropertyName(token, pctx) {
   var id = token.id;
-  if (id == "<id>" || id == "<string>" || id == "<number>")
+  if (id == "<@id>")
+    return '@'+token.value;
+  if (id == "<id>"
+      || id == "<string>" || id == "<number>")
     return token.value;
   if (id == '"') {
     if ((token = scan(pctx)).id != "<string>" ||

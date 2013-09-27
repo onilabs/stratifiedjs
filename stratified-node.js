@@ -4041,8 +4041,10 @@ ph_dot_accessor.prototype.destruct=function(dpath,drefs){drefs.push(this.ref());
 var v="_oniX"+drefs.length;
 return v+"[0]["+v+"[1]]="+dpath+";";
 };
-ph_dot_accessor.prototype.collect_var_decls=function(vars){throw new Error("var declaration must not contain property accessor as lvalue");
+ph_dot_accessor.prototype.collect_var_decls=function(vars){if(this.l instanceof (ph_identifier)&&this.l.name==='__oni_altns')return;
 
+
+throw new Error("var declaration must not contain property accessor as lvalue");
 };
 
 function ph_idx_accessor(l,idxexp,pctx){this.l=l;
@@ -4180,9 +4182,17 @@ ph_obj_lit.prototype.destruct=function(dpath,drefs){var rv="";
 
 for(var i=0;i<this.props.length;++i){
 var p=this.props[i];
+var prop=p[1];
+var altns;
+if(altns=p[1].charAt(0)==='@'){
+prop=p[1].slice(1);
+}
+
 if(p[0]=="pat"){
-rv+=p[1]+"="+dpath+"."+p[1]+";";
-}else rv+=p[2].destruct(dpath+"["+quotedName(p[1])+"]",drefs);
+var dest=p[1];
+if(altns)dest='__oni_altns.'+prop;
+rv+=dest+"="+dpath+"."+prop+";";
+}else rv+=p[2].destruct(dpath+"["+quotedName(prop)+"]",drefs);
 
 
 }
@@ -4191,9 +4201,10 @@ return rv;
 ph_obj_lit.prototype.collect_var_decls=function(vars){for(var i=0;i<this.props.length;++i){
 
 var p=this.props[i];
-if(p[0]=="pat")vars.push(p[1]);else p[2].collect_var_decls(vars);
-
-
+if(p[0]=="pat"){
+if(p[1].charAt(0)==='@')continue;
+vars.push(p[1]);
+}else p[2].collect_var_decls(vars);
 
 }
 };
@@ -4867,7 +4878,10 @@ S(",").ifx(110,true);
 
 function parsePropertyName(token,pctx){var id=token.id;
 
+if(id=="<@id>")return '@'+token.value;
+
 if(id=="<id>"||id=="<string>"||id=="<number>")return token.value;
+
 
 if(id=='"'){
 if((token=scan(pctx)).id!="<string>"||scan(pctx,undefined,TOKENIZER_IS).id!='istr-"')throw new Error("Non-literal strings can't be used as property names ("+token+")");

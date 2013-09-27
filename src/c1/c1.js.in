@@ -964,7 +964,12 @@ S(",").ifx(BP_COMMA, true);
 // helper to parse a token into a valid property name:
 function parsePropertyName(token, pctx) {
   var id = token.id;
-  if (id == "<id>" || id == "<string>" || id == "<number>")
+#ifdef SJS_ALTERNATE_NAMESPACE
+  if (id == "<@id>")
+    return '@'+token.value;
+#endif // SJS_ALTERNATE_NAMESPACE
+  if (id == "<id>"
+      || id == "<string>" || id == "<number>")
     return token.value;
 #ifdef INTERPOLATING_STRINGS
   if (id == '"') {

@@ -1731,6 +1731,10 @@ context('@altns') {||
     @ = s._at;
   }
 
+  test.beforeEach {||
+    @ = {};
+  }
+
   test("Assigning to @ directly") {||
     @ = require("sjs:assert");
     @ok(true);
@@ -1751,24 +1755,32 @@ context('@altns') {||
     assert.eq(@x, 1);
     @x = 2;
     assert.eq(obj.x, 1);
+
+    var { at:@ } = {at: obj};
+    assert.eq(@x, 1);
+    @x = 2;
+    assert.eq(obj.x, 1);
   }
 
-  //test("destructure multiple assignment") {||
-  //  var seq = require('sjs:sequence');
-  //  var @seq = { @each } = require('sjs:sequence');
-  //  @seq .. assert.eq(seq);
-  //  @each .. assert.eq(seq.each);
-  //}
+  test("destructure multiple assignment") {||
+    var seq = require('sjs:sequence');
+    var @seq = { @each } = require('sjs:sequence');
+    @seq .. assert.eq(seq);
+    @each .. assert.eq(seq.each);
+  }.skip("BROKEN");
 
-  //test("destructure assignment of @keys") {||
-  //  @ = {};
-  //  { a: @a, b: @b, c: @c } = { a: 1, b: 2, c:3 };
-  //  assert.eq([@a, @b, @c], [1,2,3]);
-  //}
+  test("destructure assignment of @keys") {||
+    @ = {};
+    var { a: @a, b: @b } = { a: 1, b: 2 };
+    [@c] = [3];
+    assert.eq([@a, @b, @c], [1,2,3]);
+  }
 
-  //test("shorthand destructure assignment of @keys") {||
-  //  @ = {};
-  //  { @a, @b, @c } = { a: 1, b: 2, c:3 };
-  //  assert.eq([@a, @b, @c], [1,2,3]);
-  //}
+  test("shorthand destructure assignment of @keys") {||
+    @ = {};
+    var { @a, @b, @c } = { a: 1, b: 2, c:3 };
+    var { @ok } = require('sjs:assert');
+    assert.eq([@a, @b, @c], [1,2,3]);
+    assert.is(@ok, assert.ok);
+  }
 }

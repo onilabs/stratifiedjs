@@ -1437,6 +1437,10 @@ ph_dot_accessor.prototype.destruct = function(dpath, drefs) {
   return v+"[0]["+v+"[1]]="+dpath+";";
 };
 ph_dot_accessor.prototype.collect_var_decls = function(vars) {
+#ifdef SJS_ALTERNATE_NAMESPACE
+  if (this.l instanceof(ph_identifier) && this.l.name === '__oni_altns')
+    return;
+#endif // SJS_ALTERNATE_NAMESPACE
   throw new Error("var declaration must not contain property accessor as lvalue");
 };
 #endif
@@ -1595,20 +1599,35 @@ ph_obj_lit.prototype.destruct = function(dpath, drefs) {
   var rv = ""; 
   for (var i=0; i<this.props.length; ++i) {
     var p = this.props[i];
+#ifdef SJS_ALTERNATE_NAMESPACE
+    var prop = p[1];
+    var altns;
+    if(altns = p[1].charAt(0) === '@') {
+      prop = p[1].slice(1);
+    }
+#endif // SJS_ALTERNATE_NAMESPACE
+
     if (p[0] == "pat") {
-      rv += p[1]+"="+dpath+"."+p[1]+";";
+      var dest = p[1];
+#ifdef SJS_ALTERNATE_NAMESPACE
+      if(altns) dest = '__oni_altns.'+prop;
+#endif // SJS_ALTERNATE_NAMESPACE
+      rv += dest+"="+dpath+"."+prop+";";
     }
     else // assuming "prop"
-      rv += p[2].destruct(dpath+"["+quotedName(p[1])+"]", drefs);
+      rv += p[2].destruct(dpath+"["+quotedName(prop)+"]", drefs);
   }
   return rv;
 };
 ph_obj_lit.prototype.collect_var_decls = function(vars) {
   for (var i=0; i<this.props.length; ++i) {
     var p = this.props[i];
-    if (p[0] == "pat")
+    if (p[0] == "pat") {
+#ifdef SJS_ALTERNATE_NAMESPACE
+      if(p[1].charAt(0) === '@') continue;
+#endif // SJS_ALTERNATE_NAMESPACE
       vars.push(p[1]);
-    else
+    } else
       p[2].collect_var_decls(vars);
   }
 };
