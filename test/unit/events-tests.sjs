@@ -358,7 +358,7 @@ context("Stream") {||
     var evt = events.Emitter();
     var result = [];
     waitfor {
-      events.Stream(evt) .. s.each {|item|
+      events.Stream(evt) .. seq.each {|item|
         result.push(item);
       }
     } or {
@@ -376,7 +376,7 @@ context("Stream") {||
     var evt = events.Emitter();
     var result = [];
     waitfor {
-      events.Stream(evt) .. s.each {|item|
+      events.Stream(evt) .. seq.each {|item|
         result.push(item);
         if (item == 1) hold(15);
       }
@@ -404,7 +404,7 @@ context("Stream") {||
       evt.emit(3)
       evt.emit(4)
     } or {
-      stream .. s.each {|item|
+      stream .. seq.each {|item|
         result.push(item);
       }
     }
