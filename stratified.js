@@ -3753,7 +3753,7 @@ try{
 var drefs=[],body=this.left.destruct("_oniX",drefs);
 for(var i=1;i<=drefs.length;++i)rv+=",_oniX"+i;
 
-rv+="){"+body+"},"+this.right.v();
+rv+="){"+body+"return _oniX;},"+this.right.v();
 for(var i=0;i<drefs.length;++i)rv+=","+drefs[i];
 
 rv+=")";

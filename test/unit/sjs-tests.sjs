@@ -1767,7 +1767,7 @@ context('@altns') {||
     var @seq = { @each } = require('sjs:sequence');
     @seq .. assert.eq(seq);
     @each .. assert.eq(seq.each);
-  }.skip("BROKEN");
+  }
 
   test("destructure assignment of @keys") {||
     @ = {};
