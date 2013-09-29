@@ -208,10 +208,10 @@ testEq('sequential', 0, function() {
   return x;
 });
 
-testEq('unbatched sequential', [3, [1,4,9]], function() {
-  var calls = 0;
+testEq('unbatched sequential', [[[1],[2],[3]], [1,4,9]], function() {
+  var calls = [];
   var F = f.unbatched(function(x) {
-    ++calls;
+    calls.push(x);
     var y = [];
     for (var i=0; i<x.length; ++i)
       y.push(x[i]*x[i]);
@@ -226,10 +226,10 @@ testEq('unbatched sequential', [3, [1,4,9]], function() {
   return [calls, rv];
 });
 
-testEq('unbatched parallel', [1, [1,4,9]], function() {
-  var calls = 0;
+testEq('unbatched parallel', [[[1,2,3]], [1,4,9]], function() {
+  var calls = [];
   var F = f.unbatched(function(x) {
-    ++calls;
+    calls.push(x);
     var y = [];
     for (var i=0; i<x.length; ++i)
       y.push(x[i]*x[i]);
@@ -243,6 +243,30 @@ testEq('unbatched parallel', [1, [1,4,9]], function() {
     rv[1] = (F(2));
   } and {
     rv[2] = (F(3));
+  }
+
+  return [calls, rv];
+});
+
+testEq('unbatched parallel / retraction', [[[2, 3]], [, 4, 9]], function() {
+  var calls = [];
+  var F = f.unbatched(function(x) {
+    calls.push(x);
+    var y = [];
+    for (var i=0; i<x.length; ++i)
+      y.push(x[i]*x[i]);
+    return y;
+  });
+
+  var rv = [];
+  waitfor {
+    var starter = spawn rv[0] = (F(1));
+  } and {
+    rv[1] = (F(2));
+  } and {
+    rv[2] = (F(3));
+  } and {
+    starter.abort();
   }
 
   return [calls, rv];

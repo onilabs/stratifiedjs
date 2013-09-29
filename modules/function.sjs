@@ -359,10 +359,12 @@ function unbatched(batched_f, settings) {
     waitfor (var rv, isException) {
       var req = [x, resume];
       pending_calls.push(req);
-      if (!batch_pending) process_batch();
+      if (!batch_pending) spawn process_batch();
     }
     retract {
-
+      var index = pending_calls.indexOf(req);
+      if (index !== -1) 
+        pending_calls.splice(index, 1);
     }
 
     if (isException) throw(rv);
