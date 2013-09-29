@@ -207,3 +207,43 @@ testEq('sequential', 0, function() {
   waitfor { g(); } and { g(); } and { g(); } and { g(); } and { g(); }
   return x;
 });
+
+testEq('unbatched sequential', [3, [1,4,9]], function() {
+  var calls = 0;
+  var F = f.unbatched(function(x) {
+    ++calls;
+    var y = [];
+    for (var i=0; i<x.length; ++i)
+      y.push(x[i]*x[i]);
+    return y;
+  });
+
+  var rv = [];
+  rv.push(F(1));
+  rv.push(F(2));
+  rv.push(F(3));
+
+  return [calls, rv];
+});
+
+testEq('unbatched parallel', [1, [1,4,9]], function() {
+  var calls = 0;
+  var F = f.unbatched(function(x) {
+    ++calls;
+    var y = [];
+    for (var i=0; i<x.length; ++i)
+      y.push(x[i]*x[i]);
+    return y;
+  });
+
+  var rv = [];
+  waitfor {
+    rv[0] = (F(1));
+  } and {
+    rv[1] = (F(2));
+  } and {
+    rv[2] = (F(3));
+  }
+
+  return [calls, rv];
+});

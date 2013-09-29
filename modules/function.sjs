@@ -37,6 +37,8 @@
 
 var sys   = require('builtin:apollo-sys');
 var cutil  = require('./cutil');
+var { extend } = require('./object');
+var { map, zip, each } = require('./sequence');
 
 exports.isFunction = (f) -> (typeof f == "function");
 
@@ -262,5 +264,111 @@ exports.deferred = function(f) {
 */
 exports.memoize = sys.makeMemoizedFunction;
 
+/**
+   @function unbatched
+   @param {Function} [batched_f] Function to be unbatched.
+   @param {optional Object} [settings] Settings.
+   @setting {Integer} [batch_period=0] Period (in ms) over which to batch results. The default value of `0` only collects calls that are "temporally acljacent", i.e. calls made in the same event loop (e.g. `waitfor { g(1) } and { g(2) }`).
+   @summary Create an unbatched function from a batched one.
+   @desc
+      `batched_f` must be a function accepting a single array argument
+      `X` and returning an array `Y` of same length. The idea
+      is that `batched_f` operates on a parallel batch of data,
+      transforming each of the values `x1, x2, ...` of `X` individually
+      into corresponding `y1, y2, ...`.
+
+      `unbatched(batched_f)` creates a function `g(x)` that, when
+      called from multiple strata concurrently, will collect multiple
+      values `x1, x2, ...` into an array `X` over a given timeframe
+      `batch_period`. It then calls `batched_f(X)` and distributes the
+      returned array `Y=[y1,y2,...]` to the corresponding callers
+      `g(x1), g(x2), ...`.
+
+      #Example
+
+      A database API might offer a `readBatch` function that can retrieve
+      several records `R(id1), R(id2), ...` with a single call
+      `readBatch([id1, id2, ...])`.
+
+      The unbatched function `read = unbatched(readBatch)` would accumulate any calls
+      that are "temporally adjacent", e.g.:
+
+          waitfor {   
+            var r1 = read(id1);
+          }
+          and {
+            ...any_non_blocking_code..
+            var r2 = read(id2);
+          }
+
+      This code would perform a single call `readBatch([id1, id2])` behind the scenes.
+
+      By adjusting the parameter `batch_period`, temporally
+      non-adjacent can be made to be accumulated:
+
+          var read = unbatched(readBatch, { batch_period: 100 });
+
+          waitfor {
+            var r1 = read(id1);
+          }
+          and {
+            hold(50);
+            var r2 = read(id2);
+          }
+
+      Here, both calls `read(id1)` and `read(id2)` will resolve to a
+      single call `readBatch([id1, id2])` because the time difference
+      between them (50ms) is smaller than `batch_period` (100ms).
+
+*/
+function unbatched(batched_f, settings) {
+  settings = 
+    {
+      batch_period: 0
+    } .. extend(settings);
+
+  var pending_calls = [], batch_pending = false;
+
+  function process_batch() {
+    batch_pending = true;
+    hold(settings.batch_period);
+    batch_pending = false;
+    var batch = pending_calls;
+    pending_calls = [];
+
+    if (!batch.length) return;
+
+    try {
+      var rvs = batched_f(batch .. map([arg] -> arg));
+      if (rvs.length != batch.length) throw new Error('Unexpected return value from batch function');
+    }
+    catch (e) {
+      batch .. each {
+        |[,resume]|
+        resume(e, true);
+      }
+    }
+
+    zip(rvs, batch) .. each {
+      |[rv, [,resume]]|
+      resume(rv);
+    }
+  }
+
+  return function(x) {
+    waitfor (var rv, isException) {
+      var req = [x, resume];
+      pending_calls.push(req);
+      if (!batch_pending) process_batch();
+    }
+    retract {
+
+    }
+
+    if (isException) throw(rv);
+    return rv;
+  }
+}
+exports.unbatched = unbatched;
 
 // XXX alt, compose (f o g), curry
