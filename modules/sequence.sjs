@@ -138,13 +138,26 @@ __js {
    @function isStream
    @param {Object} [s] Object to test
    @return {Boolean}
-   @summary Returns `true` is `s` is a [::Stream], `false` otherwise.
+   @summary Returns `true` if `s` is a [::Stream], `false` otherwise.
 */
 __js {
   function isStream(s) {
     return s && s.__oni_stream === STREAM_TOKEN;
   }
   exports.isStream = isStream;
+}
+
+/**
+   @function isSequence
+   @param {Object} [s] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `s` is a [::Sequence], `false` otherwise.
+*/
+__js {
+  function isSequence(s) {
+    return isArrayLike(s) || isStream(s) || typeof s === 'string';
+  }
+  exports.isSequence = isSequence;
 }
 
 /**
@@ -203,7 +216,7 @@ non-synchronous case:
 */
 __js {
   function each(sequence, r) {
-    if (typeof sequence === 'function')
+    if (isStream(sequence))
       return sequence(r);
     else if (isArrayLike(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
@@ -1489,6 +1502,7 @@ exports.any = any;
    @summary To be documented
 */
 function makeIterator(sequence) {
+  if (!isSequence(sequence)) throw new Error("Invalid sequence type '#{sequence}'");
   var eos = {};
   var next_upstream = -> eos;
   var stratum = spawn (function() {
