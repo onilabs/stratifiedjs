@@ -268,7 +268,9 @@ exports.memoize = sys.makeMemoizedFunction;
    @function unbatched
    @param {Function} [batched_f] Function to be unbatched.
    @param {optional Object} [settings] Settings.
-   @setting {Integer} [batch_period=0] Period (in ms) over which to batch results. The default value of `0` only collects calls that are "temporally acljacent", i.e. calls made in the same event loop (e.g. `waitfor { g(1) } and { g(2) }`).
+   @setting {Integer} [batch_period=0] Period (in ms) over which to batch results. The default value of `0` only collects calls that are "temporally adjacent", i.e. calls made in the same event loop (e.g. `waitfor { g(1) } and { g(2) }`).
+   @setting {Boolean} [throw_errors=true] If `true`, return values that are `instanceof Error` 
+                      will be thrown to the corresponding caller, rather than returned.
    @summary Create an unbatched function from a batched one.
    @desc
       `batched_f` must be a function accepting a single array argument
@@ -324,7 +326,8 @@ exports.memoize = sys.makeMemoizedFunction;
 function unbatched(batched_f, settings) {
   settings = 
     {
-      batch_period: 0
+      batch_period: 0,
+      throw_errors: true
     } .. extend(settings);
 
   var pending_calls = [], batch_pending = false;
@@ -339,14 +342,15 @@ function unbatched(batched_f, settings) {
     if (!batch.length) return;
 
     try {
-      var rvs = batched_f(batch .. map([arg] -> arg));
-      if (rvs.length != batch.length) throw new Error('Unexpected return value from batch function');
+      var rvs = batched_f.call(this, batch .. map([arg] -> arg));
+      if (!rvs || rvs.length != batch.length) throw new Error('Unexpected return value from batch function');
     }
     catch (e) {
       batch .. each {
         |[,resume]|
         resume(e, true);
       }
+      return;
     }
 
     zip(rvs, batch) .. each {
@@ -359,7 +363,7 @@ function unbatched(batched_f, settings) {
     waitfor (var rv, isException) {
       var req = [x, resume];
       pending_calls.push(req);
-      if (!batch_pending) spawn process_batch();
+      if (!batch_pending) spawn process_batch.call(this);
     }
     retract {
       var index = pending_calls.indexOf(req);
@@ -367,7 +371,7 @@ function unbatched(batched_f, settings) {
         pending_calls.splice(index, 1);
     }
 
-    if (isException) throw(rv);
+    if (isException || (settings.throw_errors && rv instanceof Error)) throw(rv);
     return rv;
   }
 }
