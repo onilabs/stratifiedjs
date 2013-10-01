@@ -6,6 +6,12 @@ module.exports = function(config) {
       'sjs',
     ],
 
+    client: {
+      hubs: {
+        "app:": "sjs:../"
+      }
+    },
+
     files: [
       'test/json2.js', // required for IE<8 only
     ],

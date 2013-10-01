@@ -1,4 +1,10 @@
 #!/bin/bash
+if [ -n "$NODE_PATH" ]; then
+	np="$NODE_PATH:"
+else
+	np="";
+fi
+
 set -eu
 if [ "$#" -lt 0 ]; then
 	echo "missing an action"
@@ -7,4 +13,7 @@ fi
 action="$1"
 shift
 base="$(dirname "$(cd "$(dirname "$0")" && pwd)")"
-"$base/tools/bin/karma.sjs" "$action" tools/karma/conf.js "$@"
+
+export NODE_PATH="$np$base/.." # node can't find sjs from its own dir
+
+"$base/node_modules/.bin/karma-sjs" "$action" tools/karma/conf.js "$@"

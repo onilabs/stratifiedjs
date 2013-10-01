@@ -14,7 +14,9 @@ suite = os.environ.get('t', None)
 args = sys.argv[1:] if suite is None else [suite]
 
 sjs_root = os.environ.get('SJS_ROOT', None)
-if sjs_root is not None: os.chdir(sjs_root)
+if sjs_root is not None:
+	os.chdir(sjs_root)
+else: sjs_root = os.getcwd()
 
 default_runners = 'node,karma'
 
@@ -40,18 +42,17 @@ try:
 		if runner == 'node':
 			subprocess.check_call([node, 'sjs', testmod] + args)
 		elif runner == 'karma':
-			if not os.path.exists('node_modules/karma'):
+			if not os.path.exists('node_modules/karma-sjs-adapter'):
 				subprocess.check_call([os.environ['NPM'], 'install'])
 
 			subprocess.check_call([
-				node, 'sjs',
-				'tools/bin/karma.sjs',
+				'test/karma',
 				'start',
 				'tools/karma/conf.js',
 				'--single-run',
 				'--browsers=' + ','.join(browsers),
 				'--',
-				testmod] + args)
+				'app:' + testmod] + args)
 		else:
 			raise AssertionError("Unknown runner: %s" % (runner,))
 
