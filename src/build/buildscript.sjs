@@ -447,18 +447,22 @@ function COMPILE(target, sources, flags) {
 
 // CPP: run C preprocessor
 function CPP(target, defs, deps) {
-  log("* Preprocessing: "+target);
   var cmd = "tools/bin/filepp -u -w -re";
   var extraflags = process.env['APOLLO_CFLAGS'] || '';
-  BUILD(target, cmd + " " + extraflags + " " + defs + " $0 -o $TARGET", deps);
+  BUILD(target, [
+    function() { log("* Preprocessing: "+target); },
+    cmd + " " + extraflags + " " + defs + " $0 -o $TARGET"
+  ], deps);
 }
 
 function CONCAT(target, files) {
-  log("* Concatenating: "+target);
   var sh = "cat";
   for (var i=0; i<files.length; i++) sh += " $" + i;
   var deps = files.concat(["src/build/config.json"]);
-  BUILD(target, [sh + " > $TARGET", replacements_from_config], deps);
+  BUILD(target, [
+    function() { log("* Concatenating: "+target); },
+    sh + " > $TARGET", replacements_from_config
+  ], deps);
 }
 
 //----------------------------------------------------------------------
