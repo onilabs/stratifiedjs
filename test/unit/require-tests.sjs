@@ -83,7 +83,7 @@ context("server-side") {||
   }
 
   test('require.resolve() on valid nodejs modules') {||
-    require.resolve('nodejs:karma').path .. assert.eq(path.join(path.dirname(sjsPath), 'node_modules', 'karma', 'lib', 'index.js'));
+    require.resolve('nodejs:karma-sjs-adapter').path .. assert.eq(path.join(path.dirname(sjsPath), 'node_modules', 'karma-sjs-adapter', 'index.js'));
   }
 
   test('require.resolve() on missing nodejs modules') {||
