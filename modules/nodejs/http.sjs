@@ -114,28 +114,31 @@ function receiveBody(request) {
     - Request body size is limited to 10MB.
 */
 function ServerRequest(req, res, ssl) {
+  var rv = {};
   /**
    @variable ServerRequest.request
    @summary [NodeJS http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest) object
    */
-  this.request = req;
+  rv.request = req;
   /**
    @variable ServerRequest.response
    @summary [NodeJS http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse) object
    */
-  this.response = res;
+  rv.response = res;
   /**
    @variable ServerRequest.url
    @summary Full canonicalized request URL object in the format as returned by [../url::parse].
    */
-  this.url = url.parse(url.normalize(req.url, 
+  rv.url = url.parse(url.normalize(req.url, 
                                       "http#{ssl ? 's' : ''}://#{req.headers.host}"));
   /**
    @variable ServerRequest.body
    @summary Request body (nodejs buffer, possibly empty)
    */
   // receive a (smallish, <10MB) request body (if any):
-  this.body = receiveBody(this.request);
+  rv.body = receiveBody(rv.request);
+
+  return rv;
 }
 
 var getConnections = function(server) {
@@ -245,7 +248,7 @@ function withServer(config, server_loop) {
       res.end();
       return;
     }
-    request_queue.put([req, res]);
+    request_queue.put(ServerRequest(req, res, config.ssl));
   }
 
   var server;
@@ -334,31 +337,30 @@ function withServer(config, server_loop) {
             }
             or {
               generate(-> request_queue.get()) ..
-                filter(function(req_res) {
-                  if (req_res[0].socket.writable) return true;
+                filter(function({request}) {
+                  if (request.socket.writable) return true;
                   config.log("Pending connection closed");
                   return false;
                 }) ..
                 each.par(config.max_connections) {
-                  |req_res|
-                  var [req,res] = req_res;
+                  |server_request|
                   waitfor {
-                    events.wait(req, 'close');
+                    events.wait(server_request.request, 'close');
                     config.log("Connection closed");
                   }
                   or {
-                    handler(new ServerRequest(req, res, config.ssl));
-                    if (!res.finished) {
+                    handler(server_request);
+                    if (!server_request.response.finished) {
                       config.log("Unfinished response");
-                      if(!res._header) {
+                      if(!server_request.response._header) {
                         config.log("Response without header; sending 500");
-                        res.writeHead(500);
-                        res.end();
+                        server_request.response.writeHead(500);
+                        server_request.response.end();
                       }
                       else {
                         // headers have already been sent; only course of action is
                         // to close the connection
-                        req.socket.destroy();
+                        server_request.request.socket.destroy();
                       }
                     }
                   }
