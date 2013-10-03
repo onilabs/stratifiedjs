@@ -84,6 +84,45 @@ testEq('exclusive', 'TRATCRBTD', function() {
   return rv;
 });
 
+testEq('exclusive with reuse', [1,1,1,2], function() {
+  var count = 0;
+  var g = f.exclusive(function() { count++; hold(100); return count; }, true);
+  var rv = [];
+  waitfor {
+    rv[0] = g();
+  }
+  and {
+    rv[1] = g();
+  }
+  and {
+    rv[2] = g();
+  }
+  rv[3] = g();
+  return rv;
+});
+
+testEq('exclusive with reusing (exception)', 'TTR', function() {
+  var count=0;
+  var g = f.exclusive(function() { count++; hold(100); if(count === 1) throw 'T'; return 'R';}, true);
+  var rv = '';
+  waitfor {
+    try {
+      rv += g();
+    } catch(e) {
+      rv += e;
+    }
+  }
+  and {
+    try {
+      rv += g();
+    } catch(e) {
+      rv += e;
+    }
+  }
+  rv += g();
+  return rv;
+});
+  
 testEq('deferred 1', 'Cb(A)', function() {
   var g = f.deferred(function() { hold(0); return 'A'; });
   var ret;

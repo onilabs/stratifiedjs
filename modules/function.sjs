@@ -176,27 +176,30 @@ exports.sequential = function(f) {
 
 /**
   @function exclusive
-  @summary  A wrapper for limiting the number of concurrent executions of a function to one. 
-            Instead of potentially waiting for the previous execution to end, like [::serialized], it will cancel it.
+  @summary  A wrapper for limiting the number of concurrent executions of a function to one.
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
+  @param    {optional Boolean} [reuse=false] Reuse a previous call's value, rather than cancelling it.
+  @desc
+    The returned function will be executed at most once concurrently.
+
+    If `reuse` is `true`, calls that occur when the function is already running will wait for (and return) the value from the earlier execution.
+    If `reuse` is `false` (or not given), each call will cancel any currently-running call, abandoning their results.
 */
-exports.exclusive = function(f) {
-  var executing = false, cancel;
+exports.exclusive = function(f, reuse) {
+  var stratum, cancel;
   return function() {
-    if (executing) cancel();
-    waitfor {
-      executing = true;
-      return f.apply(this, arguments);
-    }
-    or {
-      waitfor() {
-        cancel = resume;
+    if (stratum && !reuse) cancel();
+    if (!stratum) stratum = spawn(function(t,a){
+      waitfor {
+        return f.apply(t,a);
+      } or {
+        waitfor() { cancel = resume; }
+      } finally {
+        stratum = null;
       }
-    }
-    finally {
-      executing = false;
-    }
+    }(this,arguments));
+    return stratum.waitforValue();
   }
 };
 

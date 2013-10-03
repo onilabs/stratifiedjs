@@ -688,6 +688,7 @@ CompiledOptions.prototype = {
   timeout        : 10,
   bail           : false,
   diff           : true,
+  debug          : false,
   
   // known options that have no default
   base       : undefined,
@@ -731,7 +732,7 @@ exports.getRunOpts = function(opts, args) {
   } else {
     args = args .. toArray();
   }
-  if (args .. array.contains('--debug')) {
+  if (args .. array.contains('--debug') || opts.debug) {
     // special-case logging flag, as otherwise we miss debug info from parsing args
     logging.setLevel(logging.DEBUG);
     opts.debug = true;
