@@ -169,7 +169,7 @@ if(type=="t"&&(value instanceof Error||(typeof value=='object'&&value.message)))
 if(value._oniE!==token_oniE){
 
 value._oniE=token_oniE;
-value.__oni_stack=[];
+value.__oni_stack=value.__oni_stack||[];
 value.line=line;
 value.file=file||"unknown SJS source";
 
@@ -410,6 +410,9 @@ if((rv instanceof CFException))return rv.mapToJS();
 
 return rv;
 };
+
+var StratumAborted=exports.StratumAborted=function(){};
+StratumAborted.prototype=new Error("stratum aborted");
 
 
 
@@ -2182,7 +2185,7 @@ if(!async)return;
 ef.quench();
 ef.abort();
 async=false;
-val=new CFException("t",new Error("stratum aborted"),ndata[0],env.file);
+val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 
 
 

@@ -40,6 +40,27 @@ var { each, Stream } = require('sjs:sequence');
 var { remove } = require('sjs:array');
 
 /**
+  @class StratumAborted
+  @summary the error type thrown by calling abort() on a stratum
+  @desc
+    You can check if an error is a stratum being aborted with:
+
+    ### Example:
+
+        try {
+          stratum.waitforValue();
+        } catch(e) {
+          if (e instanceof cutil.StratumAborted) {
+            // stratum was aborted
+          } else {
+            // stratum code threw an error
+          }
+        }
+*/
+exports.StratumAborted = __oni_rt.StratumAborted;
+
+
+/**
   @function waitforAll
   @summary  Execute a number of functions on separate strata and wait for all
             of them to finish, or, execute a single function with different

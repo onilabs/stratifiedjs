@@ -152,7 +152,7 @@ function CFException(type, value, line, file) {
     if (value._oniE !== token_oniE) {
       // annotate the exception object with our oni-special fields:
       value._oniE = token_oniE;
-      value.__oni_stack = [];
+      value.__oni_stack = value.__oni_stack || [];
       value.line = line;
       value.file = file || "unknown SJS source";
 
@@ -397,6 +397,9 @@ exports.exbl = function(env, args) {
     return rv.mapToJS();
   return rv;
 };
+
+var StratumAborted = exports.StratumAborted = function() {}
+StratumAborted.prototype = new Error("stratum aborted");
 
 
 //   exec: instruction executor function
@@ -2372,7 +2375,7 @@ function I_spawn(ndata, env) {
       ef.abort();
       async = false;
       val =  new CFException("t",
-                             new Error("stratum aborted"),
+                             new StratumAborted(),
                              NDATA_SPAWN_LINE(),
                              env.file);
       while (waitarr.length)
