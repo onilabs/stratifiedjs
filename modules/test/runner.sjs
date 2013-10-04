@@ -641,8 +641,9 @@ Results.prototype._fail = function(result, err) {
 
 Results.prototype._pass = function(result) {
   if (this._currentError != null) {
+    this._fail(result, this._currentError)
     this._currentError = null;
-    return this._fail(result, this._currentError)
+    return;
   }
   result.pass(result);
   this.passed += 1;
