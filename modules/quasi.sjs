@@ -131,11 +131,11 @@ exports.Quasi = Quasi;
    @desc
      ### Example:
      
-         joinQuasis(`a#{b}c`, `d#{e}f`, `#{g}h`)
+         joinQuasis(`a${b}c`, `d${e}f`, `${g}h`)
 
      results in
 
-         `a#{b}cd#{e}f#{g}h`
+         `a${b}cd${e}f${g}h`
 
 */
 function joinQuasis(/*arguments*/) {
