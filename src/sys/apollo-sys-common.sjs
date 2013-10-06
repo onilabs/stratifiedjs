@@ -493,25 +493,40 @@ function makeRequire(parent) {
     function inner(i, l) {
       if (l === 1) {
         var descriptor = args[i];
-        var id, settings, exclude;
+        var id, settings, exclude, include, name;
         __js if (typeof descriptor === 'string') {
           id = descriptor;
           exclude = [];
+          include = null;
+          name = null;
         }
         else {
           id = descriptor.id;
           settings = descriptor.settings;
           exclude = descriptor.exclude || [];
+          include = descriptor.include || null;
+          name = descriptor.name || null;
         }
 
         var module = rf(id, settings);
         // XXX wish we could use exports.extendObject here, but we
         // want the duplicate symbol check
-        __js for (var o in module) {
-          if (exclude.indexOf(o) !== -1) continue;
-          if (rv[o] !== undefined) 
-            throw new Error("require.merge(.) name clash while merging module '#{id}': Symbol '#{o}' defined in multiple modules");
-          rv[o] = module[o];
+        __js {
+          var check = function(o) {
+            if (rv[o] !== undefined)
+              throw new Error("require.merge(.) name clash while merging module '#{id}': Symbol '#{o}' defined in multiple modules");
+          };
+
+          if (name) {
+            check(name);
+            rv[name] = module;
+          } else {
+            for (var o in module) {
+              if ((include && include.indexOf(o) === -1) || exclude.indexOf(o) !== -1) continue;
+              check(o);
+              rv[o] = module[o];
+            }
+          }
         }
       }
       else {
