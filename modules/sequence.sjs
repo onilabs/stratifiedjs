@@ -1621,19 +1621,19 @@ exports.fib = fib;
 
       ### Example:
 
-         integers() .. 
-         take(10) .. 
-         transform(x->(hold(0),console.log("Sent: #{x}"),x)) ..
-         buffer(5) ..
-         each { |x|
-           console.log("Received: #{x}");
-           hold(100);
-         }
-         // prints:
-         //   Sent: 0, Received: 0, Sent: 1, Sent: 2, Sent: 3, Sent: 4, Sent: 5, 
-         //   Received: 1, Sent: 6, Received: 2, Sent: 7, Received: 3, Sent: 8, 
-         //   Received: 4, Sent: 9, Received: 5, Received: 6, Received: 7, Received: 8,
-         //   Received: 9
+          integers() .. 
+          take(10) .. 
+          transform(x->(hold(0),console.log("Sent: #{x}"),x)) ..
+          buffer(5) ..
+          each { |x|
+            console.log("Received: #{x}");
+            hold(100);
+          }
+          // prints:
+          //   Sent: 0, Received: 0, Sent: 1, Sent: 2, Sent: 3, Sent: 4, Sent: 5, 
+          //   Received: 1, Sent: 6, Received: 2, Sent: 7, Received: 3, Sent: 8, 
+          //   Received: 4, Sent: 9, Received: 5, Received: 6, Received: 7, Received: 8,
+          //   Received: 9
 */
 function buffer(seq, count) {
   return Stream(function(r) {
