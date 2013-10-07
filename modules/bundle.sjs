@@ -97,6 +97,7 @@ var str = require('sjs:string');
 var { split, rsplit, startsWith } = str;
 var object = require('sjs:object');
 var { hasOwn, ownKeys, ownValues, ownPropertyPairs } = object;
+var docutil = require('sjs:docutil');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
 
@@ -207,6 +208,23 @@ function findDependencies(sources, settings) {
         case "require":
           addRequire(args[0], module);
           break;
+        case "require_merge":
+          args .. each {|arg|
+            if (typeof(arg) === 'string') {
+              addRequire(arg, module);
+            } else {
+              assert.ok(arg.id, "argument to require.merge has no `id`");
+              addRequire(arg.id, module);
+            }
+          }
+          break;
+      }
+    };
+
+    var docs = docutil.parseModuleDocs(src, {});
+    if(docs.require) {
+      docs.require .. each {|req|
+        addRequire(req, module);
       }
     }
   }

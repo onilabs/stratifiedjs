@@ -520,9 +520,16 @@ function makeRequire(parent) {
           if (name) {
             check(name);
             rv[name] = module;
+          } else if (include) {
+            for (var i=0; i<include.length; i++) {
+              var o = include[i];
+              if (!module[o]) throw new Error("require.merge(.) module #{id} has no symbol #{o}");
+              check(o);
+              rv[o] = module[o];
+            }
           } else {
             for (var o in module) {
-              if ((include && include.indexOf(o) === -1) || exclude.indexOf(o) !== -1) continue;
+              if (!Object.prototype.hasOwnProperty.call(module, o) || exclude.indexOf(o) !== -1) continue;
               check(o);
               rv[o] = module[o];
             }

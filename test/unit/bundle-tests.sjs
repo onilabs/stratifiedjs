@@ -37,17 +37,27 @@ context {||
     return rv;
   };
 
-  var fixtureUrl = url.normalize('./fixtures/utf8.sjs', module.id);
+  var fixtureUrl = url.normalize('./fixtures/', module.id);
 
   test("includes module dependencies") {||
     var bundle = createBundle({
       resources: ["#{basePath}=/"],
-      sources: ['sjs:xbrowser/console', fixtureUrl],
+      sources: [
+        'sjs:xbrowser/console',
+        fixtureUrl + 'bundle_parent.sjs'
+      ],
     });
 
     bundle .. bundledModuleNames .. assert.eq([
       [ 'sjs:', ['array.sjs', 'object.sjs','sequence.sjs', 'string.sjs', 'xbrowser/console.sjs']],
-      [ null,   ['HOST/fixtures/utf8.sjs']]
+      [ null, [
+        'HOST/fixtures/annotated_child1.sjs',
+        'HOST/fixtures/annotated_child2.sjs',
+        'HOST/fixtures/bundle_parent.sjs',
+        'HOST/fixtures/child1.sjs',
+        'HOST/fixtures/merge_child1.sjs',
+        'HOST/fixtures/merge_child2.sjs',
+      ]]
     ]);
   }
 
@@ -66,7 +76,7 @@ context {||
     resources[basePath] = "/";
     var [hub, modules] = createBundle({
       resources: resources,
-      sources: [fixtureUrl],
+      sources: [fixtureUrl + 'utf8.sjs'],
     }) .. bundledModuleNames() .. seq.at(0);
 
     modules .. assert.contains('HOST/fixtures/utf8.sjs');

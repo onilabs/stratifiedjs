@@ -490,6 +490,9 @@ Call.prototype.flatten = function() {
       case "require":
         return [["require", call_args]];
         break;
+      case "require.merge":
+        return [["require_merge", call_args]];
+        break;
       case "require.hubs.unshift":
         return [["hub_insert", call_args]];
         break;
@@ -740,7 +743,7 @@ SemanticToken.prototype = {
     this.excf = function(left, pctx) {
       var right = parseExp(pctx, bp);
       
-      if (this.id == '=') top_scope(pctx).assignments.push([left, right]);
+      if (this.id == '=') top_scope(pctx).assignments.push([left, right]);   return right;
     };
     return this;
   },

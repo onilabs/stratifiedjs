@@ -199,6 +199,9 @@ Call.prototype.flatten = function() {
       case "require":
         return [["require", call_args]];
         break;
+      case "require.merge":
+        return [["require_merge", call_args]];
+        break;
       case "require.hubs.unshift":
         return [["hub_insert", call_args]];
         break;
@@ -363,7 +366,8 @@ function gen_crf(crf) {
 
 #define GEN_INFIX_OP(left, id, right, pctx) return right;
 #define GEN_ASSIGN_OP(left, id, right, pctx) \
-  if (id == '=') top_scope(pctx).assignments.push([left, right]);
+  if (id == '=') top_scope(pctx).assignments.push([left, right]); \
+  return right;
 #define GEN_PREFIX_OP(id, right, pctx) return right;
 #define GEN_POSTFIX_OP(left, id, pctx) return left;
 
