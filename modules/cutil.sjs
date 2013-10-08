@@ -270,7 +270,7 @@ var SemaphoreProto = {
    */
   release : function() {
     spawn ((this.sync ? null : hold(0)), ++this.permits,
-           (this.queue.length ? this.queue.shift()() : null))
+           (this.permits>0 && this.queue.length ? this.queue.shift()() : null))
   },
 
   /**
@@ -297,6 +297,15 @@ var SemaphoreProto = {
     finally {
       this.release();
     }
+  },
+
+  /**
+    @function Semaphore.forceAcquire
+    @summary  Acquire a permit even if there are no available permits. The number 
+              of permits will be decremented by 1.
+   */
+  forceAcquire: function() {
+    --this.permits;
   }
 };
 
@@ -452,9 +461,14 @@ QueueProto = {
       return item;
     }
     retract {
-      // we've been retracted while waiting for a put; need to re-accquire the slot
-      // we released earlier
-      this.S_nonfull.acquire();
+      // We've been retracted while waiting for a put; need to
+      // re-accquire the slot we released earlier.
+
+      // We need to call `forceAcquire()` rather than `acquire()` because
+      // the empty slot we created might have been already filled by a
+      // put. An normal blocking `acquire()` could prevent our
+      // retraction code from ever returning.
+      this.S_nonfull.forceAcquire();
     }
   },
 

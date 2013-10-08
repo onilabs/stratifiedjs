@@ -333,6 +333,40 @@ testEq('Semaphore.synchronize', 1, function() {
                 }
 });
 
+testEq('Semaphore: negative permit count', 3, function() {
+  var S = cutil.Semaphore(-2);
+  var x = 0;
+  waitfor {
+    S.acquire();
+  }
+  or {
+    while (true) {
+      hold(0);
+      ++x;
+      S.release();
+    }
+  }
+  return x;
+});
+
+testEq('Semaphore: negative permit count / forceAcquire', 3, function() {
+  var S = cutil.Semaphore(0);
+  var x = 0;
+  S.forceAcquire();
+  S.forceAcquire();
+  waitfor {
+    S.acquire();
+  }
+  or {
+    while (true) {
+      hold(0);
+      ++x;
+      S.release();
+    }
+  }
+  return x;
+});
+
 testEq('Queue: async put/get + interspersed peek', 100, function() {
   var rv = 0;
   var q = new (cutil.Queue)(10);
@@ -404,6 +438,37 @@ testEq('Retraction with queue size 0', 'ok', function() {
   or {
     hold(10);
   }
+
+  return 'ok';
+});
+
+testEq('Queue get/put retraction lockup', 'ok', function() {
+  var Q = cutil.Queue(0);
+  var rv = '';
+
+  // attempt a get(), priming the Queue to accept put()s:
+  waitfor {
+    Q.get();
+    return 'not reached 1';
+  }
+  or {
+    hold(0);
+    Q.put('x');
+    hold();
+  }
+  or {
+    hold(0);
+    // do nothing; this effecively cancels the pending `get` before
+    // the `put` feeds through (because the `put` only wakes up the
+    // `get` asynchronously)
+
+    // We now have a situation where the queue has grown beyond its
+    // originally allowed size
+  }
+
+  // earlier implementations of the cutil::Queue didn't reach this
+  // point; they locked up internally in the retraction code for
+  // Q.get.
 
   return 'ok';
 });
