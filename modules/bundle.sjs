@@ -577,9 +577,14 @@ if (require.main === module) {
 
   var opts = parser.parse();
 
-  if (opts.help) {
-    process.stderr.write("Usage: sjs sjs:bundle [OPTIONS] [SOURCE [...]]\n\n");
+  var usage = function() {
+    var path = require('nodejs:path');
+    process.stderr.write("Usage: #{path.basename(process.argv[0])} #{process.argv[1]} [OPTIONS] [SOURCE [...]]\n\n");
     process.stderr.write(parser.help());
+  };
+
+  if (opts.help) {
+    usage();
     process.exit(0);
   }
 
@@ -602,6 +607,8 @@ if (require.main === module) {
   }
 
   if (!(opts.dump || opts.output)) {
+    usage();
+    console.error();
     console.error("Error: One of --output or --dump options are required");
     process.exit(1);
   }

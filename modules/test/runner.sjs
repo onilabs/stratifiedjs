@@ -609,7 +609,7 @@ Results.prototype.durationSeconds = function(precision) {
 }
 
 Results.prototype._error = function(err) {
-  logging.error(err);
+  logging.error(String(err));
   this.ok = -> false;
 }
 

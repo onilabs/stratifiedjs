@@ -88,7 +88,7 @@ function processArgs() {
     default:
       // we assume 'flag' is a script. remove everything up to now from
       // argv (except `node`) and exec it:
-      process.ARGV = process.argv = [process.argv[0]].concat(process.argv.slice(i));
+      process.ARGV = process.argv = [process.argv[1]].concat(process.argv.slice(i));
       if (flag == '--') {
         return run;
       }
