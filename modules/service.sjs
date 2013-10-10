@@ -68,6 +68,7 @@ RegistryProto._init = function(parent){
 /**
   @function Registry.factory
   @param {String} [key]
+  @param {Function} [fn]
   @summary Define a value that is recomputed every time it is accessed
   @desc
     Each time `get` is called for `key`, it will return the result
@@ -89,8 +90,13 @@ RegistryProto.factory = function(key, factory) {
   @summary Define a value
   @desc
     Future calls to `get(key)` will return `val`.
+
+  @function Registry.set
+  @param {String} [key]
+  @param {Object} [value]
+  @summary Alias for [::Registry.value]
 */
-RegistryProto.value = function(key, val) {
+RegistryProto.value = RegistryProto.set = function(key, val) {
   this._db[key] = { instance: val };
 };
 
@@ -121,14 +127,16 @@ RegistryProto.lazy = function(key, factory) {
 /**
   @function Registry.get
   @param {String} [key]
+  @param {optional Object} [default]
   @summary Get the current value for a given key
   @return {Object}
   @desc
     If the value has not been defined in this registry (or a parent),
-    an error will be thrown.
+    `default` will be returned or an error thrown if no `default` given.
 */
-RegistryProto.get = function(key) {
+RegistryProto.get = function(key, _default) {
   if (!this.has(key)) {
+    if (arguments.length > 1) return _default;
     throw new Error("Key '#{key}' not found in #{this}");
   }
   if (this._has(key)) {
