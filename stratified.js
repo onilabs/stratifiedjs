@@ -229,7 +229,8 @@ function ReturnToParentContinuation(frame,idx,val){this.frame=frame;
 this.idx=idx;
 this.val=val;
 }
-ReturnToParentContinuation.prototype={execute:function(){
+ReturnToParentContinuation.prototype={__oni_rtpc:true,execute:function(){
+
 return this.frame.cont(this.idx,this.val)}};
 
 
@@ -241,7 +242,7 @@ return this.frame.cont(this.idx,this.val)}};
 
 function cont(frame,idx,val){var rv=frame.cont(idx,val);
 
-while(rv instanceof ReturnToParentContinuation){
+while((rv&&rv.__oni_rtpc)){
 rv=rv.execute();
 }
 return rv;
@@ -317,12 +318,12 @@ return this;
 
 },returnToParent:function(val){
 
-if((val instanceof CFException)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
+if((val&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
 
 val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
 if(this.swallow_r){
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 if(val.type=="r"){
 if(!val.ef||val.ef==this)val=val.val;
 
@@ -358,7 +359,7 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 
 
 
-}else if((val instanceof CFException)){
+}else if((val&&val.__oni_cfx)){
 
 
 
@@ -396,7 +397,7 @@ exports.ex=execIN;
 exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new Env(aobj,tobj,file));
 
 
-if((rv instanceof CFException))return rv.mapToJS();
+if((rv&&rv.__oni_cfx))return rv.mapToJS();
 
 return rv;
 };
@@ -406,7 +407,7 @@ return rv;
 exports.exbl=function(env,args){var rv=I_seq(args,env);
 
 
-if((rv instanceof CFException))return rv.mapToJS();
+if((rv&&rv.__oni_cfx))return rv.mapToJS();
 
 return rv;
 };
@@ -476,7 +477,7 @@ rv.callstack.push([env.file,ndata[1]]);
 return rv;
 }catch(e){
 
-if((e instanceof CFException)){
+if((e&&e.__oni_cfx)){
 if(e.type=='blb'&&e.ef==env.blscope){
 
 
@@ -508,7 +509,7 @@ function I_nblock(ndata,env){try{
 return (ndata[0]).call(env);
 }catch(e){
 
-if(!(e instanceof CFException)){
+if(!(e&&e.__oni_cfx)){
 e=new CFException("t",e,ndata[1],env.file);
 }
 return e;
@@ -610,7 +611,7 @@ EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
 this.setChildFrame(val,idx);
 }else{
 
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 
 if(val.type=='blb'&&val.ef==this.env.blscope){
 val=UNDEF;
@@ -641,7 +642,7 @@ if(!is_ef(val))return this.returnToParent(val);
 
 }
 }
-if((++idx==this.ndata.length&&this.tailcall)||(val instanceof CFException)){
+if((++idx==this.ndata.length&&this.tailcall)||(val&&val.__oni_cfx)){
 
 break;
 }
@@ -693,7 +694,7 @@ setEFProto(EF_Sc.prototype={});
 EF_Sc.prototype.cont=function(idx,val){if(is_ef(val)){
 
 this.setChildFrame(val,idx);
-}else if((val instanceof CFException)){
+}else if((val&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }else{
@@ -717,7 +718,7 @@ if(!is_ef(rv))return this.returnToParent(rv);
 }
 
 ++this.i;
-if((rv instanceof CFException))return this.returnToParent(rv);
+if((rv&&rv.__oni_cfx))return this.returnToParent(rv);
 if(is_ef(rv)){
 this.setChildFrame(rv,1);
 return this;
@@ -792,7 +793,7 @@ setEFProto(EF_Fcall.prototype={});
 EF_Fcall.prototype.cont=function(idx,val){if(is_ef(val)){
 
 this.setChildFrame(val,idx);
-}else if((val instanceof CFException)){
+}else if((val&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }else if(idx==2){
@@ -822,7 +823,7 @@ if(!is_ef(rv))return this.returnToParent(rv);
 }
 
 ++this.i;
-if((rv instanceof CFException))return this.returnToParent(rv);
+if((rv&&rv.__oni_cfx))return this.returnToParent(rv);
 if(is_ef(rv)){
 this.child_frame=null;
 this.setChildFrame(rv,1);
@@ -966,7 +967,7 @@ rv=new CFException("i","Invalid Fcall mode");
 
 
 
-if((e instanceof CFException)){
+if((e&&e.__oni_cfx)){
 
 if(e.type=='blb'&&e.ef==this.env.blscope){
 rv=UNDEF;
@@ -1035,7 +1036,7 @@ if(!is_ef(val))return this.returnToParent(val);
 
 
 case 1:
-if((val instanceof CFException))break;
+if((val&&val.__oni_cfx))break;
 if(is_ef(val)){
 this.setChildFrame(val,1);
 return this;
@@ -1114,7 +1115,7 @@ if(!is_ef(val))return this.returnToParent(val);
 }
 }
 }
-if((val instanceof CFException))return this.returnToParent(val);
+if((val&&val.__oni_cfx))return this.returnToParent(val);
 if(is_ef(val)){
 this.setChildFrame(val,1);
 return this;
@@ -1125,7 +1126,7 @@ idx=-1;
 case 1:
 while(true){
 if(idx>-1){
-if((val instanceof CFException))return this.returnToParent(val);
+if((val&&val.__oni_cfx))return this.returnToParent(val);
 if(is_ef(val)){
 this.setChildFrame(val,idx);
 return this;
@@ -1156,7 +1157,7 @@ if(is_ef(val)){
 this.setChildFrame(val,idx);
 return this;
 }
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 if(val.type=="b"){
 val=val.val;
 }
@@ -1240,7 +1241,7 @@ return this;
 case 1:
 
 this.state=2;
-if(!this.aborted&&this.ndata[2]&&(((val instanceof CFException)&&val.type=="t")||this.ndata[0]&1)){
+if(!this.aborted&&this.ndata[2]&&(((val&&val.__oni_cfx)&&val.type=="t")||this.ndata[0]&1)){
 
 
 
@@ -1248,7 +1249,7 @@ var v;
 if(this.ndata[0]&1){
 
 
-v=(val instanceof CFException)?[val.val,true]:[val,false];
+v=(val&&val.__oni_cfx)?[val.val,true]:[val,false];
 }else v=val.val;
 
 
@@ -1303,7 +1304,7 @@ case 4:
 
 
 
-if((this.rv instanceof CFException)&&!(val instanceof CFException)){
+if((this.rv&&this.rv.__oni_cfx)&&!(val&&val.__oni_cfx)){
 val=this.rv;
 }
 break;
@@ -1382,7 +1383,7 @@ this.setChildFrame(val,idx);
 while(true){
 
 if(idx==0){
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }
@@ -1409,14 +1410,14 @@ idx=2;
 if(idx>1){
 if(idx==2){
 
-if(!val||(val instanceof CFException)){
+if(!val||(val&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }
 }
 while(1){
 if(idx>2){
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 if(val.type=='blb'&&val.ef==this.env.blscope){
 
 val=UNDEF;
@@ -1541,12 +1542,12 @@ idx=1;
 }
 if(idx==1){
 
-if((val instanceof CFException))return this.returnToParent(val);
+if((val&&val.__oni_cfx))return this.returnToParent(val);
 
 for(var x in val){
 if(typeof this.remainingX==='undefined'){
 val=this.ndata[1](this.env,x);
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 if(val.type=="b"){
 
 val=UNDEF;
@@ -1576,7 +1577,7 @@ return this.returnToParent(val);
 if(idx==2){
 while(1){
 
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 if(val.type=="b"){
 
 val=UNDEF;
@@ -1659,7 +1660,7 @@ return this.pendingCFE;
 
 ++this.pending;
 this.setChildFrame(val,i);
-}else if((val instanceof CFException)){
+}else if((val&&val.__oni_cfx)){
 
 
 this.pendingCFE=val;
@@ -1672,7 +1673,7 @@ return this.abortInner();
 
 --this.pending;
 this.children[idx]=UNDEF;
-if((val instanceof CFException)&&!this.aborted){
+if((val&&val.__oni_cfx)&&!this.aborted){
 
 this.pendingCFE=val;
 this.quench();
@@ -2047,7 +2048,7 @@ return this;
 }
 case 1:
 
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 this.returning=true;
 break;
 }
@@ -2064,7 +2065,7 @@ if(this.returning){
 return;
 }
 this.returning=true;
-if((val instanceof CFException)){
+if((val&&val.__oni_cfx)){
 
 
 val=new CFException("i","Suspend: Resume function threw ("+val.toString()+")");
@@ -2222,7 +2223,7 @@ if(!waitarr.length){
 
 
 
-if((val instanceof CFException)&&(val.type!='t'||val.val instanceof Error)){
+if((val&&val.__oni_cfx)&&(val.type!='t'||val.val instanceof Error)){
 
 
 

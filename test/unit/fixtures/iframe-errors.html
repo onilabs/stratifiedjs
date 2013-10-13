@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='../../../stratified.js' asyc='true'></script>
+    <script type='text/sjs'>
+      window.fail = function() {
+        throw new Error("immediate error thrown by iframe");
+      };
+
+      window.delayfail = function() {
+        hold(0);
+        throw new Error("delayed error thrown by iframe");
+      }
+    </script>
+    </head>
+</html>

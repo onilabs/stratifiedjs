@@ -78,8 +78,8 @@ var UNDEF; // == undefined
 }
 */
 
-//define is_cfx(obj) (obj && obj.__oni_cfx)
-#define is_cfx(obj) (obj instanceof CFException)
+#define is_cfx(obj) (obj && obj.__oni_cfx)
+// define is_cfx(obj) (obj instanceof CFException)
 /*function is_cfx(obj) {
   return obj && obj.__oni_cfx;
 }*/
@@ -207,12 +207,14 @@ CFException.prototype = {
   Grep the code for ReturnToParentContinuation for more notes.
 
 */
+#define is_returnToParent(obj) (obj && obj.__oni_rtpc)
 function ReturnToParentContinuation(frame, idx, val) {
   this.frame = frame;
   this.idx = idx;
   this.val = val;
 }
 ReturnToParentContinuation.prototype = {
+  __oni_rtpc: true,
   execute: function() { return this.frame.cont(this.idx, this.val) }
 };
 
@@ -224,7 +226,7 @@ ReturnToParentContinuation.prototype = {
 */
 function cont(frame, idx, val) {
   var rv = frame.cont(idx, val);
-  while (rv instanceof ReturnToParentContinuation) {
+  while (is_returnToParent(rv)) {
     rv = rv.execute();
   }
   return rv;
