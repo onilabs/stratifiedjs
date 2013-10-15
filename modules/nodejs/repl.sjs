@@ -42,6 +42,7 @@ if (sys.hostenv != 'nodejs')
 
 var events = require('../events');
 var debug = require('../debug');
+var Url = require('../url');
 
 var disableColors = true;
 if (process.platform != 'win32') {
@@ -61,9 +62,13 @@ var itf;
 exports.runREPL = function() {
   if (itf) throw new Error("REPL already running");
 
-  // XXX repl will be operating on global scope; place our 'require'
-  // function there:
-  sys.getGlobal().require = sys.require;
+  // XXX repl will be operating on global scope; place a cwd-relative
+  // `require` function there:
+  var cwdModule = {
+    id: Url.fileURL(process.cwd() + '/'),
+  };
+  sys.getGlobal().require = __oni_rt.sys._makeRequire(cwdModule);
+
   // and our alternative identifier namespace:
   if (sys.getGlobal().__oni_altns === undefined)
     sys.getGlobal().__oni_altns = {};
