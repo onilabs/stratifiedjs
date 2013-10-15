@@ -139,8 +139,7 @@ DriverProto.click = function(elem) {
 DriverProto._init = function(url) {
 	this.frame = document.createElement("iframe");
 	if (url) this.frame.setAttribute("src", url);
-	this.frame.setAttribute("width", "600");
-	this.frame.setAttribute("height", "400");
+	this.frame.setAttribute("style", "position:fixed; right:0; top:0; width: 600; height: 400;");
 	document.body.appendChild(this.frame);
 }
 
