@@ -122,6 +122,22 @@ testEq('exclusive with reusing (exception)', 'TTR', function() {
   rv += g();
   return rv;
 });
+
+testEq('exclusive sync', '012', function() {
+  var count=0;
+  var g = f.exclusive(function() {
+      return count++;
+  }, true);
+  var rv = '';
+  waitfor {
+    rv += g();
+  }
+  and {
+    rv += g();
+  }
+  rv += g();
+  return rv;
+});
   
 testEq('deferred 1', 'Cb(A)', function() {
   var g = f.deferred(function() { hold(0); return 'A'; });

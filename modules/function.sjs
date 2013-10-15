@@ -189,14 +189,14 @@ exports.sequential = function(f) {
 exports.exclusive = function(f, reuse) {
   var stratum, cancel;
   return function() {
-    if (stratum && !reuse) cancel();
-    if (!stratum) stratum = spawn(function(t,a){
+    if (!reuse && cancel) cancel();
+    if (!cancel) stratum = spawn(function(t,a){
       waitfor {
-        return f.apply(t,a);
-      } or {
         waitfor() { cancel = resume; }
+      } or {
+        return f.apply(t,a);
       } finally {
-        stratum = null;
+        cancel = null;
       }
     }(this,arguments));
     return stratum.waitforValue();
