@@ -115,5 +115,11 @@ context {||
 
 		testEq("missing branch with default", 'default',
 			-> noChild .. o.getPath('parent.child.grandchild', 'default'));
+
+    testEq("empty path", full, 
+      -> full .. o.getPath('', 'default'));
+
+    testEq("empty path array", full,
+      -> full .. o.getPath([], 'default'));
 	}
 }

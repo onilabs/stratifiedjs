@@ -41,8 +41,8 @@ var { extendObject, mergeObjects, flatten, isArrayLike } = require('builtin:apol
 var hasProperty = function(k) { return k in this; }
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 
-var _get = function(guard, args) {
-  var [subject, key, defaultValue] = args;
+__js var _get = function(guard, args) {
+  var subject = args[0], key = args[1], defaultValue = args[2];
   if (guard.call(subject, key)) {
     return subject[key];
   } else {
@@ -72,7 +72,7 @@ var _get = function(guard, args) {
     For accessing only "own" properties (i.e. ignoring
     inherited properties), use [::getOwn].
 */
-exports.get = function(subject, key, defaultValue) {
+__js exports.get = function(subject, key, defaultValue) {
   return _get(hasProperty, arguments);
 };
 
@@ -86,13 +86,12 @@ exports.get = function(subject, key, defaultValue) {
   @desc
     Like [::get], but ignores inherited properties on `subject`.
 */
-exports.getOwn = function(subject, key, defaultValue) {
+__js exports.getOwn = function(subject, key, defaultValue) {
   return _get(hasOwnProperty, arguments);
 };
 
-(function() {
-  var sentinel = {};
-  /**
+__js var sentinel = {};
+/**
     @function getPath
     @param {Object} [subject]
     @param {String|Array} [path]
@@ -101,7 +100,8 @@ exports.getOwn = function(subject, key, defaultValue) {
     @summary Get a nested property from an object.
     @desc
       `path` can be a dotted string (`"a.b.c"`) or
-      an array of keys (`['a','b','c']`).
+      an array of keys (`['a','b','c']`). If `path` is an empty string, 
+      `subject` will be returned.
 
       If `default` is provided, it will be returned when the
       subject has no such property. If no default is provided,
@@ -127,28 +127,29 @@ exports.getOwn = function(subject, key, defaultValue) {
           [["one", "two"]] .. getPath([0, 1]);
           // "two"
   */
-  exports.getPath = function(subject, path, defaultValue) {
-    var hasDefault = (arguments.length == 3);
-    var parts = Array.isArray(path) ? path : path.split(".");
-    var obj = subject;
+__js  exports.getPath = function(subject, path, defaultValue) {
+  var hasDefault = (arguments.length == 3);
+  var parts = Array.isArray(path) ? path : path.split(".");
+  
+  if (!parts.length || parts.length === 1 && parts[0] === '')
+    return subject;
 
-    try {
-      if (hasDefault) {
-        for (var i=0; i<parts.length; i++) {
-          obj = exports.get(obj, parts[i], sentinel);
-          if (obj === sentinel) return defaultValue;
-        }
-      } else {
-        for (var i=0; i<parts.length; i++) {
-          obj = exports.get(obj, parts[i]);
-        }
+  try {
+    if (hasDefault) {
+      for (var i=0; i<parts.length; i++) {
+        subject = exports.get(subject, parts[i], sentinel);
+        if (subject === sentinel) return defaultValue;
       }
-    } catch(e) {
-      throw new Error("#{e.message} (traversing: #{path})");
+    } else {
+      for (var i=0; i<parts.length; i++) {
+        subject = exports.get(subject, parts[i]);
+      }
     }
-    return obj;
-  };
-})();
+  } catch(e) {
+    throw new Error("#{e.message} (traversing: #{path})");
+  }
+  return subject;
+};
 
 /**
   @function has
