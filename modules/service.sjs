@@ -142,7 +142,7 @@ RegistryProto.get = function(key, _default) {
   if (this._has(key)) {
     var service = this._db[key];
     if (!service .. hasOwn('instance')) {
-      var instance = service.factory(this);
+      var instance = service.factory.call(this, this);
       if (service.cache) {
         service.instance = instance;
       }
