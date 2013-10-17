@@ -23,6 +23,11 @@ test("string interpolation") {||
 	assert.eq(compiled, '"string #{literal}";');
 }
 
+test("altns") {||
+	var compiled = require('sjs:compile/minify').compile('@val;');
+	assert.eq(compiled, '@val;');
+}
+
 test("string interpolation inside __js") {||
 	var compiled = require('sjs:compile/minify').compile('
 		__js {

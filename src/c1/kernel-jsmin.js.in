@@ -296,7 +296,7 @@ function gen_prefix_op(id, right, pctx) {
 
 #ifdef SJS_ALTERNATE_NAMESPACE
 #define GEN_ALTERNATE_NAMESPACE_OBJ(pctx) return '@';
-#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx) return value;
+#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx) return '@'+value;
 #endif
 
 #ifdef STRINGIFY

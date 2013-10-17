@@ -658,7 +658,7 @@ Identifier.prototype.exsf = function(pctx) {
   if (this.alternate === true) {
     if (this.value.length) {
       
-      return this.value;
+      return '@'+this.value;
     }
     else {
       
