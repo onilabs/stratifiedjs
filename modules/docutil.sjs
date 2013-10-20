@@ -78,7 +78,7 @@ function trimLeadingNewlineAndTrailingSpace(str) {
 var parseSource = exports.parseSource = function(src, handle_comment, handle_code) {
   handle_comment = handle_comment || dummy;
   handle_code = handle_code || dummy;
-
+  SOURCE_SPLITTER.lastIndex = 0;
   var matches;
   while ((matches = SOURCE_SPLITTER.exec(src))) {
     // save the lastIndex, in case SOURCE_SPLITTER gets run
