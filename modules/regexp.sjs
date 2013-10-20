@@ -36,6 +36,7 @@
    @home    sjs:regexp
 */
 
+var { Stream } = require('./sequence');
 
 /**
   @function isRegExp
@@ -100,6 +101,30 @@ exports.findAll = function(str, re) {
     if (re.lastIndex === match.index) re.lastIndex++; // avoid infinite loop
   }
   return rv;
+};
+
+/**
+  @function matches
+  @summary  Return a [sequence::Stream] of all non-overlapping matches of a regexp in a given string.
+  @param    {String} [str] String to search.
+  @param    {RegExp} [regexp] Pattern to find.
+  @return   {sequence::Stream} Stream of match objects.
+  @desc
+    `regexp` should always include the global (`/g`) flag.
+    
+    If this function detects an infinite loop (because `regexp` is missing the
+    global flag or matches zero characters), an error will be thrown.
+*/
+exports.matches = function(str, re) {
+  if (!re.global) throw new Error("regex must include the /g flag");
+  return Stream(function(receiver) {
+    var match;
+    re.lastIndex = 0;
+    while (match = re.exec(str)) {
+      receiver(match);
+      if (re.lastIndex === match.index) re.lastIndex++; // avoid infinite loop
+    }
+  })
 };
 
 
