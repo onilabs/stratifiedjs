@@ -1,7 +1,7 @@
-// Apollo build tool
+// SJS build tool
 /*
  
-  A dependency-driven, parallel buildscript for building apollo.
+  A dependency-driven, parallel buildscript for building the SJS distribution.
   Like SCons, but simpler, smaller, concurrent (== faster).
 
 */
@@ -575,8 +575,8 @@ function _run_task(target, task, deps) {
 // Build the given target:
 function build_target(target) {
   // make sure we're in the right path:
-  var apollo_home = require('path').dirname(sys.executable);
-  process.chdir(apollo_home);
+  var sjs_home = require('path').dirname(sys.executable);
+  process.chdir(sjs_home);
   
   // make sure there's a tmp dir:
   if (!fs.isDirectory("tmp")) {
@@ -595,8 +595,8 @@ function build_target(target) {
 // main:
 
 function usage() {
-  process.stdout.write("Oni Apollo build tool\n\n");
-  process.stdout.write("Usage: make-apollo [options] [target]\n\n");
+  process.stdout.write("SJS build tool\n\n");
+  process.stdout.write("Usage: make-sjs [options] [target]\n\n");
   process.stdout.write("Options:\n");
   process.stdout.write("  -h, --help         display this help message\n");
   process.stdout.write("\nTargets:\n");
