@@ -81,29 +81,6 @@ exports.escape = function(str) {
 
 
 /**
-  @function findAll
-  @summary  Find all non-overlapping matches of a regexp in a given string.
-  @param    {String} [str] String to search.
-  @param    {RegExp} [regexp] Pattern to find.
-  @return   {Array} Array of match objects.
-  @desc
-    `regexp` should always include the global (`/g`) flag.
-    
-    If this function detects an infinite loop (because `regexp` is missing the
-    global flag or matches zero characters), an error will be thrown.
-*/
-exports.findAll = function(str, re) {
-  var rv = [];
-  var match;
-  if (!re.global) throw new Error("regex must include the /g flag");
-  while (match = re.exec(str)) {
-    rv.push(match);
-    if (re.lastIndex === match.index) re.lastIndex++; // avoid infinite loop
-  }
-  return rv;
-};
-
-/**
   @function matches
   @summary  Return a [sequence::Stream] of all non-overlapping matches of a regexp in a given string.
   @param    {String} [str] String to search.

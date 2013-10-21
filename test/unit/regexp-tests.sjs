@@ -26,18 +26,18 @@ test('escape') {||
   re.exec(allSpecials) .. assert.ok("#{allSpecials} incorrectly escaped");
 }
 
-context('findAll') {||
+context('matches') {||
   test("returns all matches") {||
-    "foof far faz" .. regexp.findAll(/f./g) .. map(m -> m[0]) .. assert.eq(['fo', 'f ', 'fa', 'fa']);
+    "foof far faz" .. regexp.matches(/f./g) .. map(m -> m[0]) .. assert.eq(['fo', 'f ', 'fa', 'fa']);
   }
 
   test("rejects a non-global regexp") {||
-    assert.raises( -> "foof far faz" .. regexp.findAll(/f./));
+    assert.raises( -> "foof far faz" .. regexp.matches(/f./));
   }
 
   test("handles a zero-width regexp") {||
     // not actually useful, but we need to make sure it doesn't loop infinitely
-    "abc" .. regexp.findAll(/()/g) .. map(m -> [m[0], m.index]) .. assert.eq([
+    "abc" .. regexp.matches(/()/g) .. map(m -> [m[0], m.index]) .. assert.eq([
       ["", 0],
       ["", 1],
       ["", 2],
