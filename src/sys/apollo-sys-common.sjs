@@ -894,14 +894,6 @@ __js function resolve(module, require_obj, parent, opts) {
       resolveSpec.src = function() {
         // once loaded, we remove src from memory to save space
         delete preload.m[path];
-        var empty = true;
-        for (var k in preload.m) {
-          if (Object.prototype.hasOwnProperty.call(preload.m, k)) {
-            empty = false;
-            break;
-          }
-        }
-        if(empty) delete preload.m;
         return {src:contents, loaded_from: path+"#bundle"};
       };
     }
