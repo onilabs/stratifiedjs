@@ -5,6 +5,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
  * modules can now be made executable. use `if (require.main === module) { ... }` to run
    additional code when your module is being run (rather than just imported).
 
+ * new @ (alternate namespace) syntax
+
  * process.ARGV retains the same number of arguments as it does for native nodejs programs
    (we used to start script arguments from argv[1], but they now start from argv[2] just like in nodejs.
    Note that the new `sys::argv` function is now the recommended way of accessing script arguments.
@@ -27,6 +29,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * sjs:regexp
    * sjs:bundle - executable module for bundling multiple sjs modules into a single .js file
    * sjs:compile/doc - executable module for generating documentation indexes
+   * sjs:service - service registry class, useful for dependency injection
 
  * new functions:
 
@@ -37,5 +40,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * sys::argv()
    * require.hubs.addDefault(hub)
    * require.hubs.defined(prefix)
+   * require.merge
+   * events::when
 
 
