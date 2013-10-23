@@ -3,8 +3,8 @@ var testEq = testUtil.test;
 var global = require('sjs:sys').getGlobal();
 var http = require('sjs:http');
 var logging = require('sjs:logging');
-var { find } = require('sjs:sequence');
-var { merge } = require('sjs:object');
+var { find, sort, toArray } = require('sjs:sequence');
+var { merge, ownKeys } = require('sjs:object');
 var {test, assert, context} = require('sjs:test/suite');
 var Url = require('sjs:url');
 
@@ -116,10 +116,35 @@ testEq('utf8 characters in modules: U+0192', 402, function() {
   return data.charCodeAt(data.length-1);
 });
 
-test('circular reference throws an exception') {||
-  assert.raises(
-    {message: /^Circular module dependency loading .*circular_a\.sjs$/},
-    -> require('./fixtures/circular_a'));
+test('circular reference returns the unfinished module') {||
+  var mod = require('./fixtures/circular_a');
+  mod .. assert.eq({
+    start: 1,
+    end: 1,
+    b_module: {
+      c_module: {
+        a_module: {
+          start: 1,
+        }
+      }
+    },
+  });
+};
+
+test('non-circular reference waits for the full module') {||
+  var path = require.resolve('./fixtures/slow_exports').path;
+  waitfor {
+    require(path) .. ownKeys .. sort .. assert.eq(['fast_export', 'slow_export']);
+  } and {
+    while(true) {
+      hold(0);
+      if (require.modules[path]) break;
+    }
+    // the module should appear eagerly in require.modules, but
+    // not returned from require() until it's fully loaded
+    require.modules[path].exports .. ownKeys .. toArray .. assert.eq(['fast_export']);
+    require(path) .. ownKeys .. sort .. assert.eq(['fast_export', 'slow_export']);
+  }
 };
 
 context('hubs.defined()') {||

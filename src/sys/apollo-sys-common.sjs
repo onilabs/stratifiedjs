@@ -712,69 +712,62 @@ function default_loader(path, parent, src_loader, opts) {
   if (!compile) 
     throw new Error("Unknown type '"+extension+"'");
   
-  var descriptor;
-  if (!(descriptor = exports.require.modules[path])) {
-    // we don't have this module cached -> load it
-    var pendingHook = pendingLoads[path];
-    if (!pendingHook) {
-      pendingHook = pendingLoads[path] = spawn (function() {
-        var src, loaded_from;
-        if (typeof src_loader === "string") {
-          src = src_loader;
-          loaded_from = "[src string]";
-        }
-        else if (path in __oni_rt.modsrc) {
-          // a built-in module
-          loaded_from = "[builtin]";
-          src = __oni_rt.modsrc[path];
-          delete __oni_rt.modsrc[path];
-          // xxx support plain js modules for built-ins?
-        }
-        else {
-          ({src, loaded_from}) = src_loader(path);
-        }
-        var descriptor = {
-          id: path,
-          exports: {},
-          loaded_from: loaded_from,
-          loaded_by: parent,
-          required_by: {}
-        };
-        descriptor.require = makeRequire(descriptor);
-
-        if (opts.main) descriptor.require.main = descriptor;
-        compile(src, descriptor);
-        // It is important that we only set
-        // exports.require.modules[module] AFTER compilation, because
-        // the compilation might block, and we might get reentrant
-        // calls to require() asking for the module that is still
-        // being constructed.
-        exports.require.modules[path] = descriptor;
-
-        return descriptor;
-      })();
-    }
-    else {
-      // there is already a load pending for this module.
-      // traverse this module's parent chain to detect loops:
-      var p = parent;
-      // We deliberately only traverse up to toplevel-1; there
-      // are legitimate usecases in conductance where the *url* .../foo.sjs
-      // loads the *module* .../foo.sjs.
-      // In practice this means that in rare cases a cycle might only
-      // be detected on the second loop.
-      while (p.loaded_by) { 
-        if (path === p.id)
-          throw new Error("Circular module dependency loading #{path}");
-        p = p.loaded_by;
-      }
-    }
-
-      // 
+  var descriptor = exports.require.modules[path];
+  var pendingHook = pendingLoads[path];
     
+  if (!descriptor && !pendingHook) {
+    // the module has not yet started loading
+    pendingHook = pendingLoads[path] = spawn (function() {
+      var src, loaded_from;
+      if (typeof src_loader === "string") {
+        src = src_loader;
+        loaded_from = "[src string]";
+      }
+      else if (path in __oni_rt.modsrc) {
+        // a built-in module
+        loaded_from = "[builtin]";
+        src = __oni_rt.modsrc[path];
+        delete __oni_rt.modsrc[path];
+        // xxx support plain js modules for built-ins?
+      }
+      else {
+        ({src, loaded_from}) = src_loader(path);
+      }
+      var descriptor = {
+        id: path,
+        exports: {},
+        loaded_from: loaded_from,
+        loaded_by: parent,
+        required_by: {}
+      };
+      descriptor.require = makeRequire(descriptor);
+
+      if (opts.main) descriptor.require.main = descriptor;
+      exports.require.modules[path] = descriptor;
+      compile(src, descriptor);
+      return descriptor;
+    })();
+  }
+
+  if (pendingHook) {
+    // there is already a load pending for this module.
+    // If we detect a cycle, we return the (incomplete)
+    // state of the requested module to avoid deadlock.
+    var p = parent;
+    // We deliberately only traverse up to toplevel-1; there
+    // are legitimate usecases in conductance where the *url* .../foo.sjs
+    // loads the *module* .../foo.sjs.
+    // In practice this means that in rare cases a cycle might only
+    // be detected on the second loop.
+    while (p.loaded_by) {
+      if (path === p.id)
+        return descriptor.exports;
+      p = p.loaded_by;
+    }
+
     // wait for load to complete:
     try {
-      var descriptor = pendingHook.waitforValue();
+      descriptor = pendingHook.waitforValue();
     }
     finally {
       // last one cleans up
@@ -782,12 +775,12 @@ function default_loader(path, parent, src_loader, opts) {
         delete pendingLoads[path];
     }
   }
-  
+
   if (!descriptor.required_by[parent.id])
     descriptor.required_by[parent.id] = 1;
   else
     ++descriptor.required_by[parent.id];
-  
+
   return descriptor.exports;
 }
 
