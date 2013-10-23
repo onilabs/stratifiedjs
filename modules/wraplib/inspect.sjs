@@ -24,7 +24,9 @@
  *
  */
 
-var main = exports.main = function(obj) {
+/** @nodoc */
+
+var inspect = exports.inspect = function(obj) {
 	/**
 	 * Prints an inspection to the terminal.
 	 * Returns the number of errors encountered.
@@ -104,7 +106,7 @@ var main = exports.main = function(obj) {
 			};
 			loop(subject);
 			// JS doesn't actually traverse prototypes, but we want to:
-			if(subject.hasOwnProperty('prototype')) {
+			if(Object.prototype.hasOwnProperty.call(subject, 'prototype')) {
 				prefix.push('prototype');
 				loop(subject.prototype);
 			}
@@ -161,7 +163,8 @@ var main = exports.main = function(obj) {
 	return errors;
 }
 
-if (require.main === module) {
+exports.main = function(argv) {
+	argv = argv || require('sjs:sys').argv();
 	var argv = require('sjs:sys').argv();
 	if(argv.length != 1) throw "Please supply exactly one argument!";
 	var module_name = argv[0];
@@ -170,6 +173,9 @@ if (require.main === module) {
 		var fs = require("nodejs:fs");
 		module_name = fs.realpathSync(module_name);
 	}
-	var errors = main(require(module_name));
-	process.exit(errors);
+	return exports.inspect(require(module_name));
+}
+
+if (require.main === module) {
+	process.exit(exports.main());
 }

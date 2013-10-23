@@ -284,3 +284,6 @@ exports.withDebug = function(timeout) { return generateWrapLib(true, timeout || 
 // at the top level, this module exports a non-debug version of itself
 require("builtin:apollo-sys").extendObject(exports, generateWrapLib(false));
 
+if (require.main === module) {
+  require('./wraplib/inspect').main();
+}
