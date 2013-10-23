@@ -36,7 +36,7 @@
    @home    sjs:regexp
 */
 
-var { Stream } = require('./sequence');
+var { each, Stream } = require('./sequence');
 
 /**
   @function isRegExp
@@ -123,16 +123,13 @@ exports._splitRe = function(s, sep, limit) {
               (sep.sticky     ? "y" : ""); // Firefox 3+
   // Make `global`
   sep = new RegExp(sep.source, flags + "g");
-  var matches = s .. exports.findAll(sep);
-  for (var i=0; i<matches.length; i++) {
-    var match=matches[i];
+  s .. exports.matches(sep) .. each {|match|
     lastIdx = match.index + match[0].length;
     if (lastIdx > lastLastIdx) {
       split.push(s.slice(lastLastIdx, match.index));
 
       if (match.length > 1 && match.index < s.length)
         Array.prototype.push.apply(split, match.slice(1));
-
 
       lastLength = match[0].length;
       lastLastIdx = lastIdx;
