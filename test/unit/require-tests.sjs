@@ -147,6 +147,23 @@ test('non-circular reference waits for the full module') {||
   }
 };
 
+test('failed module does not end up in require.paths') {||
+  var path = require.resolve('./fixtures/slow_error').path;
+  waitfor {
+    assert.raises({message: "intentional error"}, -> require(path));
+    assert.ok(require.modules[path] === undefined);
+  } and {
+    while(true) {
+      hold(0);
+      if (require.modules[path]) break;
+    }
+    // the module should appear eagerly in require.modules, but
+    // not returned from require() until it's fully loaded
+    require.modules[path].exports .. ownKeys .. toArray .. assert.eq(['fast_export']);
+    assert.raises({message: "intentional error"}, -> require(path));
+  }
+};
+
 context('hubs.defined()') {||
   test('sjs:', -> require.hubs.defined("sjs:") .. assert.eq(true));
   test('github:', -> require.hubs.defined("github:") .. assert.eq(true));

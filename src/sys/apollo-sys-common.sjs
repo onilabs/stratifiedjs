@@ -744,8 +744,13 @@ function default_loader(path, parent, src_loader, opts) {
 
       if (opts.main) descriptor.require.main = descriptor;
       exports.require.modules[path] = descriptor;
-      compile(src, descriptor);
-      return descriptor;
+      try {
+        compile(src, descriptor);
+        return descriptor;
+      } catch(e) {
+        delete exports.require.modules[path];
+        throw e;
+      }
     })();
   }
 
