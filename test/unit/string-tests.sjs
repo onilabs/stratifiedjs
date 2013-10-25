@@ -112,6 +112,12 @@ context("substring tests") {||
 
   test('contains("abcd", "bc")', -> str.contains("abcd", "bc") .. assert.ok());
   test('contains("abcd", "ba")', -> str.contains("abcd", "ba") .. assert.notOk());
+
+  test('substrings longer than inputs') {||
+    // because indexOf() returns -1 on failure, we have to special case suffixes that are 1 char longer then the source
+    'xxx' .. str.endsWith('yyyy') .. assert.eq(false);
+    'xxx' .. str.startsWith('yyyy') .. assert.eq(false);
+  }
 }
 
 context('strip') {||

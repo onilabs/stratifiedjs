@@ -143,6 +143,7 @@ exports.startsWith = function(str, prefix) {
 */
 exports.endsWith = function(str, suffix) {
   var endPos = str.length - suffix.length;
+  if (endPos < 0) return false;
   return str.indexOf(suffix, endPos) == endPos;
 }
 
