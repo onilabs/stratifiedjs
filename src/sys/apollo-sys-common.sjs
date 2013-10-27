@@ -512,26 +512,26 @@ function makeRequire(parent) {
         // XXX wish we could use exports.extendObject here, but we
         // want the duplicate symbol check
         __js {
-          var check = function(o) {
-            if (rv[o] !== undefined)
-              throw new Error("require.merge(.) name clash while merging module '#{id}': Symbol '#{o}' defined in multiple modules");
+          var addSym = function(k, v) {
+            if (rv[k] !== undefined) {
+              if (rv[k] === v) return;
+              throw new Error("require.merge(.) name clash while merging module '#{id}': Symbol '#{k}' defined in multiple modules");
+            }
+            rv[k] = v;
           };
 
           if (name) {
-            check(name);
-            rv[name] = module;
+            addSym(name, module);
           } else if (include) {
             for (var i=0; i<include.length; i++) {
               var o = include[i];
               if (!module[o]) throw new Error("require.merge(.) module #{id} has no symbol #{o}");
-              check(o);
-              rv[o] = module[o];
+              addSym(o, module[o]);
             }
           } else {
             for (var o in module) {
               if (!Object.prototype.hasOwnProperty.call(module, o) || exclude.indexOf(o) !== -1) continue;
-              check(o);
-              rv[o] = module[o];
+              addSym(o, module[o]);
             }
           }
         }
