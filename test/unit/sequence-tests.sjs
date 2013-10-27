@@ -725,3 +725,9 @@ context("join") {||
     nonRepeatableSequence([1,2,3]) .. s.join(`|`) .. assert.eq(Quasi(['', 1, '|', 2, '|', 3]));
   }
 }
+
+test("contains") {||
+  assert.ok(nonRepeatableSequence([1,2,3]) .. s.contains(2));
+  assert.notOk(nonRepeatableSequence([1,2,3]) .. s.contains(5));
+}
+

@@ -35,7 +35,7 @@
    @home    sjs:array
 */
 
-var { Stream } = require('./sequence');
+var { Stream, contains } = require('./sequence');
 var { isArrayLike, flatten } = require('builtin:apollo-sys');
 
 /**
@@ -65,17 +65,7 @@ function remove(arr, elem) {
 exports.remove = remove;
 }
 
-/**
-   @function contains
-   @altsyntax arr .. contains(elem)
-   @param {Array} [arr]
-   @param {Object} [elem] Element to check for
-   @return {Boolean} `true` if the element is in the array, `false` otherwise.
-   @summary Checks whether the given element is in the array.
-*/
-function contains(arr, elem) {
-  return (arr.indexOf(elem) != -1);
-}
+// for backwards compatibility
 exports.contains = contains;
 
 /**
