@@ -248,15 +248,17 @@ var kill = exports.kill = function(child, options) {
   @function isRunning
   @summary Check whether the given process is running
   @return {Boolean}
-  @param {Object} [child]
+  @param {Object|Number} [child|pid]
 */
 var isRunning = exports.isRunning = function() {
   if (!KILL_RETURNS_RESULT) return function() {
     throw new Error("isRunning() requires nodejs version 0.8 or greater");
   };
   return function(child) {
+    var pid = typeof(child) === 'object' ? child.pid : child;
+    if (pid == null) throw new Error("invalid PID");
     try {
-      return process.kill(child.pid, 0);
+      return process.kill(pid, 0);
     } catch(e) {
       return e.code === 'EPERM';
     }
