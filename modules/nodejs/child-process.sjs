@@ -175,7 +175,7 @@ exports.launch = function(command, args, options) {
 /**
    @function wait
    @summary Wait for a child process to finish
-   @param {Object} [child] The child process object obtailed from `run`.
+   @param {Object} [child] The child process object obtained from `run`.
    @desc
       If the child process exits abnormally (exit code != 0), an
       `Error` will be thrown with `code` and `signal` properties set to the exit code 
