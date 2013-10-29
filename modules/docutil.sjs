@@ -37,7 +37,7 @@
    @nodoc
 */
 
-var { merge } = require('./object');
+var { merge, hasOwn } = require('./object');
 var { unindent } = require('./string');
 
 // comment regexps for parseSource
@@ -135,7 +135,7 @@ var extractDocComments = exports.extractDocComments = function(src) {
    @return {Array}
    @desc TODO: document markup format
 */
-var fieldRE = /@([a-z]+)[\t ]*((?:.|\n+[\n\r\t ]*[^@\r\t\n ])*)/g;
+var fieldRE = /@([-a-zA-Z]+)[\t ]*((?:.|\n+[\n\r\t ]*[^@\r\t\n ])*)/g;
 
 var extractDocFields = exports.extractDocFields = function(docs) {
   var fields = [], matches, docsoff = 0;
@@ -278,7 +278,17 @@ exports.parseModuleDocs = function(src, module) {
       curr[prop].push(value);
       break;
     default:
-      curr[prop] = value;
+      // By default we set prop=val.
+      // When we encounter a duplicate key, we upgrade
+      // the existing property to an array and append to it.
+      var old = curr[prop];
+      if (!old) {
+        curr[prop] = value;
+      } else if (Array.isArray(old)) {
+        old.push(value);
+      } else {
+        curr[prop] = [old, value];
+      }
     }
   }
   
