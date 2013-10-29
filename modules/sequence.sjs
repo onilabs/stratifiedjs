@@ -1788,8 +1788,8 @@ each.par = function(/* seq, max_strata, r */) {
    @return {Array}
    @summary  Create an array `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
    @desc
-      The order of the resulting array will be determined by the order in 
-      which the concurrent calls to `f` complete.
+      The order of the resulting array will be determined by the order of items in the  
+      input sequence.
 */
 map.par = function(/* sequence, max_strata, f */) {
   var sequence, max_strata, f;
@@ -1799,7 +1799,7 @@ map.par = function(/* sequence, max_strata, f */) {
     [sequence, max_strata, f] = arguments;
 
   var r=[];
-  sequence .. each.par(max_strata) {|x| r.push(f(x)) }
+  sequence .. indexed .. each.par(max_strata) {|[i,x]| r[i] = f(x); }
   return r;
 };
 

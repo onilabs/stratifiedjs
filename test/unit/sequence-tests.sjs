@@ -167,7 +167,7 @@ testEq('each doesn\'t swallow all exceptions', 'expected error', function() {
   }
 });
 
-testEq('map.par', {order: [3,2,1], result: [6,4,2]}, function() {
+testEq('map.par', {order: [3,2,1], result: [2,4,6]}, function() {
   var order = [];
   var result = [1,2,3] .. s.map.par(
     withDecreasingTimeout(function(elem) {
