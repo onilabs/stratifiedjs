@@ -117,4 +117,9 @@ context('service registry') {||
 
   }
 
+  test('calling registry as a shortcut for get()') {|s|
+    s.reg.set('val', 123);
+    s.reg('val') .. assert.eq(123);
+  }
+
 }

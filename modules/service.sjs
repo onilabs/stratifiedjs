@@ -34,7 +34,7 @@
    @home      sjs:service
 */
 
-var { Constructor, hasOwn, ownKeys, ownPropertyPairs } = require('./object');
+var { extend, hasOwn, ownKeys, ownPropertyPairs } = require('./object');
 var { isFunction } = require('./function');
 var { each, sort, join } = require('./sequence');
 
@@ -51,19 +51,18 @@ var { each, sort, join } = require('./sequence');
      - [::factory] for values that should be re-computed
        each time they are accessed.
 
-    A registry cal also have a parent registry. If a given
+    A registry can also have a parent registry. If a given
     key is not defined for the current registry, results
     from the parent registry will be used instead.
+
+    Registry objects are also functions - calling `registry(key)` is a
+    shortcut for `registry.get(key)`.
 
   @function Registry
   @nonew
   @param {optional ::Registry} [parent] Registry to inherit from
 */
 var RegistryProto = {};
-RegistryProto._init = function(parent){
-  this._db = {};
-  this._parent = parent;
-};
 
 /**
   @function Registry.factory
@@ -193,4 +192,10 @@ RegistryProto.toString = function() {
   return "<#Registry: #{keys}#{additional}>";
 };
 
-exports.Registry = Constructor(RegistryProto);
+exports.Registry = function(parent) {
+  var rv = function() { return rv.get.apply(rv, arguments); };
+  rv .. extend(RegistryProto);
+  rv._db = {};
+  rv._parent = parent;
+  return rv;
+};
