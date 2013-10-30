@@ -37,8 +37,9 @@
    @nodoc
 */
 
-var { merge, hasOwn } = require('./object');
-var { unindent } = require('./string');
+var { merge, hasOwn, ownPropertyPairs } = require('./object');
+var { each } = require('./sequence');
+var { unindent, startsWith } = require('./string');
 
 // comment regexps for parseSource
 var PAT_NBCOMMENT = "\\/\\/.*|#!.*";
@@ -294,3 +295,25 @@ exports.parseModuleDocs = function(src, module) {
   
   return module;
 };
+
+
+var dashToCamel = function(s) {
+  return s.replace(/-+(\w)/g, function(_, m) { return m.toUpperCase(); })
+};
+
+exports.getPrefixedProperties = function(docs, ns) {
+  var root;
+  var props = {};
+  var prefix = ns + '-';
+  docs
+    .. ownPropertyPairs
+    .. each {|[key, val]|
+      if (key === ns) {
+        root = val;
+      } else if (key .. startsWith(prefix)) {
+        key = key.slice(prefix.length) .. dashToCamel();
+        metadata[key] = val;
+      }
+    };
+  return [root, props];
+}
