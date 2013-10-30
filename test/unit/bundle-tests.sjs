@@ -6,15 +6,33 @@ context {||
   var object = require('sjs:object');
   var url = require('sjs:url');
   var seq = require('sjs:sequence');
-  var { each } = seq;
+  var arr = require('sjs:array');
+  var { each, map, contains } = seq;
 
   var bundle = require('sjs:bundle');
   var basePath = url.normalize('./', module.id) .. url.toPath;
 
+  var tmpfile = '/tmp/sjs-test-bundle.js';
+  var createdBundles = [];
+  test.afterAll {||
+    createdBundles .. each {|f|
+      if(fs.exists(f)) fs.unlink(f);
+    }
+  }
+
   var createBundle = function(settings) {
-    var tmpfile = '/tmp/sjs-test-bundle.js';
-    bundle.create(settings .. object.merge({"output":tmpfile}));
-    var contents = fs.readFile(tmpfile).toString();
+    settings = {"output":tmpfile} .. object.merge(settings);
+    var output = settings.output;
+    if(output && !createdBundles .. contains(settings.output)) {
+      createdBundles.push(settings.output);
+    }
+
+    var contents = bundle.create(settings);
+    if(output) {
+      contents = fs.readFile(settings.output).toString();
+    } else {
+      contents = contents .. seq.join('\n');
+    }
 
     // set up some "globals"
     var __oni_rt_bundle = {};
@@ -38,6 +56,16 @@ context {||
   };
 
   var fixtureUrl = url.normalize('./fixtures/', module.id);
+  var fixtureDependencies = [
+    '/fixtures/annotated_child1.sjs',
+    '/fixtures/annotated_child2.sjs',
+    '/fixtures/bundle_parent.sjs',
+    '/fixtures/child1.sjs',
+    '/fixtures/merge_child1.sjs',
+    '/fixtures/merge_child2.sjs',
+  ];
+
+  var fixtureDependencyUrls = fixtureDependencies .. map(d -> 'HOST' + d);
 
   test("includes module dependencies") {||
     var bundle = createBundle({
@@ -50,15 +78,36 @@ context {||
 
     bundle .. bundledModuleNames .. assert.eq([
       [ 'sjs:', ['array.sjs', 'object.sjs','sequence.sjs', 'string.sjs', 'xbrowser/console.sjs']],
-      [ null, [
-        'HOST/fixtures/annotated_child1.sjs',
-        'HOST/fixtures/annotated_child2.sjs',
-        'HOST/fixtures/bundle_parent.sjs',
-        'HOST/fixtures/child1.sjs',
-        'HOST/fixtures/merge_child1.sjs',
-        'HOST/fixtures/merge_child2.sjs',
-      ]]
+      [ null, fixtureDependencyUrls]
     ]);
+  }
+
+  test("excludes modules that are present in an existing bundle") {||
+    var settings = {
+      resources: ["#{basePath}=/"],
+      output: tmpfile,
+      sources: [ fixtureUrl + 'child1.sjs' ],
+    };
+    var bundle = createBundle(settings) .. bundledModuleNames;
+    var bundle2 = createBundle(settings .. object.merge({
+      output: null,
+      excludeFrom:[tmpfile],
+      sources: [fixtureUrl + 'bundle_parent.sjs']})) .. bundledModuleNames;
+
+    var expectedDeps = fixtureDependencyUrls.slice();
+    expectedDeps .. arr.remove('HOST/fixtures/child1.sjs') .. assert.ok();
+    bundle2 .. assert.eq([[null, expectedDeps]]);
+  }.skip("Not yet implemented");
+
+  test("can load existing bundles") {||
+    bundle.create({
+      sources: ['sjs:sys', fixtureUrl + 'bundle_parent.sjs'],
+      resources: ["#{basePath}=/"],
+      output: tmpfile,
+    });
+
+    var contents = bundle.contents(tmpfile);
+    contents .. assert.eq([ 'sjs:sys.sjs' ].concat(fixtureDependencies));
   }
 
   test("only root (non-alias) hubs are included in the result") {||

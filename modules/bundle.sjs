@@ -94,6 +94,7 @@ var url = require('sjs:url');
 var seq = require('sjs:sequence');
 var { each, toArray, map, transform, filter, concat, sort, any } = seq;
 var str = require('sjs:string');
+var regexp = require('sjs:regexp');
 var { split, rsplit, startsWith } = str;
 var object = require('sjs:object');
 var { hasOwn, ownKeys, ownValues, ownPropertyPairs } = object;
@@ -101,9 +102,14 @@ var docutil = require('sjs:docutil');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
 
+var stringToPrefixRe = function(s) {
+  if (str.isString(s)) return new Regexp('^' + regexp.escape(s));
+  else return s;
+};
+
 var shouldExcude = function(path, bases) {
-  return bases .. seq.any(function(ex) {
-    if (path .. str.startsWith(ex)) {
+  return bases .. transform(stringToPrefixRe) .. seq.any(function(ex) {
+    if (ex.test(path)) {
       logging.verbose("Excluding: #{path}");
       return true;
     }
@@ -126,7 +132,7 @@ function findDependencies(sources, settings) {
   var deps = {};
   var resources = settings.resources || [];
   var hubs = settings.hubs || [];
-  var excludes = (settings.ignore || []).concat(['builtin:']);
+  var excludes = (settings.ignore || []).concat([/^builtin:/, /\.api$/]);
   var strict = settings.strict !== false; // true by default
   logging.verbose("resources:", resources);
 
@@ -362,6 +368,54 @@ function generateBundle(deps, settings) {
 exports.generateBundle = generateBundle;
 
 /**
+  @function contents
+  @summary List the modules defined in a given bundle
+  @param {String|Object} [bundle] Bundle source
+  @return {Array} The module URLs defined in the bundle
+  @desc
+    The `bundle` argument should be one of:
+      - a string
+      - an object with a `file` property
+      - an object with a `contents` property
+
+    In the first two cases, the contents will be loaded
+    from the given file path.
+
+    The returned URLs will be however ths bundle defines them.
+    At present, bundles contain all of the following
+    URL types when needed:
+
+      - unresolved hub-based URLs, e.g "sjs:sequence.sjs"
+      - path-only URLs, e.g "/lib/foo.sjs"
+      - full URLs, e.g "http://example.com/lib/foo.sjs"
+*/
+exports.contents = function(bundle) {
+  if (str.isString(bundle)) {
+    bundle = { file: bundle }
+  };
+  var bundleContents = bundle.file ? fs.readFile(bundle) : bundle.contents;
+  assert.ok(bundleContents, "bundle contents are empty");
+  // In order to load arbitrary bundles, we emulate the browser vars
+  // that the bundle code uses, then eval() that and see what modules
+  // got defined
+  var loader = eval("
+    (function(__oni_rt_bundle, document) {
+      #{bundleContents};
+    })"
+  );
+  var bundle = {}, document = {location: { origin: '' }};
+  loader(bundle, document);
+  var urls = [];
+  bundle.h .. ownPropertyPairs .. each {|[hub, modules]|
+    modules .. each {|[path, contents]|
+      urls.push(hub + path);
+    }
+  }
+  urls = urls.concat(bundle.m .. ownKeys .. toArray);
+  return urls;
+};
+
+/**
   @function create
   @summary Generate a module bundle from the given sources (including dependencies)
   @param {Settings} [settings]
@@ -370,7 +424,7 @@ exports.generateBundle = generateBundle;
   @setting {Object} [hubs] Additional hub locations
   @setting {String} [output] File path of bundle file to write
   @setting {Bool} [compile] Precompile to JS (larger file size but quicker startup)
-  @setting {Bool} [skip_failed] Skip modules that can't be resolved / loaded
+  @setting {Bool} [skipFailed] Skip modules that can't be resolved / loaded
   @setting {Array} [ignore] Array of ignored paths (to skip entirely)
   @setting {Array} [exclude] Array of excluded paths (will be processed, but omitted from bundle)
   @desc
@@ -445,10 +499,14 @@ exports.create = function(opts) {
 
   var toPairs = function(obj, splitter) {
     // yields ownPropertyPairs if `obj` is an object
-    // calls `splitter` on each value if `obj` is an array
+    // returns unmodified obj if it is already a nested array
+    // calls `splitter` on each value if `obj` is an array of strings
     // (this assumes elements of `obj` are all strings)
     if (obj === undefined) return [];
     if (Array.isArray(obj)) {
+      if (Array.isArray(obj[0])) {
+        return obj;
+      }
       return obj .. transform(function(s) {
         var rv = splitter(s);
         if (rv.length !== 2) {
@@ -467,7 +525,7 @@ exports.create = function(opts) {
   var ignore = (opts.ignore || []) .. map(expandPath) .. toArray;
 
   var commonSettings = {
-    strict: !opts.skip_failed,
+    strict: !opts.skipFailed,
     compile: opts.compile,
   };
 
