@@ -248,6 +248,28 @@ if (sys.hostenv == 'nodejs') {
       return ret;
     }
   }
+
+  /**
+    @function preventDefault
+    @param {Event} [e]
+    @summary Equivalent to `e -> e.preventDefault()`
+    @hostenv xbrowser
+    @desc
+      A convenient shortcut for passing to other functions in this module, e.g:
+
+          when('click', {transform: preventDefault})
+
+    @function stopPropagation
+    @param {Event} [e]
+    @summary Equivalent to `e -> e.stopPropagation()`
+    @hostenv xbrowser
+    @desc
+      A convenient shortcut for passing to other functions in this module, e.g:
+
+          when('click', {transform: stopPropagation})
+  */
+  exports.preventDefault = e -> e.preventDefault();
+  exports.stopPropagation = e -> e.stopPropagation();
 }
 
 
