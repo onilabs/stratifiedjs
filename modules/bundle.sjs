@@ -107,9 +107,9 @@ var stringToPrefixRe = function(s) {
   else return s;
 };
 
-var shouldExcude = function(path, bases) {
-  return bases .. transform(stringToPrefixRe) .. seq.any(function(ex) {
-    if (ex.test(path)) {
+var shouldExcude = function(path, patterns) {
+  return patterns .. seq.any(function(pat) {
+    if (pat.test(path)) {
       logging.verbose("Excluding: #{path}");
       return true;
     }
@@ -129,11 +129,12 @@ var shouldExcude = function(path, bases) {
     Most code should not need to use this function directly - see [::create].
 */
 function findDependencies(sources, settings) {
+  settings = sanitizeOpts(settings);
   var deps = {};
-  var resources = settings.resources || [];
-  var hubs = settings.hubs || [];
-  var excludes = (settings.ignore || []).concat([/^builtin:/, /\.api$/]);
-  var strict = settings.strict !== false; // true by default
+  var resources = settings.resources;
+  var hubs = settings.hubs;
+  var excludes = settings.ignore;
+  var strict = settings.strict;
   logging.verbose("resources:", resources);
 
   var getId = function(id) {
@@ -286,6 +287,7 @@ var relax = function(fn) {
     Most code should not need to use this function directly - see [::create].
 */
 function generateBundle(deps, settings) {
+  settings = sanitizeOpts(settings);
   var compile;
   if (settings.compile) {
     var compiler = require('./compile/sjs');
@@ -300,8 +302,8 @@ function generateBundle(deps, settings) {
     compile = (src) -> stringifier.compile(src, {keeplines: true});
   }
 
-  var strict = settings.strict !== false; // true by default
-  var excludes = (settings.exclude || []);
+  var strict = settings.strict;
+  var excludes = settings.exclude;
 
   var rv = seq.Stream {|write|
     write("(function() {");
@@ -393,7 +395,7 @@ exports.contents = function(bundle) {
   if (str.isString(bundle)) {
     bundle = { file: bundle }
   };
-  var bundleContents = bundle.file ? fs.readFile(bundle) : bundle.contents;
+  var bundleContents = bundle.file ? fs.readFile(bundle.file) : bundle.contents;
   assert.ok(bundleContents, "bundle contents are empty");
   // In order to load arbitrary bundles, we emulate the browser vars
   // that the bundle code uses, then eval() that and see what modules
@@ -487,7 +489,36 @@ var resolveHubs = function(path, localAliases, usedHubs) {
   return path;
 };
 
-exports.create = function(opts) {
+var toPairs = function(obj, splitter) {
+  // yields ownPropertyPairs if `obj` is an object
+  // returns unmodified obj if it is already a nested array
+  // calls `splitter` on each value if `obj` is an array of strings
+  // (this assumes elements of `obj` are all strings)
+  if (obj === undefined) return [];
+  if (Array.isArray(obj)) {
+    if (Array.isArray(obj[0])) {
+      return obj;
+    }
+    return obj .. transform(function(s) {
+      var rv = splitter(s);
+      if (rv.length !== 2) {
+        throw new Error("Invalid format: #{s}");
+      }
+      return rv;
+    });
+  } else {
+    return obj .. object.ownPropertyPairs;
+  }
+};
+
+var InternalOptions = function() { };
+var sanitizeOpts = function(opts) {
+  // sanitizes / canonicalizes opts.
+  // Used by very function in this module so that they can
+  // assume sane opts.
+  opts = opts || {};
+  if (opts instanceof(InternalOptions)) return opts;
+  var rv = new InternalOptions();
   var expandPath = function(path) {
     if (!(path .. str.contains(':'))) {
       logging.debug("normalizing path: #{path}");
@@ -497,52 +528,36 @@ exports.create = function(opts) {
     return path;
   }
 
-  var toPairs = function(obj, splitter) {
-    // yields ownPropertyPairs if `obj` is an object
-    // returns unmodified obj if it is already a nested array
-    // calls `splitter` on each value if `obj` is an array of strings
-    // (this assumes elements of `obj` are all strings)
-    if (obj === undefined) return [];
-    if (Array.isArray(obj)) {
-      if (Array.isArray(obj[0])) {
-        return obj;
-      }
-      return obj .. transform(function(s) {
-        var rv = splitter(s);
-        if (rv.length !== 2) {
-          throw new Error("Invalid format: #{s}");
-        }
-        return rv;
-      });
-    } else {
-      return obj .. object.ownPropertyPairs;
-    }
-  };
+  // require no processing:
+  rv.compile = opts.compile;
+  rv.sources = opts.sources;
+  rv.output = opts.output;
+  rv.dump = opts.dump;
+  rv.strict  = !opts.skipFailed;  // srtict should be true by default
 
-  var resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1)) .. map([path, alias] -> [alias, expandPath(path)]);
-  var hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1))  .. map([prefix, path] -> [prefix, expandPath(path)]);
+  // convert resources & hubs to array pairs with expanded paths:
+  rv.resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1)) .. map([path, alias] -> [alias, expandPath(path)]);
+  rv.hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1))  .. map([prefix, path] -> [prefix, expandPath(path)]);
 
-  var ignore = (opts.ignore || []) .. map(expandPath) .. toArray;
+  // expand ignore / exclude paths
+  rv.exclude = (opts.exclude || []) .. map(expandPath) .. map(stringToPrefixRe);
+  rv.ignore  = (opts.ignore  || []) .. map(expandPath) .. concat([/^builtin:/, /\.api$/]) .. map(stringToPrefixRe);
+  return rv;
+};
+
+exports.create = function(opts) {
+  opts = sanitizeOpts(opts);
 
   var commonSettings = {
-    strict: !opts.skipFailed,
     compile: opts.compile,
   };
 
-  var deps = findDependencies(opts.sources, commonSettings .. object.merge({
-    resources: resources,
-    hubs: hubs,
-    ignore: ignore,
-  }));
+  var deps = findDependencies(opts.sources, opts);
 
-  if (opts.dump) {
+  if (opts.dump)
     return deps;
-  }
 
-  var exclude = (opts.exclude || []) .. map(expandPath) .. toArray;
-  var contents = generateBundle(deps, commonSettings .. object.merge({
-    exclude: exclude,
-  }));
+  var contents = generateBundle(deps, opts);
 
   if (opts.output) {
     using (var output = fs.open(opts.output, 'w')) {
