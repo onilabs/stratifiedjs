@@ -24,6 +24,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
    replaced with the `params()` method, which URL-decodes all keys
    and values.
 
+ * require method can accept an array of modules now which it will load in parallel.
+
  * new modules:
 
    * sjs:regexp
@@ -40,7 +42,6 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * sys::argv()
    * require.hubs.addDefault(hub)
    * require.hubs.defined(prefix)
-   * require.merge
    * events::when
 
 

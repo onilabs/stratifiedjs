@@ -490,9 +490,6 @@ Call.prototype.flatten = function() {
       case "require":
         return [["require", call_args]];
         break;
-      case "require.merge":
-        return [["require_merge", call_args]];
-        break;
       case "require.hubs.unshift":
         return [["hub_insert", call_args]];
         break;

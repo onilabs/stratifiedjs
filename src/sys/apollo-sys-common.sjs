@@ -473,7 +473,7 @@ function makeRequire(parent) {
     if (opts.callback) {
       (spawn (function() {
         try { 
-          var rv = requireInner(module, rf, parent, opts);
+          var rv = exports.isArrayLike(module) ? requireInnerMultiple(module, rf, parent, opts) : requireInner(module, rf, parent, opts);
         }
         catch(e) { 
           opts.callback(e); return 1;
@@ -482,75 +482,7 @@ function makeRequire(parent) {
       })());
     }
     else
-      return requireInner(module, rf, parent, opts);
-  };
-
-  rf.merge = function(/* modules */) {
-    var rv = {}, args = arguments;
-
-    // helper to build a binary recursion tree to load the modules in parallel:
-    // XXX we really want to use cutil::waitforAll here
-    function inner(i, l) {
-      if (l === 1) {
-        var descriptor = args[i];
-        var id, settings, exclude, include, name;
-        __js if (typeof descriptor === 'string') {
-          id = descriptor;
-          exclude = [];
-          include = null;
-          name = null;
-        }
-        else {
-          id = descriptor.id;
-          settings = descriptor.settings;
-          exclude = descriptor.exclude || [];
-          include = descriptor.include || null;
-          name = descriptor.name || null;
-        }
-
-        var module = rf(id, settings);
-        // XXX wish we could use exports.extendObject here, but we
-        // want the duplicate symbol check
-        __js {
-          var addSym = function(k, v) {
-            if (rv[k] !== undefined) {
-              if (rv[k] === v) return;
-              throw new Error("require.merge(.) name clash while merging module '#{id}': Symbol '#{k}' defined in multiple modules");
-            }
-            rv[k] = v;
-          };
-
-          if (name) {
-            addSym(name, module);
-          } else if (include) {
-            for (var i=0; i<include.length; i++) {
-              var o = include[i];
-              if (!module[o]) throw new Error("require.merge(.) module #{id} has no symbol #{o}");
-              addSym(o, module[o]);
-            }
-          } else {
-            for (var o in module) {
-              if (!Object.prototype.hasOwnProperty.call(module, o) || exclude.indexOf(o) !== -1) continue;
-              addSym(o, module[o]);
-            }
-          }
-        }
-      }
-      else {
-        var split = Math.floor(l/2);
-        waitfor {
-          inner(i, split);
-        }
-        and {
-          inner(i+split, l-split);
-        }
-      }
-    }
-
-    // kick off the load:
-    inner(0, args.length);
-
-    return rv;
+      return exports.isArrayLike(module) ? requireInnerMultiple(module, rf, parent, opts) : requireInner(module, rf, parent, opts);
   };
 
   __js {
@@ -923,6 +855,77 @@ function requireInner(module, require_obj, parent, opts) {
   }
   //console.log("require(#{resolveSpec.path}) = #{(new Date())-start} ms");
   return module;
+}
+
+// require & merge multiple modules:
+function requireInnerMultiple(modules, require_obj, parent, opts) {
+  var rv = {};
+
+  // helper to build a binary recursion tree to load the modules in parallel:
+  // XXX we really want to use cutil::waitforAll here
+  function inner(i, l) {
+    if (l === 1) {
+      var descriptor = modules[i];
+      var id, exclude, include, name;
+      __js if (typeof descriptor === 'string') {
+        id = descriptor;
+        exclude = [];
+        include = null;
+        name = null;
+      }
+      else {
+        id = descriptor.id;
+        exclude = descriptor.exclude || [];
+        include = descriptor.include || null;
+        name = descriptor.name || null;
+      }
+
+      var module = requireInner(id, require_obj, parent, opts);
+      // XXX wish we could use exports.extendObject here, but we
+      // want the duplicate symbol check
+      __js {
+        var addSym = function(k, v) {
+          if (rv[k] !== undefined) {
+            if (rv[k] === v) return;
+            throw new Error("require([.]) name clash while merging module '#{id}': Symbol '#{k}' defined in multiple modules");
+          }
+          rv[k] = v;
+        };
+
+        if (name) {
+          addSym(name, module);
+        } else if (include) {
+          for (var i=0; i<include.length; i++) {
+            var o = include[i];
+            if (!module[o]) throw new Error("require([.]) module #{id} has no symbol #{o}");
+            addSym(o, module[o]);
+          }
+        } else {
+          for (var o in module) {
+            // XXX i don't think we want the hasOwnProperty check
+            // here, because we want to copy everything that is
+            // accessible from the module's exports object
+            if (/*!Object.prototype.hasOwnProperty.call(module, o) ||*/ exclude.indexOf(o) !== -1) continue;
+            addSym(o, module[o]);
+          }
+        }
+      }
+    }
+    else {
+      var split = Math.floor(l/2);
+      waitfor {
+        inner(i, split);
+      }
+      and {
+        inner(i+split, l-split);
+      }
+    }
+  }
+  
+  // kick off the load:
+  inner(0, modules.length);
+
+  return rv;
 }
 
 // top-level require function:

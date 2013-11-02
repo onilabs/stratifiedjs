@@ -101,6 +101,7 @@ var { hasOwn, ownKeys, ownValues, ownPropertyPairs } = object;
 var docutil = require('sjs:docutil');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
+var { isArrayLike } = require('builtin:apollo-sys');
 
 var stringToPrefixRe = function(s) {
   if (str.isString(s)) return new Regexp('^' + regexp.escape(s));
@@ -211,20 +212,20 @@ function findDependencies(sources, settings) {
     module.loaded = true;
 
     calls .. seq.each {|[name, args]|
-      switch(name) {
-        case "require":
+      if (name === 'require') {
+        if (!isArrayLike(args[0])) {
           addRequire(args[0], module);
-          break;
-        case "require_merge":
-          args .. each {|arg|
+        }
+        else {
+          args[0] .. each {|arg|
             if (typeof(arg) === 'string') {
               addRequire(arg, module);
             } else {
-              assert.ok(arg.id, "argument to require.merge has no `id`");
+              assert.ok(arg.id, "argument to require([.]) has no `id`");
               addRequire(arg.id, module);
             }
           }
-          break;
+        }
       }
     };
 
