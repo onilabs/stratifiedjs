@@ -271,7 +271,7 @@ if (sys.hostenv == 'nodejs') {
     }
   }
 
-  defaultEventHandler = preventDefault;
+  defaultEventHandler = null;//preventDefault;
 }
 
 
