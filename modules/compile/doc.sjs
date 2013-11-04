@@ -97,6 +97,10 @@ exports.summarizeLib = function(dir) {
   }
 
   var dirInfo = readDirectory(dir);
+  if (dirInfo.nodoc) {
+    logging.info("SKIP: #{dir}");
+    return null;
+  }
 
   entries .. each {|ent|
     var path = Path.join(dir, ent);

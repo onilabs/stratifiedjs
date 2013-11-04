@@ -34,6 +34,7 @@
    @summary Utility functions for wrapping plain JS libraries for SJS
    @home    sjs:wraplib
    @desc    Work-in-progress
+   @nodoc
 */
 
 // the whole of wraplib's operation is parameterised with values for `debug` and `timeout`,
