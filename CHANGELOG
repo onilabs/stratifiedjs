@@ -26,6 +26,12 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * require method can accept an array of modules now which it will load in parallel.
 
+ * The optional `filter` and `transform` arguments to events.HostEmitter (and events.when) have been
+   replaced with a settings object, which may have values for any of `filter`, `transform` and (now)
+   `handle`. In typical use, `transform` is unnecessary.
+   In a browser environment, `e.preventDefault()` is called by default if no `handle` function is
+   provided.
+
  * new modules:
 
    * sjs:regexp

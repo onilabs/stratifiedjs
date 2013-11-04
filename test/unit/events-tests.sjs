@@ -198,7 +198,7 @@ context() {||
 
     test("filter") {|s|
       waitfor {
-        events.wait(s.emitter.raw, 'click', (x -> x.detail > 2)).detail .. assert.eq(3);
+        events.wait(s.emitter.raw, 'click', {filter:x -> x.detail > 2}).detail .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -209,7 +209,7 @@ context() {||
 
     test("transform") {|s|
       waitfor {
-        events.wait(s.emitter.raw, 'click', null, (x -> x.detail)) .. assert.eq(1);
+        events.wait(s.emitter.raw, 'click', {transform:x -> x.detail}) .. assert.eq(1);
       } and {
         s.emitter.trigger('click', 1);
       }
@@ -217,7 +217,7 @@ context() {||
 
     test("filter + transform") {|s|
       waitfor {
-        events.wait(s.emitter.raw, 'click', (x -> x > 2), (x -> x.detail)) .. assert.eq(3);
+        events.wait(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);

@@ -117,19 +117,19 @@ var EmitterProto = Object.create(BaseEmitterProto);
   @function  HostEmitter
   @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
-  @param     {optional Function} [filter] Function through which received
+  @param     {optional Settings} [settings]
+  @setting   {Function} [filter] Function through which received
              events will be passed. An event will only be emitted if this
              function returns a value == true.
-  @param     {optional Function} [transform] Function through which an
-             event will be passed before passing the return value on to
-             *filter* and/or emitting it.
+  @setting   {Function} [handle] A handler function to call directly on the event.
+  @setting   {Function} [transform] Function through which an
+             event will be passed before filtering.
   @desc
     A "host" event emitter is a native [nodejs EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) object when running in nodejs,
     and a DOM element in the browser.
 
     Note that since creating a `HostEmitter` adds a listener to the
-    underlying emitter, you *must* call `emitter.stop()` when you are finished
-    with this object to prevent resource leaks.
+    underlying emitter, you *must* call `emitter.stop()` to prevent resource leaks.
 
     Instead of calling `stop()` explicitly, you can pass this object to a
     `using` block, e.g.:
@@ -141,6 +141,10 @@ var EmitterProto = Object.create(BaseEmitterProto);
 
     ### Notes
 
+    * In the browser, the default `handle` function is [::preventDefault]. You
+      can explicitly pass `null` to prevent this, or you can pass [::stopPropagation]
+      instead.
+
     * If the underlying event emitter passes a single argument to listener functions,
       this argument will be returned from `wait()`. But if multiple arguments are passed
       to the listener, an array of all arguments will be returned from `wait()`.
@@ -151,7 +155,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
 
     * If using a [::Queue] or [::Stream], events may be held for some time before
       they get handled. So calls that influence the internal handling of the event
-      (such as [dom::stopEvent]), should be called from the `transform` function,
+      (such as [dom::stopEvent]), should be called from the `handle` function,
       rather than after the event is retrieved.
 
     * IE multiplexes all events onto a global event object. To ensure events 
@@ -159,7 +163,13 @@ var EmitterProto = Object.create(BaseEmitterProto);
       clones events on IE before emitting them. 
       This means that calls such as [dom::stopEvent] will **never** work on IE if 
       performed on the return value of [::HostEmitter::wait]. To have any effect, these
-      calls must be performed from the `transform` function.
+      calls must be performed from the `handle` function.
+
+    * You should only need to use the `transform` setting in rare cases. This
+      setting is primarily for use when you need to attach additional custom
+      information to an event before it can be filtered. It is not the place
+      for calling things like `e.preventDefault`, as it runs *before* any event filter.
+
 */
 function HostEmitter(emitter, event) {
   var rv = Object.create(HostEmitterProto);
@@ -169,17 +179,29 @@ function HostEmitter(emitter, event) {
 exports.HostEmitter = HostEmitter;
 exports.from = HostEmitter;
 
+var defaultEventHandler = null;
+
 var HostEmitterProto = Object.create(BaseEmitterProto);
-HostEmitterProto.init = function(emitters, events, filter, eventTransformer) {
+HostEmitterProto.init = function(emitters, events, opts) {
   BaseEmitterProto.init.call(this);
+  if (arguments.length > 3 || typeof(opts) === 'function') {
+    throw new Error('HostEmitter()\'s filter & transform arguments have been moved into a settings object');
+  }
   this.emitters = sys.expandSingleArgument([emitters]);
   this.events = sys.expandSingleArgument([events]);
+
+  var transform, filter, handle;
+  if (opts)
+    var {transform, filter, handle} = opts;
+
+  if (handle === undefined) handle = defaultEventHandler;
+
   var self = this;
   this._handleEvent = function(val) {
     var arg = (arguments.length == 1) ? val : Array.prototype.slice.call(arguments);
-    if (eventTransformer)
-      arg = eventTransformer(arg) || arg;
+    if (transform) arg = transform(arg);
     if (filter && !filter(arg)) return;
+    if (handle) handle(arg);
     if (this._transformEvent) arg = this._transformEvent(arg);
     self.emit(arg);
   };
@@ -252,26 +274,28 @@ if (sys.hostenv == 'nodejs') {
   /**
     @function preventDefault
     @param {Event} [e]
-    @summary Calls `e.preventDefault()` and returns `e`
-    @return {Event} The event passed in
+    @summary Equivalent to `e -> e.preventDefault()`
     @hostenv xbrowser
     @desc
       A convenient shortcut for passing to other functions in this module, e.g:
 
-          when('click', {transform: preventDefault})
+          var click = HostEmitter(elem, 'click', {handle: preventDefault})
+
+      (this is actually the default behaviour already, so the above is not
+      actually necessary)
 
     @function stopPropagation
     @param {Event} [e]
-    @summary Calls `e.preventDefault()` and returns `e`
-    @return {Event} The event passed in
+    @summary Equivalent to `e.stopPropagation()`
     @hostenv xbrowser
     @desc
       A convenient shortcut for passing to other functions in this module, e.g:
 
-          when('click', {transform: stopPropagation})
+          var click = HostEmitter(elem, 'click', {transform: stopPropagation})
   */
-  exports.preventDefault = e -> (e.preventDefault(),e);
-  exports.stopPropagation = e -> (e.stopPropagation(),e);
+  exports.preventDefault = e -> e.preventDefault();
+  exports.stopPropagation = e -> e.stopPropagation();
+  defaultEventHandler = exports.preventDefault;
 }
 
 
@@ -280,12 +304,10 @@ if (sys.hostenv == 'nodejs') {
   @summary Wait for a single firing of a DOM or nodejs event.
   @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
-  @param     {optional Function} [filter] Function through which received
-             events will be passed. An event will only be emitted if this
-             function returns a value == true.
-  @param     {optional Function} [eventTransformer] Function through which an
-             event will be passed before passing the return value on to
-             `filter` and/or emitting it.
+  @param     {optional Settings} [settings]
+  @setting   {Function} [filter] Event filter, as for [::HostEmitter]
+  @setting   {Function} [handle] Event handler, as for [::HostEmitter]
+  @setting   {Function} [transform] Event transformer, as for [::HostEmitter]
   @desc
     This function waits for a single event and then stops
     listening for further events. It takes exactly the same arguments
@@ -319,17 +341,9 @@ exports.wait = wait;
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Settings} [opts]
   @param     {Function} [block]
-  @setting   {Function} [filter] Only act on events where `filter(e)` returns truthy.
-  @setting   {Function} [transform] Function which will be immediately called on each
-                                    event before it's acted on.
-
-
-  @param     {optional Function} [filter] Function through which received
-             events will be passed. An event will only be emitted if this
-             function returns a value == true.
-  @param     {optional Function} [eventTransformer] Function through which an
-             event will be passed before passing the return value on to
-             `filter` and/or emitting it.
+  @setting   {Function} [filter] Event filter, as for [::HostEmitter]
+  @setting   {Function} [handle] Event handler, as for [::HostEmitter]
+  @setting   {Function} [transform] Event transformer, as for [::HostEmitter]
   @desc
     This function waits indefinitely (or until retracted) for events
     from the given source, and calls `block(e)` as each event arrives.
@@ -345,7 +359,7 @@ var when = exports.when = function(emitters, events, options, block) {
     options = {};
   }
 
-  var host_emitter = HostEmitter(emitters, events, options.filter, options.transform);
+  var host_emitter = HostEmitter(emitters, events, options);
   if (options.queue) {
     using(var q = Queue(host_emitter)) {
       while (true) {
