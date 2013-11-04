@@ -141,8 +141,8 @@ var EmitterProto = Object.create(BaseEmitterProto);
 
     ### Notes
 
-    * In the browser, the default `handle` function is [::preventDefault]. You
-      can explicitly pass `null` to prevent this, or you can pass [::stopPropagation]
+    * In the browser, the default `handle` function is [sjs:xbrowser/dom::preventDefault]. You
+      can explicitly pass `null` to prevent this, or you may want to pass [sjs:xbrowser/dom::stopPropagation]
       instead.
 
     * If the underlying event emitter passes a single argument to listener functions,
@@ -254,7 +254,7 @@ if (sys.hostenv == 'nodejs') {
   }
 } else {
   // xbrowser
-  var {addListener, removeListener} = require('sjs:xbrowser/dom');
+  var {addListener, removeListener, preventDefault} = require('sjs:xbrowser/dom');
   HostEmitterProto._listen = function(emitter, event) {
     addListener(emitter, event, this._handleEvent);
   }
@@ -271,31 +271,7 @@ if (sys.hostenv == 'nodejs') {
     }
   }
 
-  /**
-    @function preventDefault
-    @param {Event} [e]
-    @summary Equivalent to `e -> e.preventDefault()`
-    @hostenv xbrowser
-    @desc
-      A convenient shortcut for passing to other functions in this module, e.g:
-
-          var click = HostEmitter(elem, 'click', {handle: preventDefault})
-
-      (this is actually the default behaviour already, so the above is not
-      actually necessary)
-
-    @function stopPropagation
-    @param {Event} [e]
-    @summary Equivalent to `e.stopPropagation()`
-    @hostenv xbrowser
-    @desc
-      A convenient shortcut for passing to other functions in this module, e.g:
-
-          var click = HostEmitter(elem, 'click', {transform: stopPropagation})
-  */
-  exports.preventDefault = e -> e.preventDefault();
-  exports.stopPropagation = e -> e.stopPropagation();
-  defaultEventHandler = exports.preventDefault;
+  defaultEventHandler = preventDefault;
 }
 
 
