@@ -81,7 +81,7 @@ var summarizeSymbols = function(children) {
 var summarizeModule = function(module) {
   return {
     type: 'module',
-    children: summarizeSymbols(module.children),
+    children: module.noindex ? {} : summarizeSymbols(module.children),
     summary: module.summary,
   };
 };

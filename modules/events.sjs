@@ -252,7 +252,8 @@ if (sys.hostenv == 'nodejs') {
   /**
     @function preventDefault
     @param {Event} [e]
-    @summary Equivalent to `e -> e.preventDefault()`
+    @summary Calls `e.preventDefault()` and returns `e`
+    @return {Event} The event passed in
     @hostenv xbrowser
     @desc
       A convenient shortcut for passing to other functions in this module, e.g:
@@ -261,15 +262,16 @@ if (sys.hostenv == 'nodejs') {
 
     @function stopPropagation
     @param {Event} [e]
-    @summary Equivalent to `e -> e.stopPropagation()`
+    @summary Calls `e.preventDefault()` and returns `e`
+    @return {Event} The event passed in
     @hostenv xbrowser
     @desc
       A convenient shortcut for passing to other functions in this module, e.g:
 
           when('click', {transform: stopPropagation})
   */
-  exports.preventDefault = e -> e.preventDefault();
-  exports.stopPropagation = e -> e.stopPropagation();
+  exports.preventDefault = e -> (e.preventDefault(),e);
+  exports.stopPropagation = e -> (e.stopPropagation(),e);
 }
 
 
