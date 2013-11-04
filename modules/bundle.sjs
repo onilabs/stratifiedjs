@@ -490,7 +490,7 @@ var resolveHubs = function(path, localAliases, usedHubs) {
   return path;
 };
 
-var toPairs = function(obj, splitter) {
+var toPairs = function(obj, splitter, name) {
   // yields ownPropertyPairs if `obj` is an object
   // returns unmodified obj if it is already a nested array
   // calls `splitter` on each value if `obj` is an array of strings
@@ -503,7 +503,7 @@ var toPairs = function(obj, splitter) {
     return obj .. transform(function(s) {
       var rv = splitter(s);
       if (rv.length !== 2) {
-        throw new Error("Invalid format: #{s}");
+        throw new Error("Invalid format for #{name} setting (expected \"key=value\"): #{s}");
       }
       return rv;
     });
@@ -537,8 +537,8 @@ var sanitizeOpts = function(opts) {
   rv.strict  = !opts.skipFailed;  // srtict should be true by default
 
   // convert resources & hubs to array pairs with expanded paths:
-  rv.resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1)) .. map([path, alias] -> [alias, expandPath(path)]);
-  rv.hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1))  .. map([prefix, path] -> [prefix, expandPath(path)]);
+  rv.resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1), 'resources') .. map([path, alias] -> [alias, expandPath(path)]);
+  rv.hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1), 'hubs')  .. map([prefix, path] -> [prefix, expandPath(path)]);
 
   // expand ignore / exclude paths
   rv.exclude = (opts.exclude || []) .. map(expandPath) .. map(stringToPrefixRe);
