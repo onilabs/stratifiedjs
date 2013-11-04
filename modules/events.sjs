@@ -33,6 +33,7 @@
   @module    events
   @summary   Event emitter and utilities for dealing with events.
   @home      sjs:events
+  @require   sjs:xbrowser/dom
 */
 
 var cutil = require('./cutil');
@@ -141,9 +142,8 @@ var EmitterProto = Object.create(BaseEmitterProto);
 
     ### Notes
 
-    * In the browser, the default `handle` function is [sjs:xbrowser/dom::preventDefault]. You
-      can explicitly pass `null` to prevent this, or you may want to pass [sjs:xbrowser/dom::stopPropagation]
-      instead.
+    * In the browser, you typically want to pass [sjs:xbrowser/dom::preventDefault] or
+      [sjs:xbrowser/dom::stopPropagation] if you are handling this event yourself.
 
     * If the underlying event emitter passes a single argument to listener functions,
       this argument will be returned from `wait()`. But if multiple arguments are passed
@@ -179,8 +179,6 @@ function HostEmitter(emitter, event) {
 exports.HostEmitter = HostEmitter;
 exports.from = HostEmitter;
 
-var defaultEventHandler = null;
-
 var HostEmitterProto = Object.create(BaseEmitterProto);
 HostEmitterProto.init = function(emitters, events, opts) {
   BaseEmitterProto.init.call(this);
@@ -193,8 +191,6 @@ HostEmitterProto.init = function(emitters, events, opts) {
   var transform, filter, handle;
   if (opts)
     var {transform, filter, handle} = opts;
-
-  if (handle === undefined) handle = defaultEventHandler;
 
   var self = this;
   this._handleEvent = function(val) {
@@ -254,7 +250,7 @@ if (sys.hostenv == 'nodejs') {
   }
 } else {
   // xbrowser
-  var {addListener, removeListener, preventDefault} = require('sjs:xbrowser/dom');
+  var {addListener, removeListener } = require('sjs:xbrowser/dom');
   HostEmitterProto._listen = function(emitter, event) {
     addListener(emitter, event, this._handleEvent);
   }
@@ -270,8 +266,6 @@ if (sys.hostenv == 'nodejs') {
       return ret;
     }
   }
-
-  defaultEventHandler = null;//preventDefault;
 }
 
 
