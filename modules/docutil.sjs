@@ -316,7 +316,7 @@ exports.getPrefixedProperties = function(docs, ns) {
         root = val;
       } else if (key .. startsWith(prefix)) {
         key = key.slice(prefix.length) .. dashToCamel();
-        metadata[key] = val;
+        props[key] = val;
       }
     };
   return [root, props];
