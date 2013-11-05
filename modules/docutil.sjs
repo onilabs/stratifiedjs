@@ -273,6 +273,10 @@ exports.parseModuleDocs = function(src, module) {
         summary: matches[paramDescription]
       };
       break;
+    case "summary":
+      // overwrite existing
+      curr[prop] = value;
+      break;
     case "require":
     case "altsyntax":
       if (!curr[prop]) curr[prop] = [];
