@@ -199,9 +199,20 @@ testEq('transform', {order: [1,2,3], result: [2,4,6]}, function() {
   return {order: order, result: result .. toArray()};
 });
 
-testEq('transform.par', {order: [3,2,1], result: [6,4,2]}, function() {
+testEq('transform.par', {order: [3,2,1], result: [2,4,6]}, function() {
   var order = [];
   var result = [1,2,3] .. s.transform.par(
+    withDecreasingTimeout(function(elem) {
+      order.push(elem);
+      return elem * 2;
+    }));
+  assert.ok(s.isStream(result));
+  return {order: order, result: result .. toArray()};
+});
+
+testEq('transform.par.unordered', {order: [3,2,1], result: [6,4,2]}, function() {
+  var order = [];
+  var result = [1,2,3] .. s.transform.par.unordered(
     withDecreasingTimeout(function(elem) {
       order.push(elem);
       return elem * 2;

@@ -1812,10 +1812,53 @@ map.par = function(/* sequence, max_strata, f */) {
    @return {::Stream}
    @summary  Create a stream `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
    @desc
-      The order of the resulting stream will be determined by the order in 
-      which the concurrent calls to `f` complete.
+      The order of the resulting array will be determined by the order of items in the  
+      input sequence. See [::transform.par.unordered] for an alternative implementation that 
+      generates an output stream in the order in which the concurrent calls to `f` complete.
 */
 transform.par = function(/* sequence, max_strata, f */) {
+  var sequence, max_strata, f;
+  if (arguments.length === 2)
+    [sequence, f] = arguments;
+  else /* arguments.length == 3 */
+    [sequence, max_strata, f] = arguments;
+
+  var G = [i,x] -> [i,f(x)];
+
+  return Stream(function(r) {
+    var next_index = 0;
+    var buf = {};
+    transform.par.unordered(sequence .. indexed, max_strata, G) .. each {
+      |[i,x]|
+      if (i !== next_index) {
+        buf[i] = {val:x};
+      }
+      else {
+        r(x);
+        while(buf[++next_index] !== undefined) {
+          r(buf[next_index].val);
+          delete buf[next_index];
+        }
+      }
+    }
+  });
+};
+
+/**
+   @function transform.par.unordered
+   @altsyntax sequence .. transform.par.unordered([max_strata], f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `f`. (undefined == unbounded)
+   @param {Function} [f] Function to apply to each element of `sequence`
+   @return {::Stream}
+   @summary  Create a stream `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
+   @desc
+      The order of the resulting stream will be determined by the order in 
+      which the concurrent calls to `f` complete, i.e. 
+      *the order of the original stream will not be maintained*. See [::transform.par] for an
+      alternative implementation that maintains order.
+*/
+transform.par.unordered = function(/* sequence, max_strata, f */) {
   var sequence, max_strata, f;
   if (arguments.length === 2)
     [sequence, f] = arguments;
@@ -1826,6 +1869,7 @@ transform.par = function(/* sequence, max_strata, f */) {
     sequence .. each.par(max_strata) { |x| r(f(x)) }
   });
 };
+
 
 /**
    @function find.par
