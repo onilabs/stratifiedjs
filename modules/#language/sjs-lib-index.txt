@@ -1,0 +1,3 @@
+@name StratifiedJS Language documentation
+@type doclib
+
