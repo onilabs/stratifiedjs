@@ -10,11 +10,6 @@ testEq("flatten recursively", "1|2|3|4|5|6|7|8|9|10", function() {
 	return b.join("|")
 });
 
-test("contains") {||
-	assert.ok([1,2,3] .. array.contains(2));
-	assert.notOk([1,2,3] .. array.contains(5));
-}
-
 context("cmp") {||
 	test("on two equal arrays", -> [1,2,3] .. array.cmp([1,2,3]) .. assert.eq(0));
 	test("first element (a smaller)", -> [0,2,3] .. array.cmp([1,2,3]) .. assert.eq(-1));

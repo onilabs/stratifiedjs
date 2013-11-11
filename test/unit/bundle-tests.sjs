@@ -7,7 +7,7 @@ context {||
   var url = require('sjs:url');
   var seq = require('sjs:sequence');
   var arr = require('sjs:array');
-  var { each, map, contains } = seq;
+  var { each, map, hasElem } = seq;
 
   var bundle = require('sjs:bundle');
   var basePath = url.normalize('./', module.id) .. url.toPath;
@@ -23,7 +23,7 @@ context {||
   var createBundle = function(settings) {
     settings = {"output":tmpfile} .. object.merge(settings);
     var output = settings.output;
-    if(output && !createdBundles .. contains(settings.output)) {
+    if(output && !createdBundles .. hasElem(settings.output)) {
       createdBundles.push(settings.output);
     }
 

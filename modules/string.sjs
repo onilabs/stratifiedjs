@@ -163,6 +163,7 @@ exports.endsWith = function(str, suffix) {
         // false
 */
 exports.contains = function(str, substr) {
+  if (!isString(str)) throw new Error('contains() expects a string');
   return str.indexOf(substr) != -1;
 }
 

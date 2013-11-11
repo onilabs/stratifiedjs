@@ -737,8 +737,8 @@ context("join") {||
   }
 }
 
-test("contains") {||
-  assert.ok(nonRepeatableSequence([1,2,3]) .. s.contains(2));
-  assert.notOk(nonRepeatableSequence([1,2,3]) .. s.contains(5));
+test("hasElem") {||
+  assert.ok(nonRepeatableSequence([1,2,3]) .. s.hasElem(2));
+  assert.notOk(nonRepeatableSequence([1,2,3]) .. s.hasElem(5));
 }
 

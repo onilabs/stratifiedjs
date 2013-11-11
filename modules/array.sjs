@@ -35,7 +35,7 @@
    @home    sjs:array
 */
 
-var { Stream, contains } = require('./sequence');
+var { Stream } = require('./sequence');
 var { isArrayLike, flatten } = require('builtin:apollo-sys');
 
 /**
@@ -64,9 +64,6 @@ function remove(arr, elem) {
 }
 exports.remove = remove;
 }
-
-// for backwards compatibility
-exports.contains = contains;
 
 /**
    @function cycle

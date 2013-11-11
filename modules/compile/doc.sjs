@@ -41,7 +41,7 @@ var Path = require('nodejs:path');
 var { ownValues, ownPropertyPairs, pairsToObject, hasOwn, ownKeys, merge } = require('../object');
 var str = require('../string');
 var docutil = require('../docutil');
-var { each, map, transform } = require('../sequence');
+var { each, map, transform, hasElem } = require('../sequence');
 var logging = require('../logging');
 var array = require('../array');
 var assert = require('../assert');
@@ -91,7 +91,7 @@ exports.summarizeLib = function(dir) {
   var entries = fs.readdir(dir);
   var children = {};
 
-  if (!( entries .. array.contains(INDEX_FILENAME))) {
+  if (!( entries .. hasElem(INDEX_FILENAME))) {
     logging.info("SKIP: #{dir}");
     return null;
   }

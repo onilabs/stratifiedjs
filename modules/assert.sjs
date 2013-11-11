@@ -61,7 +61,7 @@
 */
 
 var object = require('./object');
-var {each, all, find, toArray} = require('./sequence');
+var {each, all, find, toArray, hasElem} = require('./sequence');
 var compare = require('./compare');
 var string = require('./string');
 var {inspect} = require('./debug');
@@ -299,7 +299,7 @@ var _contains = function(container, expected) {
   } else {
     container = result[0] = container .. toArray();
     // quick check:
-    if (container.indexOf(expected) != -1) result[1] = true;
+    if (container .. hasElem(expected)) result[1] = true;
     else {
       var NONE = {};
       var found = container .. find(elem -> compare.equals(elem, expected), NONE);

@@ -1470,19 +1470,19 @@ function find(sequence, p, defval) {
 exports.find = find;
 
 /**
-   @function contains
-   @altsyntax sequence .. contains(elem)
+   @function hasElem
+   @altsyntax sequence .. hasElem(elem)
    @param {::Sequence} [sequence]
    @param {Object} [elem] Element to check for
    @return {Boolean} `true` if the element is in the sequence, `false` otherwise.
    @summary Checks whether the given element is in the sequence.
 */
-function contains(sequence, elem) {
+function hasElem(sequence, elem) {
   if (Array.isArray(sequence)) return (sequence.indexOf(elem) != -1);
   sequence .. each { |x| if (x === elem) return true }
   return false;
 }
-exports.contains = contains;
+exports.hasElem = hasElem;
 
 /**
    @function all

@@ -24,11 +24,15 @@ This changelog lists the most prominent, developer-visible changes in each relea
    replaced with the `params()` method, which URL-decodes all keys
    and values.
 
- * require method can accept an array of modules now which it will load in parallel.
+ * The require method can accept an array of modules now which it will load in parallel. The
+   return value is an object with a union of the exported properties from each module.
 
  * The optional `filter` and `transform` arguments to events.HostEmitter (and events.when) have been
    replaced with a settings object, which may have values for any of `filter`, `transform` and (now)
    `handle`. In typical use, `transform` is unnecessary.
+
+ * array::contains has been moved to sequence::hasElem (it now operates on any Stream type, and
+   has been renamed to avoid confusion with string::contains)
 
  * new modules:
 

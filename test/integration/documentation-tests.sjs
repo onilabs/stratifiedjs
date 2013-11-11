@@ -7,7 +7,7 @@ context {|| // serverOnly
   var {ownKeys} = require('sjs:object');
   var string = require('sjs:string');
   var array = require('sjs:array');
-  var {toArray, each, map, filter, find, sort, join} = seq;
+  var {toArray, each, map, filter, find, sort, join, hasElem} = seq;
   var url = require('sjs:url');
   var logging = require('sjs:logging');
   var docutil = require('sjs:docutil');
@@ -93,7 +93,7 @@ context {|| // serverOnly
               //TODO?
               //test("documents all exported symbols") {|s|
               //  moduleExports .. array.difference(documentedSymbols) .. assert.eq([]);
-              //}.skipIf(['numeric',] .. array.contains(module), "whitelisted")
+              //}.skipIf(['numeric',] .. hasElem(module), "whitelisted")
             }
           }.skipIf(moduleDoc.hostenv && moduleDoc.hostenv != sys.hostenv, moduleDoc.hostenv)
 
