@@ -122,4 +122,10 @@ context {||
     testEq("empty path array", full,
       -> full .. o.getPath([], 'default'));
 	}
+
+  context("setPath") {||
+    testEq("set existing", {parent: {name: 'alice'}}, -> {parent: {name: 'bob'}} .. o.setPath('parent.name', 'alice'));
+    testEq("set missing", {parent: {name: 'alice', sibling: 'eve'}}, -> {parent: {sibling: 'eve'}} .. o.setPath('parent.name', 'alice'));
+    testEq("set root", 'alice', -> {parent: {name: 'bob'}} .. o.setPath('', 'alice'))
+  }
 }

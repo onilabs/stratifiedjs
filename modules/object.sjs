@@ -152,6 +152,57 @@ __js  exports.getPath = function(subject, path, defaultValue) {
 };
 
 /**
+    @function setPath
+    @param {Object} [subject]
+    @param {String|Array} [path]
+    @param {Object} [value]
+    @return {Object} 
+    @summary Set a nested property on an object.
+    @desc
+      `path` can be a dotted string (`"a.b.c"`) or
+      an array of keys (`['a','b','c']`). If `path` is an empty string, 
+      `value` will be returned, otherwise `subject`
+
+      Missing parts of the path will automatically be constructed on `subject`.
+
+      If intermediate parts of the path are not of object type, an exception will be thrown.
+
+      ### Example:
+
+          var o = {parent: {child: {name: "bob" } } };
+
+          o .. setPath('parent.child.name', 'alice');
+          // {parent: {child: {name: "alice"}}}
+          
+          o .. setPath(['parent', 'child', 'name'], 'alice');
+          // {parent: {child: {name: "alice"}}}
+          
+          o .. setPath('', 'alice');
+          // 'alice'
+          
+          o .. setPath('parent.sibling.name', "eve");
+          // {parent: {child: {name: "bob"}, sibling: {name: "eve"}}}
+          
+  */
+__js  exports.setPath = function(subject, path, value) {
+  var parts = Array.isArray(path) ? path : path.split(".");
+  
+  if (!parts.length || parts.length === 1 && parts[0] === '')
+    return value;
+  var rv = subject;
+  for (var i=0; i<parts.length-1; ++i) {
+    subject = subject[parts[i]];
+    if (subject === undefined) {
+      subject = subject[parts[i]] = {};
+    }
+    else if (typeof subject !== 'object')
+      throw new Error("Unexpected non-object type encounted at '#{parts[i]}' while traversing object");
+  }
+  subject[parts[parts.length-1]] = value;
+  return rv;
+};
+
+/**
   @function has
   @param {Object} [subject]
   @param {String} [prop]
