@@ -274,6 +274,7 @@ exports.parseModuleDocs = function(src, module) {
       };
       break;
     case "summary":
+    case "type":
       // overwrite existing
       curr[prop] = value;
       break;

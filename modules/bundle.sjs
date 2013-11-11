@@ -229,7 +229,7 @@ function findDependencies(sources, settings) {
       }
     };
 
-    var docs = docutil.parseModuleDocs(src, {});
+    var docs = docutil.parseModuleDocs(src);
     if(docs.require) {
       docs.require .. each {|req|
         addRequire(req, module);
