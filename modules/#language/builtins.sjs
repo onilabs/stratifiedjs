@@ -1,5 +1,6 @@
 /**
 @summary Globally-available functions and objects
+@type doc
 
 @function require
 @param {String|Array} [module] Module(s) to load
