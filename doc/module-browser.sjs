@@ -682,6 +682,8 @@ function makeLibView(location) {
 // the doc_root for this module browser.
 function Location(root, path, module, classname, symbol) {
   this.root = root;
+  // XXX `path` is urlencoded. We should really store a plain path here,
+  // but it's currently used in a bunch of places that assume it's a URL
   this.path = path;
   this.module = module;
   this.classname = classname;
