@@ -30,6 +30,9 @@ and {
   var docutil = require('sjs:docutil');
 }
 and {
+  var { encodeFragment } = require('./url-util');
+}
+and {
   // preload:
   spawn require('sjs:marked');
 }
@@ -173,7 +176,7 @@ function getPathDocs(libpath) {
     doc.parent = docs[i-1];
     if (index) {
       if (i > 0) {
-        var name = doc.path.match(/([^\/]+\/)$/) .. at(1);
+        var name = decodeURIComponent(doc.path.match(/([^\/]+\/)$/) .. at(1));
         index = index.children .. get(name);
       }
       if (index) {
@@ -216,7 +219,7 @@ function makeTrailView() {
     if (path_docs) {
       while (path_docs.parent) {
         html = "&nbsp;<b>&raquo;</b>&nbsp;<a href='#"+location.relativeLink(path_docs.path)+"'>"+
-          topDir(path_docs.path) +"</a>" + html;
+          topDir(decodeURIComponent(path_docs.path)) +"</a>" + html;
         path_docs = path_docs.parent;
       }
       var version = path_docs.version ? " (v#{path_docs.version})" : "";
@@ -323,7 +326,7 @@ function makeIndexModuleEntry(location, module) {
 function makeIndexDirEntry(location, dir) {
   var view = ui.makeView(
     "<li class='directory'>
-       <h3><a href='##{location.relativeLink(url.normalize(location.path + dir))}'>#{dir}</a></h3>
+       <h3><a href='##{location.relativeLink(url.normalize(location.path + encodeFragment(dir)))}'>#{dir}</a></h3>
      </li>");
 
   view.select = function() {};
@@ -352,7 +355,7 @@ function doInternalErrorDialog(txt, domparent) {
     }
     or {
       // escape key
-      events.wait(document, 'keydown', function(e) { return e.keyCode == 27; });
+      events.wait(document, 'keydown', {filter: e -> e.keyCode == 27});
     }
   }
 }
@@ -692,7 +695,7 @@ Location.prototype.pathLink = function() {
 }
 Location.prototype.moduleLink = function(mod) {
   if (mod === undefined) mod = this.module;
-  return this.relativeLink(this.path + mod);
+  return this.relativeLink(this.path + encodeFragment(mod));
 }
 Location.prototype.relativeLink = function(href) {
   if (href .. string.startsWith(this.root)) {
