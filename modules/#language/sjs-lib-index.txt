@@ -1,3 +1,251 @@
-@name StratifiedJS Language documentation
+@name StratifiedJS Language overview
 @type doclib
+
+@desc
+  StratifiedJS executes code in logical units we call **strata**. Unlike normal JS code, strata are allowed to "block", i.e. the control flow is allowed to stop at a particular point to be picked up again later at the same point where it left off. An example would be the [::builtins::hold] function which blocks for a given period of time.
+
+  ### Concurrent strata
+
+  While one stratum is blocked, other strata can execute. Strata
+  are a bit like threads, but they are much more deterministic: Only one
+  stratum is running at any one time and it is executed atomically up until
+  the point where it either finishes or suspends. At that point the next pending
+  stratum is executed until *it* finishes or suspends, and so forth.
+
+  
+  ## Base language
+
+  StratifiedJS is based on the JavaScript language as defined in [ECMA-262 Edition 3][]. In addition, StratifiedJS supports several functions defined in [ECMA-262 Edition 5][]:
+
+  [ECMA-262 Edition 3]: http://www.ecma-international.org/publications/files/ECMA-ST-ARCH/ECMA-262,%203rd%20edition,%20December%201999.pdf
+  [ECMA-262 Edition 5]: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf
+
+
+   - [Array.isArray](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/isArray)
+   - [Array.prototype.indexOf](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/indexOf)
+   - [Array.prototype.lastIndexOf](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/lastIndexOf)
+   - [Object.keys](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/keys)
+   - [Object.create](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/create)
+   - [Function.prototype.bind](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind)
+
+  Depending on the particular browser or server environment, additional features from recent ECMA editions (such as e.g. `Object.seal`) **might** be available.
+
+  # Concurrency primitives:
+
+  StratifiedJS contains constructs for casting asynchronous logic into
+  blocking form (`waitfor()`) and constructs for combining multiple strata (`waitfor/and`, `waitfor/or`, `spawn`) in a structured way.
+
+
+  ### Pausing execution - [::builtins::hold]
+  
+  The `hold` function can be called with a number argument `t` to suspend the current stratum for ~`t` milliseconds:
+
+      hold(1000);
+      // the next code will be executed after around 1s
+
+  Calling `hold` with an `undefined` argument suspends the current stratum indefinitely.
+
+  
+  ### Suspending execution - [::syntax::waitfor-resume]
+
+  The `waitfor()` construct suspends the current stratum until
+  explicitly resumed.
+  
+      waitfor() {
+        // ... "suspending code block" ...
+      }
+      // ... next code ...
+
+  It is typically used to create a stratified wrapper around
+  plain javascript functions that make use of callback parameters.
+
+  
+  ### Parallel composition - [::syntax::waitfor-and]
+
+  StratifiedJS offers several different constructs for running and coordinating multiple concurrent strata. One of the most straightforward ways is to use parallel composition (also called 'fork-join' composition) which is expressed with SJS's `waitfor/and` construct:
+
+      waitfor {
+        ... some code ...
+      }
+      and {
+        ... some other code ...
+      }
+      ... next code ...
+
+  ### Alt composition - [::syntax::waitfor-or]
+
+  Alt ('alternatives') composition explores a set of alternatives in
+  parallel, and resumes as soon as any code path completes.
+  It is expressed with SJS's `waitfor/or` construct:
+
+      waitfor {
+        ... some code ...
+      }
+      or {
+        ... some other code ...
+      }
+      ... next code ...
+
+
+  ### Collapsing alternatives - [::syntax::collapse]
+
+  The `collapse` keyword can be used to prematurely collapse the strata in a `waitfor/or` construct.
+
+
+  ### Cancellation
+  
+  There are a number of situations under which suspended code gets
+  cancelled, e.g. when another branch in a `waitfor/or` construct finishes
+  first, or when a branch in a `waitfor/and` returns early:
+
+
+      function foo() {
+        waitfor {
+          ...some suspending code...
+        }
+        and {
+          ...
+          return;
+        }
+      }
+
+
+  Here, if `some suspending code` is still suspended by the time of the
+  `return` call in the other branch, it will be cancelled.
+
+
+  Cancellation means that a suspended `waitfor()`-construct will not wait
+  for a call to its corresponding resume any more. Also, a `hold(t)` will
+  not wake up any more.
+  
+  ### Handling retraction - [::syntax::try-retract]
+  
+  Cancellation can be "caught" much like exceptions using `try/retract`:
+
+      try {
+        ... some suspending code ...
+      }
+      retract {
+        console.log("'some suspending code' has been cancelled!");
+      }
+
+
+  ### Unstructured spawning of strata - [::syntax:spawn]
+
+  In addition to the structured composition operators, StratifiedJS has the `spawn` operator to execute some code in the background in an unstructured fashion, similar to how you would "spawn a thread" in other programming languages:
+
+
+      spawn <subexpression>;
+
+
+  This `spawn expression` executes `subexpression` *synchronously* until `subexpression` suspends or finishes, and then returns a [::builtin::Stratum] object.
+
+
+
+  
+  # Syntax enhancements over JavaScript
+
+  On top of the base JavaScript language, StratifiedJS supports a number of syntactic additions. Unlike the core stratified constructs, most of these (with the notable exception of blocklambdas) are *syntactic sugar* - they don't add anything the language couldn't already do, but they provide a convenient and readable syntax for constructs that can otherwise be cumbersome to express.
+
+
+  ### Destructuring assignment - [::syntax::destructure]
+
+  *proposed for ECMA-262 Edition 6*
+  
+  Destructuring is a convenient syntax for picking apart structured data, mirroring the way array and object literals are constructed.
+
+      // extract fields from an object:
+      var {title, content, author} = getArticle(id);
+
+      // extract fields from an array
+      var [error, value] = runFunction();
+
+  ### String interpolation - [::syntax::string-interpolation]
+
+  *using the same syntax as Ruby and CoffeeScript*
+
+  String interpolation allows you to insert the value of an expression into a string literal. It can only be used inside double-quotes:
+
+      console.log("Hello, #{name}!");
+      
+      // equivalent to:
+      console.log("Hello, " + name + "!");
+
+  
+
+  ### Quasi quotes - [::syntax::quasi-quote]
+
+  *a simplified version of the ECMAScript Harmony [Quasi-Literal / Template String](http://wiki.ecmascript.org/doku.php?id=harmony:quasis) proposal*
+
+  Quasi-quotes ("quasis") look like strings, but are delimited by backticks
+  (\`) instead of single or double quotes.
+
+  Within a quasi, you can insert interpolated expressions by placing them inside
+  `${ ... }`.
+
+  Unlike string interpolation, a quasi-quoted value is a rich object. It maintains
+  the embedded values alongside the literal portions, allowing the recipient
+  to choose how embedded values are converted.
+
+
+  ### Function chaining - [::syntax::double-dot]
+
+  *created for SJS; although we later discovered [elixir](http://elixir-lang.org/)'s `|>` pipe operator was created independently with the same functionality*
+
+  The double-dot operator allows you to chain function calls in a way similar to
+  a pipeline or a sequence of method invocations in a [fluent interface](http://en.wikipedia.org/wiki/Fluent_interface).
+
+      var numbers = [1,2,3,4,5];
+      var even = x -> x % 2 == 0;
+      
+      numbers .. filter(even) .. each(console.log);
+      // prints out:
+      // 2
+      // 4
+      
+
+  ### Blocklambda syntax - [::syntax::blocklambda]
+
+  *adopted from the [block lambda revival](http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival) proposal for ECMAScript*
+  
+  Blocklambdas are a cross between anonymous functions and the builtin block syntax for conditional statements, loops, function bodies, etc.
+
+  They are commonly used with the [sequence::] module, e.g:
+
+      items .. each {|item|
+        if (item.id == id) {
+          console.log("found it!");
+          break;
+        }
+      }
+
+  ### Arrow Function Syntax - [::syntax::arrow-function]
+
+  *adopted from the proposed ECMA-262 Edition 6 arrow syntax and CoffeScript's arrow syntax*
+
+  Arrow syntax is a shorthand for a function that only consists of a single expression and which returns the result of this expression.
+
+      var add = (x, y) -> x + y;
+      // equivalent to:
+      var add = function(x, y) { return x + y; };
+
+  You can also bind the current value of `this` by using the "fat arrow" variant:
+
+      var addOne = (x) => this.add(x, 1);
+      // equivalent to:
+      var x = function(x) { return this.add(x, 1); }.bind(this);
+
+  ### Factoring out try/finally - [::syntax::using]
+
+  Similar to Python's `with` statement
+  ([PEP-0343](http://www.python.org/dev/peps/pep-0343/)), SJS has a `using`
+  statement for factoring out standard uses of `try/finally`:
+
+      using (context_manager) {
+        ... some code ...
+      }
+
+  This code executes the code block `some code`. When `some code` is
+  exited (either normally, by exception or by cancellation),
+  `context_manager.__finally__()` will be called, if this function exists.
 
