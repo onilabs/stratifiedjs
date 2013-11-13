@@ -424,7 +424,7 @@ In a variant of the paren-free call syntax, if `someFunction` takes more than on
 
 
 
-  Here, `someFunction` will be called with three arguments - `argument1`, `argument2` and a function object that will execute block_body when called. Even though the blocklamda is 'tacked on' to the `someFunction(argument1, argument2)` call it will be appended to  `someFunction`'s argument list. (I.e. it will effectively be 'pulled under' the parenthesis.)
+  Here, `someFunction` will be called with three arguments - `argument1`, `argument2` and a function object that will execute block_body when called. Even though the blocklamda is 'tacked on' to the `someFunction(argument1, argument2)` call it will be appended to  `someFunction`'s argument list. (I.e. it will effectively be 'pulled under' the parentheses.)
 
   Blocklambdas are not just shorthand for `function() { ... }` syntax. They have important semantic differences:
 
@@ -432,7 +432,7 @@ In a variant of the paren-free call syntax, if `someFunction` takes more than on
   - The `this` binding of the surrounding code is maintained inside the blocklambda 
   - A `return` statement inside a blocklambda will return from the enclosing scope, *not* just from the block. This also means that you can't return a value to the caller of a blocklambda (you should use a function if you need that).
   - A `break` statement inside a blocklambda will cause the function that called the blocklambda to return.
-  - A `continue` statement inside a blocklambda will skip the rest of the bloclmabda body and return to the caller.
+  - A `continue` statement inside a blocklambda will skip the rest of the blocklambda body and return to the caller.
 
 
   These differences are all intended to make the blocklambda useable as a control-flow mechanism, akin to the builtin block syntax of JavaScript. It allows for block-like constructs that aren't part of the core language. For example, many of the [sjs:sequence::] module functions work well with blocklambdas:
@@ -482,7 +482,7 @@ In a variant of the paren-free call syntax, if `someFunction` takes more than on
     var x = function(x) { return this.add(x, 1); }.bind(this);
 
 
-  The parenthesis around the argument list are optional in the case of zero or one arguments, so the following are also valid lambda expressions:
+  The parentheses around the argument list are optional in the case of zero or one arguments, so the following are also valid lambda expressions:
 
     var addOne = x -> x + 1;
     var returnOne = -> 1;
