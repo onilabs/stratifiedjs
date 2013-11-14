@@ -8,6 +8,7 @@ unit/compile/stringify-tests.sjs
 unit/cutil-tests.sjs
 unit/dashdash-tests.sjs
 unit/debug-tests.sjs
+unit/docutil-tests.sjs
 unit/events-tests.sjs
 unit/function-tests.sjs
 unit/http-tests.sjs

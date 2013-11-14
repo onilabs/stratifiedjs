@@ -2,6 +2,124 @@
 @summary StratifiedJS language syntax
 @type doc
 
+@syntax @altns
+@summary The alternate namespace
+@desc
+  SJS defines a special module-local variable called `@`. This is known as the "altns" or "alternate namespace" symbol.
+
+  The purpose of `@` is to manage imported symbols easily. For convenience of access,
+  it is common to assign local variables for commonly-used symbols inside other modules, e.g:
+
+      var { each, map, transform, toArray  } = require('sjs:sequence');
+      var { ownKeys, ownPropertyPairs, get } = require('sjs:object');
+      var { startsWith, endsWith, contains } = require('sjs:string');
+
+  When such functions are combined with the [::double-dot] syntax, it allows
+  for concise, clutter-free code:
+
+      obj .. ownKeys
+        .. filter(key -> !key .. startsWith("_"))
+        .. each { |key|
+        doSomethingWith(obj .. get(key));
+      }
+
+  Without a top-level variable for each of these functions, the code
+  would still be concise, but starts to accumulate line noise -
+  we know where `each` and `filter` come from, we don't need the constant
+  repetition of the `seq.` prefix each time we use them.
+
+      obj .. object.ownKeys
+        .. seq.filter(key -> !key .. string.startsWith("_"))
+        .. seq.each { |key|
+        doSomethingWith(obj .. object.get(key));
+      }
+
+  However, binding imported functions and modules to a local variable has its downsides:
+
+    - Each module is unique - moving code from one module to another may not work,
+      as it may not have the required variables in scope.
+    - Since StratifiedJS provides most of its functionality via modules, you often
+      need a handful of import lines to make standard functionality available to
+      each new module that you write.
+    - You often end up with accidental variable clashes - e.g.
+      if you have a variable or function paramater named `url`, this will
+      shadow any module-level `var url = require('sjs:url')`.
+
+  ## Intended use
+
+  The `@` syntax is meant as a way to maintain the brevity of local variables while
+  removing the effort involved in defining and maintaining these variables, as
+  well as encouraging consistency between modules.
+
+  It also provides a visual (and lexical) separation between local and imported
+  symbols - a developer can easily tell that `@url` is probably the [url::] module,
+  while `url` most likely refers to an actual URL string.
+
+  It's recommended that you always place module-wide *imported* symbols into
+  `@`, rather than binding them to local variables. There is nothing
+  to enforce this rule, but following it will help to make your code
+  consistent and readable.
+
+  ### Initializing `@`:
+
+  Initially, the value of `@` in each module is undefined. To use it, you should
+  assign an object to it. Most commonly, you will assign a required module:
+
+      @ = require('./common');
+
+  **Note** that you do not need to use `var @`, since `@` is already defined as
+  a module-local variable.
+
+  You can also use the multiple-module loading feature of [./builtin::require]
+  to merge multiple modules into `@`, e.g:
+
+      @ = require(['sjs:string', 'sjs:object', 'sjs:sequence']);
+
+  ### Using `@`
+
+  `@xyz` is syntactic shorthand for `@.xyz` - so you can use properties
+  of `@` as if they were just variabls starting with `@`. For example:
+
+      @ = require('sjs:sequence');
+      var numbers = [0,1,2,3,4,5];
+      numbers .. @filter(x -> x % 2 == 0) .. @each(console.log);
+
+  ### Adding to `@`
+
+  You don't need to create `@` from a single object - once it's set, you can
+  add more properties to it just like a regular object:
+
+      @ = require('sjs:sequence');
+      @url = require('sjs:url');
+
+      // now @url is defined, in addition to the
+      // sequence symbols like @map and @each
+
+  ### Protecting aganist accidental mutation
+
+  Keen readers will note that if we assign the [sequence::] module to `@`:
+
+      @ = require('sjs:sequence');
+
+  ..and then assign to `@url`:
+
+      @url = require('sjs:url');
+
+  Then we have accidentally added `url` to the [sequence::] module's exported properties!
+
+  We certainly don't want that - `@` is supposed to be local to each module. So
+  the syntax for `@` has an additional special case - whenever you assign to it
+  directly as in `@ = someValue`, we actually assign a value *inherited*
+  from `someValue`. In the `sequence` example, it's equivalent to:
+  
+      @ = Object.create(require('sjs:sequence'));
+  
+  So `@` will inherit all of the properties exported by the sequence module,
+  but modifying `@` will affect only our inherited object - it won't affect
+  the original object at all.
+
+
+
 @syntax waitfor-resume
 @summary Suspend execution until a callback is invoked
 @desc

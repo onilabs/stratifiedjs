@@ -136,12 +136,12 @@ var extractDocComments = exports.extractDocComments = function(src) {
    @return {Array}
    @desc TODO: document markup format
 */
-var fieldRE = /@([-a-zA-Z]+)[\t ]*((?:.|\n+[\n\r\t ]*[^@\r\t\n ])*)/g;
+var fieldRE = /(?:^|\n)@([-a-zA-Z0-9]+)[\t ]*((?:.|[\n\r]+[\t ]+[^\r\n]*)*)/g;
 
 var extractDocFields = exports.extractDocFields = function(docs) {
   var fields = [], matches, docsoff = 0;
   for (var i = 0; i<docs.length; ++i) {
-    var doc = docs[i];
+    var doc = docs[i] .. trimLeadingNewlineAndTrailingSpace .. unindent;
     while ((matches = fieldRE.exec(doc))) {
       if (matches[1] == 'docson')
         --docsoff;
