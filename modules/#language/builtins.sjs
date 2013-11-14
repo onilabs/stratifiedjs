@@ -66,7 +66,7 @@
   of any given HTML page.
 
 @function require
-@summary Load an SJS module by URL
+@summary Load an SJS module
 @param {String|Array} [module] Module identifier(s)
 @desc
   `require()` will load and return the module(s) given.
@@ -225,6 +225,76 @@
       var mymodule = require("mymodules:mymodule");
 
   There is also a facility for hooking external compilers (like CoffeeScript) into the `require` mechanism. See [this Google groups post](https://groups.google.com/d/msg/oni-apollo/PjntilkeDiI/jGuWQhhTnn0J) for details.
+
+@variable require.main
+@summary The main module ID
+@desc
+  In various situations, a module can be run as the *main* module. This includes:
+
+    - when specified as the first arugment to the `sjs` command-line tool
+    - when specified as the first argument to `conductance exec`
+    - when invoked as an executable script with the shebang line:
+
+          #!/usr/bin/env sjs
+
+      or
+
+          #!/usr/bin/env conductance
+
+    - when explicitly required as a main module, using:
+
+          require('module-id', {main: true});
+      
+  To test if the current module is the main module, you can use the following code:
+
+      if (require.main === module) {
+        // run main task
+      }
+
+  Various builtin modules use this functionality to provide an SJS
+  module that can also be invoked from the command line.
+
+@function require.resolve
+@summary Resolve a module ID without actually loading it
+@desc
+  Require.resolve can be used to resolve the details of a given
+  module ID, such as its canonical location.
+
+  The returned object will have the following properties:
+
+   - `path`: The module ID, with any hubs expanded (this is typically a URL, except in the case of custom loaders like `github:` and `nodejs:`)
+   - loader: The module loader
+   - src: The module source (String) or source loader (Function)
+
+@function require.hubs.addDefault
+@param {Hub} [hub]
+@summary Add a hub if it is not yet defined
+@return Whether the hub was added
+@desc
+  This function adds the given `hub` if [::require.defined] returns
+  true for `hub[0]` (i.e the hub prefix).
+
+  For more information on hubs, see [::require.hubs].
+
+@function require.hubs.defined
+@param {String} [prefix]
+@return {Boolean}
+@summary Test if a prefix is covered by an existing hub
+@desc
+  Returns true if there is an entry in `require.hubs` which would
+  match the given prefix. Note that this is not an exact match,
+  nor does it test for the existence of a specific path - it
+  only returns false for prefixes that could not match any hub.
+  
+  For example, due to the bultin `sjs:` hub, the following
+  calls will all return `true`:
+
+      require.hubs.defined('s');
+      require.hubs.defined('sjs');
+      require.hubs.defined('sjs:');
+      require.hubs.defined('sjs:xyz');
+
+  For more information on hubs, see [::require.hubs].
 
 @variable require.modules
 @summary The global module cache
