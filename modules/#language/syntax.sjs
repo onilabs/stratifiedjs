@@ -536,5 +536,65 @@ In a variant of the paren-free call syntax, if `someFunction` takes more than on
       }
 
   (in practice, you would just use [events::when]).
+
+@syntax calling-javascript
+@summary Interfacing with plain Javascript code
+@desc
+  You can develop in StratifiedJS just like you would in conventional
+  JavaScript.  StratifiedJS is mostly a superset of JavaScript, so most
+  JavaScript programs should work just fine in StratifiedJS. You can
+  also freely call JS code (such as your favorite UI libraries) from SJS
+  and vice versa.
+
+  Note that SJS when called from JS might not return what you expect. If
+  the SJS function suspends while being called from JS, it will return
+  a *continuation* object; not it's actual return value. That's the
+  expected behaviour: Normal JS code cannot suspend and wait for the
+  actual return value - this is one of the reasons for having SJS in the
+  first place! See [this Google Groups post](https://groups.google.com/d/msg/oni-apollo/fXN-euKGhFA/0ajgeefzqfAJ) for a
+  mechanism of getting normal JS code to wait for SJS functions.
+
+  Currently, plain javascript code will not appear in
+  SJS stack traces.
+
+  You can embed plain JavaScript code within an .sjs file using the [::__js] syntax.
  
+@syntax __js
+@summary Embed javascript code
+@desc
+  You can embed plain javascript code inside SJS using the `__js` block
+  syntax:
+
+      __js {
+        exports.foo = function() {
+          // ...
+        }
+      }
+
+  This is primarily used for low-level optimisations, similar
+  to how `asm` blocks are used in C code. The code inside a `__js`
+  block will be reproduced as-is into the compiled JS, so it won't
+  have any access to SJS language features. But it will
+  also avoid any overhead imposed by the SJS runtime.
+
+  Because `__js` blocks are limited in the same way as [::calling-javascript],
+  you should use them only when you have determined the code will still
+  function correctly without SJS features, and that the frequency of its
+  use makes the speed improvement worth the reduced debuggability.
+
+@syntax ?
+@summary Binary version of the ternary operator
+@desc
+  The ternary operator in JavaScript takes the form `x ? y : z`:
+
+      var val = x ? y : z;
+      
+      // equivalent to:
+      var val;
+      if (x) val = y;
+      else   val = z;
+
+  In SJS code, the ` : z` part may be omitted, in which case `undefined` is assumed.
+  So `x ? y` is equivalent to `x ? y : undefined`.
+
 */
