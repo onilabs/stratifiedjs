@@ -29,7 +29,11 @@ function runSJScript(url) {
 function runRepl(beforeHook) {
   return function() {
     var runRepl = function() {
-      sjs_node.run('sjs:nodejs/repl');
+      sjs_node.require('sjs:std', {callback: function(err, std) {
+        if (err) throw err;
+        global.__oni_altns = Object.create(std);
+        sjs_node.run('sjs:nodejs/repl');
+      }});
     };
 
     // Drop into REPL:
