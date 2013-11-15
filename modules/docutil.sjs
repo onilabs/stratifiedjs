@@ -64,7 +64,7 @@ var SOURCE_SPLITTER = new RegExp(PAT_COMMENT + "|(" +
 function dummy(x) {};
 
 function trimLeadingNewlineAndTrailingSpace(str) {
-  return str.replace(/\s+$/,'').replace(/^\n/, '');
+  return str.replace(/\s+$/,'').replace(/^\n+/, '');
 }
 
 /**
