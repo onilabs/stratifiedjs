@@ -144,7 +144,7 @@ exports.readModule = function(path) {
   logging.debug("Reading: #{path}");
   var name = Path.basename(path).slice(0, -(ext.length+1));
   try {
-    var mod = docutil.parseModuleDocs(fs.readFile(path));
+    var mod = docutil.parseModuleDocs(fs.readFile(path, 'utf-8'));
   } catch(e) {
     e.message = "Failed to process module #{path}: #{e.message}";
     throw e;
@@ -159,7 +159,7 @@ exports.readModule = function(path) {
 var readDirectory = function(path) {
   path = Path.join(path, INDEX_FILENAME);
   logging.debug("Reading: #{path}");
-  return docutil.parseSJSLibDocs(fs.readFile(path));
+  return docutil.parseSJSLibDocs(fs.readFile(path, 'utf-8'));
 };
 
 if (require.main === module) {

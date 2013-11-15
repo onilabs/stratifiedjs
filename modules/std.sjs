@@ -14,9 +14,6 @@
   @require sjs:events
   @require sjs:sys
   @require sjs:url
-  @summary Common SJS functionality
-  @desc
-    TODO...
 */
 
 var hostenv = require('builtin:apollo-sys').hostenv;
@@ -36,6 +33,8 @@ var modules = [
   {id:'sjs:events', exclude: ['Stream', 'Queue']},
   {id:'sjs:sys', include: ['argv', 'eval']},
   {id:'sjs:sys', name: 'sys'},
+  {id:'sjs:http', name: 'http'},
+  {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
 ];
 
@@ -54,3 +53,9 @@ if (hostenv === 'nodejs') {
 }
 
 module.exports = require(modules);
+
+/**
+  @summary Common SJS functionality
+  @desc
+    TODO...
+*/
