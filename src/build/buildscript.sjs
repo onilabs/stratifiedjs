@@ -11,6 +11,7 @@ var { extend } = require('sjs:object');
 var { each, transform, join } = require('sjs:sequence');
 var util = require('util');
 var sys = require('sjs:sys');
+var url = require('sjs:url');
 
 //----------------------------------------------------------------------
 // BUILD DEPENDENCIES
@@ -38,6 +39,7 @@ function build_deps() {
                                                   "modules/nodejs/terminal.sjs",
                                                   "modules/jsondiffpatch.sjs",
                                                   "modules/marked.sjs",
+                                                  "modules/std.sjs",
                                                   "modules/dashdash.sjs",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
@@ -264,6 +266,33 @@ function build_deps() {
          "src/deps/dashdash/lib/dashdash.js",
          "src/deps/dashdash/apollo-module-footer.txt"]
        );
+
+  // std module
+  BUILD("modules/std.sjs", function(dest) {
+    var { generateDocDescription } = require('sjs:../tools/document-stdlib');
+    var contents = fs.readFile(url.normalize('./std.sjs', module.id) .. url.toPath, 'utf-8');
+    var descriptionDocs = generateDocDescription(contents, "
+This module combines commonly-used functionality from the
+StratifiedJS standard library.
+
+Below are a list of the symbols exposed in this module, with
+links to the symbol's original module.
+");
+    dest .. fs.writeFile("
+/* ------------------------------------ *
+* NOTE:                                *
+*   This file is auto-generated        *
+*   any manual edits will be LOST      *
+* ------------------------------------ */
+#{contents}
+/**
+@noindex
+@summary Common functionality for SJS modules
+#{descriptionDocs}
+*/
+");
+  },
+  ['src/build/std.sjs']);
 
   // test/diff module
   CONCAT("modules/test/diff.sjs",
