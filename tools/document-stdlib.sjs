@@ -77,6 +77,7 @@ exports.generateDocDescription = function(contents, description) {
 
     var claim = function(name, sym) {
       if (!name) throw new Error("can't claim symbol: #{name}");
+      if (moduleSource[name] === mod.id) return;
       if (moduleSource[name]) throw new Error("conflict: #{name}");
       moduleSource[name] = mod.id;
       if (sym) {

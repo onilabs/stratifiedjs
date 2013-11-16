@@ -37,7 +37,6 @@ var modules = [
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
   {id:'sjs:events', exclude: ['Stream', 'Queue']},
-  {id:'sjs:sys', include: ['argv', 'eval']},
   {id:'sjs:sys', name: 'sys'},
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
@@ -47,12 +46,14 @@ var modules = [
 if (hostenv === 'nodejs') {
   modules = modules.concat([
     'sjs:nodejs/stream',
+    {id:'sjs:sys', include: ['argv', 'eval']},
     {id:'nodejs:path', name: 'path'},
     {id:'sjs:nodejs/fs', name: 'fs'},
     {id:'sjs:nodejs/child-process', name: 'childProcess'},
   ]);
 } else {
   modules = modules.concat([
+    {id:'sjs:sys', include: ['eval']},
     {id: 'sjs:xbrowser/dom', name: 'dom'},
     {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']},
   ]);
@@ -213,8 +214,6 @@ module.exports = require(modules);
    - **wait**: (function [sjs:events::wait])
    - **when**: (function [sjs:events::when])
   ### From the [sjs:sys::] module:
-   - **argv**: (function [sjs:sys::argv])
-   - **eval**: (function [sjs:sys::eval])
    - **sys**: (module [sjs:sys::])
   ### From the [sjs:http::] module:
    - **http**: (module [sjs:http::])
@@ -230,6 +229,10 @@ module.exports = require(modules);
    - **pump**: (function [sjs:nodejs/stream::pump])
    - **ReadableStringStream**: (class [sjs:nodejs/stream::ReadableStringStream])
    - **WritableStringStream**: (class [sjs:nodejs/stream::WritableStringStream])
+  ### From the [sjs:sys::] module:
+  *(when in the nodejs environment)*
+   - **argv**: (function [sjs:sys::argv])
+   - **eval**: (function [sjs:sys::eval])
   ### From the [nodejs:path](http://nodejs.org/api/path.html) module:
   *(when in the nodejs environment)*
    - **path**: (module [nodejs:path](http://nodejs.org/api/path.html))
@@ -239,6 +242,8 @@ module.exports = require(modules);
   ### From the [sjs:nodejs/child-process::] module:
   *(when in the nodejs environment)*
    - **childProcess**: (module [sjs:nodejs/child-process::])
+  ### From the [sjs:sys::] module:
+  *(when in the xbrowser environment)*
   ### From the [sjs:xbrowser/dom::] module:
   *(when in the xbrowser environment)*
    - **dom**: (module [sjs:xbrowser/dom::])

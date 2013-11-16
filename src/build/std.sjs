@@ -31,7 +31,6 @@ var modules = [
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
   {id:'sjs:events', exclude: ['Stream', 'Queue']},
-  {id:'sjs:sys', include: ['argv', 'eval']},
   {id:'sjs:sys', name: 'sys'},
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
@@ -41,12 +40,14 @@ var modules = [
 if (hostenv === 'nodejs') {
   modules = modules.concat([
     'sjs:nodejs/stream',
+    {id:'sjs:sys', include: ['argv', 'eval']},
     {id:'nodejs:path', name: 'path'},
     {id:'sjs:nodejs/fs', name: 'fs'},
     {id:'sjs:nodejs/child-process', name: 'childProcess'},
   ]);
 } else {
   modules = modules.concat([
+    {id:'sjs:sys', include: ['eval']},
     {id: 'sjs:xbrowser/dom', name: 'dom'},
     {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']},
   ]);
