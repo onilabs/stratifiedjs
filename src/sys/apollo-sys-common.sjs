@@ -897,7 +897,7 @@ function requireInnerMultiple(modules, require_obj, parent, opts) {
         } else if (include) {
           for (var i=0; i<include.length; i++) {
             var o = include[i];
-            if (!module[o]) throw new Error("require([.]) module #{id} has no symbol #{o}");
+            if (!(o in module)) throw new Error("require([.]) module #{id} has no symbol #{o}");
             addSym(o, module[o]);
           }
         } else {
