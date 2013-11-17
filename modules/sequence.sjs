@@ -1476,6 +1476,8 @@ exports.find = find;
    @param {Object} [elem] Element to check for
    @return {Boolean} `true` if the element is in the sequence, `false` otherwise.
    @summary Checks whether the given element is in the sequence.
+   @desc
+     Sequentially iterates the stream until `elem` is found (using `===`) or the stream is exhausted.
 */
 function hasElem(sequence, elem) {
   if (Array.isArray(sequence)) return (sequence.indexOf(elem) != -1);

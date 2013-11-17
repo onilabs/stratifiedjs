@@ -170,7 +170,9 @@ exports.build = sys.constructURL;
      will return `'file%20name'`, not 'file name'.
 
      In addition to the above description of the `parseuri` function, the
-     object returned has a single method:
+     object returned also has the following methods:
+
+      * `toString()` -> returns the string representation of the URL.
 
       * `params()` -> returns an object populated from the query string.
         Unlike the keys of the parsed URL, both keys & values are URL-decoded.
