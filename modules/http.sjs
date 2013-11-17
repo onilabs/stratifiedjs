@@ -77,7 +77,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
 
      This method exposes similar functionality to that provided by browsers' 
      [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest), and as such has
-     a number of limitations:
+     a number of builtin features and limitations:
 
      * It is only safe for transferring textual data (UTF8-encoded by default).
 
@@ -110,8 +110,11 @@ exports.getXDomainCaps = sys.getXDomainCaps;
      exception will be thrown which has a `status` member set to the
      request status and a `data` member which contains any response body that
      the server might have sent.
-     If the call is configured to not throw, an empty
-     string will be returned.
+     If the call is configured to not throw, `request` will return:
+
+     * an empty string (if 'response' setting == 'string', i.e. the default)
+     * an object `{ status:0, content:'' }` (if 'response' == 'full')
+     * an object `{ readable: false, statusCode: 0, error: error_txt }` (if 'response' == 'raw')
 
      ### Example:
 

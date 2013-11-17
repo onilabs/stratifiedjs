@@ -244,7 +244,30 @@ function request_hostenv(url, settings) {
     finally {
       request.removeListener('error', resume);
     }
-    throw new Error(err);
+    if (opts.throwing) {
+      err.request = request;
+      err.response = null;
+      err.status = 0;
+      throw new Error(err);
+    }
+    else if (opts.response === 'string') {
+      return '';
+    }
+    else if (opts.response === 'full') {
+      return {
+        status: 0,
+        content: '',
+      }
+    }
+    else {
+      // raw
+      // construct a dummy response:
+      return {
+        readable: false,
+        statusCode: 0,
+        error: String(err)
+      }
+    }
   }
   or {
     waitfor (var response) {
