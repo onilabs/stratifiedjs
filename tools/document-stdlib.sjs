@@ -37,6 +37,7 @@ exports.generateDocDescription = function(contents, description) {
       }
 
       @assert.ok(Array.isArray(modules));
+      modules = modules .. @map(mod -> @isString(mod) ? {id: mod} : mod);
       hostModules[hostenv] = modules;
       return {}; // we don't actually use the results
     };
@@ -54,20 +55,40 @@ exports.generateDocDescription = function(contents, description) {
   var requiredModules = [];
   requiredModulesUnion .. @each {|mod|
 
-    // skip duplicates:
+    // skip plain duplicates:
     if (requiredModules .. @find([m, env] -> @eq(m, mod))) continue;
 
     // find number of occurences for this module
-    var hostenvs = HOSTENVS .. @filter(h -> hostModules[h] .. @find(m -> m .. @eq(mod))) .. @toArray;
-    requiredModules.push([mod, hostenvs]);
+    var hostenvs = HOSTENVS .. @filter(h -> hostModules[h] .. @find(m -> m.id === mod.id)) .. @toArray;
+
+    // extend any existing entry (e.g `sys` is imported in both nodejs and xbrowser):
+    var existing = requiredModules .. @filter([m, env] -> @eq(m.id, mod.id)) .. @toArray;
+    if (existing.length) {
+      // we can combine "include" module specifications:
+      var isMergeable = (m) -> m .. @ownKeys .. @sort .. @toArray .. @eq(['id', 'include']);
+      var target;
+      if (mod .. isMergeable) {
+        target = existing .. @find(isMergeable);
+      }
+      if (target) {
+        // extend previous module
+        target[0].include = target[0].include .. @union(mod.include);
+        target[1] = target[1] .. @union(hostenvs);
+      } else {
+        // group duplicate modile entries together
+        requiredModules.splice(requiredModules.indexOf(existing .. @at(-1)), 0, [mod, hostenvs]);
+      }
+    } else {
+      // add new module
+      requiredModules.push([mod, hostenvs]);
+    }
   }
 
 
   var moduleSource = {};
   var generatedDocs = [];
-  requiredModules .. @each {|[mod, hostenvs]|
-    if (@isString(mod)) mod = { id: mod };
 
+  requiredModules .. @each {|[mod, hostenvs]|
     var generatedDoc = generatedDocs .. @at(-1, null);
     if (!generatedDoc || generatedDoc[0] != mod.id) {
       generatedDoc = [mod.id, initModuleDoc(mod.id, hostenvs)];

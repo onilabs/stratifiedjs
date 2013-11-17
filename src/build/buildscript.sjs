@@ -292,7 +292,7 @@ links to the symbol's original module.
 */
 ");
   },
-  ['src/build/std.sjs']);
+  ['src/build/std.sjs', 'tools/document-stdlib.sjs']);
 
   // test/diff module
   CONCAT("modules/test/diff.sjs",
@@ -554,7 +554,7 @@ function _run_builder(target, task, deps) {
         if (builders[dep]) 
           builders[dep]();
         else
-          if (!/^src\//.test(dep)) // warn for missing builder if file is not in src/
+          if (!/^(src|tools)\//.test(dep)) // warn for missing builder if file is not in src/ or tools/
             log('Warning: no builder for '+dep);
       },
       deps);
