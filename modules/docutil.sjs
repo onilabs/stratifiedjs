@@ -223,7 +223,7 @@ exports.parseModuleDocs = function(src, module) {
       }
       else if (module.children[value]) {
         if (!module.children[value].children) {
-          throw new Error("symbol #{value} defined twice");
+          throw new Error("symbol #{value} (#{prop}) defined twice");
         }
         // add class members
         if (prop == 'function') {
