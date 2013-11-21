@@ -276,7 +276,11 @@ exports.open = function(path, flags, mode) {
    @param {optional Integer} [position=null] Where to begin writing to the file (`null` = write to current position)
 */
 exports.write = function(fd, buffer, offset, length, position /*=null*/) {
+  if (!Buffer.isBuffer(buffer))
+    throw new Error("buffer required");
+
   if (position === undefined) position = null;
+
   waitfor (var err, written) {
     fs.write(fd, buffer, offset, length, position, resume);
   }
