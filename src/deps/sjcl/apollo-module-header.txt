@@ -285,7 +285,7 @@
    @return   {::bitArray}
 
    @function misc.hmac.encrypt
-   @summary  Alias for [::misc.hmac.mac]
+   @summary  Alias for [::misc.hmac::mac]
    @param    {::bitArray|String} [data]
    @return   {::bitArray}
 */

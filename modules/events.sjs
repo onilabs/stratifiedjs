@@ -143,26 +143,26 @@ var EmitterProto = Object.create(BaseEmitterProto);
     ### Notes
 
     * In the browser, you typically want to pass [sjs:xbrowser/dom::preventDefault] or
-      [sjs:xbrowser/dom::stopPropagation] if you are handling this event yourself.
+      [sjs:xbrowser/dom::stopEvent] if you are handling this event yourself.
 
     * If the underlying event emitter passes a single argument to listener functions,
       this argument will be returned from `wait()`. But if multiple arguments are passed
       to the listener, an array of all arguments will be returned from `wait()`.
 
-    * In the browser, [xbrowser/dom::attachEvent] is used to bind the event
+    * In the browser, [xbrowser/dom::addListener] is used to bind the event
       listener - so you can prefix events with "!" to have the event fire
       during the "capture" phase.
 
     * If using a [::Queue] or [::Stream], events may be held for some time before
       they get handled. So calls that influence the internal handling of the event
-      (such as [dom::stopEvent]), should be called from the `handle` function,
+      (such as [xbrowser/dom::stopEvent]), should be called from the `handle` function,
       rather than after the event is retrieved.
 
-    * IE multiplexes all events onto a global event object. To ensure events 
-      are the same events that were put in, the implementation 
-      clones events on IE before emitting them. 
-      This means that calls such as [dom::stopEvent] will **never** work on IE if 
-      performed on the return value of [::HostEmitter::wait]. To have any effect, these
+    * IE multiplexes all events onto a global event object. To ensure events
+      are the same events that were put in, the implementation
+      clones events on IE before emitting them.
+      This means that calls such as [xbrowser/dom::stopEvent] will **never** work on IE if
+      performed on the return value of [::Emitter::wait]. To have any effect, these
       calls must be performed from the `handle` function.
 
     * You should only need to use the `transform` setting in rare cases. This
@@ -218,7 +218,7 @@ HostEmitterProto._start = function() {
   @summary Stop listening for events
   @desc
     You must call this method when you are finished with this
-    object. [::HostEmitter.__finally__] is an alias for this method,
+    object. [::HostEmitter::__finally__] is an alias for this method,
     so you can pass this object into a `using` block to avoid
     having to explicitly call `stop()`.
 */
@@ -233,7 +233,7 @@ HostEmitterProto.stop = function() {
 
 /**
   @function HostEmitter.__finally__
-  @summary Alias for [::HostEmitter.stop]
+  @summary Alias for [::HostEmitter::stop]
   @desc
     This alias allows you to pass a [::HostEmitter] instance to
     a `using` block rather than explicitly calling `stop` when

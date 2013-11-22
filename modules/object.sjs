@@ -300,9 +300,9 @@ exports.ownPropertyPairs = ownPropertyPairs;
 /**
    @function pairsToObject
    @altsyntax sequence .. pairsToObject([prototype])
-   @param {::Sequence} [sequence] Input sequence
+   @param {sequence::Sequence} [sequence] Input sequence
    @param {optional Object} [prototype=null] Prototype for return object
-   @summary Create an object from a [::Stream] `[key1,val1],[key2,val2],...` of property pairs
+   @summary Create an object from a [sequence::Stream] `[key1,val1],[key2,val2],...` of property pairs
 */
 function pairsToObject(sequence, prototype) {
   if (prototype === undefined) prototype = Object.prototype;
