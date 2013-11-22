@@ -3,12 +3,22 @@ var testEq = testUtil.test;
 var global = require('sjs:sys').getGlobal();
 var http = require('sjs:http');
 var logging = require('sjs:logging');
-var { find, sort, toArray } = require('sjs:sequence');
+var { find, sort, toArray, each } = require('sjs:sequence');
 var { merge, ownKeys } = require('sjs:object');
+var { startsWith } = require('sjs:string');
 var {test, assert, context} = require('sjs:test/suite');
 var Url = require('sjs:url');
 
 var dataRoot = './fixtures';
+
+test.beforeEach {||
+  require.modules .. ownKeys .. toArray() .. each {|id|
+    if(id .. startsWith(Url.normalize('./fixtures', module.id))) {
+      delete require.modules[id];
+    }
+  }
+}
+
 
 testEq('force extension/sjs', "a=1&b=2", function() {
   return Url.buildQuery({a:1},{b:2});
@@ -130,6 +140,25 @@ test('circular reference returns the unfinished module') {||
     },
   });
 };
+
+test('circular reference (loaded in parallel) returns the unfinished module') {||
+  waitfor {
+    var mod = require('./fixtures/circular_a');
+  } and {
+    require('./fixtures/circular_c');
+  }
+  mod .. assert.eq({
+    start: 1,
+    end: 1,
+    b_module: {
+      c_module: {
+        a_module: {
+          start: 1,
+        }
+      }
+    },
+  });
+}.skip("BROKEN");
 
 test('non-circular reference waits for the full module') {||
   var path = require.resolve('./fixtures/slow_exports').path;
