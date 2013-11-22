@@ -130,7 +130,7 @@
       }
 
 
-  ### Unstructured spawning of strata - [::syntax:spawn]
+  ### Unstructured spawning of strata - [./syntax::spawn]
 
   In addition to the structured composition operators, StratifiedJS has the `spawn` operator to execute some code in the background in an unstructured fashion, similar to how you would "spawn a thread" in other programming languages:
 
@@ -138,7 +138,7 @@
       spawn <subexpression>;
 
 
-  This `spawn expression` executes `subexpression` *synchronously* until `subexpression` suspends or finishes, and then returns a [::builtin::Stratum] object.
+  This `spawn expression` executes `subexpression` *synchronously* until `subexpression` suspends or finishes, and then returns a [./builtins::Stratum] object.
 
 
 

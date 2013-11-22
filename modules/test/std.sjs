@@ -4,7 +4,7 @@
  @summary Standard test utilities
  @desc
    This module exports all symbols from the following modules:
-    - [./stuite::]
+    - [./suite::]
     - [../std::]
 
    Typically, test modules will use this module as:
