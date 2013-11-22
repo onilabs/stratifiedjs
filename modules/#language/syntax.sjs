@@ -70,7 +70,7 @@
   **Note** that you do not need to use `var @`, since `@` is already defined as
   a module-local variable.
 
-  You can also use the multiple-module loading feature of [./builtin::require]
+  You can also use the multiple-module loading feature of [./builtins::require]
   to merge multiple modules into `@`, e.g:
 
       @ = require(['sjs:string', 'sjs:object', 'sjs:sequence']);

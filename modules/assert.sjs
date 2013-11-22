@@ -371,7 +371,7 @@ exports.atomic = function(desc /* (optional) */, fn) {
   @param {Object} [expected]
   @param {optional String} [desc] Descriptive text to include in the error message
   @desc
-    Uses the `===` operator. For deep equality, use [::equals]
+    Uses the `===` operator. For deep equality, use [::equal]
 */
 exports.is = function(actual, expected, desc) {
   if (actual !== expected) throw new AssertionError("Expected #{expected .. inspect}, got #{actual .. inspect}", desc);
@@ -384,7 +384,7 @@ exports.is = function(actual, expected, desc) {
   @param {Object} [expected]
   @param {optional String} [desc] Descriptive text to include in the error message
   @desc
-    Uses the `!==` operator. For deep equality, use [::notEquals]
+    Uses the `!==` operator. For deep equality, use [::notEqual]
 */
 exports.isNot = function(actual, expected, desc) {
   if (actual === expected) throw new AssertionError("Both arguments equal: #{expected .. inspect}", desc);

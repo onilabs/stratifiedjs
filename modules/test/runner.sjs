@@ -262,7 +262,7 @@ Runner.prototype.currentContext = function() {
   @param {String} [desc] Description
   @param {Function} [fn] Block
   @desc
-    This function acts much like [suite::context],
+    This function acts much like [./suite::context],
     but allows defining tests directly on a `Runner`
     instance rather than having tests in a separate module.
 */
@@ -513,7 +513,7 @@ Runner.prototype.run = function(reporter) {
   @variable TestResult.reason
   @summary The reason given for skipping this test
   @desc
-    If this test was not skipped (or no `reason` was given to [suite::Test::skip]),
+    If this test was not skipped (or no `reason` was given to [./suite::Test::skip]),
     `reason` will be `undefined`.
 */
 var TestResult = exports.TestResult = function(test) {
@@ -665,7 +665,7 @@ Results.prototype._skip = function(result, reason) {
     to update a progress bar, for example).
 
     In some curcumstances it may never reach the value of
-    [::Results.total], e.g if errors prevent some tests from
+    [::Results::total], e.g if errors prevent some tests from
     even starting.
 */
 Results.prototype.count = function() {

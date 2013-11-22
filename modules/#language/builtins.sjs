@@ -271,7 +271,7 @@
 @summary Add a hub if it is not yet defined
 @return Whether the hub was added
 @desc
-  This function adds the given `hub` if [::require.defined] returns
+  This function adds the given `hub` if [::require.hubs.defined] returns
   true for `hub[0]` (i.e the hub prefix).
 
   For more information on hubs, see [::require.hubs].
@@ -394,6 +394,6 @@
 @summary Return the number of strata currently waiting for the spawned stratum to finish
 @return {Number}
 @desc
-  A stratum is waiting for another if it is blocked on the other stratum's [::Stratum.waitforValue].
+  A stratum is waiting for another if it is blocked on the other stratum's [::Stratum::waitforValue].
 
 */

@@ -35,7 +35,7 @@
   @home      sjs:xbrowser/dom
   @hostenv   xbrowser
   @desc
-     Note: This module will automatically load the [dom-shim::] module on 
+     Note: This module will automatically load the [./dom-shim::] module on 
      non-conformant browsers.
 */
 

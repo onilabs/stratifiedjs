@@ -125,7 +125,7 @@ exports.Quasi = Quasi;
 
 /**
    @function joinQuasis
-   @param {::Quasi|::Array} [quasi...] An array of quasis or multiple quasi arguments
+   @param {::Quasi|Array} [quasi...] An array of quasis or multiple quasi arguments
    @return {::Quasi}
    @summary Concatenate several quasis
    @desc
@@ -163,7 +163,7 @@ exports.joinQuasis = joinQuasis;
    @function mapQuasi
    @param {::Quasi} [quasi] A quasi
    @param {Function} [fn] A converter function
-   @return {::Array}
+   @return {Array}
    @summary Replaces each embedded (interpolated) value in quasi with the result of `fn(value)`,
             and returns these values interleaved with the literals from the quasi
             (i.e. a copy of `quasi.parts`, but with every second value processed with `fn`).

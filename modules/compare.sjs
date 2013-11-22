@@ -104,7 +104,7 @@ __js {
     @return {Array} Whether the given objects are equal, and a description if they are not.
     @desc
       The return value is an array of two elements. The first
-      is a boolean, and is the same value that [::equal] would return.
+      is a boolean, and is the same value that [::equals] would return.
       The second is an object that (when coerced to a string), describes
       a reason the objects are not equal. The second argument will always
       be null if the objects are equal, and may be null if no specific reason

@@ -35,14 +35,14 @@
   @home      sjs:xbrowser/dom-shim
   @hostenv   xbrowser
   @desc
-     * Will automatically be loaded by [dom::] module if required
+     * Will automatically be loaded by [./dom::] module if required
 
      * Polyfills implemented:
 
         * classList (by Eli Grey, in public domain, see [here](http://purl.eligrey.com/github/classList.js/blob/master/classList.js))
 
 
-     * Other compatibility functions (used by [dom::] module):
+     * Other compatibility functions (used by [./dom::] module):
 
         * matchesSelector (for IE<9)
 */
