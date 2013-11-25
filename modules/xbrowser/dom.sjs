@@ -155,7 +155,7 @@ exports.preventDefault = function(ev) {
   @summary Cross-platform event helper. Cancels propagation and bubbling of the given event
   @param {DOMEvent} [ev] DOM event object.
 */
-exports.preventDefault = function(ev) {
+exports.stopPropagation = function(ev) {
   if (ev.stopPropagation) {
     ev.stopPropagation();
   }
