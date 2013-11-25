@@ -150,20 +150,12 @@ exports.preventDefault = function(ev) {
   }
 };
 
-
 /**
-  @function stopEvent
-  @summary Cross-platform event helper. Cancels propagation, bubbeling and default action of given event.
+  @function stopPropagation
+  @summary Cross-platform event helper. Cancels propagation and bubbling of the given event
   @param {DOMEvent} [ev] DOM event object.
 */
-exports.stopEvent = function(ev) {
-  if (ev.preventDefault) {
-    ev.preventDefault();
-  }
-  else {
-    // IE
-    ev.returnValue = false;
-  }
+exports.preventDefault = function(ev) {
   if (ev.stopPropagation) {
     ev.stopPropagation();
   }
@@ -171,6 +163,17 @@ exports.stopEvent = function(ev) {
     // IE
     ev.cancelBubble = true;
   }
+};
+
+
+/**
+  @function stopEvent
+  @summary Cross-platform event helper. Cancels propagation, bubbling and default action of given event.
+  @param {DOMEvent} [ev] DOM event object.
+*/
+exports.stopEvent = function(ev) {
+  exports.preventDefault(ev);
+  exports.stopPropagation(ev);
 };
 
 

@@ -143,7 +143,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
     ### Notes
 
     * In the browser, you typically want to pass [sjs:xbrowser/dom::preventDefault] or
-      [sjs:xbrowser/dom::stopEvent] if you are handling this event yourself.
+      [sjs:xbrowser/dom::stopPropagation] if you are handling this event yourself.
 
     * If the underlying event emitter passes a single argument to listener functions,
       this argument will be returned from `wait()`. But if multiple arguments are passed
@@ -311,6 +311,7 @@ exports.wait = wait;
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Settings} [opts]
   @param     {Function} [block]
+  @setting   {Boolean}  [queue] Queue events
   @setting   {Function} [filter] Event filter, as for [::HostEmitter]
   @setting   {Function} [handle] Event handler, as for [::HostEmitter]
   @setting   {Function} [transform] Event transformer, as for [::HostEmitter]
