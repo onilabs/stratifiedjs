@@ -152,6 +152,8 @@ module.exports = require(modules);
    - **filter.par**: (function [sjs:sequence::filter.par])
    - **all.par**: (function [sjs:sequence::all.par])
    - **any.par**: (function [sjs:sequence::any.par])
+   - **Observable**: (function [sjs:sequence::Observable])
+   - **ObservableTuple**: (function [sjs:sequence::ObservableTuple])
   ### From the [sjs:string::] module:
    - **isString**: (function [sjs:string::isString])
    - **sanitize**: (function [sjs:string::sanitize])
