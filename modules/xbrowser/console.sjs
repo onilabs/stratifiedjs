@@ -45,7 +45,7 @@
 if (require('builtin:apollo-sys').hostenv != 'xbrowser') 
   throw new Error('The xbrowser/console module only runs in an xbrowser environment');
 
-var { extend } = require('../object');
+var { extend, hasOwn } = require('../object');
 var str = require('../string');
 var { each, map, join } = require('../sequence');
 var { remove } = require('../array');
@@ -345,39 +345,44 @@ z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:p
 }
 Console.prototype = {
   _cmdloop: function() {
+    var actions = {};
+    var execute = function() {
+      if (!this.cmdline.value) return;
+      this.exec(this.cmdline.value);
+      if (this.history.length > 50) this.history.shift();
+      this.history[this.history.length-1] = this.cmdline.value;
+      this.history_p = this.history.length;
+      this.history.push("");
+      if (!this.sessionStorageBroken && window["sessionStorage"] && window["JSON"]) 
+        sessionStorage.history = JSON.stringify(this.history);
+      this.cmdline.value = "";
+    };
+
+    function history_prev() {
+      if (this.history_p == 0) return;
+      if (this.history_p == this.history.length-1) // save current commandline
+        this.history[this.history_p] = this.cmdline.value;
+      this.cmdline.value = this.history[--this.history_p];
+    };
+
+    function history_next() {
+      if (this.history_p == this.history.length-1) return;
+      // should we save the changes?
+      this.cmdline.value = this.history[++this.history_p];
+    };
+
+    actions[10] = actions[13] = execute;
+    actions[38] = history_prev; // key up
+    actions[40] = history_next; // key down
+ 
     waitfor {
-      using (var Q = events.Queue(events.from(this.cmdline, 'keydown'))) {
-        while (true) {
-          var key = Q.get().keyCode;
-          //        this.log(key);
-          switch (key) {
-          case 10:
-          case 13:
-            if (!this.cmdline.value) continue;
-            this.exec(this.cmdline.value);
-            if (this.history.length > 50) this.history.shift();
-            this.history[this.history.length-1] = this.cmdline.value;
-            this.history_p = this.history.length;
-            this.history.push("");
-            if (!this.sessionStorageBroken && window["sessionStorage"] && window["JSON"]) 
-              sessionStorage.history = JSON.stringify(this.history);
-            this.cmdline.value = "";
-            break;
-          case 38: // key up
-            if (this.history_p == 0) break;
-            if (this.history_p == this.history.length-1) // save current commandline
-              this.history[this.history_p] = this.cmdline.value;
-            this.cmdline.value = this.history[--this.history_p];
-            break;
-          case 40: // key down
-            if (this.history_p == this.history.length-1) break;
-            // should we save the changes?
-            this.cmdline.value = this.history[++this.history_p];
-            break;
-          }
-        }
-      }
-    } 
+      events.when(this.cmdline, 'keydown', {
+        filter: e -> actions .. hasOwn(e.keyCode),
+        handle: dom.stopEvent,
+        queue: true,
+      },
+      (e) => actions[e.keyCode].call(this));
+    }
     and {
       while(true) {
         // Can't wait for click on this.term here, because of
