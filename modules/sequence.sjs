@@ -214,11 +214,12 @@ exports.generate = generate;
 slightly non-trivial implementation to optimize performance in the
 non-synchronous case:
 */
-__js {
-  function each(sequence, r) {
-    if (isStream(sequence))
-      return sequence(r);
-    else if (isArrayLike(sequence)) {
+function each(sequence, r) {
+  if (isStream(sequence)) {
+    sequence(r);
+  } else {
+  __js {
+    if (isArrayLike(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
         var res = r(sequence[i]);
         if (__oni_rt.is_ef(res))
@@ -232,13 +233,13 @@ __js {
           return async_each(sequence, r, i, res);
       }
     }
-    else 
+    else
       throw new Error("Unsupported sequence type '#{sequence}'");
-    return sequence;
+    }
   }
-
-  exports.each = each;
+  return sequence;
 }
+exports.each = each;
 
 function async_each(arr, r, i, ef) {
   ef.wait();
