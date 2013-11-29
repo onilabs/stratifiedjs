@@ -87,14 +87,17 @@ exports.generateDocDescription = function(contents, description) {
 
   var moduleSource = {};
   var generatedDocs = [];
+  var moduleAliases = {};
 
-  requiredModules .. @each {|[mod, hostenvs]|
+  requiredModules
+  .. @sortBy([mod, ] -> mod.id.toLowerCase())
+  .. @each {|[mod, hostenvs]|
     var generatedDoc = generatedDocs .. @at(-1, null);
     if (!generatedDoc || generatedDoc[0] != mod.id) {
-      generatedDoc = [mod.id, initModuleDoc(mod.id, hostenvs)];
+      generatedDoc = [mod.id, hostenvs, []];
       generatedDocs.push(generatedDoc);
     }
-    var docs = generatedDoc[1];
+    var moduleSymbolDocs = {};
 
     var claim = function(name, sym) {
       if (!name) throw new Error("can't claim symbol: #{name}");
@@ -103,9 +106,9 @@ exports.generateDocDescription = function(contents, description) {
       moduleSource[name] = mod.id;
       if (sym) {
         var type = moduleDocs.children[sym] .. @get('type');
-        docs.push(" - **#{name}**: (#{type} [#{mod.id}::#{sym}])");
+        moduleSymbolDocs[name] = " - **#{name}**: (#{type} [#{mod.id}::#{sym}])";
       } else {
-        docs.push(" - **#{name}**: (module #{makeModuleLink(mod.id)})");
+        moduleAliases[name] = " - **#{name}**: (module #{makeModuleLink(mod.id)})";
       }
     };
     var claimAll = function(syms, moduleDocs) {
@@ -128,6 +131,14 @@ exports.generateDocDescription = function(contents, description) {
           .. claimAll(moduleDocs);
       }
     }
+
+    // append (sorted) symbols to this module's list of symbol docs
+    moduleSymbolDocs
+    .. @ownPropertyPairs
+    .. @sortBy([key, val] -> key.toLowerCase())
+    .. @each {|[key,val]|
+      generatedDoc[2].push(val);
+    }
   }
   @assert.ok(generatedDocs.length > 0, "docs are empty!");
 
@@ -136,20 +147,34 @@ exports.generateDocDescription = function(contents, description) {
       var mod = id.substr(7);
       return "[#{id}](http://nodejs.org/api/#{mod}.html)";
     } else {
-      return "[#{id}::]";
+      return "[#{id}](##{encodeURIComponent(id)})";
     }
   };
 
   function initModuleDoc(id, hostenvs) {
     var link = makeModuleLink(id);
-    var header = ["### From the #{link} module:"];
+    var header = ["\n\n### Symbols from the #{link} module:"];
     if (hostenvs.length < HOSTENVS.length) {
       header.push("*(when in the #{hostenvs .. @join("/")} environment)*");
     }
+    header.push(""); // blank line
     return header;
   };
 
-  description += generatedDocs .. @transform(pair -> pair[1]) .. @concat .. @join("\n");
+  moduleAliases = moduleAliases
+    .. @ownPropertyPairs
+    .. @sortBy([key, val] -> key.toLowerCase());
+
+  if(moduleAliases.length) {
+    description += "\n\n### Module aliases:\n\n";
+    description += moduleAliases .. @transform(pair -> pair[1]) .. @join("\n");
+  }
+
+  description += generatedDocs
+    .. @filter([id, hostenvs, docs] -> docs.length > 0)
+    .. @transform([id, hostenvs, docs] -> initModuleDoc(id, hostenvs).concat(docs))
+    .. @concat
+    .. @join("\n");
 
   // indent lines
   description = description.split("\n") .. @map(line -> "  #{line}") .. @join("\n");

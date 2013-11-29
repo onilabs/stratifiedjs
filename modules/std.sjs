@@ -69,184 +69,211 @@ module.exports = require(modules);
   This module combines commonly-used functionality from the
   StratifiedJS standard library.
   
-  Below are a list of the symbols exposed in this module, with
-  links to the symbol's original module.
-  ### From the [sjs:object::] module:
-   - **get**: (function [sjs:object::get])
-   - **getOwn**: (function [sjs:object::getOwn])
-   - **getPath**: (function [sjs:object::getPath])
-   - **setPath**: (function [sjs:object::setPath])
-   - **has**: (function [sjs:object::has])
-   - **hasOwn**: (function [sjs:object::hasOwn])
-   - **keys**: (function [sjs:object::keys])
-   - **ownKeys**: (function [sjs:object::ownKeys])
-   - **values**: (function [sjs:object::values])
-   - **ownValues**: (function [sjs:object::ownValues])
-   - **propertyPairs**: (function [sjs:object::propertyPairs])
-   - **ownPropertyPairs**: (function [sjs:object::ownPropertyPairs])
-   - **pairsToObject**: (function [sjs:object::pairsToObject])
-   - **extend**: (function [sjs:object::extend])
-   - **merge**: (function [sjs:object::merge])
-   - **clone**: (function [sjs:object::clone])
-   - **override**: (function [sjs:object::override])
-   - **construct**: (function [sjs:object::construct])
-   - **Constructor**: (function [sjs:object::Constructor])
-  ### From the [sjs:array::] module:
+  ### Module aliases:
+  
+   - **assert**: (module [sjs:assert](#sjs%3Aassert))
+   - **childProcess**: (module [sjs:nodejs/child-process](#sjs%3Anodejs%2Fchild-process))
+   - **dom**: (module [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom))
+   - **fn**: (module [sjs:function](#sjs%3Afunction))
+   - **fs**: (module [sjs:nodejs/fs](#sjs%3Anodejs%2Ffs))
+   - **http**: (module [sjs:http](#sjs%3Ahttp))
+   - **logging**: (module [sjs:logging](#sjs%3Alogging))
+   - **path**: (module [nodejs:path](http://nodejs.org/api/path.html))
+   - **regexp**: (module [sjs:regexp](#sjs%3Aregexp))
+   - **sys**: (module [sjs:sys](#sjs%3Asys))
+   - **url**: (module [sjs:url](#sjs%3Aurl))
+  
+  ### Symbols from the [sjs:array](#sjs%3Aarray) module:
+  
+   - **cmp**: (function [sjs:array::cmp])
+   - **cycle**: (function [sjs:array::cycle])
+   - **difference**: (function [sjs:array::difference])
+   - **flatten**: (function [sjs:array::flatten])
    - **isArrayLike**: (function [sjs:array::isArrayLike])
    - **remove**: (function [sjs:array::remove])
-   - **cycle**: (function [sjs:array::cycle])
-   - **flatten**: (function [sjs:array::flatten])
    - **union**: (function [sjs:array::union])
-   - **difference**: (function [sjs:array::difference])
-   - **cmp**: (function [sjs:array::cmp])
-  ### From the [sjs:sequence::] module:
-   - **Sequence**: (class [sjs:sequence::Sequence])
-   - **Stream**: (class [sjs:sequence::Stream])
-   - **toStream**: (function [sjs:sequence::toStream])
-   - **isStream**: (function [sjs:sequence::isStream])
-   - **isSequence**: (function [sjs:sequence::isSequence])
-   - **generate**: (function [sjs:sequence::generate])
-   - **each**: (function [sjs:sequence::each])
-   - **consume**: (function [sjs:sequence::consume])
-   - **toArray**: (function [sjs:sequence::toArray])
-   - **SequenceExhausted**: (class [sjs:sequence::SequenceExhausted])
-   - **first**: (function [sjs:sequence::first])
-   - **at**: (function [sjs:sequence::at])
-   - **slice**: (function [sjs:sequence::slice])
-   - **join**: (function [sjs:sequence::join])
-   - **sort**: (function [sjs:sequence::sort])
-   - **sortBy**: (function [sjs:sequence::sortBy])
-   - **reverse**: (function [sjs:sequence::reverse])
-   - **count**: (function [sjs:sequence::count])
-   - **take**: (function [sjs:sequence::take])
-   - **takeWhile**: (function [sjs:sequence::takeWhile])
-   - **skip**: (function [sjs:sequence::skip])
-   - **skipWhile**: (function [sjs:sequence::skipWhile])
-   - **filter**: (function [sjs:sequence::filter])
-   - **partition**: (function [sjs:sequence::partition])
-   - **map**: (function [sjs:sequence::map])
-   - **transform**: (function [sjs:sequence::transform])
-   - **concat**: (function [sjs:sequence::concat])
-   - **pack**: (function [sjs:sequence::pack])
-   - **unpack**: (function [sjs:sequence::unpack])
-   - **combine**: (function [sjs:sequence::combine])
-   - **groupBy**: (function [sjs:sequence::groupBy])
-   - **zip**: (function [sjs:sequence::zip])
-   - **zipLongest**: (function [sjs:sequence::zipLongest])
-   - **indexed**: (function [sjs:sequence::indexed])
-   - **intersperse**: (function [sjs:sequence::intersperse])
-   - **reduce**: (function [sjs:sequence::reduce])
-   - **reduce1**: (function [sjs:sequence::reduce1])
-   - **find**: (function [sjs:sequence::find])
-   - **hasElem**: (function [sjs:sequence::hasElem])
-   - **all**: (function [sjs:sequence::all])
-   - **any**: (function [sjs:sequence::any])
-   - **integers**: (function [sjs:sequence::integers])
-   - **fib**: (function [sjs:sequence::fib])
-   - **buffer**: (function [sjs:sequence::buffer])
-   - **each.par**: (function [sjs:sequence::each.par])
-   - **map.par**: (function [sjs:sequence::map.par])
-   - **transform.par**: (function [sjs:sequence::transform.par])
-   - **transform.par.unordered**: (function [sjs:sequence::transform.par.unordered])
-   - **find.par**: (function [sjs:sequence::find.par])
-   - **filter.par**: (function [sjs:sequence::filter.par])
-   - **all.par**: (function [sjs:sequence::all.par])
-   - **any.par**: (function [sjs:sequence::any.par])
-   - **Observable**: (function [sjs:sequence::Observable])
-   - **ObservableTuple**: (function [sjs:sequence::ObservableTuple])
-  ### From the [sjs:string::] module:
-   - **isString**: (function [sjs:string::isString])
-   - **sanitize**: (function [sjs:string::sanitize])
-   - **supplant**: (function [sjs:string::supplant])
-   - **startsWith**: (function [sjs:string::startsWith])
-   - **endsWith**: (function [sjs:string::endsWith])
-   - **contains**: (function [sjs:string::contains])
-   - **strip**: (function [sjs:string::strip])
-   - **lstrip**: (function [sjs:string::lstrip])
-   - **rstrip**: (function [sjs:string::rstrip])
-   - **split**: (function [sjs:string::split])
-   - **rsplit**: (function [sjs:string::rsplit])
-   - **padRight**: (function [sjs:string::padRight])
-   - **padLeft**: (function [sjs:string::padLeft])
-   - **padBoth**: (function [sjs:string::padBoth])
-   - **unindent**: (function [sjs:string::unindent])
-   - **capitalize**: (function [sjs:string::capitalize])
-   - **utf16ToUtf8**: (function [sjs:string::utf16ToUtf8])
-   - **utf8ToUtf16**: (function [sjs:string::utf8ToUtf16])
-   - **octetsToBase64**: (function [sjs:string::octetsToBase64])
-   - **base64ToOctets**: (function [sjs:string::base64ToOctets])
-  ### From the [sjs:compare::] module:
-   - **equals**: (function [sjs:compare::equals])
-   - **eq**: (function [sjs:compare::eq])
-   - **shallowEquals**: (function [sjs:compare::shallowEquals])
-   - **shallowEq**: (function [sjs:compare::shallowEq])
+  
+  
+  ### Symbols from the [sjs:compare](#sjs%3Acompare) module:
+  
    - **describeEquals**: (function [sjs:compare::describeEquals])
-  ### From the [sjs:debug::] module:
-   - **inspect**: (function [sjs:debug::inspect])
-   - **prompt**: (function [sjs:debug::prompt])
-  ### From the [sjs:function::] module:
-   - **fn**: (module [sjs:function::])
-  ### From the [sjs:cutil::] module:
+   - **eq**: (function [sjs:compare::eq])
+   - **equals**: (function [sjs:compare::equals])
+   - **shallowEq**: (function [sjs:compare::shallowEq])
+   - **shallowEquals**: (function [sjs:compare::shallowEquals])
+  
+  
+  ### Symbols from the [sjs:cutil](#sjs%3Acutil) module:
+  
+   - **breaking**: (function [sjs:cutil::breaking])
+   - **Condition**: (class [sjs:cutil::Condition])
+   - **Queue**: (class [sjs:cutil::Queue])
+   - **Semaphore**: (class [sjs:cutil::Semaphore])
    - **StratumAborted**: (class [sjs:cutil::StratumAborted])
    - **waitforAll**: (function [sjs:cutil::waitforAll])
    - **waitforFirst**: (function [sjs:cutil::waitforFirst])
-   - **Semaphore**: (class [sjs:cutil::Semaphore])
-   - **Condition**: (class [sjs:cutil::Condition])
-   - **Queue**: (class [sjs:cutil::Queue])
-   - **breaking**: (function [sjs:cutil::breaking])
-  ### From the [sjs:quasi::] module:
-   - **Quasi**: (class [sjs:quasi::Quasi])
-   - **isQuasi**: (function [sjs:quasi::isQuasi])
-   - **joinQuasis**: (function [sjs:quasi::joinQuasis])
-   - **mapQuasi**: (function [sjs:quasi::mapQuasi])
-   - **toQuasi**: (function [sjs:quasi::toQuasi])
-  ### From the [sjs:assert::] module:
-   - **assert**: (module [sjs:assert::])
-  ### From the [sjs:logging::] module:
-   - **logging**: (module [sjs:logging::])
-   - **print**: (function [sjs:logging::print])
-   - **debug**: (function [sjs:logging::debug])
-   - **verbose**: (function [sjs:logging::verbose])
-   - **info**: (function [sjs:logging::info])
-   - **warn**: (function [sjs:logging::warn])
-   - **error**: (function [sjs:logging::error])
-  ### From the [sjs:events::] module:
+  
+  
+  ### Symbols from the [sjs:debug](#sjs%3Adebug) module:
+  
+   - **inspect**: (function [sjs:debug::inspect])
+   - **prompt**: (function [sjs:debug::prompt])
+  
+  
+  ### Symbols from the [sjs:events](#sjs%3Aevents) module:
+  
    - **Emitter**: (class [sjs:events::Emitter])
    - **HostEmitter**: (class [sjs:events::HostEmitter])
    - **wait**: (function [sjs:events::wait])
    - **when**: (function [sjs:events::when])
-  ### From the [sjs:sys::] module:
-   - **argv**: (function [sjs:sys::argv])
-   - **eval**: (function [sjs:sys::eval])
-   - **sys**: (module [sjs:sys::])
-  ### From the [sjs:http::] module:
-   - **http**: (module [sjs:http::])
-  ### From the [sjs:regexp::] module:
-   - **regexp**: (module [sjs:regexp::])
-  ### From the [sjs:url::] module:
-   - **url**: (module [sjs:url::])
-  ### From the [sjs:nodejs/stream::] module:
+  
+  
+  ### Symbols from the [sjs:logging](#sjs%3Alogging) module:
+  
+   - **debug**: (function [sjs:logging::debug])
+   - **error**: (function [sjs:logging::error])
+   - **info**: (function [sjs:logging::info])
+   - **print**: (function [sjs:logging::print])
+   - **verbose**: (function [sjs:logging::verbose])
+   - **warn**: (function [sjs:logging::warn])
+  
+  
+  ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
   *(when in the nodejs environment)*
-   - **read**: (function [sjs:nodejs/stream::read])
-   - **readAll**: (function [sjs:nodejs/stream::readAll])
-   - **write**: (function [sjs:nodejs/stream::write])
+  
    - **pump**: (function [sjs:nodejs/stream::pump])
+   - **read**: (function [sjs:nodejs/stream::read])
    - **ReadableStringStream**: (class [sjs:nodejs/stream::ReadableStringStream])
+   - **readAll**: (function [sjs:nodejs/stream::readAll])
    - **WritableStringStream**: (class [sjs:nodejs/stream::WritableStringStream])
-  ### From the [nodejs:path](http://nodejs.org/api/path.html) module:
-  *(when in the nodejs environment)*
-   - **path**: (module [nodejs:path](http://nodejs.org/api/path.html))
-  ### From the [sjs:nodejs/fs::] module:
-  *(when in the nodejs environment)*
-   - **fs**: (module [sjs:nodejs/fs::])
-  ### From the [sjs:nodejs/child-process::] module:
-  *(when in the nodejs environment)*
-   - **childProcess**: (module [sjs:nodejs/child-process::])
-  ### From the [sjs:xbrowser/dom::] module:
+   - **write**: (function [sjs:nodejs/stream::write])
+  
+  
+  ### Symbols from the [sjs:object](#sjs%3Aobject) module:
+  
+   - **clone**: (function [sjs:object::clone])
+   - **construct**: (function [sjs:object::construct])
+   - **Constructor**: (function [sjs:object::Constructor])
+   - **extend**: (function [sjs:object::extend])
+   - **get**: (function [sjs:object::get])
+   - **getOwn**: (function [sjs:object::getOwn])
+   - **getPath**: (function [sjs:object::getPath])
+   - **has**: (function [sjs:object::has])
+   - **hasOwn**: (function [sjs:object::hasOwn])
+   - **keys**: (function [sjs:object::keys])
+   - **merge**: (function [sjs:object::merge])
+   - **override**: (function [sjs:object::override])
+   - **ownKeys**: (function [sjs:object::ownKeys])
+   - **ownPropertyPairs**: (function [sjs:object::ownPropertyPairs])
+   - **ownValues**: (function [sjs:object::ownValues])
+   - **pairsToObject**: (function [sjs:object::pairsToObject])
+   - **propertyPairs**: (function [sjs:object::propertyPairs])
+   - **setPath**: (function [sjs:object::setPath])
+   - **values**: (function [sjs:object::values])
+  
+  
+  ### Symbols from the [sjs:quasi](#sjs%3Aquasi) module:
+  
+   - **isQuasi**: (function [sjs:quasi::isQuasi])
+   - **joinQuasis**: (function [sjs:quasi::joinQuasis])
+   - **mapQuasi**: (function [sjs:quasi::mapQuasi])
+   - **Quasi**: (class [sjs:quasi::Quasi])
+   - **toQuasi**: (function [sjs:quasi::toQuasi])
+  
+  
+  ### Symbols from the [sjs:sequence](#sjs%3Asequence) module:
+  
+   - **all**: (function [sjs:sequence::all])
+   - **all.par**: (function [sjs:sequence::all.par])
+   - **any**: (function [sjs:sequence::any])
+   - **any.par**: (function [sjs:sequence::any.par])
+   - **at**: (function [sjs:sequence::at])
+   - **buffer**: (function [sjs:sequence::buffer])
+   - **combine**: (function [sjs:sequence::combine])
+   - **concat**: (function [sjs:sequence::concat])
+   - **consume**: (function [sjs:sequence::consume])
+   - **count**: (function [sjs:sequence::count])
+   - **each**: (function [sjs:sequence::each])
+   - **each.par**: (function [sjs:sequence::each.par])
+   - **fib**: (function [sjs:sequence::fib])
+   - **filter**: (function [sjs:sequence::filter])
+   - **filter.par**: (function [sjs:sequence::filter.par])
+   - **find**: (function [sjs:sequence::find])
+   - **find.par**: (function [sjs:sequence::find.par])
+   - **first**: (function [sjs:sequence::first])
+   - **generate**: (function [sjs:sequence::generate])
+   - **groupBy**: (function [sjs:sequence::groupBy])
+   - **hasElem**: (function [sjs:sequence::hasElem])
+   - **indexed**: (function [sjs:sequence::indexed])
+   - **integers**: (function [sjs:sequence::integers])
+   - **intersperse**: (function [sjs:sequence::intersperse])
+   - **isSequence**: (function [sjs:sequence::isSequence])
+   - **isStream**: (function [sjs:sequence::isStream])
+   - **join**: (function [sjs:sequence::join])
+   - **map**: (function [sjs:sequence::map])
+   - **map.par**: (function [sjs:sequence::map.par])
+   - **Observable**: (function [sjs:sequence::Observable])
+   - **ObservableTuple**: (function [sjs:sequence::ObservableTuple])
+   - **pack**: (function [sjs:sequence::pack])
+   - **partition**: (function [sjs:sequence::partition])
+   - **reduce**: (function [sjs:sequence::reduce])
+   - **reduce1**: (function [sjs:sequence::reduce1])
+   - **reverse**: (function [sjs:sequence::reverse])
+   - **Sequence**: (class [sjs:sequence::Sequence])
+   - **SequenceExhausted**: (class [sjs:sequence::SequenceExhausted])
+   - **skip**: (function [sjs:sequence::skip])
+   - **skipWhile**: (function [sjs:sequence::skipWhile])
+   - **slice**: (function [sjs:sequence::slice])
+   - **sort**: (function [sjs:sequence::sort])
+   - **sortBy**: (function [sjs:sequence::sortBy])
+   - **Stream**: (class [sjs:sequence::Stream])
+   - **take**: (function [sjs:sequence::take])
+   - **takeWhile**: (function [sjs:sequence::takeWhile])
+   - **toArray**: (function [sjs:sequence::toArray])
+   - **toStream**: (function [sjs:sequence::toStream])
+   - **transform**: (function [sjs:sequence::transform])
+   - **transform.par**: (function [sjs:sequence::transform.par])
+   - **transform.par.unordered**: (function [sjs:sequence::transform.par.unordered])
+   - **unpack**: (function [sjs:sequence::unpack])
+   - **zip**: (function [sjs:sequence::zip])
+   - **zipLongest**: (function [sjs:sequence::zipLongest])
+  
+  
+  ### Symbols from the [sjs:string](#sjs%3Astring) module:
+  
+   - **base64ToOctets**: (function [sjs:string::base64ToOctets])
+   - **capitalize**: (function [sjs:string::capitalize])
+   - **contains**: (function [sjs:string::contains])
+   - **endsWith**: (function [sjs:string::endsWith])
+   - **isString**: (function [sjs:string::isString])
+   - **lstrip**: (function [sjs:string::lstrip])
+   - **octetsToBase64**: (function [sjs:string::octetsToBase64])
+   - **padBoth**: (function [sjs:string::padBoth])
+   - **padLeft**: (function [sjs:string::padLeft])
+   - **padRight**: (function [sjs:string::padRight])
+   - **rsplit**: (function [sjs:string::rsplit])
+   - **rstrip**: (function [sjs:string::rstrip])
+   - **sanitize**: (function [sjs:string::sanitize])
+   - **split**: (function [sjs:string::split])
+   - **startsWith**: (function [sjs:string::startsWith])
+   - **strip**: (function [sjs:string::strip])
+   - **supplant**: (function [sjs:string::supplant])
+   - **unindent**: (function [sjs:string::unindent])
+   - **utf16ToUtf8**: (function [sjs:string::utf16ToUtf8])
+   - **utf8ToUtf16**: (function [sjs:string::utf8ToUtf16])
+  
+  
+  ### Symbols from the [sjs:sys](#sjs%3Asys) module:
+  
+   - **eval**: (function [sjs:sys::eval])
+   - **argv**: (function [sjs:sys::argv])
+  
+  
+  ### Symbols from the [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom) module:
   *(when in the xbrowser environment)*
+  
+   - **eventTarget**: (function [sjs:xbrowser/dom::eventTarget])
    - **preventDefault**: (function [sjs:xbrowser/dom::preventDefault])
    - **stopEvent**: (function [sjs:xbrowser/dom::stopEvent])
-   - **eventTarget**: (function [sjs:xbrowser/dom::eventTarget])
-   - **dom**: (module [sjs:xbrowser/dom::])
 
 */

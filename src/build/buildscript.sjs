@@ -273,11 +273,7 @@ function build_deps() {
     var contents = fs.readFile(url.normalize('./std.sjs', module.id) .. url.toPath, 'utf-8');
     var descriptionDocs = generateDocDescription(contents, "
 This module combines commonly-used functionality from the
-StratifiedJS standard library.
-
-Below are a list of the symbols exposed in this module, with
-links to the symbol's original module.
-");
+StratifiedJS standard library.");
     dest .. fs.writeFile("
 /* ------------------------------------ *
 * NOTE:                                *
