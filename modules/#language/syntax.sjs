@@ -334,32 +334,32 @@
 @syntax destructure
 @summary Assign multiple variables from a single expression
 @desc
-    *proposed for ECMA-262 Edition 6*
+  *proposed for ECMA-262 Edition 6*
 
-    Destructuring is a convenient syntax for picking apart structured data, mirroring the way array and object literals are constructed. 
+  Destructuring is a convenient syntax for picking apart structured data, mirroring the way array and object literals are constructed. 
 
-    E.g. if you have a function that returns an array, you can directly extract this to individual variables using the following destructuring assignment:
+  E.g. if you have a function that returns an array, you can directly extract this to individual variables using the following destructuring assignment:
 
 
-        function foo() { return ['x', 'y', 'z']; }
-        var a,b,c;
-        [a,b,c] = foo();
-        // we'll now have a=='x', b=='y' and c=='z'
+      function foo() { return ['x', 'y', 'z']; }
+      var a,b,c;
+      [a,b,c] = foo();
+      // we'll now have a=='x', b=='y' and c=='z'
 
-    Objects can also be destructured:
+  Objects can also be destructured:
 
-        function bar() { return {x:1, y:2, z:3; } }
-        var a,b,c;
-        ({x:a,y:b,z:c}) = bar();
-        // we'll now have a==1, b==2 and c==3
+      function bar() { return {x:1, y:2, z:3; } }
+      var a,b,c;
+      ({x:a,y:b,z:c}) = bar();
+      // we'll now have a==1, b==2 and c==3
 
-    Note that object patterns cannot appear at the start of a statement, hence the parentheses around the object pattern in `({x:a,y:b,z:c}) = bar();`. 
+  Note that object patterns cannot appear at the start of a statement, hence the parentheses around the object pattern in `({x:a,y:b,z:c}) = bar();`. 
 
-    Often, the variable names and property names used are the same when destructuring objects. If so, you can use a [DRY](http://en.wikipedia.org/wiki/Don't_repeat_yourself) shorthand whereby the pattern `{author, content}` is equivalent to `{author:author, content:content}`.
+  Often, the variable names and property names used are the same when destructuring objects. If so, you can use a [DRY](http://en.wikipedia.org/wiki/Don't_repeat_yourself) shorthand whereby the pattern `{author, content}` is equivalent to `{author:author, content:content}`.
 
-    Please see the [destructuring docs at ecmascript.org](http://wiki.ecmascript.org/doku.php?id=harmony:destructuring) for full syntax details.
+  Please see the [destructuring docs at ecmascript.org](http://wiki.ecmascript.org/doku.php?id=harmony:destructuring) for full syntax details.
 
-    Note that destructuring support as implemented in StratifiedJS does not currently support destructuring in `catch` clauses, but they do work everywhere else.
+  Note that destructuring support as implemented in StratifiedJS does not currently support destructuring in `catch` clauses, but they do work everywhere else.
 
 @syntax string-interpolation
 @summary Embed values into string literals with "#{ ... }"
@@ -393,11 +393,11 @@
 
   Instead of just converting each embedded value to a string (as string interpolation does), using quasis allows the logging module to be smarter about how values are presented. Specifically, it will pass any non-string values through `debug.inspect`:
 
-    var name = { first: "john", last: "smith" };
-    logging.print("New user: #{name}");
-    // prints: New user: [Object object]
-    logging.print(`New user: ${name}`);
-    // prints: New user: { first: "john", last: "smith" }
+      var name = { first: "john", last: "smith" };
+      logging.print("New user: #{name}");
+      // prints: New user: [Object object]
+      logging.print(`New user: ${name}`);
+      // prints: New user: { first: "john", last: "smith" }
 
   The [sjs:quasi::] module provides functions for dealing with quasi-quote objects at runtime.
 
@@ -420,28 +420,28 @@
   
   The double-dot operator allows you to chain together expressions in a similar way to how the regular dot operator is often used to create [fluent interfaces](http://en.wikipedia.org/wiki/Fluent_interface), but without requiring any object-oriented wrappers. You can think of it like the pipe operator in UNIX shells, allowing you to 'pipe' the result of one expression into another function, resulting in expressions that are much easier to read and write than standard parenthesized expressions.
   
-  When used, the expression on its left-hand side is passed as the first argument to the function call on its right-hand side. So the expression `a .. b(c)` gets rewritten to `b(a, c)`. For a concrete example, many of the functions in the `sjs:sequence` module are intended to be used with the double-dot operator:
+  When used, the expression on its left-hand side is passed as the first argument to the function call on its right-hand side. So the expression `a .. b(c)` gets rewritten to `b(a, c)`. For a concrete example, many of the functions in the [sjs:sequence::] module are intended to be used with the double-dot operator:
   
 
-    var { each } = require('sjs:sequence');
-    var numbers = [1,2,3];
+      var { each } = require('sjs:sequence');
+      var numbers = [1,2,3];
     
-    numbers .. each(console.log);
+      numbers .. each(console.log);
     
-    // equivalent to:
-    each(numbers, console.log);
+      // equivalent to:
+      each(numbers, console.log);
 
   
   The double-dot allows you to write functions that take their subject as the first argument, much like methods on objects have the implicit `this` as their subject. Which means you can make extension functions designed to be used with objects that you don't control. e.g:
 
 
-    var { remove } = require('sjs:array');
-    var numbers = ["one", "two", "three"];
+      var { remove } = require('sjs:array');
+      var numbers = ["one", "two", "three"];
     
-    numbers .. remove("two");
+      numbers .. remove("two");
     
-    // equivalent to:
-    remove(numbers, "two");
+      // equivalent to:
+      remove(numbers, "two");
 
 
   The builtin `array` type doesn't have a `remove` method - but with the double-dot operator we can write our own and still have it read left-to-right, just like methods on object do.
@@ -449,20 +449,20 @@
   Double-dot methods aren't just for single calls, either. They work as you would expect in a chain, which gives them their UNIX pipe-like quality:
 
 
-    var { transform, each } = require('sjs:sequence');
-    var addOne = function(x) { return x + 1; }
-    var halve = function(x) { return x / 2; }
-    var numbers = [1,2,3];
-    
-    numbers .. transform(addOne) .. transform(halve) .. each(console.log);
-    
-    // equivalent to:
-    each(transform(transform(numbers, addOne), halve), console.log);
-    
-    // or, less brain-meltingly:
-    var added = transform(numbers, addOne);
-    var halved = transform(added, halve);
-    each(halved, console.log);
+      var { transform, each } = require('sjs:sequence');
+      var addOne = function(x) { return x + 1; }
+      var halve = function(x) { return x / 2; }
+      var numbers = [1,2,3];
+      
+      numbers .. transform(addOne) .. transform(halve) .. each(console.log);
+      
+      // equivalent to:
+      each(transform(transform(numbers, addOne), halve), console.log);
+      
+      // or, less brain-meltingly:
+      var added = transform(numbers, addOne);
+      var halved = transform(added, halve);
+      each(halved, console.log);
 
 
   It's important to note that the double-dot operator binds *less* tightly than brackets and the single-dot operator. So when you're operating on the result of a double-dot call, you may need to use braces:
@@ -482,17 +482,17 @@
       var smallest = ordered[0]
 
 
-On the other hand, this precedence means that the function on the right-hand side of the dots isn't restricted to just a variable, as in:
+  On the other hand, this precedence means that the function on the right-hand side of the dots isn't restricted to just a variable, as in:
 
 
-    numbers .. seq.transform(addOne) .. seq.transform(halve) .. 
-      seq.each(console.log);
-    
-    // you could even require the sequence module inline:
-    numbers .. require('sjs:sequence').each(console.log);
+      numbers .. seq.transform(addOne) .. seq.transform(halve) .. 
+        seq.each(console.log);
+      
+      // you could even require the sequence module inline:
+      numbers .. require('sjs:sequence').each(console.log);
 
 
-  Since the double-dot can only appear to the left of a function call, the compiler will treat the right-hand side as a function call even if you leave out the parentheses (which will only make sense for a function taking only one argument):
+  Since the double-dot can only appear to the left of a function call, the compiler will treat the right-hand side as a function call even if you leave out the parentheses (which will only make sense for functions that take a single argument):
 
 
       var { sort } = require('sjs:sequence');
@@ -527,7 +527,7 @@ On the other hand, this precedence means that the function on the right-hand sid
 
   At runtime, blocklambda syntax is converted to a function object - so in the above example, `someFunction` will be called with a function object that will execute the block_body when called. Unlike ruby, the called function doesn't see a special "block" argument.
 
-In a variant of the paren-free call syntax, if `someFunction` takes more than one argument (the last one being a function argument), we can write:
+  In a variant of the paren-free call syntax, if `someFunction` takes more than one argument (the last one being a function argument), we can write:
 
 
       function someFunction(argument1, argument2, f) {
@@ -556,28 +556,25 @@ In a variant of the paren-free call syntax, if `someFunction` takes more than on
   These differences are all intended to make the blocklambda useable as a control-flow mechanism, akin to the builtin block syntax of JavaScript. It allows for block-like constructs that aren't part of the core language. For example, many of the [sjs:sequence::] module functions work well with blocklambdas:
 
 
-    var { each } = require('sjs:sequence');
-    var { ownKeys } = require('sjs:object');
+      var { each } = require('sjs:sequence');
+      var { ownKeys } = require('sjs:object');
+      
+      var obj = {a: "aye", b: "bee", c:"cee"};
+      
+      ownKeys(obj) .. each { |key|
+        var value = obj[key];
+        console.log("object.#{key} = #{value}");
+      
+        // stop iterating after we hit `b`
+        if (key == "b") break;
+      }
+      
+      // If the keys of `obj` are traversed alphabetically, this prints:
+      //   object.a = aye
+      //   object.b = bee
+      // (c will not be processed, just as if we broke out of a loop early)
     
-    var obj = {a: "aye", b: "bee", c:"cee"};
-    
-    ownKeys(obj) .. each { |key|
-      var value = obj[key];
-      console.log("object.#{key} = #{value}");
-    
-      // stop iterating after we hit `b`
-      if (key == "b") break;
-    }
-    
-    // If the keys of `obj` are traversed alphabetically, this prints:
-    //   object.a = aye
-    //   object.b = bee
-    // (c will not be processed, just as if we broke out of a loop early)
-    
-
-
   This provides a similar syntax to the builtin `for(var key in obj) { ... }` but it ignores inherited properties, and is implemented with normal functions - you can use this syntax to implement your own control-flow mechanisms.
-
 
 @syntax arrow-function
 @summary Shorthand function syntax
@@ -588,22 +585,22 @@ In a variant of the paren-free call syntax, if `someFunction` takes more than on
   Arrow syntax is a shorthand for a function that only consists of a single expression and which returns the result of this expression.
   For example:
 
-    var add = (x, y) -> x + y;
-    // equivalent to:
-    var add = function(x, y) { return x + y; };
+      var add = (x, y) -> x + y;
+      // equivalent to:
+      var add = function(x, y) { return x + y; };
 
 
   You can also bind the current value of `this` by using the "fat arrow" variant:
 
-    var addOne = (x) => this.add(x, 1);
-    // equivalent to:
-    var x = function(x) { return this.add(x, 1); }.bind(this);
+      var addOne = (x) => this.add(x, 1);
+      // equivalent to:
+      var x = function(x) { return this.add(x, 1); }.bind(this);
 
 
   The parentheses around the argument list are optional in the case of zero or one arguments, so the following are also valid lambda expressions:
 
-    var addOne = x -> x + 1;
-    var returnOne = -> 1;
+      var addOne = x -> x + 1;
+      var returnOne = -> 1;
 
 
   **Note:** The body of an arrow function needs to be an *expression*. Multiple expressions can be chained together using parentheses and the comma operator, e.g. `a -> (console.log(a), a+1)`, but you cannot put *statements* (such as `for(...) {...}`) into an arrow function. If you need statements, you should use the regular `function() {...}` syntax. 
