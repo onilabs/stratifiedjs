@@ -11,6 +11,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
    (we used to start script arguments from argv[1], but they now start from argv[2] just like in nodejs.
    Note that the new `sys::argv` function is now the recommended way of accessing script arguments.
 
+ * the "github:" `require()` hub has changed. You should now include a leading
+   slash at the beginning of the path, i.e. "github:/onilabs/stratifiedjs/master"
+   instead of just "github:onilabs/stratifiedjs/master". This ensures that
+   relative module paths are resolved correctly for modules loaded from github.
+
  * the two-part ternary syntax: `x ? y` is now shorthand for `x ? y : undefined`.
 
  * logging methods now print to `stderr` by default

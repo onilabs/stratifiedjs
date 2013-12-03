@@ -748,7 +748,7 @@ var github_opts = {cbfield:"callback"};
 function github_src_loader(path) {
   var user, repo, tag;
   try {
-    [,user,repo,tag,path] = /github:([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
+    [,user,repo,tag,path] = /github:\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
   } catch(e) { throw new Error("Malformed module id '"+path+"'"); }
   
   var url = exports.constructURL(github_api, 'repos', user, repo, "contents", path,{ref:tag});
