@@ -31,7 +31,7 @@ function runRepl(beforeHook) {
     var runRepl = function() {
       sjs_node.require('sjs:std', {callback: function(err, std) {
         if (err) throw err;
-        global.__oni_altns = Object.create(std);
+        global.__oni_altns = std;
         sjs_node.run('sjs:nodejs/repl');
       }});
     };
