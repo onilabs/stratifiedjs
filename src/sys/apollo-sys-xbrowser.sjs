@@ -333,6 +333,7 @@ function request_hostenv(url, settings) {
     if (typeof req.onerror !== 'undefined') {
       req.onload = function() { resume(); };
       req.onerror = function() { resume(true); };
+      req.onabort = function() { resume(true); };
     }
     else { // IE
       req.onreadystatechange = function(evt) {
