@@ -15,10 +15,13 @@
 ]);
 
 var @docutil = require('sjs:docutil');
-@logging.setLevel(process.env['REDO_XTRACE'] ? @logging.VERBOSE : @logging.WARN);
-if(process.env['REDO_TARGET']) {
-  @childProcess.run('redo-ifchange', [module.id .. @url.toPath]);
+@logging.setLevel(process.env['GUP_XTRACE'] ? @logging.VERBOSE : @logging.WARN);
+function dependUpon(path) {
+  if(process.env['GUP_TARGET']) {
+    @childProcess.run('gup', ['-u', path]);
+  }
 }
+dependUpon(module.id .. @url.toPath);
 
 exports.generateDocDescription = function(contents, description) {
   // eval stdlib with a mocked-out `require()`
@@ -120,7 +123,9 @@ exports.generateDocDescription = function(contents, description) {
       @info("claiming #{mod.name}");
       claim(mod.name);
     } else {
-      var moduleDocs = require.resolve(mod.id).path .. @url.toPath .. @fs.readFile .. @docutil.parseModuleDocs;
+      var modulePath = require.resolve(mod.id).path .. @url.toPath;
+      dependUpon(modulePath);
+      var moduleDocs = modulePath .. @fs.readFile .. @docutil.parseModuleDocs;
       if (mod.include) {
         mod.include .. claimAll(moduleDocs);
       } else {

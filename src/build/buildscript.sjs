@@ -289,6 +289,7 @@ StratifiedJS standard library.");
 ");
   },
   ['src/build/std.sjs', 'tools/document-stdlib.sjs']);
+  PSEUDO("modules/std.sjs"); // only enumerable while building
 
   // test/diff module
   CONCAT("modules/test/diff.sjs",

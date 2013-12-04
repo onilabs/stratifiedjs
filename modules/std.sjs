@@ -212,8 +212,6 @@ module.exports = require(modules);
    - **join**: (function [sjs:sequence::join])
    - **map**: (function [sjs:sequence::map])
    - **map.par**: (function [sjs:sequence::map.par])
-   - **Observable**: (function [sjs:sequence::Observable])
-   - **ObservableTuple**: (function [sjs:sequence::ObservableTuple])
    - **pack**: (function [sjs:sequence::pack])
    - **partition**: (function [sjs:sequence::partition])
    - **reduce**: (function [sjs:sequence::reduce])
