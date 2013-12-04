@@ -87,8 +87,12 @@ __js var identity = (x) -> x;
 */
 __js {
   var STREAM_TOKEN = {};
+  var stream_toString = function() {
+    return "[object Stream]";
+  };
   var Stream = function(S) {
     S.__oni_stream = STREAM_TOKEN;
+    S.toString = stream_toString;
     return S;
   }
   exports.Stream = Stream;
