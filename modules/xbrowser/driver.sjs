@@ -155,11 +155,13 @@ fns.trigger = function(elem, name, attrs) {
 	// pre-actions
 	switch(name) {
 		case 'click':
-			if(elem.tagName.toLowerCase() == 'input' && elem.getAttribute('type') == 'checkbox') {
-				// TODO: is this incorrect if we stop propagation of the click?
+			// TODO: is this incorrect if we stop propagation of the click?
+			if(elem.tagName.toLowerCase() == 'input' && elem.getAttribute('type') === 'checkbox') {
 				elem.checked = !elem.checked;
+			} else if (elem.tagName.toLowerCase() == 'option') {
+				elem.selected = !elem.selected;
 			}
-		break;
+			break;
 	}
 
 	// create the event
