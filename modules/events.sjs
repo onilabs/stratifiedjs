@@ -484,6 +484,10 @@ exports.wait = wait;
     in a [::Queue] until they can be processed.
 */
 var when = exports.when = function(emitters, events, options, block) {
+  if (arguments.length < 4) {
+    block = options;
+    options = {};
+  }
   var host_emitter = HostEmitter(emitters, events, options);
   using (host_emitter) {
     host_emitter.when(options, block);
