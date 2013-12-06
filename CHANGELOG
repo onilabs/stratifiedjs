@@ -36,6 +36,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
    replaced with a settings object, which may have values for any of `filter`, `transform` and (now)
    `handle`. In typical use, `transform` is unnecessary.
 
+ * events::Queue and events::Stream have now been moved to methods on the individual emitter - e.g
+   instead of `Queue(emitter)`, use `emitter.queue()`.
+
  * array::contains has been moved to sequence::hasElem (it now operates on any Stream type, and
    has been renamed to avoid confusion with string::contains)
 

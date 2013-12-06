@@ -405,11 +405,10 @@ Console.prototype = {
     and {
       if (isWebkitMobile) {
         // emulate position:fixed on webkit:
-        using (var Q2 = events.Queue(events.from(document.getElementsByTagName("body")[0], ['touchmove', 'touchend']))) {
-          while(true) {
-            viewportStick(this.summonbutton);
-            Q2.get();
-          };
+        using (var move = events.HostEmitter(document.getElementsByTagName("body")[0], ['touchmove', 'touchend'])) {
+          var stick = => viewportStick(this.summonbutton);
+          stick();
+          move.stream() .. each(stick);
         }
       }
     }
@@ -422,8 +421,8 @@ Console.prototype = {
           events.wait(document, "mouseup");
         }
         or {
-          using (var mm = events.Queue(document, "mousemove")) {
-            while (1) {
+          using (var mm = events.HostEmitter(document, "mousemove")) {
+            mm.stream() .. each {|ev|
               var ev = mm.get();
               var h = lasty - ev.clientY + this.term.clientHeight;
               if (h > 70) {

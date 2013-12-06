@@ -642,9 +642,9 @@
   Example of an event loop in StratifiedJS:
 
 
-      using (var q = require("sjs:events").Queue(window, "keydown")) {
+      using (var emitter = require("sjs:events").HostEmitter(window, "keydown"))) {
         while(true) {
-          switch (q.get().keyCode) {
+          switch (emitter.wait().keyCode) {
             ...
           }
         }

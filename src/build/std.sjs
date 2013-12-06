@@ -30,7 +30,7 @@ var modules = [
   {id:'sjs:assert', name:'assert'},
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
-  {id:'sjs:events', exclude: ['Stream', 'Queue']},
+  'sjs:events',
   {id:'sjs:sys', name: 'sys'},
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},

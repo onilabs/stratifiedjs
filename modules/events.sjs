@@ -34,6 +34,22 @@
   @summary   Event emitter and utilities for dealing with events.
   @home      sjs:events
   @require   sjs:xbrowser/dom
+  @desc
+    This module deals with two sources of events:
+
+    ### Explicitly triggered  events:
+    
+    To create an event that your code will trigger, use [::Emitter].
+    Emitters have the `emit(value)` method, which is used to trigger the event.
+
+    ### Wrapped external events:
+
+    To respond to events on a DOM object or a nodejs EventEmitter, you should
+    use [::HostEmitter]. This creates a [::BaseEmitter] for the underlying
+    events, which means they can be used just like [::Emitter] objects.
+
+    Utility functions `wait` and `when` are provided for responding to
+    external events in a more concise way than building a [::HostEmitter].
 */
 
 var cutil = require('./cutil');
@@ -41,14 +57,16 @@ var seq = require('./sequence');
 var sys = require('builtin:apollo-sys');
 
 /**
-  @class    Emitter
-  @summary  An event emitter that can be waited upon and emitted multiple times.
-*/
-var BaseEmitterProto = Object.create(cutil._Waitable);
+  @class    BaseEmitter
+  @summary  The base class shared by both [::Emitter] and [::HostEmitter].
 
-/**
-  @function  Emitter.wait
+  @function  BaseEmitter.wait
   @summary   Block until the next event is emitted by this object, and return the emitted value (if given).
+
+
+  @class    Emitter
+  @inherit  BaseEmitter
+  @summary  An emitter for manually triggered events.
 
   @function  Emitter.emit
   @param     {optional Object} [value]
@@ -59,11 +77,13 @@ var BaseEmitterProto = Object.create(cutil._Waitable);
     If `val` is provided, it will be the return value of all
     outstanding `wait()` calls.
 */
+var BaseEmitterProto = Object.create(cutil._Waitable);
+
 BaseEmitterProto.toString = function toString() { return "[object Emitter]"; }
 
 
 /**
-   @function Emitter.restartLoop
+   @function BaseEmitter.restartLoop
    @altsyntax emitter.restartLoop { || ... }
    @param {Function} [f] Function to execute
    @summary (Re-)start a function everytime an event is emitted
@@ -100,6 +120,145 @@ BaseEmitterProto.restartLoop = function restartLoop(f) {
 };
 
 /**
+  @function  BaseEmitter.queue
+  @summary Constructs a queue of this emitter's events.
+  @return  {::Queue}
+  @param   {Settings} [opts]
+  @setting {Number} [capacity] Maximum number of events to buffer in the queue (default 100). Events will be dropped if the queue grows beyond this size. For each dropped event an exception will be reported in the console.
+  @setting {Boolean} [bound] Whether to `stop` the underlying emitter when this Queue is stopped (default `true`).
+  @desc
+    The returned [::Queue] object proceeds to listen for
+    events immediately in the background, and continues to do so until
+    [::Queue::stop] is called.
+
+    Alternatively, because [::Queue] implements a
+    [::Queue::__finally__] method, it can be used in a
+    `using` block:
+
+        using (var q = emitter.queue()) {
+          while (true) {
+            var data = q.get();
+            ...
+          }
+        }
+
+    Here the `using` construct will automatically call
+    [::Queue::stop] when the `using` code
+    block is exited.
+
+    By default, stopping an event queue will also call `stop` on the original
+    event emitter. To avoid this behvaiour, set `opts.bound` to false.
+*/
+BaseEmitterProto.queue = function(opts) {
+  var rv = Object.create(QueueProto);
+  rv.init(this, opts);
+  return rv;
+};
+
+/**
+   @function BaseEmitter.stream
+   @return {sequence::Stream}
+   @summary  Create a continuous stream from this emitter's events.
+   @desc
+      Up to one event is buffered - that is, if you call:
+
+          emitter.stream() .. seq.each {|event|
+            doSomething(event);
+          }
+
+      If multiple events are emitted while `doSomething` is executing, all but the
+      most recent will be skipped.
+
+      It will also skip any events that occur *before* you start iterating over its result.
+
+      **Note**: the generated stream will never complete - it will continue waiting
+      for futher events until retracted.
+
+      ### Example:
+
+          // Assume dataStore.recordAdded is a [::BaseEmitter] object
+          // which emits the record each time a new record is added.
+          
+          var newRecord = dataStore.recordAdded;
+          
+          var people = events.Stream(newRecord) .. filter(p -> p.isPerson());
+          var firstTenPeople = people .. take(10);
+
+      The returned stream will have a `__finally_` method that simply calls
+      this emitter's finally method, if this emitter has a __finally__ method.
+*/
+var noop = () -> null;
+BaseEmitterProto.stream = function() {
+  var emitter = this;
+  var rv = seq.Stream(function(emit) {
+    var hasItem = false;
+    var current = null;
+    var collect = noop;
+    waitfor {
+      // buffer is synchronous, so we won't miss any events
+      while(true) {
+        current = emitter.wait();
+        hasItem = true;
+        spawn(collect());
+      }
+    } and {
+      while(true) {
+        collect = noop;
+        while(hasItem) {
+          hasItem = false;
+          emit(current); // may block
+        }
+        waitfor() {
+          collect = resume
+        }
+      }
+    }
+  });
+  if (emitter.__finally__) rv.__finally__ = -> emitter.__finally__();
+  return rv;
+};
+
+/**
+  @function  BaseEmitter.when
+  @summary   Run a function each time an event occurs
+  @param     {optional Settings} [opts]
+  @param     {Function} [block]
+  @setting   {Boolean}  [queue] Queue events
+  @desc
+    This function waits indefinitely (or until retracted) for events
+    from the given source, and calls `block(e)` as each event arrives.
+
+    By default, events will be dealt with synchronously - any events that
+    occur during a call to `block(e)` will be missed if `block` suspends.
+    However, if you set `opts.queue` to `true`, events will be buffered
+    in a [::Queue] until they can be processed.
+
+    **Note:** Unlike [::when], this function will not automatically call
+    `__finally__` on the underlying emitter upon completion. This only
+    matters for [::HostEmitter] objects, since [::Emitter]s have no
+    `__finally__` method.
+*/
+BaseEmitterProto.when = function(options, block) {
+  if (block === undefined) {
+    block = options;
+    options = {};
+  }
+
+  if (options.queue) {
+    using(var q = this.queue({bound:false})) {
+      while (true) {
+        block(q.get());
+      }
+    }
+  }
+  else {
+    while(true) {
+      block(this.wait());
+    }
+  }
+};
+
+/**
   @function Emitter
 */
 function Emitter() {
@@ -113,8 +272,8 @@ var EmitterProto = Object.create(BaseEmitterProto);
 
 /**
   @class     HostEmitter
-  @inherit   ::Emitter
-  @summary   An [::Emitter] subclass that wraps a "host" event emitter.
+  @inherit   ::BaseEmitter
+  @summary   A [::BaseEmitter] subclass that wraps a "host" event emitter.
   @function  HostEmitter
   @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
@@ -153,7 +312,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
       listener - so you can prefix events with "!" to have the event fire
       during the "capture" phase.
 
-    * If using a [::Queue] or [::Stream], events may be held for some time before
+    * If using a [::BaseEmitter::queue] or [::BaseEmitter::stream], events may be held for some time before
       they get handled. So calls that influence the internal handling of the event
       (such as [xbrowser/dom::stopEvent]), should be called from the `handle` function,
       rather than after the event is retrieved.
@@ -162,7 +321,7 @@ var EmitterProto = Object.create(BaseEmitterProto);
       are the same events that were put in, the implementation
       clones events on IE before emitting them.
       This means that calls such as [xbrowser/dom::stopEvent] will **never** work on IE if
-      performed on the return value of [::Emitter::wait]. To have any effect, these
+      performed on the return value of [::BaseEmitter::wait]. To have any effect, these
       calls must be performed from the `handle` function.
 
     * You should only need to use the `transform` setting in rare cases. This
@@ -305,7 +464,7 @@ function wait() {
 exports.wait = wait;
 
 /**
-  @function when
+  @function  when
   @summary   Run a function each time an event occurs
   @param     {Array|Obect} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
@@ -325,97 +484,18 @@ exports.wait = wait;
     in a [::Queue] until they can be processed.
 */
 var when = exports.when = function(emitters, events, options, block) {
-  if (block === undefined) {
-    block = options;
-    options = {};
-  }
-
   var host_emitter = HostEmitter(emitters, events, options);
-  if (options.queue) {
-    using(var q = Queue(host_emitter)) {
-      while (true) {
-        block(q.get());
-      }
-    }
-  }
-  else {
-    using(host_emitter) {
-      while(true) {
-        block(host_emitter.wait());
-      }
-    }
+  using (host_emitter) {
+    host_emitter.when(options, block);
   }
 };
 
 /**
   @class Queue
-  @summary Watches an [::Emitter] and stores its events in a queue.
-
-  @function  Queue
-  @summary Constructs a new event queue.
-  @return  {::Queue}
-  @param   {Emitter|Object} [source] [::HostEmitter], [::Emitter] or host object.
-  @param   {Settings} [opts]
-  @setting {Number} [capacity] Maximum number of events to buffer in the queue (default 100). Events will be dropped if the queue grows beyond this size. For each dropped event an exception will be reported in the console.
-  @setting {Boolean} [bound] Whether to `stop` the underlying emitter when this Queue is stopped (default `true`).
-  @desc
-    The returned [::Queue] object proceeds to listen for
-    events immediately in the background, and continues to do so until
-    [::Queue::stop] is called.
-
-    Alternatively, because [::Queue] implements a
-    [::Queue::__finally__] method, it can be used in a
-    `using` block:
-
-        var events = require('sjs:events');
-
-        using (var Q = events.Queue(emitter)) {
-          while (true) {
-            var data = Q.get();
-            ...
-          }
-        }
-
-    Here the `using` construct will automatically call
-    [::Queue::stop] when the `using` code
-    block is exited.
-
-    By default, stopping an event queue will also call `stop` on the underlying
-    event emitter (if it has such a method). To avoid this behvaiour, set `opts.bound` to false.
-
-    ### Shorthand for host events:
-
-    Normally, you would pass a [::Emitter] or [::HostEmitter] as the `source` argument. For convenience,
-    you may use the following shortcut to create a queue directly from a host event emitter:
-
-        var q = events.Queue(emitter, 'click');
-        // equivalent to:
-        // var q = events.queue(events.HostEmitter(emitter, 'click'));
-        
-        // or:
-        
-        var q = events.Queue(emitter, ['click', 'drag']);
-        // equivalent to:
-        // var q = events.Queue(events.HostEmitter(emitter, ['click', 'drag']));
-
-    If you need to pass additional arguments to [::HostEmitter] or pass settings to [::Queue], you'll need to use
-    the longer form.
+  @summary The return value of [::BaseEmitter::queue].
 */
-function Queue(source, opts) {
-  var rv = Object.create(QueueProto);
-  rv.init.apply(rv, arguments);
-  return rv;
-}
-exports.Queue = Queue;
-
 var QueueProto = {
   init: function(source, opts) {
-    if (Array.isArray(opts) || typeof(opts) == 'string') {
-      // Queue(emitter, events) is shorthand for:
-      // Queue(HostEmitter(emitter, events))
-      source = HostEmitter(source, opts);
-      opts = {bound: true};
-    }
     var opts = opts || {};
     var capacity = opts.capacity;
     if (capacity == null) capacity = 100;
@@ -439,12 +519,6 @@ var QueueProto = {
           self._queue.put(next);
       }
     }());
-    self.events = seq.Stream {|emit|
-      while(true) {
-        emit(self.get());
-      }
-    };
-
   },
 
   /**
@@ -470,7 +544,7 @@ var QueueProto = {
     @function  Queue.stop
     @summary   Stop listening for events.
     @desc
-       See 'More information' section under [::Queue]
+       See the 'More information' section under [::BaseEmitter::queue]
        for an alternative to calling [::Queue::stop]
        manually.
    */
@@ -488,68 +562,7 @@ var QueueProto = {
   @summary   Calls [::Queue::stop].
               Allows Queue to be used a `using` construct.
   @desc
-      See 'More information' section under [::Queue].
+      See 'More information' section under [::BaseEmitter::queue].
   */
 QueueProto.__finally__ = QueueProto.stop;
-
-
-
-/**
-   @function Stream
-   @param {::Emitter} [emitter]
-   @return {sequence::Stream}
-   @summary  Builds a continuous stream from an [::Emitter]'s events.
-   @desc
-      Up to one event is buffered - that is, if you call:
-
-          emitter .. events.Stream .. seq.each {|event|
-            doSomething(event);
-          }
-
-      If multiple events are emitted while `doSomething` is executing, all but the
-      most recent will be skipped.
-
-      It will also skip any events that occur *before* you start iterating over its result.
-
-      **Note**: the generated stream will never complete - it will continue waiting
-      for futher events until retracted.
-
-      ### Example:
-
-          // Assume dataStore.recordAdded is an [::Emitter] object
-          // which emits the record each time a new record is added.
-          
-          var newRecord = dataStore.recordAdded;
-          
-          var people = events.Stream(newRecord) .. filter(p -> p.isPerson());
-          var firstTenPeople = people .. take(10);
-*/
-var noop = () -> null;
-function Stream(emitter) {
-  return seq.Stream(function(emit) {
-    var hasItem = false;
-    var current = null;
-    var collect = noop;
-    waitfor {
-      // buffer is synchronous, so we won't miss any events
-      while(true) {
-        current = emitter.wait();
-        hasItem = true;
-        spawn(collect());
-      }
-    } and {
-      while(true) {
-        collect = noop;
-        while(hasItem) {
-          hasItem = false;
-          emit(current); // may block
-        }
-        waitfor() {
-          collect = resume
-        }
-      }
-    }
-  });
-};
-exports.Stream = Stream;
 

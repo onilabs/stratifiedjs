@@ -174,7 +174,7 @@ context {||
       });
 
       child.pid .. isRunning() .. assert.ok("child pid not running! (#{child.pid})");
-      using (var q = events.Queue(events.from(child.stdout, 'data'))) {
+      using (var q = events.from(child.stdout, 'data').queue()) {
         var pid;
         var lines = [];
 

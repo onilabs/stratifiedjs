@@ -274,10 +274,10 @@ context() {||
     }
   }
 
-  context('Queue') {||
+  context('queue') {||
     var runTest = function(emitter, opts, triggerBlock) {
       var results = [];
-      using(var q = new events.Queue(emitter, opts)) {
+      using(var q = emitter.queue(opts)) {
         waitfor {
           while(true) {
             var e = q.get().detail;
@@ -311,17 +311,9 @@ context() {||
       }
     }
 
-    test('queues native events (shorthand Queue constructor)') {|s|
-      runTest(s.emitter.raw, 'click') {||
-        s.emitter.trigger('click', 1);
-        s.emitter.trigger('click', 2);
-        s.emitter.trigger('click', 3);
-      }
-    }
-
     test('leaves underlying emitter running when `bound` is false') {|s|
       var emitter = events.from(s.emitter.raw, 'click');
-      using(var q = events.Queue(emitter, {bound: false})) {
+      using(var q = emitter.queue({bound: false})) {
         assert.eq(s.emitter.listeners('click').length, 1);
       }
       assert.eq(s.emitter.listeners('click').length, 1);
@@ -331,7 +323,7 @@ context() {||
     test('multiple randomly-timed events') {|s|
       var emitter = events.from(s.emitter.raw, 'click');
       waitfor {
-        using (var Q = events.Queue(emitter)) {
+        using (var Q = emitter.queue()) {
           for (var i=0; i<10; ++i) {
             hold(Math.random()*100);
             Q.get();
@@ -353,12 +345,12 @@ context() {||
 }
 
 
-context("Stream") {||
+context("stream") {||
   test('basic iteration') {||
     var evt = events.Emitter();
     var result = [];
     waitfor {
-      events.Stream(evt) .. seq.each {|item|
+      evt.stream() .. seq.each {|item|
         result.push(item);
       }
     } or {
@@ -376,7 +368,7 @@ context("Stream") {||
     var evt = events.Emitter();
     var result = [];
     waitfor {
-      events.Stream(evt) .. seq.each {|item|
+      evt.stream() .. seq.each {|item|
         result.push(item);
         if (item == 1) hold(15);
       }
@@ -395,7 +387,7 @@ context("Stream") {||
   test('only buffers once iteration begins') {||
     var evt = events.Emitter();
     var result = [];
-    var stream = events.Stream(evt);
+    var stream = evt.stream();
     waitfor {
       evt.emit(1)
       hold(10);

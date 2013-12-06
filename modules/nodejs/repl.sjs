@@ -78,7 +78,7 @@ exports.runREPL = function() {
   try {
     itf = require('readline').createInterface(stdin, process.stdout);
     using (var sigint = events.HostEmitter(itf, 'SIGINT')) {
-      using (var lines = events.Queue(itf, 'line')) {
+      using (var lines = events.HostEmitter(itf, 'line').queue()) {
         while (1) {
           switchPrompt('input');
           itf.prompt();

@@ -102,18 +102,28 @@ exports.generateDocDescription = function(contents, description) {
     }
     var moduleSymbolDocs = {};
 
-    var claim = function(name, sym) {
+    var claim = function(name, sym, moduleDocs) {
       if (!name) throw new Error("can't claim symbol: #{name}");
       if (moduleSource[name] === mod.id) return;
-      if (moduleSource[name]) throw new Error("conflict: #{name}");
+
+      var symbolDocs = moduleDocs ? moduleDocs.children[sym] : null;
+
+      if (symbolDocs && symbolDocs.type == 'class' && !symbolDocs.children[sym]) {
+        // It's just a class - there's no runtime symbol of the same name, so we can ignore it.
+        @info("skipping non-symbol class #{sym} (#{mod.id})");
+        return;
+      }
+
+      if (moduleSource[name]) throw new Error("conflict: #{name} (in both #{moduleSource[name]} and #{mod.id})");
       moduleSource[name] = mod.id;
       if (sym) {
-        var type = moduleDocs.children[sym] .. @get('type');
+        var type = symbolDocs .. @get('type');
         moduleSymbolDocs[name] = " - **#{name}**: (#{type} [#{mod.id}::#{sym}])";
       } else {
         moduleAliases[name] = " - **#{name}**: (module #{makeModuleLink(mod.id)})";
       }
     };
+
     var claimAll = function(syms, moduleDocs) {
       @info("#{mod.id} - claiming:\n  #{syms .. @join("\n  ")}");
       syms .. @each(s -> claim(s, s, moduleDocs));
