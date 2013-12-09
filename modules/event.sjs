@@ -1,6 +1,5 @@
 /*
- * StratifiedJS 'events' module
- * Stratified utilities for native events
+ * StratifiedJS 'event' module
  *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: '0.14.0-1-development'
@@ -30,9 +29,9 @@
  *
  */
 /**
-  @module    events
+  @module    event
   @summary   Event emitter and utilities for dealing with events.
-  @home      sjs:events
+  @home      sjs:event
   @require   sjs:xbrowser/dom
   @desc
     This module deals with two sources of events:
@@ -181,7 +180,7 @@ BaseEmitterProto.queue = function(opts) {
           
           var newRecord = dataStore.recordAdded;
           
-          var people = events.Stream(newRecord) .. filter(p -> p.isPerson());
+          var people = newRecord.stream() .. filter(p -> p.isPerson());
           var firstTenPeople = people .. take(10);
 
       The returned stream will have a `__finally_` method that simply calls
@@ -444,11 +443,11 @@ if (sys.hostenv == 'nodejs') {
     
     A call to this function:
     
-        var result = events.wait(emitter, eventName);
+        var result = event.wait(emitter, eventName);
     
     is essentially a shortcut for the following code:
 
-        var e = events.HostEmitter(emitter, eventName);
+        var e = event.HostEmitter(emitter, eventName);
         var result = e.wait();
         e.stop();
 */

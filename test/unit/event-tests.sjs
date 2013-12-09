@@ -2,14 +2,14 @@ var {test, context, assert} = require('sjs:test/suite');
 
 var seq = require('sjs:sequence');
 var obj = require('sjs:object');
-var events = require('sjs:events');
+var event = require('sjs:event');
 var array = require('sjs:array');
 var sys = require('builtin:apollo-sys');
 var func = require('sjs:function');
 var logging = require('sjs:logging');
 
 // An abstraction for a host-environment event emitter that
-// we can manually trigger events on:
+// we can manually trigger event on:
 var HostEmitter = function() {
   this.init.apply(this, arguments);
 }
@@ -90,7 +90,7 @@ if (sys.hostenv == 'nodejs') {
 context("Emitter") {||
   test('block/resume') {||
     var result = (function() {
-      var e = events.Emitter();
+      var e = event.Emitter();
       waitfor {
         e.wait();
         return 1;
@@ -104,7 +104,7 @@ context("Emitter") {||
   }
 
   test('retract from wait()') {||
-    var e = events.Emitter();
+    var e = event.Emitter();
     waitfor {
       e.wait();
     } or {
@@ -114,7 +114,7 @@ context("Emitter") {||
   };
 
   test('setting with a value') {||
-    var e = events.Emitter();
+    var e = event.Emitter();
     var results = [];
     waitfor {
       results.push(e.wait());
@@ -144,7 +144,7 @@ context() {||
     test("captures specific event and unregisters listener") {|s|
       var result = [];
       waitfor {
-        using (var emitter = events.HostEmitter(s.emitter.raw, 'click')) {
+        using (var emitter = event.HostEmitter(s.emitter.raw, 'click')) {
           assert.eq(s.emitter.listeners('click').length, 1);
           while(true) {
             logging.info("waiting");
@@ -168,7 +168,7 @@ context() {||
     test("captures multiple events from multiple emitters") {|s|
       var result = [];
       var emitter2 = new HostEmitter();
-      using (var emitter = events.HostEmitter([s.emitter.raw, emitter2.raw], ['click', 'drag'])) {
+      using (var emitter = event.HostEmitter([s.emitter.raw, emitter2.raw], ['click', 'drag'])) {
         assert.eq(s.emitter.listeners('click').length, 1);
         assert.eq(s.emitter.listeners('drag').length, 1);
         waitfor {
@@ -188,7 +188,7 @@ context() {||
     test('wait() shortcut') {|s|
       var result = [];
       waitfor {
-        result.push(events.wait(s.emitter.raw, 'click').detail);
+        result.push(event.wait(s.emitter.raw, 'click').detail);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -198,7 +198,7 @@ context() {||
 
     test("filter") {|s|
       waitfor {
-        events.wait(s.emitter.raw, 'click', {filter:x -> x.detail > 2}).detail .. assert.eq(3);
+        event.wait(s.emitter.raw, 'click', {filter:x -> x.detail > 2}).detail .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -209,7 +209,7 @@ context() {||
 
     test("transform") {|s|
       waitfor {
-        events.wait(s.emitter.raw, 'click', {transform:x -> x.detail}) .. assert.eq(1);
+        event.wait(s.emitter.raw, 'click', {transform:x -> x.detail}) .. assert.eq(1);
       } and {
         s.emitter.trigger('click', 1);
       }
@@ -217,7 +217,7 @@ context() {||
 
     test("filter + transform") {|s|
       waitfor {
-        events.wait(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. assert.eq(3);
+        event.wait(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -243,7 +243,7 @@ context() {||
     test("operates synchronously by default") {|s|
       var log = [];
       waitfor {
-        events.when(s.emitter.raw, 'click', opts) {|e|
+        event.when(s.emitter.raw, 'click', opts) {|e|
           log.push(e.value);
           if (e.value == 3) break;
           hold(200);
@@ -260,7 +260,7 @@ context() {||
     test("buffers events when `queue` specified") {|s|
       var log = [];
       waitfor {
-        events.when(s.emitter.raw, 'click', opts .. obj.merge({queue: true})) {|e|
+        event.when(s.emitter.raw, 'click', opts .. obj.merge({queue: true})) {|e|
           log.push(e.value);
           if (e.value == 3) break;
           hold(100);
@@ -294,7 +294,7 @@ context() {||
     }
 
     test('queues sjs events') {||
-      var emitter = events.Emitter();
+      var emitter = event.Emitter();
       runTest(emitter, null) {||
         emitter.emit({detail: 1});
         emitter.emit({detail: 2});
@@ -303,7 +303,7 @@ context() {||
     }
 
     test('queues native events') {|s|
-      var emitter = events.from(s.emitter.raw, 'click');
+      var emitter = event.from(s.emitter.raw, 'click');
       runTest(emitter, null) {||
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -312,7 +312,7 @@ context() {||
     }
 
     test('leaves underlying emitter running when `bound` is false') {|s|
-      var emitter = events.from(s.emitter.raw, 'click');
+      var emitter = event.from(s.emitter.raw, 'click');
       using(var q = emitter.queue({bound: false})) {
         assert.eq(s.emitter.listeners('click').length, 1);
       }
@@ -321,7 +321,7 @@ context() {||
     }
 
     test('multiple randomly-timed events') {|s|
-      var emitter = events.from(s.emitter.raw, 'click');
+      var emitter = event.from(s.emitter.raw, 'click');
       waitfor {
         using (var Q = emitter.queue()) {
           for (var i=0; i<10; ++i) {
@@ -347,7 +347,7 @@ context() {||
 
 context("stream") {||
   test('basic iteration') {||
-    var evt = events.Emitter();
+    var evt = event.Emitter();
     var result = [];
     waitfor {
       evt.stream() .. seq.each {|item|
@@ -365,7 +365,7 @@ context("stream") {||
   };
 
   test('buffers up to one item if iteration blocks') {||
-    var evt = events.Emitter();
+    var evt = event.Emitter();
     var result = [];
     waitfor {
       evt.stream() .. seq.each {|item|
@@ -385,7 +385,7 @@ context("stream") {||
   }
 
   test('only buffers once iteration begins') {||
-    var evt = events.Emitter();
+    var evt = event.Emitter();
     var result = [];
     var stream = evt.stream();
     waitfor {

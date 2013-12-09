@@ -9,7 +9,7 @@ and {
   var dom = require('sjs:xbrowser/dom');
 }
 and {
-  var events = require('sjs:events');
+  var event = require('sjs:event');
 }
 and {
   var ui = require('./ui');
@@ -101,7 +101,7 @@ exports.run = function(doc_root, trail_parent, index_parent, main_parent) {
         }
       }
       or {
-        events.wait(window, "hashchange");
+        event.wait(window, "hashchange");
         location = parseLocation(doc_root);
       }
     }
@@ -351,11 +351,11 @@ function doInternalErrorDialog(txt, domparent) {
 ");
   using (view.show(domparent)) {
     try {
-      events.wait(view.elems.ok, 'click');
+      event.wait(view.elems.ok, 'click');
     }
     or {
       // escape key
-      events.wait(document, 'keydown', {filter: e -> e.keyCode == 27});
+      event.wait(document, 'keydown', {filter: e -> e.keyCode == 27});
     }
   }
 }
@@ -374,7 +374,7 @@ function doLoadingDialog(domparent) {
     "<span class='mb-warning'> Still Loading... 
      <a name='retry' href='javascript:void(0)'>Retry</a> </span>");
   using(view.show(domparent)) {
-    events.wait(view.elems.retry, 'click');
+    event.wait(view.elems.retry, 'click');
   }
 }
 
@@ -424,10 +424,10 @@ function makeErrorView(location, txt) {
       view.elems.url.value = window.location.hash.substr(1);
     view.elems.url.focus();
     try {
-      events.wait(view.elems.url, "keypress", function(e) { return e.keyCode == 13; });
+      event.wait(view.elems.url, "keypress", function(e) { return e.keyCode == 13; });
     }
     or { 
-      events.wait(view.elems.go, "click");
+      event.wait(view.elems.go, "click");
     }
     window.location.replace("#"+view.elems.url.value);
   };

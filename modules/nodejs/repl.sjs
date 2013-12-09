@@ -40,7 +40,7 @@ var sys = require('builtin:apollo-sys');
 if (sys.hostenv != 'nodejs') 
   throw new Error('The nodejs/repl module only runs in a nodejs environment');
 
-var events = require('../events');
+var event = require('../event');
 var debug = require('../debug');
 var Url = require('../url');
 
@@ -77,8 +77,8 @@ exports.runREPL = function() {
 
   try {
     itf = require('readline').createInterface(stdin, process.stdout);
-    using (var sigint = events.HostEmitter(itf, 'SIGINT')) {
-      using (var lines = events.HostEmitter(itf, 'line').queue()) {
+    using (var sigint = event.HostEmitter(itf, 'SIGINT')) {
+      using (var lines = event.HostEmitter(itf, 'line').queue()) {
         while (1) {
           switchPrompt('input');
           itf.prompt();

@@ -5,6 +5,8 @@ This changelog lists the most prominent, developer-visible changes in each relea
  * modules can now be made executable. use `if (require.main === module) { ... }` to run
    additional code when your module is being run (rather than just imported).
 
+ * the `sjs:events` module has been renamed to `sjs:event`.
+
  * new @ (alternate namespace) syntax
 
  * process.ARGV retains the same number of arguments as it does for native nodejs programs
@@ -32,11 +34,11 @@ This changelog lists the most prominent, developer-visible changes in each relea
  * The require method can accept an array of modules now which it will load in parallel. The
    return value is an object with a union of the exported properties from each module.
 
- * The optional `filter` and `transform` arguments to events.HostEmitter (and events.when) have been
+ * The optional `filter` and `transform` arguments to event.HostEmitter (and event.when) have been
    replaced with a settings object, which may have values for any of `filter`, `transform` and (now)
    `handle`. In typical use, `transform` is unnecessary.
 
- * events::Queue and events::Stream have now been moved to methods on the individual emitter - e.g
+ * event::Queue and event::Stream have now been moved to methods on the individual emitter - e.g
    instead of `Queue(emitter)`, use `emitter.queue()`.
 
  * array::contains has been moved to sequence::hasElem (it now operates on any Stream type, and
@@ -58,6 +60,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
    * sys::argv()
    * require.hubs.addDefault(hub)
    * require.hubs.defined(prefix)
-   * events::when
+   * event::when
+   * event.HostEmitter::when
 
 

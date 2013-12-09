@@ -642,7 +642,7 @@
   Example of an event loop in StratifiedJS:
 
 
-      using (var emitter = require("sjs:events").HostEmitter(window, "keydown"))) {
+      using (var emitter = require("sjs:event").HostEmitter(window, "keydown"))) {
         while(true) {
           switch (emitter.wait().keyCode) {
             ...
@@ -650,7 +650,7 @@
         }
       }
 
-  (in practice, you would just use [events::when]).
+  (in practice, you would just use [event::when]).
 
 @syntax calling-javascript
 @summary Interfacing with plain Javascript code

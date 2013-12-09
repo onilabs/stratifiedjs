@@ -11,7 +11,7 @@
   @require sjs:assert
   @require sjs:logging
   @require sjs:string
-  @require sjs:events
+  @require sjs:event
   @require sjs:sys
   @require sjs:url
 */
@@ -30,7 +30,7 @@ var modules = [
   {id:'sjs:assert', name:'assert'},
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
-  'sjs:events',
+  'sjs:event',
   {id:'sjs:sys', name: 'sys'},
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},

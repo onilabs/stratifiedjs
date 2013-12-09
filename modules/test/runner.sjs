@@ -133,7 +133,7 @@ waitfor {
 } and {
   var { Condition } = require("../cutil.sjs");
 } and {
-  var { Emitter } = require("../events.sjs");
+  var { Emitter } = require("../event.sjs");
 } and {
   var array = require('../array');
   var { isArrayLike } = array;

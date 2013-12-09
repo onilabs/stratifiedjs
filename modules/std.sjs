@@ -17,7 +17,7 @@
   @require sjs:assert
   @require sjs:logging
   @require sjs:string
-  @require sjs:events
+  @require sjs:event
   @require sjs:sys
   @require sjs:url
 */
@@ -36,7 +36,7 @@ var modules = [
   {id:'sjs:assert', name:'assert'},
   {id:'sjs:logging', include:['print','debug','verbose','info','warn','error']},
   {id:'sjs:logging', name:'logging'},
-  'sjs:events',
+  'sjs:event',
   {id:'sjs:sys', name: 'sys'},
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
@@ -119,12 +119,12 @@ module.exports = require(modules);
    - **prompt**: (function [sjs:debug::prompt])
   
   
-  ### Symbols from the [sjs:events](#sjs%3Aevents) module:
+  ### Symbols from the [sjs:event](#sjs%3Aevent) module:
   
-   - **Emitter**: (class [sjs:events::Emitter])
-   - **HostEmitter**: (class [sjs:events::HostEmitter])
-   - **wait**: (function [sjs:events::wait])
-   - **when**: (function [sjs:events::when])
+   - **Emitter**: (class [sjs:event::Emitter])
+   - **HostEmitter**: (class [sjs:event::HostEmitter])
+   - **wait**: (function [sjs:event::wait])
+   - **when**: (function [sjs:event::when])
   
   
   ### Symbols from the [sjs:logging](#sjs%3Alogging) module:

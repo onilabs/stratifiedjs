@@ -9,7 +9,7 @@ context {||
   var cutil = require('sjs:cutil');
   var seq = require('sjs:sequence');
   var array = require('sjs:array');
-  var events = require('sjs:events');
+  var event = require('sjs:event');
   var child_process = require('sjs:nodejs/child-process');
   var fs = require('sjs:nodejs/fs');
   var NODE_VERSION = process.versions['node'].split('.').map(x -> parseInt(x));
@@ -174,7 +174,7 @@ context {||
       });
 
       child.pid .. isRunning() .. assert.ok("child pid not running! (#{child.pid})");
-      using (var q = events.from(child.stdout, 'data').queue()) {
+      using (var q = event.from(child.stdout, 'data').queue()) {
         var pid;
         var lines = [];
 

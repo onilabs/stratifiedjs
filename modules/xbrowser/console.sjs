@@ -49,7 +49,7 @@ var { extend, hasOwn } = require('../object');
 var str = require('../string');
 var { each, map, join } = require('../sequence');
 var { remove } = require('../array');
-var dom, events; // set in Console.init
+var dom, event; // set in Console.init
 
 //----------------------------------------------------------------------
 // logging
@@ -211,7 +211,7 @@ function inspect_obj(obj, name) {
   spawn((function() {
     var toggle = rv.firstChild.firstChild;
     while (true) {
-      events.wait(toggle, 'click');
+      event.wait(toggle, 'click');
       var children = makeDiv(null, "margin-left:15px");
       var props = Object.keys(obj);
       props.sort();
@@ -224,7 +224,7 @@ function inspect_obj(obj, name) {
       }
       rv.appendChild(children);
       toggle.firstChild.style.backgroundImage = "url("+icons.treeopen+")";
-      events.wait(toggle, 'click');
+      event.wait(toggle, 'click');
       toggle.firstChild.style.backgroundImage = "url("+icons.treeclosed+")";
       rv.removeChild(children);
       children = null;
@@ -269,7 +269,7 @@ exports.console = function(opts) {
 
 function Console(opts) {
   dom = require('./dom');
-  events = require('../events');
+  event = require('../event');
   opts = extend({
     collapsed : true,
     height: 200,
@@ -376,7 +376,7 @@ Console.prototype = {
     actions[40] = history_next; // key down
  
     waitfor {
-      events.when(this.cmdline, 'keydown', {
+      event.when(this.cmdline, 'keydown', {
         filter: e -> actions .. hasOwn(e.keyCode),
         handle: dom.stopEvent,
         queue: true,
@@ -388,16 +388,16 @@ Console.prototype = {
         // Can't wait for click on this.term here, because of
         // Android bug http://code.google.com/p/android/issues/detail?id=8575
         waitfor {
-          events.wait(this.closebutton, "click");
+          event.wait(this.closebutton, "click");
           this.shut();
         }
         or {
-          var ev = events.wait(this.output, "click");
+          var ev = event.wait(this.output, "click");
           if (dom.eventTarget(ev) == this.output)
             this.focus();
         }
         or {
-          events.wait(this.clearbutton, "click");
+          event.wait(this.clearbutton, "click");
           this.clear();
         }
       };
@@ -405,7 +405,7 @@ Console.prototype = {
     and {
       if (isWebkitMobile) {
         // emulate position:fixed on webkit:
-        using (var move = events.HostEmitter(document.getElementsByTagName("body")[0], ['touchmove', 'touchend'])) {
+        using (var move = event.HostEmitter(document.getElementsByTagName("body")[0], ['touchmove', 'touchend'])) {
           var stick = => viewportStick(this.summonbutton);
           stick();
           move.stream() .. each(stick);
@@ -414,14 +414,14 @@ Console.prototype = {
     }
     and {
       while (true) {
-        var ev = events.wait(this.resizehandle,"mousedown");
+        var ev = event.wait(this.resizehandle,"mousedown");
         var lasty = ev.clientY;
         document.documentElement.style.webkitUserSelect = "none";
         waitfor {
-          events.wait(document, "mouseup");
+          event.wait(document, "mouseup");
         }
         or {
-          using (var mm = events.HostEmitter(document, "mousemove")) {
+          using (var mm = event.HostEmitter(document, "mousemove")) {
             mm.stream() .. each {|ev|
               var ev = mm.get();
               var h = lasty - ev.clientY + this.term.clientHeight;
@@ -453,7 +453,7 @@ Console.prototype = {
   shut : function () {
     this.term.style.display = "none";
     this.summonbutton.style.visibility = "visible";
-    spawn (events.wait(this.summonbutton, "click"),
+    spawn (event.wait(this.summonbutton, "click"),
            this.expand());
   },
   
@@ -498,7 +498,7 @@ Console.prototype = {
           try {
             e.firstChild.innerHTML += "<a title='Cancel this stratum' style='text-decoration:underline;cursor:pointer;float:right'>abort</a>";
             var b = e.firstChild.lastChild;
-            events.wait(b, "click");
+            event.wait(b, "click");
             result.innerHTML = "<span style='color:red'>Aborted</span>";
           }
           finally {
