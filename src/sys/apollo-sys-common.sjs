@@ -817,6 +817,14 @@ __js function resolve(module, require_obj, parent, opts) {
     }
   }
 
+  if (module in __oni_rt.modsrc) {
+    // XXX we're moving modsrc -> __oni_rt_bundle because
+    // the former doesn't support hubs
+    if (!preload.m) preload.m = {};
+    preload.m[resolveSpec.path] = __oni_rt.modsrc[module];
+    delete __oni_rt.modsrc[module];
+  }
+
   if (preload.m) {
     var path = resolveSpec.path;
     var contents = preload.m[path];
