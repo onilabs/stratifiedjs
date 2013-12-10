@@ -93,7 +93,8 @@ __js exports.getGlobal = function() { return __oni_rt.G; };
 __js exports.isArrayLike = function(obj) {
   return Array.isArray(obj) || 
          !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
-         !!(__oni_rt.G.NodeList && obj instanceof NodeList);
+         !!(__oni_rt.G.NodeList && obj instanceof NodeList) ||
+         !!(__oni_rt.G.StaticNodeList && obj instanceof StaticNodeList);
 };
 
 /**

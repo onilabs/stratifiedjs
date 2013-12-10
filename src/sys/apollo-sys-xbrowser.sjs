@@ -54,7 +54,7 @@ __js function determineLocation() {
     location = {};
     var scripts = document.getElementsByTagName("script"), matches;
     for (var i=0; i<scripts.length; ++i) {
-      if ((matches = /(.*)stratified(.*).js(\?.*)?$/.exec(scripts[i].src))) {
+      if ((matches = /^(.*\/)(?:[^\/]*)stratified(?:[^\/]*)\.js(?:\?.*)?$/.exec(scripts[i].src))) {
         location.location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
         location.requirePrefix = scripts[i].getAttribute("require-prefix");
         location.req_base = scripts[i].getAttribute("req-base") || document.location.href;
@@ -393,9 +393,8 @@ function request_hostenv(url, settings) {
 
 __js function getHubs_hostenv() {
   return [
-    ["sjs:", determineLocation().location ? 
-                  determineLocation().location : 
-                  { src: function(path) { 
+    ["sjs:", determineLocation().location ||
+                  { src: function(path) {
                       throw new Error("Can't load module '"+path+
                                       "': The location of the StratifiedJS standard module lib is unknown - it can only be inferred automatically if you load stratified.js in the normal way through a <script> element."); }
                   } ],
