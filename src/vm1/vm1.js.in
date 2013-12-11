@@ -654,11 +654,18 @@ EF_Seq.prototype.cont = function(idx, val) {
             return this.returnToParent(val);
         }
       }
-      if ((++idx == this.ndata.length && this.tailcall) || is_cfx(val)) {
+      if (++idx == this.ndata.length && this.tailcall) {
         // tail call optimization: 
         break;
       }
-      if (is_ef(val)) {
+      if (is_cfx(val)) {
+        // handle reentrant blocklambda breaks
+        // (see sjs2-tests:reentrant blocklambda resume/break)
+        if (val.type === 'blb' && val.ef === this.env.blscope)
+          val = undefined;
+        break;
+      }
+      else if (is_ef(val)) {
         this.setChildFrame(val, idx);
         return this;
       }

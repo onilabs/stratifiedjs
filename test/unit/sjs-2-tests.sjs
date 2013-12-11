@@ -855,3 +855,14 @@ test("single-sided conditional: true ? blocking_yes()", 'yes', function() {
   return true ? blocking_yes();
 });
 
+test("reentrant blocklambda resume/break", undefined, function() {
+  var R;
+  waitfor {
+    ({|| 
+      waitfor() { R = resume } 
+      break; 
+      hold();
+     })();
+  }
+  and { R(); }
+});

@@ -633,11 +633,18 @@ if(!is_ef(val))return this.returnToParent(val);
 
 }
 }
-if((++idx==this.ndata.length&&this.tailcall)||(val&&val.__oni_cfx)){
+if(++idx==this.ndata.length&&this.tailcall){
 
 break;
 }
-if(is_ef(val)){
+if((val&&val.__oni_cfx)){
+
+
+if(val.type==='blb'&&val.ef===this.env.blscope)val=undefined;
+
+break;
+}else if(is_ef(val)){
+
 this.setChildFrame(val,idx);
 return this;
 }
