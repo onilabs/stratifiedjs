@@ -1775,7 +1775,7 @@ each.par = function(/* seq, max_strata, r */) {
             break;
           }
         }
-        if (max_strata === 1) {
+        if (max_strata === 1 && !waiting_for_next) {
           // we're operating at the strata limit; process the next
           // item from upstream:
           inner();
