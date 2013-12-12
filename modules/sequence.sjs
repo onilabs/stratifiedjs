@@ -68,21 +68,23 @@ __js var identity = (x) -> x;
    @summary Create a Stream from a streaming function
    @param {Function} [S] Streaming function
    @desc
-     A streaming function `S` is a function with signature `S(r)`, where `r`, the *receiver function*, is a 
+     A streaming function `S` is a function with signature `S(emit)`, where `emit`, is a
      function of a single argument.
-     When called, `S(r)` must sequentially invoke `r(x)` with the stream's data elements 
-     `x=x1,x2,x3,...` until the stream is empty. `S` must not invoke `r` reentrantly.
+     When called, `S(emit)` must sequentially invoke `emit(x)` with the stream's data elements
+     `x=x1,x2,x3,...` until the stream is empty. `S` must not invoke `emit` reentrantly.
 
      ### Example:
      
-         // The stream 1,2,3,...,10 can be expressed by the streaming function:
-         function S(r) { for (var i=1; i<=10; ++1) r(i) }
+          // The stream 1,2,3,...,10 can be expressed by:
+          var s = Stream(function(emit) {
+            for (var i=1; i<=10; ++1) emit(i);
+          });
  
-         // We then have:
-         S(function(x) { console.log(x); }); // -> 1,2,3,...,10
+          // We can then use it with `each`:
+          each(s, console.log); // -> 1,2,3,...,10
 
-         // blocklambda form:
-         S { |x| console.log(x*x) }  // -> 1,4,9,...,100
+          // or, using a blocklambda:
+          s .. each { |x| console.log(x*x) }  // -> 1,4,9,...,100
 
 */
 __js {
