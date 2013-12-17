@@ -15,5 +15,10 @@
       ['key2', 'val2'],
     ]);
   }
+
+  @test('escaping of end-comments') {||
+    @docutil.extractDocComments("/**comment with end (*\\/) bits*/")
+    .. @assert.eq(["comment with end (*/) bits"]);
+  }
 }
     

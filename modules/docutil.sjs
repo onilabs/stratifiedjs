@@ -123,7 +123,10 @@ var extractDocComments = exports.extractDocComments = function(src) {
     var matches;
     // extract only comments beginning with '/**'
     if (!(matches = /^\/\*\*((?:.|\n|\r)*)\*\/$/.exec(c))) return;
-    comments.push(matches[1]);
+    var contents = matches[1];
+    // "*/" within doc-comments is escaped as "*\/"
+    contents = contents.replace(/\*\\\//, '*/');
+    comments.push(contents);
   });
     
   return comments;
