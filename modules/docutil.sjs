@@ -125,7 +125,7 @@ var extractDocComments = exports.extractDocComments = function(src) {
     if (!(matches = /^\/\*\*((?:.|\n|\r)*)\*\/$/.exec(c))) return;
     var contents = matches[1];
     // "*/" within doc-comments is escaped as "*\/"
-    contents = contents.replace(/\*\\\//, '*/');
+    contents = contents.replace(/\*\\\//g, '*/');
     comments.push(contents);
   });
     

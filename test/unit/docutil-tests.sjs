@@ -17,8 +17,8 @@
   }
 
   @test('escaping of end-comments') {||
-    @docutil.extractDocComments("/**comment with end (*\\/) bits*/")
-    .. @assert.eq(["comment with end (*/) bits"]);
+    @docutil.extractDocComments("/**comment with multiple *\\/ end (*\\/) bits*/")
+    .. @assert.eq(["comment with multiple */ end (*/) bits"]);
   }
 }
     
