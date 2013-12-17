@@ -324,3 +324,16 @@ exports.getPrefixedProperties = function(docs, ns) {
     };
   return [root, props];
 }
+
+// Coerce a value to a proper boolean
+//
+// Since docutil has no type information, we can't
+// tell "true" apart from `true`, so we rely on
+// callers to use `toBool` for properties they
+// expect to be a boolean.
+exports.toBool = function(b) {
+  if (b === true || b === 'true') return true;
+  if (b === false || b === 'false') return false;
+  return undefined;
+}
+
