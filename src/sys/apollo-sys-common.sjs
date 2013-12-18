@@ -107,18 +107,25 @@ __js exports.isArrayLike = function(obj) {
   @desc
     See [../../modules/array::flatten]
 */
-__js exports.flatten = function(arr, rv) {
-  var rv = rv || [];
-  var l=arr.length;
-  for (var i=0; i<l; ++i) {
-    var elem = arr[i];
-    if (exports.isArrayLike(elem))
-      exports.flatten(elem, rv);
-    else
-      rv.push(elem);
-  }
-  return rv;
-};
+__js {
+  var _flatten = function(arr, rv) {
+    var l=arr.length;
+    for (var i=0; i<l; ++i) {
+      var elem = arr[i];
+      if (exports.isArrayLike(elem))
+        _flatten(elem, rv);
+      else
+        rv.push(elem);
+    }
+  };
+
+  exports.flatten = function(arr) {
+    var rv = [];
+    if (arr.length === UNDEF) throw new Error("flatten() called on non-array");
+    _flatten(arr, rv);
+    return rv;
+  };
+}
 
 /**
   @function expandSingleArgument
