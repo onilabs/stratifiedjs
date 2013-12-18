@@ -87,6 +87,7 @@ RegistryProto.factory = function(key, factory) {
   @param {String} [key]
   @param {Object} [value]
   @summary Define a value
+  @return {Object} the value passed in
   @desc
     Future calls to `get(key)` will return `val`.
 
@@ -97,6 +98,7 @@ RegistryProto.factory = function(key, factory) {
 */
 RegistryProto.value = RegistryProto.set = function(key, val) {
   this._db[key] = { instance: val };
+  return val;
 };
 
 /**
