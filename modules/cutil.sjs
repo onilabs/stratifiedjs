@@ -312,18 +312,23 @@ var SemaphoreProto = {
 
 // shared prototype for events.Emitter, events.HostEmitter & cutil.Condition objects
 // (undocumented)
-var Waitable = {};
-exports._Waitable = Waitable;
-Waitable.init = function() {
-  this.waiting = [];
+__js {
+  var Waitable = {};
+  exports._Waitable = Waitable;
+  Waitable.init = function() {
+    this.waiting = [];
+  }
+  
+  Waitable.emit = function emit(value) {
+    if(this.waiting.length == 0) return;
+    var waiting = this.waiting;
+    this.waiting = [];
+    // because we are in a __js block, the code below is equivalent to 
+    //  spawn(waiting .. each { |resume| resume(value) });
+    for (var i=0; i<waiting.length; ++i)
+      waiting[i](value);
+  };
 }
-
-Waitable.emit = function emit(value) {
-  if(this.waiting.length == 0) return;
-  var waiting = this.waiting;
-  this.waiting = [];
-  spawn(waiting .. each { |resume| resume(value) });
-};
 
 Waitable.wait = function wait() {
   waitfor(var result) {

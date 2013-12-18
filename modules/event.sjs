@@ -260,14 +260,16 @@ BaseEmitterProto.when = function(options, block) {
 /**
   @function Emitter
 */
-function Emitter() {
-  var rv = Object.create(EmitterProto);
-  rv.init.call(rv, arguments);
-  return rv;
-};
-exports.Emitter = Emitter;
+__js {
+  function Emitter() {
+    var rv = Object.create(EmitterProto);
+    rv.init.call(rv, arguments);
+    return rv;
+  };
+  exports.Emitter = Emitter;
 
-var EmitterProto = Object.create(BaseEmitterProto);
+  var EmitterProto = Object.create(BaseEmitterProto);
+}
 
 /**
   @class     HostEmitter
