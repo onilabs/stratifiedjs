@@ -446,15 +446,15 @@ exports.removeCookie = function(name) {
 };
 
 /**
-  @function isHtmlElement
-  @summary  test whether an object is a HTMLElement
+  @function isDOMNode
+  @summary  test whether an object is a DOM node
   @param    {Object} [obj] the object to test
-  @return   {Boolean} whether the argument is a HTMLElement
+  @return   {Boolean} whether the argument is a DOM node
   @desc
      Checks well-known property names (i.e. duck typing). This may
      result in false positives in some cases, but will work even for
      elements that are from a different document (e.g from an iframe).
  */
-exports.isHtmlElement = function(o) {
+exports.isDOMNode = function(o) {
   return o && typeof o === "object" && o !== null && o.nodeType > 0 && typeof o.nodeName==="string";
 }

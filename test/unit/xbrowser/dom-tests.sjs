@@ -97,10 +97,10 @@ if(testUtil.isBrowser) {
     });
   }.skipIf(IE7);
 
-  context('isElement') {||
-    test('on DOM node', -> dom.isHtmlElement(document.createElement('div')) .. assert.ok);
-    test('on non-html DOM node', -> dom.isHtmlElement(document.createElement('some-elem')) .. assert.ok);
-    test('on text DOM node', -> dom.isHtmlElement(document.createTextNode('txt')) .. assert.ok);
+  context('isDOMNode') {||
+    test('on DOM node', -> dom.isDOMNode(document.createElement('div')) .. assert.ok);
+    test('on non-html DOM node', -> dom.isDOMNode(document.createElement('some-elem')) .. assert.ok);
+    test('on text DOM node', -> dom.isDOMNode(document.createTextNode('txt')) .. assert.ok);
   }
 }
 

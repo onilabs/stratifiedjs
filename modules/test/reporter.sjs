@@ -453,7 +453,7 @@ HtmlOutput.prototype.print = function(msg, endl) {
   var scrollBottom = getScrollBottom();
   var followOutput = getDocumentHeight() <= scrollBottom;
   if (msg === undefined) msg = '';
-  if (!dom.isHtmlElement(msg)) {
+  if (!dom.isDOMNode(msg)) {
     msg = document.createTextNode(msg);
   }
   this.output.appendChild(msg);

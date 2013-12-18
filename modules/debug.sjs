@@ -38,7 +38,7 @@
 
 var { map, reduce, join } = require('./sequence');
 var sys = require('builtin:apollo-sys');
-var isHtmlElement = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isHtmlElement : -> false;
+var isDOMNode = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isDOMNode : -> false;
 
 
 /**
@@ -261,8 +261,8 @@ __js function formatValue(ctx, value, recurseTimes) {
 
 
 function formatPrimitive(ctx, value) {
-  if (isHtmlElement(value)) {
-    return '[HTML: ' + (value.outerHTML || value.data) + ']';
+  if (isDOMNode(value)) {
+    return '[DOM: ' + (value.outerHTML || value.data) + ']';
   }
   switch (typeof value) {
     case 'undefined':
