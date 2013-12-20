@@ -3,7 +3,7 @@
  * Main application module
  *
  * Part of StratifiedJS
- * Version: '0.15.0'
+ * Version: '0.15.0-1-development'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2011-2013 Oni Labs, http://onilabs.com
@@ -326,7 +326,7 @@ or {
     print("");
     print("   ^    Oni Rocket Server");
     print("  | |");
-    print("  |O|   * Version: '0.15.0'");
+    print("  |O|   * Version: '0.15.0-1-development'");
     print("  | |");
     print(" | _ |  * Launched with root directory");
     print("/_| |_\\   '#{root}'");

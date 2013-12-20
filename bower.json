@@ -1,9 +1,9 @@
 {
   "name": "stratifiedjs",
-  "version" : "0.15.0",
+  "version" : "0.15.0-1-development",
   "author" : "Oni Labs <maintainers@onilabs.com>",
   "homepage" : "http://onilabs.com/stratifiedjs",
-  "private" : false,
+  "private" : true,
   "main": ["stratified.js"],
   "ignore": ["src", "test", "examples"],
   "dependencies": {

@@ -3,7 +3,7 @@
  * Server filesystem module
  *
  * Part of StratifiedJS
- * Version: '0.15.0'
+ * Version: '0.15.0-1-development'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
