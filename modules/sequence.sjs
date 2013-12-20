@@ -1766,7 +1766,7 @@ each.par = function(/* seq, max_strata, r */) {
               // when next() generates data without blocking.  for
               // performance reasons we only do this only after having
               // built the tree to a certain depth:
-              if (++depth % 100 == 0)
+              if (++depth % 10 == 0)
                 hold(0); 
               if (!waiting_for_next) {
                 async_trigger();
