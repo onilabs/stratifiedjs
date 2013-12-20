@@ -1,5 +1,5 @@
 @lib     StratifiedJS Standard Module Library
-@version 0.14.0-1-development
+@version 0.15.0
 @summary Standard collection of modules for client and server-side stratified programming with 
          [StratifiedJS](http://onilabs.com/stratifiedjs)
 @desc

@@ -2,16 +2,15 @@
   "name": "stratifiedjs",
   "description": "StratifiedJS Framework",
   "author" : "Oni Labs <maintainers@onilabs.com>",
-  "version" : "0.14.0-1-development",
+  "version" : "0.15.0",
   "homepage" : "http://onilabs.com/stratifiedjs",
-  "private" : true,
+  "private" : false,
   "repository":   {
     "type": "git",
     "url": "git://github.com/onilabs/stratifiedjs.git"
   },
   "main": "stratified-node.js",
   "keywords": ["stratifiedjs", "async", "language"],
-  "main": "stratified-node",
   "bin": { "sjs": "sjs", "rocket": "rocket" },
   "devDependencies": {
     "karma-sjs-adapter": "~0.2.0"
