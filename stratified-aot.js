@@ -449,15 +449,18 @@ StratumAborted.prototype=new Error("stratum aborted");
 
 
 
-function Env(aobj,tobj,file,blref,blscope){this.aobj=aobj;
+
+
+function Env(aobj,tobj,file,blbref,blrref,blscope){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
-this.blref=blref;
+this.blbref=blbref;
+this.blrref=blrref;
 this.blscope=blscope;
 }
 
-function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blref,e.blscope);
+function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blbref,e.blrref,e.blscope);
 
 }
 
@@ -561,18 +564,20 @@ this.env=env;
 if(ndata[0]&8){
 if(ndata[0]&64){
 this.env=copyEnv(env);
-this.env.blref=env.blscope;
+this.env.blbref=env.blscope;
+this.env.blrref=env.blrref;
 this.env.blscope=this;
 }else{
 
 
-env.blref=this;
+env.blbref=this;
+env.blrref=this;
 env.blscope=this;
 }
 }else if(ndata[0]&1){
 
 this.env=copyEnv(env);
-if(ndata[0]&64)this.env.blref=env.blscope;
+if(ndata[0]&64)this.env.blbref=env.blscope;
 
 
 
@@ -2457,25 +2462,25 @@ exports.Cont=function(lbl){return new CFException("c",lbl);
 
 exports.BlBreak=function(env,lbl){var e=new CFException('blb',lbl);
 
-if(!env.blref)throw new Error("Internal runtime error; no reference frame in BlBreak");
-if(env.blref.unreturnable&&!env.blref.toplevel)throw new Error("Blocklambda break to inactive scope");
+if(!env.blbref)throw new Error("Internal runtime error; no reference frame in BlBreak");
+if(env.blbref.unreturnable&&!env.blbref.toplevel)throw new Error("Blocklambda break to inactive scope");
 
-e.ef=env.blref;
+e.ef=env.blbref;
 return e;
 };
 
 exports.BlReturn=function(exp){var e=new CFException('r',exp);
 
-if(!this.blref)throw new Error("Internal runtime error; no reference frame in BlReturn");
-if(this.blref.unreturnable){
-if(this.blref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
+if(!this.blrref)throw new Error("Internal runtime error; no reference frame in BlReturn");
+if(this.blrref.unreturnable){
+if(this.blrref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
 
 
 
 throw new Error("Blocklambda return to inactive function");
 }
 }
-e.ef=this.blref;
+e.ef=this.blrref;
 return e;
 };
 
