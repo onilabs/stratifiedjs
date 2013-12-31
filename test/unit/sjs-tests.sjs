@@ -1414,7 +1414,7 @@ testEq("complicated blocklambda return", 111, function() {
   return rv;
 });
 
-testEq("BROKEN: nested blocklambda return", "inner", function() {
+testEq("nested blocklambda return", "inner", function() {
   function f(bl) { bl() };
   f {||
     f {||
@@ -1423,7 +1423,7 @@ testEq("BROKEN: nested blocklambda return", "inner", function() {
     return "outer";
   }
   return "toplevel";
-}).skip();
+});
 
 testEq("BROKEN: detached blocklambda return", 'a', function() {
   function f(g) {

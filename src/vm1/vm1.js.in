@@ -428,25 +428,28 @@ StratumAborted.prototype = new Error("stratum aborted");
     aobj: 'arguments' object,
     tobj: 'this' object,
     file: filename,
-    blref: function execution frame that blocklambda returns/breaks should
-           target in current environment 
-    blscope: like blref, but will be cleared at function boundaries. This is
+    blbref: function execution frame that blocklambda breaks should
+            target in current environment 
+    blrref: function execution frame that blocklambda returns should
+            target in current environment 
+    blscope: like blbref, but will be cleared at function boundaries. This is
              to identify the topmost execution frame that a blocklambda break 
              should return to
   }
 
 */
 
-function Env(aobj, tobj, file, blref, blscope) { 
+function Env(aobj, tobj, file, blbref, blrref, blscope) { 
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
-  this.blref = blref;
+  this.blbref = blbref;
+  this.blrref = blrref;
   this.blscope = blscope;
 }
 
 function copyEnv(e) {
-  return new Env(e.aobj, e.tobj, e.file, e.blref, e.blscope);  
+  return new Env(e.aobj, e.tobj, e.file, e.blbref, e.blrref, e.blscope);  
 }
 
 //----------------------------------------------------------------------
@@ -563,25 +566,27 @@ function EF_Seq(ndata, env) {
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) {
     if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_BLOCKLAMBDA) {
       this.env = copyEnv(env);
-      this.env.blref = env.blscope; // `break` in our scope targets our parent's scope
+      this.env.blbref = env.blscope; // `break` in our scope targets our parent's scope
+      this.env.blrref = env.blrref;
       this.env.blscope = this; // we're a scope for any `break`s in nested blocklambdas
     }
     else {
       // XXX no need to copy env here?
-      env.blref = this; // note down function execution frame in environment
+      env.blbref = this; // note down function execution frame in environment
+      env.blrref = this;
       env.blscope = this;
     }
   }
   else if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
     this.env = copyEnv(env);
     if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_BLOCKLAMBDA)
-      this.env.blref = env.blscope; // `break` in our scope targets our parent's scope
+      this.env.blbref = env.blscope; // `break` in our scope targets our parent's scope
 
     // we're a function (blocklambda or normal) but NOT a scope 
     // for any `break`s in child frames (otherwise the compiler would
     // have marked us 'notailcall'). clear blscope so that targeted `break` calls will
     // find their way to the correct scope:
-    this.env.blscope = null; 
+    this.env.blscope = null;
   }
 
   this.tailcall = !(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
@@ -715,7 +720,7 @@ function I_seq(ndata, env) {
 
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
     if (is_cfx(val)) {
-      if (val.type == "r") {
+      if (val.type == "r") { 
         if (!val.ef)
           val = val.val;
       }
@@ -2659,25 +2664,25 @@ exports.Cont = function(lbl) {
 
 exports.BlBreak = function(env, lbl) {
   var e = new CFException('blb', lbl);
-  if (!env.blref) throw new Error("Internal runtime error; no reference frame in BlBreak");
-  if (env.blref.unreturnable && !env.blref.toplevel) // the return scope is not active anymore!
+  if (!env.blbref) throw new Error("Internal runtime error; no reference frame in BlBreak");
+  if (env.blbref.unreturnable && !env.blbref.toplevel) // the return scope is not active anymore!
     throw new Error("Blocklambda break to inactive scope");
-  e.ef = env.blref;
+  e.ef = env.blbref;
   return e;
 };
 
 exports.BlReturn = function(exp) {
   var e = new CFException('r', exp);
-  if (!this.blref) throw new Error("Internal runtime error; no reference frame in BlReturn");
-  if (this.blref.unreturnable) { 
-    if (this.blref.toplevel)
+  if (!this.blrref) throw new Error("Internal runtime error; no reference frame in BlReturn");
+  if (this.blrref.unreturnable) { 
+    if (this.blrref.toplevel)
       throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");
     else {
       // return scope not active anymore!
       throw new Error("Blocklambda return to inactive function");
     }
   }
-  e.ef = this.blref;
+  e.ef = this.blrref;
   return e;
 };
 
