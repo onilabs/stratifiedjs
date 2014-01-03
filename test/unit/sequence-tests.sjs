@@ -748,3 +748,27 @@ test("hasElem") {||
   assert.notOk(nonRepeatableSequence([1,2,3]) .. s.hasElem(5));
 }
 
+testEq("transform.par.unordered doesn't call downstream reentrantly", 1, function() {
+  var reentrancy = 0, max_reentrancy = 0;
+  [1,2,3,4,5,6,7,8,9,10] .. s.transform.par.unordered(3, x->x) .. s.each {
+    |x|
+    ++reentrancy;
+    max_reentrancy = Math.max(max_reentrancy, reentrancy);
+    hold(0);
+    --reentrancy;
+  }
+  return max_reentrancy;
+});
+
+testEq("filter.par doesn't call downstream reentrantly", 1, function() {
+  var reentrancy = 0, max_reentrancy = 0;
+  [1,2,3,4,5,6,7,8,9,10] .. s.filter.par(3, x->x) .. s.each {
+    |x|
+    ++reentrancy;
+    max_reentrancy = Math.max(max_reentrancy, reentrancy);
+    hold(0);
+    --reentrancy;
+  }
+  return max_reentrancy;
+});
+
