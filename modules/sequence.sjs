@@ -45,6 +45,18 @@ var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
 // identity function:
 __js var identity = (x) -> x;
 
+// lazy getters for some infrequently used modules:
+var _cutil, _function;
+function get_cutil() { 
+  if (_cutil === undefined) 
+    _cutil = require('./cutil');
+  return _cutil;
+}
+function get_function() { 
+  if (_function === undefined)
+    _function = require('./function');
+  return _function;
+}
 
 //----------------------------------------------------------------------
 
@@ -1189,13 +1201,12 @@ exports.unpack = unpack;
           // ['boom', 'tsh', 'tsh', 'tsh', 'boom', 'tsh', 'tsh' ... ]
 */
 function combine(/* streams ... */) {
-  var cutil = require('./cutil');
   var streams = arguments;
   return Stream(function(emit) {
     var include_stream = function(s) {
       s .. each(emit);
     }
-    cutil.waitforAll(include_stream, streams);
+    get_cutil().waitforAll(include_stream, streams);
   });
 }
 exports.combine = combine;
@@ -1661,7 +1672,7 @@ exports.fib = fib;
 */
 function buffer(seq, count) {
   return Stream(function(r) {
-    var Q = require('./cutil').Queue(count-1), eos = {};
+    var Q = get_cutil().Queue(count-1), eos = {};
     waitfor {
       seq .. each { |x| Q.put(x); }
       Q.put(eos);
@@ -1875,6 +1886,7 @@ transform.par.unordered = function(/* sequence, max_strata, f */) {
     [sequence, max_strata, f] = arguments;
 
   return Stream(function(r) {
+    r = get_function().sequential(r);
     sequence .. each.par(max_strata) { |x| r(f(x)) }
   });
 };
@@ -1929,6 +1941,7 @@ filter.par = function(/* sequence, max_strata, predicate */) {
   if (!predicate) predicate = identity;
 
   return Stream(function(r) {
+    r = get_function().sequential(r);
     sequence .. each.par(max_strata) {
       |x|
       if (predicate(x))
