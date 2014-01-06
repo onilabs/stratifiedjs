@@ -252,7 +252,7 @@ function each(sequence, r) {
       }
     }
     else
-      throw new Error("Unsupported sequence type '#{sequence}'");
+      throw new Error("Unsupported sequence type '#{typeof sequence}'");
     }
   }
   return sequence;
