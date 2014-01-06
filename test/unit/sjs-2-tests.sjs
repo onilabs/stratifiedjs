@@ -866,3 +866,21 @@ test("reentrant blocklambda resume/break", undefined, function() {
   }
   and { R(); }
 });
+
+test("reentrant abortion from catch()", 'ok', function() {
+  var cont;
+  waitfor {
+    waitfor() { cont = resume; }
+  }
+  or {
+    try {
+      hold(0);
+      throw 'inner'; 
+    }
+    catch(e) {
+      cont(); // this triggers reentrant abortion of this waitfor/or branch
+      hold(); // this hold needs to be retracted
+    }
+  }
+  return 'ok';
+});

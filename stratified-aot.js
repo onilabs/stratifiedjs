@@ -1263,6 +1263,13 @@ v=(val&&val.__oni_cfx)?[val.val,true]:[val,false];
 val=this.ndata[2](this.env,v);
 
 
+
+if(this.aborted&&is_ef(val)){
+
+val=val.abort();
+}
+
+
 if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3])return this.returnToParent(val);
 
 

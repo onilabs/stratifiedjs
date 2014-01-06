@@ -1384,6 +1384,13 @@ EF_Try.prototype.cont = function(idx, val) {
         v = val.val;
       val = this.NDATA_TRY_CATCH_FUNC()(this.env, v);
 
+      // Check for a reentrant abortion triggered by our catch() block
+      // see sjs-2-tests.sjs: reentrant abortion from catch()
+      if (this.aborted && is_ef(val)) {
+        // abort val
+        val = val.abort();
+      } 
+
       // tail-call optimization:
       if (!this.NDATA_TRY_RETRACT_BLOCK && !this.NDATA_TRY_FINALLY_BLOCK())
         return this.returnToParent(val);
