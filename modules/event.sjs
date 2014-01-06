@@ -467,7 +467,7 @@ exports.wait = wait;
 /**
   @function  when
   @summary   Run a function each time an event occurs
-  @param     {Array|Obect} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
+  @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
   @param     {Array|String} [events] Event name (or array of names) to watch for.
   @param     {optional Settings} [opts]
   @param     {Function} [block]
