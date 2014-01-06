@@ -329,11 +329,12 @@ function consume(/* sequence, [opt]eos, loop */) {
   // leave the responsibility with the caller.
   var next = function() {
     if (emit_next) throw new Error("Must not make concurrent calls to a `consume` loop's `next` function.");
-    waitfor(var rv) {
+    waitfor(var rv, is_error) {
       emit_next = resume;
       want_next();
     }
     finally { emit_next = undefined; }
+    if (is_error) throw rv;
     return rv;
   };
 
@@ -348,16 +349,30 @@ function consume(/* sequence, [opt]eos, loop */) {
     waitfor() { want_next = resume }
 
     // Now play the sequence:
-    sequence .. each { 
-      |x|
-      // Emit x to the user loop, and wait for the next element to be
-      // requested. Note how we *first* set up the 'want_next'
-      // listener and then emit x. This ensures that everything works
-      // in the synchronous case, where 'emit_next' causes 'want_next'
-      // to be called synchronously.
-      waitfor() {
-        want_next = resume;
-        emit_next(x);
+    try {
+      sequence .. each { 
+        |x|
+        // Emit x to the user loop, and wait for the next element to be
+        // requested. Note how we *first* set up the 'want_next'
+        // listener and then emit x. This ensures that everything works
+        // in the synchronous case, where 'emit_next' causes 'want_next'
+        // to be called synchronously.
+        waitfor() {
+          want_next = resume;
+          emit_next(x);
+        }
+      }
+    }
+    catch (e) { 
+      // Propagate the exception to our 'loop' block
+
+      // we need to do this in a loop to account for the case where we
+      // are being called repeatedly through e.g. a cached Iterator
+      while (1) {
+        waitfor() {
+          want_next = resume;
+          emit_next(e, true);
+        }
       }
     }
 
