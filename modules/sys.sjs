@@ -98,7 +98,7 @@ module.exports = {
 
 /**
   @function argv
-  @summary Return the current command line arugments.
+  @summary Return the current command line arguments.
   @hostenv nodejs
   @desc
     **Note**: This function returns only the actual command line
