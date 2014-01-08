@@ -1763,6 +1763,9 @@ each.par = function(/* seq, max_strata, r */) {
     */
     function inner() { 
       var async = false;
+
+      ++depth;
+
       waitfor {
         waitfor() { var async_trigger = resume; }
         async = true;
@@ -1771,6 +1774,14 @@ each.par = function(/* seq, max_strata, r */) {
       and {
         while (1) {
           waiting_for_next = true;
+          // the hold(0) is necessary to put us into
+          // tail-recursive mode, so that we don't blow the stack
+          // when next() generates data without blocking.  For
+          // performance reasons we only do this only after having
+          // built the tree to a certain depth:
+          if (depth % 10 === 0) {
+            hold(0); 
+          }
           var x = next();
           if (x === eos) return;
           waiting_for_next = false;
@@ -1787,16 +1798,7 @@ each.par = function(/* seq, max_strata, r */) {
               if (!async && !waiting_for_next) continue;
             }
             and {
-              // the hold(0) is necessary to put us into
-              // tail-recursive mode, so that we don't blow the stack
-              // when next() generates data without blocking.  for
-              // performance reasons we only do this only after having
-              // built the tree to a certain depth:
-              if (++depth % 10 == 0)
-                hold(0); 
-              if (!waiting_for_next) {
-                async_trigger();
-              }
+              async_trigger();
             }
             break;
           }
