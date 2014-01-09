@@ -278,9 +278,15 @@ exports.parseModuleDocs = function(src, module) {
         summary: matches[paramDescription]
       };
       break;
-    case "summary":
     case "type":
-      // overwrite existing
+      // overwrite existing value for the toplevel module
+      if (curr === module) {
+        curr[prop] = value;
+      } else {
+        curr['valtype'] = value;
+      }
+      break;
+    case "summary":
       curr[prop] = value;
       break;
     case "require":
