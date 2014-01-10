@@ -297,22 +297,18 @@ exports.addCSS = function(cssCode) {
 }
 
 /**
-  at function css
-  at summary Load a CSS file into the current document.
-  at param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
-  at desc
+  @function css
+  @summary Load a CSS file into the current document.
+  @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
 */
-// XXX should be more robust: http://yui.yahooapis.com/2.8.1/build/get/get.js
-/*
-exports.css = function (url) {
-  var url = sys.constructURL(arguments);
+exports.css = function (/* url, queries */) {
+  url = sys.constructURL(arguments);
   var elem = document.createElement("link");
   elem.setAttribute("rel", "stylesheet");
   elem.setAttribute("type", "text/css");
-  elem.setAttribute("href", "url");
+  elem.setAttribute("href", url);
   document.getElementsByTagName("head")[0].appendChild(elem);
 };
-*/
 
 //----------------------------------------------------------------------
 
