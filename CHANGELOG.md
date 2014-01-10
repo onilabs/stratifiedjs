@@ -21,22 +21,40 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * new modules:
 
-   * sjs:regexp
-   * sjs:bundle - executable module for bundling multiple sjs modules into a single .js file
-   * sjs:compile/doc - executable module for generating documentation indexes
-   * sjs:service - service registry class, useful for dependency injection
+   * bundle - executable module for bundling multiple sjs modules into a single .js file
+   * compile/* - modules for generating minified source, documentation indexes, etc
+   * regexp
+   * service - service registry class, useful for dependency injection
+   * std - collection of commonly-used modules
+   * test/std - collection of commonly-used modules for testing
+   * xbrowser/driver - serving a similar purpose to WebDriver / selenium, but simpler, and iframe-only
 
- * new functions:
+ * new functions and symbols:
 
-   * sequence::intersperse
-   * string::unindent
-   * string::padLeft
-   * string::padRight
-   * sys::argv()
+   * cutil.StratumAborted
+   * event::HostEmitter.when
+   * event::when
+   * function::trycatch
+   * function::unbatched
+   * nodejs/child-process::isRunning
+   * object::Constructor
+   * object::construct
+   * quasi::toQuasi
    * require.hubs.addDefault(hub)
    * require.hubs.defined(prefix)
-   * event::when
-   * event.HostEmitter::when
+   * sequence::buffer
+   * sequence::intersperse
+   * sequence::isSequence
+   * sequence::transform.par.unordered
+   * shallow equality methods (in compare and assert modules)
+   * string::capitalize
+   * string::padBoth
+   * string::padLeft
+   * string::padRight
+   * string::unindent
+   * sys::argv
+   * sys::executable
+   * xbrowser/dom::stopPropagation
 
 #### Changes:
 
@@ -66,5 +84,7 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
  * array::contains has been moved to sequence::hasElem (it now operates on any Stream type, and
    has been renamed to avoid confusion with string::contains)
+
+ * xbrowser/dom::isDOMNode has been renamed to isHtmlElement
 
 
