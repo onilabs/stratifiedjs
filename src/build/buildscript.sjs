@@ -305,7 +305,7 @@ StratifiedJS standard library.");
   //
   // from the dashdash readme into regular markdown
   BUILD("tmp/dashdash-readme.md",
-        ["sed -E -e '/```.*/,/^```/s/^/    /' -e '/```.*/d' -e 's/^#/###/' $0 > $TARGET",
+        ["sed -E -e '/```.*/,/^```/s/^/    /' -e '/```.*/d' -e 's/^#/###/' -e 's/^/    /' $0 > $TARGET",
           replacements_from_config
         ],
         ["src/deps/dashdash/README.md"]
