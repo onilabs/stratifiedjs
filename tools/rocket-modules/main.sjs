@@ -34,7 +34,7 @@ var print = function(s) { process.stdout.write(s+"\n") };
 var stream = require('sjs:nodejs/stream');
 var logging = require('sjs:logging');
 
-var compiler_version = (new Date(fs.stat(url.normalize('../stratified-node.js', module.id) .. url.toPath).mtime)).getTime();
+var compiler_version = (new Date(fs.stat(url.normalize('../../stratified-node.js', module.id) .. url.toPath).mtime)).getTime();
 
 //----------------------------------------------------------------------
 

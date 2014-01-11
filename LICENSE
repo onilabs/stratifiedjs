@@ -36,6 +36,3 @@ For exact licensing terms, please see individual files. As an overview:
 - The server-side Node.JS-based StratifiedJS runtime
   (stratified-node.js) is licensed under the GPL v2.
 
-- The Oni Rocket Web Server modules (src/rocket-modules/*)
-  are licensed under the GPL v2.
-

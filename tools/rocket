@@ -1,0 +1,4 @@
+#!/bin/bash
+
+SJS_BIN=`dirname $0`/..
+exec $SJS_BIN/sjs "sjs:../tools/rocket-modules/main.sjs" "$@"
