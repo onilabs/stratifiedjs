@@ -27,7 +27,7 @@
   from the outside world, whereas, `A` and `calc`
   would be visible.
 
-  To load a module, use the [::require} function.
+  To load a module, use the [::require] function.
 
   ### Module guidelines
 
@@ -146,8 +146,7 @@
   `require`), on modern browsers ( >IE6).
    
   For this mechanism to work on modern browsers, the webserver hosting the modules needs to
-  be [configured to send CORS](http://esw.w3.org/CORS_Enabled)
-  access control headers</a>.
+  be [configured to send CORS access control headers](http://esw.w3.org/CORS_Enabled).
   
   ### Loading GitHub modules
   
@@ -155,19 +154,15 @@
   
       require("github:USER/REPO/BRANCH_OR_TAG/MODULE_PATH");
   
-  E.g. to load the module <a href="https://github.com/afri/testmodules/blob/master/foo.sjs">https://github.com/afri/testmodules/blob/master/foo.sjs</a> and call its `hello` function, you could write:
+  E.g. to load the module https://github.com/afri/testmodules/blob/master/foo.sjs and call its `hello` function, you could write:
   
       var foo = require("github:afri/testmodules/master/foo");
       foo.hello();
   
-  The GitHub module loading process works <b>cross-browser</b> and without any intermediate proxies. The browser talks <b>directly</b> to the <a href="http://develop.github.com/">GitHub API</a> using <a href="/modules#http::jsonp">JSONP-style requests</a>. 
+  The GitHub module loading process works **cross-browser** and without any intermediate proxies. The browser talks **directly** to the [GitHub API](http://developer.github.com/) using [JSONP-style requests](#sjs:http::jsonp). 
   
-  The loading functionality also works <b>transitively</b>. I.e. if you load a module from GitHub that in turn references another module through a relative url (e.g. `require('./anothermodule')`), it will load fine through this mechanism.
+  The loading functionality also works **transitively**. I.e. if you load a module from GitHub that in turn references another module through a relative url (e.g. `require('./anothermodule')`), it will load fine through this mechanism.
   
-  This GitHub functionality comes in pretty handy for those situations where you just want to quickly try out a 3rd party module, or if you want to share modules during development without constantly having to upload to a webserver. In fact it works so well, it can be used in (small-scale) production as well. E.g. the <a href="http://bit.ly/fjQuNg">xlate Chrome extension</a> uses it to pull in a <a href="https://github.com/afri/sjs4chromeapps">sjs4chromeapps</a> support script:
-  
-      var tabutil = require('github:afri/sjs4chromeapps/master/tab-util');
-
   ### Loading multiple modules
 
   If `module` is an array, each module will be loaded in
@@ -177,10 +172,12 @@
   When loading an array of modules, the array elements may be strings, or they
   may be objects with the following properties:
 
-   - id - the module to load
-   - exclude: an array of symbol names to exclude
-   - include: an array of property names to include
-   - name: return this entire module as a single property
+  | Property    | Description                                    |
+  | ----------- | -----------------------------------------------|  
+  | `id`        | the module to load                             |
+  | `exclude`   | an array of symbol names to exclude            |
+  | `include`   | an array of property names to include          |
+  | `name`      | return this entire module as a single property |
 
   `id` is mandatory, and you should specify only one of the other properties.
 
