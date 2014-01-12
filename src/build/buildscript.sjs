@@ -370,7 +370,6 @@ StratifiedJS standard library.");
               }
             }
             walkdir("modules", replace_in);
-            walkdir("rocket-modules", replace_in);
             replace_in("package.json");
             replace_in("bower.json");
           },
