@@ -6,36 +6,4 @@
     This Library is the standard collection of modules
     accompanying [StratifiedJS](http://onilabs.com/stratifiedjs).
 
-    The Library is still under heavy development - the module content
-    and organization of modules might change from one release to the
-    next. Some of the more stable and fundamental modules include:
 
-    * [sequence::]: Constructs for manipulating arrays, string and streams
-    * [http::]: Functions for performing HTTP requests and working with URLs
-    * [cutil::]: Functions and constructs for concurrent stratified programming
-
-
-    ### Loading Standard Library Modules
-
-    You can load modules from the Library by using the builtin `sjs:` scheme, e.g.:
-
-        var http = require(sjs:http');
-
-    By default, the `sjs:` scheme resolves to
-
-        http:// [Path where 'stratified.js' was loaded from] /modules/
-
-    on the client-side, and to 
-
-        file:// [Path to 'sjs' executable] /modules/
-
-    on the server.
-
-    If you want to serve the Library from a different location, you can set
-    up a *hub redirect*; e.g. to mirror the Library on your own server:
-
-        require.hubs.unshift(["sjs:",
-                              "http://mydomain.com/sjs-mirror/"]);
-
-        // all modules addressed as sjs:' will now be loaded from
-        // the location above.
