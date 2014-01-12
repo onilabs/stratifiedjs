@@ -305,7 +305,7 @@ StratifiedJS standard library.");
   //
   // from the dashdash readme into regular markdown
   BUILD("tmp/dashdash-readme.md",
-        ["sed -E -e '/```.*/,/^```/s/^/    /' -e '/```.*/d' -e 's/^#/###/' $0 > $TARGET",
+        ["sed -E -e '/```.*/,/^```/s/^/    /' -e '/```.*/d' -e 's/^#/###/' -e 's/^/    /' $0 > $TARGET",
           replacements_from_config
         ],
         ["src/deps/dashdash/README.md"]
@@ -370,7 +370,6 @@ StratifiedJS standard library.");
               }
             }
             walkdir("modules", replace_in);
-            walkdir("rocket-modules", replace_in);
             replace_in("package.json");
             replace_in("bower.json");
           },

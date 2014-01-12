@@ -26,7 +26,7 @@ Prebuilt packages:
 Users of the [bower](http://bower.io/) or [npm](https://npmjs.org/)
 package managers can install the `stratifiedjs` package using either of
 these tools. `npm` users should install globally (`npm install -g`)
-to add the `sjs` and `rocket` binaries in your `$PATH`.
+to add the `sjs` binary to your `$PATH`.
 
 
 What's in this repository:
@@ -45,12 +45,6 @@ stratified-node.js, 'sjs' executable
  - Server-side StratifiedJS runtime for NodeJS.
  - If you've got NodeJS installed, just run `sjs` to get a serverside SJS REPL.
  - See also this [StratifiedJS Google Group post](https://groups.google.com/forum/#!topic/oni-apollo/ZDkxczAZcgw)
-
-rocket, rocket-modules/
------------------------
-
- - A simple web server. Run `rocket` to start a webserver on port 7070, serving the
-   current directory. Run `rocket -h` for options.
 
 modules/
 --------
@@ -107,9 +101,8 @@ To (re-)configure the 'sjs hub', you can use code such as this:
     // location above.
 
 Note that many browsers cannot load modules over the `file:`
-protocol. You can use `rocket` to serve up the current directory
-locally. Alternatively, you can serve stratified.js and the modules/
-directory with a different web server, or load stratified.js &
+protocol. You can use a standard web server to serve
+stratified.js and the modules/ directory, or load stratified.js &
 modules/ from http://code.onilabs.com/ as described at
 [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
 

@@ -22,3 +22,22 @@
   }
 }
     
+@context('@type') {||
+  @test('module type overrides default type') { ||
+    @docutil.parseModuleDocs("/**
+    @type doc
+    */").type .. @assert.eq('doc');
+  }
+
+  @test('variable type is assigned to `vartype`') { ||
+    @docutil.parseModuleDocs("/**
+    @variable a
+    @type String
+    */").children .. @assert.eq({
+      a: {
+        type: 'variable',
+        valtype: 'String'
+      },
+    });
+  }
+}
