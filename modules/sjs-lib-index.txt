@@ -1,9 +1,15 @@
 @lib     StratifiedJS Standard Module Library
 @version 0.15.0-1-development
-@summary Standard collection of modules for client and server-side stratified programming with 
-         [StratifiedJS](http://onilabs.com/stratifiedjs)
+@summary Standard collection of modules for the StratifiedJS language
 @desc
     This Library is the standard collection of modules
-    accompanying [StratifiedJS](http://onilabs.com/stratifiedjs).
+    accompanying the [StratifiedJS](http://onilabs.com/stratifiedjs) language.
 
 
+    ### Loading `sjs` Modules
+
+    You can load modules from the `sjs` library by using the builtin `sjs:` scheme, e.g.:
+
+        var http = require('sjs:http');
+    
+    See [#language/builtins::require] for more information about the module system.
