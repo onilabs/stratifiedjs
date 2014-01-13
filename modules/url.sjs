@@ -3,7 +3,7 @@
  * Functions for manipulating URLs
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.15.0-1-development'
+ * Version: '0.16.0'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
