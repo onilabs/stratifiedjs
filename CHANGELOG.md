@@ -1,5 +1,20 @@
 This changelog lists the most prominent, developer-visible changes in each release.
 
+## Version 0.16:
+
+**NOTE:** version 0.15 was publicly released, but never announced,
+and was shortly followed by 0.16. You are most likely upgrading
+from 0.14 -> 0.16, so make sure to also read the 0.15 release
+notes below.
+
+#### Changes:
+
+ * removed `rocket` webserver
+
+ * removed `/doc` documentation browser
+
+ * xbrowser/html::css now accepts the same arguments as url::build
+
 ## Version 0.15:
 
 #### New features:
