@@ -2,7 +2,7 @@
  * Oni StratifiedJS Runtime
  * Server-side NodeJS-based implementation
  *
- * Version: '0.16.0'
+ * Version: '0.17.0-development'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2011-2013 Oni Labs, http://onilabs.com

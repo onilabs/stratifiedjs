@@ -2,7 +2,7 @@
  * StratifiedJS 'sys' module
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.16.0'
+ * Version: '0.17.0-development'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
@@ -75,7 +75,7 @@ module.exports = {
 */
   // NOTE: version property is in double-quotes so
   // the buildscript treats it like JSON
-  "version" : "0.16.0",
+  "version" : "0.17.0-development",
 };
 
 
