@@ -221,8 +221,9 @@ function findDependencies(sources, settings) {
             if (typeof(arg) === 'string') {
               addRequire(arg, module);
             } else {
-              assert.ok(arg.id, "argument to require([.]) has no `id`");
-              addRequire(arg.id, module);
+              if (arg && arg.id) {
+                addRequire(arg.id, module);
+              }
             }
           }
         }

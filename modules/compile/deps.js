@@ -328,20 +328,17 @@ function top_scope(pctx) {
 
 var process_script = function(stmts) {
   stmts = seq(stmts);
+  // console.log("stmts:", String(stmts));
   return stmts.flatten();
 }
 
 var seq = function(exprs) {
   var r = Dynamic;
   for (var i=0; i<exprs.length; i++) {
-    // console.log("sequencing " + r + " with " + exprs[i]);
     if (exprs[i]) r = r.seq(exprs[i]);
-    // console.log(" -> " + r);
   }
   return r;
 }
-
-var toDynamic = function() { return Dynamic; };
 
 // Generic Data types:
 
@@ -351,7 +348,9 @@ var Just = function(x) {
   return {
     defined: function() { return true; },
     map: function(f) { return Just(f(x)); },
+    bind: function(f) { return f(x); },
     get: function() { return x; },
+    getLazy: function(_) { return x; },
     toString: function () { return "Just(" + x + ")"; },
   };
 };
@@ -361,6 +360,8 @@ var Nothing = function() {
     defined: function() { return false; },
     map: function() { return this; },
     get: function(d) { return d; },
+    getLazy: function(fn) { return fn(); },
+    bind: function(d) { return this; },
     toString: function() { return "Nothing()"; },
   };
 };
@@ -401,6 +402,19 @@ var filterM = function(arr) {
   }
   return ret;
 }
+
+var flattenAnyM = function(arr) {
+  // [Maybe a] -> Maybe [a|undefined]
+  var any = false;
+  var ret = [];
+  for (var i=0; i<arr.length; i++) {
+    if (!any && arr[i].defined()) {
+      any = true;
+    }
+    ret[i] = arr[i].get(undefined);
+  }
+  return any ? Just(ret) : Nothing();
+};
 
 
 // Minimal AST
@@ -462,6 +476,9 @@ var Seq = function(a,b) {
 };
 Seq.prototype = Object.create(Dynamic);
 Seq.prototype.seq = function(other) { return new Seq(this, other); };
+
+/* calls apply to the second object in a seq */
+Seq.prototype.call = function() { return new Seq(this.a, this.b.call.apply(this.b, arguments)); };
 Seq.prototype.flatten = function() { return this.a.flatten().concat(this.b.flatten()); };
 Seq.prototype.toString = function() { return "Seq(" + this.a + "," + this.b + ")"; };
 
@@ -473,32 +490,43 @@ var Call = function(prop, args) {
 };
 Call.prototype = Object.create(Dynamic);
 Call.prototype.seq = function(other) { return new Seq(this, other); };
+Call.prototype.dot = function(property) {
+  /* the result of call().prop can't be static,
+   * but that doesn't mean call() isn't - just
+   * treat it as a single call followed by a dynamic statement.
+   */
+  return this.seq(Dynamic);
+};
+
 Call.prototype.flatten = function() {
-  var call_args = [];
-  var args = this.args;
   var prop = this.prop;
+  var args = this.args;
+
+  var static_args = [];
   for (var i=0; i<args.length; i++) {
-    var val = args[i].staticVal().get(null);
-    if (val == null) {
-      return [];
-    }
-    call_args[i] = val;
+    static_args[i] = args[i].staticVal();
   }
-  // console.log("call prop: " + prop.text());
-  return prop.text().map(function(ident) {
-    switch(ident) {
-      case "require":
-        return [["require", call_args]];
-        break;
-      case "require.hubs.unshift":
-        return [["hub_insert", call_args]];
-        break;
-      case "require.hubs.push":
-        return [["hub_append", call_args]];
-        break;
-      default: return [];
-    }
-  }).get([]);
+  return flattenAnyM(static_args).bind(function(static_args) {
+    return prop.text().bind(function(ident) {
+      switch(ident) {
+        case "require":
+          return Just([["require", static_args]]);
+          break;
+        case "require.hubs.unshift":
+          return Just([["hub_insert", static_args]]);
+          break;
+        case "require.hubs.push":
+          return Just([["hub_append", static_args]]);
+          break;
+        default: return Nothing();
+      }
+    })
+  }).getLazy(function() {
+    // this isn't a require call, but our args will
+    // always be evaluated, and they might contain
+    // require()s
+    return seq(args).flatten();
+  });
 };
 Call.prototype.toString = function() { return "Call(" + this.prop + "," + this.args + ")"; };
 
@@ -524,7 +552,7 @@ ArrayLit.prototype.staticVal = function() {
   for (var i=0; i<arr.length; i++) {
     maybeVals[i] = arr[i].staticVal();
   }
-  return flattenM(maybeVals);
+  return flattenAnyM(maybeVals);
 };
 ArrayLit.prototype.toString = function() {
   var join = function(vals) { return vals.join(","); };
