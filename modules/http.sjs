@@ -187,7 +187,7 @@ exports.get = exports.request;
         // with payload: name=ford&lastname=prefect
 */
 exports.post = function(url, body, settings) {
-  return sys.request(url, [{method:"POST", body:body}, settings]);
+  return sys.request(url, sys.mergeObjects({method:"POST", body:body}, settings));
 };
 
 
