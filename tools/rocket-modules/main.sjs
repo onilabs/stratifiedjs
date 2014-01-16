@@ -263,6 +263,15 @@ var pathMap = [
     )      
   },
   {
+    // test responders
+    pattern: /\/post_echo$/,
+    handler: {
+      handle_post: function(request, response) {
+        response.end(request.body);
+      }
+    }
+  },
+  {
     // main server root
     pattern: /(\/.*)$/,
     handler: serverfs.createMappedDirectoryHandler(
@@ -271,7 +280,7 @@ var pathMap = [
       { allowDirListing: true,
         mapIndexToDir: true }
     )
-  }
+  },
 ];
 
 serverfs.setPathMap(pathMap);

@@ -53,11 +53,11 @@ context("get") {||
 context("post") {||
   testEq("http.post", "a=1&b=2", function () {
     return http.post(getHttpURL("/post_echo"), "a=1&b=2");
-  }).skip("machinery for this test is not in place atm");
+  });
 
   testEq("http.post 2", "a=1&b=b&c=3", function () {
     return http.post(getHttpURL("/post_echo"), url.buildQuery([{a:1,b:"b"}, {c:3}]));
-  }).skip("machinery for this test is not in place atm");
+  });
 }
 
 context("json") {||
