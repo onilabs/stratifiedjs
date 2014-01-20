@@ -2,7 +2,7 @@
  * StratifiedJS 'node/terminal' module
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.16.0'
+ * Version: '0.16.1'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2012 Oni Labs, http://onilabs.com
