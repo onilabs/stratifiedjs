@@ -2,7 +2,7 @@
  * Oni StratifiedJS Runtime
  * Client-side Cross-Browser implementation
  *
- * Version: '0.14.0'
+ * Version: '0.14.1'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2010-2011 Oni Labs, http://onilabs.com
@@ -29,8 +29,6 @@
  *
  */
 var __oni_rt={};(function(exports){var UNDEF;
-
-
 
 
 
@@ -2059,8 +2057,6 @@ exports.UA=UA;
 exports.G=window;
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
-
-
 
 
 

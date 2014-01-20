@@ -3,7 +3,7 @@
  * Functions for coparing objects for equality
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.14.0'
+ * Version: '0.14.1'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
