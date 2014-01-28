@@ -159,7 +159,7 @@ exports.request = sys.request;
 */
 exports.get = exports.request;
 
-/** 
+/**
   @function  post
   @summary   Perform a HTTP POST request and return the response text.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
