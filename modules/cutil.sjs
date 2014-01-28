@@ -439,6 +439,20 @@ QueueProto = {
   count: function() { return this.items.length; },
 
   /**
+    @function Queue.isFull
+    @summary  Returns true if the queue is full and a [::Queue::put] call 
+              would block.
+    @return   {Boolean}
+    @desc
+      Note: For Queues with `capacity > 0`, this function 
+            is equivalent to `queue.count() == capacity`. For Queues with
+            `capacity=0` (i.e. where `queue.count()` is always `==0`), `queue.isFull()` 
+            will return `false` if there is a pending `queue.get()` call that is 
+            waiting for a `queue.put()`.
+   */
+  isFull: function() { return this.S_nonfull.permits <= 0; },
+
+  /**
     @function Queue.put
     @summary  Put an item into the queue; blocks if the queue has reached
               its capacity. Safe to be called from multiple strata concurrently.

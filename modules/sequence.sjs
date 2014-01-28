@@ -1659,9 +1659,11 @@ exports.fib = fib;
 
 /**
    @function buffer
-   @altsyntax sequence .. buffer(count)
+   @altsyntax sequence .. buffer(count, [settings])
    @param {::Sequence} [sequence] Input sequence
    @param {Integer} [count] Maximum number of elements of input stream to buffer
+   @param {optional Object} [settings] Object with optional settings. 
+   @setting {Boolean} [drop=false] Determines the behaviour when the buffer is full and a new upstream value is available. If `true`, the oldest element in the buffer will be dropped to make room for the new element. If `false`, the input will be blocked until the downstream retrieves the next buffered element.
    @return {::Stream}
    @summary Create a buffered stream from a given input stream
    @desc
@@ -1685,11 +1687,26 @@ exports.fib = fib;
           //   Received: 4, Sent: 9, Received: 5, Received: 6, Received: 7, Received: 8,
           //   Received: 9
 */
-function buffer(seq, count) {
+function buffer(seq, count, options) {
+  options = options || {};
+
+  // If we run with blocking semantics, we only need a Queue of
+  // capacity count-1. This is because when the Queue is full, our
+  // upstream iteration loop will block on a Queue.put(). The pending
+  // put() call effectively adds another slot to our buffer.
+  if (!options.drop) count -= 1;
+
   return Stream(function(r) {
-    var Q = get_cutil().Queue(count-1), eos = {};
+    var Q = get_cutil().Queue(count), eos = {};
     waitfor {
-      seq .. each { |x| Q.put(x); }
+      seq .. each { 
+        |x| 
+        if (options.drop && Q.isFull()) {
+          // drop the oldest value to make room for the put():
+          Q.get();
+        }
+        Q.put(x); 
+      }
       Q.put(eos);
     }
     and {
