@@ -35,6 +35,9 @@
    @home    sjs:string
 */
 
+var sys = require('builtin:apollo-sys');
+var global = sys.getGlobal();
+
 /**
    @function isString
    @summary Tests if an object is a string
@@ -522,10 +525,10 @@ exports.utf8ToUtf16 = function(s) {
    @return   {String}
    @desc
       **Notes:**
-      
+        * On modern browsers, this function is equivalent to `window.atob`.
         * Octet strings are equivalent to JS strings where the upper half of
           each 16-bit 'character' is set to 0.
-        * This function will produce incorrect output if any 
+        * This function will produce incorrect output or throw an error if any 
           character code of the input 
           falls outside the range 0-255.
         * You probably want to encode native JS strings representing 
@@ -537,35 +540,45 @@ exports.utf8ToUtf16 = function(s) {
 */
 var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-exports.octetsToBase64 = function(s) {
-  var rv = "";
-  var i = 0, l = s.length;
-  while (i<l) {
-    var c1 = s.charCodeAt(i++);
-    var c2 = s.charCodeAt(i++);
-    var c3 = s.charCodeAt(i++);
-    
-    var e1,e2,e3,e4;
-    var e1 = c1 >> 2;
-    if (isNaN(c2)) {
-      e2 = (c1 & 3) << 4;
-      e3 = e4 = 64;
-    }
-    else {
-      e2 = ((c1 & 3) << 4)  | (c2 >> 4);
-      if (isNaN(c3)) {
-        e3 = (c2 & 15) << 2;
-        e4 = 64;
+__js {
+
+if (global.atob) {
+  exports.octetsToBase64 = global.atob;
+}
+else {
+  // fallback for IE9 and below
+  exports.octetsToBase64 = function(s) {
+    var rv = "";
+    var i = 0, l = s.length;
+    while (i<l) {
+      var c1 = s.charCodeAt(i++);
+      var c2 = s.charCodeAt(i++);
+      var c3 = s.charCodeAt(i++);
+      
+      var e1,e2,e3,e4;
+      var e1 = c1 >> 2;
+      if (isNaN(c2)) {
+        e2 = (c1 & 3) << 4;
+        e3 = e4 = 64;
       }
       else {
-        e3 = ((c2 & 15) << 2) | (c3 >> 6);
-        e4 = c3 & 63;
+        e2 = ((c1 & 3) << 4)  | (c2 >> 4);
+        if (isNaN(c3)) {
+          e3 = (c2 & 15) << 2;
+          e4 = 64;
+        }
+        else {
+          e3 = ((c2 & 15) << 2) | (c3 >> 6);
+          e4 = c3 & 63;
+        }
       }
+      rv += keyStr.charAt(e1) + keyStr.charAt(e2) + keyStr.charAt(e3) + keyStr.charAt(e4);
     }
-    rv += keyStr.charAt(e1) + keyStr.charAt(e2) + keyStr.charAt(e3) + keyStr.charAt(e4);
-  }
-  return rv;
-};
+    return rv;
+  };  
+}
+
+} // __js
 
 /**
    @function base64ToOctets
@@ -574,7 +587,7 @@ exports.octetsToBase64 = function(s) {
    @return   {String}
    @desc
       **Notes:**
-      
+        * On modern browsers, this function is equivalent to `window.btoa`.
         * Octet strings are equivalent to JS strings where the upper half of
           each 16-bit 'character' is set to 0.
         * This function will silently ignore characters in the input that 
@@ -582,24 +595,32 @@ exports.octetsToBase64 = function(s) {
         * The input function needs to contain padding characters ('=') if the
           encoded string length is not a multiple of 3.
 */
-exports.base64ToOctets = function(s) {
-  var rv = "";
-  s = s.replace(/[^A-Za-z0-9\+\/\=]/g, "");
-  var i=0, l=s.length;
-
-  while (i<l) {
-    var e1,e2,e3,e4;
-    e1 = keyStr.indexOf(s.charAt(i++));
-    e2 = keyStr.indexOf(s.charAt(i++));
-    e3 = keyStr.indexOf(s.charAt(i++));
-    e4 = keyStr.indexOf(s.charAt(i++));
+__js {
+if (global.btoa) {
+  exports.btoa = global.btoa;
+}
+else {
+  // fallback for IE9 and below
+  exports.base64ToOctets = function(s) {
+    var rv = "";
+    s = s.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+    var i=0, l=s.length;
     
-    rv += String.fromCharCode((e1 << 2) | (e2 >> 4));
-    if (e3 != 64) {
-      rv += String.fromCharCode(((e2 & 15) << 4) | (e3 >> 2));
-      if (e4 != 64)
-        rv += String.fromCharCode(((e3 & 3) << 6) | e4);
+    while (i<l) {
+      var e1,e2,e3,e4;
+      e1 = keyStr.indexOf(s.charAt(i++));
+      e2 = keyStr.indexOf(s.charAt(i++));
+      e3 = keyStr.indexOf(s.charAt(i++));
+      e4 = keyStr.indexOf(s.charAt(i++));
+      
+      rv += String.fromCharCode((e1 << 2) | (e2 >> 4));
+      if (e3 != 64) {
+        rv += String.fromCharCode(((e2 & 15) << 4) | (e3 >> 2));
+        if (e4 != 64)
+          rv += String.fromCharCode(((e3 & 3) << 6) | e4);
+      }
     }
-  }
-  return rv;
-};
+    return rv;
+  };
+}
+} // __js 
