@@ -525,6 +525,7 @@ exports.utf8ToUtf16 = function(s) {
    @return   {String}
    @desc
       **Notes:**
+
         * On modern browsers, this function is equivalent to `window.atob`.
         * Octet strings are equivalent to JS strings where the upper half of
           each 16-bit 'character' is set to 0.
@@ -542,8 +543,8 @@ var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 
 __js {
 
-if (global.atob) {
-  exports.octetsToBase64 = global.atob;
+if (global.btoa) {
+  exports.octetsToBase64 = s -> global.btoa(s);
 }
 else {
   // fallback for IE9 and below
@@ -587,6 +588,7 @@ else {
    @return   {String}
    @desc
       **Notes:**
+
         * On modern browsers, this function is equivalent to `window.btoa`.
         * Octet strings are equivalent to JS strings where the upper half of
           each 16-bit 'character' is set to 0.
@@ -596,8 +598,8 @@ else {
           encoded string length is not a multiple of 3.
 */
 __js {
-if (global.btoa) {
-  exports.btoa = global.btoa;
+if (global.atob) {
+  exports.base64ToOctets = s -> global.atob(s);
 }
 else {
   // fallback for IE9 and below
@@ -624,3 +626,19 @@ else {
   };
 }
 } // __js 
+
+/**
+  @function base64ToArrayBuffer
+  @summary  Convert a Base64 encoded string to an ArrayBuffer
+  @param    {String} [s] Base64 encoded string
+  @return   {ArrayBuffer}
+*/
+__js exports.base64ToArrayBuffer = function(s) {
+  var octets = exports.base64ToOctets(s);
+  var rv = new ArrayBuffer(octets.length);
+  var view = new Uint8Array(rv);
+  for (var i=0; i<view.length; ++i) 
+    view[i] = octets.charCodeAt(i);
+
+  return rv;
+};

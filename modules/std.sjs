@@ -236,6 +236,7 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:string](#sjs%3Astring) module:
   
+   - **base64ToArrayBuffer**: (function [sjs:string::base64ToArrayBuffer])
    - **base64ToOctets**: (function [sjs:string::base64ToOctets])
    - **capitalize**: (function [sjs:string::capitalize])
    - **contains**: (function [sjs:string::contains])
