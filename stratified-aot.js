@@ -925,10 +925,7 @@ case 2:
 
 
 var ctor=this.l;
-if(ctor&&(ctor==Array||ctor==Boolean||ctor==Date||ctor==Error||ctor==EvalError||ctor==Function||ctor==Math||ctor==Number||ctor==Object||ctor==RangeError||ctor==ReferenceError||ctor==RegExp||ctor==String||ctor==SyntaxError||ctor==TypeError||ctor==URIError||ctor==window.XMLHttpRequest||ctor==window.ActiveXObject||ctor==window.XDomainRequest||!ctor.apply)){
-
-
-
+if(ctor&&(/\{\s*\[native code\]\s*\}\s*$/.test(ctor.toString())||ctor.apply==undefined)){
 
 
 
