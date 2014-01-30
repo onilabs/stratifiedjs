@@ -70,7 +70,9 @@ __js var pathToFileUrl = exports.pathToFileUrl = function(path) {
     else
       prefix='file:///';
   }
-  return prefix + encodeURI(path);
+  // XXX we're using encodeURIComponent and back-converting : and / characters,
+  // which seems hacky.
+  return prefix + encodeURIComponent(path).replace(/%(2f|3a)/gi, unescape);
 };
 
 __js var fileUrlToPath = exports.fileUrlToPath = function(url) {
@@ -79,6 +81,8 @@ __js var fileUrlToPath = exports.fileUrlToPath = function(url) {
     throw new Error("Not a file:// URL: #{url}");
   }
   var path = parsed.path;
+  // ignore localhost hostname
+  if (parsed.host === 'localhost') parsed.host = '';
   if (isWindows) {
     path = path.replace(/\//g, '\\');
     if (parsed.host) {
@@ -548,12 +552,11 @@ function init_hostenv() {
   var init_path = process.env['SJS_INIT'];
   if(init_path) {
     var node_fs = __oni_rt.nodejs_require('fs');
-    var files = init_path.split(':');
+    var files = init_path.split(isWindows ? ';' : ':');
     for(var i=0; i<files.length; i++) {
       var path = files[i];
       if(!path) continue;
       try {
-        path = node_fs.realpathSync(path); // file:// URIs need an absolute path
         exports.require(pathToFileUrl(path));
       } catch(e) {
         console.error("Error loading init script at " + path + ": " + e);

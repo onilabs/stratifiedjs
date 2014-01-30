@@ -42,9 +42,14 @@ context("server-side") {||
 
   var run_with_env = function(args, env)
   {
-    return child_process.run(sjsPath, args, {
-      env: merge(process.env, env || process.env)
-    });
+    try {
+      return child_process.run(process.execPath, [sjsPath].concat(args), {
+        env: merge(process.env, env || process.env)
+      });
+    } catch(e) {
+      logging.warn(e.stderr);
+      throw e;
+    }
   }
   
   test('sjs -e') {|s|
@@ -71,9 +76,6 @@ context("server-side") {||
     try {
       process.chdir(Url.normalize('./', module.id) .. Url.toPath);
       var result = run_with_env(['-e', script]);
-    } catch(e) {
-      logging.warn(e.stderr);
-      throw e;
     } finally {
       process.chdir(orig);
     }

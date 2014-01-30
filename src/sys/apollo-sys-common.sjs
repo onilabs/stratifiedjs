@@ -790,7 +790,7 @@ __js function resolve(module, require_obj, parent, opts) {
   var resolveSpec = resolveHubs(path, hubs, require_obj, parent, opts);
   
   // make sure we have an absolute url with '.' & '..' collapsed:
-  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);  
+  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);
 
   if (resolveSpec.loader.resolve) resolveSpec.loader.resolve(resolveSpec, parent);
 

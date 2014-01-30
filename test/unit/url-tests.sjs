@@ -109,9 +109,9 @@ context {|| // serverOnly()
 
     test("escapes URL characters") {||
       if(isWindows)
-        assert.eq(url.fileURL("C:/foo/ bar"), "file:///C:/foo/%20bar");
+        assert.eq(url.fileURL("C:/foo/ bar#baz"), "file:///C:/foo/%20bar%23baz");
       else
-        assert.eq(url.fileURL("/foo/ bar"), "file:///foo/%20bar");
+        assert.eq(url.fileURL("/foo/ bar#baz"), "file:///foo/%20bar%23baz");
     }
 
     test("keeps trailing slash") {||

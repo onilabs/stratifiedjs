@@ -80,7 +80,7 @@ exports.testLibrary = function(hub) {
               var err = null;
               var moduleExports;
               try {
-                moduleExports = require(home) .. ownKeys .. sort;
+                moduleExports = require(home.replace(/#/g, escape)) .. ownKeys .. sort;
               } catch(e) {
                 err = e;
               }

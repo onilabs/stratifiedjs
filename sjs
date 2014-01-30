@@ -60,7 +60,7 @@ function runEval(str) {
   return function() {
     // XXX eval'd code will be operating on global scope; place sjs's 'require' function there:
     var cwdModule = {
-      id: 'file://' + encodeURIComponent(process.cwd()).replace(/%2[fF]/g, '/') + '/'
+      id: sjs_node.pathToFileUrl('./')
     };
     sjs_node.getGlobal().require = sjs_node._makeRequire(cwdModule);
     return sjs_node.eval(str);
