@@ -78,6 +78,13 @@ var { each, filter } = require('../sequence');
 */
 var isBrowser = exports.isBrowser = sys.hostenv == "xbrowser";
 
+/**
+  @variable isWindows
+  @summary whether the suite is being run on Windows
+  @hostenv nodejs
+*/
+var isWindows = exports.isWindows = isBrowser ? undefined : process.platform === "win32";
+
 var getRunner = function() {
   if (_runner == null) throw new Error("no active runner");
   return _runner;
@@ -228,6 +235,15 @@ MetaMixins.serverOnly = function(reason) {
   this.skipIf(isBrowser, reason);
   return this;
 }
+MetaMixins.windowsOnly = function(reason) {
+  this.skipIf(isBrowser || !isWindows, reason || "Windows only");
+  return this;
+}
+MetaMixins.posixOnly = function(reason) {
+  this.skipIf(isBrowser || isWindows, reason || "POSIX only");
+  return this;
+}
+
 MetaMixins.ignoreLeaks = function(globals) {
   // globals may be multuple string arguments or a single array of strings
   this._ignoreGlobals = arguments.length == 0 ? true : sys.expandSingleArgument(globals);
@@ -294,6 +310,12 @@ var addMetaFunctions = function(cls) {
 
   @function Context.serverOnly
   @param {optional String} [reason]
+
+  @function Context.windowsOnly
+  @param {optional String} [reason="Windows only"]
+
+  @function Context.posixOnly
+  @param {optional String} [reason="POSIX only"]
 
   @function Context.ignoreLeaks
   @param {Array|String ...} [globals] Variable names
@@ -416,6 +438,14 @@ var runAllHooks = function(hook_type, hooks, state, first_error) {
   @function Test.serverOnly
   @param {optional String} [reason]
   @summary Shortcut for `skipIf(isBrowser, reason)`
+
+  @function Test.windowsOnly
+  @param {optional String} [reason="Windows only"]
+  @summary Skip unless running on a Windows nodejs environment
+
+  @function Test.posixOnly
+  @param {optional String} [reason="POSIX only"]
+  @summary Skip unless running on a POSIX nodejs environment
 
   @function Test.ignoreLeaks
   @param {Array|String ...} [globals] Variable names

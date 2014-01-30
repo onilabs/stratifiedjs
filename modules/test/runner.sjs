@@ -947,7 +947,7 @@ Options:
 var CWD = null;
 // In node.js we also allow paths relative to cwd()
 if (sys.hostenv == "nodejs") {
-  CWD = 'file://' + process.cwd() + '/';
+  CWD = './' .. urlMod.fileURL();
 }
 var canonicalizeAgainst = (p, base) -> urlMod.normalize(p, base)..rstrip('/');
 

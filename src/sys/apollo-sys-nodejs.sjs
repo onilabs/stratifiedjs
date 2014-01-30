@@ -43,6 +43,49 @@
 
 */
 
+var isWindows = process.platform === 'win32';
+var pathMod = (function() {
+  var np = __oni_rt.nodejs_require('path');
+  var sep = np.sep || (isWindows ? '\\' : '/'); // `sep` introduced in nodejs 0.8
+  return {
+    join: np.join,
+    resolve: function(p) {
+      // nodejs strips trailing slash, which we wanted to keep
+      var result = np.resolve.apply(this, arguments);
+      if (/[\\\/]$/.test(p)) result += sep;
+      return result;
+    }
+  }
+})();
+
+var pathToFileUrl = exports.pathToFileUrl = function(path) {
+  var initialPath = path;
+  path = pathMod.resolve(path);
+  if (isWindows)
+    path = '/' + path.replace(/\\/g, '/');
+  return 'file://' + encodeURI(path);
+};
+
+var fileUrlToPath = exports.fileUrlToPath = function(url) {
+  var parsed = exports.parseURL(url);
+  if (parsed.protocol.toLowerCase() != 'file') {
+    throw new Error("Not a file:// URL: #{url}");
+  }
+  var path = parsed.path;
+  if (isWindows) {
+    // windows absolute paths end up as "/C:/Windows/",
+    // so strip the leading slash (and convert backslashes)
+    path = path.replace(/^\//, '').replace(/\//g, '\\');
+  } else {
+    if (parsed.host) {
+      // mis-parse of relative file:// URI
+      path = pathMod.join(decodeURIComponent(parsed.host), path);
+    }
+  }
+  return decodeURIComponent(path);
+};
+
+
 /**
    @function  jsonp_hostenv
    @summary   Perform a cross-domain capable JSONP-style request. 
@@ -96,7 +139,7 @@ function getXDomainCaps_hostenv() {
 var req_base_descr;
 function getTopReqParent_hostenv() {
   if (!req_base_descr) {
-    var base = "file://"+process.mainModule.filename;
+    var base = pathToFileUrl(process.mainModule.filename);
     req_base_descr = {
       id: base,
       loaded_from: base,
@@ -350,8 +393,8 @@ function request_hostenv(url, settings) {
 
 function file_src_loader(path) {
   waitfor (var err, data) {
-    // asynchronously load file at path (removing 'file://' prefix first):
-    __oni_rt.nodejs_require('fs').readFile(path.substr(7), resume);
+    // asynchronously load file at file:// URL
+    __oni_rt.nodejs_require('fs').readFile(fileUrlToPath(path), resume);
   }
   if (err) {
     // XXX this is a hack to allow us to load sjs scripts without .sjs extension, 
@@ -375,7 +418,7 @@ function nodejs_mockModule(parent) {
   else
     base = parent.id;
   // strip 'file://'
-  base = base.substr(7);
+  base = fileUrlToPath(base);
 
   return {
     paths: __oni_rt.nodejs_require('module')._nodeModulePaths(base)
@@ -401,14 +444,14 @@ function nodejs_loader(path, parent, dummy_src, opts, spec) {
       if (resolved instanceof Array) resolved = resolved[1];
 
       // ok, success. load as a file module:
-      return default_loader("file://"+resolved, parent, file_src_loader, opts);
+      return default_loader(pathToFileUrl(resolved), parent, file_src_loader, opts);
     }
     catch (e) {}
   }
   else if (resolved && matches[1]!="js") {
     // see if this is an sjs-known extension (but NOT js!)
     if (exports.require.extensions[matches[1]]) // yup; load as sjs-native module
-      return default_loader("file://"+resolved, parent, file_src_loader, opts);
+      return default_loader(pathToFileUrl(resolved), parent, file_src_loader, opts);
   }
 
   if (!resolved) throw new Error("nodejs module at '"+path+"' not found");
@@ -435,7 +478,7 @@ __js nodejs_loader.resolve = function(spec, parent) {
 
 function getHubs_hostenv() {
   return [
-    ["sjs:", "file://"+__oni_rt.nodejs_sjs_lib_dir ],
+    ["sjs:", pathToFileUrl(__oni_rt.nodejs_sjs_lib_dir) ],
     ["github:", {src: github_src_loader} ],
     ["http:", {src: http_src_loader} ],
     ["https:", {src: http_src_loader} ],
@@ -498,7 +541,7 @@ function init_hostenv() {
       if(!path) continue;
       try {
         path = node_fs.realpathSync(path); // file:// URIs need an absolute path
-        exports.require('file://' + path);
+        exports.require(pathToFileUrl(path));
       } catch(e) {
         console.error("Error loading init script at " + path + ": " + e);
         throw e;

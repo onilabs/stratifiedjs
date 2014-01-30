@@ -1,8 +1,10 @@
 var testUtil = require('../lib/testUtil');
 var testFn = testUtil.testFn;
 var suite = require('sjs:test/suite');
-var {test, assert, context} = suite;
+var {test, assert, context, isWindows} = suite;
 var url = require('sjs:url');
+var { startsWith, lstrip } = require('sjs:string');
+var { hostenv } = require('sjs:sys');
 
 context('build query string') {||
   testFn(url, 'buildQuery', [{a:1}, {b:2}], 'a=1&b=2');
@@ -46,46 +48,101 @@ context("normalize URL") {||
   testFn(url, 'normalize', ["bar.txt#loc1", "http://a.b/dir/foo.txt"], "http://a.b/dir/bar.txt#loc1");
 }
 
-context("toPath") {||
-  test("fails for non URL") {||
-    var s = "some non-URL";
-    assert.raises({message: "Not a file:// URL: #{s}"}, -> url.toPath(s));
+context {|| // serverOnly()
+  context("toPath") {||
+    test("fails for non URL") {||
+      var s = "some non-URL";
+      assert.raises({message: "Not a file:// URL: #{s}"}, -> url.toPath(s));
+    }
+
+    test("fails for non-file URL") {||
+      var s = "http://example.com";
+      assert.raises({message: "Not a file:// URL: #{s}"}, -> url.toPath(s));
+    }
+
+    test("decodes URL escapes") {||
+      if (isWindows)
+        assert.eq(url.toPath("file:///foo/%20bar"), "foo\\ bar");
+      else
+        assert.eq(url.toPath("file:///foo/%20bar"), "/foo/ bar");
+    }
+
+    test("accepts uppercased URLs") {||
+      if (isWindows)
+        assert.eq(url.toPath("FILE:///FOO"), "FOO");
+      else
+        assert.eq(url.toPath("FILE:///FOO"), "/FOO");
+    }
+
+    test("returns relative paths", -> assert.eq(url.toPath("file://foo%20/%20bar/baz"), "foo / bar/baz")).posixOnly();
   }
 
-  test("fails for non-file URL") {||
-    var s = "http://example.com";
-    assert.raises({message: "Not a file:// URL: #{s}"}, -> url.toPath(s));
-  }
+  context("fileURL") {||
+    context() {||
+      // behaviour differs depending on environment
+      if (suite.isBrowser) {
+        test("leaves a relative path", -> assert.eq(url.fileURL("foo/bar"), "file://foo/bar"));
+      } else {
+        var tmpdir = process.env['TEMP'] || '/tmp';
+        var prefix = url.fileURL(tmpdir);
+        // on nodejs, run this test from a known absolute cwd
+        test.beforeAll {|s|
+          s.cwd = process.cwd();
+          process.chdir(tmpdir);
+        }
+        test.afterAll {|s|
+          process.chdir(s.cwd);
+        }
 
-  test("decodes URL escapes", -> assert.eq(url.toPath("file:///foo%20bar"), "/foo bar"));
-  test("returns relative paths", -> assert.eq(url.toPath("file://foo%20/%20bar/baz"), "foo / bar/baz"));
-  test("accepts uppercased URLs", -> assert.eq(url.toPath("FILE:///FOO/"), "/FOO/"));
-}
-
-context("fileURL") {||
-  context() {||
-    // behaviour differs depending on environment
-    if (suite.isBrowser) {
-      test("leaves a relative path", -> assert.eq(url.fileURL("foo/bar"), "file://foo/bar"));
-    } else {
-      // on nodejs, run this test from a known absolute cwd
-      test.beforeAll {|s|
-        s.cwd = process.cwd();
-        process.chdir("/tmp");
+        test("resolves a relative path") {||
+          url.fileURL("foo/bar") .. assert.eq(prefix + "/foo/bar");
+        }
       }
-      test.afterAll {|s|
-        process.chdir(s.cwd);
-      }
+    }
 
-      test("resolves a relative path") {||
-        var resolved = url.fileURL("foo/bar");
-        assert.ok(resolved.match(/^file:\/\/.*\/tmp\/foo\/bar$/), resolved);
+    test("keeps an absolute path") {||
+      if(isWindows)
+        assert.eq(url.fileURL("C:\\foo\\bar"), "file:///C:/foo/bar");
+      else
+        assert.eq(url.fileURL("/foo/bar"), "file:///foo/bar");
+    }
+
+    test("escapes URL characters") {||
+      if(isWindows)
+        assert.eq(url.fileURL("C:/foo/ bar"), "file:///C:/foo/%20bar");
+      else
+        assert.eq(url.fileURL("/foo/ bar"), "file:///foo/%20bar");
+    }
+
+    test("keeps trailing slash") {||
+      if (isWindows) {
+        assert.eq(url.fileURL("C:/foo/bar/"), "file:///C:/foo/bar/");
+        assert.eq(url.fileURL("C:\\foo\\bar\\"), "file:///C:/foo/bar/");
+      } else {
+        assert.eq(url.fileURL("/foo/bar/"), "file:///foo/bar/");
       }
     }
   }
 
-  test("keeps an absolute path", -> assert.eq(url.fileURL("/foo/bar"), "file:///foo/bar"));
-  test("escapes URL characters", -> assert.eq(url.fileURL("/foo/ bar"), "file:///foo/%20bar"));
-  test("keeps trailing slash", -> assert.eq(url.fileURL("/foo/bar/"), "file:///foo/bar/"));
-}
+  context('windows file:// URIs') {||
+    // Some additional sanity checks for windows file:// issues
+    // see: http://blogs.msdn.com/b/ie/archive/2006/12/06/file-uris-in-windows.aspx
+    
+    context {||
+      test('module.id starts with file:///') {||
+        assert.ok(module.id .. startsWith("file:///"))
+      }
+
+      var localFile = 'file:///C:/Users/oni/sjs/a.sjs';
+      test('file:// URLs are normalized correctly') {||
+        assert.eq(url.normalize('../', localFile), 'file:///C:/Users/oni/');
+      }
+
+      test('toPath on absolute file:// URL') {||
+        assert.eq(url.toPath(localFile), 'C:\\Users\\oni\\sjs\\a.sjs');
+      }
+    }.windowsOnly();
+  }
+
+}.serverOnly();
 

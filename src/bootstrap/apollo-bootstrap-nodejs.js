@@ -46,10 +46,10 @@ global.__oni_rt.nodejs_require = require;
 global.__oni_rt.nodejs_sjs_lib_dir = path.join(path.dirname(fs.realpathSync(__filename)), 'modules/');
 
 var sys = rt.G.eval("(function(exports) {"+
+                    rt.c1.compile(rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'],
+                                  {filename:"'apollo-sys-"+rt.hostenv+".sjs'"})+"\n"+
                     rt.c1.compile(rt.modsrc['builtin:apollo-sys-common.sjs'],
                                   {filename:"'apollo-sys-common.sjs'"})+"\n"+
-                    rt.c1.compile(rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'],
-                                  {filename:"'apollo-sys-"+rt.hostenv+".sjs'"})+
                           "})");
 
 // In the nodejs environment, apollo-bootstrap is loaded as a nodejs
@@ -63,10 +63,10 @@ delete rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'];
 // entry point used by `sjs` script (and other npm-based executables)
 exports.run = function(url) {
   exports.init(function() {
-    if (url.indexOf(":") == -1) {
+    if (url.indexOf(":", 2) === -1) {
       // scheme-less; we assume its a file.
       // Note that file: URLs *must* be absolute paths.
-      url = "file://" + fs.realpathSync(url);
+      url = exports.pathToFileUrl(url);
     }
     exports.require(url, {
       // we provide a callback to prevent nodejs from showing a useless
