@@ -44,7 +44,7 @@
 */
 
 var isWindows = process.platform === 'win32';
-var pathMod = (function() {
+__js var pathMod = (function() {
   var np = __oni_rt.nodejs_require('path');
   var sep = np.sep || (isWindows ? '\\' : '/'); // `sep` introduced in nodejs 0.8
   return {
@@ -58,7 +58,7 @@ var pathMod = (function() {
   }
 })();
 
-var pathToFileUrl = exports.pathToFileUrl = function(path) {
+__js var pathToFileUrl = exports.pathToFileUrl = function(path) {
   var initialPath = path;
   var prefix = 'file://';
   path = pathMod.resolve(path);
@@ -73,7 +73,7 @@ var pathToFileUrl = exports.pathToFileUrl = function(path) {
   return prefix + encodeURI(path);
 };
 
-var fileUrlToPath = exports.fileUrlToPath = function(url) {
+__js var fileUrlToPath = exports.fileUrlToPath = function(url) {
   var parsed = exports.parseURL(url);
   if (parsed.protocol.toLowerCase() != 'file') {
     throw new Error("Not a file:// URL: #{url}");
