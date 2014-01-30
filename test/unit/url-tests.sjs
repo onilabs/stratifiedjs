@@ -141,6 +141,13 @@ context {|| // serverOnly()
       test('toPath on absolute file:// URL') {||
         assert.eq(url.toPath(localFile), 'C:\\Users\\oni\\sjs\\a.sjs');
       }
+
+      test("UNC path -> file:// conversion") {||
+        var _url = "file://server/dir/file";
+        var path = "\\\\server\\dir\\file"
+        assert.eq(url.toPath(_url), path);
+        assert.eq(url.fileURL(path), _url);
+      }
     }.windowsOnly();
   }
 

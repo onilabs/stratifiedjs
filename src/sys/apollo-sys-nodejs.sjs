@@ -60,10 +60,17 @@ var pathMod = (function() {
 
 var pathToFileUrl = exports.pathToFileUrl = function(path) {
   var initialPath = path;
+  var prefix = 'file://';
   path = pathMod.resolve(path);
-  if (isWindows)
-    path = '/' + path.replace(/\\/g, '/');
-  return 'file://' + encodeURI(path);
+  if (isWindows) {
+    path = path.replace(/\\/g, '/');
+    if (path.lastIndexOf('//', 0) === 0)
+      // UNC path
+      prefix='file:';
+    else
+      prefix='file:///';
+  }
+  return prefix + encodeURI(path);
 };
 
 var fileUrlToPath = exports.fileUrlToPath = function(url) {
@@ -73,13 +80,19 @@ var fileUrlToPath = exports.fileUrlToPath = function(url) {
   }
   var path = parsed.path;
   if (isWindows) {
-    // windows absolute paths end up as "/C:/Windows/",
-    // so strip the leading slash (and convert backslashes)
-    path = path.replace(/^\//, '').replace(/\//g, '\\');
+    path = path.replace(/\//g, '\\');
+    if (parsed.host) {
+      // UNC path
+      path = '\\\\' + pathMod.join(parsed.host, path);
+    } else {
+      // windows absolute paths end up as "/C:/Windows/",
+      // so strip the leading slash
+      path = path.replace(/^\\/, '');
+    }
   } else {
     if (parsed.host) {
       // mis-parse of relative file:// URI
-      path = pathMod.join(decodeURIComponent(parsed.host), path);
+      path = pathMod.join(parsed.host, path);
     }
   }
   return decodeURIComponent(path);
