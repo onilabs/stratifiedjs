@@ -238,66 +238,28 @@ exports.encode = encodeURIComponent;
 */
 exports.decode = decodeURIComponent;
 
-
-/**
- * We need some path-like functionality, which differs on nodejs / xbrowser
- * environments:
- */
-var pathMod;
-if (sys.hostenv == 'xbrowser') {
-  var {lstrip, rstrip} = require('./string');
-  pathMod = {
-    resolve: x -> x, // can't canonicalize, we have no base
-    join: function(a,b) { return (a..rstrip('/')) + '/' + (b .. lstrip('/')) },
-  };
-} else {
-  var np = require('nodejs:path');
-  var sep = np.sep || '/'; // `sep` introduced in nodejs 0.8
-  pathMod = {
-    join: np.join,
-    resolve: function(p) {
-      // nodejs strips trailing "/", which we wanted to keep
-      var result = np.resolve.apply(this, arguments);
-      if(p .. endsWith(sep)) result += '/';
-      return result;
-    }
-  }
-}
-
 /**
    @function toPath
    @summary Convert URL -> path
    @param {String} [url] file:// URL
    @return {String} The filesystem path.
+   @hostenv nodejs
    @desc
      The returned path will be absolute or relative,
      depending on the input path. An erorr will be thrown
      if `url` is not a file:// URL.
 */
-exports.toPath = function(url) {
-  var parsed = exports.parse(url)
-  if (parsed.protocol.toLowerCase() != 'file') {
-    throw new Error("Not a file:// URL: #{url}");
-  }
-  var path = decodeURIComponent(parsed.path);
-  if (parsed.host) {
-    // mis-parse of relative file:// URI
-    return pathMod.join(decodeURIComponent(parsed.host), path);
-  }
-  return path;
-}
+exports.toPath = sys.fileUrlToPath;
 
 /**
    @function fileURL
    @summary Convert a filesystem path into a file:// URL
    @param {String} [path] The input path (absolute or relative)
    @return {String} An absolute file:// URL
+   @hostenv nodejs
    @desc
       If the path is relative, it will be canonicalized (against process.cwd())
       in the nodejs environment. Relative paths will be left as-is in an xbrowser
       environment, since there is no concept of a working directory there.
 */
-exports.fileURL = function(path) {
-  return 'file://' + encodeURI(pathMod.resolve(path));
-}
-
+exports.fileURL = sys.pathToFileUrl;
