@@ -27,7 +27,8 @@ var run = exports.run = function(port, opts) {
   // still want to run the rest of the tests:
   var basedir = module.id .. url.toPath() .. path.join("../../../") .. path.resolve();
   logging.verbose("rocket basedir: #{basedir}");
-  var rocket_exe = process.env['ROCKET'] || basedir .. path.join("tools/rocket");
+  var rocket_ext = process.platform == 'win32' ? '.cmd' : '';
+  var rocket_exe = process.env['ROCKET'] || basedir .. path.join("tools/rocket#{rocket_ext}");
 
   var args = ['--port', port];
   if ('args' in opts) {

@@ -73,7 +73,7 @@ exports.testLibrary = function(hub) {
           var topLevel = sym -> !string.contains(sym, '.');
           var documentedSymbols = moduleDoc.symbols .. ownKeys .. filter(topLevel) .. sort;
 
-          var home = hub + fullPath.slice(moduleRoot.length).replace(/\.sjs$/,'');
+          var home = hub + fullPath.slice(moduleRoot.length).replace(/\.sjs$/,'').replace(/\\/g,'/');
 
           var moduleTests = context(filename) {||
             context{||
