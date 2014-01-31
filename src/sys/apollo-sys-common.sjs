@@ -339,7 +339,7 @@ __js exports.canonicalizeURL = function(url, base) {
   if (__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32') {
     // special case for mapping Windows paths in nodejs hostenv
     url  = url.replace(/\\/g, "/");
-    base = base.replace(/\\/g, "/"); 
+    base = base.replace(/\\/g, "/");
   }
 
   var a = exports.parseURL(url);
@@ -592,9 +592,6 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
       // we've got a match
       if (typeof hub[1] == "string") {
         path = hub[1] + path.substring(hub[0].length);
-        // make sure the resulting path is absolute:
-        if (path.indexOf(":") == -1)
-          path = resolveSchemelessURL_hostenv(path, require_obj, parent);
         i=0; // start resolution from beginning again
         if (--level == 0)
           throw new Error("Too much indirection in hub resolution for module '"+module+"'");
@@ -605,7 +602,7 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
         // that's it; no more indirection
         break;
       }
-      else 
+      else
         throw new Error("Unexpected value for require.hubs element '"+hub[0]+"'");
     }
   }

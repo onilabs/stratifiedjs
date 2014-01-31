@@ -175,10 +175,14 @@ function getTopReqParent_hostenv() {
    @return {String} Absolute URL
 */
 function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
-  if (/^\.?\.?\//.exec(url_string))
+  if (/^\.\.?\//.test(url_string))
     return exports.canonicalizeURL(url_string, parent.id);
-  else
-    return "nodejs:"+url_string;
+  else if (!isWindows && /^\//.test(url_string))
+    // We *could* allow this, but it would break whenever URL semantics != path semantics
+    // (e.g windows).
+    // Instead, we enforce using using file:// URLs for absolute paths.
+    throw new Error("Absolute path passed to require.resolve: #{url_string}");
+  return "nodejs:"+url_string;
 }
 
 
