@@ -593,6 +593,9 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
       if (typeof hub[1] == "string") {
         path = hub[1] + path.substring(hub[0].length);
         i=0; // start resolution from beginning again
+        // make sure the resulting path is absolute:
+        if (path.indexOf(":") == -1)
+          path = resolveSchemelessURL_hostenv(path, require_obj, parent);
         if (--level == 0)
           throw new Error("Too much indirection in hub resolution for module '"+module+"'");
       }
