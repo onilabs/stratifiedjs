@@ -51,8 +51,7 @@ try:
 				'tools/karma/conf.js',
 				'--single-run',
 				'--browsers=' + ','.join(browsers),
-				'--',
-				'app:' + testmod] + args)
+				'--', testmod] + args)
 		else:
 			raise AssertionError("Unknown runner: %s" % (runner,))
 

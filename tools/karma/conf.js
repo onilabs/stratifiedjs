@@ -7,9 +7,6 @@ module.exports = function(config) {
     ],
 
     client: {
-      hubs: {
-        "app:": "sjs:../"
-      }
     },
 
     files: [
