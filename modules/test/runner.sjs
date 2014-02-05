@@ -898,7 +898,11 @@ Options:
             break;
           
           case 'color':
-            if (['on','off', 'auto'].indexOf(val) == -1) {
+            if (val == 'on') {
+              val = true;
+            } else if (val == 'off') {
+              val = false;
+            } else if (val != 'auto') {
               throw new Error("unknown color mode: #{val}");
             }
             break;
