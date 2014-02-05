@@ -212,7 +212,6 @@ exports.generate = generate;
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to execute for each `item` in `sequence`
    @summary Executes `f(item)` for each `item` in `sequence`
-   @return {::Sequence} The `sequence` that was passed in.
    @desc
      ### Example:
 
@@ -255,7 +254,6 @@ function each(sequence, r) {
       throw new Error("Unsupported sequence type '#{typeof sequence}'");
     }
   }
-  return sequence;
 }
 exports.each = each;
 
@@ -270,7 +268,6 @@ function async_each(arr, r, i, ef) {
     for (++i; i<l; ++i)
       r(arr[i]);
   }
-  return arr;
 }
 
 

@@ -67,12 +67,6 @@ testEq("'abc' .. each{|x| ...}", 'abc', function() {
   return rv;
 });
 
-test("each returns the original sequence") {||
-  [[1,2,3], 'abc', nonRepeatableSequence([1,2,3])] .. s.each {|input|
-    input .. s.each(x -> null) .. assert.eq(input);
-  }
-}
-
 testEq("['a','b','c'] .. consume{ |next| ...}", 'abc', function() {
   var rv = "", eos = {};
   ['a','b','c'] .. s.consume(eos) { 
