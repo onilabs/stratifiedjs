@@ -167,7 +167,7 @@ exports.main = function(argv) {
 	argv = argv || require('sjs:sys').argv();
 	var argv = require('sjs:sys').argv();
 	if(argv.length != 1) throw "Please supply exactly one argument!";
-	var module_name = argv[0];
+	var module_name = argv[0] .. url.coerceToURL();
 	if(module_name.indexOf(":") == -1) {
 		// assume a path:
 		var fs = require("nodejs:fs");

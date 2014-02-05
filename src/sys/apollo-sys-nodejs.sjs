@@ -102,6 +102,14 @@ __js var fileUrlToPath = exports.fileUrlToPath = function(url) {
   return decodeURIComponent(path);
 };
 
+__js var coerceToURL = exports.coerceToURL = function(path) {
+  // Check for scheme. This will be wrong when the scheme
+  // is 1 letter long, because that's much more likely to
+  // just be a drive prefix on windows.
+  if (path.indexOf(':', 2) !== -1) return path;
+  return pathToFileUrl(path);
+};
+
 
 /**
    @function  jsonp_hostenv

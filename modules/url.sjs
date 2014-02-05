@@ -263,3 +263,20 @@ exports.toPath = sys.fileUrlToPath;
       environment, since there is no concept of a working directory there.
 */
 exports.fileURL = sys.pathToFileUrl;
+
+/**
+   @function coerceToURL
+   @param {String} [pathOrUrl] A URL or filesystem path
+   @return {String} A URL
+   @summary Coerce `pathOrUrl` to a URL
+   @hostenv nodejs
+   @desc
+      If `pathOrUrl` is already a URL, it is returned unchanged. If it doesn't
+      look like a URL, it's assumed to be a local file path and converted to
+      a file:// URL using [::fileURL].
+      
+      This is often useful for command line tools which accept a
+      URLs for generality, but which are often used with local paths
+      for convenience.
+*/
+exports.coerceToURL = sys.coerceToURL;

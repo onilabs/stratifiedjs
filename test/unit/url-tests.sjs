@@ -5,6 +5,7 @@ var {test, assert, context, isWindows} = suite;
 var url = require('sjs:url');
 var { startsWith, lstrip } = require('sjs:string');
 var { hostenv } = require('sjs:sys');
+var { each } = require('sjs:sequence');
 
 context('build query string') {||
   testFn(url, 'buildQuery', [{a:1}, {b:2}], 'a=1&b=2');
@@ -149,6 +150,30 @@ context {|| // serverOnly()
         assert.eq(url.fileURL(path), _url);
       }
     }.windowsOnly();
+  }
+
+  context("coerceToURL") {||
+    test("coerces non-URLs to file URLs") {||
+      [
+        './local/file',
+        'C:\\local\\file',
+        '/var/local/file',
+        'filename',
+      ] .. each {|path|
+        path .. url.coerceToURL() .. assert.eq(path .. url.fileURL);
+      }
+    }
+
+    test("leaves URLs as-is") {||
+      [
+        'file://C:/path',
+        'file:///path/to/file',
+        'http://example.com/path',
+        'sjs:test/run',
+      ] .. each {|u|
+        u .. url.coerceToURL() .. assert.eq(u);
+      }
+    }
   }
 
 }.serverOnly();

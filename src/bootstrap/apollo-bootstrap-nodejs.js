@@ -63,11 +63,7 @@ delete rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'];
 // entry point used by `sjs` script (and other npm-based executables)
 exports.run = function(url) {
   exports.init(function() {
-    if (url.indexOf(":", 2) === -1) {
-      // scheme-less; we assume its a file.
-      // Note that file: URLs *must* be absolute paths.
-      url = exports.pathToFileUrl(url);
-    }
+    url = exports.coerceToURL(url);
     exports.require(url, {
       // we provide a callback to prevent nodejs from showing a useless
       // call stack when there is an error:
