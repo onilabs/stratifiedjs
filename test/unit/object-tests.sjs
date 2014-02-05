@@ -1,6 +1,6 @@
 var {test: testEq, testFn} = require('../lib/testUtil');
 var o = require("sjs:object");
-var {sort, toArray} = require("sjs:sequence");
+var {sort, toArray, map} = require("sjs:sequence");
 var {test, assert, context} = require('sjs:test/suite');
 
 test('clone object', function() {
@@ -57,6 +57,13 @@ testEq("merge multiple array arguments", {"a":1, "0": {"b":2}}, function() {
 	var b = {b:2};
 	return o.merge(a, [b]);
 });
+
+test("tap") {||
+	var out;
+	var result = [1,2,3] .. o.tap(function(x) {out=x}) .. map(x -> x *2);
+	out .. assert.eq([1,2,3]);
+	result .. assert.eq([2,4,6]);
+}
 
 context {||
 	var Obj = function(props) {
