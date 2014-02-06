@@ -14,6 +14,8 @@ module.exports = function(config) {
     ],
 
     proxies: {
+      // http tests rely on dynamic behaviour (served by conductance)
+      '/http': 'http://localhost:7071/http'
     },
 
     exclude: [],

@@ -37,27 +37,27 @@
         var func = require('sjs:function');
       
         // when running under node.js, our integration tests
-        // expect a rocket instance to be running on localhost:7071
-        var rocketInitialized = false, cleanup = -> null;
-        var startRocket = function() {
-          rocketInitialized = true;
-          var rocket_ctrl = require('./lib/rocket_ctrl');
-          var rocket_port = '7071'
+        // expect a conductance instance to be running on localhost:7071
+        var conductanceInitialized = false, cleanup = -> null;
+        var startConductance = function() {
+          conductanceInitialized = true;
+          var conductance_ctrl = require('./lib/conductance_ctrl');
+          var conductance_port = '7071'
 
-          var rocket_base_url = 'http://localhost:' + rocket_port + '/test/';
-          var ctx = cutil.breaking(brk -> rocket_ctrl.withRocket(rocket_port, brk));
+          var conductance_base_url = 'http://localhost:' + conductance_port + '/test/';
+          var ctx = cutil.breaking(brk -> conductance_ctrl.withConductance(conductance_port, brk));
           cleanup = ctx.resume;
-          require('./lib/testContext').setBaseURL(rocket_base_url);
+          require('./lib/testContext').setBaseURL(conductance_base_url);
         };
 
         opts.init = function(runner) {
 
           // inherit from runner.reporter, and amend its reporting functions
-          // with hooks to start/stop rocket integration server as necessary
+          // with hooks to start/stop conductance integration server as necessary
           var reporter = runner.reporter = Object.create(runner.reporter);
           reporter.contextBegin = func.seq(reporter.contextBegin, function(ctx) {
-            if (!rocketInitialized && ctx.module() .. string.startsWith('integration/')) {
-              startRocket();
+            if (!conductanceInitialized && ctx.module() .. string.startsWith('integration/')) {
+              startConductance();
             }
           });
           reporter.suiteEnd = func.seq(-> cleanup(), reporter.suiteEnd);

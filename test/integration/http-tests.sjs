@@ -51,12 +51,16 @@ context("get") {||
 }
 
 context("post") {||
+  var post_echo;
+  test.beforeAll {|s|
+    post_echo = getHttpURL("/http/post_echo");
+  }
   testEq("http.post", "a=1&b=2", function () {
-    return http.post(getHttpURL("/post_echo"), "a=1&b=2");
+    return http.post(post_echo, "a=1&b=2");
   });
 
   testEq("http.post 2", "a=1&b=b&c=3", function () {
-    return http.post(getHttpURL("/post_echo"), url.buildQuery([{a:1,b:"b"}, {c:3}]));
+    return http.post(post_echo, url.buildQuery([{a:1,b:"b"}, {c:3}]));
   });
 }
 

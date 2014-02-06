@@ -2,4 +2,4 @@
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 cd "$here/.."
-"$here/karma" run -- "app:test/run.html" "$@"
+"$here/karma" run -- "test/run.html" "$@"
