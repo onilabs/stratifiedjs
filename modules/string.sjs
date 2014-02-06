@@ -589,7 +589,7 @@ else {
    @desc
       **Notes:**
 
-        * On modern browsers, this function is equivalent to `window.btoa`.
+        * On modern browsers, this function is equivalent to `window.atob`.
         * Octet strings are equivalent to JS strings where the upper half of
           each 16-bit 'character' is set to 0.
         * This function will silently ignore characters in the input that 
@@ -598,14 +598,15 @@ else {
           encoded string length is not a multiple of 3.
 */
 __js {
+var atob_ignore = /[^A-Za-z0-9\+\/\=]/g;
 if (global.atob) {
-  exports.base64ToOctets = s -> global.atob(s);
+  exports.base64ToOctets = s -> global.atob(s.replace(atob_ignore, ""));
 }
 else {
   // fallback for IE9 and below
   exports.base64ToOctets = function(s) {
     var rv = "";
-    s = s.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+    s = s.replace(atob_ignore, "");
     var i=0, l=s.length;
     
     while (i<l) {
