@@ -168,6 +168,7 @@ module.exports = require(modules);
    - **pairsToObject**: (function [sjs:object::pairsToObject])
    - **propertyPairs**: (function [sjs:object::propertyPairs])
    - **setPath**: (function [sjs:object::setPath])
+   - **tap**: (function [sjs:object::tap])
    - **values**: (function [sjs:object::values])
   
   
