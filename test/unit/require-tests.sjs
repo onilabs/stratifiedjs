@@ -169,7 +169,8 @@ test('non-circular reference waits for the full module') {||
   } and {
     while(true) {
       hold(0);
-      if (require.modules[path]) break;
+      var mod = require.modules[path];
+      if (mod && mod.exports.fast_export) break;
     }
     // the module should appear eagerly in require.modules, but
     // not returned from require() until it's fully loaded
@@ -186,7 +187,8 @@ test('failed module does not end up in require.paths') {||
   } and {
     while(true) {
       hold(0);
-      if (require.modules[path]) break;
+      var mod = require.modules[path];
+      if (mod && mod.exports.fast_export) break;
     }
     // the module should appear eagerly in require.modules, but
     // not returned from require() until it's fully loaded
