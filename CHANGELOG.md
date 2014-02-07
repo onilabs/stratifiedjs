@@ -1,5 +1,35 @@
 This changelog lists the most prominent, developer-visible changes in each release.
 
+## Version 0.17:
+
+0.17 is a small release. The biggest change in this release is stricter
+handling of URL strings in the nodejs envrionment. Previously, some functions
+that accepted a URL happened to work with an absolute file path. This never
+works on windows, and was never intentionally supported. So we've tightened
+up checks to disallow using an absolute path where a URL is expected.
+
+For example, if you have the absolute path of a module that you wish to require,
+require(filePath) will now throw an error. Instead, you must use
+require(filePath .. @url.fileURL). Note that relative URLs like "./lib/helpers"
+are still fine, so only code that uses absolute paths will be affected.
+
+The equivalent functionality in the browser is unaffected - e.g
+require("/path/to/resource.sjs") still works fine, as this path will
+be normalized against the document location.
+
+Command line tools (like `sjs` itself) continue to accept both URLs and
+file paths, using the new url::coerceToURL function.
+
+ * new functions and symbols:
+   
+   * cutil::Queue.isFull
+   * object::tap
+   * string::base64ToArrayBuffer
+   * test/suite::isWindows
+   * test/suite::context.windowsOnly
+   * test/suite::context.posixOnly
+   * url::coerceToURL
+
 ## Version 0.16:
 
 **NOTE:** version 0.15 was publicly released, but never announced,
