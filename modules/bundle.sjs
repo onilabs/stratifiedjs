@@ -3,7 +3,7 @@
  * StratifiedJS 'bundle' module
  *
  * Part of the StratifiedJS Standard Module Library
- * Version: '0.17.0-development'
+ * Version: '0.17.0'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2013 Oni Labs, http://onilabs.com
