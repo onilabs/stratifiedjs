@@ -2,12 +2,8 @@
 
 @ = require('mho:std');
 
+var root = @url.normalize("../", module.id) .. @url.toPath;
 exports.serve = function(args) {
-  var routes = [
-        @route.SystemRoutes(),
-        @route.ExecutableDirectory("."),
-      ] .. @route.LogRequests(@logging.INFO);
-
   @server.run({
     address: @Port(7071),
     routes: [
@@ -15,7 +11,7 @@ exports.serve = function(args) {
       @Route('http/post_echo', {
         POST: (req) -> req.response.end(req.body)
       }),
-      @route.CodeDirectory("."),
+      @route.CodeDirectory(root),
     ]
     .. @route.LogRequests(@logging.INFO)
     .. @route.AllowCORS()
