@@ -339,11 +339,10 @@ testEq("multiline strings", true, function() {
   return a === "1\n2";
 });
 
-testEq("multiline strings; newline escaping", true, function() {
-  var a = "1\
-2";
-  return a === "12";
-});
+test("multiline strings; newline escaping") {||
+  assert.eq("1\
+2", "12");
+};
 
 testEq('reentrant resume in waitfor/or', 1, function() {
   waitfor {
@@ -1786,13 +1785,26 @@ context('@altns') {||
 }
 
 context("line endings") {||
+  test("consistent multi-line strings") {||
+    assert.eq("line 1
+      line 2",
+      "line 1\n      line 2");
+
+    assert.eq('line 1
+      line 2',
+      "line 1\n      line 2");
+  }
+
   test("windows") {||
     assert.eq(1, sys.eval("var x=1\r\nx"));
+    assert.eq(1, sys.eval('var x=1\r\nx'));
   }
   test("unix") {||
     assert.eq(1, sys.eval("var x=1\nx"));
+    assert.eq(1, sys.eval('var x=1\nx'));
   }
   test("mac") {||
     assert.eq(1, sys.eval("var x=1\rx"));
+    assert.eq(1, sys.eval('var x=1\rx'));
   }
 }.ignoreLeaks('x');

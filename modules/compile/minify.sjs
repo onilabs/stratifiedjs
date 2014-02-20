@@ -535,7 +535,7 @@ Hash.prototype = {
 
 
 // tokenizer for tokens in a statement/argument position:
-var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\r\n\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\.|[^\\\'\r\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
 
 // tokenizer for tokens in an operator position:
@@ -543,10 +543,10 @@ var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|
 
 
 // tokenizer for tokens in an interpolating string position:
-var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\r\n])+)|(\\\n)|((?:\r\n|\n|\r))|(\"|\#\{)/g;
+var TOKENIZER_IS = /((?:\\[^\r\n]|\#(?!\{)|[^#\\\"\r\n])+)|(\\(?:\r\n|\n|\r))|((?:\r\n|\n|\r))|(\"|\#\{)/g;
 
 // tokenizer for tokens in an quasi-literal:
-var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\\n)|((?:\r\n|\n|\r))|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
+var TOKENIZER_QUASI = /((?:\\[^\r\n]|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\(?:\r\n|\n|\r))|((?:\r\n|\n|\r))|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
 
 //----------------------------------------------------------------------
 // Syntax Table
@@ -1830,7 +1830,7 @@ function scan(pctx, id, tokenizer) {
         var m = val.match(/(?:\r\n|\n|\r)/g);
         pctx.line += m.length;
         pctx.newline += m.length;
-        val = val.replace(/\\\n/g, "").replace(/\n/g, "\\n");
+        val = val.replace(/\\(?:\r\n|\n|\r)/g, "").replace(/(?:\r\n|\n|\r)/g, "\\n");
         pctx.token = new Literal("<string>", val);
       }
       else if (matches[2])

@@ -549,7 +549,7 @@ __js function augmentHubs(hubs) {
 }
 
 function html_sjs_extractor(html, descriptor) {
-  var re = /<script (?:[^>]+ )?(?:type=['"]text\/sjs['"]|main=['"]([^'"]+)['"])[^>]*>((.|\n)*?)<\/script>/mg; // (fix vim highlighting) /
+  var re = /<script (?:[^>]+ )?(?:type=['"]text\/sjs['"]|main=['"]([^'"]+)['"])[^>]*>((.|[\r\n])*?)<\/script>/mg; // (fix vim highlighting) /
   var match;
   var src = '';
   while(match = re.exec(html)) {

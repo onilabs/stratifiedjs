@@ -404,13 +404,15 @@ Hash.prototype = {
 
 // whitespace/comments with newlines
 #define PAT_NEWLINE (?:\r\n|\n|\r)
+#define PAT_DOT [^\r\n]
+#define PAT_DOTALL (?:PAT_DOT|PAT_NEWLINE)
 // doesn't work on IE: define PAT_COMMENT \/\*[^]*?\*\/
 #define PAT_COMMENT \/\*(?:.|\n|\r)*?\*\/
 #define PAT_NEWLINES (?:PAT_NEWLINE|PAT_COMMENT)+
 
 #define PAT_NUMLIT (?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)
 
-#define PAT_REGEXLIT \/(?:\\.|\[(?:\\.|[^\r\n\]])*\]|[^\[\/\r\n])+\/[gimy]*
+#define PAT_REGEXLIT \/(?:\\.|\[(?:\\PAT_DOT|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*
 
 #define PAT_OPERATOR4 >>>=
 #define PAT_OPERATOR3 ===|!==|>>>|<<=|>>=
@@ -443,20 +445,20 @@ Hash.prototype = {
 // symbols that can appear in an 'operator position':
 #define PAT_SYMBOL PAT_OPERATOR4|PAT_OPERATOR3|PAT_ARGSYMBOL
 
-#define PAT_STRLIT_SGL '(?:\\.|[^\\\'\r\n])*'
+#define PAT_STRLIT_SGL '(?:\\PAT_DOT|[^\\\'\r\n])*'
 #ifdef INTERPOLATING_STRINGS
 #define PAT_STRLIT PAT_STRLIT_SGL
 #else
-#define PAT_STRLIT_DBL "(?:\\.|[^\\\"\r\n])*"
+#define PAT_STRLIT_DBL "(?:\\PAT_DOT|[^\\\"\r\n])*"
 #define PAT_STRLIT PAT_STRLIT_SGL|PAT_STRLIT_DBL
 #endif
 
 #ifdef MULTILINE_STRINGS
-#define PAT_ML_STRLIT_SGL '(?:\\(?:.|\n|\r)|[^\\\'])*'
+#define PAT_ML_STRLIT_SGL '(?:\\(?:PAT_DOTALL)|[^\\\'])*'
 #ifdef INTERPOLATING_STRINGS
 #define PAT_ML_STRLIT PAT_ML_STRLIT_SGL
 #else
-#define PAT_ML_STRLIT_DBL "(?:\\(?:.|\n|\r)|[^\\\"])*"
+#define PAT_ML_STRLIT_DBL "(?:\\(?:PAT_DOTALL)|[^\\\"])*"
 #define PAT_ML_STRLIT PAT_ML_STRLIT_SGL|PAT_ML_STRLIT_DBL
 #endif
 #endif
@@ -490,7 +492,7 @@ var TOKENIZER_OP = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_SYMBOL))/g;
 
 #ifdef INTERPOLATING_STRINGS
 // tokenizer for tokens in an interpolating string position:
-var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\r\n])+)|(\\\n)|(PAT_NEWLINE)|(\"|\#\{)/g;
+var TOKENIZER_IS = /((?:\\PAT_DOT|\#(?!\{)|[^#\\\"\r\n])+)|(\\PAT_NEWLINE)|(PAT_NEWLINE)|(\"|\#\{)/g;
 #define IS_CONTENT_MATCH 1
 #define IS_ESCAPED_NEWLINE_MATCH 2
 #define IS_NEWLINE_MATCH 3
@@ -499,7 +501,7 @@ var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\r\n])+)|(\\\n)|(PAT_NEWLINE)|(\"|\#
 
 #ifdef QUASIS
 // tokenizer for tokens in an quasi-literal:
-var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\\n)|(PAT_NEWLINE)|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
+var TOKENIZER_QUASI = /((?:\\PAT_DOT|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\PAT_NEWLINE)|(PAT_NEWLINE)|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
 #define QUASI_CONTENT_MATCH 1
 #define QUASI_ESCAPED_NEWLINE_MATCH 2
 #define QUASI_NEWLINE_MATCH 3
@@ -1923,7 +1925,7 @@ function scan(pctx, id, tokenizer) {
         var m = val.match(/PAT_NEWLINE/g);
         pctx.line += m.length;
         pctx.newline += m.length;
-        val = val.replace(/\\\n/g, "").replace(/\n/g, "\\n");
+        val = val.replace(/\\PAT_NEWLINE/g, "").replace(/PAT_NEWLINE/g, "\\n");
         pctx.token = new Literal("<string>", val);
       }
 #endif
