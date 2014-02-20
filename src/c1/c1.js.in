@@ -395,22 +395,22 @@ Hash.prototype = {
 //----------------------------------------------------------------------
 // Tokenizer
 
-// PAT_NBWS == \s+ without \n
-#define PAT_NBWS [ \f\r\t\v\u00A0\u2028\u2029]+
+// PAT_NBWS == \s+ without \n or \r
+#define PAT_NBWS [ \f\t\v\u00A0\u2028\u2029]+
 //define PAT_NBWS \\s+
 // we ignore '//'-style comments as well as hashbangs (XXX not quite right)
 #define PAT_NBCOMMENT \/\/.*|#!.*
 #define PAT_NBIGNORE (?:PAT_NBWS|PAT_NBCOMMENT)*
 
 // whitespace/comments with newlines
-#define PAT_NEWLINE \n
+#define PAT_NEWLINE (?:\r\n|\n|\r)
 // doesn't work on IE: define PAT_COMMENT \/\*[^]*?\*\/
 #define PAT_COMMENT \/\*(?:.|\n|\r)*?\*\/
 #define PAT_NEWLINES (?:PAT_NEWLINE|PAT_COMMENT)+
 
 #define PAT_NUMLIT (?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)
 
-#define PAT_REGEXLIT \/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\[\/\n])+\/[gimy]*
+#define PAT_REGEXLIT \/(?:\\.|\[(?:\\.|[^\r\n\]])*\]|[^\[\/\r\n])+\/[gimy]*
 
 #define PAT_OPERATOR4 >>>=
 #define PAT_OPERATOR3 ===|!==|>>>|<<=|>>=
@@ -443,11 +443,11 @@ Hash.prototype = {
 // symbols that can appear in an 'operator position':
 #define PAT_SYMBOL PAT_OPERATOR4|PAT_OPERATOR3|PAT_ARGSYMBOL
 
-#define PAT_STRLIT_SGL '(?:\\.|[^\\\'\n])*'
+#define PAT_STRLIT_SGL '(?:\\.|[^\\\'\r\n])*'
 #ifdef INTERPOLATING_STRINGS
 #define PAT_STRLIT PAT_STRLIT_SGL
 #else
-#define PAT_STRLIT_DBL "(?:\\.|[^\\\"\n])*"
+#define PAT_STRLIT_DBL "(?:\\.|[^\\\"\r\n])*"
 #define PAT_STRLIT PAT_STRLIT_SGL|PAT_STRLIT_DBL
 #endif
 
@@ -490,7 +490,7 @@ var TOKENIZER_OP = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_SYMBOL))/g;
 
 #ifdef INTERPOLATING_STRINGS
 // tokenizer for tokens in an interpolating string position:
-var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
+var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\r\n])+)|(\\\n)|(PAT_NEWLINE)|(\"|\#\{)/g;
 #define IS_CONTENT_MATCH 1
 #define IS_ESCAPED_NEWLINE_MATCH 2
 #define IS_NEWLINE_MATCH 3
@@ -499,7 +499,7 @@ var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
 
 #ifdef QUASIS
 // tokenizer for tokens in an quasi-literal:
-var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
+var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\\n)|(PAT_NEWLINE)|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
 #define QUASI_CONTENT_MATCH 1
 #define QUASI_ESCAPED_NEWLINE_MATCH 2
 #define QUASI_NEWLINE_MATCH 3
@@ -1907,7 +1907,7 @@ function scan(pctx, id, tokenizer) {
         }
       }
       else if (matches[SA_NEWLINES_MATCH]) {
-        var m = matches[SA_NEWLINES_MATCH].match(/\n/g);
+        var m = matches[SA_NEWLINES_MATCH].match(/PAT_NEWLINE/g);
         if (m) {
           pctx.line += m.length;
           pctx.newline += m.length;
@@ -1920,7 +1920,7 @@ function scan(pctx, id, tokenizer) {
 #ifdef MULTILINE_STRINGS
       else if (matches[SA_ML_STRLIT_MATCH]) {
         var val = matches[SA_ML_STRLIT_MATCH];
-        var m = val.match(/\n/g);
+        var m = val.match(/PAT_NEWLINE/g);
         pctx.line += m.length;
         pctx.newline += m.length;
         val = val.replace(/\\\n/g, "").replace(/\n/g, "\\n");
@@ -1945,7 +1945,7 @@ function scan(pctx, id, tokenizer) {
         }
       }
       else if (matches[OP_NEWLINES_MATCH]) {
-        var m = matches[OP_NEWLINES_MATCH].match(/\n/g);
+        var m = matches[OP_NEWLINES_MATCH].match(/PAT_NEWLINE/g);
         if (m) {
           pctx.line += m.length;
           pctx.newline += m.length;

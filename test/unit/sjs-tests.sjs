@@ -1784,3 +1784,15 @@ context('@altns') {||
     assert.is(@ok, assert.ok);
   }
 }
+
+context("line endings") {||
+  test("windows") {||
+    assert.eq(1, sys.eval("var x=1\r\nx"));
+  }
+  test("unix") {||
+    assert.eq(1, sys.eval("var x=1\nx"));
+  }
+  test("mac") {||
+    assert.eq(1, sys.eval("var x=1\rx"));
+  }
+}.ignoreLeaks('x');

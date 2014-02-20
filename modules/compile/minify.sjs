@@ -515,8 +515,8 @@ Hash.prototype = {
 //----------------------------------------------------------------------
 // Tokenizer
 
-// PAT_NBWS == \s+ without \n
-//define [ \f\r\t\v\u00A0\u2028\u2029]+ \\s+
+// PAT_NBWS == \s+ without \n or \r
+//define [ \f\t\v\u00A0\u2028\u2029]+ \\s+
 // we ignore '//'-style comments as well as hashbangs (XXX not quite right)
 
 // whitespace/comments with newlines
@@ -535,18 +535,18 @@ Hash.prototype = {
 
 
 // tokenizer for tokens in a statement/argument position:
-var TOKENIZER_SA = /(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\n\]])*\]|[^\[\/\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\.|[^\\\'\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\.|[^\r\n\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\.|[^\\\'\r\n])*')|('(?:\\(?:.|\n|\r)|[^\\\'])*')|(\S+))/g;
 
 
 // tokenizer for tokens in an operator position:
-var TOKENIZER_OP = /(?:[ \f\r\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:\n|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
+var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
 
 
 // tokenizer for tokens in an interpolating string position:
-var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\n])+)|(\\\n)|(\n)|(\"|\#\{)/g;
+var TOKENIZER_IS = /((?:\\.|\#(?!\{)|[^#\\\"\r\n])+)|(\\\n)|((?:\r\n|\n|\r))|(\"|\#\{)/g;
 
 // tokenizer for tokens in an quasi-literal:
-var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\n])+)|(\\\n)|(\n)|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
+var TOKENIZER_QUASI = /((?:\\.|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\\n)|((?:\r\n|\n|\r))|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
 
 //----------------------------------------------------------------------
 // Syntax Table
@@ -1815,7 +1815,7 @@ function scan(pctx, id, tokenizer) {
         }
       }
       else if (matches[1]) {
-        var m = matches[1].match(/\n/g);
+        var m = matches[1].match(/(?:\r\n|\n|\r)/g);
         if (m) {
           pctx.line += m.length;
           pctx.newline += m.length;
@@ -1827,7 +1827,7 @@ function scan(pctx, id, tokenizer) {
         pctx.token = new Literal("<string>", matches[5]);
       else if (matches[6]) {
         var val = matches[6];
-        var m = val.match(/\n/g);
+        var m = val.match(/(?:\r\n|\n|\r)/g);
         pctx.line += m.length;
         pctx.newline += m.length;
         val = val.replace(/\\\n/g, "").replace(/\n/g, "\\n");
@@ -1851,7 +1851,7 @@ function scan(pctx, id, tokenizer) {
         }
       }
       else if (matches[1]) {
-        var m = matches[1].match(/\n/g);
+        var m = matches[1].match(/(?:\r\n|\n|\r)/g);
         if (m) {
           pctx.line += m.length;
           pctx.newline += m.length;
