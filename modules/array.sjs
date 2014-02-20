@@ -41,7 +41,7 @@ var { isArrayLike, flatten } = require('builtin:apollo-sys');
 /**
    @function isArrayLike
    @summary  Tests if an object is an array, `arguments` object or, in an xbrowser 
-             hostenv of StratifiedJS, a NodeList.
+             hostenv of StratifiedJS, a NodeList or FileList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */

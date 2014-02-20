@@ -84,7 +84,7 @@ __js exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
    @function isArrayLike
-   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of StratifiedJS, a NodeList.
+   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of StratifiedJS, a NodeList or FileList
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
    @desc
@@ -94,6 +94,7 @@ __js exports.isArrayLike = function(obj) {
   return Array.isArray(obj) || 
          !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
          !!(__oni_rt.G.NodeList && obj instanceof NodeList) ||
+         !!(__oni_rt.G.FileList && obj instanceof FileList) ||
          !!(__oni_rt.G.StaticNodeList && obj instanceof StaticNodeList);
 };
 
