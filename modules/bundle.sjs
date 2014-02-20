@@ -91,6 +91,7 @@ var compiler = require('./compile/deps.js');
 
 var fs = require('sjs:nodejs/fs');
 var url = require('sjs:url');
+var { coerceToURL } = url;
 var seq = require('sjs:sequence');
 var { each, toArray, map, transform, filter, concat, sort, any } = seq;
 var str = require('sjs:string');
@@ -171,7 +172,7 @@ function findDependencies(sources, settings) {
 
     // resolve relative require names & builtin hubs
     requireName = resolveHubs(requireName, hubs, usedHubs);
-    if (! (requireName .. str.contains(":"))) {
+    if (requireName.indexOf(':', 2) === -1) {
       requireName = url.normalize(requireName, parent.path);
       logging.debug("normalized to " + requireName);
     }
@@ -521,14 +522,6 @@ var sanitizeOpts = function(opts) {
   opts = opts || {};
   if (opts instanceof(InternalOptions)) return opts;
   var rv = new InternalOptions();
-  var expandPath = function(path) {
-    if (!(path .. str.contains(':'))) {
-      logging.debug("normalizing path: #{path}");
-      path = url.fileURL(path);
-      logging.debug("-> #{path}");
-    }
-    return path;
-  }
 
   // require no processing:
   rv.compile = opts.compile;
@@ -538,12 +531,12 @@ var sanitizeOpts = function(opts) {
   rv.strict  = !opts.skipFailed;  // srtict should be true by default
 
   // convert resources & hubs to array pairs with expanded paths:
-  rv.resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1), 'resources') .. map([path, alias] -> [alias, expandPath(path)]);
-  rv.hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1), 'hubs')  .. map([prefix, path] -> [prefix, expandPath(path)]);
+  rv.resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1), 'resources') .. map([path, alias] -> [alias, coerceToURL(path)]);
+  rv.hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1), 'hubs')  .. map([prefix, path] -> [prefix, coerceToURL(path)]);
 
   // expand ignore / exclude paths
-  rv.exclude = (opts.exclude || []) .. map(expandPath) .. map(stringToPrefixRe);
-  rv.ignore  = (opts.ignore  || []) .. map(expandPath) .. concat([/^builtin:/, /\.api$/]) .. map(stringToPrefixRe);
+  rv.exclude = (opts.exclude || []) .. map(coerceToURL) .. map(stringToPrefixRe);
+  rv.ignore  = (opts.ignore  || []) .. map(coerceToURL) .. concat([/^builtin:/, /\.api$/]) .. map(stringToPrefixRe);
   return rv;
 };
 

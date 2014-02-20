@@ -3,6 +3,7 @@ var {test, context, assert} = require('sjs:test/suite');
 context {||
 
   var fs = require('sjs:nodejs/fs');
+  var path = require('nodejs:path');
   var object = require('sjs:object');
   var url = require('sjs:url');
   var seq = require('sjs:sequence');
@@ -12,7 +13,7 @@ context {||
   var bundle = require('sjs:bundle');
   var basePath = url.normalize('./', module.id) .. url.toPath;
 
-  var tmpfile = '/tmp/sjs-test-bundle.js';
+  var tmpfile = path.join(process.env['TEMP'] || '/tmp', 'sjs-test-bundle.js');
   var createdBundles = [];
   test.afterAll {||
     createdBundles .. each {|f|
