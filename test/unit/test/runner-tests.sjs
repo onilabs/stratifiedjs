@@ -548,7 +548,7 @@ context("uncaught exceptions") {||
       }
       test("two") {||
         logging.info("test two starting");
-        hold(10);
+        hold(100);
         logging.info("test two finished");
       }
     }

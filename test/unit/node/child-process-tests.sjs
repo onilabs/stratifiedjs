@@ -1,4 +1,4 @@
-var { context, test, assert } = require('sjs:test/suite');
+var { context, test, assert, isWindows } = require('sjs:test/suite');
 var { integers, take, any } = require('sjs:sequence');
 
 context {||
@@ -13,14 +13,25 @@ context {||
   var child_process = require('sjs:nodejs/child-process');
   var fs = require('sjs:nodejs/fs');
   var NODE_VERSION = process.versions['node'].split('.').map(x -> parseInt(x));
+  var initPid = isWindows ? 4 : 1;
+
+  var normalize = function(str) {
+    return str.replace(/\r\n/g,'\n').replace(/ *\n/, '\n');
+  }
+
+  var normalizeOutput = function(proc) {
+    if (proc.stdout) proc.stdout = proc.stdout .. normalize;
+    if (proc.stderr) proc.stderr = proc.stderr .. normalize;
+    return proc;
+  }
 
   context('exec (simple string)') {||
-    testEq('exec("echo 1")', {stdout: '1\n', stderr: ''}, function() {
-      return child_process.exec('echo 1');
+    testEq('exec("echo 1")', {stdout: "1\n", stderr: ''}, function() {
+      return child_process.exec('echo 1') .. normalizeOutput;
     });
 
-    testEq('exec("echo 2 >&2")', {stdout: '', stderr: '2\n'}, function() {
-      return child_process.exec('echo 2 >&2');
+    testEq('exec("echo 2>&2")', {stdout: '', stderr: "2\n"}, function() {
+      return child_process.exec('echo 2 >&2') .. normalizeOutput;
     });
   }
 
@@ -30,7 +41,7 @@ context {||
     }
 
     test("returns true for a running PID that we don't own") {||
-      child_process.isRunning({pid: 1}) .. assert.truthy();
+      child_process.isRunning({pid: initPid}) .. assert.truthy();
     }
 
     test("returns false for a non-running PID") {||
@@ -46,22 +57,22 @@ context {||
     testEq('run("echo", ["1  2"]).stdout', '1  2\n', function() {
       // if spaces are interpreted by the shell,
       // the double-space will turn into a single.
-      return child_process.run('echo', ['1  2']).stdout;
+      return child_process.run('echo', ['1  2']).stdout .. normalize;
     });
 
     testEq('run("bash", ["-c", "echo 2 >&2"]).stderr', '2\n', function() {
-      return child_process.run('bash', ['-c', 'echo 2 >&2']).stderr;
+      return child_process.run('bash', ['-c', 'echo 2 >&2']).stderr .. normalize;
     });
 
     testEq('run returns stdout / stderr', {"code":1,"signal":null,"stdout":"out\n","stderr":"err\n"}, function() {
       var { filter } = require('sjs:sequence');
       var { propertyPairs, pairsToObject } = require('sjs:object');
       try{
-        return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']);
+        return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']) .. normalizeOutput;
       } catch(e) {
         return propertyPairs(e) ..
           filter([key,val] => ['stdout', 'stderr', 'code', 'signal'].indexOf(key) != -1) ..
-          pairsToObject;
+          pairsToObject .. normalizeOutput;
       }
     });
   }
@@ -84,7 +95,7 @@ context {||
 
     test('wait() throws error on spawn error') {||
       //message differs between node < 0.10 and > 0.10
-      assert.raises({message: /spawn EACCES|child process exited with nonzero exit status: 127/},
+      assert.raises({message: /spawn EACCES|spawn ENOENT|child process exited with nonzero exit status: 127/},
         -> child_process.run(".")); // "." will be a directory
     }
 
@@ -156,7 +167,12 @@ context {||
 
     test('kill detached process (group)') {||
       var isRunning = function(pid) {
-        return process.kill(pid, 0);
+        try {
+          return process.kill(pid, 0);
+        } catch(e) {
+          if (e.code == 'ESRCH') return false;
+          throw e;
+        }
       };
 
       // launches a child (bash), which then launches a sub-process (also bash). The
@@ -184,9 +200,9 @@ context {||
             if (line .. str.startsWith('SPAWNED_')) {
               pid = (line.split('_')[1].trim());
               logging.info("pid:", pid);
-              
+
               // the grandchild has launched and printed its pid. Check that everything is as we expect
-              pid .. isRunning() .. assert.ok("grandchild pid not running! (#{pid})");
+              pid .. isRunning() .. assert.ok("grandchild pid not running: #{pid}");
               pid .. assert.notEq(child.pid, "child pid == grandchild pid");
 
               // then kill the process group:
@@ -226,6 +242,8 @@ context {||
           'interrupted child'
         ]);
       }
-    }.skipIf(NODE_VERSION .. array.cmp([0,8]) < 0, 'detached support introduced in node 0.8')
+    }.skipIf(isWindows || NODE_VERSION .. array.cmp([0,8]) < 0, 'unix only, nodejs>0.8')
+    // ^ should work on windows, it's probably just weirdness in winbash that makes the test fail
+    
   }.timeout(4);
 }.serverOnly();
