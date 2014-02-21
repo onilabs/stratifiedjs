@@ -563,7 +563,7 @@ context("uncaught exceptions") {||
     var runner = new Runner(defaultOpts);
     runner.context("root") {||
       test.afterAll {||
-        hold(10);
+        hold(100);
       }
       test("one") {||
         spawn(function() {
