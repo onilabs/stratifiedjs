@@ -191,12 +191,14 @@ __js  exports.setPath = function(subject, path, value) {
     return value;
   var rv = subject;
   for (var i=0; i<parts.length-1; ++i) {
-    subject = subject[parts[i]];
-    if (subject === undefined) {
+    if (subject[parts[i]] === undefined) {
       subject = subject[parts[i]] = {};
     }
-    else if (typeof subject !== 'object')
-      throw new Error("Unexpected non-object type encounted at '#{parts[i]}' while traversing object");
+    else {
+      subject = subject[parts[i]];
+      if (typeof subject !== 'object')
+      throw new Error("Unexpected non-object type encountered at '#{parts[i]}' while traversing object");
+    }
   }
   subject[parts[parts.length-1]] = value;
   return rv;

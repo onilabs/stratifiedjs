@@ -133,6 +133,7 @@ context {||
   context("setPath") {||
     testEq("set existing", {parent: {name: 'alice'}}, -> {parent: {name: 'bob'}} .. o.setPath('parent.name', 'alice'));
     testEq("set missing", {parent: {name: 'alice', sibling: 'eve'}}, -> {parent: {sibling: 'eve'}} .. o.setPath('parent.name', 'alice'));
+    testEq("construct missing path", {a: {b: {c: 1}}}, -> o.setPath({}, 'a.b.c', 1));
     testEq("set root", 'alice', -> {parent: {name: 'bob'}} .. o.setPath('', 'alice'))
   }
 }
