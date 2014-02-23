@@ -766,3 +766,14 @@ testEq("filter.par doesn't call downstream reentrantly", 1, function() {
   return max_reentrancy;
 });
 
+testEq("reentrant cancellation propagation edgecase", true, function() {
+  // this used to cause a hang because reentrant cancellations weren't propagated across FCalls 
+  try {
+    [1] .. s.transform.par(x -> (hold(100),x)) .. 
+      s.each.par { |x| throw 'foo' }
+  }
+  catch (e) {
+    if (e === 'foo') return true;
+  }
+  return false;
+}); 

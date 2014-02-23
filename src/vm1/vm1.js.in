@@ -1084,6 +1084,12 @@ EF_Fcall.prototype.cont = function(idx, val) {
                              this.env.file);
     }
     if (is_ef(rv)) {
+      if (this.aborted) {
+        // reentrant abortion
+        rv = rv.abort();
+        return this.returnToParent(rv);
+      }
+
       // the call is blocking -> insert ourselves into callstack:
       if (!rv.callstack) rv.callstack = [];
       rv.callstack.push([this.env.file, this.NDATA_FCALL_LINE()]);

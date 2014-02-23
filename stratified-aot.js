@@ -985,6 +985,12 @@ rv=UNDEF;
 
 }
 if(is_ef(rv)){
+if(this.aborted){
+
+rv=rv.abort();
+return this.returnToParent(rv);
+}
+
 
 if(!rv.callstack)rv.callstack=[];
 rv.callstack.push([this.env.file,this.ndata[1]]);
