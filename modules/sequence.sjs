@@ -231,11 +231,12 @@ exports.generate = generate;
 slightly non-trivial implementation to optimize performance in the
 non-synchronous case:
 */
+__js {
 function each(sequence, r) {
   if (isStream(sequence)) {
-    sequence(r);
-  } else {
-  __js {
+    return sequence(r);
+  } 
+  else {
     if (isArrayLike(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
         var res = r(sequence[i]);
@@ -252,10 +253,10 @@ function each(sequence, r) {
     }
     else
       throw new Error("Unsupported sequence type '#{typeof sequence}'");
-    }
   }
 }
 exports.each = each;
+}
 
 function async_each(arr, r, i, ef) {
   ef.wait();
@@ -1723,7 +1724,6 @@ exports.buffer = buffer;
    @param {::Sequence} [sequence] Input sequence
    @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `f`. (undefined == unbounded)
    @param {Function} [f] Function to execute for each `item` in `sequence`
-   @return {::Sequence} The `sequence` that was passed in.
    @summary Executes `f(item)` for each `item` in `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
 */
 each.par = function(/* seq, max_strata, r */) {
@@ -1827,7 +1827,6 @@ each.par = function(/* seq, max_strata, r */) {
     // kick things off:
     inner();
   }
-  return seq;
 };
 
 /**
