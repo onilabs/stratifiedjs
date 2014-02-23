@@ -655,8 +655,7 @@ EF_Seq.prototype.cont = function(idx, val) {
         if (is_ef(val)) {
           val.quench(); // not sure this is needed here XXX
           val = val.abort();
-          if (!is_ef(val))
-            return this.returnToParent(val);
+          return this.returnToParent(val);
         }
       }
       if (++idx == this.ndata.length && this.tailcall) {
@@ -696,8 +695,7 @@ function I_seq(ndata, env) {
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
         val = val.abort();
-        if (!is_ef(val))
-          return this.returnToParent(val);
+        return this.returnToParent(val);
       }
     }
 
@@ -795,8 +793,7 @@ EF_Sc.prototype.cont = function(idx, val) {
         if (is_ef(rv)) {
           rv.quench(); // not sure this is needed here XXX
           rv = rv.abort();
-          if (!is_ef(rv))
-            return this.returnToParent(rv);
+          return this.returnToParent(rv);
         }
       }
 
@@ -908,8 +905,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
         if (is_ef(rv)) {
           rv.quench(); // not sure this is needed here XXX
           rv = rv.abort();
-          if (!is_ef(rv))
-            return this.returnToParent(rv);
+          return this.returnToParent(rv);
         }
       }
 
@@ -1144,8 +1140,7 @@ EF_If.prototype.cont = function(idx, val) {
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
         val = val.abort();
-        if (!is_ef(val))
-          return this.returnToParent(val);
+        return this.returnToParent(val);
       }
     }
 
@@ -1230,8 +1225,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
         val = val.abort();
-        if (!is_ef(val))
-          return this.returnToParent(val);
+        return this.returnToParent(val);
       }
     }
   }
@@ -1264,8 +1258,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
         val = val.abort();
-        if (!is_ef(val))
-          return this.returnToParent(val);
+        return this.returnToParent(val);
       }
     }
   }
@@ -1293,8 +1286,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
         val = val.abort();
-        if (!is_ef(val))
-          return this.returnToParent(val);
+        return this.returnToParent(val);
       }
     }
     ++idx;
@@ -1538,8 +1530,7 @@ EF_Loop.prototype.cont = function(idx, val) {
           if (is_ef(val)) {
             val.quench(); // not sure this is needed here XXX
             val = val.abort();
-            if (!is_ef(val))
-              return this.returnToParent(val);
+            return this.returnToParent(val);
           }
         }
 
@@ -1592,8 +1583,7 @@ EF_Loop.prototype.cont = function(idx, val) {
             if (is_ef(val)) {
               val.quench(); // not sure this is needed here XXX
               val = val.abort();
-              if (!is_ef(val))
-                return this.returnToParent(val);
+              return this.returnToParent(val);
             }
           }
           ++idx;
@@ -1613,8 +1603,7 @@ EF_Loop.prototype.cont = function(idx, val) {
           if (is_ef(val)) {
             val.quench(); // not sure this is needed here XXX
             val = val.abort();
-            if (!is_ef(val))
-              return this.returnToParent(val);
+            return this.returnToParent(val);
           }
         }
 
@@ -1677,8 +1666,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
         if (is_ef(val)) {
           val.quench(); // not sure this is needed here XXX
           val = val.abort();
-          if (!is_ef(val))
-            return this.returnToParent(val);
+          return this.returnToParent(val);
         }
       }
 
