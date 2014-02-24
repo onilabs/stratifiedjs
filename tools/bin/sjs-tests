@@ -11,7 +11,9 @@ import os,sys,subprocess,time
 TRAVIS = os.environ.get('TRAVIS', 'false') == 'true'
 browsers = os.environ.get('BROWSERS', 'PhantomJS').strip().split(',')
 suite = os.environ.get('t', None)
-args = sys.argv[1:] if suite is None else [suite]
+args = sys.argv[1:]
+if suite is not None:
+  args.insert(0, suite)
 
 sjs_root = os.environ.get('SJS_ROOT', None)
 if sjs_root is not None:
