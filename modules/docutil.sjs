@@ -41,7 +41,7 @@ var { merge, hasOwn, ownPropertyPairs } = require('./object');
 var { each } = require('./sequence');
 var { unindent, startsWith } = require('./string');
 var normalizeNewlines = function(str) {
-  return str.replace(/\r\n?/g, '\n');
+  return str.toString().replace(/\r\n?/g, '\n');
 }
 
 // comment regexps for parseSource
@@ -80,7 +80,7 @@ function trimLeadingNewlineAndTrailingSpace(str) {
               for each piece of code encountered between comments.
 */
 var parseSource = exports.parseSource = function(src, handle_comment, handle_code) {
-  src = src.toString() .. normalizeNewlines();
+  src = src .. normalizeNewlines();
   handle_comment = handle_comment || dummy;
   handle_code = handle_code || dummy;
   SOURCE_SPLITTER.lastIndex = 0;
