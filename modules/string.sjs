@@ -630,7 +630,7 @@ else {
 
 /**
   @function base64ToArrayBuffer
-  @summary  Convert a Base64 encoded string to an ArrayBuffer
+  @summary  **Deprecated** Convert a Base64 encoded string to an ArrayBuffer
   @param    {String} [s] Base64 encoded string
   @return   {ArrayBuffer}
 */
@@ -642,4 +642,39 @@ __js exports.base64ToArrayBuffer = function(s) {
     view[i] = octets.charCodeAt(i);
 
   return rv;
+};
+
+/**
+   @function octetsToArrayBuffer
+   @summary Write a string of octets to an ArrayBuffer
+   @param {String} [s] Octet string (upper half of each 'character' will be ignored)
+   @param {optional ArrayBuffer} [buffer] ArrayBuffer to write to; if not provided, a new one will be created
+   @param {optional Integer} [offset] Offset at where to start writing into `buffer`
+   @return {ArrayBuffer}
+*/
+__js exports.octetsToArrayBuffer = function(s, buffer, offset) {
+  var rv = buffer || new ArrayBuffer(s.length);
+  var view = new Uint8Array(rv, offset);
+  for (var i=0,l=view.length;i<l;++i)
+    view[i] = s.charCodeAt(i);
+
+  return rv;
+};
+
+/**
+   @function arrayBufferToOctets
+   @summary Extract a string of octets from an ArrayBuffer 
+   @param {ArrayBuffer} [src]
+   @param {optional Integer} [offset] Byte offset into `src`
+   @param {optional Integer} [length] Byte length
+   @rturn {String} Octet string (upper half of each 'character' set to 0)
+*/
+__js exports.arrayBufferToOctets = function(src, offset, length) {
+  var view;
+  if (length)
+    view = new Uint8Array(src, offset, length);
+  else
+    view = new Uint8Array(src, offset);
+
+  return String.fromCharCode.apply(null, view);
 };

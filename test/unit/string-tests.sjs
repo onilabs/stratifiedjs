@@ -253,3 +253,45 @@ context('capitalize') {||
   testFn(str, 'capitalize', ['f'], 'F');  
   testFn(str, 'capitalize', [''], '');
 }
+
+testEq('octetsToArrayBuffer', ['a','b','c'], function() {
+  var buf = str.octetsToArrayBuffer('abc');
+  var rv = [];
+  var view = new Uint8Array(buf);
+  for (var i=0; i<view.byteLength; ++i)
+    rv.push(String.fromCharCode(view[i]));
+  return rv;
+});
+
+testEq('octetsToArrayBuffer, provided buffer', ['a','b','c'], function() {
+  var buf = str.octetsToArrayBuffer('abc', new ArrayBuffer(3));
+  var rv = [];
+  var view = new Uint8Array(buf);
+  for (var i=0; i<view.byteLength; ++i)
+    rv.push(String.fromCharCode(view[i]));
+  return rv;
+});
+
+testEq('octetsToArrayBuffer, provided buffer, offset', ['a','b','c'], function() {
+  var buf = str.octetsToArrayBuffer('abc', new ArrayBuffer(4), 1);
+  var rv = [];
+  var view = new Uint8Array(buf);
+  for (var i=1; i<view.byteLength; ++i)
+    rv.push(String.fromCharCode(view[i]));
+  return rv;
+});
+
+testEq('arrayBufferToOctets', 'abc', function() {
+  var arr = new Uint8Array(['a'.charCodeAt(0), 'b'.charCodeAt(0), 'c'.charCodeAt(0)]);
+  return str.arrayBufferToOctets(arr.buffer);
+});
+
+testEq('arrayBufferToOctets, offset', 'abc', function() {
+  var arr = new Uint8Array([0, 'a'.charCodeAt(0), 'b'.charCodeAt(0), 'c'.charCodeAt(0)]);
+  return str.arrayBufferToOctets(arr.buffer, 1);
+});
+
+testEq('arrayBufferToOctets, offset, length', 'abc', function() {
+  var arr = new Uint8Array([0, 'a'.charCodeAt(0), 'b'.charCodeAt(0), 'c'.charCodeAt(0), 0]);
+  return str.arrayBufferToOctets(arr.buffer, 1, 3);
+});
