@@ -1136,9 +1136,9 @@ exports.pack = pack;
 
 /**
    @function unpack
-   @altsyntax sequence .. unpack(u)
+   @altsyntax sequence .. unpack([u])
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [u=Id] Unpacking function
+   @param {optional Function} [u=Id] Unpacking function
    @return {::Stream}
    @summary  For a single elements of `sequence`, emit multiple values into the output stream
    @desc
