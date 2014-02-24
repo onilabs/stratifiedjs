@@ -67,19 +67,41 @@ exports.getXDomainCaps = sys.getXDomainCaps;
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
-   @setting {String} [mime] Override mime type.
-   @setting {String} [response='string'] whether to return the response text only ('string'), an object `{ status, content, getHeader }` ('full') or the underlying nodejs request object ('raw' - only supported for nodejs hostenv)
+   @setting {String} [mime] xbrowser hostenv only: Override mime type. 
+   @setting {String} [response='string'] One of 'string', 'full', 'arraybuffer', 'raw'; see below
    @setting {Boolean} [throwing=true] Throw exception on error.
+   @setting {Integer} [max_redirects=5] nodejs hostenv only: Maximum number of redirects to follow.
    @setting {Object}  [agent=undefined] nodejs hostenv only: [Agent](http://nodejs.org/api/http.html#http_class_http_agent) to use for the connection pooling
 
    @desc
+     ### Response types:
+
+     The return value depends on the value of the `response` setting:
+
+     `response`&nbsp;&nbsp;&nbsp;    | return value
+     --------------------------------|-------------------------------------------------------------------
+     'string'                        | string with response text
+     'full'                          | object `{status: number, content: string, getHeader: string->string}`
+     'arraybuffer'&nbsp;&nbsp;&nbsp; | &nbsp;xbrowser hostenv only: object `{status: number, content: ArrayBuffer, getHeader: string->string}`
+     'raw'                           | nodejs hostenv only: nodejs request object
+
+     ### Request failure:
+
+     If the request is unsuccessful, and the call is configured to
+     throw exceptions (setting `throwing=true`; the default), an
+     exception will be thrown which has a `status` member set to the
+     request status and a `data` member which contains any response body that
+     the server might have sent.
+     If the call is configured to not throw, this will be indicated by 
+     the `status` member in the return value being unequal to 200. If `response` is 
+     set to 'string' and `throwing` to false, there is no way to detect failure: the 
+     response will just be an empty string in this case.
+
      ### Limitations:
 
      This method exposes similar functionality to that provided by browsers' 
      [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest), and as such has
      a number of builtin features and limitations:
-
-     * It is only safe for transferring textual data (UTF8-encoded by default).
 
      * Redirects will automatically be followed, and there is no way to discover
        the value of the final URL in a redirection chain.
@@ -103,19 +125,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
 
      In the nodejs host environment, we can always perform cross-domain requests
 
-     ### Request failure:
-
-     If the request is unsuccessful, and the call is configured to
-     throw exceptions (setting {"throwing":true}; the default), an
-     exception will be thrown which has a `status` member set to the
-     request status and a `data` member which contains any response body that
-     the server might have sent.
-     If the call is configured to not throw, `request` will return:
-
-     * an empty string (if 'response' setting == 'string', i.e. the default)
-     * an object `{ status:0, content:'' }` (if 'response' == 'full')
-     * an object `{ readable: false, statusCode: 0, error: error_txt }` (if 'response' == 'raw')
-
+ 
      ### Example:
 
          try { 

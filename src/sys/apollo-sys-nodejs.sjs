@@ -239,20 +239,7 @@ var readStream = exports.readStream = function readStream(stream) {
 
 /**
    @function request
-   @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url.build](#url/build))
-   @param {optional Object} [settings] Hash of settings (or array of hashes)
-   @return {String|Object}
-   @setting {String} [method="GET"] Request method.
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url.buildQuery](#url/buildQuery).
-   @setting {String} [body] Request body.
-   @setting {Object} [headers] Hash of additional request headers.
-   @setting {String} [username] Username for authentication.
-   @setting {String} [password] Password for authentication.
-   @setting {String} [response='string'] whether to return the response text only ('string'), an object `{ status, getHeader, content }` ('full') or the underlying request object ('raw' - supported in nodejs only)
-   @setting {Boolean} [throwing=true] Throw exception on error.
-   @setting {Integer} [max_redirects=5] Maximum number of redirects to follow.
-   @setting {Object} [agent=undefined] nodejs hostenv only: [Agent](http://nodejs.org/api/http.html#http_class_http_agent) to use for the connection pooling
+   @summary See [sjs:http::request] for docs
 */
 function request_hostenv(url, settings) {
   var opts = exports.mergeObjects({

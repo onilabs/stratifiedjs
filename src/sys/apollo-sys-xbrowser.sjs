@@ -254,55 +254,7 @@ __js function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
 
 /**
    @function request_hostenv
-   @summary Performs an [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest)-like HTTP request.
-   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url.build](#url/build))
-   @param {optional Object} [settings] Hash of settings (or array of hashes)
-   @return {String|Object}
-   @setting {String} [method="GET"] Request method.
-   @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url.buildQuery](#url/buildQuery).
-   @setting {String} [body] Request body.
-   @setting {Object} [headers] Hash of additional request headers.
-   @setting {String} [username] Username for authentication.
-   @setting {String} [password] Password for authentication.
-   @setting {String} [mime] Override mime type.
-   @setting {String} [response='string'] whether to return the response text only ('string') or an object { responseText, getResponseHeader } 
-   @setting {Boolean} [throwing=true] Throw exception on error.
-   @desc
-     ### Limitations:
-
-     This method exposes similar functionality to that provided by browsers' 
-     [XMLHttpRequest](https://developer.mozilla.org/en/XMLHttpRequest), and as such has
-     a number of limitations:
-
-     * It is only safe for transferring textual data (UTF8-encoded by default).
-
-     * Redirects will automatically be followed, and there is no way to discover
-       the value of the final URL in a redirection chain.
-
-     * Cross-origin restrictions might apply; see below.
-
-     ### Cross-domain requests:
-
-     The success of cross-domain requests depends on the cross-domain
-     capabilities of the host environment, see
-     [apollo-sys.getXDomainCaps](#apollo-sys/getXDomainCaps). If this function
-     returns "CORS" then success of cross-domain requests depends on
-     whether the server allows the access (see
-     http://www.w3.org/TR/cors/).
-
-     In the xbrowser host environment, the standard XMLHttpRequest can
-     handle cross-domain requests on compatible browsers (any recent
-     Chrome, Safari, Firefox). On IE8+,
-     [apollo-sys.request](#apollo-sys/request) will automatically fall
-     back to using MS's XDomainRequest object for cross-site requests.
-
-     ### Request failure:
-
-     If the request is unsuccessful, and the call is configured to
-     throw exceptions (setting {"throwing":true}; the default), an
-     exception will be thrown which has a 'status' member set to the
-     request status. If the call is configured to not throw, an empty
-     string will be returned.  
+   @summary See [sjs:http::request] for docs
 */
 function request_hostenv(url, settings) {
   var opts = exports.mergeObjects({
@@ -324,7 +276,7 @@ function request_hostenv(url, settings) {
     req.open(opts.method, url, true, opts.username || "", opts.password || "");
   }
   else {
-    // A cross-site request on IE, where we have to use XDR instead of XHR:
+    // A cross-site request on IE<10, where we have to use XDR instead of XHR:
     req = new XDomainRequest();
     req.open(opts.method, url);
   }
@@ -352,6 +304,9 @@ function request_hostenv(url, settings) {
         req.setRequestHeader(h, opts.headers[h]);
     if (opts.mime && req.overrideMimeType)
       req.overrideMimeType(opts.mime);
+    if (opts.response === 'arraybuffer')
+      req.responseType = 'arraybuffer';
+
     req.send(opts.body);
   }
   retract {
@@ -371,13 +326,20 @@ function request_hostenv(url, settings) {
       err.data = req.responseText;
       throw err;
     }
-    else if (opts.response == 'string'){
+    else if (opts.response === 'string'){
       return "";
     }
     // else fall through
   }
-  if (opts.response == 'string')
+  if (opts.response === 'string')
     return req.responseText;
+  else if (opts.response === 'arraybuffer') {
+    return {
+      status: req.status,
+      content: req.response,
+      getHeader: name -> req.getResponseHeader(name)
+    }
+  }
   else {
     // response == 'full'
     return {
