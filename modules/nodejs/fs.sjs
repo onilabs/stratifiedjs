@@ -118,6 +118,30 @@ exports.stat = function(path) {
 };
 
 /**
+   @function utimes
+   @summary `utimes(2)` system call
+   @param {String} [path] Pathname.
+   @param {Number} [atime]
+   @param {Number} [mtime]
+*/
+exports.utimes = function(path, atime, mtime) {
+  waitfor (var err) { fs.utimes(path, atime, mtime, resume); }
+  if (err) throw err;
+};
+
+/**
+   @function futimes
+   @summary `futimes(2)` system call
+   @param {Number} [fd] File Descriptor.
+   @param {Number} [atime]
+   @param {Number} [mtime]
+*/
+exports.futimes = function(fd, atime, mtime) {
+  waitfor (var err) { fs.futimes(fd, atime, mtime, resume); }
+  if (err) throw err;
+};
+
+/**
    @function lstat
    @summary `lstat(2)` system call
    @param {String} [path] Pathname.
