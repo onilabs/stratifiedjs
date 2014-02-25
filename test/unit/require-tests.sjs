@@ -3,9 +3,10 @@ var testEq = testUtil.test;
 var global = require('sjs:sys').getGlobal();
 var http = require('sjs:http');
 var logging = require('sjs:logging');
+var fs = require('sjs:nodejs/fs');
 var { find, sort, toArray, each } = require('sjs:sequence');
 var { merge, ownKeys } = require('sjs:object');
-var { startsWith } = require('sjs:string');
+var { startsWith, endsWith } = require('sjs:string');
 var {test, assert, context} = require('sjs:test/suite');
 var Url = require('sjs:url');
 
@@ -95,7 +96,9 @@ context("server-side") {||
   }
 
   test('require.resolve() on valid nodejs modules') {||
-    require.resolve('nodejs:karma-requirejs').path .. assert.eq(path.join(path.dirname(sjsPath), 'node_modules', 'karma-requirejs', 'lib', 'index.js'));
+    var resolved = require.resolve('nodejs:karma-sjs-adapter').path;
+    assert.ok(fs.exists(resolved), resolved);
+    assert.ok(resolved .. endsWith(path.join('karma-sjs-adapter', 'index.js')), resolved);
   }
 
   test('require.resolve() on missing nodejs modules') {||
