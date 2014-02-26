@@ -3,7 +3,6 @@ var testEq = testUtil.test;
 var global = require('sjs:sys').getGlobal();
 var http = require('sjs:http');
 var logging = require('sjs:logging');
-var fs = require('sjs:nodejs/fs');
 var { find, sort, toArray, each } = require('sjs:sequence');
 var { merge, ownKeys } = require('sjs:object');
 var { startsWith, endsWith } = require('sjs:string');
@@ -36,6 +35,7 @@ testEq('"this" object in modules', this, function() {
 context("server-side") {||
   var child_process = require('sjs:nodejs/child-process');
   var path = require('nodejs:path');
+  var fs = require('sjs:nodejs/fs');
 
   var modulePath = path.join(Url.toPath(module.id), '../');
   var sjsPath = require('sjs:sys').executable;
