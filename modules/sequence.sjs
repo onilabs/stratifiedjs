@@ -1070,6 +1070,29 @@ function async_rf(fx, r) {
 }
 
 /**
+   @function monitor
+   @altsyntax sequence .. monitor(f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [f] Function to execute for each element of `sequence`
+   @return {::Stream}
+   @summary  Execute a function `f(x)` for each element `x` of a sequence while it is being traversed
+   @desc
+      Acts like [::transform], but passes `x` through unmodified:
+
+          seq .. monitor(f) .. each { |x| ... }
+
+      is equivalent to 
+
+          seq .. transform(function(x) { f(x); return x; }) .. each { |x| ... }
+*/
+function monitor(sequence, f) {
+  return Stream(function(r) { sequence .. each { |x| f(x); r(x); } });
+}
+
+exports.monitor = monitor;
+  
+
+/**
   @function concat
   @summary Concatenate multiple sequences into a single sequence.
   @param   {::Sequence} [sequence...] Multiple Sequence arguments or a single Sequence of Sequences

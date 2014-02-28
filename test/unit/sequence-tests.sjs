@@ -777,3 +777,16 @@ testEq("reentrant cancellation propagation edgecase", true, function() {
   }
   return false;
 }); 
+
+testEq('monitor', ['a1',1,'a2',2,'a3',3], function() {
+  var rv = [];
+  [1, 2, 3] .. s.monitor(x->rv.push('a'+x)) .. s.each { |x| rv.push(x) };
+  return rv;
+});
+
+testEq('monitor async', ['a1',1,'a2',2,'a3',3], function() {
+  var rv = [];
+  [1, 2, 3] .. s.monitor(x->(rv.push('a'+x),hold(10))) .. s.each { |x| rv.push(x) };
+  return rv;
+});
+
