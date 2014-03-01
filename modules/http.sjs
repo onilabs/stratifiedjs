@@ -82,7 +82,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
      --------------------------------|-------------------------------------------------------------------
      'string'                        | string with response text
      'full'                          | object `{status: number, content: string, getHeader: string->string}`
-     'arraybuffer'&nbsp;&nbsp;&nbsp; | &nbsp;xbrowser hostenv only: object `{status: number, content: ArrayBuffer, getHeader: string->string}`
+     'arraybuffer'&nbsp;&nbsp;&nbsp; | object `{status: number, content: ArrayBuffer, getHeader: string->string}`
      'raw'                           | nodejs hostenv only: nodejs request object
 
      ### Request failure:

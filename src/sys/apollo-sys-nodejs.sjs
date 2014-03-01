@@ -318,6 +318,12 @@ function request_hostenv(url, settings) {
         content: '',
       }
     }
+    else if (opts.response === 'arraybuffer') {
+      return {
+        status: 0,
+        content: new ArrayBuffer()
+      }
+    }
     else {
       // raw
       // construct a dummy response:
@@ -385,25 +391,53 @@ function request_hostenv(url, settings) {
     }
   }
   
-  if (opts.response == 'raw')
+  if (opts.response === 'raw') {
     return response;
-
-  response.setEncoding('utf8');
-  response.data = "";
-  var data;
-  while (data = readStream(response)) {
-    response.data += data;
   }
+  else if (opts.response === 'arraybuffer') {
+    
+    var buf = new Buffer(0);
+    var data;
+    while (data = readStream(response)) {
+      buf = Buffer.concat([buf, data]);
+      // XXX should we have some limit on the size here?
+    }
 
-  if (opts.response == 'string')
-    return response.data;
-  else {
-    // response == 'full'
+    // see http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
+    __js {
+      var array_buf = new ArrayBuffer(buf.length);
+      var view = new Uint8Array(array_buf);
+      for (var i=0,l=buf.length;i<l;++i) {
+        view[i] = buf[i];
+      }
+    }
+
     return {
       status: response.statusCode,
-      content: response.data,
+      content: array_buf,
       getHeader: name -> response.headers[name.toLowerCase()]
     };
+  }
+  else {
+    // opts.response === 'string' || opts.response === 'full'
+    response.setEncoding('utf8');
+    response.data = "";
+    var data;
+    while (data = readStream(response)) {
+      response.data += data;
+      // XXX should we have some limit on the size here?
+    }
+    
+    if (opts.response == 'string')
+      return response.data;
+    else {
+      // response == 'full'
+      return {
+        status: response.statusCode,
+        content: response.data,
+        getHeader: name -> response.headers[name.toLowerCase()]
+      };
+    }
   }
 };
 
