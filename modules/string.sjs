@@ -669,12 +669,29 @@ __js exports.octetsToArrayBuffer = function(s, buffer, offset) {
    @param {optional Integer} [length] Byte length
    @rturn {String} Octet string (upper half of each 'character' set to 0)
 */
-__js exports.arrayBufferToOctets = function(src, offset, length) {
-  var view;
-  if (length)
-    view = new Uint8Array(src, offset, length);
-  else
-    view = new Uint8Array(src, offset);
+__js if (typeof navigator !== 'undefined' && /phantom/i.test(navigator.userAgent)) {
+  // workaround for https://github.com/ariya/phantomjs/issues/11172
+  // XXX should get rid of this when phantomjs sort out the problem
+  exports.arrayBufferToOctets = function(src, offset, length) {
+    var view;
+    if (length)
+      view = new Uint8Array(src, offset, length);
+    else
+      view = new Uint8Array(src, offset);
+    var arr = new Array(view.byteLength);
+    for (var i=0; i<view.byteLength;++i)
+      arr[i] = view[i];
+    return String.fromCharCode.apply(null, arr);
+  };  
+}
+else {
+  exports.arrayBufferToOctets = function(src, offset, length) {
+    var view;
+    if (length)
+      view = new Uint8Array(src, offset, length);
+    else
+      view = new Uint8Array(src, offset);
 
-  return String.fromCharCode.apply(null, view);
-};
+    return String.fromCharCode.apply(null, view);
+  };
+}
