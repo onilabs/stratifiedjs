@@ -690,7 +690,7 @@ __js (function() {
   };
 
   try {
-    fn("x", 0);
+    fn(new ArrayBuffer(0), 0);
   } catch(e) {
     workaround = true;
   }
