@@ -359,9 +359,15 @@ addMetaFunctions(Context);
 Context.prototype.withHooks = function(defaultTimeout, fn) {
   this.state = this.parent ? Object.create(this.parent.state) : {};
 
-  this._withTimeout(defaultTimeout, "beforeAll hooks") {||
-    runHooks(this.hooks.before.all, this.state);
+  try {
+    this._withTimeout(defaultTimeout, "beforeAll hooks") {||
+      runHooks(this.hooks.before.all, this.state);
+    }
+  } catch(e) {
+    e.message = "#{e.message || ""} (#{this.fullDescription()})";
+    throw e;
   }
+
   var first_error = null;
   try {
     fn();
