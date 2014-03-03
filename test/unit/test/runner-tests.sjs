@@ -646,6 +646,49 @@ context("timeout") {||
     assert.eq(hooksCompleted, 2);
     assert.eq(bodiesCompleted, 1);
   }
+
+  test("before hooks are subject to `timeout`") {||
+    var watcher = new CollectWatcher();
+    var opts = runnerMod.getRunOpts(defaultOpts, ['--timeout=0.2'])
+    var runner = new Runner(opts);
+
+    runner.context("root") {||
+      context {||
+        test.beforeEach(-> hold(1000));
+        test("test beforeEach", -> null);
+      }
+
+      context {||
+        test.afterEach(-> hold(1000));
+        test("test afterEach", -> null);
+      }
+
+      context {||
+        test.afterAll(-> hold(1000));
+        test("test afterAll", -> null);
+      }
+
+    }
+
+    runner.run(watcher);
+    watcher.conciseResults() .. assert.eq([
+      ['test beforeEach', 'beforeEach hooks exceeded 0.2s timeout'],
+      ['test afterEach', null],
+      ['test afterAll', null],
+    ]);
+
+
+    var runner = new Runner(opts);
+    runner.context("root") {||
+      test.beforeAll(-> hold(1000));
+      test("test beforeAll", -> null);
+    }
+    var results = runner.run(watcher);
+    logging.info("RESULTS:", results);
+    results.total .. assert.eq(1);
+    results.passed + results.failed + results.skipped .. assert.eq(0);
+    results.ok() .. assert.eq(false);
+  }
 }
 
 context("bail") {||

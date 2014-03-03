@@ -441,7 +441,7 @@ Runner.prototype.run = function(reporter) {
     if (!ctx.hide) report('contextBegin', ctx);
 
     if (!ctx.shouldSkip()) {
-      ctx.withHooks() {||
+      ctx.withHooks(defaultTimeout) {||
         ctx.children .. each {|child|
           if (BAIL) break;
           if (child.hasOwnProperty('children')) {

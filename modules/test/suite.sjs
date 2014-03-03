@@ -218,6 +218,18 @@ var MetaMixins = {};
 MetaMixins._skip = false;
 MetaMixins._ignoreGlobals = [];
 MetaMixins._timeout = undefined;
+MetaMixins._withTimeout = function(defaultTimeout, desc, block) {
+  var timeout = this._getTimeout();
+  if (timeout === undefined) timeout = defaultTimeout;
+
+  waitfor {
+    return block();
+  } or {
+    if (timeout == null) hold();
+    hold(timeout * 1000);
+    throw new Error("#{desc} exceeded #{timeout}s timeout");
+  }
+}
 MetaMixins.skip = function(reason) {
   this._skip = true;
   this.skipReason = reason || null;
@@ -344,9 +356,12 @@ var Context = context.Cls = function(desc, body, module_name) {
 }
 addMetaFunctions(Context);
 
-Context.prototype.withHooks = function(fn) {
+Context.prototype.withHooks = function(defaultTimeout, fn) {
   this.state = this.parent ? Object.create(this.parent.state) : {};
-  runHooks(this.hooks.before.all, this.state);
+
+  this._withTimeout(defaultTimeout, "beforeAll hooks") {||
+    runHooks(this.hooks.before.all, this.state);
+  }
   var first_error = null;
   try {
     fn();
@@ -478,9 +493,6 @@ Test.prototype.toString = function() {
 }
 
 Test.prototype.run = function(defaultTimeout) {
-  var timeout = this._getTimeout();
-  if (timeout === undefined) timeout = defaultTimeout;
-
   var state = Object.create(this.context.state);
 
   var beforeEachHooks = [];
@@ -496,15 +508,14 @@ Test.prototype.run = function(defaultTimeout) {
     ctx = ctx.parent;
   }
 
-  runHooks(beforeEachHooks, state);
+  this._withTimeout(defaultTimeout, "beforeEach hooks") {||
+    runHooks(beforeEachHooks, state);
+  }
+
   var first_error = null;
   try {
-    waitfor {
+    this._withTimeout(defaultTimeout, "Test") {||
       this.body.call(state, state);
-    } or {
-      if (timeout == null) hold();
-      hold(timeout * 1000);
-      throw new Error("Test exceeded #{timeout}s timeout");
     }
   } catch(e) {
     first_error = e;
