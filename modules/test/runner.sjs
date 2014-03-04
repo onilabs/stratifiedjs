@@ -951,7 +951,7 @@ Options:
 var CWD = null;
 // In node.js we also allow paths relative to cwd()
 if (sys.hostenv == "nodejs") {
-  CWD = './' .. urlMod.fileURL();
+  CWD = -> './' .. urlMod.fileURL();
 }
 var canonicalizeAgainst = (p, base) -> urlMod.normalize(p, base)..rstrip('/');
 
@@ -964,7 +964,7 @@ var SuiteFilter = function SuiteFilter(opts, base) {
     this.used.file = false;
     this.absolutePaths = [this.file .. canonicalizeAgainst(this.base)];
     if (CWD) {
-      this.absolutePaths.push(this.file .. canonicalizeAgainst(CWD));
+      this.absolutePaths.push(this.file .. canonicalizeAgainst(CWD()));
     }
   }
   if (this.opts.test) {

@@ -229,9 +229,15 @@ context("filtering") {||
   }
 
   test("supports paths relative to cwd()") {||
-    // assumes cwd is stratifiedjs root
-    var run = runWithFilter([{file: "test/unit/test/fixtures/test_1.sjs"}]);
-    run.files .. assert.eq(["test_1.sjs"]);
+    var sjsRoot = require('sjs:sys').executable .. require('nodejs:path').dirname;
+    var cwd = process.cwd();
+    process.chdir(sjsRoot);
+    try {
+      var run = runWithFilter([{file: "test/unit/test/fixtures/test_1.sjs"}]);
+      run.files .. assert.eq(["test_1.sjs"]);
+    } finally {
+      process.chdir(cwd);
+    }
   }.serverOnly("no cwd");
 
   test("requires exact match") {||

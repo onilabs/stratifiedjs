@@ -96,9 +96,25 @@ context("server-side") {||
   }
 
   test('require.resolve() on valid nodejs modules') {||
-    var resolved = require.resolve('nodejs:karma-sjs-adapter').path;
-    assert.ok(fs.exists(resolved), resolved);
-    assert.ok(resolved .. endsWith(path.join('karma-sjs-adapter', 'index.js')), resolved);
+    // at least one of these will be installed (either it's a dev environment or a self-install bundle)
+    var packages = [
+      ['karma-sjs-adapter', path.join('karma-sjs-adapter', 'index.js')],
+      ['tar',               path.join('tar', 'tar.js')],
+    ];
+    var found = 0;
+    packages .. each {|[name, tail]|
+      var requireName = "nodejs:" + name;
+      var resolved = require.resolve(requireName).path;
+      logging.info("resolved #{requireName} -> #{resolved}");
+      if (resolved == name) {
+        logging.warn("Couldn't resolve #{requireName}");
+      } else {
+        found++;
+        assert.ok(fs.exists(resolved), "Doesn't exist: #{resolved}");
+        assert.ok(resolved .. endsWith(tail), resolved);
+      }
+    }
+    assert.ok(found > 0, "didn't find any nodejs packages");
   }
 
   test('require.resolve() on missing nodejs modules') {||
