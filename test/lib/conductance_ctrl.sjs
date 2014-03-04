@@ -25,9 +25,15 @@ var run = exports.run = function() {
   var basedir = module.id .. url.toPath() .. path.join("../../../") .. path.resolve();
   logging.verbose("conductance basedir: #{basedir}");
   var bin_ext = process.platform == 'win32' ? '.cmd' : '';
+  var bin = "conductance#{bin_ext}";
+
+  var root = process.env['CONDUCTANCE_ROOT'];
+  if (root) {
+    bin = path.join(root, "bin", bin);
+  }
 
   try {
-    child_process.run("conductance#{bin_ext}", ['serve', 'test/config.mho'], {
+    child_process.run(bin, ['serve', 'test/config.mho'], {
       cwd: basedir,
       customFds: [-1, 'ignore', 'ignore']
     });
