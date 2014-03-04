@@ -50,6 +50,7 @@ context("normalize URL") {||
 }
 
 context {|| // serverOnly()
+  var fs = require('sjs:nodejs/fs');
   context("toPath") {||
     test("fails for non URL") {||
       var s = "some non-URL";
@@ -84,7 +85,7 @@ context {|| // serverOnly()
       if (suite.isBrowser) {
         test("leaves a relative path", -> assert.eq(url.fileURL("foo/bar"), "file://foo/bar"));
       } else {
-        var tmpdir = process.env['TEMP'] || '/tmp';
+        var tmpdir = fs.realpath(process.env['TEMP'] || '/tmp');
         var prefix = url.fileURL(tmpdir);
         // on nodejs, run this test from a known absolute cwd
         test.beforeAll {|s|
