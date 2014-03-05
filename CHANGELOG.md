@@ -1,5 +1,24 @@
 This changelog lists the most prominent, developer-visible changes in each release.
 
+## Version 0.18:
+
+A small release to accompany Conductance-0.4:
+
+ * new functions and symbols:
+
+    * nodejs/fs::utimes
+    * nodejs/fs::futimes
+    * sequence::monitor
+    * string::octetsToArrayBuffer
+    * string::arrayBufferToOctets
+
+ * changes
+
+    * sequence::each no longer returns the original sequence
+    * better support for Windows line endings in source code
+    * minor fixes to file:// URL handling (particularly on Windows)
+    * test/suite: apply timeout to beforeAll/beforeEach blocks
+
 ## Version 0.17:
 
 0.17 is a small release. The biggest change in this release is stricter
