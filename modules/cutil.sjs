@@ -3,7 +3,7 @@
  * Utility functions and constructs for concurrent stratified programming
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.17.0-development'
+ * Version: '0.18.0'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2010-2013 Oni Labs, http://onilabs.com

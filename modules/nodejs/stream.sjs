@@ -3,7 +3,7 @@
  * Stratified helpers for dealing nodejs's async streams
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.17.0-development'
+ * Version: '0.18.0'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2011 Oni Labs, http://onilabs.com
