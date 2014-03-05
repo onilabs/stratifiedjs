@@ -8,7 +8,7 @@ as client-side (cross-browser).
 
 For an overview see [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
 
-Please post questions to the [StratifiedJS Google Group](http://groups.google.com/group/oni-apollo/topics).
+Please post questions to the [StratifiedJS Google Group](https://groups.google.com/forum/#!forum/stratifiedjs).
 
 
 How to run/install
