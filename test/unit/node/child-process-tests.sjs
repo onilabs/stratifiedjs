@@ -81,7 +81,7 @@ context {||
   context('wait') {||
     testEq('wait()', ['time passed', 'wait returned'], function() {
       var events = [];
-      var child = child_process.launch('sleep', ['0.5']);
+      var child = child_process.launch('sleep', ['1'], {stdio:'inherit'});
       try {
         child_process.wait(child);
         events.push('wait returned');
@@ -101,7 +101,7 @@ context {||
 
     testEq('wait() throws error with exit code', {events: [], code: 123}, function() {
       var events = [];
-      var child = child_process.launch('bash', ['-c', 'exit 123']);
+      var child = child_process.launch('bash', ['-c', 'exit 123'], {stdio:'inherit'});
       try {
         child_process.wait(child);
         events.push('wait returned');
@@ -113,7 +113,7 @@ context {||
 
     testEq('wait() throws error with signal', {events: [], signal: 'SIGTERM'}, function() {
       var events = [];
-      var child = child_process.launch('sleep', ['0.5']);
+      var child = child_process.launch('sleep', ['1'], {stdio:'inherit'});
       try {
         child_process.wait(child);
         events.push('wait returned');
@@ -132,7 +132,7 @@ context {||
   //-------------------------------------------------------------
   context('kill') {||
     var stdio = logging.isEnabled(logging.DEBUG) ? 'inherit' : null;
-    var sleep_for_10 = "i=10; while [ $i -gt 0 ]; do sleep 0.5; i=`expr $i - 1`; done; echo TIMED_OUT";
+    var sleep_for_10 = "i=10; while [ $i -gt 0 ]; do sleep 1; i=`expr $i - 1`; done; echo TIMED_OUT";
     function trap_and_exit_after(seconds, message) {
       return "trap \"sleep #{seconds}; echo \\\"#{message || 'interrupted'}\\\"; exit\" SIGINT SIGTERM";
     };
