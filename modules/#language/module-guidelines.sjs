@@ -80,7 +80,7 @@
   
   ----
   
-  # Tools:
+  ## Tools:
   
   Since apollo can be used across different environments, it's impossible to recommend a single tool for the purposes of dependency declaration / management. However, some obvious choices are worth mentioning:
   

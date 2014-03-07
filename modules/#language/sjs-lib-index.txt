@@ -30,7 +30,7 @@
 
   Depending on the particular browser or server environment, additional features from recent ECMA editions (such as e.g. `Object.seal`) **might** be available.
 
-  # Concurrency primitives:
+  ## Concurrency primitives:
 
   StratifiedJS contains constructs for casting asynchronous logic into
   blocking form (`waitfor()`) and constructs for combining multiple strata (`waitfor/and`, `waitfor/or`, `spawn`) in a structured way.
@@ -143,7 +143,7 @@
 
 
   
-  # Syntax enhancements over JavaScript
+  ## Syntax enhancements over JavaScript
 
   On top of the base JavaScript language, StratifiedJS supports a number of syntactic additions. Unlike the core stratified constructs, most of these (with the notable exception of blocklambdas) are *syntactic sugar* - they don't add anything the language couldn't already do, but they provide a convenient and readable syntax for constructs that can otherwise be cumbersome to express.
 
