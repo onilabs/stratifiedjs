@@ -1,5 +1,5 @@
 @lib     StratifiedJS Standard Module Library
-@version 0.18.0
+@version 0.18.1
 @summary Standard collection of modules for the StratifiedJS language
 @desc
     This Library is the standard collection of modules

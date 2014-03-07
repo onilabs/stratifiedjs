@@ -3,7 +3,7 @@
  * DOM polyfills for non-conformant browsers (IE8, IE9) 
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.18.0'
+ * Version: '0.18.1'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2012 Oni Labs, http://onilabs.com
