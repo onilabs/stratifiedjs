@@ -83,42 +83,44 @@ context {||
     ]);
   }
 
-  test("excludes modules that are present in an existing bundle") {||
-    var settings = {
-      resources: ["#{basePath}=/"],
-      output: tmpfile,
-      sources: [ fixtureUrl + 'child1.sjs' ],
-    };
-    var bundle = createBundle(settings) .. bundledModuleNames;
-    var bundle2 = createBundle(settings .. object.merge({
-      output: null,
-      excludeFrom:[tmpfile],
-      sources: [fixtureUrl + 'bundle_parent.sjs']})) .. bundledModuleNames;
+  context("multiple bundles") {||
+    test("excludes modules that are present in an existing bundle") {||
+      var settings = {
+        resources: ["#{basePath}=/"],
+        output: tmpfile,
+        sources: [ fixtureUrl + 'child1.sjs' ],
+      };
+      var bundle = createBundle(settings) .. bundledModuleNames;
+      var bundle2 = createBundle(settings .. object.merge({
+        output: null,
+        excludeFrom:[tmpfile],
+        sources: [fixtureUrl + 'bundle_parent.sjs']})) .. bundledModuleNames;
 
-    var expectedDeps = fixtureDependencyUrls.slice();
-    expectedDeps .. arr.remove('HOST/fixtures/child1.sjs') .. assert.ok();
-    bundle2 .. assert.eq([[null, expectedDeps]]);
-  }.skip("Not yet implemented");
+      var expectedDeps = fixtureDependencyUrls.slice();
+      expectedDeps .. arr.remove('HOST/fixtures/child1.sjs') .. assert.ok();
+      bundle2 .. assert.eq([[null, expectedDeps]]);
+    }.skip("Not yet implemented");
 
-  test("can load existing bundles") {||
-    bundle.create({
-      sources: ['sjs:sys', fixtureUrl + 'bundle_parent.sjs'],
-      resources: ["#{basePath}=/"],
-      output: tmpfile,
-    });
+    test("can load existing bundles") {||
+      bundle.create({
+        sources: ['sjs:sys', fixtureUrl + 'bundle_parent.sjs'],
+        resources: ["#{basePath}=/"],
+        output: tmpfile,
+      });
 
-    var contents = bundle.contents(tmpfile);
-    contents .. assert.eq([ 'sjs:sys.sjs' ].concat(fixtureDependencies));
-  }
+      var contents = bundle.contents(tmpfile);
+      contents .. assert.eq([ 'sjs:sys.sjs' ].concat(fixtureDependencies));
+    }
 
-  test("only root (non-alias) hubs are included in the result") {||
-    var deps = createBundle({
-      hubs: ["foo:=sjs:"],
-      sources: ['foo:sys'],
-      compile: true,
-    }) .. bundledModuleNames();
-    deps.map(d -> d[0]) .. assert.eq(['sjs:']);
-    deps[0][1] .. assert.contains('sys.sjs');
+    test("only root (non-alias) hubs are included in the result") {||
+      var deps = createBundle({
+        hubs: ["foo:=sjs:"],
+        sources: ['foo:sys'],
+        compile: true,
+      }) .. bundledModuleNames();
+      deps.map(d -> d[0]) .. assert.eq(['sjs:']);
+      deps[0][1] .. assert.contains('sys.sjs');
+    }
   }
 
   test("resources can be given as object properties") {||

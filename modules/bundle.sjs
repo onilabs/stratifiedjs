@@ -436,9 +436,11 @@ exports.contents = function(bundle) {
     The settings provided to this function match the options given
     to this module when run from the command line.
 
-    If `output` is given, the file will be written and nothing returned.
+    If `output` is given, the file will be written and the
+    dependency information (as from [::findDependencies]) will be returned.
+
     Otherwise, the resulting bundle wil be returned as a {sequence::Stream} of
-    (JavaScript) source code strings.
+    (JavaScript) source code strings (as from [::generateBundle]).
 
     Run `sjs sjs:bundle --help` to see a full
     description of what these options do.
@@ -563,6 +565,7 @@ exports.create = function(opts) {
       }
       logging.info("wrote #{opts.output}");
     }
+    return deps;
   } else {
     return contents;
   }
