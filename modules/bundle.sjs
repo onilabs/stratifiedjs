@@ -281,11 +281,10 @@ var relax = function(fn) {
   @function generateBundle
   @summary generate a .js bundle file from the given module sources
   @param {Object} [deps] The result of [::findDependencies]
-  @param {String} [path] The output path
   @param {Settings} [settings]
   @return {sequence::Stream} Stream of Strings
   @desc
-    Creates a bundle file from the given set of module sources.
+    Generates a stream of bundle file content lines.
     
     Most code should not need to use this function directly - see [::create].
 */
