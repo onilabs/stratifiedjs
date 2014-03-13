@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+#!/bin/sh
+':' //; exec "$(command -v nodejs || command -v node)" "$0" "$@"
 // vim: syntax=sjs:
 
 var path = require('path');
