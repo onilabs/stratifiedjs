@@ -378,6 +378,7 @@ exports.generateBundle = generateBundle;
   @return {Array} The module URLs defined in the bundle
   @desc
     The `bundle` argument should be one of:
+
       - a string
       - an object with a `file` property
       - an object with a `contents` property
@@ -556,13 +557,21 @@ exports.create = function(opts) {
   var contents = generateBundle(deps, opts);
 
   if (opts.output) {
-    using (var output = fs.open(opts.output, 'w')) {
+    var write = function(output) {
       var {Buffer} = require('nodejs:buffer');
       contents .. each { |line|
         var buf = new Buffer(line + "\n");
         fs.write(output, buf, 0, buf.length);
       }
       logging.info("wrote #{opts.output}");
+    };
+
+    if (opts.output == '-') {
+      write(process.stdout.fd);
+    } else {
+      using (var output = fs.open(opts.output, 'w')) {
+        write(output);
+      }
     }
     return deps;
   } else {
@@ -581,6 +590,11 @@ if (require.main === module) {
       {
         names: ['verbose','v'],
         help: 'Increase log level',
+        type: 'arrayOfBool',
+      },
+      {
+        names: ['quiet','q'],
+        help: 'Decrease log level',
         type: 'arrayOfBool',
       },
       {
@@ -658,8 +672,10 @@ if (require.main === module) {
     process.exit(0);
   }
 
-  if (opts.verbose) {
-    logging.setLevel(logging.getLevel() + (opts.verbose.length * 10));
+  var verbosity = (opts.verbose ? opts.verbose.length : 0)
+                - (opts.quiet   ? opts.quiet.length   : 0);
+  if (verbosity) {
+    logging.setLevel(logging.getLevel() + (verbosity * 10));
   }
 
   // pluralize "resource" and "hub" config keys from dashdash
