@@ -582,6 +582,7 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
   var path = module;
   var loader = opts.loader || default_loader;
   var src = opts.src || default_src_loader;
+  var resolve = default_resolver;
 
   // apply hostenv-specific resolution if path is scheme-less
   if (path.indexOf(":") == -1)
@@ -603,6 +604,7 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
       else if (typeof hub[1] == "object") {
         if (hub[1].src) src = hub[1].src;
         if (hub[1].loader) loader = hub[1].loader;
+        resolve = hub[1].resolve || loader.resolve || resolve;
         // that's it; no more indirection
         break;
       }
@@ -611,7 +613,7 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
     }
   }
 
-  return {path:path, loader:loader, src:src};
+  return {path:path, loader:loader, src:src, resolve:resolve};
 }
 
 // default module loader
@@ -645,13 +647,10 @@ function default_compiler(src, descriptor) {
 // used when precompiling modules - must be kept in sync with the above f() call
 default_compiler.module_args = ['module', 'exports', 'require', '__onimodulename', '__oni_altns'];
 
-function default_loader(path, parent, src_loader, opts) {
-  // determine compiler function based on extension:
-  var extension = /.+\.([^\.\/]+)$/.exec(path)[1]
-
-  var compile = exports.require.extensions[extension];
-  if (!compile) 
-    throw new Error("Unknown type '"+extension+"'");
+function default_loader(path, parent, src_loader, opts, spec) {
+  var compile = exports.require.extensions[spec.type];
+  if (!compile)
+    throw new Error("Unknown type '"+spec.type+"'");
   
   var descriptor = exports.require.modules[path];
   var pendingHook = pendingLoads[path];
@@ -730,15 +729,11 @@ function default_loader(path, parent, src_loader, opts) {
   return descriptor.exports;
 }
 
-__js default_loader.resolve = function(spec) {
-  var p = spec.path;
-  if (p.charAt(p.length-1) != '/') {
-    // native modules are compiled based on extension:
-    var matches = /.+\.([^\.\/]+)$/.exec(p);
-    if (!matches || !exports.require.extensions[matches[1]])
-      spec.path += ".sjs";
-  }
-}
+__js function default_resolver(spec) {
+  // append extension if it doesn't have one
+  if (!spec.ext) spec.path += "." + spec.type;
+};
+
 
 function http_src_loader(path) {
   return { 
@@ -782,7 +777,7 @@ function github_src_loader(path) {
 }
 
 // resolve module id to {path,loader,src}
-__js function resolve(module, require_obj, parent, opts) {
+function resolve(module, require_obj, parent, opts) {
   // apply local aliases:
   var path = resolveAliases(module, require_obj.alias);
   
@@ -793,59 +788,72 @@ __js function resolve(module, require_obj, parent, opts) {
   // make sure we have an absolute url with '.' & '..' collapsed:
   resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);
 
-  if (resolveSpec.loader.resolve) resolveSpec.loader.resolve(resolveSpec, parent);
+  // resolveSpec.ext is the explicit extension given (could be anything)
+  // resolveSpec.type is the type of the file (which is a guess if `.ext` is undefined), and is always a key in require.extensions
+  var ext, extMatch = /.+\.([^\.\/]+)$/.exec(resolveSpec.path);
+  if (extMatch) {
+    ext = extMatch[1].toLowerCase();
+    resolveSpec.ext = ext;
+    if(!exports.require.extensions[ext]) ext = null;
+  }
+  resolveSpec.type = ext || 'sjs';
 
-  var preload = __oni_rt.G.__oni_rt_bundle;
-  var pendingHubs = false;
-  if (preload.h) {
-    // check for any unresolved hubs:
-    var deleteHubs = [];
-    for (var k in preload.h) {
-      if (!Object.prototype.hasOwnProperty.call(preload.h, k)) continue;
-      var entries = preload.h[k];
-      var parent = getTopReqParent_hostenv();
-      var resolved = resolveHubs(k, hubs, exports.require, parent, {});
-      if (resolved.path === k) {
-        // hub not yet installed
-        pendingHubs = true;
-        continue;
+  resolveSpec.resolve(resolveSpec, parent);
+
+  __js {
+
+    var preload = __oni_rt.G.__oni_rt_bundle;
+    var pendingHubs = false;
+    if (preload.h) {
+      // check for any unresolved hubs:
+      var deleteHubs = [];
+      for (var k in preload.h) {
+        if (!Object.prototype.hasOwnProperty.call(preload.h, k)) continue;
+        var entries = preload.h[k];
+        var parent = getTopReqParent_hostenv();
+        var resolved = resolveHubs(k, hubs, exports.require, parent, {});
+        if (resolved.path === k) {
+          // hub not yet installed
+          pendingHubs = true;
+          continue;
+        }
+
+        for (var i=0; i<entries.length; i++) {
+          var ent = entries[i];
+          preload.m[resolved.path + ent[0]] = ent[1];
+        }
+        deleteHubs.push(k);
       }
 
-      for (var i=0; i<entries.length; i++) {
-        var ent = entries[i];
-        preload.m[resolved.path + ent[0]] = ent[1];
+      if (!pendingHubs) delete preload.h;
+      else {
+        // delete now-resolved hubs
+        for (var i=0; i<deleteHubs.length; i++)
+          delete preload.h[deleteHubs[i]];
       }
-      deleteHubs.push(k);
     }
 
-    if (!pendingHubs) delete preload.h;
-    else {
-      // delete now-resolved hubs
-      for (var i=0; i<deleteHubs.length; i++)
-        delete preload.h[deleteHubs[i]];
+    if (module in __oni_rt.modsrc) {
+      // XXX we're moving modsrc -> __oni_rt_bundle because
+      // the former doesn't support hubs
+      if (!preload.m) preload.m = {};
+      preload.m[resolveSpec.path] = __oni_rt.modsrc[module];
+      delete __oni_rt.modsrc[module];
     }
-  }
 
-  if (module in __oni_rt.modsrc) {
-    // XXX we're moving modsrc -> __oni_rt_bundle because
-    // the former doesn't support hubs
-    if (!preload.m) preload.m = {};
-    preload.m[resolveSpec.path] = __oni_rt.modsrc[module];
-    delete __oni_rt.modsrc[module];
-  }
-
-  if (preload.m) {
-    var path = resolveSpec.path;
-    var contents = preload.m[path];
-    if (contents !== undefined) {
-      resolveSpec.src = function() {
-        // once loaded, we remove src from memory to save space
-        delete preload.m[path];
-        return {src:contents, loaded_from: path+"#bundle"};
-      };
+    if (preload.m) {
+      var path = resolveSpec.path;
+      var contents = preload.m[path];
+      if (contents !== undefined) {
+        resolveSpec.src = function() {
+          // once loaded, we remove src from memory to save space
+          delete preload.m[path];
+          return {src:contents, loaded_from: path+"#bundle"};
+        };
+      }
     }
-  }
 
+  }
   return resolveSpec;
 }
 

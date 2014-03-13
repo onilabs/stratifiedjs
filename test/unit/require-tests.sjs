@@ -104,11 +104,15 @@ context("server-side") {||
     var found = 0;
     packages .. each {|[name, tail]|
       var requireName = "nodejs:" + name;
-      var resolved = require.resolve(requireName).path;
-      logging.info("resolved #{requireName} -> #{resolved}");
-      if (resolved == name) {
+      var resolved;
+      try {
+        resolved = require.resolve(requireName).path;
+      } catch(e) {
         logging.warn("Couldn't resolve #{requireName}");
-      } else {
+      }
+
+      if (resolved) {
+        logging.info("resolved #{requireName} -> #{resolved}");
         found++;
         assert.ok(fs.exists(resolved), "Doesn't exist: #{resolved}");
         assert.ok(resolved .. endsWith(tail), resolved);
@@ -118,12 +122,22 @@ context("server-side") {||
   }
 
   test('require.resolve() on missing nodejs modules') {||
-    require.resolve('nodejs:this_module_intentionally_missing').path .. assert.eq('this_module_intentionally_missing');
+    assert.raises({message: "nodejs module at 'this_module_intentionally_missing' not found"}) {||
+      require.resolve('nodejs:this_module_intentionally_missing');
+    }
   }
 
   test('require inside a .js file is synchronous') {||
     require('./fixtures/testmodule.js').dynamicRequire() .. assert.eq(1);
   }.skip('BROKEN');
+
+  test('require.resolve on sjs file without .sjs extension') {||
+    ['sjs-module','app-module.app'] .. each {|filename|
+      var path = require.resolve("./fixtures/#{filename}").path;
+      path .. endsWith(filename) .. assert.ok(path);
+      require("./fixtures/#{filename}").ok() .. assert.ok("module self-check");
+    }
+  }
 
 }.serverOnly();
 

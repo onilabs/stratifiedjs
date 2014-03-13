@@ -446,19 +446,20 @@ function file_src_loader(path) {
     // asynchronously load file at file:// URL
     __oni_rt.nodejs_require('fs').readFile(fileUrlToPath(path), resume);
   }
-  if (err) {
-    // XXX this is a hack to allow us to load sjs scripts without .sjs extension, 
-    // e.g. hash-bang scripts
-    var matches;
-    if ((matches = /(.*)\.sjs$/.exec(path))) {
-      try {
-        return file_src_loader(matches[1]);
-      } catch (e) { throw new Error(String(err.message || err) + "\nand then\n"+ String(e.message || e)); }
-    }
-    else
-      throw err;
-  }
+  if (err) throw err;
   return { src: data.toString(), loaded_from: path };
+}
+
+function resolve_file_url (spec) {
+  if (!spec.ext) {
+    var ext = "." + spec.type;
+    var path = fileUrlToPath(spec.path);
+    // for extensionless require()s, resolve to `[path].[type]` only if it exists
+    waitfor (var err) {
+      __oni_rt.nodejs_require('fs').lstat(path + ext, resume);
+    }
+    if(!err) spec.path += ext;
+  }
 }
 
 function nodejs_mockModule(parent) {
@@ -467,7 +468,6 @@ function nodejs_mockModule(parent) {
     base = getTopReqParent_hostenv().id;
   else
     base = parent.id;
-  // strip 'file://'
   base = fileUrlToPath(base);
 
   return {
@@ -477,52 +477,41 @@ function nodejs_mockModule(parent) {
 
 // load a builtin nodejs module:
 function nodejs_loader(path, parent, dummy_src, opts, spec) {
-  // resolve using node's require mechanism in this order:
-  //  native nodejs module, sjs-native module (based on known extensions), other nodejs module
-
-  var resolved=spec._resolved; // nodejs-resolved module path, or "" if nodejs couldn't resolve it
-  if (resolved && resolved.indexOf('.') == -1) return __oni_rt.nodejs_require(resolved); // native module
-
-  var mockModule = spec._mockModule;
-  // if the url doesn't have an extension, try .sjs (even if we already resolved a module):
-  var matches;
-  if (!(matches = /.+\.([^\.\/]+)$/.exec(path))) {
-    try {
-      // now try .sjs
-      resolved = __oni_rt.nodejs_require('module')._resolveFilename(path+".sjs", mockModule);
-      // compatibility with older nodejs (e.g. v0.7.0):
-      if (resolved instanceof Array) resolved = resolved[1];
-
-      // ok, success. load as a file module:
-      return default_loader(pathToFileUrl(resolved), parent, file_src_loader, opts);
-    }
-    catch (e) {}
+  if (spec.type == 'js') {
+    return __oni_rt.nodejs_require(path);
   }
-  else if (resolved && matches[1]!="js") {
-    // see if this is an sjs-known extension (but NOT js!)
-    if (exports.require.extensions[matches[1]]) // yup; load as sjs-native module
-      return default_loader(pathToFileUrl(resolved), parent, file_src_loader, opts);
-  }
-
-  if (!resolved) throw new Error("nodejs module at '"+path+"' not found");
-  return __oni_rt.nodejs_require(resolved);
+  return default_loader(pathToFileUrl(path), parent, file_src_loader, opts, spec);
 }
 
-__js nodejs_loader.resolve = function(spec, parent) {
+__js nodejs_loader.resolve = function resolve_nodejs(spec, parent) {
+  // resolve using node's require mechanism
+
   var path = spec.path.substr(7); // strip nodejs:
-  spec._mockModule = nodejs_mockModule(parent || getTopReqParent_hostenv());
-  try {
-    path = __oni_rt.nodejs_require('module')._resolveFilename(path, spec._mockModule);
-    // compatibility with older nodejs (e.g. v0.7.0):
-    if (path instanceof Array) path = path[1];
-    spec._resolved = path;
-  } catch(e) {
-    // TODO: should really throw here, but there are cases where nodejs can't
-    // resolve a module but we can still load it
-    // (e.g if it's on the nodejs path but with a .sjs extension)
-    spec._resolved = "";
+  var mockModule = nodejs_mockModule(parent || getTopReqParent_hostenv());
+  var mod = __oni_rt.nodejs_require('module');
+  function tryResolve(path) {
+    try {
+      var resolved = mod._resolveFilename(path, mockModule);
+      // compatibility with older nodejs (e.g. v0.7.0):
+      if (resolved instanceof Array) resolved = resolved[1];
+      spec.path = resolved;
+      return true;
+    } catch(e) {
+      return false;
+    }
+  };
+
+  var ok = tryResolve(path);
+  if (!spec.ext) {
+    if (ok) {
+      spec.type = 'js'; // must be a builtin nodejs module
+    } else {
+      // if the require() call lacked an extension, try resolving [path].[type]
+      ok = tryResolve(path + "." + spec.type);
+    }
   }
-  spec.path = path;
+
+  if (!ok) throw new Error("nodejs module at '"+path+"' not found");
 }
 
 
@@ -532,7 +521,7 @@ function getHubs_hostenv() {
     ["github:", {src: github_src_loader} ],
     ["http:", {src: http_src_loader} ],
     ["https:", {src: http_src_loader} ],
-    ["file:", {src: file_src_loader} ],
+    ["file:", {src: file_src_loader, resolve: resolve_file_url} ],
     ["nodejs:", {loader: nodejs_loader} ]
   ];
 }
