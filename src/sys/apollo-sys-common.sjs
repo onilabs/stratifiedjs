@@ -843,6 +843,9 @@ function resolve(module, require_obj, parent, opts) {
 
     if (preload.m) {
       var path = resolveSpec.path;
+      // strip !sjs
+      if (path.indexOf('!sjs', path.length - 4) !== -1)
+        path = path.slice(0,-4);
       var contents = preload.m[path];
       if (contents !== undefined) {
         resolveSpec.src = function() {
