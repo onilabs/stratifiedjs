@@ -246,12 +246,12 @@ context() {||
         event.when(s.emitter.raw, 'click', opts) {|e|
           log.push(e.value);
           if (e.value == 3) break;
-          hold(200);
+          hold(500);
         }
       } and {
         allEvents .. seq.each {|e|
           s.emitter.trigger('click', e);
-          hold(100);
+          hold(250);
         }
       }
       log .. assert.eq([1,3]);
