@@ -13,7 +13,11 @@
   "keywords": ["stratifiedjs", "async", "language"],
   "bin": { "sjs": "sjs" },
   "devDependencies": {
-    "karma-sjs-adapter": "~0.2.2"
+    "karma-sjs-adapter": "~0.2.2",
+    "karma-chrome-launcher": "*",
+    "karma-firefox-launcher": "*",
+    "karma-phantomjs-launcher": "*",
+    "karma-script-launcher": "*"
   },
   "engines": { "node": ">=0.4.1" }
 }
