@@ -7,6 +7,8 @@ module.exports = function(config) {
     ],
 
     client: {
+      // workaround for https://github.com/karma-runner/karma/issues/961
+      captureConsole: true,
     },
 
     files: [
