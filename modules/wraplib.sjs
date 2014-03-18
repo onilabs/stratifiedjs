@@ -31,6 +31,7 @@
  */
 /**
    @module  wraplib
+   @executable
    @summary Utility functions for wrapping plain JS libraries for SJS
    @home    sjs:wraplib
    @desc    Work-in-progress

@@ -331,8 +331,9 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define ONE_SIDED_CONDITIONALS 1
 #include "kernel-jsmin.js.in"
 
-#ifdef STRINGIFY
 /**
+   @executable
+#ifdef STRINGIFY
    @module  compile/stringify
    @summary SJS source code stringifier
    @home    sjs:compile/stringify
@@ -343,9 +344,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
    @param    {optional Object} [settings]
    @setting  {Boolean} [keeplines] Maintain line numbers
    @return   {String} Minified SJS as a string literal
-*/
 #else /* !STRINGIFY */
-/**
    @module  compile/minify
    @summary SJS source code minifier
    @home    sjs:compile/minify
@@ -356,8 +355,8 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
    @param    {optional Object} [settings]
    @setting  {Boolean} [keeplines] Maintain line numbers
    @return   {String} Minified SJS
-*/
 #endif /* STRINGIFY */
+*/
 
 
 #elif defined(C1_KERNEL_DEPS)

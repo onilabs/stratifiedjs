@@ -31,6 +31,7 @@
  */
 /**
   @module    compile/doc
+  @executable
   @summary   Utility for generating documentation indexes
   @home      sjs:compile/doc
   @hostenv   nodejs

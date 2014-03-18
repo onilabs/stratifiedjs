@@ -45,6 +45,7 @@
   @module    marked
   @summary   Markdown to Html Converter (tracking the [marked library](https://github.com/chjj/marked))
   @home      sjs:marked
+  @executable
   @desc      
              This module tracks the [marked library](https://github.com/chjj/marked) by Christopher Jeffrey.
 

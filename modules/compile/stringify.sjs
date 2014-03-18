@@ -491,6 +491,7 @@ function quasi(parts) {
 
 
 /**
+   @executable
    @module  compile/stringify
    @summary SJS source code stringifier
    @home    sjs:compile/stringify

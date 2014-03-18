@@ -20,6 +20,7 @@
 */
 /**
    @module  compile/sjs
+   @executable
    @summary SJS Compiler
    @home    sjs:compile/sjs
 

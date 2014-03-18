@@ -34,6 +34,7 @@
   @module  bundle
   @summary Create SJS code bundles
   @home    sjs:bundle
+  @executable
   @hostenv nodejs
   @desc
     StratifiedJS' module system encourages you to break your code into

@@ -488,6 +488,7 @@ function quasi(parts) {
 
 
 /**
+   @executable
    @module  compile/minify
    @summary SJS source code minifier
    @home    sjs:compile/minify
