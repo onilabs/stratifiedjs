@@ -74,8 +74,8 @@
 
   ### Alt composition - [::syntax::waitfor-or]
 
-  Alt ('alternatives') composition explores a set of alternatives in
-  parallel, and resumes as soon as any code path completes.
+  Alt ('alternatives') composition explores a set of alternatives concurrently,
+  and resumes as soon as any code path completes.
   It is expressed with SJS's `waitfor/or` construct:
 
       waitfor {

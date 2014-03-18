@@ -165,8 +165,8 @@
   
   ### Loading multiple modules
 
-  If `module` is an array, each module will be loaded in
-  parallel and the return object will be the result of
+  If `module` is an array, each module will be loaded
+  concurrently and the return object will be the result of
   merging the exports from each module into a single object.
 
   When loading an array of modules, the array elements may be strings, or they
@@ -228,6 +228,7 @@
 @desc
   In various situations, a module can be run as the *main* module. This includes:
 
+    - when specified as the `main` attribute of the `<script>` tag that loads `stratified.js`
     - when specified as the first arugment to the `sjs` command-line tool
     - when specified as the first argument to `conductance exec`
     - when invoked as an executable script with the shebang line:
@@ -249,7 +250,7 @@
       }
 
   Various builtin modules use this functionality to provide an SJS
-  module that can also be invoked from the command line.
+  module that can be invoked directly from the command line.
 
 @function require.resolve
 @summary Resolve a module ID without actually loading it
