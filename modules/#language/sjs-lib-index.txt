@@ -60,9 +60,9 @@
   plain javascript functions that make use of callback parameters.
 
   
-  ### Parallel composition - [::syntax::waitfor-and]
+  ### Fork-join composition - [::syntax::waitfor-and]
 
-  StratifiedJS offers several different constructs for running and coordinating multiple concurrent strata. One of the most straightforward ways is to use parallel composition (also called 'fork-join' composition) which is expressed with SJS's `waitfor/and` construct:
+  StratifiedJS offers several different constructs for running and coordinating multiple concurrent strata. One of the most straightforward ways is to use fork-join composition - which executes multiple branches of code concurrently and continues only once all branches have completed. This is achieved with SJS's `waitfor/and` construct:
 
       waitfor {
         ... some code ...
