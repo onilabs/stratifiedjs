@@ -454,6 +454,32 @@ exports.isDirectory = function(path) {
   }
 };
 
+
+// withWriteStream and withReadStream pretty much do the same
+// thing - the only difference is the constructor function.
+function streamContext(ctor) {
+  return function(path, opts, block) {
+    if (arguments.length === 2) {
+      block = opts;
+      opts = {};
+    }
+    var f = ctor.call(fs, path, opts);
+    waitfor {
+      throw(f .. evt.wait('error'));
+    } or {
+      f .. evt.wait('open');
+      waitfor {
+        f .. evt.wait('close');
+      } and {
+        try {
+          block(f);
+        } finally {
+          f.destroy();
+        }
+      }
+    }
+  }
+};
 /**
    @function withWriteStream
    @summary Perform an action with a nodejs [WritableStream](http://nodejs.org/api/stream.html#stream_class_stream_writable) connected to a file
@@ -484,28 +510,8 @@ exports.isDirectory = function(path) {
             }
          }
 */
-exports.withWriteStream = function(path, opts, block) {
-  if (arguments.length === 2) {
-    block = opts;
-    opts = {};
-  }
-  var f = fs.createWriteStream(path, opts);
-  waitfor {
-    throw(f .. evt.wait('error'));
-  } or {
-    f .. evt.wait('open');
-    waitfor {
-      f .. evt.wait('finish');
-    } and {
-      try {
-        block(f);
-      } finally {
-        f.end();
-      }
-    }
-  }
-}
 
+exports.withWriteStream = streamContext(fs.createWriteStream);
 /**
    @function withReadStream
    @summary Perform an action with a nodejs [ReadableStream](http://nodejs.org/api/stream.html#stream_class_stream_writable) connected to a file
@@ -533,24 +539,4 @@ exports.withWriteStream = function(path, opts, block) {
            file .. stream.pump(process.stdout);
          }
 */
-exports.withReadStream = function(path, opts, block) {
-  if (arguments.length === 2) {
-    block = opts;
-    opts = {};
-  }
-  var f = fs.createReadStream(path, opts);
-  waitfor {
-    throw(f .. evt.wait('error'));
-  } or {
-    f .. evt.wait('open');
-    waitfor {
-      f .. evt.wait('close');
-    } and {
-      try {
-        block(f);
-      } finally {
-        f.destroy();
-      }
-    }
-  }
-}
+exports.withReadStream = streamContext(fs.createReadStream);
