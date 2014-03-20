@@ -187,7 +187,7 @@ __js exports.haveCommonElements = function(a, b) {
     The return value is -1 if `a` is less than `b`,
     1 if it is greater than, and 0 otherwise.
 
-    Elements are compared with their native ordering (i.e `&lt;` and `&gt;`).
+    Elements are compared with their native ordering (i.e `<` and `>`).
     Arrays are equal if their elements are all equal (and have the same length).
     Otherwise, they are ordered according to the first differing element. If
     one array ends before a differing element is found, it is considered
