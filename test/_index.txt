@@ -16,6 +16,7 @@ unit/http-tests.sjs
 unit/logging-tests.sjs
 unit/lru-cache-tests.sjs
 unit/node/child-process-tests.sjs
+unit/node/fs-tests.sjs
 unit/node/stream-tests.sjs
 unit/object-tests.sjs
 unit/quasi-tests.sjs

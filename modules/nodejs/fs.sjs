@@ -41,6 +41,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 
 var fs = require('fs'); // builtin fs
+var evt = require('../event');
 
 //----------------------------------------------------------------------
 // low-level:
@@ -452,3 +453,104 @@ exports.isDirectory = function(path) {
     return false;
   }
 };
+
+/**
+   @function withWriteStream
+   @summary Perform an action with a nodejs [WritableStream](http://nodejs.org/api/stream.html#stream_class_stream_writable) connected to a file
+   @param {String} [path]
+   @param {Settings} [opts]
+   @setting {String} [flags="w"]
+   @setting {String} [encoding=null]
+   @setting {Number} [mode=0666]
+   @desc
+     This function calls the nodejs [fs.createWriteStream][]
+     with the provided `path` and `opts`.
+
+     Once obtaining a [WritableStream][] object, this function waits for its `open`
+     event and then calls `block` with the stream as the first argument.
+
+     When `block` completes, this function calls `stream.end()` and waits for the
+     `finish` event on the stream before finally returning.
+     
+     [WritableStream]: http://nodejs.org/api/stream.html#stream_class_stream_writable
+     [fs.createWriteStream]: http://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options
+
+     ### Example:
+
+         var lines = ["hello", "world!"];
+         fs.withWriteStream("/path/to/file") { |file|
+            lines .. each {|line|
+              file .. stream.write(file, line + "\n");
+            }
+         }
+*/
+exports.withWriteStream = function(path, opts, block) {
+  if (arguments.length === 2) {
+    block = opts;
+    opts = {};
+  }
+  var f = fs.createWriteStream(path, opts);
+  waitfor {
+    throw(f .. evt.wait('error'));
+  } or {
+    f .. evt.wait('open');
+    waitfor {
+      f .. evt.wait('finish');
+    } and {
+      try {
+        block(f);
+      } finally {
+        f.end();
+      }
+    }
+  }
+}
+
+/**
+   @function withReadStream
+   @summary Perform an action with a nodejs [ReadableStream](http://nodejs.org/api/stream.html#stream_class_stream_writable) connected to a file
+   @param {String} [path]
+   @param {Settings} [opts]
+   @setting {String} [flags="w"]
+   @setting {String} [encoding=null]
+   @setting {Number} [mode=0666]
+   @desc
+     This function calls the nodejs [fs.createReadStream][]
+     with the provided `path` and `opts`.
+
+     Once obtaining a [ReadableStream][] object, this function waits for its `open`
+     event and then calls `block` with the stream as the first argument.
+
+     When `block` completes, this function calls `stream.destroy()` and waits for the
+     `end` event on the stream before finally returning.
+     
+     [ReadableStream]: http://nodejs.org/api/stream.html#stream_class_stream_readable
+     [fs.createReadStream]: http://nodejs.org/api/fs.html#fs_fs_createreadstream_path_options
+
+     ### Example:
+
+         fs.withReadStream("/path/to/file") { |file|
+           file .. stream.pump(process.stdout);
+         }
+*/
+exports.withReadStream = function(path, opts, block) {
+  if (arguments.length === 2) {
+    block = opts;
+    opts = {};
+  }
+  var f = fs.createReadStream(path, opts);
+  waitfor {
+    throw(f .. evt.wait('error'));
+  } or {
+    f .. evt.wait('open');
+    waitfor {
+      f .. evt.wait('close');
+    } and {
+      try {
+        block(f);
+      } finally {
+        f.destroy();
+      }
+    }
+  }
+}
