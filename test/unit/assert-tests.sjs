@@ -371,6 +371,11 @@ context("AssertionError") {||
   test("error message with description") {||
     assert.eq(new assert.AssertionError("err", "desc").message, "err (desc)");
   }
+
+  test("error message with quasi description") {||
+    var msg = `the ${"object"} is: ${[1, "2", 3]}`;
+    assert.eq(new assert.AssertionError("err", msg).message, "err (the object is: [ 1, '2', 3 ])");
+  }
 }
 
 context("catchError") {||

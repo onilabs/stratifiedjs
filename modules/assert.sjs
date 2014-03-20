@@ -38,6 +38,13 @@
   @desc
     Each of the assertion functions throws an [::AssertionError] if its given assertion fails.
 
+    The optional `desc` argument to each assertion method will be included in the error
+    message on failure. This can be either a String or a [quasi::Quasi].
+    If `desc` is a [quasi::Quasi] quote, all interpolated objects (except for those that
+    are already strings) will be passed through [debug::inspect]. This is done lazily -
+    no formatting is done unless the assertion actually fails.
+
+
     In addition to the functions listed here, this module exports some self-explanatory
     type checking functions which test whether their `arg` is of the given type:
 
@@ -46,8 +53,6 @@
     * func(arg, [desc])
     * number(arg, [desc])
     * object(arg, [desc])
-
-    (The optional `desc` argument will be included in the error message on failure.)
 
     For each of these types, there is also a version that accepts an optional
     argument (may be `null` or `undefined`), or an array of such elements, or an
@@ -61,11 +66,15 @@
 */
 
 var object = require('./object');
-var {each, all, find, toArray, hasElem} = require('./sequence');
+var {each, all, find, toArray, hasElem, join} = require('./sequence');
 var compare = require('./compare');
 var string = require('./string');
 var {inspect} = require('./debug');
+var {isQuasi, mapQuasi} = require('./quasi');
 
+
+// string arguments are not inspected (for easy concatentation of messages); everything else is.
+var inspectNonString = (v) -> string.isString(v) ? v : inspect(v);
 
 /**
   @class AssertionError
@@ -74,13 +83,18 @@ var {inspect} = require('./debug');
   @constructor AssertionError
   @summary Create an AssertionError object
   @param {String} [msg] Error message
-  @param {String} [desc] Descriptive text to include in the error message
+  @param {String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @param {optional Object} [attrs] Additional properties to set on the error instance
 */
 var AssertionError = exports.AssertionError = function(msg, desc, attrs) {
   if (attrs) this .. object.extend(attrs);
   this.message = msg;
-  if (desc) this.message += " (#{desc})";
+  if (desc) {
+    if (isQuasi(desc)) {
+      desc = desc .. mapQuasi(inspectNonString) .. join();
+    }
+    this.message += " (#{desc})";
+  }
 }
 exports.AssertionError.prototype = new Error();
 exports.AssertionError.prototype.__assertion_error = true;
@@ -90,7 +104,7 @@ exports.AssertionError.prototype.__assertion_error = true;
   @function ok
   @summary Assert that the argument is truthy
   @param [arg]
-  @param {optional String} [desc] Description to add to the error message on failure.
+  @param {optional String|quasi::Quasi} [desc] Description to add to the error message on failure.
 
   @function truthy
   @summary Alias for [::ok]
@@ -103,7 +117,7 @@ exports.ok = exports.truthy = function(val, desc) {
   @function notOk
   @summary Assert that the argument is falsy
   @param [arg]
-  @param {optional String} [desc] Description to add to the error message on failure.
+  @param {optional String|quasi::Quasi} [desc] Description to add to the error message on failure.
 
   @function falsy
   @summary Alias for [::notOk]
@@ -115,7 +129,7 @@ exports.notOk = exports.falsy = function(val, desc) {
 /**
   @function fail
   @summary Unconditionally raise an AssertionError
-  @param {optional String} [desc] Description to add to the error message.
+  @param {optional String|quasi::Quasi} [desc] Description to add to the error message.
 */
 exports.fail = function(desc) {
   throw new AssertionError("Failed", desc);
@@ -148,7 +162,7 @@ var raisesFilters = {
   @setting {Object|Function} [inherits] Only match exceptions that inherit from the given prototype or constructor function.
   @setting {String|Regex} [message] Only match exceptions whose `.message` property equals `message` (or matches, in the case of a Regex).
   @setting {Function} [filter] Only match exceptions where `filter(exc)` returns true.
-  @setting {String} [desc] Description to add to the error message on failure.
+  @setting {String|quasi::Quasi} [desc] Description to add to the error message on failure.
   @return  {Object} Error object thrown by `fn()`
   @function throwsError
   @summary Alias for [::raises]
@@ -219,7 +233,7 @@ var _eq = function(actual, expected, desc, deep) {
   @summary Assert that `actual` and `expected` are deep-equal
   @param {Object} [actual]
   @param {Object} [expected]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     Equality is deep and strict, see [compare::equals] for the full semantics.
 
@@ -239,7 +253,7 @@ exports.eq = exports.equal = function(actual, expected, desc) {
   @summary Assert that `actual` and `expected` are shallow-equal
   @param {Object} [actual]
   @param {Object} [expected]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     Just like [::equal], except that child properties / elements of `actual` and
     `expected` are compared with `===`, not deep equality.
@@ -256,7 +270,7 @@ exports.shallowEq = exports.shallowEqual = function(actual, expected, desc) {
   @summary Assert that `actual` and `expected` are not deep-equal
   @param {Object} [actual]
   @param {Object} [expected]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     Equality is deep and strict, see [compare::equals] for the full semantics.
 
@@ -280,7 +294,7 @@ exports.notEq = exports.notEqual = function(actual, expected, desc) {
   @summary Assert that `actual` and `expected` are not shallow-equal
   @param {Object} [actual]
   @param {Object} [expected]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     Equality is shallow and strict, like [::shallowEq].
 
@@ -314,7 +328,7 @@ var _contains = function(container, expected) {
   @summary Assert that `container` contains `item`
   @param {sequence::Sequence|String} [container]
   @param {Object} [item]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     If `container` is a sequence or array, this method asserts
     that `item` is an element of it (using [compare::equals] to compare
@@ -335,7 +349,7 @@ exports.contains = function(seq, expected, desc) {
   @summary Assert that `container` does not contain `item`
   @param {sequence::Sequence|String} [container]
   @param {Object} [item]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     The opposite of [::contains]
 */
@@ -349,7 +363,7 @@ exports.notContains = function(seq, expected, desc) {
 /**
   @function atomic
   @summary Assert that `fn()` completes without suspending
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @param {Function} [fn] 
 */
 exports.atomic = function(desc /* (optional) */, fn) {
@@ -369,7 +383,7 @@ exports.atomic = function(desc /* (optional) */, fn) {
   @summary Asserts that `actual` === `expected`
   @param {Object} [actual]
   @param {Object} [expected]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     Uses the `===` operator. For deep equality, use [::equal]
 */
@@ -382,7 +396,7 @@ exports.is = function(actual, expected, desc) {
   @summary Asserts that `actual` !== `expected`
   @param {Object} [actual]
   @param {Object} [expected]
-  @param {optional String} [desc] Descriptive text to include in the error message
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
   @desc
     Uses the `!==` operator. For deep equality, use [::notEqual]
 */
