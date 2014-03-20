@@ -456,14 +456,14 @@ exports.isDirectory = function(path) {
 
 
 // withWriteStream and withReadStream pretty much do the same
-// thing - the only difference is the constructor function.
-function streamContext(ctor) {
+// thing - the only difference is the constructor / destroy function.
+function streamContext(ctor, dtor) {
   return function(path, opts, block) {
     if (arguments.length === 2) {
       block = opts;
       opts = {};
     }
-    var f = ctor.call(fs, path, opts);
+    var f = fs[ctor](path, opts);
     waitfor {
       throw(f .. evt.wait('error'));
     } or {
@@ -474,7 +474,7 @@ function streamContext(ctor) {
         try {
           block(f);
         } finally {
-          f.destroy();
+          f[dtor]();
         }
       }
     }
@@ -511,7 +511,7 @@ function streamContext(ctor) {
          }
 */
 
-exports.withWriteStream = streamContext(fs.createWriteStream);
+exports.withWriteStream = streamContext('createWriteStream', 'end');
 /**
    @function withReadStream
    @summary Perform an action with a nodejs [ReadableStream](http://nodejs.org/api/stream.html#stream_class_stream_writable) connected to a file
@@ -539,4 +539,4 @@ exports.withWriteStream = streamContext(fs.createWriteStream);
            file .. stream.pump(process.stdout);
          }
 */
-exports.withReadStream = streamContext(fs.createReadStream);
+exports.withReadStream = streamContext('createReadStream', 'destroy');
