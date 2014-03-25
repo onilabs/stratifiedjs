@@ -649,6 +649,59 @@ function sort(sequence, compare) {
 exports.sort = sort;
 
 /**
+  @function unique
+  @altsyntax sequence .. unique
+  @param {::Sequence} [sequence] input
+  @param {optional Function} [eq] Equality function
+  @return {Array}
+  @summary Return an array containing all unique elements in `input`
+  @desc
+    If `eq` is provided, it should be a functino like [compare::eq] - i.e
+    accept two arguments, and return `true` if they are equal, `false` otherwise.
+
+    If an `eq` function is not provided, regular `===` equality will be used.
+*/
+function unique(sequence, eq) {
+  var rv = [];
+  if (eq) {
+    var sn = {};
+    each(sequence) {|x| if (rv .. find(y -> eq(x, y), sn) === sn) rv.push(x); }
+  } else {
+    each(sequence) {|x| if (rv.indexOf(x) === -1) rv.push(x); }
+  }
+  return rv;
+};
+exports.unique = unique;
+
+/**
+  @function uniqueBy
+  @altsyntax sequence .. uniqueBy
+  @param {::Sequence} [sequence] input
+  @param {Function|String} [key] Function or property name which determines uniqueness.
+  @return {Array}
+  @summary Return an array containing all unique elements in `input` (compared by key)
+  @desc
+    Two elements `a` and `b` are considered duplicates by this
+    function if `key(a) === key(b)`.
+
+    If `key` is a string, it will be converted into a property acessor. i.e
+    passing `'length'` is equivalent to passing `(x) -> x.length`.
+*/
+function uniqueBy(sequence, key) {
+  key = keyFn(key);
+  var rv = [], keys = [];
+  each(sequence) {|x|
+    var k = key(x);
+    if (keys.indexOf(k) === -1) {
+      rv.push(x);
+      keys.push(k);
+    }
+  }
+  return rv;
+};
+exports.uniqueBy = uniqueBy;
+
+/**
   @function sortBy
   @param {::Sequence} [sequence] Input sequence
   @param {Function|String} [key] Function or property name which determines sort order.

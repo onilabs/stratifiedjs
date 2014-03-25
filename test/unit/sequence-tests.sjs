@@ -4,6 +4,7 @@ var testFn = testUtil.testFn;
 var {test, context, assert} = require('sjs:test/suite');
 
 var s = require("sjs:sequence");
+var { eq } = require('sjs:compare');
 var {Quasi} = require("sjs:quasi");
 var toArray = s.toArray;
 
@@ -622,6 +623,13 @@ context('sortBy') {||
 
   test('property name', -> input.slice() .. s.sortBy('length') .. assert.eq(expected));
   test('key function', -> input.slice() .. s.sortBy(x -> x.length) .. assert.eq(expected));
+}
+
+context('unique') {||
+  test('unique', -> [1,3,1,2,4] .. nonRepeatableSequence .. s.unique() .. assert.eq([1,3,2,4]));
+  test('unique with custom `eq`', -> [{}, {}, {a:1}, {a:1}] .. s.unique(eq) .. assert.eq([{}, {a:1}]));
+  test('uniqueBy property name', -> ['333', '22', 'xxx'] .. s.uniqueBy('length') .. assert.eq(['333','22']));
+  test('uniqueBy function', -> ['333', '22', 'xxx'] .. s.uniqueBy(x -> x.length) .. assert.eq(['333','22']));
 }
 
 context('slice') {||

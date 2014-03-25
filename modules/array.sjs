@@ -155,18 +155,18 @@ __js function difference(a, b) {
 }
 exports.difference = difference;
 
-/** 
-    @function haveCommonElements
-    @param {Array} [a] Set of elements
-    @param {Array} [b] Set of elements
-    @return {Boolean} True if `a` and `b` have at least one common element; false otherwise.
-    @summary Checks if two sets have common elements (under `===`).
-    @desc
-      ###Notes:
+/**
+  @function haveCommonElements
+  @param {Array} [a] Set of elements
+  @param {Array} [b] Set of elements
+  @return {Boolean} True if `a` and `b` have at least one common element; false otherwise.
+  @summary Checks if two sets have common elements (under `===`).
+  @desc
+    ###Notes:
 
-      * This is a general but naive implementation with a running time `O(size(a)*size(b))`.
-      For more specific datatypes (strings or numbers, or objects with unique id's) there are
-      more scalable algorithms.
+    * This is a general but naive implementation with a running time `O(size(a)*size(b))`.
+    For more specific datatypes (strings or numbers, or objects with unique id's) there are
+    more scalable algorithms.
 */
 __js exports.haveCommonElements = function(a, b) {
   for (var i=0; i<a.length; ++i) {
