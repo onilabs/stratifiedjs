@@ -1,5 +1,5 @@
 #!/bin/bash
-':' //; exec "$(which --skip-alias nodejs 2>/dev/null || which --skip-alias node)" "$0" "$@"
+':' //; exec "$(command -v nodejs || command -v node || (echo 'Error: could not find `node` or `nodejs`' >&2; echo false))" "$0" "$@"
 // vim: syntax=sjs:
 
 var path = require('path');
