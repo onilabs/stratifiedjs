@@ -654,9 +654,9 @@ exports.sort = sort;
   @param {::Sequence} [sequence] input
   @param {optional Function} [eq] Equality function
   @return {Array}
-  @summary Return an array containing all unique elements in `input`
+  @summary Return an Array of elements from `input` with duplicate values omitted
   @desc
-    If `eq` is provided, it should be a functino like [compare::eq] - i.e
+    If `eq` is provided, it should be a function like [compare::eq] - i.e
     accept two arguments, and return `true` if they are equal, `false` otherwise.
 
     If an `eq` function is not provided, regular `===` equality will be used.
@@ -679,12 +679,12 @@ exports.unique = unique;
   @param {::Sequence} [sequence] input
   @param {Function|String} [key] Function or property name which determines uniqueness.
   @return {Array}
-  @summary Return an array containing all unique elements in `input` (compared by key)
+  @summary Return an Array of elements from `input` with duplicate values (compared by `key`) omitted
   @desc
     Two elements `a` and `b` are considered duplicates by this
     function if `key(a) === key(b)`.
 
-    If `key` is a string, it will be converted into a property acessor. i.e
+    If `key` is a string, it will be converted into a property accessor. i.e
     passing `'length'` is equivalent to passing `(x) -> x.length`.
 */
 function uniqueBy(sequence, key) {
