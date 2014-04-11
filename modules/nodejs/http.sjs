@@ -193,13 +193,13 @@ var getConnections = function(server) {
 */
 
 /**
-   @class Server
-   @summary A HTTP(S) server instance, as created by [::withServer].
+  @class Server
+  @summary A HTTP(S) server instance, as created by [::withServer].
 
-   @variable Server.nodeServer
-   @summary The underlying [nodejs
-     http.Server](http://nodejs.org/docs/latest/api/http.html#http_class_http_server) or [nodejs
-     https.Server](http://nodejs.org/docs/latest/api/https.html#https_class_https_server)
+  @variable Server.nodeServer
+  @summary The underlying [nodejs
+    http.Server](http://nodejs.org/docs/latest/api/http.html#http_class_http_server) or [nodejs
+    https.Server](http://nodejs.org/docs/latest/api/https.html#https_class_https_server)
 
   @variable Server.address
   @summary Address that the server is listening on (`"host:port"` string)
