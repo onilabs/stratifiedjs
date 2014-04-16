@@ -370,15 +370,15 @@ context("stream") {||
     waitfor {
       evt.stream() .. seq.each {|item|
         result.push(item);
-        if (item == 1) hold(15);
+        if (item == 1) hold(150);
       }
     } or {
       evt.emit(1)
-      hold(10);
+      hold(100);
       evt.emit(2)
       evt.emit(3)
       evt.emit(4)
-      hold(15);
+      hold(150);
       evt.emit(5)
     }
     result .. assert.eq([1,4,5]);
