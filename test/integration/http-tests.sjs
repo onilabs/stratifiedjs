@@ -62,7 +62,7 @@ context("post") {||
   testEq("http.post 2", "a=1&b=b&c=3", function () {
     return http.post(post_echo, url.buildQuery([{a:1,b:"b"}, {c:3}]));
   });
-}
+}.skipIf(suite.isBrowser && document.location.host == 'code.onilabs.com', "requires conductance server")
 
 context("json") {||
 
