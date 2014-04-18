@@ -20,6 +20,8 @@ For server-side use, you can just execute the `sjs` executable
 For client-side use, just include `stratified.js` in your html,
 as described at [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
 
+For a complete sjs web app stack, check out [conductance.io](https://conductance.io).
+
 Prebuilt packages:
 ------------------
 
@@ -59,6 +61,11 @@ src/
 
  - build tools and source code from which stratified.js and
    stratified-node.js are assembled.
+
+emacs/
+--------
+
+ - StratifiedJS syntax highlighting support for emacs (GPL).
 
 
 How to build
