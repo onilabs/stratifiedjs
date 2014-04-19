@@ -884,3 +884,48 @@ test("reentrant abortion from catch()", 'ok', function() {
   }
   return 'ok';
 });
+
+test("collapse from blocklambda", 'b',
+     function() {
+       var rv = '';
+       try {
+         waitfor {
+           hold(100);
+           rv += 'a';
+         }
+         or {
+           ({||          
+             hold(0);
+             collapse;
+             rv += 'b';
+           })();
+         }
+       }
+       catch (e) {
+         rv += 'x';
+       }
+       return rv;
+     });
+
+test("disallow collapse from function", 'x',
+     function() {
+       var rv = '';
+       try {
+         waitfor {
+           hold(100);
+           rv += 'a';
+         }
+         or {
+           (function() { 
+             hold(0);
+             collapse;
+             rv += 'b';
+           })();
+         }
+       }
+       catch (e) {
+         rv += 'x';
+       }
+       return rv;
+     });
+
