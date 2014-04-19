@@ -442,16 +442,18 @@ StratumAborted.prototype=new Error("stratum aborted");
 
 
 
-function Env(aobj,tobj,file,blbref,blrref,blscope){this.aobj=aobj;
+function Env(aobj,tobj,file,blbref,blrref,blscope,fold,branch){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
 this.blbref=blbref;
 this.blrref=blrref;
 this.blscope=blscope;
+this.fold=fold;
+this.branch=branch;
 }
 
-function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blbref,e.blrref,e.blscope);
+function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blbref,e.blrref,e.blscope,e.fold,e.branch);
 
 }
 

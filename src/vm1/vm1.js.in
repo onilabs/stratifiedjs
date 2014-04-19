@@ -439,17 +439,19 @@ StratumAborted.prototype = new Error("stratum aborted");
 
 */
 
-function Env(aobj, tobj, file, blbref, blrref, blscope) { 
+function Env(aobj, tobj, file, blbref, blrref, blscope, fold, branch) { 
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
   this.blbref = blbref;
   this.blrref = blrref;
   this.blscope = blscope;
+  this.fold = fold; // place where 'alt' forks
+  this.branch = branch; // id of fork branch. XXX should be merged with 'fold'
 }
 
 function copyEnv(e) {
-  return new Env(e.aobj, e.tobj, e.file, e.blbref, e.blrref, e.blscope);  
+  return new Env(e.aobj, e.tobj, e.file, e.blbref, e.blrref, e.blscope, e.fold, e.branch);  
 }
 
 //----------------------------------------------------------------------
