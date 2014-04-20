@@ -31,7 +31,7 @@
     }
 
     @test("throws correct error for error opening file") {||
-      @assert.raises({filter: e -> e.code === 'EACCES'}) {||
+      @assert.raises({filter: e -> e.code === 'EACCES' || e.code === 'EPERM' }) {||
         @fs.withWriteStream('/cant_access_this_file', -> null);
       }
     }
