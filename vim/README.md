@@ -1,6 +1,7 @@
 # Vim syntax support for [stratified javascript][sjs]
 
-Based on the builtin Javascript
+Based on the builtin Javascript syntax support, with syntax
+highlighting for all additional SJS syntax.
 
 To use with [pathogen][], copy the `stratifiedjs` folder into
 `~/.vim/bundle`. If you don't use [pathogen][] (or something
