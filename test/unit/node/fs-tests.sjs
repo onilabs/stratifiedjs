@@ -3,7 +3,7 @@
 @context {||
   @stream = require('sjs:nodejs/stream');
   @test.beforeAll {|s|
-    s.root = @path.join(process.env['TEMPDIR'] || '/tmp', 'sjs-fs-tests');
+    s.root = @path.join(process.env['TEMPDIR'] || process.env['TEMP'] || '/tmp', 'sjs-fs-tests');
     if (!@fs.isDirectory(s.root)) {
       @fs.mkdir(s.root);
     }
