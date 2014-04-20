@@ -67,6 +67,11 @@ emacs/
 
  - StratifiedJS syntax highlighting support for emacs (GPL).
 
+vim/
+--------
+
+ - StratifiedJS syntax highlighting support for vim (Vim licence, GPL compatible).
+
 
 How to build
 ------------
