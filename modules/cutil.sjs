@@ -36,7 +36,6 @@
 */
 
 var sys  = require('builtin:apollo-sys');
-var { each, Stream } = require('sjs:sequence');
 var { remove } = require('sjs:array');
 
 /**
