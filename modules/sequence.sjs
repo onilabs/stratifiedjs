@@ -41,21 +41,23 @@
 */
 
 var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
+var { waitforAll, Queue, Semaphore } = require('./cutil');
 
 // identity function:
 __js var identity = (x) -> x;
 
-// lazy getters for some infrequently used modules:
-var _cutil, _function;
-function get_cutil() { 
-  if (_cutil === undefined) 
-    _cutil = require('./cutil');
-  return _cutil;
-}
-function get_function() { 
-  if (_function === undefined)
-    _function = require('./function');
-  return _function;
+// XXX `sequential` is from the 'function.sjs' module - we can't
+// import that because that would it would lead to a dependency
+// cycle. We also don't want to lazily import it, because that can
+// unexpectedly asynchronize code.
+function sequential(f) {
+  var permits = Semaphore(1);
+  return function() {
+    permits.synchronize {
+      ||
+      return f.apply(this, arguments);
+    }
+  };
 }
 
 //----------------------------------------------------------------------
@@ -1295,7 +1297,7 @@ function combine(/* streams ... */) {
     var include_stream = function(s) {
       s .. each(emit);
     }
-    get_cutil().waitforAll(include_stream, streams);
+    waitforAll(include_stream, streams);
   });
 }
 exports.combine = combine;
@@ -1771,7 +1773,7 @@ function buffer(seq, count, options) {
   if (!options.drop) count -= 1;
 
   return Stream(function(r) {
-    var Q = get_cutil().Queue(count), eos = {};
+    var Q = Queue(count), eos = {};
     waitfor {
       seq .. each { 
         |x| 
@@ -1992,7 +1994,7 @@ transform.par.unordered = function(/* sequence, max_strata, f */) {
     [sequence, max_strata, f] = arguments;
 
   return Stream(function(r) {
-    r = get_function().sequential(r);
+    r = sequential(r);
     sequence .. each.par(max_strata) { |x| r(f(x)) }
   });
 };
@@ -2047,7 +2049,7 @@ filter.par = function(/* sequence, max_strata, predicate */) {
   if (!predicate) predicate = identity;
 
   return Stream(function(r) {
-    r = get_function().sequential(r);
+    r = sequential(r);
     sequence .. each.par(max_strata) {
       |x|
       if (predicate(x))
