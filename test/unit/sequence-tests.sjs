@@ -719,7 +719,7 @@ context('buffer') {||
          });
 
   testEq('integers .. buffer(5) .. each { hold }', 
-         'S0S1S2S3S4R0S5R1S6R2S7R3S8R4S9R5R6R7R8R9', 
+         'S0S1S2S3S4S5R0S6R1S7R2S8R3S9R4R5R6R7R8R9', 
          function() {
            var rv = '';
            s.integers() .. 

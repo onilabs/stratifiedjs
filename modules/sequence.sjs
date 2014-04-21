@@ -1773,7 +1773,7 @@ function buffer(seq, count, options) {
   if (!options.drop) count -= 1;
 
   return Stream(function(r) {
-    var Q = Queue(count), eos = {};
+    var Q = Queue(count, true), eos = {};
     waitfor {
       seq .. each { 
         |x| 
