@@ -36,7 +36,6 @@
 */
 
 var sys  = require('builtin:apollo-sys');
-var { remove } = require('sjs:array');
 
 /**
   @class StratumAborted
@@ -238,7 +237,7 @@ var SemaphoreProto = {
         this.queue.push(resume);
       }
       retract {
-        this.queue .. remove(resume);
+        this.queue.splice(this.queue.indexOf(resume), 1);
       }
     }
     --this.permits;
@@ -333,7 +332,7 @@ Waitable.wait = function wait() {
   waitfor(var result) {
     this.waiting.push(resume);
   } retract {
-    this.waiting .. remove(resume);
+    this.waiting.splice(this.waiting.indexOf(resume), 1);
   }
   return result;
 };
