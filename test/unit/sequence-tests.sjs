@@ -719,13 +719,62 @@ context('buffer') {||
          });
 
   testEq('integers .. buffer(5) .. each { hold }', 
-         'S0S1S2S3S4S5R0S6R1S7R2S8R3S9R4R5R6R7R8R9', 
+         'S0R0S1S2S3S4S5S6R1S7R2S8R3S9R4R5R6R7R8R9', 
          function() {
            var rv = '';
            s.integers() .. 
              s.take(10) .. 
              s.transform(x->(rv+="S#{x}",x)) ..
              s.buffer(5) ..
+             s.each { 
+               |x|
+               rv+="R#{x}";
+               hold(100);
+             }
+           return rv;
+         });
+}
+
+context("tailbuffer") {||
+  testEq('integers .. hold .. tailbuffer(5) .. each { hold }',
+         'S0R0S1S2S3S4S5S6S7S8S9R5R6R7R8R9',
+         function() {
+           var rv = '';
+           s.integers() ..
+             s.take(10) .. 
+             s.transform(x->(hold(0),rv+="S#{x}", x)) ..
+             s.tailbuffer(5) ..
+             s.each { 
+               |x|
+               rv+="R#{x}";
+               hold(100);
+             }
+           return rv;
+         });
+
+  testEq('integers .. tailbuffer() .. each { }',
+         'S0R0S1R1S2R2S3R3S4R4',
+         function() {
+           var rv = '';
+           s.integers() ..
+             s.take(5) .. 
+             s.transform(x->(rv+="S#{x}", x)) ..
+             s.tailbuffer() ..
+             s.each { 
+               |x|
+               rv+="R#{x}";
+             }
+           return rv;
+         });
+
+  testEq('integers .. tailbuffer() .. each { hold }',
+         'S0R0S1S2S3S4R4',
+         function() {
+           var rv = '';
+           s.integers() ..
+             s.take(5) .. 
+             s.transform(x->(rv+="S#{x}", x)) ..
+             s.tailbuffer() ..
              s.each { 
                |x|
                rv+="R#{x}";

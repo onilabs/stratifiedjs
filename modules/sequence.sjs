@@ -1741,10 +1741,10 @@ exports.fib = fib;
    @param {optional Object} [settings] Object with optional settings. 
    @setting {Boolean} [drop=false] Determines the behaviour when the buffer is full and a new upstream value is available. If `true`, the oldest element in the buffer will be dropped to make room for the new element. If `false`, the input will be blocked until the downstream retrieves the next buffered element.
    @return {::Stream}
-   @summary Create a buffered stream from a given input stream
+   @summary Create a buffered stream from a given input sequence
    @desc
-      The returned stream will buffer up to `count` elements from the input stream, if 
-      the downstream receiver is not fast enough to retrieve items.
+      The returned stream will buffer up to `count` elements from the input stream if 
+      the downstream receiver is not fast enough to retrieve elements.
       Buffering will only begin when the stream is being iterated.
 
       ### Example:
@@ -1774,7 +1774,15 @@ function buffer(seq, count, options) {
 
   return Stream(function(r) {
     var Q = Queue(count, true), eos = {};
+    
     waitfor {
+      while (1) {
+        var x = Q.get();
+        if (x === eos) return;
+        r(x);
+      }
+    }
+    and {
       seq .. each { 
         |x| 
         if (options.drop && Q.isFull()) {
@@ -1785,16 +1793,26 @@ function buffer(seq, count, options) {
       }
       Q.put(eos);
     }
-    and {
-      while (1) {
-        var x = Q.get();
-        if (x === eos) return;
-        r(x);
-      }
-    }
   });
 }
 exports.buffer = buffer;
+
+/**
+   @function tailbuffer
+   @altsyntax sequence .. tailbuffer(count)
+   @param {::Sequence} [sequence] Input sequence
+   @param {optional Integer} [count=1] Maximum number of elements of input stream to buffer
+   @return {::Stream}
+   @summary Create a stream that buffers the last element(s) of the input sequence
+   @desc
+     `sequence .. tailbuffer(count)` is equivalent to 
+     `sequence .. buffer(count, { drop:true })`.
+
+     The returned stream will buffer up to `count` of the most recent elements emitted by the input stream if the downstream receiver is not fast enough to retrieve elements.
+     Buffering will only begin when the stream is being iterated.
+*/
+var tb_settings = { drop:true };
+exports.tailbuffer = (seq,count) -> seq .. buffer(count||1, tb_settings);
 
 /**
    @function each.par
