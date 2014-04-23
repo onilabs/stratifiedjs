@@ -288,7 +288,7 @@ Match group 1 is the name of the macro.")
      "super" "switch" "synchronized" "throw"
      "throws" "transient" "try" "typeof" "var" "void" "let"
      "yield" "volatile" "while" "with"
-     "waitfor" "and" "or" "collapse" "spawn" "retract"
+     "waitfor" "and" "or" "collapse" "spawn" "retract" "__js"
 ))
   "Regexp matching any JavaScript keyword.")
 
