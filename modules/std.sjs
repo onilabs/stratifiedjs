@@ -123,9 +123,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:event](#sjs%3Aevent) module:
   
    - **Emitter**: (class [sjs:event::Emitter])
-   - **HostEmitter**: (class [sjs:event::HostEmitter])
-   - **wait**: (function [sjs:event::wait])
-   - **when**: (function [sjs:event::when])
+   - **events**: (function [sjs:event::events])
   
   
   ### Symbols from the [sjs:logging](#sjs%3Alogging) module:
@@ -225,6 +223,7 @@ module.exports = require(modules);
    - **sort**: (function [sjs:sequence::sort])
    - **sortBy**: (function [sjs:sequence::sortBy])
    - **Stream**: (class [sjs:sequence::Stream])
+   - **tailbuffer**: (function [sjs:sequence::tailbuffer])
    - **take**: (function [sjs:sequence::take])
    - **takeWhile**: (function [sjs:sequence::takeWhile])
    - **toArray**: (function [sjs:sequence::toArray])
@@ -235,6 +234,7 @@ module.exports = require(modules);
    - **unique**: (function [sjs:sequence::unique])
    - **uniqueBy**: (function [sjs:sequence::uniqueBy])
    - **unpack**: (function [sjs:sequence::unpack])
+   - **wait**: (function [sjs:sequence::wait])
    - **zip**: (function [sjs:sequence::zip])
    - **zipLongest**: (function [sjs:sequence::zipLongest])
   

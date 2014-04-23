@@ -92,7 +92,7 @@ context("Emitter") {||
     var result = (function() {
       var e = event.Emitter();
       waitfor {
-        e.wait();
+        e .. seq.wait();
         return 1;
       } or {
         e.emit();
@@ -106,19 +106,20 @@ context("Emitter") {||
   test('retract from wait()') {||
     var e = event.Emitter();
     waitfor {
-      e.wait();
+      e .. seq.wait();
     } or {
       hold(100);
     }
-    assert.eq(e.waiting, []);
+    //XXX now that we don't expose e.waiting anymore, this test is a bit pointless
+    //assert.eq(e.waiting, []);
   };
 
   test('setting with a value') {||
     var e = event.Emitter();
     var results = [];
     waitfor {
-      results.push(e.wait());
-      results.push(e.wait());
+      results.push(e .. seq.wait());
+      results.push(e .. seq.wait());
     } or {
       e.emit("first");
       hold(100);
@@ -144,17 +145,21 @@ context() {||
     test("captures specific event and unregisters listener") {|s|
       var result = [];
       waitfor {
-        using (var emitter = event.HostEmitter(s.emitter.raw, 'click')) {
-          assert.eq(s.emitter.listeners('click').length, 1);
+        event.events(s.emitter.raw, 'click') .. seq.consume {
+          |next_event|
+          // `consume` only starts iterating the stream when we call 'next_event':
+          assert.eq(s.emitter.listeners('click').length, 0);
           while(true) {
             logging.info("waiting");
-            var e = emitter.wait().detail;
+            var e = next_event().detail;
+            assert.eq(s.emitter.listeners('click').length, 1);
             logging.info("got");
             result.push(e);
             logging.info(`got event: ${e}`);
             if (e >= 3) break; // stop after event 3
           }
         }
+        assert.eq(s.emitter.listeners('click').length, 0);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('drag', 2);
@@ -168,12 +173,15 @@ context() {||
     test("captures multiple events from multiple emitters") {|s|
       var result = [];
       var emitter2 = new HostEmitter();
-      using (var emitter = event.HostEmitter([s.emitter.raw, emitter2.raw], ['click', 'drag'])) {
-        assert.eq(s.emitter.listeners('click').length, 1);
-        assert.eq(s.emitter.listeners('drag').length, 1);
+      event.events([s.emitter.raw, emitter2.raw], ['click', 'drag']) .. seq.consume {
+        |next_event|
+        assert.eq(s.emitter.listeners('click').length, 0);
+        assert.eq(s.emitter.listeners('drag').length, 0);
         waitfor {
           while(true) {
-            result.push(emitter.wait().detail);
+            result.push(next_event().detail);
+            assert.eq(s.emitter.listeners('click').length, 1);
+            assert.eq(s.emitter.listeners('drag').length, 1);
           }
         } or {
           s.emitter.trigger('click', 1);
@@ -181,6 +189,8 @@ context() {||
           emitter2.trigger('click', 3);
         }
       }
+      assert.eq(s.emitter.listeners('click').length, 0);
+      assert.eq(s.emitter.listeners('drag').length, 0);
 
       assert.eq(result, [1, 2, 3]);
     }
@@ -188,7 +198,7 @@ context() {||
     test('wait() shortcut') {|s|
       var result = [];
       waitfor {
-        result.push(event.wait(s.emitter.raw, 'click').detail);
+        result.push((event.events(s.emitter.raw, 'click') .. seq.wait).detail);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -198,7 +208,7 @@ context() {||
 
     test("filter") {|s|
       waitfor {
-        event.wait(s.emitter.raw, 'click', {filter:x -> x.detail > 2}).detail .. assert.eq(3);
+        seq.wait(event.events(s.emitter.raw, 'click', {filter:x -> x.detail > 2})).detail .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -209,7 +219,7 @@ context() {||
 
     test("transform") {|s|
       waitfor {
-        event.wait(s.emitter.raw, 'click', {transform:x -> x.detail}) .. assert.eq(1);
+        event.events(s.emitter.raw, 'click', {transform:x -> x.detail}) .. seq.wait .. assert.eq(1);
       } and {
         s.emitter.trigger('click', 1);
       }
@@ -217,7 +227,7 @@ context() {||
 
     test("filter + transform") {|s|
       waitfor {
-        event.wait(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. assert.eq(3);
+        event.events(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. seq.wait .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -227,7 +237,7 @@ context() {||
     }
   }
 
-  context('when') {||
+  context('events') {||
     var allEvents = [
       { type: "boring", value: 0 },
       { type: "important", value: 1 },
@@ -243,11 +253,12 @@ context() {||
     test("operates synchronously by default") {|s|
       var log = [];
       waitfor {
-        event.when(s.emitter.raw, 'click', opts) {|e|
-          log.push(e.value);
-          if (e.value == 3) break;
-          hold(500);
-        }
+        event.events(s.emitter.raw, 'click', opts) ..
+          seq.each {|e|
+            log.push(e.value);
+            if (e.value == 3) break;
+            hold(500);
+          }
       } and {
         allEvents .. seq.each {|e|
           s.emitter.trigger('click', e);
@@ -257,10 +268,12 @@ context() {||
       log .. assert.eq([1,3]);
     }
 
-    test("buffers events when `queue` specified") {|s|
+    test("with tailbuffer") {|s|
       var log = [];
       waitfor {
-        event.when(s.emitter.raw, 'click', opts .. obj.merge({queue: true})) {|e|
+        event.events(s.emitter.raw, 'click', opts) ..
+          seq.tailbuffer(10) ..
+          seq.each {|e|
           log.push(e.value);
           if (e.value == 3) break;
           hold(100);
@@ -275,70 +288,58 @@ context() {||
   }
 
   context('queue') {||
-    var runTest = function(emitter, opts, triggerBlock) {
+    var runTest = function(events, triggerBlock) {
       var results = [];
-      using(var q = emitter.queue(opts)) {
-        waitfor {
-          while(true) {
-            var e = q.get().detail;
-            results.push(e);
-            hold(10);
-          }
-        } or {
-          triggerBlock();
-          assert.eq(results, [1]);
-          while(results.length < 3) hold(10);
+      waitfor {
+        events .. seq.tailbuffer(10) .. seq.each {
+          |ev|
+          results.push(ev.detail);
+          hold(10);
         }
-        assert.eq(results, [1, 2, 3]);
       }
-    }
+      or {
+        triggerBlock();
+        assert.eq(results, [1]);
+        while(results.length < 3) hold(10);
+      }
+      assert.eq(results, [1, 2, 3]);
+    };
 
     test('queues sjs events') {||
       var emitter = event.Emitter();
-      runTest(emitter, null) {||
+      runTest(emitter) {||
         emitter.emit({detail: 1});
         emitter.emit({detail: 2});
         emitter.emit({detail: 3});
       }
     }
 
-    test('queues native events') {|s|
-      var emitter = event.from(s.emitter.raw, 'click');
-      runTest(emitter, null) {||
+    test('queue native events') {|s|
+      var emitter = event.events(s.emitter.raw, 'click');
+      runTest(emitter) {||
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
         s.emitter.trigger('click', 3);
       }
     }
 
-    test('leaves underlying emitter running when `bound` is false') {|s|
-      var emitter = event.from(s.emitter.raw, 'click');
-      using(var q = emitter.queue({bound: false})) {
-        assert.eq(s.emitter.listeners('click').length, 1);
-      }
-      assert.eq(s.emitter.listeners('click').length, 1);
-      emitter.stop();
-    }
-
     test('multiple randomly-timed events') {|s|
-      var emitter = event.from(s.emitter.raw, 'click');
+      var emitter = event.events(s.emitter.raw, 'click');
       waitfor {
-        using (var Q = emitter.queue()) {
+        emitter .. seq.tailbuffer(100) .. seq.consume {
+          |get_event|
           for (var i=0; i<10; ++i) {
+            get_event();
             hold(Math.random()*100);
-            Q.get();
           }
         }
       }
       and {
         for (var j=0; j<10; ++j) {
-          hold(Math.random()*100);
           s.emitter.trigger('click');
+          hold(Math.random()*100);
         }
       }
-      assert.eq(Q.count(), 0, "Not all events consumed");
-      s.emitter.trigger('click');
-      assert.eq(Q.count(), 0, "Queue still listening when it shouldn't");
     }
 
   }
@@ -347,55 +348,56 @@ context() {||
 
 context("stream") {||
   test('basic iteration') {||
-    var evt = event.Emitter();
+    var stream = event.Emitter();
     var result = [];
     waitfor {
-      evt.stream() .. seq.each {|item|
+      stream .. seq.each {|item|
         result.push(item);
       }
     } or {
       hold(10);
-      evt.emit(1)
+      stream.emit(1)
       hold(10);
-      evt.emit(2)
-      evt.emit(3)
-      evt.emit(4)
+      stream.emit(2)
+      stream.emit(3)
+      stream.emit(4)
     }
     result .. assert.eq([1,2,3,4]);
   };
 
   test('buffers up to one item if iteration blocks') {||
-    var evt = event.Emitter();
+    var stream = event.Emitter();
     var result = [];
     waitfor {
-      evt.stream() .. seq.each {|item|
+      stream .. seq.tailbuffer .. seq.each {|item|
         result.push(item);
         if (item == 1) hold(150);
       }
     } or {
-      evt.emit(1)
+      stream.emit(1)
       hold(100);
-      evt.emit(2)
-      evt.emit(3)
-      evt.emit(4)
+      stream.emit(2)
+      stream.emit(3)
+      stream.emit(4)
       hold(150);
-      evt.emit(5)
+      stream.emit(5)
+      hold(100);
     }
     result .. assert.eq([1,4,5]);
   }
 
-  test('only buffers once iteration begins') {||
-    var evt = event.Emitter();
+  test('ignore events before iteration') {||
+    var stream = event.Emitter();
     var result = [];
-    var stream = evt.stream();
     waitfor {
-      evt.emit(1)
+      stream.emit(1)
       hold(10);
-      evt.emit(2)
+      stream.emit(2)
       hold(10);
-      evt.emit(3)
-      evt.emit(4)
+      stream.emit(3)
+      stream.emit(4)
     } or {
+      
       stream .. seq.each {|item|
         result.push(item);
       }

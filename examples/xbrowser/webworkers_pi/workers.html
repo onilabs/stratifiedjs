@@ -3,6 +3,7 @@
     <script src="../../../stratified.js"></script>
     <script type="text/sjs">
       var event = require('sjs:event');
+      var seq   = require('sjs:sequence');
 
       //----------------------------------------------------------------------
       // main program logic:
@@ -20,7 +21,7 @@
       function doPrompt() {
         var div = createDiv("Calculate Pi to <input type='text' value='10000'/> "+
                             "digits. <button>Start</button>");
-        event.wait(div.lastChild, 'click');
+        event.events(div.lastChild, 'click') .. seq.wait;
         var digits = div.querySelector('input').value;
         document.body.removeChild(div);
         return digits;
@@ -46,7 +47,7 @@
         }
         or {
           // wait for click on cancel button:
-          event.wait(div.lastChild, 'click');
+          event.events(div.lastChild, 'click') .. seq.wait;
           document.body.removeChild(div);
         }
       }

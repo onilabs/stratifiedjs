@@ -461,6 +461,12 @@ function first(seq, defaultValue) {
 exports.first = first;
 
 /**
+   @function wait
+   @summary Alias for [::first]
+*/
+exports.wait = first;
+
+/**
   @function at
   @param {::Sequence} [sequence]
   @param {Number} [index]

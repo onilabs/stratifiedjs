@@ -41,6 +41,7 @@ if (sys.hostenv != 'nodejs')
   throw new Error('The nodejs/repl module only runs in a nodejs environment');
 
 var event = require('../event');
+var seq   = require('../sequence');
 var debug = require('../debug');
 var Url = require('../url');
 
@@ -77,23 +78,25 @@ exports.runREPL = function() {
 
   try {
     itf = require('readline').createInterface(stdin, process.stdout);
-    using (var sigint = event.HostEmitter(itf, 'SIGINT')) {
-      using (var lines = event.HostEmitter(itf, 'line').queue()) {
+    event.events(itf, 'SIGINT') .. seq.tailbuffer(3) .. seq.consume {
+      |waitfor_interrupt|
+      event.events(itf, 'line') .. seq.tailbuffer(10) .. seq.consume {
+        |get_line|
         while (1) {
           switchPrompt('input');
           itf.prompt();
           waitfor {
-            var cl = lines.get();
+            var cl = get_line();
           }
           or {
-            sigint.wait();
+            waitfor_interrupt();
             write("<^C again to quit>");
             itf.prompt();
-            sigint.wait();
+            waitfor_interrupt();
             return;
           }
           switchPrompt('busy');
-          evalCommandLine(cl, sigint);
+          evalCommandLine(cl, waitfor_interrupt);
         }
       }
     }
@@ -109,7 +112,7 @@ exports.runREPL = function() {
   }
 };
 
-function evalCommandLine(cl, interrupt) {
+function evalCommandLine(cl, waitfor_interrupt) {
   var stratum = spawn require('builtin:apollo-sys').eval(cl, {filename:'repl'});
 
   waitfor {
@@ -117,7 +120,7 @@ function evalCommandLine(cl, interrupt) {
   }
   or {
     // when the user enters CTRL-C, we push into background:
-    interrupt.wait();
+    waitfor_interrupt();
     trackInBackground(stratum);
   }
 }

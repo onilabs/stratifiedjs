@@ -308,7 +308,7 @@ var SemaphoreProto = {
 };
 
 
-// shared prototype for events.Emitter, events.HostEmitter & cutil.Condition objects
+// shared prototype for events.HostEmitter & cutil.Condition objects
 // (undocumented)
 __js {
   var Waitable = {};

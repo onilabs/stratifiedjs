@@ -133,13 +133,11 @@ waitfor {
 } and {
   var { Condition } = require("../cutil.sjs");
 } and {
-  var { Emitter } = require("../event.sjs");
-} and {
   var array = require('../array');
   var { isArrayLike } = array;
 } and {
   var seq = require('../sequence');
-  var { each, reduce, toArray, any, filter, map, join, sort, concat, hasElem } = seq;
+  var { each, reduce, toArray, any, filter, map, join, sort, concat, hasElem, wait } = seq;
 } and {
   var { rstrip, startsWith, strip } = require('../string');
 } and {
@@ -179,7 +177,6 @@ var Runner = exports.Runner = function(opts) {
   }
   this.opts = opts;
   this.reporter = opts.reporter || NullRporter;
-  this.loading = Emitter();
   this.active_contexts = [];
   this.root_contexts = [];
 }

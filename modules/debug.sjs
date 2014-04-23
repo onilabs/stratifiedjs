@@ -87,6 +87,7 @@ var prompt = exports.prompt = (function() {
         var stdin = process.stdin;
         if (stdin.destroyed) fail();
         var event = require('sjs:event');
+        var seq   = require('sjs:sequence');
         var iface = require("nodejs:readline").createInterface(stdin, process.stdout);
         try {
           var answer = null;
@@ -97,7 +98,7 @@ var prompt = exports.prompt = (function() {
           } or {
             // documentation claims close happens on `iface`, but
             // it seems to occur on `stdin` in pracice. So we wait for either:
-            event.wait([iface, stdin], 'close');
+            event.events([iface, stdin], 'close') .. seq.wait;
           }
           if (answer == null) fail()
         } finally {

@@ -47,7 +47,7 @@ if (require('builtin:apollo-sys').hostenv != 'xbrowser')
 
 var { extend, hasOwn } = require('../object');
 var str = require('../string');
-var { each, map, join } = require('../sequence');
+var { each, map, join, tailbuffer, wait } = require('../sequence');
 var { remove } = require('../array');
 var dom, event; // set in Console.init
 
@@ -211,7 +211,7 @@ function inspect_obj(obj, name) {
   spawn((function() {
     var toggle = rv.firstChild.firstChild;
     while (true) {
-      event.wait(toggle, 'click');
+      event.events(toggle, 'click') .. wait;
       var children = makeDiv(null, "margin-left:15px");
       var props = Object.keys(obj);
       props.sort();
@@ -224,7 +224,7 @@ function inspect_obj(obj, name) {
       }
       rv.appendChild(children);
       toggle.firstChild.style.backgroundImage = "url("+icons.treeopen+")";
-      event.wait(toggle, 'click');
+      event.events(toggle, 'click') .. wait;
       toggle.firstChild.style.backgroundImage = "url("+icons.treeclosed+")";
       rv.removeChild(children);
       children = null;
@@ -376,28 +376,28 @@ Console.prototype = {
     actions[40] = history_next; // key down
  
     waitfor {
-      event.when(this.cmdline, 'keydown', {
+      event.events(this.cmdline, 'keydown', {
         filter: e -> actions .. hasOwn(e.keyCode),
         handle: dom.stopEvent,
-        queue: true,
-      },
-      (e) => actions[e.keyCode].call(this));
+      }) ..
+        tailbuffer(10) ..
+        each((e) => actions[e.keyCode].call(this));
     }
     and {
       while(true) {
         // Can't wait for click on this.term here, because of
         // Android bug http://code.google.com/p/android/issues/detail?id=8575
         waitfor {
-          event.wait(this.closebutton, "click");
+          event.events(this.closebutton, "click") .. wait;
           this.shut();
         }
         or {
-          var ev = event.wait(this.output, "click");
+          var ev = event.events(this.output, "click") .. wait;
           if (dom.eventTarget(ev) == this.output)
             this.focus();
         }
         or {
-          event.wait(this.clearbutton, "click");
+          event.events(this.clearbutton, "click") .. wait;
           this.clear();
         }
       };
@@ -405,30 +405,26 @@ Console.prototype = {
     and {
       if (isWebkitMobile) {
         // emulate position:fixed on webkit:
-        using (var move = event.HostEmitter(document.getElementsByTagName("body")[0], ['touchmove', 'touchend'])) {
-          var stick = => viewportStick(this.summonbutton);
-          stick();
-          move.stream() .. each(stick);
+        viewportStick(this.summonbutton);
+        event.events(document.getElementsByTagName("body")[0], ['touchmove', 'touchend']) .. each {||
+          viewportStick(this.summonbutton);
         }
       }
     }
     and {
       while (true) {
-        var ev = event.wait(this.resizehandle,"mousedown");
+        var ev = event.events(this.resizehandle,"mousedown") .. wait;
         var lasty = ev.clientY;
         document.documentElement.style.webkitUserSelect = "none";
         waitfor {
-          event.wait(document, "mouseup");
+          event.events(document, "mouseup") .. wait;
         }
         or {
-          using (var mm = event.HostEmitter(document, "mousemove")) {
-            mm.stream() .. each {|ev|
-              var ev = mm.get();
-              var h = lasty - ev.clientY + this.term.clientHeight;
-              if (h > 70) {
-                this.term.style.height = h + "px";
-                lasty = ev.clientY;
-              }
+          event.events(document, "mousemove") .. each {|ev|
+            var h = lasty - ev.clientY + this.term.clientHeight;
+            if (h > 70) {
+              this.term.style.height = h + "px";
+              lasty = ev.clientY;
             }
           }
         }
@@ -453,7 +449,7 @@ Console.prototype = {
   shut : function () {
     this.term.style.display = "none";
     this.summonbutton.style.visibility = "visible";
-    spawn (event.wait(this.summonbutton, "click"),
+    spawn (event.events(this.summonbutton, "click") .. wait,
            this.expand());
   },
   
@@ -498,7 +494,7 @@ Console.prototype = {
           try {
             e.firstChild.innerHTML += "<a title='Cancel this stratum' style='text-decoration:underline;cursor:pointer;float:right'>abort</a>";
             var b = e.firstChild.lastChild;
-            event.wait(b, "click");
+            event.events(b, "click") .. wait;
             result.innerHTML = "<span style='color:red'>Aborted</span>";
           }
           finally {

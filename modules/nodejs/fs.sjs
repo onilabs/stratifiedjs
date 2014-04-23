@@ -42,6 +42,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 var fs = require('fs'); // builtin fs
 var evt = require('../event');
+var seq = require('../sequence');
 
 //----------------------------------------------------------------------
 // low-level:
@@ -465,11 +466,11 @@ function streamContext(ctor, dtor) {
     }
     var f = fs[ctor](path, opts);
     waitfor {
-      throw(f .. evt.wait('error'));
+      throw(f .. evt.events('error') .. seq.wait);
     } or {
-      f .. evt.wait('open');
+      f .. evt.events('open') .. seq.wait;
       waitfor {
-        f .. evt.wait('close');
+        f .. evt.events('close') .. seq.wait;
       } and {
         try {
           block(f);
