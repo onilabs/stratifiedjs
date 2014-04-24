@@ -182,7 +182,26 @@ CFException.prototype = {
       // 'augment' means that we should throw this as an exception whose 'message' is equal
       // to its 'toString()' value. The only way to reliably do this is to create a new
       // exception - manipulating 'message' has no effect for IE (up to at least version 10).
-      throw (augment && this.val.__oni_stack) ? new Error(this.val.toString()) : this.val;
+      // Another complication is that some versions of Chrome (~v35 on windows) limit the number 
+      // of characters in the exception's message: If this is >~238 then the error will be 
+      // reported in the console as simply 'uncaught object' :(
+      if (augment && this.val.__oni_stack) {
+        var mes = this.val.toString();
+        if (mes.length > 230) {
+          mes = mes.substring(0,230);
+          // try to cut off at a line break:
+          var lb = mes.lastIndexOf('\n');
+          if (lb>100) { // '100' because we always want *some* part of the message to be shown
+            mes = mes.substring(0,lb);
+          }
+          //give some indication that we cut off the message
+          mes += '\n    ...';
+            
+        }
+        throw new Error(mes);
+      }
+      else 
+        throw this.val;
     }
     else if (!this.ef) // XXX DO WE NEED THIS???
       throw new Error(this.toString()); 
