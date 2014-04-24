@@ -54,10 +54,9 @@ context {||
 
   //-------------------------------------------------------------
   context('run (an array of args)') {||
-    testEq('run("echo", ["1  2"]).stdout', '1  2\n', function() {
-      // if spaces are interpreted by the shell,
-      // the double-space will turn into a single.
-      return child_process.run('echo', ['1  2']).stdout .. normalize;
+    testEq('arguments with spaces', '1  2\n', function() {
+      // if spaces are interpreted by the shell, argv[1] will just be "1"
+      return child_process.run(process.execPath, ['-e', 'console.log(process.argv[1])', '1  2']).stdout .. normalize;
     });
 
     testEq('run("bash", ["-c", "echo 2 >&2"]).stderr', '2\n', function() {

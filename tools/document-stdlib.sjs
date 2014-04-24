@@ -15,7 +15,7 @@
 ]);
 
 var @docutil = require('sjs:docutil');
-@logging.setLevel(process.env['GUP_XTRACE'] ? @logging.VERBOSE : @logging.WARN);
+@logging.setLevel(process.env['GUP_XTRACE'] == '1' ? @logging.VERBOSE : @logging.WARN);
 function dependUpon(path) {
   if(process.env['GUP_TARGET']) {
     @childProcess.run('gup', ['-u', path]);
