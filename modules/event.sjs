@@ -63,9 +63,15 @@ var sys = require('builtin:apollo-sys');
    @summary A stream with 'event' semantics
    @desc
      A stream is said to be an "event stream" if it consists of a *temporal*
-     sequence of discrete values. In contrast to an [mho:observable::Observable], event streams do not have the concept of a 'current' value.
+     sequence of discrete values. In contrast to an [mho:observable::Observable], 
+     event streams do not have the concept of a 'current' value, i.e. calling [sjs:sequence::first] on 
+     an event stream is not guaranteed to yield a value in a finite time. Furthermore, 
+     event streams are 'free running' and do not perform any buffering. This means that if an
+     event is emitted while the downstream receiver is blocked, the event will be lost.
 
-     Calling [sjs:sequence::wait] (a synonym for [sjs:sequence::first]) on an event stream blocks until the next occurance of an event. 
+     To wait for the next single occurance of an event, you can call [sjs:sequence::wait] 
+     (a synonym for [sjs:sequence::first]). 
+
 */
 
 //----------------------------------------------------------------------
