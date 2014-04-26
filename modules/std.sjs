@@ -20,6 +20,7 @@
   @require sjs:event
   @require sjs:sys
   @require sjs:url
+  @require sjs:observable
 */
 
 var hostenv = require('builtin:apollo-sys').hostenv;
@@ -41,6 +42,7 @@ var modules = [
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
+  'sjs:observable'
 ];
 
 if (hostenv === 'nodejs') {
@@ -169,6 +171,15 @@ module.exports = require(modules);
    - **setPath**: (function [sjs:object::setPath])
    - **tap**: (function [sjs:object::tap])
    - **values**: (function [sjs:object::values])
+  
+  
+  ### Symbols from the [sjs:observable](#sjs%3Aobservable) module:
+  
+   - **changes**: (function [sjs:observable::changes])
+   - **current**: (function [sjs:observable::current])
+   - **isConflictError**: (function [sjs:observable::isConflictError])
+   - **ObservableVar**: (class [sjs:observable::ObservableVar])
+   - **observe**: (function [sjs:observable::observe])
   
   
   ### Symbols from the [sjs:quasi](#sjs%3Aquasi) module:
