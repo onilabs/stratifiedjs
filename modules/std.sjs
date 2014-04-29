@@ -205,6 +205,7 @@ module.exports = require(modules);
    - **count**: (function [sjs:sequence::count])
    - **each**: (function [sjs:sequence::each])
    - **each.par**: (function [sjs:sequence::each.par])
+   - **each.track**: (function [sjs:sequence::each.track])
    - **fib**: (function [sjs:sequence::fib])
    - **filter**: (function [sjs:sequence::filter])
    - **filter.par**: (function [sjs:sequence::filter.par])

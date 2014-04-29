@@ -65,9 +65,11 @@ var sys = require('builtin:apollo-sys');
      A stream is said to be an "event stream" if it consists of a *temporal*
      sequence of discrete values. In contrast to an [sjs:observable::Observable], 
      event streams do not have the concept of a 'current' value, i.e. calling [sjs:sequence::first] on 
-     an event stream is not guaranteed to yield a value in a finite time. Furthermore, 
-     event streams are 'free running' and do not perform any buffering. This means that if an
-     event is emitted while the downstream receiver is blocked, the event will be lost.
+     an event stream is not guaranteed to yield a value in a finite time. 
+
+     Furthermore, 
+     event streams are 'free running' and do not perform any buffering: if an
+     event is emitted while the downstream receiver is blocked, the event will be lost. For web applications this implies that it is generally not safe to share event streams between client and server without some form of buffering (e.g. [sjs:sequence::tailbuffer]).
 
      To wait for the next single occurance of an event, you can call [sjs:sequence::wait] 
      (a synonym for [sjs:sequence::first]). 
@@ -104,6 +106,7 @@ function Emitter() {
   __js rv.emit = function(val) {
     var _listeners = listeners;
     listeners = [];
+    // because rv.emit is encoded as __js, the following is equivalent to a 'spawn':
     for (var i=0,l=_listeners.length; i<l; ++i)
       _listeners[i](val);
   }
