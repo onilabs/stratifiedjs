@@ -2123,3 +2123,49 @@ any.par = function(/* sequence, max_strata, p */) {
   return false;
 };
 
+//----------------------------------------------------------------------
+// tracking sequence operations
+
+/**
+   @function each.track
+   @altsyntax sequence .. each.track { |item| ... }
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [f] Function to execute for each `item` in `sequence`
+   @summary Like [::each], but aborts execution of a blocked 
+   `f(item)` call when a new item is emitted.
+   @desc
+     This function is useful for tracking the most recent state of 
+     time-varying values. E.g. to display a notice every time the user
+     pauses with moving the mouse for longer than 100ms:
+
+         window .. @events('mousemove') .. @each.track {
+           |ev|
+           hold(100);
+           console.log('You paused the mouse');
+         }
+
+*/
+each.track = function(seq, r) {
+  var val, next, done=false, executing_downstream=false;
+  waitfor {
+    waitfor(val) { next = resume; }
+    while (true) {
+      waitfor {
+        waitfor(val) { next = resume; }
+      }
+      or {
+        executing_downstream = true;
+        r(val);
+        executing_downstream = false;
+        if (done) return;
+        hold();
+      }
+    }
+  }
+  and {
+    seq .. each { |x| next(x) }; 
+    done = true;
+    if (!executing_downstream) return;
+  }
+};
+

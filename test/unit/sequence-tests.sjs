@@ -847,3 +847,12 @@ testEq('monitor async', ['a1',1,'a2',2,'a3',3], function() {
   return rv;
 });
 
+testEq('each.track', "5", function() {
+  var rv = "";
+  [1,2,3,4,5] .. s.transform(x->(hold(10),x)) .. s.each.track {
+    |x|
+    hold(100);
+    rv += x;
+  }
+  return rv;
+});
