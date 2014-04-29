@@ -5,7 +5,18 @@
 @desc
   Metadata comments are also known as "doc comments", although they are used
   for more than just documentation. Metadata comments are those that start
-  with a double-star (i.e '/**'). Within a metadata comment, the following
+  with a double-star:
+  
+      /**
+        @key value
+        @key2 value2
+
+        etc ...
+      *\/
+  
+  For documentation-specific directives, see [./documentation::].
+  
+  Within a metadata comment, the following
   format applies:
 
   To set `key` = `"value"`:
