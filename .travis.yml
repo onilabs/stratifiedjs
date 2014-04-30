@@ -32,6 +32,11 @@ notifications:
       - commits@onilabs.com
     on_success: change
     on_failure: always
+branches:
+  # build only master and release braches
+  only:
+    - master
+    - /^\d+(\.\d+)+$/
 
 # nodejs 0.6 is pretty much dead, but this'll keep it limping for a little while...
 before_install:
