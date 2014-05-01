@@ -45,6 +45,9 @@ var { waitforAll, Queue, Semaphore } = require('./cutil');
 
 // identity function:
 __js var identity = (x) -> x;
+__js function isString(obj) {
+  return typeof obj == 'string' || obj instanceof String;
+}
 
 // XXX `sequential` is from the 'function.sjs' module - we can't
 // import that because that would it would lead to a dependency
@@ -175,7 +178,7 @@ __js {
 */
 __js {
   function isSequence(s) {
-    return isArrayLike(s) || isStream(s) || typeof s === 'string';
+    return isArrayLike(s) || isStream(s) || isString(s);
   }
   exports.isSequence = isSequence;
 }
@@ -246,7 +249,7 @@ function each(sequence, r) {
           return async_each(sequence, r, i, res);
       }
     }
-    else if (typeof sequence === 'string') {
+    else if (isString(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
         var res = r(sequence.charAt(i));
         if (__oni_rt.is_ef(res))
@@ -263,7 +266,7 @@ exports.each = each;
 function async_each(arr, r, i, ef) {
   ef.wait();
   var l = arr.length;
-  if (typeof arr === 'string') {
+  if (isString(arr)) {
     for (++i; i<l; ++i)
       r(arr.charAt(i));
   }
@@ -754,7 +757,7 @@ exports.sortBy = sortBy;
 // helper for key functions
 var keyFn = function(key) {
   if (key == null) return identity;
-  if ((typeof key) == 'string') return (x) -> x[key];
+  if (isString(key)) return (x) -> x[key];
   return key;
 }
 

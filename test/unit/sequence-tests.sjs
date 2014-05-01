@@ -68,6 +68,12 @@ testEq("'abc' .. each{|x| ...}", 'abc', function() {
   return rv;
 });
 
+test("each on String object") {||
+  var rv = "";
+  new String('abc') .. s.each { |x| rv += x };
+  assert.eq(rv, 'abc');
+};
+
 testEq("['a','b','c'] .. consume{ |next| ...}", 'abc', function() {
   var rv = "", eos = {};
   ['a','b','c'] .. s.consume(eos) { 

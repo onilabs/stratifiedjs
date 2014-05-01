@@ -126,6 +126,7 @@ module.exports = require(modules);
   
    - **Emitter**: (class [sjs:event::Emitter])
    - **events**: (function [sjs:event::events])
+   - **wait**: (function [sjs:event::wait])
   
   
   ### Symbols from the [sjs:logging](#sjs%3Alogging) module:
@@ -141,6 +142,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
   *(when in the nodejs environment)*
   
+   - **end**: (function [sjs:nodejs/stream::end])
    - **pump**: (function [sjs:nodejs/stream::pump])
    - **read**: (function [sjs:nodejs/stream::read])
    - **ReadableStringStream**: (class [sjs:nodejs/stream::ReadableStringStream])
@@ -246,7 +248,6 @@ module.exports = require(modules);
    - **unique**: (function [sjs:sequence::unique])
    - **uniqueBy**: (function [sjs:sequence::uniqueBy])
    - **unpack**: (function [sjs:sequence::unpack])
-   - **wait**: (function [sjs:sequence::wait])
    - **zip**: (function [sjs:sequence::zip])
    - **zipLongest**: (function [sjs:sequence::zipLongest])
   
