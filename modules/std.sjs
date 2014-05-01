@@ -141,6 +141,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
   *(when in the nodejs environment)*
   
+   - **end**: (function [sjs:nodejs/stream::end])
    - **pump**: (function [sjs:nodejs/stream::pump])
    - **read**: (function [sjs:nodejs/stream::read])
    - **ReadableStringStream**: (class [sjs:nodejs/stream::ReadableStringStream])
@@ -225,6 +226,7 @@ module.exports = require(modules);
    - **sort**: (function [sjs:sequence::sort])
    - **sortBy**: (function [sjs:sequence::sortBy])
    - **Stream**: (class [sjs:sequence::Stream])
+   - **tailbuffer**: (function [sjs:sequence::tailbuffer])
    - **take**: (function [sjs:sequence::take])
    - **takeWhile**: (function [sjs:sequence::takeWhile])
    - **toArray**: (function [sjs:sequence::toArray])
