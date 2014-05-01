@@ -1,6 +1,6 @@
 /*
- * StratifiedJS 'sequence' module
- * Constructs for manipulating sequence structures (arrays, strings and more general streams)
+ * StratifiedJS 'observable' module
+ * Constructs for manipulating streams backed by time-varying values
  *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: '0.19.0-development'
