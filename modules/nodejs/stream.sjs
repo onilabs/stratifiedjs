@@ -81,7 +81,8 @@ exports.readAll = function(stream) {
   @function write
   @summary  Write data to the `dest` stream.
   @param    {Stream} [dest] the stream to write to
-  @param    {String} [data] the data to write
+  @param    {String|Buffer} [data] the data to write
+  @param    {optional String} [encoding] the encoding, if `data` is a string
   @desc
     If the data cannot be written immediately, this function
     will wait for a `drain` event on the `dest` stream before
@@ -98,6 +99,23 @@ exports.write = function(dest, data/*, ...*/) {
     } finally {
       dest.removeListener('drain', resume);
     }
+  }
+};
+
+
+/**
+  @function end
+  @summary  End the stream with a final chunk of data.
+  @param    {Stream} [dest] the stream to write to
+  @param    {optional String|Buffer} [data] the data to write
+  @param    {optional String} [encoding] the encoding, if `data` is a string
+  @desc
+    This function ends the stream and waits for its `finish`
+    event before returning.
+*/
+exports.end = function(dest, data, encoding) {
+  waitfor () {
+    dest.end(data, encoding, resume)
   }
 };
 
