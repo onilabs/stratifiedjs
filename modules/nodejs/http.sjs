@@ -42,7 +42,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 var builtin_http  = require('http');
 
-var { find, generate, filter, each, wait } = require('../sequence');
+var { find, generate, filter, each } = require('../sequence');
 var url = require('../url');
 var { Queue } = require('../cutil');
 var { override } = require('../object');
@@ -97,7 +97,7 @@ function receiveBody(request) {
     while (1) { 
       rv = concatBuffers(
         [rv, 
-         event.events(request, 'data') .. wait()
+         event.wait(request, 'data')
         ]);
       __js if (rv.length > 1024*1024*10) throw new Error("Request body too large");
     }
@@ -266,7 +266,7 @@ function withServer(config, server_loop) {
 
   // bind the socket:
   waitfor  {
-    var error = event.events(server, 'error') .. wait;
+    var error = event.wait(server, 'error');
     throw new Error("Cannot bind #{config.address}: #{error}");
   }
   or { 
@@ -288,11 +288,11 @@ function withServer(config, server_loop) {
     // so to shut down things cleanly, we need to wait for the process
     // to complete (or fail)
     waitfor {
-      event.events(server, 'listening') .. wait;
+      event.wait(server, 'listening');
       try { server.close(); } catch(e) { /* ignore */ }
       // xxx close any connection that might have snuck in
     } or {
-      event.events(server, 'error') .. wait;
+      event.wait(server, 'error');
     }
   }
 
@@ -301,7 +301,7 @@ function withServer(config, server_loop) {
 
   // run our server_loop :
   waitfor {
-    var error = event.events(server, 'error') .. wait;
+    var error = event.wait(server, 'error');
     throw new Error("#{config.address}: #{error}");
   }
   or {
@@ -320,7 +320,7 @@ function withServer(config, server_loop) {
     config.log("Listening on #{address}");
 
     waitfor {
-      server .. event.events('close') .. wait;
+      server .. event.wait('close');
       server_closed = true;
     }
     and {
@@ -333,7 +333,7 @@ function withServer(config, server_loop) {
           eachRequest: function(handler) {
             waitfor {
               if (!server_closed)
-                server .. event.events('close') .. wait;
+                server .. event.wait('close');
             }
             or {
               generate(-> request_queue.get()) ..
@@ -345,7 +345,7 @@ function withServer(config, server_loop) {
                 each.par(config.max_connections) {
                   |server_request|
                   waitfor {
-                    event.events(server_request.request, 'close') .. wait;
+                    event.wait(server_request.request, 'close');
                     config.log("Connection closed");
                   }
                   or {

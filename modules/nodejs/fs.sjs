@@ -466,11 +466,11 @@ function streamContext(ctor, dtor) {
     }
     var f = fs[ctor](path, opts);
     waitfor {
-      throw(f .. evt.events('error') .. seq.wait);
+      throw(f .. evt.wait('error'));
     } or {
-      f .. evt.events('open') .. seq.wait;
+      f .. evt.wait('open');
       waitfor {
-        f .. evt.events('close') .. seq.wait;
+        f .. evt.wait('close');
       } and {
         try {
           block(f);

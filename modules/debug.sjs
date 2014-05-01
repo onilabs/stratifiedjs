@@ -98,7 +98,7 @@ var prompt = exports.prompt = (function() {
           } or {
             // documentation claims close happens on `iface`, but
             // it seems to occur on `stdin` in pracice. So we wait for either:
-            event.events([iface, stdin], 'close') .. seq.wait;
+            event.wait([iface, stdin], 'close');
           }
           if (answer == null) fail()
         } finally {

@@ -137,7 +137,7 @@ waitfor {
   var { isArrayLike } = array;
 } and {
   var seq = require('../sequence');
-  var { each, reduce, toArray, any, filter, map, join, sort, concat, hasElem, wait } = seq;
+  var { each, reduce, toArray, any, filter, map, join, sort, concat, hasElem } = seq;
 } and {
   var { rstrip, startsWith, strip } = require('../string');
 } and {

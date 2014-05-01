@@ -35,7 +35,7 @@
   @require   sjs:xbrowser/dom
   @desc
     This module provides abstractions around *event streams* ([::EventStream]), 
-    which are a type of [:sjs:sequence::Stream] composed of discrete events.
+    which are a type of [sjs:sequence::Stream] composed of discrete events.
 
     ### Explicitly triggered  events:
     
@@ -71,8 +71,7 @@ var sys = require('builtin:apollo-sys');
      event streams are 'free running' and do not perform any buffering: if an
      event is emitted while the downstream receiver is blocked, the event will be lost. For web applications this implies that it is generally not safe to share event streams between client and server without some form of buffering (e.g. [sjs:sequence::tailbuffer]).
 
-     To wait for the next single occurance of an event, you can call [sjs:sequence::wait] 
-     (a synonym for [sjs:sequence::first]). 
+     To wait for a single occurance of an event, you can call [::wait].
 
 */
 
@@ -177,6 +176,35 @@ function events(emitters, events, opts) {
   });
 }
 exports.events = events;
+
+
+/**
+   @function wait
+   @param {./sequence::Stream|Object} [stream_or_emitter]
+   @param {optional any} [...] If first argument is not 
+          a [./sequence::Stream]: Additional arguments as for [::events].
+   @summary Wait for an event or the first item of a [./sequence::Stream]
+   @desc
+     If `stream_or_emitter` is a [::Stream], this function acts like
+     [./sequence::first], awaiting and returning the first emitted
+     item from the stream.
+
+     Otherwise, this method passes all arguments through to 
+     [::events] to create an event stream, then acts like
+     calling [./sequence::first] on that stream.
+
+     ### Examples:
+
+         button .. @events('click') .. @wait();
+         // equivalent to
+         button .. @wait('click');
+*/
+var wait = exports.wait = function(stream /*,...*/) {
+  if (!seq.isStream(stream)) {
+    stream = events.apply(null, arguments);
+  }
+  return seq.first(stream);
+};
 
 //----------------------------------------------------------------------
 // EVERYTHING BELOW IS DEPRECATED

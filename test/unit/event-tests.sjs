@@ -92,7 +92,7 @@ context("Emitter") {||
     var result = (function() {
       var e = event.Emitter();
       waitfor {
-        e .. seq.wait();
+        e .. event.wait();
         return 1;
       } or {
         e.emit();
@@ -106,7 +106,7 @@ context("Emitter") {||
   test('retract from wait()') {||
     var e = event.Emitter();
     waitfor {
-      e .. seq.wait();
+      e .. event.wait();
     } or {
       hold(100);
     }
@@ -118,8 +118,8 @@ context("Emitter") {||
     var e = event.Emitter();
     var results = [];
     waitfor {
-      results.push(e .. seq.wait());
-      results.push(e .. seq.wait());
+      results.push(e .. event.wait());
+      results.push(e .. event.wait());
     } or {
       e.emit("first");
       hold(100);
@@ -198,7 +198,7 @@ context() {||
     test('wait() shortcut') {|s|
       var result = [];
       waitfor {
-        result.push((event.events(s.emitter.raw, 'click') .. seq.wait).detail);
+        result.push((event.events(s.emitter.raw, 'click') .. event.wait).detail);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -208,7 +208,7 @@ context() {||
 
     test("filter") {|s|
       waitfor {
-        seq.wait(event.events(s.emitter.raw, 'click', {filter:x -> x.detail > 2})).detail .. assert.eq(3);
+        event.wait(event.events(s.emitter.raw, 'click', {filter:x -> x.detail > 2})).detail .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
@@ -219,7 +219,7 @@ context() {||
 
     test("transform") {|s|
       waitfor {
-        event.events(s.emitter.raw, 'click', {transform:x -> x.detail}) .. seq.wait .. assert.eq(1);
+        event.events(s.emitter.raw, 'click', {transform:x -> x.detail}) .. event.wait .. assert.eq(1);
       } and {
         s.emitter.trigger('click', 1);
       }
@@ -227,7 +227,7 @@ context() {||
 
     test("filter + transform") {|s|
       waitfor {
-        event.events(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. seq.wait .. assert.eq(3);
+        event.events(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. event.wait .. assert.eq(3);
       } and {
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);

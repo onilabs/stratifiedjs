@@ -21,7 +21,7 @@
       function doPrompt() {
         var div = createDiv("Calculate Pi to <input type='text' value='10000'/> "+
                             "digits. <button>Start</button>");
-        event.events(div.lastChild, 'click') .. seq.wait;
+        event.wait(div.lastChild, 'click');
         var digits = div.querySelector('input').value;
         document.body.removeChild(div);
         return digits;
@@ -47,7 +47,7 @@
         }
         or {
           // wait for click on cancel button:
-          event.events(div.lastChild, 'click') .. seq.wait;
+          event.wait(div.lastChild, 'click');
           document.body.removeChild(div);
         }
       }
