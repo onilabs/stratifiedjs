@@ -109,7 +109,7 @@ context("eq") {||
           -> assert.eq(new Foo(), new Bar(1)));
 
         assert.raises(
-          {message: /\[objects differ at property 'x'\]/},
+          {message: /\[objects differ at property `x`\]/},
           -> assert.eq(new Bar(1), new Bar(2)));
       }
 
@@ -119,7 +119,7 @@ context("eq") {||
           -> assert.eq(new Foo(), new FooBar(1)));
 
         assert.raises(
-          {message: /\[objects differ at property 'x'\]/},
+          {message: /\[objects differ at property `x`\]/},
           -> assert.eq(new FooBar(1), new FooBar(2)));
       }.skipIf(suite.isIE() && suite.ieVersion() < 9, "requires native support for getPrototypeOf()");
     }
@@ -132,7 +132,7 @@ context("eq") {||
 
     test("comparing arrays with different elements") {||
       assert.raises(
-        {message:/objects differ at property '1'/},
+        {message:/objects differ at index `1`/},
         -> assert.eq(["one", "two"], ["one", "three"]));
     }
 
@@ -141,6 +141,45 @@ context("eq") {||
         {message:/expected has 2 elements, actual has 3/},
         -> assert.eq(["one", "two", "three"], ["one", "three"]));
     }
+
+    context("comparing buffers") {||
+      test("against other kinds of buffers") {||
+        // Buffers and SlowBuffers are different types, but should be treated the same.
+        var sb = new (require('nodejs:buffer').SlowBuffer)(4);
+        var ch = '1'.charCodeAt(0);
+        sb[0] = ch++;
+        sb[1] = ch++;
+        sb[2] = ch++;
+        sb[3] = ch++;
+        assert.eq(new Buffer("1234"), sb);
+      }
+
+      test("against slices") {||
+        assert.eq(new Buffer("1234"), new Buffer("__1234__").slice(2, 6));
+      }
+
+      test("with different contents") {||
+        assert.raises(
+          {message:/objects differ at index `6`/},
+          -> assert.eq(new Buffer("12345678"), new Buffer("123456xx")));
+      }
+
+      test("with different length") {||
+        assert.raises(
+          {message:/expected has 1 elements, actual has 4/},
+          -> assert.eq(new Buffer("1234"), new Buffer("1")));
+      }
+
+      test("against other objects") {||
+        assert.raises(
+          {message:/expected is a Array, actual is a Buffer/},
+          -> assert.eq(new Buffer([1,2,3,4]), [1,2,3,4]));
+
+        assert.raises(
+          {message:/expected is a Object, actual is a Buffer/},
+          -> assert.eq(new Buffer([1,2,3,4]), {length: 4, 0:1, 1:2, 2:3, 3:4}));
+      }
+    }.serverOnly();
 
     test("comparing different types") {||
       function Foo () {this.x = 1};
@@ -172,13 +211,13 @@ context("eq") {||
 
       test("different (nested) property values") {||
         assert.raises(
-          {message: /objects differ at property 'foo\.2'\]$/},
+          {message: /objects differ at property `foo\.2`\]$/},
           -> assert.eq({foo: {0: 0, 1:1, 2:"two"}}, {foo: {0: 0, 1:1, 2:"2"}}));
       }
 
       test("different (nested) property value types") {||
         assert.raises(
-          {message: /\[objects differ at property 'foo.2': expected is a Number, actual is a String\]/},
+          {message: /\[objects differ at property `foo\[2\]`: expected is a Number, actual is a String\]/},
           -> assert.eq({foo: [1,2,'3']}, {foo: [1,2,3]}));
       }
     }
@@ -198,7 +237,7 @@ context("shallow equality") {||
     var childClone = {b:1};
     assert.raises(
       {message: "Expected { a: { b: 1 } }, got { a: { b: 1 } }\n" +
-          "[objects differ at property 'a']"},
+          "[objects differ at property `a`]"},
       -> assert.shallowEq({a:child}, {a:childClone}));
 
     assert.shallowEq({a:child}, {a:child});

@@ -38,6 +38,8 @@
    @home    sjs:compare
 */
 
+var isNode = require('builtin:apollo-sys').hostenv === 'nodejs';
+
 __js {
 
   /**
@@ -134,6 +136,10 @@ __js {
 
   // recursive comparison function for `exports.eq`.
   var toString = Object.prototype.toString;
+  if (isNode) toString = function() {
+    if (Buffer.isBuffer(this)) return '[object Buffer]';
+    return Object.prototype.toString.call(this);
+  };
   var cleanObjectName = function(n) { return n.replace(/^\[object |\]$/g, ''); }
   var simpleEq = function(a, b) {
     // takes the same args as `eq`, but only does trivial comparison (used for shallow eq)
@@ -173,6 +179,13 @@ __js {
     }
     if (typeof a != 'object' || typeof b != 'object') {
       return [false, describe && ('expected is a ' + (typeof b) + ', actual is a ' + (typeof a))];
+    }
+
+    if (isNode && className == '[object Buffer]') {
+      if (b.length !== a.length) return [false, describe && ('expected has ' + b.length + ' elements, actual has ' + a.length)];
+      for (var i=0; i<a.length; i++)
+        if (a[i] !== b[i]) return [false, describe && new FieldDifference(i)];
+      return [true, null];
     }
 
     // Assume equality for cyclic structures. The algorithm for detecting cyclic
@@ -244,14 +257,21 @@ __js {
     this.desc = desc;
     
   }
+  var isNum = (n) -> typeof(n) === 'number';
+
   FieldDifference.prototype.toString = function() {
-    var ret = "objects differ at property '" + this.field;
     var desc = this.desc;
+    var ret = "objects differ at " + (
+      (!(desc instanceof FieldDifference) && isNum(this.field)) ? 'index' : 'property'
+    ) + ' `' + this.field;
     while (desc instanceof FieldDifference) {
-      ret += "." + desc.field;
+      if (isNum(desc.field))
+        ret += "[#{desc.field}]";
+      else
+        ret += "." + desc.field;
       desc = desc.desc;
     }
-    ret += "'";
+    ret += '`';
     if (desc != null) ret += ": " + desc;
     return ret;
   }
