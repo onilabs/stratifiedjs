@@ -200,7 +200,7 @@ function waitforFirstArgs(f, args, i, l, this_obj) {
   @class    Semaphore
   @summary  A counting semaphore.
   @function Semaphore
-  @param    {Integer} [permits] Number of permits available to be handed out.
+  @param    {Integer} [permits=1] Number of permits available to be handed out.
   @param    {Boolean} [sync=false] Toggles synchronous behaviour (see [::Semaphore::release])
   @desc
     Example:
@@ -213,6 +213,7 @@ function Semaphore(permits, sync) {
     @variable Semaphore.permits
     @summary  Number of free permits currently available to be handed out.
    */
+  if (permits == null) permits = 1;
   rv.permits = permits;
   rv.sync = sync;
   rv.queue = [];

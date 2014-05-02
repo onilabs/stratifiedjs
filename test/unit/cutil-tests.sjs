@@ -58,6 +58,11 @@ testEq('waitforFirst args', 6, function() {
   return x;
 });
 
+test('Semaphore: default permits is 1') {||
+  cutil.Semaphore().permits .. assert.eq(1);
+};
+
+
 testEq('Semaphore: blocking on acquire', 1, function() {
   var S = cutil.Semaphore(1);
   S.acquire();
