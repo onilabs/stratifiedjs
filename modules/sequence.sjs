@@ -42,11 +42,15 @@
 
 var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore } = require('./cutil');
+var sys = require('builtin:apollo-sys');
 
 // identity function:
 __js var identity = (x) -> x;
 __js function isString(obj) {
   return typeof obj == 'string' || obj instanceof String;
+}
+__js {
+  var isBuffer = sys.hostenv == 'nodejs' ? Buffer.isBuffer.bind(Buffer) : -> false;
 }
 
 // XXX `sequential` is from the 'function.sjs' module - we can't
@@ -67,12 +71,12 @@ function sequential(f) {
 
 /**
    @class Sequence
-   @summary An Array, array-like object (like `arguments` or `NodeList`), String or [::Stream]
+   @summary An Array, array-like object (like `arguments` or `NodeList`), String, nodejs Buffer or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
-     Of the built-in JavaScript constructs, Arrays, the `arguments` object, 
-     `NodeList`s (in the xbrowser hostenv) and Strings are sequences. Strings are treated 
-     like Character arrays.
+     Of the built-in JavaScript constructs, Arrays, the `arguments` object,
+     `NodeList`s (in the xbrowser hostenv), Buffer (in the nodejs hostenv) and Strings are sequences.
+     Strings are treated like Character arrays, and buffers are treated like Integer arrays.
 */
 
 /**
@@ -178,7 +182,7 @@ __js {
 */
 __js {
   function isSequence(s) {
-    return isArrayLike(s) || isStream(s) || isString(s);
+    return isArrayLike(s) || isStream(s) || isString(s) || isBuffer(s);
   }
   exports.isSequence = isSequence;
 }
@@ -242,7 +246,7 @@ function each(sequence, r) {
     return sequence(r);
   } 
   else {
-    if (isArrayLike(sequence)) {
+    if (isArrayLike(sequence) || isBuffer(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
         var res = r(sequence[i]);
         if (__oni_rt.is_ef(res))
@@ -610,8 +614,8 @@ var padEnd = function(seq, padding) {
    @function join
    @altsyntax sequence .. join(separator)
    @param {::Sequence} [sequence] Input sequence
-   @param {optional String} [separator=''] 
-   @return {String} 
+   @param {optional String} [separator='']
+   @return {String}
    @summary Convert all elements of the sequence to strings and joins them into one string
 */
 function join(sequence, separator) {

@@ -707,6 +707,13 @@ context('intersperse') {||
 
 }
 
+context("nodejs Buffer") {||
+  test("is iterable") {||
+    new Buffer("12345") .. s.isSequence() .. assert.eq(true);
+    new Buffer("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
+  }
+}.serverOnly();
+
 context('buffer') {||
   testEq('integers .. hold .. buffer(5) .. each { hold }', 
          'S0R0S1S2S3S4S5R1S6R2S7R3S8R4S9R5R6R7R8R9', 
