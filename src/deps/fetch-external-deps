@@ -1,17 +1,25 @@
 #!/usr/bin/env sjs
+// vim: syntax=sjs
 
-var dirname = require('path').dirname;
+var path = require('path');
 var fs      = require('sjs:nodejs/fs');
-var exec    = require('sjs:nodejs/child-process').exec;
+var childProcess    = require('sjs:nodejs/child-process');
 var read    = require('sjs:nodejs/stream').read;
+var { merge } = require('sjs:object');
+
+var run = function(cmd, args, opts) {
+  console.log(" + #{cmd} #{args.join(' ')}");
+  return childProcess.run(cmd, args, ({stdio:'inherit'} .. merge(opts)));
+}
 
 // make sure we're in the right directory
-process.chdir(dirname(process.argv[0]));
+var here = path.dirname(process.argv[1]);
+process.chdir(here);
 
 var sources = getSources();
 for (var i=0; i<sources.length; ++i) {
   var src = sources[i];
-  if (exec('git status --porcelain '+src.dir).stdout.length) {
+  if (run('git', ['status', '--porcelain', src.dir], {stdio: [0,'pipe', 2]}).stdout.length) {
     console.log('directory '+src.dir+' not clean -> ignoring');
     continue;
   }
@@ -19,19 +27,20 @@ for (var i=0; i<sources.length; ++i) {
     console.log('directory '+src.dir+' already contains a git repository -> ignoring');
     continue;
   }
-  console.log('Replacing directory '+fs.realpath(src.dir)+' with github repository at '+src.repo);
+  var fullpath = path.join(here, src.dir);
+  console.log("Replacing directory #{fullpath} with github repository at #{src.repo}");
   console.log('Sure you want to proceed? [y/N]');
   if (read(process.stdin).toString().toLowerCase() != 'y\n') {
     console.log('Skipping '+fs.realpath(src.dir));
     continue;
   }
-  exec('rm -rf '+src.dir);
+  run('rm', ['-rf', src.dir]);
   console.log('Cloning external repo');
-  exec('git clone '+src.repo+' '+src.dir);
+  run('git', ['clone', src.repo, src.dir]);
   console.log('Checking out revision '+src.commit);
-  exec('cd '+src.dir+';git checkout '+src.commit);
+  run('git', ['checkout', src.commit], {cwd: src.dir});
   console.log('Reapplying our patches');
-  exec('git checkout -- '+src.dir);
+  run('git', ['checkout', '--'], {cwd: src.dir});
 }
 
 

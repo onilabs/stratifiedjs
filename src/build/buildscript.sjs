@@ -41,6 +41,8 @@ function build_deps() {
                                                   "modules/marked.sjs",
                                                   "modules/std.sjs",
                                                   "modules/dashdash.sjs",
+                                                  "modules/nodejs/rimraf.sjs",
+                                                  "modules/nodejs/mkdirp.sjs",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
                                                   "modules/compile/deps.js",
@@ -266,6 +268,18 @@ function build_deps() {
          "src/deps/dashdash/lib/dashdash.js",
          "src/deps/dashdash/apollo-module-footer.txt"]
        );
+
+  CONCAT("modules/nodejs/mkdirp.sjs",
+        ["src/deps/mkdirp/apollo-module-header.txt",
+         "src/deps/mkdirp/index.js",
+         "src/deps/mkdirp/apollo-module-footer.txt",
+        ]);
+
+  CONCAT("modules/nodejs/rimraf.sjs",
+        ["src/deps/rimraf/apollo-module-header.txt",
+         "src/deps/rimraf/rimraf.js",
+         "src/deps/rimraf/apollo-module-footer.txt",
+        ]);
 
   // std module
   BUILD("modules/std.sjs", function(dest) {

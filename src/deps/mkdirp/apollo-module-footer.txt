@@ -1,0 +1,14 @@
+}
+
+module.exports = {
+	mkdirp: function() {
+		var args = Array.prototype.slice.call(arguments);
+		waitfor(var err, rv) {
+			// call original (JS) function with callback
+			mkdirP.apply(this, args.concat([resume]));
+		}
+		if(err) throw err;
+		return rv;
+	},
+};
+

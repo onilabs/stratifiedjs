@@ -18,3 +18,9 @@ dashdash/ git://github.com/trentm/node-dashdash.git cf94c5989381d17315beb5b675a9
 
 # jsdiff:
 jsdiff/ git://github.com/kpdecker/jsdiff.git 1f4bf7a708fc1121bb49e3b10d2ec7218c52a210
+
+# rimraf:
+rimraf/ git://github.com/isaacs/rimraf.git 6c9968c26e5cd90d3e14803c87aebbc94a6730e2
+
+# mkdirp :
+mkdirp/ git://github.com/substack/node-mkdirp.git b98bedf92798ed73c87413eaf413d01dbe094a09
