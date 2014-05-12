@@ -298,14 +298,15 @@ height:100%;\
 width:100%;\
 padding:0; margin:0; background:#fff;\
 border"+(opts.target?"":"-top")+": 1px solid #ccc;");
+  var iconStyle = 'cursor:pointer; width:12px;height:12px; padding: 4px; display:block;float:left;box-sizing:content-box;';
   term.innerHTML = "\
 <span style='display:block;cursor:row-resize;position:absolute;top:0px;border-top:1px solid #eee;left:0;right:0;height:2px;background:white;z-index:999'></span>
 <div style='margin:0;position:absolute;top:"+(this.flipmode?20:0)+"px;left:0;right:0px;bottom:"+(this.flipmode?0:20)+"px;overflow:auto'>
 </div>\
 <div style='height:20px;position:absolute;left:0;right:0;"+(this.flipmode?"top:0;":"bottom:0;")+"background: #fcfcfc url("+icons.arrowblue+") 6px 4px no-repeat;'>\
   <div style='z-index:999;height:20px;position:absolute;right:0;'>
-    <a title='Hide console' style='cursor:pointer;background:url("+icons.shut+") no-repeat 4px 4px; width:12px;height:12px; padding: 4px; display:block;float:left'></a>
-    <a title='Clear console' style='cursor:pointer;background:url("+icons.clear+") no-repeat 4px 4px; width:12px;height:12px; padding: 4px; display:block;float:left'></a>
+    <a title='Hide console'  style='background:url("+icons.shut+ ") no-repeat 4px 4px; " + iconStyle + "'></a>
+    <a title='Clear console' style='background:url("+icons.clear+") no-repeat 4px 4px; " + iconStyle + "'></a>
   </div>
   <div style='height:20px;position:absolute;left:0; "+((!isIE || isIE>7)?"right:40px;":"")+"padding:0 0 0 20px'>\
     <input type='text' style='line-height:15px;-webkit-appearance: caret;"+fontStyle+"width:100%;margin:2px 0 0 0;border:0;padding:0;background:transparent;outline:none'/>\
