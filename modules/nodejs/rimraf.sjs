@@ -56,7 +56,7 @@
 
   @function rimraf
   @param {String} [path]
-  @summary Recursively the given `path`
+  @summary Recursively remove the given `path`
 */
 __js {
 module.exports = rimraf
