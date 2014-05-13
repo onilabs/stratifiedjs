@@ -3,9 +3,9 @@
 // These deps are tested / released independently, so this
 // is just testing that our SJS wrapper works as expected.
 
-@ = require(['sjs:test/std', 'sjs:nodejs/tempfile', 'sjs:nodejs/rimraf', 'sjs:nodejs/mkdirp']);
-
+@ = require('sjs:test/std');
 @context {||
+  @ .. @extend(require(['sjs:nodejs/tempfile', 'sjs:nodejs/rimraf', 'sjs:nodejs/mkdirp']));
   @test.beforeEach {|s|
     s.root = @TemporaryDir();
   }
@@ -28,4 +28,4 @@
     @mkdirp(nested);
     @fs.exists(nested) .. @assert.ok();
   }
-}
+}.serverOnly();

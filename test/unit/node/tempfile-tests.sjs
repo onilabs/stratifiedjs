@@ -1,21 +1,22 @@
-@ = require(['sjs:test/std', 'sjs:nodejs/rimraf']);
-@stream = require('sjs:nodejs/stream');
-@crypto = require('nodejs:crypto');
-var tmp = require('sjs:nodejs/tempfile');
-
-var tmproot = @path.join(require('nodejs:os').tmpDir(), "sjs-tests");
-
-@TemporaryFile = function(opts, fn) {
-  opts['base'] = tmproot;
-  return tmp.TemporaryFile.apply(null, arguments);
-};
-
-@TemporaryDir = function(opts, fn) {
-  opts['base'] = tmproot;
-  return tmp.TemporaryDir.apply(null, arguments);
-};
-
+@ = require('sjs:test/std');
 @context {||
+  @ .. @extend(require('sjs:nodejs/rimraf'));
+  @stream = require('sjs:nodejs/stream');
+  @crypto = require('nodejs:crypto');
+  var tmp = require('sjs:nodejs/tempfile');
+
+  var tmproot = @path.join(require('nodejs:os').tmpDir(), "sjs-tests");
+
+  @TemporaryFile = function(opts, fn) {
+    opts['base'] = tmproot;
+    return tmp.TemporaryFile.apply(null, arguments);
+  };
+
+  @TemporaryDir = function(opts, fn) {
+    opts['base'] = tmproot;
+    return tmp.TemporaryDir.apply(null, arguments);
+  };
+
   @test.beforeEach {|s|
     if (@fs.exists(tmproot)) {
       @rimraf(tmproot);
@@ -218,4 +219,4 @@ var tmproot = @path.join(require('nodejs:os').tmpDir(), "sjs-tests");
       }
     }
   }
-}
+}.serverOnly();
