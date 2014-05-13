@@ -378,6 +378,7 @@ StratifiedJS standard library.");
           function() {
             log("* version stamping");
             function replace_in(m) {
+              if (m.indexOf('#language') !== -1) return; // #language docs contain no real version headers, only samples
               if (/.+\.(sjs|txt|json)$/.test(m)) {
                 log('- Replacing version in '+m);
                 replacements_from_config(m);

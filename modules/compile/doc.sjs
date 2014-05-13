@@ -62,7 +62,7 @@ exports.compile = function(root, outputPath) {
   if (outputPath === undefined) {
     outputPath = Path.join(root, OUTPUT_FILENAME);
   }
-  fs.writeFile(outputPath, JSON.stringify(info), 'utf-8');
+  fs.writeFile(outputPath, JSON.stringify(info, null, '  '), 'utf-8');
   logging.print("Wrote: #{outputPath}");
 };
 
