@@ -12,6 +12,7 @@ context {||
   var event = require('sjs:event');
   var child_process = require('sjs:nodejs/child-process');
   var fs = require('sjs:nodejs/fs');
+  var stream = require('sjs:nodejs/stream');
   var NODE_VERSION = process.versions['node'].split('.').map(x -> parseInt(x));
   var initPid = isWindows ? 4 : 1;
 
@@ -189,58 +190,55 @@ context {||
       });
 
       child.pid .. isRunning() .. assert.ok("child pid not running! (#{child.pid})");
-      using (var q = event.from(child.stdout, 'data').queue()) {
-        var pid;
-        var lines = [];
 
-        var process_data = function() {
-          q.get().toString().split("\n") .. seq.filter(x -> x.trim()) .. seq.each {|line|
-            logging.info("got line: #{JSON.stringify(line)}");
-            if (line .. str.startsWith('SPAWNED_')) {
-              pid = (line.split('_')[1].trim());
-              logging.info("pid:", pid);
+      var lines = [];
+      var pidEvt = cutil.Condition();
 
-              // the grandchild has launched and printed its pid. Check that everything is as we expect
-              pid .. isRunning() .. assert.ok("grandchild pid not running: #{pid}");
-              pid .. assert.notEq(child.pid, "child pid == grandchild pid");
-
-              // then kill the process group:
-              logging.info("killing child group");
-              child_process.kill(child, {detached:true, wait:true});
-              logging.info("killed");
-              hold(100);
-
-              // check *both* processes are dead
-              child.pid .. isRunning() .. assert.ok("child pid still running! (#{child.pid})");
-              pid       .. isRunning() .. assert.ok("grandchild pid still running! (#{pid})");
-
-            } else {
-              lines.push(line);
-            }
+      var process_data = function(data) {
+        data.toString().split("\n") .. seq.filter(x -> x.trim()) .. seq.each {|line|
+          logging.info("got line: #{JSON.stringify(line)}");
+          if (line .. str.startsWith('SPAWNED_')) {
+            var pid = (line.split('_')[1].trim());
+            logging.info("pid:", pid);
+            pidEvt.set(pid);
+          } else {
+            lines.push(line);
           }
         }
-
-        while(true) {
-          waitfor {
-            process_data();
-          } or {
-            var result = child_process.wait(child);
-            logging.info("child died");
-            break;
-          }
-        }
-
-        // collect any remaining data events on child stdout
-        hold(100);
-        while(q.count() > 0) process_data();
-
-        assert.eq(lines, [
-          'child start',
-          'child continue after spawn',
-          'interrupted grandchild',
-          'interrupted child'
-        ]);
       }
+
+      waitfor {
+        while(true) {
+          var data = child.stdout .. stream.read();
+          if (data == null) break;
+          process_data(data);
+        }
+        logging.info("stdout finished");
+      } and {
+        var pid = pidEvt.wait();
+        
+        // the grandchild has launched and printed its pid. Check that everything is as we expect
+        pid .. isRunning() .. assert.ok("grandchild pid not running: #{pid}");
+        pid .. assert.notEq(child.pid, "child pid == grandchild pid");
+
+        // then kill the process group:
+        logging.info("killing child group");
+        child_process.kill(child, {detached:true, wait:true});
+        logging.info("killed");
+        hold(100);
+
+        // check *both* processes are dead
+        child.pid .. isRunning() .. assert.eq(false, "child pid still running! (#{child.pid})");
+        pid       .. isRunning() .. assert.eq(false, "grandchild pid still running! (#{pid})");
+        logging.info("all processes ended");
+      }
+
+      assert.eq(lines, [
+        'child start',
+        'child continue after spawn',
+        'interrupted grandchild',
+        'interrupted child'
+      ]);
     }.skipIf(isWindows || NODE_VERSION .. array.cmp([0,8]) < 0, 'unix only, nodejs>0.8')
     // ^ should work on windows, it's probably just weirdness in winbash that makes the test fail
     

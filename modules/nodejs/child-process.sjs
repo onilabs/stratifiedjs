@@ -237,7 +237,6 @@ var kill = exports.kill = function(child, options) {
     waitfor() {
       child.on(STREAMS_CLOSED_SIGNAL, resume);
       kill();
-      hold();
     } finally {
       child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
     }
@@ -260,7 +259,9 @@ var isRunning = exports.isRunning = function() {
     try {
       return process.kill(pid, 0);
     } catch(e) {
-      return e.code === 'EPERM';
+      if (e.code === 'EPERM') return true;
+      if (e.code == 'ESRCH') return false;
+      throw e;
     }
   };
 }();
