@@ -153,7 +153,7 @@
         @fs.unlink(extantPath);
       }
     }
-  }
+  }.skipIf(process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0);
 
   @context("TemporaryDir") {||
     @test("creates and (recursively) removes a temporary directory") {|s|
@@ -219,4 +219,4 @@
       }
     }
   }
-}.skipIf(@isBrowser || (process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0));
+}.serverOnly();
