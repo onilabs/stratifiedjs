@@ -87,7 +87,7 @@ exports.tmp = function() {
 /**
   @class File
   @function File.close
-  @summary close the underlying file, as well as any related streams created by [::readStream] or [::writeStream].
+  @summary close the underlying file, as well as any related streams created by [::File::readStream] or [::File::writeStream].
   @desc
     This does not delete the file.
 

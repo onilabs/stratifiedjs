@@ -35,7 +35,7 @@
   @require   sjs:xbrowser/dom
   @desc
     This module provides abstractions around *event streams* ([::EventStream]), 
-    which are a type of [sjs:sequence::Stream] composed of discrete events.
+    which are a type of [./sequence::Stream] composed of discrete events.
 
     ### Explicitly triggered  events:
     
@@ -185,7 +185,7 @@ exports.events = events;
           a [./sequence::Stream]: Additional arguments as for [::events].
    @summary Wait for an event or the first item of a [./sequence::Stream]
    @desc
-     If `stream_or_emitter` is a [::Stream], this function acts like
+     If `stream_or_emitter` is a [./sequence::Stream], this function acts like
      [./sequence::first], awaiting and returning the first emitted
      item from the stream.
 
