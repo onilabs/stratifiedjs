@@ -55,7 +55,7 @@
 var mk = function(opts, constructor) {
   // keeps trying `constructor` on newly-generated random
   // filenames, until EEXIST is not raised.
-  var dir = @fs.realpath(opts.base || @os.tmpDir());
+  var dir = @fs.realpath(opts.base || exports.tmp());
   var prefix = opts.prefix || "tmp-";
   var suffix = opts.suffix || "";
   while(true) {
@@ -74,6 +74,14 @@ var mk = function(opts, constructor) {
     return [path, rv];
     break;
   }
+};
+
+exports.tmp = function() {
+  return @os.tmpDir ? @os.tmpDir() : (
+    process.env.TMPDIR ||
+    process.env.TMP ||
+    process.env.TEMP ||
+    '/tmp');
 };
 
 /**
@@ -148,7 +156,7 @@ exports.TemporaryFile = function(opts, block) {
     },
     close: function () {
       @fs.close(fd);
-      streams .. @each.par(s -> s.close());
+      streams .. @each.par(s -> s.destroy());
     },
   };
 

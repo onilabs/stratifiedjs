@@ -5,7 +5,7 @@
   @crypto = require('nodejs:crypto');
   var tmp = require('sjs:nodejs/tempfile');
 
-  var tmproot = @path.join(require('nodejs:os').tmpDir(), "sjs-tests");
+  var tmproot = @path.join(tmp.tmp(), "sjs-tests");
 
   @TemporaryFile = function(opts, fn) {
     opts['base'] = tmproot;
@@ -219,4 +219,4 @@
       }
     }
   }
-}.serverOnly();
+}.skipIf(@isBrowser || (process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0));

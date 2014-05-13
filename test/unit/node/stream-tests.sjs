@@ -54,5 +54,4 @@ if(!testUtil.isBrowser) {
     s.pump(src, dest, d -> d.toUpperCase());
     return dest.data;
   });
-
 }

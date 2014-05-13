@@ -39,6 +39,9 @@
 if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
+var nodeVersion = process.versions.node.split('.');
+var { cmp } = require('../array');
+var OLD_API = nodeVersion .. cmp([0,10]) < 0;
 
 /**
   @function read
@@ -118,6 +121,17 @@ exports.end = function(dest, data, encoding) {
     dest.end(data, encoding, resume)
   }
 };
+if (OLD_API) {
+  exports.end = function(dest, data, encoding) {
+    if (data) {
+      exports.write(dest, data, encoding);
+    }
+    waitfor () {
+      dest.on('close', resume);
+      dest.end();
+    }
+  };
+}
 
 
 /**
