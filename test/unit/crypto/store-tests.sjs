@@ -1,8 +1,5 @@
-@ = require('sjs:test/std');
+@ = require(['sjs:test/std', 'sjs:nodejs/tempfile', 'sjs:nodejs/rimraf']);
 @store = require('sjs:crypto/store');
-
-var tmp = require('nodejs:tmp');
-var rimraf = require('nodejs:rimraf');
 
 @context("sentinelReader") {||
   var wrap = @store._sentinelReader;
@@ -80,22 +77,22 @@ var rimraf = require('nodejs:rimraf');
 
 @context("encrypted store") {||
 
-  @test.beforeAll {|s|
+  @test.beforeEach {|s|
     s.secret = "the game is afoot!";
     s.passphrase = new Buffer('letmein');
     s.opts = {alg:'aes256'};
     s.memoryStore = @store.Store(new Buffer(s.secret), s.opts);
 
-    waitfor(var err, path) {
-      tmp.dir(resume);
-    }
-    if (err) throw err;
-    s.root = path;
+    s.root = @TemporaryDir();
 
     s.path = @path.join(s.root, "enc");
     @fs.withWriteStream(s.path) {|f|
       s.memoryStore.writeEncrypted(f, s.passphrase);
     }
+  }
+
+  @test.afterEach { |s|
+    @rimraf(s.root);
   }
 
   @test('encryption') {|s|
