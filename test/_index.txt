@@ -19,6 +19,7 @@ unit/lru-cache-tests.sjs
 unit/node/child-process-tests.sjs
 unit/node/fs-tests.sjs
 unit/node/stream-tests.sjs
+unit/node/tempfile-tests.sjs
 unit/object-tests.sjs
 unit/observable-tests.sjs
 unit/quasi-tests.sjs

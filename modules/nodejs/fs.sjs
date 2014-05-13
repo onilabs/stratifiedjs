@@ -541,3 +541,24 @@ exports.withWriteStream = streamContext('createWriteStream', 'end');
          }
 */
 exports.withReadStream = streamContext('createReadStream', 'destroy');
+
+/**
+  @function createReadStream
+  @param {String} [path]
+  @param {Settings} [opts]
+  @summary Wrapper for [nodejs:fs.createReadStream](http://nodejs.org/api/fs.html#fs_fs_createreadstream_path_options)
+  @desc
+    **Note**: In most cases, it's easier and less error-prone to use [::withReadStream]
+*/
+exports.createReadStream = fs.createReadStream;
+
+/**
+  @function createWriteStream
+  @param {String} [path]
+  @param {Settings} [opts]
+  @summary Wrapper for [nodejs:fs.createWriteStream](http://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options)
+  @desc
+    **Note**: In most cases, it's easier and less error-prone to use [::withWriteStream]
+*/
+exports.createWriteStream = fs.createWriteStream;
+
