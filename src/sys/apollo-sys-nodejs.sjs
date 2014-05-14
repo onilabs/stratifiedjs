@@ -229,13 +229,14 @@ var readStream = exports.readStream = function readStream(stream) {
     hold();
   }
   finally {
-    if (stream.readable)
+    if (stream.readable && data !== null)
+      // don't pause on EOF, as some implementations
+      // suppress unrelated events (like `end`) when paused
       stream.pause();
   }
   
   return data;
 }
-
 
 /**
    @function request
