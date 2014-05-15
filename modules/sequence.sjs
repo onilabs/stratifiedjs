@@ -1002,7 +1002,7 @@ function partition(sequence, predicate) {
     }
     emitters[idx] = r;
     _resume();
-    drainer.waitforValue();
+    drainer.value();
   }));
 
   drainer = spawn(function() {

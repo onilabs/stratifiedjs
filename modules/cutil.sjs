@@ -46,7 +46,7 @@ var sys  = require('builtin:apollo-sys');
     ### Example:
 
         try {
-          stratum.waitforValue();
+          stratum.value();
         } catch(e) {
           if (e instanceof cutil.StratumAborted) {
             // stratum was aborted

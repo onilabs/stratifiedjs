@@ -380,18 +380,21 @@
 @function Stratum.abort
 @summary Aborts the stratum (if it is not finished yet)
 
-@function Stratum.waitforValue
+@function Stratum.value
 @summary Returns the value of the spawned stratum expression
 @desc
 
-  If the stratum isn't finished yet, `waitforValue` blocks until it is.
-  If the stratum threw an exception, `waitforValue` throws this exception.
-  If the stratum was aborted (through a call to `Stratum.abort`), `waitforValue` throws a [cutil::StratumAborted] exception.
+  If the stratum isn't finished yet, `value` blocks until it is.
+  If the stratum threw an exception, `value` throws this exception.
+  If the stratum was aborted (through a call to `Stratum.abort`), `value` throws a [cutil::StratumAborted] exception.
 
 @function Stratum.waiting
 @summary Return the number of strata currently waiting for the spawned stratum to finish
 @return {Number}
 @desc
-  A stratum is waiting for another if it is blocked on the other stratum's [::Stratum::waitforValue].
+  A stratum is waiting for another if it is blocked on the other stratum's [::Stratum::value].
+
+@function Stratum.waitforValue
+@deprecated Use [::Stratum::value] instead
 
 */

@@ -52,10 +52,13 @@
                 "abort": {
                   "type": "function"
                 },
-                "waitforValue": {
+                "value": {
                   "type": "function"
                 },
                 "waiting": {
+                  "type": "function"
+                },
+                "waitforValue": {
                   "type": "function"
                 }
               }

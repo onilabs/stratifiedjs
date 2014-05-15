@@ -199,7 +199,7 @@ exports.exclusive = function(f, reuse) {
         cancel = null;
       }
     }(this,arguments));
-    return stratum.waitforValue();
+    return stratum.value();
   }
 };
 
@@ -244,7 +244,7 @@ exports.deferred = function(f) {
     var deferred = {
       then : function(callback, errback) {
         spawn (function() {
-          try { callback(stratum.waitforValue()); }
+          try { callback(stratum.value()); }
           catch (e) { if (errback) errback(e); }
         })();
         return deferred;
