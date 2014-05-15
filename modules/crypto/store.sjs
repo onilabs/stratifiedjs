@@ -88,7 +88,7 @@ StoreProto.plaintext = function() {
 exports.Store.decryptStream = function(input, passphrase, opts) {
   if (!opts) opts = {};
 
-  var reader = sentinelReader(input);
+  var reader = @stream.DelimitedReader(input);
   var header = reader.readUntil('\n').toString('utf-8');
   @assert.ok(header .. @endsWith('\n'));
   header = JSON.parse(header);
@@ -159,61 +159,3 @@ exports.Store.decrypt = function(buf, passphrase) {
   return [data] .. decryptIntoStore(settings, passphrase);
 }
 
-var sentinelReader = function(stream) {
-  var pending = [];
-  return {
-    readUntil: function(ch) {
-      @assert.eq(Buffer.byteLength(ch), 1);
-      var sentinel = ch.charCodeAt(0);
-      // first, check `pending` buffer
-      if (pending.length > 0) {
-        @assert.eq(pending.length, 1, "multiple chunks pending");
-        var buf = pending[0];
-        for (var idx=0; idx<buf.length; idx++) {
-          if(buf[idx] == sentinel) {
-            // Reached sentinel. Return everything in `pending` up until this point:
-            var bufReturn = buf.slice(0, idx+1);
-            var bufPending = buf.slice(idx+1);
-            pending = [bufPending];
-            return bufReturn;
-          }
-        }
-      }
-
-      // not found in `pending`, check for new data...
-      while(true) {
-        var buf = stream .. @stream.read();
-        if (buf == null) {
-          // reached end, with no sentinel in sight.
-          // Return all pending data, or `null`
-          if (pending.length == 0) return null;
-          var rv = Buffer.concat(pending);
-          pending = [];
-          return rv;
-        }
-
-        for (var idx=0; idx<buf.length; idx++) {
-          if(buf[idx] == sentinel) {
-            // return the result, including pending chunks and terminal
-            var rv = pending;
-            pending = [buf.slice(idx+1)];
-            rv.push(buf.slice(0, idx+1));
-            return Buffer.concat(rv);
-          }
-        }
-
-        // didn't find sentinel in `buf`
-        pending.push(buf);
-      }
-    },
-
-    read: function() {
-      if (pending.length> 0) {
-        return pending.shift();
-      }
-      return stream .. @stream.read();
-    }
-  }
-  
-};
-exports._sentinelReader = sentinelReader;

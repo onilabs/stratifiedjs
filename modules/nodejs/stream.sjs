@@ -40,8 +40,9 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
 var nodeVersion = process.versions.node.split('.');
-var { cmp } = require('../array');
-var OLD_API = nodeVersion .. cmp([0,10]) < 0;
+@ = require(['../array', '../sequence']);
+@assert = require('../assert');
+var OLD_API = nodeVersion .. @cmp([0,10]) < 0;
 
 /**
   @function read
@@ -250,3 +251,146 @@ WritableStringStream.prototype.end = function(data) {
   this.emit('end');
 };
 
+
+/**
+  @class DelimitedReader
+  @summary A wrapper around a stream for reading delimited data
+
+  @function DelimitedReader
+  @param {Stream} [stream]
+
+  @function DelimitedReader.readUntil
+  @param {String|Number} [separator] charater or byte to read until
+  @summary Read from the underlying `stream` until reaching `separator` or EOF
+  @desc
+    This will keep reading (and buffering) from the underlying stream until
+    `separator` or EOF. Any additional data (after `separator`) which has been
+    read from the underlying stream will be buffered internally
+    (for use by a future call to [::DelimitedReader::readUntil]
+    or [::DelimitedReader::read]).
+
+  @function DelimitedReader.read
+  @summary Read the next available data from the underlying stream
+  @desc
+    This does the same thing as calling [::read] on the underlying stream,
+    except that it may return buffered data which was read (but not rerurned) by
+    a previous call to [::DelimitedReader::readUntil].
+*/
+var DelimitedReader = function(stream) {
+  var pending = [];
+  var convertSentinel = null;
+
+  return {
+    readUntil: function(ch) {
+      // first, check `pending` buffer
+      if (pending.length > 0) {
+        var sentinel = convertSentinel(ch);
+        @assert.eq(pending.length, 1, "multiple chunks pending");
+        var buf = pending[0];
+        for (var idx=0; idx<buf.length; idx++) {
+          if(buf[idx] == sentinel) {
+            // Reached sentinel. Return everything in `pending` up until this point:
+            var bufReturn = buf.slice(0, idx+1);
+            var bufPending = buf.slice(idx+1);
+            pending = [bufPending];
+            return bufReturn;
+          }
+        }
+      }
+
+      // not found in `pending`, check for new data...
+      while(true) {
+        var buf = stream .. exports.read();
+        if (buf == null) {
+          // reached end, with no sentinel in sight.
+          // Return all pending data, or `null`
+          if (pending.length == 0) return null;
+          var rv = @join(pending);
+          pending = [];
+          return rv;
+        }
+
+        if (!convertSentinel) {
+          // this is the first chunk read - determine whether we're
+          // in Buffer or String mode
+          if (Buffer.isBuffer(buf)) {
+            convertSentinel = function(ch) {
+              if (typeof(ch) == 'number') return ch;
+              @assert.eq(Buffer.byteLength(ch), 1);
+              return ch.charCodeAt(0);
+            };
+          } else {
+            // stream is returning strings, so no conversion necessary
+            convertSentinel = function(c) {
+              @assert.eq(c.length, 1);
+              return c;
+            };
+          }
+        }
+
+        var sentinel = convertSentinel(ch);
+
+        for (var idx=0; idx<buf.length; idx++) {
+          if(buf[idx] == sentinel) {
+            // return the result, including pending chunks and terminal
+            var rv = pending;
+            pending = [buf.slice(idx+1)];
+            rv.push(buf.slice(0, idx+1));
+            return @join(rv)
+          }
+        }
+
+        // didn't find sentinel in `buf`
+        pending.push(buf);
+      }
+    },
+
+    read: function() {
+      if (pending.length> 0) {
+        return pending.shift();
+      }
+      return stream .. exports.read();
+    }
+  }
+  
+};
+exports.DelimitedReader = DelimitedReader;
+
+/**
+  @function lines
+  @param    {Stream} [stream] the stream to read from
+  @param    {optional String} [sep="\n"]
+  @param    {optional String} [encoding="utf-8"]
+  @return   {../sequence::Stream} A sequence of lines
+  @summary  Return a [../sequence::Stream] of lines from a nodejs Stream
+  @desc
+    This function creates and calls a [::DelimitedReader]
+    repeatedly with the given separator (`\n` by default)
+    and generates a [../sequence::Stream] of the results.
+
+    Each element in the returned stream will include the
+    trailing `sep` character, except for the final element
+    (which will be the end of the stream, whether it ends with
+    `sep` or not).
+
+    Multiple-character `sep` values are not supported.
+
+    If `encoding` is passed, this function will call
+    `stream.setEncoding(encoding)` before reading from the stream.
+
+    If stream has no encoding (i.e it returns Buffer objects),
+    `sep` will be treated as an ASCII byte.
+*/
+exports.lines = function(stream, sep, encoding) {
+  if (encoding) stream.setEncoding(encoding);
+  var reader = DelimitedReader(stream);
+  if(!sep) sep = '\n';
+  return @Stream(function(emit) {
+    var buf;
+    while(true) {
+      buf = reader.readUntil(sep);
+      if (buf === null) break;
+      emit(buf);
+    }
+  });
+};

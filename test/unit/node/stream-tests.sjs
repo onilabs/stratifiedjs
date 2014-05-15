@@ -1,8 +1,8 @@
 var testUtil = require('../../lib/testUtil');
 var test = testUtil.test;
+@ = require('sjs:test/std');
 
-if(!testUtil.isBrowser) {
-
+@context() {||
   var s = require("sjs:nodejs/stream");
 
   // ReadableStringStream:
@@ -54,4 +54,91 @@ if(!testUtil.isBrowser) {
     s.pump(src, dest, d -> d.toUpperCase());
     return dest.data;
   });
-}
+
+  ;[true, false] .. @each {|byteMode|
+    var wrap = s.DelimitedReader;
+    var chunkyStream = function(chunks) {
+      var chunks = (chunks .. @toArray()).slice();
+      var rv = new (require('nodejs:events').EventEmitter)();
+      var running = true;
+      rv.readable = true;
+      rv.resume = function() {
+        running = true;
+        while(running) {
+          if (chunks.length == 0) {
+            //console.log("emitting null");
+            this.emit('end');
+            break;
+          } else {
+            //console.log("emitting chunk: #{chunks[0]}");
+            var chunk = chunks.shift();
+            if (byteMode) chunk = new Buffer(chunk);
+            this.emit('data', chunk);
+          }
+          hold(0);
+        }
+      };
+      rv.pause = function() {
+        running = false;
+      };
+
+      return rv;
+    }
+
+    @context("sentinelReader on #{byteMode ? 'byte' : 'string'} streams") {||
+
+      @test("reads up to a given character") {||
+        var reader = wrap(chunkyStream(['12345', '678']));
+        reader.readUntil('4').toString('utf-8') .. @assert.eq('1234');
+        reader.read().toString('utf-8') .. @assert.eq('5');
+        reader.read().toString('utf-8') .. @assert.eq('678');
+        reader.read() .. @assert.eq(null);
+      }
+
+      @test("buffers multiple chunks until sentinel is reached") {||
+        var reader = wrap(chunkyStream(['12', '345', '678']));
+        reader.readUntil('7').toString('utf-8') .. @assert.eq('1234567');
+        reader.read().toString('utf-8') .. @assert.eq('8');
+        reader.read() .. @assert.eq(null);
+      }
+
+      @test("sentinel at the end of a chunk") {||
+        var reader = wrap(chunkyStream(['12', '345', '678']));
+        reader.readUntil('2').toString('utf-8') .. @assert.eq('12');
+        reader.read().toString('utf-8') .. @assert.eq(''); // could be omitted
+        reader.read().toString('utf-8') .. @assert.eq('345');
+        reader.read().toString('utf-8') .. @assert.eq('678');
+        reader.read() .. @assert.eq(null);
+      }
+
+      @test("doesnt skip sentinels that appear in th same chunk") {||
+        var reader = wrap(chunkyStream(['123543678']));
+        reader.readUntil('3').toString('utf-8') .. @assert.eq('123');
+        reader.readUntil('3').toString('utf-8') .. @assert.eq('543');
+        reader.read().toString('utf-8') .. @assert.eq('678');
+        reader.read() .. @assert.eq(null);
+      }
+
+      @test("changing sentinel") {||
+        var reader = wrap(chunkyStream(['123454321']));
+        reader.readUntil('4').toString('utf-8') .. @assert.eq('1234');
+        reader.readUntil('2').toString('utf-8') .. @assert.eq('5432');
+        reader.read().toString('utf-8') .. @assert.eq('1');
+        reader.read() .. @assert.eq(null);
+      }
+
+      @test("returns all data if sentinel is not found") {||
+        var reader = wrap(chunkyStream(['123', '456']));
+        reader.readUntil('8').toString('utf-8') .. @assert.eq('123456');
+        reader.read() .. @assert.eq(null);
+      }
+
+      @test("lines") {||
+        chunkyStream(['123\n456','78\n910'])
+          .. s.lines
+          .. @map(b -> b.toString('utf-8'))
+          .. @assert.eq(['123\n','45678\n','910']);
+      }
+    }
+  }
+}.serverOnly();
