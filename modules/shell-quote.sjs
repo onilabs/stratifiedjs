@@ -38,9 +38,7 @@
   @summary   Quote and parse shell commands
   @home      sjs:shell-quote
   @desc
-    This module is based on the [node-shell-quote](https://github.com/substack/node-shell-quote) library by James Halliday.
-
-    It provides methods for parsing a string into multiple arguments, and for
+    This module provides methods for parsing a string into multiple arguments, and for
     encoding an array of arguments into a single string. It uses POSIX-like
     syntax.
     
@@ -49,7 +47,9 @@
 */
 
 var { map, join, toArray } = require('./sequence');
-var DQ_SPECIAL_CHARS = '["\\$`(){}!#&*|]';
+var { isArrayLike } = require('builtin:apollo-sys');
+var DQ_SPECIAL_CHARS = '["\\\\$`]';
+var NAKED_SPECIAL_CHARS = '[;# \t\r\n\'\0{}()&|*?<>!' + DQ_SPECIAL_CHARS.slice(1);
 
 
 /**
@@ -71,17 +71,18 @@ var DQ_SPECIAL_CHARS = '["\\$`(){}!#&*|]';
         // a 'b c d' \$f '"g"'
 */
 exports.quote = function (xs) {
+  if (!isArrayLike(xs)) {
+    xs = [xs];
+  }
+
   var dqSpecial = new RegExp('(' + DQ_SPECIAL_CHARS + ')', 'g');
+  var nakedSpecial = new RegExp('(' + NAKED_SPECIAL_CHARS + ')');
   return xs .. map(function (s) {
-    if (/["\s]/.test(s) && !/'/.test(s)) {
-      return "'" + s.replace(/(['\\])/g, '\\$1') + "'";
-    }
-    else if (/["'\s]/.test(s)) {
-      return '"' + s.replace(dqSpecial, '\\$1') + '"';
-    }
-    else {
-      return s.replace(dqSpecial, '\\$1');
-    }
+    if ((s.length > 0) && (!nakedSpecial.test(s)))
+      return s;
+    if (!/'/.test(s)) // no single quotes
+      return "'" + s + "'";
+    return '"' + s.replace(dqSpecial, '\\$1') + '"';
   })..join(' ');
 };
 
