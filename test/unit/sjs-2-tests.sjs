@@ -746,12 +746,14 @@ test('reentrant stratum abort', 'stratum aborted|a|b|c', function() {
 
   var rv = '';
 
+  function append_to_rv(txt) { rv += txt }
+
   var stratum = spawn (
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
         stratum.abort();
-        rv += '|a';
+        append_to_rv('|a');
         hold(0); // this should be aborted
         rv += 'X';
       }
@@ -928,4 +930,93 @@ test("disallow collapse from function", 'x',
        }
        return rv;
      });
+
+test("reentrant 'stratum aborted' exception persistence edge case", true, 
+     function() {
+       // we're starting a stratum and aborting it from within.  when
+       // we later attempt to retrieve the stratum's value it should
+       // be an exception.
+
+       function S() {
+         hold(0);
+         stratum.abort();
+         hold();
+       }
+       var stratum = spawn S();
+
+       try { 
+         // wait a bit, then pick up return value from stratum; it
+         // should be an exception.
+         hold(10);
+         stratum.value();
+         return false;
+       }
+       catch (e) {
+         return true;
+       }
+     });
+
+function makeAbortBreakTest(async_try_catch, late_pickup) {
+  return function() {
+    var rv = '';
+    
+    function S() {
+      hold(10); // make sure 'stratum' is defined
+      while(1) {
+        try { 
+          if (async_try_catch)
+            hold(10); // asynchronize try/catch
+          rv += 'a';
+          throw new Error('foo');
+        }
+        catch(e) {
+          stratum.abort();
+          rv += 'b';
+          break;
+          rv += 'x';
+        }
+        rv += 'y';
+      }
+      rv += 'c';
+      hold(); // this is where stratum should abort
+      rv += 'z';
+    }
+    
+    var stratum = spawn S();
+    
+    try {
+      if (late_pickup)
+        hold(100); // only attempt to pick up value after stratum aborted 
+      stratum.value();
+    }
+    catch(e) {
+      // catch 'stratum aborted'
+      rv += 'd';
+    }
+    if (!late_pickup)
+      hold(100); // allow stratum to finish cleanup
+    return rv;
+    
+  }
+}
+
+test("reentrant abort/break edge case with sync try/catch, early pickup", 
+     'adbc', 
+     makeAbortBreakTest(false, false));
+
+test("reentrant abort/break edge case with sync try/catch, late pickup", 
+     'abcd', 
+     // used to yield 'abc'
+     makeAbortBreakTest(false, true));
+
+test("reentrant abort/break edge case with async try/catch, early pickup", 
+     'adbc', 
+     // used to yield 'adb' and 'Uncaught error: Error: Unexpected break statement'
+     makeAbortBreakTest(true, false));
+
+test("reentrant abort/break edge case with async try/catch, late pickup", 
+     'abcd', 
+     // used to yield 'abd'
+    
+     makeAbortBreakTest(true, true));
 

@@ -142,7 +142,9 @@ module.exports = require(modules);
   ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
   *(when in the nodejs environment)*
   
+   - **DelimitedReader**: (class [sjs:nodejs/stream::DelimitedReader])
    - **end**: (function [sjs:nodejs/stream::end])
+   - **lines**: (function [sjs:nodejs/stream::lines])
    - **pump**: (function [sjs:nodejs/stream::pump])
    - **read**: (function [sjs:nodejs/stream::read])
    - **ReadableStringStream**: (class [sjs:nodejs/stream::ReadableStringStream])

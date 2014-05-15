@@ -1356,12 +1356,9 @@ EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
 
 };
 
-EF_Try.prototype.abort=function(){this.parent=UNDEF;
+EF_Try.prototype.abort=function(){this.aborted=true;
 
 
-
-
-this.aborted=true;
 
 if(this.state!==4){
 var val=this.child_frame.abort();
@@ -1372,8 +1369,14 @@ this.setChildFrame(val);
 }else{
 
 
-if(cont(this,0,UNDEF)!==this)return;
 
+
+
+this.parent=UNDEF;
+
+if(cont(this,0)!==this){
+return;
+}
 
 }
 }
@@ -2246,8 +2249,11 @@ return "[object Stratum]"}};
 function notifyAsync(){async=true;
 
 }
-function notifyVal(_val){val=_val;
+function notifyVal(_val){if(val!==undefined)return;
 
+
+
+val=_val;
 async=false;
 if(!waitarr.length){
 

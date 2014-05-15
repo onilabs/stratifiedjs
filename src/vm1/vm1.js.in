@@ -1471,9 +1471,6 @@ EF_Try.prototype.quench = function() {
 };
 
 EF_Try.prototype.abort = function() {
-  // prevent continuation from ending up at parent, we want to feed
-  // it to the abortee directly:
-  this.parent = UNDEF;
   ASSERT(this.aborted !== true) // sanity check; aborted before
   this.aborted = true;
   ASSERT(this.state !== 3) // sanity check; aborted before
@@ -1486,8 +1483,14 @@ EF_Try.prototype.abort = function() {
     }
     else {
       // attempt to execute retract/finally blocks synchronously:
-      if (cont(this, 0, UNDEF) !== this)
+
+      // prevent continuation from ending up at parent, we want to feed
+      // it to the abortee directly:
+      this.parent = UNDEF;
+
+      if (cont(this, 0) !== this) {
         return;
+      }
       // ... else fall through. we need to block
     }
   }
@@ -2429,6 +2432,9 @@ function I_spawn(ndata, env) {
     async = true;
   }
   function notifyVal(_val) {
+    if (val !== undefined) // this guard is important so that a
+      return;              // reentrant 'stratum aborted' exception
+                           // doesn't get overwritten by a later result
     val = _val;
     async = false;
     if (!waitarr.length) {
