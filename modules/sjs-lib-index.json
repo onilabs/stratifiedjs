@@ -902,6 +902,23 @@
                   "type": "function"
                 }
               }
+            },
+            "DelimitedReader": {
+              "type": "class",
+              "children": {
+                "DelimitedReader": {
+                  "type": "ctor"
+                },
+                "readUntil": {
+                  "type": "function"
+                },
+                "read": {
+                  "type": "function"
+                }
+              }
+            },
+            "lines": {
+              "type": "function"
             }
           },
           "summary": "Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)"
