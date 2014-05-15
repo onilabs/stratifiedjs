@@ -54,19 +54,19 @@ context("server-side") {||
   }
   
   test('sjs -e') {|s|
-    var result = run_with_env(['-e', 'require("util").puts("hi");'], null);
+    var result = run_with_env(['-e', 'console.log("hi");'], null);
     result .. assert.eq({stdout: 'hi\n', stderr: ''})
   }
   
   test('hub resolution via $SJS_INIT') {|s|
     var hub_path = path.join(dataPath, 'literal-hub.sjs');
-    var script = 'require("util").puts(require("literal:exports.hello=\'HELLO!\'").hello);';
+    var script = 'console.log(require("literal:exports.hello=\'HELLO!\'").hello);';
     var result = run_with_env(['-e', script], {SJS_INIT: hub_path});
     result .. assert.eq({stdout: 'HELLO!\n', stderr: ''});
   }
 
   test('loading .sjs from NODE_PATH') {|s|
-    var script = 'try{}or{}; require("util").puts(require("nodejs:child1.sjs").child1_function1());';
+    var script = 'try{}or{}; console.log(require("nodejs:child1.sjs").child1_function1());';
     var result = run_with_env(['-e', script], {NODE_PATH: dataPath});
     result .. assert.eq({stdout: '42\n', stderr: ''});
   }
@@ -84,13 +84,13 @@ context("server-side") {||
   }
 
   test('loading .sjs (without an extension) from NODE_PATH') {|s|
-    var script = 'waitfor{}or{}; require("util").puts(require("nodejs:child1").child1_function1());';
+    var script = 'waitfor{}or{}; console.log(require("nodejs:child1").child1_function1());';
     var result = run_with_env(['-e', script], {NODE_PATH: dataPath});
     result .. assert.eq({stdout: '42\n', stderr: ''});
   }
 
   test('export to "this" (when requiring a nodeJS module)') {|s|
-    var script = 'require("nodejs:testmodule", {copyTo: this}); require("util").puts(foo(1));';
+    var script = 'require("nodejs:testmodule", {copyTo: this}); console.log(foo(1));';
     var result = run_with_env(['-e', script], {NODE_PATH: dataPath});
     result .. assert.eq({stdout: '42\n', stderr: ''});
   }
