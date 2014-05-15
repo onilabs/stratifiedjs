@@ -89,7 +89,7 @@ var test = testUtil.test;
       return rv;
     }
 
-    @context("sentinelReader on #{byteMode ? 'byte' : 'string'} streams") {||
+    @context("DelimitedReader on #{byteMode ? 'byte' : 'string'} streams") {||
 
       @test("reads up to a given character") {||
         var reader = wrap(chunkyStream(['12345', '678']));
@@ -150,6 +150,6 @@ var test = testUtil.test;
           .. @map(b -> b.toString('utf-8'))
           .. @assert.eq(['123\n','45678\n','910']);
       }
-    }
+    }.skipIf(byteMode && (process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0), "nodejs 0.6 lacks Buffer.concat")
   }
 }.serverOnly();

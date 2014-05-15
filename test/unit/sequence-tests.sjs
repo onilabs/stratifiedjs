@@ -3,6 +3,7 @@ var testEq = testUtil.test;
 var testFn = testUtil.testFn;
 var {test, context, assert} = require('sjs:test/suite');
 
+@ = require('sjs:test/std');
 var s = require("sjs:sequence");
 var { eq } = require('sjs:compare');
 var {Quasi} = require("sjs:quasi");
@@ -820,7 +821,7 @@ context("join") {||
         new Buffer('def', 'ascii'),
       ]) .. s.join(new Buffer('||')) .. assert.eq(new Buffer('abc||def', 'ascii'));
     }
-  }.serverOnly();
+  }.skipIf(@isBrowser || process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0, "nodejs 0.6 lacks Buffer.concat")
 }
 
 test("hasElem") {||
