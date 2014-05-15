@@ -805,6 +805,22 @@ context("join") {||
   test("with quasi separator") {||
     nonRepeatableSequence([1,2,3]) .. s.join(`|`) .. assert.eq(Quasi(['', 1, '|', 2, '|', 3]));
   }
+
+  context("on buffers") {||
+    test("with no separator") {||
+      nonRepeatableSequence([
+        new Buffer('abc', 'ascii'),
+        new Buffer('def', 'ascii'),
+      ]) .. s.join() .. assert.eq(new Buffer('abcdef', 'ascii'));
+    }
+
+    test("with a buffer separator") {||
+      nonRepeatableSequence([
+        new Buffer('abc', 'ascii'),
+        new Buffer('def', 'ascii'),
+      ]) .. s.join(new Buffer('||')) .. assert.eq(new Buffer('abc||def', 'ascii'));
+    }
+  }.serverOnly();
 }
 
 test("hasElem") {||

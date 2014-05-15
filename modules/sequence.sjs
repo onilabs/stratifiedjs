@@ -614,9 +614,15 @@ var padEnd = function(seq, padding) {
    @function join
    @altsyntax sequence .. join(separator)
    @param {::Sequence} [sequence] Input sequence
-   @param {optional String} [separator='']
-   @return {String}
-   @summary Convert all elements of the sequence to strings and joins them into one string
+   @param {optional String|Buffer} [separator='']
+   @return {String|Buffer}
+   @summary Joins all elements of the sequence with the given separator
+   @desc
+     By default, all elements in `sequence` are coerced into a String.
+
+     If the first element of `sequence` is a nodejs Buffer, then
+     all items will be joined into a single Buffer (not a String). In this case,
+     `separator` must also be a Buffer (or the empty string).
 */
 function join(sequence, separator) {
   separator = separator || '';
@@ -624,7 +630,14 @@ function join(sequence, separator) {
     var quasi = require('./quasi');
     return sequence .. transform(quasi.toQuasi) .. intersperse(separator) .. quasi.joinQuasis;
   }
-  return (sequence .. toArray).join(separator);
+  var arr = sequence .. toArray;
+  if (arr.length == 0) return '';
+  if (arr[0] .. isBuffer) {
+    if (separator.length > 0)
+      arr = arr .. intersperse(separator) .. toArray;
+    return Buffer.concat(arr);
+  }
+  return arr.join(separator);
 }
 exports.join = join;
 
