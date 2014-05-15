@@ -279,6 +279,13 @@ WritableStringStream.prototype.end = function(data) {
 var DelimitedReader = function(stream) {
   var pending = [];
   var convertSentinel = null;
+  var ended = false;
+  var _read = function() {
+    if (ended) return null;
+    var buf = exports.read(stream);
+    if (buf === null) ended = true;
+    return buf;
+  };
 
   return {
     readUntil: function(ch) {
@@ -292,7 +299,7 @@ var DelimitedReader = function(stream) {
             // Reached sentinel. Return everything in `pending` up until this point:
             var bufReturn = buf.slice(0, idx+1);
             var bufPending = buf.slice(idx+1);
-            pending = [bufPending];
+            pending = bufPending.length > 0 ? [bufPending] : [];
             return bufReturn;
           }
         }
@@ -300,7 +307,7 @@ var DelimitedReader = function(stream) {
 
       // not found in `pending`, check for new data...
       while(true) {
-        var buf = stream .. exports.read();
+        var buf = _read();
         if (buf == null) {
           // reached end, with no sentinel in sight.
           // Return all pending data, or `null`
@@ -349,7 +356,7 @@ var DelimitedReader = function(stream) {
       if (pending.length> 0) {
         return pending.shift();
       }
-      return stream .. exports.read();
+      return _read();
     }
   }
   

@@ -62,12 +62,16 @@ var test = testUtil.test;
       var rv = new (require('nodejs:events').EventEmitter)();
       var running = true;
       rv.readable = true;
+      var ended = false;
       rv.resume = function() {
         running = true;
         while(running) {
           if (chunks.length == 0) {
             //console.log("emitting null");
-            this.emit('end');
+            if(!ended) {
+              this.emit('end');
+              ended = true;
+            }
             break;
           } else {
             //console.log("emitting chunk: #{chunks[0]}");
@@ -109,6 +113,13 @@ var test = testUtil.test;
         reader.read().toString('utf-8') .. @assert.eq('345');
         reader.read().toString('utf-8') .. @assert.eq('678');
         reader.read() .. @assert.eq(null);
+      }
+
+      @test("readUntil returns empty sequence for multiple sentinels") {||
+        var reader = wrap(chunkyStream(['12\n\n']));
+        reader.readUntil('\n').toString('utf-8') .. @assert.eq('12\n');
+        reader.readUntil('\n').toString('utf-8') .. @assert.eq('\n');
+        reader.readUntil('\n') .. @assert.eq(null);
       }
 
       @test("doesnt skip sentinels that appear in th same chunk") {||
