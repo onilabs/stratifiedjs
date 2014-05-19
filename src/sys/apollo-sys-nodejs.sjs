@@ -610,8 +610,10 @@ exports.addExitHandlers = function(strata) {
 
   var intListener = function() {
     process.removeListener('SIGINT', intListener);
-    process.on('exit', -> process.kill(process.pid, 'SIGINT'));
-    cleanup();
+    if (process.listeners('SIGINT').length == 0) {
+      process.on('exit', -> process.kill(process.pid, 'SIGINT'));
+      cleanup();
+    }
   };
   process.on('SIGINT', intListener);
 };
