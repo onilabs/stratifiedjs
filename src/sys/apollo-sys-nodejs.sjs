@@ -290,6 +290,7 @@ function request_hostenv(url, settings) {
     method: opts.method,
     host: url.host,
     port: port,
+    socketPath: opts.socketPath,
     path: url.relative || '/',
     headers: opts.headers,
     auth: auth,
