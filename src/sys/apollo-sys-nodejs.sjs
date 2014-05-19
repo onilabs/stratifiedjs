@@ -589,3 +589,29 @@ function init_hostenv() {
   }
 };
 
+exports.addExitHandlers = function(strata) {
+  var cleanup = function() {
+    process.removeListener('exit', cleanup);
+    if (__oni_rt.is_ef(strata)) {
+      strata.abort();
+      strata.wait();
+    }
+  };
+  process.on('exit', cleanup);
+
+  var hupListener = function() {
+    process.removeListener('SIGHUP', hupListener);
+    if (process.listeners('SIGHUP').length == 0) {
+      process.on('exit', -> process.kill(process.pid, 'SIGHUP'));
+      cleanup();
+    }
+  };
+  process.on('SIGHUP', hupListener);
+
+  var intListener = function() {
+    process.removeListener('SIGINT', intListener);
+    process.on('exit', -> process.kill(process.pid, 'SIGINT'));
+    cleanup();
+  };
+  process.on('SIGINT', intListener);
+};

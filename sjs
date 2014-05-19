@@ -64,7 +64,8 @@ function runEval(str) {
       id: sjs_node.pathToFileUrl('./')
     };
     sjs_node.getGlobal().require = sjs_node._makeRequire(cwdModule);
-    return sjs_node.eval(str);
+    var rv = sjs_node.eval(str);
+    sjs_node.addExitHandlers(rv);
   };
 };
 

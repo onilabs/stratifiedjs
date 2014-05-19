@@ -64,7 +64,7 @@ delete rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'];
 exports.run = function(url) {
   exports.init(function() {
     url = exports.coerceToURL(url);
-    exports.require(url, {
+    var strata = exports.require(url, {
       // we provide a callback to prevent nodejs from showing a useless
       // call stack when there is an error:
       callback: function(err) {
@@ -77,6 +77,8 @@ exports.run = function(url) {
       },
       main: true
     });
+
+    exports.addExitHandlers(strata);
   });
 };
 
@@ -87,7 +89,7 @@ process.on('uncaughtException',function(error){
   console.error('Uncaught: '+error.toString());
   if (process.listeners('uncaughtException').length == 1) {
     // the user has not installed a handler - kill the process
-    process.exit(1);
+    process.kill(process.pid, 'SIGINT');
   }
 });
 

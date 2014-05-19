@@ -480,15 +480,13 @@ function makeRequire(parent) {
   var rf = function(module, settings) {
     __js var opts = exports.extendObject({}, settings);
     if (opts.callback) {
-      (spawn (function() {
-        try { 
-          var rv = exports.isArrayLike(module) ? requireInnerMultiple(module, rf, parent, opts) : requireInner(module, rf, parent, opts);
-        }
-        catch(e) { 
-          opts.callback(e); return 1;
-        }
-        opts.callback(UNDEF, rv);
-      })());
+      try {
+        var rv = exports.isArrayLike(module) ? requireInnerMultiple(module, rf, parent, opts) : requireInner(module, rf, parent, opts);
+      } catch(e) {
+        opts.callback(e); return;
+      }
+      opts.callback(UNDEF, rv);
+      return;
     }
     else
       return exports.isArrayLike(module) ? requireInnerMultiple(module, rf, parent, opts) : requireInner(module, rf, parent, opts);
@@ -713,6 +711,10 @@ function default_loader(path, parent, src_loader, opts, spec) {
     // wait for load to complete:
     try {
       descriptor = pendingHook.waitforValue();
+    } retract {
+      // if the final thread waiting on this module is retracted, propagate that
+      if (pendingHook.waiting() == 0)
+        pendingHook.abort();
     }
     finally {
       // last one cleans up
