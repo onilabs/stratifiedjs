@@ -44,9 +44,10 @@ context("server-side") {||
   var run_with_env = function(args, env)
   {
     try {
-      return child_process.run(process.execPath, [sjsPath].concat(args), {
+      var rv = child_process.run(process.execPath, [sjsPath].concat(args), {
         env: merge(process.env, env || process.env)
       });
+      return {stdout: rv.stdout, stderr: rv.stderr};
     } catch(e) {
       logging.warn(e.stderr);
       throw e;
