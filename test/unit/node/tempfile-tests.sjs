@@ -93,6 +93,14 @@
       }
     }
 
+    @test("allows the user to close the file before the end of the block") {||
+      tmp.TemporaryFile {|f|
+        f.writeStream() .. @stream.write("abcd");
+        f.close();
+        @fs.readFile(f.path, 'utf-8') .. @assert.eq("abcd");
+      }
+    }
+
     @test("ignores ENOENT on deletion") {||
       tmp.TemporaryFile {|f|
         @fs.unlink(f.path);

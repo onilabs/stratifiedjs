@@ -139,6 +139,7 @@ exports.TemporaryFile = function(opts, block) {
   var flags = 'wx+';
 
   var [ path, fd ] = mk(opts, path -> @fs.open(path, flags, mode));
+  var closed = false;
 
   var streams = [];
   var rv =  {
@@ -155,7 +156,10 @@ exports.TemporaryFile = function(opts, block) {
       return rv;
     },
     close: function () {
-      @fs.close(fd);
+      if (!closed) {
+        @fs.close(fd);
+        closed = true;
+      }
       streams .. @each.par(s -> s.destroy());
     },
   };
