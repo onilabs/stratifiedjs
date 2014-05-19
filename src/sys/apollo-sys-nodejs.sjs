@@ -591,6 +591,7 @@ function init_hostenv() {
 };
 
 exports.addExitHandlers = function(strata) {
+  return; // TODO: reinstate
   var cleanup = function() {
     process.removeListener('exit', cleanup);
     if (__oni_rt.is_ef(strata)) {
