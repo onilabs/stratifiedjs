@@ -158,4 +158,4 @@
       }
     }
   }
-}.serverOnly();
+}.skipIf(@isBrowser || process.versions.node .. @split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0,8]) < 0, "broken in node 0.6");
