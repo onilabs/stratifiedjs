@@ -438,7 +438,8 @@ exports.toArray = toArray;
 
 /**
   @class SequenceExhausted
-  @summary Exception thrown by [::first] and [::at] when accessing a non-existent element.
+  @summary Exception thrown by [::first] and [::at] when accessing a non-existent element, 
+           and by [::find] if a matching element isn't found before the sequence is exhausted.
 */
 function SequenceExhausted(msg) {
   this.message = msg;
@@ -448,14 +449,14 @@ exports.SequenceExhausted = SequenceExhausted;
 
 /**
   @function first
-  @param {::Sequence} [seq]
+  @param {::Sequence} [sequence]
   @param {optional Object} [defaultValue]
   @summary Get the first item from a sequence
   @desc
-    If `seq` is empty, `defaultValue` is returned if it was given.
+    If `sequence` is empty, `defaultValue` is returned if it was given.
     Otherwise, this function raises a [::SequenceExhausted] error.
 
-    Note that if `seq` is a non-repeatable [::Stream] 
+    Note that if `sequence` is a non-repeatable [::Stream] 
     (e.g. a stream such as `generate(Math.random)`),
     it doesn't just "peek" at the first item - it will consume (and return) it.
 */
@@ -1585,16 +1586,23 @@ exports.reduce1 = reduce1;
 
 /**
    @function find
-   @altsyntax sequence .. find(p, [defval])
+   @altsyntax sequence .. find(p, [defaultValue])
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [p] Predicate function
-   @param {optional Object} [defval=undefined] Default value to return if no match is found
-   @return {Object} Matching element or `defval` if no match was found
+   @param {optional Object} [defaultValue] Default value to return if no match is found
    @summary Find first element `x` of `sequence` for which `p(x)` is truthy.
+   @desc
+     If the sequence is exhausted before a matching element is found, 
+     `defaultValue` is returned if it was given. Otherwise, this function
+     raises a [::SequenceExhausted] error.
 */
-function find(sequence, p, defval) {
+function find(sequence, p /*, [defval]*/) {
   sequence .. each { |x| if (p(x)) return x }
-  return defval;
+  if (arguments.length > 2)
+    return arguments[2];
+  else
+    throw new SequenceExhausted('sequence exhausted');
+
 }
 exports.find = find;
 
@@ -2040,23 +2048,33 @@ transform.par.unordered = function(/* sequence, max_strata, f */) {
 
 /**
    @function find.par
-   @altsyntax sequence .. find.par([max_strata], p, [defval])
+   @altsyntax sequence .. find.par([max_strata], p, [defaultValue])
    @param {::Sequence} [sequence] Input sequence
    @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `p`. (undefined == unbounded)
    @param {Function} [p] Predicate function
-   @param {optional Object} [defval=undefined] Default value to return if no match is found
-   @return {Object} Matching element or `defval` if no match was found
+   @param {optional Object} [defaultValue] Default value to return if no match is found
    @summary Find first element `x` of `sequence` for which `p(x)` is truthy. Up to `max_strata` concurrent calls to `f` will be performed at any one time.
+   @desc
+     If the sequence is exhausted before a matching element is found, `defaultValue` is returned if it was given.
+     Otherwise, this function raises a [::SequenceExhausted] error.
 */
 find.par = function(/* sequence, max_strata, p, defval */) {
-  var sequence, max_strata, p, defval;
-  if (typeof arguments[1] == 'function')
+  var sequence, max_strata, p, defval, have_defval;
+  if (typeof arguments[1] == 'function') {
+    have_defval = (arguments.length > 2);
     [sequence, p, defval] = arguments;
-  else
+  }
+  else {
+    have_defval = (arguments.length > 3);
     [sequence, max_strata, p, defval] = arguments;
+  }
 
   sequence .. each.par(max_strata) { |x| if (p(x)) return x }
-  return defval;
+  
+  if (have_defval)
+    return defval;
+  else 
+    throw new SequenceExhausted('sequence exhausted');
 };
 
 /**

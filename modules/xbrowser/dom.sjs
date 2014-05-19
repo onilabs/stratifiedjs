@@ -343,7 +343,7 @@ var matchesSelectorFunc =
    'mozMatchesSelector',
    'msMatchesSelector'
   ] .. 
-  find(f -> document.body[f] != undefined);
+  find(f -> document.body[f] != undefined, undefined);
 
 __js function matchesSelector(elem, selector) {
   return elem[matchesSelectorFunc](selector);

@@ -250,16 +250,28 @@ testEq('find.par returns early', {checked: [3,2], result: 2}, function() {
   return {checked: order, result: result};
 });
 
-testEq('find / find.par return undefined if not found',
-    [undefined, undefined],
+testEq('find / find.par return defaultValue if not found',
+    ['default1', 'default2', 'default3'],
     function() {
   var fn = function() { return false; };
   var c = [1,2,3];
   return [
-    s.find.par(c, fn),
-    s.find(c, fn)
+    s.find.par(c, fn, 'default1'),
+    s.find.par(c, 10, fn, 'default2'),
+    s.find(c, fn, 'default3')
   ];
 });
+
+test('find / find.par throws') {||
+  assert.raises({ inherits: s.SequenceExhausted },
+                -> [1,2,3] .. s.find(-> false));
+
+  assert.raises({ inherits: s.SequenceExhausted },
+                -> [1,2,3] .. s.find.par(-> false));
+
+  assert.raises({ inherits: s.SequenceExhausted },
+                -> [1,2,3] .. s.find.par(10, -> false));
+}
 
 testEq('filter', {checked: [1,2,3], result: [1,3]}, function() {
   var checked = [];

@@ -59,10 +59,10 @@ exports.generateDocDescription = function(contents, description) {
   requiredModulesUnion .. @each {|mod|
 
     // skip plain duplicates:
-    if (requiredModules .. @find([m, env] -> @eq(m, mod))) continue;
+    if (requiredModules .. @any([m, env] -> @eq(m, mod))) continue;
 
     // find number of occurences for this module
-    var hostenvs = HOSTENVS .. @filter(h -> hostModules[h] .. @find(m -> m.id === mod.id)) .. @toArray;
+    var hostenvs = HOSTENVS .. @filter(h -> hostModules[h] .. @any(m -> m.id === mod.id)) .. @toArray;
 
     // extend any existing entry (e.g `sys` is imported in both nodejs and xbrowser):
     var existing = requiredModules .. @filter([m, env] -> @eq(m.id, mod.id)) .. @toArray;
@@ -71,7 +71,7 @@ exports.generateDocDescription = function(contents, description) {
       var isMergeable = (m) -> m .. @ownKeys .. @sort .. @toArray .. @eq(['id', 'include']);
       var target;
       if (mod .. isMergeable) {
-        target = existing .. @find(isMergeable);
+        target = existing .. @find(isMergeable, undefined);
       }
       if (target) {
         // extend previous module

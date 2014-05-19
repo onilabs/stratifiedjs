@@ -1172,7 +1172,7 @@ var karma;
   // If all results instances have ended, it kills the process with an error status.
   onUncaught(function(e) {
     logging.error("Uncaught error: #{e}");
-    var instance = Results.INSTANCES .. seq.reverse .. seq.find(r -> !r.end.isSet);
+    var instance = Results.INSTANCES .. seq.reverse .. seq.find(r -> !r.end.isSet, null);
     if (instance == null) {
       exports.exit(1);
     } else {
