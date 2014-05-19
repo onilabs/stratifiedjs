@@ -1,3 +1,4 @@
+@ = require('sjs:test/std');
 var { context, test, assert, isWindows } = require('sjs:test/suite');
 var { integers, take, any } = require('sjs:sequence');
 
@@ -75,6 +76,14 @@ context {||
           pairsToObject .. normalizeOutput;
       }
     });
+
+    @test("run returns child object when throwing == false") {||
+      var child = child_process.run('bash', ['-c', 'echo out; echo err >&2; sleep 1;exit 2'], {throwing: false});
+
+      child.code .. @assert.eq(2);
+      child.stdout .. @strip() .. @assert.eq('out');
+      child.stderr .. @strip() .. @assert.eq('err');
+    }
   }
 
   //-------------------------------------------------------------
@@ -126,6 +135,28 @@ context {||
       }
       return {events: events, error: 'no error'};
     });
+
+    @test('wait() returns child object on success') {||
+      var child = child_process.launch('bash', ['-c', 'exit 0']);
+      var rv = child .. child_process.wait();
+      rv .. @assert.eq(child);
+      rv.code .. @assert.eq(0);
+    }
+
+    @test('wait() returns child object with code property if throwing === false') {||
+      var child = child_process.launch('bash', ['-c', 'echo out; echo err >&2; sleep 1;exit 2']);
+      waitfor {
+        var stdout = child.stdout .. @readAll() .. @strip();
+      } and {
+        var stderr = child.stderr .. @readAll() .. @strip();
+      } and {
+        child .. child_process.wait({throwing: false});
+      }
+
+      child.code .. @assert.eq(2);
+      stdout .. @assert.eq('out');
+      stderr .. @assert.eq('err');
+    }
   }
   
 

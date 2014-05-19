@@ -83,7 +83,7 @@ exports.exec = function(command, options) {
    @summary Execute a child process and return output
    @param {String} [command] Command to execute
    @param {optional Array} [args] Array of command-line arguments
-   @param {optional Object} [options] Hash of options passed to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options) and to [::kill]
+   @param {optional Object} [options] Hash of options passed to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options), to [::kill] and to [::wait]
    @return {Object} Object with 'stdout' and 'stderr' members
    @desc
       This function is just like the deprecated [::exec], but takes an
@@ -141,7 +141,7 @@ exports.run = function(command, args, options) {
   function join(arr) { return arr.join(''); };
 
   try {
-    exports.wait(child);
+    exports.wait(child, options);
   } catch(e) {
     // annotate error with stdout / err info
     e.stdout = join(stdout);
@@ -150,7 +150,7 @@ exports.run = function(command, args, options) {
   } retract {
     kill(child, options);
   }
-  return {stdout: join(stdout), stderr: join(stderr)};
+  return {stdout: join(stdout), stderr: join(stderr), code: child.code, signal: child.signal};
 };
 
 //TODO is `launch` too similar to `run`? maybe `popen` or even `fork`?
@@ -176,12 +176,18 @@ exports.launch = function(command, args, options) {
    @function wait
    @summary Wait for a child process to finish
    @param {Object} [child] The child process object obtained from `run`.
+   @param {Settings} [opts] settings
+   @return {Object} The child process object passed in.
+   @setting {Boolean} [throwing=true] Set to `false` to suppress the default error-throwing behaviour when the child is unsuccessful
    @desc
-      If the child process exits abnormally (exit code != 0), an
-      `Error` will be thrown with `code` and `signal` properties set to the exit code 
-      and signal that terminated the process.
+      `wait` (upon the child's completion) will set `child.code` and `child.signal`.
+
+      If the child process exits abnormally (exit code != 0) and If `opts.throwing` is not `false`, an
+      `Error` will be thrown with `code` and `signal` properties set to the exit code
+      and signal that terminated the process. Otherwise (when `opts.throwing` is `false`),
+      the `child` object will be returned.
 */
-exports.wait = function(child) {
+exports.wait = function(child, opts) {
   var code, signal, error;
   waitfor {
     waitfor(code, signal) {
@@ -199,12 +205,17 @@ exports.wait = function(child) {
   if(error !== undefined) {
     throw error;
   }
-  if(code != 0) {
+  child.code = code;
+  child.signal = signal;
+  if (opts && opts.throwing === false) {
+    return child;
+  } else if(code != 0) {
     var err = new Error('child process exited with nonzero exit status: ' + code);
     err.code = code;
     err.signal = signal;
     throw err;
   }
+  return child;
 };
 
 /**
