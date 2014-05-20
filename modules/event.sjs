@@ -258,7 +258,7 @@ HostEmitterProto.init = function(emitters, events, opts) {
 
   var self = this;
   this._handleEvent = function(val) {
-    var arg = (arguments.length == 1) ? val : Array.prototype.slice.call(arguments);
+    var arg = (arguments.length > 1) ? Array.prototype.slice.call(arguments) : val;
     if (transform) arg = transform(arg) || arg;
     if (filter && !filter(arg)) return;
     if (handle) handle(arg);

@@ -195,6 +195,26 @@ context() {||
       assert.eq(result, [1, 2, 3]);
     }
 
+    context('nodejs') {||
+      test('multiple event arguments') {|s|
+        waitfor {
+          (event.events(s.emitter.raw, 'click') .. event.wait)
+            .. assert.eq([1,2]);
+        } and {
+          s.emitter.raw.emit('click', 1, 2);
+        }
+      }
+
+      test('empty event arguments') {|s|
+        waitfor {
+          (event.events(s.emitter.raw, 'click') .. event.wait)
+            .. assert.eq(undefined);
+        } and {
+          s.emitter.raw.emit('click');
+        }
+      }
+    }.serverOnly();
+
     test('wait() shortcut') {|s|
       var result = [];
       waitfor {
