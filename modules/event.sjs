@@ -181,19 +181,41 @@ exports.events = events;
 /**
    @function wait
    @param {./sequence::Stream|Object} [stream_or_emitter]
-   @param {optional any} [...] If first argument is not 
-          a [./sequence::Stream]: Additional arguments as for [::events].
+   @param {optional any} [...] Optional `filter` function, if first argument is a [./sequence::Stream], 
+                               otherwise additional arguments as for [::events].
    @summary Wait for an event or the first item of a [./sequence::Stream]
    @desc
-     If `stream_or_emitter` is a [./sequence::Stream], this function acts like
-     [./sequence::first], awaiting and returning the first emitted
-     item from the stream.
+     This function is polymorphic:
 
-     Otherwise, this method passes all arguments through to 
+     ### Use with [./sequence::Stream]s
+     
+     If `stream_or_emitter` is a [./sequence::Stream] and no other arguments are provided, this function acts like
+     [./sequence::first], awaiting and returning the first emitted
+     item from the stream. 
+
+     If, in addition to the first argument, a second argument `filter` 
+     is provided, `wait` acts like [./sequence::find], returning the
+     first item in the stream for which `filter(item)` is truthy.
+
+     In either case, `wait` raises a [./sequence::SequenceExhausted] 
+     error if the stream ends before a (matching) event is emitted.
+
+     #### Example
+
+         // wait for first emitted event
+         some_event_stream .. @wait; 
+
+         // wait for first emitted event that has a member foo = 'bar'
+         some_event_stream .. @wait(ev -> ev.foo == 'bar');
+
+
+     ### Use with DOM or nodejs event emitters
+
+     If `stream_or_emitter` is not a [./sequence::Stream], this method passes all arguments through to 
      [::events] to create an event stream, then acts like
      calling [./sequence::first] on that stream.
 
-     ### Examples:
+     #### Example
 
          button .. @events('click') .. @wait();
          // equivalent to
@@ -203,6 +225,9 @@ var wait = exports.wait = function(stream /*,...*/) {
   if (!seq.isStream(stream)) {
     stream = events.apply(null, arguments);
   }
+  else if (arguments.length > 1)
+    return seq.find(stream, arguments[1]);
+
   return seq.first(stream);
 };
 

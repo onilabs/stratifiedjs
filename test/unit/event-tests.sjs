@@ -425,3 +425,18 @@ context("stream") {||
     result .. assert.eq([2,3,4]);
   };
 }
+
+context('wait()') {||
+  test('with filter arg') { ||
+    var stream = event.Emitter();
+    var rv;
+    waitfor {
+      rv = stream .. event.wait(x -> x == 2 );
+    } or {
+      stream.emit(1);
+      stream.emit(2);
+      stream.emit(3);
+    }
+    rv .. assert.eq(2);
+  }
+}
