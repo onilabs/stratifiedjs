@@ -898,3 +898,36 @@ testEq('each.track', "5", function() {
   }
   return rv;
 });
+
+context("pack") {||
+  test("with count") {||
+    [1,2,3,4,5] .. s.pack({count:2}) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);
+  }
+
+  test("with count, shorthand") {||
+    [1,2,3,4,5] .. s.pack(2) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);
+  }
+
+  test("with packing function") {||
+    [1,2,3,4,5] .. s.pack({packing_func:next -> [next(),next()], pad:'pad'}) .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
+  }
+
+  test("with packing function, shorthand") {||
+    [1,2,3,4,5] .. s.pack(next -> [next(),next()], 'pad') .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
+  }
+
+  test("with packing function, pad default") {||
+    [1,2,3,4,5] .. s.pack({packing_func:next -> [next(),next()]}) .. s.toArray .. assert.eq([[1,2],[3,4],[5, undefined]]);
+  }
+
+  test("with packing function, pad default, shorthand") {||
+    [1,2,3,4,5] .. s.pack(next -> [next(),next()]) .. s.toArray .. assert.eq([[1,2],[3,4],[5, undefined]]);
+  }
+
+
+  test("settings precedence") {||
+    // packing_func overrides count:
+    [1,2,3,4,5] .. s.pack({count: 3, packing_func:next -> [next(),next()], pad:'pad'}) .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
+  }
+
+}

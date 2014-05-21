@@ -1189,19 +1189,47 @@ exports.concat = concat;
 
 /**
    @function pack
-   @altsyntax sequence .. pack(p, [pad])
+   @altsyntax sequence .. pack(count)
+   @altsyntax sequence .. pack(packing_func, [pad])
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [p] Packing function
-   @param {optional Object} [pad=undefined] Padding object
+   @param {Object} [settings] Settings object.
+   @setting {Integer} [count] Number of input elements to pack into one element of the output. 
+   @setting {Function} [packing_func] Packing function
+   @setting {Object} [pad=undefined] Padding object (used in conjunction with `packing_func`)
    @return {::Stream}
    @summary  Collect multiple elements of `sequence` into a single element of the output stream
    @desc
-      Calls `p(next)` until there are no further elements in `sequence`. 
-      `next` is a function that, when called within the scope of `p` returns the next 
-      element of `sequence`, or `pad` if there are no further elements.
-      Creates an output stream of return values from `p`.
+      ### Simple use:
 
-      ### Example:
+      When `count` is given and `packing_func` is not, `pack`
+      generates a stream of arrays, each containing `count` adjacent
+      elements of the input sequence. The last element of the output
+      stream might contain fewer than `count` elements, if the input
+      sequence is prematurely exhausted.
+
+      #### Example:
+
+          // create a stream of adjacent integer pairs:
+
+          pack(integers(), 2) // -> [1,2], [3,4], [5,6], ... 
+
+          // same as above, with double dot call syntax:
+
+          integers() .. pack(2)
+      
+
+      ### Use with a packing function:
+
+      If `packing_func` is given, `count` will be ignored and
+      `packing_func(next)` will be called until there are no 
+      further elements in `sequence`. The return values of 
+      `packing_func(next)` form the return value of `pack`.
+
+      `next` is a function that, when called within the scope of `p` 
+      returns the next element of `sequence`, or `pad` if there are 
+      no further elements.
+      
+      #### Example:
 
           // create a stream of adjacent integer pairs:
 
@@ -1211,25 +1239,56 @@ exports.concat = concat;
 
           integers() .. pack(next => [next(),next()])
 */
-function pack(sequence, p, pad) {
-  return Stream(function(r) {
-    var eos = {}, next_item;
+function pack(sequence, settings) {
+  // untangle settings:
+  var count, packing_func, pad;
+  if (typeof settings === 'number') {
+    count = settings;
+  }
+  else if (typeof settings === 'function') {
+    packing_func = settings;
+    pad = arguments[2];
+  }
+  else {
+    ({count, packing_func, pad}) = settings;
+  }
 
-    sequence .. consume(eos) { 
-      |next_upstream| 
-
-      function next() {
-        var x = next_item;
-        if (x === eos) x = pad;
+  if (packing_func) {
+    return Stream(function(r) {
+      var eos = {}, next_item;
+      
+      sequence .. consume(eos) { 
+        |next_upstream| 
+        
+        function next() {
+          var x = next_item;
+          if (x === eos) x = pad;
+          next_item = next_upstream();
+          return x;
+        }
+        
         next_item = next_upstream();
-        return x;
+        while (next_item !== eos)
+          r(packing_func(next));
       }
-
-      next_item = next_upstream();
-      while (next_item !== eos)
-        r(p(next));
-    }
-  });
+    });
+  }
+  else {
+    if (count < 1) throw new Error("Invalid count ('#{count}')");
+    return Stream(function(r) {
+      var accu = [], l=0;
+      sequence .. each {
+        |x|
+        accu.push(x);
+        if (++l===count) {
+          r(accu);
+          l=0, accu = [];
+        }
+      }
+      if (l>0)
+        r(accu);
+    });
+  }
 }
 exports.pack = pack;
 
