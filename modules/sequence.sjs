@@ -2163,8 +2163,7 @@ any.par = function(/* sequence, max_strata, p */) {
    @altsyntax sequence .. each.track { |item| ... }
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to execute for each `item` in `sequence`
-   @summary Like [::each], but aborts execution of a blocked 
-   `f(item)` call when a new item is emitted.
+   @summary Like [::each], but aborts execution of a blocked `f(item)` call when a new item is emitted.
    @desc
      This function is useful for tracking the most recent state of 
      time-varying values. E.g. to display a notice every time the user
