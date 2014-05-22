@@ -79,6 +79,7 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @function ObservableVar.modify
   @summary Modify the current observable value
   @param {Function} [change]
+  @return {Boolean} whether the value was modified
   @desc
 
     `modify` allows you to change the current value of the ObservableVar
@@ -181,7 +182,9 @@ function ObservableVar(val) {
     } or {
       newval = f(val, unchanged);
     }
-    if (newval !== unchanged) rv.set(newval);
+    var changed = newval !== unchanged;
+    if (changed) rv.set(newval);
+    return changed;
   };
 
   rv.get = -> val;
