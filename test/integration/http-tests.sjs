@@ -55,11 +55,10 @@ context("request") {||
         assert.fail("No exception thrown");
       } catch(e) {
         if (!e.data) throw e;
-        @info(e);
+        @info(e, e.data);
         @assert.eq(e.data .. @arrayBufferToOctets, 'failure response data');
-        @assert.ok(e.data
       }
-    }
+    }.browserOnly();
   } .. requiresConductance();
 }
 
