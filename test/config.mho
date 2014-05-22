@@ -11,6 +11,12 @@ exports.serve = function(args) {
       @Route('http/post_echo', {
         POST: (req) -> req.response.end(req.body)
       }),
+      @Route('http/fail', {
+        GET: function(req) {
+          req .. @setStatus(500);
+          req.response.end("failure response data");
+        }
+      }),
       @route.CodeDirectory(root),
     ]
     .. @route.LogRequests(@logging.INFO)

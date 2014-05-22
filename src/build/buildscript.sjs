@@ -289,10 +289,11 @@ function build_deps() {
 This module combines commonly-used functionality from the
 StratifiedJS standard library.");
     dest .. fs.writeFile("
-/* ------------------------------------ *
+/* ----------------------------------- *
 * NOTE:                                *
 *   This file is auto-generated        *
 *   any manual edits will be LOST      *
+*   (edit src/build/std.sjs instead)   *
 * ------------------------------------ */
 #{contents}
 /**

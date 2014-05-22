@@ -1,3 +1,4 @@
+@ = require('sjs:test/std');
 var testUtil = require('../lib/testUtil');
 var logging = require('sjs:logging');
 var getHttpURL = require("../lib/testContext").getHttpURL;
@@ -10,6 +11,8 @@ var sys = require('builtin:apollo-sys');
 
 var IE9 = suite.isIE() && suite.ieVersion() < 10;
 var expected404Status = 404;
+
+var requiresConductance = t -> t.skipIf(suite.isBrowser && document.location.host == 'code.onilabs.com', "requires conductance server");
 
 context("request") {||
 
@@ -33,6 +36,31 @@ context("request") {||
     assert.raises({filter: e -> e.status === expected404Status},
       -> http.request(getHttpURL("no_such_url")));
   }
+
+  @context("error response data") {||
+    @test('for standard response') {||
+      try {
+        http.request(getHttpURL("/http/fail"));
+        assert.fail("No exception thrown");
+      } catch(e) {
+        if (!e.data) throw e;
+        @info(e);
+        @assert.eq(e.data, 'failure response data');
+      }
+    }
+
+    @test('for arraybuffer response') {||
+      try {
+        http.request(getHttpURL("/http/fail"), {response:'arraybuffer'});
+        assert.fail("No exception thrown");
+      } catch(e) {
+        if (!e.data) throw e;
+        @info(e);
+        @assert.eq(e.data .. @arrayBufferToOctets, 'failure response data');
+        @assert.ok(e.data
+      }
+    }
+  } .. requiresConductance();
 }
 
 context("get") {||
@@ -62,7 +90,7 @@ context("post") {||
   testEq("http.post 2", "a=1&b=b&c=3", function () {
     return http.post(post_echo, url.buildQuery([{a:1,b:"b"}, {c:3}]));
   });
-}.skipIf(suite.isBrowser && document.location.host == 'code.onilabs.com', "requires conductance server")
+} .. requiresConductance();
 
 context("json") {||
 
