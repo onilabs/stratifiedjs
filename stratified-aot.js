@@ -203,8 +203,12 @@ if(this.type=="t"){
 
 
 if(augment&&this.val.__oni_stack){
-var mes=this.val.toString();
+var val=this.val;
+var mes=val.toString();
 if(mes.length>230){
+
+mes=mes.replace(/at module ([^: ]|:[0-9]*\/)+\//gm,'at ');
+mes=mes.replace(/    /gm,'\t');
 mes=mes.substring(0,230);
 
 var lb=mes.lastIndexOf('\n');
@@ -215,7 +219,10 @@ mes=mes.substring(0,lb);
 mes+='\n    ...';
 
 }
-throw new Error(mes);
+var e=new Error(mes);
+
+e.toString=function(){return val.toString()};
+throw e;
 }else throw this.val;
 
 

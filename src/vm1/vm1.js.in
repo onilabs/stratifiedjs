@@ -179,6 +179,7 @@ CFException.prototype = {
   },
   mapToJS : function(augment) {
     if (this.type == "t") {
+#if defined (CLIENTSIDE)
       // 'augment' means that we should throw this as an exception whose 'message' is equal
       // to its 'toString()' value. The only way to reliably do this is to create a new
       // exception - manipulating 'message' has no effect for IE (up to at least version 10).
@@ -186,8 +187,12 @@ CFException.prototype = {
       // of characters in the exception's message: If this is >~238 then the error will be 
       // reported in the console as simply 'uncaught object' :(
       if (augment && this.val.__oni_stack) {
-        var mes = this.val.toString();
+        var val = this.val;
+        var mes = val.toString();
         if (mes.length > 230) {
+          // can't afford full module paths
+          mes = mes.replace(/at module ([^: ]|:[0-9]*\/)+\//gm, 'at ');
+          mes = mes.replace(/    /gm, '\t');
           mes = mes.substring(0,230);
           // try to cut off at a line break:
           var lb = mes.lastIndexOf('\n');
@@ -198,13 +203,17 @@ CFException.prototype = {
           mes += '\n    ...';
             
         }
-        throw new Error(mes);
+        var e = new Error(mes);
+        // if the browser does allow a custom toString, make sure it gets a good one:
+        e.toString = function() { return val.toString(); };
+        throw e;
       }
-      else 
+      else
+#endif // CLIENTSIDE
         throw this.val;
     }
     else if (!this.ef) // XXX DO WE NEED THIS???
-      throw new Error(this.toString()); 
+      throw new Error(this.toString());
     else // this is a 'blb' or 'r' tunneling through a JS functions:
       throw this;
   }

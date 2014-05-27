@@ -187,29 +187,7 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 },mapToJS:function(augment){
 if(this.type=="t"){
 
-
-
-
-
-
-
-if(augment&&this.val.__oni_stack){
-var mes=this.val.toString();
-if(mes.length>230){
-mes=mes.substring(0,230);
-
-var lb=mes.lastIndexOf('\n');
-if(lb>100){
-mes=mes.substring(0,lb);
-}
-
-mes+='\n    ...';
-
-}
-throw new Error(mes);
-}else throw this.val;
-
-
+throw this.val;
 }else if(!this.ef)throw new Error(this.toString());else throw this;
 
 
