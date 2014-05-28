@@ -48,6 +48,7 @@ var { Queue } = require('../cutil');
 var { override } = require('../object');
 var event = require('../event');
 var logging = require('../logging');
+var array = require('../array');
 
 //----------------------------------------------------------------------
 // XXX nodejs < v8 backfill:
@@ -298,6 +299,17 @@ function withServer(config, server_loop) {
 
   // XXX is there no flag on server that has this information???
   var server_closed = false;
+  var open_sockets = [];
+  __js {
+    // track open sockets for cleanup purposes
+    // XXX can we get this info from the server object itself?
+    server.on('connection', function(socket) {
+      socket.on('close', function() {
+        array.remove(open_sockets, socket);
+      });
+      open_sockets.push(socket);
+    });
+  }
 
   // run our server_loop :
   waitfor {
@@ -328,7 +340,7 @@ function withServer(config, server_loop) {
         {
           nodeServer: server,
           address: address,
-          stop: function() { try { server.close() } catch(e) {} },
+          stop: function() { server.close(); },
           getConnections: -> server .. getConnections(),
           eachRequest: function(handler) {
             waitfor {
@@ -376,12 +388,18 @@ function withServer(config, server_loop) {
   }
   finally {
     if (!server_closed) {
-      try { server.close(); } catch(e) { /* ignore */ }
+      server.close();
+    }
+    if (open_sockets.length > 0) {
+      config.log("destroying #{open_sockets.length} lingering connections");
+      open_sockets .. each {|s|
+        // destroy open socekts, because server.close() doesn't
+        s.destroy();
+      }
     }
     var connections = server .. getConnections();
     if (connections) {
       config.log("Server closed, but #{connections} lingering open connections");
-      // XXX close connections
     }
     else 
       config.log("Server closed");
