@@ -590,32 +590,43 @@ function init_hostenv() {
   }
 };
 
-exports.addExitHandlers = function(strata) {
-  return; // TODO: reinstate
-  var cleanup = function() {
-    process.removeListener('exit', cleanup);
-    if (__oni_rt.is_ef(strata)) {
-      strata.abort();
-      strata.wait();
+exports.runMainExpression = function(ef) {
+  // runs expression `ef` as the main expression - i.e
+  // turn it into a waitfor/or branch which retracts the main
+  // expression on process termination (exit or a fatal signal)
+  if (!__oni_rt.is_ef(ef)) return ef; // fully synchronous, nothing to do
+  var sig;
+  var await = function(evt) {
+    waitfor() {
+      process.on(evt, resume);
+    } finally {
+      process.removeListener(evt, resume);
     }
   };
-  process.on('exit', cleanup);
 
-  var hupListener = function() {
-    process.removeListener('SIGHUP', hupListener);
-    if (process.listeners('SIGHUP').length == 0) {
-      process.on('exit', -> process.kill(process.pid, 'SIGHUP'));
-      cleanup();
+  waitfor {
+    try {
+      ef.wait();
+    } catch(e) {
+      err = err.toString().replace(/^Error: Cannot load module/, "Error executing");
+      err = err.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
+      console.error(err.toString());
+      process.exit(1);
     }
-  };
-  process.on('SIGHUP', hupListener);
-
-  var intListener = function() {
-    process.removeListener('SIGINT', intListener);
-    if (process.listeners('SIGINT').length == 0) {
-      process.on('exit', -> process.kill(process.pid, 'SIGINT'));
-      cleanup();
+  } or {
+    await('SIGINT');
+    sig = 'SIGINT';
+  } or {
+    await('SIGHUP');
+    sig = 'SIGHUP';
+  } or {
+    await('exit');
+  }
+  if(sig) {
+    waitfor {
+      await('exit');
+    } and {
+      process.kill(process.pid, sig);
     }
-  };
-  process.on('SIGINT', intListener);
+  }
 };

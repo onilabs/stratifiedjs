@@ -64,21 +64,8 @@ delete rt.modsrc['builtin:apollo-sys-'+rt.hostenv+'.sjs'];
 exports.run = function(url) {
   exports.init(function() {
     url = exports.coerceToURL(url);
-    var strata = exports.require(url, {
-      // we provide a callback to prevent nodejs from showing a useless
-      // call stack when there is an error:
-      callback: function(err) {
-        if (err) {
-          err = err.toString().replace(/^Error: Cannot load module/, "Error executing");
-          err = err.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
-          console.error(err.toString());
-          process.exit(1);
-        }
-      },
-      main: true
-    });
-
-    exports.addExitHandlers(strata);
+    var main = exports.require(url, { main: true });
+    exports.runMainExpression(main);
   });
 };
 

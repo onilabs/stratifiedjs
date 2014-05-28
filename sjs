@@ -65,7 +65,7 @@ function runEval(str) {
     };
     sjs_node.getGlobal().require = sjs_node._makeRequire(cwdModule);
     var rv = sjs_node.eval(str);
-    sjs_node.addExitHandlers(rv);
+    sjs_node.runMainExpression(rv);
   };
 };
 

@@ -656,38 +656,47 @@ function default_loader(path, parent, src_loader, opts, spec) {
   if (!descriptor && !pendingHook) {
     // the module has not yet started loading
     pendingHook = pendingLoads[path] = spawn (function() {
-      var src, loaded_from;
-      if (typeof src_loader === "string") {
-        src = src_loader;
-        loaded_from = "[src string]";
-      }
-      else if (path in __oni_rt.modsrc) {
-        // a built-in module
-        loaded_from = "[builtin]";
-        src = __oni_rt.modsrc[path];
-        delete __oni_rt.modsrc[path];
-        // xxx support plain js modules for built-ins?
-      }
-      else {
-        ({src, loaded_from}) = src_loader(path);
-      }
-      var descriptor = {
-        id: path,
-        exports: {},
-        loaded_from: loaded_from,
-        loaded_by: parent,
-        required_by: {}
-      };
-      descriptor.require = makeRequire(descriptor);
+      waitfor {
+        var src, loaded_from;
+        if (typeof src_loader === "string") {
+          src = src_loader;
+          loaded_from = "[src string]";
+        }
+        else if (path in __oni_rt.modsrc) {
+          // a built-in module
+          loaded_from = "[builtin]";
+          src = __oni_rt.modsrc[path];
+          delete __oni_rt.modsrc[path];
+          // xxx support plain js modules for built-ins?
+        }
+        else {
+          ({src, loaded_from}) = src_loader(path);
+        }
+        var descriptor = {
+          id: path,
+          exports: {},
+          loaded_from: loaded_from,
+          loaded_by: parent,
+          required_by: {}
+        };
+        descriptor.require = makeRequire(descriptor);
 
-      if (opts.main) descriptor.require.main = descriptor;
-      exports.require.modules[path] = descriptor;
-      try {
-        compile(src, descriptor);
-        return descriptor;
-      } catch(e) {
-        delete exports.require.modules[path];
-        throw e;
+        if (opts.main) descriptor.require.main = descriptor;
+        exports.require.modules[path] = descriptor;
+        try {
+          compile(src, descriptor);
+          return descriptor;
+        } catch(e) {
+          delete exports.require.modules[path];
+          throw e;
+        } retract {
+          delete exports.require.modules[path];
+        }
+      } or {
+        waitfor () {
+          hold(0); // make sure pendingHook is set
+          pendingHook.resume = resume;
+        }
       }
     })();
   }
@@ -713,8 +722,10 @@ function default_loader(path, parent, src_loader, opts, spec) {
       descriptor = pendingHook.waitforValue();
     } retract {
       // if the final thread waiting on this module is retracted, propagate that
-      if (pendingHook.waiting() == 0)
-        pendingHook.abort();
+      if (pendingHook.waiting() == 0 && pendingHook.resume) {
+        pendingHook.resume();
+        pendingHook.value();
+      }
     }
     finally {
       // last one cleans up
