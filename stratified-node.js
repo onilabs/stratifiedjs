@@ -184,7 +184,7 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 
 
 
-},mapToJS:function(augment){
+},mapToJS:function(uncaught){
 if(this.type=="t"){
 
 throw this.val;
@@ -348,9 +348,6 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 
 
 }else if((val&&val.__oni_cfx)){
-
-
-
 
 
 val.mapToJS(true);
@@ -2226,9 +2223,6 @@ if((val&&val.__oni_cfx)&&(val.type!='t'||val.val instanceof Error)){
 
 
 
-
-
-
 setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 
@@ -2238,7 +2232,6 @@ setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 
 },0);
-
 }
 }else while(waitarr.length)cont(waitarr.shift(),val);
 

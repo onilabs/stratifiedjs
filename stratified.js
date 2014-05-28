@@ -193,7 +193,7 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 
 
 
-},mapToJS:function(augment){
+},mapToJS:function(uncaught){
 if(this.type=="t"){
 
 
@@ -202,27 +202,27 @@ if(this.type=="t"){
 
 
 
-if(augment&&this.val.__oni_stack){
-var val=this.val;
-var mes=val.toString();
-if(mes.length>230){
+if(uncaught&&this.val.__oni_stack){
+var handler=window.onerror;
+var handled=false;
+var msg=this.val.toString();
 
-mes=mes.replace(/at module ([^: ]|:[0-9]*\/)+\//gm,'at ');
-mes=mes.replace(/    /gm,'\t');
-mes=mes.substring(0,230);
+if(handler){
 
-var lb=mes.lastIndexOf('\n');
-if(lb>100){
-mes=mes.substring(0,lb);
-}
 
-mes+='\n    ...';
+handled=handler.call(window,msg,"",0,0,this.val);
+
+
+
+
 
 }
-var e=new Error(mes);
+if(!handled){
+if(console){
+if(console.error)console.error(msg);else console.log(msg);
 
-e.toString=function(){return val.toString()};
-throw e;
+}
+}
 }else throw this.val;
 
 
@@ -386,9 +386,6 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 
 
 }else if((val&&val.__oni_cfx)){
-
-
-
 
 
 val.mapToJS(true);
@@ -2276,9 +2273,6 @@ if((val&&val.__oni_cfx)&&(val.type!='t'||val.val instanceof Error)){
 
 
 
-
-
-
 setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 
@@ -2288,7 +2282,6 @@ setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 
 },0);
-
 }
 }else while(waitarr.length)cont(waitarr.shift(),val);
 

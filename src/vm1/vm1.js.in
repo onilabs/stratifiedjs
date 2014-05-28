@@ -177,36 +177,36 @@ CFException.prototype = {
     else
       return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
   },
-  mapToJS : function(augment) {
+  mapToJS : function(uncaught) {
     if (this.type == "t") {
 #if defined (CLIENTSIDE)
-      // 'augment' means that we should throw this as an exception whose 'message' is equal
-      // to its 'toString()' value. The only way to reliably do this is to create a new
-      // exception - manipulating 'message' has no effect for IE (up to at least version 10).
-      // Another complication is that some versions of Chrome (~v35 on windows) limit the number 
-      // of characters in the exception's message: If this is >~238 then the error will be 
-      // reported in the console as simply 'uncaught object' :(
-      if (augment && this.val.__oni_stack) {
-        var val = this.val;
-        var mes = val.toString();
-        if (mes.length > 230) {
-          // can't afford full module paths
-          mes = mes.replace(/at module ([^: ]|:[0-9]*\/)+\//gm, 'at ');
-          mes = mes.replace(/    /gm, '\t');
-          mes = mes.substring(0,230);
-          // try to cut off at a line break:
-          var lb = mes.lastIndexOf('\n');
-          if (lb>100) { // '100' because we always want *some* part of the message to be shown
-            mes = mes.substring(0,lb);
-          }
-          //give some indication that we cut off the message
-          mes += '\n    ...';
-            
+      // 'uncaught' means we know this exception won't be caught by SJS.
+      // We could throw a plain JS error, but browsers have terrible reporting.
+      // Instead, we emulate a good browser's onError handling, with full stack
+      // logging on an unhandled error.
+      // See https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers.onerror
+      // XXX is there anything browsers do internally to handle errors other than calling onerror?
+      if (uncaught && this.val.__oni_stack) {
+        var handler = window.onerror;
+        var handled = false;
+        var msg = this.val.toString();
+
+        if (handler) {
+          // we could probably extract a proper url & lineno here,
+          // but who cares when we have the entire stacktrace?
+          handled = handler.call(window,
+              msg,
+              "", // url
+              0,  // lineno
+              0,  // column
+              this.val); // exception
         }
-        var e = new Error(mes);
-        // if the browser does allow a custom toString, make sure it gets a good one:
-        e.toString = function() { return val.toString(); };
-        throw e;
+        if (!handled) {
+          if (console) {
+            if (console.error) console.error(msg);
+            else console.log(msg);
+          }
+        }
       }
       else
 #endif // CLIENTSIDE
@@ -378,9 +378,6 @@ var EF_Proto = {
       }
       else // noone waiting for result; make sure exceptions get reported
         if (is_cfx(val)) {
-          // Chrome's console exception reporting mechanism doesn't
-          // respect user-supplied toString. To get linenumbers we
-          // throw with an augmented message here:
           val.mapToJS(true);
         }
     }
@@ -2456,10 +2453,7 @@ function I_spawn(ndata, env) {
         // XXX unfortunately stray control flow exceptions, such as
         // e.g. returns from blocklambdas, will not have line numbers
         // attached. Maybe we shouldn't report them?
-
-        // Chrome's console exception reporting mechanism doesn't
-        // respect user-supplied toString. To get linenumbers we throw
-        // as an augmented message here.        
+        //
         // It is essential that we throw the exception *asynchronously*
         // when async = false. Otherwise it will end up at our
         // caller. For simplicity we always throw asynchronously:
@@ -2471,8 +2465,7 @@ function I_spawn(ndata, env) {
           // We want to prevent the exception feeding to the user twice in this case
           if (!picked_up)
             val.mapToJS(true); 
-        }, 
-                   0);
+        }, 0);
       }
     }
     else
