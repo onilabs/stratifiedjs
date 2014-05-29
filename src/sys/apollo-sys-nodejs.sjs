@@ -608,9 +608,9 @@ exports.runMainExpression = function(ef) {
     try {
       ef.wait();
     } catch(e) {
-      err = err.toString().replace(/^Error: Cannot load module/, "Error executing");
-      err = err.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
-      console.error(err.toString());
+      e = e.toString().replace(/^Error: Cannot load module/, "Error executing");
+      e = e.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
+      console.error(e.toString());
       process.exit(1);
     }
   } or {
