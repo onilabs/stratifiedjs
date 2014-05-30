@@ -596,11 +596,30 @@ exports.runMainExpression = function(ef) {
   // expression on process termination (exit or a fatal signal)
   if (!__oni_rt.is_ef(ef)) return ef; // fully synchronous, nothing to do
   var sig;
+
+  // On Windows, we add a dummy handler to SIGBREAK every time we remove
+  // a SIG* handler, otherwise libuv dies with an assertion the next time we
+  // remove one. We pick SIGBREAK because it's otherwise unused, and it
+  // has to be one of BREAK/HUP/INT.
+  // see https://github.com/joyent/node/issues/7701
+  var dummy_handler, noop;
+  if (process.platform === 'win32') {
+    noop = function() {};
+    dummy_handler = function() {
+      console.error('[SIGBREAK caught; killing process immediately due to libuv bug]');
+      process.exit(1);
+    };
+  }
+
   var await = function(evt) {
     waitfor() {
       process.on(evt, resume);
     } finally {
       process.removeListener(evt, resume);
+      if (dummy_handler && evt.lastIndexOf('SIG', 0) === 0) {
+        process.on("SIGBREAK", dummy_handler);
+        dummy_handler = noop;
+      }
     }
   };
 
