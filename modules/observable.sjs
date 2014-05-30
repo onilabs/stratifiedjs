@@ -72,9 +72,16 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @param {Object} [val] Value to set
   @summary Set a new observable value
   @desc
-    **Note:** If this ObservableVar is shared by multiple pieces of
+    **Notes:** 
+
+    - If this ObservableVar is shared by multiple pieces of
     code, it is typically better to use [::ObservableVar::modify], which
     will protect against concurrent modifications to the same object.
+
+    - ObservableVars are "debounced": `set(val)` will only cause the 
+    observable to emit a new value if `val` is not equal to the current 
+    observable value (under `===`).
+    
 
   @function ObservableVar.modify
   @summary Modify the current observable value
@@ -169,6 +176,7 @@ function ObservableVar(val) {
   });
 
   rv.set = function(v) {
+    if (val === v) return;
     val = v;
     change.emit(++rev);
   };
@@ -297,13 +305,19 @@ function observe(/* var1, ...*/) {
           var first = true;
           deps[i] .. each {
             |x|
-            inputs[i] = x;
             if (first) {
               ++primed;
               first = false;
             }
-            else
+            else if (inputs[i] === x) { 
+              // "well-behaving" observables should never emit duplicate values,
+              // but let's be lenient in what we accept
+              continue; 
+            }
+            else {
               ++rev;
+            }
+            inputs[i] = x;
             change.emit();
           }
         },
