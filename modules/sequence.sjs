@@ -41,7 +41,7 @@
 */
 
 var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
-var { waitforAll, Queue, Semaphore } = require('./cutil');
+var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
 var sys = require('builtin:apollo-sys');
 
 // identity function:
@@ -2259,3 +2259,109 @@ each.track = function(seq, r) {
   }
 };
 
+/**
+   @function mirror
+   @param {::Stream} [stream] Source stream
+   @param {optional Boolean} [latest=true] Whether to emit the most recent value
+   @return {::Stream}
+   @desc
+     {::Stream}s generate items on-demand. Depending on the type of stream,
+     iterating over a stream `n` times concurrently will generally cause its
+     elements to be recalculated `n` times.
+
+     Nost of the time, this is not a problem - if you're iterating over
+     a result multiple times you'll typically convert it to an array
+     (with [::toArray]) to ensure repeatability.
+
+     But for time-varying streams whose items are:
+
+      - ephemeral (e.g an event stream), or
+      - expensive to iterate over multiple times (e.g a remote stream)
+
+     you can use [::mirror] to generate a single [::Stream] which can be iterated
+     over by multiple consumers concurrently, but which will only cause at most a
+     single iteration over the source stream (for as long as there is at least one
+     consumer of the resulting stream).
+
+     **Note**: `mirror` is intended for time-varying data. When you start
+     iterating over the result, you will receive:
+
+      - the most recent value (if one has been seen, and only if `latest` is true)
+      - all future values
+
+     `mirror` will _not_ store or emit vaues that occurred in the past,
+     aside from the most recently seen value (which will only be set
+     if another consumer is concurrently iterating over the output Stream).
+*/
+var cutil = require('./cutil');
+exports.mirror = function(stream, latest) {
+  var emitter = Object.create(_Waitable); emitter.init();
+  var EOF = cutil.Condition();
+  var None = {};
+  var current = None;
+
+  var loop = null;
+  var abort = null;
+
+  var listeners=0;
+
+  return Stream(function(emit) {
+    var v = None;
+    if ((listeners++) === 0) {
+      // start the loop
+      loop = spawn(function() {
+        waitfor {
+          stream .. each {|item|
+            current = item;
+            emitter.emit(item);
+          }
+        } or {
+          waitfor() {
+            abort = resume;
+          }
+        }
+        abort = null;
+      }());
+    }
+
+    var catchupLoop = function() {
+      if (latest === false) return;
+      while (v !== current) {
+        v = current;
+        emit(v);
+      }
+    };
+
+    try {
+      waitfor {
+        if(latest !== false) catchupLoop();
+        while(true) {
+          waitfor {
+            v = emitter.wait();
+          } or {
+            EOF.wait();
+            v = EOF;
+          }
+          if(v === EOF) break;
+          hold(0); // XXX stop break from killing the emitter
+          emit(v);
+          catchupLoop();
+          if (v === EOF) break;
+        }
+      } or {
+        loop.value();
+        EOF.set();
+        hold();
+      }
+    } finally {
+      if (--listeners === 0) {
+        // last one out: stop the loop
+        if (abort) spawn(abort());
+        current = None;
+        loop = null;
+        abort = null;
+        EOF.clear();
+      }
+    }
+  });
+};

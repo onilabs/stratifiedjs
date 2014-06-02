@@ -5,6 +5,7 @@ var {test, context, assert} = require('sjs:test/suite');
 
 @ = require('sjs:test/std');
 var s = require("sjs:sequence");
+var seq = s;
 var { eq } = require('sjs:compare');
 var {Quasi} = require("sjs:quasi");
 var toArray = s.toArray;
@@ -930,4 +931,175 @@ context("pack") {||
     [1,2,3,4,5] .. s.pack({count: 3, packing_func:next -> [next(),next()], pad:'pad'}) .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
   }
 
+}
+
+context("mirror") {||
+  context {||
+    test.beforeEach {|s|
+      s.log = [];
+      var upstream = @integers(1) .. @transform(function(i) {
+        hold(10);
+        s.log.push(i);
+        return i;
+      });
+      s.mirror = upstream .. @mirror();
+    }
+
+    test("single consumer") {|s|
+      s.mirror .. @each {|i|
+        if (i === 3) break;
+      }
+      hold(50);
+      s.log .. @assert.eq([1,2,3]);
+    }
+
+    test("multiple consumers") {|s|
+      waitfor {
+        var seena = [];
+        s.mirror .. @each {|i|
+          //console.log("A: seen " + i);
+          seena.push(i);
+          if (i === 3) {
+            //console.log("BREAK a");
+            break;
+          }
+        }
+      } and {
+        var seenb = [];
+        s.mirror .. @each {|i|
+          //console.log("B: seen " + i);
+          seenb.push(i);
+          if (i === 6) {
+            //console.log("BREAK b");
+            break;
+          }
+        }
+      }
+      hold(50);
+      seena .. @assert.eq([1,2,3]);
+      seenb .. @assert.eq([1,2,3,4,5,6]);
+      s.log .. @assert.eq([1,2,3,4,5,6]);
+    }
+
+    test("non-overlapping consumers cause restart") {|s|
+      var seena = [];
+      var seenb = [];
+
+      s.mirror .. @each {|i|
+        seena.push(i);
+        if (i === 2) break;
+      }
+      hold(0);
+      s.mirror .. @each {|i|
+        seenb.push(i);
+        if (i === 4) break;
+      }
+      hold(50);
+      s.log .. @assert.eq([1,2,1,2,3,4]);
+      seena .. @assert.eq([1,2]);
+      seenb .. @assert.eq([1,2,3,4]);
+    }
+
+    test("non-overlapping (but contiguous) consumers cause restart") {|s|
+      var seena = [];
+      var seenb = [];
+
+      s.mirror .. @each {|i|
+        seena.push(i);
+        if (i === 2) break;
+      }
+      s.mirror .. @each {|i|
+        seenb.push(i);
+        if (i === 4) break;
+      }
+      s.log .. @assert.eq([1,2,1,2,3,4]);
+      seena .. @assert.eq([1,2]);
+      seenb .. @assert.eq([1,2,3,4]);
+    }
+  }
+
+  context("on slow emitter") {|s|
+    test.beforeEach {|s|
+      s.log = [];
+      s.upstream = @Stream(function(e) {
+        hold(100);
+        s.log.push(1);
+        e(1);
+        hold(100);
+        s.log.push(2)
+        e(2);
+      });
+    }
+
+    test("subsequent consumers are given the most recent value if latest=true") {|s|
+      var ready = @Condition();
+      var mirror = s.upstream .. @mirror;
+      waitfor {
+        mirror .. @each {|item|
+          ready.set();
+        }
+      } and {
+        ready.wait();
+        @assert.atomic {||
+          mirror .. @first .. @assert.eq(1);
+        }
+      }
+    }
+
+    test("slow consumers are given the most recent value if latest=true") {|s|
+      var log = [];
+      var mirror = s.upstream .. @mirror;
+      mirror .. @each {|item|
+        log.push(item);
+        hold(300);
+      }
+      log .. @assert.eq([1,2]);
+      s.log .. @assert.eq([1,2]);
+    }
+
+    test("subsequent consumers dont get the latest value if latest=false") {|s|
+      var ready = @Condition();
+      var mirror = s.upstream .. @mirror(false);
+      waitfor {
+        mirror .. @each {|item|
+          ready.set();
+        }
+      } and {
+        ready.wait();
+        @assert.suspends {||
+          mirror .. @first .. @assert.eq(2);
+        }
+      }
+    }
+
+    test("slow consumers are not given the most recent value if latest=false") {|s|
+      var log = [];
+      var mirror = s.upstream .. @mirror(false);
+      mirror .. @each {|item|
+        log.push(item);
+        hold(300);
+      }
+      log .. @assert.eq([1]);
+      s.log .. @assert.eq([1,2]);
+    }
+
+  }
+
+  test("retraction is honoured") {|s|
+    var log = [];
+    var stream = @Stream(function(emit) {
+      try {
+        hold(100);
+        log.push(1);
+        emit(1);
+        hold();
+      } retract {
+        hold(10);
+        log.push('retract');
+      }
+    });
+    stream .. @mirror() .. @first .. @assert.eq(1);
+    hold(50);
+    log .. @assert.eq([1,'retract']);
+  }
 }
