@@ -105,12 +105,14 @@ exports.AssertionError.prototype.__assertion_error = true;
   @summary Assert that the argument is truthy
   @param [arg]
   @param {optional String|quasi::Quasi} [desc] Description to add to the error message on failure.
+  @return `arg`
 
   @function truthy
   @summary Alias for [::ok]
 */
 exports.ok = exports.truthy = function(val, desc) {
   if (!val) throw new AssertionError("Not OK: #{val}", desc);
+  return val;
 }
 
 /**
@@ -118,12 +120,14 @@ exports.ok = exports.truthy = function(val, desc) {
   @summary Assert that the argument is falsy
   @param [arg]
   @param {optional String|quasi::Quasi} [desc] Description to add to the error message on failure.
+  @return `arg`
 
   @function falsy
   @summary Alias for [::notOk]
 */
 exports.notOk = exports.falsy = function(val, desc) {
   if (val) throw new AssertionError("Not falsey: #{val}", desc);
+  return val;
 }
 
 /**
@@ -376,6 +380,30 @@ exports.atomic = function(desc /* (optional) */, fn) {
   } or {
     throw new AssertionError("Function is not atomic", desc);
   }
+}
+
+/**
+  @function suspends
+  @summary Assert that `fn()` suspends before completing (opposite of [::atomic])
+  @param {optional String|quasi::Quasi} [desc] Descriptive text to include in the error message
+  @param {Function} [fn]
+*/
+exports.suspends = function(desc /* (optional) */, fn) {
+  if (arguments.length == 1) {
+    fn = desc;
+    desc = undefined;
+  }
+  var suspended = false;
+  var rv;
+  waitfor {
+    rv = fn();
+  } or {
+    suspended=true;
+  }
+  if (!suspended) {
+    throw new AssertionError("Function did not suspend", desc);
+  }
+  return rv;
 }
 
 /**

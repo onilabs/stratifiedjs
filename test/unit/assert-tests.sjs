@@ -447,6 +447,26 @@ context("atomic") {||
   }
 }
 
+context("suspends") {||
+  test("succeeds for a suspending function") {||
+    var fn = function() {
+      hold(0);
+      return null;
+    }
+    assert.suspends("desc", fn);
+    assert.suspends(fn);
+  }
+
+  test("fails for an atomic function") {||
+    var fn = function() {
+      return null;
+    }
+
+    assert.raises({message: "Function did not suspend (desc)"}, -> assert.suspends("desc", fn));
+    assert.raises({message: "Function did not suspend"}, -> assert.suspends(fn));
+  }
+}
+
 context("type checking") { ||
   test('by type name') {||
     assert.string("foo");

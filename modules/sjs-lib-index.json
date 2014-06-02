@@ -246,6 +246,9 @@
         "atomic": {
           "type": "function"
         },
+        "suspends": {
+          "type": "function"
+        },
         "is": {
           "type": "function"
         },
