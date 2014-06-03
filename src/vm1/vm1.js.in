@@ -1843,8 +1843,11 @@ EF_Par.prototype.cont = function(idx, val) {
       // returning from a suspension
       --this.pending;
       this.children[idx] = UNDEF;
-      if (is_cfx(val) && !this.aborted) {
-        // an exception aborts all other pending branches:
+      if (is_cfx(val) && !this.aborted && 
+          !(val.type === 'blb' && val.ef === this.env.blscope)) {
+        // an exception aborts all other pending branches: (but only
+        // if it is not a blb break targetted at us - this can happen
+        // when a break is tail-called)
         this.pendingCFE = val;
         this.quench();
         return this.returnToParent(this.abortInner());

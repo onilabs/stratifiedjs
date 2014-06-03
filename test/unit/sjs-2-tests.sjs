@@ -1020,3 +1020,17 @@ test("reentrant abort/break edge case with async try/catch, late pickup",
     
      makeAbortBreakTest(true, true));
 
+test('tailcalled blocklambda break / par edge case', 'b', 
+     function() {
+       var rv = '';
+       waitfor {
+         // this `break` should only abort the blocklambda. it
+         // erroneously used to abort the waitfor/and
+         ({|| hold(0); break; rv += 'a';})();
+       }
+       and {
+         hold(10);
+         rv += 'b';
+       }
+       return rv;
+     });

@@ -1707,7 +1707,10 @@ return this.abortInner();
 
 --this.pending;
 this.children[idx]=UNDEF;
-if((val&&val.__oni_cfx)&&!this.aborted){
+if((val&&val.__oni_cfx)&&!this.aborted&&!(val.type==='blb'&&val.ef===this.env.blscope)){
+
+
+
 
 this.pendingCFE=val;
 this.quench();
