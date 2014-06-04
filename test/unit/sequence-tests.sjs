@@ -1016,6 +1016,50 @@ context("mirror") {||
       seena .. @assert.eq([1,2]);
       seenb .. @assert.eq([1,2,3,4]);
     }
+
+    test("beginning iteration as previous iteration is aborting") {|s|
+      var stream = @Stream(function(emit) {
+        s.log.push("start");
+        try {
+          emit(1);
+          hold(100);
+          emit(2);
+        } retract {
+          s.log.push("retract");
+          hold(10);
+          s.log.push("retracted");
+        }
+      });
+
+      s.mirror = stream .. @mirror;
+      s.mirror .. @each {|i|
+        s.log.push(i);
+        break;
+      }
+      // this itaration should wait for the previous iteration to be cleaned up before iterating
+      s.mirror .. @each {|i|
+        s.log.push(i);
+        break;
+      }
+
+      // XXX we would prefer:
+      //s.log .. @assert.eq([
+      //  'start', 1, 'retract', 'retracted',
+      //  'start', 1, 'retract', 'retracted'
+      //]);
+
+      // but the current behaviour is:
+      s.log .. @assert.eq([
+        'start', 1, 'retract',
+        'start', 1, 'retract',
+      ]);
+      s.log = [];
+      hold(30);
+      s.log .. @assert.eq([
+        'retracted',
+        'retracted',
+      ]);
+    }
   }
 
   context("on slow emitter") {|s|
