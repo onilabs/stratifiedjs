@@ -332,12 +332,12 @@ if(this.child_frame)this.child_frame.quench();
 
 },abort:function(){
 
+this.aborted=true;
+
+
+
 if(!this.child_frame){
 
-
-
-
-this.aborted=true;
 return this;
 }else return this.child_frame.abort();
 

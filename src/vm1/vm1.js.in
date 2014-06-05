@@ -323,11 +323,11 @@ var EF_Proto = {
   },
 
   abort: function() {
+    this.aborted = true;
     // see sjs-2-test 'reentrant quench/abort' for why we need to
     // check for 'this.child_frame' here and in 'quench'
     if (!this.child_frame) {
       // reentrant abortion
-      this.aborted = true;
       return this;
     }
     else

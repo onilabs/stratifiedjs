@@ -1701,6 +1701,9 @@
         },
         "each.track": {
           "type": "function"
+        },
+        "mirror": {
+          "type": "function"
         }
       },
       "summary": "Constructs for manipulating sequence structures (arrays, strings and more general streams)"

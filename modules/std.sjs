@@ -228,6 +228,7 @@ module.exports = require(modules);
    - **join**: (function [sjs:sequence::join])
    - **map**: (function [sjs:sequence::map])
    - **map.par**: (function [sjs:sequence::map.par])
+   - **mirror**: (function [sjs:sequence::mirror])
    - **monitor**: (function [sjs:sequence::monitor])
    - **pack**: (function [sjs:sequence::pack])
    - **partition**: (function [sjs:sequence::partition])

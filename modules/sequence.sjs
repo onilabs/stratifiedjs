@@ -2343,7 +2343,6 @@ exports.mirror = function(stream, latest) {
             v = EOF;
           }
           if(v === EOF) break;
-          hold(0); // XXX stop break from killing the emitter
           emit(v);
           catchupLoop();
           if (v === EOF) break;
