@@ -1075,11 +1075,17 @@ context("mirror") {||
       });
     }
 
-    test("subsequent consumers are given the most recent value if latest=true") {|s|
+/**
+   XXX This is difficult to code (needs an 
+   ObservableVar and an 'updater' stratum running 
+   in the background), but is there actually a use case for this?
+
+
+    test("subsequent consumers are given the most recent value") {|s|
       var ready = @Condition();
       var mirror = s.upstream .. @mirror;
-      waitfor {
-        mirror .. @each {|item|
+      waitfor { 
+       mirror .. @each {|item|
           ready.set();
         }
       } and {
@@ -1089,10 +1095,11 @@ context("mirror") {||
         }
       }
     }
+*/
 
-    test("slow consumers are given the most recent value if latest=true") {|s|
+    test("slow consumers are given the most recent value with tailbuffer") {|s|
       var log = [];
-      var mirror = s.upstream .. @mirror;
+      var mirror = s.upstream .. @mirror .. @tailbuffer(1);
       mirror .. @each {|item|
         log.push(item);
         hold(300);
@@ -1101,9 +1108,9 @@ context("mirror") {||
       s.log .. @assert.eq([1,2]);
     }
 
-    test("subsequent consumers dont get the latest value if latest=false") {|s|
+    test("subsequent consumers dont get the latest value") {|s|
       var ready = @Condition();
-      var mirror = s.upstream .. @mirror(false);
+      var mirror = s.upstream .. @mirror();
       waitfor {
         mirror .. @each {|item|
           ready.set();
@@ -1116,9 +1123,9 @@ context("mirror") {||
       }
     }
 
-    test("slow consumers are not given the most recent value if latest=false") {|s|
+    test("slow consumers are not given the most recent value") {|s|
       var log = [];
-      var mirror = s.upstream .. @mirror(false);
+      var mirror = s.upstream .. @mirror();
       mirror .. @each {|item|
         log.push(item);
         hold(300);
