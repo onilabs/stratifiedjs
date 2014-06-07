@@ -2204,6 +2204,17 @@ this.notifyVal(val);
 }
 };
 
+EF_Spawn.prototype.abort=function(){this.aborted=true;
+
+if(this.child_frame){
+var val=this.child_frame.abort();
+if(is_ef(val)){
+this.notifyAsync();
+this.setChildFrame(val,1);
+}
+}
+};
+
 function EF_SpawnWaitFrame(waitarr){this.waitarr=waitarr;
 
 waitarr.push(this);
