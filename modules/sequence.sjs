@@ -2265,11 +2265,11 @@ each.track = function(seq, r) {
    @param {optional Boolean} [latest=true] Whether to emit the most recent value
    @return {::Stream}
    @desc
-     {::Stream}s generate items on-demand. Depending on the type of stream,
+     [::Stream]s generate items on-demand. Depending on the type of stream,
      iterating over a stream `n` times concurrently will generally cause its
      elements to be recalculated `n` times.
 
-     Nost of the time, this is not a problem - if you're iterating over
+     Most of the time, this is not a problem - if you're iterating over
      a result multiple times you'll typically convert it to an array
      (with [::toArray]) to ensure repeatability.
 
