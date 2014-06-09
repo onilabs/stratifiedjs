@@ -224,6 +224,7 @@ exports.parseModuleDocs = function(src, module) {
     case "syntax":
     case "feature":
     case "constructor":
+    case "directive":
       // append to existing symbol for a dotted name
       var matches = /(.+)\.([^.]+)/.exec(value);
       // class member?
