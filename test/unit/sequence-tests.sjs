@@ -1146,4 +1146,24 @@ context("mirror") {||
     hold(50);
     log .. @assert.eq([1,'retract']);
   }
+
+  test("exceptions are propagated") {|s|
+    var log = [];
+    var stream = @Stream(function(emit) {
+      emit(1);
+      hold(100);
+      throw new Error("stream failed");
+    });
+
+    var s = stream .. @mirror();
+    try {
+      s .. @each {|item|
+        log.push(item);
+      }
+    } catch(e) {
+      log.push("ERROR: " + e.message);
+    }
+
+    log .. @assert.eq([1, 'ERROR: stream failed']);
+  }
 }

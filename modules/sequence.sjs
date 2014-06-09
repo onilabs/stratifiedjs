@@ -2293,73 +2293,53 @@ each.track = function(seq, r) {
      aside from the most recently seen value (which will only be set
      if another consumer is concurrently iterating over the output Stream).
 */
-var cutil = require('./cutil');
 exports.mirror = function(stream, latest) {
   var emitter = Object.create(_Waitable); emitter.init();
-  var EOF = cutil.Condition();
+  var listeners = 0;
+  var done = false;
   var None = {};
   var current = None;
-
-  var loop = null;
-  var abort = null;
-
-  var listeners=0;
+  var loop;
 
   return Stream(function(emit) {
     var v = None;
-    if ((listeners++) === 0) {
-      // start the loop
-      loop = spawn(function() {
-        waitfor {
-          stream .. each {|item|
-            current = item;
-            emitter.emit(item);
-          }
-        } or {
-          waitfor() {
-            abort = resume;
-          }
-        }
-        abort = null;
-      }());
-    }
-
-    var catchupLoop = function() {
-      if (latest === false) return;
+    var catchupLoop = latest === false ? (->null) : function() {
       while (v !== current) {
         v = current;
         emit(v);
       }
     };
 
-    try {
-      waitfor {
-        if(latest !== false) catchupLoop();
-        while(true) {
-          waitfor {
-            v = emitter.wait();
-          } or {
-            EOF.wait();
-            v = EOF;
-          }
-          if(v === EOF) break;
-          emit(v);
-          catchupLoop();
-          if (v === EOF) break;
-        }
-      } or {
-        loop.value();
-        EOF.set();
-        hold();
+    waitfor {
+      ++listeners;
+      catchupLoop();
+      while(true) {
+        v = emitter.wait();
+        if (done) return;
+        emit(v);
+        catchupLoop();
+        if (done) return;
       }
+    } and {
+      if (listeners === 1) {
+        // start the loop
+        loop = spawn(function() {
+          stream .. each {|item|
+            current = item;
+            emitter.emit(item);
+          }
+          done = true;
+          emitter.emit(current);
+        }());
+      }
+    } and {
+      loop.value();
     } finally {
       if (--listeners === 0) {
         // last one out: stop the loop
-        if (abort) spawn(abort());
+        loop.abort();
         current = None;
-        loop = null;
-        abort = null;
-        EOF.clear();
+        done = false;
       }
     }
   });
