@@ -309,11 +309,6 @@ function observe(/* var1, ...*/) {
               ++primed;
               first = false;
             }
-            else if (inputs[i] === x) { 
-              // "well-behaving" observables should never emit duplicate values,
-              // but let's be lenient in what we accept
-              continue; 
-            }
             else {
               ++rev;
             }
