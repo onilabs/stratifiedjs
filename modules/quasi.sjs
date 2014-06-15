@@ -195,7 +195,7 @@ exports.mapQuasi = mapQuasi;
    @summary Wrap a value in a quasi if it is not already one.
    @desc
      If `val` is not a quasi, it is wrapped as an interpolated value,
-     i.e `\`${val}\``.
+     i.e \`${val}\`.
 
 */
 exports.toQuasi = function(val) {
