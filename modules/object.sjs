@@ -365,7 +365,7 @@ __js exports.clone = function(obj) {
    @function override
    @altsyntax dest .. override(source*)
    @param {Object} [dest] Destination Object
-   @param {Object|Array} [source*] Source Object(s) or Array(s) of Objects
+   @param {Object|Array|undefined} [source*] Source Object(s) or Array(s) of Objects
    @return {Object} `dest` object
    @summary Override properties of `dest` with properties from the given source object(s)
    @desc
@@ -377,17 +377,34 @@ __js exports.clone = function(obj) {
         properties appearing in objects to the left.
       * `source` parameters can be arbitrarily nested arrays of objects. These will be 
         flattend before the objects contained in them will be applied to `dest`.
+      * `source` is allowed to contain undefined or null values, which will be ignored. 
+        This is to support the following pattern, where `settings` is an optional parameter:
+
+            function foo(x, y, z, settings) {
+              settings = { setting1: some_default_val_1,
+                           setting2: some_default_val_2
+                         } .. @override(settings);
+              ...
+            }
 */
-exports.override = function(/*dest, source...*/) {
+__js exports.override = function(/*dest, source...*/) {
   var dest = arguments[0];
   var sources = flatten(Array.prototype.slice.call(arguments, 1));
+  // strip out undefined sources:
+  for (var h = sources.length-1; h>=0; --h) {
+    if (sources[h] == null)
+      sources.splice(h, 1);
+  }
   var hl = sources.length;
-  for (var o in dest) {
-    for (var h=hl-1; h>=0; --h) {
-      var source = sources[h];
-      if (o in source) {
-        dest[o] = source[o];
-        break;
+  if (hl) {
+    // copy values:
+    for (var o in dest) {
+      for (var h=hl-1; h>=0; --h) {
+        var source = sources[h];
+        if (o in source) {
+          dest[o] = source[o];
+          break;
+        }
       }
     }
   }

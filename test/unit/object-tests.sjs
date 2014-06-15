@@ -137,3 +137,13 @@ context {||
     testEq("set root", 'alice', -> {parent: {name: 'bob'}} .. o.setPath('', 'alice'))
   }
 }
+
+context("override") {||
+  testEq("simple", {a:1, b:2, c:3}, -> {a:1, b:'nope', c:'nope'} .. o.override({b:2, c:3, d:4}));
+  testEq("undefined", {a:1, b:2, c:3}, -> {a:1, b:2, c:3} .. o.override(undefined)); 
+  testEq("multiple undefined", {a:1, b:2, c:3}, -> {a:1, b:2, c:3} .. o.override(undefined, undefined, undefined));
+  testEq("mixed arglist", {a:1, b:2, c:3}, -> {a:1, b:'nope', c:'nope'} .. o.override(undefined, {b:2, c:'nope2'}, {c:3, d:'nope'})); 
+  testEq("mixed array", {a:1, b:2, c:3}, -> {a:1, b:'nope', c:'nope'} .. o.override([undefined, {b:2, c:'nope2'}, {c:3, d:'nope'}])); 
+  testEq("mixed nested array", {a:1, b:2, c:3}, -> {a:1, b:'nope', c:'nope'} .. o.override([[undefined], [[{b:2, c:'nope2'}, {c:3, d:'nope'}]]])); 
+ 
+}
