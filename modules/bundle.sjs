@@ -106,7 +106,7 @@ var logging = require('sjs:logging');
 var { isArrayLike } = require('builtin:apollo-sys');
 
 var stringToPrefixRe = function(s) {
-  if (str.isString(s)) return new Regexp('^' + regexp.escape(s));
+  if (str.isString(s)) return new RegExp('^' + regexp.escape(s));
   else return s;
 };
 
