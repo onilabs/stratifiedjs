@@ -245,11 +245,7 @@ exports.keys = keys;
 
        See also [::keys].
 */
-function ownKeys(obj) {
-  return Stream(function(r) { for (var p in obj) { if (hasOwnProperty.call(obj, p)) r(p) } });
-}
-exports.ownKeys = ownKeys;
-
+var ownKeys = exports.ownKeys = Object.keys;
 
 /**
   @function values
