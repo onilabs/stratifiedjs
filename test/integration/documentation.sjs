@@ -5,7 +5,7 @@ exports.testLibrary = function(hub) {
 
     var seq = require('sjs:sequence');
     var sys = require('builtin:apollo-sys');
-    var {ownKeys} = require('sjs:object');
+    var {get, ownKeys, ownPropertyPairs} = require('sjs:object');
     var string = require('sjs:string');
     var array = require('sjs:array');
     var {toArray, each, map, filter, find, sort, join, hasElem} = seq;
@@ -71,7 +71,7 @@ exports.testLibrary = function(hub) {
           var moduleDoc = docutil.parseModuleDocs(moduleSrc);
 
           var topLevel = sym -> !string.contains(sym, '.');
-          var documentedSymbols = moduleDoc.symbols .. ownKeys .. filter(topLevel) .. sort;
+          var documentedSymbols = moduleDoc .. get('children') .. ownKeys .. filter(topLevel) .. sort;
 
           var home = hub + fullPath.slice(moduleRoot.length).replace(/\.sjs$/,'').replace(/\\/g,'/');
 
@@ -91,9 +91,14 @@ exports.testLibrary = function(hub) {
                 }
               } else {
                 test("documents only exported symbols") {|s|
-                  logging.info("documentedSymbols = #{documentedSymbols..join(",")}");
+                  // filter out symbols that are specifically unavailable in this hostenv
+                  var hostenvSymbols = documentedSymbols .. filter(k -> moduleDoc.children.hostenv !== 'xbrowser') .. toArray;
+                  logging.info("documentedSymbols = #{hostenvSymbols..join(",")}");
                   logging.info("moduleExports = #{moduleExports..join(",")}");
-                  documentedSymbols .. array.difference(moduleExports) .. assert.eq([]);
+                  hostenvSymbols .. array.difference(moduleExports) .. assert.eq([]);
+                }
+                test("documents at least one symbol") {|s|
+                  assert.ok(documentedSymbols.length > 0);
                 }
 
                 //TODO?
@@ -113,7 +118,7 @@ exports.testLibrary = function(hub) {
             test("documentation is valid") {|s|
               logging.info("documented exports: #{documentedSymbols .. join(", ")}");
               documentedSymbols .. each {|sym|
-                var symdoc = moduleDoc.symbols[sym];
+                var symdoc = moduleDoc.children[sym];
 
                 assert.ok(/^[a-zA-Z][_a-zA-Z0-9]*$/.test(sym), "Invalid symbol: #{sym}");
                 assert.ok(symdoc.summary, "missing summary for #{sym}");
