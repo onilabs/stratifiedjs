@@ -3,6 +3,7 @@ var {context, test, assert} = require("sjs:test/suite");
 exports.testLibrary = function(hub) {
   context {|| // serverOnly
 
+    @regexp = require('sjs:regexp');
     var seq = require('sjs:sequence');
     var sys = require('builtin:apollo-sys');
     var {get, ownKeys, ownPropertyPairs} = require('sjs:object');
@@ -131,6 +132,15 @@ exports.testLibrary = function(hub) {
                       'desc',
                       'hostenv',
                 ];
+
+                symdoc .. ownPropertyPairs .. each {|[key, value]|
+                  if (!string.isString(value)) continue;
+                  var mistakenReferences = value .. @regexp.matches(/\{[^}]*::.*}/g) .. toArray;
+                  if (mistakenReferences.length > 0) {
+                    assert.fail("Mistaken references in #{sym}@#{key}?\n    #{mistakenReferences .. join("\n    ")}\n(use `[]`, not `{}`)");
+                  }
+                };
+
                 switch(symdoc.type) {
                   case 'function':
                     if (symdoc.param) {
