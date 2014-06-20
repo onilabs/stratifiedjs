@@ -95,7 +95,7 @@
 */
 
 var { Quasi, isQuasi } = require('builtin:apollo-sys');
-var { reduce } = require('sjs:sequence');
+var { join } = require('sjs:sequence');
 
 /**
    @function isQuasi
@@ -138,26 +138,7 @@ exports.Quasi = Quasi;
          `a${b}cd${e}f${g}h`
 
 */
-function joinQuasis(/*arguments*/) {
-  var quasis = arguments.length == 1 ? arguments[0] : arguments;
-  return quasis ..
-    reduce(Quasi([]), function(accu, quasi) {
-      var l = accu.parts.length;
-      if (l%2) {
-        // last part of accu is a literal string
-        var end = accu.parts.pop();
-        if (!quasi.parts.length) quasi.parts.push('');
-        accu.parts = accu.parts.concat(quasi.parts);
-        accu.parts[l-1] = end + accu.parts[l-1];
-      }
-      else {
-        // last part of accu is an interpolated value
-        accu.parts = accu.parts.concat(quasi.parts);
-      }
-      return accu;
-    });
-}
-exports.joinQuasis = joinQuasis;
+exports.joinQuasis = join._joinQuasis;
 
 /**
    @function mapQuasi

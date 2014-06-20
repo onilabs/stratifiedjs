@@ -615,11 +615,15 @@ var padEnd = function(seq, padding) {
    @function join
    @altsyntax sequence .. join(separator)
    @param {::Sequence} [sequence] Input sequence
-   @param {optional String|Buffer} [separator='']
-   @return {String|Buffer}
+   @param {optional String|Buffer|quasi::Quasi} [separator='']
+   @return {String|Buffer|quasi::Quasi}
    @summary Joins all elements of the sequence with the given separator
    @desc
      By default, all elements in `sequence` are coerced into a String.
+
+     If the separator is a [quasi::Quasi], then all elements in
+     `sequence` are coerced into quasis using [quasi::toQuasi], and
+     the sequence with interspersed separators will be joined using [quasi::joinQuasis].
 
      If the first element of `sequence` is a nodejs Buffer, then
      all items will be joined into a single Buffer (not a String). In this case,
@@ -628,8 +632,7 @@ var padEnd = function(seq, padding) {
 function join(sequence, separator) {
   separator = separator || '';
   if (separator .. isQuasi) {
-    var quasi = require('./quasi');
-    return sequence .. transform(quasi.toQuasi) .. intersperse(separator) .. quasi.joinQuasis;
+    return sequence .. transform(x -> isQuasi(x) ? x : `$x`) .. intersperse(separator) .. join._joinQuasis;
   }
   var arr = sequence .. toArray;
   if (arr.length == 0) return '';
@@ -641,6 +644,30 @@ function join(sequence, separator) {
   return arr.join(separator);
 }
 exports.join = join;
+
+// helper for joining quasis (exposed in quasi.sjs module as 'joinQuasis'):
+// this is here and not in quasi.sjs, so that we don't need a 
+// lazy (or cyclic) import
+join._joinQuasis = function(/*arguments*/) {
+  var quasis = arguments.length == 1 ? arguments[0] : arguments;
+  return quasis ..
+    reduce(``, function(accu, quasi) {
+      var l = accu.parts.length;
+      if (l%2) {
+        // last part of accu is a literal string
+        var end = accu.parts.pop();
+        if (!quasi.parts.length) quasi.parts.push('');
+        accu.parts = accu.parts.concat(quasi.parts);
+        accu.parts[l-1] = end + accu.parts[l-1];
+      }
+      else {
+        // last part of accu is an interpolated value
+        accu.parts = accu.parts.concat(quasi.parts);
+      }
+      return accu;
+    });
+};
+
 
 /**
    @function sort
