@@ -440,7 +440,7 @@ exports.contents = function(bundle) {
     If `output` is given, the file will be written and the
     dependency information (as from [::findDependencies]) will be returned.
 
-    Otherwise, the resulting bundle wil be returned as a {sequence::Stream} of
+    Otherwise, the resulting bundle wil be returned as a [sequence::Stream] of
     (JavaScript) source code strings (as from [::generateBundle]).
 
     Run `sjs sjs:bundle --help` to see a full

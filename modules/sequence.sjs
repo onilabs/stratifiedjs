@@ -2262,6 +2262,7 @@ each.track = function(seq, r) {
 /**
    @function mirror
    @param {::Stream} [stream] Source stream
+   @summary Create a copy of `stream` for multiple concurrent iterators
    @param {optional Boolean} [latest=true] Whether to emit the most recent value
    @return {::Stream}
    @desc

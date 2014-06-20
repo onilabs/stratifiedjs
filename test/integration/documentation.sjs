@@ -56,13 +56,14 @@ exports.testLibrary = function(hub) {
         }
         var indexDoc = @docutil.parseSJSLibDocs(indexContents);
 
-        @zip(sjsFiles, modules) .. @each {|[filename, module]|
+        sjsFiles .. @each {|filename|
 
           var fullPath = @path.join(base, filename);
           var moduleSrc = @fs.readFile(fullPath).toString();
 
-          var relativePath = @path.relative(moduleRoot, @path.join(base, module));
-          testModule(moduleSrc, relativePath);
+          var module = filename .. removeSJS();
+          var modulePath = @path.relative(moduleRoot, @path.join(base, module)).replace(/\\/g,'/');
+          testModule(moduleSrc, modulePath);
         }
       }
     }
@@ -74,14 +75,14 @@ exports.testLibrary = function(hub) {
     var walk = function(root, emit) {
       var walkDir = function(node, prefix) {
         var children = node .. @get('children');
-        var expand = (f) -> "#{prefix}/#{f}";
+        var expand = (f) -> prefix+f;
         if(!prefix) expand = f -> f;
 
         var [dirs, files] = children .. @ownPropertyPairs
           .. @partition([k,v] -> k .. @endsWith('/'));
 
         emit([prefix, files..@map(fst)]);
-        dirs .. @each([key, child] -> walkDir(child, key));
+        dirs .. @each([key, child] -> walkDir(child, expand(key)));
       }
       walkDir(root, null);
     }
@@ -89,15 +90,23 @@ exports.testLibrary = function(hub) {
     walk(moduleIndex) {|item|
       var [dir, modules] = item;
       dirsFound++;
-      var sjsFiles = modules .. @map(appendSJS);
-      var ctx = (dir || hub) .. @strip('/');
-      ctx = ctx.replace(/^.*\//, '');
-      @context((dir || hub) .. @strip('/')) {||
-        @zip(sjsFiles, modules) .. @each {|[filename, module]|
-          var relativePath = (dir||'') + filename;
-          var relativeUrl = relativePath.split('/') .. @map(encodeURIComponent) .. @join('/');
-          var moduleSrc = @http.get([moduleRoot, relativeUrl, {format:"src"}]);
-          testModule(moduleSrc, relativePath);
+      //var sjsFiles = modules .. @map(appendSJS);
+      var ctx = dir ? dir .. @split('/') .. @at(-2) : undefined;
+      @context(ctx) {||
+        modules .. @each {|module|
+          var modulePath = (dir||'') + module;
+
+          var relativeUrl = modulePath.split('/') .. @map(encodeURIComponent) .. @join('/') .. appendSJS();
+
+          try {
+            var moduleSrc = @http.get([moduleRoot, relativeUrl, {format:"src"}]);
+          } catch(e) {
+            @test(modulePath) {||
+              @assert.fail(e);
+            }
+            continue;
+          }
+          testModule(moduleSrc, modulePath);
         }
       }
     }
@@ -107,15 +116,21 @@ exports.testLibrary = function(hub) {
     @assert.ok(dirsFound > 3, "only traversed #{dirsFound} dirs - is this check working?");
   }
 
-  function testModule(moduleSrc, relativePath) {
+  function testModule(moduleSrc, modulePath) {
     var moduleDoc = @docutil.parseModuleDocs(moduleSrc);
 
     var topLevel = sym -> !@contains(sym, '.');
-    var documentedSymbols = moduleDoc .. @get('children') .. @ownKeys .. @filter(topLevel) .. @sort;
+    var isMetadataModule = moduleDoc.type === 'doc';
 
-    var home = hub + relativePath.replace(/\.sjs$/,'').replace(/\\/g,'/');
+    var documentedSymbols = moduleDoc .. @get('children') .. @ownKeys;
+    if (!isMetadataModule) {
+      documentedSymbols = documentedSymbols .. @filter(topLevel);
+    }
+    documentedSymbols = documentedSymbols .. @sort;
 
-    var moduleTests = @context(relativePath) {||
+    var home = hub + modulePath;
+
+    var moduleTests = @context(modulePath) {||
       @context{||
         var err = null;
         var moduleExports;
@@ -133,7 +148,9 @@ exports.testLibrary = function(hub) {
           @test("documents only exported symbols") {|s|
             // filter out symbols that are specifically unavailable in this hostenv
             function shouldBeImportable(sym) {
-              var hostenv = moduleDoc.children[sym].hostenv;
+              var doc = moduleDoc.children[sym];
+              if (doc.type === 'class') return false; // classes aren't exported, only constructors
+              var hostenv = doc.hostenv;
               return (hostenv == null || hostenv === @sys.hostenv);
             }
 
@@ -142,16 +159,25 @@ exports.testLibrary = function(hub) {
             @info("moduleExports = #{moduleExports..@join(",")}");
             hostenvSymbols .. @difference(moduleExports) .. @assert.eq([]);
           }
+          .skipIf(isMetadataModule, 'metadata module')
+          .skipIf(modulePath .. @contains('doc-template'), 'whitelisted')
+          ;
+
           @test("documents at least one symbol") {|s|
+            @info('Docs:', moduleDoc);
             @assert.ok(documentedSymbols.length > 0);
           }
+          .skipIf(['module-guidelines', 'std', 'dom-shim'] .. @hasElem(modulePath .. @split('/') .. @at(-1)), 'whitelisted')
+          .skipIf(['app'] .. @hasElem(modulePath), 'whitelisted')
+          .skipIf(moduleDoc.executable, "executable module")
+          ;
 
           //TODO?
           //@test("documents all exported symbols") {|s|
           //  moduleExports .. @difference(documentedSymbols) .. @assert.eq([]);
-          //}.skipIf(['numeric',] .. @hasElem(relativePath), "whitelisted")
+          //}.skipIf(['numeric',] .. @hasElem(modulePath), "whitelisted")
         }
-      }.skipIf(moduleDoc.hostenv && moduleDoc.hostenv != @sys.hostenv, moduleDoc.hostenv)
+      }.skipIf(moduleDoc.hostenv && moduleDoc.hostenv !== @sys.hostenv, moduleDoc.hostenv)
 
       if (moduleDoc.home !== undefined) {
         // we just check for invalid home paths - missing ones are OK
@@ -161,11 +187,17 @@ exports.testLibrary = function(hub) {
       }
 
       @test("documentation is valid") {|s|
+        if (moduleDoc.hostenv) {
+          ['nodejs','xbrowser'] .. @assert.contains(moduleDoc.hostenv);
+        }
         @info("documented exports: #{documentedSymbols .. @join(", ")}");
         documentedSymbols .. @each {|sym|
           var symdoc = moduleDoc.children[sym];
 
-          @assert.ok(/^[a-zA-Z][_a-zA-Z0-9]*$/.test(sym), "Invalid symbol: #{sym}");
+          var metaTypes = ['syntax','feature','directive'];
+          if (!metaTypes .. @hasElem(symdoc.type)) {
+            @assert.ok(/^[a-zA-Z][._a-zA-Z0-9]*$/.test(sym), "Invalid symbol: #{sym}");
+          }
           @assert.ok(symdoc.summary, "missing summary for #{sym}");
 
           // general known keys across all symbols
@@ -176,14 +208,6 @@ exports.testLibrary = function(hub) {
                 'desc',
                 'hostenv',
           ];
-
-          symdoc .. @ownPropertyPairs .. @each {|[key, value]|
-            if (!@isString(value)) continue;
-            var mistakenReferences = value .. @regexp.matches(/\{[^}]*::.*}/g) .. @toArray;
-            if (mistakenReferences.length > 0) {
-              @assert.fail("Mistaken references in #{sym}@#{key}?\n    #{mistakenReferences .. @join("\n    ")}\n(use `[]`, not `{}`)");
-            }
-          };
 
           switch(symdoc.type) {
             case 'function':
@@ -210,6 +234,19 @@ exports.testLibrary = function(hub) {
               }
               break;
             case 'variable':
+              knownKeys = knownKeys.concat([
+                'valtype',
+              ]);
+              break;
+            case 'class':
+              knownKeys = knownKeys.concat([
+                'children',
+                'inherit',
+              ]);
+              break;
+            case 'syntax':
+            case 'feature':
+            case 'directive':
               break;
             default:
               @assert.fail("unknown type: #{symdoc.type}", sym);
@@ -217,18 +254,26 @@ exports.testLibrary = function(hub) {
           }
           var unknownKeys = symdoc .. @ownKeys .. @toArray .. @difference(knownKeys);
           @assert.eq(unknownKeys, [], "unknown function keys for #{sym}");
-        }
 
-        // if there's a "TODO: document" in the module, skip these tests.
-        if (/TODO:( \([a-z]+\))? document/.test(moduleSrc)) {
-          moduleTests.skip("TODO");
-        }
+          symdoc .. @ownPropertyPairs .. @each {|[key, value]|
+            if (!@isString(value)) continue;
+            var mistakenReferences = value .. @regexp.matches(/\{[^}]*::.*}/g) .. @toArray;
+            if (mistakenReferences.length > 0) {
+              @assert.fail("Mistaken references in #{sym}@#{key}?\n    #{mistakenReferences .. @join("\n    ")}\n(use `[]`, not `{}`)");
+            }
+          };
 
-        if (moduleDoc.nodoc) {
-          moduleTests.skip("@nodoc");
         }
-
       }
+    }
+
+    // if there's a "TODO: document" in the module, skip these tests.
+    if (/TODO:( \([a-z]+\))? document/.test(moduleSrc)) {
+      moduleTests.skip("TODO");
+    }
+
+    if (moduleDoc.nodoc) {
+      moduleTests.skip("@nodoc");
     }
   }
 };

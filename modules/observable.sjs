@@ -202,7 +202,7 @@ exports.ObservableVar = ObservableVar;
 
 /**
   @class ConflictError
-  @inherits Error
+  @inherit Error
   @summary The error raised by [::ObservableVar::modify] in the case of a conflict
 */
 var ConflictErrorProto = new Error();
@@ -213,7 +213,6 @@ var ConflictError = exports.ConflictError = function(msg) {
 
 /**
   @function isConflictError
-  @inherits Error
   @return {Boolean}
   @summary Return whether `e` is a [::ConflictError]
 */
@@ -224,7 +223,7 @@ exports.isConflictError = function(ex) {
 
 /**
   @function observe
-  @return [sjs:sequence::Stream]
+  @return {sjs:sequence::Stream}
   @summary Create stream of values derived from one or more [sjs:sequence::Stream] inputs (usually [::Observable]s).
   @param {sjs:sequence::Stream} [stream1, stream2, ...] Input stream(s)
   @param {Function} [transformer]

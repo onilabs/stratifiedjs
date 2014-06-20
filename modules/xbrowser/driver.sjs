@@ -31,7 +31,6 @@
 /**
   @module    xbrowser/driver
   @summary   Iframe web driver
-  @home      sjs:xbrowser/dom
   @hostenv   xbrowser
   @desc
      This module provides a [Selenium][] style API for controlling an iframe.

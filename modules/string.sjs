@@ -667,7 +667,7 @@ __js exports.octetsToArrayBuffer = function(s, buffer, offset) {
    @param {ArrayBuffer} [src]
    @param {optional Integer} [offset] Byte offset into `src`
    @param {optional Integer} [length] Byte length
-   @rturn {String} Octet string (upper half of each 'character' set to 0)
+   @return {String} Octet string (upper half of each 'character' set to 0)
 */
 __js (function() {
   var workaround = false;

@@ -86,6 +86,7 @@ exports.tmp = function() {
 
 /**
   @class File
+  @summary A temporary file
   @function File.close
   @summary close the underlying file, as well as any related streams created by [::File::readStream] or [::File::writeStream].
   @desc
@@ -116,7 +117,7 @@ exports.tmp = function() {
   @setting {String} [suffix=""] filename suffix
   @setting {String} [base=os.tmpDir()] basedir in which to create temporary files
   @summary Create a temporary file
-  @return [::File]
+  @return {::File}
   @desc
     The file will be opened to be both readable and writable.
 

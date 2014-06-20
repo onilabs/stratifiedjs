@@ -105,7 +105,7 @@ exports.AssertionError.prototype.__assertion_error = true;
   @summary Assert that the argument is truthy
   @param [arg]
   @param {optional String|quasi::Quasi} [desc] Description to add to the error message on failure.
-  @return `arg`
+  @return {Object} the `arg` that was passed in
 
   @function truthy
   @summary Alias for [::ok]
@@ -120,7 +120,7 @@ exports.ok = exports.truthy = function(val, desc) {
   @summary Assert that the argument is falsy
   @param [arg]
   @param {optional String|quasi::Quasi} [desc] Description to add to the error message on failure.
-  @return `arg`
+  @return {Object} the `arg` that was passed in
 
   @function falsy
   @summary Alias for [::notOk]

@@ -1364,9 +1364,6 @@
         },
         "xoreq": {
           "type": "function"
-        },
-        "true": {
-          "type": "constructor"
         }
       },
       "summary": "Functions for numeric linear algebra computations from [numericjs.com](http://numericjs.com)"

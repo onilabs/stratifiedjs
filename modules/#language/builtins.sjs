@@ -267,7 +267,7 @@
 @function require.hubs.addDefault
 @param {Hub} [hub]
 @summary Add a hub if it is not yet defined
-@return Whether the hub was added
+@return {boolean} Whether the hub was added
 @desc
   This function adds the given `hub` if [::require.hubs.defined] returns
   true for `hub[0]` (i.e the hub prefix).
