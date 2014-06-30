@@ -55,7 +55,7 @@ function generateWrapLib(debug, timeout) {
     @summary Mark a function as synchronous (i.e not needing any further wrapping)
     @param {Function} [fn]
    */
-  var mark_sync = exports.mark_sync = function(obj) { obj.__sjs_ok = true; };
+  var mark_sync = exports.mark_sync = function(obj) { obj.__sjs_ok = true; return obj; };
 
   /**
     @function wrap
