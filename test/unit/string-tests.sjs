@@ -295,3 +295,10 @@ testEq('arrayBufferToOctets, offset, length', 'abc', function() {
   var arr = new Uint8Array([0, 'a'.charCodeAt(0), 'b'.charCodeAt(0), 'c'.charCodeAt(0), 0]);
   return str.arrayBufferToOctets(arr.buffer, 1, 3);
 });
+
+testEq('arrayBufferToOctets: large inputs', true, function() {
+  var arr = new Uint8Array(600000);
+  // this used to cause a 'maximum call stack size exceeded' error
+  str.arrayBufferToOctets(arr.buffer);
+  return true;
+});
