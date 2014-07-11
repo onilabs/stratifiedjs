@@ -678,22 +678,20 @@ __js (function() {
     else
       view = new Uint8Array(src, offset);
 
-    length = view.byteLength;
-
-    if(workaround) {
-      // workaround for https://github.com/ariya/phantomjs/issues/11172
-      // XXX should get rid of this when phantomjs sort out the problem
-      var arr = new Array(length);
-      for (var i=0; i<view.byteLength;++i)
-        arr[i] = view[i];
-      view = arr;
-    }
     // workaround for 'apply' call stack size limits. see
     // e.g. https://code.google.com/p/chromium/issues/detail?id=56588
-    var rv = '';
+    var rv = '', length = view.byteLength;
     for (var i=0; i<length; /**/) {
       var j = Math.min(i+100000, length);
-      rv += String.fromCharCode.apply(null, view.subarray(i,j));
+      if (workaround) {
+        // workaround for https://github.com/ariya/phantomjs/issues/11172
+        // XXX should get rid of this when phantomjs sort out the problem
+        for (var k = i; k<j; ++k)
+          rv += String.fromCharCode.call(null, view[k]);
+      }
+      else {
+        rv += String.fromCharCode.apply(null, view.subarray(i,j));
+      }
       i = j;
     }
     return rv;
