@@ -698,7 +698,7 @@ __js (function() {
   };
 
   try {
-    fn(new ArrayBuffer(0), 0);
+    String.fromCharCode.apply(null, new Uint8Array(1));
   } catch(e) {
     workaround = true;
   }
