@@ -328,7 +328,9 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
     this.history = [""];
   }
   this.history_p = this.history.length -1;
-  this.summonbutton = makeDiv("<div style='background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#eee));'><a title='Open StratifiedJS Console' style='display:block;padding: 2px 8px 3px 10px;background:url("+icons.arrowblue+") no-repeat 10px 6px;width: 8px;height:17px'></a></div>", "\
+  this.summonbutton = makeDiv("<div style='background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#eee));'><a title='Open StratifiedJS Console' style='
+  display:block;padding: 2px 8px 3px 10px;background:url("+icons.arrowblue+") no-repeat 10px 6px;width: 8px;height:17px;box-sizing:content-box;
+  '></a></div>", "\
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
 z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
 
@@ -422,9 +424,9 @@ Console.prototype = {
         }
         or {
           event.events(document, "mousemove") .. each {|ev|
-            var h = lasty - ev.clientY + this.term.clientHeight;
-            if (h > 70) {
-              this.term.style.height = h + "px";
+            var h = lasty - ev.clientY + this.root.clientHeight;
+            if (h > 50) {
+              this.root.style.height = h + "px";
               lasty = ev.clientY;
             }
           }
@@ -450,8 +452,13 @@ Console.prototype = {
   shut : function () {
     this.term.style.display = "none";
     this.summonbutton.style.visibility = "visible";
-    spawn (event.wait(this.summonbutton, "click"),
-           this.expand());
+    var height = this.root.style.height;
+    this.root.style.height = "20px";
+    spawn (function() {
+      event.wait(this.summonbutton, "click");
+      this.root.style.height = height;
+      this.expand();
+    }.call(this));
   },
   
   /**
