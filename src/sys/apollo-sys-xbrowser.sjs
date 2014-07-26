@@ -473,7 +473,7 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
         var descriptor = {
           id: document.location.href + "_inline_sjs_" + (i + 1),
         };
-        require.main = descriptor;
+         __oni_rt.sys.require.main = descriptor;
         var f = exports.eval("(function(module, __onimodulename){"+content+"\n})",
                         {filename:"module #{descriptor.id}"});
         f(descriptor);
@@ -482,7 +482,7 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
 
     var mainModule = determineLocation().main;
     if(mainModule) {
-      require(mainModule, {main:true});
+       __oni_rt.sys.require(mainModule, {main:true});
     }
   };
   
