@@ -504,6 +504,31 @@ testEq('combine', ['a','b','b','a','c'], function() {
   return s.combine(as, bs, cs) .. toArray();
 });
 
+testEq('combine with blocking receiver', ['a'], function() {
+  var as = s.Stream() {|r|
+    r('a');
+    hold(5);
+    r('a');
+  }
+
+  var bs = s.Stream() {|r|
+    r('b');
+    r('b');
+  }
+
+  var cs = s.Stream() {|r|
+    hold(10);
+    r('c');
+  }
+  var rv = [];
+  s.combine(as, bs, cs) .. s.each {
+    |x|
+    rv.push(x);
+    hold(100);
+  }
+  return rv;
+});
+
 testEq('concat([1,2],[3,4])', [1,2,3,4], function () { return s.concat([1,2], [3,4]) .. toArray; });
 testEq('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2], [3,4]]) .. toArray; });
 testEq('concat(Stream([1,2],[3,4]))', [1,2,3,4], function () { return s.concat(nonRepeatableSequence([[1,2], [3,4]])) .. toArray; });

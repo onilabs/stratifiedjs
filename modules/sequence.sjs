@@ -1364,12 +1364,16 @@ exports.unpack = unpack;
 
 /**
    @function combine
-   @param {::Stream} [stream...] One or more streams
-   @return {::Stream}
-   @summary  Combines multiple streams into a single output stream.
+   @param {::Stream} [stream...] One or more streams, typically [./event::EventStream]s
+   @return {./event::EventStream}
+   @summary  Combines multiple (event) streams into a single event stream.
    @desc
-      Elements appear in the output stream as soon as they are received.
-
+      All input streams will be concurrently iterated and elements appear 
+      in the output stream as soon as they are received. The input streams are never blocked 
+      and no buffering is performed:
+      if an element is received while the downstream receiver is blocked, the element 
+      will be silently ignored.
+      
       ### Example:
 
           // build a drum loop:
@@ -1401,10 +1405,36 @@ exports.unpack = unpack;
 function combine(/* streams ... */) {
   var streams = arguments;
   return Stream(function(emit) {
-    var include_stream = function(s) {
-      s .. each(emit);
+
+    var send_event, done = false;
+
+    waitfor {
+      while (1) {
+        waitfor (var value) {
+          send_event = resume;
+        }
+        finally {
+          send_event = undefined;
+        }
+        if (done) return;
+        emit(value);
+        if (done) return;
+      }
     }
-    waitforAll(include_stream, streams);
+    and {
+      waitforAll(
+        function(s) { 
+          s .. each {
+            |x|
+            if (send_event)
+              send_event(x);
+            // else .. silently ignore event
+          }
+        }, 
+        streams);
+      done = true;
+      if (send_event) send_event();
+    }
   });
 }
 exports.combine = combine;
