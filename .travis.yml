@@ -41,6 +41,7 @@ branches:
 # nodejs 0.6 is pretty much dead, but this'll keep it limping for a little while...
 before_install:
   - 'if [ "${TRAVIS_NODE_VERSION}" = "0.6" ]; then npm conf set strict-ssl false; fi'
+  - 'if [ "${TRAVIS_NODE_VERSION}" = "0.6" -o "${TRAVIS_NODE_VERSION}" = "0.8" ]; then npm -g install npm; fi'
 
 script: "./tools/bin/sjs-tests --show-failed"
 
