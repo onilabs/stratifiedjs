@@ -333,7 +333,8 @@ Waitable.wait = function wait() {
   waitfor(var result) {
     this.waiting.push(resume);
   } retract {
-    this.waiting.splice(this.waiting.indexOf(resume), 1);
+    var idx = this.waiting.indexOf(resume);
+    if (idx !== -1) this.waiting.splice(idx, 1);
   }
   return result;
 };
