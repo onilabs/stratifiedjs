@@ -759,7 +759,7 @@ exports.uniqueBy = uniqueBy;
   @summary Sort the sequence elements into an Array
   @desc
     Sorts the input sequence according to the ordering obtained by
-    calling `key` on each input.
+    calling `key(value, index)` on each input.
 
     If `key` is a string, it will be converted into a property acessor. i.e
     passing `'length'` is equivalent to passing `(x) -> x.length`.
@@ -783,7 +783,7 @@ function sortBy(sequence, key) {
   var arr = sequence .. toArray();
   var expanded = new Array(arr.length);
   for (var i=0; i<arr.length; i++) {
-    expanded[i] = [arr[i], key(arr[i])];
+    expanded[i] = [arr[i], key(arr[i], i)];
   }
   expanded.sort(function(a,b) {
     // grab the result of `key(item)` for both pairs:
