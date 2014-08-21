@@ -211,6 +211,21 @@ test("blocklambda break 2", 'ac', function() {
   return rv;
 });
 
+test('return propagation from suspended blocklambda', undefined, function() {
+  // regression test
+  var withBlock = function(b) { b(); };
+  var makeValue = function() {
+    withBlock {||
+      hold(0);
+      return "value";
+    }
+  };
+  var returnNothing = function() {
+    makeValue();
+  };
+  return returnNothing();
+}).skip("BROKEN");
+
 test('a() .. b()', 'ab', function() {
   var a = -> 'a', b = x -> x+'b';
   return a() .. b();
