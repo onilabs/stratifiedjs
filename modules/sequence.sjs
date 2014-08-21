@@ -724,6 +724,43 @@ function unique(sequence, eq) {
 exports.unique = unique;
 
 /**
+  @function dedupe
+  @altsyntax sequence .. dedupe
+  @param {::Sequence} [sequence] input
+  @param {optional Function} [eq] Equality function
+  @return {Stream}
+  @summary Return a stream of elements from `input` with _adjacent_ duplicate values omitted.
+  @desc
+    This function is similar to [::unique]. But while [::unique] reads in the
+    entire sequence and outputs an array with all duplicates suppressed, [::dedupe] reads
+    only one element at a time, and only suppresses _adjacent_ duplicate elements.
+
+    ### Example:
+
+      [1, 2, 2, 3, 3, 2, 2, 1] .. dedupe .. toArray
+      // -> [1, 2, 3, 2, 1]
+
+    If `eq` is provided, it should be a function like [compare::eq] - i.e
+    accept two arguments, and return `true` if they are equal, `false` otherwise.
+
+    If an `eq` function is not provided, regular `===` equality will be used.
+*/
+function dedupe(sequence, eq) {
+  var sn = {};
+  __js if (!eq) eq = (a,b) -> a === b;
+  return Stream(function(emit) {
+    var last = sn;
+    sequence .. each {|x|
+      if (x !== sn && !eq(x,last)) {
+        last=x;
+        emit(x);
+      }
+    }
+  });
+};
+exports.dedupe = dedupe;
+
+/**
   @function uniqueBy
   @altsyntax sequence .. uniqueBy
   @param {::Sequence} [sequence] input
