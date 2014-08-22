@@ -208,6 +208,7 @@ module.exports = require(modules);
    - **concat**: (function [sjs:sequence::concat])
    - **consume**: (function [sjs:sequence::consume])
    - **count**: (function [sjs:sequence::count])
+   - **dedupe**: (function [sjs:sequence::dedupe])
    - **each**: (function [sjs:sequence::each])
    - **each.par**: (function [sjs:sequence::each.par])
    - **each.track**: (function [sjs:sequence::each.track])

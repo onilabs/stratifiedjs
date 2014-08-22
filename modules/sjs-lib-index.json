@@ -1576,6 +1576,9 @@
         "unique": {
           "type": "function"
         },
+        "dedupe": {
+          "type": "function"
+        },
         "uniqueBy": {
           "type": "function"
         },
