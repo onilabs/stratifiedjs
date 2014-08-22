@@ -94,6 +94,7 @@ __js exports.isArrayLike = function(obj) {
   return Array.isArray(obj) || 
          !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
          !!(__oni_rt.G.NodeList && obj instanceof NodeList) ||
+         !!(__oni_rt.G.HTMLCollection && obj instanceof HTMLCollection) ||
          !!(__oni_rt.G.FileList && obj instanceof FileList) ||
          !!(__oni_rt.G.StaticNodeList && obj instanceof StaticNodeList);
 };

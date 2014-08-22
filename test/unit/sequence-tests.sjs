@@ -753,6 +753,44 @@ context("nodejs Buffer") {||
   }
 }.serverOnly();
 
+context("node lists") {||
+  test.beforeAll {|s|
+    s.added = [];
+    s.cls = 'nodelist-iter-test';
+    var add = function(content) {
+      var child = document.createElement("div");
+      child.setAttribute('class',s.cls);
+      child.appendChild(document.createTextNode(content));
+      document.body.appendChild(child);
+      s.added.push(child);
+    };
+    add('one');
+    add('two');
+    add('three');
+  }
+
+  test.afterAll {|s|
+    s.added .. seq.each {|elem|
+      document.body.removeChild(elem);
+    }
+  }
+
+  test("querySelectorAll result is iterable") {|s|
+    document.body.querySelectorAll("div.#{s.cls}") .. seq.map(el -> el.textContent) .. assert.eq([
+      'one', 'two', 'three',
+    ]);
+  }
+
+  test("getElementsByTagName result is iterable") {|s|
+    document.body.getElementsByTagName("div")
+      .. seq.filter(el -> el.getAttribute('class') === s.cls)
+      .. seq.map(el -> el.textContent)
+      .. assert.eq([
+      'one', 'two', 'three',
+    ]);
+  }
+}.browserOnly();
+
 context('buffer') {||
   testEq('integers .. hold .. buffer(5) .. each { hold }', 
          'S0R0S1S2S3S4S5R1S6R2S7R3S8R4S9R5R6R7R8R9', 
