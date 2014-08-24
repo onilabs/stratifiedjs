@@ -48,9 +48,10 @@
 
 // TODO: (tjc) document.
 
-var {extend, propertyPairs} = require('sjs:object');
+var {get, extend, ownPropertyPairs} = require('sjs:object');
+var {isDOMNode} = require('sjs:xbrowser/dom');
 var logging = require('sjs:logging');
-var {each} = require('sjs:sequence');
+var {each, toArray} = require('sjs:sequence');
 var {AssertionError} = require('sjs:assert');
 var Url = require('sjs:url');
 
@@ -65,7 +66,7 @@ DriverProto.mixInto = function(ctx, inclusive) {
 		// if they want the whole kit & caboodle, give them this module's standalone functions
 		ctx .. extend(fns);
 	}
-	propertyPairs(this) .. each{|[k, v]|
+	ownPropertyPairs(this) .. each{|[k, v]|
 		if (k === 'mixInto') continue;
 		ctx[k] = v;
 	}
@@ -93,8 +94,8 @@ DriverProto.waitUntilLoaded = function(timeout) {
 	exports.waitforCondition(=> this.isLoaded(), "Page not loaded", timeout || 10);
 }
 
-DriverProto.elem = (a, b) -> exports.elem.apply(exports, arguments.length == 2 ? arguments : [this.body(), a]);
-DriverProto.elems = (a, b) -> exports.elems.apply(exports, arguments.length == 2 ? arguments : [this.body(), a]);
+DriverProto.elem  = () -> exports.elem.apply( exports, isDOMNode(arguments[0]) ? arguments : [this.body()].concat(arguments .. toArray));
+DriverProto.elems = () -> exports.elems.apply(exports, isDOMNode(arguments[0]) ? arguments : [this.body()].concat(arguments .. toArray));
 
 DriverProto.navigate = function(url) {
 	var currentUrl = this.document().location.href;
@@ -135,10 +136,15 @@ DriverProto.click = function(elem) {
 	}
 }
 
-DriverProto._init = function(url) {
+DriverProto._init = function(url, props) {
 	this.frame = document.createElement("iframe");
 	if (url) this.frame.setAttribute("src", url);
-	this.frame.setAttribute("style", "position:fixed; right:0; top:0; width: 600; height: 400;");
+	this.frame.setAttribute("style", "position:fixed; right:0; top:0;");
+	if (props)  {
+		props .. ownPropertyPairs .. each {|[k,v]|
+			this.frame.setAttribute(k, v);
+		}
+	}
 	document.body.appendChild(this.frame);
 }
 
@@ -147,6 +153,12 @@ exports.Driver = function(url) {
 	rv._init.apply(rv, arguments);
 	return rv;
 }
+
+fns.enter = function(elem, value) {
+	elem.value = value;
+	elem .. fns.trigger('input');
+	elem .. fns.trigger('change');
+};
 
 fns.trigger = function(elem, name, attrs) {
 	var evt;
@@ -191,7 +203,7 @@ fns.trigger = function(elem, name, attrs) {
 	if (attrs) evt .. extend(attrs);
 
 	// send the event
-	logging.info("dispatching #{name} to elem", elem, evt);
+	logging.debug("dispatching #{name} to elem", elem, evt);
 	var propagate;
 	if (elem.dispatchEvent) {
 		propagate = elem.dispatchEvent(evt);
@@ -258,14 +270,14 @@ fns.waitforSuccess = function(fn, desc, timeout, interval) {
 	interval = interval || DEFAULT_INTERVAL;
 	var lastError;
 	waitfor {
-		var result;
-		try {
-			result = fn();
-		} catch(e) {
-			lastError = e;
-			hold(interval);
+		while(true) {
+			try {
+				return fn();
+			} catch(e) {
+				lastError = e;
+				hold(interval);
+			}
 		}
-		return result;
 	} or {
 		hold(timeout * 1000);
 		if (lastError) throw lastError;
@@ -292,26 +304,32 @@ fns.waitforCondition = function(fn, desc, timeout, interval) {
 	}
 }
 
-fns.elem = function(container, selector) {
-	var elem = container.querySelector(selector);
+fns.elem = function(container, selector, predicate) {
+	var elem;
+	if (predicate) {
+		elem = fns.elems(container, selector, predicate)[0];
+	} else {
+		elem = container.querySelector(selector);
+	}
 	if(!elem) {
 		throw new Error("No element found: #{selector}");
 	}
 	return elem;
 }
 
-fns.elems = function(container, selector) {
+fns.elems = function(container, selector, predicate) {
 	var list = container.querySelectorAll(selector);
 	var ret = [];
 	for (var i=0; i<list.length; i++) {
-		ret[i] = list[i];
+		if(predicate && !predicate(list[i])) continue;
+		ret.push(list[i]);
 	}
 	return ret;
 }
 
 exports.addTestHooks = function(t, getDriver) {
 	t = t || require('sjs:test/suite').test;
-	getDriver = getDriver || ((s) -> s.driver);
+	getDriver = getDriver || ((s) -> s .. get('driver'));
 	t.beforeEach {|s|
 		var d = getDriver(s);
 		d.waitUntilLoaded();
