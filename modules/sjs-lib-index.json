@@ -1564,6 +1564,9 @@
         "at": {
           "type": "function"
         },
+        "last": {
+          "type": "function"
+        },
         "slice": {
           "type": "function"
         },

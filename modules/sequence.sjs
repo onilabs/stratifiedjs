@@ -526,6 +526,21 @@ function at(seq, n, defaultValue) {
 exports.at = at;
 
 /**
+  @function last
+  @param {::Sequence} [sequence]
+  @param {optional Object} [defaultValue]
+  @summary Get the last item from a sequence
+  @desc
+    If `sequence` is empty, `defaultValue` is returned if it was given.
+    Otherwise, this function raises a [::SequenceExhausted] error.
+
+    Note that if `sequence` is a non-repeatable [::Stream]
+    (e.g. a stream such as `generate(Math.random)`),
+    it will consume the entire stream.
+*/
+exports.last = (seq, defaultValue) -> (arguments.length == 1) ? at(seq, -1) : at(seq, -1, defaultValue);
+
+/**
   @function slice
   @summary Array.slice implementation for arbitrary sequences
   @param {::Sequence} [sequence]

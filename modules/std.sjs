@@ -227,6 +227,7 @@ module.exports = require(modules);
    - **isSequence**: (function [sjs:sequence::isSequence])
    - **isStream**: (function [sjs:sequence::isStream])
    - **join**: (function [sjs:sequence::join])
+   - **last**: (function [sjs:sequence::last])
    - **map**: (function [sjs:sequence::map])
    - **map.par**: (function [sjs:sequence::map.par])
    - **mirror**: (function [sjs:sequence::mirror])

@@ -588,6 +588,17 @@ context('first') {||
   }
 }.timeout(0.5);
 
+test('last') {||
+  nonRepeatableSequence(['one','two','three']) .. s.last .. assert.eq('three');
+  ['one','two','three'] .. s.last .. assert.eq('three');
+  [] .. s.last('def') .. assert.eq('def');
+
+  assert.raises({
+    inherits: s.SequenceExhausted,
+    message: 'sequence exhausted'},
+    -> s.last(s.Stream {|r| }));
+}
+
 context('zip') {||
   test('zip on same-sized arrays') {||
     s.zip([1,2,3], ['one','two','three']) .. toArray .. assert.eq([

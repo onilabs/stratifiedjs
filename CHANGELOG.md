@@ -18,16 +18,17 @@ Conductance codebase.
 
    * array::haveCommonElements
    * assert::suspends
+   * sequence::dedupe
+   * sequence::each.track
+   * sequence::last
+   * sequence::mirror
+   * sequence::tailbuffer
    * sequence::unique
    * sequence::uniqueBy
-   * sequence::dedupe
-   * sequence::tailbuffer
-   * sequence::each.track
-   * sequence::mirror
-   * nodejs/fs::withWriteStream
-   * nodejs/fs::withReadStream
    * nodejs/fs::createReadStream
    * nodejs/fs::createWriteStream
+   * nodejs/fs::withReadStream
+   * nodejs/fs::withWriteStream
    * nodejs/http::Server::address
    * nodejs/http::Server::close
    * nodejs/http::Server::eachRequest
