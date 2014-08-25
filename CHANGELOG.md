@@ -1,5 +1,61 @@
 This changelog lists the most prominent, developer-visible changes in each release.
 
+## Version 0.19:
+
+This version includes a number of additions to nodejs-specific modules, as well
+as a reworked `events` module which now represents events as a `Stream`.
+It also includes a new `observable` module, which previously lived in the
+Conductance codebase.
+
+ * New modules:
+
+   * observable (moved from Conductance's `mho:observable`)
+   * nodejs/mkdirp
+   * nodejs/rimraf
+   * nodejs/tempfile
+
+ * New functions and symbols:
+
+   * array::haveCommonElements
+   * assert::suspends
+   * sequence::unique
+   * sequence::uniqueBy
+   * sequence::dedupe
+   * sequence::tailbuffer
+   * sequence::each.track
+   * sequence::mirror
+   * nodejs/fs::withWriteStream
+   * nodejs/fs::withReadStream
+   * nodejs/fs::createReadStream
+   * nodejs/fs::createWriteStream
+   * nodejs/http::Server::address
+   * nodejs/http::Server::close
+   * nodejs/http::Server::eachRequest
+   * nodejs/stream::end
+   * nodejs/stream::DelimitedReader
+
+ * Changes
+
+   * The `event` module has been refactored to treat events as a Stream (see event::EventStream).
+     This removes the need for a number of special-purpose methods in the `event` module, and
+     allows all of the `sequence` module functions to be used on event streams.
+
+     Some important API differences are:
+
+     * To get an event stream from a native host emitter, use `event::events(emitter)` rather
+       than the old event::HostEmitter(emitter)
+
+     * Event streams no longer have their own methods (like .wait()),
+       since the sjs:sequence module already contains this functionality (sequence::first())
+
+     * `event.when(emitters, events, block)` becomes
+       `event.events(emitters, events) .. sequence.each(block)`
+
+   * The .waitforValue() method on stratum objects (#language/builtins::Stratum)
+     has been renamed to .value(). The old name is still present for
+     backwards-compatibility.
+
+
 ## Version 0.18:
 
 A small release to accompany Conductance-0.4:

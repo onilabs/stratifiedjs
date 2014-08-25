@@ -13,4 +13,6 @@ getApi () {
 	git rev-parse "$1"
 	git show "$1:modules/sjs-lib-index.json" | $jspp
 }
-diff --side-by-side <(getApi "$1") <(getApi "$2") | less
+
+# differ="$((which gvim  || echo "diff --side-by-side") 2>/dev/null)"
+gvim -d <(getApi "$1") <(getApi "$2")
