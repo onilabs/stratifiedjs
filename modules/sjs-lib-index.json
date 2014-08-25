@@ -2372,6 +2372,15 @@
           "type": "module",
           "children": {},
           "summary": "Iframe web driver"
+        },
+        "html2canvas": {
+          "type": "module",
+          "children": {
+            "render": {
+              "type": "function"
+            }
+          },
+          "summary": "Generate virtual screenshots of HTML elements (tracking the [html2canvas library](http://html2canvas.hertzen.com/))"
         }
       },
       "summary": "Basic cross-browser functionality"

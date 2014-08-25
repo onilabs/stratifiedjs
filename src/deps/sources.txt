@@ -24,3 +24,6 @@ rimraf/ git://github.com/isaacs/rimraf.git 6c9968c26e5cd90d3e14803c87aebbc94a673
 
 # mkdirp :
 mkdirp/ git://github.com/substack/node-mkdirp.git b98bedf92798ed73c87413eaf413d01dbe094a09
+
+# html2canvas:
+html2canvas/ git://github.com/niklasvh/html2canvas.git 454524cc4041cf6eef3df76f87cfef4a0e9e7c09

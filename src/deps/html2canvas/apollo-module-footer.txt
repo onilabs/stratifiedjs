@@ -1,0 +1,11 @@
+}
+
+exports.render = function(elem, opts) {
+  opts = opts ? clone(opts) : {};
+
+  waitfor(var rv) {
+    opts.onrendered = resume;
+    exports._render(elem, opts);
+  }
+  return rv;
+}
