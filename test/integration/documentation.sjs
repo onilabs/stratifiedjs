@@ -207,6 +207,7 @@ exports.testLibrary = function(hub) {
                 'summary',
                 'desc',
                 'hostenv',
+                'demo',
           ];
 
           switch(symdoc.type) {
@@ -253,7 +254,7 @@ exports.testLibrary = function(hub) {
               break;
           }
           var unknownKeys = symdoc .. @ownKeys .. @toArray .. @difference(knownKeys);
-          @assert.eq(unknownKeys, [], "unknown function keys for #{sym}");
+          @assert.eq(unknownKeys, [], "unknown documentation keys for #{sym}");
 
           symdoc .. @ownPropertyPairs .. @each {|[key, value]|
             if (!@isString(value)) continue;
