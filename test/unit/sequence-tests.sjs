@@ -754,13 +754,17 @@ context("nodejs Buffer") {||
 }.serverOnly();
 
 context("node lists") {||
-  test.beforeAll {|s|
+  test.beforeEach {|s|
     s.added = [];
     s.cls = 'nodelist-iter-test';
-    var add = function(content) {
+    s.div = function(content) {
       var child = document.createElement("div");
-      child.setAttribute('class',s.cls);
       child.appendChild(document.createTextNode(content));
+      return child;
+    };
+    var add = function(content) {
+      var child = s.div(content);
+      child.setAttribute('class',s.cls);
       document.body.appendChild(child);
       s.added.push(child);
     };
@@ -769,7 +773,7 @@ context("node lists") {||
     add('three');
   }
 
-  test.afterAll {|s|
+  test.afterEach {|s|
     s.added .. seq.each {|elem|
       document.body.removeChild(elem);
     }
@@ -781,11 +785,36 @@ context("node lists") {||
     ]);
   }
 
+  test("element.children is iterable") {|s|
+    var elem = document.body.querySelector("div.#{s.cls}");
+    elem.appendChild(s.div("child1"));
+    elem.appendChild(s.div("child2"));
+    elem.appendChild(s.div("child3"));
+    elem.children .. seq.map(el -> el.textContent) .. assert.eq([
+      'child1', 'child2', 'child3',
+    ]);
+  }
+
   test("getElementsByTagName result is iterable") {|s|
     document.body.getElementsByTagName("div")
       .. seq.filter(el -> el.getAttribute('class') === s.cls)
       .. seq.map(el -> el.textContent)
       .. assert.eq([
+      'one', 'two', 'three',
+    ]);
+  }
+
+  test("select.options is iterable") {|s|
+    var elem = document.body.querySelector("div.#{s.cls}");
+    elem.innerHTML = '
+      <select>
+        <option name="keyOne">one</option>
+        <option name="keyTwo">two</option>
+        <option name="keyThree">three</option>
+      </select>
+    ';
+    var select = elem.querySelector('select');
+    select.options .. seq.map(el -> el.textContent) .. assert.eq([
       'one', 'two', 'three',
     ]);
   }
