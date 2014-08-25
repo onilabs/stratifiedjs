@@ -197,6 +197,9 @@ test.afterAll = function(f) {
   @desc
     After each test is run (regardless of its success), the `afterEach` actions of *all* of its containing
     contexts are run (starting with the innermost context).
+
+    `block` will be called as `block.call(state, state, error)` where `state` is
+    the test's state object, and `error` is the first error that occurred during this test.
 */
 test.afterEach = function(f) {
   currentContext().hooks.after.each.push(f);
@@ -426,7 +429,7 @@ var runHooks = function(hooks, state) {
 var runAllHooks = function(hook_type, hooks, state, first_error) {
   hooks .. each {|h|
     try {
-      h.call(state, state);
+      h.call(state, state, first_error);
     } catch(e) {
       if(first_error == null) {
         first_error = e;

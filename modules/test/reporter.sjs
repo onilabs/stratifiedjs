@@ -438,6 +438,14 @@ HtmlOutput.prototype.prepareStyles = function() {
 };
 
 HtmlOutput.prototype._log = function(level, args) {
+  if(args.length == 1
+     && args[0] .. dom.isDOMNode()
+     && args[0].nodeName.toLowerCase() == 'canvas')
+  {
+    // shortcut: allow printing single `canvas` objects directly to the output
+    this.print(args[0]);
+    return;
+  }
   var msg = formatLogArgs(args);
   var elem = document.createElement('span');
   if (level != 'log') level = 'log ' + level
