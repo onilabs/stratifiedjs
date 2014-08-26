@@ -1379,6 +1379,11 @@ testEq("string interpolation", true, function() {
   return x === 'This is an interpolated string 43 #{} 23';
 });
 
+test("string interpolation bad parse") {||
+  // XXX Once fixed, this test won't actually compile.
+  "#{123 foo()}" .. assert.eq("(a parse error)");
+}.skip("BROKEN");
+
 testEq("complicated blocklambda return", 111, function() {
   var rv = 0;
 
