@@ -45,7 +45,7 @@
      [Selenium]: http://docs.seleniumhq.org/
 */
 
-var {get, extend, ownPropertyPairs} = require('sjs:object');
+var {get, extend, propertyPairs, ownPropertyPairs} = require('sjs:object');
 var {isDOMNode} = require('sjs:xbrowser/dom');
 var logging = require('sjs:logging');
 var {each, toArray} = require('sjs:sequence');
@@ -63,14 +63,10 @@ var fns = {};
   @param {String} [url] Initial URL
   @param {optional Object} [attrs] Additional attributes to set on the <iframe> element
 */
-var DriverProto = Object.create({});
+var DriverProto = Object.create(fns);
 
-DriverProto.mixInto = function(ctx, inclusive) {
-	if (inclusive) {
-		// if they want the whole kit & caboodle, give them this module's standalone functions
-		ctx .. extend(fns);
-	}
-	ownPropertyPairs(this) .. each{|[k, v]|
+DriverProto.mixInto = function(ctx) {
+	propertyPairs(this) .. each{|[k, v]|
 		if (k === 'mixInto') continue;
 		ctx[k] = v;
 	}
