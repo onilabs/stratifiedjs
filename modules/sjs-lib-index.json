@@ -2370,7 +2370,97 @@
         },
         "driver": {
           "type": "module",
-          "children": {},
+          "children": {
+            "Driver": {
+              "type": "class",
+              "children": {
+                "Driver": {
+                  "type": "ctor"
+                },
+                "interceptLogging": {
+                  "type": "function"
+                },
+                "removeLogIntercept": {
+                  "type": "function"
+                },
+                "body": {
+                  "type": "function"
+                },
+                "document": {
+                  "type": "function"
+                },
+                "window": {
+                  "type": "function"
+                },
+                "close": {
+                  "type": "function"
+                },
+                "__finally__": {
+                  "type": "function"
+                },
+                "isLoaded": {
+                  "type": "function"
+                },
+                "waitUntilLoaded": {
+                  "type": "function"
+                },
+                "navigate": {
+                  "type": "function"
+                },
+                "reload": {
+                  "type": "function"
+                },
+                "click": {
+                  "type": "function"
+                },
+                "enter": {
+                  "type": "function"
+                },
+                "trigger": {
+                  "type": "function"
+                },
+                "sendKey": {
+                  "type": "function"
+                },
+                "set": {
+                  "type": "function"
+                },
+                "computedStyle": {
+                  "type": "function"
+                },
+                "isVisible": {
+                  "type": "function"
+                },
+                "assertVisibility": {
+                  "type": "function"
+                },
+                "assertHidden": {
+                  "type": "function"
+                },
+                "assertShown": {
+                  "type": "function"
+                },
+                "hasClass": {
+                  "type": "function"
+                },
+                "waitforSuccess": {
+                  "type": "function"
+                },
+                "waitforCondition": {
+                  "type": "function"
+                },
+                "elem": {
+                  "type": "function"
+                },
+                "elems": {
+                  "type": "function"
+                }
+              }
+            },
+            "addTestHooks": {
+              "type": "function"
+            }
+          },
           "summary": "Iframe web driver"
         },
         "html2canvas": {

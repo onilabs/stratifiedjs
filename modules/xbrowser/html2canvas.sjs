@@ -66,7 +66,7 @@
 
 var { clone } = require('../object');
 
-/** @nodoc */
+/** @docsoff */
 __js {
 /*
   html2canvas 0.4.1 <http://html2canvas.hertzen.com>

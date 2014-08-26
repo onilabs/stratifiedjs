@@ -66,5 +66,5 @@
 
 var { clone } = require('../object');
 
-/** @nodoc */
+/** @docsoff */
 __js {

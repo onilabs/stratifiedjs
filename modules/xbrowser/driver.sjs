@@ -58,6 +58,7 @@ var fns = {};
 
 /**
   @class Driver
+  @summary Driver object
   @function Driver
   @param {String} [url] Initial URL
   @param {optional Object} [attrs] Additional attributes to set on the <iframe> element
@@ -144,7 +145,7 @@ DriverProto.elems = () -> exports.elems.apply(exports, isDOMNode(arguments[0]) ?
 /**
   @function Driver.navigate
   @param {String} [url]
-  @param {optional Boolean} [wait=false]
+  @param {optional Boolean} [wait=true]
   @summary Navigate to a new URL
   @desc
     If `wait` is true, this function won't return until [::Driver::waitUntilLoaded]
@@ -160,6 +161,21 @@ DriverProto.navigate = function(url, wait) {
 	logging.verbose("waiting until loaded");
 	this.waitUntilLoaded();
 	logging.verbose("loaded");
+}
+
+/**
+  @function Driver.reload
+  @param {optional Boolean} [wait=false]
+  @summary Navigate to a new URL
+  @desc
+    If `wait` is true, this function won't return until [::Driver::waitUntilLoaded]
+    completes post-reload.
+*/
+DriverProto.reload = function(wait) {
+	this.frame.contentDocument.location.reload();
+	hold(0);
+	if(wait === false) return;
+	this.waitUntilLoaded();
 }
 
 /**
