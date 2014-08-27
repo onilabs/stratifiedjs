@@ -61,9 +61,11 @@
 
         sjs sjs:bundle --help
 
+    ### Creating bundles
+
     Although multiple functions are exported from this module, most users
-    will only need to use [::create].
-    
+    will only need to use [::create]. See the [::create] docs for information
+    on creating a bundle (whether via the API or command-line).
 
     ### Using bundles
 
@@ -425,10 +427,10 @@ exports.contents = function(bundle) {
   @function create
   @summary Generate a module bundle from the given sources (including dependencies)
   @param {Settings} [settings]
-  @setting {Array} [sources] Array of source module names to scan
-  @setting {Object} [resources] Resource locations (a mapping of server-side path to client-side URL)
+  @setting {Array} [sources] **Required:** Array of source module names to scan
+  @setting {Object} [resources] **Usually required:** Resource locations (a mapping of server-side path to client-side URL)
+  @setting {String} [output] **Usually required:** File path of bundle file to write
   @setting {Object} [hubs] Additional hub locations
-  @setting {String} [output] File path of bundle file to write
   @setting {Bool} [compile] Precompile to JS (larger file size but quicker startup)
   @setting {Bool} [skipFailed] Skip modules that can't be resolved / loaded
   @setting {Array} [ignore] Array of ignored paths (to skip entirely)
@@ -445,6 +447,17 @@ exports.contents = function(bundle) {
 
     Run `sjs sjs:bundle --help` to see a full
     description of what these options do.
+
+    ### Required options:
+
+    Most of the time, you will need to at least provide:
+
+     - `sources` (inputs)
+     - `resources` (mapping of on-disk locations to runtime URLs)
+     - `output` (bundle destination path)
+
+    If you are only bundling modules that already appear in `require.hubs`, you won't need
+    to specify any `resources`.
 
     ### Example:
 
