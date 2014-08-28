@@ -10,6 +10,7 @@
   @require sjs:object
   @require sjs:array
   @require sjs:sequence
+  @require sjs:string
   @require sjs:compare
   @require sjs:debug
   @require sjs:function
@@ -17,9 +18,10 @@
   @require sjs:quasi
   @require sjs:assert
   @require sjs:logging
-  @require sjs:string
   @require sjs:event
   @require sjs:sys
+  @require sjs:http
+  @require sjs:regexp
   @require sjs:url
   @require sjs:observable
 */
