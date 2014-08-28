@@ -250,12 +250,28 @@ function request_hostenv(url, settings) {
                                      headers : {},
                                      // username : undefined
                                      // password : undefined
-                                     response : 'string',
+                                     // response : 'string',
                                      throwing : true,
                                      max_redirects : 5
                                      // agent : undefined
+                                     // ca : undefined
                                   },
                                   settings);
+  
+  // extract & remove options that are meant for me (not http.request)
+  var pop = function(k) {
+    var rv = opts[k];
+    delete opts[k];
+    return rv;
+  };
+  var responseMode = pop('response') || 'string';
+  var body = pop('body');
+  var throwing = pop('throwing');
+  var max_redirects = pop('max_redirects');
+  var username = pop('username');
+  var password = pop('password');
+  var query = pop('query');
+
   var url_string = exports.constructURL(url, opts.query);
   //console.log('req '+url_string);
   // XXX ok, it sucks that we have to take this URL apart again :-/
@@ -264,8 +280,9 @@ function request_hostenv(url, settings) {
   if(!(protocol === 'http' || protocol === 'https')) {
     throw new Error('Unsupported protocol: ' + protocol);
   }
-  var secure = (protocol == "https");
-  var port = url.port || (secure ? 443 : 80);
+  opts.host = url.host;
+  opts.port = url.port || (protocol === 'https' ? 443 : 80);
+  opts.path = url.relative || '/';
 
   if (!opts.headers['Host'])
     opts.headers.Host = url.authority;
@@ -273,30 +290,21 @@ function request_hostenv(url, settings) {
   if (!opts.headers['User-Agent'])
     opts.headers['User-Agent'] = "Oni Labs StratifiedJS engine"; //XXX should have a version here
 
-  if (opts.body && !opts.headers['Transfer-Encoding']) {
+  if (body && !opts.headers['Transfer-Encoding']) {
     // opts.headers['Transfer-Encoding'] = 'chunked';
     // Some APIs (github, here's looking at you) don't accept chunked encoding, 
     // so for maximum compatibility we determine the content length:
-    opts.body = new Buffer(opts.body);
-    opts.headers['Content-Length'] = opts.body.length;
+    body = new Buffer(body);
+    opts.headers['Content-Length'] = body.length;
   }
   else {
     opts.headers['Content-Length'] = 0;
   }
-  var auth;
-  if (typeof opts.username != 'undefined' && typeof opts.password != 'undefined')
-    auth = opts.username + ":" + opts.password;
-  var request = __oni_rt.nodejs_require(protocol).request({
-    method: opts.method,
-    host: url.host,
-    port: port,
-    socketPath: opts.socketPath,
-    path: url.relative || '/',
-    headers: opts.headers,
-    auth: auth,
-    agent: opts.agent
-  });
-  request.end(opts.body); 
+  if (username != null && password != null)
+    opts.auth = username + ":" + password;
+
+  var request = __oni_rt.nodejs_require(protocol).request(opts);
+  request.end(body);
 
   waitfor {
     waitfor (var err) {
@@ -305,22 +313,22 @@ function request_hostenv(url, settings) {
     finally {
       request.removeListener('error', resume);
     }
-    if (opts.throwing) {
+    if (throwing) {
       err.request = request;
       err.response = null;
       err.status = 0;
       throw new Error(err);
     }
-    else if (opts.response === 'string') {
+    else if (responseMode === 'string') {
       return '';
     }
-    else if (opts.response === 'full') {
+    else if (responseMode === 'full') {
       return {
         status: 0,
         content: '',
       }
     }
-    else if (opts.response === 'arraybuffer') {
+    else if (responseMode === 'arraybuffer') {
       return {
         status: 0,
         content: new ArrayBuffer()
@@ -354,10 +362,10 @@ function request_hostenv(url, settings) {
   if (response.statusCode < 200 || response.statusCode >= 300) {
     switch (response.statusCode) {
     case 300: case 301: case 302: case 303: case 307:
-      if (opts.max_redirects > 0) {
+      if (max_redirects > 0) {
         //console.log('redirect to ' + response.headers['location']);
         opts.headers.host = null;
-        --opts.max_redirects;
+        --max_redirects;
         // we use canonicalizeURL here, because some sites
         // (e.g. dailymotion) use a relative url in the Location
         // header (which is forbidden according to RFC1945)
@@ -367,7 +375,7 @@ function request_hostenv(url, settings) {
       }
       // else fall through
     default:
-      if (opts.throwing) {
+      if (throwing) {
         var txt = "Failed " + opts.method + " request to '"+url_string+"'";
         txt += " ("+response.statusCode+")";
         var err = new Error(txt);
@@ -384,7 +392,7 @@ function request_hostenv(url, settings) {
         }
         err.data = response.data;
         throw err;
-      } else if (opts.response == 'string') {
+      } else if (responseMode === 'string') {
         // if we don't let the response drain, it can prevent node from exiting
         response.resume();
         return "";
@@ -393,10 +401,10 @@ function request_hostenv(url, settings) {
     }
   }
   
-  if (opts.response === 'raw') {
+  if (responseMode === 'raw') {
     return response;
   }
-  else if (opts.response === 'arraybuffer') {
+  else if (responseMode === 'arraybuffer') {
     
     var buf = new Buffer(0);
     var data;
@@ -421,7 +429,7 @@ function request_hostenv(url, settings) {
     };
   }
   else {
-    // opts.response === 'string' || opts.response === 'full'
+    // responseMode === 'string' || responseMode === 'full'
     response.setEncoding('utf8');
     response.data = "";
     var data;
@@ -430,7 +438,7 @@ function request_hostenv(url, settings) {
       // XXX should we have some limit on the size here?
     }
     
-    if (opts.response == 'string')
+    if (responseMode === 'string')
       return response.data;
     else {
       // response == 'full'
