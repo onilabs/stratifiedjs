@@ -720,7 +720,7 @@ context('slice') {||
     var emitted = [];
     var receivedNeg = [];
     var receivedPos = [];
-    var interval = 100;
+    var interval = 400;
 
     waitfor {
       countSlowly(interval) .. s.each(x-> emitted.push(x));

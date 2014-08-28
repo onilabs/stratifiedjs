@@ -275,6 +275,7 @@ context() {||
       waitfor {
         event.events(s.emitter.raw, 'click', opts) ..
           seq.each {|e|
+            logging.info("Got event: #{e.value}");
             log.push(e.value);
             if (e.value == 3) break;
             hold(500);
