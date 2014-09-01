@@ -52,9 +52,18 @@ Conductance codebase.
      * `event.when(emitters, events, block)` becomes
        `event.events(emitters, events) .. sequence.each(block)`
 
+   * The semantics of ObservableVar has changed slightly. Any modification (via `set()` or
+     `modify()`) will have no effect if the new value is equal to the current value (under `===`).
+     This prevents spurious work from occurring when successive values are identical. It
+     also removes the need for an explicit `unchanged` value to be given to `modify` (although
+     this is still present for backwards compatibility).
+
+     If you require similar behaviour for deep equality (i.e `compare::eq` instead of just `===`),
+     you can explicitly create a deduplicated version of any sequence using `sequence::dedupe`.
+   
    * The .waitforValue() method on stratum objects (#language/builtins::Stratum)
-     has been renamed to .value(). The old name is still present for
-     backwards-compatibility.
+     has been renamed to just .value(). The old name is still present for
+     backwards compatibility.
 
 
 ## Version 0.18:

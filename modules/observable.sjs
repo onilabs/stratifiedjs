@@ -46,7 +46,7 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @desc
     A stream is said to be an "observable" if it consists of a
     *temporal* sequence of values representing some changing state
-    (e.g. that of an [::ObservableVar]). 
+    (e.g. that of an [::ObservableVar]).
 
     Observables are similar to what [Flapjax](http://www.flapjax-lang.org/tutorial/) calls "Behaviors":
     In contrast to an [sjs:event::EventStream]
@@ -61,6 +61,12 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @class ObservableVar
   @inherit ::Observable
   @summary An [::Observable] stream backed by a modifiable variable.
+  @desc
+    **Notes:**
+
+    - ObservableVars are "debounced": modifications such as `set(val)`
+      will only cause the observable to emit a new value if `val` is not
+      equal to the current observable value (under `===`).
 
   @function ObservableVar
   @param {Object} [val] Initial value
@@ -72,16 +78,11 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
   @param {Object} [val] Value to set
   @summary Set a new observable value
   @desc
-    **Notes:** 
+    **Notes:**
 
     - If this ObservableVar is shared by multiple pieces of
     code, it is typically better to use [::ObservableVar::modify], which
     will protect against concurrent modifications to the same object.
-
-    - ObservableVars are "debounced": `set(val)` will only cause the 
-    observable to emit a new value if `val` is not equal to the current 
-    observable value (under `===`).
-    
 
   @function ObservableVar.modify
   @summary Modify the current observable value
@@ -138,20 +139,28 @@ var { Stream, toArray, slice, integers, each, transform, first, skip } = require
     ### Cancelling a modification
 
     In some circumstances, you may call `modify`, only to find that
-    the current value requires no modification. For this purpose,
-    a sentinel value is provided as the second argument to `change`.
-    If `change` returns this value, the modification is abandoned.
+    the current value requires no modification.
+    Because observables are debounced (see notes for [::ObservableVar]),
+    you can simply return the current value in this case, and no change will occur:
+
+        var decrement = function(observable_var) {
+          observable_var.modify(function(current) {
+            if (current > 0) return current - 1;
+            else return current;
+          }
+        }
+    
+    **Note**: Previous versions of this module used an explicit second `unchanged` parameter
+    to the modify function, as in:
 
         var decrement = function(observable_var) {
           observable_var.modify(function(current, unchanged) {
-            if (current == 0) return unchanged;
-            return current - 1;
+            if (current > 0) return current - 1;
+            else return unchanged;
           }
         }
-
-    This is better than simply returning the current value as the new
-    value, as that would still cause observers to be notified of the
-    "new" value.
+    
+    For backwards compatibility, this is still supported.
 */
 
 var unchanged = {};
