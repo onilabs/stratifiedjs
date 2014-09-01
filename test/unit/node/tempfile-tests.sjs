@@ -7,6 +7,12 @@
 
   var tmproot = @path.join(tmp.tmp(), "sjs-tests");
 
+  var assertWithin = function(path, root) {
+    path = @fs.realpath(path);
+    root = @fs.realpath(root);
+    path .. @startsWith(root) .. @assert.ok("path #{path} does not start with #{root}");
+  }
+
   @TemporaryFile = function(opts, fn) {
     opts['base'] = tmproot;
     return tmp.TemporaryFile.apply(null, arguments);
@@ -42,7 +48,7 @@
     @test("creates a r/w file and removes it upon completion") {|s|
       var path = null;
       @TemporaryFile({prefix:"pre-", suffix: "-suff"}) {|f|
-        @assert.ok(f.path .. @startsWith(s.root), f.path);
+        f.path .. assertWithin(s.root);
         path = f.path;
         @assert.number(f.file);
 
@@ -168,7 +174,7 @@
       var path;
       @TemporaryDir({}) {|p|
         path = p;
-        path .. @startsWith(s.root) .. @assert.ok(path);
+        path .. assertWithin(s.root);
         @fs.stat(path).isDirectory() .. @assert.ok();
         @fs.mkdir(@path.join(path, "dir1"));
         @fs.writeFile(@path.join(path, "dir1", "file1"), "hello!");
