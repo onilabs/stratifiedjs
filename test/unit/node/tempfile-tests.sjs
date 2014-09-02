@@ -131,7 +131,7 @@
         var stats = @fs.fstat(f.file);
         @assert.eq(stats.mode.toString(8).slice(-3), '600');
       }
-    }
+    }.skipIf(@isWindows, "not implemented on Windows");
 
     @test("retries on collision") {||
       var _open = @fs.open;
@@ -231,6 +231,6 @@
         var stats = @fs.stat(path);
         @assert.eq(stats.mode.toString(8).slice(-3), '700');
       }
-    }
+    }.skipIf(@isWindows, "not implemented on Windows");
   }
 }.serverOnly();
