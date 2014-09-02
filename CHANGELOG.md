@@ -65,14 +65,24 @@ Conductance codebase.
      has been renamed to just .value(). The old name is still present for
      backwards compatibility.
  
-   * The toplevel sjs runtime now handles deadly process signals (such as SIGINT, SIGTERM, etc).
-     The behaviour should be identical to previous versions, except that retract/finally blocks
-     now act as you would expect on process termination (such blocks are now executed fully,
-     even when they involve suspending code).
-     
-     **Note** that retract/finally blocks can still only execute up until the point they
-     suspend if you exit the process via `process.exit()`, due to a limitation of nodejs.
+ * Changes to external process termination:
 
+   * On POSIX platforms (Mac & Linux), the toplevel sjs runtime now handles deadly process signals
+     (such as SIGINT, SIGTERM, etc). The behaviour should be identical to previous versions,
+     except that retract/finally blocks now act as you would expect during process termination
+     (such blocks are now executed fully, even when they involve suspending code).
+
+   * Due to underlying platform limitations, cleanup code from retract/finally
+     blocks will not run as expected in the following circumstances:
+
+      - On Windows, cleanup code will not run at all if the process is killed.
+
+      - When calling `process.exit()`, cleanup code will run (on UNIX),
+        but only until it suspends - the process will then terminate, without
+        waiting for the suspended code to complete.
+
+        To terminate the current process when there may be other code which may require
+        non-atomic (i.e suspending) cleanup, you can use `process.kill(process.pid, 'SIGINT')`.
 
 ## Version 0.18:
 
