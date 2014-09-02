@@ -64,6 +64,14 @@ Conductance codebase.
    * The .waitforValue() method on stratum objects (#language/builtins::Stratum)
      has been renamed to just .value(). The old name is still present for
      backwards compatibility.
+ 
+   * The toplevel sjs runtime now handles deadly process signals (such as SIGINT, SIGTERM, etc).
+     The behaviour should be identical to previous versions, except that retract/finally blocks
+     now act as you would expect on process termination (such blocks are now executed fully,
+     even when they involve suspending code).
+     
+     **Note** that retract/finally blocks can still only execute up until the point they
+     suspend if you exit the process via `process.exit()`, due to a limitation of nodejs.
 
 
 ## Version 0.18:
