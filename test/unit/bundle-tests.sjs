@@ -83,6 +83,20 @@ context {||
     ]);
   }
 
+  test("modules included in a test condition") {||
+    var bundle = createBundle({
+      resources: ["#{basePath}=/"],
+      sources: [
+        fixtureUrl + 'hostenv_detect.sjs'
+      ],
+    });
+
+    bundle .. bundledModuleNames .. assert.eq([
+      [ 'sjs:', ['sys.sjs']],
+      [ null, ['HOST/fixtures/hostenv_detect.sjs']]
+    ]);
+  }
+
   context("multiple bundles") {||
     test("excludes modules that are present in an existing bundle") {||
       var settings = {

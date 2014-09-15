@@ -633,6 +633,7 @@ function gen_crf(crf) {
 // expressions:
 
 
+
 // note the intentional space in ' =>' below; it is to fix cases like '= => ...'
 
 
@@ -757,7 +758,7 @@ SemanticToken.prototype = {
     this.excf = function(left, pctx) {
       var right = parseExp(pctx, bp);
       
-      return right;
+      if (this.id == '||' || this.id == '&&') return left; else return left.seq(right);
     };
     return this;
   },
@@ -1495,7 +1496,7 @@ S("if").stmt(function(pctx) {
     alternative = parseStmt(pctx);
   }
   
-  return Dynamic;
+  return test;
 });
 
 S("while").stmt(function(pctx) {
@@ -1506,7 +1507,7 @@ S("while").stmt(function(pctx) {
   var body = parseStmt(pctx);
   /* */
   
-  return Dynamic;
+  return test;
 });
 
 S("do").stmt(function(pctx) {
@@ -1519,7 +1520,7 @@ S("do").stmt(function(pctx) {
   scan(pctx, ")");
   parseStmtTermination(pctx);
   
-  return Dynamic;
+  return body.seq(test);
 });
 
 S("for").stmt(function(pctx) {
@@ -1643,7 +1644,7 @@ S("switch").stmt(function(pctx) {
   /* */
   scan(pctx, "}");
   
-  return Dynamic;
+  return exp;
 });
 
 S("throw").stmt(function(pctx) {

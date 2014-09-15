@@ -355,11 +355,11 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
     }                                             \
   };
 
-#define GEN_IF(test, consequent, alternative, pctx) return Dynamic;
+#define GEN_IF(test, consequent, alternative, pctx) return test;
 
-#define GEN_DO_WHILE(body, test, pctx) return Dynamic;
+#define GEN_DO_WHILE(body, test, pctx) return body.seq(test);
 
-#define GEN_WHILE(test, body, pctx) return Dynamic;
+#define GEN_WHILE(test, body, pctx) return test;
 
 #define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx) return Dynamic;
 
@@ -373,7 +373,7 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 
 #define GEN_WITH(exp, body, pctx) return body;
 
-#define GEN_SWITCH(exp, clauses, pctx) return Dynamic;
+#define GEN_SWITCH(exp, clauses, pctx) return exp;
 
 #define GEN_THROW(exp, pctx) return Dynamic;
 
@@ -389,7 +389,9 @@ function gen_crf(crf) {
 //----------------------------------------------------------------------
 // expressions:
 
-#define GEN_INFIX_OP(left, id, right, pctx) return right;
+#define GEN_INFIX_OP(left, id, right, pctx) \
+  if (id == '||' || id == '&&') return left; else return left.seq(right);
+
 #define GEN_ASSIGN_OP(left, id, right, pctx) \
   if (id == '=') top_scope(pctx).assignments.push([left, right]); \
   return right;
