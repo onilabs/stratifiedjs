@@ -3,7 +3,7 @@
  * Constructs for manipulating streams backed by time-varying values
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.19.0-development'
+ * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2013-2015 Oni Labs, http://onilabs.com
