@@ -207,7 +207,7 @@ context {||
       };
 
       // launches a child (bash), which then launches a sub-process (also bash). The
-      // gradchild process prints its PID to stdout. We then kill the child
+      // grandchild process prints its PID to stdout. We then kill the child
       // and make sure that the grandchild is also dead.
       var child = child_process.launch('bash', ['-c', "
           echo child start;
@@ -231,7 +231,7 @@ context {||
           if (line .. str.startsWith('SPAWNED_')) {
             var pid = (line.split('_')[1].trim());
             logging.info("pid:", pid);
-            pidEvt.set(pid);
+            pidEvt.set(+pid);
           } else {
             lines.push(line);
           }
