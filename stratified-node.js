@@ -5937,6 +5937,9 @@ exports.runMainExpression(main);
 
 process.on('uncaughtException',function(error){console.error('Uncaught: '+error.toString());
 
+if(error.stack){
+console.log(error.stack);
+}
 if(process.listeners('uncaughtException').length==1){
 
 process.kill(process.pid,'SIGINT');
