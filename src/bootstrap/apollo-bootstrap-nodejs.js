@@ -74,6 +74,9 @@ exports.run = function(url) {
 // stack traces).
 process.on('uncaughtException',function(error){
   console.error('Uncaught: '+error.toString());
+  if (error.stack) {
+    console.log(error.stack);
+  }
   if (process.listeners('uncaughtException').length == 1) {
     // the user has not installed a handler - kill the process
     process.kill(process.pid, 'SIGINT');
