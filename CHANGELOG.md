@@ -8,21 +8,21 @@ This changelog lists the most prominent, developer-visible changes in each relea
      `{ emit, stream }` pair, rather than a single object. To migrate existing code to
      the new system, change this...
 
-         var emitter = @Emitter()
-         emitter ..@each(...)
-         emitter.emit(...)
+             var emitter = @Emitter();
+             emitter ..@each(...);
+             emitter.emit(...);
 
      ...to this:
 
-         var { emit, stream } = @Emitter()
-         stream ..@each(...)
-         emit(...)
+             var { emit, stream } = @Emitter();
+             stream ..@each(...);
+             emit(...);
 
      ...or alternatively, use this:
 
-         var emitter = @Emitter()
-         emitter.stream ..@each(...)
-         emitter.emit(...)
+             var emitter = @Emitter();
+             emitter.stream ..@each(...);
+             emitter.emit(...);
 
      This change was done so that you can give away the `stream` to somebody else
      (so they can read from it), without giving them the ability to write to the `stream`.
