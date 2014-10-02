@@ -19,5 +19,8 @@
     "karma-phantomjs-launcher": "*",
     "karma-script-launcher": "*"
   },
-  "engines": { "node": ">=0.4.1" }
+  "engines": { "node": ">=0.4.1" },
+  "scripts": {
+    "test": "./sjs test/run.html"
+  }
 }
