@@ -78,20 +78,14 @@ var sys = require('builtin:apollo-sys');
 //----------------------------------------------------------------------
 
 /**
-   @class Emitter
-   @inherit ::EventStream
-   @summary An [::EventStream] with an `emit` function
-
    @function Emitter
-
-   @function Emitter.emit
-   @param {Object} [event] Event value to emit.
-   @summary Emit a event value
+   @return {Object} An `{ emit, stream }` object, where `stream` is an [::EventStream],
+                    and `emit` is a function that pushes a value into `stream`
 */
 function Emitter() {
   var listeners = [];
 
-  var rv = seq.Stream(function(receiver) {
+  var stream = seq.Stream(function(receiver) {
     while(1) {
       waitfor(var val) {
         listeners.push(resume);
@@ -102,7 +96,7 @@ function Emitter() {
     }
   });
 
-  __js rv.emit = function(val) {
+  __js function emit(val) {
     var _listeners = listeners;
     listeners = [];
     // because rv.emit is encoded as __js, the following is equivalent to a 'spawn':
@@ -110,7 +104,10 @@ function Emitter() {
       _listeners[i](val);
   }
 
-  return rv;
+  return {
+    stream: stream,
+    emit: emit
+  };
 }
 exports.Emitter = Emitter;
 

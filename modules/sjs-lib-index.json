@@ -466,15 +466,7 @@
           "children": {}
         },
         "Emitter": {
-          "type": "class",
-          "children": {
-            "Emitter": {
-              "type": "ctor"
-            },
-            "emit": {
-              "type": "function"
-            }
-          }
+          "type": "function"
         },
         "events": {
           "type": "function"

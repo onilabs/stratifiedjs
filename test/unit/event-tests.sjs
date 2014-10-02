@@ -58,7 +58,7 @@ if (sys.hostenv == 'nodejs') {
         em.detachEvent = func.seq(remove, em.detachEvent);
         this.listeners = function(name) { return listeners['on' + name] || []; };
       }
-      
+
     },
     trigger: function(name, val) {
       var evt;
@@ -90,12 +90,12 @@ if (sys.hostenv == 'nodejs') {
 context("Emitter") {||
   test('block/resume') {||
     var result = (function() {
-      var e = event.Emitter();
+      var { emit, stream } = event.Emitter();
       waitfor {
-        e .. event.wait();
+        stream .. event.wait();
         return 1;
       } or {
-        e.emit();
+        emit();
         hold(100);
         return 2;
       }
@@ -104,9 +104,9 @@ context("Emitter") {||
   }
 
   test('retract from wait()') {||
-    var e = event.Emitter();
+    var { stream } = event.Emitter();
     waitfor {
-      e .. event.wait();
+      stream .. event.wait();
     } or {
       hold(100);
     }
@@ -115,15 +115,15 @@ context("Emitter") {||
   };
 
   test('setting with a value') {||
-    var e = event.Emitter();
+    var { emit, stream } = event.Emitter();
     var results = [];
     waitfor {
-      results.push(e .. event.wait());
-      results.push(e .. event.wait());
+      results.push(stream .. event.wait());
+      results.push(stream .. event.wait());
     } or {
-      e.emit("first");
+      emit("first");
       hold(100);
-      e.emit("second");
+      emit("second");
       hold();
     }
     assert.eq(results, ["first", "second"]);
@@ -327,11 +327,11 @@ context() {||
     };
 
     test('queues sjs events') {||
-      var emitter = event.Emitter();
-      runTest(emitter) {||
-        emitter.emit({detail: 1});
-        emitter.emit({detail: 2});
-        emitter.emit({detail: 3});
+      var { emit, stream } = event.Emitter();
+      runTest(stream) {||
+        emit({detail: 1});
+        emit({detail: 2});
+        emit({detail: 3});
       }
     }
 
@@ -369,7 +369,7 @@ context() {||
 
 context("stream") {||
   test('basic iteration') {||
-    var stream = event.Emitter();
+    var { emit, stream } = event.Emitter();
     var result = [];
     waitfor {
       stream .. seq.each {|item|
@@ -377,17 +377,17 @@ context("stream") {||
       }
     } or {
       hold(10);
-      stream.emit(1)
+      emit(1)
       hold(10);
-      stream.emit(2)
-      stream.emit(3)
-      stream.emit(4)
+      emit(2)
+      emit(3)
+      emit(4)
     }
     result .. assert.eq([1,2,3,4]);
   };
 
   test('buffers up to one item if iteration blocks') {||
-    var stream = event.Emitter();
+    var { emit, stream } = event.Emitter();
     var result = [];
     waitfor {
       stream .. seq.tailbuffer .. seq.each {|item|
@@ -395,30 +395,30 @@ context("stream") {||
         if (item == 1) hold(150);
       }
     } or {
-      stream.emit(1)
+      emit(1)
       hold(100);
-      stream.emit(2)
-      stream.emit(3)
-      stream.emit(4)
+      emit(2)
+      emit(3)
+      emit(4)
       hold(150);
-      stream.emit(5)
+      emit(5)
       hold(100);
     }
     result .. assert.eq([1,4,5]);
   }
 
   test('ignore events before iteration') {||
-    var stream = event.Emitter();
+    var { emit, stream } = event.Emitter();
     var result = [];
     waitfor {
-      stream.emit(1)
+      emit(1)
       hold(10);
-      stream.emit(2)
+      emit(2)
       hold(10);
-      stream.emit(3)
-      stream.emit(4)
+      emit(3)
+      emit(4)
     } or {
-      
+
       stream .. seq.each {|item|
         result.push(item);
       }
@@ -429,14 +429,14 @@ context("stream") {||
 
 context('wait()') {||
   test('with filter arg') { ||
-    var stream = event.Emitter();
+    var { emit, stream } = event.Emitter();
     var rv;
     waitfor {
       rv = stream .. event.wait(x -> x == 2 );
     } or {
-      stream.emit(1);
-      stream.emit(2);
-      stream.emit(3);
+      emit(1);
+      emit(2);
+      emit(3);
     }
     rv .. assert.eq(2);
   }

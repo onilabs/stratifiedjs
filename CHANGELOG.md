@@ -1,5 +1,37 @@
 This changelog lists the most prominent, developer-visible changes in each release.
 
+## version 0.20:
+
+ * Changes
+
+   * The `Emitter` function in the `sjs:events` module has been changed to return an
+     `{ emit, stream }` pair, rather than a single object. To migrate existing code to
+     the new system, change this...
+
+         var emitter = @Emitter()
+         emitter ..@each(...)
+         emitter.emit(...)
+
+     ...to this:
+
+         var { emit, stream } = @Emitter()
+         stream ..@each(...)
+         emit(...)
+
+     ...or alternatively, use this:
+
+         var emitter = @Emitter()
+         emitter.stream ..@each(...)
+         emitter.emit(...)
+
+     This change was done so that you can give away the `stream` to somebody else
+     (so they can read from it), without giving them the ability to write to the `stream`.
+
+     Or you can give them the `emit` function so that they can write to the `stream` without
+     being able to read from it.
+
+     You can still give them both parts, if you want to allow for both reading and writing.
+
 ## Version 0.19:
 
 This version includes a number of additions to nodejs-specific modules, as well
@@ -60,11 +92,11 @@ Conductance codebase.
 
      If you require similar behaviour for deep equality (i.e `compare::eq` instead of just `===`),
      you can explicitly create a deduplicated version of any sequence using `sequence::dedupe`.
-   
+
    * The .waitforValue() method on stratum objects (#language/builtins::Stratum)
      has been renamed to just .value(). The old name is still present for
      backwards compatibility.
- 
+
  * Changes to external process termination:
 
    * On POSIX platforms (Mac & Linux), the toplevel sjs runtime now handles deadly process signals
@@ -124,7 +156,7 @@ Command line tools (like `sjs` itself) continue to accept both URLs and
 file paths, using the new url::coerceToURL function.
 
  * new functions and symbols:
-   
+
    * cutil::Queue.isFull
    * object::tap
    * string::base64ToArrayBuffer

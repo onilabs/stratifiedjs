@@ -127,7 +127,7 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:event](#sjs%3Aevent) module:
   
-   - **Emitter**: (class [sjs:event::Emitter])
+   - **Emitter**: (function [sjs:event::Emitter])
    - **events**: (function [sjs:event::events])
    - **wait**: (function [sjs:event::wait])
   
