@@ -34,14 +34,14 @@
   @home      sjs:event
   @require   sjs:xbrowser/dom
   @desc
-    This module provides abstractions around *event streams* ([::EventStream]), 
+    This module provides abstractions around *event streams* ([::EventStream]),
     which are a type of [./sequence::Stream] composed of discrete events.
 
     ### Explicitly triggered  events:
-    
-    To create an event stream that is composed of programatically triggered 
+
+    To create an event stream that is composed of programatically triggered
     events, this module provides the function [::Emitter].
-    Emitters are [::EventStream]s that have an `emit(value)` method, 
+    Emitters are [::EventStream]s that have an `emit(value)` method,
     which is used to explicitly trigger events.
 
     ### External events:
@@ -63,11 +63,11 @@ var sys = require('builtin:apollo-sys');
    @summary A stream with 'event' semantics
    @desc
      A stream is said to be an "event stream" if it consists of a *temporal*
-     sequence of discrete values. In contrast to an [sjs:observable::Observable], 
-     event streams do not have the concept of a 'current' value, i.e. calling [sjs:sequence::first] on 
-     an event stream is not guaranteed to yield a value in a finite time. 
+     sequence of discrete values. In contrast to an [sjs:observable::Observable],
+     event streams do not have the concept of a 'current' value, i.e. calling [sjs:sequence::first] on
+     an event stream is not guaranteed to yield a value in a finite time.
 
-     Furthermore, 
+     Furthermore,
      event streams are 'free running' and do not perform any buffering: if an
      event is emitted while the downstream receiver is blocked, the event will be lost. For web applications this implies that it is generally not safe to share event streams between client and server without some form of buffering (e.g. [sjs:sequence::tailbuffer]).
 
@@ -90,7 +90,7 @@ var sys = require('builtin:apollo-sys');
 */
 function Emitter() {
   var listeners = [];
-  
+
   var rv = seq.Stream(function(receiver) {
     while(1) {
       waitfor(var val) {
@@ -119,18 +119,18 @@ exports.Emitter = Emitter;
 
 /**
    @function events
-   @summary  An [::EventStream] of DOMElement or nodejs EventEmitter events. 
+   @summary  An [::EventStream] of DOMElement or nodejs EventEmitter events.
    @param    {Array|Object} [emitters] (Array of) DOMElement(s) or nodejs EventEmitters on which to listen for events.
    @param    {Array|String} [events] (Array of) event name(s) to listen for.
    @param    {optional Settings} [settings]
-   @setting  {Function} [filter] Function through which received events 
-             will be passed. An event will only be emitted if this 
+   @setting  {Function} [filter] Function through which received events
+             will be passed. An event will only be emitted if this
              function returns a truthy value.
    @setting  {Function} [handle] A handler function to call directly on the event,
              if it hasn't been filtered (by virtue of `filter` returning a falsy value).
    @setting  {Function} [transform] Function through which an event will be passed
              before filtering.
-   @return   {::EventStream} 
+   @return   {::EventStream}
    @desc
 
     ### Notes
@@ -143,11 +143,11 @@ exports.Emitter = Emitter;
       listener - so you can prefix events with "!" to have the event fire
       during the "capture" phase.
 
-    * When iterating over events (with [sjs:sequence::each]), as per [::EventStream] semantics, some of the events 
-      might not be passed on to the downstream (if the downstream is blocked while an event arrives), or might only 
+    * When iterating over events (with [sjs:sequence::each]), as per [::EventStream] semantics, some of the events
+      might not be passed on to the downstream (if the downstream is blocked while an event arrives), or might only
       be handled by the downstream asynchronously after some delay (e.g. if a [sjs:sequence::tailbuffer]) is used.
       So calls that influence the internal handling of the event
-      (such as [sjs:xbrowser/dom::stopEvent], [sjs:xbrowser/dom::preventDefault] or [sjs:xbrowser/dom::stopPropagation]), 
+      (such as [sjs:xbrowser/dom::stopEvent], [sjs:xbrowser/dom::preventDefault] or [sjs:xbrowser/dom::stopPropagation]),
       should be called from the `handle` function, rather than in a downstream iteration loop.
 
     * IE multiplexes all events onto a global event object. To ensure events
@@ -181,29 +181,29 @@ exports.events = events;
 /**
    @function wait
    @param {./sequence::Stream|Object} [stream_or_emitter]
-   @param {optional any} [...] Optional `filter` function, if first argument is a [./sequence::Stream], 
+   @param {optional any} [...] Optional `filter` function, if first argument is a [./sequence::Stream],
                                otherwise additional arguments as for [::events].
    @summary Wait for an event or the first item of a [./sequence::Stream]
    @desc
      This function is polymorphic:
 
      ### Use with [./sequence::Stream]s
-     
+
      If `stream_or_emitter` is a [./sequence::Stream] and no other arguments are provided, this function acts like
      [./sequence::first], awaiting and returning the first emitted
-     item from the stream. 
+     item from the stream.
 
-     If, in addition to the first argument, a second argument `filter` 
+     If, in addition to the first argument, a second argument `filter`
      is provided, `wait` acts like [./sequence::find], returning the
      first item in the stream for which `filter(item)` is truthy.
 
-     In either case, `wait` raises a [./sequence::SequenceExhausted] 
+     In either case, `wait` raises a [./sequence::SequenceExhausted]
      error if the stream ends before a (matching) event is emitted.
 
      #### Example
 
          // wait for first emitted event
-         some_event_stream .. @wait; 
+         some_event_stream .. @wait;
 
          // wait for first emitted event that has a member foo = 'bar'
          some_event_stream .. @wait(ev -> ev.foo == 'bar');
@@ -211,7 +211,7 @@ exports.events = events;
 
      ### Use with DOM or nodejs event emitters
 
-     If `stream_or_emitter` is not a [./sequence::Stream], this method passes all arguments through to 
+     If `stream_or_emitter` is not a [./sequence::Stream], this method passes all arguments through to
      [::events] to create an event stream, then acts like
      calling [./sequence::first] on that stream.
 
@@ -302,7 +302,7 @@ HostEmitterProto._start = function() {
   }
 };
 
-/* -- not part of documentation -- 
+/* -- not part of documentation --
   @function HostEmitter.stop
   @summary Stop listening for events
   @desc
