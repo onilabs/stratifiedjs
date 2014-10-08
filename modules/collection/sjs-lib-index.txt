@@ -1,0 +1,2 @@
+@lib     StratifiedJS Standard Module Library - Collection Utilities
+@summary SJS collection utilities

@@ -276,6 +276,43 @@
       },
       "summary": "Create SJS code bundles"
     },
+    "collection/": {
+      "type": "lib",
+      "children": {
+        "dictionary": {
+          "type": "module",
+          "children": {
+            "Dictionary": {
+              "type": "class",
+              "children": {}
+            },
+            "has": {
+              "type": "function"
+            },
+            "get": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "del": {
+              "type": "function"
+            },
+            "insert": {
+              "type": "function"
+            },
+            "modify": {
+              "type": "function"
+            },
+            "remove": {
+              "type": "function"
+            }
+          },
+          "summary": "Functions for manipulating dictionary data structures (JavaScript objects, hash tables, binary search trees, etc.)"
+        }
+      },
+      "summary": "SJS collection utilities"
+    },
     "compare": {
       "type": "module",
       "children": {
@@ -333,7 +370,7 @@
           "summary": "SJS source code stringifier"
         }
       },
-      "summary": "SJS compilation utilities"
+      "summary": "SJS collection utilities"
     },
     "cutil": {
       "type": "module",
@@ -1995,6 +2032,11 @@
         }
       },
       "summary": "Functions for working with strings"
+    },
+    "symbol": {
+      "type": "module",
+      "children": {},
+      "summary": "Symbols which can be used as unique keys in objects."
     },
     "sys": {
       "type": "module",
