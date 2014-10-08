@@ -98,7 +98,7 @@ function add(set, value) {
   } else if (Array.isArray(set)) {
     set.push(value);
   } else {
-    dictionary.set(value, true);
+    dictionary.set(set, value, true);
   }
 }
 exports.add = add;
