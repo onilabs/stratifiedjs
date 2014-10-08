@@ -78,11 +78,13 @@ function assertJSKey(key) {
    @summary Returns `true` if the `key` is in `dict`.
  */
 function has(dict, key) {
-  if (isObject(dict)) {
+  if (interface_has in dict) {
+    return dict[interface_has](dict, key);
+  } else if (isObject(dict)) {
     assertJSKey(key);
     return key in dict;
   } else {
-    return dict[interface_has](dict, key);
+    throw new Error('Cannot has: object #{dict} is not a dictionary');
   }
 }
 exports.has = has;
@@ -103,11 +105,13 @@ exports.has = has;
  */
 function get(dict, key, def) {
   if (has(dict, key)) {
-    if (isObject(dict)) {
+    if (interface_get in dict) {
+      return dict[interface_get](dict, key);
+    } else if (isObject(dict)) {
       assertJSKey(key);
       return dict[key];
     } else {
-      return dict[interface_get](dict, key);
+      throw new Error('Cannot get: object #{dict} is not a dictionary');
     }
   } else {
     if (arguments.length === 3) {
@@ -132,11 +136,13 @@ exports.get = get;
      If `key` is not in `dict` then it is created.
  */
 function set(dict, key, value) {
-  if (isObject(dict)) {
+  if (interface_set in dict) {
+    dict[interface_set](dict, key, value);
+  } else if (isObject(dict)) {
     assertJSKey(key);
     dict[key] = value;
   } else {
-    dict[interface_set](dict, key, value);
+    throw new Error('Cannot set: object #{dict} is not a dictionary');
   }
 }
 exports.set = set;
@@ -153,11 +159,13 @@ exports.set = set;
  */
 function del(dict, key) {
   if (has(dict, key)) {
-    if (isObject(dict)) {
+    if (interface_del in dict) {
+      dict[interface_del](dict, key);
+    } else if (isObject(dict)) {
       // Does not need `assertJSKey`, because `has` already calls it
       delete dict[key];
     } else {
-      dict[interface_del](dict, key);
+      throw new Error('Cannot del: object #{dict} is not a dictionary');
     }
   }
 }
