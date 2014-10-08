@@ -126,3 +126,27 @@ function remove(set, value) {
 }
 exports.remove = remove;
 
+/**
+   @function union
+   @param {::Set} [a]
+   @param {::Set} [b]
+   @return {::Set}
+   @summary Returns a new [::Set] that contains all the elements from
+            `a` and `b`, without duplicates
+ */
+function union(a, b) {
+  // TODO more efficient data type
+  var output = [];
+  a ..@each(function (value) {
+    if (!has(output, value)) {
+      add(output, value);
+    }
+  });
+  b ..@each(function (value) {
+    if (!has(output, value)) {
+      add(output, value);
+    }
+  });
+  return output;
+}
+exports.union = union;
