@@ -309,6 +309,25 @@
             }
           },
           "summary": "Functions for manipulating dictionary data structures (JavaScript objects, hash tables, binary search trees, etc.)"
+        },
+        "set": {
+          "type": "module",
+          "children": {
+            "Set": {
+              "type": "class",
+              "children": {}
+            },
+            "has": {
+              "type": "function"
+            },
+            "add": {
+              "type": "function"
+            },
+            "remove": {
+              "type": "function"
+            }
+          },
+          "summary": "Functions for manipulating data structures as a mathematical set"
         }
       },
       "summary": "SJS collection utilities"
