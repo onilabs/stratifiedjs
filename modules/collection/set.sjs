@@ -137,9 +137,7 @@ function union(a, b) {
   // TODO more efficient data type
   var output = [];
   a ..@each(function (value) {
-    if (!has(output, value)) {
-      add(output, value);
-    }
+    add(output, value);
   });
   b ..@each(function (value) {
     if (!has(output, value)) {
