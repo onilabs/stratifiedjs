@@ -130,9 +130,8 @@ exports.remove = remove;
    @function union
    @param {::Set} [a]
    @param {::Set} [b]
-   @return {::Set}
-   @summary Returns a new [::Set] that contains all the elements from
-            `a` and `b`, without duplicates
+   @return {::Set} A new [::Set] that contains all the elements
+                   from `a` and `b`, without duplicates
  */
 function union(a, b) {
   // TODO more efficient data type
@@ -150,3 +149,22 @@ function union(a, b) {
   return output;
 }
 exports.union = union;
+
+/**
+   @function difference
+   @param {::Set} [a]
+   @param {::Set} [b]
+   @return {::Set} A new [::Set] that contains all the elements
+                   from `a` that are not in `b`
+ */
+function difference(a, b) {
+  // TODO more efficient data type
+  var output = [];
+  a ..@each(function (value) {
+    if (!has(b, value)) {
+      add(output, value);
+    }
+  });
+  return output;
+}
+exports.difference = difference;

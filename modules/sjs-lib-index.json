@@ -325,6 +325,12 @@
             },
             "remove": {
               "type": "function"
+            },
+            "union": {
+              "type": "function"
+            },
+            "difference": {
+              "type": "function"
             }
           },
           "summary": "Functions for manipulating data structures as a mathematical set"
