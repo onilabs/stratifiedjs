@@ -45,9 +45,9 @@ var dictionary = require('./dictionary');
    @summary A data structure that supports getting, adding, and removing a value,
             without any duplicates.
    @desc
-     Any [dictionary::Dictionary] can be used as a [::Set].
+     Any [collection/dictionary::Dictionary] can be used as a [::Set].
 
-     Any [list::List] can be used as a [::Set].
+     Any [collection/list::List] can be used as a [::Set].
 
      New data types can be created and plugged into the system, so that SJS will recognize
      them as a [::Set].
@@ -67,7 +67,7 @@ exports.interface_remove = interface_remove;
    @param {::Set} [set]
    @param {Object} [value] Value to check in `set`
    @return {Boolean}
-   @summary Returns `true` if the `value` is in `set`.
+   @summary Returns `true` if `value` is in `set`.
  */
 function has(set, value) {
   if (interface_has in set) {
