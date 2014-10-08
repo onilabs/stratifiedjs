@@ -71,7 +71,7 @@ function isObject(x) {
 // JS Objects only allow for string keys
 function assertJSKey(key) {
   if (typeof key !== 'string') {
-    throw new TypeError('JavaScript objects may only have string keys: #{key}');
+    throw new TypeError("JavaScript objects may only have string keys: #{key}");
   }
 }
 
@@ -89,7 +89,7 @@ function has(dict, key) {
     assertJSKey(key);
     return key in dict;
   } else {
-    throw new Error('Cannot has: object #{dict} is not a dictionary');
+    throw new Error("Cannot has: object #{dict} is not a dictionary");
   }
 }
 exports.has = has;
@@ -116,14 +116,14 @@ function get(dict, key, def) {
       assertJSKey(key);
       return dict[key];
     } else {
-      throw new Error('Cannot get: object #{dict} is not a dictionary');
+      throw new Error("Cannot get: object #{dict} is not a dictionary");
     }
   } else {
     if (arguments.length === 3) {
       return def
     } else {
       // TODO is RangeError the right Error type to use?
-      throw new RangeError('Cannot get: dictionary #{dict} does not have the key #{key}');
+      throw new RangeError("Cannot get: dictionary #{dict} does not have the key #{key}");
     }
   }
 }
@@ -147,7 +147,7 @@ function set(dict, key, value) {
     assertJSKey(key);
     dict[key] = value;
   } else {
-    throw new Error('Cannot set: object #{dict} is not a dictionary');
+    throw new Error("Cannot set: object #{dict} is not a dictionary");
   }
 }
 exports.set = set;
@@ -170,7 +170,7 @@ function del(dict, key) {
       // Does not need `assertJSKey`, because `has` already calls it
       delete dict[key];
     } else {
-      throw new Error('Cannot del: object #{dict} is not a dictionary');
+      throw new Error("Cannot del: object #{dict} is not a dictionary");
     }
   }
 }
@@ -189,7 +189,7 @@ function insert(dict, key, value) {
   //      the value is different. That way calling insert twice with the same value
   //      is a no-op, rather than an error.
   if (has(dict, key)) {
-    throw new Error('Cannot insert: dictionary #{dict} already has the key #{key}');
+    throw new Error("Cannot insert: dictionary #{dict} already has the key #{key}");
   }
   set(dict, key, value);
 }
@@ -225,7 +225,7 @@ function modify(dict, key, f) {
       set(dict, key, value);
     }
   } else {
-    throw new Error('Cannot modify: concurrency failure: #{before} does not match #{after}');
+    throw new Error("Cannot modify: concurrency failure: #{before} does not match #{after}");
   }
 }
 exports.modify = modify;
@@ -240,7 +240,7 @@ exports.modify = modify;
 function remove(dict, key) {
   if (!has(dict, key)) {
     // TODO is RangeError the right Error type to use?
-    throw new RangeError('Cannot remove: dictionary #{dict} does not have the key #{key}');
+    throw new RangeError("Cannot remove: dictionary #{dict} does not have the key #{key}");
   }
   del(dict, key)
 }

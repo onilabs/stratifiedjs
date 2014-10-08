@@ -89,7 +89,7 @@ exports.has = has;
  */
 function add(set, value) {
   if (has(set, value)) {
-    throw new Error('Cannot add: set #{set} already has value #{value}');
+    throw new Error("Cannot add: set #{set} already has value #{value}");
   }
 
   if (interface_add in set) {
@@ -112,7 +112,7 @@ exports.add = add;
 function remove(set, value) {
   if (!has(set, value)) {
     // TODO is RangeError the right Error to use ?
-    throw new RangeError('Cannot remove: set #{set} does not have value #{value}');
+    throw new RangeError("Cannot remove: set #{set} does not have value #{value}");
   }
 
   if (interface_remove in set) {
