@@ -55,6 +55,11 @@ var interface_get = '__symbol_get_3857C414-456E-4C5D-AEEB-C5D53DFC6E8F__';
 var interface_set = '__symbol_set_D6C87277-3CC6-47B2-A81C-3D246B41CEBF__';
 var interface_del = '__symbol_del_EECC85D1-409B-4D90-B73B-789434F7EA59__';
 
+exports.interface_has = interface_has;
+exports.interface_get = interface_get;
+exports.interface_set = interface_set;
+exports.interface_del = interface_del;
+
 var toString = {}.toString;
 
 // TODO generic sjs:types module for this
