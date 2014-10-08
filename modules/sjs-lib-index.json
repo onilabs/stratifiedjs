@@ -370,7 +370,7 @@
           "summary": "SJS source code stringifier"
         }
       },
-      "summary": "SJS collection utilities"
+      "summary": "SJS compilation utilities"
     },
     "cutil": {
       "type": "module",
