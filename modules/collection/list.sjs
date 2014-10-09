@@ -266,8 +266,9 @@ exports.nth_remove = nth_remove;
      * If `value` is not in `list`, then this will return `-1`
  */
 function indexOf(list, value) {
+  // TODO implement this with `list ..@each()` instead ?
   for (var i = 0, len = length(list); i < len; ++i) {
-    if (nth_get(list, i) === value) {
+    if (nth(list, i) === value) {
       return i;
     }
   }
@@ -292,14 +293,14 @@ exports.indexOf = indexOf;
      * If `f` returns a different value, then it will set `index` to whatever
      `f` returned.
 
-     Unlike using [::nth_get] followed by [::nth_set], this is safe even if
+     Unlike using [::nth] followed by [::nth_set], this is safe even if
      [::modify] is called from multiple stratum concurrently.
  */
 function modify(list, index, f) {
   // TODO code duplication with sjs:collection/dictionary
-  var before = nth_get(list, index);
+  var before = nth(list, index);
   var value  = f(before);
-  var after  = nth_get(list, index);
+  var after  = nth(list, index);
   // This is to prevent multiple concurrent modifies from clobbering each other
   if (before === after) {
     if (value !== after) {
