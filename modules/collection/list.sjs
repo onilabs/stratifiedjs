@@ -53,14 +53,12 @@
 // Generated using http://www.generateuuid.com/
 var interface_length     = '__symbol_length_50A60F7E-9701-4E4B-A8F8-C62D15979FCF__';
 var interface_nth        = '__symbol_nth_77F5FDA5-1DFC-47DA-B580-A4C650C37CA5__';
-//var interface_nth_has    = '__symbol_nth_has_0DAE9D90-8B03-4313-91F3-EA4C602B844A__';
 var interface_nth_insert = '__symbol_nth_insert_162C7E7E-336E-4775-A3FF-1B366F03647C__';
 var interface_nth_set    = '__symbol_nth_set_01326BF6-140A-467B-A5E7-E8599145E16B__';
 var interface_nth_remove = '__symbol_nth_remove_12951CE1-0753-4763-9511-0BA6AD4DF4A3__';
 
 exports.interface_length     = interface_length;
 exports.interface_nth        = interface_nth;
-//exports.interface_nth_has    = interface_nth_has;
 exports.interface_nth_insert = interface_nth_insert;
 exports.interface_nth_set    = interface_nth_set;
 exports.interface_nth_remove = interface_nth_remove;
@@ -104,17 +102,7 @@ function length(list) {
  */
 function nth_has(list, index) {
   index = getIndex(list, index, 0);
-
   return index < length(list);
-/*
-  if (interface_nth_has in list) {
-    return list[interface_nth_has](list, index);
-  // TODO isArrayLike
-  } else if (Array.isArray(list)) {
-    return index < list.length;
-  } else {
-    throw new Error("Cannot nth_has: object #{list} is not a list");
-  }*/
 }
 exports.nth_has = nth_has;
 

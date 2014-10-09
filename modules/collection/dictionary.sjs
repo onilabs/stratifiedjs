@@ -120,7 +120,7 @@ function get(dict, key, def) {
     }
   } else {
     if (arguments.length === 3) {
-      return def
+      return def;
     } else {
       // TODO is RangeError the right Error type to use?
       throw new RangeError("Cannot get: dictionary #{dict} does not have the key #{key}");
