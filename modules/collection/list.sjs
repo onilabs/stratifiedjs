@@ -51,17 +51,17 @@
 */
 
 // Generated using http://www.generateuuid.com/
-var interface_length     = '__symbol_length_50A60F7E-9701-4E4B-A8F8-C62D15979FCF__';
-var interface_nth        = '__symbol_nth_77F5FDA5-1DFC-47DA-B580-A4C650C37CA5__';
-var interface_nth_insert = '__symbol_nth_insert_162C7E7E-336E-4775-A3FF-1B366F03647C__';
-var interface_nth_set    = '__symbol_nth_set_01326BF6-140A-467B-A5E7-E8599145E16B__';
-var interface_nth_remove = '__symbol_nth_remove_12951CE1-0753-4763-9511-0BA6AD4DF4A3__';
+var interface_length  = '__symbol_length_50A60F7E-9701-4E4B-A8F8-C62D15979FCF__';
+var interface_nth     = '__symbol_nth_77F5FDA5-1DFC-47DA-B580-A4C650C37CA5__';
+var interface_push    = '__symbol_push_162C7E7E-336E-4775-A3FF-1B366F03647C__';
+var interface_nth_set = '__symbol_nth_set_01326BF6-140A-467B-A5E7-E8599145E16B__';
+var interface_pop     = '__symbol_pop_12951CE1-0753-4763-9511-0BA6AD4DF4A3__';
 
-exports.interface_length     = interface_length;
-exports.interface_nth        = interface_nth;
-exports.interface_nth_insert = interface_nth_insert;
-exports.interface_nth_set    = interface_nth_set;
-exports.interface_nth_remove = interface_nth_remove;
+exports.interface_length  = interface_length;
+exports.interface_nth     = interface_nth;
+exports.interface_push    = interface_push;
+exports.interface_nth_set = interface_nth_set;
+exports.interface_pop     = interface_pop;
 
 
 function getIndex(list, index, offset) {
@@ -80,8 +80,9 @@ function getIndex(list, index, offset) {
    @return {Number} The number of elements in `list`
  */
 function length(list) {
-  if (interface_length in list) {
-    return list[interface_length](list);
+  var interface = list[interface_length];
+  if (interface != null) {
+    return interface(list);
   // TODO isArrayLike
   } else if (Array.isArray(list)) {
     return list.length;
@@ -124,8 +125,9 @@ function nth(list, index, def) {
   index = getIndex(list, index, 0);
 
   if (nth_has(list, index)) {
-    if (interface_nth in list) {
-      return list[interface_nth](list, index);
+    var interface = list[interface_nth];
+    if (interface != null) {
+      return interface(list, index);
     // TODO isArrayLike
     } else if (Array.isArray(list)) {
       return list[index];
@@ -144,29 +146,35 @@ function nth(list, index, def) {
 exports.nth = nth;
 
 /**
-   @function nth_insert
+   @function push
    @function {::List} [list]
-   @function {Number} [index] Index to insert into `list`
-   @function {Object} [value] Value to insert at `index` in `list`
+   @function {Object} [value] Value to insert into `list`
+   @function {optional Number} [index] Index to insert `value` into `list`
    @desc
-     Inserts `value` at `index`.
+     Inserts `value` at `index`. It does not overwrite existing elements,
+     instead elements are shifted to the right to make room for the new
+     element.
 
-     It does not overwrite existing elements, instead elements are
-     shifted to the right to make room for the new element.
+     If `index` is not provided, it defaults to `-1`.
 
      If `index` is negative, it is treated as starting from the end
      of `list`. e.g. `-1` means to insert at the end of `list`, `-2`
      means to insert before the last element of `list`, etc.
  */
-function nth_insert(list, index, value) {
+function push(list, value, index) {
+  if (arguments.length === 2) {
+    index = -1;
+  }
+
   index = getIndex(list, index, 1);
 
   if (index > length(list)) {
-    throw new Error("Cannot nth_insert: index #{index} is greater than the length of #{list}")
+    throw new Error("Cannot push: index #{index} is greater than the length of #{list}");
   }
 
-  if (interface_nth_insert in list) {
-    list[interface_nth_insert](list, index, value);
+  var interface = list[interface_push];
+  if (interface != null) {
+    interface(list, value, index);
   // TODO isArrayLike
   } else if (Array.isArray(list)) {
     // Optimization to make it go a lot faster
@@ -177,10 +185,10 @@ function nth_insert(list, index, value) {
       list.splice(index, 0, value);
     }
   } else {
-    throw new Error("Cannot nth_insert: object #{list} is not a list");
+    throw new Error("Cannot push: object #{list} is not a list");
   }
 }
-exports.nth_insert = nth_insert;
+exports.push = push;
 
 /**
    @function nth_set
@@ -216,24 +224,31 @@ function nth_set(list, index, value) {
 exports.nth_set = nth_set;
 
 /**
-   @function nth_remove
+   @function pop
    @function {::List} [list]
-   @function {Number} [index] Index to remove from `list`
+   @function {optional Number} [index] Index to remove from `list`
    @desc
      Removes the element at `index` from `list`.
 
      Any elements after `index` are shifted so that there aren't any gaps.
 
+     If `index` is not provided, it defaults to `-1`.
+
      If `index` is negative, it is treated as starting from the end
      of `list`. e.g. `-1` means to remove the last element of `list`, `-2`
      means to remove the second from last element, etc.
  */
-function nth_remove(list, index) {
+function pop(list, index) {
+  if (arguments.length === 1) {
+    index = -1;
+  }
+
   index = getIndex(list, index, 0);
 
   if (nth_has(list, index)) {
-    if (interface_nth_remove in list) {
-      list[interface_nth_remove](list, index);
+    var interface = list[interface_pop];
+    if (interface != null) {
+      interface(list, index);
     // TODO isArrayLike
     } else if (Array.isArray(list)) {
       // Optimization to make it go a lot faster
@@ -246,36 +261,55 @@ function nth_remove(list, index) {
         list.splice(index, 1);
       }
     } else {
-      throw new Error("Cannot nth_remove: object #{list} is not a list");
+      throw new Error("Cannot pop: object #{list} is not a list");
     }
   } else {
     // TODO is RangeError the right Error to use?
-    throw new RangeError("Cannot nth_remove: index #{index} is not in list #{list}");
+    throw new RangeError("Cannot pop: index #{index} is not in list #{list}");
   }
 }
-exports.nth_remove = nth_remove;
+exports.pop = pop;
 
 /**
    @function indexOf
    @param {::List} [list]
    @param {Object} [value] Value to search for in `list`
-   @return {Number} Index of `value` in `list`, or `-1` if `value` is not in `list`
+   @param {optional Object} [def] Value to return if `value` is not in `list`
+   @return {Number | Object} Index of `value` in `list`, or `def` if `value` is not in `list`
    @desc
      Searches `list` for `value`:
 
      * If `value` is in `list`, then this will return the index of `value`
-     * If `value` is not in `list`, then this will return `-1`
+     * If `value` is not in `list`:
+       * If `def` is provided then it is returned
+       * If `def` is not provided then it will throw an error
  */
-function indexOf(list, value) {
+function indexOf(list, value, def) {
   // TODO implement this with `list ..@each()` instead ?
   for (var i = 0, len = length(list); i < len; ++i) {
     if (nth(list, i) === value) {
       return i;
     }
   }
-  return -1;
+  if (arguments.length === 3) {
+    return def;
+  } else {
+    throw new Error("Cannot indexOf: value #{value} is not in list #{list}");
+  }
 }
 exports.indexOf = indexOf;
+
+/**
+   @function remove
+   @param {::List} [list]
+   @param {Object} [value] Value to remove from `list`
+   @desc
+     If `value` is not in `list`, it will throw an error
+ */
+function remove(list, value) {
+  pop(list, indexOf(list, value));
+}
+exports.remove = remove;
 
 /**
    @function modify
