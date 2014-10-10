@@ -89,6 +89,7 @@ function length(list) {
     throw new Error("Cannot length: object #{list} is not a list");
   }
 }
+exports.length = length;
 
 /**
    @function nth_has
@@ -123,7 +124,7 @@ function nth(list, index, def) {
   index = getIndex(list, index, 0);
 
   if (nth_has(list, index)) {
-    if (interface_nth in dict) {
+    if (interface_nth in list) {
       return list[interface_nth](list, index);
     // TODO isArrayLike
     } else if (Array.isArray(list)) {
@@ -311,3 +312,24 @@ function modify(list, index, f) {
   }
 }
 exports.modify = modify;
+
+// TODO move this into a different module
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
+// http://bost.ocks.org/mike/shuffle/
+// TODO test whether this algorithm has statistical bias or not
+function shuffle(list) {
+  var i = length(list);
+
+  while (i) {
+    var j = randomInt(0, i);
+    --i;
+    var temp = list ..nth(i);
+    list ..nth_set(i, list ..nth(j));
+    list ..nth_set(j, temp);
+  }
+}
+exports.shuffle = shuffle;
