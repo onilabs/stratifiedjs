@@ -80,9 +80,9 @@ function getIndex(list, index, offset) {
    @return {Number} The number of elements in `list`
  */
 function length(list) {
-  var interface = list[interface_length];
-  if (interface != null) {
-    return interface(list);
+  var interface_fn = list[interface_length];
+  if (interface_fn != null) {
+    return interface_fn(list);
   // TODO isArrayLike
   } else if (Array.isArray(list)) {
     return list.length;
@@ -125,9 +125,9 @@ function nth(list, index, def) {
   index = getIndex(list, index, 0);
 
   if (nth_has(list, index)) {
-    var interface = list[interface_nth];
-    if (interface != null) {
-      return interface(list, index);
+    var interface_fn = list[interface_nth];
+    if (interface_fn != null) {
+      return interface_fn(list, index);
     // TODO isArrayLike
     } else if (Array.isArray(list)) {
       return list[index];
@@ -172,9 +172,9 @@ function push(list, value, index) {
     throw new Error("Cannot push: index #{index} is greater than the length of #{list}");
   }
 
-  var interface = list[interface_push];
-  if (interface != null) {
-    interface(list, value, index);
+  var interface_fn = list[interface_push];
+  if (interface_fn != null) {
+    interface_fn(list, value, index);
   // TODO isArrayLike
   } else if (Array.isArray(list)) {
     // Optimization to make it go a lot faster
@@ -208,8 +208,9 @@ function nth_set(list, index, value) {
   index = getIndex(list, index, 0);
 
   if (nth_has(list, index)) {
-    if (interface_nth_set in list) {
-      list[interface_nth_set](list, index, value);
+    var interface_fn = list[interface_nth_set];
+    if (interface_fn != null) {
+      interface_fn(list, index, value);
     // TODO isArrayLike
     } else if (Array.isArray(list)) {
       list[index] = value;
@@ -246,9 +247,9 @@ function pop(list, index) {
   index = getIndex(list, index, 0);
 
   if (nth_has(list, index)) {
-    var interface = list[interface_pop];
-    if (interface != null) {
-      interface(list, index);
+    var interface_fn = list[interface_pop];
+    if (interface_fn != null) {
+      interface_fn(list, index);
     // TODO isArrayLike
     } else if (Array.isArray(list)) {
       // Optimization to make it go a lot faster
@@ -294,16 +295,175 @@ function indexOf(list, value, def) {
   if (arguments.length === 3) {
     return def;
   } else {
-    throw new Error("Cannot indexOf: value #{value} is not in list #{list}");
+    throw new Error("Cannot indexOf: value #{value} is not in #{list}");
   }
 }
 exports.indexOf = indexOf;
+
+/**
+   @function insert
+   @param {::List} [list]
+   @param {Object} [value] Value to insert into `list`
+   @desc
+     Inserts `value` into `list`.
+
+     If `value` is already in `list`, it will throw an error
+ */
+function insert(list, value) {
+  var index = indexOf(list, value, -1);
+  if (index === -1) {
+    throw new Error("Cannot insert: value #{value} already exists in #{list}");
+  } else {
+    push(list, value);
+  }
+}
+exports.insert = insert;
+
+/**
+   @function sortedIndexFor
+   @param {::List} [list]
+   @param {Object} [value] Value to find in `list`
+   @param {Function} [sort] Function that determines the sorting order
+   @return {Number} Index that `value` should be inserted, to preserve the sort order
+   @desc
+     This function assumes `list` is already sorted.
+
+     It will efficiently return the index that `value` should be inserted
+     into, if you want to preserve the sort order.
+
+     If there are duplicates, it will return the left-most index (i.e.
+     immediately to the left of all duplicates).
+
+     To determine the sort order, it will call the `sort` function
+     with two arguments:
+     * It should return `-1` if the first argument is lower than the
+       second argument.
+     * It should return `1` if the first argument is greater than the
+       second argument.
+     * It should return `0` if the two arguments are equal.
+ */
+function sortedIndexFor(list, value, sort) {
+  var len   = length(list);
+  var start = 0;
+  var end   = len;
+  while (start < end) {
+    // TODO is this faster/slower than using Math.floor ?
+    var pivot = (start + end) >> 1;
+    var order = sort(value, list ..nth(pivot));
+    if (order > 0) {
+      start = pivot + 1;
+    } else {
+      end = pivot;
+    }
+    console.log(start, end);
+  }
+  return start;
+}
+exports.sortedIndexFor = sortedIndexFor;
+
+/**
+   @function sortedIndexOf
+   @param {::List} [list]
+   @param {Object} [value] Value to search for in `list`
+   @param {Function} [sort] Function that determines the sorting order
+   @param {optional Object} [def] Value to return if `value` is not in `list`
+   @return {Number | Object} Index of `value` in `list`, or `def` if `value` is not in `list`
+   @desc
+     This function is the same as [::indexOf], except it assumes that `list`
+     is already sorted. This allows it to be much more efficient.
+
+     To determine the sort order, it will call the `sort` function
+     with two arguments:
+     * It should return `-1` if the first argument is lower than the
+       second argument.
+     * It should return `1` if the first argument is greater than the
+       second argument.
+     * It should return `0` if the two arguments are equal.
+ */
+function sortedIndexOf(list, value, sort, def) {
+  var index = sortedIndexFor(list, value, sort);
+  // TODO is this correct ?
+  if (list ..nth(index) === value) {
+    return index;
+  } else {
+    if (arguments.length === 4) {
+      return def;
+    } else {
+      throw new Error("Cannot sortedIndexOf: value #{value} is not in #{list}");
+    }
+  }
+}
+exports.sortedIndexOf = sortedIndexOf;
+
+/**
+   @function sortedPush
+   @param {::List} [list]
+   @param {Object} [value] Value to insert into `list`
+   @param {Function} [sort] Function that determines the sorting order
+   @desc
+     This function assumes `list` is already sorted.
+
+     It will efficiently insert `value` into `list` while preserving
+     the sort order.
+
+     If there are duplicates, it will insert to the left of all the
+     existing duplicates.
+
+     To determine the sort order, it will call the `sort` function
+     with two arguments:
+     * It should return `-1` if the first argument is lower than the
+       second argument.
+     * It should return `1` if the first argument is greater than the
+       second argument.
+     * It should return `0` if the two arguments are equal.
+ */
+function sortedPush(list, value, sort) {
+  var index = sortedIndexFor(list, value, sort);
+  list ..push(value, index);
+}
+exports.sortedPush = sortedPush;
+
+/**
+   @function sortedInsert
+   @param {::List} [list]
+   @param {Object} [value] Value to insert into `list`
+   @param {Function} [sort] Function that determines the sorting order
+   @desc
+     This function is the same as [::sortedPush], except that if `value`
+     is already in `list` it will throw an error.
+ */
+function sortedInsert(list, value, sort) {
+  var index = sortedIndexFor(list, value, sort);
+  // TODO is this correct ?
+  if (list ..nth(index) === value) {
+    throw new Error("Cannot sortedInsert: value #{value} already exists in #{list}");
+  } else {
+    list ..push(value, index);
+  }
+}
+exports.sortedInsert = sortedInsert;
+
+/**
+   @function sortedRemove
+   @param {::List} [list]
+   @param {Object} [value] Value to remove from `list`
+   @param {Function} [sort] Function that determines the sorting order
+   @desc
+     The same as [::remove], except it assumes `list` is already
+     sorted. This allows it to be much more efficient.
+ */
+function sortedRemove(list, value, sort) {
+  pop(list, sortedIndexOf(list, value, sort));
+}
+exports.sortedRemove = sortedRemove;
 
 /**
    @function remove
    @param {::List} [list]
    @param {Object} [value] Value to remove from `list`
    @desc
+     Removes `value` from `list`.
+
      If `value` is not in `list`, it will throw an error
  */
 function remove(list, value) {
