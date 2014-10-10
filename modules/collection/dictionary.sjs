@@ -83,8 +83,9 @@ function assertJSKey(key) {
    @summary Returns `true` if the `key` is in `dict`.
  */
 function has(dict, key) {
-  if (interface_has in dict) {
-    return dict[interface_has](dict, key);
+  var interface_fn = dict[interface_has];
+  if (interface_fn != null) {
+    return interface_fn(dict, key);
   } else if (isObject(dict)) {
     assertJSKey(key);
     return key in dict;
@@ -110,8 +111,9 @@ exports.has = has;
  */
 function get(dict, key, def) {
   if (has(dict, key)) {
-    if (interface_get in dict) {
-      return dict[interface_get](dict, key);
+    var interface_fn = dict[interface_get];
+    if (interface_fn != null) {
+      return interface_fn(dict, key);
     } else if (isObject(dict)) {
       assertJSKey(key);
       return dict[key];
@@ -141,8 +143,9 @@ exports.get = get;
      If `key` is not in `dict` then it is created.
  */
 function set(dict, key, value) {
-  if (interface_set in dict) {
-    dict[interface_set](dict, key, value);
+  var interface_fn = dict[interface_set];
+  if (interface_fn != null) {
+    interface_fn(dict, key, value);
   } else if (isObject(dict)) {
     assertJSKey(key);
     dict[key] = value;
@@ -164,8 +167,9 @@ exports.set = set;
  */
 function del(dict, key) {
   if (has(dict, key)) {
-    if (interface_del in dict) {
-      dict[interface_del](dict, key);
+    var interface_fn = dict[interface_del];
+    if (interface_fn != null) {
+      interface_fn(dict, key);
     } else if (isObject(dict)) {
       // Does not need `assertJSKey`, because `has` already calls it
       delete dict[key];
