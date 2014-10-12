@@ -47,7 +47,7 @@ exports.testLibrary = function(hub) {
       var modules = sjsFiles .. @map(removeSJS);
 
       dirsFound++;
-      @context(@path.basename(base)) {||
+      @context() {||
         try {
           var indexContents = @fs.readFile(@path.join(base, indexFilename)).toString();
         } catch(e) {

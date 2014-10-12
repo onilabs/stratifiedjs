@@ -1,5 +1,0 @@
-#!/bin/bash
-set -eu
-here="$(cd "$(dirname "$0")" && pwd)"
-cd "$here/.."
-"$here/karma" run -- "test/run.html" "$@"
