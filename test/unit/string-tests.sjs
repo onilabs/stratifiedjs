@@ -71,12 +71,23 @@ testEq('base64ToOctets(octetsToBase64)', true, function() {
   if (octets.length != 256) return "length mismatch 2 ("+octets.length+")";
   for (var i=0; i<256; ++i)
     if (octets.charCodeAt(i) != i) return "mismatch at "+i;
-  return true;  
+  return true;
 });
 
 testEq('supplant', "Hello world 1", function() {
   return str.supplant("Hello {who} {version}", {who:"world", version:1});
 });
+
+test('supplant escaping') {||
+  str.supplant("Hello \\{world} {version}", {version:1}) .. assert.eq('Hello {world} 1');
+  
+  // unbalanced brackets
+  str.supplant("Hello \\{world {version}", {version:1}) .. assert.eq('Hello {world 1');
+  str.supplant("Hello world {version}}", {version:1}) .. assert.eq('Hello world 1}');
+
+  // escaping backslashes
+  str.supplant("Hello \\\\{who}", {who:'world'}) .. assert.eq('Hello \\world');
+};
 
 testEq('supplant evaluates functions', "Hello world 2", function() {
   var ctx = {

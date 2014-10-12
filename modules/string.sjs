@@ -85,6 +85,7 @@ exports.sanitize = function(str) {
   @desc
     ###Notes:
 
+      * You can include a literal '{' or '\' by prefixing it with a backslash
       * An error will be thrown if any substitution can't be found.
       * Consider using SJS's builtin string interpolation functionality instead.
 
@@ -100,8 +101,9 @@ exports.sanitize = function(str) {
 */
 //XXX how should you escape {foo}? {{foo}}? \{foo\}?
 exports.supplant = function(str, o) {
-  return str.replace(/{([^{} ]*)}/g,
+  return str.replace(/\\[{\\]|{([^{} ]*)}/g,
     function(text, key) {
+      if(text.charAt(0) == '\\') return text.charAt(1);
       var replacement = o[key];
       if(replacement === undefined) throw new Error("No substitution found for \"" + key + "\"");
       if(replacement instanceof Function) { replacement = replacement.call(o); };
