@@ -262,6 +262,11 @@ exports.testLibrary = function(hub) {
             if (mistakenReferences.length > 0) {
               @assert.fail("Mistaken references in #{sym}@#{key}?\n    #{mistakenReferences .. @join("\n    ")}\n(use `[]`, not `{}`)");
             }
+
+            var todos = value .. @regexp.matches(/TODO|XXX|FIXME/g) .. @toArray;
+            if (todos.length > 0) {
+              @assert.fail("TODO in documentation for #{sym}@#{key}:\n    #{value}");
+            }
           };
 
         }

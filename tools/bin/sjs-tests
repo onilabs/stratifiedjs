@@ -55,6 +55,11 @@ if 'integration' in suite:
 	assert conductance.poll() is None, "conductance process exited with status %s" % conductance.poll()
 
 try:
+	if TRAVIS:
+		# fail if there are outstanding VCS changes
+		subprocess.check_call([node, 'sjs', 'src/build/buildscript.sjs'])
+		subprocess.check_call([node, 'sjs', 'tools/vcs-changes.sjs'])
+
 	for runner in runners:
 		if runner == 'node':
 			subprocess.check_call([node, 'sjs', testmod] + args)
