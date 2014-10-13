@@ -132,6 +132,7 @@ exports.remove = remove;
    @param {::Set} [b]
    @return {::Set} A new [::Set] that contains all the elements
                    from `a` and `b`, without duplicates
+   @summary Returns the mathematical union of the two sets.
  */
 function union(a, b) {
   // TODO more efficient data type
@@ -154,6 +155,7 @@ exports.union = union;
    @param {::Set} [b]
    @return {::Set} A new [::Set] that contains all the elements
                    from `a` that are not in `b`
+   @summary Returns the set-theoretic difference of the two sets.
  */
 function difference(a, b) {
   // TODO more efficient data type

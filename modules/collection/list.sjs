@@ -78,6 +78,7 @@ function getIndex(list, index, offset) {
    @function length
    @param {::List} [list]
    @return {Number} The number of elements in `list`
+   @summary Returns the number of elements in `list`
  */
 function length(list) {
   var interface_fn = list[interface_length];
@@ -97,6 +98,7 @@ exports.length = length;
    @param {::List} [list]
    @param {Number} [index] Index to check in `list`
    @return {Boolean} `true` if `index` is in `list`
+   @summary Returns `true` if `index` is in `list`
    @desc
      If `index` is negative, it is treated as starting from the end
      of `list`. e.g. `-1` means the last element of `list`, `-2` means
@@ -114,6 +116,7 @@ exports.nth_has = nth_has;
    @param {Number} [index] Index to retrieve from `list`
    @param {optional Object} [def] Value to return if `index` is not in `list`
    @return {Object} The element at `index` in `list`, or `def` if `index` is not in `list`
+   @summary Returns the element at `index` in `list`
    @desc
      If `index` is negative, it is treated as starting from the end
      of `list`. e.g. `-1` means the last element of `list`, `-2` means
@@ -150,10 +153,10 @@ exports.nth = nth;
    @param {::List} [list]
    @param {Object} [value] Value to insert into `list`
    @param {optional Number} [index] Index to insert `value` into `list`
+   @summary Inserts `value` at `index` in `list`
    @desc
-     Inserts `value` at `index`. It does not overwrite existing elements,
-     instead elements are shifted to the right to make room for the new
-     element.
+     It does not overwrite existing elements, instead elements are
+     shifted to the right to make room for the new element.
 
      If `index` is not provided, it defaults to `-1`.
 
@@ -195,9 +198,8 @@ exports.push = push;
    @param {::List} [list]
    @param {Number} [index] Index to set in `list`
    @param {Object} [value] Value to set at `index` in `list`
+   @summary Changes `index` in `list` to `value`.
    @desc
-     Changes `index` in `list` to `value`.
-
      If `index` does not exist in `list`, it will throw an error.
 
      If `index` is negative, it is treated as starting from the end
@@ -228,9 +230,8 @@ exports.nth_set = nth_set;
    @function pop
    @param {::List} [list]
    @param {optional Number} [index] Index to remove from `list`
+   @summary Removes the element at `index` from `list`.
    @desc
-     Removes the element at `index` from `list`.
-
      Any elements after `index` are shifted so that there aren't any gaps.
 
      If `index` is not provided, it defaults to `-1`.
@@ -277,9 +278,8 @@ exports.pop = pop;
    @param {Object} [value] Value to search for in `list`
    @param {optional Object} [def] Value to return if `value` is not in `list`
    @return {Number | Object} Index of `value` in `list`, or `def` if `value` is not in `list`
+   @summary Returns the index for `value` in `list`
    @desc
-     Searches `list` for `value`:
-
      * If `value` is in `list`, then this will return the index of `value`
      * If `value` is not in `list`:
        * If `def` is provided then it is returned
@@ -304,9 +304,8 @@ exports.indexOf = indexOf;
    @function insert
    @param {::List} [list]
    @param {Object} [value] Value to insert into `list`
+   @summary Inserts `value` into `list`.
    @desc
-     Inserts `value` into `list`.
-
      If `value` is already in `list`, it will throw an error
  */
 function insert(list, value) {
@@ -325,11 +324,10 @@ exports.insert = insert;
    @param {Object} [value] Value to find in `list`
    @param {Function} [sort] Function that determines the sorting order
    @return {Number} Index that `value` should be inserted, to preserve the sort order
+   @summary Returns the index that `value` should be inserted into, if you want to
+            preserve the sort order.
    @desc
      This function assumes `list` is already sorted.
-
-     It will efficiently return the index that `value` should be inserted
-     into, if you want to preserve the sort order.
 
      If there are duplicates, it will return the left-most index (i.e.
      immediately to the left of all duplicates).
@@ -368,10 +366,9 @@ exports.sortedIndexFor = sortedIndexFor;
    @param {Function} [sort] Function that determines the sorting order
    @param {optional Object} [def] Value to return if `value` is not in `list`
    @return {Number | Object} Index of `value` in `list`, or `def` if `value` is not in `list`
+   @summary The same as [::indexOf], except it assumes that `list`
+            is already sorted. This allows it to be much more efficient.
    @desc
-     This function is the same as [::indexOf], except it assumes that `list`
-     is already sorted. This allows it to be much more efficient.
-
      To determine the sort order, it will call the `sort` function
      with two arguments:
      * It should return `-1` if the first argument is lower than the
@@ -400,11 +397,9 @@ exports.sortedIndexOf = sortedIndexOf;
    @param {::List} [list]
    @param {Object} [value] Value to insert into `list`
    @param {Function} [sort] Function that determines the sorting order
+   @summary Inserts `value` into `list` while preserving the sort order.
    @desc
      This function assumes `list` is already sorted.
-
-     It will efficiently insert `value` into `list` while preserving
-     the sort order.
 
      If there are duplicates, it will insert to the left of all the
      existing duplicates.
@@ -428,9 +423,8 @@ exports.sortedPush = sortedPush;
    @param {::List} [list]
    @param {Object} [value] Value to insert into `list`
    @param {Function} [sort] Function that determines the sorting order
-   @desc
-     This function is the same as [::sortedPush], except that if `value`
-     is already in `list` it will throw an error.
+   @summary The same as [::sortedPush], except that if `value`
+            is already in `list` it will throw an error.
  */
 function sortedInsert(list, value, sort) {
   var index = sortedIndexFor(list, value, sort);
@@ -448,9 +442,8 @@ exports.sortedInsert = sortedInsert;
    @param {::List} [list]
    @param {Object} [value] Value to remove from `list`
    @param {Function} [sort] Function that determines the sorting order
-   @desc
-     The same as [::remove], except it assumes `list` is already
-     sorted. This allows it to be much more efficient.
+   @summary The same as [::remove], except it assumes `list` is already
+            sorted. This allows it to be much more efficient.
  */
 function sortedRemove(list, value, sort) {
   pop(list, sortedIndexOf(list, value, sort));
@@ -461,9 +454,8 @@ exports.sortedRemove = sortedRemove;
    @function remove
    @param {::List} [list]
    @param {Object} [value] Value to remove from `list`
+   @summary Removes `value` from `list`.
    @desc
-     Removes `value` from `list`.
-
      If `value` is not in `list`, it will throw an error
  */
 function remove(list, value) {
