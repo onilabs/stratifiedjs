@@ -279,6 +279,16 @@
     "collection/": {
       "type": "lib",
       "children": {
+        "btree": {
+          "type": "module",
+          "children": {
+            "BTree": {
+              "type": "class",
+              "children": {}
+            }
+          },
+          "summary": "Functions for creating and manipulating B-trees"
+        },
         "dictionary": {
           "type": "module",
           "children": {
