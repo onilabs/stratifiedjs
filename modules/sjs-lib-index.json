@@ -365,16 +365,6 @@
           },
           "summary": "Functions for manipulating finite ordered sequences"
         },
-        "queue": {
-          "type": "module",
-          "children": {
-            "Queue": {
-              "type": "class",
-              "children": {}
-            }
-          },
-          "summary": "Functions for manipulating FIFO queues"
-        },
         "set": {
           "type": "module",
           "children": {
@@ -399,21 +389,6 @@
             }
           },
           "summary": "Functions for manipulating data structures as a mathematical set"
-        },
-        "sort": {
-          "type": "module",
-          "children": {},
-          "summary": "Functions for sorting lists"
-        },
-        "tree": {
-          "type": "module",
-          "children": {
-            "Tree": {
-              "type": "class",
-              "children": {}
-            }
-          },
-          "summary": "Functions for creating various tree data structures"
         }
       },
       "summary": "SJS collection utilities"
@@ -2137,10 +2112,6 @@
         }
       },
       "summary": "Functions for working with strings"
-    },
-    "symbol": {
-      "type": "module",
-      "children": {}
     },
     "sys": {
       "type": "module",
