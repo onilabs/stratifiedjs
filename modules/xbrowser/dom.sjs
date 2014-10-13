@@ -358,7 +358,7 @@ exports.matchesSelector = matchesSelectorFunc ?
    @summary Traverse DOM bottom-up beginning at `from` up to element(s) `to` and return first element that matches `selector` or `null` if no such element is found
    @param {String} [selector] CSS selector
    @param {DOMElement} [from] DOM element at which to start traversal
-   @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal
+   @param {optional DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal
    @param {optional Boolean} [inclusive=false] Whether to include element(s) `to` in the match or not
    @return {DOMElement|null}
 */
@@ -368,6 +368,7 @@ function findNode(selector, from, to, inclusive) {
       if (!Array.isArray(to)) to = [to];
       to = to .. map(elem -> elem ? null : elem.parentNode);
     }
+    if (!to) to = document;
     traverseDOM(from, to) { |c| if (exports.matchesSelector(c, selector)) return c }
     return null;
   }

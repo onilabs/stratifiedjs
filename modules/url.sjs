@@ -246,7 +246,7 @@ exports.decode = decodeURIComponent;
    @hostenv nodejs
    @desc
      The returned path will be absolute or relative,
-     depending on the input path. An erorr will be thrown
+     depending on the input path. An error will be thrown
      if `url` is not a file:// URL.
 */
 exports.toPath = sys.fileUrlToPath;

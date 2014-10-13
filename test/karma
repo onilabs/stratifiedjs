@@ -15,5 +15,7 @@ shift
 base="$(dirname "$(cd "$(dirname "$0")" && pwd)")"
 
 export NODE_PATH="$np$base/.." # node can't find sjs from its own dir
-
+if [ "$action" = "run" ]; then
+	"$base/node_modules/.bin/karma-sjs" "$action" tools/karma/conf.js -- "test/run.html" "$@"
+fi
 "$base/node_modules/.bin/karma-sjs" "$action" tools/karma/conf.js "$@"
