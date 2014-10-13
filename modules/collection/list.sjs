@@ -147,9 +147,9 @@ exports.nth = nth;
 
 /**
    @function push
-   @function {::List} [list]
-   @function {Object} [value] Value to insert into `list`
-   @function {optional Number} [index] Index to insert `value` into `list`
+   @param {::List} [list]
+   @param {Object} [value] Value to insert into `list`
+   @param {optional Number} [index] Index to insert `value` into `list`
    @desc
      Inserts `value` at `index`. It does not overwrite existing elements,
      instead elements are shifted to the right to make room for the new
@@ -226,8 +226,8 @@ exports.nth_set = nth_set;
 
 /**
    @function pop
-   @function {::List} [list]
-   @function {optional Number} [index] Index to remove from `list`
+   @param {::List} [list]
+   @param {optional Number} [index] Index to remove from `list`
    @desc
      Removes the element at `index` from `list`.
 

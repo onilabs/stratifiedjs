@@ -310,6 +310,71 @@
           },
           "summary": "Functions for manipulating dictionary data structures (JavaScript objects, hash tables, binary search trees, etc.)"
         },
+        "list": {
+          "type": "module",
+          "children": {
+            "List": {
+              "type": "class",
+              "children": {}
+            },
+            "length": {
+              "type": "function"
+            },
+            "nth_has": {
+              "type": "function"
+            },
+            "nth": {
+              "type": "function"
+            },
+            "push": {
+              "type": "function"
+            },
+            "nth_set": {
+              "type": "function"
+            },
+            "pop": {
+              "type": "function"
+            },
+            "indexOf": {
+              "type": "function"
+            },
+            "insert": {
+              "type": "function"
+            },
+            "sortedIndexFor": {
+              "type": "function"
+            },
+            "sortedIndexOf": {
+              "type": "function"
+            },
+            "sortedPush": {
+              "type": "function"
+            },
+            "sortedInsert": {
+              "type": "function"
+            },
+            "sortedRemove": {
+              "type": "function"
+            },
+            "remove": {
+              "type": "function"
+            },
+            "modify": {
+              "type": "function"
+            }
+          },
+          "summary": "Functions for manipulating finite ordered sequences"
+        },
+        "queue": {
+          "type": "module",
+          "children": {
+            "Queue": {
+              "type": "class",
+              "children": {}
+            }
+          },
+          "summary": "Functions for manipulating FIFO queues"
+        },
         "set": {
           "type": "module",
           "children": {
@@ -334,6 +399,21 @@
             }
           },
           "summary": "Functions for manipulating data structures as a mathematical set"
+        },
+        "sort": {
+          "type": "module",
+          "children": {},
+          "summary": "Functions for sorting lists"
+        },
+        "tree": {
+          "type": "module",
+          "children": {
+            "Tree": {
+              "type": "class",
+              "children": {}
+            }
+          },
+          "summary": "Functions for creating various tree data structures"
         }
       },
       "summary": "SJS collection utilities"
