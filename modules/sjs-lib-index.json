@@ -2140,8 +2140,7 @@
     },
     "symbol": {
       "type": "module",
-      "children": {},
-      "summary": "Symbols which can be used as unique keys in objects."
+      "children": {}
     },
     "sys": {
       "type": "module",
