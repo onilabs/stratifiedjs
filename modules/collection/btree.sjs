@@ -108,7 +108,7 @@ __js {
         var parent      = parents.pop();
         var parent_node = parent.node;
 
-        parent_node.records ..add_at(parent.index, pivot);
+        add_at(parent_node.records, parent.index, pivot);
 
         node = parent_node;
       } else {
@@ -156,10 +156,9 @@ __js {
 
       // Merge left into right
       right.merge(left, pivot);
-      parent_records ..remove_at(index);
+      remove_at(parent_records, index);
 
       if (parent_records.length === 0) {
-        console.log(btree.root === parent_node, parents.length, btree.root);
         btree.root = right;
         return;
       } else {
@@ -192,7 +191,7 @@ __js {
   };
 
   Record.prototype.toString = function () {
-    return "#{this.key}: #{this.value}";
+    return this.key + ": " + this.value;
   };
 
   function ChildRecord(key, value, child) {
@@ -280,7 +279,7 @@ __js {
         record.value = value;
         return;
       } else if (order < 0) {
-        records ..add_at(i, new Record(key, value));
+        add_at(records, i, new Record(key, value));
         rebalance_set(btree, parents, this);
         return;
       }
@@ -298,7 +297,7 @@ __js {
       var record = records[i];
       var order  = sort(key, record.key);
       if (order === 0) {
-        records ..remove_at(i);
+        remove_at(records, i);
         rebalance_del(btree, parents, this);
         return;
       } else if (order < 0) {
@@ -307,7 +306,7 @@ __js {
     }
 
     // TODO is this correct ?
-    @assert.fail();
+    throw new Error("INVALID STATE");
   };
 
 
@@ -323,14 +322,16 @@ __js {
     var records  = [];
     var children = [];
 
-    this.records ..sequence.each(function (x) {
+    sequence.each(this.records, function (x) {
       records.push("" + x);
       children.push("" + x.child);
     });
 
-    records = sequence.zip(records, children) ..sequence.map(function ([record, child]) {
+    records = sequence.map(sequence.zip(records, children), function (a) {
+      var record = a[0];
+      var child  = a[1];
                                       // TODO a bit hacky
-      return (record + ",") ..string.padRight(child.length - 4, " ");
+      return string.padRight(record + ",", child.length - 4, " ");
     });
 
     var last = "" + this.last;
