@@ -71,6 +71,12 @@ __js {
   exports.defaultSort = defaultSort;
 
 
+  function push_into(to, from) {
+    for (var i = 0, len = from.length; i < len; ++i) {
+      to.push(from[i]);
+    }
+  }
+
   // TODO code duplication with sjs:collection/list
   function remove_at(array, index) {
     // Optimization to make it go a lot faster
@@ -156,7 +162,7 @@ __js {
         }
       }
 
-      // Merge left into right
+      // Merge left and pivot into right
       right.merge(left, pivot);
       remove_at(parent_records, index);
 
@@ -170,12 +176,12 @@ __js {
   }
 
 
+  // Uses constructors for much more speed
   function Path(node, index) {
     this.node  = node;
     this.index = index;
   }
 
-  // Uses constructors for much more speed
   function Record(key, value) {
     this.key   = key;
     this.value = value;
@@ -234,9 +240,7 @@ __js {
 
     records_left.push(new Record(pivot.key, pivot.value));
 
-    for (var i = 0, len = records_right.length; i < len; ++i) {
-      records_left.push(records_right[i]);
-    }
+    push_into(records_left, records_right);
 
     this.records = records_left;
   };
@@ -253,6 +257,7 @@ __js {
     this.records.push(first);
   };
 
+  // TODO code duplication
   Leaf.prototype.get = function (key, sort) {
     var records = this.records;
 
@@ -275,6 +280,7 @@ __js {
     return empty;
   };
 
+  // TODO code duplication
   Leaf.prototype.set = function (btree, parents, key, value, sort) {
     var records = this.records;
 
@@ -299,6 +305,7 @@ __js {
     rebalance_set(btree, parents, this);
   };
 
+  // TODO code duplication
   Leaf.prototype.del = function (btree, parents, key, sort) {
     var records = this.records;
 
@@ -389,9 +396,7 @@ __js {
     node.child = left.last;
     records_left.push(node);
 
-    for (var i = 0, len = records_right.length; i < len; ++i) {
-      records_left.push(records_right[i]);
-    }
+    push_into(records_left, records_right);
 
     this.records = records_left;
   };
@@ -418,53 +423,68 @@ __js {
     this.records.push(first);
   };
 
+  // TODO code duplication
   Node.prototype.get = function (key, sort) {
     var records = this.records;
 
-    // TODO use binary search ?
-    for (var i = 0, len = records.length; i < len; ++i) {
-      var record = records[i];
+    var left  = 0;
+    var right = records.length;
+
+    while (left < right) {
+      var pivot  = floor((left + right) / 2);
+      var record = records[pivot];
       var order  = sort(key, record.key);
       if (order === 0) {
         return record.value;
       } else if (order < 0) {
-        return record.child.get(key, sort);
+        right = pivot;
+      } else {
+        left = pivot + 1;
       }
     }
 
-    return this.last.get(key, sort);
+    return get_at(this, records, left).get(key, sort);
   };
 
+  // TODO code duplication
   Node.prototype.set = function (btree, parents, key, value, sort) {
     var records = this.records;
 
-    // TODO use binary search ?
-    for (var i = 0, len = records.length; i < len; ++i) {
-      var record = records[i];
+    var left  = 0;
+    var right = records.length;
+
+    while (left < right) {
+      var pivot  = floor((left + right) / 2);
+      var record = records[pivot];
       var order  = sort(key, record.key);
       if (order === 0) {
         record.value = value;
         return;
       } else if (order < 0) {
-        parents.push(new Path(this, i));
-        record.child.set(btree, parents, key, value, sort);
-        return;
+        right = pivot;
+      } else {
+        left = pivot + 1;
       }
     }
 
-    parents.push(new Path(this, i));
-    this.last.set(btree, parents, key, value, sort);
+    parents.push(new Path(this, left));
+
+    get_at(this, records, left).set(btree, parents, key, value, sort);
   };
 
+  // TODO code duplication
   Node.prototype.del = function (btree, parents, key, sort) {
     var records = this.records;
 
-    // TODO use binary search ?
-    for (var i = 0, len = records.length; i < len; ++i) {
-      var record = records[i];
+    var left  = 0;
+    var right = records.length;
+
+    while (left < right) {
+      var pivot  = floor((left + right) / 2);
+      var record = records[pivot];
       var order  = sort(key, record.key);
       if (order === 0) {
-        parents.push(new Path(this, i));
+        parents.push(new Path(this, pivot));
 
         // Get the right-most leaf for this node
         var leaf = record.child;
@@ -479,14 +499,15 @@ __js {
         rebalance_del(btree, parents, leaf);
         return;
       } else if (order < 0) {
-        parents.push(new Path(this, i));
-        record.child.del(btree, parents, key, sort);
-        return;
+        right = pivot;
+      } else {
+        left = pivot + 1;
       }
     }
 
-    parents.push(new Path(this, i));
-    this.last.del(btree, parents, key, sort);
+    parents.push(new Path(this, left));
+
+    get_at(this, records, left).del(btree, parents, key, sort);
   };
 
 
