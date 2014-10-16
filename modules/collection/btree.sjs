@@ -572,6 +572,63 @@ __js {
   exports.Dict = function () {
     return new SortedDict(defaultSort);
   };
+
+  exports.toSortedDict = function (seq, sort) {
+    var root = new SortedDict(sort);
+
+    sequence.each(seq, function (a) {
+      var key   = a[0];
+      var value = a[1];
+      root.set(key, value);
+    });
+
+    return root;
+
+    /*var array = [];
+
+    sequence.each(seq, function (a) {
+      var key   = a[0];
+      var value = a[1];
+      array.push(new Record(key, value));
+    });
+
+    array.sort(function (left, right) {
+      return -sort(left.key, right.key);
+    });
+
+    var leafs = [];
+
+    while (array.length) {
+      var counter = max_elements + 1;
+      var leaf    = new Leaf([]);
+
+      leafs.push(leaf);
+
+      while (array.length && counter--) {
+        leaf.records.push(array.pop());
+      }
+    }
+
+    var i = 0;
+    while (i < leafs.length) {
+      var counter = max_elements + 1;
+      var node    = new Node();
+
+      while (i < leafs.length && counter--) {
+      }
+    }
+
+    sequence.each(leafs, function (leaf) {
+      var last = leaf.records.pop();
+      var node = new Node();
+    });
+
+    console.log(leafs);*/
+  };
+
+  exports.toDict = function (seq) {
+    return exports.toSortedDict(seq, defaultSort);
+  };
 }
 
 
@@ -590,6 +647,10 @@ console.log(x.get("d"));
 console.log(x.get("e"));
 console.log(x.get("f"));
 console.log("" + x);
+
+
+console.log("" + exports.toDict([["d", 4], ["a", 1], ["h", 8], ["b", 2], ["f", 6], ["g", 7], ["c", 3], ["i", 9], ["e", 5], ["j", 10]]));
+
 
 var y = exports.Dict();
 
