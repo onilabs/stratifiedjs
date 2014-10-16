@@ -57,6 +57,8 @@ __js {
   var min_elements = 32;
   var max_elements = min_elements * 2;
 
+  var floor = Math.floor;
+
   function defaultSort(x, y) {
     if (x === y) {
       return 0
@@ -213,7 +215,7 @@ __js {
 
   Leaf.prototype.split = function () {
     var left   = this.records;
-    var index  = Math.floor(left.length / 2);
+    var index  = floor(left.length / 2);
     var middle = left[index];
     var right  = left.slice(index + 1);
 
@@ -254,14 +256,19 @@ __js {
   Leaf.prototype.get = function (key, sort) {
     var records = this.records;
 
-    // TODO use binary search ?
-    for (var i = 0, len = records.length; i < len; ++i) {
-      var record = records[i];
+    var left  = 0;
+    var right = records.length;
+
+    while (left < right) {
+      var pivot  = floor((left + right) / 2);
+      var record = records[pivot];
       var order  = sort(key, record.key);
       if (order === 0) {
         return record.value;
       } else if (order < 0) {
-        break;
+        right = pivot;
+      } else {
+        left = pivot + 1;
       }
     }
 
@@ -271,37 +278,45 @@ __js {
   Leaf.prototype.set = function (btree, parents, key, value, sort) {
     var records = this.records;
 
-    // TODO use binary search ?
-    for (var i = 0, len = records.length; i < len; ++i) {
-      var record = records[i];
+    var left  = 0;
+    var right = records.length;
+
+    while (left < right) {
+      var pivot  = floor((left + right) / 2);
+      var record = records[pivot];
       var order  = sort(key, record.key);
       if (order === 0) {
         record.value = value;
         return;
       } else if (order < 0) {
-        add_at(records, i, new Record(key, value));
-        rebalance_set(btree, parents, this);
-        return;
+        right = pivot;
+      } else {
+        left = pivot + 1;
       }
     }
 
-    records.push(new Record(key, value));
-    rebalance_set(btree, parents, this, sort);
+    add_at(records, left, new Record(key, value));
+    rebalance_set(btree, parents, this);
   };
 
   Leaf.prototype.del = function (btree, parents, key, sort) {
     var records = this.records;
 
-    // TODO use binary search ?
-    for (var i = 0, len = records.length; i < len; ++i) {
-      var record = records[i];
+    var left  = 0;
+    var right = records.length;
+
+    while (left < right) {
+      var pivot  = floor((left + right) / 2);
+      var record = records[pivot];
       var order  = sort(key, record.key);
       if (order === 0) {
-        remove_at(records, i);
+        remove_at(records, pivot);
         rebalance_del(btree, parents, this);
         return;
       } else if (order < 0) {
-        break;
+        right = pivot;
+      } else {
+        left = pivot + 1;
       }
     }
 
@@ -349,7 +364,7 @@ __js {
   // TODO code duplication with Leaf.prototype.split
   Node.prototype.split = function () {
     var left   = this.records;
-    var index  = Math.floor(left.length / 2);
+    var index  = floor(left.length / 2);
     var middle = left[index];
     var right  = left.slice(index + 1);
 
