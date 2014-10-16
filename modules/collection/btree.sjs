@@ -499,49 +499,62 @@ __js {
     return "" + this.root;
   };
 
-  BTree.prototype.get = function (key) {
+
+  function SortedDict(sort) {
+    BTree.call(this, sort);
+  }
+
+  SortedDict.prototype = Object.create(BTree.prototype);
+
+  // TODO make these inaccessible to the outside
+  SortedDict.prototype.get = function (key) {
     var node = this.root;
     var sort = this.sort;
     return node.get(key, sort);
   };
 
-  BTree.prototype.set = function (key, value) {
+  SortedDict.prototype.set = function (key, value) {
     var node = this.root;
     var sort = this.sort;
     var parents = [];
     node.set(this, parents, key, value, sort);
   };
 
-  BTree.prototype.del = function (key) {
+  SortedDict.prototype.del = function (key) {
     var node = this.root
     var sort = this.sort;
     var parents = [];
     node.del(this, parents, key, sort);
   };
 
-  BTree.prototype[dictionary.interface_has] = function (btree, key) {
+  SortedDict.prototype[dictionary.interface_has] = function (btree, key) {
     return btree.get(key) !== empty;
   };
 
-  BTree.prototype[dictionary.interface_get] = function (btree, key) {
+  SortedDict.prototype[dictionary.interface_get] = function (btree, key) {
     return btree.get(key);
   };
 
-  BTree.prototype[dictionary.interface_set] = function (btree, key, value) {
+  SortedDict.prototype[dictionary.interface_set] = function (btree, key, value) {
     btree.set(key, value);
   };
 
-  BTree.prototype[dictionary.interface_del] = function (btree, key) {
+  SortedDict.prototype[dictionary.interface_del] = function (btree, key) {
     btree.del(key);
   };
 
-  exports.BTree = function (sort) {
-    return new BTree(sort);
+
+  exports.SortedDict = function (sort) {
+    return new SortedDict(sort);
+  };
+
+  exports.Dict = function () {
+    return new SortedDict(defaultSort);
   };
 }
 
 
-/*var x = new BTree(defaultSort);
+/*var x = exports.Dict();
 
 var leaf1 = new Leaf([new Record("a", 1), new Record("b", 2)]);
 
@@ -557,7 +570,7 @@ console.log(x.get("e"));
 console.log(x.get("f"));
 console.log("" + x);
 
-var y = new BTree(defaultSort);
+var y = exports.Dict();
 
 y.set("a", 1);
 console.log("" + y);
