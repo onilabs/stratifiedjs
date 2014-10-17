@@ -1585,6 +1585,9 @@
             }
           }
         },
+        "isObservableVar": {
+          "type": "function"
+        },
         "ConflictError": {
           "type": "class",
           "children": {}

@@ -185,6 +185,7 @@ module.exports = require(modules);
    - **changes**: (function [sjs:observable::changes])
    - **current**: (function [sjs:observable::current])
    - **isConflictError**: (function [sjs:observable::isConflictError])
+   - **isObservableVar**: (function [sjs:observable::isObservableVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
    - **observe**: (function [sjs:observable::observe])
   
