@@ -109,12 +109,11 @@ function sequential(f) {
 
 */
 __js {
-  var STREAM_TOKEN = {};
   var stream_toString = function() {
     return "[object Stream]";
   };
   var Stream = function(S) {
-    S.__oni_stream = STREAM_TOKEN;
+    S.__oni_is_Stream = true;
     S.toString = stream_toString;
     return S;
   }
@@ -169,7 +168,7 @@ __js {
 */
 __js {
   function isStream(s) {
-    return s && s.__oni_stream === STREAM_TOKEN;
+    return s && s.__oni_is_Stream === true;
   }
   exports.isStream = isStream;
 }
