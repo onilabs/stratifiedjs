@@ -238,6 +238,7 @@ var ConflictError = exports.ConflictError = function(msg) {
 
 /**
   @function isConflictError
+  @param {Object} [e] Object to test
   @return {Boolean}
   @summary Return whether `e` is a [::ConflictError]
 */
