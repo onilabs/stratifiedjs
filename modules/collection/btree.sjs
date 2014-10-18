@@ -58,10 +58,122 @@ __js {
 
   var floor = Math.floor;
 
-  function defaultSort(x, y) {
+  // Created using http://www.generateuuid.com/
+  var hash_uuid = '__symbol_hash_7167F200-A399-422A-A528-516788091F46__';
+
+  var hash_id = 0;
+
+  // TODO module for this
+  function isObject(x) {
+    return Object(x) === x;
+  }
+
+  var undef = void 0;
+
+  function isNaN(x) {
+    return x !== x;
+  }
+
+  // TODO replace with Object.is
+  // TODO module for this
+  // http://wiki.ecmascript.org/doku.php?id=harmony:egal
+  function is(x, y) {
     if (x === y) {
+      // 0 === -0, but they are not identical
+      return x !== 0 || 1 / x === 1 / y;
+    } else {
+      // NaN !== NaN, but they are identical.
+      // NaNs are the only non-reflexive value, i.e., if x !== x,
+      // then x is a NaN.
+      // isNaN is broken: it converts its argument to number, so
+      // isNaN("foo") => true
+      return isNaN(x) && isNaN(y);
+    }
+  }
+
+  // TODO module for this
+  // null < undefined < false < true < NaN < Number < String/Object
+  // Objects are handled by getHash, which returns a string
+  // TODO what about ES6 Symbols?
+  function lt(x, y) {
+    // String is the greatest, but it's put first for performance reasons,
+    // because most keys will be strings/objects.
+    if (typeof x === "string") {
+      if (typeof y === "string") {
+        return x < y;
+      } else {
+        return false;
+      }
+    } else if (typeof y === "string") {
+      return true;
+
+    } else if (x === null) {
+      return true;
+    } else if (y === null) {
+      return false;
+
+    } else if (x === undef) {
+      return true;
+    } else if (y === undef) {
+      return false;
+
+    } else if (x === false) {
+      return true;
+    } else if (y === false) {
+      return false;
+
+    } else if (x === true) {
+      return true;
+    } else if (y === true) {
+      return false;
+
+    } else if (isNaN(x)) {
+      return true;
+    } else if (isNaN(y)) {
+      return false;
+
+    } else if (typeof x === "number") {
+      if (typeof y === "number") {
+        return x < y;
+      } else {
+        return true;
+      }
+    } else if (typeof y === "number") {
+      return false;
+
+    } else {
+      throw new Error("cannot lt " + x + " and " + y);
+    }
+  }
+
+  function getHash(x) {
+    if (isObject(x)) {
+      var id = x[hash_uuid];
+
+      if (id == null) {
+        id = hash_uuid + (++hash_id);
+
+        // TODO throw an error if `x` is not extensible
+        Object.defineProperty(x, hash_uuid, {
+          enumerable: false,
+          configurable: false,
+          writable: false,
+          value: id
+        });
+      }
+
+      return id;
+    } else {
+      return x;
+    }
+  }
+
+  function defaultSort(x, y) {
+    x = getHash(x);
+    y = getHash(y);
+    if (is(x, y)) {
       return 0
-    } else if (x < y) {
+    } else if (lt(x, y)) {
       return -1
     } else {
       return 1
@@ -691,4 +803,18 @@ y.del("j");
 console.log("" + y);
 
 y.del("i");
-console.log("" + y);*/
+console.log("" + y);
+
+
+var y = exports.SortedDict();
+
+y.set({ foo: 1 }, 2);
+console.log("" + y);
+
+y.set({ bar: 2 }, 3);
+console.log("" + y);
+
+y.set({ qux: 3 }, 4);
+console.log("" + y);
+
+console.log(y.root.records[0].key);*/
