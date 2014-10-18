@@ -52,10 +52,9 @@ var string     = require('../string');
 */
 
 __js {
-  var empty = {};
+  exports.min_elements = 32;
 
-  var min_elements = 32;
-  var max_elements = min_elements * 2;
+  var empty = {};
 
   var floor = Math.floor;
 
@@ -110,6 +109,8 @@ __js {
   }
 
   function rebalance_set(btree, parents, node) {
+    var max_elements = exports.min_elements * 2;
+
     while (node.records.length > max_elements) {
       var pivot = node.split();
       if (parents.length) {
@@ -127,6 +128,8 @@ __js {
   }
 
   function rebalance_del(btree, parents, left) {
+    var min_elements = exports.min_elements;
+
     // The root is the only node allowed to have less than min_elements
     while (parents.length !== 0 && left.records.length < min_elements) {
       var parent         = parents.pop();
@@ -566,14 +569,18 @@ __js {
 
 
   exports.SortedDict = function (sort) {
+    if (arguments.length === 0) {
+      sort = defaultSort;
+    }
+
     return new SortedDict(sort);
   };
 
-  exports.Dict = function () {
-    return new SortedDict(defaultSort);
-  };
-
   exports.toSortedDict = function (seq, sort) {
+    if (arguments.length === 1) {
+      sort = defaultSort;
+    }
+
     var root = new SortedDict(sort);
 
     sequence.each(seq, function (a) {
@@ -625,14 +632,10 @@ __js {
 
     console.log(leafs);*/
   };
-
-  exports.toDict = function (seq) {
-    return exports.toSortedDict(seq, defaultSort);
-  };
 }
 
 
-/*var x = exports.Dict();
+/*var x = exports.SortedDict();
 
 var leaf1 = new Leaf([new Record("a", 1), new Record("b", 2)]);
 
@@ -649,10 +652,10 @@ console.log(x.get("f"));
 console.log("" + x);
 
 
-console.log("" + exports.toDict([["d", 4], ["a", 1], ["h", 8], ["b", 2], ["f", 6], ["g", 7], ["c", 3], ["i", 9], ["e", 5], ["j", 10]]));
+console.log("" + exports.toSortedDict([["d", 4], ["a", 1], ["h", 8], ["b", 2], ["f", 6], ["g", 7], ["c", 3], ["i", 9], ["e", 5], ["j", 10]]));
 
 
-var y = exports.Dict();
+var y = exports.SortedDict();
 
 y.set("a", 1);
 console.log("" + y);
