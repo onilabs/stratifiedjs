@@ -52,8 +52,6 @@ var string     = require('../string');
 */
 
 __js {
-  exports.min_elements = 32;
-
   var empty = {};
 
   var floor = Math.floor;
@@ -221,7 +219,7 @@ __js {
   }
 
   function rebalance_set(btree, parents, node) {
-    var max_elements = exports.min_elements * 2;
+    var max_elements = btree.max_elements;
 
     while (node.records.length > max_elements) {
       var pivot = node.split();
@@ -240,7 +238,7 @@ __js {
   }
 
   function rebalance_del(btree, parents, left) {
-    var min_elements = exports.min_elements;
+    var min_elements = btree.min_elements;
 
     // The root is the only node allowed to have less than min_elements
     while (parents.length !== 0 && left.records.length < min_elements) {
@@ -626,74 +624,61 @@ __js {
   };
 
 
-  function BTree(sort) {
+  function Mutable(sort, min) {
+    this.min_elements = min;
+    this.max_elements = min * 2;
     this.sort = sort;
     this.root = new Leaf([]);
   }
 
-  BTree.prototype.toString = function () {
+  Mutable.prototype.toString = function () {
     return "" + this.root;
   };
 
-
-  function SortedDict(sort) {
-    BTree.call(this, sort);
-  }
-
-  SortedDict.prototype = Object.create(BTree.prototype);
-
   // TODO make these inaccessible to the outside
-  SortedDict.prototype.get = function (key) {
+  Mutable.prototype.get = function (key) {
     var node = this.root;
     var sort = this.sort;
     return node.get(key, sort);
   };
 
-  SortedDict.prototype.set = function (key, value) {
+  Mutable.prototype.set = function (key, value) {
     var node = this.root;
     var sort = this.sort;
     var parents = [];
     node.set(this, parents, key, value, sort);
   };
 
-  SortedDict.prototype.del = function (key) {
+  Mutable.prototype.del = function (key) {
     var node = this.root
     var sort = this.sort;
     var parents = [];
     node.del(this, parents, key, sort);
   };
 
-  SortedDict.prototype[dictionary.interface_has] = function (btree, key) {
+  Mutable.prototype[dictionary.interface_has] = function (btree, key) {
     return btree.get(key) !== empty;
   };
 
-  SortedDict.prototype[dictionary.interface_get] = function (btree, key) {
+  Mutable.prototype[dictionary.interface_get] = function (btree, key) {
     return btree.get(key);
   };
 
-  SortedDict.prototype[dictionary.interface_set] = function (btree, key, value) {
+  Mutable.prototype[dictionary.interface_set] = function (btree, key, value) {
     btree.set(key, value);
   };
 
-  SortedDict.prototype[dictionary.interface_del] = function (btree, key) {
+  Mutable.prototype[dictionary.interface_del] = function (btree, key) {
     btree.del(key);
   };
 
 
-  exports.SortedDict = function (sort) {
-    if (arguments.length === 0) {
-      sort = defaultSort;
-    }
-
-    return new SortedDict(sort);
+  exports.Mutable = function (sort, min) {
+    return new Mutable(sort, min);
   };
 
-  exports.toSortedDict = function (seq, sort) {
-    if (arguments.length === 1) {
-      sort = defaultSort;
-    }
-
-    var root = new SortedDict(sort);
+  exports.toMutable = function (seq, sort, min) {
+    var root = new Mutable(sort, min);
 
     sequence.each(seq, function (a) {
       var key   = a[0];
@@ -747,7 +732,7 @@ __js {
 }
 
 
-/*var x = exports.SortedDict();
+/*var x = exports.Mutable(defaultSort, 32);
 
 var leaf1 = new Leaf([new Record("a", 1), new Record("b", 2)]);
 
@@ -764,10 +749,10 @@ console.log(x.get("f"));
 console.log("" + x);
 
 
-console.log("" + exports.toSortedDict([["d", 4], ["a", 1], ["h", 8], ["b", 2], ["f", 6], ["g", 7], ["c", 3], ["i", 9], ["e", 5], ["j", 10]]));
+console.log("" + exports.toMutable([["d", 4], ["a", 1], ["h", 8], ["b", 2], ["f", 6], ["g", 7], ["c", 3], ["i", 9], ["e", 5], ["j", 10]], defaultSort, 32));
 
 
-var y = exports.SortedDict();
+var y = exports.Mutable(defaultSort, 8);
 
 y.set("a", 1);
 console.log("" + y);
@@ -806,7 +791,7 @@ y.del("i");
 console.log("" + y);
 
 
-var y = exports.SortedDict();
+var y = exports.Mutable(defaultSort, 32);
 
 y.set({ foo: 1 }, 2);
 console.log("" + y);
