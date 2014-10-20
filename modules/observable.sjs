@@ -205,9 +205,25 @@ function ObservableVar(val) {
   };
 
   rv.get = -> val;
+
+  rv.__oni_is_ObservableVar = true;
+
   return rv;
 }
 exports.ObservableVar = ObservableVar;
+
+/**
+   @function isObservableVar
+   @param  {Object} [o] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `o` is an [::ObservableVar], `false` otherwise.
+*/
+__js {
+  function isObservableVar(o) {
+    return o && o.__oni_is_ObservableVar === true;
+  }
+  exports.isObservableVar = isObservableVar;
+}
 
 /**
   @class ConflictError
@@ -222,6 +238,7 @@ var ConflictError = exports.ConflictError = function(msg) {
 
 /**
   @function isConflictError
+  @param {Object} [e] Object to test
   @return {Boolean}
   @summary Return whether `e` is a [::ConflictError]
 */

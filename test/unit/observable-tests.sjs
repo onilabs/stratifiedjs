@@ -1,6 +1,16 @@
 @ = require('sjs:test/std');
 
 @context("ObservableVar") {||
+  @test("isStream") {||
+    var a = @ObservableVar();
+    @assert.eq(a .. @isStream, true);
+  }
+  @test("isObservableVar") {||
+    var a = @ObservableVar();
+    @assert.eq(a .. @isObservableVar, true);
+  }
+
+
 	@test("observe multiple values at once") {||
 		var log = [];
 		var a = @ObservableVar("a0");
