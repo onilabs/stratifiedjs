@@ -1,8 +1,9 @@
 @ = require('sjs:std');
 exports.hasOutstandingChanges = function() {
 	var result = @childProcess.run('git', ['diff', '--shortstat'], {stdio: ['ignore', 'pipe', 'ignore']});
-	//console.log('[[' + result.stdout + ']]');
-	return result.stdout.strip !== "";
+	var output = result.stdout.trim();
+	//console.log('[[' + output + ']]');
+	return output !== "";
 };
 
 exports.dumpDiff = function() {
