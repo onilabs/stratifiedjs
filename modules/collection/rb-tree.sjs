@@ -56,7 +56,9 @@
  */
 
 var dictionary = require('./dictionary');
-var assert     = require("../assert");
+var string     = require('../string');
+var sequence   = require('../sequence');
+var assert     = require('../assert');
 
 __js {
   var NEGATIVE_RED = -1;
@@ -83,7 +85,42 @@ __js {
       } else if (x.color === BLACK) {
         color = "BLACK";
       }
-      return "(" + [color, toString(x.left), (x.key + ": " + x.value), toString(x.right)].join(" ") + ")"
+
+      var left  = toString(x.left).split(/\n/);
+      var right = toString(x.right).split(/\n/);
+
+      var max_l = 0;
+      var max_r = 0;
+
+      sequence.each(left, function (x) {
+        max_l = Math.max(max_l, x.length + 1);
+      });
+
+      sequence.each(right, function (x) {
+        max_r = Math.max(max_r, x.length);
+      });
+
+      var self = "(" + color + " " + (x.key + ": " + x.value) + ")";
+
+      var i_middle = (max_l + max_r) / 2;
+      var i_left   = Math.floor(i_middle - (self.length / 2));
+
+      var min_spaces = /^ */.exec(left[0])[0].length + 1;
+      var spaces     = Math.max(1, min_spaces, i_left);
+
+      max_l = Math.max(max_l, self.length);
+
+      // TODO string.repeat
+      var children = [new Array(spaces + 1).join(" ") + self];
+
+      sequence.each(sequence.zipLongest(left, right), function (a) {
+        var l = a[0] || "";
+        var r = a[1] || "";
+        children.push(string.padRight(l, max_l, " ") + r);
+      });
+
+      return children.join("\n");
+      //return "(" + [color, toString(x.left), (x.key + ": " + x.value), toString(x.right)].join(" ") + ")"
     }
   }
 
@@ -544,7 +581,7 @@ __js {
       }
     }
 
-    if (node !== null) {
+    if (tree.root !== null) {
       loop(tree.root, 0);
     }
   }
@@ -561,13 +598,13 @@ var x = new Mutable(function (x, y) {
   }
 });
 
-console.log("" + x);
+console.log("\n" + x);
 
 set_by_key(x, "c", 1);
-console.log("" + x);
+console.log("\n" + x);
 
 set_by_key(x, "b", 1);
-console.log("" + x);
+console.log("\n" + x);
 
 set_by_key(x, "a", 1);
-console.log("" + x);
+console.log("\n" + x);
