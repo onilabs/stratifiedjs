@@ -35,6 +35,25 @@
    @home      sjs:collection/rb-tree
 */
 
+/*
+
+  All valid configurations
+
+    *N = ()
+
+    *B = (B *N *N)
+       | (B *N (R *N *N))
+       | (B (R *N *N) *N)
+       | (B (R *N *N) (R *N *N))
+
+       # These might violate property #5
+       | (B *B *B)
+       | (B *B (R *B *B))
+       | (B (R *B *B) *B)
+       | (B (R *B *B) (R *B *B))
+
+ */
+
 var dictionary = require('./dictionary');
 var assert     = require("../assert");
 
@@ -81,6 +100,91 @@ __js {
           return node;
         } else if (order < 0) {
           node = node.left;
+        } else {
+          node = node.right;
+        }
+      }
+    }
+  }
+
+  function max(node) {
+    while (true) {
+      var right = node.right;
+      if (right === null) {
+        return node;
+      } else {
+        node = right;
+      }
+    }
+  }
+
+  function min(node) {
+    while (true) {
+      var left = node.left;
+      if (left === null) {
+        return node;
+      } else {
+        node = left;
+      }
+    }
+  }
+
+  function prev_by_key(tree, key) {
+    var node = tree.root;
+    var sort = tree.sort;
+
+    var parent = null;
+
+    while (true) {
+      if (node === null) {
+        return node;
+      } else {
+        var order = sort(key, node.key);
+        if (order === 0) {
+          node = node.left;
+
+          if (node === null) {
+            return parent;
+          } else {
+            return max(node);
+          }
+
+        } else if (order < 0) {
+          node = node.left;
+
+        } else {
+          parent = node;
+          node = node.right;
+        }
+      }
+    }
+  }
+
+  // TODO code duplication with prev_by_key
+  function next_by_key(tree, key) {
+    var node = tree.root;
+    var sort = tree.sort;
+
+    var parent = null;
+
+    while (true) {
+      if (node === null) {
+        return node;
+      } else {
+        var order = sort(key, node.key);
+        if (order === 0) {
+          node = node.right;
+
+          if (node === null) {
+            return parent;
+          } else {
+            return min(node);
+          }
+
+        } else if (order < 0) {
+          parent = node;
+          node = node.left;
+
         } else {
           node = node.right;
         }
@@ -250,8 +354,17 @@ __js {
 
     if (node === null) {
       throw new Error("key " + key + " does not exist in tree " + tree);
-    } else {
+    } else if (node.left !== null) {
+      if (node.right !== null) {
+      } else {
+        var child = node.left;
+        if (node.color === BLACK) {
+          node.color = child.color;
 
+        }
+      }
+    } else if (node.right !== null) {
+      var child = node.right;
     }
   }*/
 
