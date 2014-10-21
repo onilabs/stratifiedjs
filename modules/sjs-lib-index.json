@@ -7,45 +7,6 @@
         "builtins": {
           "type": "module",
           "children": {
-            "module-system": {
-              "type": "syntax"
-            },
-            "inline-modules": {
-              "type": "syntax"
-            },
-            "require": {
-              "type": "function"
-            },
-            "require.hubs": {
-              "type": "variable"
-            },
-            "require.main": {
-              "type": "variable"
-            },
-            "require.resolve": {
-              "type": "function"
-            },
-            "require.hubs.addDefault": {
-              "type": "function"
-            },
-            "require.hubs.defined": {
-              "type": "function"
-            },
-            "require.modules": {
-              "type": "variable"
-            },
-            "module.id": {
-              "type": "variable"
-            },
-            "module.exports": {
-              "type": "variable"
-            },
-            "exports": {
-              "type": "variable"
-            },
-            "hold": {
-              "type": "function"
-            },
             "Stratum": {
               "type": "class",
               "children": {
@@ -55,13 +16,52 @@
                 "value": {
                   "type": "function"
                 },
-                "waiting": {
+                "waitforValue": {
                   "type": "function"
                 },
-                "waitforValue": {
+                "waiting": {
                   "type": "function"
                 }
               }
+            },
+            "exports": {
+              "type": "variable"
+            },
+            "hold": {
+              "type": "function"
+            },
+            "inline-modules": {
+              "type": "syntax"
+            },
+            "module-system": {
+              "type": "syntax"
+            },
+            "module.exports": {
+              "type": "variable"
+            },
+            "module.id": {
+              "type": "variable"
+            },
+            "require": {
+              "type": "function"
+            },
+            "require.hubs": {
+              "type": "variable"
+            },
+            "require.hubs.addDefault": {
+              "type": "function"
+            },
+            "require.hubs.defined": {
+              "type": "function"
+            },
+            "require.main": {
+              "type": "variable"
+            },
+            "require.modules": {
+              "type": "variable"
+            },
+            "require.resolve": {
+              "type": "function"
             }
           },
           "summary": "Globally-available functions and objects"
@@ -92,10 +92,46 @@
         "syntax": {
           "type": "module",
           "children": {
+            "?": {
+              "type": "syntax"
+            },
             "@altns": {
               "type": "syntax"
             },
-            "waitfor-resume": {
+            "__js": {
+              "type": "syntax"
+            },
+            "arrow-function": {
+              "type": "syntax"
+            },
+            "blocklambda": {
+              "type": "syntax"
+            },
+            "calling-javascript": {
+              "type": "syntax"
+            },
+            "collapse": {
+              "type": "syntax"
+            },
+            "destructure": {
+              "type": "syntax"
+            },
+            "double-dot": {
+              "type": "syntax"
+            },
+            "quasi-quote": {
+              "type": "syntax"
+            },
+            "spawn": {
+              "type": "syntax"
+            },
+            "string-interpolation": {
+              "type": "syntax"
+            },
+            "try-retract": {
+              "type": "syntax"
+            },
+            "using": {
               "type": "syntax"
             },
             "waitfor-and": {
@@ -104,43 +140,7 @@
             "waitfor-or": {
               "type": "syntax"
             },
-            "collapse": {
-              "type": "syntax"
-            },
-            "try-retract": {
-              "type": "syntax"
-            },
-            "spawn": {
-              "type": "syntax"
-            },
-            "destructure": {
-              "type": "syntax"
-            },
-            "string-interpolation": {
-              "type": "syntax"
-            },
-            "quasi-quote": {
-              "type": "syntax"
-            },
-            "double-dot": {
-              "type": "syntax"
-            },
-            "blocklambda": {
-              "type": "syntax"
-            },
-            "arrow-function": {
-              "type": "syntax"
-            },
-            "using": {
-              "type": "syntax"
-            },
-            "calling-javascript": {
-              "type": "syntax"
-            },
-            "__js": {
-              "type": "syntax"
-            },
-            "?": {
+            "waitfor-resume": {
               "type": "syntax"
             }
           },
@@ -151,28 +151,28 @@
     "array": {
       "type": "module",
       "children": {
+        "cmp": {
+          "type": "function"
+        },
+        "cycle": {
+          "type": "function"
+        },
+        "difference": {
+          "type": "function"
+        },
+        "flatten": {
+          "type": "function"
+        },
+        "haveCommonElements": {
+          "type": "function"
+        },
         "isArrayLike": {
           "type": "function"
         },
         "remove": {
           "type": "function"
         },
-        "cycle": {
-          "type": "function"
-        },
-        "flatten": {
-          "type": "function"
-        },
         "union": {
-          "type": "function"
-        },
-        "difference": {
-          "type": "function"
-        },
-        "haveCommonElements": {
-          "type": "function"
-        },
-        "cmp": {
           "type": "function"
         }
       },
@@ -189,46 +189,43 @@
             }
           }
         },
-        "ok": {
-          "type": "function"
-        },
-        "truthy": {
-          "type": "function"
-        },
-        "notOk": {
-          "type": "function"
-        },
-        "falsy": {
-          "type": "function"
-        },
-        "fail": {
-          "type": "function"
-        },
-        "raises": {
-          "type": "function"
-        },
-        "throwsError": {
+        "atomic": {
           "type": "function"
         },
         "catchError": {
           "type": "function"
         },
-        "equal": {
+        "contains": {
           "type": "function"
         },
         "eq": {
           "type": "function"
         },
-        "shallowEqual": {
+        "equal": {
           "type": "function"
         },
-        "shallowEq": {
+        "fail": {
+          "type": "function"
+        },
+        "falsy": {
+          "type": "function"
+        },
+        "is": {
+          "type": "function"
+        },
+        "isNot": {
+          "type": "function"
+        },
+        "notContains": {
+          "type": "function"
+        },
+        "notEq": {
           "type": "function"
         },
         "notEqual": {
           "type": "function"
         },
-        "notEq": {
+        "notOk": {
           "type": "function"
         },
         "notShallowEq": {
@@ -237,22 +234,25 @@
         "notShallowEqual": {
           "type": "function"
         },
-        "contains": {
+        "ok": {
           "type": "function"
         },
-        "notContains": {
+        "raises": {
           "type": "function"
         },
-        "atomic": {
+        "shallowEq": {
+          "type": "function"
+        },
+        "shallowEqual": {
           "type": "function"
         },
         "suspends": {
           "type": "function"
         },
-        "is": {
+        "throwsError": {
           "type": "function"
         },
-        "isNot": {
+        "truthy": {
           "type": "function"
         }
       },
@@ -261,16 +261,16 @@
     "bundle": {
       "type": "module",
       "children": {
-        "findDependencies": {
-          "type": "function"
-        },
-        "generateBundle": {
-          "type": "function"
-        },
         "contents": {
           "type": "function"
         },
         "create": {
+          "type": "function"
+        },
+        "findDependencies": {
+          "type": "function"
+        },
+        "generateBundle": {
           "type": "function"
         }
       },
@@ -296,16 +296,13 @@
               "type": "class",
               "children": {}
             },
-            "has": {
+            "del": {
               "type": "function"
             },
             "get": {
               "type": "function"
             },
-            "set": {
-              "type": "function"
-            },
-            "del": {
+            "has": {
               "type": "function"
             },
             "insert": {
@@ -315,6 +312,9 @@
               "type": "function"
             },
             "remove": {
+              "type": "function"
+            },
+            "set": {
               "type": "function"
             }
           },
@@ -327,16 +327,22 @@
               "type": "class",
               "children": {}
             },
+            "indexOf": {
+              "type": "function"
+            },
+            "insert": {
+              "type": "function"
+            },
             "length": {
               "type": "function"
             },
-            "nth_has": {
+            "modify": {
               "type": "function"
             },
             "nth": {
               "type": "function"
             },
-            "push": {
+            "nth_has": {
               "type": "function"
             },
             "nth_set": {
@@ -345,10 +351,10 @@
             "pop": {
               "type": "function"
             },
-            "indexOf": {
+            "push": {
               "type": "function"
             },
-            "insert": {
+            "remove": {
               "type": "function"
             },
             "sortedIndexFor": {
@@ -357,19 +363,13 @@
             "sortedIndexOf": {
               "type": "function"
             },
-            "sortedPush": {
-              "type": "function"
-            },
             "sortedInsert": {
               "type": "function"
             },
+            "sortedPush": {
+              "type": "function"
+            },
             "sortedRemove": {
-              "type": "function"
-            },
-            "remove": {
-              "type": "function"
-            },
-            "modify": {
               "type": "function"
             }
           },
@@ -387,19 +387,19 @@
               "type": "class",
               "children": {}
             },
-            "has": {
+            "add": {
               "type": "function"
             },
-            "add": {
+            "difference": {
+              "type": "function"
+            },
+            "has": {
               "type": "function"
             },
             "remove": {
               "type": "function"
             },
             "union": {
-              "type": "function"
-            },
-            "difference": {
               "type": "function"
             }
           },
@@ -411,19 +411,19 @@
     "compare": {
       "type": "module",
       "children": {
-        "equals": {
+        "describeEquals": {
           "type": "function"
         },
         "eq": {
           "type": "function"
         },
-        "shallowEquals": {
+        "equals": {
           "type": "function"
         },
         "shallowEq": {
           "type": "function"
         },
-        "describeEquals": {
+        "shallowEquals": {
           "type": "function"
         }
       },
@@ -470,58 +470,25 @@
     "cutil": {
       "type": "module",
       "children": {
-        "StratumAborted": {
-          "type": "class",
-          "children": {}
-        },
-        "waitforAll": {
-          "type": "function"
-        },
-        "waitforFirst": {
-          "type": "function"
-        },
-        "Semaphore": {
-          "type": "class",
-          "children": {
-            "Semaphore": {
-              "type": "ctor"
-            },
-            "permits": {
-              "type": "variable"
-            },
-            "acquire": {
-              "type": "function"
-            },
-            "release": {
-              "type": "function"
-            },
-            "synchronize": {
-              "type": "function"
-            },
-            "forceAcquire": {
-              "type": "function"
-            }
-          }
-        },
         "Condition": {
           "type": "class",
           "children": {
             "Condition": {
               "type": "ctor"
             },
+            "clear": {
+              "type": "function"
+            },
             "isSet": {
               "type": "variable"
+            },
+            "set": {
+              "type": "function"
             },
             "value": {
               "type": "variable"
             },
             "wait": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            },
-            "clear": {
               "type": "function"
             }
           }
@@ -535,21 +502,54 @@
             "count": {
               "type": "function"
             },
-            "isFull": {
-              "type": "function"
-            },
-            "put": {
-              "type": "function"
-            },
             "get": {
+              "type": "function"
+            },
+            "isFull": {
               "type": "function"
             },
             "peek": {
               "type": "function"
+            },
+            "put": {
+              "type": "function"
             }
           }
         },
+        "Semaphore": {
+          "type": "class",
+          "children": {
+            "Semaphore": {
+              "type": "ctor"
+            },
+            "acquire": {
+              "type": "function"
+            },
+            "forceAcquire": {
+              "type": "function"
+            },
+            "permits": {
+              "type": "variable"
+            },
+            "release": {
+              "type": "function"
+            },
+            "synchronize": {
+              "type": "function"
+            }
+          }
+        },
+        "StratumAborted": {
+          "type": "class",
+          "children": {}
+        },
         "breaking": {
+          "type": "function"
+        },
+        "waitforAll": {
+          "type": "function"
+        },
+        "waitforFirst": {
           "type": "function"
         }
       },
@@ -558,21 +558,21 @@
     "dashdash": {
       "type": "module",
       "children": {
-        "parse": {
-          "type": "function"
-        },
         "Parser": {
           "type": "class",
           "children": {
-            "parse": {
+            "help": {
               "type": "function"
             },
-            "help": {
+            "parse": {
               "type": "function"
             }
           }
         },
         "createParser": {
+          "type": "function"
+        },
+        "parse": {
           "type": "function"
         }
       },
@@ -593,10 +593,6 @@
     "event": {
       "type": "module",
       "children": {
-        "EventStream": {
-          "type": "class",
-          "children": {}
-        },
         "Emitter": {
           "type": "class",
           "children": {
@@ -607,6 +603,10 @@
               "type": "function"
             }
           }
+        },
+        "EventStream": {
+          "type": "class",
+          "children": {}
         },
         "events": {
           "type": "function"
@@ -620,40 +620,40 @@
     "function": {
       "type": "module",
       "children": {
-        "seq": {
-          "type": "function"
-        },
-        "par": {
-          "type": "function"
-        },
-        "tryfinally": {
-          "type": "function"
-        },
-        "trycatch": {
-          "type": "function"
-        },
-        "identity": {
-          "type": "function"
-        },
-        "nop": {
-          "type": "function"
-        },
         "bound": {
-          "type": "function"
-        },
-        "sequential": {
-          "type": "function"
-        },
-        "exclusive": {
-          "type": "function"
-        },
-        "rateLimit": {
           "type": "function"
         },
         "deferred": {
           "type": "function"
         },
+        "exclusive": {
+          "type": "function"
+        },
+        "identity": {
+          "type": "function"
+        },
         "memoize": {
+          "type": "function"
+        },
+        "nop": {
+          "type": "function"
+        },
+        "par": {
+          "type": "function"
+        },
+        "rateLimit": {
+          "type": "function"
+        },
+        "seq": {
+          "type": "function"
+        },
+        "sequential": {
+          "type": "function"
+        },
+        "trycatch": {
+          "type": "function"
+        },
+        "tryfinally": {
           "type": "function"
         },
         "unbatched": {
@@ -665,22 +665,22 @@
     "http": {
       "type": "module",
       "children": {
-        "getXDomainCaps": {
-          "type": "function"
-        },
-        "request": {
-          "type": "function"
-        },
         "get": {
           "type": "function"
         },
-        "post": {
+        "getXDomainCaps": {
           "type": "function"
         },
         "json": {
           "type": "function"
         },
         "jsonp": {
+          "type": "function"
+        },
+        "post": {
+          "type": "function"
+        },
+        "request": {
           "type": "function"
         }
       },
@@ -710,58 +710,58 @@
         "DEBUG": {
           "type": "variable"
         },
-        "VERBOSE": {
+        "ERROR": {
           "type": "variable"
         },
         "INFO": {
           "type": "variable"
         },
-        "WARN": {
-          "type": "variable"
-        },
-        "ERROR": {
-          "type": "variable"
-        },
         "OFF": {
           "type": "variable"
         },
-        "getLevel": {
-          "type": "function"
+        "VERBOSE": {
+          "type": "variable"
         },
-        "setLevel": {
-          "type": "function"
-        },
-        "setFormatter": {
-          "type": "function"
-        },
-        "isEnabled": {
-          "type": "function"
-        },
-        "print": {
-          "type": "function"
+        "WARN": {
+          "type": "variable"
         },
         "debug": {
-          "type": "function"
-        },
-        "verbose": {
-          "type": "function"
-        },
-        "info": {
-          "type": "function"
-        },
-        "warn": {
           "type": "function"
         },
         "error": {
           "type": "function"
         },
+        "getConsole": {
+          "type": "function"
+        },
+        "getLevel": {
+          "type": "function"
+        },
+        "info": {
+          "type": "function"
+        },
+        "isEnabled": {
+          "type": "function"
+        },
         "logContext": {
+          "type": "function"
+        },
+        "print": {
           "type": "function"
         },
         "setConsole": {
           "type": "function"
         },
-        "getConsole": {
+        "setFormatter": {
+          "type": "function"
+        },
+        "setLevel": {
+          "type": "function"
+        },
+        "verbose": {
+          "type": "function"
+        },
+        "warn": {
           "type": "function"
         }
       },
@@ -773,19 +773,19 @@
         "Cache": {
           "type": "class",
           "children": {
-            "init": {
-              "type": "function"
-            },
             "clear": {
               "type": "function"
             },
-            "put": {
+            "discard": {
               "type": "function"
             },
             "get": {
               "type": "function"
             },
-            "discard": {
+            "init": {
+              "type": "function"
+            },
+            "put": {
               "type": "function"
             }
           }
@@ -814,19 +814,19 @@
             "exec": {
               "type": "function"
             },
-            "run": {
-              "type": "function"
-            },
-            "launch": {
-              "type": "function"
-            },
-            "wait": {
+            "isRunning": {
               "type": "function"
             },
             "kill": {
               "type": "function"
             },
-            "isRunning": {
+            "launch": {
+              "type": "function"
+            },
+            "run": {
+              "type": "function"
+            },
+            "wait": {
               "type": "function"
             }
           },
@@ -835,61 +835,43 @@
         "fs": {
           "type": "module",
           "children": {
-            "rename": {
-              "type": "function"
-            },
-            "truncate": {
-              "type": "function"
-            },
             "chmod": {
-              "type": "function"
-            },
-            "stat": {
-              "type": "function"
-            },
-            "utimes": {
-              "type": "function"
-            },
-            "futimes": {
-              "type": "function"
-            },
-            "lstat": {
-              "type": "function"
-            },
-            "fstat": {
-              "type": "function"
-            },
-            "link": {
-              "type": "function"
-            },
-            "symlink": {
-              "type": "function"
-            },
-            "readlink": {
-              "type": "function"
-            },
-            "realpath": {
-              "type": "function"
-            },
-            "unlink": {
-              "type": "function"
-            },
-            "rmdir": {
-              "type": "function"
-            },
-            "mkdir": {
-              "type": "function"
-            },
-            "readdir": {
               "type": "function"
             },
             "close": {
               "type": "function"
             },
-            "open": {
+            "createReadStream": {
               "type": "function"
             },
-            "write": {
+            "createWriteStream": {
+              "type": "function"
+            },
+            "exists": {
+              "type": "function"
+            },
+            "fstat": {
+              "type": "function"
+            },
+            "futimes": {
+              "type": "function"
+            },
+            "isDirectory": {
+              "type": "function"
+            },
+            "isFile": {
+              "type": "function"
+            },
+            "link": {
+              "type": "function"
+            },
+            "lstat": {
+              "type": "function"
+            },
+            "mkdir": {
+              "type": "function"
+            },
+            "open": {
               "type": "function"
             },
             "read": {
@@ -898,31 +880,49 @@
             "readFile": {
               "type": "function"
             },
-            "writeFile": {
+            "readdir": {
+              "type": "function"
+            },
+            "readlink": {
+              "type": "function"
+            },
+            "realpath": {
+              "type": "function"
+            },
+            "rename": {
+              "type": "function"
+            },
+            "rmdir": {
+              "type": "function"
+            },
+            "stat": {
+              "type": "function"
+            },
+            "symlink": {
+              "type": "function"
+            },
+            "truncate": {
+              "type": "function"
+            },
+            "unlink": {
+              "type": "function"
+            },
+            "utimes": {
               "type": "function"
             },
             "waitforChange": {
               "type": "function"
             },
-            "exists": {
-              "type": "function"
-            },
-            "isFile": {
-              "type": "function"
-            },
-            "isDirectory": {
+            "withReadStream": {
               "type": "function"
             },
             "withWriteStream": {
               "type": "function"
             },
-            "withReadStream": {
+            "write": {
               "type": "function"
             },
-            "createReadStream": {
-              "type": "function"
-            },
-            "createWriteStream": {
+            "writeFile": {
               "type": "function"
             }
           },
@@ -931,32 +931,9 @@
         "http": {
           "type": "module",
           "children": {
-            "ServerRequest": {
-              "type": "class",
-              "children": {
-                "request": {
-                  "type": "variable"
-                },
-                "response": {
-                  "type": "variable"
-                },
-                "url": {
-                  "type": "variable"
-                },
-                "body": {
-                  "type": "variable"
-                }
-              }
-            },
-            "withServer": {
-              "type": "function"
-            },
             "Server": {
               "type": "class",
               "children": {
-                "nodeServer": {
-                  "type": "variable"
-                },
                 "address": {
                   "type": "variable"
                 },
@@ -965,8 +942,31 @@
                 },
                 "eachRequest": {
                   "type": "function"
+                },
+                "nodeServer": {
+                  "type": "variable"
                 }
               }
+            },
+            "ServerRequest": {
+              "type": "class",
+              "children": {
+                "body": {
+                  "type": "variable"
+                },
+                "request": {
+                  "type": "variable"
+                },
+                "response": {
+                  "type": "variable"
+                },
+                "url": {
+                  "type": "variable"
+                }
+              }
+            },
+            "withServer": {
+              "type": "function"
             }
           },
           "summary": "HTTP server functionality"
@@ -1001,20 +1001,19 @@
         "stream": {
           "type": "module",
           "children": {
-            "read": {
-              "type": "function"
-            },
-            "readAll": {
-              "type": "function"
-            },
-            "write": {
-              "type": "function"
-            },
-            "end": {
-              "type": "function"
-            },
-            "pump": {
-              "type": "function"
+            "DelimitedReader": {
+              "type": "class",
+              "children": {
+                "DelimitedReader": {
+                  "type": "ctor"
+                },
+                "read": {
+                  "type": "function"
+                },
+                "readUntil": {
+                  "type": "function"
+                }
+              }
             },
             "ReadableStringStream": {
               "type": "class",
@@ -1033,29 +1032,30 @@
                 "data": {
                   "type": "variable"
                 },
-                "write": {
-                  "type": "function"
-                },
                 "end": {
                   "type": "function"
+                },
+                "write": {
+                  "type": "function"
                 }
               }
             },
-            "DelimitedReader": {
-              "type": "class",
-              "children": {
-                "DelimitedReader": {
-                  "type": "ctor"
-                },
-                "readUntil": {
-                  "type": "function"
-                },
-                "read": {
-                  "type": "function"
-                }
-              }
+            "end": {
+              "type": "function"
             },
             "lines": {
+              "type": "function"
+            },
+            "pump": {
+              "type": "function"
+            },
+            "read": {
+              "type": "function"
+            },
+            "readAll": {
+              "type": "function"
+            },
+            "write": {
               "type": "function"
             }
           },
@@ -1070,24 +1070,24 @@
                 "close": {
                   "type": "function"
                 },
-                "readStream": {
-                  "type": "function"
-                },
-                "writeStream": {
-                  "type": "function"
-                },
                 "file": {
                   "type": "variable"
                 },
                 "path": {
                   "type": "variable"
+                },
+                "readStream": {
+                  "type": "function"
+                },
+                "writeStream": {
+                  "type": "function"
                 }
               }
             },
-            "TemporaryFile": {
+            "TemporaryDir": {
               "type": "function"
             },
-            "TemporaryDir": {
+            "TemporaryFile": {
               "type": "function"
             }
           },
@@ -1104,6 +1104,75 @@
     "numeric": {
       "type": "module",
       "children": {
+        "Dopri": {
+          "type": "class",
+          "children": {
+            "at": {
+              "type": "function"
+            },
+            "x": {
+              "type": "variable"
+            },
+            "y": {
+              "type": "variable"
+            }
+          }
+        },
+        "Spline": {
+          "type": "class",
+          "children": {
+            "at": {
+              "type": "function"
+            },
+            "diff": {
+              "type": "function"
+            },
+            "roots": {
+              "type": "function"
+            }
+          }
+        },
+        "T": {
+          "type": "class",
+          "children": {
+            "NUMERICFUN": {
+              "type": "function"
+            },
+            "conj": {
+              "type": "function"
+            },
+            "fft": {
+              "type": "function"
+            },
+            "get": {
+              "type": "function"
+            },
+            "getRow": {
+              "type": "function"
+            },
+            "getRows": {
+              "type": "function"
+            },
+            "ifft": {
+              "type": "function"
+            },
+            "reciprocal": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "setRow": {
+              "type": "function"
+            },
+            "setRows": {
+              "type": "function"
+            },
+            "transjugate": {
+              "type": "function"
+            }
+          }
+        },
         "abs": {
           "type": "function"
         },
@@ -1193,20 +1262,6 @@
         },
         "dopri": {
           "type": "function"
-        },
-        "Dopri": {
-          "type": "class",
-          "children": {
-            "x": {
-              "type": "variable"
-            },
-            "y": {
-              "type": "variable"
-            },
-            "at": {
-              "type": "function"
-            }
-          }
         },
         "dot": {
           "type": "function"
@@ -1373,10 +1428,10 @@
         "sdot": {
           "type": "function"
         },
-        "seedrandom.seedrandom": {
+        "seedrandom.random": {
           "type": "function"
         },
-        "seedrandom.random": {
+        "seedrandom.seedrandom": {
           "type": "function"
         },
         "setBlock": {
@@ -1396,20 +1451,6 @@
         },
         "spline": {
           "type": "function"
-        },
-        "Spline": {
-          "type": "class",
-          "children": {
-            "at": {
-              "type": "function"
-            },
-            "diff": {
-              "type": "function"
-            },
-            "roots": {
-              "type": "function"
-            }
-          }
         },
         "sqrt": {
           "type": "function"
@@ -1434,47 +1475,6 @@
         },
         "t": {
           "type": "function"
-        },
-        "T": {
-          "type": "class",
-          "children": {
-            "NUMERICFUN": {
-              "type": "function"
-            },
-            "conj": {
-              "type": "function"
-            },
-            "fft": {
-              "type": "function"
-            },
-            "get": {
-              "type": "function"
-            },
-            "getRow": {
-              "type": "function"
-            },
-            "getRows": {
-              "type": "function"
-            },
-            "ifft": {
-              "type": "function"
-            },
-            "reciprocal": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            },
-            "setRow": {
-              "type": "function"
-            },
-            "setRows": {
-              "type": "function"
-            },
-            "transjugate": {
-              "type": "function"
-            }
-          }
         },
         "tan": {
           "type": "function"
@@ -1503,6 +1503,18 @@
     "object": {
       "type": "module",
       "children": {
+        "Constructor": {
+          "type": "function"
+        },
+        "clone": {
+          "type": "function"
+        },
+        "construct": {
+          "type": "function"
+        },
+        "extend": {
+          "type": "function"
+        },
         "get": {
           "type": "function"
         },
@@ -1510,9 +1522,6 @@
           "type": "function"
         },
         "getPath": {
-          "type": "function"
-        },
-        "setPath": {
           "type": "function"
         },
         "has": {
@@ -1524,43 +1533,34 @@
         "keys": {
           "type": "function"
         },
-        "ownKeys": {
-          "type": "function"
-        },
-        "values": {
-          "type": "function"
-        },
-        "ownValues": {
-          "type": "function"
-        },
-        "propertyPairs": {
-          "type": "function"
-        },
-        "ownPropertyPairs": {
-          "type": "function"
-        },
-        "pairsToObject": {
-          "type": "function"
-        },
-        "extend": {
-          "type": "function"
-        },
         "merge": {
-          "type": "function"
-        },
-        "clone": {
           "type": "function"
         },
         "override": {
           "type": "function"
         },
-        "construct": {
+        "ownKeys": {
           "type": "function"
         },
-        "Constructor": {
+        "ownPropertyPairs": {
+          "type": "function"
+        },
+        "ownValues": {
+          "type": "function"
+        },
+        "pairsToObject": {
+          "type": "function"
+        },
+        "propertyPairs": {
+          "type": "function"
+        },
+        "setPath": {
           "type": "function"
         },
         "tap": {
+          "type": "function"
+        },
+        "values": {
           "type": "function"
         }
       },
@@ -1569,6 +1569,10 @@
     "observable": {
       "type": "module",
       "children": {
+        "ConflictError": {
+          "type": "class",
+          "children": {}
+        },
         "Observable": {
           "type": "class",
           "children": {}
@@ -1582,31 +1586,27 @@
             "get": {
               "type": "function"
             },
-            "set": {
+            "modify": {
               "type": "function"
             },
-            "modify": {
+            "set": {
               "type": "function"
             }
           }
         },
-        "isObservableVar": {
-          "type": "function"
-        },
-        "ConflictError": {
-          "type": "class",
-          "children": {}
-        },
-        "isConflictError": {
-          "type": "function"
-        },
-        "observe": {
+        "changes": {
           "type": "function"
         },
         "current": {
           "type": "function"
         },
-        "changes": {
+        "isConflictError": {
+          "type": "function"
+        },
+        "isObservableVar": {
+          "type": "function"
+        },
+        "observe": {
           "type": "function"
         }
       },
@@ -1641,10 +1641,10 @@
     "regexp": {
       "type": "module",
       "children": {
-        "isRegExp": {
+        "escape": {
           "type": "function"
         },
-        "escape": {
+        "isRegExp": {
           "type": "function"
         },
         "matches": {
@@ -1660,6 +1660,10 @@
           "type": "class",
           "children": {}
         },
+        "SequenceExhausted": {
+          "type": "class",
+          "children": {}
+        },
         "Stream": {
           "type": "class",
           "children": {
@@ -1668,119 +1672,112 @@
             }
           }
         },
-        "toStream": {
+        "all": {
           "type": "function"
         },
-        "isStream": {
+        "all.par": {
           "type": "function"
         },
-        "isSequence": {
+        "any": {
           "type": "function"
         },
-        "generate": {
-          "type": "function"
-        },
-        "each": {
-          "type": "function"
-        },
-        "consume": {
-          "type": "function"
-        },
-        "toArray": {
-          "type": "function"
-        },
-        "SequenceExhausted": {
-          "type": "class",
-          "children": {}
-        },
-        "first": {
+        "any.par": {
           "type": "function"
         },
         "at": {
           "type": "function"
         },
-        "last": {
-          "type": "function"
-        },
-        "slice": {
-          "type": "function"
-        },
-        "join": {
-          "type": "function"
-        },
-        "sort": {
-          "type": "function"
-        },
-        "unique": {
-          "type": "function"
-        },
-        "dedupe": {
-          "type": "function"
-        },
-        "uniqueBy": {
-          "type": "function"
-        },
-        "sortBy": {
-          "type": "function"
-        },
-        "reverse": {
-          "type": "function"
-        },
-        "count": {
-          "type": "function"
-        },
-        "take": {
-          "type": "function"
-        },
-        "takeWhile": {
-          "type": "function"
-        },
-        "skip": {
-          "type": "function"
-        },
-        "skipWhile": {
-          "type": "function"
-        },
-        "filter": {
-          "type": "function"
-        },
-        "partition": {
-          "type": "function"
-        },
-        "map": {
-          "type": "function"
-        },
-        "transform": {
-          "type": "function"
-        },
-        "monitor": {
-          "type": "function"
-        },
-        "concat": {
-          "type": "function"
-        },
-        "pack": {
-          "type": "function"
-        },
-        "unpack": {
+        "buffer": {
           "type": "function"
         },
         "combine": {
           "type": "function"
         },
+        "concat": {
+          "type": "function"
+        },
+        "consume": {
+          "type": "function"
+        },
+        "count": {
+          "type": "function"
+        },
+        "dedupe": {
+          "type": "function"
+        },
+        "each": {
+          "type": "function"
+        },
+        "each.par": {
+          "type": "function"
+        },
+        "each.track": {
+          "type": "function"
+        },
+        "fib": {
+          "type": "function"
+        },
+        "filter": {
+          "type": "function"
+        },
+        "filter.par": {
+          "type": "function"
+        },
+        "find": {
+          "type": "function"
+        },
+        "find.par": {
+          "type": "function"
+        },
+        "first": {
+          "type": "function"
+        },
+        "generate": {
+          "type": "function"
+        },
         "groupBy": {
           "type": "function"
         },
-        "zip": {
-          "type": "function"
-        },
-        "zipLongest": {
+        "hasElem": {
           "type": "function"
         },
         "indexed": {
           "type": "function"
         },
+        "integers": {
+          "type": "function"
+        },
         "intersperse": {
+          "type": "function"
+        },
+        "isSequence": {
+          "type": "function"
+        },
+        "isStream": {
+          "type": "function"
+        },
+        "join": {
+          "type": "function"
+        },
+        "last": {
+          "type": "function"
+        },
+        "map": {
+          "type": "function"
+        },
+        "map.par": {
+          "type": "function"
+        },
+        "mirror": {
+          "type": "function"
+        },
+        "monitor": {
+          "type": "function"
+        },
+        "pack": {
+          "type": "function"
+        },
+        "partition": {
           "type": "function"
         },
         "reduce": {
@@ -1789,34 +1786,40 @@
         "reduce1": {
           "type": "function"
         },
-        "find": {
+        "reverse": {
           "type": "function"
         },
-        "hasElem": {
+        "skip": {
           "type": "function"
         },
-        "all": {
+        "skipWhile": {
           "type": "function"
         },
-        "any": {
+        "slice": {
           "type": "function"
         },
-        "integers": {
+        "sort": {
           "type": "function"
         },
-        "fib": {
-          "type": "function"
-        },
-        "buffer": {
+        "sortBy": {
           "type": "function"
         },
         "tailbuffer": {
           "type": "function"
         },
-        "each.par": {
+        "take": {
           "type": "function"
         },
-        "map.par": {
+        "takeWhile": {
+          "type": "function"
+        },
+        "toArray": {
+          "type": "function"
+        },
+        "toStream": {
+          "type": "function"
+        },
+        "transform": {
           "type": "function"
         },
         "transform.par": {
@@ -1825,22 +1828,19 @@
         "transform.par.unordered": {
           "type": "function"
         },
-        "find.par": {
+        "unique": {
           "type": "function"
         },
-        "filter.par": {
+        "uniqueBy": {
           "type": "function"
         },
-        "all.par": {
+        "unpack": {
           "type": "function"
         },
-        "any.par": {
+        "zip": {
           "type": "function"
         },
-        "each.track": {
-          "type": "function"
-        },
-        "mirror": {
+        "zipLongest": {
           "type": "function"
         }
       },
@@ -1855,16 +1855,10 @@
             "Registry": {
               "type": "ctor"
             },
+            "clearCached": {
+              "type": "function"
+            },
             "factory": {
-              "type": "function"
-            },
-            "value": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            },
-            "lazy": {
               "type": "function"
             },
             "get": {
@@ -1873,7 +1867,13 @@
             "has": {
               "type": "function"
             },
-            "clearCached": {
+            "lazy": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "value": {
               "type": "function"
             }
           }
@@ -1884,10 +1884,10 @@
     "shell-quote": {
       "type": "module",
       "children": {
-        "quote": {
+        "parse": {
           "type": "function"
         },
-        "parse": {
+        "quote": {
           "type": "function"
         }
       },
@@ -1896,12 +1896,6 @@
     "sjcl": {
       "type": "module",
       "children": {
-        "encrypt": {
-          "type": "function"
-        },
-        "decrypt": {
-          "type": "function"
-        },
         "bitArray": {
           "type": "class",
           "children": {
@@ -1954,20 +1948,26 @@
         "codec.utf8String.toBits": {
           "type": "function"
         },
+        "decrypt": {
+          "type": "function"
+        },
+        "encrypt": {
+          "type": "function"
+        },
         "hash.sha256": {
           "type": "class",
           "children": {
-            "hash.sha256": {
-              "type": "ctor"
-            },
-            "hash": {
-              "type": "function"
-            },
             "blockSize": {
               "type": "variable"
             },
             "finalize": {
               "type": "function"
+            },
+            "hash": {
+              "type": "function"
+            },
+            "hash.sha256": {
+              "type": "ctor"
             },
             "reset": {
               "type": "function"
@@ -1977,22 +1977,19 @@
             }
           }
         },
+        "json.decode": {
+          "type": "function"
+        },
+        "json.decrypt": {
+          "type": "function"
+        },
         "json.defaults": {
           "type": "variable"
         },
         "json.encode": {
           "type": "function"
         },
-        "json.decode": {
-          "type": "function"
-        },
         "json.encrypt": {
-          "type": "function"
-        },
-        "json.decrypt": {
-          "type": "function"
-        },
-        "misc.pbkdf2": {
           "type": "function"
         },
         "misc.cachedPbkdf2": {
@@ -2001,51 +1998,54 @@
         "misc.hmac": {
           "type": "class",
           "children": {
-            "misc.hmac": {
-              "type": "ctor"
+            "encrypt": {
+              "type": "function"
             },
             "mac": {
               "type": "function"
             },
-            "encrypt": {
-              "type": "function"
+            "misc.hmac": {
+              "type": "ctor"
             }
           }
         },
-        "mode.ccm.encrypt": {
+        "misc.pbkdf2": {
           "type": "function"
         },
         "mode.ccm.decrypt": {
           "type": "function"
         },
-        "mode.ocb2.encrypt": {
+        "mode.ccm.encrypt": {
           "type": "function"
         },
         "mode.ocb2.decrypt": {
           "type": "function"
         },
-        "random.randomWords": {
+        "mode.ocb2.encrypt": {
           "type": "function"
         },
         "random.addEntropy": {
           "type": "function"
         },
-        "random.isReady": {
+        "random.addEventListener": {
           "type": "function"
         },
         "random.getProgress": {
+          "type": "function"
+        },
+        "random.isReady": {
+          "type": "function"
+        },
+        "random.randomWords": {
+          "type": "function"
+        },
+        "random.removeEventListener": {
           "type": "function"
         },
         "random.startCollectors": {
           "type": "function"
         },
         "random.stopCollectors": {
-          "type": "function"
-        },
-        "random.addEventListener": {
-          "type": "function"
-        },
-        "random.removeEventListener": {
           "type": "function"
         }
       },
@@ -2059,73 +2059,73 @@
     "string": {
       "type": "module",
       "children": {
-        "isString": {
+        "arrayBufferToOctets": {
           "type": "function"
         },
-        "sanitize": {
+        "base64ToArrayBuffer": {
           "type": "function"
         },
-        "supplant": {
+        "base64ToOctets": {
           "type": "function"
         },
-        "startsWith": {
-          "type": "function"
-        },
-        "endsWith": {
+        "capitalize": {
           "type": "function"
         },
         "contains": {
           "type": "function"
         },
-        "strip": {
+        "endsWith": {
+          "type": "function"
+        },
+        "isString": {
           "type": "function"
         },
         "lstrip": {
           "type": "function"
         },
-        "rstrip": {
+        "octetsToArrayBuffer": {
           "type": "function"
         },
-        "split": {
-          "type": "function"
-        },
-        "rsplit": {
-          "type": "function"
-        },
-        "padRight": {
-          "type": "function"
-        },
-        "padLeft": {
+        "octetsToBase64": {
           "type": "function"
         },
         "padBoth": {
           "type": "function"
         },
-        "unindent": {
+        "padLeft": {
           "type": "function"
         },
-        "capitalize": {
+        "padRight": {
+          "type": "function"
+        },
+        "rsplit": {
+          "type": "function"
+        },
+        "rstrip": {
+          "type": "function"
+        },
+        "sanitize": {
+          "type": "function"
+        },
+        "split": {
+          "type": "function"
+        },
+        "startsWith": {
+          "type": "function"
+        },
+        "strip": {
+          "type": "function"
+        },
+        "supplant": {
+          "type": "function"
+        },
+        "unindent": {
           "type": "function"
         },
         "utf16ToUtf8": {
           "type": "function"
         },
         "utf8ToUtf16": {
-          "type": "function"
-        },
-        "octetsToBase64": {
-          "type": "function"
-        },
-        "base64ToOctets": {
-          "type": "function"
-        },
-        "base64ToArrayBuffer": {
-          "type": "function"
-        },
-        "octetsToArrayBuffer": {
-          "type": "function"
-        },
-        "arrayBufferToOctets": {
           "type": "function"
         }
       },
@@ -2134,23 +2134,23 @@
     "sys": {
       "type": "module",
       "children": {
-        "hostenv": {
-          "type": "variable"
-        },
-        "getGlobal": {
+        "argv": {
           "type": "function"
         },
         "eval": {
           "type": "function"
         },
-        "version": {
-          "type": "variable"
-        },
         "executable": {
           "type": "variable"
         },
-        "argv": {
+        "getGlobal": {
           "type": "function"
+        },
+        "hostenv": {
+          "type": "variable"
+        },
+        "version": {
+          "type": "variable"
         }
       },
       "summary": "SJS runtime utilities"
@@ -2166,16 +2166,48 @@
         "runner": {
           "type": "module",
           "children": {
+            "Results": {
+              "type": "class",
+              "children": {
+                "Results": {
+                  "type": "ctor"
+                },
+                "count": {
+                  "type": "function"
+                },
+                "duration": {
+                  "type": "variable"
+                },
+                "durationSeconds": {
+                  "type": "function"
+                },
+                "failed": {
+                  "type": "variable"
+                },
+                "ok": {
+                  "type": "function"
+                },
+                "passed": {
+                  "type": "variable"
+                },
+                "skipped": {
+                  "type": "variable"
+                },
+                "total": {
+                  "type": "variable"
+                }
+              }
+            },
             "Runner": {
               "type": "class",
               "children": {
                 "Runner": {
                   "type": "ctor"
                 },
-                "loadAll": {
+                "context": {
                   "type": "function"
                 },
-                "context": {
+                "loadAll": {
                   "type": "function"
                 },
                 "run": {
@@ -2189,58 +2221,26 @@
                 "TestResult": {
                   "type": "ctor"
                 },
-                "test": {
+                "description": {
                   "type": "variable"
                 },
-                "description": {
+                "failed": {
                   "type": "variable"
                 },
                 "ok": {
                   "type": "variable"
                 },
                 "passed": {
-                  "type": "variable"
-                },
-                "failed": {
-                  "type": "variable"
-                },
-                "skipped": {
                   "type": "variable"
                 },
                 "reason": {
                   "type": "variable"
-                }
-              }
-            },
-            "Results": {
-              "type": "class",
-              "children": {
-                "Results": {
-                  "type": "ctor"
-                },
-                "passed": {
-                  "type": "variable"
-                },
-                "failed": {
-                  "type": "variable"
                 },
                 "skipped": {
                   "type": "variable"
                 },
-                "total": {
+                "test": {
                   "type": "variable"
-                },
-                "duration": {
-                  "type": "variable"
-                },
-                "durationSeconds": {
-                  "type": "function"
-                },
-                "ok": {
-                  "type": "function"
-                },
-                "count": {
-                  "type": "function"
                 }
               }
             },
@@ -2261,22 +2261,77 @@
         "suite": {
           "type": "module",
           "children": {
+            "Context": {
+              "type": "class",
+              "children": {
+                "browserOnly": {
+                  "type": "function"
+                },
+                "ignoreLeaks": {
+                  "type": "function"
+                },
+                "posixOnly": {
+                  "type": "function"
+                },
+                "serverOnly": {
+                  "type": "function"
+                },
+                "skip": {
+                  "type": "function"
+                },
+                "skipIf": {
+                  "type": "function"
+                },
+                "timeout": {
+                  "type": "function"
+                },
+                "windowsOnly": {
+                  "type": "function"
+                }
+              }
+            },
+            "Test": {
+              "type": "class",
+              "children": {
+                "browserOnly": {
+                  "type": "function"
+                },
+                "ignoreLeaks": {
+                  "type": "function"
+                },
+                "posixOnly": {
+                  "type": "function"
+                },
+                "serverOnly": {
+                  "type": "function"
+                },
+                "skip": {
+                  "type": "function"
+                },
+                "skipIf": {
+                  "type": "function"
+                },
+                "timeout": {
+                  "type": "function"
+                },
+                "windowsOnly": {
+                  "type": "function"
+                }
+              }
+            },
+            "assert": {
+              "type": "variable"
+            },
+            "context": {
+              "type": "function"
+            },
             "isBrowser": {
               "type": "variable"
             },
             "isWindows": {
               "type": "variable"
             },
-            "context": {
-              "type": "function"
-            },
             "test": {
-              "type": "function"
-            },
-            "test.beforeAll": {
-              "type": "function"
-            },
-            "test.beforeEach": {
               "type": "function"
             },
             "test.afterAll": {
@@ -2285,66 +2340,11 @@
             "test.afterEach": {
               "type": "function"
             },
-            "Context": {
-              "type": "class",
-              "children": {
-                "skip": {
-                  "type": "function"
-                },
-                "skipIf": {
-                  "type": "function"
-                },
-                "browserOnly": {
-                  "type": "function"
-                },
-                "serverOnly": {
-                  "type": "function"
-                },
-                "windowsOnly": {
-                  "type": "function"
-                },
-                "posixOnly": {
-                  "type": "function"
-                },
-                "ignoreLeaks": {
-                  "type": "function"
-                },
-                "timeout": {
-                  "type": "function"
-                }
-              }
+            "test.beforeAll": {
+              "type": "function"
             },
-            "Test": {
-              "type": "class",
-              "children": {
-                "skip": {
-                  "type": "function"
-                },
-                "skipIf": {
-                  "type": "function"
-                },
-                "browserOnly": {
-                  "type": "function"
-                },
-                "serverOnly": {
-                  "type": "function"
-                },
-                "windowsOnly": {
-                  "type": "function"
-                },
-                "posixOnly": {
-                  "type": "function"
-                },
-                "ignoreLeaks": {
-                  "type": "function"
-                },
-                "timeout": {
-                  "type": "function"
-                }
-              }
-            },
-            "assert": {
-              "type": "variable"
+            "test.beforeEach": {
+              "type": "function"
             }
           },
           "summary": "Functions for defining test suites"
@@ -2355,13 +2355,22 @@
     "url": {
       "type": "module",
       "children": {
-        "buildQuery": {
-          "type": "function"
-        },
         "build": {
           "type": "function"
         },
-        "parse": {
+        "buildQuery": {
+          "type": "function"
+        },
+        "coerceToURL": {
+          "type": "function"
+        },
+        "decode": {
+          "type": "function"
+        },
+        "encode": {
+          "type": "function"
+        },
+        "fileURL": {
           "type": "function"
         },
         "isSameOrigin": {
@@ -2370,19 +2379,10 @@
         "normalize": {
           "type": "function"
         },
-        "encode": {
-          "type": "function"
-        },
-        "decode": {
+        "parse": {
           "type": "function"
         },
         "toPath": {
-          "type": "function"
-        },
-        "fileURL": {
-          "type": "function"
-        },
-        "coerceToURL": {
           "type": "function"
         }
       },
@@ -2394,45 +2394,45 @@
         "console": {
           "type": "module",
           "children": {
-            "log": {
-              "type": "function"
-            },
             "Console": {
               "type": "class",
               "children": {
-                "shut": {
-                  "type": "function"
-                },
-                "expand": {
-                  "type": "function"
-                },
-                "exec": {
-                  "type": "function"
-                },
-                "log": {
-                  "type": "function"
-                },
-                "warn": {
-                  "type": "function"
-                },
-                "error": {
+                "__finally__": {
                   "type": "function"
                 },
                 "clear": {
                   "type": "function"
                 },
+                "error": {
+                  "type": "function"
+                },
+                "exec": {
+                  "type": "function"
+                },
+                "expand": {
+                  "type": "function"
+                },
                 "focus": {
+                  "type": "function"
+                },
+                "log": {
+                  "type": "function"
+                },
+                "shut": {
                   "type": "function"
                 },
                 "shutdown": {
                   "type": "function"
                 },
-                "__finally__": {
+                "warn": {
                   "type": "function"
                 }
               }
             },
             "console": {
+              "type": "function"
+            },
+            "log": {
               "type": "function"
             }
           },
@@ -2446,13 +2446,28 @@
         "dom": {
           "type": "module",
           "children": {
+            "addCSS": {
+              "type": "function"
+            },
             "addListener": {
               "type": "function"
             },
-            "removeListener": {
+            "css": {
               "type": "function"
             },
             "eventTarget": {
+              "type": "function"
+            },
+            "findNode": {
+              "type": "function"
+            },
+            "getCookie": {
+              "type": "function"
+            },
+            "getOffset": {
+              "type": "function"
+            },
+            "isDOMNode": {
               "type": "function"
             },
             "pageX": {
@@ -2464,40 +2479,25 @@
             "preventDefault": {
               "type": "function"
             },
-            "stopPropagation": {
+            "removeCookie": {
               "type": "function"
             },
-            "stopEvent": {
+            "removeListener": {
               "type": "function"
             },
             "script": {
               "type": "function"
             },
-            "addCSS": {
-              "type": "function"
-            },
-            "css": {
-              "type": "function"
-            },
-            "traverseDOM": {
-              "type": "function"
-            },
-            "findNode": {
-              "type": "function"
-            },
-            "getOffset": {
-              "type": "function"
-            },
             "setCookie": {
               "type": "function"
             },
-            "getCookie": {
+            "stopEvent": {
               "type": "function"
             },
-            "removeCookie": {
+            "stopPropagation": {
               "type": "function"
             },
-            "isDOMNode": {
+            "traverseDOM": {
               "type": "function"
             }
           },
@@ -2512,61 +2512,7 @@
                 "Driver": {
                   "type": "ctor"
                 },
-                "interceptLogging": {
-                  "type": "function"
-                },
-                "removeLogIntercept": {
-                  "type": "function"
-                },
-                "body": {
-                  "type": "function"
-                },
-                "document": {
-                  "type": "function"
-                },
-                "window": {
-                  "type": "function"
-                },
-                "close": {
-                  "type": "function"
-                },
                 "__finally__": {
-                  "type": "function"
-                },
-                "isLoaded": {
-                  "type": "function"
-                },
-                "waitUntilLoaded": {
-                  "type": "function"
-                },
-                "navigate": {
-                  "type": "function"
-                },
-                "reload": {
-                  "type": "function"
-                },
-                "click": {
-                  "type": "function"
-                },
-                "enter": {
-                  "type": "function"
-                },
-                "trigger": {
-                  "type": "function"
-                },
-                "sendKey": {
-                  "type": "function"
-                },
-                "set": {
-                  "type": "function"
-                },
-                "computedStyle": {
-                  "type": "function"
-                },
-                "isVisible": {
-                  "type": "function"
-                },
-                "assertVisibility": {
                   "type": "function"
                 },
                 "assertHidden": {
@@ -2575,19 +2521,73 @@
                 "assertShown": {
                   "type": "function"
                 },
-                "hasClass": {
+                "assertVisibility": {
                   "type": "function"
                 },
-                "waitforSuccess": {
+                "body": {
                   "type": "function"
                 },
-                "waitforCondition": {
+                "click": {
+                  "type": "function"
+                },
+                "close": {
+                  "type": "function"
+                },
+                "computedStyle": {
+                  "type": "function"
+                },
+                "document": {
                   "type": "function"
                 },
                 "elem": {
                   "type": "function"
                 },
                 "elems": {
+                  "type": "function"
+                },
+                "enter": {
+                  "type": "function"
+                },
+                "hasClass": {
+                  "type": "function"
+                },
+                "interceptLogging": {
+                  "type": "function"
+                },
+                "isLoaded": {
+                  "type": "function"
+                },
+                "isVisible": {
+                  "type": "function"
+                },
+                "navigate": {
+                  "type": "function"
+                },
+                "reload": {
+                  "type": "function"
+                },
+                "removeLogIntercept": {
+                  "type": "function"
+                },
+                "sendKey": {
+                  "type": "function"
+                },
+                "set": {
+                  "type": "function"
+                },
+                "trigger": {
+                  "type": "function"
+                },
+                "waitUntilLoaded": {
+                  "type": "function"
+                },
+                "waitforCondition": {
+                  "type": "function"
+                },
+                "waitforSuccess": {
+                  "type": "function"
+                },
+                "window": {
                   "type": "function"
                 }
               }

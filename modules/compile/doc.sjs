@@ -42,11 +42,10 @@ var Path = require('nodejs:path');
 var { ownValues, ownPropertyPairs, pairsToObject, hasOwn, ownKeys, merge } = require('../object');
 var str = require('../string');
 var docutil = require('../docutil');
-var { each, map, transform, hasElem } = require('../sequence');
+var { each, map, transform, hasElem, sortBy, sort } = require('../sequence');
 var logging = require('../logging');
 var array = require('../array');
 var assert = require('../assert');
-var {pairsToObject} = require('../object');
 
 var INDEX_BASENAME = 'sjs-lib-index';
 var INDEX_FILENAME = "#{INDEX_BASENAME}.txt";
@@ -76,7 +75,7 @@ var summarizeSymbols = function(children) {
           obj.children = summarizeSymbols(sym.children);
         }
         return [name, obj];
-    }) .. pairsToObject();
+    }) .. sortBy([k,v] -> k) .. pairsToObject();
 };
 
 var summarizeModule = function(module) {
@@ -89,7 +88,7 @@ var summarizeModule = function(module) {
 
 exports.summarizeLib = function(dir) {
   logging.debug("Scanning: #{dir}");
-  var entries = fs.readdir(dir);
+  var entries = fs.readdir(dir) .. sort;
   var children = {};
 
   if (!( entries .. hasElem(INDEX_FILENAME))) {
