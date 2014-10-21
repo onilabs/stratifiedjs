@@ -458,65 +458,95 @@ __js {
   };
 
 
-  // Every node must be red or black
-  function verify1(node) {
-    if (node !== null) {
-      assert.ok(node.color === RED || node.color === BLACK);
-      verify1(node.left);
-      verify1(node.right);
-    }
-  }
-
-  // The root node must be black
-  function verify2(node) {
-    if (node !== null) {
-      assert.ok(node.color === BLACK);
-    }
-  }
-
-  // Every red node must have 2 black children, and its parent must be black
-  function verify4(node) {
-    if (node !== null) {
-      if (node.color === RED) {
-        if (node.left !== null) {
-          assert.ok(node.left.color === BLACK);
-        }
-        if (node.right !== null) {
-          assert.ok(node.right.color === BLACK);
-        }
-        assert.ok(node.parent.color === BLACK);
-      }
-      verify4(node.left);
-      verify4(node.right);
-    }
-  }
-
-  function verify5(node) {
+  function verify(tree) {
     var top_counter = -1;
 
-    ;(function anon(node, counter) {
-      if (node === null) {
-        if (top_counter === -1) {
-          top_counter = counter;
-        } else {
-          assert.ok(counter === top_counter);
-        }
+    function check_counter(counter) {
+      if (top_counter === -1) {
+        top_counter = counter;
       } else {
-        if (node.color === BLACK) {
-          ++counter;
-        }
-        anon(node.left, counter);
-        anon(node.right, counter);
+        // #5 Every path must have the same number of black nodes
+        assert.ok(counter === top_counter);
       }
-    })(node, 0);
-  }
+    }
 
-  function verify(tree) {
-    verify1(tree.root);
-    verify2(tree.root);
-    // Don't need to verify property 3, because leaves are represented as null
-    verify4(tree.root);
-    verify5(tree.root);
+    // #4 every red node must have 2 black children
+    function check_red_null(node) {
+      assert.ok(node.color === RED);
+      assert.ok(node.left === null);
+      assert.ok(node.right === null);
+    }
+
+    // #4 every red node must have 2 black children
+    function check_red_children(node) {
+      assert.ok(node.color === RED);
+      assert.ok(node.left !== null);
+      assert.ok(node.right !== null);
+      assert.ok(node.left.color === BLACK);
+      assert.ok(node.right.color === BLACK);
+    }
+
+    function loop(node, counter) {
+      // #2 The root node must be black
+      assert.ok(node.color === BLACK);
+      ++counter;
+
+      var left  = node.left;
+      var right = node.right;
+
+      // (B *N *N)
+      if (left === null && right === null) {
+        check_counter(counter);
+
+      // (B *N (R *N *N))
+      } else if (left === null) {
+        check_red_null(right);
+        check_counter(counter);
+
+      // (B (R *N *N) *N)
+      } else if (right === null) {
+        check_red_null(left);
+        check_counter(counter);
+
+      // (B *B *B)
+      } else if (left.color === BLACK && right.color === BLACK) {
+        loop(left, counter);
+        loop(right, counter);
+
+      // (B *B (R *B *B))
+      } else if (left.color === BLACK) {
+        check_red_children(right);
+        loop(left, counter);
+        loop(right.left, counter);
+        loop(right.right, counter);
+
+      // (B (R *B *B) *B)
+      } else if (right.color === BLACK) {
+        check_red_children(left);
+        loop(left.left, counter);
+        loop(left.right, counter);
+        loop(right, counter);
+
+      // (B (R *N *N) (R *N *N))
+      } else if (left.left === null) {
+        check_red_null(left);
+        check_red_null(right);
+        check_counter(counter);
+
+      // (B (R *B *B) (R *B *B))
+      } else {
+        check_red_children(left);
+        check_red_children(right);
+        loop(left.left, counter);
+        loop(left.right, counter);
+        loop(right.left, counter);
+        loop(right.right, counter);
+      }
+    }
+
+    if (node !== null) {
+      loop(tree.root, 0);
+    }
   }
 }
 
