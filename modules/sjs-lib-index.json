@@ -375,11 +375,6 @@
           },
           "summary": "Functions for manipulating finite ordered sequences"
         },
-        "rb-tree": {
-          "type": "module",
-          "children": {},
-          "summary": "Functions for creating and manipulating Red Black trees"
-        },
         "set": {
           "type": "module",
           "children": {

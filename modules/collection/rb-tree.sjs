@@ -30,6 +30,7 @@
  *
  */
 /**
+   @nodoc
    @module    collection/rb-tree
    @summary   Functions for creating and manipulating Red Black trees
    @home      sjs:collection/rb-tree
