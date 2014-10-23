@@ -150,10 +150,10 @@ __js {
   var BLACK        = 1;
   var DOUBLE_BLACK = 2;
 
-  function ColoredNode(parent, left, right, color, key, value) {
+  function ColoredNode(parent, color, key, value) {
     this.parent = parent;
-    this.left   = left;
-    this.right  = right;
+    this.left   = null;
+    this.right  = null;
     this.color  = color;
     this.key    = key;
     this.value  = value;
@@ -261,12 +261,12 @@ __js {
       } else {
         var order = sort(key, node.key);
         if (order === 0) {
-          node = node.left;
+          var left = node.left;
 
-          if (node === null) {
+          if (left === null) {
             return parent;
           } else {
-            return max(node);
+            return max(left);
           }
 
         } else if (order < 0) {
@@ -293,12 +293,12 @@ __js {
       } else {
         var order = sort(key, node.key);
         if (order === 0) {
-          node = node.right;
+          var right = node.right;
 
-          if (node === null) {
+          if (right === null) {
             return parent;
           } else {
-            return min(node);
+            return min(right);
           }
 
         } else if (order < 0) {
@@ -334,10 +334,14 @@ __js {
       }
     }
 
-    new_node.parent = parent;
+    if (new_node !== null) {
+      new_node.parent = parent;
+    }
   }
 
-  function rotate_left(node, parent) {
+  function rotate_left(tree, node, parent) {
+    replace_node(tree, parent, node);
+
     var left = node.left;
     parent.right = left;
 
@@ -349,7 +353,9 @@ __js {
     parent.parent = node;
   }
 
-  function rotate_right(node, parent) {
+  function rotate_right(tree, node, parent) {
+    replace_node(tree, parent, node);
+
     var right = node.right;
     parent.left = right;
 
@@ -386,11 +392,11 @@ __js {
         } else {
           // Left rotation
           if (parent.right === node && grandparent.left === parent) {
-            rotate_left(node, parent);
+            rotate_left(tree, node, parent);
 
-            // This is equivalent to replace_node, but a bit faster
-            grandparent.left = node;
-            node.parent = grandparent;
+            // TODO This is equivalent to replace_node, but a bit faster
+            //grandparent.left = node;
+            //node.parent = grandparent;
 
             // TODO this is hacky
             var temp = node;
@@ -399,11 +405,11 @@ __js {
 
           // Right rotation
           } else if (parent.left === node && grandparent.right === parent) {
-            rotate_right(node, parent);
+            rotate_right(tree, node, parent);
 
-            // This is equivalent to replace_node, but a bit faster
-            grandparent.right = node;
-            node.parent = grandparent;
+            // TODO This is equivalent to replace_node, but a bit faster
+            //grandparent.right = node;
+            //node.parent = grandparent;
 
             // TODO this is hacky
             var temp = node;
@@ -414,12 +420,10 @@ __js {
           parent.color = BLACK;
           grandparent.color = RED;
 
-          replace_node(tree, grandparent, parent);
-
           if (parent.left === node) {
-            rotate_right(parent, grandparent);
+            rotate_right(tree, parent, grandparent);
           } else {
-            rotate_left(parent, grandparent);
+            rotate_left(tree, parent, grandparent);
           }
 
           return;
@@ -428,14 +432,12 @@ __js {
     }
   }
 
-  // TODO remove verify
   function set_by_key(tree, key, value) {
     var node = tree.root;
     var sort = tree.sort;
 
     if (node === null) {
-      tree.root = new ColoredNode(null, null, null, BLACK, key, value);
-      verify(tree);
+      tree.root = new ColoredNode(null, BLACK, key, value);
     } else {
       while (true) {
         var order = sort(key, node.key);
@@ -445,10 +447,9 @@ __js {
 
         } else if (order < 0) {
           if (node.left === null) {
-            var new_node = new ColoredNode(node, null, null, RED, key, value);
+            var new_node = new ColoredNode(node, RED, key, value);
             node.left = new_node;
             balance_insert(tree, new_node);
-            verify(tree);
             return;
           } else {
             node = node.left;
@@ -456,10 +457,9 @@ __js {
 
         } else {
           if (node.right === null) {
-            var new_node = new ColoredNode(node, null, null, RED, key, value);
+            var new_node = new ColoredNode(node, RED, key, value);
             node.right = new_node;
             balance_insert(tree, new_node);
-            verify(tree);
             return;
           } else {
             node = node.right;
@@ -572,11 +572,24 @@ __js {
     del_by_key(tree, key, value);
   };
 
+  Mutable.prototype.get = function (key) {
+    return get_by_key(this, key).value;
+  };
+
+  Mutable.prototype.set = function (key, value) {
+    set_by_key(this, key, value);
+  };
+
+  Mutable.prototype.del = function (key) {
+    del_by_key(this, key);
+  };
+
   exports.Mutable = function (sort) {
     return new Mutable(sort);
   };
 
 
+  // TODO is this verification function correct ?
   function verify(tree) {
     var top_counter = -1;
 
@@ -670,7 +683,7 @@ __js {
 }
 
 
-var x = new Mutable(function (x, y) {
+/*var x = new Mutable(function (x, y) {
   if (x === y) {
     return 0;
   } else if (x < y) {
@@ -690,3 +703,39 @@ console.log("\n" + x);
 
 set_by_key(x, "a", 1);
 console.log("\n" + x);
+
+var i = 0;
+while (i < 10) {
+  set_by_key(x, "foo" + i, 1);
+  ++i;
+}
+console.log("\n" + x);
+
+
+var a = [];
+var i = 0;
+while (i < 1000) {
+  a.push("foo" + i);
+  ++i;
+}
+
+function rand(array, f) {
+  var a = array.slice();
+  while (a.length) {
+    var i = Math.floor(Math.random() * a.length);
+    f(a[i]);
+    a.splice(i, 1);
+  }
+}
+
+rand(a, function (s) {
+  x.set(s, 1);
+  verify(x);
+});
+
+rand(a, function (s) {
+  x.del(s);
+  verify(x);
+});
+
+console.log("\n" + x);*/
