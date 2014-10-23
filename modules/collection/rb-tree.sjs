@@ -432,6 +432,93 @@ __js {
     }
   }
 
+  function color(node) {
+    if (node === null) {
+      return BLACK;
+    } else {
+      return node.color;
+    }
+  }
+
+  function balance_remove(tree, node) {
+    while (true) {
+      var parent = node.parent;
+      if (parent === null) {
+        return;
+
+      } else {
+        var sib = sibling(node);
+
+        if (sib.color === RED) {
+          parent.color = RED;
+          sib.color = BLACK;
+
+          if (parent.left === sib) {
+            var right = sib.right;
+            rotate_right(tree, sib, parent);
+            sib = right;
+          } else {
+            var left = sib.left;
+            rotate_left(tree, sib, parent);
+            sib = left;
+          }
+        }
+
+        var c_left  = color(sib.left);
+        var c_right = color(sib.right);
+
+        if (c_left  === BLACK &&
+            c_right === BLACK) {
+
+          sib.color = RED;
+
+          if (parent.color === RED) {
+            parent.color = BLACK;
+            return;
+          } else {
+            node = parent;
+          }
+
+        } else {
+          if (c_right     === BLACK &&
+              parent.left === node) {
+
+            sib.color = RED;
+            sib.left.color = BLACK;
+
+            var left = sib.left;
+            rotate_right(tree, left, sib);
+            sib = left;
+
+          } else if (c_left       === BLACK &&
+                     parent.right === node) {
+
+            sib.color = RED;
+            sib.right.color = BLACK;
+
+            var right = sib.right;
+            rotate_left(tree, right, sib);
+            sib = right;
+          }
+
+          sib.color = parent.color;
+          parent.color = BLACK;
+
+          if (parent.left === node) {
+            sib.right.color = BLACK;
+            rotate_left(tree, sib, parent);
+
+          } else {
+            sib.left.color = BLACK;
+            rotate_right(tree, sib, parent);
+          }
+
+          return;
+        }
+      }
+    }
+  }
+
   function set_by_key(tree, key, value) {
     var node = tree.root;
     var sort = tree.sort;
@@ -469,24 +556,41 @@ __js {
     }
   }
 
-  /*function del_by_key(tree, key) {
+  function del_by_key(tree, key) {
     var node = get_by_key(tree, key);
 
     if (node === null) {
-      throw new Error("key " + key + " does not exist in tree " + tree);
-    } else if (node.left !== null) {
-      if (node.right !== null) {
-      } else {
-        var child = node.left;
-        if (node.color === BLACK) {
-          node.color = child.color;
+      throw new Error("key " + key + " does not exist in tree");
 
+    } else {
+      if (node.left !== null && node.right !== null) {
+        // TODO use min or max ?
+        var next = min(node.right);
+        // TODO copy operation
+        node.key   = next.key;
+        node.value = next.value;
+        node = next;
+      }
+
+      var child = (node.right === null
+                    ? node.left
+                    : node.right);
+
+      if (node.color === BLACK) {
+        // (BLACK *N (RED *N *N))
+        // (BLACK (RED *N *N) *N)
+        if (child !== null && child.color === RED) {
+          child.color = BLACK;
+
+        // (BLACK *N *N)
+        } else {
+          balance_remove(tree, node);
         }
       }
-    } else if (node.right !== null) {
-      var child = node.right;
+
+      replace_node(tree, node, child);
     }
-  }*/
+  }
 
   /*function length(node) {
     if (node === null) {
