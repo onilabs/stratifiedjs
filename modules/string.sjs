@@ -90,12 +90,12 @@ exports.sanitize = function(str) {
       * Consider using SJS's builtin string interpolation functionality instead.
 
     ###Example:
-        
+
         var obj = { who: "world" };
 
         var rv = supplant("Hello {who}", obj);
         // rv will equal "Hello world"
-        
+
         // alternatively, this can be expressed with builtin string interpolation:
         var rv = "Hello #{obj.who}";
 */
@@ -123,7 +123,7 @@ exports.supplant = function(str, o) {
 
             startsWith("abcd", "ab")
             // true
-            
+
             startsWith("abcd", "bc")
             // false
 */
@@ -142,7 +142,7 @@ exports.startsWith = function(str, prefix) {
 
         endsWith("abcd", "cd")
         // true
-        
+
         endsWith("abcd", "bc")
         // false
 */
@@ -163,7 +163,7 @@ exports.endsWith = function(str, suffix) {
 
         contains("abcd", "bc")
         // true
-        
+
         contains("abcd", "abd")
         // false
 */
@@ -188,7 +188,7 @@ exports.contains = function(str, substr) {
 
         strip("\t abc ")
         // "abc"
-        
+
         strip("||a|b||c|", "|")
         // "a|b||c"
 */
@@ -212,7 +212,7 @@ exports.strip = function(s, ch){
 
         strip("\t abc ")
         // "abc "
-        
+
         strip("||a|b||c|", "|")
         // "a|b||c|"
 */
@@ -239,7 +239,7 @@ exports.lstrip = function(s, ch){
 
         strip(" abc \t\n")
         // " abc"
-        
+
         strip("|a|b||c||", "|")
         // "|a|b||c"
 */
@@ -281,7 +281,7 @@ exports.rstrip = function(s, ch){
 
         split("a.b.c.d", ".")
         // ['a','b','c','d']
-        
+
         split("one=two=three", "=", 1)
         // ['one', 'two=three']
 */
@@ -377,7 +377,7 @@ exports.rstrip = function(s, ch){
 
         padRight("str", 5);
         // 'str  '
-        
+
         padRight("str", 5, '-');
         // 'str--'
 */
@@ -405,7 +405,7 @@ exports.padRight = function(s, len, ch) {
 
         padLeft("str", 5);
         // '  str'
-        
+
         padLeft("x", 5, '-');
         // '--str'
 */
@@ -433,7 +433,7 @@ exports.padLeft = function(s, len, ch) {
 
         padBoth("str", 5);
         // ' str '
-        
+
         padBoth('uneven string', 20, '-')
         // '----uneven string---'
 
@@ -450,17 +450,17 @@ exports.padBoth = function(s, len, ch) {
 /**
    @function unindent
    @summary  Remove leading whitespace from every line in the given string.
-   @param    {String} [s] 
-   @param    {optional Integer} [c=0] Number of whitespace characters to 
-             remove from every line (spaces and tabs both count as one 
-             whitespace character). If `c==0`, remove as many leading 
+   @param    {String} [s]
+   @param    {optional Integer} [c=0] Number of whitespace characters to
+             remove from every line (spaces and tabs both count as one
+             whitespace character). If `c==0`, remove as many leading
              whitespace characters as found on the first line.
    @return   {String} Unindented string
    @desc
-     Note: If a line in `s` does not contain `c` leading whitespace characters, 
+     Note: If a line in `s` does not contain `c` leading whitespace characters,
            this particular line will be left untouched by `unindent`.
 */
-exports.unindent = function(s, c) { 
+exports.unindent = function(s, c) {
   if (!c) {
     var matches = /^([ \t]+)/.exec(s);
     if (!matches) return s;
@@ -489,11 +489,11 @@ exports.capitalize = function(s) {
      **Notes:**
 
        * This function is only tested for characters in the [BMP](http://en.wikipedia.org/w/index.php?title=Basic_Multilingual_Plane).
-       * JS strings are natively encoded as a sequence of 16-bit words. (Inside the 
+       * JS strings are natively encoded as a sequence of 16-bit words. (Inside the
          BMP this is equivalent to UTF-16 encoding.)
        * UTF-8 is mapped into JS strings as a sequence of octets, with the upper half
          of each 16-bit 'character' set to 0.
-       * See http://mathiasbynens.be/notes/javascript-encoding for a 
+       * See http://mathiasbynens.be/notes/javascript-encoding for a
          good discussion on JS string encoding.
 */
 exports.utf16ToUtf8 = function(s) {
@@ -509,11 +509,11 @@ exports.utf16ToUtf8 = function(s) {
      **Notes:**
 
        * This function is only tested for characters in the [BMP](http://en.wikipedia.org/w/index.php?title=Basic_Multilingual_Plane).
-       * JS strings are natively encoded as a sequence of 16-bit words. (Inside the 
+       * JS strings are natively encoded as a sequence of 16-bit words. (Inside the
          BMP this is equivalent to UTF-16 encoding.)
        * UTF-8 is mapped into JS strings as a sequence of octets, with the upper half
          of each 16-bit 'character' set to 0.
-       * See http://mathiasbynens.be/notes/javascript-encoding for a 
+       * See http://mathiasbynens.be/notes/javascript-encoding for a
          good discussion on JS string encoding.
 */
 exports.utf8ToUtf16 = function(s) {
@@ -531,11 +531,11 @@ exports.utf8ToUtf16 = function(s) {
         * On modern browsers, this function is equivalent to `window.atob`.
         * Octet strings are equivalent to JS strings where the upper half of
           each 16-bit 'character' is set to 0.
-        * This function will produce incorrect output or throw an error if any 
-          character code of the input 
+        * This function will produce incorrect output or throw an error if any
+          character code of the input
           falls outside the range 0-255.
-        * You probably want to encode native JS strings representing 
-          textual data (== UTF-16 or UCS-2 string) as UTF-8 strings 
+        * You probably want to encode native JS strings representing
+          textual data (== UTF-16 or UCS-2 string) as UTF-8 strings
           before converting to Base64 (see [::utf16ToUtf8]).
         * This function appends padding characters ('=') if the input string
           length is not a multiple of 3.
@@ -557,7 +557,7 @@ else {
       var c1 = s.charCodeAt(i++);
       var c2 = s.charCodeAt(i++);
       var c3 = s.charCodeAt(i++);
-      
+
       var e1,e2,e3,e4;
       var e1 = c1 >> 2;
       if (isNaN(c2)) {
@@ -578,7 +578,7 @@ else {
       rv += keyStr.charAt(e1) + keyStr.charAt(e2) + keyStr.charAt(e3) + keyStr.charAt(e4);
     }
     return rv;
-  };  
+  };
 }
 
 } // __js
@@ -594,7 +594,7 @@ else {
         * On modern browsers, this function is equivalent to `window.atob`.
         * Octet strings are equivalent to JS strings where the upper half of
           each 16-bit 'character' is set to 0.
-        * This function will silently ignore characters in the input that 
+        * This function will silently ignore characters in the input that
           outside of the Base64 range (A-Z, a-z, 0-9, +, /, =)
         * The input function needs to contain padding characters ('=') if the
           encoded string length is not a multiple of 3.
@@ -610,14 +610,14 @@ else {
     var rv = "";
     s = s.replace(atob_ignore, "");
     var i=0, l=s.length;
-    
+
     while (i<l) {
       var e1,e2,e3,e4;
       e1 = keyStr.indexOf(s.charAt(i++));
       e2 = keyStr.indexOf(s.charAt(i++));
       e3 = keyStr.indexOf(s.charAt(i++));
       e4 = keyStr.indexOf(s.charAt(i++));
-      
+
       rv += String.fromCharCode((e1 << 2) | (e2 >> 4));
       if (e3 != 64) {
         rv += String.fromCharCode(((e2 & 15) << 4) | (e3 >> 2));
@@ -628,7 +628,7 @@ else {
     return rv;
   };
 }
-} // __js 
+} // __js
 
 /**
   @function base64ToArrayBuffer
@@ -640,7 +640,7 @@ __js exports.base64ToArrayBuffer = function(s) {
   var octets = exports.base64ToOctets(s);
   var rv = new ArrayBuffer(octets.length);
   var view = new Uint8Array(rv);
-  for (var i=0; i<view.length; ++i) 
+  for (var i=0; i<view.length; ++i)
     view[i] = octets.charCodeAt(i);
 
   return rv;
@@ -665,7 +665,7 @@ __js exports.octetsToArrayBuffer = function(s, buffer, offset) {
 
 /**
    @function arrayBufferToOctets
-   @summary Extract a string of octets from an ArrayBuffer 
+   @summary Extract a string of octets from an ArrayBuffer
    @param {ArrayBuffer} [src]
    @param {optional Integer} [offset] Byte offset into `src`
    @param {optional Integer} [length] Byte length
