@@ -113,6 +113,20 @@ exports.supplant = function(str, o) {
 };
 
 /**
+  @function repeat
+  @summary  Repeats a string.
+  @param    {String} [str] String to repeat.
+  @param    {Number} [times] Repeat the string this many times.
+  @return   {String} `str` repeated `times` times.
+  @desc
+    `" " ..@repeat(5)` returns `"     "`.
+ */
+exports.repeat = function(str, times) {
+  // TODO check that `times` is greater than or equal to 0
+  return new Array(times + 1).join(str);
+};
+
+/**
   @function startsWith
   @summary  Returns whether a string starts with another.
   @param    {String} [string] The subject.

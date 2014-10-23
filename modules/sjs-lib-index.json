@@ -2093,6 +2093,9 @@
         "padRight": {
           "type": "function"
         },
+        "repeat": {
+          "type": "function"
+        },
         "rsplit": {
           "type": "function"
         },
