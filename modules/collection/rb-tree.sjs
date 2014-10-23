@@ -42,16 +42,100 @@
 
     *N = ()
 
-    *B = (B *N *N)
-       | (B *N (R *N *N))
-       | (B (R *N *N) *N)
-       | (B (R *N *N) (R *N *N))
+    *B = (BLACK *N *N)
+       | (BLACK *N (RED *N *N))
+       | (BLACK (RED *N *N) *N)
+       | (BLACK (RED *N *N) (RED *N *N))
 
        # These might violate property #5
-       | (B *B *B)
-       | (B *B (R *B *B))
-       | (B (R *B *B) *B)
-       | (B (R *B *B) (R *B *B))
+       | (BLACK *B *B)
+       | (BLACK *B (RED *B *B))
+       | (BLACK (RED *B *B) *B)
+       | (BLACK (RED *B *B) (RED *B *B))
+
+
+  All insertion situations
+
+    | (NEW *N *N)
+
+    # All the rest should be mirrored
+    | (BLACK (NEW *N *N) *N)
+    | (BLACK (NEW *N *N) (RED *N *N))
+    | (RED (NEW *N *N) *N)
+
+
+  All deletion situations
+
+    | (OLD *N *N)
+
+    # All the rest should be mirrored
+    | (BLACK (OLD *N *N) (BLACK *N *N))
+    | (BLACK (OLD *N *N) (BLACK *N (RED *N *N)))
+    | (BLACK (OLD *N *N) (BLACK (RED *N *N) *N))
+    | (BLACK (OLD *N *N) (BLACK (RED *N *N) (RED *N *N)))
+
+    | (BLACK (OLD *N *N) (RED (BLACK *N *N) (BLACK *N *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK *N *N) (BLACK *N (RED *N *N))))
+    | (BLACK (OLD *N *N) (RED (BLACK *N *N) (BLACK (RED *N *N) *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK *N *N) (BLACK (RED *N *N) (RED *N *N))))
+    | (BLACK (OLD *N *N) (RED (BLACK *N (RED *N *N)) (BLACK *N *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK *N (RED *N *N)) (BLACK *N (RED *N *N))))
+    | (BLACK (OLD *N *N) (RED (BLACK *N (RED *N *N)) (BLACK (RED *N *N) *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK *N (RED *N *N)) (BLACK (RED *N *N) (RED *N *N))))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) *N) (BLACK *N *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) *N) (BLACK *N (RED *N *N))))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) *N) (BLACK (RED *N *N) *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) *N) (BLACK (RED *N *N) (RED *N *N))))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) (RED *N *N)) (BLACK *N *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) (RED *N *N)) (BLACK *N (RED *N *N))))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) (RED *N *N)) (BLACK (RED *N *N) *N)))
+    | (BLACK (OLD *N *N) (RED (BLACK (RED *N *N) (RED *N *N)) (BLACK (RED *N *N) (RED *N *N))))
+
+    | (RED (OLD *N *N) (BLACK *N *N))
+    | (RED (OLD *N *N) (BLACK *N (RED *N *N)))
+    | (RED (OLD *N *N) (BLACK (RED *N *N) *N))
+    | (RED (OLD *N *N) (BLACK (RED *N *N) (RED *N *N)))
+
+
+  (insert Parent Node) =
+
+    # Color black
+    | () (RED a b) -> (BLACK a b)
+
+    # Do nothing
+    | P (BLACK a (RED b c))         -> (BLACK a (RED b c))
+    | P (BLACK (RED a b) c)         -> (BLACK (RED a b) c)
+    | P (BLACK (RED a b) (RED c d)) -> (BLACK (RED a b) (RED c d))
+
+    # Color parent and uncle black, color grandparent red, recurse on grandparent
+    | P (BLACK (RED (RED a b) c) (RED d e)) -> (insert P (RED (BLACK (RED a b) c) (BLACK d e)))
+    | P (BLACK (RED a (RED b c)) (RED d e)) -> (insert P (RED (BLACK a (RED b c)) (BLACK d e)))
+    | P (BLACK (RED a b) (RED (RED c d) e)) -> (insert P (RED (BLACK a b) (BLACK (RED c d) e)))
+    | P (BLACK (RED a b) (RED c (RED d e))) -> (insert P (RED (BLACK a b) (BLACK c (RED d e))))
+
+    # Rotate left with parent, recurse on parent
+    | P (BLACK (RED a (RED b c)) d) -> (insert P (BLACK (RED (RED a b) c) d))
+
+    # Rotate right with parent, recurse on parent
+    | P (BLACK a (RED (RED b c) d)) -> (insert P (BLACK a (RED b (RED c d))))
+
+    # Color parent black, color grandparent red, rotate parent right with grandparent
+    | P (BLACK (RED (RED a b) c) d) -> (BLACK (RED a b) (RED c d))
+
+    # Color parent black, color grandparent red, rotate parent left with grandparent
+    | P (BLACK a (RED b (RED c d))) -> (BLACK (RED a b) (RED c d))
+
+
+  (remove Parent Node) =
+
+    # Remove root
+    | () (BLACK () ()) -> ()
+
+    | P (BLACK () (RED () ())) -> (BLACK () ())
+    | P (BLACK (RED () ()) ()) -> (BLACK () ())
+
+    # Remove the successor node instead
+    | P (BLACK a b) -> (remove P (min b))
 
  */
 
