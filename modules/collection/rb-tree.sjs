@@ -165,9 +165,9 @@ __js {
     } else {
       var color = "INVALID";
       if (x.color === RED) {
-        color = "RED";
+        color = "*";
       } else if (x.color === BLACK) {
-        color = "BLACK";
+        color = "";
       }
 
       var left  = toString(x.left).split(/\n/);
@@ -184,18 +184,16 @@ __js {
         max_r = Math.max(max_r, x.length);
       });
 
-      var self = "(" + color + " " + (x.key + ": " + x.value) + ")";
+      var self = "/" + color + " " + (x.key + ": " + x.value) + " " + color + "\\";
 
-      var i_middle = (max_l + max_r) / 2;
-      var i_left   = Math.floor(i_middle - (self.length / 2));
-
-      var min_spaces = /^ */.exec(left[0])[0].length + 1;
-      var spaces     = Math.max(1, min_spaces, i_left);
+      // left[0].length + 1
+      var middle = (max_l - left[0].length + /^ */.exec(right[0])[0].length) / 2;
+      var spaces = Math.floor(left[0].length + middle - (self.length / 2));
 
       max_l = Math.max(max_l, self.length);
 
       // TODO string.repeat
-      var children = [new Array(spaces + 1).join(" ") + self];
+      var children = [new Array(Math.max(1, spaces) + 1).join(" ") + self];
 
       sequence.each(sequence.zipLongest(left, right), function (a) {
         var l = a[0] || "";
