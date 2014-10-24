@@ -91,7 +91,7 @@ __js exports.getGlobal = function() { return __oni_rt.G; };
      See [../../modules/array::isArrayLike]
 */
 __js exports.isArrayLike = function(obj) {
-  return Array.isArray(obj) || 
+  return Array.isArray(obj) ||
          !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
          !!(__oni_rt.G.NodeList && obj instanceof NodeList) ||
          !!(__oni_rt.G.HTMLCollection && obj instanceof HTMLCollection) ||
@@ -139,7 +139,7 @@ __js {
                   Otherwise, returns `args`.
   @desc
     The intent is to allow functions that accept a sequence of items to be called as either:
-    
+
         fn(a, b, c);
         fn([a,b,c]);
 
@@ -287,7 +287,7 @@ __js exports.constructURL = function(/* url_spec */) {
   var url_spec = exports.flatten(arguments);
   var l = url_spec.length;
   var rv = url_spec[0];
-  
+
   // path components:
   for (var i=1; i<l; ++i) {
     var comp = url_spec[i];
@@ -295,7 +295,7 @@ __js exports.constructURL = function(/* url_spec */) {
     if (rv.charAt(rv.length-1) != "/") rv += "/";
     rv += comp.charAt(0) == "/" ? comp.substr(1) :comp;
   }
-  
+
   // query string:
   var qparts = [];
   for (;i<l;++i) {
@@ -345,7 +345,7 @@ __js exports.canonicalizeURL = function(url, base) {
   }
 
   var a = exports.parseURL(url);
-  
+
   // convert relative->absolute:
   if (base && (base = exports.parseURL(base)) &&
       (!a.protocol || a.protocol == base.protocol)) {
@@ -378,7 +378,7 @@ __js exports.canonicalizeURL = function(url, base) {
       pout.push(c);
   }
   a.directory = pout.join("/");
-  
+
   // build return value:
   var rv = "";
   if (a.protocol) rv += a.protocol + ":";
@@ -394,13 +394,13 @@ __js exports.canonicalizeURL = function(url, base) {
 
 /**
    @function  jsonp
-   @summary   Perform a cross-domain capable JSONP-style request. 
+   @summary   Perform a cross-domain capable JSONP-style request.
    @param {URLSPEC} [url] Request URL (in the same format as accepted by [url.build](#url/build))
    @param {optional Object} [settings] Hash of settings (or array of hashes)
    @return    {Object}
    @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url.buildQuery](#url/buildQuery).
    @setting {String} [cbfield="callback"] Name of JSONP callback field in query string.
-   @setting {String} [forcecb] Force the name of the callback to the given string. 
+   @setting {String} [forcecb] Force the name of the callback to the given string.
 */
 exports.jsonp = jsonp_hostenv; // to be implemented in hostenv-specific part
 
@@ -520,7 +520,7 @@ function makeRequire(parent) {
   } // __js
 
   // because resolve can suspend this must not be in a __js block:
-  rf.url = function(relative) { 
+  rf.url = function(relative) {
     // Hack: We set a 'dummy' loader to prevent the resolver from appending '.sjs'
     return resolve(relative, rf, parent, {loader: 'dummy'}).path;
   };
@@ -587,7 +587,7 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
   // apply hostenv-specific resolution if path is scheme-less
   if (path.indexOf(":") == -1)
     path = resolveSchemelessURL_hostenv(path, require_obj, parent);
-  
+
   var level = 10; // we allow 10 levels of rewriting indirection
   for (var i=0,hub; hub=hubs[i++]; ) {
     if (path.indexOf(hub[0]) == 0) {
@@ -632,7 +632,7 @@ function default_compiler(src, descriptor) {
   else if (compiled_src_tag.exec(src)) {
     //console.log("#{descriptor.id} precompiled");
     // great; src is already compiled
-    // XXX apparently eval is faster on FF, but eval is tricky with 
+    // XXX apparently eval is faster on FF, but eval is tricky with
     // precompiled code, because of IE, where we need execScript
 
     f = new Function("module", "exports", "require", "__onimodulename", "__oni_altns", src);
@@ -651,10 +651,10 @@ function default_loader(path, parent, src_loader, opts, spec) {
   var compile = exports.require.extensions[spec.type];
   if (!compile)
     throw new Error("Unknown type '"+spec.type+"'");
-  
+
   var descriptor = exports.require.modules[path];
   var pendingHook = pendingLoads[path];
-    
+
   if (!descriptor && !pendingHook) {
     // the module has not yet started loading
     pendingHook = pendingLoads[path] = spawn (function() {
@@ -751,9 +751,9 @@ __js function default_resolver(spec) {
 
 
 function http_src_loader(path) {
-  return { 
-    src:         request_hostenv([path, {format:'compiled'}], {mime:'text/plain'}), 
-    loaded_from: path 
+  return {
+    src:         request_hostenv([path, {format:'compiled'}], {mime:'text/plain'}),
+    loaded_from: path
   };
 }
 
@@ -769,7 +769,7 @@ function github_src_loader(path) {
   try {
     [,user,repo,tag,path] = /github:\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path);
   } catch(e) { throw new Error("Malformed module id '"+path+"'"); }
-  
+
   var url = exports.constructURL(github_api, 'repos', user, repo, "contents", path,{ref:tag});
 
   waitfor {
@@ -781,7 +781,7 @@ function github_src_loader(path) {
   }
   if (data.message && !data.content)
     throw new Error(data.message);
-  
+
   // XXX maybe we should move some string functions into apollo-sys-common
   var str = exports.require('sjs:string');
 
@@ -795,11 +795,11 @@ function github_src_loader(path) {
 function resolve(module, require_obj, parent, opts) {
   // apply local aliases:
   var path = resolveAliases(module, require_obj.alias);
-  
+
   var hubs = exports.require.hubs;
   // apply global aliases
   var resolveSpec = resolveHubs(path, hubs, require_obj, parent, opts);
-  
+
   // make sure we have an absolute url with '.' & '..' collapsed:
   resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);
 
@@ -964,7 +964,7 @@ function requireInnerMultiple(modules, require_obj, parent, opts) {
       }
     }
   }
-  
+
   // kick off the load:
   inner(0, modules.length);
 
