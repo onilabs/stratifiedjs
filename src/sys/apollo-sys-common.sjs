@@ -683,6 +683,16 @@ function default_loader(path, parent, src_loader, opts, spec) {
         };
         descriptor.require = makeRequire(descriptor);
 
+        var canonical_id = null;
+
+        descriptor.getCanonicalId = function () {
+          return canonical_id;
+        };
+
+        descriptor.setCanonicalId = function (id) {
+          canonical_id = id;
+        };
+
         if (opts.main) descriptor.require.main = descriptor;
         exports.require.modules[path] = descriptor;
         try {
