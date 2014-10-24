@@ -685,12 +685,19 @@ function default_loader(path, parent, src_loader, opts, spec) {
 
         var canonical_url = null;
 
+        var hubs = exports.require.hubs;
+
         descriptor.getCanonicalUrl = function () {
           return canonical_url;
         };
 
         descriptor.setCanonicalUrl = function (url) {
+          if (canonical_url !== null) {
+            throw new Error("Canonical URL is already defined for module " + path);
+          }
+
           canonical_url = url;
+          hubs.addDefault([url, path]);
         };
 
         if (opts.main) descriptor.require.main = descriptor;

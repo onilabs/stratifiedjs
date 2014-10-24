@@ -39,8 +39,14 @@
             "module.exports": {
               "type": "variable"
             },
+            "module.getCanonicalUrl": {
+              "type": "function"
+            },
             "module.id": {
               "type": "variable"
+            },
+            "module.setCanonicalUrl": {
+              "type": "function"
             },
             "require": {
               "type": "function"
