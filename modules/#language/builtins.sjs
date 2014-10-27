@@ -114,55 +114,55 @@
       // load a built-in nodejs module (server only):
       var fs = require("nodejs:fs");
       var fs = require("fs");
-  
+
 
   ### Module lifetime:
 
   Modules will be loaded *once* during the lifetime of the program;
   subsequent `require` calls to the same module will return
   the cached [::exports] object.
-  
+
   To get information about which modules are currently loaded, where
   they were `require`d from, etc., you can inspect the [::require.modules] object.
 
   ### Loading modules from HTTP servers
 
   A call such as `require('./foo')` will cause the browser to make a request of the form:
-  
+
       http://the_server.com/foo.sjs?format=compiled
-  
+
   The parameter `format=compiled` indicates that the browser will accept a server-side compiled module.
   The server can safely ignore this format flag and just return the literal file 'foo.sjs'.
   In this way, modules can be served up by **any server capable of serving static files**.
-  
+
   Server-side compilation is considered an 'experimental' feature at this point.
   It is supported by default when serving modules with the Oni Conductance server.
 
   ### Cross-domain module loading on browsers
-  
+
   The standard builtin module retrieval system is capable of
   cross-domain loading of modules (i.e. where the
   module's URL differs from the domain of the document performing the
   `require`), on modern browsers ( >IE6).
-   
+
   For this mechanism to work on modern browsers, the webserver hosting the modules needs to
   be [configured to send CORS access control headers](http://esw.w3.org/CORS_Enabled).
-  
+
   ### Loading GitHub modules
-  
+
   In StratifiedJS 0.12 and greater, `require.hubs` is pre-configured to load modules with a 'github:' prefix directly from GitHub (much like the 'sjs:' prefix is configured to load from the canonical Standard Module Library location - see above). The syntax looks like this:
-  
+
       require("github:USER/REPO/BRANCH_OR_TAG/MODULE_PATH");
-  
+
   E.g. to load the module https://github.com/afri/testmodules/blob/master/foo.sjs and call its `hello` function, you could write:
-  
+
       var foo = require("github:afri/testmodules/master/foo");
       foo.hello();
-  
-  The GitHub module loading process works **cross-browser** and without any intermediate proxies. The browser talks **directly** to the [GitHub API](http://developer.github.com/) using [JSONP-style requests](#sjs:http::jsonp). 
-  
+
+  The GitHub module loading process works **cross-browser** and without any intermediate proxies. The browser talks **directly** to the [GitHub API](http://developer.github.com/) using [JSONP-style requests](#sjs:http::jsonp).
+
   The loading functionality also works **transitively**. I.e. if you load a module from GitHub that in turn references another module through a relative url (e.g. `require('./anothermodule')`), it will load fine through this mechanism.
-  
+
   ### Loading multiple modules
 
   If `module` is an array, each module will be loaded
@@ -173,7 +173,7 @@
   may be objects with the following properties:
 
   | Property    | Description                                    |
-  | ----------- | -----------------------------------------------|  
+  | ----------- | -----------------------------------------------|
   | `id`        | the module to load                             |
   | `exclude`   | an array of symbol names to exclude            |
   | `include`   | an array of property names to include          |
@@ -197,7 +197,7 @@
   This variable is an array of `[prefix, replacement_string|loader_object]` pairs.
   For a given module identifier, StratifiedJS traverses this array in order, looking for prefix matches.
   Prefixes are replaced by `replacement_string`s until a `loader_object` is found. E.g. on the server, the prepopulated `require.hubs` array looks something like this:
-  
+
       [ [ 'sjs:', 'file:///Users/alex/stratifiedjs/modules/' ],
         [ 'github:', { src: [Function: github_src_loader] } ],
         [ 'http:', { src: [Function: http_src_loader] } ],
@@ -242,7 +242,7 @@
     - when explicitly required as a main module, using:
 
           require('module-id', {main: true});
-      
+
   To test if the current module is the main module, you can use the following code:
 
       if (require.main === module) {
@@ -283,7 +283,7 @@
   match the given prefix. Note that this is not an exact match,
   nor does it test for the existence of a specific path - it
   only returns false for prefixes that could not match any hub.
-  
+
   For example, due to the bultin `sjs:` hub, the following
   calls will all return `true`:
 
@@ -354,7 +354,7 @@
   assign it to a property of `exports`:
 
   ### Example:
-    
+
       exports.add = function(a, b) { return a + b; }
 
 @function hold
