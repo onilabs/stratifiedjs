@@ -39,8 +39,14 @@
             "module.exports": {
               "type": "variable"
             },
+            "module.getCanonicalId": {
+              "type": "function"
+            },
             "module.id": {
               "type": "variable"
+            },
+            "module.setCanonicalId": {
+              "type": "function"
             },
             "require": {
               "type": "function"
