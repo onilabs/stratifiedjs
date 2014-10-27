@@ -647,6 +647,8 @@ function default_compiler(src, descriptor) {
 // used when precompiling modules - must be kept in sync with the above f() call
 default_compiler.module_args = ['module', 'exports', 'require', '__onimodulename', '__oni_altns'];
 
+var canonical_id_to_module = {};
+
 function default_loader(path, parent, src_loader, opts, spec) {
   var compile = exports.require.extensions[spec.type];
   if (!compile)
@@ -685,19 +687,26 @@ function default_loader(path, parent, src_loader, opts, spec) {
 
         var canonical_url = null;
 
-        var hubs = exports.require.hubs;
-
         descriptor.getCanonicalUrl = function () {
           return canonical_url;
         };
 
         descriptor.setCanonicalUrl = function (url) {
+          if (url == null) {
+            throw new Error("Canonical URL cannot be null");
+          }
+
           if (canonical_url !== null) {
             throw new Error("Canonical URL is already defined for module " + path);
           }
 
+          var canonical = canonical_id_to_module[url];
+          if (canonical != null) {
+            throw new Error("Canonical URL " + url + " is already defined in module " + canonical.id);
+          }
+
           canonical_url = url;
-          hubs.addDefault([url, path]);
+          canonical_id_to_module[url] = descriptor;
         };
 
         if (opts.main) descriptor.require.main = descriptor;
