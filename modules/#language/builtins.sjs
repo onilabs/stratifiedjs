@@ -265,12 +265,17 @@
    - src: The module source (String) or source loader (Function)
 
 @function require.hubs.addDefault
-@param {Hub} [hub]
+@param {Array} [hub]
 @summary Add a hub if it is not yet defined
 @return {boolean} Whether the hub was added
 @desc
+  `hub` is an array where the first element is the prefix, and the
+  second element is the replacement.
+
   This function adds the given `hub` if [::require.hubs.defined] returns
-  true for `hub[0]` (i.e the hub prefix).
+  true for `hub[0]` (i.e the hub prefix):
+
+      require.hubs.addDefault(['foo://', '/bar/qux']);
 
   For more information on hubs, see [::require.hubs].
 
