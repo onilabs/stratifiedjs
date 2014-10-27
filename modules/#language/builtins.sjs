@@ -315,11 +315,11 @@
 @variable module.id
 @summary The fully-qualified URL of the current module
 
-@function module.getCanonicalUrl
-@summary Returns the canonical URL for the current module
+@function module.getCanonicalId
+@summary Returns the canonical ID for the current module
 
-@function module.setCanonicalUrl
-@summary Sets the canonical URL for the current module
+@function module.setCanonicalId
+@summary Sets the canonical ID for the current module
 
 @variable module.exports
 @summary The exported symbols for the current module

@@ -39,13 +39,13 @@
             "module.exports": {
               "type": "variable"
             },
-            "module.getCanonicalUrl": {
+            "module.getCanonicalId": {
               "type": "function"
             },
             "module.id": {
               "type": "variable"
             },
-            "module.setCanonicalUrl": {
+            "module.setCanonicalId": {
               "type": "function"
             },
             "require": {
