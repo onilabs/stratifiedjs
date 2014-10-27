@@ -685,28 +685,28 @@ function default_loader(path, parent, src_loader, opts, spec) {
         };
         descriptor.require = makeRequire(descriptor);
 
-        var canonical_url = null;
+        var canonical_id = null;
 
-        descriptor.getCanonicalUrl = function () {
-          return canonical_url;
+        descriptor.getCanonicalId = function () {
+          return canonical_id;
         };
 
-        descriptor.setCanonicalUrl = function (url) {
-          if (url == null) {
-            throw new Error("Canonical URL cannot be null");
+        descriptor.setCanonicalId = function (id) {
+          if (id == null) {
+            throw new Error("Canonical ID cannot be null");
           }
 
-          if (canonical_url !== null) {
-            throw new Error("Canonical URL is already defined for module " + path);
+          if (canonical_id !== null) {
+            throw new Error("Canonical ID is already defined for module " + path);
           }
 
-          var canonical = canonical_id_to_module[url];
+          var canonical = canonical_id_to_module[id];
           if (canonical != null) {
-            throw new Error("Canonical URL " + url + " is already defined in module " + canonical.id);
+            throw new Error("Canonical ID " + id + " is already defined in module " + canonical.id);
           }
 
-          canonical_url = url;
-          canonical_id_to_module[url] = descriptor;
+          canonical_id = id;
+          canonical_id_to_module[id] = descriptor;
         };
 
         if (opts.main) descriptor.require.main = descriptor;
