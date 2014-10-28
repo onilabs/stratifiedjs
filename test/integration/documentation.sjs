@@ -134,8 +134,11 @@ exports.testLibrary = function(hub) {
       @context{||
         var err = null;
         var moduleExports;
+        var objectKeys = {} .. @keys .. @toArray;
         try {
-          moduleExports = require(home.replace(/#/g, escape)) .. @ownKeys .. @sort;
+          moduleExports = require(home.replace(/#/g, escape))
+            .. @keys .. @toArray .. @difference(objectKeys)
+            .. @sort;
         } catch(e) {
           err = e;
         }
