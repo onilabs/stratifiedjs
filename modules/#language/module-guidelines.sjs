@@ -18,7 +18,7 @@
   
   or:
   
-      var foo = require('http://example.com/apollo-libs/libby/foo');
+      var foo = require('http://example.com/sjs-libs/libby/foo');
   
   Since this requires all users of your code to configure a "libby:" hub in the former case, and adds a runtime dependency on your server in the latter. Sticking to relative paths makes your code completely relocatable.
   
@@ -38,7 +38,7 @@
   
   For individual dependencies that are (for whatever reason) in an unusual location, the user of your library can still explicitly configure an individual module under `lib:` to point elsewhere, e.g:
   
-      require.hubs.unshift("lib:foo/", "http://example.com/sjs/foo/");
+      require.hubs.unshift(["lib:foo/", "http://example.com/sjs/foo/"]);
        
   ### - app:
   
@@ -63,7 +63,7 @@
   
   ### Guideline 3 and a half: *Unobtrusive* configuration of hubs is OK
   
-  If you expect your library to be used "live" from your server (or github, or wherever your library is published), you may want to provide some fallback configuration that will only be used if nothing else is available. This is particularly useful for libraries that people might use from the `apollo` command-line repl, as configuring hubs for one-time interactive use can be burdensome.
+  If you expect your library to be used "live" from your server (or github, or wherever your library is published), you may want to provide some fallback configuration that will only be used if nothing else is available. This is particularly useful for libraries that people might use from the `sjs` command-line repl, as configuring hubs for one-time interactive use can be burdensome.
   
   Such code **must not** override any existing hubs, and should have no effect if the user has already configured an appropriate hub. An example of such code is:
   
@@ -82,7 +82,7 @@
   
   ## Tools:
   
-  Since apollo can be used across different environments, it's impossible to recommend a single tool for the purposes of dependency declaration / management. However, some obvious choices are worth mentioning:
+  Since sjs can be used across different environments, it's difficult to recommend a single tool for the purposes of dependency declaration / management. However, some obvious choices are worth mentioning:
   
   ### npm
   
