@@ -533,7 +533,7 @@ __js function augmentHubs(hubs) {
   // add additional methods to the `require.hubs` array:
   hubs.addDefault = function(hub) {
     if (!this.defined(hub[0])) {
-      this.push(hub);
+      this.unshift(hub);
       return true;
     }
     return false;
