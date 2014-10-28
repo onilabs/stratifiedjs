@@ -30,6 +30,13 @@ notifications:
       - commits@onilabs.com
     on_success: change
     on_failure: always
+  hipchat:
+    rooms:
+      secure: porchrPP7n4km+ZjCVNFhkVl1uqOB1aH1tHiUgYrMUjNXu4PtqJQpaohyPj6KNriGVKSwfk9MvBfFcotUJrfKN5h3poIQ8hdEzC/sPxGENE86bo5p15ZhUkrzf2zovl6JFaVvMqE1VJJpRAKr/LKVOxxyvV327TNESmJku8oKGI=
+    template:
+      - '%{repository_name}#%{commit} (%{author}): %{message} [%{build_url}]'
+    on_success: change
+    on_failure: always
 branches:
   # build only master and release braches
   only:
