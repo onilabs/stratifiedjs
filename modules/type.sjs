@@ -178,7 +178,7 @@ exports.is = is;
     Before you can use `Interface` you must use `module.setCanonicalId("...")`
     to give the current module a *unique* canonical ID.
 
-    Then you call `@Interface(module, "...")` where the second argument is the
+    Then you call `Interface(module, "...")` where the second argument is the
     name of the interface.
 
     The reason for `setCanonicalId` is to ensure that every interface is *unique*,
@@ -200,11 +200,13 @@ exports.is = is;
           } else {
             throw new Error("unsupported type");
           }
-        }
+        };
 
     The function `foo` does different things depending on the type of its argument,
     but it's not very flexible: if we want to add new types, we have to change the
-    function `foo`. Instead, let's use an interface:
+    function `foo`.
+
+    Instead, let's use an interface:
 
         // Module foo.sjs
 
@@ -216,7 +218,7 @@ exports.is = is;
 
         exports.foo = function (x) {
           return x[exports.interface_foo](x);
-        }
+        };
 
     Now *any* object that has the `interface_foo` property can work with the `foo`
     function:
@@ -226,10 +228,10 @@ exports.is = is;
         @ = require("./foo.sjs");
 
         function Foo() {}
-        Foo.prototype[@interface_foo] = function (x) { ... }
+        Foo.prototype[@interface_foo] = function (x) { ... };
 
         function Bar() {}
-        Bar.prototype[@interface_foo] = function (x) { ... }
+        Bar.prototype[@interface_foo] = function (x) { ... };
 
     As you can see, we can create new data types and use `interface_foo` to "plug
     them in" so they work with the `foo` function, without needing to change the
