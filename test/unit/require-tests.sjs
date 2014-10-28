@@ -241,10 +241,14 @@ context('hubs.defined()') {||
 
 context('hubs.addDefault()') {||
   test.beforeEach {|s|
+    s.hubs = require.hubs.slice();
     s.hublen = require.hubs.length;
   }
   test.afterEach {|s|
-    while(require.hubs.length > s.hublen) require.hubs.pop();
+    // reset require.hubs content
+    // (but not the object itself, as it has methods not present on Array)
+    require.hubs.splice.apply(require.hubs, [0, require.hubs.length].concat(s.hubs));
+    require.hubs.length .. assert.eq(s.hubs.length); // sanity check
   }
 
   test('for new hub') {|s|
