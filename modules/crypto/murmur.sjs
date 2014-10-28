@@ -23,17 +23,17 @@
  */
 
 /**
- * @function murmur3_32
- * @summary JS Implementation of MurmurHash3 (32-bit output)
- *
- * @desc
- *    See
- *     - http://github.com/garycourt/murmurhash-js
- *     - http://sites.google.com/site/murmurhash/
- *
- * @param {String} [key] ASCII string
- * @param {Number} [seed] Positive integer
- * @return {Number} 32-bit positive integer hash
+  @function murmur3_32
+  @summary JS Implementation of MurmurHash3 (32-bit output)
+  
+  @desc
+     See
+      - http://github.com/garycourt/murmurhash-js
+      - http://sites.google.com/site/murmurhash/
+  
+  @param {String} [key] ASCII string
+  @param {Number} [seed] Positive integer
+  @return {Number} 32-bit positive integer hash
  */
 
 __js exports.murmur3_32 = function murmurhash3_32_gc(key, seed) {
