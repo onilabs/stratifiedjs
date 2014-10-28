@@ -2356,6 +2356,27 @@
       },
       "summary": "Automated testing utilities"
     },
+    "type": {
+      "type": "module",
+      "children": {
+        "Interface": {
+          "type": "function"
+        },
+        "is": {
+          "type": "function"
+        },
+        "isNaN": {
+          "type": "function"
+        },
+        "isObject": {
+          "type": "function"
+        },
+        "type": {
+          "type": "function"
+        }
+      },
+      "summary": "Functions for creating and inspecting types."
+    },
     "url": {
       "type": "module",
       "children": {
