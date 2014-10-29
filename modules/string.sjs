@@ -51,7 +51,7 @@ exports.isString = isString;
 
 function isRegExp(re) {
   // copied from ./regexp to reduce imports
-  return typeof re === 'object' && Object.prototype.toString.call(re) === '[object RegExp]';
+  return Object.prototype.toString.call(re) === '[object RegExp]';
 }
 
 /**

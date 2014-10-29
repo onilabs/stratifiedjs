@@ -45,7 +45,7 @@ var { each, Stream } = require('./sequence');
   @return   {Boolean}
 */
 exports.isRegExp = function(re) {
-  return typeof re === 'object' && Object.prototype.toString.call(re) === '[object RegExp]';
+  return Object.prototype.toString.call(re) === '[object RegExp]';
 }
 
 /**
