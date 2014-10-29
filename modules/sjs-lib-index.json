@@ -2365,10 +2365,25 @@
         "is": {
           "type": "function"
         },
+        "isArray": {
+          "type": "function"
+        },
+        "isBoolean": {
+          "type": "function"
+        },
+        "isCallable": {
+          "type": "function"
+        },
         "isNaN": {
           "type": "function"
         },
+        "isNumber": {
+          "type": "function"
+        },
         "isObject": {
+          "type": "function"
+        },
+        "isString": {
           "type": "function"
         },
         "type": {

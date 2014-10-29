@@ -66,6 +66,22 @@ function type(x) {
 exports.type = type;
 
 /**
+  @function isCallable
+  @param {Any} [x]
+  @return {Boolean} Whether `x` is callable or not
+  @summary Returns whether `x` is callable or not
+  @desc
+    Returns `true` for functions and `Function` objects.
+
+    Might also return `true` for other things, if they are
+    callable.
+ */
+function isCallable(x) {
+  return typeof x === "function";
+}
+exports.isCallable = isCallable;
+
+/**
   @function isObject
   @param {Any} [x]
   @return {Boolean} Whether `x` is an object or not
@@ -101,6 +117,62 @@ function isNaN(x) {
   return x !== x;
 }
 exports.isNaN = isNaN;
+
+
+/**
+  @function isNumber
+  @param {Any} [x]
+  @return {Boolean} Whether `x` is a number or not
+  @summary Returns whether `x` is a number or not
+  @desc
+    This function returns `true` for primitive numbers
+    and `Number` objects. It returns `false` for `NaN`.
+ */
+function isNumber(x) {
+  return type(x) === "number" && !isNaN(x);
+}
+exports.isNumber = isNumber;
+
+/**
+  @function isString
+  @param {Any} [x]
+  @return {Boolean} Whether `x` is a string or not
+  @summary Returns whether `x` is a string or not
+  @desc
+    This function returns `true` for primitive strings
+    and `String` objects.
+ */
+function isString(x) {
+  return type(x) === "string";
+}
+exports.isString = isString;
+
+/**
+  @function isArray
+  @param {Any} [x]
+  @return {Boolean} Whether `x` is an array or not
+  @summary Returns whether `x` is an array or not
+  @desc
+    This function returns `true` for `Array` objects.
+ */
+function isArray(x) {
+  return type(x) === "array";
+}
+exports.isArray = isArray;
+
+/**
+  @function isBoolean
+  @param {Any} [x]
+  @return {Boolean} Whether `x` is a boolean or not
+  @summary Returns whether `x` is a boolean or not
+  @desc
+    This function returns `true` for primitive booleans
+    and `Boolean` objects.
+ */
+function isBoolean(x) {
+  return type(x) === "boolean";
+}
+exports.isBoolean = isBoolean;
 
 
 function isSamePrototype(x, y) {
