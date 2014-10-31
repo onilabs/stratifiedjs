@@ -40,7 +40,7 @@ var { isArrayLike, flatten } = require('builtin:apollo-sys');
 
 /**
    @function isArrayLike
-   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser 
+   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser
              hostenv of StratifiedJS, a NodeList or FileList.
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
@@ -50,10 +50,10 @@ exports.isArrayLike = isArrayLike;
 /**
    @function remove
    @altsyntax arr .. remove(elem)
-   @param {Array} [arr] 
+   @param {Array} [arr]
    @param {Object} [elem] Element to remove
    @return {Boolean} `true` if the element was removed, `false` if `elem` is not in `arr`.
-   @summary Removes the first element in the array equal (under `===`) to `elem`. 
+   @summary Removes the first element in the array equal (under `===`) to `elem`.
 */
 __js {
 function remove(arr, elem) {
@@ -119,7 +119,7 @@ exports.flatten = flatten;
     #### Behaviour if `a` or `b` is not a set:
 
     * If `a` contains duplicate elements, they will also appear in the resulting array. If `b`
-    contains duplicate elements, they will appear in the resulting array, unless there is an 
+    contains duplicate elements, they will appear in the resulting array, unless there is an
     equal (`===`) element in `a`.
 */
 __js function union(a, b) {
@@ -129,7 +129,7 @@ __js function union(a, b) {
   for (; i<b.length; ++i) {
     var e_b = b[i];
     for (var j=0; j<a.length; ++j) {
-      if (a[j] === e_b) 
+      if (a[j] === e_b)
         continue outer;
     }
     rv.push(e_b);
@@ -140,8 +140,8 @@ exports.union = union;
 
 /**
   @function difference
-  @param    {Array} [a] 
-  @param    {Array} [b] 
+  @param    {Array} [a]
+  @param    {Array} [b]
   @return   {Array} New array containing all elements of `a` that are not in `b` (under `===`)
   @summary  Create an array of elements in `a` that are not in `b` (under `===`).
 */
