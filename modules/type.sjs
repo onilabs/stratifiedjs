@@ -255,58 +255,133 @@ exports.is = is;
     The reason for `setCanonicalId` is to ensure that every interface is *unique*,
     so that it does not collide with any other interface.
 
-    What are interfaces good for? Consider this function:
+    ----
+
+    What are interfaces good for? Consider these modules:
+
+        // Module book.sjs
+
+        exports.Book = function () {
+          return {
+            read: function () {
+              ...
+            }
+          };
+        };
+
+
+        // Module file.sjs
+
+        exports.File = function () {
+          return {
+            read: function () {
+              ...
+            }
+          };
+        };
+
 
         // Module foo.sjs
 
-        function Foo() {}
+        @ = require(['./book', './file']);
 
-        function Bar() {}
+        @Book().read();
+        @File().read();
 
-        exports.foo = function (x) {
-          if (x instanceof Foo) {
+    We can `read` from a `Book`, or `read` from a `File`, but these are two *very*
+    different things! If we end up confusing one with the other, we will cause a
+    bug.
+
+    Even worse, it's now impossible for something to be both a `Book` *and* a `File`
+    at the same time, because the `read` method would collide!
+
+    Interfaces completely solve both of these problems. Here are the same modules,
+    but this time using `Interface`:
+
+        // Module book.sjs
+
+        @ = require('sjs:type');
+
+        module.setCanonicalId('http://mydomain.com/path/to/book.sjs');
+
+        exports.interface_read = @Interface(module, 'read');
+
+        exports.Book = function () {
+          var o = {};
+
+          o[exports.interface_read] = function () {
             ...
-          } else if (x instanceof Bar) {
-            ...
-          } else {
-            throw new Error("unsupported type");
-          }
+          };
+
+          return o;
         };
 
-    The function `foo` does different things depending on the type of its argument,
-    but it's not very flexible: if we want to add new types, we have to change the
-    function `foo`.
+        exports.read = function (book) {
+          return book[exports.interface_read](book);
+        };
 
-    Instead, let's use an interface:
+
+        // Module file.sjs
+
+        @ = require('sjs:type');
+
+        module.setCanonicalId('http://mydomain.com/path/to/file.sjs');
+
+        exports.interface_read = @Interface(module, 'read');
+
+        exports.File = function () {
+          var o = {};
+
+          o[exports.interface_read] = function () {
+            ...
+          };
+
+          return o;
+        };
+
+        exports.read = function (file) {
+          return file[exports.interface_read](file);
+        };
+
 
         // Module foo.sjs
 
-        @ = require("sjs:type");
+        @ = require([
+          { id: './book', name: 'book' },
+          { id: './file', name: 'file' }
+        ]);
 
-        module.setCanonicalId("http://mydomain.com/path/to/module/foo.sjs");
+        @book.Book() ..@book.read();
+        @file.File() ..@file.read();
 
-        exports.interface_foo = @Interface(module, "foo");
+    The above code is more verbose and complicated, but it's no longer possible to
+    confuse `Book` and `File`, because they use two separate `read` functions.
 
-        exports.foo = function (x) {
-          return x[exports.interface_foo](x);
+    In addition, an object can easily implement `interface_read` from both modules,
+    and thus be treated as both a `Book` and a `File` at the same time:
+
+        // Module filebook.sjs
+
+        @ = require([
+          { id: './book', name: 'book' },
+          { id: './file', name: 'file' }
+        ]);
+
+        exports.FileBook = function () {
+          var o = {};
+
+          o[book.interface_read] = function () {
+            ...
+          };
+
+          o[file.interface_read] = function () {
+            ...
+          };
+
+          return o;
         };
 
-    Now *any* object that has the `interface_foo` property can work with the `foo`
-    function:
-
-        // Module bar.sjs
-
-        @ = require("./foo.sjs");
-
-        function Foo() {}
-        Foo.prototype[@interface_foo] = function (x) { ... };
-
-        function Bar() {}
-        Bar.prototype[@interface_foo] = function (x) { ... };
-
-    As you can see, we can create new data types and use `interface_foo` to "plug
-    them in" so they work with the `foo` function, without needing to change the
-    `foo` function at all!
+    This gives the same flexibility as mixins or traits in other languages.
 
     Some of the standard library functions in SJS have interfaces, so it's possible
     to create custom data types that work with SJS's functions.
