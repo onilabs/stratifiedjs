@@ -35,7 +35,7 @@
 */
 var toString = {}.toString;
 
-/**
+/*
   @function type
   @param {Any} [x]
   @return {String} The type of `x`
@@ -63,7 +63,6 @@ var toString = {}.toString;
 function type(x) {
   return toString.call(x).replace(/^\[object ([^\]]+)\]$/, "$1").toLowerCase();
 }
-exports.type = type;
 
 /**
   @function isCallable

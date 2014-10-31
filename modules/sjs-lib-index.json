@@ -2385,9 +2385,6 @@
         },
         "isString": {
           "type": "function"
-        },
-        "type": {
-          "type": "function"
         }
       },
       "summary": "Functions for creating and inspecting types."
