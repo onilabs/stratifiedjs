@@ -70,7 +70,7 @@ function type(x) {
   @return {Boolean} Whether `x` is callable or not
   @summary Returns whether `x` is callable or not
   @desc
-    Returns `true` for functions and `Function` objects.
+    Returns `true` for functions.
 
     Might also return `true` for other things, if they are
     callable.
