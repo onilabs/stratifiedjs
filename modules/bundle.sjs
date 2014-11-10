@@ -101,11 +101,14 @@ var str = require('sjs:string');
 var regexp = require('sjs:regexp');
 var { split, rsplit, startsWith } = str;
 var object = require('sjs:object');
-var { hasOwn, ownKeys, ownValues, ownPropertyPairs } = object;
+var { hasOwn, ownKeys, ownValues, ownPropertyPairs, pairsToObject } = object;
 var docutil = require('sjs:docutil');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
 var { isArrayLike } = require('builtin:apollo-sys');
+
+var fst = pair -> pair[0];
+var snd = pair -> pair[1];
 
 var stringToPrefixRe = function(s) {
   if (str.isString(s)) return new RegExp('^' + regexp.escape(s));
@@ -256,11 +259,7 @@ function findDependencies(sources, settings) {
   }
 
   // filter out usedHubs that didn't end up with any modules under them
-  usedHubs .. ownKeys .. toArray() .. each {|h|
-    if (!deps .. ownValues .. any(v -> v.id && v.id .. startsWith(h))) {
-      delete usedHubs[h];
-    }
-  }
+  usedHubs = usedHubs .. withoutUnusedHubs(deps .. ownValues .. toArray);
 
   return {
     hubs: usedHubs,
@@ -268,6 +267,13 @@ function findDependencies(sources, settings) {
   };
 }
 exports.findDependencies = findDependencies;
+
+var withoutUnusedHubs = function(hubs, modules) {
+  // filter out hubs that didn't end up with any modules under them
+  return hubs .. ownPropertyPairs .. seq.filter(function([hub,_]) {
+    return modules .. any(mod -> mod.id .. startsWith(hub));
+  }) .. pairsToObject;
+};
 
 var relax = function(fn) {
   // wraps `fn`, but turns exceptions into warnings
@@ -317,7 +323,18 @@ function generateBundle(deps, settings) {
     write("if(!b.h) b.h={};");
     write("if(!b.m) b.m={};");
 
-    var hubNames = deps.hubs .. ownKeys .. sort();
+    var isNotExcluded = ([path, mod]) ->
+      !(shouldExcude(path, excludes) || (mod.id && shouldExcude(mod.id, excludes)));
+
+    var usedModules = deps.modules .. ownPropertyPairs
+      .. seq.filter(isNotExcluded)
+      .. seq.sortBy(fst);
+
+    var hubNames = deps.hubs
+      .. withoutUnusedHubs(usedModules .. map(snd))
+      .. ownKeys
+      .. sort;
+
     hubNames .. each {|name|
       logging.debug("Adding hub: #{name}");
       var nameExpr = JSON.stringify(name);
@@ -325,10 +342,8 @@ function generateBundle(deps, settings) {
       write("if(!b.h[#{nameExpr}])b.h[#{nameExpr}]=[];");
     }
 
-    var addPath = function(path) {
-      if (shouldExcude(path, excludes)) return;
+    var addDep = function([path,dep]) {
       logging.debug("Adding path #{path}");
-      var dep = deps.modules[path];
       var id = dep.id;
       if (!id) {
         throw new Error("No ID for #{dep.path}");
@@ -365,9 +380,9 @@ function generateBundle(deps, settings) {
       setContents(contents);
     }.bind(this);
 
-    if (!strict) addPath = relax(addPath);
+    if (!strict) addDep = relax(addDep);
 
-    deps.modules .. object.ownKeys .. seq.sort .. each(addPath);
+    usedModules .. each(addDep);
     write("})();");
   }
   return rv;

@@ -83,6 +83,36 @@ context {||
     ]);
   }
 
+  test("can exclude hubs") {||
+    var bundle = createBundle({
+      resources: ["#{basePath}=/"],
+      sources: [
+        'sjs:xbrowser/console',
+        fixtureUrl + 'bundle_parent.sjs'
+      ],
+      exclude: ['sjs:'],
+    });
+
+    bundle .. bundledModuleNames .. assert.eq([
+      [ null, fixtureDependencyUrls]
+    ]);
+  }
+
+  test("can ignore hubs") {||
+    var bundle = createBundle({
+      resources: ["#{basePath}=/"],
+      sources: [
+        'sjs:xbrowser/console',
+        fixtureUrl + 'bundle_parent.sjs'
+      ],
+      ignore: ['sjs:'],
+    });
+
+    bundle .. bundledModuleNames .. assert.eq([
+      [ null, fixtureDependencyUrls]
+    ]);
+  }
+
   test("modules included in a test condition") {||
     var bundle = createBundle({
       resources: ["#{basePath}=/"],
