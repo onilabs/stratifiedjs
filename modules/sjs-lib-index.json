@@ -624,6 +624,9 @@
         "bound": {
           "type": "function"
         },
+        "chain": {
+          "type": "function"
+        },
         "deferred": {
           "type": "function"
         },

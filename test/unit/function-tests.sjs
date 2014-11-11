@@ -3,6 +3,9 @@ var testEq = testUtil.test;
 var f = require('sjs:function');
 var {test, context, assert} = require('sjs:test/suite');
 
+testEq('chain', 'abcde', function() {
+  return f.chain((x,y)-> (hold(0),x+y+'c'), x -> x+'d', x -> x+'e')('a','b');
+});
 
 testEq('seq', 2, function() {
   return f.seq(-> hold(0), -> 1, -> 2)();

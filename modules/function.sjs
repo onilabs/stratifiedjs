@@ -43,6 +43,27 @@ var { map, zip, each } = require('./sequence');
 exports.isFunction = (f) -> (typeof f == "function");
 
 /**
+   @function chain
+   @summary Function chaining composition
+   @param   {Function} [f1, f2, ...] Functions to compose
+   @return  {Function} Chain composition of f1, f2, ...
+   @desc
+      The composed function `c = chain(f,g)` will apply its arguments first 
+      to `f`, then call `g` with the result of evaluationg `f`, and return the result of evaluating `g`.
+
+      `f` and `g` will be called with the same `this` pointer that `c` is called with.
+*/
+exports.chain = function(/*f1,f2,...*/) {
+  var fs = arguments;
+  return function() { 
+    var rv = fs[0].apply(this, arguments);
+    for (var i=1; i<fs.length; ++i)
+      rv = fs[i].apply(this, [rv]); 
+    return rv;
+  }
+};
+
+/**
    @function seq
    @summary Sequential function composition
    @param   {Function} [f1, f2, ...] Functions to compose
