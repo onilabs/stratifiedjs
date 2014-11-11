@@ -140,6 +140,15 @@ context("server-side") {||
     }
   }
 
+  test("relative node_modules resolution") {||
+    var dep = require(dataRoot + '/npm_dep');
+    dep.js.name .. assert.eq("dep1");
+    dep.js.child.name .. assert.eq("dep2");
+
+    dep.sjs.name .. assert.eq("dep1");
+    dep.sjs.child().name .. assert.eq("dep2");
+  }
+
 }.serverOnly();
 
 test('require.resolve() on sjs modules') {||
