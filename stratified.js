@@ -3995,15 +3995,17 @@ r.args.unshift(l);
 
 
 if(!r.is_nblock)r.nblock_form=false;
+}else r=new ph_fun_call(r,[l],pctx);
+
+
+
+r.is_doubledot=true;
 return r;
-}else return new ph_fun_call(r,[l],pctx);
-
-
 }
 
 
 
-function gen_doublecolon_call(l,r,pctx){if(l.is_fun_call){
+function gen_doublecolon_call(l,r,pctx){if(l.is_fun_call&&!l.is_doubledot){
 
 
 

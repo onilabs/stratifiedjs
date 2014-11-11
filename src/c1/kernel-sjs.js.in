@@ -1272,10 +1272,12 @@ function gen_doubledot_call(l, r, pctx) {
     // we need to make sure that the call doesn't get encoded as
     // nblock if 'r' isn't. See sjs-testsuite2:36
     if (!r.is_nblock) r.nblock_form = false;
-    return r;
   }
   else
-    return new ph_fun_call(r, [l], pctx);
+    r = new ph_fun_call(r, [l], pctx);
+
+  r.is_doubledot = true;
+  return r;
 }
 
 #endif /* SJS_DOUBLEDOT */
@@ -1287,7 +1289,7 @@ function gen_doublecolon_call(l, r, pctx) {
   // XXX not very elegant show we inject ourselves into the funcall
   // here (and it was the source of a very hard to track down bug
   // already!)
-  if (l.is_fun_call) {
+  if (l.is_fun_call && !l.is_doubledot) {
     l.args.unshift(r);
     // we need to make sure that the call doesn't get encoded as
     // nblock if 'l' isn't. See sjs-testsuite2:36
