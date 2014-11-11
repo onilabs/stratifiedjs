@@ -608,7 +608,7 @@ exports.create = function(opts) {
   }
 }
 
-if (require.main === module) {
+exports.main = function(args) {
   var parser = require('sjs:dashdash').createParser({
     options: [
       {
@@ -688,7 +688,7 @@ if (require.main === module) {
     ]
   });
 
-  var opts = parser.parse();
+  var opts = parser.parse(args);
 
   var usage = function() {
     var path = require('nodejs:path');
@@ -736,5 +736,9 @@ if (require.main === module) {
     console.log(JSON.stringify(deps, null, '  '));
     process.exit(0);
   }
-  
+};
+
+if (require.main === module) {
+  exports.main();
 }
+
