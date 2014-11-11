@@ -4856,7 +4856,7 @@ S("<<").ifx(210);
 S(">>").ifx(210);
 S(">>>").ifx(210);
 
-S("::").exc(205,function(l,pctx){var r=parseExp(pctx,205);
+S("::").exc(205,function(l,pctx){var r=parseExp(pctx,204.5);
 
 
 return gen_doublecolon_call(l,r,pctx);
