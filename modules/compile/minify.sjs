@@ -114,6 +114,7 @@ general:
    define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
    define SJS_DOUBLEDOT: allow double dot call syntax
+   define SJS_DOUBLECOLON: allow double colon call syntax
    define SJS_ALTERNATE_NAMESPACE: allow '@' and '@identifier'
    define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    define QUASIS: allow quasi templates (`foo#{bar}baz`)
@@ -277,6 +278,9 @@ GEN_FAT_ARROW_WITH_PARS(pars_exp, body_exp, pctx)
 - if SJS_DOUBLEDOT is set
 GEN_DOUBLEDOT_CALL(l, r, pctx)
 
+- if SJS_DOUBLECOLON is set
+GEN_DOUBLECOLON_CALL(l, r, pctx)
+
 - if SJS_ALTERNATE_NAMESPACE is set
 GEN_ALTERNATE_NAMESPACE_OBJ(pctx)
 GEN_ALTERNATE_NAMESPACE_IDENTIFIER(name, pctx)
@@ -437,6 +441,7 @@ function gen_prefix_op(id, right, pctx) {
 
 
 
+
 function interpolating_string(parts) {
   var rv = '"';
   for (var i=0,l=parts.length;i<l;++i) {
@@ -536,11 +541,11 @@ Hash.prototype = {
 
 
 // tokenizer for tokens in a statement/argument position:
-var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
 
 // tokenizer for tokens in an operator position:
-var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
+var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
 
 
 // tokenizer for tokens in an interpolating string position:
@@ -718,6 +723,7 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 210  7 L     <<           ShiftExp AddExp                BitwiseLeftShift
        L     >>           ShiftExp AddExp                SignedRightShift
        L     >>>          ShiftExp AddExp                UnsignedRightShift
+*205   R     ::           CallExpression ArgExp          Double Colon Call
 200  8 L     <            RelExp ShiftExp                LessThanComparison
        L     >            RelExp ShiftExp                GreaterThanComparison
        L     <=           RelExp ShiftExp                LessThanOrEqualComparison
@@ -883,6 +889,13 @@ S("%").ifx(230);
 S("<<").ifx(210);
 S(">>").ifx(210);
 S(">>>").ifx(210);
+
+S("::").exc(205, function(l, pctx) {
+  var r = parseExp(pctx, 205);
+  
+  return l+"::"+r;
+});
+
 
 S("<").ifx(200);
 S(">").ifx(200);

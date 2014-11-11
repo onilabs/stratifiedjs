@@ -410,6 +410,11 @@ function gen_crf(crf) {
 #define GEN_DOUBLEDOT_CALL(l,r,pctx) return l.seq(r);
 #endif
 
+#ifdef SJS_DOUBLECOLON
+// XXX not sure this is right
+#define GEN_DOUBLECOLON_CALL(l,r,pctx) return l.seq(r);
+#endif
+
 #ifdef SJS_ALTERNATE_NAMESPACE
 #define GEN_ALTERNATE_NAMESPACE_OBJ(pctx) return new Id("__oni_altns");
 #define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx) return (new Id("__oni_altns")).dot(value);
