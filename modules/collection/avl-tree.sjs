@@ -4,6 +4,8 @@
 
 var assert = require("sjs:assert");
 
+// http://arclanguage.org/item?id=14181
+// http://arclanguage.org/item?id=18936
 __js {
   function defaultSort(x, y) {
     if (x === y) {
@@ -160,13 +162,14 @@ __js {
       return y;
     } else if (y === null) {
       return x;
+    // TODO what if the depths are the same?
     } else if (depth(x) < depth(y)) {
       var left = concat(from, x, y.left);
-      assert.isNot(left, y.left);
+      assert.isNot(left, y.left); // TODO get rid of this?
       return balanced_node(from, left, y.right, y);
     } else {
       var right = concat(from, x.right, y);
-      assert.isNot(right, x.right);
+      assert.isNot(right, x.right); // TODO get rid of this?
       return balanced_node(from, x.left, right, x);
     }
   }
@@ -363,7 +366,7 @@ __js {
       var l_index = size(node.left);
 
       if (index === l_index) {
-        var value = f(node.value);
+        var value = f(node.value); // TODO what if `f` suspends?
         // TODO ListNodeEqual
         if (node.value === value) {
           return node;
@@ -397,6 +400,9 @@ __js {
     this.root = root;
     this.sort = sort;
   }
+
+  // TODO is this a good idea ?
+  ImmutableDict.prototype = Object.create(null);
 
   ImmutableDict.prototype.isEmpty = function () {
     return this.root === null;
@@ -468,6 +474,9 @@ __js {
     this.sort = sort;
   }
 
+  // TODO is this a good idea ?
+  ImmutableSet.prototype = Object.create(null);
+
   ImmutableSet.prototype.isEmpty = ImmutableDict.prototype.isEmpty;
 
   ImmutableSet.prototype.has = ImmutableDict.prototype.has;
@@ -505,6 +514,9 @@ __js {
   function ImmutableList(root) {
     this.root = root;
   }
+
+  // TODO is this a good idea ?
+  ImmutableList.prototype = Object.create(null);
 
   ImmutableList.prototype.isEmpty = ImmutableDict.prototype.isEmpty;
 
@@ -596,11 +608,27 @@ __js {
 
   ImmutableList.prototype.concat = function (other) {
     var node = concat(ListNode, this.root, other.root);
-    // TODO test this
     if (node === this.root) {
       return this;
     } else {
       return new ImmutableList(node);
+    }
+  };
+
+  // TODO replace with interface
+  ImmutableList.prototype.is = function (y) {
+    if (y instanceof ImmutableList) {
+      if (size(x.root) === size(y.root)) {
+        // TODO @zip is okay in here, but it won't work for the Dicts or Sets
+        return @zip(x, y) ..@all(function ([x, y]) {
+          // TODO replace with @is
+          return x === y;
+        });
+      } else {
+        return false;
+      }
+    } else {
+      return false;
     }
   };
 
@@ -613,41 +641,6 @@ __js {
 
     return a;
   };
-
-
-  function verify(tree) {
-    function loop(node, tests) {
-      if (node !== null) {
-        var left  = node.left;
-        var right = node.right;
-
-        assert.is(depth(node), max(depth(left), depth(right)) + 1);
-
-        var diff = depth(left) - depth(right);
-        assert.ok(diff === -1 || diff === 0 || diff === 1);
-
-        tests.forEach(function (test) {
-          test(node);
-        });
-
-        if (node instanceof ListNode) {
-          assert.is(size(node), size(left) + size(right) + 1);
-          loop(left, tests);
-          loop(right, tests);
-
-        } else {
-          // Every left node must be lower than the parent node
-          loop(left,  tests.concat([function (x) { assert.ok(x.key < node.key); }]));
-
-          // Every right node must be greater than the parent node
-          loop(right, tests.concat([function (x) { assert.ok(x.key > node.key); }]));
-        }
-      }
-    }
-    loop(tree.root, []);
-
-    return tree;
-  }
 
 
   exports.SortedDict = function (sort) {
@@ -672,119 +665,156 @@ __js {
 }
 
 
-/*;(function () {
-  var x = exports.Dict();
+/*__js {
+  ;(function () {
+    // TODO test that this works correctly
+    function verify(tree) {
+      function loop(node, lt, gt) {
+        if (node !== null) {
+          var left  = node.left;
+          var right = node.right;
 
-  //x = x.set("foo", 5);
-  //assert.ok(x === x.set("foo", 5));
-  //assert.ok(x !== x.set("foo", 6));
-  //assert.ok(x !== x.set("bar", 5));
+          assert.is(depth(node), max(depth(left), depth(right)) + 1);
 
-  //assert.ok(x === x.remove("foo"));
+          var diff = depth(left) - depth(right);
+          assert.ok(diff === -1 || diff === 0 || diff === 1);
 
-  var a = [];
-  var i = 0;
-  while (i < 1000) {
-    a.push("foo" + i);
-    ++i;
-  }
+          // Every left node must be lower than the parent node
+          lt.forEach(function (parent) {
+            assert.ok(node.key < parent.key);
+          });
 
-  function down(array, f) {
-    var i = array.length;
-    while (i--) {
-      f(array[i], array.length - 1 - i);
+          // Every right node must be greater than the parent node
+          gt.forEach(function (parent) {
+            assert.ok(node.key > parent.key);
+          });
+
+          if (node instanceof ListNode) {
+            assert.is(size(node), size(left) + size(right) + 1);
+            loop(left,  lt, gt);
+            loop(right, lt, gt);
+
+          } else {
+            loop(left,  lt.concat([node]), gt);
+            loop(right, lt, gt.concat([node]));
+          }
+        }
+      }
+      loop(tree.root, [], []);
+
+      return tree;
     }
-  }
 
-  function up(array, f) {
-    for (var i = 0; i < array.length; ++i) {
-      f(array[i], i);
-    }
-  }
-
-  function rand(array, f) {
-    var a = array.slice();
-    while (a.length) {
-      var i = Math.floor(Math.random() * a.length);
-      f(a[i], array.length - a.length);
-      a.splice(i, 1);
-    }
-  }
-
-  verify(x);
-
-  rand(a, function (s) {
-    x = x.set(s, 1);
-    verify(x);
-  });
-
-  rand(a, function (s, i) {
-    x = x.remove(s);
-    verify(x);
-  });
-})();
-
-
-;(function () {
-  var x = exports.List();
-
-  //x = x.set("foo", 5);
-  //assert.ok(x === x.set("foo", 5));
-  //assert.ok(x !== x.set("foo", 6));
-  //assert.ok(x !== x.set("bar", 5));
-
-  //assert.ok(x === x.remove("foo"));
-
-  verify(x);
-
-  var a = [];
-  var i = 0;
-  while (i < 1000) {
-    a.push(i);
-    ++i;
-  }
-
-
-  function check(array, x) {
+    var a = [];
     var i = 0;
-    each(x.root, function (node) {
-      assert.is(node.value, array[i]);
+    while (i < 1000) {
+      a.push("foo" + i);
       ++i;
-    });
+    }
 
-    var tojs = x.toJS();
-    assert.is(tojs.length, array.length);
-    array.forEach(function (x, i) {
-      assert.is(tojs[i], x);
-    });
-  }
+    function forEachRev(a, f) {
+      var i = array.length;
+      while (i--) {
+        f(array[i], i);
+      }
+    }
 
-
-  var array = [];
-
-  a.forEach(function (s) {
-    var index = Math.floor(Math.random() * array.length);
-    array.splice(index, 0, s);
-    x = x.push(s, index);
-    verify(x);
-    check(array, x);
-  });
-
-  while (array.length) {
-    var index = Math.floor(Math.random() * array.length);
-    array.splice(index, 1);
-    x = x.pop(index);
-    verify(x);
-    check(array, x);
-  }
+    function shuffle(array) {
+      var out = [];
+      for (var i = 0; i < array.length; ++i) {
+        out.splice(Math.floor(Math.random() * out.length), 0, array[i]);
+      }
+      return out;
+    }
 
 
-  var x = x.push(10).push(20).push(30).push(40).push(50)
-                        .push(60).push(70).push(80).push(90).push(100);
-  var y = exports.List().push(5);
+    ;(function () {
+      var x = exports.Dict();
 
-  console.log(verify(x.concat(x)).toJS());
-  console.log(verify(x.concat(y)).toJS());
-})();
+      var y = exports.Dict();
+      y = y.set("foo", 5);
+      assert.ok(y === y.set("foo", 5));
+      assert.ok(y !== y.set("foo", 6));
+      assert.ok(y !== y.set("bar", 5));
+      assert.ok(x === x.remove("foo"));
 
-throw 42;*/
+      verify(x);
+
+      shuffle(a).forEach(function (s) {
+        x = x.set(s, 1);
+        verify(x);
+      });
+
+      shuffle(a).forEach(function (s) {
+        x = x.remove(s);
+        verify(x);
+      });
+    })();
+
+
+    ;(function () {
+      var x = exports.List();
+
+      verify(x);
+
+      function check(array, x) {
+        var i = 0;
+        each(x.root, function (node) {
+          assert.is(node.value, array[i]);
+          ++i;
+        });
+
+        var tojs = x.toJS();
+        assert.is(tojs.length, array.length);
+        array.forEach(function (x, i) {
+          assert.is(tojs[i], x);
+        });
+      }
+
+
+      var array = [];
+
+      a.forEach(function (s) {
+        var index = Math.floor(Math.random() * array.length);
+        array.splice(index, 0, s);
+        x = x.push(s, index);
+        verify(x);
+        check(array, x);
+      });
+
+      while (array.length) {
+        var index = Math.floor(Math.random() * array.length);
+        array.splice(index, 1);
+        x = x.pop(index);
+        verify(x);
+        check(array, x);
+      }
+
+
+      var a2 = shuffle(a);
+
+      var pivot = Math.floor(Math.random() * a2.length);
+      var xa = a2.slice(0, pivot);
+      var ya = a2.slice(pivot);
+
+      var x = exports.List();
+      var y = exports.List();
+
+      xa.forEach(function (s) {
+        var index = Math.floor(Math.random() * x.size());
+        x = x.push(s, index);
+        verify(x);
+      });
+
+      ya.forEach(function (s) {
+        var index = Math.floor(Math.random() * y.size());
+        y = y.push(s, index);
+        verify(y);
+      });
+
+      verify(x.concat(y));
+
+      verify(exports.List().concat(exports.List()));
+    })();
+  })();
+}*/
