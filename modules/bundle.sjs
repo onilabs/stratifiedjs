@@ -303,14 +303,14 @@ function generateBundle(deps, settings) {
   if (settings.compile) {
     var compiler = require('./compile/sjs');
     compile = function(src, path) {
-      var js = compiler.compile(src, {globalReturn:true, filename: path});
+      var js = compiler.compile(src, {globalReturn:true, filename: "'#{path.replace(/\'/g,'\\\'')}'"});
       return "function(#{require.extensions['sjs'].module_args.join(',')}) {
         #{js}
       }"
     }
   } else {
     var stringifier = require('./compile/stringify');
-    compile = (src, path) -> stringifier.compile(src, {keeplines: true, filename:path});
+    compile = (src, path) -> stringifier.compile(src, {keeplines: true});
   }
 
   var strict = settings.strict;
