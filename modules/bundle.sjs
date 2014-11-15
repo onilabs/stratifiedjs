@@ -302,15 +302,15 @@ function generateBundle(deps, settings) {
   var compile;
   if (settings.compile) {
     var compiler = require('./compile/sjs');
-    compile = function(src) {
-      var js = compiler.compile(src, {globalReturn:true, filename:"__onimodulename"});
+    compile = function(src, path) {
+      var js = compiler.compile(src, {globalReturn:true, filename: path});
       return "function(#{require.extensions['sjs'].module_args.join(',')}) {
         #{js}
       }"
     }
   } else {
     var stringifier = require('./compile/stringify');
-    compile = (src) -> stringifier.compile(src, {keeplines: true});
+    compile = (src, path) -> stringifier.compile(src, {keeplines: true, filename:path});
   }
 
   var strict = settings.strict;
@@ -372,7 +372,7 @@ function generateBundle(deps, settings) {
 
       var initialSize = contents.length;
       logging.verbose("Compiling: #{dep.path}");
-      contents = compile(contents);
+      contents = compile(contents, dep.path);
       var minifiedSize = contents.length;
       var percentage = ((minifiedSize/initialSize) * 100).toFixed(2);
       logging.info("Bundled #{id} [#{percentage}%]");
