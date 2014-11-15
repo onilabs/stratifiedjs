@@ -73,7 +73,7 @@
 
   ### Module resolution
 
-  If `module` is not an absolue url, it will be [sjs:url::normalize]d
+  If `module` is not an absolute url, it will be [sjs:url::normalize]d
   against [::module.id] to obtain a full URL.
 
   If `module` does not contain a file extension, `require()` will append
