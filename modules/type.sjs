@@ -72,8 +72,8 @@ function type(x) {
   @desc
     Returns `true` for functions.
 
-    Might also return `true` for other things, if they are
-    callable.
+    Might be extended to return `true` for other things in future
+    versions of StratifiedJS, if they are callable.
  */
 function isCallable(x) {
   return typeof x === "function";
@@ -124,8 +124,8 @@ exports.isNaN = isNaN;
   @return {Boolean} Whether `x` is a number or not
   @summary Returns whether `x` is a number or not
   @desc
-    This function returns `true` for primitive numbers
-    and `Number` objects. It returns `false` for `NaN`.
+    This function returns `true` for numbers. 
+    It returns `false` for `NaN`.
  */
 function isNumber(x) {
   return type(x) === "number" && !isNaN(x);
@@ -138,8 +138,7 @@ exports.isNumber = isNumber;
   @return {Boolean} Whether `x` is a string or not
   @summary Returns whether `x` is a string or not
   @desc
-    This function returns `true` for primitive strings
-    and `String` objects.
+    This function returns `true` for strings.
  */
 function isString(x) {
   return type(x) === "string";
@@ -165,8 +164,7 @@ exports.isArray = isArray;
   @return {Boolean} Whether `x` is a boolean or not
   @summary Returns whether `x` is a boolean or not
   @desc
-    This function returns `true` for primitive booleans
-    and `Boolean` objects.
+    This function returns `true` for booleans.
  */
 function isBoolean(x) {
   return type(x) === "boolean";
@@ -240,20 +238,21 @@ exports.is = is;
 
 
 /**
+  @class Interface
+  @summary A string indentifier uniquely naming an interface across all loaded modules
+
   @function Interface
   @param {Module} [module]
   @param {String} [name]
-  @return {Interface}
   @summary Returns a new unique interface for the module
   @desc
-    Before you can use `Interface` you must use `module.setCanonicalId("...")`
-    to give the current module a *unique* canonical ID.
+    Before you can use `Interface` you must use [#language/builtins::module.setCanonicalId]
+    to give the current module a unique canonical ID.
 
     Then you call `Interface(module, "...")` where the second argument is the
-    name of the interface.
-
-    The reason for `setCanonicalId` is to ensure that every interface is *unique*,
-    so that it does not collide with any other interface.
+    name of the interface. The returned string for a given `(module,name)` tuple is 
+    guaranteed to be unique across all loaded modules, i.e. it will not collide with an
+    interface with the same `name` defined in other modules. 
 
     ----
 

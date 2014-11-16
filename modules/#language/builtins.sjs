@@ -321,10 +321,45 @@
 @summary The fully-qualified URL of the current module
 
 @function module.getCanonicalId
+@return {String|null}
 @summary Returns the canonical ID for the current module
+@desc
+   See [::module.setCanonicalId].
 
 @function module.setCanonicalId
+@param {String} [id] 
 @summary Sets the canonical ID for the current module
+@desc
+   A canonical ID is a unique identifier for a module. On setting, 
+   the SJS runtime ensures that no other module currently in use has
+   the same ID. An exception will be thrown if the ID is already in use.
+
+   Once set for a module, a canonical ID cannot be changed: subsequent calls
+   to module.setCanonicalId raise an exception.
+
+   It is not generally required to assign canonical IDs to modules, unless they make use
+   of certain functionality that depends on them. E.g. [type::Interface] uses canonical ID to 
+   generate unique interface names.
+
+   #### Considerations for choosing an ID name
+
+   There is no prescribed format for the ID, but it should be chosen in a way that
+   minimizes the likelyhood of clashing with the ID chosen by another module. 
+   If there are e.g. two modules named 'utils.sjs' from different vendors, and both 
+   these libraries chose `'utils'` as their canonical ID, then it effectively prevents
+   those two modules from being used together in the same application.
+
+   A good strategy is to choose URLs under your control, e.g.: 
+   `'https://github.com/vendorA/projectX/utils'` and
+   `'http://vendorB.com/modules/utils'`.
+
+   Furthermore, the ID should be constant in time and space. While it
+   is possible to use ephemeral IDs that are being generated 
+   each time the module is loaded, as in e.g. `module.setCanonicalId(generateNewUUID())`, 
+   this practice can break certain remoting scenarios, where two communicating systems 
+   don't recognise the equality of a module they are both using.
+
+   See also [::getCanonicalId].
 
 @variable module.exports
 @summary The exported symbols for the current module

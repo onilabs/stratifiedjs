@@ -2363,7 +2363,12 @@
       "type": "module",
       "children": {
         "Interface": {
-          "type": "function"
+          "type": "class",
+          "children": {
+            "Interface": {
+              "type": "ctor"
+            }
+          }
         },
         "is": {
           "type": "function"
