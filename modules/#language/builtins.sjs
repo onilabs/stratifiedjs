@@ -359,7 +359,7 @@
    this practice can break certain remoting scenarios, where two communicating systems 
    don't recognise the equality of a module they are both using.
 
-   See also [::getCanonicalId].
+   See also [::module.getCanonicalId].
 
 @variable module.exports
 @summary The exported symbols for the current module
