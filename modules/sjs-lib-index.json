@@ -621,6 +621,9 @@
     "function": {
       "type": "module",
       "children": {
+        "ITF_SIGNAL": {
+          "type": "variable"
+        },
         "bound": {
           "type": "function"
         },
@@ -652,6 +655,9 @@
           "type": "function"
         },
         "sequential": {
+          "type": "function"
+        },
+        "signal": {
           "type": "function"
         },
         "trycatch": {

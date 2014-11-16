@@ -329,3 +329,70 @@ testEq('unbatched parallel / retraction', [[[2, 3]], [, 4, 9]], function() {
 
   return [calls, rv];
 });
+
+testEq('signal 1', 'abc', function() {
+  var rv = '';
+  function foo(x) {
+    hold(0);
+    rv += x;
+  }
+
+  rv += 'a';
+  foo .. f.signal(null, ['c']);
+  rv += 'b';
+  // let the signal call complete:
+  hold(0);
+  return rv;
+});
+
+testEq('signal 2', 'ab', function() {
+  var rv = '';
+  function foo(x) {
+    hold(0);
+    rv += x;
+  }
+
+  rv += 'a';
+  foo .. f.signal(null, ['c']);
+  rv += 'b';
+  return rv;
+});
+
+testEq('ITF_SIGNAL 1', 'abcd', function() {
+  var rv = '';
+  function foo(x) {
+    hold(0);
+    rv += x;
+  }
+
+  foo[f.ITF_SIGNAL] = function(this_obj, args) {
+    rv += 'b';
+    foo.apply(this_obj, args);
+  }
+
+  rv += 'a';
+  foo .. f.signal(null, ['d']);
+  rv += 'c';
+  // let the signal call complete:
+  hold(0);
+  return rv;
+});
+
+testEq('ITF_SIGNAL 2', 'abc', function() {
+  var rv = '';
+  function foo(x) {
+    hold(0);
+    rv += x;
+  }
+
+  foo[f.ITF_SIGNAL] = function(this_obj, args) {
+    rv += 'b';
+    foo.apply(this_obj, args);
+  }
+
+  rv += 'a';
+  foo .. f.signal(null, ['d']);
+  rv += 'c';
+
+  return rv;
+});

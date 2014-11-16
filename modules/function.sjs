@@ -35,10 +35,13 @@
    @home    sjs:function
 */
 
+module.setCanonicalId('sjs:function');
+
 var sys   = require('builtin:apollo-sys');
 var cutil  = require('./cutil');
 var { extend } = require('./object');
 var { map, zip, each } = require('./sequence');
+var { Interface } = require('./type');
 
 exports.isFunction = (f) -> (typeof f == "function");
 
@@ -422,4 +425,45 @@ function unbatched(batched_f, settings) {
 }
 exports.unbatched = unbatched;
 
-// XXX alt, compose (f o g), curry
+/**
+   @variable ITF_SIGNAL
+   @summary Interface for customizing [::signal]
+*/
+var ITF_SIGNAL = exports.ITF_SIGNAL = module .. Interface('signal');
+
+/**
+   @function signal
+   @altsyntax f .. signal(this_obj, args)
+   @param {Function} [f] Function to call
+   @param {Object} [this_obj] 'this' object to call `f` on
+   @param {Array} [args] Argument array for the function call
+   @return {void}
+   @summary Call a function asynchronously without waiting for the return value
+   @desc
+     Calling `f .. signal(this_obj, arguments)` is equivalent to
+     executing `spawn f.apply(this_obj, arguments)`.
+
+     Signalling is more efficient than spawning but doesn't allow the caller to interact with the
+     called function: Whereas the `spawn` call returns a [#language/builtins::Stratum], the 
+     `signal` call returns `void`. 
+
+     The efficiency gain is particularly interesting when communicating between 
+     different systems across a network using the [mho:rpc/bridge::] 
+     (usually via [mho:#features/api-file::]s): Normal and spawned calls 
+     wait for a reply from the other end; signalled calls, however, don't require the 
+     other end to reply, and thus lead to less network traffic.
+
+     The action performed by `signal` can be customized through [::ITF_SIGNAL]. If this interface is
+     present on `f`, `signal` will call `f[ITF_SIGNAL](this_obj, args)`. [::ITF_SIGNAL] is e.g. used 
+     by the [mho:rpc/bridge::] to special-case the handling of signalled calls across the network.
+*/
+__js {
+  function signal(f, this_obj, args) {
+    if (f[ITF_SIGNAL])
+      f[ITF_SIGNAL](this_obj, args);
+    else
+      f.apply(this_obj, args);
+  }
+  exports.signal = signal;
+}
+// XXX alt, curry
