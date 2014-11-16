@@ -2,11 +2,104 @@
   @nodoc
 */
 
-var assert = require("sjs:assert");
+// TODO should thes use sjs: or ../
+var assert   = require("sjs:assert");
+var sequence = require("sjs:sequence");
 
 // http://arclanguage.org/item?id=14181
 // http://arclanguage.org/item?id=18936
 __js {
+  // Cons cells are faster than AVL trees for small lists
+  var cons_insert_limit = 10;
+
+  function Cons(car, cdr) {
+    this.car = car;
+    this.cdr = cdr;
+  }
+
+  // Destructive reverse
+  function stack_to_cons(a, start) {
+    while (a !== null) {
+      var cdr = a.cdr;
+      a.cdr   = start;
+      start   = a;
+      a       = cdr;
+    }
+    return start;
+  }
+
+  function cons_nth(a, i) {
+    while (a !== null && i !== 0) {
+      --i;
+      a = a.cdr;
+    }
+    return a.car;
+  }
+
+  function cons_insert_at(a, i, x) {
+    var stack = null;
+    while (true) {
+      if (i === 0) {
+        return stack_to_cons(stack, new Cons(x, a));
+      } else {
+        stack = new Cons(a.car, stack);
+        --i;
+        a = a.cdr;
+      }
+    }
+  }
+
+  function cons_modify_at(a, i, f) {
+    var stack = null;
+    while (true) {
+      if (i === 0) {
+        return stack_to_cons(stack, new Cons(f(a.car), a.cdr));
+      } else {
+        stack = new Cons(a.car, stack);
+        --i;
+        a = a.cdr;
+      }
+    }
+  }
+
+  function cons_remove_at(a, i) {
+    var stack = null;
+    while (true) {
+      if (i === 0) {
+        return stack_to_cons(stack, a.cdr);
+      } else {
+        stack = new Cons(a.car, stack);
+        --i;
+        a = a.cdr;
+      }
+    }
+  }
+
+  function cons_concat(a, b) {
+    var stack = null;
+    while (true) {
+      if (a === null) {
+        return stack_to_cons(stack, b);
+      } else {
+        stack = new Cons(a.car, stack);
+        a = a.cdr;
+      }
+    }
+  }
+
+  // TODO can this be made more efficient ?
+  function cons_to_avl(a) {
+    var out = null;
+
+    while (a !== null) {
+      out = nth_insert(ListNode, out, size(out), { value: a.car });
+      a = a.cdr;
+    }
+
+    return out;
+  }
+
+
   function defaultSort(x, y) {
     if (x === y) {
       return 0;
@@ -33,6 +126,7 @@ __js {
     }
   }
 
+  // Faster than using Math.max
   function max(x, y) {
     if (x > y) {
       return x;
@@ -511,110 +605,7 @@ __js {
 
 
 
-  function ImmutableList(root) {
-    this.root = root;
-  }
-
-  // TODO is this a good idea ?
-  ImmutableList.prototype = Object.create(null);
-
-  ImmutableList.prototype.isEmpty = ImmutableDict.prototype.isEmpty;
-
-  ImmutableList.prototype.size = function () {
-    return size(this.root);
-  };
-
-  ImmutableList.prototype.has = function (index) {
-    var len = size(this.root);
-
-    if (index < 0) {
-      index += len;
-    }
-
-    return nth_has(index, len);
-  };
-
-  ImmutableList.prototype.nth = function (index, def) {
-    var len = size(this.root);
-
-    if (index < 0) {
-      index += len;
-    }
-
-    if (nth_has(index, len)) {
-      return nth_get(this.root, index).value;
-    } else if (arguments.length === 2) {
-      return def;
-    } else {
-      throw new Error("Index is not valid");
-    }
-  };
-
-  ImmutableList.prototype.push = function (value, index) {
-    if (arguments.length === 1) {
-      index = -1;
-    }
-
-    var len = size(this.root);
-
-    if (index < 0) {
-      index += (len + 1);
-    }
-
-    // TODO code duplication with nth_has
-    if (index >= 0 && index <= len) {
-      return new ImmutableList(nth_insert(ListNode, this.root, index, { value: value }));
-    } else {
-      throw new Error("Index is not valid");
-    }
-  };
-
-  ImmutableList.prototype.pop = function (index) {
-    if (arguments.length === 0) {
-      index = -1;
-    }
-
-    var len = size(this.root);
-
-    if (index < 0) {
-      index += len;
-    }
-
-    if (nth_has(index, len)) {
-      return new ImmutableList(nth_remove(ListNode, this.root, index));
-    } else {
-      throw new Error("Index is not valid");
-    }
-  };
-
-  ImmutableList.prototype.modify = function (index, f) {
-    var len = size(this.root);
-
-    if (index < 0) {
-      index += len;
-    }
-
-    if (nth_has(index, len)) {
-      var node = nth_modify(ListNode, this.root, index, f);
-      if (node === this.root) {
-        return this;
-      } else {
-        return new ImmutableList(node);
-      }
-    } else {
-      throw new Error("Index is not valid");
-    }
-  };
-
-  ImmutableList.prototype.concat = function (other) {
-    var node = concat(ListNode, this.root, other.root);
-    if (node === this.root) {
-      return this;
-    } else {
-      return new ImmutableList(node);
-    }
-  };
-
+  /*
   // TODO replace with interface
   ImmutableList.prototype.is = function (y) {
     if (y instanceof ImmutableList) {
@@ -630,14 +621,186 @@ __js {
     } else {
       return false;
     }
+  };*/
+
+  function ImmutableList(root, length, isCons) {
+    this.root   = root;
+    this.length = length;
+    this.isCons = isCons;
+  }
+  exports.ImmutableList = ImmutableList;
+
+  // TODO is this a good idea ?
+  ImmutableList.prototype = Object.create(null);
+
+  // TODO this only works because cons cells also use null to represent the empty list
+  ImmutableList.prototype.isEmpty = ImmutableDict.prototype.isEmpty;
+
+  ImmutableList.prototype.size = function () {
+    return this.length;
+  };
+
+  ImmutableList.prototype.has = function (index) {
+    var len = this.size();
+
+    if (index < 0) {
+      index += len;
+    }
+
+    return nth_has(index, len);
+  };
+
+  ImmutableList.prototype.nth = function (index, def) {
+    var len = this.size();
+
+    if (index < 0) {
+      index += len;
+    }
+
+    if (nth_has(index, len)) {
+      if (this.isCons) {
+        return cons_nth(this.root, index);
+      } else {
+        return nth_get(this.root, index).value;
+      }
+    } else if (arguments.length === 2) {
+      return def;
+    } else {
+      throw new Error("Index is not valid");
+    }
+  };
+
+  ImmutableList.prototype.push = function (value, index) {
+    if (arguments.length === 1) {
+      index = -1;
+    }
+
+    var len = this.size();
+
+    if (index < 0) {
+      index += (len + 1);
+    }
+
+    // TODO code duplication with nth_has
+    if (index >= 0 && index <= len) {
+      var node   = this.root;
+      var isCons = this.isCons;
+
+      // TODO should this be >= ?
+      // Convert to AVL tree when the size becomes too big
+      if (isCons && len === cons_insert_limit) {
+        node   = cons_to_avl(node);
+        isCons = false;
+      }
+
+      if (isCons) {
+        node = cons_insert_at(node, index, value);
+      } else {
+        node = nth_insert(ListNode, node, index, { value: value });
+      }
+
+      return new ImmutableList(node, len + 1, isCons);
+
+    } else {
+      throw new Error("Index is not valid");
+    }
+  };
+
+  ImmutableList.prototype.pop = function (index) {
+    if (arguments.length === 0) {
+      index = -1;
+    }
+
+    var len = this.size();
+
+    if (index < 0) {
+      index += len;
+    }
+
+    if (nth_has(index, len)) {
+      var isCons = this.isCons;
+
+      var node = (isCons
+                   ? cons_remove_at(this.root, index)
+                   : nth_remove(ListNode, this.root, index));
+
+      return new ImmutableList(node, len - 1, isCons);
+
+    } else {
+      throw new Error("Index is not valid");
+    }
+  };
+
+  ImmutableList.prototype.modify = function (index, f) {
+    var len = this.size();
+
+    if (index < 0) {
+      index += len;
+    }
+
+    if (nth_has(index, len)) {
+      var isCons = this.isCons;
+
+      var node = (isCons
+                   ? cons_modify_at(this.root, index, f)
+                   : nth_modify(ListNode, this.root, index, f));
+
+      if (node === this.root) {
+        return this;
+      } else {
+        return new ImmutableList(node, len, isCons);
+      }
+
+    } else {
+      throw new Error("Index is not valid");
+    }
+  };
+
+  ImmutableList.prototype.concat = function (right) {
+    var left = this;
+
+    var left_isCons  = left.isCons;
+    var right_isCons = right.isCons;
+
+    var len = left.length + right.length;
+
+    if (left_isCons !== right_isCons || len > cons_insert_limit) {
+      if (left_isCons) {
+        left = cons_to_avl(left);
+        left_isCons = false;
+      }
+      // TODO this can probably be made faster in the case where left is AVL ?
+      if (right_isCons) {
+        right = cons_to_avl(right);
+      }
+    }
+
+    var node = (left_isCons
+                 ? cons_concat(left.root, right.root)
+                 : concat(ListNode, left.root, right.root));
+
+    if (node === left.root) {
+      return left;
+    } else {
+      return new ImmutableList(node, len, left_isCons);
+    }
   };
 
   ImmutableList.prototype.toJS = function () {
     var a = [];
 
-    each(this.root, function (node) {
-      a.push(node.value);
-    });
+    if (this.isCons) {
+      var node = this.root;
+      while (node !== null) {
+        a.push(node.car);
+        node = node.cdr;
+      }
+
+    } else {
+      each(this.root, function (node) {
+        a.push(node.value);
+      });
+    }
 
     return a;
   };
@@ -647,8 +810,15 @@ __js {
     return new ImmutableDict(null, sort);
   };
 
-  exports.Dict = function () {
-    return new ImmutableDict(null, defaultSort);
+  exports.Dict = function (obj) {
+    var o = new ImmutableDict(null, defaultSort);
+    if (arguments.length === 1) {
+      // TODO
+      obj ..@items ..@each(function ([key, value]) {
+        o = o.set(key, value);
+      });
+    }
+    return o;
   };
 
   exports.SortedSet = function (sort) {
@@ -659,8 +829,15 @@ __js {
     return new ImmutableSet(null, defaultSort);
   };
 
-  exports.List = function () {
-    return new ImmutableList(null);
+  exports.List = function (array) {
+    var o = new ImmutableList(null, 0, true);
+    if (arguments.length === 1) {
+      // TODO this can probably be sped up
+      array ..sequence.each(function (x) {
+        o = o.push(x);
+      });
+    }
+    return o;
   };
 }
 
