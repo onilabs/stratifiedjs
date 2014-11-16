@@ -390,7 +390,7 @@ function Interface(module, name) {
   if (id == null) {
     throw new Error("You must use module.setCanonicalId before you can use Interface");
   } else {
-    return "__interface_" + id + "_" + name + "__";
+    return "__interface_" + id + "_" + name.replace(/_/g, '__') + "__";
   }
 }
 exports.Interface = Interface;
