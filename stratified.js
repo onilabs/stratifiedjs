@@ -4035,10 +4035,27 @@ return r;
 
 
 
-function gen_doublecolon_call(l,r,pctx){if(l.is_fun_call&&!l.is_doubledot){
+function gen_doublecolon_call(l,r,pctx){if(l.is_doubledot){
 
 
 
+
+
+
+var target=l;
+while(target.args[0].is_doubledot){
+target=target.args[0];
+}
+if(target.args[0].is_fun_call){
+target.args[0].args.unshift(r);
+if(!target.args[0].is_nblock)target.args[0].nblock_form=false;
+}else{
+
+target.args[0]=new ph_fun_call(target.args[0],[r],pctx);
+if(!target.is_nblock)target.nblock_form=false;
+}
+return l;
+}else if(l.is_fun_call){
 
 l.args.unshift(r);
 

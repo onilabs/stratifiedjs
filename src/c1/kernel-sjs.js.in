@@ -1289,7 +1289,24 @@ function gen_doublecolon_call(l, r, pctx) {
   // XXX not very elegant show we inject ourselves into the funcall
   // here (and it was the source of a very hard to track down bug
   // already!)
-  if (l.is_fun_call && !l.is_doubledot) {
+  if (l.is_doubledot) {
+    // walk up the call tree until we find the first argument that
+    // isn't a doubledot:
+    var target = l;
+    while (target.args[0].is_doubledot) {
+      target = target.args[0];
+    }
+    if (target.args[0].is_fun_call) {
+      target.args[0].args.unshift(r);
+      if (!target.args[0].is_nblock) target.args[0].nblock_form = false;
+    }
+    else {
+      target.args[0] = new ph_fun_call(target.args[0], [r], pctx);
+      if (!target.is_nblock) target.nblock_form = false;
+    }
+    return l;
+  }
+  else if (l.is_fun_call) {
     l.args.unshift(r);
     // we need to make sure that the call doesn't get encoded as
     // nblock if 'l' isn't. See sjs-testsuite2:36
