@@ -872,10 +872,10 @@ function testIsFunction(f) {
 //  return ((""+f).indexOf("[native code]") != -1) ||
 //    ((""+f).indexOf("Constructor]") != -1);
   // try 2: (doesn't catch "[object ...]")
-//  return ((""+f).indexOf("[") != -1 ||
-//          (""+f).indexOf("/") == 0 /* a regexp (needed for FF) */);
+//  return ((""+f).indexOf("[") != -1 )
   // try 3:
-  return !!/(?:\[[^o])|(?:^\/)/.exec(""+f);
+  // don't catch things like: html::Element[div] (stringification of mho:surface html primitives) 
+  return /(^| )\[[^o]/.test(""+f);
 }  
 
 // structure of ndata array:
@@ -975,7 +975,21 @@ EF_Fcall.prototype.cont = function(idx, val) {
           command += "this.pars["+i+"]";
         }
         command += ")";
-        rv = eval(command);
+        try {
+          rv = eval(command);
+        }
+        catch (e) {
+          // we have a bit of a problem now... the command could have
+          // failed because the "function" wasn't a function after
+          // all, or because running the builtin failed. As this is
+          // mainly a problem on windows (maybe also safari?) we'll
+          // take a punt and replace the (cryptic) exception we get
+          // ("this.l isn't a function") by a saner one:
+          rv = new CFException("t",
+                               new Error("'"+this.l+"' is not a function"),
+                               this.NDATA_FCALL_LINE(),
+                               this.env.file);
+        }
       }
       break;
       case 1:
@@ -1020,7 +1034,23 @@ EF_Fcall.prototype.cont = function(idx, val) {
           command += "this.pars["+i+"]";
         }
         command += ")";
-        rv = eval(command);
+
+        try {
+          rv = eval(command);
+        }
+        catch (e) {
+          // as above, we have a bit of a problem now... the command
+          // could have failed because the "function" wasn't a
+          // function after all, or because running the builtin
+          // failed. As this is mainly a problem on windows (maybe
+          // also safari?) we'll take a punt and replace the (cryptic)
+          // exception we get ("this.l isn't a function") by a saner
+          // one:
+          rv = new CFException("t",
+                               new Error("'"+this.l[0][this.l[1]]+"' is not a function"),
+                               this.NDATA_FCALL_LINE(),
+                               this.env.file);
+        }
       }
       break;
       case 2:

@@ -765,7 +765,7 @@ function testIsFunction(f){if(typeof f=="function")return true;
 
 
 
-return !!/(?:\[[^o])|(?:^\/)/.exec(""+f);
+return /(^| )\[[^o]/.test(""+f);
 }
 
 
@@ -857,7 +857,21 @@ if(i)command+=",";
 command+="this.pars["+i+"]";
 }
 command+=")";
+try{
 rv=eval(command);
+}catch(e){
+
+
+
+
+
+
+
+rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
+
+
+
+}
 }
 break;
 case 1:
@@ -891,7 +905,23 @@ if(i)command+=",";
 command+="this.pars["+i+"]";
 }
 command+=")";
+
+try{
 rv=eval(command);
+}catch(e){
+
+
+
+
+
+
+
+
+rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.env.file);
+
+
+
+}
 }
 break;
 case 2:
