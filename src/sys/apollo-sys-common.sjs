@@ -657,8 +657,9 @@ function default_loader(path, parent, src_loader, opts, spec) {
   var descriptor = exports.require.modules[path];
   var pendingHook = pendingLoads[path];
 
-  if (!descriptor && !pendingHook) {
-    // the module has not yet started loading
+  if ((!descriptor && !pendingHook) || opts.reload) {
+    // the module has not yet started loading, or
+    // we've specified `reload`
     pendingHook = pendingLoads[path] = spawn (function() {
       waitfor {
         var src, loaded_from;

@@ -68,6 +68,9 @@
 @function require
 @summary Load an SJS module
 @param {String|Array} [module] Module identifier(s)
+@param {Settings} [settings]
+@setting {Boolean} [reload=false]
+@setting {Boolean} [main=false]
 @desc
   `require()` will load and return the module(s) given.
 
@@ -120,10 +123,22 @@
 
   Modules will be loaded *once* during the lifetime of the program;
   subsequent `require` calls to the same module will return
-  the cached [::exports] object.
+  the cached [::exports] object, unless explicitly reloaded using the `reload` setting.
 
   To get information about which modules are currently loaded, where
   they were `require`d from, etc., you can inspect the [::require.modules] object.
+
+  ### Settings:
+
+    - `main`: Require the module as a main module. See [::require.main].
+    - `reload`: Force a full load of the module (e.g from disk or the network, even if it is already present in [::require.modules]).
+
+    **Note:** This is not recursive. `require("mod.sjs", {reload:true})` will reload `mod.sjs`,
+    but any modules `mod.sjs` requires may return cached versions.
+
+    **Note:** This only affects the default module loader - hubs like `nodejs:` and `github:`
+    have custom loaders which do not currently support this option.
+    
 
   ### Loading modules from HTTP servers
 
@@ -305,17 +320,6 @@
   This object stores data about each loaded module under its
   [::module.id]. The specific data stored is an implementation detail
   and subject to change, but may be useful for inspecting.
-
-  To force a module to be reloaded, you can delete it from this
-  object - the next time the module is [::require]d, it will be
-  reloaded:
-
-      var moduleId = require.resolve("./mymod").path;
-      delete require.modules[moduleId];
-
-  Some module types are not stored in this cache. For example,
-  nodejs modules are loaded using the underlying nodejs require()
-  mechanism, which has its own caching mechaism.
 
 @variable module.id
 @summary The fully-qualified URL of the current module
