@@ -1,3 +1,6 @@
 tmp/
 *~
-/node_modules
+/node_modules/.bin
+/node_modules/karma*
+/node_modules/mime
+/node_modules/uglify-js
