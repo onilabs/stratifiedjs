@@ -2,104 +2,13 @@
   @nodoc
 */
 
-// TODO should thes use sjs: or ../
+// TODO should these use sjs: or ../
 var assert   = require("sjs:assert");
 var sequence = require("sjs:sequence");
 
 // http://arclanguage.org/item?id=14181
 // http://arclanguage.org/item?id=18936
 __js {
-  // Cons cells are faster than AVL trees for small lists
-  var cons_insert_limit = 10;
-
-  function Cons(car, cdr) {
-    this.car = car;
-    this.cdr = cdr;
-  }
-
-  // Destructive reverse
-  function stack_to_cons(a, start) {
-    while (a !== null) {
-      var cdr = a.cdr;
-      a.cdr   = start;
-      start   = a;
-      a       = cdr;
-    }
-    return start;
-  }
-
-  function cons_nth(a, i) {
-    while (a !== null && i !== 0) {
-      --i;
-      a = a.cdr;
-    }
-    return a.car;
-  }
-
-  function cons_insert_at(a, i, x) {
-    var stack = null;
-    while (true) {
-      if (i === 0) {
-        return stack_to_cons(stack, new Cons(x, a));
-      } else {
-        stack = new Cons(a.car, stack);
-        --i;
-        a = a.cdr;
-      }
-    }
-  }
-
-  function cons_modify_at(a, i, f) {
-    var stack = null;
-    while (true) {
-      if (i === 0) {
-        return stack_to_cons(stack, new Cons(f(a.car), a.cdr));
-      } else {
-        stack = new Cons(a.car, stack);
-        --i;
-        a = a.cdr;
-      }
-    }
-  }
-
-  function cons_remove_at(a, i) {
-    var stack = null;
-    while (true) {
-      if (i === 0) {
-        return stack_to_cons(stack, a.cdr);
-      } else {
-        stack = new Cons(a.car, stack);
-        --i;
-        a = a.cdr;
-      }
-    }
-  }
-
-  function cons_concat(a, b) {
-    var stack = null;
-    while (true) {
-      if (a === null) {
-        return stack_to_cons(stack, b);
-      } else {
-        stack = new Cons(a.car, stack);
-        a = a.cdr;
-      }
-    }
-  }
-
-  // TODO can this be made more efficient ?
-  function cons_to_avl(a) {
-    var out = null;
-
-    while (a !== null) {
-      out = nth_insert(ListNode, out, size(out), { value: a.car });
-      a = a.cdr;
-    }
-
-    return out;
-  }
-
-
   function defaultSort(x, y) {
     if (x === y) {
       return 0;
@@ -107,22 +16,6 @@ __js {
       return -1;
     } else {
       return 1;
-    }
-  }
-
-  function depth(x) {
-    if (x === null) {
-      return 0;
-    } else {
-      return x.depth;
-    }
-  }
-
-  function size(x) {
-    if (x === null) {
-      return 0;
-    } else {
-      return x.size;
     }
   }
 
@@ -136,54 +29,15 @@ __js {
   }
 
 
-  function KeyNode(left, right, info) {
-    this.left  = left;
-    this.right = right;
-    this.key   = info.key;
-    this.value = info.value;
-    this.depth = max(depth(left), depth(right)) + 1;
-  }
-
-  function SetNode(left, right, info) {
-    this.left  = left;
-    this.right = right;
-    this.key   = info.key;
-    this.depth = max(depth(left), depth(right)) + 1;
-  }
-
-  function ListNode(left, right, info) {
-    this.left  = left;
-    this.right = right;
-    this.value = info.value;
-    this.size  = size(left) + size(right) + 1;
-    this.depth = max(depth(left), depth(right)) + 1;
-  }
+  var nil     = {};
+  nil.depth   = 0;
+  nil.size    = 0;
+  nil.forEach = function (f) {};
 
 
-  function KeyNodeEqual(node, info) {
-    return info.key === node.key && info.value === node.value;
-  }
-
-  function SetNodeEqual(node, info) {
-    return info.key === node.key;
-  }
-
-  function ListNodeEqual(node, info) {
-    return info.value === node.value;
-  }
-
-
-  /*function rotate_left(from, left, right, node) {
-    return new from(new from(left, right.left, node), right.right, right);
-  }
-
-  function rotate_right(from, left, right, node) {
-    return new from(left.left, new from(left.right, right, node), left);
-  }*/
-
-  function balanced_node(from, left, right, node) {
-    var l_depth = depth(left);
-    var r_depth = depth(right);
+  function balanced_node(node, left, right) {
+    var l_depth = left.depth;
+    var r_depth = right.depth;
 
     // Left side is deeper
     if (l_depth > r_depth + 1) {
@@ -191,18 +45,15 @@ __js {
       var lright = left.right;
 
       // Right side is deeper
-      if (depth(lright) > depth(lleft)) {
+      if (lright.depth > lleft.depth) {
         // Left rotate -> Right rotate
-        return new from(new from(lleft, lright.left, left),
-                        new from(lright.right, right, node),
-                        lright);
+        return lright.copy(left.copy(lleft, lright.left),
+                           node.copy(lright.right, right));
 
       // Left side is deeper
       } else {
         // Right rotate
-        return new from(lleft,
-                        new from(lright, right, node),
-                        left);
+        return left.copy(lleft, node.copy(lright, right));
       }
 
     // Right side is deeper
@@ -211,79 +62,354 @@ __js {
       var rleft  = right.left;
 
       // Left side is deeper
-      if (depth(rleft) > depth(rright)) {
+      if (rleft.depth > rright.depth) {
         // Right rotate -> Left rotate
-        return new from(new from(left, rleft.left, node),
-                        new from(rleft.right, rright, right),
-                        rleft);
+        return rleft.copy(node.copy(left, rleft.left),
+                          right.copy(rleft.right, rright));
 
 
       // Right side is deeper
       } else {
         // Left rotate
-        return new from(new from(left, rleft, node),
-                        rright,
-                        right);
+        return right.copy(node.copy(left, rleft), rright);
       }
 
     // No balancing needed
     } else {
-      return new from(left, right, node);
+      return node.copy(left, right);
     }
   }
 
-  /*function node_min(from, x) {
-    if (x.left === null) {
-      return [x, x.right];
-    } else {
-      var a = node_min(from, x.left);
-      return [a[0], balanced_node(from, a[1], x.right, x)];
-    }
-  }*/
-
-  // Assumes [every key in x] <= [every key in y]
-  function concat(from, x, y) {
-    /*if (x === null) {
+  function concat(x, y) {
+    if (x === nil) {
       return y;
-    } else if (y === null) {
-      return x;
-    } else {
-      var a = node_min(from, y);
-      return balanced_node(from, x, a[1], a[0]);
-    }*/
 
-    if (x === null) {
-      return y;
-    } else if (y === null) {
+    } else if (y === nil) {
       return x;
+
     // TODO what if the depths are the same?
-    } else if (depth(x) < depth(y)) {
-      var left = concat(from, x, y.left);
-      assert.isNot(left, y.left); // TODO get rid of this?
-      return balanced_node(from, left, y.right, y);
+    } else if (x.depth < y.depth) {
+      var left = concat(x, y.left);
+      //assert.isNot(left, y.left); // TODO get rid of this?
+      return balanced_node(y, left, y.right);
+
     } else {
-      var right = concat(from, x.right, y);
-      assert.isNot(right, x.right); // TODO get rid of this?
-      return balanced_node(from, x.left, right, x);
+      var right = concat(x.right, y);
+      //assert.isNot(right, x.right); // TODO get rid of this?
+      return balanced_node(x, x.left, right);
     }
   }
 
-  function each(node, f) {
-    if (node !== null) {
-      each(node.left, f);
-      f(node);
-      each(node.right, f);
+  function insert_min(node, new_node) {
+    if (node === nil) {
+      return new_node;
+    } else {
+      // TODO do we need to use balanced_node ?
+      return balanced_node(node, insert_min(node.left, new_node), node.right);
     }
   }
+
+  function insert_max(node, new_node) {
+    if (node === nil) {
+      return new_node;
+    } else {
+      // TODO do we need to use balanced_node ?
+      return balanced_node(node, node.left, insert_max(node.right, new_node));
+    }
+  }
+
+
+  // It's faster to use arrays for small lists
+  var array_limit = 125;
+
+  var ceiling = Math.ceil;
+
+  function array_insert_at(array, index, value) {
+    var len = array.length + 1;
+
+    var out = new Array(len);
+
+    var i = 0;
+    while (i < index) {
+      out[i] = array[i];
+      ++i;
+    }
+
+    out[i] = value;
+    ++i;
+
+    while (i < len) {
+      out[i] = array[i - 1];
+      ++i;
+    }
+
+    return out;
+  }
+
+  function array_modify_at(array, index, f) {
+    var old_value = array[index];
+    var new_value = f(old_value);
+
+    if (old_value === new_value) {
+      return array;
+
+    } else {
+      var new_array = array.slice();
+      new_array[index] = new_value;
+      return new_array;
+    }
+  }
+
+  function array_remove_at(array, index) {
+    var len = array.length - 1;
+
+    var out = new Array(len);
+
+    var i = 0;
+    while (i < index) {
+      out[i] = array[i];
+      ++i;
+    }
+
+    while (i < len) {
+      out[i] = array[i + 1];
+      ++i;
+    }
+
+    return out;
+  }
+
+  function ArrayNode(left, right, array) {
+    this.left  = left;
+    this.right = right;
+    this.array = array;
+    this.size  = left.size + right.size + array.length;
+    this.depth = max(left.depth, right.depth) + 1;
+  }
+
+  ArrayNode.prototype.copy = function (left, right) {
+    return new ArrayNode(left, right, this.array);
+  };
+
+  ArrayNode.prototype.forEach = function (f) {
+    this.left.forEach(f);
+    this.array.forEach(function (x) {
+      f(x);
+    });
+    this.right.forEach(f);
+  };
+
+  function nth_has(index, len) {
+    return index >= 0 && index < len;
+  }
+
+  function nth_get(node, index) {
+    do {
+      var left    = node.left;
+      var l_index = left.size;
+
+      if (index < l_index) {
+        node = left;
+
+      } else {
+        index -= l_index;
+
+        var array = node.array;
+        var len   = array.length;
+        if (index < len) {
+          return array[index];
+
+        } else {
+          index -= len;
+          node  = node.right;
+        }
+      }
+    } while (true);
+  }
+
+  function nth_insert(node, index, value) {
+    // TODO is this necessary ?
+    if (node === nil) {
+      return new ArrayNode(nil, nil, [value]);
+
+    } else {
+      var left    = node.left;
+      var right   = node.right;
+      var l_index = left.size;
+
+      if (index < l_index) {
+        var child = nth_insert(left, index, value);
+        return balanced_node(node, child, right);
+
+      } else {
+        index -= l_index;
+
+        var array = node.array;
+        var len   = array.length;
+        // TODO test this
+        if (index <= len) {
+          array = array_insert_at(array, index, value);
+
+          if (len === array_limit) {
+            var pivot  = ceiling(array.length / 2);
+            var aleft  = array.slice(0, pivot);
+            var aright = array.slice(pivot);
+
+            console.log(aleft, aright);
+
+            if (left.depth < right.depth) {
+              return new ArrayNode(insert_max(left, new ArrayNode(nil, nil, aleft)), right, aright);
+            } else {
+              return new ArrayNode(left, insert_min(right, new ArrayNode(nil, nil, aright)), aleft);
+            }
+
+          } else {
+            return new ArrayNode(left, right, array);
+          }
+
+        } else {
+          var child = nth_insert(right, index - len, value);
+          return balanced_node(node, left, child);
+        }
+      }
+    }
+  }
+
+  function nth_modify(node, index, f) {
+    var left    = node.left;
+    var right   = node.right;
+    var l_index = left.size;
+
+    if (index < l_index) {
+      var child = nth_modify(left, index, f);
+      if (child === left) {
+        return node;
+      } else {
+        return node.copy(child, right); // TODO test this
+      }
+
+    } else {
+      index -= l_index;
+
+      var array = node.array;
+      var len   = array.length;
+      // TODO test this
+      if (index < len) {
+        var new_array = array_modify_at(array, index, f);
+        if (new_array === array) {
+          return node;
+        } else {
+          return new ArrayNode(left, right, new_array);
+        }
+
+      } else {
+        var child = nth_modify(right, index - len, f);
+        if (child === right) {
+          return node;
+        } else {
+          return node.copy(left, child); // TODO test this
+        }
+      }
+    }
+  }
+
+  function nth_remove(node, index) {
+    var left    = node.left;
+    var right   = node.right;
+    var l_index = left.size;
+
+    if (index < l_index) {
+      var child = nth_remove(left, index);
+      return balanced_node(node, child, right);
+
+    } else {
+      index -= l_index;
+
+      var array = node.array;
+      var len   = array.length;
+      // TODO test this
+      if (index < len) {
+        array = array_remove_at(array, index);
+
+        if (array.length === 0) {
+          return concat(left, right);
+        } else {
+          return new ArrayNode(left, right, array);
+        }
+
+      } else {
+        var child = nth_remove(right, index - len);
+        return balanced_node(node, left, child);
+      }
+    }
+  }
+
+
+  function SetNode(left, right, key) {
+    this.left  = left;
+    this.right = right;
+    this.key   = key;
+    this.depth = max(left.depth, right.depth) + 1;
+  }
+
+  SetNode.prototype.copy = function (left, right) {
+    return new SetNode(left, right, this.key);
+  };
+
+  SetNode.prototype.modify = function (info) {
+    var key = info.key;
+    if (this.key === key) {
+      return this;
+    } else {
+      return new SetNode(this.left, this.right, key);
+    }
+  };
+
+  SetNode.prototype.forEach = function (f) {
+    this.left.forEach(f);
+    f(this.key);
+    this.right.forEach(f);
+  };
+
+
+  function KeyNode(left, right, key, value) {
+    this.left  = left;
+    this.right = right;
+    this.key   = key;
+    this.value = value;
+    this.depth = max(left.depth, right.depth) + 1;
+  }
+
+  KeyNode.prototype.copy = function (left, right) {
+    return new KeyNode(left, right, this.key, this.value);
+  };
+
+  KeyNode.prototype.modify = function (info) {
+    var key   = info.key;
+    var value = info.value;
+    if (this.key === key && this.value === value) {
+      return this;
+    } else {
+      return new KeyNode(this.left, this.right, key, value);
+    }
+  };
+
+  KeyNode.prototype.forEach = function (f) {
+    this.left.forEach(f);
+    f(this.value, this.key);
+    this.right.forEach(f);
+  };
 
 
   function key_get(node, sort, key) {
-    while (node !== null) {
+    while (node !== nil) {
       var order = sort(key, node.key);
       if (order === 0) {
         break;
-      } else if (order < 1) {
+
+      } else if (order < 0) {
         node = node.left;
+
       } else {
         node = node.right;
       }
@@ -292,197 +418,96 @@ __js {
     return node;
   }
 
-  function key_set(from, equal, node, sort, info) {
-    if (node === null) {
-      return new from(null, null, info);
+  function key_set(node, sort, key, new_node) {
+    if (node === nil) {
+      return new_node;
 
     } else {
-      var order = sort(info.key, node.key);
-      if (order === 0) {
-        if (equal(node, info)) {
-          return node;
-        } else {
-          return new from(node.left, node.right, info);
-        }
+      var left  = node.left;
+      var right = node.right;
 
-      } else if (order < 0) {
-        var left = key_set(from, equal, node.left, sort, info);
-        if (left === node.left) {
-          return node;
-        } else {
-          return balanced_node(from, left, node.right, node);
-        }
-
-      } else {
-        var right = key_set(from, equal, node.right, sort, info);
-        if (right === node.right) {
-          return node;
-        } else {
-          return balanced_node(from, node.left, right, node);
-        }
-      }
-    }
-  }
-
-  function key_remove(from, node, sort, key) {
-    if (node === null) {
-      return node;
-
-    } else {
       var order = sort(key, node.key);
       if (order === 0) {
-        return concat(from, node.left, node.right);
+        return node.modify(new_node);
 
       } else if (order < 0) {
-        var left = key_remove(from, node.left, sort, key);
-        if (left === node.left) {
+        var child = key_set(left, sort, key, new_node);
+        if (child === left) {
           return node;
         } else {
-          return balanced_node(from, left, node.right, node);
+          return balanced_node(node, child, right);
         }
 
       } else {
-        var right = key_remove(from, node.right, sort, key);
-        if (right === node.right) {
+        var child = key_set(right, sort, key, new_node);
+        if (child === right) {
           return node;
         } else {
-          return balanced_node(from, node.left, right, node);
+          return balanced_node(node, left, child);
         }
       }
     }
   }
 
   // TODO code duplication with key_set
-  function key_modify(from, equal, node, sort, key, f) {
-    if (node === null) {
+  function key_modify(node, sort, key, f) {
+    if (node === nil) {
       return node;
 
     } else {
+      var left  = node.left;
+      var right = node.right;
+
       var order = sort(key, node.key);
       if (order === 0) {
-        // TODO a bit gross
-        var info = {
-          key:   key,
-          value: f(node.value) // TODO what if `f` suspends?
-        };
-
-        if (equal(node, info)) {
-          return node;
-        } else {
-          return new from(node.left, node.right, info);
-        }
+        // TODO what if `f` suspends?
+        return node.modify({ key: key, value: f(node.value) });
 
       } else if (order < 0) {
-        var left = key_modify(from, equal, node.left, sort, key, f);
-        if (left === node.left) {
+        var child = key_modify(left, sort, key, f);
+        if (child === left) {
           return node;
         } else {
-          return balanced_node(from, left, node.right, node);
+          return balanced_node(node, child, right);
         }
 
       } else {
-        var right = key_modify(from, equal, node.right, sort, key, f);
-        if (right === node.right) {
+        var child = key_modify(right, sort, key, f);
+        if (child === right) {
           return node;
         } else {
-          return balanced_node(from, node.left, right, node);
+          return balanced_node(node, left, child);
         }
       }
     }
   }
 
-
-  function nth_has(index, len) {
-    return index >= 0 && index < len;
-  }
-
-  function nth_get(node, index) {
-    while (node !== null) {
-      var left = node.left;
-
-      var l_index = size(left);
-
-      if (index === l_index) {
-        break;
-
-      } else if (index < l_index) {
-        node = left;
-
-      } else {
-        node  = node.right;
-        index = index - (l_index + 1);
-      }
-    }
-
-    return node;
-  }
-
-  function nth_insert(from, node, index, info) {
-    if (node === null) {
-      return new from(null, null, info);
-
-    } else {
-      var l_index = size(node.left);
-
-      if (index <= l_index) {
-        var left = nth_insert(from, node.left, index, info);
-        return balanced_node(from, left, node.right, node);
-
-      } else {
-        var right = nth_insert(from, node.right, index - (l_index + 1), info);
-        return balanced_node(from, node.left, right, node);
-      }
-    }
-  }
-
-  function nth_remove(from, node, index) {
-    var l_index = size(node.left);
-
-    if (index === l_index) {
-      return concat(from, node.left, node.right);
-
-    } else if (index < l_index) {
-      var left = nth_remove(from, node.left, index);
-      return balanced_node(from, left, node.right, node);
-
-    } else {
-      var right = nth_remove(from, node.right, index - (l_index + 1));
-      return balanced_node(from, node.left, right, node);
-    }
-  }
-
-  // TODO code duplication
-  function nth_modify(from, node, index, f) {
-    if (node === null) {
+  function key_remove(node, sort, key) {
+    if (node === nil) {
       return node;
 
     } else {
-      var l_index = size(node.left);
+      var left  = node.left;
+      var right = node.right;
 
-      if (index === l_index) {
-        var value = f(node.value); // TODO what if `f` suspends?
-        // TODO ListNodeEqual
-        if (node.value === value) {
+      var order = sort(key, node.key);
+      if (order === 0) {
+        return concat(left, right);
+
+      } else if (order < 0) {
+        var child = key_remove(left, sort, key);
+        if (child === left) {
           return node;
         } else {
-          // TODO a little gross
-          return new from(node.left, node.right, { value: value });
-        }
-
-      } else if (index < l_index) {
-        var left = nth_modify(from, node.left, index, f);
-        if (left === node.left) {
-          return node;
-        } else {
-          return balanced_node(from, left, node.right, node);
+          return balanced_node(node, child, right);
         }
 
       } else {
-        var right = nth_modify(from, node.right, index - (l_index + 1), f);
-        if (right === node.right) {
+        var child = key_remove(right, sort, key);
+        if (child === right) {
           return node;
         } else {
-          return balanced_node(from, node.left, right, node);
+          return balanced_node(node, left, child);
         }
       }
     }
@@ -498,17 +523,31 @@ __js {
   // TODO is this a good idea ?
   ImmutableDict.prototype = Object.create(null);
 
+  ImmutableDict.prototype.toString = function () {
+    var a = [];
+
+    this.root.forEach(function (value, key) {
+      a.push(key + " = " + value);
+    });
+
+    if (a.length) {
+      return "Dict[ " + a.join(", ") + " ]";
+    } else {
+      return "Dict[]";
+    }
+  };
+
   ImmutableDict.prototype.isEmpty = function () {
-    return this.root === null;
+    return this.root === nil;
   };
 
   ImmutableDict.prototype.has = function (key) {
-    return key_get(this.root, this.sort, key) !== null;
+    return key_get(this.root, this.sort, key) !== nil;
   };
 
   ImmutableDict.prototype.get = function (key, def) {
     var node = key_get(this.root, this.sort, key);
-    if (node === null) {
+    if (node === nil) {
       if (arguments.length === 2) {
         return def;
       } else {
@@ -521,41 +560,47 @@ __js {
 
   // TODO code duplication
   ImmutableDict.prototype.set = function (key, value) {
-    var node = key_set(KeyNode, KeyNodeEqual, this.root, this.sort, { key: key, value: value });
-    if (node === this.root) {
+    var root = this.root;
+    var sort = this.sort;
+    var node = key_set(root, sort, key, new KeyNode(nil, nil, key, value));
+    if (node === root) {
       return this;
     } else {
-      return new ImmutableDict(node, this.sort);
+      return new ImmutableDict(node, sort);
     }
   };
 
   // TODO code duplication
   ImmutableDict.prototype.remove = function (key) {
-    var node = key_remove(KeyNode, this.root, this.sort, key);
-    if (node === this.root) {
+    var root = this.root;
+    var sort = this.sort;
+    var node = key_remove(root, sort, key);
+    if (node === root) {
       return this;
     } else {
-      return new ImmutableDict(node, this.sort);
+      return new ImmutableDict(node, sort);
     }
   };
 
   // TODO code duplication
   ImmutableDict.prototype.modify = function (key, f) {
-    var node = key_modify(KeyNode, KeyNodeEqual, this.root, this.sort, key, f);
-    if (node === this.root) {
+    var root = this.root;
+    var sort = this.sort;
+    var node = key_modify(root, sort, key, f);
+    if (node === root) {
       return this;
     } else {
-      return new ImmutableDict(node, this.sort);
+      return new ImmutableDict(node, sort);
     }
   };
 
   ImmutableDict.prototype.toJS = function () {
     var o = {};
 
-    each(this.root, function (node) {
+    this.root.forEach(function (value, key) {
       // TODO use @isString test
-      assert.is(typeof node.key, "string");
-      o[node.key] = node.value;
+      assert.is(typeof key, "string");
+      o[key] = value;
     });
 
     return o;
@@ -575,29 +620,47 @@ __js {
 
   ImmutableSet.prototype.has = ImmutableDict.prototype.has;
 
+  ImmutableSet.prototype.toString = function () {
+    var a = [];
+
+    this.root.forEach(function (value) {
+      a.push("" + value);
+    });
+
+    if (a.length) {
+      return "Set[ " + a.join(" ") + " ]";
+    } else {
+      return "Set[]";
+    }
+  };
+
   ImmutableSet.prototype.add = function (key) {
-    var node = key_set(SetNode, SetNodeEqual, this.root, this.sort, { key: key });
-    if (node === this.root) {
+    var root = this.root;
+    var sort = this.sort;
+    var node = key_set(root, sort, key, new SetNode(nil, nil, key));
+    if (node === root) {
       return this;
     } else {
-      return new ImmutableSet(node, this.sort);
+      return new ImmutableSet(node, sort);
     }
   };
 
   ImmutableSet.prototype.remove = function (key) {
-    var node = key_remove(SetNode, this.root, this.sort, key);
-    if (node === this.root) {
+    var root = this.root;
+    var sort = this.sort;
+    var node = key_remove(root, sort, key);
+    if (node === root) {
       return this;
     } else {
-      return new ImmutableSet(node, this.sort);
+      return new ImmutableSet(node, sort);
     }
   };
 
   ImmutableSet.prototype.toJS = function () {
     var a = [];
 
-    each(this.root, function (node) {
-      a.push(node.key);
+    this.root.forEach(function (value) {
+      a.push(value);
     });
 
     return a;
@@ -623,21 +686,31 @@ __js {
     }
   };*/
 
-  function ImmutableList(root, length, isCons) {
-    this.root   = root;
-    this.length = length;
-    this.isCons = isCons;
+  function ImmutableList(root) {
+    this.root = root;
   }
-  exports.ImmutableList = ImmutableList;
 
   // TODO is this a good idea ?
   ImmutableList.prototype = Object.create(null);
 
-  // TODO this only works because cons cells also use null to represent the empty list
+  ImmutableList.prototype.toString = function () {
+    var a = [];
+
+    this.root.forEach(function (value) {
+      a.push("" + value);
+    });
+
+    if (a.length) {
+      return "List[ " + a.join(" ") + " ]";
+    } else {
+      return "List[]";
+    }
+  };
+
   ImmutableList.prototype.isEmpty = ImmutableDict.prototype.isEmpty;
 
   ImmutableList.prototype.size = function () {
-    return this.length;
+    return this.root.size;
   };
 
   ImmutableList.prototype.has = function (index) {
@@ -658,11 +731,7 @@ __js {
     }
 
     if (nth_has(index, len)) {
-      if (this.isCons) {
-        return cons_nth(this.root, index);
-      } else {
-        return nth_get(this.root, index).value;
-      }
+      return nth_get(this.root, index);
     } else if (arguments.length === 2) {
       return def;
     } else {
@@ -683,24 +752,7 @@ __js {
 
     // TODO code duplication with nth_has
     if (index >= 0 && index <= len) {
-      var node   = this.root;
-      var isCons = this.isCons;
-
-      // TODO should this be >= ?
-      // Convert to AVL tree when the size becomes too big
-      if (isCons && len === cons_insert_limit) {
-        node   = cons_to_avl(node);
-        isCons = false;
-      }
-
-      if (isCons) {
-        node = cons_insert_at(node, index, value);
-      } else {
-        node = nth_insert(ListNode, node, index, { value: value });
-      }
-
-      return new ImmutableList(node, len + 1, isCons);
-
+      return new ImmutableList(nth_insert(this.root, index, value));
     } else {
       throw new Error("Index is not valid");
     }
@@ -718,14 +770,7 @@ __js {
     }
 
     if (nth_has(index, len)) {
-      var isCons = this.isCons;
-
-      var node = (isCons
-                   ? cons_remove_at(this.root, index)
-                   : nth_remove(ListNode, this.root, index));
-
-      return new ImmutableList(node, len - 1, isCons);
-
+      return new ImmutableList(nth_remove(this.root, index));
     } else {
       throw new Error("Index is not valid");
     }
@@ -739,16 +784,12 @@ __js {
     }
 
     if (nth_has(index, len)) {
-      var isCons = this.isCons;
-
-      var node = (isCons
-                   ? cons_modify_at(this.root, index, f)
-                   : nth_modify(ListNode, this.root, index, f));
-
-      if (node === this.root) {
+      var root = this.root;
+      var node = nth_modify(root, index, f);
+      if (node === root) {
         return this;
       } else {
-        return new ImmutableList(node, len, isCons);
+        return new ImmutableList(node);
       }
 
     } else {
@@ -757,61 +798,24 @@ __js {
   };
 
   ImmutableList.prototype.concat = function (right) {
-    var left = this;
-
-    var left_isCons  = left.isCons;
-    var right_isCons = right.isCons;
-
-    var len = left.length + right.length;
-
-    if (left_isCons !== right_isCons || len > cons_insert_limit) {
-      if (left_isCons) {
-        left = cons_to_avl(left);
-        left_isCons = false;
-      }
-      // TODO this can probably be made faster in the case where left is AVL ?
-      if (right_isCons) {
-        right = cons_to_avl(right);
-      }
-    }
-
-    var node = (left_isCons
-                 ? cons_concat(left.root, right.root)
-                 : concat(ListNode, left.root, right.root));
-
-    if (node === left.root) {
-      return left;
+    var root = this.root;
+    var node = concat(root, right.root);
+    if (node === root) {
+      return this;
     } else {
-      return new ImmutableList(node, len, left_isCons);
+      return new ImmutableList(node);
     }
   };
 
-  ImmutableList.prototype.toJS = function () {
-    var a = [];
-
-    if (this.isCons) {
-      var node = this.root;
-      while (node !== null) {
-        a.push(node.car);
-        node = node.cdr;
-      }
-
-    } else {
-      each(this.root, function (node) {
-        a.push(node.value);
-      });
-    }
-
-    return a;
-  };
+  ImmutableList.prototype.toJS = ImmutableSet.prototype.toJS;
 
 
   exports.SortedDict = function (sort) {
-    return new ImmutableDict(null, sort);
+    return new ImmutableDict(nil, sort);
   };
 
   exports.Dict = function (obj) {
-    var o = new ImmutableDict(null, defaultSort);
+    var o = new ImmutableDict(nil, defaultSort);
     if (arguments.length === 1) {
       // TODO
       obj ..@items ..@each(function ([key, value]) {
@@ -822,17 +826,16 @@ __js {
   };
 
   exports.SortedSet = function (sort) {
-    return new ImmutableSet(null, sort);
+    return new ImmutableSet(nil, sort);
   };
 
   exports.Set = function () {
-    return new ImmutableSet(null, defaultSort);
+    return new ImmutableSet(nil, defaultSort);
   };
 
   exports.List = function (array) {
-    var o = new ImmutableList(null, 0, true);
+    var o = new ImmutableList(nil);
     if (arguments.length === 1) {
-      // TODO this can probably be sped up
       array ..sequence.each(function (x) {
         o = o.push(x);
       });
@@ -851,9 +854,9 @@ __js {
           var left  = node.left;
           var right = node.right;
 
-          assert.is(depth(node), max(depth(left), depth(right)) + 1);
+          assert.is(node.depth, max(left.depth, right.depth) + 1);
 
-          var diff = depth(left) - depth(right);
+          var diff = left.depth - right.depth;
           assert.ok(diff === -1 || diff === 0 || diff === 1);
 
           // Every left node must be lower than the parent node
@@ -867,7 +870,7 @@ __js {
           });
 
           if (node instanceof ListNode) {
-            assert.is(size(node), size(left) + size(right) + 1);
+            assert.is(node.size, left.size + right.size + 1);
             loop(left,  lt, gt);
             loop(right, lt, gt);
 
