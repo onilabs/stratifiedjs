@@ -63,4 +63,22 @@
       }
     }
   }
+
+  @context("reading / writing sequence::Streams") {||
+    @test("writeFile") {|s|
+      var numbers = @integers(0, 10);
+      var contents = numbers .. @transform(String).. @intersperse('\n');
+      contents .. @isStream .. @assert.ok('contents is not a stream');
+      s.path('data') .. @fs.writeFile(contents, 'utf-8');
+      @fs.readFile(s.path('data'), 'utf-8') .. @assert.eq(numbers .. @join('\n'));
+    }
+
+    @test("fileContents") {|s|
+      var numbers = @integers(0, 10);
+      s.path('data') .. @fs.writeFile(numbers .. @join('\n'));
+      var contents = @fs.fileContents(s.path('data'), 'utf-8');
+      contents .. @isStream .. @assert.ok('contents is not a stream');
+      contents .. @join() .. @assert.eq(numbers .. @join('\n'));
+    }
+  }
 }.serverOnly();

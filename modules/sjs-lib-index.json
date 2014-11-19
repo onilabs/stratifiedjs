@@ -860,6 +860,9 @@
             "exists": {
               "type": "function"
             },
+            "fileContents": {
+              "type": "function"
+            },
             "fstat": {
               "type": "function"
             },
@@ -1049,6 +1052,9 @@
                   "type": "function"
                 }
               }
+            },
+            "contents": {
+              "type": "function"
             },
             "end": {
               "type": "function"

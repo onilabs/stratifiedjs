@@ -40,9 +40,8 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
 var nodeVersion = process.versions.node.split('.');
-@ = require(['../array', '../sequence']);
+@ = require(['../sequence', '../object', '../event']);
 @assert = require('../assert');
-var OLD_API = nodeVersion .. @cmp([0,10]) < 0;
 
 /**
   @function read
@@ -106,6 +105,23 @@ exports.write = function(dest, data/*, ...*/) {
   }
 };
 
+/**
+  @function contents
+  @summary  Return a [sequence::Stream] of chunks of data from a nodejs stream
+  @param    {Stream} [dest] the stream to read from
+  @return   {sequence::Stream} A sequence of data chunks
+  @desc
+    The returned stream will end only when the underlying nodejs stream
+    ends (or emits an error).
+*/
+exports.contents = function(stream) {
+  return @Stream(function(emit) {
+    var data;
+    while((data = exports.read(stream)) !== null) {
+      emit(data);
+    }
+  });
+}
 
 /**
   @function end
@@ -114,33 +130,34 @@ exports.write = function(dest, data/*, ...*/) {
   @param    {optional String|Buffer} [data] the data to write
   @param    {optional String} [encoding] the encoding, if `data` is a string
   @desc
-    This function ends the stream and waits for its `finish`
+    This function ends the stream and waits for its `close` or `finish`
     event before returning.
+
+    The nodejs API requires writable streams to emit the `finish` event,
+    however many custom stream implementations only emit `close`. This function
+    returns as soon as either of these events is emitted.
 */
+// NOTE: it would be nicer to use the standard writable.write(data, encoding, callback),
+// but most custom streams don't support it, which silently hangs the application.
 exports.end = function(dest, data, encoding) {
-  waitfor () {
-    dest.end(data, encoding, resume)
+  if (data) {
+    exports.write(dest, data, encoding);
   }
-};
-if (OLD_API) {
-  exports.end = function(dest, data, encoding) {
-    if (data) {
-      exports.write(dest, data, encoding);
-    }
-    waitfor () {
-      dest.on('close', resume);
-      dest.end();
-    }
-  };
+  waitfor {
+    dest .. @wait(['close','finish']);
+  } and {
+    dest.end();
+  }
 }
 
 
 /**
   @function pump
   @summary  Keep writing data from `src` into `dest` until `src` ends.
-  @param    {Stream} [src] the source stream
+  @param    {Stream|sequence::Stream} [src] the source stream
   @param    {String} [dest] the destination stream
   @param    {optional Function} [fn] the processing function
+  @return   {Stream} `dest`
   @desc
     This function will not return until the `src` stream has ended,
     although it will not send `end` to `dest`.
@@ -149,13 +166,29 @@ if (OLD_API) {
     it in turn. e.g. to produce an uppercase version of a stream:
 
         stream.pump(src, dest, function(data) { return data.toUpperCase(); })
+
+    This function returns `dest`, to support the common idiom of:
+
+        source .. @stream.pump(dest) .. @stream.end();
 */
 exports.pump = function(src, dest, fn) {
   var data;
-  while((data = exports.read(src)) !== null) {
+  var iter = function(data) {
     if(fn) data = fn(data);
     exports.write(dest, data);
   }
+  waitfor {
+    throw dest .. @wait('error');
+  } or {
+    if(@isStream(src)) {
+      src .. @each(iter);
+    } else {
+      while((data = exports.read(src)) !== null) {
+        iter(data);
+      }
+    }
+  }
+  return dest;
 };
 
 

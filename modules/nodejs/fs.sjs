@@ -43,6 +43,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 var fs = require('fs'); // builtin fs
 var evt = require('../event');
 var seq = require('../sequence');
+var stream = require('./stream');
 
 //----------------------------------------------------------------------
 // low-level:
@@ -361,18 +362,46 @@ exports.readFile = function(filename, /* opt */ encoding) {
 };
 
 /**
+   @function fileContents
+   @summary Return a [sequence::Stream] of the chunks in `filename`.
+   @param {String} [filename]
+   @param {optional String} [encoding]
+   @return {Buffer|String}
+   @desc
+     - If no encoding is specified, then raw data chunks will be emitted.
+*/
+exports.fileContents = function(path, encoding) {
+  return seq.Stream(function(emit) {
+    exports.withReadStream(path, {encoding: encoding},
+      s -> s .. stream.contents .. seq.each(emit))
+  });
+};
+
+/**
    @function writeFile
    @summary Write data to a file, replacing the file if it already exists
    @param {String} [filename]
-   @param {String|Buffer} [data]
+   @param {String|Buffer|sequence::Stream|Array} [data]
    @param {optional String} [encoding='utf8']
    @desc
-     - `encoding` parameter is ignored if `data` is a 
+     If `data` is an Array or [sequence::Stream], its chunks will
+     be written in sequence.
+
+     The `encoding` parameter is ignored if `data` is a
      [Buffer](http://nodejs.org/docs/latest/api/buffer.html)
+     (or a sequence of buffers).
 */
 exports.writeFile = function(filename, data, encoding /*='utf8'*/) {
-  waitfor (var err) { fs.writeFile(filename, data, encoding, resume); }
-  if (err) throw err;
+  // we can't use isSequence, as that would catch strings / buffers too
+  if(Array.isArray(data) || seq.isStream(data)) {
+    exports.withWriteStream(filename, {encoding: encoding}) {|f|
+      data .. stream.pump(f);
+    }
+  } else {
+    // write one big string / data chunk
+    waitfor (var err) { fs.writeFile(filename, data, encoding, resume); }
+    if (err) throw err;
+  }
 };
 
 // XXX watchFile/unwatchFile are a pretty bad interface, in the sense
@@ -518,11 +547,12 @@ exports.withWriteStream = streamContext('createWriteStream', 'end');
    @summary Perform an action with a nodejs [ReadableStream](http://nodejs.org/api/stream.html#stream_class_stream_writable) connected to a file
    @param {String} [path]
    @param {Settings} [opts]
+   @param {Function} [block]
    @setting {String} [flags="w"]
    @setting {String} [encoding=null]
    @setting {Number} [mode=0666]
    @desc
-     This function calls the nodejs [fs.createReadStream][]
+     This function calls nodejs' [fs.createReadStream][]
      with the provided `path` and `opts`.
 
      Once obtaining a [ReadableStream][] object, this function waits for its `open`
