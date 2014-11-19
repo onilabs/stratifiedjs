@@ -21,6 +21,7 @@ unit/node/deps-tests.sjs
 unit/node/fs-tests.sjs
 unit/node/process-tests.sjs
 unit/node/stream-tests.sjs
+unit/node/tar-tests.sjs
 unit/node/tempfile-tests.sjs
 unit/object-tests.sjs
 unit/observable-tests.sjs
