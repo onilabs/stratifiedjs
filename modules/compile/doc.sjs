@@ -50,7 +50,7 @@ var assert = require('../assert');
 var INDEX_BASENAME = 'sjs-lib-index';
 var INDEX_FILENAME = "#{INDEX_BASENAME}.txt";
 var OUTPUT_FILENAME = "#{INDEX_BASENAME}.json";
-var EXT = 'sjs';
+var EXTS = {'sjs':true, 'api':true, 'app':true};
 
 exports.compile = function(root, outputPath) {
   var info = exports.summarizeLib(root);
@@ -136,13 +136,15 @@ exports.summarizeLib = function(dir) {
 
 exports.readModule = function(path) {
   var ext = Path.extname(path).slice(1);
-  if (ext !== EXT) {
+  if (!EXTS[ext]) {
     logging.debug("Skipping non-doc file #{path} (#{ext})");
     return null;
   }
 
   logging.debug("Reading: #{path}");
-  var name = Path.basename(path).slice(0, -(ext.length+1));
+  var name = Path.basename(path);
+  if (ext == 'sjs') 
+    name = name.slice(0, -(ext.length+1));
   try {
     var mod = docutil.parseModuleDocs(fs.readFile(path, 'utf-8'));
   } catch(e) {
