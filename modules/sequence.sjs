@@ -49,8 +49,16 @@ __js var identity = (x) -> x;
 __js function isString(obj) {
   return typeof obj == 'string' || obj instanceof String;
 }
-__js {
-  var isBuffer = sys.hostenv == 'nodejs' ? Buffer.isBuffer.bind(Buffer) : -> false;
+var nope = -> false;
+var isBuffer = nope, isReadableStream = nope;
+var nodeStream;
+var nodeStream;
+if (sys.hostenv == 'nodejs') {
+  var readableStreamProto = require('nodejs:stream').Readable;
+  __js {
+    isBuffer = Buffer.isBuffer.bind(Buffer);
+    isReadableStream = s -> readableStreamProto.isPrototypeOf(s);
+  }
 }
 
 // XXX `sequential` is from the 'function.sjs' module - we can't
@@ -213,6 +221,16 @@ function generate(generator_func) {
 exports.generate = generate;
 
 //----------------------------------------------------------------------
+//
+
+var streamModule;
+var readableStreamEach = function(s) {
+  // it's assumed that streams will rarely be sync, so
+  // introducing possible async here shouldn't be an issue,
+  // and lets us avoid a load-time circular dep
+  if(!streamModule) streamModule = require('./nodejs/stream');
+  return streamModule.contents(s);
+};
 
 /**
    @function each
@@ -258,6 +276,9 @@ function each(sequence, r) {
         if (__oni_rt.is_ef(res))
           return async_each(sequence, r, i, res);
       }
+    }
+    else if (isReadableStream(sequence)) {
+      return readableStreamEach(sequence);
     }
     else
       throw new Error("Unsupported sequence type '#{typeof sequence}'");

@@ -757,10 +757,19 @@ context('intersperse') {||
 
 }
 
-context("nodejs Buffer") {||
-  test("is iterable") {||
+context("iterable nodejs datatypes") {||
+  test("Buffer") {||
     new Buffer("12345") .. s.isSequence() .. assert.eq(true);
     new Buffer("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
+  }
+
+  test("Stream") {||
+    var contents = '';
+    var myPath = module.id .. @url.toPath();
+    @fs.fileContents(myPath, 'utf-8') .. @each {|chunk|
+      contents += chunk;
+    }
+    contents.slice(0, 50) .. @assert.eq(@fs.readFile(myPath, 'utf-8').slice(0, 50));
   }
 }.serverOnly();
 
