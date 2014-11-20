@@ -49,4 +49,37 @@
       }
     }
   }
+
+  @context("error thrown by") {||
+    var exhaust = s -> s .. @each(->null);
+    @test("invalid gzip data") {||
+      @assert.raises({message:"incorrect header check"},
+        -> ["not likely to be gzip"] .. @toStream() .. @tar.gunzip .. exhaust()
+      );
+    }
+
+    @test("invalid tar data") {||
+      @TemporaryDir {|dest|
+        @assert.raises({message:"invalid tar file"},
+          -> ["not likely to be tar"] .. @toStream() .. @tar.extract({path:@path.join(dest,'result')})
+        );
+      }
+    }
+
+    @test("unreadable file") {||
+      @TemporaryDir {|src|
+        var ropath = @path.join(src, "readonly");
+        ropath .. @fs.writeFile("secret", 'utf-8');
+        ropath .. @fs.chmod(0000);
+        try {
+          @assert.raises({message:/^EACCESS, open .*readonly$/},
+            -> @tar.pack(src) .. exhaust()
+          );
+        } finally {
+          // make sure it's deletable
+          ropath .. @fs.chmod(0644);
+        }
+      }
+    }.skip("BROKEN upstream; see https://github.com/npm/fstream/issues/31");
+  }
 }.serverOnly();

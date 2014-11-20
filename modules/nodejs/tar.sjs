@@ -88,9 +88,11 @@ exports.pack = function(dir, props) {
     var input = fstream.Reader(dir);
     var pack = tar.Pack(props);
     waitfor {
-      // NOTE: `input` is supposedly a stream, but it
-      // uses a custom API when you call .pipe(). Also,
-      // @stream.pump doesn't work on it, for unknown reasons.
+      // NOTE: `input` is supposedly a stream, but:
+      // - it uses a custom API when you call .pipe()
+      // - stream.pump doesn't work on it, for unknown reasons
+      // - it doesn't catch errors, so any failure will be fatal
+      //   (see https://github.com/npm/fstream/issues/31)
       input.pipe(pack);
       input .. @wait('end');
       // pack .. @stream.end() also doesn't work
@@ -111,5 +113,13 @@ exports.pack = function(dir, props) {
 */
 exports.extract = function(stream, opts) {
   var tarStream = tar.Extract(opts);
+
+  // workaround for https://github.com/npm/node-tar/issues/47
+  var dummyHandler = function() {
+    hold(0);
+    tarStream.removeListener('error', dummyHandler);
+  }
+  tarStream.on('error', dummyHandler);
+
   stream .. @pump(tarStream) .. @end();
 };

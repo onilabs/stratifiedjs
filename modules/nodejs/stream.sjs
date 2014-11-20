@@ -34,6 +34,11 @@
   @summary   Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)
   @home      sjs:nodejs/stream
   @hostenv   nodejs
+  @desc
+    # Backwards compatility warning:
+
+    The nodejs stream API changed significantly in nodejs 0.10. The pre-0.10 API
+    is not supported by StratifiedJS.
 */
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs')
@@ -133,6 +138,8 @@ exports.contents = function(stream) {
     This function ends the stream and waits for its `close` or `finish`
     event before returning.
 
+    ## The `finish` event:
+
     The nodejs API requires writable streams to emit the `finish` event,
     however many custom stream implementations only emit `close`. This function
     returns as soon as either of these events is emitted.
@@ -144,9 +151,13 @@ exports.end = function(dest, data, encoding) {
     exports.write(dest, data, encoding);
   }
   waitfor {
-    dest .. @wait(['close','finish']);
-  } and {
-    dest.end();
+    throw dest .. @wait('error');
+  } or {
+    waitfor {
+      dest .. @wait(['close','finish']);
+    } and {
+      dest.end();
+    }
   }
 }
 

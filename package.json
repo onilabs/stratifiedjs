@@ -20,7 +20,7 @@
     "karma-script-launcher": "*"
   },
   "engines": {
-    "node": ">=0.4.1"
+    "node": ">=0.10.0"
   },
   "scripts": {
     "test": "./sjs test/run.html"
