@@ -766,7 +766,9 @@ context("iterable nodejs datatypes") {||
   test("Stream") {||
     var contents = '';
     var myPath = module.id .. @url.toPath();
-    @fs.fileContents(myPath, 'utf-8') .. @each {|chunk|
+    var stream = @fs.fileContents(myPath, 'utf-8');
+    stream .. s.isSequence() .. assert.eq(true);
+    stream .. @each {|chunk|
       contents += chunk;
     }
     contents.slice(0, 50) .. @assert.eq(@fs.readFile(myPath, 'utf-8').slice(0, 50));

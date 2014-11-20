@@ -189,7 +189,7 @@ __js {
 */
 __js {
   function isSequence(s) {
-    return isArrayLike(s) || isStream(s) || isString(s) || isBuffer(s);
+    return isArrayLike(s) || isStream(s) || isString(s) || isBuffer(s) || isReadableStream(s);
   }
   exports.isSequence = isSequence;
 }
