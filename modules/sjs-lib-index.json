@@ -1028,11 +1028,26 @@
                 }
               }
             },
-            "ReadableStringStream": {
+            "ReadableStream": {
               "type": "class",
               "children": {
-                "ReadableStringStream": {
+                "ReadableStream": {
                   "type": "ctor"
+                }
+              }
+            },
+            "ReadableStringStream": {
+              "type": "class",
+              "children": {}
+            },
+            "WritableStream": {
+              "type": "class",
+              "children": {
+                "WritableStream": {
+                  "type": "ctor"
+                },
+                "contents": {
+                  "type": "function"
                 }
               }
             },
@@ -1044,12 +1059,6 @@
                 },
                 "data": {
                   "type": "variable"
-                },
-                "end": {
-                  "type": "function"
-                },
-                "write": {
-                  "type": "function"
                 }
               }
             },
