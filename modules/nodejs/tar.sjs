@@ -41,6 +41,7 @@ var tar = require('nodejs:tar');
 var fstream = require('nodejs:fstream');
 @ = require(['../sequence', './stream', '../event']);
 @fs = require('./fs');
+var Readable = require('nodejs:stream').Readable;
 
 /**
   @function gunzip
@@ -80,13 +81,14 @@ exports.gzip = function(stream) {
   @function pack
   @summary  create a tar stream from a location on disk
   @param    {String} [path]
-  @param    {optional Object} tar file properties
+  @param    {optional Object} [props] tar file properties
   @return   {sequence::Stream} stream of tar formatted chunks
 */
 exports.pack = function(dir, props) {
   return @Stream(function(emit) {
     var input = fstream.Reader(dir);
     var pack = tar.Pack(props);
+    pack = new Readable().wrap(pack);
     waitfor {
       // NOTE: `input` is supposedly a stream, but:
       // - it uses a custom API when you call .pipe()
@@ -95,7 +97,8 @@ exports.pack = function(dir, props) {
       //   (see https://github.com/npm/fstream/issues/31)
       input.pipe(pack);
       input .. @wait('end');
-      // pack .. @stream.end() also doesn't work
+      // also, pack .. @end doesn't work, but that's OK
+      // because the below branch will always wait for its completion
       pack.end();
     } and {
       pack .. @contents .. @each(emit);

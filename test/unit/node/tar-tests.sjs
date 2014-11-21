@@ -10,7 +10,7 @@
   var decode = b -> b.toString('utf-8').trim();
 
   ;[false, true] .. @each {|compress|
-    var desc = compress?" (gzip)":"";
+    var desc = compress?" compressed":" plain";
     var tarFlag = compress?'z':'';
     @test("create" + desc) {||
       @TemporaryDir {|dest|
