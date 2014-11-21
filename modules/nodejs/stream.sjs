@@ -39,6 +39,12 @@
 
     The nodejs stream API changed significantly in nodejs 0.10. The pre-0.10 API
     is not supported by StratifiedJS.
+
+    If you need to use a third-party stream which implements the old API,
+    you can create a wrapper (which supports the new API) using:
+
+        var Readable = require('nodejs:stream').Readable;
+        var newStream = new Readable().wrap(oldStream);
 */
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs')
@@ -52,16 +58,19 @@ var nodeVersion = process.versions.node.split('.');
   @function read
   @summary  Read a single piece of data from `stream`.
   @param    {Stream} [stream] the stream to read from
+  @param    {optional Number} [length] the maximum number of bytes to read
+  @returns  {String|Buffer}
   @desc
-    This function blocks until the first `data` event is received
-    on the stream, and returns that data. Returns `null` if the
-    stream has ended.
+    This function calls `stream.read()`.
+
+    If no data is currently available, it waits for the
+    `readable` event on the stream, and then returns one
+    piece of data.
+
+    Returns `null` when the stream has ended and there is no
+    more data.
 
     If stream emits `error`, the error is thrown.
-
-    Calls `resume` on the stream before waiting for data,
-    and calls `pause` on the stream after data is returned.
-    This ensures that no data is emitted between calls to `read()`.
 */
 // implementation in apollo-sys-nodejs.sjs
 exports.read = require('builtin:apollo-sys').readStream;
@@ -70,18 +79,23 @@ exports.read = require('builtin:apollo-sys').readStream;
   @function readAll
   @summary  Read and return the entire contents of `stream` as a single string.
   @param    {Stream} [stream] the stream to read from
+  @param    {optional String} [encoding]
+  @return   {String|Buffer}
   @desc
     Repeatedly calls `read` until the stream ends. This function
     should not be used on infinite or large streams, as it will buffer the
     entire contents in memory.
 */
-exports.readAll = function(stream) {
+exports.readAll = function(stream, encoding) {
   var result = [];
   var data;
-  while((data = exports.read(stream)) !== null) {
+  while((data = exports.read(stream, encoding)) !== null) {
     result.push(data);
   }
-  return result.join('');
+  if(encoding || (result.length > 0 && !Buffer.isBuffer(result[0]))) {
+    return result.join('');
+  }
+  return Buffer.concat(result);
 };
 
 
@@ -102,10 +116,10 @@ exports.readAll = function(stream) {
 exports.write = function(dest, data/*, ...*/) {
   var wrote = dest.write.apply(dest, Array.prototype.slice.call(arguments, 1));
   if(!wrote) {
-    waitfor() {
-      dest.on('drain', resume);
-    } finally {
-      dest.removeListener('drain', resume);
+    waitfor {
+      dest .. @wait('drain');
+    } or {
+      throw dest .. @wait('error');
     }
   }
 };
@@ -135,30 +149,14 @@ exports.contents = function(stream) {
   @param    {optional String|Buffer} [data] the data to write
   @param    {optional String} [encoding] the encoding, if `data` is a string
   @desc
-    This function ends the stream and waits for its `close` or `finish`
-    event before returning.
-
-    ## The `finish` event:
-
-    The nodejs API requires writable streams to emit the `finish` event,
-    however many custom stream implementations only emit `close`. This function
-    returns as soon as either of these events is emitted.
+    This function ends the stream. It waits for the stream to actually
+    finish before returning.
 */
-// NOTE: it would be nicer to use the standard writable.write(data, encoding, callback),
-// but most custom streams don't support it, which silently hangs the application.
 exports.end = function(dest, data, encoding) {
-  if (data) {
-    exports.write(dest, data, encoding);
+  waitfor (var err) {
+    dest.end(data, encoding, resume)
   }
-  waitfor {
-    throw dest .. @wait('error');
-  } or {
-    waitfor {
-      dest .. @wait(['close','finish']);
-    } and {
-      dest.end();
-    }
-  }
+  if(err) throw err;
 }
 
 
@@ -188,15 +186,11 @@ exports.pump = function(src, dest, fn) {
     if(fn) data = fn(data);
     exports.write(dest, data);
   }
-  waitfor {
-    throw dest .. @wait('error');
-  } or {
-    if(@isStream(src)) {
-      src .. @each(iter);
-    } else {
-      while((data = exports.read(src)) !== null) {
-        iter(data);
-      }
+  if(@isStream(src)) {
+    src .. @each(iter);
+  } else {
+    while((data = exports.read(src)) !== null) {
+      iter(data);
     }
   }
   return dest;
@@ -204,95 +198,113 @@ exports.pump = function(src, dest, fn) {
 
 
 /**
-  @class    ReadableStringStream
-  @summary  A readable in-memory Stream wrapping a single String.
+  @class    ReadableStream
+  @summary  A readable in-memory Stream
   @desc
     This class is similar to StringIO in other languages,
-    it allows the user to present a `String` as if it were a nodejs `Stream`.
+    it allows the user to present a `String` or `Buffer` as if it were a nodejs `Stream`.
 
-    The stream will emit a single `data` event with the provided string. `pause()`
-    and `resume()` can be used to delay this event, and `destroy()` to cancel it.
-
-  @constructor ReadableStringStream
-  @param    {String} [data] The data for this stream to emit
-  @param    {optional Boolean} [paused=false] If this flag is not set, the stream will start emitting (asynchronous) events as soon as it is constructed.
+  @constructor ReadableStream
+  @param    {String|Buffer} [data]
+  @param    {optional String} [encoding] Encoding (required if `data` is a String)
 */
-var ReadableStringStream = exports.ReadableStringStream = function(data, paused) {
+
+var defaultEncoding = 'utf-8';
+
+var {Readable, Writable} = require('stream');
+var ReadableStream = exports.ReadableStream = function(data, encoding) {
+  Readable.call(this, {encoding:encoding});
   this.data = data;
-  this.paused = paused || false;
-  this.done = false;
-  if (!this.paused) this.resume();
+  this.encoding = encoding;
 };
 
-require('util').inherits(ReadableStringStream, require('stream').Stream);
+require('util').inherits(ReadableStream, Readable);
 
-ReadableStringStream.prototype.toString = function() {
-  return "#<ReadableStringStream of data: " + data + ">";
+ReadableStream.prototype.toString = function() {
+  return "#<ReadableStream>";
 };
-ReadableStringStream.prototype.pause = function() {
-  this.paused = true;
-};
-ReadableStringStream.prototype.resume = function() {
-  this.paused = false;
-  // delayed in order to give the creator a chance to pause()
-  // this stream before it emits anything
-  spawn((function() {
-    hold(0);
-    if(this.paused) return;
-    this.emit('data', this.data);
-    if(!this.done) {
-      this.destroy();
-    }
-  }).call(this));
-};
-ReadableStringStream.prototype.destroy = function() {
-  this.emit('end');
-  this.done = true;
+ReadableStream.prototype._read = function() {
+  this.push(this.data, this.encoding);
   this.data = null;
 };
-ReadableStringStream.prototype.setEncoding = function() {
-  throw new Error("Can't set encoding on ReadableStringStream");
+
+/**
+   @class    ReadableStringStream
+   @return   {::ReadableStream}
+   @summary  A [::ReadableStream] which defaults to `utf-8` encoding.
+
+   @constructor ReadableStream
+   @param {String} [data]
+   @param {optional String} [encoding="utf-8"]
+*/
+exports.ReadableStringStream = function(data, enc) {
+  // ignore old API, "start paused"
+  if (enc === true) enc = null;
+
+  return new ReadableStream(data, enc || defaultEncoding);
+}
+
+
+/**
+   @class    WritableStream
+   @summary  A writable in-memory Stream wrapping a single String or Buffer.
+   @desc
+     This class wraps a `String` or `Buffer` with nodejs `Writable Stream` interface.
+
+     The data written to the stream can be retrieved with
+     [::WritableStream::contents].
+
+     If `encoding` is passed, the resulting data will be a String. Otherwise,
+     it will be a Buffer.
+
+   @constructor WritableStream
+   @param {optional String} [encoding]
+
+   @function WritableStream.contents
+   @summary  Return the data that has been written to the stream.
+   @return   {String|Buffer}
+*/
+
+var WritableStream = exports.WritableStream = function(encoding) {
+  this.encoding = encoding;
+  Writable.call(this, {encoding:encoding});
+  this._data = [];
+};
+
+require('util').inherits(WritableStream, Writable);
+
+WritableStream.prototype._write = function(data, _enc, cb) {
+  this._data.push(data);
+  cb();
+};
+
+WritableStream.prototype.contents = function() {
+  var data = Buffer.concat(this._data);
+  if (this.encoding) return data.toString(this.encoding);
+  return data;
 };
 
 /**
    @class    WritableStringStream
-   @summary  A writable in-memory Stream wrapping a single String.
-   @desc
-     This class wraps a `String` with nodejs `Writable Stream` interface.
-
-     The data written to the stream can be retrieved from field 
-     [::WritableStringStream::data].
+   @inherits ::WritableStream
+   @summary  A [::WritableStream] which defaults to `utf-8` encoding.
 
    @constructor WritableStringStream
+   @param {optional String} [encoding="utf-8"]
 
    @variable WritableStringStream.data
-   @summary  Data that has been written to the stream (String)
-
+   @summary  Data that has been written to the stream (String or Buffer)
+   @desc
+     This is implemented as a property getter for backwards compatibility.
+     For clarity, new code should use [::WritableStream::contents].
 */
-var WritableStringStream = exports.WritableStringStream = function() {
-  this.data = "";
-};
-
-require('util').inherits(WritableStringStream, require('stream').Stream);
-
-
-/**
-   @function WritableStringStream.write
-   @param {Buffer|String} [data]
-*/
-WritableStringStream.prototype.write = function(data) {
-  if (data && data.length)
-    this.data += data.toString();
-  return true;
-};
-
-/**
-   @function WritableStringStream.end
-   @param {optional Buffer|String} [data]
-*/
-WritableStringStream.prototype.end = function(data) {
-  this.write(data);
-  this.emit('end');
+exports.WritableStringStream = function(enc) {
+  var rv = new WritableStream(enc || defaultEncoding);
+  // for backwards compatibility
+  Object.defineProperty(rv, 'data', {
+    get: WritableStream.prototype.contents,
+  });
+  return rv;
 };
 
 

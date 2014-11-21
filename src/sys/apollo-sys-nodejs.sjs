@@ -196,12 +196,10 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
 
 // reads data from a stream; returns null if the stream has ended;
 // throws if there is an error
-var readStream = exports.readStream = function readStream(stream) {
-  //XXX 2.X doesn't implement readable on some streams (http
-  //responses, maybe others), so we gotto be careful what exactly we
-  //test here:
-  if (stream.readable === false) return null;
-  var data = null;
+var readStream = exports.readStream = function readStream(stream, size) {
+  if(stream.readable === false) return null;
+  var data = stream.read(size);
+  if(data !== null) return data;
 
   waitfor {
     waitfor (var exception) {
@@ -213,29 +211,19 @@ var readStream = exports.readStream = function readStream(stream) {
       stream.removeListener('end', resume);
     }
     if (exception) throw exception;
+    return null;
   }
   or {
-    waitfor (data) {
-      stream.on('data', resume);
+    waitfor () {
+      stream.on('readable', resume);
     }
     finally {
-      stream.removeListener('data', resume);
+      stream.removeListener('readable', resume);
     }
+    // XXX If two readers are watching for `data`, this could
+    // signal EOF prematurely. Don't use two readers.
+    return stream.read(size);
   }
-  or {
-    // we resume *after* setting the data listener, just in case a 
-    // data event is coming synchronously after the resume
-    stream.resume();
-    hold();
-  }
-  finally {
-    if (stream.readable && data !== null)
-      // don't pause on EOF, as some implementations
-      // suppress unrelated events (like `end`) when paused
-      stream.pause();
-  }
-  
-  return data;
 }
 
 /**

@@ -63,7 +63,8 @@
           if(buf == null) break;
           bufs.push(buf);
         }
-        Buffer.concat(bufs) .. @assert.eq("data");
+        bufs.length .. @assert.eq(4);
+        bufs .. @join .. @assert.eq("data");
 
         @fs.readFile(f.path, 'ascii') .. @assert.eq("data");
 

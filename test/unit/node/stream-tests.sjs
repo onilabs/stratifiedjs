@@ -19,7 +19,7 @@ var test = testUtil.test;
   });
 
   test("ReadableStringStream supports pause/resume", "[pause] [resume] data", function() {
-    var stream = new s.ReadableStringStream("data");
+    var stream = new s.ReadableStringStream("data", 'ascii');
     stream.pause();
     var data = '';
     stream.on('data', function(newData) {
@@ -38,7 +38,7 @@ var test = testUtil.test;
   test("WritableStringStream", "[data][end]", function() {
     var stream = new s.WritableStringStream();
     waitfor {
-      waitfor() { stream.on('end', resume); }
+      waitfor() { stream.on('finish', resume); }
     }
     and {
       stream.write('[data]');
@@ -48,7 +48,7 @@ var test = testUtil.test;
   });
 
   test("pump", "DATA", function() {
-    var src = new s.ReadableStringStream('data');
+    var src = new s.ReadableStringStream('data', 'ascii');
     src.pause();
     var dest = new s.WritableStringStream();
     s.pump(src, dest, d -> d.toUpperCase());
@@ -63,10 +63,20 @@ var test = testUtil.test;
       var running = true;
       rv.readable = true;
       var ended = false;
+
+      var getChunk = function() {
+        if (chunks.length == 0) return null;
+        var chunk = chunks.shift();
+        if (byteMode) chunk = new Buffer(chunk);
+        if (chunks.length == 0) rv.readable = false;
+        return chunk;
+      };
+
       rv.resume = function() {
         running = true;
         while(running) {
-          if (chunks.length == 0) {
+          var chunk = getChunk();
+          if (chunk === null) {
             //console.log("emitting null");
             if(!ended) {
               this.emit('end');
@@ -75,8 +85,6 @@ var test = testUtil.test;
             break;
           } else {
             //console.log("emitting chunk: #{chunks[0]}");
-            var chunk = chunks.shift();
-            if (byteMode) chunk = new Buffer(chunk);
             this.emit('data', chunk);
           }
           hold(0);
@@ -84,6 +92,10 @@ var test = testUtil.test;
       };
       rv.pause = function() {
         running = false;
+      };
+
+      rv.read = function() {
+        return getChunk();
       };
 
       return rv;
