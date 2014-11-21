@@ -150,13 +150,24 @@ exports.contents = function(stream) {
   @param    {optional String} [encoding] the encoding, if `data` is a string
   @desc
     This function ends the stream. It waits for the stream to actually
-    finish before returning.
+    be done before returning.
 */
 exports.end = function(dest, data, encoding) {
-  waitfor (var err) {
-    dest.end(data, encoding, resume)
+  // XXX we'd like to use dest.end(data, encoding, resume)
+  // but even core nodejs core disregard that and hang
+  // the process (e.g https://github.com/joyent/node/issues/8759)
+  if (data) {
+    exports.write(dest, data, encoding);
   }
-  if(err) throw err;
+  waitfor {
+    throw dest .. @wait('error');
+  } or {
+    waitfor {
+      dest .. @wait(['close','finish']);
+    } and {
+      dest.end();
+    }
+  }
 }
 
 
