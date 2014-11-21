@@ -83,8 +83,9 @@ exports.exec = function(command, options) {
    @summary Execute a child process and return output
    @param {String} [command] Command to execute
    @param {optional Array} [args] Array of command-line arguments
-   @param {optional Object} [options] Hash of options passed to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options), to [::kill] and to [::wait]
-   @return {Object} Object with 'stdout' and 'stderr' members
+   @param {optional Settings} [options] Hash of options passed to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options), to [::kill] and to [::wait]
+   @setting {String} [encoding] Encoding of stdout / stderr data
+   @return {Object} Object with 'stdout' and 'stderr' members (both Strings)
    @desc
       This function is just like the deprecated [::exec], but takes an
       array of arguments instead of a string. This has a number of
@@ -131,13 +132,19 @@ exports.exec = function(command, options) {
 */
 exports.run = function(command, args, options) {
   var stdout = [], stderr = [];
+  if(!options) options = {};
   function appendTo(buffer) {
     return function(data) { buffer.push(data); }
   };
 
   var child = exports.launch(command, args, options);
-  if(child.stdout) child.stdout.on('data', appendTo(stdout));
-  if(child.stderr) child.stderr.on('data', appendTo(stderr));
+  var collect = function(stream, dest) {
+    if(!stream) return;
+    stream.setEncoding(options.encoding || 'utf-8');
+    stream.on('data', appendTo(dest));
+  };
+  collect(child.stdout, stdout);
+  collect(child.stderr, stderr);
   function join(arr) { return arr.join(''); };
 
   try {

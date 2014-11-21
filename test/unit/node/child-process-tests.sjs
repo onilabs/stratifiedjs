@@ -146,9 +146,9 @@ context {||
     @test('wait() returns child object with code property if throwing === false') {||
       var child = child_process.launch('bash', ['-c', 'echo out; echo err >&2; sleep 1;exit 2']);
       waitfor {
-        var stdout = child.stdout .. @readAll() .. @strip();
+        var stdout = child.stdout .. @readAll('utf-8') .. @strip();
       } and {
-        var stderr = child.stderr .. @readAll() .. @strip();
+        var stderr = child.stderr .. @readAll('utf-8') .. @strip();
       } and {
         child .. child_process.wait({throwing: false});
       }
