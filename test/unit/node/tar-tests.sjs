@@ -72,7 +72,7 @@
         ropath .. @fs.writeFile("secret", 'utf-8');
         ropath .. @fs.chmod(0000);
         try {
-          @assert.raises({message:/^EACCESS, open .*readonly$/},
+          @assert.raises({message:/^EACCES, open .*readonly['"]$/},
             -> @tar.pack(src) .. exhaust()
           );
         } finally {
@@ -80,6 +80,20 @@
           ropath .. @fs.chmod(0644);
         }
       }
-    }.skip("BROKEN upstream; see https://github.com/npm/fstream/issues/31");
+    }
+
+    @test("unwritable directory") {||
+      @TemporaryDir {|src|
+        src .. @fs.chmod(0500);
+        try {
+          @assert.raises({message:/^EACCES, mkdir/},
+            -> @tar.pack(fixtureDir) .. @tar.extract({path:src})
+          );
+        } finally {
+          // make sure it's deletable
+          src .. @fs.chmod(0755);
+        }
+      }
+    }
   }
 }.serverOnly();
