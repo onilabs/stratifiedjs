@@ -5,6 +5,22 @@ var test = testUtil.test;
 @context() {||
   var s = require("sjs:nodejs/stream");
 
+  @test("contents returns a stream of buffers") {||
+    @fs.withReadStream(module.id .. @url.toPath) {|stream|
+      var contents = s.contents(stream);
+      contents .. @isStream .. @assert.ok();
+      contents .. @first .. Buffer.isBuffer .. @assert.ok();
+    }
+  }
+
+  @test("contents(encoding) returns a stream of strings") {||
+    @fs.withReadStream(module.id .. @url.toPath) {|stream|
+      var contents = s.contents(stream, 'utf-8');
+      contents .. @isStream .. @assert.ok();
+      contents .. @first .. @isString .. @assert.ok();
+    }
+  }
+
   // ReadableStringStream:
   test("ReadableStringStream emits data", "data", function() {
     var stream = new s.ReadableStringStream("data");

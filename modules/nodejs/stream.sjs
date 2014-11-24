@@ -161,12 +161,18 @@ exports.write = function(dest, data/*, ...*/) {
   @function contents
   @summary  Return a [sequence::Stream] of chunks of data from a nodejs stream
   @param    {Stream} [dest] the stream to read from
-  @return   {sequence::Stream} A sequence of data chunks
+  @param    {optional String} [encoding]
+  @return   {sequence::Stream} A sequence of data chunks (String or Buffer)
   @desc
+    The return value will be a sequence of Strings if `encoding` is provided,
+    otherwise the elements will be whatever data type the underlying stream
+    emits.
+
     The returned stream will end only when the underlying nodejs stream
     ends (or emits an error).
 */
-exports.contents = function(stream) {
+exports.contents = function(stream, encoding) {
+  if(encoding) stream.setEncoding(encoding);
   return @Stream(function(emit) {
     sys.streamContents(stream, emit);
   });
