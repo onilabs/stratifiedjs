@@ -79,7 +79,7 @@ exports.read = require('builtin:apollo-sys').readStream;
 
 /**
   @function readAll
-  @summary  Read and return the entire contents of `stream` as a single string.
+  @summary  Read and return the entire contents of `stream` as a single buffer or string.
   @param    {Stream} [stream] the stream to read from
   @param    {optional String} [encoding]
   @return   {String|Buffer}
