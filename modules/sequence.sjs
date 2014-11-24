@@ -40,7 +40,7 @@
 
 */
 
-var {isArrayLike, isQuasi} = require('builtin:apollo-sys');
+var {isArrayLike, isQuasi, streamContents} = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
 var sys = require('builtin:apollo-sys');
 
@@ -223,15 +223,6 @@ exports.generate = generate;
 //----------------------------------------------------------------------
 //
 
-var streamModule;
-var readableStreamEach = function(s) {
-  // it's assumed that streams will rarely be sync, so
-  // introducing possible async here shouldn't be an issue,
-  // and lets us avoid a load-time circular dep
-  if(!streamModule) streamModule = require('./nodejs/stream');
-  return streamModule.contents(s);
-};
-
 /**
    @function each
    @altsyntax sequence .. each { |item| ... }
@@ -278,7 +269,7 @@ function each(sequence, r) {
       }
     }
     else if (isReadableStream(sequence)) {
-      return readableStreamEach(sequence);
+      return streamContents(sequence, r);
     }
     else
       throw new Error("Unsupported sequence type '#{typeof sequence}'");

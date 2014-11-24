@@ -95,7 +95,18 @@ var test = testUtil.test;
       };
 
       rv.read = function() {
-        return getChunk();
+        var rv = getChunk();
+        var self = this;
+        if(rv == null) {
+          if(!ended) {
+            ended = true;
+            spawn(function() {
+              hold(0);
+              self.emit('end');
+            }());
+          }
+        }
+        return rv;
       };
 
       return rv;

@@ -63,6 +63,7 @@
           if(buf == null) break;
           bufs.push(buf);
         }
+        @info("got bufs:", bufs);
         bufs.length .. @assert.eq(4);
         bufs .. @join .. @assert.eq("data");
 

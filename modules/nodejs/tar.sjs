@@ -53,7 +53,7 @@ exports.gunzip = function(stream) {
   return @Stream(function(emit) {
     var gunzipStream = zlib.createGunzip();
     waitfor {
-      stream .. @pump(gunzipStream) .. @end;
+      stream .. @pump(gunzipStream, {end:true});
     } and {
       gunzipStream .. @contents .. @each(emit);
     }
@@ -70,7 +70,7 @@ exports.gzip = function(stream) {
   return @Stream(function(emit) {
     var gzipStream = zlib.createGzip();
     waitfor {
-      stream .. @pump(gzipStream);
+      stream .. @pump(gzipStream, {end:true});
     } and {
       gzipStream .. @contents .. @each(emit);
     }
@@ -145,7 +145,7 @@ exports.pack = function(dir, props) {
 exports.extract = function(stream, opts) {
   var tarStream = tar.Extract(opts);
   try {
-    stream .. @pump(tarStream) .. @end();
+    stream .. @pump(tarStream, {end:true});
   } catch(e) {
     swallowDummyError(tarStream);
     throw e;

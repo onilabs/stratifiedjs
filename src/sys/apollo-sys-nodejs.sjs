@@ -194,36 +194,46 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
 }
 
 
-// reads data from a stream; returns null if the stream has ended;
-// throws if there is an error
-var readStream = exports.readStream = function readStream(stream, size) {
-  if(stream.readable === false) return null;
-  var data = stream.read(size);
-  if(data !== null) return data;
+// reads data from a stream, as an array of Strings / Buffers
+// (whatever the stream gives). Throws if there is an error.
+// If a second `fn` argument is passed, calls that with each chunk
+// (iterating instead of eagerly reading in the entire data)
+var streamContents = exports.streamContents = function (stream, fn) {
+  var rv;
+  var chunk;
+  if(!fn) {
+    rv = [];
+    fn = rv.push.bind(rv);
+  }
 
   waitfor {
     waitfor (var exception) {
       stream.on('error', resume);
-      stream.on('end', resume);
     }
     finally {
       stream.removeListener('error', resume);
-      stream.removeListener('end', resume);
     }
-    if (exception) throw exception;
-    return null;
+    throw exception;
+  } or {
+    while(stream.readable !== false) {
+      var chunk = stream.read();
+      if(chunk === null) {
+        // wait for chunk
+        waitfor () {
+          stream.on('readable', resume);
+          stream.on('end', resume);
+        }
+        finally {
+          stream.removeListener('readable', resume);
+          stream.removeListener('end', resume);
+        }
+        chunk = stream.read();
+        if(chunk === null) break;
+      }
+      fn(chunk);
+    }
   }
-  or {
-    waitfor () {
-      stream.on('readable', resume);
-    }
-    finally {
-      stream.removeListener('readable', resume);
-    }
-    // XXX If two readers are watching for `data`, this could
-    // signal EOF prematurely. Don't use two readers.
-    return stream.read(size);
-  }
+  return rv;
 }
 
 /**
@@ -373,11 +383,7 @@ function request_hostenv(url, settings) {
         err.response = response;
         // XXX support for returning streambuffer
         response.setEncoding('utf8');
-        response.data = "";
-        var data;
-        while (data = readStream(response)) {
-          response.data += data;
-        }
+        response.data = streamContents(response).join('');
         err.data = response.data;
         throw err;
       } else if (responseMode === 'string') {
@@ -394,12 +400,8 @@ function request_hostenv(url, settings) {
   }
   else if (responseMode === 'arraybuffer') {
     
-    var buf = new Buffer(0);
-    var data;
-    while (data = readStream(response)) {
-      buf = Buffer.concat([buf, data]);
-      // XXX should we have some limit on the size here?
-    }
+    // XXX should we have some limit on the size here?
+    var buf = Buffer.concat(streamContents(response));
 
     // see http://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer
     __js {
@@ -419,12 +421,7 @@ function request_hostenv(url, settings) {
   else {
     // responseMode === 'string' || responseMode === 'full'
     response.setEncoding('utf8');
-    response.data = "";
-    var data;
-    while (data = readStream(response)) {
-      response.data += data;
-      // XXX should we have some limit on the size here?
-    }
+    response.data = streamContents(response).join('');
     
     if (responseMode === 'string')
       return response.data;
