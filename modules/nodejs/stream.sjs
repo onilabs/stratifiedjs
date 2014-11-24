@@ -35,7 +35,7 @@
   @home      sjs:nodejs/stream
   @hostenv   nodejs
   @desc
-    # Backwards compatility warning:
+    ### Backwards compatility warning:
 
     The nodejs stream API changed significantly in nodejs 0.10. The pre-0.10 API
     is not supported by StratifiedJS.
@@ -45,6 +45,8 @@
 
         var Readable = require('nodejs:stream').Readable;
         var newStream = new Readable().wrap(oldStream);
+
+    ----
 */
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs')
@@ -59,7 +61,7 @@ var nodeVersion = process.versions.node.split('.');
   @summary  Read a single piece of data from `stream`.
   @param    {Stream} [stream] the stream to read from
   @param    {optional Number} [length] the maximum number of bytes to read
-  @returns  {String|Buffer}
+  @return   {String|Buffer}
   @desc
     This function calls `stream.read()`.
 
@@ -241,7 +243,7 @@ ReadableStream.prototype._read = function() {
 
 /**
    @class    ReadableStringStream
-   @return   {::ReadableStream}
+   @inherit  ::ReadableStream
    @summary  A [::ReadableStream] which defaults to `utf-8` encoding.
 
    @constructor ReadableStream
@@ -297,7 +299,7 @@ WritableStream.prototype.contents = function() {
 
 /**
    @class    WritableStringStream
-   @inherits ::WritableStream
+   @inherit  ::WritableStream
    @summary  A [::WritableStream] which defaults to `utf-8` encoding.
 
    @constructor WritableStringStream
