@@ -9,6 +9,18 @@
   @tar = require('sjs:nodejs/tar');
   var decode = b -> b.toString('utf-8').trim();
 
+  @test("gzip test") {||
+    var childproc = @childProcess.launch('bash',['-c','cat /dev/urandom 2>/dev/null | head -c 20480000 | gzip -c'], {stdio:['ignore','pipe',2]});
+    waitfor {
+      @fs.withWriteStream('/dev/null') {|so|
+        childproc.stdout .. @stream.contents .. @monitor(c -> process.stderr.write(".")) .. @tar.gunzip .. @stream.pump(so);
+        console.log("DONE");
+      }
+    } and {
+      childproc .. @childProcess.wait({throwing:true});
+    }
+  }
+
   ;[false, true] .. @each {|compress|
     var desc = compress?" compressed":" plain";
     var tarFlag = compress?'z':'';
@@ -32,20 +44,40 @@
     }
 
     @test("extract"+desc) {||
+      console.log("extract test (#{desc}) start");
+      var Emitter = require('nodejs:events').EventEmitter;
+      var orig = Emitter.prototype.emit;
+      Emitter.prototype.emit = function(evt) {
+        //if(this._id)
+          console.log("** Emitter #{this._id || this} sending #{evt} to #{this.listeners(evt).length} listeners");
+        return orig.apply(this, arguments);
+      };
+
+      try {
+
       @TemporaryDir {|dest|
         @fs.readdir(dest) .. @assert.eq([])
         var proc = @childProcess.launch('tar',
           ['vc'+tarFlag, @path.basename(fixtureDir)],
           {stdio:['ignore', 'pipe', 'pipe'], cwd:@path.dirname(fixtureDir)}
         );
+        proc._id = 'proc[tar]';
+        proc.stdout._id = 'proc[tar].stdout';
+        proc.stderr._id = 'proc[tar].stderr';
         waitfor {
           var contents = proc.stdout .. @stream.contents();
           if(compress) contents = contents .. @tar.gunzip;
           contents .. @tar.extract({path: dest, strip:1});
+          console.log("ENDED: [test] tar extract");
           @fs.readdir(dest) .. @sort .. @assert.eq(fixtures)
+          //@assert.ok(false);
         } and {
           proc .. @childProcess.wait({throwing:true});
+          console.log("ENDED: [test] child process");
         }
+      }
+      } finally {
+        Emitter.prototype.emit = orig;
       }
     }
   }

@@ -52,10 +52,13 @@ var Readable = require('nodejs:stream').Readable;
 exports.gunzip = function(stream) {
   return @Stream(function(emit) {
     var gunzipStream = zlib.createGunzip();
+    gunzipStream._id = 'gunzip';
     waitfor {
       stream .. @pump(gunzipStream, {end:true});
+      console.log("ENDED: [tar] stream .. pump(gunzip)");
     } and {
       gunzipStream .. @contents .. @each(emit);
+      console.log("ENDED: [tar] gunzip .. each(emit)");
     }
   });
 }
@@ -69,6 +72,7 @@ exports.gunzip = function(stream) {
 exports.gzip = function(stream) {
   return @Stream(function(emit) {
     var gzipStream = zlib.createGzip();
+    gzipStream._id = 'gzipStream';
     waitfor {
       stream .. @pump(gzipStream, {end:true});
     } and {
@@ -144,8 +148,11 @@ exports.pack = function(dir, props) {
 */
 exports.extract = function(stream, opts) {
   var tarStream = tar.Extract(opts);
+  tarStream._fst._id = 'tar._fst';
+  tarStream._id = 'tar.Extract';
   try {
     stream .. @pump(tarStream, {end:true});
+    console.log("ENDED: [tar] stream .. pump(extract)");
   } catch(e) {
     swallowDummyError(tarStream);
     throw e;

@@ -201,38 +201,63 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
 var streamContents = exports.streamContents = function (stream, fn) {
   var rv;
   var chunk;
+  var ended = false;
+  var emitting = false;
   if(!fn) {
     rv = [];
     fn = rv.push.bind(rv);
   }
+  if(stream.readable === false) return rv;
 
   waitfor {
     waitfor (var exception) {
       stream.on('error', resume);
+      stream.on('end', resume);
     }
     finally {
       stream.removeListener('error', resume);
+      stream.removeListener('end', resume);
     }
-    throw exception;
+    if(exception) throw exception;
+    if(stream._id) console.log("** streamContents saw end on #{stream._id}, emitting=#{emitting}");
+    if(emitting) {
+      // if we see `end` while the other branch is emitting, don't retract it.
+      // Just set `ended`, and the other branch will break out once it's done emitting.
+      ended = true;
+      hold();
+    }
   } or {
-    while(stream.readable !== false) {
-      var chunk = stream.read();
+    while(!ended) {
+      __js chunk = stream.read();
+      if(stream._id) console.log("** streamContents read(#{stream._id}) -> #{chunk === null ? 'null' : chunk.length}");
       if(chunk === null) {
+        if(stream._id) console.log("** streamContents wait(#{stream._id})");
         // wait for chunk
         waitfor () {
           stream.on('readable', resume);
-          stream.on('end', resume);
         }
         finally {
           stream.removeListener('readable', resume);
-          stream.removeListener('end', resume);
         }
-        chunk = stream.read();
+        if(stream._id) console.log("** streamContents readable/end(#{stream._id})");
+        __js chunk = stream.read();
+        if(stream._id) console.log("** streamContents re-read(#{stream._id}) -> #{chunk === null ? 'null' : chunk.length}");
         if(chunk === null) break;
       }
-      fn(chunk);
+      emitting = true;
+      waitfor {
+        fn(chunk);
+      } or {
+        while(true) {
+          hold(1000);
+          if(stream._id) console.log("XXX streamContents emit() still in progress for (#{stream._id}); ended=#{ended}");
+        }
+      }
+      emitting = false;
+      if(stream._id) console.log("** streamContents readloop(#{stream._id}) next; ended=#{ended}");
     }
   }
+  if(stream._id) console.log("** streamContents returning (#{stream._id})");
   return rv;
 }
 

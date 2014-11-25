@@ -1,45 +1,6 @@
 language: node_js
 node_js:
   - "0.10"
-env:
-  - t=unit
-  - t=unit BROWSERS=PhantomJS
-  - t=unit BROWSERS=Firefox
-  - t=integration
-  - t=integration BROWSERS=PhantomJS,Firefox
-matrix:
-  # just run unit tests on other node versions
-  include:
-    - node_js: "0.11"
-      env: t=unit
-  
-  allow_failures:
-    - node_js: "0.10"
-      env: t=integration
-    - node_js: "0.10"
-      env: t=integration BROWSERS=PhantomJS,Firefox
-    - node_js: "0.10"
-      env: t=unit BROWSERS=Firefox
-    - node_js: "0.11"
-      env: t=unit
-notifications:
-  email:
-    recipients:
-      - commits@onilabs.com
-    on_success: change
-    on_failure: always
-  hipchat:
-    rooms:
-      secure: porchrPP7n4km+ZjCVNFhkVl1uqOB1aH1tHiUgYrMUjNXu4PtqJQpaohyPj6KNriGVKSwfk9MvBfFcotUJrfKN5h3poIQ8hdEzC/sPxGENE86bo5p15ZhUkrzf2zovl6JFaVvMqE1VJJpRAKr/LKVOxxyvV327TNESmJku8oKGI=
-    template:
-      - '%{repository_name}#%{commit} (%{author}): %{message} [%{build_url}]'
-    on_success: change
-    on_failure: always
-branches:
-  # build only master and release braches
-  only:
-    - master
-    - /^\d+(\.\d+)+$/
 
-script: "./tools/bin/sjs-tests --show-failed"
+script: "tries=0; while [ $tries -lt 50 ]; do tries=$((tries+1)); echo ' -- TRY: '$tries; ./test/run 'test/unit/node' > /tmp/out 2>&1; if [ $? -ne 0 ]; then cat /tmp/out; exit 1; fi done"
 
