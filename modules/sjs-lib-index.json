@@ -941,6 +941,18 @@
           },
           "summary": "Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)"
         },
+        "gzip": {
+          "type": "module",
+          "children": {
+            "compress": {
+              "type": "function"
+            },
+            "decompress": {
+              "type": "function"
+            }
+          },
+          "summary": "Gzip compression / decompression for SJS streams."
+        },
         "http": {
           "type": "module",
           "children": {
@@ -1090,12 +1102,6 @@
           "type": "module",
           "children": {
             "extract": {
-              "type": "function"
-            },
-            "gunzip": {
-              "type": "function"
-            },
-            "gzip": {
               "type": "function"
             },
             "pack": {

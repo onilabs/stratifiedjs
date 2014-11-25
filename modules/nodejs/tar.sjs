@@ -43,40 +43,6 @@ var fstream = require('nodejs:fstream');
 @fs = require('./fs');
 var Readable = require('nodejs:stream').Readable;
 
-/**
-  @function gunzip
-  @summary  gzip (decompress) stream transformer
-  @param    {sequence::Stream} [src] compressed stream
-  @return   {sequence::Stream} decompressed stream
-*/
-exports.gunzip = function(stream) {
-  return @Stream(function(emit) {
-    var gunzipStream = zlib.createGunzip();
-    waitfor {
-      stream .. @pump(gunzipStream, {end:true});
-    } and {
-      gunzipStream .. @contents .. @each(emit);
-    }
-  });
-}
-
-/**
-  @function gzip
-  @summary  gzip (compress) stream transformer
-  @param    {sequence::Stream} [src] data stream
-  @return   {sequence::Stream} compressed stream
-*/
-exports.gzip = function(stream) {
-  return @Stream(function(emit) {
-    var gzipStream = zlib.createGzip();
-    waitfor {
-      stream .. @pump(gzipStream, {end:true});
-    } and {
-      gzipStream .. @contents .. @each(emit);
-    }
-  });
-}
-
 /*
  * `tar` streams are weird - if you remove an error handler
  * synchronously once it's been triggered, it re-emits the

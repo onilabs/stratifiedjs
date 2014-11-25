@@ -7,6 +7,8 @@
   @assert.ok(fixtures.length > 5, JSON.stringify(fixtures));
 
   @tar = require('sjs:nodejs/tar');
+  @gzip = require('sjs:nodejs/gzip');
+
   var decode = b -> b.toString('utf-8').trim();
 
   ;[false, true] .. @each {|compress|
@@ -16,7 +18,7 @@
       @TemporaryDir {|dest|
         @fs.readdir(dest) .. @assert.eq([])
         var input = @tar.pack(fixtureDir);
-        if(compress) input = input .. @tar.gzip;
+        if(compress) input = input .. @gzip.compress;
         var proc = @childProcess.launch('tar', ['vx'+tarFlag, '--strip=1'], {stdio:['pipe', 'pipe', 2], cwd:dest});
         waitfor {
           input .. @stream.pump(proc.stdin);
@@ -40,7 +42,7 @@
         );
         waitfor {
           var contents = proc.stdout .. @stream.contents();
-          if(compress) contents = contents .. @tar.gunzip;
+          if(compress) contents = contents .. @gzip.decompress;
           contents .. @tar.extract({path: dest, strip:1});
           @fs.readdir(dest) .. @sort .. @assert.eq(fixtures)
         } and {
@@ -54,7 +56,7 @@
     var exhaust = s -> s .. @each(->null);
     @test("invalid gzip data") {||
       @assert.raises({message:"incorrect header check"},
-        -> ["not likely to be gzip"] .. @toStream() .. @tar.gunzip .. exhaust()
+        -> ["not likely to be gzip"] .. @toStream() .. @gzip.decompress .. exhaust()
       );
     }
 
