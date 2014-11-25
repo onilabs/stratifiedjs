@@ -8,7 +8,8 @@ context {||
   var url = require('sjs:url');
   var seq = require('sjs:sequence');
   var arr = require('sjs:array');
-  var { each, map, hasElem } = seq;
+  var { rstrip, contains } = require('sjs:string');
+  var { each, map, hasElem, find } = seq;
 
   var bundle = require('sjs:bundle');
   var basePath = url.normalize('./', module.id) .. url.toPath;
@@ -165,6 +166,23 @@ context {||
       deps.map(d -> d[0]) .. assert.eq(['sjs:']);
       deps[0][1] .. assert.contains('sys.sjs');
     }
+  }
+
+  context("resource mapping slash normalisation") {||
+    var base = basePath .. rstrip('/');
+    var expected = ['HOST','root','fixtures','utf8.sjs'].join('/');
+    var testResource = function(path, prefix) {
+      var [hub, modules] = createBundle({
+        resources: [[path, prefix]],
+        sources: [fixtureUrl + 'utf8.sjs'],
+      }) .. bundledModuleNames() .. seq.at(0);
+      modules .. find(x -> x .. contains('utf8')) .. assert.eq(expected);
+    };
+
+    test("slash on path only",   -> testResource(base+path.sep, '/root'));
+    test("slash on prefix only", -> testResource(base, '/root/'));
+    test("slash on both",        -> testResource(base+path.sep, '/root/'));
+    test("slash on neither",     -> testResource(base, '/root'));
   }
 
   test("resources can be given as object properties") {||

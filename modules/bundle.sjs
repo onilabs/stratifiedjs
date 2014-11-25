@@ -106,6 +106,7 @@ var docutil = require('sjs:docutil');
 var assert = require('sjs:assert');
 var logging = require('sjs:logging');
 var { isArrayLike } = require('builtin:apollo-sys');
+@path = require('nodejs:path');
 
 var fst = pair -> pair[0];
 var snd = pair -> pair[1];
@@ -545,6 +546,19 @@ var toPairs = function(obj, splitter, name) {
   }
 };
 
+var TRAILING_SLASH_PATH = /[\\\/]$/;
+var TRAILING_SLASH_URL = /\/$/;
+var normalizeAliasSlashes = function(pair) {
+  var [url, path] = pair;
+  if(TRAILING_SLASH_URL.test(url) && !TRAILING_SLASH_PATH.test(path)) {
+    pair[1] += @path.sep;
+  } else if(!TRAILING_SLASH_URL.test(url) && TRAILING_SLASH_PATH.test(path)) {
+    pair[0] += '/';
+  }
+  return pair;
+};
+
+
 var InternalOptions = function() { };
 var sanitizeOpts = function(opts) {
   // sanitizes / canonicalizes opts.
@@ -562,8 +576,14 @@ var sanitizeOpts = function(opts) {
   rv.strict  = !opts.skipFailed;  // srtict should be true by default
 
   // convert resources & hubs to array pairs with expanded paths:
-  rv.resources = opts.resources .. toPairs(s -> s .. rsplit('=', 1), 'resources') .. map([path, alias] -> [alias, coerceToURL(path)]);
-  rv.hubs =      opts.hubs      .. toPairs(s -> s .. split('=', 1), 'hubs')  .. map([prefix, path] -> [prefix, coerceToURL(path)]);
+  rv.resources = opts.resources
+    .. toPairs(s -> s .. rsplit('=', 1), 'resources')
+    .. map([path, alias] -> [alias, coerceToURL(path)])
+    .. map(normalizeAliasSlashes);
+
+  rv.hubs = opts.hubs
+    .. toPairs(s -> s .. split('=', 1), 'hubs')
+    .. map([prefix, path] -> [prefix, coerceToURL(path)]);
 
   // expand ignore / exclude paths
   rv.exclude = (opts.exclude || []) .. map(coerceToURL) .. map(stringToPrefixRe);
@@ -691,8 +711,7 @@ exports.main = function(args) {
   var opts = parser.parse(args);
 
   var usage = function() {
-    var path = require('nodejs:path');
-    process.stderr.write("Usage: #{path.basename(process.argv[0])} #{process.argv[1]} [OPTIONS] [SOURCE [...]]\n\n");
+    process.stderr.write("Usage: #{@path.basename(process.argv[0])} #{process.argv[1]} [OPTIONS] [SOURCE [...]]\n\n");
     process.stderr.write(parser.help());
   };
 
