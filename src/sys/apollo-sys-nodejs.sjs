@@ -201,36 +201,47 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
 var streamContents = exports.streamContents = function (stream, fn) {
   var rv;
   var chunk;
+  var ended = false;
+  var emitting = false;
   if(!fn) {
     rv = [];
     fn = rv.push.bind(rv);
   }
+  if(stream.readable === false) return rv;
 
   waitfor {
     waitfor (var exception) {
       stream.on('error', resume);
+      stream.on('end', resume);
     }
     finally {
       stream.removeListener('error', resume);
+      stream.removeListener('end', resume);
     }
-    throw exception;
+    if(exception) throw exception;
+    if(emitting) {
+      // if we see `end` while the other branch is emitting, don't retract it.
+      // Just set `ended`, and the other branch will break out once it's done emitting.
+      ended = true;
+      hold();
+    }
   } or {
-    while(stream.readable !== false) {
-      var chunk = stream.read();
+    while(!ended) {
+      __js chunk = stream.read();
       if(chunk === null) {
         // wait for chunk
         waitfor () {
           stream.on('readable', resume);
-          stream.on('end', resume);
         }
         finally {
           stream.removeListener('readable', resume);
-          stream.removeListener('end', resume);
         }
-        chunk = stream.read();
+        __js chunk = stream.read();
         if(chunk === null) break;
       }
+      emitting = true;
       fn(chunk);
+      emitting = false;
     }
   }
   return rv;

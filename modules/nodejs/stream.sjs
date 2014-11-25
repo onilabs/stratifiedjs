@@ -191,8 +191,6 @@ exports.contents = function(stream, encoding) {
 var _end = function(dest) {
   waitfor {
     dest .. @wait(['close','finish']);
-    // XXX hacky
-    if(!dest .. @hasOwnProperty('_ended')) dest._ended = true;
   } and {
     dest.end();
   }
@@ -205,7 +203,6 @@ exports.end = function(dest, data, encoding) {
   if (data) {
     exports.write(dest, data, encoding);
   }
-  if(dest._ended === true || (dest._writableState && dest._writableState.ended === true)) return;
   waitfor {
     throw dest .. @wait('error');
   } or {
@@ -251,7 +248,6 @@ exports.pump = function(src, dest, fn_or_opts) {
     throw dest .. @wait('error');
   } or {
     src .. @each {|data|
-      if(fn) data = fn(data);
       _write(dest, data);
     }
     if(end) _end(dest);

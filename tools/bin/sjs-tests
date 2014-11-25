@@ -41,7 +41,7 @@ testmod = 'test/run.html'
 
 
 conductance = None
-if 'integration' in suite:
+if suite and 'integration' in suite:
 	null = open(os.devnull)
 	# make sure npm-installed conductance can be found on $PATH
 	os.environ['PATH'] = os.pathsep.join([
