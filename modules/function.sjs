@@ -43,7 +43,7 @@ var { extend } = require('./object');
 var { map, zip, each } = require('./sequence');
 var { Interface } = require('./type');
 
-exports.isFunction = (f) -> (typeof f == "function");
+__js exports.isFunction = (f) -> (typeof f === "function");
 
 /**
    @function chain
@@ -156,13 +156,13 @@ exports.trycatch = function(try_func, catch_func) {
   @param    [argument]
   @summary  Returns whatever argument it receives, unmodified.
 */
-exports.identity = function(a) { return a; };
+__js exports.identity = function(a) { return a; };
 
 /**
   @function nop
   @summary  Null function, taking no argument and returning 'undefined'
 */
-exports.nop = function() { };
+__js exports.nop = function() { };
 
 /**
   @function bound

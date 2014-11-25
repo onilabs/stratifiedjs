@@ -193,7 +193,7 @@ __js exports.haveCommonElements = function(a, b) {
     one array ends before a differing element is found, it is considered
     less than the longer array.
 */
-var cmp = exports.cmp = function cmp(a,b) {
+__js var cmp = exports.cmp = function cmp(a,b) {
   var i=0;
   var ai, bi;
   var al = a.length;

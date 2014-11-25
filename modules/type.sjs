@@ -75,11 +75,12 @@ function type(x) {
     Might be extended to return `true` for other things in future
     versions of StratifiedJS, if they are callable.
  */
-function isCallable(x) {
-  return typeof x === "function";
+__js { 
+  function isCallable(x) {
+    return typeof x === "function";
+  }
+  exports.isCallable = isCallable;
 }
-exports.isCallable = isCallable;
-
 /**
   @function isObject
   @param {Any} [x]
@@ -94,10 +95,12 @@ exports.isCallable = isCallable;
         null
         undefined
  */
-function isObject(x) {
-  return Object(x) === x;
+__js {
+  function isObject(x) {
+    return Object(x) === x;
+  }
+  exports.isObject = isObject;
 }
-exports.isObject = isObject;
 
 /**
   @function isNaN
@@ -112,11 +115,12 @@ exports.isObject = isObject;
     This function will only return `true` if its argument is
     `NaN`.
  */
-function isNaN(x) {
-  return x !== x;
+__js {
+  function isNaN(x) {
+    return x !== x;
+  }
+  exports.isNaN = isNaN;
 }
-exports.isNaN = isNaN;
-
 
 /**
   @function isNumber
@@ -127,10 +131,12 @@ exports.isNaN = isNaN;
     This function returns `true` for numbers. 
     It returns `false` for `NaN`.
  */
-function isNumber(x) {
-  return type(x) === "number" && !isNaN(x);
+__js {
+  function isNumber(x) {
+    return typeof x === "number" && !isNaN(x);
+  }
+  exports.isNumber = isNumber;
 }
-exports.isNumber = isNumber;
 
 /**
   @function isString
@@ -140,10 +146,12 @@ exports.isNumber = isNumber;
   @desc
     This function returns `true` for strings.
  */
-function isString(x) {
-  return type(x) === "string";
+__js {
+  function isString(x) {
+    return typeof x === "string";
+  }
+  exports.isString = isString;
 }
-exports.isString = isString;
 
 /**
   @function isArray
@@ -153,10 +161,12 @@ exports.isString = isString;
   @desc
     This function returns `true` for `Array` objects.
  */
-function isArray(x) {
-  return type(x) === "array";
+__js {
+  function isArray(x) {
+    return Array.isArray(x);
+  }
+  exports.isArray = isArray;
 }
-exports.isArray = isArray;
 
 /**
   @function isBoolean
@@ -166,11 +176,12 @@ exports.isArray = isArray;
   @desc
     This function returns `true` for booleans.
  */
-function isBoolean(x) {
-  return type(x) === "boolean";
+__js {
+  function isBoolean(x) {
+    return typeof x === "boolean";
+  }
+  exports.isBoolean = isBoolean;
 }
-exports.isBoolean = isBoolean;
-
 
 function isSamePrototype(x, y) {
   return is(Object.getPrototypeOf(x), Object.getPrototypeOf(y));
