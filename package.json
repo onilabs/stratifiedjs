@@ -29,6 +29,6 @@
     "fstream": "git://github.com/gfxmonk/fstream.git#ffb969852cc0567771d135742c041deaf71aafb3",
     "mkdirp": "^0.5.0",
     "rimraf": "^2.2.8",
-    "tar": "^1.0.2"
+    "tar": "git://github.com/gfxmonk/node-tar.git#6b7f545832ac30aa69397602c451856253728d3d"
   }
 }
