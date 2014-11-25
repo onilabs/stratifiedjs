@@ -235,9 +235,7 @@ exports.pump = function(src, dest, fn_or_opts) {
     opts = fn_or_opts;
   }
   opts = opts || {};
-  //TODO: make default
-  //var end = opts.end !== false;
-  var end = opts.end === true;
+  var end = opts.end !== false;
 
   if (!(@isArrayLike(src) || @isStream(src))) src = exports.contents(src);
  
@@ -251,7 +249,7 @@ exports.pump = function(src, dest, fn_or_opts) {
       _write(dest, data);
     }
     if(end) _end(dest);
-  } 
+  }
   return dest;
 };
 

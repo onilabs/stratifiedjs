@@ -41,13 +41,14 @@ var zlib = require('nodejs:zlib');
   @function decompress
   @summary  gunzip (decompress) stream transformer
   @param    {sequence::Stream} [src] compressed stream
+  @param    {optional Settings} [opts] opts for [./stream::pump]
   @return   {sequence::Stream} decompressed stream
 */
-exports.decompress = function(stream) {
+exports.decompress = function(stream, opts) {
   return @Stream(function(emit) {
     var gunzipStream = zlib.createGunzip();
     waitfor {
-      stream .. @pump(gunzipStream, {end:true});
+      stream .. @pump(gunzipStream);
     } and {
       gunzipStream .. @contents .. @each(emit);
     }
@@ -58,13 +59,14 @@ exports.decompress = function(stream) {
   @function compress
   @summary  gzip (compress) stream transformer
   @param    {sequence::Stream} [src] data stream
+  @param    {optional Settings} [opts] opts for [./stream::pump]
   @return   {sequence::Stream} compressed stream
 */
-exports.compress = function(stream) {
+exports.compress = function(stream, opts) {
   return @Stream(function(emit) {
     var gzipStream = zlib.createGzip();
     waitfor {
-      stream .. @pump(gzipStream, {end:true});
+      stream .. @pump(gzipStream);
     } and {
       gzipStream .. @contents .. @each(emit);
     }

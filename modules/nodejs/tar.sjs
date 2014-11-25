@@ -36,7 +36,6 @@
     This module wraps the [tar](https://github.com/npm/node-tar) npm module.
 */
 
-var zlib = require('nodejs:zlib');
 var tar = require('nodejs:tar');
 var fstream = require('nodejs:fstream');
 @ = require(['../sequence', './stream', '../event']);
@@ -111,7 +110,7 @@ exports.pack = function(dir, props) {
 exports.extract = function(stream, opts) {
   var tarStream = tar.Extract(opts);
   try {
-    stream .. @pump(tarStream, {end:true});
+    stream .. @pump(tarStream);
   } catch(e) {
     swallowDummyError(tarStream);
     throw e;
