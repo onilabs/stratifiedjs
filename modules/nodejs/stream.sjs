@@ -69,7 +69,7 @@ if (sys.hostenv != 'nodejs')
   throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
 var nodeVersion = process.versions.node.split('.');
-@ = require(['../sequence', '../object', '../event', '../cutil']);
+@ = require(['../sequence', '../object', '../array', '../event', '../cutil']);
 @assert = require('../assert');
 
 /**
@@ -242,7 +242,7 @@ exports.pump = function(src, dest, fn_or_opts) {
   //var end = opts.end !== false;
   var end = opts.end === true;
 
-  if (!@isStream(src)) src = exports.contents(src);
+  if (!(@isArrayLike(src) || @isStream(src))) src = exports.contents(src);
  
   // old API, allowed a transform function
   if(fn) src = src .. @transform(fn);

@@ -3,7 +3,7 @@ var test = testUtil.test;
 @ = require('sjs:test/std');
 
 @context() {||
-  var s = require("sjs:nodejs/stream");
+  var s = @stream = require("sjs:nodejs/stream");
 
   @test("contents returns a stream of buffers") {||
     @fs.withReadStream(module.id .. @url.toPath) {|stream|
@@ -18,6 +18,22 @@ var test = testUtil.test;
       var contents = s.contents(stream, 'utf-8');
       contents .. @isStream .. @assert.ok();
       contents .. @first .. @isString .. @assert.ok();
+    }
+  }
+
+  @context("pump") {||
+    @test.beforeEach {|s|
+      s.dest = @stream.WritableStringStream();
+    }
+
+    @test("accepts a sequence::Stream") {|s|
+      ["one", "two", "three"] .. @toStream .. @stream.pump(s.dest);
+      s.dest.contents() .. @assert.eq("onetwothree");
+    }
+
+    @test("accepts an array") {|s|
+      ["one", "two", "three"] .. @stream.pump(s.dest);
+      s.dest.contents() .. @assert.eq("onetwothree");
     }
   }
 
