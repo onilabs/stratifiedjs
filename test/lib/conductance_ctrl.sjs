@@ -3,6 +3,7 @@ var object = require('sjs:object');
 var logging = require('sjs:logging');
 var http = require('sjs:http');
 var path = require('path');
+var fs = require('sjs:nodejs/fs');
 var url = require('sjs:url');
 var { supplant } = require("sjs:string");
 
@@ -29,7 +30,10 @@ var run = exports.run = function() {
 
   var root = process.env['CONDUCTANCE_ROOT'];
   if (root) {
-    bin = path.join(root, "bin", bin);
+    bins = [path.join(root, "bin", bin)];
+  } else {
+    var local_bin = path.join(basedir, 'node_modules','conductance', bin);
+    if(fs.exists(local_bin)) bin = local_bin;
   }
 
   try {
