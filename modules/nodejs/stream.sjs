@@ -69,7 +69,7 @@ if (sys.hostenv != 'nodejs')
   throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
 var nodeVersion = process.versions.node.split('.');
-@ = require(['../sequence', '../object', '../array', '../event', '../cutil']);
+@ = require(['../sequence', '../object', '../array', '../event', '../cutil', '../string']);
 @assert = require('../assert');
 
 /**
@@ -214,16 +214,20 @@ exports.end = function(dest, data, encoding) {
 /**
   @function pump
   @summary  Keep writing data from `src` into `dest` until `src` ends.
-  @param    {Stream|sequence::Stream} [src] the source stream
+  @param    {Stream|String|Buffer|sequence::Sequence} [src] the source data
   @param    {String} [dest] the destination stream
   @param    {optional Settings} [opts]
   @setting  {Boolean} [end=true] end `dest` after writing
   @return   {Stream} `dest`
   @desc
+    If passed a single String or Buffer, the data will be
+    written as a single chunk. Otherwise, `src` will be
+    iterated and written to `dest` as capacity allows.
+
     This function will not return until the `src` stream has ended,
     and all data has been written to `dest`.
 
-    If `end` is not `false`, `dest` it will then call [::end] on `dest`.
+    If the `end` option is not `false`, this function will also call [::end] on `dest`.
 */
 exports.pump = function(src, dest, fn_or_opts) {
   var fn, opts;
@@ -237,16 +241,24 @@ exports.pump = function(src, dest, fn_or_opts) {
   opts = opts || {};
   var end = opts.end !== false;
 
-  if (!(@isArrayLike(src) || @isStream(src))) src = exports.contents(src);
  
-  // old API, allowed a transform function
-  if(fn) src = src .. @transform(fn);
-
   waitfor {
     throw dest .. @wait('error');
   } or {
-    src .. @each {|data|
-      _write(dest, data);
+    if (@isString(src) || Buffer.isBuffer(src)) {
+      // just a single chunk
+      _write(dest, src);
+    } else {
+      // if it's not already a sequence, it should be a stream
+      // which doesn't inherit from ReadableStream. Force it:
+      if (!(@isSequence(src))) src = exports.contents(src);
+
+      // old API, allowed a transform function
+      if(fn) src = src .. @transform(fn);
+
+      src .. @each {|data|
+        _write(dest, data);
+      }
     }
     if(end) _end(dest);
   }

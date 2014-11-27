@@ -26,6 +26,16 @@ var test = testUtil.test;
       s.dest = @stream.WritableStringStream();
     }
 
+    @test("accepts a nodejs stream") {|s|
+      @stream.ReadableStringStream('data', 'ascii') .. @stream.pump(s.dest);
+      s.dest.data .. @assert.eq("data");
+    }
+
+    @test("allows data transformation (deprecated API)") {|s|
+      @stream.ReadableStringStream('data', 'ascii') .. @stream.pump(s.dest, d -> d.toUpperCase());
+      s.dest.data .. @assert.eq("DATA");
+    }
+
     @test("accepts a sequence::Stream") {|s|
       ["one", "two", "three"] .. @toStream .. @stream.pump(s.dest);
       s.dest.contents() .. @assert.eq("onetwothree");
@@ -33,6 +43,17 @@ var test = testUtil.test;
 
     @test("accepts an array") {|s|
       ["one", "two", "three"] .. @stream.pump(s.dest);
+      s.dest.contents() .. @assert.eq("onetwothree");
+    }
+
+    @test("accepts a buffer") {||
+      var dest = new @stream.WritableStream();
+      new Buffer("onetwothree") .. @stream.pump(dest);
+      dest.contents() .. @assert.eq(new Buffer("onetwothree"));
+    }
+
+    @test("accepts a string") {|s|
+      "onetwothree" .. @stream.pump(s.dest);
       s.dest.contents() .. @assert.eq("onetwothree");
     }
   }
@@ -77,14 +98,6 @@ var test = testUtil.test;
       stream.end('[end]');
     }
     return stream.data;
-  });
-
-  test("pump", "DATA", function() {
-    var src = new s.ReadableStringStream('data', 'ascii');
-    src.pause();
-    var dest = new s.WritableStringStream();
-    s.pump(src, dest, d -> d.toUpperCase());
-    return dest.data;
   });
 
   ;[true, false] .. @each {|byteMode|
