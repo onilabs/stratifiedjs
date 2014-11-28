@@ -1,5 +1,39 @@
 This changelog lists the most prominent, developer-visible changes in each release.
 
+## Version 0.20:
+
+This version includes an overhaul to the nodejs/stream module, which offers more convenient interop
+with StratifiedJS streams, and works more reliably with third-party nodejs stream implementations. Specifically:
+
+ - It uses the new (nodejs 0.10) non-flowing stream API. The older "flowing" API is poorly implemented / supported by many third-party streams.
+ - All methods respect whether the underlying stream deals in buffers or strings, rather than coercing data into a string. If you find
+   some stream functions are now returning Buffers instead of Strings, you will need to explicitly specify an encoding.
+ - `pump()` has been extended to accept any sequence as a source, rather than just another nodejs stream. This means
+   you can pump SJS Streams, Arrays, Buffers and Strings into a nodejs stream.
+ - `pump()` now closes the destination stream by default.
+ - nodejs streams are now recognised by the sequence module (so they'll work with `each`, `transform`, `concat`, etc).
+   The new `contents` function in the nodejs/stream module lets you explicitly convert a nodejs stream into a StratifiedJS one.
+ - The `read()` and `write()` methods have been removed. While investigating some complex timing errors in streams, we discovered
+   that these methods are in inherently unreliable for some streams, depending on how they are implemented.
+
+   While these methods worked correctly in most curcumstances in practice for file streams and sockets, they fall
+   down when it comes to more abstract streams like `tar` / `fstream`. The higher-level functions (e.g `pump` and
+   `contents`) do not have these problems, so we've opted to remove these functions entirely rather than include
+   functions which cannot be made to work reliably for some stream implementations.
+
+In addition, the stream functions from `sjs:std` are no longer exported directly, but are now exported under the `stream`
+property. i.e:
+
+    // old code:
+    @ = require('sjs:std');
+    input .. @readAll();
+
+    //becomes:
+    @ = require('sjs:std');
+    input .. @stream.readAll();
+
+For convenience, the `pump` method is still exposed as a top-level property (i.e both `pump` and `stream.pump` refer to the same function).
+
 ## Version 0.19:
 
 This version includes a number of additions to nodejs-specific modules, as well
