@@ -50,7 +50,8 @@ var modules = [
 
 if (hostenv === 'nodejs') {
   modules = modules.concat([
-    'sjs:nodejs/stream',
+    {id:'sjs:nodejs/stream', name:'stream'},
+    {id:'sjs:nodejs/stream', include:['pump']},
     {id:'sjs:sys', include: ['argv', 'eval']},
     {id:'nodejs:path', name: 'path'},
     {id:'sjs:nodejs/fs', name: 'fs'},
@@ -85,6 +86,7 @@ module.exports = require(modules);
    - **logging**: (module [sjs:logging](#sjs%3Alogging))
    - **path**: (module [nodejs:path](http://nodejs.org/api/path.html))
    - **regexp**: (module [sjs:regexp](#sjs%3Aregexp))
+   - **stream**: (module [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream))
    - **sys**: (module [sjs:sys](#sjs%3Asys))
    - **url**: (module [sjs:url](#sjs%3Aurl))
   
@@ -145,17 +147,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
   *(when in the nodejs environment)*
   
-   - **contents**: (function [sjs:nodejs/stream::contents])
-   - **DelimitedReader**: (class [sjs:nodejs/stream::DelimitedReader])
-   - **end**: (function [sjs:nodejs/stream::end])
-   - **lines**: (function [sjs:nodejs/stream::lines])
    - **pump**: (function [sjs:nodejs/stream::pump])
-   - **read**: (function [sjs:nodejs/stream::read])
-   - **ReadableStream**: (class [sjs:nodejs/stream::ReadableStream])
-   - **readAll**: (function [sjs:nodejs/stream::readAll])
-   - **WritableStream**: (class [sjs:nodejs/stream::WritableStream])
-   - **WritableStringStream**: (class [sjs:nodejs/stream::WritableStringStream])
-   - **write**: (function [sjs:nodejs/stream::write])
   
   
   ### Symbols from the [sjs:object](#sjs%3Aobject) module:
@@ -293,8 +285,8 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:sys](#sjs%3Asys) module:
   
-   - **eval**: (function [sjs:sys::eval])
    - **argv**: (function [sjs:sys::argv])
+   - **eval**: (function [sjs:sys::eval])
   
   
   ### Symbols from the [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom) module:
