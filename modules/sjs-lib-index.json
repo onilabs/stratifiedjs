@@ -1086,13 +1086,7 @@
             "pump": {
               "type": "function"
             },
-            "read": {
-              "type": "function"
-            },
             "readAll": {
-              "type": "function"
-            },
-            "write": {
               "type": "function"
             }
           },

@@ -72,40 +72,19 @@ var nodeVersion = process.versions.node.split('.');
 @ = require(['../sequence', '../object', '../array', '../event', '../cutil', '../string']);
 @assert = require('../assert');
 
-/**
-  @function read
-  @deprecated See the warning about asynchronous errors in the [./stream::] module description.
-  @summary  Read a single piece of data from `stream`.
-  @param    {Stream} [stream] the stream to read from
-  @param    {optional Number} [length] the maximum number of bytes to read
-  @return   {String|Buffer}
-  @desc
-    This function calls `stream.read()`.
-
-    If no data is currently available, it waits for the
-    `readable` event on the stream, and then returns one
-    piece of data.
-
-    Returns `null` when the stream has ended and there is no
-    more data.
-
-    If stream emits `error`, the error is thrown.
-*/
-exports.read = function readStream(stream, size) {
-  waitfor {
-    throw stream .. @wait('error');
-  } or {
-    var chunk = stream.read(size);
-    if(chunk === null) {
-      // wait for chunk
-      stream .. @wait(['readable', 'end']);
-      chunk = stream.read(size);
-    }
-    return chunk
+// reads a chunk, but the parent must be listening for `end` / `error`
+exports._read = function readStream(stream, size) {
+  var chunk = stream.read(size);
+  if(chunk === null) {
+    // wait for chunk
+    stream .. @wait(['readable']);
+    chunk = stream.read(size);
   }
+  return chunk
 }
 
 /**
+
   @function readAll
   @summary  Read and return the entire contents of `stream` as a single buffer or string.
   @param    {Stream} [stream] the stream to read from
@@ -115,6 +94,8 @@ exports.read = function readStream(stream, size) {
     Repeatedly calls `read` until the stream ends. This function
     should not be used on infinite or large streams, as it will buffer the
     entire contents in memory.
+
+    Consider using [::contents], which can often be just as convenient.
 */
 exports.readAll = function(stream, encoding) {
   var result = sys.streamContents(stream);
@@ -125,35 +106,11 @@ exports.readAll = function(stream, encoding) {
 };
 
 
-/**
-  @function write
-  @deprecated See the warning about asynchronous errors in the [./stream::] module description.
-  @summary  Write data to the `dest` stream.
-  @param    {Stream} [dest] the stream to write to
-  @param    {String|Buffer} [data] the data to write
-  @param    {optional String} [encoding] the encoding, if `data` is a string
-  @desc
-    If the data cannot be written immediately, this function
-    will wait for a `drain` event on the `dest` stream before
-    returning.
-
-    Any additional arguments (after `data`) are passed through
-    to the underlying `write` function.
-*/
-
-// like exports.write, but without error listener
-var _write = function(dest, data /*, ... */) {
+// warning: parent must listen for errors, _write doesn't do that
+var _write = exports._write = function(dest, data /*, ... */) {
   var wrote = dest.write.apply(dest, Array.prototype.slice.call(arguments, 1));
   if(!wrote) {
     dest .. @wait('drain');
-  }
-};
-
-exports.write = function(dest, data/*, ...*/) {
-  waitfor {
-    _write.apply(null, arguments);
-  } or {
-    throw dest .. @wait('error');
   }
 };
 
@@ -187,6 +144,8 @@ exports.contents = function(stream, encoding) {
   @desc
     This function ends the stream. It waits for the stream to actually
     be done before returning.
+
+    Typically [::pipe] will end the stream for you.
 */
 var _end = function(dest) {
   waitfor {
@@ -405,16 +364,15 @@ var DelimitedReader = function(stream) {
   var pending = [];
   var error = @Condition();
   stream.on('error', function(e) { error.set(e); });
+  stream.on('end', function(e) { error.set(null); });
   var convertSentinel = null;
-  var ended = false;
   var _read = function() {
     waitfor {
-      throw error.wait();
+      var err = error.wait();
+      if(err === null) return null;
+      throw err;
     } or {
-      if (ended) return null;
-      var buf = exports.read(stream);
-      if (buf === null) ended = true;
-      return buf;
+      return exports._read(stream);
     }
   };
 

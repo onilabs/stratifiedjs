@@ -1,6 +1,7 @@
 // Default conductance configuration
 
 @ = require('mho:std');
+@response = require('mho:server/response');
 
 var root = @url.normalize("../", module.id) .. @url.toPath;
 exports.serve = function(args) {
@@ -13,7 +14,7 @@ exports.serve = function(args) {
       }),
       @Route('http/fail', {
         GET: function(req) {
-          req .. @setStatus(500);
+          req .. @response.setStatus(500);
           req.response.end("failure response data");
         }
       }),

@@ -4,7 +4,7 @@
   var runMethods = {
     'module': function(code, opts) {
       require('sjs:nodejs/tempfile').TemporaryFile {|f|
-        f.writeStream() .. @write(code, 'utf-8');
+        code .. @pump(f.writeStream());
         var rv = @childProcess.run(process.execPath, [@sys.executable, f.path .. @url.normalize(module.id)], {'stdio':['ignore','pipe',2], throwing: false} .. @merge(opts || {}));
         @info("child process exited with code #{rv.code}, signal #{rv.signal}");
         return rv;

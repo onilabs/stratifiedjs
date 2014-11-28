@@ -13,8 +13,6 @@ followed by binary data.
 @stream = require('../nodejs/stream');
 @crypto = require('nodejs:crypto');
 
-// XXX should write* calls call .end() on their ourput stream?
-
 var newlineBuf = new Buffer("\n", "utf-8");
 
 var StoreProto = {};
@@ -39,17 +37,11 @@ StoreProto.update = function(plaintext, opts) {
 }
 
 StoreProto.writePlaintext = function(output) {
-  this.stream .. @each {|chunk|
-    output .. @stream.write(chunk);
-  }
-  output .. @stream.end();
+  this.stream .. @stream.pump(output);
 }
 
 StoreProto.writeEncrypted = function(output, passphrase) {
-  this._encryptedStream(passphrase) .. @each {|chunk|
-    output .. @stream.write(chunk);
-  }
-  output .. @stream.end();
+  this._encryptedStream(passphrase) .. @stream.pump(output);
 }
 
 StoreProto._encryptedStream = function(passphrase) {
@@ -62,17 +54,11 @@ StoreProto._encryptedStream = function(passphrase) {
     emit(new Buffer(JSON.stringify(settings), "utf-8"));
     emit(newlineBuf);
     var cipher = @crypto.createCipher(settings .. @get('alg'), passphrase);
+
     waitfor {
-      stream .. @each {|chunk|
-        cipher .. @stream.write(chunk);
-      }
-      cipher .. @stream.end();
+      stream .. @stream.pump(cipher);
     } and {
-      while (true) {
-        var chunk = cipher .. @stream.read();
-        if (chunk == null) break;
-        emit(chunk);
-      }
+      cipher .. @stream.contents .. @each(emit);
     }
   });
 }
@@ -127,16 +113,9 @@ var decryptIntoStore = function(cipherChunks, settings, passphrase) {
   var plaintextChunks = @Stream(function(emit) {
     var cipher = @crypto.createDecipher(settings .. @get('alg'), passphrase);
     waitfor {
-      cipherChunks .. @each {|chunk|
-        cipher .. @stream.write(chunk);
-      }
-      cipher .. @stream.end();
+      cipherChunks .. @stream.pump(cipher);
     } and {
-      while(true) {
-        var chunk = cipher .. @stream.read();
-        if (chunk == null) break;
-        emit(chunk);
-      }
+      cipher .. @stream.contents .. @each(emit);
     }
   });
 

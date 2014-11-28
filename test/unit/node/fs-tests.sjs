@@ -17,14 +17,14 @@
   @context("WriteStream") {||
     @test("works") {|s|
       @fs.withWriteStream(s.path('output')) {|f|
-        f .. @stream.write('data');
+        'data' .. @stream.pump(f, {end:false});
       }
       @fs.readFile(s.path('output'), 'utf-8') .. @assert.eq('data');
     }
 
     @test("it's OK to call end() twice") {|s|
       @fs.withWriteStream(s.path('output')) {|f|
-        f .. @stream.write('data');
+        'data' .. @stream.pump(f, {end:true});
         f.end();
       }
       @fs.readFile(s.path('output'), 'utf-8') .. @assert.eq('data');
@@ -45,14 +45,13 @@
     @test("works") {|s|
       var contents;
       @fs.withReadStream(s.path('data'), {encoding:'utf-8'}) {|f|
-        contents = f .. @stream.read();
+        contents = f .. @join();
       }
       contents .. @assert.eq('Hello world');
     }
 
     @test("it's OK to call destroy() twice") {|s|
       @fs.withReadStream(s.path('output')) {|f|
-        f .. @stream.read();
         f.destroy();
       }
     }
