@@ -55,11 +55,17 @@ var nodeStream;
 var nodeStream;
 if (sys.hostenv == 'nodejs') {
   var readableStreamProto = require('nodejs:stream').Readable;
+  var socketProto = require('nodejs:net').Socket.prototype;
+  var fsReadStreamProto = require('nodejs:fs').ReadStream.prototype;
   __js {
     isBuffer = Buffer.isBuffer.bind(Buffer);
-    isReadableStream = s -> readableStreamProto.isPrototypeOf(s);
+    isReadableStream = s -> readableStreamProto.isPrototypeOf(s)
+      || socketProto.isPrototypeOf(s)
+      || fsReadStreamProto.isPrototypeOf(s)
+    ;
   }
 }
+exports._isReadableStream = isReadableStream;
 
 // XXX `sequential` is from the 'function.sjs' module - we can't
 // import that because that would it would lead to a dependency

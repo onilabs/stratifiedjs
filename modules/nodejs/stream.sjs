@@ -72,6 +72,23 @@ var nodeVersion = process.versions.node.split('.');
 @ = require(['../sequence', '../object', '../array', '../event', '../cutil', '../string']);
 @assert = require('../assert');
 
+/**
+  @function isReadableStream
+  @param    {Object} [stream]
+  @return   {Boolean}
+  @summary  Test whether `stream` is a readable nodejs stream
+  @desc
+    This function returns true if the given object inherits from either:
+
+     - nodejs:net::Socket
+     - nodejs:stream::ReadableStream
+
+    There may be objects which implement the readable stream interface
+    but which do not inherit from any of these prototypes,
+    in which case this test will return `false`.
+*/
+exports.isReadableStream = require('../sequence')._isReadableStream;
+
 // reads a chunk, but the parent must be listening for `end` / `error`
 exports._read = function readStream(stream, size) {
   var chunk = stream.read(size);

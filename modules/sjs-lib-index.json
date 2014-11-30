@@ -1080,6 +1080,9 @@
             "end": {
               "type": "function"
             },
+            "isReadableStream": {
+              "type": "function"
+            },
             "lines": {
               "type": "function"
             },

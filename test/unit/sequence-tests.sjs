@@ -763,7 +763,7 @@ context("iterable nodejs datatypes") {||
     new Buffer("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
   }
 
-  test("Stream") {||
+  test("stream::Readable") {||
     var contents = '';
     var myPath = module.id .. @url.toPath();
     var stream = @fs.fileContents(myPath, 'utf-8');
@@ -772,6 +772,24 @@ context("iterable nodejs datatypes") {||
       contents += chunk;
     }
     contents.slice(0, 50) .. @assert.eq(@fs.readFile(myPath, 'utf-8').slice(0, 50));
+  }
+
+  test("net::Socket") {||
+    var sock = new require('nodejs:net').Socket();
+    sock .. s.isSequence .. @assert.ok();
+  }
+
+  test("fs::ReadStream") {||
+    require('sjs:nodejs/tempfile').TemporaryFile() {|f|
+      f.readStream() .. s.isSequence .. @assert.ok();
+    }
+  }
+
+  test("child_process stdout") {||
+    var p = @childProcess.launch('echo', ['123'], {'stdio':['ignore','pipe',2]});
+    p.stdout .. s.isSequence .. @assert.ok();
+    p.stdout .. @each(@info); // consume stream
+    p .. @childProcess.wait();
   }
 }.serverOnly();
 
