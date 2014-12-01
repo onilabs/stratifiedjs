@@ -534,6 +534,10 @@ testEq('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2],
 testEq('concat(Stream([1,2],[3,4]))', [1,2,3,4], function () { return s.concat(nonRepeatableSequence([[1,2], [3,4]])) .. toArray; });
 
 context('partition') {||
+  testEq('partition(integers(1,10) .. toArray, x->x%2)', [[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], function() {
+    return s.partition(s.integers(1, 10) .. s.toArray, x -> x%2);
+  });
+
   testEq('partition(integers(1,10), x->x%2)', [[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], function() {
     return s.partition(s.integers(1, 10), x -> x%2) .. s.map(s.toArray);
   });

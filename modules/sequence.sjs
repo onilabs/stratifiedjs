@@ -1066,58 +1066,71 @@ exports.filter = filter;
    @altsyntax sequence .. partition(predicate)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [predicate] Predicate function
-   @return {::Stream} A pair of streams.
+   @return {::Array} A pair of sequences.
    @summary  Create a pair of [passes, fails] streams from an input stream and a predicate.
    @desc
-      The first is all the elements that satisfy `predicate`, the second is those that don't.
-      Generates two streams. The first contains all items `x` from `sequence` for which
+      Generates two sequences. The first contains all items `x` from `sequence` for which
       `predicate(x)` is truthy, the second contains items where it is falsy. The
-      order of the original sequence is maintained in each output stream.
+      order of the original sequence is maintained in each output sequence.
+
+      If the input is an Array, the output will also be a pair of Arrays. Otherwise,
+      the output will be a pair of [::Stream]s which consume the input on demand.
+
+      Note that if you pass a [::Stream] to this function and then consume the
+      first result before iterating over the second, `partition` will be internally buffering
+      all items destined for the second stream in order to produce the first.
+      So it generally only makes sense to pass a [::Stream] as input when you
+      are planning to iterate over both result streams concurrently.
 
       ### Example:
 
           // print first 10 odd integers:
 
-          var [odds, evens] = integers(1,10) .. partition(x->x%2);
-          console.log("Odds: ", odds .. toArray);
-          console.log("Evens: ", evens .. toArray);
+          var [odds, evens] = integers(1,10) .. toArray .. partition(x->x%2);
+          console.log("Odds: ", odds);
+          console.log("Evens: ", evens);
           
           // will print:
           // Odds:  [ 1, 3, 5, 7, 9]
           // Evens: [ 2, 4, 6, 8, 10]
 */
 function partition(sequence, predicate) {
-
   var buffers = [[], []];
-  var emitters = [null, null]
-  var drainer = null;
-  var _resume = noop;
-
-  var streams = [0,1] .. map((idx) -> Stream(function(r) {
-    while(buffers[idx].length > 0) {
-      r(buffers[idx].shift());
-    }
-    emitters[idx] = r;
-    _resume();
-    drainer.value();
-  }));
-
-  drainer = spawn(function() {
-    // wait until one side wants results
-    waitfor() {
-      _resume = resume;
-    }
-    _resume = noop;
-
+  if (isArrayLike(sequence)) {
     sequence .. each {|item|
-      var idx = predicate(item) ? 0 : 1;
-      var emitter = emitters[idx];
-      if (emitter) emitter(item);
-      else buffers[idx].push(item);
+      buffers[predicate(item) ? 0 : 1].push(item);
     }
-  }());
+    return buffers;
+  } else {
+    var emitters = [null, null]
+    var drainer = null;
+    var _resume = noop;
 
-  return streams;
+    var streams = [0,1] .. map((idx) -> Stream(function(r) {
+      while(buffers[idx].length > 0) {
+        r(buffers[idx].shift());
+      }
+      emitters[idx] = r;
+      _resume();
+      drainer.value();
+    }));
+
+    drainer = spawn(function() {
+      // wait until one side wants results
+      waitfor() {
+        _resume = resume;
+      }
+      _resume = noop;
+
+      sequence .. each {|item|
+        var idx = predicate(item) ? 0 : 1;
+        var emitter = emitters[idx];
+        if (emitter) emitter(item);
+        else buffers[idx].push(item);
+      }
+    }());
+    return streams;
+  }
 }
 exports.partition = partition;
 
