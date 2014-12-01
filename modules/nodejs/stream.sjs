@@ -35,22 +35,6 @@
   @home      sjs:nodejs/stream
   @hostenv   nodejs
   @desc
-    ### Warning: Asynchronous stream errors
-
-    NodeJS streams can have wildly different behaviours depending on how they're implemented.
-
-    In particular, authors of most streams don't expect the on-demand style of reading/writing that
-    StratifiedJS allows, where chunks are read / written explicitly, rather than being triggered
-    by one or more event handlers which are permanently attached to the stream.
-
-    One side effect of this is that stream implementations will often emit `error`
-    events _at any time_, even when nobody is reading from or writing to the stream.
-
-    For this reason, it's best to use the high-level constructs in this module
-    which operate on an entire stream (e.g. [::pump] and [::contents]).
-    Calling [::read] or [::write] in a loop to process individual chunks is
-    **prone to triggering uncaught exceptions**, and should be **avoided wherever possible**.
-
     ### Warning: Backwards compatility
 
     The nodejs stream API changed significantly in nodejs 0.10. The pre-0.10 API
@@ -162,7 +146,7 @@ exports.contents = function(stream, encoding) {
     This function ends the stream. It waits for the stream to actually
     be done before returning.
 
-    Typically [::pipe] will end the stream for you.
+    Typically [::pump] will end the stream for you.
 */
 var _end = function(dest) {
   waitfor {
@@ -373,9 +357,11 @@ exports.WritableStringStream = function(enc) {
   @function DelimitedReader.read
   @summary Read the next available data from the underlying stream
   @desc
-    This does the same thing as calling [::read] on the underlying stream,
-    except that it may return buffered data which was read (but not rerurned) by
-    a previous call to [::DelimitedReader::readUntil].
+    This returns a single chunk from the underlying stream.
+
+    It may either cause a read on the underlying stream, or return
+    buffered data which was read (but not rerurned) by a previous
+    call to [::DelimitedReader::readUntil].
 */
 var DelimitedReader = function(stream) {
   var pending = [];
