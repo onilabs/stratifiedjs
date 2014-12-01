@@ -720,3 +720,53 @@ __js (function() {
   }
   exports.arrayBufferToOctets = fn;
 })();
+
+__js {
+  if (sys.hostenv === 'nodejs') {
+    /**
+      @function encode
+      @param {optional String} [data]
+      @param {String} [encoding]
+      @summary Encode string -> bytes
+      @desc
+        If both arguments are provided, returns the
+        encoded string.
+
+        If only one argument is provided, returns a partially-applied
+        function which accepts a string and encodes it.
+
+      @function decode
+      @param {optional Buffer} [data]
+      @param {String} [encoding]
+      @summary Decode bytes -> string
+      @desc
+        If both arguments are provided, returns the
+        decoded buffer.
+
+        If only one argument is provided, returns a partially-applied
+        function which accepts a buffer and decodes it.
+    */
+
+    var decode = function(buf, enc) {
+      if(!Buffer.isBuffer(buf)) throw new Error("Not a buffer");
+      return buf.toString(enc);
+    };
+
+    var encode = function(str, enc) {
+      if(!exports.isString(str)) throw new Error("Not a string");
+      return new Buffer(str, enc);
+    };
+
+    exports.decode = function(arg) {
+      if (arguments.length < 2)
+        return data -> decode(data, arg);
+      return decode(arg, arguments[1]);
+    }
+
+    exports.encode = function(arg) {
+      if (arguments.length < 2)
+        return data -> encode(data, arg);
+      return encode(arg, arguments[1]);
+    }
+  }
+}
