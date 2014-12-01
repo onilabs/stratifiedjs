@@ -15,8 +15,6 @@ var expected404Status = 404;
 var requiresConductance = t -> t.skipIf(suite.isBrowser && document.location.host == 'code.onilabs.com', "requires conductance server");
 
 context("request") {||
-  @stream = require('sjs:nodejs/stream');
-
   testEq('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {
     return http.request([getHttpURL("data/returnQuery.template"), {a:1,b:2}]);
   }).skip("requires template filter");
@@ -171,6 +169,8 @@ context("full return objects") {||
 }
 
 context("raw return objects") {||
+  @stream = require('sjs:nodejs/stream');
+
   test('returns an unconsumed response stream', function() {
     var response = http.request("http://code.onilabs.com/sjs/unstable/modules/http.sjs", { response: 'raw' });
     assert.eq(response.headers['content-type'], 'text/plain');

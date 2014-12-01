@@ -124,12 +124,12 @@ function jsonp_indoc(url, opts) {
     window[jsonp_cb_obj][cb] = resume;
     document.getElementsByTagName("head")[0].appendChild(elem);
 
-    waitfor() {
+    waitfor(var error) {
       if (elem.addEventListener)
         elem.addEventListener("error", resume, false);
       else { // IE<9
         var readystatechange = function() {
-          if (elem.readyState == 'loaded' && !complete) resume()
+          if (elem.readyState == 'loaded' && !complete) resume(new Error("script loaded but `complete` flag not set"))
         }
         elem.attachEvent("onreadystatechange", readystatechange);
       }
@@ -140,8 +140,7 @@ function jsonp_indoc(url, opts) {
       else // IE
         elem.detachEvent("onreadystatechange", readystatechange);
     }
-    // this line never reached unless there is an error
-    throw new Error("Could not complete JSONP request to '"+url+"'");
+    throw new Error("Could not complete JSONP request to '"+url+"'" + (error?"\n"+error.message:""));
   }
   finally {
     elem.parentNode.removeChild(elem);
