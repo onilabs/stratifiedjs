@@ -2120,6 +2120,12 @@
         "contains": {
           "type": "function"
         },
+        "decode": {
+          "type": "function"
+        },
+        "encode": {
+          "type": "function"
+        },
         "endsWith": {
           "type": "function"
         },
