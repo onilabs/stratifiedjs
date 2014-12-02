@@ -582,6 +582,17 @@
     "debug": {
       "type": "module",
       "children": {
+        "Stopwatch": {
+          "type": "class",
+          "children": {
+            "Stopwatch": {
+              "type": "ctor"
+            },
+            "delta": {
+              "type": "function"
+            }
+          }
+        },
         "inspect": {
           "type": "function"
         },

@@ -125,6 +125,7 @@ module.exports = require(modules);
   
    - **inspect**: (function [sjs:debug::inspect])
    - **prompt**: (function [sjs:debug::prompt])
+   - **Stopwatch**: (class [sjs:debug::Stopwatch])
   
   
   ### Symbols from the [sjs:event](#sjs%3Aevent) module:

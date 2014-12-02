@@ -404,33 +404,80 @@ function reduceToSingleString(output, base, braces) {
   return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
 }
 
-// NOTE: These type checking functions intentionally don't use `instanceof`
-// because it is fragile and can be easily faked with `Object.create()`.
-function isArray(ar) {
-  return Array.isArray(ar) ||
-         (typeof ar === 'object' && objectToString(ar) === '[object Array]');
+__js {
+  // NOTE: These type checking functions intentionally don't use `instanceof`
+  // because it is fragile and can be easily faked with `Object.create()`.
+
+  // XXX we should use the function in the sjs:type module here.
+
+  function isArray(ar) {
+    return Array.isArray(ar) ||
+    (typeof ar === 'object' && objectToString(ar) === '[object Array]');
+  }
+  //exports.isArray = isArray;
+  
+  
+  function isRegExp(re) {
+    return typeof re === 'object' && objectToString(re) === '[object RegExp]';
+  }
+  //exports.isRegExp = isRegExp;
+  
+  
+  function isDate(d) {
+    return typeof d === 'object' && objectToString(d) === '[object Date]';
+  }
+  //exports.isDate = isDate;
+  
+  
+  function isError(e) {
+    return typeof e === 'object' && objectToString(e) === '[object Error]';
+  }
+  //exports.isError = isError;
+  
+  
+  function objectToString(o) {
+    return Object.prototype.toString.call(o);
+  }
 }
-//exports.isArray = isArray;
 
+//----------------------------------------------------------------------
+// Timing
 
-function isRegExp(re) {
-  return typeof re === 'object' && objectToString(re) === '[object RegExp]';
-}
-//exports.isRegExp = isRegExp;
+/**
+   @class Stopwatch
+   @summary A timer for measuring code execution time 
+   @function Stopwatch
+   @param {String} [stopwatch_name]
+   @summary Creates and starts a stopwatch
+*/
+__js {
 
+  function formatStopwatchDelta(start, end) {
+    // let's do 100's of milliseconds
+    var delta = Math.round((end-start)/100);
+    return "#{delta/10}s"
+  }
 
-function isDate(d) {
-  return typeof d === 'object' && objectToString(d) === '[object Date]';
-}
-//exports.isDate = isDate;
-
-
-function isError(e) {
-  return typeof e === 'object' && objectToString(e) === '[object Error]';
-}
-//exports.isError = isError;
-
-
-function objectToString(o) {
-  return Object.prototype.toString.call(o);
+  function Stopwatch(name) {
+    var start, lap;
+    var rv = {
+      /**
+         @function Stopwatch.delta
+         @param {String} [snapshot_name]
+         @return {String}
+         @summary Generate a snapshot string of the form
+                  'stopwatch_name/snapshot_name: delta, total', where delta is
+                  the time since the last snapshot and total is the time since
+                  starting of the stopwatch
+      */
+      snapshot: function(sname) {
+        var old_lap = lap;
+        lap = new Date();
+        return "#{name}/#{sname}: +#{formatStopwatchDelta(old_lap, lap)}, TOTAL:#{formatStopwatchDelta(start, lap)}";
+      }
+    }
+    start = lap = new Date();
+    return rv;
+  }
+  exports.Stopwatch = Stopwatch;
 }
