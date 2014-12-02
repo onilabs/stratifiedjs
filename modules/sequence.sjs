@@ -1066,7 +1066,7 @@ exports.filter = filter;
    @altsyntax sequence .. partition(predicate)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [predicate] Predicate function
-   @return {::Array} A pair of sequences.
+   @return {Array} A pair of sequences.
    @summary  Create a pair of [passes, fails] streams from an input stream and a predicate.
    @desc
       Generates two sequences. The first contains all items `x` from `sequence` for which
