@@ -234,6 +234,7 @@ var ConflictErrorProto = new Error();
 var ConflictError = exports.ConflictError = function(msg) {
   var rv = Object.create(ConflictErrorProto);
   rv.message = msg;
+  return rv;
 };
 
 /**

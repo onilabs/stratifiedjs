@@ -10,6 +10,23 @@
     @assert.eq(a .. @isObservableVar, true);
   }
 
+	@test("conflict") {||
+		var a = @ObservableVar();
+		@assert.raises({filter:@isConflictError}, function() {
+			waitfor {
+				a.modify(function() {
+					hold(10);
+					return 'new 1';
+				});
+			} and {
+				hold(0);
+				a.modify(function() {
+					hold(10);
+					return 'new 2';
+				});
+			}
+		});
+	}
 
 	@test("observe multiple values at once") {||
 		var log = [];
