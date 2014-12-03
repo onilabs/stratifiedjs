@@ -230,7 +230,8 @@ function withServer(config, server_loop) {
     ca: undefined,
     passphrase: undefined,
     fd: undefined,
-    log: x => logging.info(address, ":", x)
+    log: x => logging.info(address, ":", x),
+    print: logging.print,
   }, config);
 
   var [,host,port] = /^(?:(.*)?\:)?(\d+)$/.exec(config.address);
@@ -328,8 +329,7 @@ function withServer(config, server_loop) {
       address = family=='IPv6' ? "[#{address}]:#{port}" : "#{address}:#{port}";
     }
 
-
-    config.log("Listening on #{address}");
+    if(config.print) config.print("Listening on #{address}");
 
     waitfor {
       server .. event.wait('close');
