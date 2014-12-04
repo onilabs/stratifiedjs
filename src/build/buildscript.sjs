@@ -268,14 +268,14 @@ function build_deps() {
          "src/deps/dashdash/apollo-module-footer.txt"]
        );
 
-  // html2canvas assigns to window.html2canvas, so
+  // html2canvas uses window.html2canvas all over the shop, so
   // we replace that with `exports._render`.
   // apollo-module-footer supplies the stratified `render` function
   BUILD("tmp/html2canvas.js",
         ["sed -E -e 's/window\\.html2canvas/exports._render/' $0 > $TARGET",
           replacements_from_config
         ],
-        ["src/deps/html2canvas/build/html2canvas.js"]
+        ["src/deps/html2canvas/dist/html2canvas.js"]
        );
   CONCAT("modules/xbrowser/html2canvas.sjs",
         ["src/deps/html2canvas/apollo-module-header.txt",

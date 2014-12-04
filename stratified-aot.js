@@ -3624,7 +3624,7 @@ return "for(;"+this.test_exp.nb()+";"+this.inc_exp.nb()+"){"+this.body.nb()+"}";
 
 
 return "while("+this.test_exp.nb()+"){"+this.body.nb()+"}";
-}else throw new Error("Can't encode this loop as __js yet");
+}else return "while(1){"+this.body.nb()+"}";
 
 };
 ph_loop.prototype.val=function(){var test=this.test_exp?this.test_exp.v():"1";

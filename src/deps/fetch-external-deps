@@ -4,8 +4,9 @@
 var path = require('path');
 var fs      = require('sjs:nodejs/fs');
 var childProcess    = require('sjs:nodejs/child-process');
-var read    = require('sjs:nodejs/stream').read;
+var prompt    = require('sjs:debug').prompt;
 var { merge } = require('sjs:object');
+@ = require('sjs:sequence');
 
 var run = function(cmd, args, opts) {
   console.log(" + #{cmd} #{args.join(' ')}");
@@ -19,7 +20,13 @@ process.chdir(here);
 var sources = getSources();
 for (var i=0; i<sources.length; ++i) {
   var src = sources[i];
-  if (run('git', ['status', '--porcelain', src.dir], {stdio: [0,'pipe', 2]}).stdout.length) {
+  var changes = run('git', ['status', '--porcelain', src.dir], {stdio: [0,'pipe', 2]}).stdout.split('\n')
+    .. @filter(line -> line.length > 0)
+    // .. @monitor(x -> console.log(JSON.stringify(x)))
+    .. @map(line -> line[1]) // extract just the Y column of status (working copy state). It's OK if we have staged changes.
+    .. @filter(st -> st != ' ')
+    .. @toArray;
+  if (changes.length !== 0) {
     console.log('directory '+src.dir+' not clean -> ignoring');
     continue;
   }
@@ -29,8 +36,7 @@ for (var i=0; i<sources.length; ++i) {
   }
   var fullpath = path.join(here, src.dir);
   console.log("Replacing directory #{fullpath} with github repository at #{src.repo}");
-  console.log('Sure you want to proceed? [y/N]');
-  if (read(process.stdin).toString().toLowerCase() != 'y\n') {
+  if (prompt('Sure you want to proceed? [y/N] ').toLowerCase() != 'y') {
     console.log('Skipping '+fs.realpath(src.dir));
     continue;
   }

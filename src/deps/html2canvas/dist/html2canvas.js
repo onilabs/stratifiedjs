@@ -1,74 +1,4 @@
 /*
- * StratifiedJS 'nodejs/mkdirp' module
- *
- * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.20.0-development'
- * http://onilabs.com/stratifiedjs
- *
- * (c) 2014 Oni Labs, http://onilabs.com
- *
- *
- *   ***************************************************************
- *   *    DO NOT EDIT xbrowser/html2canvas.sjs - IT IS A GENERATED FILE!       *
- *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
- *   *    stratifiedjs/src/build/make-sjs                          *
- *   ***************************************************************
- *
- *
- * This file is derived from the "html2canvas" project
- * (https://github.com/niklasvh/html2canvas), available under
- * the MIT license.
- *
- * Original License Text:
- *
- * Copyright (c) 2014 Niklas von Hertzen
- * 
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- * 
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
-
-/**
-  @module    html2canvas
-  @summary   Generate virtual screenshots of HTML elements (tracking the [html2canvas library](http://html2canvas.hertzen.com/))
-  @hostenv   xbrowser
-
-  @function render
-  @param {DOMElement} [element]
-  @param {Settings} [opts]
-  @summary Render `element` to a HTML `<canvas>` reresentation.
-  @return {DOMElement} A <canvas> element.
-  @desc
-    Since there is no browser API for actually capturing screenshots, this library
-    makes a best-effort attempt to emulate a browser rendering based on the current
-    state of the DOM. The resulting screenshots are therefore not 100% percent accurate,
-    and may not include some cross-origin content due to browser security policies (e.g images, iframes).
-
-    See the [official webpage](http://html2canvas.hertzen.com/) for further details.
-*/
-
-var { clone } = require('../object');
-
-/** @docsoff */
-__js {
-/*
   html2canvas 0.5.0-alpha <http://html2canvas.hertzen.com>
   Copyright (c) 2014 Niklas von Hertzen
 
@@ -101,7 +31,7 @@ __js {
 !function(){var a,b,c,d;!function(){var e={},f={};a=function(a,b,c){e[a]={deps:b,callback:c}},d=c=b=function(a){function c(b){if("."!==b.charAt(0))return b;for(var c=b.split("/"),d=a.split("/").slice(0,-1),e=0,f=c.length;f>e;e++){var g=c[e];if(".."===g)d.pop();else{if("."===g)continue;d.push(g)}}return d.join("/")}if(d._eak_seen=e,f[a])return f[a];if(f[a]={},!e[a])throw new Error("Could not find module "+a);for(var g,h=e[a],i=h.deps,j=h.callback,k=[],l=0,m=i.length;m>l;l++)"exports"===i[l]?k.push(g={}):k.push(b(c(i[l])));var n=j.apply(this,k);return f[a]=g||n}}(),a("promise/all",["./utils","exports"],function(a,b){"use strict";function c(a){var b=this;if(!d(a))throw new TypeError("You must pass an array to all.");return new b(function(b,c){function d(a){return function(b){f(a,b)}}function f(a,c){h[a]=c,0===--i&&b(h)}var g,h=[],i=a.length;0===i&&b([]);for(var j=0;j<a.length;j++)g=a[j],g&&e(g.then)?g.then(d(j),c):f(j,g)})}var d=a.isArray,e=a.isFunction;b.all=c}),a("promise/asap",["exports"],function(a){"use strict";function b(){return function(){process.nextTick(e)}}function c(){var a=0,b=new i(e),c=document.createTextNode("");return b.observe(c,{characterData:!0}),function(){c.data=a=++a%2}}function d(){return function(){j.setTimeout(e,1)}}function e(){for(var a=0;a<k.length;a++){var b=k[a],c=b[0],d=b[1];c(d)}k=[]}function f(a,b){var c=k.push([a,b]);1===c&&g()}var g,h="undefined"!=typeof window?window:{},i=h.MutationObserver||h.WebKitMutationObserver,j="undefined"!=typeof global?global:this,k=[];g="undefined"!=typeof process&&"[object process]"==={}.toString.call(process)?b():i?c():d(),a.asap=f}),a("promise/cast",["exports"],function(a){"use strict";function b(a){if(a&&"object"==typeof a&&a.constructor===this)return a;var b=this;return new b(function(b){b(a)})}a.cast=b}),a("promise/config",["exports"],function(a){"use strict";function b(a,b){return 2!==arguments.length?c[a]:(c[a]=b,void 0)}var c={instrument:!1};a.config=c,a.configure=b}),a("promise/polyfill",["./promise","./utils","exports"],function(a,b,c){"use strict";function d(){var a="Promise"in window&&"cast"in window.Promise&&"resolve"in window.Promise&&"reject"in window.Promise&&"all"in window.Promise&&"race"in window.Promise&&function(){var a;return new window.Promise(function(b){a=b}),f(a)}();a||(window.Promise=e)}var e=a.Promise,f=b.isFunction;c.polyfill=d}),a("promise/promise",["./config","./utils","./cast","./all","./race","./resolve","./reject","./asap","exports"],function(a,b,c,d,e,f,g,h,i){"use strict";function j(a){if(!w(a))throw new TypeError("You must pass a resolver function as the first argument to the promise constructor");if(!(this instanceof j))throw new TypeError("Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.");this._subscribers=[],k(a,this)}function k(a,b){function c(a){p(b,a)}function d(a){r(b,a)}try{a(c,d)}catch(e){d(e)}}function l(a,b,c,d){var e,f,g,h,i=w(c);if(i)try{e=c(d),g=!0}catch(j){h=!0,f=j}else e=d,g=!0;o(b,e)||(i&&g?p(b,e):h?r(b,f):a===F?p(b,e):a===G&&r(b,e))}function m(a,b,c,d){var e=a._subscribers,f=e.length;e[f]=b,e[f+F]=c,e[f+G]=d}function n(a,b){for(var c,d,e=a._subscribers,f=a._detail,g=0;g<e.length;g+=3)c=e[g],d=e[g+b],l(b,c,d,f);a._subscribers=null}function o(a,b){var c,d=null;try{if(a===b)throw new TypeError("A promises callback cannot return that same promise.");if(v(b)&&(d=b.then,w(d)))return d.call(b,function(d){return c?!0:(c=!0,b!==d?p(a,d):q(a,d),void 0)},function(b){return c?!0:(c=!0,r(a,b),void 0)}),!0}catch(e){return c?!0:(r(a,e),!0)}return!1}function p(a,b){a===b?q(a,b):o(a,b)||q(a,b)}function q(a,b){a._state===D&&(a._state=E,a._detail=b,u.async(s,a))}function r(a,b){a._state===D&&(a._state=E,a._detail=b,u.async(t,a))}function s(a){n(a,a._state=F)}function t(a){n(a,a._state=G)}var u=a.config,v=(a.configure,b.objectOrFunction),w=b.isFunction,x=(b.now,c.cast),y=d.all,z=e.race,A=f.resolve,B=g.reject,C=h.asap;u.async=C;var D=void 0,E=0,F=1,G=2;j.prototype={constructor:j,_state:void 0,_detail:void 0,_subscribers:void 0,then:function(a,b){var c=this,d=new this.constructor(function(){});if(this._state){var e=arguments;u.async(function(){l(c._state,d,e[c._state-1],c._detail)})}else m(this,d,a,b);return d},"catch":function(a){return this.then(null,a)}},j.all=y,j.cast=x,j.race=z,j.resolve=A,j.reject=B,i.Promise=j}),a("promise/race",["./utils","exports"],function(a,b){"use strict";function c(a){var b=this;if(!d(a))throw new TypeError("You must pass an array to race.");return new b(function(b,c){for(var d,e=0;e<a.length;e++)d=a[e],d&&"function"==typeof d.then?d.then(b,c):b(d)})}var d=a.isArray;b.race=c}),a("promise/reject",["exports"],function(a){"use strict";function b(a){var b=this;return new b(function(b,c){c(a)})}a.reject=b}),a("promise/resolve",["exports"],function(a){"use strict";function b(a){var b=this;return new b(function(b){b(a)})}a.resolve=b}),a("promise/utils",["exports"],function(a){"use strict";function b(a){return c(a)||"object"==typeof a&&null!==a}function c(a){return"function"==typeof a}function d(a){return"[object Array]"===Object.prototype.toString.call(a)}var e=Date.now||function(){return(new Date).getTime()};a.objectOrFunction=b,a.isFunction=c,a.isArray=d,a.now=e}),b("promise/polyfill").polyfill()}();
 
 if (typeof(Object.create) !== "function" || typeof(document.createElement("canvas").getContext) !== "function") {
-    exports._render = function() {
+    window.html2canvas = function() {
         return Promise.reject("No canvas support");
     };
     return;
@@ -640,11 +570,11 @@ var html2canvasNodeAttribute = "data-html2canvas-node";
 var html2canvasCanvasCloneAttribute = "data-html2canvas-canvas-clone";
 var html2canvasCanvasCloneIndex = 0;
 
-exports._render = function(nodeList, options) {
+window.html2canvas = function(nodeList, options) {
     options = options || {};
     if (options.logging) {
-        exports._render.logging = true;
-        exports._render.start = Date.now();
+        window.html2canvas.logging = true;
+        window.html2canvas.start = Date.now();
     }
 
     options.async = typeof(options.async) === "undefined" ? true : options.async;
@@ -673,8 +603,8 @@ exports._render = function(nodeList, options) {
     });
 };
 
-exports._render.punycode = this.punycode;
-exports._render.proxy = {};
+window.html2canvas.punycode = this.punycode;
+window.html2canvas.proxy = {};
 
 function renderDocument(document, options, windowWidth, windowHeight) {
     return createWindowClone(document, document, windowWidth, windowHeight, options).then(function(container) {
@@ -1242,8 +1172,8 @@ LinearGradientContainer.prototype = Object.create(GradientContainer.prototype);
 LinearGradientContainer.prototype.stepRegExp = /((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/;
 
 function log() {
-    if (exports._render.logging && window.console && window.console.log) {
-        Function.prototype.bind.call(window.console.log, (window.console)).apply(window.console, [(Date.now() - exports._render.start) + "ms", "html2canvas:"].concat([].slice.call(arguments, 0)));
+    if (window.html2canvas.logging && window.console && window.console.log) {
+        Function.prototype.bind.call(window.console.log, (window.console)).apply(window.console, [(Date.now() - window.html2canvas.start) + "ms", "html2canvas:"].concat([].slice.call(arguments, 0)));
     }
 }
 
@@ -2014,9 +1944,9 @@ NodeParser.prototype.paintFormValue = function(container) {
 
 NodeParser.prototype.paintText = function(container) {
     container.applyTextTransform();
-    var characters = exports._render.punycode.ucs2.decode(container.node.data);
+    var characters = window.html2canvas.punycode.ucs2.decode(container.node.data);
     var textList = (!this.options.letterRendering || noLetterSpacing(container)) && !hasUnicode(container.node.data) ? getWords(characters) : characters.map(function(character) {
-        return exports._render.punycode.ucs2.encode([character]);
+        return window.html2canvas.punycode.ucs2.encode([character]);
     });
 
     var weight = container.parent.fontWeight();
@@ -2403,7 +2333,7 @@ function getWords(characters) {
         if (isWordBoundary(characters[i]) === onWordBoundary) {
             word = characters.splice(0, i);
             if (word.length) {
-                words.push(exports._render.punycode.ucs2.encode(word));
+                words.push(window.html2canvas.punycode.ucs2.encode(word));
             }
             onWordBoundary =! onWordBoundary;
             i = 0;
@@ -2414,7 +2344,7 @@ function getWords(characters) {
         if (i >= characters.length) {
             word = characters.splice(0, i);
             if (word.length) {
-                words.push(exports._render.punycode.ucs2.encode(word));
+                words.push(window.html2canvas.punycode.ucs2.encode(word));
             }
         }
     }
@@ -2460,10 +2390,10 @@ function jsonp(document, url, callback) {
     return new Promise(function(resolve, reject) {
         var s = document.createElement("script");
         var cleanup = function() {
-            delete exports._render.proxy[callback];
+            delete window.html2canvas.proxy[callback];
             document.body.removeChild(s);
         };
-        exports._render.proxy[callback] = function(response) {
+        window.html2canvas.proxy[callback] = function(response) {
             cleanup();
             resolve(response);
         };
@@ -3041,14 +2971,3 @@ function hasEntries(array) {
 }
 
 }).call({}, window, document, null, exports);
-}
-
-exports.render = function(elem, opts) {
-  opts = opts ? clone(opts) : {};
-
-  waitfor(var rv) {
-    opts.onrendered = resume;
-    exports._render(elem, opts);
-  }
-  return rv;
-}
