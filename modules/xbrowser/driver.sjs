@@ -46,7 +46,7 @@
 */
 
 var {get, extend, propertyPairs, ownPropertyPairs} = require('sjs:object');
-var {isDOMNode} = require('sjs:xbrowser/dom');
+var {isDOMNode, findNode} = require('sjs:xbrowser/dom');
 var logging = require('sjs:logging');
 var {each, toArray} = require('sjs:sequence');
 var {AssertionError} = require('sjs:assert');
@@ -206,6 +206,14 @@ DriverProto.click = function(elem) {
 				case 'radio':
 					elem .. exports.trigger('change');
 					break;
+			}
+			break;
+		case 'button':
+			if(elem.getAttribute('type') === 'submit') {
+				var form = findNode('form', elem);
+				if(form) {
+					form .. exports.trigger('submit');
+				}
 			}
 			break;
 	}
@@ -541,7 +549,7 @@ exports.addTestHooks = function(t, getDriver) {
 		try {
 			getDriver(s).removeLogIntercept();
 		} catch(e) {
-			logging.warn(String(e));
+			logging.warn("Can't remove log intercept: #{e}");
 		}
 	}
 	return this;
