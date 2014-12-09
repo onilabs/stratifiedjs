@@ -462,7 +462,7 @@ __js {
     var start, lap;
     var rv = {
       /**
-         @function Stopwatch.delta
+         @function Stopwatch.snapshot
          @param {String} [snapshot_name]
          @return {String}
          @summary Generate a snapshot string of the form
