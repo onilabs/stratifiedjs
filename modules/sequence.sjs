@@ -112,7 +112,7 @@ function sequential(f) {
      
           // The stream 1,2,3,...,10 can be expressed by:
           var s = Stream(function(emit) {
-            for (var i=1; i<=10; ++1) emit(i);
+            for (var i=1; i<=10; ++i) emit(i);
           });
  
           // We can then use it with `each`:
