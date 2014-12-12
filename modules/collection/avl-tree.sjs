@@ -179,6 +179,32 @@ __js {
     return out;
   }
 
+  // We use conses at the very end of the list for very fast O(1) push
+  function Cons(car, cdr) {
+    this.car = car;
+    this.cdr = cdr;
+  }
+
+  // Converts a stack (reversed cons) into an array
+  function stack_to_array(a, size) {
+    var out = new Array(size);
+
+    while (size--) {
+      out[size] = a.car;
+      a = a.cdr;
+    }
+
+    return out;
+  }
+
+  function stack_nth(a, size, i) {
+    while (--size !== i) {
+      a = a.cdr;
+    }
+
+    return a.car;
+  }
+
   function ArrayNode(left, right, array) {
     this.left  = left;
     this.right = right;
@@ -686,8 +712,10 @@ __js {
     }
   };*/
 
-  function ImmutableList(root) {
+  function ImmutableList(root, tail, tail_size) {
     this.root = root;
+    this.tail = tail;
+    this.tail_size = tail_size;
   }
 
   // TODO is this a good idea ?
@@ -707,10 +735,24 @@ __js {
     }
   };
 
-  ImmutableList.prototype.isEmpty = ImmutableDict.prototype.isEmpty;
+  ImmutableList.prototype.isEmpty = function () {
+    return this.root === nil && this.tail === nil;
+  };
+
+  ImmutableList.prototype.forEach = function (f) {
+    this.root.forEach(f);
+
+    // TODO put this into a function
+    ;(function anon(x) {
+      if (x !== nil) {
+        anon(x.cdr);
+        f(x.car);
+      }
+    })(this.tail);
+  };
 
   ImmutableList.prototype.size = function () {
-    return this.root.size;
+    return this.root.size + this.tail_size;
   };
 
   ImmutableList.prototype.has = function (index) {
@@ -731,9 +773,17 @@ __js {
     }
 
     if (nth_has(index, len)) {
-      return nth_get(this.root, index);
+      var root = this.root;
+      var size = root.size;
+      if (index < size) {
+        return nth_get(root, index);
+      } else {
+        return stack_nth(this.tail, this.tail_size, index - size);
+      }
+
     } else if (arguments.length === 2) {
       return def;
+
     } else {
       throw new Error("Index is not valid");
     }
@@ -750,9 +800,29 @@ __js {
       index += (len + 1);
     }
 
-    // TODO code duplication with nth_has
-    if (index >= 0 && index <= len) {
-      return new ImmutableList(nth_insert(this.root, index, value));
+    var root      = this.root;
+    var tail      = this.tail;
+    var tail_size = this.tail_size;
+    if (index === len) {
+      if (tail_size === array_limit) {
+        var node = insert_max(root, new ArrayNode(nil, nil, stack_to_array(tail, tail_size)));
+        return new ImmutableList(node, new Cons(value, nil), 1);
+
+      } else {
+        return new ImmutableList(root, new Cons(value, tail), tail_size + 1);
+      }
+
+    } else if (nth_has(index, len)) {
+      var size = root.size;
+      if (index < size) {
+        return new ImmutableList(nth_insert(root, index, value), tail, tail_size);
+
+      } else {
+        var array = array_insert_at(stack_to_array(tail, tail_size), index - size, value);
+        var node  = insert_max(root, new ArrayNode(nil, nil, array));
+        return new ImmutableList(node, nil, 0);
+      }
+
     } else {
       throw new Error("Index is not valid");
     }
@@ -769,8 +839,26 @@ __js {
       index += len;
     }
 
-    if (nth_has(index, len)) {
-      return new ImmutableList(nth_remove(this.root, index));
+    var root      = this.root;
+    var tail      = this.tail;
+    var tail_size = this.tail_size;
+
+    if (tail !== nil && index === len - 1) {
+      return new ImmutableList(root, tail.cdr, tail_size - 1);
+
+    } else if (nth_has(index, len)) {
+      var size = root.size;
+      if (index < size) {
+        return new ImmutableList(nth_remove(root, index), tail, tail_size);
+
+      } else {
+        var array = array_remove_at(stack_to_array(tail, tail_size), index - size);
+        // TODO test this
+        @assert.isNot(array.length, 0); // TODO remove this later
+        var node  = insert_max(root, new ArrayNode(nil, nil, array));
+        return new ImmutableList(node, nil, 0);
+      }
+
     } else {
       throw new Error("Index is not valid");
     }
@@ -785,11 +873,30 @@ __js {
 
     if (nth_has(index, len)) {
       var root = this.root;
-      var node = nth_modify(root, index, f);
-      if (node === root) {
-        return this;
+      var tail = this.tail;
+      var tail_size = this.tail_size;
+      var size = root.size;
+
+      if (tail !== nil && index === len - 1) {
+        var value = f(tail.car);
+        if (value === tail.car) {
+          return this;
+        } else {
+          return new ImmutableList(root, new Cons(value, tail.cdr), tail_size);
+        }
+
+      } else if (size < index) {
+        var node = nth_modify(root, index, f);
+        if (node === root) {
+          return this;
+        } else {
+          return new ImmutableList(node, tail, tail_size);
+        }
+
       } else {
-        return new ImmutableList(node);
+        var array = array_modify_at(stack_to_array(tail, tail_size), index - size, f);
+        var node  = insert_max(root, new ArrayNode(nil, nil, array));
+        return new ImmutableList(node, nil, 0);
       }
 
     } else {
@@ -798,12 +905,25 @@ __js {
   };
 
   ImmutableList.prototype.concat = function (right) {
-    var root = this.root;
-    var node = concat(root, right.root);
-    if (node === root) {
+    var lroot = this.root;
+    var ltail = this.tail;
+
+    var rroot = right.root;
+    var rtail = right.tail;
+
+    if (rroot === nil && rtail === nil) {
       return this;
+
+    } else if (lroot === nil && ltail === nil) {
+      return right;
+
     } else {
-      return new ImmutableList(node);
+      if (ltail !== nil) {
+        lroot = insert_max(lroot, new ArrayNode(nil, nil, stack_to_array(ltail, this.tail_size)));
+      }
+
+      var node = concat(lroot, rroot);
+      return new ImmutableList(node, rtail, right.tail_size);
     }
   };
 
@@ -834,9 +954,9 @@ __js {
   };
 
   exports.List = function (array) {
-    var o = new ImmutableList(nil);
-    if (arguments.length === 1) {
-      array ..sequence.each(function (x) {
+    var o = new ImmutableList(nil, nil, 0);
+    if (array != null) {
+      array ..@each(function (x) {
         o = o.push(x);
       });
     }
