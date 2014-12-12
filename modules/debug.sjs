@@ -37,6 +37,7 @@
 */
 
 var { map, reduce, join } = require('./sequence');
+var { padRight } = require('./string');
 var sys = require('builtin:apollo-sys');
 var isDOMNode = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isDOMNode : -> false;
 
@@ -447,7 +448,7 @@ __js {
    @class Stopwatch
    @summary A timer for measuring code execution time 
    @function Stopwatch
-   @param {String} [stopwatch_name]
+   @param {optional String} [stopwatch_name]
    @summary Creates and starts a stopwatch
 */
 __js {
@@ -455,25 +456,38 @@ __js {
   function formatStopwatchDelta(start, end) {
     // let's do 100's of milliseconds
     var delta = Math.round((end-start)/100);
-    return "#{delta/10}s"
+    return "#{delta/10}s" .. padRight(6);
   }
 
   function Stopwatch(name) {
+    if (!name) name = '';
+
     var start, lap;
     var rv = {
       /**
          @function Stopwatch.snapshot
-         @param {String} [snapshot_name]
+         @param {optional String} [snapshot_name]
+         @param {optional Boolean} [omit_total=false] 
          @return {String}
          @summary Generate a snapshot string of the form
                   'stopwatch_name/snapshot_name: delta, total', where delta is
                   the time since the last snapshot and total is the time since
-                  starting of the stopwatch
+                  starting of the stopwatch.
       */
-      snapshot: function(sname) {
+      snapshot: function(sname, omitTotal) {
+        if (arguments.length === 1 && typeof sname === 'boolean') {
+          omitTotal = sname;
+          sname='';
+        }
+        if (!sname) 
+          sname = name;
+        else if (name)
+          sname = name+'/'+sname;
+        if (sname.length) sname+=': ';
+
         var old_lap = lap;
         lap = new Date();
-        return "#{name}/#{sname}: +#{formatStopwatchDelta(old_lap, lap)}, TOTAL:#{formatStopwatchDelta(start, lap)}";
+        return "#{sname}+#{formatStopwatchDelta(old_lap, lap)}#{omitTotal ? '' :", TOTAL:#{formatStopwatchDelta(start, lap)}"}";
       }
     }
     start = lap = new Date();
