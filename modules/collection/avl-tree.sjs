@@ -3,13 +3,20 @@
 */
 
 // TODO should these use sjs: or ../
-var assert   = require("sjs:assert");
-var sequence = require("sjs:sequence");
+@ = require([
+  { id: 'sjs:assert', name: 'assert' },
+  { id: 'sjs:object' },
+  { id: 'sjs:sequence' },
+  { id: 'sjs:type' },
+  { id: 'sjs:string', exclude: 'isString' } // TODO get rid of this exclude
+]);
+
+module.setCanonicalId('sjs:collection/avl-tree');
 
 // http://arclanguage.org/item?id=14181
 // http://arclanguage.org/item?id=18936
 __js {
-  function defaultSort(x, y) {
+  function simpleSort(x, y) {
     if (x === y) {
       return 0;
     } else if (x < y) {
@@ -17,6 +24,13 @@ __js {
     } else {
       return 1;
     }
+  }
+
+  // TODO store the hash rather than the key for Dict and Set ?
+  function defaultSort(x, y) {
+    x = hash(x);
+    y = hash(y);
+    return simpleSort(x, y);
   }
 
   // Faster than using Math.max
@@ -27,6 +41,49 @@ __js {
       return y;
     }
   }
+
+
+  var interface_hash = @Interface(module, "hash");
+
+  var mutable_hash_id = 0;
+
+  function hash(x) {
+    var type = typeof x;
+    if (type === "string") {
+      return "\"" + x.replace(/\\/g, "\\\\").replace(/\"/g, "\\\"").replace(/\n/g, "\n ") + "\"";
+
+    } else if (type === "number"    ||
+               type === "boolean"   ||
+               type === "undefined" ||
+               x === null) {
+      return "" + x;
+
+    } else {
+      var hasher = x[interface_hash];
+      if (hasher != null) {
+        return hasher(x);
+
+      } else {
+        var id = "Mutable[" + (++mutable_hash_id) + "]";
+
+        Object.defineProperty(x, interface_hash, {
+          configurable: false,
+          enumerable: false,
+          writable: false,
+          value: function () {
+            return id;
+          }
+        });
+
+        return id;
+      }
+    }
+  }
+
+  function equal(x, y) {
+    return x === y || hash(x) === hash(y);
+  }
+  exports.equal = equal;
 
 
   var nil     = {};
@@ -90,12 +147,12 @@ __js {
     // TODO what if the depths are the same?
     } else if (x.depth < y.depth) {
       var left = concat(x, y.left);
-      //assert.isNot(left, y.left); // TODO get rid of this?
+      //@assert.isNot(left, y.left); // TODO get rid of this?
       return balanced_node(y, left, y.right);
 
     } else {
       var right = concat(x.right, y);
-      //assert.isNot(right, x.right); // TODO get rid of this?
+      //@assert.isNot(right, x.right); // TODO get rid of this?
       return balanced_node(x, x.left, right);
     }
   }
@@ -544,23 +601,59 @@ __js {
   function ImmutableDict(root, sort) {
     this.root = root;
     this.sort = sort;
+    this.hash = null;
   }
 
   // TODO is this a good idea ?
   ImmutableDict.prototype = Object.create(null);
 
-  ImmutableDict.prototype.toString = function () {
-    var a = [];
+  ImmutableDict.prototype.forEach = function (f) {
+    this.root.forEach(f);
+  };
 
-    this.root.forEach(function (value, key) {
-      a.push(key + " = " + value);
-    });
 
-    if (a.length) {
-      return "Dict[ " + a.join(", ") + " ]";
-    } else {
-      return "Dict[]";
+  ImmutableDict.prototype[interface_hash] = function (x) {
+    if (x.hash === null) {
+      var a = [];
+
+      var max_key = 0;
+
+      x.forEach(function (value, key) {
+        key   = hash(key);
+        value = hash(value);
+
+        key = key.split(/\n/);
+
+        key.forEach(function (key) {
+          max_key = Math.max(max_key, key.length);
+        });
+
+        a.push({
+          key: key,
+          value: value
+        });
+      });
+
+      if (a.length) {
+        x.hash = "{ " + a.map(function (x) {
+          var key = x.key.map(function (x) {
+            return x ..@padRight(max_key, " ");
+          }).join("\n  ");
+
+          var value = x.value.replace(/\n/g, "\n" + " " ..@repeat(max_key + 5));
+
+          return key + " = " + value;
+        }).join("\n  ") + " }";
+      } else {
+        x.hash = "{}";
+      }
     }
+
+    return x.hash;
+  };
+
+  ImmutableDict.prototype.toString = function () {
+    return hash(this);
   };
 
   ImmutableDict.prototype.isEmpty = function () {
@@ -637,6 +730,7 @@ __js {
   function ImmutableSet(root, sort) {
     this.root = root;
     this.sort = sort;
+    this.hash = null;
   }
 
   // TODO is this a good idea ?
@@ -646,18 +740,28 @@ __js {
 
   ImmutableSet.prototype.has = ImmutableDict.prototype.has;
 
-  ImmutableSet.prototype.toString = function () {
-    var a = [];
+  ImmutableSet.prototype.forEach = ImmutableDict.prototype.forEach;
 
-    this.root.forEach(function (value) {
-      a.push("" + value);
-    });
+  ImmutableSet.prototype.toString = ImmutableDict.prototype.toString;
 
-    if (a.length) {
-      return "Set[ " + a.join(" ") + " ]";
-    } else {
-      return "Set[]";
+  ImmutableSet.prototype[interface_hash] = function (x) {
+    if (x.hash === null) {
+      var a = [];
+
+      x.forEach(function (value) {
+        a.push(hash(value));
+      });
+
+      if (a.length) {
+        x.hash = "Set[ " + a.map(function (x) {
+          return x.replace(/\n/g, "\n     ");
+        }).join("\n     ") + " ]";
+      } else {
+        x.hash = "Set[]";
+      }
     }
+
+    return x.hash;
   };
 
   ImmutableSet.prototype.add = function (key) {
@@ -716,24 +820,13 @@ __js {
     this.root = root;
     this.tail = tail;
     this.tail_size = tail_size;
+    this.hash = null;
   }
 
   // TODO is this a good idea ?
   ImmutableList.prototype = Object.create(null);
 
-  ImmutableList.prototype.toString = function () {
-    var a = [];
-
-    this.root.forEach(function (value) {
-      a.push("" + value);
-    });
-
-    if (a.length) {
-      return "List[ " + a.join(" ") + " ]";
-    } else {
-      return "List[]";
-    }
-  };
+  ImmutableList.prototype.toString = ImmutableSet.prototype.toString;
 
   ImmutableList.prototype.isEmpty = function () {
     return this.root === nil && this.tail === nil;
@@ -749,6 +842,26 @@ __js {
         f(x.car);
       }
     })(this.tail);
+  };
+
+  ImmutableList.prototype[interface_hash] = function (x) {
+    if (x.hash === null) {
+      var a = [];
+
+      x.forEach(function (value) {
+        a.push(hash(value));
+      });
+
+      if (a.length) {
+        x.hash = "[ " + a.map(function (x) {
+          return x.replace(/\n/g, "\n  ");
+        }).join("\n  ") + " ]";
+      } else {
+        x.hash = "[]";
+      }
+    }
+
+    return x.hash;
   };
 
   ImmutableList.prototype.size = function () {
