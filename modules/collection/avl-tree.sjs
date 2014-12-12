@@ -628,7 +628,6 @@ __js {
     this.root.forEach(f);
   };
 
-
   ImmutableDict.prototype[interface_hash] = function (x) {
     if (x.hash === null) {
       var a = [];
@@ -730,10 +729,10 @@ __js {
     }
   };
 
-  ImmutableDict.prototype[interface_toJS] = function () {
+  ImmutableDict.prototype[interface_toJS] = function (x) {
     var o = {};
 
-    this.forEach(function (value, key) {
+    x.forEach(function (value, key) {
       // TODO use @isString test
       @assert.is(typeof key, "string");
       o[key] = toJS(value);
@@ -803,10 +802,10 @@ __js {
     }
   };
 
-  ImmutableSet.prototype[interface_toJS] = function () {
+  ImmutableSet.prototype[interface_toJS] = function (x) {
     var a = [];
 
-    this.forEach(function (value) {
+    x.forEach(function (value) {
       a.push(toJS(value));
     });
 
