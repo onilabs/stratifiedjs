@@ -86,6 +86,23 @@ __js {
   exports.equal = equal;
 
 
+  var interface_toJS = @Interface(module, "toJS");
+
+  function toJS(x) {
+    if (@isObject(x)) {
+      var fn = x[interface_toJS];
+      if (fn != null) {
+        return fn(x);
+      } else {
+        return x;
+      }
+    } else {
+      return x;
+    }
+  }
+  exports.toJS = toJS;
+
+
   var nil     = {};
   nil.depth   = 0;
   nil.size    = 0;
@@ -713,13 +730,13 @@ __js {
     }
   };
 
-  ImmutableDict.prototype.toJS = function () {
+  ImmutableDict.prototype[interface_toJS] = function () {
     var o = {};
 
-    this.root.forEach(function (value, key) {
+    this.forEach(function (value, key) {
       // TODO use @isString test
-      assert.is(typeof key, "string");
-      o[key] = value;
+      @assert.is(typeof key, "string");
+      o[key] = toJS(value);
     });
 
     return o;
@@ -786,11 +803,11 @@ __js {
     }
   };
 
-  ImmutableSet.prototype.toJS = function () {
+  ImmutableSet.prototype[interface_toJS] = function () {
     var a = [];
 
-    this.root.forEach(function (value) {
-      a.push(value);
+    this.forEach(function (value) {
+      a.push(toJS(value));
     });
 
     return a;
@@ -827,6 +844,8 @@ __js {
   ImmutableList.prototype = Object.create(null);
 
   ImmutableList.prototype.toString = ImmutableSet.prototype.toString;
+
+  ImmutableList.prototype[interface_toJS] = ImmutableSet.prototype[interface_toJS];
 
   ImmutableList.prototype.isEmpty = function () {
     return this.root === nil && this.tail === nil;
@@ -1040,30 +1059,33 @@ __js {
     }
   };
 
-  ImmutableList.prototype.toJS = ImmutableSet.prototype.toJS;
 
-
-  exports.SortedDict = function (sort) {
-    return new ImmutableDict(nil, sort);
-  };
-
-  exports.Dict = function (obj) {
-    var o = new ImmutableDict(nil, defaultSort);
-    if (arguments.length === 1) {
-      // TODO
-      obj ..@items ..@each(function ([key, value]) {
+  exports.SortedDict = function (sort, obj) {
+    var o = new ImmutableDict(nil, sort);
+    if (obj != null) {
+      obj ..@ownPropertyPairs ..@each(function ([key, value]) {
         o = o.set(key, value);
       });
     }
     return o;
   };
 
-  exports.SortedSet = function (sort) {
-    return new ImmutableSet(nil, sort);
+  exports.SortedSet = function (sort, array) {
+    var o = new ImmutableSet(nil, sort);
+    if (array != null) {
+      array ..@each(function (x) {
+        o = o.add(x);
+      });
+    }
+    return o;
   };
 
-  exports.Set = function () {
-    return new ImmutableSet(nil, defaultSort);
+  exports.Dict = function (obj) {
+    return exports.SortedDict(defaultSort, obj);
+  };
+
+  exports.Set = function (array) {
+    return exports.SortedSet(defaultSort, array);
   };
 
   exports.List = function (array) {
