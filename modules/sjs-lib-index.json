@@ -419,7 +419,8 @@
             "toJS": {
               "type": "function"
             }
-          }
+          },
+          "summary": "Various immutable data structures, including dictionaries, lists, and sets"
         },
         "list": {
           "type": "module",

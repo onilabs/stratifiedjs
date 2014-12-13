@@ -1,3 +1,40 @@
+/*
+ * StratifiedJS 'collection/immutable' module
+ * Various immutable data structures, including dictionaries, lists, and sets
+ *
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: '0.20.0-development'
+ * http://onilabs.com/stratifiedjs
+ *
+ * (c) 2013 Oni Labs, http://onilabs.com
+ *
+ * This file is licensed under the terms of the MIT License:
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+/**
+   @module    collection/immutable
+   @summary   Various immutable data structures, including dictionaries, lists, and sets
+   @home      sjs:collection/immutable
+*/
+
 // TODO should these use sjs: or ../
 @ = require([
   { id: 'sjs:assert', name: 'assert' },
@@ -638,7 +675,7 @@ __js {
   // TODO code duplication with key_set
   function key_modify(node, sort, key, f) {
     if (node === nil) {
-      return node;
+      throw new Error("Key #{key} not found");
 
     } else {
       var left  = node.left;
@@ -668,9 +705,9 @@ __js {
     }
   }
 
-  function key_remove(node, sort, key) {
+  function key_remove(node, sort, key, type) {
     if (node === nil) {
-      return node;
+      throw new Error("#{type} #{key} not found");
 
     } else {
       var left  = node.left;
@@ -681,20 +718,12 @@ __js {
         return concat(left, right);
 
       } else if (order < 0) {
-        var child = key_remove(left, sort, key);
-        if (child === left) {
-          return node;
-        } else {
-          return balanced_node(node, child, right);
-        }
+        var child = key_remove(left, sort, key, type);
+        return balanced_node(node, child, right);
 
       } else {
-        var child = key_remove(right, sort, key);
-        if (child === right) {
-          return node;
-        } else {
-          return balanced_node(node, left, child);
-        }
+        var child = key_remove(right, sort, key, type);
+        return balanced_node(node, left, child);
       }
     }
   }
@@ -795,12 +824,8 @@ __js {
   ImmutableDict.prototype.remove = function (key) {
     var root = this.root;
     var sort = this.sort;
-    var node = key_remove(root, sort, key);
-    if (node === root) {
-      return this;
-    } else {
-      return new ImmutableDict(node, sort);
-    }
+    var node = key_remove(root, sort, key, "Key");
+    return new ImmutableDict(node, sort);
   };
 
   // TODO code duplication
@@ -880,12 +905,8 @@ __js {
   ImmutableSet.prototype.remove = function (key) {
     var root = this.root;
     var sort = this.sort;
-    var node = key_remove(root, sort, key);
-    if (node === root) {
-      return this;
-    } else {
-      return new ImmutableSet(node, sort);
-    }
+    var node = key_remove(root, sort, key, "Value");
+    return new ImmutableSet(node, sort);
   };
 
   ImmutableSet.prototype[interface_toJS] = function (x) {
@@ -898,25 +919,6 @@ __js {
     return a;
   };
 
-
-
-  /*
-  // TODO replace with interface
-  ImmutableList.prototype.is = function (y) {
-    if (y instanceof ImmutableList) {
-      if (size(x.root) === size(y.root)) {
-        // TODO @zip is okay in here, but it won't work for the Dicts or Sets
-        return @zip(x, y) ..@all(function ([x, y]) {
-          // TODO replace with @is
-          return x === y;
-        });
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  };*/
 
   function ImmutableList(root, tail, tail_size) {
     this.root = root;
