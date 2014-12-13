@@ -285,6 +285,43 @@
     "collection/": {
       "type": "lib",
       "children": {
+        "avl-tree": {
+          "type": "module",
+          "children": {
+            "List": {
+              "type": "class",
+              "children": {
+                "List": {
+                  "type": "ctor"
+                },
+                "concat": {
+                  "type": "function"
+                },
+                "has": {
+                  "type": "function"
+                },
+                "isEmpty": {
+                  "type": "function"
+                },
+                "modify": {
+                  "type": "function"
+                },
+                "nth": {
+                  "type": "function"
+                },
+                "pop": {
+                  "type": "function"
+                },
+                "push": {
+                  "type": "function"
+                },
+                "size": {
+                  "type": "function"
+                }
+              }
+            }
+          }
+        },
         "btree": {
           "type": "module",
           "children": {

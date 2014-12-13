@@ -1,7 +1,3 @@
-/**
-  @nodoc
-*/
-
 // TODO should these use sjs: or ../
 @ = require([
   { id: 'sjs:assert', name: 'assert' },
@@ -1095,6 +1091,124 @@ __js {
     return exports.SortedSet(defaultSort, array);
   };
 
+  /**
+     @class List
+     @summary An immutable ordered sequence of values
+
+     @function List
+     @param {optional sequence::Sequence} [seq]
+       The values from the sequence will be inserted into
+       the list, in order
+
+     @function List.isEmpty
+     @return {Boolean} `true` if the list is empty
+     @summary Returns whether the list is empty or not
+     @desc
+       This function runs in `O(1)` time.
+
+       A list is empty if it has no values in it.
+
+     @function List.size
+     @return {Integer} The number of values in the list
+     @summary Returns the number of values in the list
+     @desc
+       This function runs in `O(1)` time.
+
+     @function List.has
+     @param {Integer} [index] An index within the list
+     @return {Boolean} `true` if `index` is valid
+     @summary Returns whether `index` is valid for the list
+     @desc
+       This function runs in `O(1)` time.
+
+       `index` is valid if it is between `0` and
+       `list.size() - 1`.
+
+       If `index` is negative, it starts counting from
+       the end of the list, so `-1` is the last index for
+       the list, `-2` is the second-from-last index, etc.
+
+     @function List.nth
+     @param {Integer} [index] A valid index within the list
+     @return {Any} The value in the list at `index`
+     @summary Returns the value in the list at `index`
+     @desc
+       This function runs in `O(log2(n / 125))` worst-case time.
+
+       `index` must be between `0` and `list.size() - 1`.
+
+       If `index` is negative, it starts counting from
+       the end of the list, so `-1` is the last value
+       in the list, `-2` is the second-from-last value,
+       etc.
+
+     @function List.push
+     @param {Any} [value] The value to insert into the list
+     @param {optional Integer} [index] The index to insert `value`. Defaults to `-1`.
+     @return {::List} A new list with `value` inserted at `index`
+     @summary Returns a new list with `value` inserted at `index`
+     @desc
+       This function runs in `O(log2(n / 125) + 125)` worst-case time.
+       If inserting at the end of the list, it runs in `O(1)` time.
+
+       `index` defaults to `-1`, which inserts `value` at
+       the end of the list.
+
+       If `index` is negative, it starts counting from
+       the end of the list, so `-1` inserts `value` as
+       the last value, `-2` inserts `value` as the
+       second-from-last value, etc.
+
+     @function List.pop
+     @param {optional Integer} [index] The index to remove from the list. Defaults to `-1`.
+     @return {::List} A new list with the value at `index` removed
+     @summary Returns a new list with the value at `index` removed
+     @desc
+       This function runs in `O(log2(n / 125) + 125)` worst-case time.
+       If removing at the end of the list, it runs in `O(1)` time.
+
+       `index` defaults to `-1`, which removes the value
+       at the end of the list.
+
+       If `index` is negative, it starts counting from
+       the end of the list, so `-1` removes the last value,
+       `-2` removes the second-from-last value, etc.
+
+     @function List.modify
+     @param {Integer} [index] The index to modify in the list
+     @param {Function} [fn] The function which will do the modification
+     @return {::List} A new list with the value at `index` modified by `fn`
+     @summary Returns a new list with the value at `index` modified by `fn`
+     @desc
+       This function runs in `O(log2(n / 125) + 125)` worst-case time.
+       If modifying the value at the end of the list, it runs in `O(1)` time.
+
+       This function calls `fn` with the value at `index`, and
+       whatever `fn` returns will be used as the new value at
+       `index`:
+
+           var list = @List([1, 2, 3]);
+
+           // This returns the list [11, 2, 3]
+           list.modify(0, x -> x + 10);
+
+           // This returns the list [1, 12, 3]
+           list.modify(1, x -> x + 10);
+
+       If `index` is negative, it starts counting from
+       the end of the list, so `-1` modifies the last value,
+       `-2` modifies the second-from-last value, etc.
+
+     @function List.concat
+     @param {::List} [other] The list to append to this list
+     @return {::List} A new list with all the values of this list followed
+                      by all the values of `other` list.
+     @summary Returns a new list with all the values of this list followed
+              by all the values of `other` list.
+     @desc
+       This function runs in `O(125 + log2(n / 125) + log2(min(n / 125, m / 125)))`
+       worst-case time.
+  */
   exports.List = function (array) {
     var o = new ImmutableList(nil, nil, 0);
     if (array != null) {
