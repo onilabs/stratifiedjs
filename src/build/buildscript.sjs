@@ -179,7 +179,6 @@ function build_deps() {
   CONCAT("stratified-aot.js",
         ["src/headers/oni-apollo.js.txt",
          "tmp/vm1client-aot.js.min",
-         "tmp/c1.js.min",
          "tmp/apollo-jsshim-xbrowser.js.min",
          "tmp/apollo-sys-xbrowser-aot.js",
          ]);
