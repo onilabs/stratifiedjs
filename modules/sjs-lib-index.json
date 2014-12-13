@@ -319,6 +319,32 @@
                   "type": "function"
                 }
               }
+            },
+            "SortedDict": {
+              "type": "class",
+              "children": {
+                "SortedDict": {
+                  "type": "ctor"
+                },
+                "get": {
+                  "type": "function"
+                },
+                "has": {
+                  "type": "function"
+                },
+                "isEmpty": {
+                  "type": "function"
+                },
+                "modify": {
+                  "type": "function"
+                },
+                "remove": {
+                  "type": "function"
+                },
+                "set": {
+                  "type": "function"
+                }
+              }
             }
           }
         },

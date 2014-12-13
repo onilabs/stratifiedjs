@@ -1070,6 +1070,118 @@ __js {
     return proto === null || proto === Object.prototype;
   }
 
+  /**
+     @class SortedDict
+     @summary An immutable dictionary mapping sorted keys to values
+
+     @function SortedDict
+     @param {Function} [sort] Function that determines the sort order
+     @param {optional sequence::Sequence|Object} [obj]
+     @desc
+       The sort order for the keys is determined by the `sort` function.
+
+       The `sort` function is given two keys:
+
+       * If it returns `0` the keys are treated as the same.
+       * If it returns `-1` the first key is lower than the second key.
+       * If it returns `1` the first key is greater than the second key.
+
+       The sort order must be consistent:
+
+       * If given the same keys, the function must return the same result.
+       * If it returns `0` for `foo` and `bar`, it must return `0` for `bar` and `foo`.
+       * If it returns `-1` for `foo` and `bar`, it must return `1` for `bar` and `foo`.
+       * If it returns `1` for `foo` and `bar`, it must return `-1` for `bar` and `foo`.
+
+       If the sort order is not consistent, the behavior of
+       [::SortedDict] will be unpredictable. This is not a
+       bug in [::SortedDict], it is a bug in your sort
+       function.
+
+       ----
+
+       If `obj` is a [sequence::Sequence], the values must
+       be arrays of `[key, value]`. They will be inserted
+       into the dict, sorted by key.
+
+       If `obj` is a JavaScript literal like `{ foo: 1 }`,
+       then the keys and values will be inserted into the
+       dict, sorted by key.
+
+     @function SortedDict.isEmpty
+     @return {Boolean} `true` if the dict is empty
+     @summary Returns whether the dict is empty or not
+     @desc
+       This function runs in `O(1)` time.
+
+       A dict is empty if it has no keys in it.
+
+     @function SortedDict.has
+     @param {Any} [key] The key to search for in the dict
+     @return {Boolean} `true` if `key` exists in the dict
+     @summary Returns whether `key` exists in the dict
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+     @function SortedDict.get
+     @param {Any} [key] The key to search for in the dict
+     @param {optional Any} [default] Value to return if `key` is not in the dict
+     @return {Any} The value for `key` in the dict, or `default` if not found
+     @summary Returns the value for `key` in the dict, or `default` if not found
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       If `key` is not in the dict:
+
+       * If `default` is provided, it is returned.
+       * If `default` is not provided, an error is thrown.
+
+     @function SortedDict.set
+     @param {Any} [key] The key to set in the dict
+     @param {Any} [value] The value to use for `key`
+     @return {::SortedDict} A new dict with `key` set to `value`
+     @summary Returns a new dict with `key` set to `value`
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       If `key` already exists, it is overwritten.
+
+       If `key` does not exist, it is created.
+
+     @function SortedDict.remove
+     @param {Any} [key] The key to remove from the dict
+     @return {::SortedDict} A new dict with `key` removed
+     @summary Returns a new dict with `key` removed
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       If `key` is not in the dict, it will throw an error.
+
+     @function SortedDict.modify
+     @param {Any} [key] The key to modify in the dict
+     @param {Function} [fn] The function which will modify the value at `key`
+     @return {::SortedDict} A new dict with `key` modified by `fn`
+     @summary Returns a new dict with `key` modified by `fn`
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       This function calls `fn` with the value for `key`, and
+       whatever `fn` returns will be used as the new value for
+       `key`:
+
+           var dict = @Dict({
+             "foo": 1,
+             "bar": 2
+           });
+
+           // This returns the dict { "foo": 11, "bar": 2 }
+           dict.modify("foo", x -> x + 10);
+
+           // This returns the dict { "foo": 1, "bar": 12 }
+           dict.modify("bar", x -> x + 10);
+
+       If `key` is not in the dict, it will throw an error.
+   */
   exports.SortedDict = function (sort, obj) {
     if (obj != null) {
       if (obj instanceof ImmutableDict && obj.sort === sort) {
@@ -1205,7 +1317,7 @@ __js {
 
      @function List.modify
      @param {Integer} [index] The index to modify in the list
-     @param {Function} [fn] The function which will do the modification
+     @param {Function} [fn] The function which will modify the value at `index`
      @return {::List} A new list with the value at `index` modified by `fn`
      @summary Returns a new list with the value at `index` modified by `fn`
      @desc
