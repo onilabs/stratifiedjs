@@ -285,7 +285,48 @@
     "collection/": {
       "type": "lib",
       "children": {
-        "avl-tree": {
+        "btree": {
+          "type": "module",
+          "children": {
+            "BTree": {
+              "type": "class",
+              "children": {}
+            }
+          },
+          "summary": "Functions for creating and manipulating B-trees"
+        },
+        "dictionary": {
+          "type": "module",
+          "children": {
+            "Dictionary": {
+              "type": "class",
+              "children": {}
+            },
+            "del": {
+              "type": "function"
+            },
+            "get": {
+              "type": "function"
+            },
+            "has": {
+              "type": "function"
+            },
+            "insert": {
+              "type": "function"
+            },
+            "modify": {
+              "type": "function"
+            },
+            "remove": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            }
+          },
+          "summary": "Functions for manipulating dictionary data structures (JavaScript objects, hash tables, binary search trees, etc.)"
+        },
+        "immutable": {
           "type": "module",
           "children": {
             "Dict": {
@@ -379,47 +420,6 @@
               "type": "function"
             }
           }
-        },
-        "btree": {
-          "type": "module",
-          "children": {
-            "BTree": {
-              "type": "class",
-              "children": {}
-            }
-          },
-          "summary": "Functions for creating and manipulating B-trees"
-        },
-        "dictionary": {
-          "type": "module",
-          "children": {
-            "Dictionary": {
-              "type": "class",
-              "children": {}
-            },
-            "del": {
-              "type": "function"
-            },
-            "get": {
-              "type": "function"
-            },
-            "has": {
-              "type": "function"
-            },
-            "insert": {
-              "type": "function"
-            },
-            "modify": {
-              "type": "function"
-            },
-            "remove": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            }
-          },
-          "summary": "Functions for manipulating dictionary data structures (JavaScript objects, hash tables, binary search trees, etc.)"
         },
         "list": {
           "type": "module",

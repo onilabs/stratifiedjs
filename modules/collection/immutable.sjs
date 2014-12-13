@@ -7,7 +7,7 @@
   { id: 'sjs:string', exclude: 'isString' } // TODO get rid of this exclude
 ]);
 
-module.setCanonicalId('sjs:collection/avl-tree');
+module.setCanonicalId('sjs:collection/immutable');
 
 // http://arclanguage.org/item?id=14181
 // http://arclanguage.org/item?id=18936
