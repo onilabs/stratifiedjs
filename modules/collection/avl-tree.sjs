@@ -78,6 +78,74 @@ __js {
     }
   }
 
+  /**
+     @function equal
+     @param {Any} [x]
+     @param {Any} [y]
+     @return {Boolean} `true` if `x` and `y` are equal
+     @summary Returns whether `x` and `y` are equal
+     @desc
+       Simple things like numbers and strings are
+       treated as equal if they have the same value:
+
+           @equal(1, 1); // true
+           @equal("foo", "foo"); // true
+
+       This takes `O(1)` time.
+
+       ----
+
+       Mutable objects are treated as equal if they
+       are exactly the same object:
+
+           var obj = {};
+
+           @equal(obj, obj); // true
+
+       This takes `O(1)` time.
+
+       ----
+
+       [::Dict] are treated as equal if they have
+       the same keys/values:
+
+           @equal(@Dict({ foo: 1 }),
+                  @Dict({ foo: 1 })); // true
+
+       This takes `O(n)` time, except the results
+       are cached so that afterwards it takes `O(1)`
+       time.
+
+       ----
+
+       [::Set] are treated as equal if they have
+       the same values:
+
+           @equal(@Set([1]),
+                  @Set([1])); // true
+
+       This takes `O(n)` time, except the results
+       are cached so that afterwards it takes `O(1)`
+       time.
+
+       ----
+
+       [::List] are treated as equal if they have
+       the same values in the same order:
+
+           @equal(@List([1]),
+                  @List([1])); // true
+
+       This takes `O(n)` time, except the results
+       are cached so that afterwards it takes `O(1)`
+       time.
+
+       ----
+
+       [::SortedDict] and [::SortedSet] are the
+       same as [::Dict] and [::Set] except that
+       the sort order must also be the same.
+   */
   function equal(x, y) {
     return x === y || hash(x) === hash(y);
   }
@@ -86,6 +154,25 @@ __js {
 
   var interface_toJS = @Interface(module, "toJS");
 
+  /**
+     @function toJS
+     @param {Any} [x]
+     @return {Any}
+     @summary Converts a [::Dict], [::Set], or [::List]
+              to its JavaScript equivalent
+     @desc
+       Most things are returned as-is, except:
+
+       * [::Dict] is converted to a JavaScript object. The keys must be strings.
+       * [::Set] is converted to a JavaScript array.
+       * [::List] is converted to a JavaScript array.
+
+       This conversion takes `O(n)` time.
+
+       This is useful if you like using [::Dict], [::Set],
+       or [::List], but you want to use a library that
+       requires ordinary JavaScript objects/arrays.
+   */
   function toJS(x) {
     if (@isObject(x)) {
       var fn = x[interface_toJS];
