@@ -1064,23 +1064,36 @@ __js {
 
 
   exports.SortedDict = function (sort, obj) {
-    var o = new ImmutableDict(nil, sort);
     if (obj != null) {
-      obj ..@ownPropertyPairs ..@each(function ([key, value]) {
-        o = o.set(key, value);
-      });
+      if (obj instanceof ImmutableDict) {
+        return obj;
+      } else {
+        var o = new ImmutableDict(nil, sort);
+        // TODO handle generic sequences as well ?
+        obj ..@ownPropertyPairs ..@each(function ([key, value]) {
+          o = o.set(key, value);
+        });
+        return o;
+      }
+    } else {
+      return new ImmutableDict(nil, sort);
     }
-    return o;
   };
 
   exports.SortedSet = function (sort, array) {
-    var o = new ImmutableSet(nil, sort);
     if (array != null) {
-      array ..@each(function (x) {
-        o = o.add(x);
-      });
+      if (array instanceof ImmutableSet) {
+        return array;
+      } else {
+        var o = new ImmutableSet(nil, sort);
+        array ..@each(function (x) {
+          o = o.add(x);
+        });
+        return o;
+      }
+    } else {
+      return new ImmutableSet(nil, sort);
     }
-    return o;
   };
 
   exports.Dict = function (obj) {
@@ -1210,12 +1223,18 @@ __js {
        worst-case time.
   */
   exports.List = function (array) {
-    var o = new ImmutableList(nil, nil, 0);
     if (array != null) {
-      array ..@each(function (x) {
-        o = o.push(x);
-      });
+      if (array instanceof ImmutableList) {
+        return array;
+      } else {
+        var o = new ImmutableList(nil, nil, 0);
+        array ..@each(function (x) {
+          o = o.push(x);
+        });
+        return o;
+      }
+    } else {
+      return new ImmutableList(nil, nil, 0);
     }
-    return o;
   };
 }

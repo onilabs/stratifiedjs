@@ -211,6 +211,8 @@ __js {
     test("=== when not modified", function () {
       assert.is(dict_empty.remove("foo"), dict_empty);
 
+      assert.is(Dict(dict_foo), dict_foo);
+
       assert.is(dict_foo.set("foo", 1), dict_foo);
       assert.isNot(dict_foo.set("foo", 2), dict_foo);
       assert.isNot(dict_foo.set("bar", 3), dict_foo);
@@ -349,6 +351,8 @@ __js {
     });
 
     test("=== when not modified", function () {
+      assert.is(Set(five_set), five_set);
+
       assert.is(empty_set.remove(1), empty_set);
 
       assert.is(five_set.add(5), five_set);
@@ -557,6 +561,8 @@ __js {
     });
 
     test("=== when not modified", function () {
+      assert.is(List(five_list), five_list);
+
       assert.is(empty_list.concat(empty_list), empty_list);
       assert.is(five_list.concat(empty_list), five_list);
       assert.is(empty_list.concat(five_list), five_list);
