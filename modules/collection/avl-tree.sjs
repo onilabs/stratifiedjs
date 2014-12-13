@@ -25,6 +25,7 @@ __js {
       return 1;
     }
   }
+  exports.simpleSort = simpleSort;
 
   // TODO store the hash rather than the key for Dict and Set ?
   function defaultSort(x, y) {
@@ -32,6 +33,7 @@ __js {
     y = hash(y);
     return simpleSort(x, y);
   }
+  exports.defaultSort = defaultSort;
 
   // Faster than using Math.max
   function max(x, y) {
@@ -107,6 +109,7 @@ __js {
   nil.depth   = 0;
   nil.size    = 0;
   nil.forEach = function (f) {};
+  exports.nil = nil;
 
 
   function balanced_node(node, left, right) {
@@ -1101,91 +1104,6 @@ __js {
 
 /*__js {
   ;(function () {
-    // TODO test that this works correctly
-    function verify(tree) {
-      function loop(node, lt, gt) {
-        if (node !== null) {
-          var left  = node.left;
-          var right = node.right;
-
-          assert.is(node.depth, max(left.depth, right.depth) + 1);
-
-          var diff = left.depth - right.depth;
-          assert.ok(diff === -1 || diff === 0 || diff === 1);
-
-          // Every left node must be lower than the parent node
-          lt.forEach(function (parent) {
-            assert.ok(node.key < parent.key);
-          });
-
-          // Every right node must be greater than the parent node
-          gt.forEach(function (parent) {
-            assert.ok(node.key > parent.key);
-          });
-
-          if (node instanceof ListNode) {
-            assert.is(node.size, left.size + right.size + 1);
-            loop(left,  lt, gt);
-            loop(right, lt, gt);
-
-          } else {
-            loop(left,  lt.concat([node]), gt);
-            loop(right, lt, gt.concat([node]));
-          }
-        }
-      }
-      loop(tree.root, [], []);
-
-      return tree;
-    }
-
-    var a = [];
-    var i = 0;
-    while (i < 1000) {
-      a.push("foo" + i);
-      ++i;
-    }
-
-    function forEachRev(a, f) {
-      var i = array.length;
-      while (i--) {
-        f(array[i], i);
-      }
-    }
-
-    function shuffle(array) {
-      var out = [];
-      for (var i = 0; i < array.length; ++i) {
-        out.splice(Math.floor(Math.random() * out.length), 0, array[i]);
-      }
-      return out;
-    }
-
-
-    ;(function () {
-      var x = exports.Dict();
-
-      var y = exports.Dict();
-      y = y.set("foo", 5);
-      assert.ok(y === y.set("foo", 5));
-      assert.ok(y !== y.set("foo", 6));
-      assert.ok(y !== y.set("bar", 5));
-      assert.ok(x === x.remove("foo"));
-
-      verify(x);
-
-      shuffle(a).forEach(function (s) {
-        x = x.set(s, 1);
-        verify(x);
-      });
-
-      shuffle(a).forEach(function (s) {
-        x = x.remove(s);
-        verify(x);
-      });
-    })();
-
-
     ;(function () {
       var x = exports.List();
 
