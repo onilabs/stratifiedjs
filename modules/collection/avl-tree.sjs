@@ -1126,6 +1126,38 @@ __js {
     }
   };
 
+  /**
+     @function SortedSet
+     @param {Function} [sort] Function that determines the sort order
+     @param {optional sequence::Sequence} [seq]
+     @return {::Set} A set where the values are sorted by `sort`
+     @summary Returns a [::Set] where the values are sorted by `sort`
+     @desc
+       The sort order for the values is determined by the `sort` function.
+
+       The `sort` function is given two values:
+
+       * If it returns `0` the values are treated as equal.
+       * If it returns `-1` the first value is lower than the second value.
+       * If it returns `1` the first value is greater than the second value.
+
+       The sort order must be consistent:
+
+       * If given the same values, the function must return the same result.
+       * If it returns `0` for `foo` and `bar`, it must return `0` for `bar` and `foo`.
+       * If it returns `-1` for `foo` and `bar`, it must return `1` for `bar` and `foo`.
+       * If it returns `1` for `foo` and `bar`, it must return `-1` for `bar` and `foo`.
+
+       If the sort order is not consistent, the behavior of
+       [::SortedSet] will be unpredictable. This is not a
+       bug in [::SortedSet], it is a bug in your sort
+       function.
+
+       ----
+
+       The `seq` parameter is exactly the same as for [::Set],
+       except that the values are sorted.
+   */
   exports.SortedSet = function (sort, array) {
     if (array != null) {
       if (array instanceof ImmutableSet && array.sort === sort) {
@@ -1283,6 +1315,105 @@ __js {
     return exports.SortedDict(defaultSort, obj);
   };
 
+  /**
+     @class Set
+     @summary An immutable unordered sequence of values, without duplicates
+
+     @function Set
+     @param {optional sequence::Sequence} [seq]
+     @desc
+       The values from `seq` will be inserted into the set,
+       without duplicates.
+
+       This takes `O(n)` time, unless `seq` is already a
+       [::Set], in which case it takes `O(1)` time.
+
+       ----
+
+       The values are in unsorted order, so you cannot rely upon
+       the order. If you need to maintain order, use a [::SortedSet]
+       or [::List].
+
+       Mutable objects can be used as values, and they are treated
+       as equal only if they are exactly the same object:
+
+           var obj1 = { foo: 1 };
+           var obj2 = { foo: 1 };
+
+           var set = @Set([obj1, obj2]);
+
+           // Returns true
+           set.has(obj1);
+
+           // Returns true
+           set.has(obj2);
+
+           // Removes obj1 from the set
+           set = set.remove(obj1);
+
+           // Returns true
+           set.has(obj2);
+
+       You can also use a [::Dict], [::Set], or [::List] as values,
+       and they are treated as equal if their keys/values are equal:
+
+           var obj1 = @Dict({ foo: 1 });
+           var obj2 = @Dict({ foo: 1 });
+
+           var set = @Set([obj1, obj2]);
+
+           // Returns true
+           set.has(obj1);
+
+           // Returns true
+           set.has(obj2);
+
+           // Removes obj1 from the set
+           set = set.remove(obj1);
+
+           // Returns false
+           set.has(obj2);
+
+       Because `obj1` and `obj2` have the same keys/values, they are
+       equal, and so they are treated as duplicates.
+
+     @function Set.isEmpty
+     @return {Boolean} `true` if the set is empty
+     @summary Returns whether the set is empty or not
+     @desc
+       This function runs in `O(1)` time.
+
+       A set is empty if it has no values in it.
+
+     @function Set.has
+     @param {Any} [value] The value to search for in the set
+     @return {Boolean} `true` if `value` exists in the set
+     @summary Returns whether `value` exists in the set
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+     @function Set.add
+     @param {Any} [value] The value to add to the set
+     @return {::Set} A new set with `value` added to it
+     @summary Returns a new set with `value` added to it
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       This does not modify the set, it returns a new set.
+
+       If `value` is already in the set, then nothing happens.
+
+     @function Set.remove
+     @param {Any} [value] The value to remove from the set
+     @return {::Set} A new set with `value` removed
+     @summary Returns a new set with `value` removed
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       This does not modify the set, it returns a new set.
+
+       If `value` is not in the set, it will throw an error.
+   */
   exports.Set = function (array) {
     return exports.SortedSet(defaultSort, array);
   };
@@ -1295,7 +1426,19 @@ __js {
      @param {optional sequence::Sequence} [seq]
      @desc
        The values from `seq` will be inserted into
-       the list, in order. This takes `O(n)` time.
+       the list, in the same order as `seq`.
+
+       This takes `O(n)` time, unless `seq` is already a
+       [::List], in which case it takes `O(1)` time.
+
+       ----
+
+       Duplicate values are allowed, and duplicates don't
+       have to be in the same order.
+
+       The values in the list can have whatever order you
+       want, but they are not sorted. If you want the values
+       to be sorted, use a [::SortedSet] instead.
 
      @function List.isEmpty
      @return {Boolean} `true` if the list is empty

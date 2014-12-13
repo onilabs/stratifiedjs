@@ -346,7 +346,30 @@
                 }
               }
             },
+            "Set": {
+              "type": "class",
+              "children": {
+                "Set": {
+                  "type": "ctor"
+                },
+                "add": {
+                  "type": "function"
+                },
+                "has": {
+                  "type": "function"
+                },
+                "isEmpty": {
+                  "type": "function"
+                },
+                "remove": {
+                  "type": "function"
+                }
+              }
+            },
             "SortedDict": {
+              "type": "function"
+            },
+            "SortedSet": {
               "type": "function"
             }
           }
