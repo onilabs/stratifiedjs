@@ -288,6 +288,32 @@
         "avl-tree": {
           "type": "module",
           "children": {
+            "Dict": {
+              "type": "class",
+              "children": {
+                "Dict": {
+                  "type": "ctor"
+                },
+                "get": {
+                  "type": "function"
+                },
+                "has": {
+                  "type": "function"
+                },
+                "isEmpty": {
+                  "type": "function"
+                },
+                "modify": {
+                  "type": "function"
+                },
+                "remove": {
+                  "type": "function"
+                },
+                "set": {
+                  "type": "function"
+                }
+              }
+            },
             "List": {
               "type": "class",
               "children": {
@@ -321,30 +347,7 @@
               }
             },
             "SortedDict": {
-              "type": "class",
-              "children": {
-                "SortedDict": {
-                  "type": "ctor"
-                },
-                "get": {
-                  "type": "function"
-                },
-                "has": {
-                  "type": "function"
-                },
-                "isEmpty": {
-                  "type": "function"
-                },
-                "modify": {
-                  "type": "function"
-                },
-                "remove": {
-                  "type": "function"
-                },
-                "set": {
-                  "type": "function"
-                }
-              }
+              "type": "function"
             }
           }
         },

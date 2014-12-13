@@ -1071,18 +1071,17 @@ __js {
   }
 
   /**
-     @class SortedDict
-     @summary An immutable dictionary mapping sorted keys to values
-
      @function SortedDict
      @param {Function} [sort] Function that determines the sort order
      @param {optional sequence::Sequence|Object} [obj]
+     @return {::Dict} A dictionary where the keys are sorted by `sort`
+     @summary Returns a [::Dict] where the keys are sorted by `sort`
      @desc
        The sort order for the keys is determined by the `sort` function.
 
        The `sort` function is given two keys:
 
-       * If it returns `0` the keys are treated as the same.
+       * If it returns `0` the keys are treated as equal.
        * If it returns `-1` the first key is lower than the second key.
        * If it returns `1` the first key is greater than the second key.
 
@@ -1100,87 +1099,8 @@ __js {
 
        ----
 
-       If `obj` is a [sequence::Sequence], the values must
-       be arrays of `[key, value]`. They will be inserted
-       into the dict, sorted by key.
-
-       If `obj` is a JavaScript literal like `{ foo: 1 }`,
-       then the keys and values will be inserted into the
-       dict, sorted by key.
-
-     @function SortedDict.isEmpty
-     @return {Boolean} `true` if the dict is empty
-     @summary Returns whether the dict is empty or not
-     @desc
-       This function runs in `O(1)` time.
-
-       A dict is empty if it has no keys in it.
-
-     @function SortedDict.has
-     @param {Any} [key] The key to search for in the dict
-     @return {Boolean} `true` if `key` exists in the dict
-     @summary Returns whether `key` exists in the dict
-     @desc
-       This function runs in `O(log2(n))` worst-case time.
-
-     @function SortedDict.get
-     @param {Any} [key] The key to search for in the dict
-     @param {optional Any} [default] Value to return if `key` is not in the dict
-     @return {Any} The value for `key` in the dict, or `default` if not found
-     @summary Returns the value for `key` in the dict, or `default` if not found
-     @desc
-       This function runs in `O(log2(n))` worst-case time.
-
-       If `key` is not in the dict:
-
-       * If `default` is provided, it is returned.
-       * If `default` is not provided, an error is thrown.
-
-     @function SortedDict.set
-     @param {Any} [key] The key to set in the dict
-     @param {Any} [value] The value to use for `key`
-     @return {::SortedDict} A new dict with `key` set to `value`
-     @summary Returns a new dict with `key` set to `value`
-     @desc
-       This function runs in `O(log2(n))` worst-case time.
-
-       If `key` already exists, it is overwritten.
-
-       If `key` does not exist, it is created.
-
-     @function SortedDict.remove
-     @param {Any} [key] The key to remove from the dict
-     @return {::SortedDict} A new dict with `key` removed
-     @summary Returns a new dict with `key` removed
-     @desc
-       This function runs in `O(log2(n))` worst-case time.
-
-       If `key` is not in the dict, it will throw an error.
-
-     @function SortedDict.modify
-     @param {Any} [key] The key to modify in the dict
-     @param {Function} [fn] The function which will modify the value at `key`
-     @return {::SortedDict} A new dict with `key` modified by `fn`
-     @summary Returns a new dict with `key` modified by `fn`
-     @desc
-       This function runs in `O(log2(n))` worst-case time.
-
-       This function calls `fn` with the value for `key`, and
-       whatever `fn` returns will be used as the new value for
-       `key`:
-
-           var dict = @Dict({
-             "foo": 1,
-             "bar": 2
-           });
-
-           // This returns the dict { "foo": 11, "bar": 2 }
-           dict.modify("foo", x -> x + 10);
-
-           // This returns the dict { "foo": 1, "bar": 12 }
-           dict.modify("bar", x -> x + 10);
-
-       If `key` is not in the dict, it will throw an error.
+       The `obj` parameter is exactly the same as for [::Dict],
+       except that the keys are sorted.
    */
   exports.SortedDict = function (sort, obj) {
     if (obj != null) {
@@ -1224,6 +1144,141 @@ __js {
     }
   };
 
+  /**
+     @class Dict
+     @summary An immutable dictionary mapping keys to values
+
+     @function Dict
+     @param {optional sequence::Sequence|Object} [obj]
+     @desc
+       If `obj` is a [sequence::Sequence], the values must
+       be arrays of `[key, value]`, which will be added to
+       the dict.
+
+       If `obj` is a JavaScript literal like `{ foo: 1 }`,
+       then the keys/values will be added to the dict.
+
+       This takes `O(n * log2(n))` time, unless `obj` is already
+       a [::Dict], in which case it takes `O(1)` time.
+
+       ----
+
+       The keys are in unsorted order, so you cannot rely upon
+       the order. If you need to maintain key order, use a [::SortedDict].
+
+       Mutable objects can be used as keys, and they are treated as
+       equal only if they are exactly the same object:
+
+           var obj1 = { foo: 1 };
+           var obj2 = { foo: 1 };
+
+           var dict = @Dict().set(obj1, "bar")
+                             .set(obj2, "qux");
+
+           // Returns "bar"
+           dict.get(obj1);
+
+           // Returns "qux"
+           dict.get(obj2);
+
+       You can also use a [::Dict], [::Set], or [::List] as keys, and
+       they are treated as equal if their keys/values are equal:
+
+           var obj1 = @Dict({ foo: 1 });
+           var obj2 = @Dict({ foo: 1 });
+
+           var dict = @Dict().set(obj1, "bar")
+                             .set(obj2, "qux");
+
+           // Returns "qux"
+           dict.get(obj1);
+
+           // Returns "qux"
+           dict.get(obj2);
+
+       Because `obj1` and `obj2` have the same keys/values, they are
+       equal.
+
+     @function Dict.isEmpty
+     @return {Boolean} `true` if the dict is empty
+     @summary Returns whether the dict is empty or not
+     @desc
+       This function runs in `O(1)` time.
+
+       A dict is empty if it has no keys/values in it.
+
+     @function Dict.has
+     @param {Any} [key] The key to search for in the dict
+     @return {Boolean} `true` if `key` exists in the dict
+     @summary Returns whether `key` exists in the dict
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+     @function Dict.get
+     @param {Any} [key] The key to search for in the dict
+     @param {optional Any} [default] Value to return if `key` is not in the dict
+     @return {Any} The value for `key` in the dict, or `default` if not found
+     @summary Returns the value for `key` in the dict, or `default` if not found
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       If `key` is not in the dict:
+
+       * If `default` is provided, it is returned.
+       * If `default` is not provided, an error is thrown.
+
+     @function Dict.set
+     @param {Any} [key] The key to set in the dict
+     @param {Any} [value] The value to use for `key`
+     @return {::Dict} A new dict with `key` set to `value`
+     @summary Returns a new dict with `key` set to `value`
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       This does not modify the dict, it returns a new dict.
+
+       If `key` already exists, it is overwritten.
+
+       If `key` does not exist, it is created.
+
+     @function Dict.remove
+     @param {Any} [key] The key to remove from the dict
+     @return {::Dict} A new dict with `key` removed
+     @summary Returns a new dict with `key` removed
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       This does not modify the dict, it returns a new dict.
+
+       If `key` is not in the dict, it will throw an error.
+
+     @function Dict.modify
+     @param {Any} [key] The key to modify in the dict
+     @param {Function} [fn] The function which will modify the value at `key`
+     @return {::Dict} A new dict with `key` modified by `fn`
+     @summary Returns a new dict with `key` modified by `fn`
+     @desc
+       This function runs in `O(log2(n))` worst-case time.
+
+       This does not modify the dict, it returns a new dict.
+
+       This function calls `fn` with the value for `key`, and
+       whatever `fn` returns will be used as the new value for
+       `key`:
+
+           var dict = @Dict({
+             "foo": 1,
+             "bar": 2
+           });
+
+           // This returns the dict { "foo": 11, "bar": 2 }
+           dict.modify("foo", x -> x + 10);
+
+           // This returns the dict { "foo": 1, "bar": 12 }
+           dict.modify("bar", x -> x + 10);
+
+       If `key` is not in the dict, it will throw an error.
+   */
   exports.Dict = function (obj) {
     return exports.SortedDict(defaultSort, obj);
   };
@@ -1238,8 +1293,9 @@ __js {
 
      @function List
      @param {optional sequence::Sequence} [seq]
-       The values from the sequence will be inserted into
-       the list, in order
+     @desc
+       The values from `seq` will be inserted into
+       the list, in order. This takes `O(n)` time.
 
      @function List.isEmpty
      @return {Boolean} `true` if the list is empty
@@ -1292,6 +1348,8 @@ __js {
        This function runs in `O(log2(n / 125) + 125)` worst-case time.
        If inserting at the end of the list, it runs in `O(1)` time.
 
+       This does not modify the list, it returns a new list.
+
        `index` defaults to `-1`, which inserts `value` at
        the end of the list.
 
@@ -1308,6 +1366,8 @@ __js {
        This function runs in `O(log2(n / 125) + 125)` worst-case time.
        If removing at the end of the list, it runs in `O(1)` time.
 
+       This does not modify the list, it returns a new list.
+
        `index` defaults to `-1`, which removes the value
        at the end of the list.
 
@@ -1323,6 +1383,8 @@ __js {
      @desc
        This function runs in `O(log2(n / 125) + 125)` worst-case time.
        If modifying the value at the end of the list, it runs in `O(1)` time.
+
+       This does not modify the list, it returns a new list.
 
        This function calls `fn` with the value at `index`, and
        whatever `fn` returns will be used as the new value at
@@ -1349,6 +1411,8 @@ __js {
      @desc
        This function runs in `O(125 + log2(n / 125) + log2(min(n / 125, m / 125)))`
        worst-case time.
+
+       This does not modify either list, it returns a new list.
   */
   exports.List = function (array) {
     if (array != null) {
