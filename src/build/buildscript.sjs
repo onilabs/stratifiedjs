@@ -1,6 +1,6 @@
 // SJS build tool
 /*
- 
+
   A dependency-driven, parallel buildscript for building the SJS distribution.
   Like SCons, but simpler, smaller, concurrent (== faster).
 
@@ -94,20 +94,20 @@ function build_deps() {
 
   // client-side:
   CPP("tmp/vm1client.js", "-DCLIENTSIDE", ["src/vm1/vm1.js.in"]);
-  MINIFY("tmp/vm1client.js.min", "tmp/vm1client.js", 
-         { pre: "var __oni_rt={};(function(exports){", 
+  MINIFY("tmp/vm1client.js.min", "tmp/vm1client.js",
+         { pre: "var __oni_rt={};(function(exports){",
            post: "exports.modules={};exports.modsrc={};})(__oni_rt);" });
 
   // client-side AOT
   CPP("tmp/vm1client-aot.js", "-DCLIENTSIDE -DNOEVAL", ["src/vm1/vm1.js.in"]);
-  MINIFY("tmp/vm1client-aot.js.min", "tmp/vm1client-aot.js", 
-         { pre: "var __oni_rt={};(function(exports){", 
+  MINIFY("tmp/vm1client-aot.js.min", "tmp/vm1client-aot.js",
+         { pre: "var __oni_rt={};(function(exports){",
            post: "exports.modules={};exports.modsrc={};})(__oni_rt);" });
-  
+
   // nodejs-based:
   CPP("tmp/vm1node.js", "-DNODEJS", ["src/vm1/vm1.js.in"]);
-  MINIFY("tmp/vm1node.js.min", "tmp/vm1node.js", 
-         { pre: "global.__oni_rt={};(function(exports){", 
+  MINIFY("tmp/vm1node.js.min", "tmp/vm1node.js",
+         { pre: "global.__oni_rt={};(function(exports){",
            post: "exports.modules={};exports.modsrc={};})(__oni_rt);" });
 
   //----------------------------------------------------------------------
@@ -121,7 +121,7 @@ function build_deps() {
 
   STRINGIFY("tmp/apollo-sys-common.sjs.min", "tmp/apollo-sys-common.sjs",
             { pre: "__oni_rt.modsrc['builtin:apollo-sys-common.sjs']=", post: ";" });
-  
+
   // xbrowser hostenv-specific part:
   STRINGIFY("tmp/apollo-sys-xbrowser.sjs.min", "src/sys/apollo-sys-xbrowser.sjs",
             { pre: "__oni_rt.modsrc['builtin:apollo-sys-xbrowser.sjs']=", post: ";" });
@@ -144,21 +144,21 @@ function build_deps() {
   // bootstrap code
 
   // xbrowser shim code:
-  MINIFY("tmp/apollo-jsshim-xbrowser.js.min", 
+  MINIFY("tmp/apollo-jsshim-xbrowser.js.min",
          "src/bootstrap/apollo-jsshim-xbrowser.js");
 
   // common part:
-  MINIFY("tmp/apollo-bootstrap-common.js.min", 
+  MINIFY("tmp/apollo-bootstrap-common.js.min",
          "src/bootstrap/apollo-bootstrap-common.js");
 
   // xbrowser hostenv-specific part:
-  MINIFY("tmp/apollo-bootstrap-xbrowser.js.min", 
+  MINIFY("tmp/apollo-bootstrap-xbrowser.js.min",
          "src/bootstrap/apollo-bootstrap-xbrowser.js");
 
   // nodejs hostenv-specific part:
-  MINIFY("tmp/apollo-bootstrap-nodejs.js.min", 
+  MINIFY("tmp/apollo-bootstrap-nodejs.js.min",
          "src/bootstrap/apollo-bootstrap-nodejs.js");
-  
+
 
   //----------------------------------------------------------------------
   // apollo lib
@@ -185,7 +185,7 @@ function build_deps() {
          ]);
 
   // nodejs version:
-  BUILD("stratified-node.js", 
+  BUILD("stratified-node.js",
         ["cat $0 $1 $2 $3 $4 $5 $6 > $TARGET",
          replacements_from_config
         ],
@@ -209,9 +209,9 @@ function build_deps() {
          replacements_from_config
         ],
         ["src/deps/numeric/src/apollo-module-header.txt",
-         "src/deps/numeric/src/numeric.js", 
+         "src/deps/numeric/src/numeric.js",
          "src/deps/numeric/src/seedrandom.js",
-         "src/deps/numeric/src/quadprog.js", 
+         "src/deps/numeric/src/quadprog.js",
          "src/deps/numeric/src/svd.js",
          "src/deps/numeric/src/apollo-module-footer.txt"]
        );
@@ -366,7 +366,7 @@ StratifiedJS standard library.");
   // helper to recursively read all files in given directory
   function walkdir(path, cb) {
     var files = fs.readdir(path);
-    files .. each { 
+    files .. each {
       |f|
       if (fs.isDirectory(path+"/"+f))
         walkdir(path+"/"+f, cb);
@@ -416,7 +416,7 @@ function replacements_from_config(target) {
                 .replace(/@version\s*.*/, '@version '+config.version)
                 .replace(/"version"\s*:\s*"[^"]*"/, '"version" : "'+config.npm.version+'"')
                 .replace(/"private"\s*:\s*[^,]*/, '"private" : '+config.npm['private']+'')
-                .replace(/StratifiedJS '[^']*' Standard Module Library/g, 
+                .replace(/StratifiedJS '[^']*' Standard Module Library/g,
                          "StratifiedJS '"+config.version+"' Standard Module Library");
 
   if (repl != src)
@@ -521,7 +521,7 @@ function BUILD(target, task, deps) {
   // builders are dependent on the buildscript itself:
   if (target !== "src/build/buildscript.sjs")
     deps.push("src/build/buildscript.sjs");
-  
+
   // We only want to execute the builder once and return the memoized
   // result on subsequent invocations. By utilizing a stratum and
   // waitforValue(), we can additionally ensure that these semantics
@@ -544,7 +544,7 @@ function PSEUDO(target) {
 
 
 //----------------------------------------------------------------------
-// implementation helpers: 
+// implementation helpers:
 
 function log(s) { process.stdout.write(s+"\n"); }
 
@@ -565,7 +565,7 @@ function _run_builder(target, task, deps) {
   if (deps.length) {
     require('sjs:cutil').waitforAll(
       function(dep) {
-        if (builders[dep]) 
+        if (builders[dep])
           builders[dep]();
         else
           if (!/^(src|tools)\//.test(dep)) // warn for missing builder if file is not in src/ or tools/
@@ -611,8 +611,8 @@ function _run_task(target, task, deps) {
     //log("* Executing shell command: '"+task+"'");
     require('sjs:nodejs/child-process').run('bash', ['-c', task], {stdio:'inherit'});
   }
-  else 
-    throw new Error("Unknown task type in builder '"+target+"'");    
+  else
+    throw new Error("Unknown task type in builder '"+target+"'");
 }
 
 // Build the given target:
@@ -620,7 +620,7 @@ function build_target(target) {
   // make sure we're in the right path:
   var sjs_home = require('path').dirname(sys.executable);
   process.chdir(sjs_home);
-  
+
   // make sure there's a tmp dir:
   if (!fs.isDirectory("tmp")) {
     log("Executing 'mkdir tmp'");
