@@ -1063,16 +1063,30 @@ __js {
   };
 
 
+  // TODO sjs:type utility for this
+  function isDict(x) {
+    var proto = Object.getPrototypeOf(x);
+    // TODO this won't work cross-realm
+    return proto === null || proto === Object.prototype;
+  }
+
   exports.SortedDict = function (sort, obj) {
     if (obj != null) {
-      if (obj instanceof ImmutableDict) {
+      if (obj instanceof ImmutableDict && obj.sort === sort) {
         return obj;
       } else {
         var o = new ImmutableDict(nil, sort);
-        // TODO handle generic sequences as well ?
-        obj ..@ownPropertyPairs ..@each(function ([key, value]) {
+
+        // TODO a little hacky
+        if (!obj ..@isSequence) {
+          @assert.ok(isDict(obj));
+          obj = obj ..@ownPropertyPairs;
+        }
+
+        obj ..@each(function ([key, value]) {
           o = o.set(key, value);
         });
+
         return o;
       }
     } else {
@@ -1082,13 +1096,15 @@ __js {
 
   exports.SortedSet = function (sort, array) {
     if (array != null) {
-      if (array instanceof ImmutableSet) {
+      if (array instanceof ImmutableSet && array.sort === sort) {
         return array;
       } else {
         var o = new ImmutableSet(nil, sort);
+
         array ..@each(function (x) {
           o = o.add(x);
         });
+
         return o;
       }
     } else {
@@ -1228,9 +1244,11 @@ __js {
         return array;
       } else {
         var o = new ImmutableList(nil, nil, 0);
+
         array ..@each(function (x) {
           o = o.push(x);
         });
+
         return o;
       }
     } else {

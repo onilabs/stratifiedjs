@@ -1,6 +1,7 @@
 var { shuffle } = require('sjs:collection/list');
 var { test, context, assert } = require('sjs:test/suite');
-var { Dict, Set, List, nil, equal, toJS } = require('sjs:collection/avl-tree');
+var { Dict, Set, List, nil, equal, toJS,
+      defaultSort, simpleSort, SortedSet, SortedDict } = require('sjs:collection/avl-tree');
 
 __js {
   // TODO test that this works correctly
@@ -209,9 +210,12 @@ __js {
     });
 
     test("=== when not modified", function () {
-      assert.is(dict_empty.remove("foo"), dict_empty);
-
       assert.is(Dict(dict_foo), dict_foo);
+      assert.is(SortedDict(defaultSort, dict_foo), dict_foo);
+      // TODO implement this
+      //assert.isNot(SortedDict(simpleSort, dict_foo), dict_foo);
+
+      assert.is(dict_empty.remove("foo"), dict_empty);
 
       assert.is(dict_foo.set("foo", 1), dict_foo);
       assert.isNot(dict_foo.set("foo", 2), dict_foo);
@@ -352,6 +356,9 @@ __js {
 
     test("=== when not modified", function () {
       assert.is(Set(five_set), five_set);
+      assert.is(SortedSet(defaultSort, five_set), five_set);
+      // TODO implement this
+      //assert.isNot(SortedSet(simpleSort, five_set), five_set);
 
       assert.is(empty_set.remove(1), empty_set);
 
