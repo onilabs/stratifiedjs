@@ -4,7 +4,9 @@ var { Dict, Set, List, nil, equal, toJS } = require('sjs:collection/avl-tree');
 
 __js {
   // TODO test that this works correctly
-  function verify_key(tree) {
+  function verify_dict(tree) {
+    var sort = tree.sort;
+
     function loop(node, lt, gt) {
       if (node !== nil) {
         var left  = node.left;
@@ -17,12 +19,12 @@ __js {
 
         // Every left node must be lower than the parent node
         lt.forEach(function (parent) {
-          assert.ok(node.key < parent.key);
+          assert.ok(sort(node.key, parent.key) < 0);
         });
 
         // Every right node must be greater than the parent node
         gt.forEach(function (parent) {
-          assert.ok(node.key > parent.key);
+          assert.ok(sort(node.key > parent.key) > 0);
         });
 
         loop(left,  lt.concat([node]), gt);
@@ -30,6 +32,14 @@ __js {
       }
     }
     loop(tree.root, [], []);
+
+    return tree;
+  }
+
+  function verify_set(tree, array) {
+    verify_dict(tree);
+
+    assert.equal(toJS(tree), array);
 
     return tree;
   }
@@ -76,13 +86,13 @@ __js {
     var dict_foo   = Dict().set("foo", 1);
 
     test("verify", function () {
-      verify_key(dict_empty);
-      verify_key(dict_foo);
+      verify_dict(dict_empty);
+      verify_dict(dict_foo);
     });
 
     test("init", function () {
       var x = Dict({ foo: 1 });
-      verify_key(x);
+      verify_dict(x);
       assert.ok(equal(x, dict_foo));
       assert.ok(equal(dict_foo, x));
     });
@@ -122,35 +132,6 @@ __js {
       assert.is(dict_foo2.get("foo"), 3);
     });
 
-    test("set (complex keys)", function () {
-      var o = Dict();
-
-      var m1 = {};
-      var m2 = {};
-
-      var i1 = Dict();
-      var i2 = Dict();
-      var i3 = Dict({ foo: 10 });
-
-      o = o.set(m1, 1);
-      o = o.set(m2, 2);
-      o = o.set(i1, 3);
-      o = o.set(i2, 4);
-      o = o.set(i3, 5);
-
-      assert.ok(o.has(m1));
-      assert.ok(o.has(m2));
-      assert.ok(o.has(i1));
-      assert.ok(o.has(i2));
-      assert.ok(o.has(i3));
-
-      assert.is(o.get(m1), 1);
-      assert.is(o.get(m2), 2);
-      assert.is(o.get(i1), 4);
-      assert.is(o.get(i2), 4);
-      assert.is(o.get(i3), 5);
-    });
-
     test("modify", function () {
       var ran = false;
 
@@ -185,6 +166,46 @@ __js {
       var dict_foo2 = dict_foo.remove("foo");
       assert.ok(dict_foo.has("foo"));
       assert.notOk(dict_foo2.has("foo"));
+    });
+
+    test("complex keys", function () {
+      var o = Dict();
+
+      var m1 = {};
+      var m2 = {};
+
+      var i1 = Dict();
+      var i2 = Dict();
+      var i3 = Dict({ foo: 10 });
+
+      o = o.set(m1, 1);
+      o = o.set(m2, 2);
+      o = o.set(i1, 3);
+      o = o.set(i2, 4);
+      o = o.set(i3, 5);
+
+      assert.ok(o.has(m1));
+      assert.ok(o.has(m2));
+      assert.ok(o.has(i1));
+      assert.ok(o.has(i2));
+      assert.ok(o.has(i3));
+
+      assert.is(o.get(m1), 1);
+      assert.is(o.get(m2), 2);
+      assert.is(o.get(i1), 4);
+      assert.is(o.get(i2), 4);
+      assert.is(o.get(i3), 5);
+
+      o = o.remove(m1);
+      o = o.remove(m2);
+      o = o.remove(i1);
+      o = o.remove(i3);
+
+      assert.notOk(o.has(m1));
+      assert.notOk(o.has(m2));
+      assert.notOk(o.has(i1));
+      assert.notOk(o.has(i2));
+      assert.notOk(o.has(i3));
     });
 
     test("=== when not modified", function () {
@@ -225,24 +246,171 @@ __js {
 
     test("random keys", function () {
       var o = Dict();
-      verify_key(o);
+      verify_dict(o);
 
       random_list(200).forEach(function (i) {
         o = o.set("foo" + i, 5);
-        verify_key(o);
+        verify_dict(o);
       });
 
       random_list(200).forEach(function (i) {
         o = o.modify("foo" + i, function (x) {
           return x + 15;
         });
-        verify_key(o);
+        verify_dict(o);
       });
 
       random_list(200).forEach(function (i) {
         o = o.remove("foo" + i);
-        verify_key(o);
+        verify_dict(o);
       });
+    });
+  });
+
+
+  context("Set", function () {
+    var empty_set = Set();
+    var five_set  = Set().add(1).add(2).add(3).add(4).add(5);
+
+    test("verify", function () {
+      verify_set(empty_set, []);
+      verify_set(five_set, [1, 2, 3, 4, 5]);
+    });
+
+    test("init", function () {
+      verify_set(Set([1, 2, 3]), [1, 2, 3]);
+    });
+
+    test("isEmpty", function () {
+      assert.ok(empty_set.isEmpty());
+      assert.notOk(five_set.isEmpty());
+    });
+
+    test("has", function () {
+      assert.notOk(empty_set.has(1));
+      assert.notOk(five_set.has(0));
+      assert.ok(five_set.has(1));
+      assert.ok(five_set.has(2));
+      assert.ok(five_set.has(3));
+      assert.ok(five_set.has(4));
+      assert.ok(five_set.has(5));
+      assert.notOk(five_set.has(6));
+    });
+
+    test("add", function () {
+      verify_set(empty_set, []);
+      verify_set(empty_set.add(5), [5]);
+      verify_set(empty_set, []);
+
+      verify_set(five_set, [1, 2, 3, 4, 5]);
+      verify_set(five_set.add(5), [1, 2, 3, 4, 5]);
+      verify_set(five_set, [1, 2, 3, 4, 5]);
+    });
+
+    test("remove", function () {
+      verify_set(empty_set.remove(1), []);
+
+      verify_set(five_set.remove(1), [2, 3, 4, 5]);
+      verify_set(five_set.remove(1).remove(4), [2, 3, 5]);
+    });
+
+    test("complex elements", function () {
+      var o = Set();
+
+      var m1 = {};
+      var m2 = {};
+
+      var i1 = Set();
+      var i2 = Set();
+      var i3 = Set([1, 2, 3]);
+
+      o = o.add(m1);
+      o = o.add(m2);
+      o = o.add(i1);
+      o = o.add(i2);
+      o = o.add(i3);
+
+      assert.ok(o.has(m1));
+      assert.ok(o.has(m2));
+      assert.ok(o.has(i1));
+      assert.ok(o.has(i2));
+      assert.ok(o.has(i3));
+
+      o = o.remove(m1);
+      o = o.remove(m2);
+      o = o.remove(i1);
+      o = o.remove(i3);
+
+      assert.notOk(o.has(m1));
+      assert.notOk(o.has(m2));
+      assert.notOk(o.has(i1));
+      assert.notOk(o.has(i2));
+      assert.notOk(o.has(i3));
+    });
+
+    test("=== when not modified", function () {
+      assert.is(empty_set.remove(1), empty_set);
+
+      assert.is(five_set.add(5), five_set);
+      assert.isNot(five_set.add(6), five_set);
+      assert.isNot(five_set.remove(5), five_set);
+    });
+
+    test("equal", function () {
+      assert.notOk(equal(empty_set, five_set));
+      assert.ok(equal(empty_set, empty_set));
+      assert.ok(equal(five_set, five_set));
+      assert.ok(equal(Set(), Set()));
+      assert.ok(equal(Set([1]), Set([1])));
+      assert.ok(equal(Set([Set([1])]), Set([Set([1])])));
+      assert.notOk(equal(Set([Set([1])]), Set([Set([2])])));
+    });
+
+    test("toJS", function () {
+      assert.equal(toJS(empty_set), []);
+      assert.equal(toJS(five_set), [1, 2, 3, 4, 5]);
+      assert.equal(toJS(Set([1, 2, Set([3])])),
+                   [1, 2, [3]]);
+    });
+
+    test("random elements", function () {
+      var o = Set();
+      var a = [];
+
+      var sort = o.sort;
+
+      // TODO utilities for these
+      function push_sorted(a, x, sort) {
+        for (var i = 0, l = a.length; i < l; ++i) {
+          if (sort(x, a[i]) <= 0) {
+            a.splice(i, 0, x);
+            return;
+          }
+        }
+        a.push(x);
+      }
+
+      function remove(a, x) {
+        var index = a.indexOf(x);
+        assert.isNot(index, -1);
+        a.splice(index, 1);
+      }
+
+      verify_set(o, a);
+
+      random_list(200).forEach(function (i) {
+        o = o.add(i);
+        push_sorted(a, i, sort);
+        verify_set(o, a);
+      });
+
+      random_list(200).forEach(function (i) {
+        o = o.remove(i);
+        remove(a, i);
+        verify_set(o, a);
+      });
+
+      verify_set(o, []);
     });
   });
 
