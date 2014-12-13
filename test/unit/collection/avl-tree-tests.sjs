@@ -24,7 +24,7 @@ __js {
 
         // Every right node must be greater than the parent node
         gt.forEach(function (parent) {
-          assert.ok(sort(node.key > parent.key) > 0);
+          assert.ok(sort(node.key, parent.key) > 0);
         });
 
         loop(left,  lt.concat([node]), gt);
