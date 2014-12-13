@@ -358,7 +358,7 @@ __js {
             var aleft  = array.slice(0, pivot);
             var aright = array.slice(pivot);
 
-            console.log(aleft, aright);
+            //console.log(aleft, aright);
 
             if (left.depth < right.depth) {
               return new ArrayNode(insert_max(left, new ArrayNode(nil, nil, aleft)), right, aright);
@@ -919,7 +919,7 @@ __js {
       return def;
 
     } else {
-      throw new Error("Index is not valid");
+      throw new Error("Index " + index + " is not valid");
     }
   };
 
@@ -958,7 +958,7 @@ __js {
       }
 
     } else {
-      throw new Error("Index is not valid");
+      throw new Error("Index " + index + " is not valid");
     }
   };
 
@@ -994,7 +994,7 @@ __js {
       }
 
     } else {
-      throw new Error("Index is not valid");
+      throw new Error("Index " + index + " is not valid");
     }
   };
 
@@ -1019,7 +1019,7 @@ __js {
           return new ImmutableList(root, new Cons(value, tail.cdr), tail_size);
         }
 
-      } else if (size < index) {
+      } else if (index < size) {
         var node = nth_modify(root, index, f);
         if (node === root) {
           return this;
@@ -1028,13 +1028,18 @@ __js {
         }
 
       } else {
-        var array = array_modify_at(stack_to_array(tail, tail_size), index - size, f);
-        var node  = insert_max(root, new ArrayNode(nil, nil, array));
-        return new ImmutableList(node, nil, 0);
+        var stack = stack_to_array(tail, tail_size);
+        var array = array_modify_at(stack, index - size, f);
+        if (array === stack) {
+          return this;
+        } else {
+          var node = insert_max(root, new ArrayNode(nil, nil, array));
+          return new ImmutableList(node, nil, 0);
+        }
       }
 
     } else {
-      throw new Error("Index is not valid");
+      throw new Error("Index " + index + " is not valid");
     }
   };
 
@@ -1100,73 +1105,3 @@ __js {
     return o;
   };
 }
-
-
-/*__js {
-  ;(function () {
-    ;(function () {
-      var x = exports.List();
-
-      verify(x);
-
-      function check(array, x) {
-        var i = 0;
-        each(x.root, function (node) {
-          assert.is(node.value, array[i]);
-          ++i;
-        });
-
-        var tojs = x.toJS();
-        assert.is(tojs.length, array.length);
-        array.forEach(function (x, i) {
-          assert.is(tojs[i], x);
-        });
-      }
-
-
-      var array = [];
-
-      a.forEach(function (s) {
-        var index = Math.floor(Math.random() * array.length);
-        array.splice(index, 0, s);
-        x = x.push(s, index);
-        verify(x);
-        check(array, x);
-      });
-
-      while (array.length) {
-        var index = Math.floor(Math.random() * array.length);
-        array.splice(index, 1);
-        x = x.pop(index);
-        verify(x);
-        check(array, x);
-      }
-
-
-      var a2 = shuffle(a);
-
-      var pivot = Math.floor(Math.random() * a2.length);
-      var xa = a2.slice(0, pivot);
-      var ya = a2.slice(pivot);
-
-      var x = exports.List();
-      var y = exports.List();
-
-      xa.forEach(function (s) {
-        var index = Math.floor(Math.random() * x.size());
-        x = x.push(s, index);
-        verify(x);
-      });
-
-      ya.forEach(function (s) {
-        var index = Math.floor(Math.random() * y.size());
-        y = y.push(s, index);
-        verify(y);
-      });
-
-      verify(x.concat(y));
-
-      verify(exports.List().concat(exports.List()));
-    })();
-  })();
-}*/
