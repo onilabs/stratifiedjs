@@ -30,6 +30,7 @@
  *
  */
 /**
+   @nodoc
    @module    collection/btree
    @summary   Functions for creating and manipulating B-trees
    @home      sjs:collection/btree
