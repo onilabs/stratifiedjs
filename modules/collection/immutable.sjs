@@ -952,6 +952,61 @@ __js {
     }
   };
 
+  ImmutableSet.prototype.union = function (other) {
+    var self = this;
+
+    other ..@each(function (value) {
+      self = self.add(value);
+    });
+
+    return self;
+  };
+
+  ImmutableSet.prototype.intersect = function (other) {
+    var self = this;
+    if (self.root === nil) {
+      return self;
+
+    } else {
+      var out = new ImmutableSet(nil, self.sort);
+
+      other ..@each(function (value) {
+        if (self.has(value)) {
+          out = out.add(value);
+        }
+      });
+
+      return out;
+    }
+  };
+
+  ImmutableSet.prototype.disjoint = function (other) {
+    var self = this;
+
+    other ..@each(function (value) {
+      if (self.has(value)) {
+        self = self.remove(value);
+      } else {
+        self = self.add(value);
+      }
+    });
+
+    return self;
+  };
+
+  // TODO what about the empty set ?
+  ImmutableSet.prototype.subtract = function (other) {
+    var self = this;
+
+    if (self.root !== nil) {
+      other ..@each(function (value) {
+        self = self.remove(value);
+      });
+    }
+
+    return self;
+  };
+
   ImmutableSet.prototype[interface_toJS] = function (x) {
     var a = [];
 
@@ -1545,6 +1600,72 @@ __js {
        This does not modify the set, it returns a new set.
 
        If `value` is not in the set, it will do nothing.
+
+     @function Set.union
+     @param {sequence::Sequence} [other] Sequence of values to union with this set
+     @return {::Set} A new set which is the union of this set and `other`
+     @summary Returns a new set which is the union of this set and `other`
+     @desc
+       This function runs in `O(n * log2(n))` worst-case time.
+
+       This does not modify the set, it returns a new set.
+
+       This function returns a set which contains all the values from
+       this set, and also all the values from `other`.
+
+       This is a standard [set union](http://en.wikipedia.org/wiki/Union_%28set_theory%29).
+
+       `other` can be any [sequence::Sequence] of values.
+
+     @function Set.intersect
+     @param {sequence::Sequence} [other] Sequence of values to intersect with this set
+     @return {::Set} A new set which is the intersection of this set and `other`
+     @summary Returns a new set which is the intersection of this set and `other`
+     @desc
+       This function runs in `O(n * 2 * log2(n))` worst-case time.
+
+       This does not modify the set, it returns a new set.
+
+       This function returns a set which contains all the values that
+       are in both this set *and* `other`.
+
+       This is a standard [set intersection](http://en.wikipedia.org/wiki/Intersection_%28set_theory%29).
+
+       `other` can be any [sequence::Sequence] of values.
+
+     @function Set.disjoint
+     @param {sequence::Sequence} [other] Sequence of values to disjoint with this set
+     @return {::Set} A new set which is disjoint with this set and `other`
+     @summary Returns a new set which is disjoint with this set and `other`
+     @desc
+       This function runs in `O(n * 2 * log2(n))` worst-case time.
+
+       This does not modify the set, it returns a new set.
+
+       This function returns a set which contains all the values in
+       this set, and all the values in `other`, but *not* the
+       values which are in both this set and `other`.
+
+       This is also called the [symmetric difference](http://en.wikipedia.org/wiki/Symmetric_difference)
+       of the two sets.
+
+       `other` can be any [sequence::Sequence] of values.
+
+     @function Set.subtract
+     @param {sequence::Sequence} [other] Sequence of values to subtract from this set
+     @return {::Set} A new set which is this set subtracted by `other`
+     @summary Returns a new set which is this set subtracted by `other`
+     @desc
+       This function runs in `O(n * log2(n))` worst-case time.
+
+       This does not modify the set, it returns a new set.
+
+       This function returns a set which contains all the values in
+       this set, but without the values from `other`.
+
+       This is also called the [relative complement](http://en.wikipedia.org/wiki/Complement_%28set_theory%29) of the two sets.
+
+       `other` can be any [sequence::Sequence] of values.
    */
   exports.Set = function (array) {
     return exports.SortedSet(defaultSort, array);

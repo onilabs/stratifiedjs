@@ -386,13 +386,25 @@
                 "add": {
                   "type": "function"
                 },
+                "disjoint": {
+                  "type": "function"
+                },
                 "has": {
+                  "type": "function"
+                },
+                "intersect": {
                   "type": "function"
                 },
                 "isEmpty": {
                   "type": "function"
                 },
                 "remove": {
+                  "type": "function"
+                },
+                "subtract": {
+                  "type": "function"
+                },
+                "union": {
                   "type": "function"
                 }
               }

@@ -214,8 +214,7 @@ __js {
     test("=== when not modified", function () {
       assert.is(Dict(dict_foo), dict_foo);
       assert.is(SortedDict(defaultSort, dict_foo), dict_foo);
-      // TODO implement this
-      //assert.isNot(SortedDict(simpleSort, dict_foo), dict_foo);
+      assert.isNot(SortedDict(simpleSort, dict_foo), dict_foo);
 
       assert.is(dict_empty.remove("foo"), dict_empty);
 
@@ -338,6 +337,38 @@ __js {
       verify_set(five_set.remove(1).remove(4), [2, 3, 5]);
     });
 
+    test("union", function () {
+      verify_set(five_set.union(five_set), [1, 2, 3, 4, 5]);
+      verify_set(five_set.union(Set([1, 2, 6, 9])), [1, 2, 3, 4, 5, 6, 9]);
+      verify_set(Set([1, 2]).union(five_set), [1, 2, 3, 4, 5]);
+      verify_set(Set([1, 2, 6]).union(five_set), [1, 2, 3, 4, 5, 6]);
+      verify_set(five_set.union([1, 2, 6, 9]), [1, 2, 3, 4, 5, 6, 9]);
+    });
+
+    test("intersect", function () {
+      verify_set(five_set.intersect(five_set), [1, 2, 3, 4, 5]);
+      verify_set(empty_set.intersect(five_set), []);
+      verify_set(five_set.intersect(empty_set), []);
+      verify_set(five_set.intersect([1, 3, 4]), [1, 3, 4]);
+      verify_set(five_set.intersect([1, 3, 4, 6, 10, 20]), [1, 3, 4]);
+    });
+
+    test("disjoint", function () {
+      verify_set(five_set.disjoint(five_set), []);
+      verify_set(five_set.disjoint(empty_set), [1, 2, 3, 4, 5]);
+      verify_set(empty_set.disjoint(five_set), [1, 2, 3, 4, 5]);
+      verify_set(five_set.disjoint([1, 2, 3]), [4, 5]);
+      verify_set(five_set.disjoint([1, 2, 3, 6, 7, 8]), [4, 5, 6, 7, 8]);
+    });
+
+    test("subtract", function () {
+      verify_set(five_set.subtract(empty_set), [1, 2, 3, 4, 5]);
+      verify_set(empty_set.subtract(five_set), []);
+      verify_set(five_set.subtract(five_set), []);
+      verify_set(five_set.subtract([1, 2, 3]), [4, 5]);
+      verify_set(five_set.subtract([1, 2, 3, 6, 7, 9]), [4, 5]);
+    });
+
     test("complex elements", function () {
       var o = Set();
 
@@ -373,10 +404,15 @@ __js {
     });
 
     test("=== when not modified", function () {
+      assert.is(empty_set.union(empty_set), empty_set);
+      assert.isNot(empty_set.union(five_set), five_set);
+      assert.is(five_set.union(empty_set), five_set);
+      assert.is(five_set.union(five_set), five_set);
+      assert.is(five_set.union(Set([1, 2, 3])), five_set);
+
       assert.is(Set(five_set), five_set);
       assert.is(SortedSet(defaultSort, five_set), five_set);
-      // TODO implement this
-      //assert.isNot(SortedSet(simpleSort, five_set), five_set);
+      assert.isNot(SortedSet(simpleSort, five_set), five_set);
 
       assert.is(empty_set.remove(1), empty_set);
 
@@ -600,6 +636,8 @@ __js {
       assert.is(empty_list.concat(empty_list), empty_list);
       assert.is(five_list.concat(empty_list), five_list);
       assert.is(empty_list.concat(five_list), five_list);
+
+      assert.is(List(five_list), five_list);
 
       var list1 = List([List([])]);
 
