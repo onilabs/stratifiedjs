@@ -705,9 +705,9 @@ __js {
     }
   }
 
-  function key_remove(node, sort, key, type) {
+  function key_remove(node, sort, key) {
     if (node === nil) {
-      throw new Error("#{type} #{key} not found");
+      return node;
 
     } else {
       var left  = node.left;
@@ -718,12 +718,20 @@ __js {
         return concat(left, right);
 
       } else if (order < 0) {
-        var child = key_remove(left, sort, key, type);
-        return balanced_node(node, child, right);
+        var child = key_remove(left, sort, key);
+        if (child === left) {
+          return node;
+        } else {
+          return balanced_node(node, child, right);
+        }
 
       } else {
-        var child = key_remove(right, sort, key, type);
-        return balanced_node(node, left, child);
+        var child = key_remove(right, sort, key);
+        if (child === right) {
+          return node;
+        } else {
+          return balanced_node(node, left, child);
+        }
       }
     }
   }
@@ -824,8 +832,12 @@ __js {
   ImmutableDict.prototype.remove = function (key) {
     var root = this.root;
     var sort = this.sort;
-    var node = key_remove(root, sort, key, "Key");
-    return new ImmutableDict(node, sort);
+    var node = key_remove(root, sort, key);
+    if (node === root) {
+      return this;
+    } else {
+      return new ImmutableDict(node, sort);
+    }
   };
 
   // TODO code duplication
@@ -905,8 +917,12 @@ __js {
   ImmutableSet.prototype.remove = function (key) {
     var root = this.root;
     var sort = this.sort;
-    var node = key_remove(root, sort, key, "Value");
-    return new ImmutableSet(node, sort);
+    var node = key_remove(root, sort, key);
+    if (node === root) {
+      return this;
+    } else {
+      return new ImmutableSet(node, sort);
+    }
   };
 
   ImmutableSet.prototype[interface_toJS] = function (x) {

@@ -161,9 +161,10 @@ __js {
     });
 
     test("remove", function () {
-      assert.raises({
-        message: "Key foo not found"
-      }, -> dict_empty.remove("foo"));
+      assert.notOk(dict_empty.has("foo"));
+
+      var dict_empty2 = dict_empty.remove("foo");
+      assert.notOk(dict_empty2.has("foo"));
 
       var dict_foo2 = dict_foo.remove("foo");
       assert.ok(dict_foo.has("foo"));
@@ -215,6 +216,8 @@ __js {
       assert.is(SortedDict(defaultSort, dict_foo), dict_foo);
       // TODO implement this
       //assert.isNot(SortedDict(simpleSort, dict_foo), dict_foo);
+
+      assert.is(dict_empty.remove("foo"), dict_empty);
 
       assert.is(dict_foo.set("foo", 1), dict_foo);
       assert.isNot(dict_foo.set("foo", 2), dict_foo);
@@ -313,9 +316,7 @@ __js {
     });
 
     test("remove", function () {
-      assert.raises({
-        message: "Value 1 not found"
-      }, -> empty_set.remove(1));
+      verify_set(empty_set.remove(1), []);
 
       verify_set(five_set.remove(1), [2, 3, 4, 5]);
       verify_set(five_set.remove(1).remove(4), [2, 3, 5]);
@@ -360,6 +361,8 @@ __js {
       assert.is(SortedSet(defaultSort, five_set), five_set);
       // TODO implement this
       //assert.isNot(SortedSet(simpleSort, five_set), five_set);
+
+      assert.is(empty_set.remove(1), empty_set);
 
       assert.is(five_set.add(5), five_set);
       assert.isNot(five_set.add(6), five_set);
