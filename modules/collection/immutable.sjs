@@ -1387,7 +1387,7 @@ __js {
 
        This does not modify the dict, it returns a new dict.
 
-       If `key` is not in the dict, it will throw an error.
+       If `key` is not in the dict, it will do nothing.
 
      @function Dict.modify
      @param {Any} [key] The key to modify in the dict
@@ -1506,7 +1506,7 @@ __js {
 
        This does not modify the set, it returns a new set.
 
-       If `value` is already in the set, then nothing happens.
+       If `value` is already in the set, it will do nothing.
 
      @function Set.remove
      @param {Any} [value] The value to remove from the set
@@ -1517,7 +1517,7 @@ __js {
 
        This does not modify the set, it returns a new set.
 
-       If `value` is not in the set, it will throw an error.
+       If `value` is not in the set, it will do nothing.
    */
   exports.Set = function (array) {
     return exports.SortedSet(defaultSort, array);
