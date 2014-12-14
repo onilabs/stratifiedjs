@@ -405,3 +405,15 @@ function Interface(module, name) {
   }
 }
 exports.Interface = Interface;
+
+/**
+  @function hasInterface
+  @param {Any} [x]
+  @param {::Interface} [interface]
+  @return {Boolean} `true` if `x` implements `interface`
+  @summary Returns whether `x` implements `interface`
+ */
+function hasInterface(x, interface_) {
+  return isObject(x) && x[interface_] != null;
+}
+exports.hasInterface = hasInterface;

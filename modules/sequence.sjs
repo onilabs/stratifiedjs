@@ -42,7 +42,10 @@
 
 var {isArrayLike, isQuasi, streamContents} = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
+var { Interface, hasInterface } = require('./type');
 var sys = require('builtin:apollo-sys');
+
+module.setCanonicalId('sjs:sequence');
 
 // identity function:
 __js var identity = (x) -> x;
@@ -195,7 +198,12 @@ __js {
 */
 __js {
   function isSequence(s) {
-    return isArrayLike(s) || isStream(s) || isString(s) || isBuffer(s) || isReadableStream(s);
+    return isArrayLike(s) ||
+           isStream(s) ||
+           hasInterface(s, interface_each) ||
+           isString(s) ||
+           isBuffer(s) ||
+           isReadableStream(s);
   }
   exports.isSequence = isSequence;
 }
@@ -255,11 +263,18 @@ slightly non-trivial implementation to optimize performance in the
 non-synchronous case:
 */
 __js {
+var interface_each = Interface(module, 'each');
+exports.interface_each = interface_each;
+
 function each(sequence, r) {
-  if (isStream(sequence)) {
+  var fn = sequence[interface_each];
+  if (fn != null) {
+    return fn(sequence, r);
+
+  } else if (isStream(sequence)) {
     return sequence(r);
-  }
-  else {
+
+  } else {
     if (isArrayLike(sequence) || isBuffer(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
         var res = r(sequence[i]);
