@@ -109,12 +109,12 @@ function sequential(f) {
      `x=x1,x2,x3,...` until the stream is empty. `S` must not invoke `emit` reentrantly.
 
      ### Example:
-     
+
           // The stream 1,2,3,...,10 can be expressed by:
           var s = Stream(function(emit) {
             for (var i=1; i<=10; ++i) emit(i);
           });
- 
+
           // We can then use it with `each`:
           each(s, console.log); // -> 1,2,3,...,10
 
@@ -157,7 +157,7 @@ __js {
     without the overhead of copying the array.
 
     ### Example
-        
+
         var arr = [1,2,3,4];
         someFn(arr .. toStream());
 
@@ -214,8 +214,8 @@ __js {
 
          rand .. take(10) .. toArray; // -> [... 10 random numbers ...]
 
-     Note that, in general, a generated stream will be non-replayable. E.g. 
-     subsequent playbacks of the `rand` stream will (in general) yield 
+     Note that, in general, a generated stream will be non-replayable. E.g.
+     subsequent playbacks of the `rand` stream will (in general) yield
      different results:
 
          rand .. take(10) .. toArray; // -> [... 10 random numbers ...]
@@ -240,7 +240,7 @@ exports.generate = generate;
 
          each([1,2,3,4], function(x) { console.log(x) })
 
-         // same as above, but using "double dot" call syntax: 
+         // same as above, but using "double dot" call syntax:
          [1,2,3,4] .. each(function(x) { console.log(x) })
 
          // same as above, but using block lambda call syntax:
@@ -250,7 +250,7 @@ exports.generate = generate;
          [1,2,3,4] .. each { |x| console.log(x) }
 */
 
-/* 
+/*
 slightly non-trivial implementation to optimize performance in the
 non-synchronous case:
 */
@@ -258,7 +258,7 @@ __js {
 function each(sequence, r) {
   if (isStream(sequence)) {
     return sequence(r);
-  } 
+  }
   else {
     if (isArrayLike(sequence) || isBuffer(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
@@ -327,26 +327,26 @@ __js function exhaust(seq) { return each(seq, noop); }
          })
 
          // same as above, using double dot & blocklambda call syntax:
-         
+
          [1,2,3,4] .. consume {
            |next|
            var x;
            while ((x = next()) !== undefined)
              console.log(x);
          }
-     
+
 */
 
 function consume(/* sequence, [opt]eos, loop */) {
-  
+
   var sequence, eos, loop;
   if (arguments.length > 2)
     [sequence, eos, loop] = arguments;
   else
     [sequence, loop] = arguments;
-  
+
   var emit_next, want_next;
-  
+
   // Note: it is *not* safe to call `next` concurrently from multiple
   // strata! We could guard against that by wrapping the function in
   // [function::sequential], but since it's an uncommon thing, let's
@@ -368,13 +368,13 @@ function consume(/* sequence, [opt]eos, loop */) {
   // element retrieval is paced by calls the user makes to 'next' in 'loop'
   waitfor {
     // Element retrieval
-    
+
     // First wait until the user loop requests the first element:
     waitfor() { want_next = resume }
 
     // Now play the sequence:
     try {
-      sequence .. each { 
+      sequence .. each {
         |x|
         // Emit x to the user loop, and wait for the next element to be
         // requested. Note how we *first* set up the 'want_next'
@@ -387,7 +387,7 @@ function consume(/* sequence, [opt]eos, loop */) {
         }
       }
     }
-    catch (e) { 
+    catch (e) {
       // Propagate the exception to our 'loop' block
 
       // we need to do this in a loop to account for the case where we
@@ -423,7 +423,7 @@ exports.consume = consume;
    @function toArray
    @altsyntax sequence .. toArray
    @param {::Sequence} [sequence] Input sequence
-   @return {Array} 
+   @return {Array}
    @summary Convert the given sequence `elem1, elem2, ...` to an array `[elem1, elem2, ...]`
    @desc
      * If `sequence` is already an Array, it will be returned unmodified (i.e. it will not be
@@ -440,7 +440,7 @@ exports.consume = consume;
 */
 function toArray(sequence) {
   if (isArrayLike(sequence)) {
-    if (Array.isArray(sequence)) 
+    if (Array.isArray(sequence))
       return sequence;
     else
       return Array.prototype.slice.call(sequence);
@@ -455,7 +455,7 @@ exports.toArray = toArray;
 
 /**
   @class SequenceExhausted
-  @summary Exception thrown by [::first] and [::at] when accessing a non-existent element, 
+  @summary Exception thrown by [::first] and [::at] when accessing a non-existent element,
            and by [::find] if a matching element isn't found before the sequence is exhausted.
 */
 function SequenceExhausted(msg) {
@@ -473,7 +473,7 @@ exports.SequenceExhausted = SequenceExhausted;
     If `sequence` is empty, `defaultValue` is returned if it was given.
     Otherwise, this function raises a [::SequenceExhausted] error.
 
-    Note that if `sequence` is a non-repeatable [::Stream] 
+    Note that if `sequence` is a non-repeatable [::Stream]
     (e.g. a stream such as `generate(Math.random)`),
     it doesn't just "peek" at the first item - it will consume (and return) it.
 */
@@ -498,9 +498,9 @@ exports.first = first;
 
     If there is no element at `index`, `defaultValue` will be returned
     (or a [::SequenceExhausted] error thrown if no `defaultValue` was given).
-    
+
     i.e for *positive* indexes, the code:
-    
+
         sequence.at(seq, n)
 
     Is similar to:
@@ -508,7 +508,7 @@ exports.first = first;
         toArray(seq)[n]
 
     While:
-    
+
         sequence.at(seq, -n);
 
     Is similar to:
@@ -678,7 +678,7 @@ function join(sequence, separator) {
 exports.join = join;
 
 // helper for joining quasis (exposed in quasi.sjs module as 'joinQuasis'):
-// this is here and not in quasi.sjs, so that we don't need a 
+// this is here and not in quasi.sjs, so that we don't need a
 // lazy (or cyclic) import
 join._joinQuasis = function(/*arguments*/) {
   var quasis = arguments.length == 1 ? arguments[0] : arguments;
@@ -837,7 +837,7 @@ exports.uniqueBy = uniqueBy;
 
         ['five', 'four', 'three', 'two', 'one'] .. seq.sortBy('length');
         // -> [ 'two', 'one', 'five', 'four', 'three' ]
-    
+
     If `sequence` is an array, it will be sorted in-place (and returned).
 
     The sort operation is stable if the runtime's Array.sort implementation
@@ -1089,7 +1089,7 @@ exports.filter = filter;
           var [odds, evens] = integers(1,10) .. toArray .. partition(x->x%2);
           console.log("Odds: ", odds);
           console.log("Evens: ", evens);
-          
+
           // will print:
           // Odds:  [ 1, 3, 5, 7, 9]
           // Evens: [ 2, 4, 6, 8, 10]
@@ -1142,13 +1142,13 @@ exports.partition = partition;
    @return {Array}
    @summary  Create an array `f(x)` of elements `x` of `sequence`
    @desc
-      Generates an array of elements `[f(x1), f(x2), f(x3),...]` where `x1, x2, x3, ..` 
+      Generates an array of elements `[f(x1), f(x2), f(x3),...]` where `x1, x2, x3, ..`
       are successive elements from `sequence`.
 
       This function is eager - it will fully consume the input sequence before returning
       its result. If you want a lazy version which returns a stream of
-      items and doesn't perform operations until they are required, use [::transform]. 
-      
+      items and doesn't perform operations until they are required, use [::transform].
+
       `seq .. map(f)` is in effect equivalent to `seq .. transform(f) .. toArray`.
 
       ### Example:
@@ -1218,13 +1218,13 @@ function async_map_value(rv, val) {
 
           squares .. each { |x| ... } // squares will be calculated as we iterate
           ...
-          squares .. each { |x| ... } // squares will be calculated *again* 
-          
+          squares .. each { |x| ... } // squares will be calculated *again*
+
       This is in contrast to [::map], which generates an array:
 
           var squares = [1,2,3,4] .. map(x=>x*x);
           // squares have now been calculated and put into an array
-          
+
           squares .. each { |x| ... } // no recalculation here
           ...
           squares .. each { |x| ... } // neither here
@@ -1266,7 +1266,7 @@ function async_rf(fx, r) {
 
           seq .. monitor(f) .. each { |x| ... }
 
-      is equivalent to 
+      is equivalent to
 
           seq .. transform(function(x) { f(x); return x; }) .. each { |x| ... }
 */
@@ -1275,14 +1275,14 @@ function monitor(sequence, f) {
 }
 
 exports.monitor = monitor;
-  
+
 
 /**
   @function concat
   @summary Concatenate multiple sequences into a single sequence.
   @param   {::Sequence} [sequence...] Multiple Sequence arguments or a single Sequence of Sequences
   @return  {::Stream} A stream sequentially combining all elements of each input sequence.
-  @desc                  
+  @desc
       This method acts like the builtin Array.prototype.concat method,
       but operating on arbitrary sequences rather than only arrays.
 */
@@ -1302,7 +1302,7 @@ exports.concat = concat;
    @altsyntax sequence .. pack(packing_func, [pad])
    @param {::Sequence} [sequence] Input sequence
    @param {Object} [settings] Settings object.
-   @setting {Integer} [count] Number of input elements to pack into one element of the output. 
+   @setting {Integer} [count] Number of input elements to pack into one element of the output.
    @setting {Function} [packing_func] Packing function
    @setting {Object} [pad=undefined] Padding object (used in conjunction with `packing_func`)
    @return {::Stream}
@@ -1320,29 +1320,29 @@ exports.concat = concat;
 
           // create a stream of adjacent integer pairs:
 
-          pack(integers(), 2) // -> [1,2], [3,4], [5,6], ... 
+          pack(integers(), 2) // -> [1,2], [3,4], [5,6], ...
 
           // same as above, with double dot call syntax:
 
           integers() .. pack(2)
-      
+
 
       ### Use with a packing function:
 
       If `packing_func` is given, `count` will be ignored and
-      `packing_func(next)` will be called until there are no 
-      further elements in `sequence`. The return values of 
+      `packing_func(next)` will be called until there are no
+      further elements in `sequence`. The return values of
       `packing_func(next)` form the return value of `pack`.
 
-      `next` is a function that, when called within the scope of `p` 
-      returns the next element of `sequence`, or `pad` if there are 
+      `next` is a function that, when called within the scope of `p`
+      returns the next element of `sequence`, or `pad` if there are
       no further elements.
-      
+
       #### Example:
 
           // create a stream of adjacent integer pairs:
 
-          pack(integers(), next => [next(),next()]) // -> [1,2], [3,4], [5,6], ... 
+          pack(integers(), next => [next(),next()]) // -> [1,2], [3,4], [5,6], ...
 
           // same as above, with double dot call syntax:
 
@@ -1365,17 +1365,17 @@ function pack(sequence, settings) {
   if (packing_func) {
     return Stream(function(r) {
       var eos = {}, next_item;
-      
-      sequence .. consume(eos) { 
-        |next_upstream| 
-        
+
+      sequence .. consume(eos) {
+        |next_upstream|
+
         function next() {
           var x = next_item;
           if (x === eos) x = pad;
           next_item = next_upstream();
           return x;
         }
-        
+
         next_item = next_upstream();
         while (next_item !== eos)
           r(packing_func(next));
@@ -1412,8 +1412,8 @@ exports.pack = pack;
       Calls `u(x)` for each element `x` of `sequence`. `u(x)` is assumed to return a [::Sequence]
       which will be flattened into the output stream.
 
-      If `u` is not provided, the identity function `Id = x -> x` will be used, i.e. 
-      each item of `sequence` is assumed to be a sequence itself which will be 
+      If `u` is not provided, the identity function `Id = x -> x` will be used, i.e.
+      each item of `sequence` is assumed to be a sequence itself which will be
       flattened into the output stream.
 
       ### Example:
@@ -1422,7 +1422,7 @@ exports.pack = pack;
 
           var pairs = [ {a:1, b:2}, {a:3, b:4}, {a:5, b:6} ];
 
-          unpack(pairs, {a,b} => [a,b]) // -> 1,2,3,4,5,6 ... 
+          unpack(pairs, {a,b} => [a,b]) // -> 1,2,3,4,5,6 ...
 
           // same as above, with double dot call syntax:
 
@@ -1430,15 +1430,15 @@ exports.pack = pack;
 
 
           // create a stream 1, 1,2, 1,2,3, 1,2,3,4, 1,2,3,4,5, ...:
-          
+
           integers() .. unpack(n => integers(1,n))
 */
 function unpack(sequence, u) {
   if (!u) u = identity;
   return Stream(function(r) {
-    sequence .. each { 
-      |x| 
-      u(x) .. each { |y| r(y) } 
+    sequence .. each {
+      |x|
+      u(x) .. each { |y| r(y) }
     }
   })
 }
@@ -1450,25 +1450,25 @@ exports.unpack = unpack;
    @return {./event::EventStream}
    @summary  Combines multiple (event) streams into a single event stream.
    @desc
-      All input streams will be concurrently iterated and elements appear 
-      in the output stream as soon as they are received. The input streams are never blocked 
+      All input streams will be concurrently iterated and elements appear
+      in the output stream as soon as they are received. The input streams are never blocked
       and no buffering is performed:
-      if an element is received while the downstream receiver is blocked, the element 
+      if an element is received while the downstream receiver is blocked, the element
       will be silently ignored.
-      
+
       ### Example:
 
           // build a drum loop:
 
-          var drum = Stream(function(emit) { 
-            while (true) { 
-              emit("boom"); 
-              hold(400); 
+          var drum = Stream(function(emit) {
+            while (true) {
+              emit("boom");
+              hold(400);
             }
           });
 
           var cymbal = Stream(function(emit) {
-            while (true) { 
+            while (true) {
               hold(100);
               emit("tsh");
               hold(100);
@@ -1505,14 +1505,14 @@ function combine(/* streams ... */) {
     }
     and {
       waitforAll(
-        function(s) { 
+        function(s) {
           s .. each {
             |x|
             if (send_event)
               send_event(x);
             // else .. silently ignore event
           }
-        }, 
+        },
         streams);
       done = true;
       if (send_event) send_event();
@@ -1531,15 +1531,15 @@ exports.combine = combine;
   @desc
     Return a stream that emits groups of adjacent elements
     with the same key (the result of passing each element to the
-    provided `key` function, or if `key` is a string, 
-    the result of applying `elem[key]`, or if no `key` is provided, 
+    provided `key` function, or if `key` is a string,
+    the result of applying `elem[key]`, or if no `key` is provided,
     the element itself). Keys will be compared with `===`.
 
     Each emitted group has two elements: the key value, and the
     array of matched elements.
-    
+
     ### Example:
-    
+
         // group numbers by their remainder modulo 3:
 
         [3,6,9,11,2,3] .. seq.groupBy(n->n%3) .. seq.each(console.log)
@@ -1592,9 +1592,9 @@ exports.groupBy = groupBy;
 
           // zip a character sequence with the corresponsing character position:
 
-          zip(integers(1), "This is a string") .. each { 
-            |x| 
-            console.log("#{x[0]}:#{x[1]}") 
+          zip(integers(1), "This is a string") .. each {
+            |x|
+            console.log("#{x[0]}:#{x[1]}")
           }
 
           // -> 1:T, 2:h, 3:i, 4:s, 5: , 6:i, 7:s, ...
@@ -1693,20 +1693,20 @@ exports.indexed = indexed;
 /**
   @function intersperse
   @altsyntax sequence .. intersperse(elem)
-  @param {::Sequence} [sequence] 
+  @param {::Sequence} [sequence]
   @param {Object} [elem] Element to intersperse
   @summary Generate a stream with `elem` inserted in between adjacent elements of `sequence`.
   @desc
     ### Example:
 
-        ['a','b','c'] .. intersperse('-') 
+        ['a','b','c'] .. intersperse('-')
 
         // -> 'a', '-', 'b', '-', 'c'
 */
 function intersperse(sequence, elem) {
   return Stream(function(r) {
     var first = true;
-    sequence .. each { 
+    sequence .. each {
       |x|
       if (first) {
         r(x);
@@ -1727,7 +1727,7 @@ exports.intersperse = intersperse;
    @param {::Sequence} [sequence] Input sequence
    @param {Object} [initial] Initial value
    @param {Function} [f] Reducer function
-   @return {Object} 
+   @return {Object}
    @summary Cumulatively combine elements of a sequence given an initial value
    @desc
      Also known as `foldl` or `inject`.
@@ -1755,7 +1755,7 @@ exports.reduce = reduce;
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Reducer function
    @param {optional Object} [default_val=undefined] Value to return if `sequence` is empty
-   @return {Object} 
+   @return {Object}
    @summary Cumulatively combine elements of a sequence
    @desc
      Same as [::reduce], but using the first element of `sequence` as initial value.
@@ -1769,14 +1769,14 @@ exports.reduce = reduce;
 function reduce1(sequence, f, default_val) {
   var accu;
   var first = true;
-  sequence .. each { 
-    |x| 
+  sequence .. each {
+    |x|
     if (first) {
       accu = x;
       first = false;
     }
     else
-      accu = f(accu, x) 
+      accu = f(accu, x)
   }
   return first ? default_val : accu;
 }
@@ -1790,7 +1790,7 @@ exports.reduce1 = reduce1;
    @param {optional Object} [defaultValue] Default value to return if no match is found
    @summary Find first element `x` of `sequence` for which `p(x)` is truthy.
    @desc
-     If the sequence is exhausted before a matching element is found, 
+     If the sequence is exhausted before a matching element is found,
      `defaultValue` is returned if it was given. Otherwise, this function
      raises a [::SequenceExhausted] error.
 */
@@ -1826,7 +1826,7 @@ exports.hasElem = hasElem;
    @altsyntax sequence .. all(p)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [p] Predicate function
-   @return {Boolean} 
+   @return {Boolean}
    @summary Returns `true` if `p(x)` is truthy for all elements in `sequence`, `false` otherwise.
 */
 function all(sequence, p) {
@@ -1840,7 +1840,7 @@ exports.all = all;
    @altsyntax sequence .. any(p)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [p] Predicate function
-   @return {Boolean} 
+   @return {Boolean}
    @summary Returns `true` if `p(x)` is truthy for any elements in `sequence`, `false` otherwise.
 */
 function any(sequence, p) {
@@ -1864,7 +1864,7 @@ function makeIterator(sequence) {
       hold();
     }
   })();
-  
+
   var x;
   var have_peeked = false;
   return {
@@ -1900,14 +1900,14 @@ exports.makeIterator = makeIterator;
    @summary Generate a stream of integers from `start` to `end`
    @desc
      ### Example:
-     
+
          // print integers from 1 to 100:
          integers(1,100) .. each { |x| console.log(x) }
 
          // print even integers from 0 to 100:
          integers(0,100,2) .. each { |x| console.log(x) }
 */
-/* 
+/*
 slightly non-trivial implementation to optimize performance in the
 non-synchronous case:
 */
@@ -1918,7 +1918,7 @@ __js {
     if (start === undefined) start = 0;
     if (end === undefined) end = MAX_PRECISE_INT;
     if (skip === undefined) skip = 1;
-    return Stream(function(r) { 
+    return Stream(function(r) {
       for (var i=start;i<= end;i+=skip) {
         var res = r(i);
         if (__oni_rt.is_ef(res))
@@ -1941,7 +1941,7 @@ function stream_async_integers(ef, r, i, end, skip) {
    @summary Generate a stream of [Fibonacci numbers](http://en.wikipedia.org/wiki/Fibonacci_number) beginning with 1
    @desc
      ### Example:
-     
+
          // print first 10 Fibonacci numbers
          fib() .. take(10) .. each { |x| console.log(x) }
 */
@@ -1964,19 +1964,19 @@ exports.fib = fib;
    @altsyntax sequence .. buffer(count, [settings])
    @param {::Sequence} [sequence] Input sequence
    @param {Integer} [count] Maximum number of elements of input stream to buffer
-   @param {optional Object} [settings] Object with optional settings. 
+   @param {optional Object} [settings] Object with optional settings.
    @setting {Boolean} [drop=false] Determines the behaviour when the buffer is full and a new upstream value is available. If `true`, the oldest element in the buffer will be dropped to make room for the new element. If `false`, the input will be blocked until the downstream retrieves the next buffered element.
    @return {::Stream}
    @summary Create a buffered stream from a given input sequence
    @desc
-      The returned stream will buffer up to `count` elements from the input stream if 
+      The returned stream will buffer up to `count` elements from the input stream if
       the downstream receiver is not fast enough to retrieve elements.
       Buffering will only begin when the stream is being iterated.
 
       ### Example:
 
-          integers() .. 
-          take(10) .. 
+          integers() ..
+          take(10) ..
           transform(x->(hold(0),console.log("Sent: #{x}"),x)) ..
           buffer(5) ..
           each { |x|
@@ -1984,8 +1984,8 @@ exports.fib = fib;
             hold(100);
           }
           // prints:
-          //   Sent: 0, Received: 0, Sent: 1, Sent: 2, Sent: 3, Sent: 4, Sent: 5, 
-          //   Received: 1, Sent: 6, Received: 2, Sent: 7, Received: 3, Sent: 8, 
+          //   Sent: 0, Received: 0, Sent: 1, Sent: 2, Sent: 3, Sent: 4, Sent: 5,
+          //   Received: 1, Sent: 6, Received: 2, Sent: 7, Received: 3, Sent: 8,
           //   Received: 4, Sent: 9, Received: 5, Received: 6, Received: 7, Received: 8,
           //   Received: 9
 */
@@ -2000,7 +2000,7 @@ function buffer(seq, count, options) {
 
   return Stream(function(r) {
     var Q = Queue(count, true), eos = {};
-    
+
     waitfor {
       while (1) {
         var x = Q.get();
@@ -2009,13 +2009,13 @@ function buffer(seq, count, options) {
       }
     }
     and {
-      seq .. each { 
-        |x| 
+      seq .. each {
+        |x|
         if (options.drop && Q.isFull()) {
           // drop the oldest value to make room for the put():
           Q.get();
         }
-        Q.put(x); 
+        Q.put(x);
       }
       Q.put(eos);
     }
@@ -2031,7 +2031,7 @@ exports.buffer = buffer;
    @return {::Stream}
    @summary Create a stream that buffers the last element(s) of the input sequence
    @desc
-     `sequence .. tailbuffer(count)` is equivalent to 
+     `sequence .. tailbuffer(count)` is equivalent to
      `sequence .. buffer(count, { drop:true })`.
 
      The returned stream will buffer up to `count` of the most recent elements emitted by the input stream if the downstream receiver is not fast enough to retrieve elements.
@@ -2070,7 +2070,7 @@ each.par = function(/* seq, max_strata, r */) {
     // nodes; see below
     var depth = 0;
 
-    /* 
+    /*
        inner() operates in two modes: If `r` doesn't block, then
        we stay in a loop ('sync' mode)
 
@@ -2082,7 +2082,7 @@ each.par = function(/* seq, max_strata, r */) {
        `inner` nodes. This also puts the current `inner` node into
        'async' mode: We break out of the 'sync' mode loop when r() is
        done to give the node a chance to drop out of the tree (by
-       tail-call machinery). 
+       tail-call machinery).
 
        Note: It appears that this function could be written in a much
        simpler way, e.g. replacing the async_trigger call with a
@@ -2097,7 +2097,7 @@ each.par = function(/* seq, max_strata, r */) {
            downstream are non-blocking (and all combinations of
            blocking/non-blocking)
     */
-    function inner() { 
+    function inner() {
       var async = false;
 
       ++depth;
@@ -2116,7 +2116,7 @@ each.par = function(/* seq, max_strata, r */) {
           // performance reasons we only do this only after having
           // built the tree to a certain depth:
           if (depth % 10 === 0) {
-            hold(0); 
+            hold(0);
           }
           var x = next();
           if (x === eos) return;
@@ -2127,7 +2127,7 @@ each.par = function(/* seq, max_strata, r */) {
             ++max_strata;
             if (waiting_for_next) return;
           }
-          else {  
+          else {
             waitfor {
               r(x);
               ++max_strata;
@@ -2160,7 +2160,7 @@ each.par = function(/* seq, max_strata, r */) {
    @return {Array}
    @summary  Create an array `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
    @desc
-      The order of the resulting array will be determined by the order of items in the  
+      The order of the resulting array will be determined by the order of items in the
       input sequence.
 */
 map.par = function(/* sequence, max_strata, f */) {
@@ -2184,8 +2184,8 @@ map.par = function(/* sequence, max_strata, f */) {
    @return {::Stream}
    @summary  Create a stream `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
    @desc
-      The order of the resulting array will be determined by the order of items in the  
-      input sequence. See [::transform.par.unordered] for an alternative implementation that 
+      The order of the resulting array will be determined by the order of items in the
+      input sequence. See [::transform.par.unordered] for an alternative implementation that
       generates an output stream in the order in which the concurrent calls to `f` complete.
 */
 transform.par = function(/* sequence, max_strata, f */) {
@@ -2225,8 +2225,8 @@ transform.par = function(/* sequence, max_strata, f */) {
    @return {::Stream}
    @summary  Create a stream `f(x)` of elements `x` of `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
    @desc
-      The order of the resulting stream will be determined by the order in 
-      which the concurrent calls to `f` complete, i.e. 
+      The order of the resulting stream will be determined by the order in
+      which the concurrent calls to `f` complete, i.e.
       *the order of the original stream will not be maintained*. See [::transform.par] for an
       alternative implementation that maintains order.
 */
@@ -2268,10 +2268,10 @@ find.par = function(/* sequence, max_strata, p, defval */) {
   }
 
   sequence .. each.par(max_strata) { |x| if (p(x)) return x }
-  
+
   if (have_defval)
     return defval;
-  else 
+  else
     throw new SequenceExhausted('sequence exhausted');
 };
 
@@ -2284,7 +2284,7 @@ find.par = function(/* sequence, max_strata, p, defval */) {
    @return {::Stream}
    @summary  Create a stream of elements of `sequence` that satisfy `predicate`. Up to `max_strata` concurrent calls to `predicate` will be performed at any one time.
    @desc
-      The order of the resulting stream will be determined by the order in 
+      The order of the resulting stream will be determined by the order in
       which the concurrent calls to `predicate` complete.
 */
 filter.par = function(/* sequence, max_strata, predicate */) {
@@ -2299,7 +2299,7 @@ filter.par = function(/* sequence, max_strata, predicate */) {
   }
   else
     [sequence, max_strata, predicate] = arguments;
-      
+
   if (!predicate) predicate = identity;
 
   return Stream(function(r) {
@@ -2319,12 +2319,12 @@ filter.par = function(/* sequence, max_strata, predicate */) {
    @param {::Sequence} [sequence] Input sequence
    @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `p`. (undefined == unbounded)
    @param {Function} [p] Predicate function
-   @return {Boolean} 
+   @return {Boolean}
    @summary Returns `true` if `p(x)` is truthy for all elements in `sequence`, `false` otherwise. Up to `max_strata` concurrent calls to `p` will be performed at any one time.
 */
 all.par = function(/* sequence, max_strata, p */) {
   var sequence, max_strata, p;
-  if (arguments.length == 2) 
+  if (arguments.length == 2)
     [sequence, p] = arguments;
   else
     [sequence, max_strata, p] = arguments;
@@ -2339,12 +2339,12 @@ all.par = function(/* sequence, max_strata, p */) {
    @param {::Sequence} [sequence] Input sequence
    @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `p`. (undefined == unbounded)
    @param {Function} [p] Predicate function
-   @return {Boolean} 
+   @return {Boolean}
    @summary Returns `true` if `p(x)` is truthy for any elements in `sequence`, `false` otherwise. Up to `max_strata` concurrent calls to `p` will be performed at any one time.
 */
 any.par = function(/* sequence, max_strata, p */) {
   var sequence, max_strata, p;
-  if (arguments.length == 2) 
+  if (arguments.length == 2)
     [sequence, p] = arguments;
   else
     [sequence, max_strata, p] = arguments;
@@ -2363,7 +2363,7 @@ any.par = function(/* sequence, max_strata, p */) {
    @param {Function} [f] Function to execute for each `item` in `sequence`
    @summary Like [::each], but aborts execution of a blocked `f(item)` call when a new item is emitted.
    @desc
-     This function is useful for tracking the most recent state of 
+     This function is useful for tracking the most recent state of
      time-varying values. E.g. to display a notice every time the user
      pauses with moving the mouse for longer than 100ms:
 
@@ -2392,7 +2392,7 @@ each.track = function(seq, r) {
     }
   }
   and {
-    seq .. each { |x| next(x) }; 
+    seq .. each { |x| next(x) };
     done = true;
     if (!executing_downstream) return;
   }

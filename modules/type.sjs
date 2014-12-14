@@ -75,7 +75,7 @@ function type(x) {
     Might be extended to return `true` for other things in future
     versions of StratifiedJS, if they are callable.
  */
-__js { 
+__js {
   function isCallable(x) {
     return typeof x === "function";
   }
@@ -128,7 +128,7 @@ __js {
   @return {Boolean} Whether `x` is a number or not
   @summary Returns whether `x` is a number or not
   @desc
-    This function returns `true` for numbers. 
+    This function returns `true` for numbers.
     It returns `false` for `NaN`.
  */
 __js {
@@ -261,9 +261,9 @@ exports.is = is;
     to give the current module a unique canonical ID.
 
     Then you call `Interface(module, "...")` where the second argument is the
-    name of the interface. The returned string for a given `(module,name)` tuple is 
+    name of the interface. The returned string for a given `(module,name)` tuple is
     guaranteed to be unique across all loaded modules, i.e. it will not collide with an
-    interface with the same `name` defined in other modules. 
+    interface with the same `name` defined in other modules.
 
     ----
 
