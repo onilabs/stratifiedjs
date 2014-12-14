@@ -243,6 +243,12 @@ __js {
                       Dict({ foo: Dict({ bar: 2 }) })));
       assert.notOk(equal(Dict({ foo: Dict({ bar: 2 }) }),
                          Dict({ foo: Dict({ bar: 3 }) })));
+
+      assert.ok(equal(SortedDict(defaultSort, { foo: 1 }),
+                      Dict({ foo: 1 })));
+
+      assert.notOk(equal(SortedDict(simpleSort, { foo: 1 }),
+                         Dict({ foo: 1 })));
     });
 
     test("toJS", function () {
@@ -377,13 +383,18 @@ __js {
       assert.ok(equal(Set([1]), Set([1])));
       assert.ok(equal(Set([Set([1])]), Set([Set([1])])));
       assert.notOk(equal(Set([Set([1])]), Set([Set([2])])));
+
+      assert.ok(equal(SortedSet(defaultSort, [1, 2, 3]),
+                      Set([1, 2, 3])));
+      assert.notOk(equal(SortedSet(simpleSort, [1, 2, 3]),
+                         Set([1, 2, 3])));
     });
 
     test("toJS", function () {
       assert.equal(toJS(empty_set), []);
       assert.equal(toJS(five_set), [1, 2, 3, 4, 5]);
       assert.equal(toJS(Set([1, 2, Set([3])])),
-                   [1, 2, [3]]);
+                   [[3], 1, 2]);
     });
 
     test("random elements", function () {

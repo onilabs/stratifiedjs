@@ -82,6 +82,24 @@ __js {
 
   var mutable_hash_id = 0;
 
+  function hash_dict(a, max_key, spaces) {
+    return a.map(function (x) {
+      var key = x.key.map(function (x) {
+        return x ..@padRight(max_key, " ");
+      }).join("\n" + spaces);
+
+      var value = x.value.replace(/\n/g, "\n" + spaces + " " ..@repeat(max_key + 3));
+
+      return key + " = " + value;
+    }).join("\n" + spaces);
+  }
+
+  function hash_set(a, spaces) {
+    return a.map(function (x) {
+      return x.replace(/\n/g, "\n" + spaces);
+    }).join("\n" + spaces);
+  }
+
   function hash(x) {
     var type = typeof x;
     if (type === "string") {
@@ -99,7 +117,7 @@ __js {
         return hasher(x);
 
       } else {
-        var id = "Mutable[" + (++mutable_hash_id) + "]";
+        var id = "(Mutable " + (++mutable_hash_id) + ")";
 
         Object.defineProperty(x, interface_hash, {
           configurable: false,
@@ -773,18 +791,18 @@ __js {
         });
       });
 
-      if (a.length) {
-        x.hash = "{ " + a.map(function (x) {
-          var key = x.key.map(function (x) {
-            return x ..@padRight(max_key, " ");
-          }).join("\n  ");
-
-          var value = x.value.replace(/\n/g, "\n" + " " ..@repeat(max_key + 5));
-
-          return key + " = " + value;
-        }).join("\n  ") + " }";
+      if (x.sort === defaultSort) {
+        if (a.length) {
+          x.hash = "(Dict\n  " + hash_dict(a, max_key, "  ") + ")";
+        } else {
+          x.hash = "(Dict)";
+        }
       } else {
-        x.hash = "{}";
+        if (a.length) {
+          x.hash = "(SortedDict #{hash(x.sort)}\n  " + hash_dict(a, max_key, "  ") + ")";
+        } else {
+          x.hash = "(SortedDict #{hash(x.sort)})";
+        }
       }
     }
 
@@ -891,12 +909,20 @@ __js {
         a.push(hash(value));
       });
 
-      if (a.length) {
-        x.hash = "Set[ " + a.map(function (x) {
-          return x.replace(/\n/g, "\n     ");
-        }).join("\n     ") + " ]";
+      var spaces = "  ";
+
+      if (x.sort === defaultSort) {
+        if (a.length) {
+          x.hash = "(Set\n  " + hash_set(a, spaces) + ")";
+        } else {
+          x.hash = "(Set)";
+        }
       } else {
-        x.hash = "Set[]";
+        if (a.length) {
+          x.hash = "(SortedSet #{hash(x.sort)}\n  " + hash_set(a, spaces) + ")";
+        } else {
+          x.hash = "(SortedSet #{hash(x.sort)})";
+        }
       }
     }
 
@@ -975,11 +1001,11 @@ __js {
       });
 
       if (a.length) {
-        x.hash = "[ " + a.map(function (x) {
+        x.hash = "(List\n  " + a.map(function (x) {
           return x.replace(/\n/g, "\n  ");
-        }).join("\n  ") + " ]";
+        }).join("\n  ") + ")";
       } else {
-        x.hash = "[]";
+        x.hash = "(List)";
       }
     }
 
