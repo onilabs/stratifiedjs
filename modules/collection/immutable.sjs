@@ -68,6 +68,7 @@ __js {
   }
   exports.defaultSort = defaultSort;
 
+
   // Faster than using Math.max
   function max(x, y) {
     if (x > y) {
@@ -365,7 +366,7 @@ __js {
     var old_value = array[index];
     var new_value = f(old_value);
 
-    if (old_value === new_value) {
+    if (equal(old_value, new_value)) {
       return array;
 
     } else {
@@ -599,7 +600,7 @@ __js {
 
   SetNode.prototype.modify = function (info) {
     var key = info.key;
-    if (this.key === key) {
+    if (equal(this.key, key)) {
       return this;
     } else {
       return new SetNode(this.left, this.right, key);
@@ -628,7 +629,7 @@ __js {
   KeyNode.prototype.modify = function (info) {
     var key   = info.key;
     var value = info.value;
-    if (this.key === key && this.value === value) {
+    if (equal(this.key, key) && equal(this.value, value)) {
       return this;
     } else {
       return new KeyNode(this.left, this.right, key, value);
@@ -791,7 +792,7 @@ __js {
         });
       });
 
-      if (x.sort === defaultSort) {
+      if (equal(x.sort, defaultSort)) {
         if (a.length) {
           x.hash = "(Dict\n  " + hash_dict(a, max_key, "  ") + ")";
         } else {
@@ -911,7 +912,7 @@ __js {
 
       var spaces = "  ";
 
-      if (x.sort === defaultSort) {
+      if (equal(x.sort, defaultSort)) {
         if (a.length) {
           x.hash = "(Set\n  " + hash_set(a, spaces) + ")";
         } else {
@@ -1140,7 +1141,7 @@ __js {
 
       if (tail !== nil && index === len - 1) {
         var value = f(tail.car);
-        if (value === tail.car) {
+        if (equal(value, tail.car)) {
           return this;
         } else {
           return new ImmutableList(root, new Cons(value, tail.cdr), tail_size);
@@ -1235,7 +1236,7 @@ __js {
    */
   exports.SortedDict = function (sort, obj) {
     if (obj != null) {
-      if (obj instanceof ImmutableDict && obj.sort === sort) {
+      if (obj instanceof ImmutableDict && equal(obj.sort, sort)) {
         return obj;
       } else {
         var o = new ImmutableDict(nil, sort);
@@ -1291,7 +1292,7 @@ __js {
    */
   exports.SortedSet = function (sort, array) {
     if (array != null) {
-      if (array instanceof ImmutableSet && array.sort === sort) {
+      if (array instanceof ImmutableSet && equal(array.sort, sort)) {
         return array;
       } else {
         var o = new ImmutableSet(nil, sort);

@@ -224,6 +224,16 @@ __js {
       assert.isNot(dict_foo.set("bar", 3), dict_foo);
       assert.isNot(dict_foo.remove("foo"), dict_foo);
 
+      var dict1 = Dict().set(Dict({ foo: 1 }), Dict({ bar: 2 }));
+
+      assert.is(dict1.modify(Dict({ foo: 1 }), function () {
+        return Dict({ bar: 2 });
+      }), dict1);
+
+      assert.isNot(dict1.modify(Dict({ foo: 1 }), function () {
+        return Dict({ bar: 3 });
+      }), dict1);
+
       assert.is(dict_foo.modify("foo", function () {
         return 1;
       }), dict_foo);
@@ -369,6 +379,10 @@ __js {
       //assert.isNot(SortedSet(simpleSort, five_set), five_set);
 
       assert.is(empty_set.remove(1), empty_set);
+
+      var set1 = Set([Set([])]);
+
+      assert.is(set1.add(Set([])), set1);
 
       assert.is(five_set.add(5), five_set);
       assert.isNot(five_set.add(6), five_set);
@@ -586,6 +600,12 @@ __js {
       assert.is(empty_list.concat(empty_list), empty_list);
       assert.is(five_list.concat(empty_list), five_list);
       assert.is(empty_list.concat(five_list), five_list);
+
+      var list1 = List([List([])]);
+
+      assert.is(list1.modify(0, function () {
+        return List([]);
+      }), list1);
 
       assert.is(five_list.modify(0, function () {
         return 1;
