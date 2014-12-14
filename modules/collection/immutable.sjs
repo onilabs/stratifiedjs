@@ -638,7 +638,7 @@ __js {
 
   KeyNode.prototype.forEach = function (f) {
     this.left.forEach(f);
-    f(this.value, this.key);
+    f([this.key, this.value]);
     this.right.forEach(f);
   };
 
@@ -766,8 +766,8 @@ __js {
   // TODO is this a good idea ?
   ImmutableDict.prototype = Object.create(null);
 
-  ImmutableDict.prototype.forEach = function (f) {
-    this.root.forEach(f);
+  ImmutableDict.prototype[@interface_each] = function (x, f) {
+    x.root.forEach(f);
   };
 
   ImmutableDict.prototype[interface_hash] = function (x) {
@@ -776,13 +776,13 @@ __js {
 
       var max_key = 0;
 
-      x.forEach(function (value, key) {
+      x ..@each(function ([key, value]) {
         key   = hash(key);
         value = hash(value);
 
         key = key.split(/\n/);
 
-        key.forEach(function (key) {
+        key ..@each(function (key) {
           max_key = Math.max(max_key, key.length);
         });
 
@@ -874,7 +874,7 @@ __js {
   ImmutableDict.prototype[interface_toJS] = function (x) {
     var o = {};
 
-    x.forEach(function (value, key) {
+    x ..@each(function ([key, value]) {
       // TODO use @isString test
       @assert.is(typeof key, "string");
       o[key] = toJS(value);
@@ -898,7 +898,7 @@ __js {
 
   ImmutableSet.prototype.has = ImmutableDict.prototype.has;
 
-  ImmutableSet.prototype.forEach = ImmutableDict.prototype.forEach;
+  ImmutableSet.prototype[@interface_each] = ImmutableDict.prototype[@interface_each];
 
   ImmutableSet.prototype.toString = ImmutableDict.prototype.toString;
 
@@ -906,7 +906,7 @@ __js {
     if (x.hash === null) {
       var a = [];
 
-      x.forEach(function (value) {
+      x ..@each(function (value) {
         a.push(hash(value));
       });
 
@@ -955,7 +955,7 @@ __js {
   ImmutableSet.prototype[interface_toJS] = function (x) {
     var a = [];
 
-    x.forEach(function (value) {
+    x ..@each(function (value) {
       a.push(toJS(value));
     });
 
@@ -981,8 +981,8 @@ __js {
     return this.root === nil && this.tail === nil;
   };
 
-  ImmutableList.prototype.forEach = function (f) {
-    this.root.forEach(f);
+  ImmutableList.prototype[@interface_each] = function (x, f) {
+    x.root.forEach(f);
 
     // TODO put this into a function
     ;(function anon(x) {
@@ -990,14 +990,14 @@ __js {
         anon(x.cdr);
         f(x.car);
       }
-    })(this.tail);
+    })(x.tail);
   };
 
   ImmutableList.prototype[interface_hash] = function (x) {
     if (x.hash === null) {
       var a = [];
 
-      x.forEach(function (value) {
+      x ..@each(function (value) {
         a.push(hash(value));
       });
 
