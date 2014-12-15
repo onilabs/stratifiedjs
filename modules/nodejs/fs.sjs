@@ -535,9 +535,7 @@ function streamContext(ctor, dtor) {
 
          var lines = ["hello", "world!"];
          fs.withWriteStream("/path/to/file") { |file|
-            lines .. each {|line|
-              file .. stream.write(file, line + "\n");
-            }
+            lines .. intersperse("\n") .. stream.pump(file);
          }
 */
 
