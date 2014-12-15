@@ -1770,6 +1770,9 @@
         "current": {
           "type": "function"
         },
+        "eventStreamToObservable": {
+          "type": "function"
+        },
         "isConflictError": {
           "type": "function"
         },

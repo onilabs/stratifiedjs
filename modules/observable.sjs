@@ -250,7 +250,7 @@ exports.isConflictError = function(ex) {
 
 /**
   @function observe
-  @return {sjs:sequence::Stream}
+  @return {::Observable}
   @summary Create stream of values derived from one or more [sjs:sequence::Stream] inputs (usually [::Observable]s).
   @param {sjs:sequence::Stream} [stream1, stream2, ...] Input stream(s)
   @param {Function} [transformer]
@@ -363,3 +363,51 @@ exports.current = first;
 */
 exports.changes = obs -> obs .. skip(1);
 
+/**
+   @function eventStreamToObservable
+   @param {sjs:event::EventStream} [events]
+   @param {Function} [getInitial] Function that returns the initial value of the observable.
+   @return {::Observable}
+   @summary Construct an Observable of the most recent emitted event from an  [sjs:event::EventStream].
+   @desc
+     The returned observable will initially be equal to `getInitial()` and be updated with any new values
+     emitted by `events`.
+
+     #### Notes
+
+     For the returned stream to have observable semantics, `getInitial` has to yield a value in finite time.
+     If `events` produces a value before `getInital()` returns, the `getInitial()` call will be aborted.
+*/
+function eventStreamToObservable(events, getInitial) {
+  return Stream(function(receiver) {
+    var val, ver = 0, current_ver = 0;
+    waitfor {
+      var have_new_val = Object.create(cutil._Waitable);
+      have_new_val.init();
+      waitfor {
+        events .. each {
+          |e|
+          val = e; 
+          ++ver;
+          collapse;
+          have_new_val.emit();
+        }
+      }
+      or {
+        val = getInitial();
+        ++ver;
+        have_new_val.emit();
+        hold();
+      }
+    }
+    and {
+      while (true) {
+        if (current_ver === ver)
+          have_new_val.wait();
+        ++current_ver;
+        receiver(val);
+      }
+    }
+  });
+}
+exports.eventStreamToObservable = eventStreamToObservable;
