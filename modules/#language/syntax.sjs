@@ -95,7 +95,7 @@
       // now @url is defined, in addition to the
       // sequence symbols like @map and @each
 
-  ### Protecting aganist accidental mutation
+  ### Protecting against accidental mutation
 
   Keen readers will note that if we assign the [sequence::] module to `@`:
 
