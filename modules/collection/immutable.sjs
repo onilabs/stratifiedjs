@@ -1251,7 +1251,7 @@ __js {
 
 
   // TODO sjs:type utility for this
-  function isDict(x) {
+  function isJSLiteral(x) {
     var proto = Object.getPrototypeOf(x);
     // TODO this won't work cross-realm
     return proto === null || proto === Object.prototype;
@@ -1298,7 +1298,7 @@ __js {
 
         // TODO a little hacky
         if (!obj ..@isSequence) {
-          @assert.ok(isDict(obj));
+          @assert.ok(isJSLiteral(obj));
           obj = obj ..@ownPropertyPairs;
         }
 
@@ -1827,4 +1827,60 @@ __js {
       return new ImmutableList(nil, nil, 0);
     }
   };
+
+
+  /**
+     @function isDict
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::Dict] or [::SortedDict]
+     @summary Returns whether `x` is a [::Dict] or [::SortedDict]
+   */
+  function isDict(x) {
+    return x instanceof ImmutableDict;
+  }
+  exports.isDict = isDict;
+
+  /**
+     @function isSet
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::Set] or [::SortedSet]
+     @summary Returns whether `x` is a [::Set] or [::SortedSet]
+   */
+  function isSet(x) {
+    return x instanceof ImmutableSet;
+  }
+  exports.isSet = isSet;
+
+  /**
+     @function isSortedDict
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::SortedDict]
+     @summary Returns whether `x` is a [::SortedDict]
+   */
+  function isSortedDict(x) {
+    return isDict(x) && x.sort !== defaultSort;
+  }
+  exports.isSortedDict = isSortedDict;
+
+  /**
+     @function isSortedSet
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::SortedSet]
+     @summary Returns whether `x` is a [::SortedSet]
+   */
+  function isSortedSet(x) {
+    return isSet(x) && x.sort !== defaultSort;
+  }
+  exports.isSortedSet = isSortedSet;
+
+  /**
+     @function isList
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::List]
+     @summary Returns whether `x` is a [::List]
+   */
+  function isList(x) {
+    return x instanceof ImmutableList;
+  }
+  exports.isList = isList;
 }

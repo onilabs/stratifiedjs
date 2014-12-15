@@ -1,7 +1,8 @@
 var { shuffle } = require('sjs:collection/list');
 var { test, context, assert } = require('sjs:test/suite');
 var { Dict, Set, List, nil, equal, toJS,
-      defaultSort, simpleSort, SortedSet, SortedDict } = require('sjs:collection/immutable');
+      defaultSort, simpleSort, SortedSet, SortedDict,
+      isDict, isSet, isList, isSortedDict, isSortedSet } = require('sjs:collection/immutable');
 
 __js {
   // TODO test that this works correctly
@@ -85,6 +86,17 @@ __js {
   context("Dict", function () {
     var dict_empty = Dict();
     var dict_foo   = Dict().set("foo", 1);
+
+    test("isDict", function () {
+      assert.notOk(isDict(Set()));
+
+      assert.ok(isDict(Dict()));
+      assert.ok(isDict(SortedDict(defaultSort)));
+
+      assert.ok(isSortedDict(SortedDict(simpleSort)));
+      assert.notOk(isSortedDict(SortedDict(defaultSort)));
+      assert.notOk(isSortedDict(Dict()));
+    });
 
     test("verify", function () {
       verify_dict(dict_empty);
@@ -295,6 +307,17 @@ __js {
     var empty_set = Set();
     var five_set  = Set().add(1).add(2).add(3).add(4).add(5);
 
+    test("isSet", function () {
+      assert.notOk(isSet(Dict()));
+
+      assert.ok(isSet(Set()));
+      assert.ok(isSet(SortedSet(defaultSort)));
+
+      assert.ok(isSortedSet(SortedSet(simpleSort)));
+      assert.notOk(isSortedSet(SortedSet(defaultSort)));
+      assert.notOk(isSortedSet(Set()));
+    });
+
     test("verify", function () {
       verify_set(empty_set, []);
       verify_set(five_set, [1, 2, 3, 4, 5]);
@@ -492,6 +515,11 @@ __js {
   context("List", function () {
     var empty_list = List();
     var five_list  = List().push(1).push(2).push(3).push(4).push(5);
+
+    test("isList", function () {
+      assert.notOk(isList(Dict()));
+      assert.ok(isList(List()));
+    });
 
     test("verify", function () {
       verify_list(empty_list, []);
