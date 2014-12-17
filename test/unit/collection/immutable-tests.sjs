@@ -570,21 +570,24 @@ context("List", function () {
     assert.notOk(five_list.has(-6));
   });
 
-  test("nth", function () {
+  test("get", function () {
+    assert.is(empty_list.get(0, 50), 50);
+    assert.is(empty_list.get(-1, 50), 50);
+
     assert.raises({
       message: "Index 0 is not valid"
-    }, -> empty_list.nth(0));
+    }, -> empty_list.get(0));
 
     assert.raises({
       message: "Index -1 is not valid"
-    }, -> empty_list.nth(-1));
+    }, -> empty_list.get(-1));
 
-    assert.is(empty_list.nth(0, 50), 50);
+    assert.is(empty_list.get(0, 50), 50);
 
-    assert.is(five_list.nth(0, 50), 1);
-    assert.is(five_list.nth(4, 50), 5);
-    assert.is(five_list.nth(-1, 50), 5);
-    assert.is(five_list.nth(-2, 50), 4);
+    assert.is(five_list.get(0, 50), 1);
+    assert.is(five_list.get(4, 50), 5);
+    assert.is(five_list.get(-1, 50), 5);
+    assert.is(five_list.get(-2, 50), 4);
   });
 
   test("insert", function () {
@@ -603,8 +606,8 @@ context("List", function () {
 
     assert.is(empty_list.size(), 0);
     assert.is(x.size(), 1);
-    assert.is(x.nth(0), 10);
-    assert.is(x.nth(-1), 10);
+    assert.is(x.get(0), 10);
+    assert.is(x.get(-1), 10);
 
     verify_list(five_list.insert(10), [1, 2, 3, 4, 5, 10]);
     verify_list(five_list.insert(10).insert(20), [1, 2, 3, 4, 5, 10, 20]);

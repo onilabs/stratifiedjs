@@ -354,6 +354,9 @@
                 "concat": {
                   "type": "function"
                 },
+                "get": {
+                  "type": "function"
+                },
                 "has": {
                   "type": "function"
                 },
@@ -364,9 +367,6 @@
                   "type": "function"
                 },
                 "modify": {
-                  "type": "function"
-                },
-                "nth": {
                   "type": "function"
                 },
                 "remove": {

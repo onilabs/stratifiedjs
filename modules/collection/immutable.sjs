@@ -1120,7 +1120,7 @@ __js {
     return nth_has(index, len);
   };
 
-  ImmutableList.prototype.nth = function (index, def) {
+  ImmutableList.prototype.get = function (index, def) {
     var len = this.size();
 
     if (index < 0) {
@@ -1911,19 +1911,23 @@ __js {
        the end of the list, so `-1` is the last index for
        the list, `-2` is the second-from-last index, etc.
 
-     @function List.nth
-     @param {Integer} [index] A valid index within the list
-     @return {Any} The value in the list at `index`
-     @summary Returns the value in the list at `index`
+     @function List.get
+     @param {Integer} [index] Index within the list
+     @param {optional Any} [default] Value to return if `index` is not in the list
+     @return {Any} The value in the list at `index`, or `default` if `index` is not in the list
+     @summary Returns the value in the list at `index`, or `default` if `index` is not in the list
      @desc
        This function runs in `O(log2(n / 125))` worst-case time.
-
-       `index` must be between `0` and `list.size() - 1`.
 
        If `index` is negative, it starts counting from
        the end of the list, so `-1` is the last value
        in the list, `-2` is the second-from-last value,
        etc.
+
+       If `index` is not in the list:
+
+       * If `default` is provided, it is returned.
+       * If `default` is not provided, an error is thrown.
 
      @function List.insert
      @param {Any} [value] The value to insert into the list
