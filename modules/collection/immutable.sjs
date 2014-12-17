@@ -1251,25 +1251,36 @@ __js {
   };
 
   ImmutableList.prototype.concat = function (right) {
-    var lroot = this.root;
-    var ltail = this.tail;
+    if (right instanceof ImmutableList) {
+      var lroot = this.root;
+      var ltail = this.tail;
 
-    var rroot = right.root;
-    var rtail = right.tail;
+      var rroot = right.root;
+      var rtail = right.tail;
 
-    if (rroot === nil && rtail === nil) {
-      return this;
+      if (rroot === nil && rtail === nil) {
+        return this;
 
-    } else if (lroot === nil && ltail === nil) {
-      return right;
+      } else if (lroot === nil && ltail === nil) {
+        return right;
 
-    } else {
-      if (ltail !== nil) {
-        lroot = insert_max(lroot, new ArrayNode(nil, nil, stack_to_array(ltail, this.tail_size)));
+      } else {
+        if (ltail !== nil) {
+          lroot = insert_max(lroot, new ArrayNode(nil, nil, stack_to_array(ltail, this.tail_size)));
+        }
+
+        var node = concat(lroot, rroot);
+        return new ImmutableList(node, rtail, right.tail_size);
       }
 
-      var node = concat(lroot, rroot);
-      return new ImmutableList(node, rtail, right.tail_size);
+    } else {
+      var self = this;
+
+      right ..@each(function (x) {
+        self = self.push(x);
+      });
+
+      return self;
     }
   };
 
@@ -1851,8 +1862,11 @@ __js {
      @return {::List} A new list with `value` inserted at `index`
      @summary Returns a new list with `value` inserted at `index`
      @desc
-       This function runs in `O(log2(n / 125) + 125)` worst-case time.
-       If inserting at the end of the list, it runs in `O(1)` time.
+       If inserting at the end of the list, this function runs in
+       amortized `O(1)` time.
+
+       Otherwise this function runs in `O(log2(n / 125) + 125)`
+       worst-case time.
 
        This does not modify the list, it returns a new list.
 
@@ -1870,7 +1884,6 @@ __js {
      @summary Returns a new list with the value at `index` removed
      @desc
        This function runs in `O(log2(n / 125) + 125)` worst-case time.
-       If removing at the end of the list, it runs in `O(1)` time.
 
        This does not modify the list, it returns a new list.
 
@@ -1888,7 +1901,6 @@ __js {
      @summary Returns a new list with the value at `index` modified by `fn`
      @desc
        This function runs in `O(log2(n / 125) + 125)` worst-case time.
-       If modifying the value at the end of the list, it runs in `O(1)` time.
 
        This does not modify the list, it returns a new list.
 
@@ -1909,16 +1921,19 @@ __js {
        `-2` modifies the second-from-last value, etc.
 
      @function List.concat
-     @param {::List} [other] The list to append to this list
+     @param {sequence::Sequence} [other] The [sequence::Sequence] to append to this list
      @return {::List} A new list with all the values of this list followed
-                      by all the values of `other` list.
+                      by all the values of `other`.
      @summary Returns a new list with all the values of this list followed
-              by all the values of `other` list.
+              by all the values of `other`.
      @desc
-       This function runs in `O(125 + log2(n / 125) + log2(min(n / 125, m / 125)))`
+       If `other` is a [::List], this function runs in
+       `O(125 + log2(n / 125) + log2(min(n / 125, m / 125)))`
        worst-case time.
 
-       This does not modify either list, it returns a new list.
+       Otherwise this function runs in `O(n)` time.
+
+       This does not modify the list, it returns a new list.
   */
   exports.List = function (array) {
     if (array != null) {
