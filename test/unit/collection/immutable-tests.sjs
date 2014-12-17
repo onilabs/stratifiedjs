@@ -1,9 +1,9 @@
 var { shuffle } = require('sjs:collection/list');
 var { test, context, assert } = require('sjs:test/suite');
-var { Dict, Set, List, Queue, nil, equal, toJS,
+var { Dict, Set, List, Queue, Stack, nil, equal, toJS,
       defaultSort, simpleSort, SortedSet, SortedDict,
       isDict, isSet, isList, isSortedDict, isSortedSet,
-      isQueue } = require('sjs:collection/immutable');
+      isQueue, isStack } = require('sjs:collection/immutable');
 
 __js {
   // TODO test that this works correctly
@@ -78,6 +78,12 @@ __js {
     assert.equal(toJS(queue), array);
 
     return queue;
+  }
+
+  function verify_stack(stack, array) {
+    assert.equal(toJS(stack), array);
+
+    return stack;
   }
 
   function random_int(max) {
@@ -901,5 +907,108 @@ context("Queue", function () {
     assert.equal(toJS(empty_queue), []);
     assert.equal(toJS(five_queue), [1, 2, 3, 4, 5]);
     assert.equal(toJS(Queue([1, 2, Queue([3])])), [1, 2, [3]]);
+  });
+});
+
+
+context("Stack", function () {
+  var empty_stack = Stack();
+  var five_stack  = Stack().push(1).push(2).push(3).push(4).push(5);
+
+  test("isStack", function () {
+    assert.notOk(isStack(Queue()));
+    assert.ok(isStack(Stack()));
+  });
+
+  test("verify", function () {
+    verify_stack(empty_stack, []);
+    verify_stack(five_stack, [1, 2, 3, 4, 5]);
+  });
+
+  test("init", function () {
+    verify_stack(Stack([1, 2, 3]), [1, 2, 3]);
+  });
+
+  test("isEmpty", function () {
+    assert.ok(empty_stack.isEmpty());
+    assert.notOk(five_stack.isEmpty());
+  });
+
+  test("size", function () {
+    assert.is(empty_stack.size(), 0);
+    assert.is(five_stack.size(), 5);
+  });
+
+  test("peek", function () {
+    assert.raises({
+      message: "Cannot peek from an empty stack"
+    }, -> empty_stack.peek());
+
+    assert.is(empty_stack.peek(50), 50);
+
+    assert.is(five_stack.peek(), 5);
+    assert.is(five_stack.peek(50), 5);
+  });
+
+  test("push", function () {
+    var x = empty_stack.push(10);
+
+    verify_stack(empty_stack, []);
+    verify_stack(x, [10]);
+
+    assert.is(empty_stack.size(), 0);
+    assert.is(x.size(), 1);
+    assert.is(x.peek(), 10);
+
+    verify_stack(five_stack.push(10), [1, 2, 3, 4, 5, 10]);
+    verify_stack(five_stack.push(10).push(20), [1, 2, 3, 4, 5, 10, 20]);
+    verify_stack(five_stack, [1, 2, 3, 4, 5]);
+
+    verify_stack(Stack().push(5).push(4).push(3).push(2).push(1),
+                 [5, 4, 3, 2, 1]);
+  });
+
+  test("pop", function () {
+    verify_stack(empty_stack.pop(), []);
+    verify_stack(five_stack.pop(), [1, 2, 3, 4]);
+    verify_stack(five_stack.pop().pop(), [1, 2, 3]);
+  });
+
+  test("concat", function () {
+    verify_stack(empty_stack.concat(empty_stack), []);
+    verify_stack(five_stack.concat(five_stack), [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
+    verify_stack(Stack([10, 20, 30]).concat(five_stack), [10, 20, 30, 1, 2, 3, 4, 5]);
+    verify_stack(five_stack.concat(Stack([10, 20, 30])), [1, 2, 3, 4, 5, 10, 20, 30]);
+    verify_stack(five_stack.concat([10, 20, 30]), [1, 2, 3, 4, 5, 10, 20, 30]);
+  });
+
+  test("=== when not modified", function () {
+    assert.is(Stack(five_stack), five_stack);
+
+    assert.is(empty_stack.pop(), empty_stack);
+
+    assert.is(empty_stack.concat(empty_stack), empty_stack);
+    assert.is(five_stack.concat(empty_stack), five_stack);
+    assert.isNot(empty_stack.concat(five_stack), five_stack);
+  });
+
+  test("equal", function () {
+    assert.ok(equal(empty_stack, empty_stack));
+    assert.ok(equal(five_stack, five_stack));
+
+    assert.ok(equal(Stack([1, 2, 3]), Stack([1, 2, 3])));
+    assert.notOk(equal(Stack([1, 2, 3]), Stack([1, 2, 4])));
+    assert.notOk(equal(Stack([1, 2, 3]), Stack([1, 3, 2])));
+
+    assert.ok(equal(Stack([1, 2, 3, 4, 5]), five_stack));
+    assert.ok(equal(five_stack, Stack([1, 2, 3, 4, 5])));
+
+    assert.ok(equal(Stack([Stack([1, 2, 3])]), Stack([Stack([1, 2, 3])])));
+  });
+
+  test("toJS", function () {
+    assert.equal(toJS(empty_stack), []);
+    assert.equal(toJS(five_stack), [1, 2, 3, 4, 5]);
+    assert.equal(toJS(Stack([1, 2, Stack([3])])), [1, 2, [3]]);
   });
 });

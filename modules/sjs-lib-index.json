@@ -441,6 +441,32 @@
             "SortedSet": {
               "type": "function"
             },
+            "Stack": {
+              "type": "class",
+              "children": {
+                "Stack": {
+                  "type": "ctor"
+                },
+                "concat": {
+                  "type": "function"
+                },
+                "isEmpty": {
+                  "type": "function"
+                },
+                "peek": {
+                  "type": "function"
+                },
+                "pop": {
+                  "type": "function"
+                },
+                "push": {
+                  "type": "function"
+                },
+                "size": {
+                  "type": "function"
+                }
+              }
+            },
             "equal": {
               "type": "function"
             },
@@ -462,11 +488,14 @@
             "isSortedSet": {
               "type": "function"
             },
+            "isStack": {
+              "type": "function"
+            },
             "toJS": {
               "type": "function"
             }
           },
-          "summary": "Various immutable data structures, including dictionaries, lists, and sets"
+          "summary": "Various immutable data structures, including dictionaries, lists, sets, queues, and stacks"
         },
         "list": {
           "type": "module",
