@@ -357,6 +357,9 @@
                 "has": {
                   "type": "function"
                 },
+                "insert": {
+                  "type": "function"
+                },
                 "isEmpty": {
                   "type": "function"
                 },
@@ -367,9 +370,6 @@
                   "type": "function"
                 },
                 "pop": {
-                  "type": "function"
-                },
-                "push": {
                   "type": "function"
                 },
                 "size": {

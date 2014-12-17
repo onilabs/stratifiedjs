@@ -532,7 +532,7 @@ context("Set", function () {
 
 context("List", function () {
   var empty_list = List();
-  var five_list  = List().push(1).push(2).push(3).push(4).push(5);
+  var five_list  = List().insert(1).insert(2).insert(3).insert(4).insert(5);
 
   test("isList", function () {
     assert.notOk(isList(Dict()));
@@ -590,13 +590,13 @@ context("List", function () {
   test("push", function () {
     assert.raises({
       message: "Index 1 is not valid"
-    }, -> empty_list.push(5, 1));
+    }, -> empty_list.insert(5, 1));
 
     assert.raises({
       message: "Index -1 is not valid"
-    }, -> empty_list.push(5, -2));
+    }, -> empty_list.insert(5, -2));
 
-    var x = empty_list.push(10);
+    var x = empty_list.insert(10);
 
     verify_list(empty_list, []);
     verify_list(x, [10]);
@@ -606,15 +606,15 @@ context("List", function () {
     assert.is(x.nth(0), 10);
     assert.is(x.nth(-1), 10);
 
-    verify_list(five_list.push(10), [1, 2, 3, 4, 5, 10]);
-    verify_list(five_list.push(10).push(20), [1, 2, 3, 4, 5, 10, 20]);
-    verify_list(five_list.push(10, 0), [10, 1, 2, 3, 4, 5]);
-    verify_list(five_list.push(10, 1), [1, 10, 2, 3, 4, 5]);
-    verify_list(five_list.push(10, -1), [1, 2, 3, 4, 5, 10]);
-    verify_list(five_list.push(10, -2), [1, 2, 3, 4, 10, 5]);
+    verify_list(five_list.insert(10), [1, 2, 3, 4, 5, 10]);
+    verify_list(five_list.insert(10).insert(20), [1, 2, 3, 4, 5, 10, 20]);
+    verify_list(five_list.insert(10, 0), [10, 1, 2, 3, 4, 5]);
+    verify_list(five_list.insert(10, 1), [1, 10, 2, 3, 4, 5]);
+    verify_list(five_list.insert(10, -1), [1, 2, 3, 4, 5, 10]);
+    verify_list(five_list.insert(10, -2), [1, 2, 3, 4, 10, 5]);
     verify_list(five_list, [1, 2, 3, 4, 5]);
 
-    verify_list(List().push(5, 0).push(4, 0).push(3, 0).push(2, 0).push(1, 0),
+    verify_list(List().insert(5, 0).insert(4, 0).insert(3, 0).insert(2, 0).insert(1, 0),
                 [1, 2, 3, 4, 5]);
   });
 
@@ -744,7 +744,7 @@ context("List", function () {
     random_list(200).forEach(function (x) {
       var index = random_int(o.size());
 
-      o = o.push(x, index);
+      o = o.insert(x, index);
       a.splice(index, 0, x);
 
       verify_list(o, a);
@@ -783,14 +783,14 @@ context("List", function () {
 
       a.slice(0, pivot).forEach(function (x) {
         var index = random_int(il.size());
-        il = il.push(x, index);
+        il = il.insert(x, index);
         al.splice(index, 0, x);
         verify_list(il, al);
       });
 
       a.slice(pivot).forEach(function (x) {
         var index = random_int(ir.size());
-        ir = ir.push(x, index);
+        ir = ir.insert(x, index);
         ar.splice(index, 0, x);
         verify_list(ir, ar);
       });

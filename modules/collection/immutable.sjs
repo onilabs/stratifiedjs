@@ -1144,7 +1144,7 @@ __js {
     }
   };
 
-  ImmutableList.prototype.push = function (value, index) {
+  ImmutableList.prototype.insert = function (value, index) {
     if (arguments.length === 1) {
       index = -1;
     }
@@ -1291,7 +1291,7 @@ __js {
       var self = this;
 
       right ..@each(function (x) {
-        self = self.push(x);
+        self = self.insert(x);
       });
 
       return self;
@@ -1925,7 +1925,7 @@ __js {
        in the list, `-2` is the second-from-last value,
        etc.
 
-     @function List.push
+     @function List.insert
      @param {Any} [value] The value to insert into the list
      @param {optional Integer} [index] The index to insert `value`. Defaults to `-1`.
      @return {::List} A new list with `value` inserted at `index`
@@ -2012,7 +2012,7 @@ __js {
         var o = new ImmutableList(nil, nil, 0);
 
         array ..@each(function (x) {
-          o = o.push(x);
+          o = o.insert(x);
         });
 
         return o;
