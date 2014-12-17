@@ -866,7 +866,10 @@ context("Queue", function () {
   });
 
   test("pop", function () {
-    verify_queue(empty_queue.pop(), []);
+    assert.raises({
+      message: "Cannot pop from an empty queue"
+    }, -> empty_queue.pop());
+
     verify_queue(five_queue.pop(), [2, 3, 4, 5]);
     verify_queue(five_queue.pop().pop(), [3, 4, 5]);
   });
@@ -881,8 +884,6 @@ context("Queue", function () {
 
   test("=== when not modified", function () {
     assert.is(Queue(five_queue), five_queue);
-
-    assert.is(empty_queue.pop(), empty_queue);
 
     assert.is(empty_queue.concat(empty_queue), empty_queue);
     assert.is(five_queue.concat(empty_queue), five_queue);
@@ -969,7 +970,10 @@ context("Stack", function () {
   });
 
   test("pop", function () {
-    verify_stack(empty_stack.pop(), []);
+    assert.raises({
+      message: "Cannot pop from an empty stack"
+    }, -> empty_stack.pop());
+
     verify_stack(five_stack.pop(), [1, 2, 3, 4]);
     verify_stack(five_stack.pop().pop(), [1, 2, 3]);
   });
@@ -984,8 +988,6 @@ context("Stack", function () {
 
   test("=== when not modified", function () {
     assert.is(Stack(five_stack), five_stack);
-
-    assert.is(empty_stack.pop(), empty_stack);
 
     assert.is(empty_stack.concat(empty_stack), empty_stack);
     assert.is(five_stack.concat(empty_stack), five_stack);

@@ -1356,7 +1356,7 @@ __js {
 
   ImmutableQueue.prototype.pop = function () {
     if (this.isEmpty()) {
-      return this;
+      throw new Error("Cannot pop from an empty queue");
     } else {
       var left = this.left.cdr;
       if (left === nil) {
@@ -1431,7 +1431,7 @@ __js {
 
   ImmutableStack.prototype.pop = function () {
     if (this.isEmpty()) {
-      return this;
+      throw new Error("Cannot pop from an empty stack");
     } else {
       return new ImmutableStack(this.root.cdr, this.len - 1);
     }
@@ -2089,7 +2089,7 @@ __js {
 
        This does not modify the queue, it returns a new queue.
 
-       If the queue is empty, it does nothing.
+       If the queue is empty, an error is thrown.
 
      @function Queue.concat
      @param {sequence::Sequence} [other] The [sequence::Sequence] to append to this queue
@@ -2187,7 +2187,7 @@ __js {
 
        This does not modify the stack, it returns a new stack.
 
-       If the stack is empty, it does nothing.
+       If the stack is empty, an error is thrown.
 
      @function Stack.concat
      @param {sequence::Sequence} [other] The [sequence::Sequence] to append to this stack
