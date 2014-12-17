@@ -587,7 +587,7 @@ context("List", function () {
     assert.is(five_list.nth(-2, 50), 4);
   });
 
-  test("push", function () {
+  test("insert", function () {
     assert.raises({
       message: "Index 1 is not valid"
     }, -> empty_list.insert(5, 1));
@@ -618,25 +618,25 @@ context("List", function () {
                 [1, 2, 3, 4, 5]);
   });
 
-  test("pop", function () {
+  test("remove", function () {
     assert.raises({
       message: "Index -1 is not valid"
-    }, -> empty_list.pop());
+    }, -> empty_list.remove());
 
     assert.raises({
       message: "Index 0 is not valid"
-    }, -> empty_list.pop(0));
+    }, -> empty_list.remove(0));
 
     assert.raises({
       message: "Index -1 is not valid"
-    }, -> empty_list.pop(-1));
+    }, -> empty_list.remove(-1));
 
-    verify_list(five_list.pop(), [1, 2, 3, 4]);
-    verify_list(five_list.pop().pop(), [1, 2, 3]);
-    verify_list(five_list.pop(-1), [1, 2, 3, 4]);
-    verify_list(five_list.pop(-2), [1, 2, 3, 5]);
-    verify_list(five_list.pop(0), [2, 3, 4, 5]);
-    verify_list(five_list.pop(1), [1, 3, 4, 5]);
+    verify_list(five_list.remove(), [1, 2, 3, 4]);
+    verify_list(five_list.remove().remove(), [1, 2, 3]);
+    verify_list(five_list.remove(-1), [1, 2, 3, 4]);
+    verify_list(five_list.remove(-2), [1, 2, 3, 5]);
+    verify_list(five_list.remove(0), [2, 3, 4, 5]);
+    verify_list(five_list.remove(1), [1, 3, 4, 5]);
   });
 
   test("modify", function () {
@@ -762,7 +762,7 @@ context("List", function () {
 
     while (o.size()) {
       var index = random_int(o.size());
-      o = o.pop(index);
+      o = o.remove(index);
       a.splice(index, 1);
       verify_list(o, a);
     }

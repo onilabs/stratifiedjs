@@ -1183,7 +1183,7 @@ __js {
     }
   };
 
-  ImmutableList.prototype.pop = function (index) {
+  ImmutableList.prototype.remove = function (index) {
     if (arguments.length === 0) {
       index = -1;
     }
@@ -1947,7 +1947,7 @@ __js {
        the last value, `-2` inserts `value` as the
        second-from-last value, etc.
 
-     @function List.pop
+     @function List.remove
      @param {optional Integer} [index] The index to remove from the list. Defaults to `-1`.
      @return {::List} A new list with the value at `index` removed
      @summary Returns a new list with the value at `index` removed

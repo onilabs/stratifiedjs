@@ -369,7 +369,7 @@
                 "nth": {
                   "type": "function"
                 },
-                "pop": {
+                "remove": {
                   "type": "function"
                 },
                 "size": {
