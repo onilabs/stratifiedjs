@@ -377,6 +377,32 @@
                 }
               }
             },
+            "Queue": {
+              "type": "class",
+              "children": {
+                "Queue": {
+                  "type": "ctor"
+                },
+                "concat": {
+                  "type": "function"
+                },
+                "isEmpty": {
+                  "type": "function"
+                },
+                "peek": {
+                  "type": "function"
+                },
+                "pop": {
+                  "type": "function"
+                },
+                "push": {
+                  "type": "function"
+                },
+                "size": {
+                  "type": "function"
+                }
+              }
+            },
             "Set": {
               "type": "class",
               "children": {
@@ -422,6 +448,9 @@
               "type": "function"
             },
             "isList": {
+              "type": "function"
+            },
+            "isQueue": {
               "type": "function"
             },
             "isSet": {

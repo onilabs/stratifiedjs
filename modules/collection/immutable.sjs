@@ -83,6 +83,20 @@ __js {
 
   var mutable_hash_id = 0;
 
+  function hash_list(name, x) {
+    var a = x ..@map(function (value) {
+      return hash(value);
+    });
+
+    if (a.length) {
+      return "(" + name + "\n  " + a.map(function (x) {
+        return x.replace(/\n/g, "\n  ");
+      }).join("\n  ") + ")";
+    } else {
+      return "(" + name + ")";
+    }
+  }
+
   function hash_dict(a, max_key, spaces) {
     return a.map(function (x) {
       var key = x.key.map(function (x) {
@@ -198,6 +212,18 @@ __js {
 
        ----
 
+       [::Queue] are treated as equal if they have
+       the same values in the same order:
+
+           @equal(@Queue([1]),
+                  @Queue([1])); // true
+
+       This takes `O(n)` time, except the results
+       are cached so that afterwards it takes `O(1)`
+       time.
+
+       ----
+
        [::SortedDict] and [::SortedSet] are the
        same as [::Dict] and [::Set] except that
        the sort order must also be the same.
@@ -214,19 +240,20 @@ __js {
      @function toJS
      @param {Any} [x]
      @return {Any}
-     @summary Converts a [::Dict], [::Set], or [::List]
+     @summary Converts a [::Dict], [::Set], [::List], or [::Queue]
               to its JavaScript equivalent
      @desc
        Most things are returned as-is, except:
 
-       * [::Dict] is converted to a JavaScript object. The keys must be strings.
-       * [::Set] is converted to a JavaScript array.
-       * [::List] is converted to a JavaScript array.
+       * [::Dict] are converted to a JavaScript object. The keys must be strings.
+       * [::Set] are converted to a JavaScript array.
+       * [::List] are converted to a JavaScript array.
+       * [::Queue] are converted to a JavaScript array.
 
        This conversion takes `O(n)` time.
 
        This is useful if you like using [::Dict], [::Set],
-       or [::List], but you want to use a library that
+       [::List], or [::Queue], but you want to use a library that
        requires ordinary JavaScript objects/arrays.
    */
   function toJS(x) {
@@ -244,11 +271,12 @@ __js {
   exports.toJS = toJS;
 
 
-  var nil     = {};
-  nil.depth   = 0;
-  nil.size    = 0;
-  nil.forEach = function (f) {};
-  exports.nil = nil;
+  var nil        = {};
+  nil.depth      = 0;
+  nil.size       = 0;
+  nil.forEach    = function (f) {};
+  nil.forEachRev = function (f) {};
+  exports.nil    = nil;
 
 
   function balanced_node(node, left, right) {
@@ -401,6 +429,20 @@ __js {
     this.cdr = cdr;
   }
 
+  Cons.prototype.forEach = function (f) {
+    var self = this;
+    while (self !== nil) {
+      f(self.car);
+      self = self.cdr;
+    }
+  };
+
+  // TODO this isn't tail recursive
+  Cons.prototype.forEachRev = function (f) {
+    this.cdr.forEachRev(f);
+    f(this.car);
+  };
+
   // Converts a stack (reversed cons) into an array
   function stack_to_array(a, size) {
     var out = new Array(size);
@@ -420,6 +462,7 @@ __js {
 
     return a.car;
   }
+
 
   function ArrayNode(left, right, array) {
     this.left  = left;
@@ -1038,31 +1081,12 @@ __js {
 
   ImmutableList.prototype[@interface_each] = function (x, f) {
     x.root.forEach(f);
-
-    // TODO put this into a function
-    ;(function anon(x) {
-      if (x !== nil) {
-        anon(x.cdr);
-        f(x.car);
-      }
-    })(x.tail);
+    x.tail.forEachRev(f);
   };
 
   ImmutableList.prototype[interface_hash] = function (x) {
     if (x.hash === null) {
-      var a = [];
-
-      x ..@each(function (value) {
-        a.push(hash(value));
-      });
-
-      if (a.length) {
-        x.hash = "(List\n  " + a.map(function (x) {
-          return x.replace(/\n/g, "\n  ");
-        }).join("\n  ") + ")";
-      } else {
-        x.hash = "(List)";
-      }
+      x.hash = hash_list("List", x);
     }
 
     return x.hash;
@@ -1247,6 +1271,92 @@ __js {
       var node = concat(lroot, rroot);
       return new ImmutableList(node, rtail, right.tail_size);
     }
+  };
+
+
+  function ImmutableQueue(left, right, len) {
+    this.left  = left;
+    this.right = right;
+    this.len   = len;
+    this.hash  = null;
+  }
+
+  // TODO is this a good idea ?
+  ImmutableQueue.prototype = Object.create(null);
+
+  ImmutableQueue.prototype.toString = ImmutableSet.prototype.toString;
+
+  ImmutableQueue.prototype[interface_toJS] = ImmutableSet.prototype[interface_toJS];
+
+  ImmutableQueue.prototype.isEmpty = function () {
+    return this.left === nil && this.right === nil;
+  };
+
+  ImmutableQueue.prototype[@interface_each] = function (x, f) {
+    x.left.forEach(f);
+    x.right.forEachRev(f);
+  };
+
+  // TODO code duplication with ImmutableList
+  ImmutableQueue.prototype[interface_hash] = function (x) {
+    if (x.hash === null) {
+      x.hash = hash_list("Queue", x);
+    }
+
+    return x.hash;
+  };
+
+  ImmutableQueue.prototype.size = function () {
+    return this.len;
+  };
+
+  ImmutableQueue.prototype.peek = function (def) {
+    if (this.isEmpty()) {
+      if (arguments.length === 1) {
+        return def;
+      } else {
+        throw new Error("Cannot peek from an empty queue");
+      }
+    } else {
+      return this.left.car;
+    }
+  };
+
+  ImmutableQueue.prototype.push = function (value) {
+    if (this.isEmpty()) {
+      return new ImmutableQueue(new Cons(value, this.left), this.right, this.len + 1);
+    } else {
+      return new ImmutableQueue(this.left, new Cons(value, this.right), this.len + 1);
+    }
+  };
+
+  ImmutableQueue.prototype.pop = function () {
+    if (this.isEmpty()) {
+      return this;
+    } else {
+      var left = this.left.cdr;
+      if (left === nil) {
+        var right = nil;
+
+        this.right.forEach(function (x) {
+          right = new Cons(x, right);
+        });
+
+        return new ImmutableQueue(right, nil, this.len - 1);
+      } else {
+        return new ImmutableQueue(left, this.right, this.len - 1);
+      }
+    }
+  };
+
+  ImmutableQueue.prototype.concat = function (right) {
+    var self = this;
+
+    right ..@each(function (x) {
+      self = self.push(x);
+    });
+
+    return self;
   };
 
 
@@ -1830,6 +1940,104 @@ __js {
 
 
   /**
+     @class Queue
+     @summary An immutable ordered sequence of values that can
+              efficiently add to the end and remove from the front
+
+     @function Queue
+     @param {optional sequence::Sequence} [seq]
+     @desc
+       The values from `seq` will be inserted into
+       the queue, in the same order as `seq`.
+
+       This takes `O(n)` time, unless `seq` is already a
+       [::Queue], in which case it takes `O(1)` time.
+
+       ----
+
+       Duplicate values are allowed, and duplicates don't
+       have to be in the same order.
+
+       The values in the queue can have whatever order you
+       want, but they are not sorted. If you want the values
+       to be sorted, use a [::SortedSet] instead.
+
+     @function Queue.isEmpty
+     @return {Boolean} `true` if the queue is empty
+     @summary Returns whether the queue is empty or not
+     @desc
+       This function runs in `O(1)` time.
+
+       A queue is empty if it has no values in it.
+
+     @function Queue.size
+     @return {Integer} The number of values in the queue
+     @summary Returns the number of values in the queue
+     @desc
+       This function runs in `O(1)` time.
+
+     @function Queue.peek
+     @param {optional Any} [default] Value to return if the queue is empty
+     @return {Any} The value at the front of the queue, or `default` if the queue is empty
+     @summary Returns the value at the front of the queue, or `default` if the queue is empty
+     @desc
+       This function runs in `O(1)` time.
+
+       If the queue is empty:
+
+       * If `default` is provided, it is returned.
+       * If `default` is not provided, an error is thrown.
+
+     @function Queue.push
+     @param {Any} [value] The value to insert at the end of the queue
+     @return {::Queue} A new queue with `value` inserted at the end of the queue
+     @summary Returns a new queue with `value` inserted at the end of the queue
+     @desc
+       This function runs in `O(1)` time.
+
+       This does not modify the queue, it returns a new queue.
+
+     @function Queue.pop
+     @return {::Queue} A new queue with the value at the front removed
+     @summary Returns a new queue with the value at the front removed
+     @desc
+       This function runs in amortized `O(1)` time.
+
+       This does not modify the queue, it returns a new queue.
+
+       If the queue is empty, it does nothing.
+
+     @function Queue.concat
+     @param {sequence::Sequence} [other] The [sequence::Sequence] to append to this queue
+     @return {::Queue} A new queue with all the values of this queue followed
+                       by all the values of `other`.
+     @summary Returns a new queue with all the values of this queue followed
+              by all the values of `other`.
+     @desc
+       This function runs in `O(n)` time.
+
+       This does not modify the queue, it returns a new queue.
+  */
+  exports.Queue = function (x) {
+    if (x != null) {
+      if (x instanceof ImmutableQueue) {
+        return x;
+      } else {
+        var o = new ImmutableQueue(nil, nil, 0);
+
+        x ..@each(function (x) {
+          o = o.push(x);
+        });
+
+        return o;
+      }
+    } else {
+      return new ImmutableQueue(nil, nil, 0);
+    }
+  };
+
+
+  /**
      @function isDict
      @param {Any} [x]
      @return {Boolean} `true` if `x` is a [::Dict] or [::SortedDict]
@@ -1883,4 +2091,15 @@ __js {
     return x instanceof ImmutableList;
   }
   exports.isList = isList;
+
+  /**
+     @function isQueue
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::Queue]
+     @summary Returns whether `x` is a [::Queue]
+   */
+  function isQueue(x) {
+    return x instanceof ImmutableQueue;
+  }
+  exports.isQueue = isQueue;
 }

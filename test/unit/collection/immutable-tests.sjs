@@ -1,8 +1,9 @@
 var { shuffle } = require('sjs:collection/list');
 var { test, context, assert } = require('sjs:test/suite');
-var { Dict, Set, List, nil, equal, toJS,
+var { Dict, Set, List, Queue, nil, equal, toJS,
       defaultSort, simpleSort, SortedSet, SortedDict,
-      isDict, isSet, isList, isSortedDict, isSortedSet } = require('sjs:collection/immutable');
+      isDict, isSet, isList, isSortedDict, isSortedSet,
+      isQueue } = require('sjs:collection/immutable');
 
 __js {
   // TODO test that this works correctly
@@ -67,6 +68,16 @@ __js {
     assert.equal(toJS(tree), array);
 
     return tree;
+  }
+
+  function verify_queue(queue, array) {
+    if (!queue.isEmpty()) {
+      assert.isNot(queue.left, nil);
+    }
+
+    assert.equal(toJS(queue), array);
+
+    return queue;
   }
 
   function random_int(max) {
@@ -666,8 +677,6 @@ context("List", function () {
     assert.is(five_list.concat(empty_list), five_list);
     assert.is(empty_list.concat(five_list), five_list);
 
-    assert.is(List(five_list), five_list);
-
     var list1 = List([List([])]);
 
     assert.is(list1.modify(0, function () {
@@ -705,6 +714,7 @@ context("List", function () {
 
     assert.ok(equal(List([1, 2, 3]), List([1, 2, 3])));
     assert.notOk(equal(List([1, 2, 3]), List([1, 2, 4])));
+    assert.notOk(equal(List([1, 2, 3]), List([1, 3, 2])));
 
     assert.ok(equal(List([1, 2, 3, 4, 5]), five_list));
     assert.ok(equal(five_list, List([1, 2, 3, 4, 5])));
@@ -787,5 +797,108 @@ context("List", function () {
     test_concat(pivot);
     test_concat(194);
     test_concat(199);
+  });
+});
+
+
+context("Queue", function () {
+  var empty_queue = Queue();
+  var five_queue  = Queue().push(1).push(2).push(3).push(4).push(5);
+
+  test("isQueue", function () {
+    assert.notOk(isQueue(List()));
+    assert.ok(isQueue(Queue()));
+  });
+
+  test("verify", function () {
+    verify_queue(empty_queue, []);
+    verify_queue(five_queue, [1, 2, 3, 4, 5]);
+  });
+
+  test("init", function () {
+    verify_queue(Queue([1, 2, 3]), [1, 2, 3]);
+  });
+
+  test("isEmpty", function () {
+    assert.ok(empty_queue.isEmpty());
+    assert.notOk(five_queue.isEmpty());
+  });
+
+  test("size", function () {
+    assert.is(empty_queue.size(), 0);
+    assert.is(five_queue.size(), 5);
+  });
+
+  test("peek", function () {
+    assert.raises({
+      message: "Cannot peek from an empty queue"
+    }, -> empty_queue.peek());
+
+    assert.is(empty_queue.peek(50), 50);
+
+    assert.is(five_queue.peek(), 1);
+    assert.is(five_queue.peek(50), 1);
+  });
+
+  test("push", function () {
+    var x = empty_queue.push(10);
+
+    verify_queue(empty_queue, []);
+    verify_queue(x, [10]);
+
+    assert.is(empty_queue.size(), 0);
+    assert.is(x.size(), 1);
+    assert.is(x.peek(), 10);
+
+    verify_queue(five_queue.push(10), [1, 2, 3, 4, 5, 10]);
+    verify_queue(five_queue.push(10).push(20), [1, 2, 3, 4, 5, 10, 20]);
+    verify_queue(five_queue, [1, 2, 3, 4, 5]);
+
+    verify_queue(Queue().push(5).push(4).push(3).push(2).push(1),
+                 [5, 4, 3, 2, 1]);
+  });
+
+  test("pop", function () {
+    verify_queue(empty_queue.pop(), []);
+    verify_queue(five_queue.pop(), [2, 3, 4, 5]);
+    verify_queue(five_queue.pop().pop(), [3, 4, 5]);
+  });
+
+  test("concat", function () {
+    verify_queue(empty_queue.concat(empty_queue), []);
+    verify_queue(five_queue.concat(five_queue), [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
+    verify_queue(Queue([10, 20, 30]).concat(five_queue), [10, 20, 30, 1, 2, 3, 4, 5]);
+    verify_queue(five_queue.concat(Queue([10, 20, 30])), [1, 2, 3, 4, 5, 10, 20, 30]);
+    verify_queue(five_queue.concat([10, 20, 30]), [1, 2, 3, 4, 5, 10, 20, 30]);
+  });
+
+  test("=== when not modified", function () {
+    assert.is(Queue(five_queue), five_queue);
+
+    assert.is(empty_queue.pop(), empty_queue);
+
+    assert.is(empty_queue.concat(empty_queue), empty_queue);
+    assert.is(five_queue.concat(empty_queue), five_queue);
+    assert.isNot(empty_queue.concat(five_queue), five_queue);
+  });
+
+  test("equal", function () {
+    assert.ok(equal(empty_queue, empty_queue));
+    assert.ok(equal(five_queue, five_queue));
+
+    assert.ok(equal(Queue([1, 2, 3]), Queue([1, 2, 3])));
+    assert.notOk(equal(Queue([1, 2, 3]), Queue([1, 2, 4])));
+    assert.notOk(equal(Queue([1, 2, 3]), Queue([1, 3, 2])));
+
+    assert.ok(equal(Queue([1, 2, 3, 4, 5]), five_queue));
+    assert.ok(equal(five_queue, Queue([1, 2, 3, 4, 5])));
+
+    assert.ok(equal(Queue([Queue([1, 2, 3])]), Queue([Queue([1, 2, 3])])));
+  });
+
+  test("toJS", function () {
+    assert.equal(toJS(empty_queue), []);
+    assert.equal(toJS(five_queue), [1, 2, 3, 4, 5]);
+    assert.equal(toJS(Queue([1, 2, Queue([3])])), [1, 2, [3]]);
   });
 });
