@@ -409,7 +409,8 @@ __js {
     var old_value = array[index];
     var new_value = f(old_value);
 
-    if (equal(old_value, new_value)) {
+    // We don't use equal, for increased speed
+    if (old_value === new_value) {
       return array;
 
     } else {
@@ -637,7 +638,8 @@ __js {
 
   SetNode.prototype.modify = function (info) {
     var key = info.key;
-    if (equal(this.key, key)) {
+    // We don't use equal, for increased speed
+    if (this.key === key) {
       return this;
     } else {
       return new SetNode(this.left, this.right, key);
@@ -660,7 +662,8 @@ __js {
   KeyNode.prototype.modify = function (info) {
     var key   = info.key;
     var value = info.value;
-    if (equal(this.key, key) && equal(this.value, value)) {
+    // We don't use equal, for increased speed
+    if (this.key === key && this.value === value) {
       return this;
     } else {
       return new KeyNode(this.left, this.right, key, value);
@@ -817,7 +820,8 @@ __js {
         });
       });
 
-      if (equal(x.sort, defaultSort)) {
+      // We don't use equal, for increased speed
+      if (x.sort === defaultSort) {
         if (a.length) {
           x.hash = "(Dict\n  " + hash_dict(a, max_key, "  ") + ")";
         } else {
@@ -940,7 +944,8 @@ __js {
 
       var spaces = "  ";
 
-      if (equal(x.sort, defaultSort)) {
+      // We don't use equal, for increased speed
+      if (x.sort === defaultSort) {
         if (a.length) {
           x.hash = "(Set\n  " + hash_set(a, spaces) + ")";
         } else {
@@ -1148,7 +1153,8 @@ __js {
 
       if (tail !== nil && index === len - 1) {
         var value = f(tail.car);
-        if (equal(value, tail.car)) {
+        // We don't use equal, for increased speed
+        if (value === tail.car) {
           return this;
         } else {
           return new ImmutableList(root, new Cons(value, tail.cdr), tail_size);
@@ -1578,7 +1584,8 @@ ImmutableStack.prototype.concat = ImmutableQueue.prototype.concat;
  */
 exports.SortedDict = function (sort, obj) {
   if (obj != null) {
-    if (obj instanceof ImmutableDict && equal(obj.sort, sort)) {
+    // We don't use equal, for increased speed
+    if (obj instanceof ImmutableDict && obj.sort === sort) {
       return obj;
     } else {
       var o = new ImmutableDict(nil, sort);
@@ -1635,7 +1642,8 @@ exports.SortedDict = function (sort, obj) {
  */
 exports.SortedSet = function (sort, array) {
   if (array != null) {
-    if (array instanceof ImmutableSet && equal(array.sort, sort)) {
+    // We don't use equal, for increased speed
+    if (array instanceof ImmutableSet && array.sort === sort) {
       return array;
     } else {
       var o = new ImmutableSet(nil, sort);

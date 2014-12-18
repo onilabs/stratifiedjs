@@ -256,7 +256,7 @@ context("Dict", function () {
 
     var dict1 = Dict().set(Dict({ foo: 1 }), Dict({ bar: 2 }));
 
-    assert.is(dict1.modify(Dict({ foo: 1 }), function () {
+    assert.isNot(dict1.modify(Dict({ foo: 1 }), function () {
       return Dict({ bar: 2 });
     }), dict1);
 
@@ -466,7 +466,7 @@ context("Set", function () {
 
     var set1 = Set([Set([])]);
 
-    assert.is(set1.add(Set([])), set1);
+    assert.isNot(set1.add(Set([])), set1);
 
     assert.is(five_set.add(5), five_set);
     assert.isNot(five_set.add(6), five_set);
@@ -701,7 +701,7 @@ context("List", function () {
 
     var list1 = List([List([])]);
 
-    assert.is(list1.modify(0, function () {
+    assert.isNot(list1.modify(0, function () {
       return List([]);
     }), list1);
 
