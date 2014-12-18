@@ -1,4 +1,5 @@
 var { shuffle } = require('sjs:collection/list');
+var { zip, toArray } = require('sjs:sequence');
 var { test, context, assert } = require('sjs:test/suite');
 var { Dict, Set, List, Queue, Stack, nil, equal, toJS,
       defaultSort, simpleSort, SortedSet, SortedDict,
@@ -318,6 +319,12 @@ context("Dict", function () {
       verify_dict(o);
     });
   });
+
+  test("zip", function () {
+    var a = [["a", 1], ["b", 2], ["c", 3], ["d", 4],
+             ["e", 5], ["f", 6], ["g", 7], ["h", 8]];
+    assert.equal(toArray(zip(Dict(a))), toArray(zip(a)));
+  });
 });
 
 
@@ -526,6 +533,11 @@ context("Set", function () {
     });
 
     verify_set(o, []);
+  });
+
+  test("zip", function () {
+    var a = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    assert.equal(toArray(zip(Set(a))), toArray(zip(a)));
   });
 });
 
@@ -808,6 +820,15 @@ context("List", function () {
     test_concat(194);
     test_concat(199);
   });
+
+  test("zip", function () {
+    assert.equal(toArray(zip(List())), toArray(zip([])));
+
+    assert.equal(toArray(zip(List([1, 2, 3, 4, 5]))), [[1], [2], [3], [4], [5]]);
+
+    var a = random_list(200);
+    assert.equal(toArray(zip(List(a))), toArray(zip(a)));
+  });
 });
 
 
@@ -875,6 +896,10 @@ context("Queue", function () {
 
     verify_queue(five_queue.pop(), [2, 3, 4, 5]);
     verify_queue(five_queue.pop().pop(), [3, 4, 5]);
+
+    verify_queue(Queue(), []);
+    verify_queue(Queue().push(5).push(10).push(20).push(30), [5, 10, 20, 30]);
+    verify_queue(Queue().push(5).push(10).push(20).push(30).pop(), [10, 20, 30]);
   });
 
   test("concat", function () {
@@ -911,6 +936,11 @@ context("Queue", function () {
     assert.equal(toJS(empty_queue), []);
     assert.equal(toJS(five_queue), [1, 2, 3, 4, 5]);
     assert.equal(toJS(Queue([1, 2, Queue([3])])), [1, 2, [3]]);
+  });
+
+  test("zip", function () {
+    var a = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    assert.equal(toArray(zip(Queue(a))), toArray(zip(a)));
   });
 });
 
@@ -1015,5 +1045,10 @@ context("Stack", function () {
     assert.equal(toJS(empty_stack), []);
     assert.equal(toJS(five_stack), [1, 2, 3, 4, 5]);
     assert.equal(toJS(Stack([1, 2, Stack([3])])), [1, 2, [3]]);
+  });
+
+  test("zip", function () {
+    var a = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    assert.equal(toArray(zip(Stack(a))), toArray(zip(a)));
   });
 });

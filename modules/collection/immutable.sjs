@@ -404,6 +404,7 @@ __js {
     return out;
   }
 
+  // TODO what if `f` suspends ?
   function array_modify_at(array, index, f) {
     var old_value = array[index];
     var new_value = f(old_value);
@@ -443,20 +444,6 @@ __js {
     this.cdr = cdr;
   }
 
-  Cons.prototype.forEach = function (f) {
-    var self = this;
-    while (self !== nil) {
-      f(self.car);
-      self = self.cdr;
-    }
-  };
-
-  // TODO this isn't tail recursive
-  Cons.prototype.forEachRev = function (f) {
-    this.cdr.forEachRev(f);
-    f(this.car);
-  };
-
   // Converts a stack (reversed cons) into an array
   function stack_to_array(a, size) {
     var out = new Array(size);
@@ -488,14 +475,6 @@ __js {
 
   ArrayNode.prototype.copy = function (left, right) {
     return new ArrayNode(left, right, this.array);
-  };
-
-  ArrayNode.prototype.forEach = function (f) {
-    this.left.forEach(f);
-    this.array.forEach(function (x) {
-      f(x);
-    });
-    this.right.forEach(f);
   };
 
   function nth_has(index, len) {
@@ -574,6 +553,7 @@ __js {
     }
   }
 
+  // TODO what if `f` suspends ?
   function nth_modify(node, index, f) {
     var left    = node.left;
     var right   = node.right;
@@ -664,12 +644,6 @@ __js {
     }
   };
 
-  SetNode.prototype.forEach = function (f) {
-    this.left.forEach(f);
-    f(this.key);
-    this.right.forEach(f);
-  };
-
 
   function KeyNode(left, right, key, value) {
     this.left  = left;
@@ -693,13 +667,8 @@ __js {
     }
   };
 
-  KeyNode.prototype.forEach = function (f) {
-    this.left.forEach(f);
-    f([this.key, this.value]);
-    this.right.forEach(f);
-  };
 
-
+  // TODO what if `sort` suspends ?
   function key_get(node, sort, key) {
     while (node !== nil) {
       var order = sort(key, node.key);
@@ -717,6 +686,7 @@ __js {
     return node;
   }
 
+  // TODO what if `sort` suspends ?
   function key_set(node, sort, key, new_node) {
     if (node === nil) {
       return new_node;
@@ -749,6 +719,7 @@ __js {
   }
 
   // TODO code duplication with key_set
+  // TODO what if `sort` suspends ?
   function key_modify(node, sort, key, f) {
     if (node === nil) {
       throw new Error("Key #{key} not found");
@@ -781,6 +752,7 @@ __js {
     }
   }
 
+  // TODO what if `sort` suspends ?
   function key_remove(node, sort, key) {
     if (node === nil) {
       return node;
@@ -822,10 +794,6 @@ __js {
 
   // TODO is this a good idea ?
   ImmutableDict.prototype = Object.create(null);
-
-  ImmutableDict.prototype[@interface_each] = function (x, f) {
-    x.root.forEach(f);
-  };
 
   ImmutableDict.prototype[interface_hash] = function (x) {
     if (x.hash === null) {
@@ -875,10 +843,12 @@ __js {
     return this.root === nil;
   };
 
+  // TODO what if `sort` suspends ?
   ImmutableDict.prototype.has = function (key) {
     return key_get(this.root, this.sort, key) !== nil;
   };
 
+  // TODO what if `sort` suspends ?
   ImmutableDict.prototype.get = function (key, def) {
     var node = key_get(this.root, this.sort, key);
     if (node === nil) {
@@ -893,6 +863,7 @@ __js {
   };
 
   // TODO code duplication
+  // TODO what if `sort` suspends ?
   ImmutableDict.prototype.set = function (key, value) {
     var root = this.root;
     var sort = this.sort;
@@ -905,6 +876,7 @@ __js {
   };
 
   // TODO code duplication
+  // TODO what if `sort` suspends ?
   ImmutableDict.prototype.remove = function (key) {
     var root = this.root;
     var sort = this.sort;
@@ -917,6 +889,7 @@ __js {
   };
 
   // TODO code duplication
+  // TODO what if `sort` suspends ?
   ImmutableDict.prototype.modify = function (key, f) {
     var root = this.root;
     var sort = this.sort;
@@ -955,8 +928,6 @@ __js {
 
   ImmutableSet.prototype.has = ImmutableDict.prototype.has;
 
-  ImmutableSet.prototype[@interface_each] = ImmutableDict.prototype[@interface_each];
-
   ImmutableSet.prototype.toString = ImmutableDict.prototype.toString;
 
   ImmutableSet.prototype[interface_hash] = function (x) {
@@ -987,6 +958,7 @@ __js {
     return x.hash;
   };
 
+  // TODO what if `sort` suspends ?
   ImmutableSet.prototype.add = function (key) {
     var root = this.root;
     var sort = this.sort;
@@ -998,6 +970,7 @@ __js {
     }
   };
 
+  // TODO what if `sort` suspends ?
   ImmutableSet.prototype.remove = function (key) {
     var root = this.root;
     var sort = this.sort;
@@ -1007,61 +980,6 @@ __js {
     } else {
       return new ImmutableSet(node, sort);
     }
-  };
-
-  ImmutableSet.prototype.union = function (other) {
-    var self = this;
-
-    other ..@each(function (value) {
-      self = self.add(value);
-    });
-
-    return self;
-  };
-
-  ImmutableSet.prototype.intersect = function (other) {
-    var self = this;
-    if (self.root === nil) {
-      return self;
-
-    } else {
-      var out = new ImmutableSet(nil, self.sort);
-
-      other ..@each(function (value) {
-        if (self.has(value)) {
-          out = out.add(value);
-        }
-      });
-
-      return out;
-    }
-  };
-
-  ImmutableSet.prototype.disjoint = function (other) {
-    var self = this;
-
-    other ..@each(function (value) {
-      if (self.has(value)) {
-        self = self.remove(value);
-      } else {
-        self = self.add(value);
-      }
-    });
-
-    return self;
-  };
-
-  // TODO what about the empty set ?
-  ImmutableSet.prototype.subtract = function (other) {
-    var self = this;
-
-    if (self.root !== nil) {
-      other ..@each(function (value) {
-        self = self.remove(value);
-      });
-    }
-
-    return self;
   };
 
   ImmutableSet.prototype[interface_toJS] = function (x) {
@@ -1091,11 +1009,6 @@ __js {
 
   ImmutableList.prototype.isEmpty = function () {
     return this.root === nil && this.tail === nil;
-  };
-
-  ImmutableList.prototype[@interface_each] = function (x, f) {
-    x.root.forEach(f);
-    x.tail.forEachRev(f);
   };
 
   ImmutableList.prototype[interface_hash] = function (x) {
@@ -1219,6 +1132,7 @@ __js {
     }
   };
 
+  // TODO what if `f` suspends ?
   ImmutableList.prototype.modify = function (index, f) {
     var len = this.size();
 
@@ -1264,40 +1178,6 @@ __js {
     }
   };
 
-  ImmutableList.prototype.concat = function (right) {
-    if (right instanceof ImmutableList) {
-      var lroot = this.root;
-      var ltail = this.tail;
-
-      var rroot = right.root;
-      var rtail = right.tail;
-
-      if (rroot === nil && rtail === nil) {
-        return this;
-
-      } else if (lroot === nil && ltail === nil) {
-        return right;
-
-      } else {
-        if (ltail !== nil) {
-          lroot = insert_max(lroot, new ArrayNode(nil, nil, stack_to_array(ltail, this.tail_size)));
-        }
-
-        var node = concat(lroot, rroot);
-        return new ImmutableList(node, rtail, right.tail_size);
-      }
-
-    } else {
-      var self = this;
-
-      right ..@each(function (x) {
-        self = self.insert(x);
-      });
-
-      return self;
-    }
-  };
-
 
   function ImmutableQueue(left, right, len) {
     this.left  = left;
@@ -1315,11 +1195,6 @@ __js {
 
   ImmutableQueue.prototype.isEmpty = function () {
     return this.left === nil && this.right === nil;
-  };
-
-  ImmutableQueue.prototype[@interface_each] = function (x, f) {
-    x.left.forEach(f);
-    x.right.forEachRev(f);
   };
 
   ImmutableQueue.prototype[interface_hash] = function (x) {
@@ -1373,16 +1248,6 @@ __js {
     }
   };
 
-  ImmutableQueue.prototype.concat = function (right) {
-    var self = this;
-
-    right ..@each(function (x) {
-      self = self.push(x);
-    });
-
-    return self;
-  };
-
 
   function ImmutableStack(root, len) {
     this.root = root;
@@ -1398,10 +1263,6 @@ __js {
   ImmutableStack.prototype[interface_toJS] = ImmutableSet.prototype[interface_toJS];
 
   ImmutableStack.prototype.isEmpty = ImmutableSet.prototype.isEmpty;
-
-  ImmutableStack.prototype[@interface_each] = function (x, f) {
-    x.root.forEachRev(f);
-  };
 
   ImmutableStack.prototype[interface_hash] = function (x) {
     if (x.hash === null) {
@@ -1437,7 +1298,83 @@ __js {
     }
   };
 
-  ImmutableStack.prototype.concat = ImmutableQueue.prototype.concat;
+
+  /**
+     @function isDict
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::Dict] or [::SortedDict]
+     @summary Returns whether `x` is a [::Dict] or [::SortedDict]
+   */
+  function isDict(x) {
+    return x instanceof ImmutableDict;
+  }
+  exports.isDict = isDict;
+
+  /**
+     @function isSet
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::Set] or [::SortedSet]
+     @summary Returns whether `x` is a [::Set] or [::SortedSet]
+   */
+  function isSet(x) {
+    return x instanceof ImmutableSet;
+  }
+  exports.isSet = isSet;
+
+  /**
+     @function isSortedDict
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::SortedDict]
+     @summary Returns whether `x` is a [::SortedDict]
+   */
+  function isSortedDict(x) {
+    return isDict(x) && x.sort !== defaultSort;
+  }
+  exports.isSortedDict = isSortedDict;
+
+  /**
+     @function isSortedSet
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::SortedSet]
+     @summary Returns whether `x` is a [::SortedSet]
+   */
+  function isSortedSet(x) {
+    return isSet(x) && x.sort !== defaultSort;
+  }
+  exports.isSortedSet = isSortedSet;
+
+  /**
+     @function isList
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::List]
+     @summary Returns whether `x` is a [::List]
+   */
+  function isList(x) {
+    return x instanceof ImmutableList;
+  }
+  exports.isList = isList;
+
+  /**
+     @function isQueue
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::Queue]
+     @summary Returns whether `x` is a [::Queue]
+   */
+  function isQueue(x) {
+    return x instanceof ImmutableQueue;
+  }
+  exports.isQueue = isQueue;
+
+  /**
+     @function isStack
+     @param {Any} [x]
+     @return {Boolean} `true` if `x` is a [::Stack]
+     @summary Returns whether `x` is a [::Stack]
+   */
+  function isStack(x) {
+    return x instanceof ImmutableStack;
+  }
+  exports.isStack = isStack;
 
 
   // TODO sjs:type utility for this
@@ -1446,6 +1383,166 @@ __js {
     // TODO this won't work cross-realm
     return proto === null || proto === Object.prototype;
   }
+}
+
+
+Cons.prototype.forEach = function (f) {
+  var self = this;
+  while (self !== nil) {
+    f(self.car);
+    self = self.cdr;
+  }
+};
+
+// TODO this isn't tail recursive
+Cons.prototype.forEachRev = function (f) {
+  this.cdr.forEachRev(f);
+  f(this.car);
+};
+
+ArrayNode.prototype.forEach = function (f) {
+  this.left.forEach(f);
+  this.array ..@each(function (x) {
+    f(x);
+  });
+  this.right.forEach(f);
+};
+
+KeyNode.prototype.forEach = function (f) {
+  this.left.forEach(f);
+  f([this.key, this.value]);
+  this.right.forEach(f);
+};
+
+SetNode.prototype.forEach = function (f) {
+  this.left.forEach(f);
+  f(this.key);
+  this.right.forEach(f);
+};
+
+ImmutableDict.prototype[@interface_each] = function (x, f) {
+  x.root.forEach(f);
+};
+
+
+ImmutableSet.prototype[@interface_each] = ImmutableDict.prototype[@interface_each];
+
+ImmutableList.prototype[@interface_each] = function (x, f) {
+  x.root.forEach(f);
+  x.tail.forEachRev(f);
+};
+
+ImmutableQueue.prototype[@interface_each] = function (x, f) {
+  x.left.forEach(f);
+  x.right.forEachRev(f);
+};
+
+ImmutableStack.prototype[@interface_each] = function (x, f) {
+  x.root.forEachRev(f);
+};
+
+
+ImmutableSet.prototype.union = function (other) {
+  var self = this;
+
+  other ..@each(function (value) {
+    self = self.add(value);
+  });
+
+  return self;
+};
+
+ImmutableSet.prototype.intersect = function (other) {
+  var self = this;
+  if (self.root === nil) {
+    return self;
+
+  } else {
+    var out = new ImmutableSet(nil, self.sort);
+
+    other ..@each(function (value) {
+      if (self.has(value)) {
+        out = out.add(value);
+      }
+    });
+
+    return out;
+  }
+};
+
+ImmutableSet.prototype.disjoint = function (other) {
+  var self = this;
+
+  other ..@each(function (value) {
+    if (self.has(value)) {
+      self = self.remove(value);
+    } else {
+      self = self.add(value);
+    }
+  });
+
+  return self;
+};
+
+// TODO what about the empty set ?
+ImmutableSet.prototype.subtract = function (other) {
+  var self = this;
+
+  if (self.root !== nil) {
+    other ..@each(function (value) {
+      self = self.remove(value);
+    });
+  }
+
+  return self;
+};
+
+ImmutableList.prototype.concat = function (right) {
+  if (right instanceof ImmutableList) {
+    var lroot = this.root;
+    var ltail = this.tail;
+
+    var rroot = right.root;
+    var rtail = right.tail;
+
+    if (rroot === nil && rtail === nil) {
+      return this;
+
+    } else if (lroot === nil && ltail === nil) {
+      return right;
+
+    } else {
+      if (ltail !== nil) {
+        lroot = insert_max(lroot, new ArrayNode(nil, nil, stack_to_array(ltail, this.tail_size)));
+      }
+
+      var node = concat(lroot, rroot);
+      return new ImmutableList(node, rtail, right.tail_size);
+    }
+
+  } else {
+    var self = this;
+
+    right ..@each(function (x) {
+      self = self.insert(x);
+    });
+
+    return self;
+  }
+};
+
+ImmutableQueue.prototype.concat = function (right) {
+  var self = this;
+
+  right ..@each(function (x) {
+    self = self.push(x);
+  });
+
+  return self;
+};
+
+ImmutableStack.prototype.concat = ImmutableQueue.prototype.concat;
+
 
   /**
      @function SortedDict
@@ -1503,6 +1600,7 @@ __js {
     }
   };
 
+
   /**
      @function SortedSet
      @param {Function} [sort] Function that determines the sort order
@@ -1552,6 +1650,7 @@ __js {
       return new ImmutableSet(nil, sort);
     }
   };
+
 
   /**
      @class Dict
@@ -1691,6 +1790,7 @@ __js {
   exports.Dict = function (obj) {
     return exports.SortedDict(defaultSort, obj);
   };
+
 
   /**
      @class Set
@@ -1860,6 +1960,7 @@ __js {
   exports.Set = function (array) {
     return exports.SortedSet(defaultSort, array);
   };
+
 
   /**
      @class List
@@ -2221,82 +2322,3 @@ __js {
       return new ImmutableStack(nil, 0);
     }
   };
-
-
-  /**
-     @function isDict
-     @param {Any} [x]
-     @return {Boolean} `true` if `x` is a [::Dict] or [::SortedDict]
-     @summary Returns whether `x` is a [::Dict] or [::SortedDict]
-   */
-  function isDict(x) {
-    return x instanceof ImmutableDict;
-  }
-  exports.isDict = isDict;
-
-  /**
-     @function isSet
-     @param {Any} [x]
-     @return {Boolean} `true` if `x` is a [::Set] or [::SortedSet]
-     @summary Returns whether `x` is a [::Set] or [::SortedSet]
-   */
-  function isSet(x) {
-    return x instanceof ImmutableSet;
-  }
-  exports.isSet = isSet;
-
-  /**
-     @function isSortedDict
-     @param {Any} [x]
-     @return {Boolean} `true` if `x` is a [::SortedDict]
-     @summary Returns whether `x` is a [::SortedDict]
-   */
-  function isSortedDict(x) {
-    return isDict(x) && x.sort !== defaultSort;
-  }
-  exports.isSortedDict = isSortedDict;
-
-  /**
-     @function isSortedSet
-     @param {Any} [x]
-     @return {Boolean} `true` if `x` is a [::SortedSet]
-     @summary Returns whether `x` is a [::SortedSet]
-   */
-  function isSortedSet(x) {
-    return isSet(x) && x.sort !== defaultSort;
-  }
-  exports.isSortedSet = isSortedSet;
-
-  /**
-     @function isList
-     @param {Any} [x]
-     @return {Boolean} `true` if `x` is a [::List]
-     @summary Returns whether `x` is a [::List]
-   */
-  function isList(x) {
-    return x instanceof ImmutableList;
-  }
-  exports.isList = isList;
-
-  /**
-     @function isQueue
-     @param {Any} [x]
-     @return {Boolean} `true` if `x` is a [::Queue]
-     @summary Returns whether `x` is a [::Queue]
-   */
-  function isQueue(x) {
-    return x instanceof ImmutableQueue;
-  }
-  exports.isQueue = isQueue;
-
-  /**
-     @function isStack
-     @param {Any} [x]
-     @return {Boolean} `true` if `x` is a [::Stack]
-     @summary Returns whether `x` is a [::Stack]
-   */
-  function isStack(x) {
-    return x instanceof ImmutableStack;
-  }
-  exports.isStack = isStack;
-}
