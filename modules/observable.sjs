@@ -37,7 +37,7 @@
 
 
 var cutil = require('./cutil');
-var { Stream, toArray, slice, integers, each, transform, first, skip } = require('./sequence');
+var { Stream, toArray, slice, integers, each, transform, first, skip, mirror } = require('./sequence');
 
 /**
   @class Observable
@@ -344,7 +344,7 @@ function observe(/* var1, ...*/) {
         },
         integers(0,deps.length-1) .. toArray);
     }
-  });
+  }) .. mirror;
 }
 exports.observe = observe;
 
