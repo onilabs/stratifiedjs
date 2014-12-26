@@ -684,22 +684,6 @@ context("List", function () {
     verify_list(five_list.modify(-2, x -> x + 100), [1, 2, 3, 104, 5]);
   });
 
-  test("set", function () {
-    assert.raises({
-      message: "Index 0 is not valid"
-    }, -> empty_list.set(0, 50));
-
-    assert.raises({
-      message: "Index -1 is not valid"
-    }, -> empty_list.set(-1, 50));
-
-
-    verify_list(five_list.set(0, 50), [50, 2, 3, 4, 5]);
-    verify_list(five_list.set(-1, 50), [1, 2, 3, 4, 50]);
-    verify_list(five_list.set(1, 50), [1, 50, 3, 4, 5]);
-    verify_list(five_list.set(-2, 50), [1, 2, 3, 50, 5]);
-  });
-
   test("concat", function () {
     verify_list(empty_list.concat(empty_list), []);
     verify_list(five_list.concat(five_list), [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
@@ -716,10 +700,6 @@ context("List", function () {
     assert.is(empty_list.concat(five_list), five_list);
 
     var list1 = List([List([])]);
-
-    assert.isNot(list1.set(0, List([])), list1);
-    assert.is(five_list.set(0, 1), five_list);
-    assert.isNot(five_list.set(0, 2), five_list);
 
     assert.isNot(list1.modify(0, function () {
       return List([]);

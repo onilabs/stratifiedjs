@@ -372,9 +372,6 @@
                 "remove": {
                   "type": "function"
                 },
-                "set": {
-                  "type": "function"
-                },
                 "size": {
                   "type": "function"
                 }
