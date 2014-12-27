@@ -374,6 +374,9 @@
                 },
                 "size": {
                   "type": "function"
+                },
+                "slice": {
+                  "type": "function"
                 }
               }
             },

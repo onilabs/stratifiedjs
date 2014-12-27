@@ -381,6 +381,48 @@ __js {
   var array_limit = 125;
 
   var ceiling = Math.ceil;
+  var floor   = Math.floor;
+
+  function add_slice(slices, slice) {
+    @assert.ok(slice.length);
+
+    if (slices.length) {
+      var last = slices[slices.length - 1];
+      if (last.length + slice.length <= array_limit) {
+        slices[slices.length - 1] = last.concat(slice);
+      } else {
+        slices.push(slice);
+      }
+    } else {
+      slices.push(slice);
+    }
+  }
+
+  function slices_to_tree1(slices, min, max) {
+    if (min < max) {
+      var pivot = floor((min + max) / 2);
+      var left  = slices_to_tree1(slices, min, pivot);
+      var right = slices_to_tree1(slices, pivot + 1, max);
+      return new ArrayNode(left, right, slices[pivot]);
+    } else {
+      return nil;
+    }
+  }
+
+  function slices_to_tree(slices) {
+    return slices_to_tree1(slices, 0, slices.length);
+  }
+
+  function array_copy(array) {
+    var len = array.length;
+    var out = new Array(len);
+
+    for (var i = 0; i < len; ++i) {
+      out[i] = array[i];
+    }
+
+    return out;
+  }
 
   function array_insert_at(array, index, value) {
     var len = array.length + 1;
@@ -414,7 +456,7 @@ __js {
       return array;
 
     } else {
-      var new_array = array.slice();
+      var new_array = array_copy(array);
       new_array[index] = new_value;
       return new_array;
     }
@@ -438,6 +480,24 @@ __js {
 
     return out;
   }
+
+  function array_slice(array, from, to) {
+    if (from < 0) {
+      from = 0;
+    }
+
+    var len = array.length;
+    if (to > len) {
+      to = len;
+    }
+
+    if (from === 0 && to === len) {
+      return array;
+    } else {
+      return array.slice(from, to);
+    }
+  }
+
 
   // We use conses at the very end of the list for very fast O(1) push
   function Cons(car, cdr) {
@@ -621,6 +681,31 @@ __js {
       } else {
         var child = nth_remove(right, index - len);
         return balanced_node(node, left, child);
+      }
+    }
+  }
+
+  function nth_slice(slices, node, from, to) {
+    if (node !== nil) {
+      var left = node.left;
+      var size = left.size;
+
+      if (from < size) {
+        nth_slice(slices, left, from, to);
+      }
+
+      var array = node.array;
+      var len   = array.length;
+
+      from -= size;
+      to   -= size;
+
+      if (from < len && to > 0) {
+        add_slice(slices, array_slice(array, from, to));
+      }
+
+      if (to > len) {
+        nth_slice(slices, node.right, from - len, to - len);
       }
     }
   }
@@ -1094,6 +1179,7 @@ __js {
 
     } else if (nth_has(index, len)) {
       var size = root.size;
+      // TODO should this be <= ?
       if (index < size) {
         return new ImmutableList(nth_insert(root, index, value), tail, tail_size);
 
@@ -1188,6 +1274,60 @@ __js {
 
     } else {
       throw new Error("Index " + index + " is not valid");
+    }
+  };
+
+  ImmutableList.prototype.slice = function (from, to) {
+    var len = this.size();
+
+    if (from == null) {
+      from = 0;
+    }
+    if (to == null) {
+      to = len;
+    }
+
+    if (from < 0) {
+      from += len;
+    }
+    if (to < 0) {
+      to += len;
+    }
+
+    if (from === 0 && to === len) {
+      return this;
+
+    } else if (from > to) {
+      throw new Error("Index " + from + " is greater than index " + to);
+
+    } else if (nth_has(from, len)) {
+      if (from === to) {
+        return new ImmutableList(nil, nil, 0);
+
+      // TODO code duplication with nth_has ?
+      } else if (to > 0 && to <= len) {
+        var root = this.root;
+        var size = root.size;
+
+        var slices = [];
+
+        if (from <= size) {
+          nth_slice(slices, root, from, to);
+        }
+
+        if (to > size) {
+          var stack = stack_to_array(this.tail, this.tail_size);
+          add_slice(slices, array_slice(stack, from - size, to - size));
+        }
+
+        return new ImmutableList(slices_to_tree(slices), nil, 0);
+
+      } else {
+        throw new Error("Index " + to + " is not valid");
+      }
+
+    } else {
+      throw new Error("Index " + from + " is not valid");
     }
   };
 
@@ -2063,6 +2203,8 @@ exports.Set = function (array) {
 
      This does not modify the list, it returns a new list.
 
+     ----
+
      `index` defaults to `-1`, which inserts `value` at
      the end of the list.
 
@@ -2081,6 +2223,8 @@ exports.Set = function (array) {
      This function runs in `O(log2(n / 125) + 125)` worst-case time.
 
      This does not modify the list, it returns a new list.
+
+     ----
 
      `index` defaults to `-1`, which removes the value
      at the end of the list.
@@ -2101,6 +2245,8 @@ exports.Set = function (array) {
 
      This does not modify the list, it returns a new list.
 
+     ----
+
      This function calls `fn` with the value at `index`, and
      whatever `fn` returns will be used as the new value at
      `index`:
@@ -2118,6 +2264,49 @@ exports.Set = function (array) {
      `-2` modifies the second-from-last value, etc.
 
      If `index` is not in the list, an error is thrown.
+
+   @function List.slice
+   @param {optional Integer} [from] The index to start at. Defaults to `0`
+   @param {optional Integer} [to] The index to end at. Defaults to `list.size()`
+   @return {::List} A new list with all the values between indexes
+                    `from` (included) and `to` (excluded).
+   @summary Returns a new list with all the values between indexes
+            `from` (included) and `to` (excluded).
+   @desc
+     This function runs in `O(log2(n / 125) + 249 + (2 * (m / 125)))`
+     worst-case time.
+
+     This does not modify the list, it returns a new list.
+
+     ----
+
+     `from` defaults to `0`. `to` defaults to `list.size()`.
+     This means that `list.slice()` returns all the values
+     in `list`.
+
+     If `from` or `to` is negative, it starts counting from
+     the end of the list, so `-1` means the last value of
+     the list, `-2` means the second-from-last value, etc.
+
+     ----
+
+     If `from` is not in the list, an error is thrown.
+
+     If `to` is invalid, an error is thrown.
+
+     If `from` is greater than `to`, an error is thrown.
+
+     ----
+
+     Some examples:
+
+         var list = @List([1, 2, 3, 4]);
+
+         list.slice()       // [1, 2, 3, 4]
+         list.slice(1)      // [2, 3, 4]
+         list.slice(1, 3)   // [2, 3]
+         list.slice(-1)     // [4]
+         list.slice(-2, -1) // [3]
 
    @function List.concat
    @param {sequence::Sequence} [other] The [sequence::Sequence] to append to this list

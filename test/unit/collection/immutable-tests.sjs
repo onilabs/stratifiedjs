@@ -57,7 +57,7 @@ __js {
         assert.is(node.depth, Math.max(left.depth, right.depth) + 1);
 
         var diff = left.depth - right.depth;
-        assert.ok(diff === -1 || diff === 0 || diff === 1);
+        assert.ok(diff === -1 || diff === 0 || diff === 1, diff);
 
         assert.is(node.size, left.size + right.size + node.array.length);
         loop(left);
@@ -684,6 +684,99 @@ context("List", function () {
     verify_list(five_list.modify(-2, x -> x + 100), [1, 2, 3, 104, 5]);
   });
 
+  test("slice", function () {
+    verify_list(empty_list.slice(0, 0), []);
+    verify_list(five_list.slice(0, 0), []);
+    verify_list(five_list.slice(0, 2), [1, 2]);
+    verify_list(five_list.slice(2, 3), [3]);
+    verify_list(five_list.slice(3, 5), [4, 5]);
+    verify_list(five_list.slice(0, 5), [1, 2, 3, 4, 5]);
+
+    verify_list(empty_list.slice(), []);
+
+    assert.raises({
+      message: "Index 5 is greater than index 1"
+    }, -> five_list.slice(5, 1));
+
+    assert.raises({
+      message: "Index 6 is not valid"
+    }, -> five_list.slice(6, 7));
+
+    assert.raises({
+      message: "Index 6 is not valid"
+    }, -> five_list.slice(0, 6));
+
+    assert.raises({
+      message: "Index 10 is not valid"
+    }, -> five_list.slice(10, 10));
+
+    verify_list(five_list.slice(null, 5), [1, 2, 3, 4, 5]);
+    verify_list(five_list.slice(0, null), [1, 2, 3, 4, 5]);
+    verify_list(five_list.slice(null, null), [1, 2, 3, 4, 5]);
+
+    verify_list(five_list.slice(), [1, 2, 3, 4, 5]);
+    verify_list(five_list.slice(0), [1, 2, 3, 4, 5]);
+    verify_list(five_list.slice(-1), [5]);
+    verify_list(five_list.slice(-3), [3, 4, 5]);
+    verify_list(five_list.slice(-3, 4), [3, 4]);
+
+    verify_list(five_list.slice(0, -1), [1, 2, 3, 4]);
+    verify_list(five_list.slice(-2, -1), [4]);
+    verify_list(five_list.slice(-4, -1), [2, 3, 4]);
+    verify_list(five_list.slice(-4, 4), [2, 3, 4]);
+
+
+    var double_list  = List();
+    var double_array = [];
+
+    var len = 125 * 2;
+    for (var i = 0; i < len; ++i) {
+      double_list = double_list.insert(i);
+      double_array.push(i);
+    }
+
+    verify_list(double_list.slice(0, 124), double_array.slice(0, 124));
+    verify_list(double_list.slice(0, 125), double_array.slice(0, 125));
+    verify_list(double_list.slice(0, 126), double_array.slice(0, 126));
+
+    verify_list(double_list.slice(124, 250), double_array.slice(124, 250));
+    verify_list(double_list.slice(125, 250), double_array.slice(125, 250));
+    verify_list(double_list.slice(126, 250), double_array.slice(126, 250));
+
+    verify_list(double_list.slice(124, 125), double_array.slice(124, 125));
+    verify_list(double_list.slice(125, 126), double_array.slice(125, 126));
+
+    verify_list(double_list.slice(0, 250), double_array.slice(0, 250));
+
+
+    var big_list  = List();
+    var big_array = [];
+
+    var len = 125 * 1000;
+    for (var i = 0; i < len; ++i) {
+      big_list = big_list.insert(i);
+      big_array.push(i);
+    }
+
+    verify_list(big_list.slice(0, 125), big_array.slice(0, 125));
+    verify_list(big_list.slice(0, 126), big_array.slice(0, 126));
+    verify_list(big_list.slice(125, 250), big_array.slice(125, 250));
+    verify_list(big_list.slice(50, 125), big_array.slice(50, 125));
+    verify_list(big_list.slice(50, 126), big_array.slice(50, 126));
+    verify_list(big_list.slice(50, 2546), big_array.slice(50, 2546));
+
+    verify_list(big_list.slice(0, len), big_array.slice(0, len));
+    verify_list(big_list.slice(0, len - 1), big_array.slice(0, len - 1));
+    verify_list(big_list.slice(1, len), big_array.slice(1, len));
+    verify_list(big_list.slice(1, len - 1), big_array.slice(1, len - 1));
+    verify_list(big_list.slice(50, 60), big_array.slice(50, 60));
+    verify_list(big_list.slice(50, 125), big_array.slice(50, 125));
+    verify_list(big_list.slice(50, 126), big_array.slice(50, 126));
+    verify_list(big_list.slice(125, 126), big_array.slice(125, 126));
+    verify_list(big_list.slice(124, 126), big_array.slice(124, 126));
+    verify_list(big_list.slice(Math.ceil(len / 2)), big_array.slice(Math.ceil(len / 2)));
+  });
+
   test("concat", function () {
     verify_list(empty_list.concat(empty_list), []);
     verify_list(five_list.concat(five_list), [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]);
@@ -698,6 +791,12 @@ context("List", function () {
     assert.is(empty_list.concat(empty_list), empty_list);
     assert.is(five_list.concat(empty_list), five_list);
     assert.is(empty_list.concat(five_list), five_list);
+
+    assert.is(empty_list.slice(), empty_list);
+    assert.is(five_list.slice(), five_list);
+    assert.is(five_list.slice(0, 5), five_list);
+    assert.isNot(five_list.slice(1, 5), five_list);
+    assert.isNot(five_list.slice(0, 4), five_list);
 
     var list1 = List([List([])]);
 
