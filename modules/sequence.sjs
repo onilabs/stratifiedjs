@@ -138,6 +138,52 @@ __js {
 }
 
 /**
+   @class BatchedStream
+   @inherit ::Stream
+   @summary Stratified stream abstraction
+*/
+
+/**
+   @function BatchedStream
+   @summary Create a BatchedStream from a streaming function
+   @param {Function} [S] Streaming function
+   @desc
+     A streaming function `S` is a function with signature `S(emit)`, where `emit`, is a
+     function of a single argument.
+     When called, `S(emit)` must sequentially invoke `emit(x)` with the stream's data elements
+     `x=x1,x2,x3,...` until the stream is empty. `S` must not invoke `emit` reentrantly.
+
+     For a batched stream the individual data items are **arrays**. The downstream receiver
+     will see an unbatched version of the stream, with individual elements of the array flattend
+     into the stream when [::each] is called on the stream.
+
+     Batched streams are useful when remoting streams over the
+     network: A 'normal' unbatched stream makes a return trip over the
+     network for every single stream item. Sometimes this is what we
+     want, e.g. if the stream is an
+     [observable::Observable]. However, when the streams contains
+     non-temporal data - e.g. if it consists of a number of records
+     retrieved for a database query - then it makes sense to send those 
+     records in batches.
+
+     To create a batched stream from an existing stream, use [::batchN].
+     
+*/
+__js {
+  var batchedStream_toString = function() {
+    return "[object BatchedStream]";
+  };
+  var BatchedStream = function(S) {
+    S.__oni_is_Stream = true;
+    S.__oni_is_BatchedStream = true;
+    S.toString = batchedStream_toString;
+    return S;
+  }
+  exports.BatchedStream = BatchedStream;
+}
+
+
+/**
   @function toStream
   @param {::Sequence} [sequence]
   @return {::Stream}
@@ -189,6 +235,20 @@ __js {
   }
   exports.isStream = isStream;
 }
+
+/**
+   @function isBatchedStream
+   @param {Object} [s] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `s` is a [::BatchedStream], `false` otherwise.
+*/
+__js {
+  function isBatchedStream(s) {
+    return s && s.__oni_is_BatchedStream === true;
+  }
+  exports.isBatchedStream = isBatchedStream;
+}
+
 
 /**
    @function isSequence
@@ -271,10 +331,15 @@ function each(sequence, r) {
   if (fn != null) {
     return fn(sequence, r);
 
-  } else if (isStream(sequence)) {
+  }
+  else if (isBatchedStream(sequence)) {
+    return iterate_batched_stream(sequence, r);
+  }
+  else if (isStream(sequence)) {
     return sequence(r);
 
-  } else {
+  } 
+  else {
     if (isArrayLike(sequence) || isBuffer(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
         var res = r(sequence[i]);
@@ -312,6 +377,12 @@ function async_each(arr, r, i, ef) {
   }
 }
 
+function iterate_batched_stream(sequence, r) {
+  sequence({
+    |arr|
+    arr .. each(r);
+  })
+}
 
 __js var noop = function() {};
 __js function exhaust(seq) { return each(seq, noop); }
@@ -1453,7 +1524,7 @@ function unpack(sequence, u) {
   return Stream(function(r) {
     sequence .. each {
       |x|
-      u(x) .. each { |y| r(y) }
+      u(x) .. each(r);
     }
   })
 }
@@ -2499,3 +2570,36 @@ exports.mirror = function(stream, latest) {
     }
   });
 };
+
+
+//----------------------------------------------------------------------
+
+/**
+   @function batchN
+   @altsyntax sequence .. batchN(count)
+   @param {::Sequence} [sequence] Input sequence
+   @setting {Integer} [count] Maximum number of input elements to batch.
+   @return {::BatchedStream}
+   @summary  Create a [::BatchedStream] with batches of size `count`
+   @desc
+     `batchN` creates a [::BatchedStream] from given [::Sequence] that is more efficient to send
+     over the network: Instead of one roundtrip for every element in `sequence`, a roundtrip will
+     only be made for every `count` elements (or when `sequence` is exhausted).
+*/
+
+function batchN(s, n) {
+  return BatchedStream(function(r) {
+    var batch = [];
+    s .. each {
+      |x|
+      batch.push(x);
+      if (batch.length === n) {
+        r(batch);
+        batch = [];
+      }
+    }
+    if (batch.length)
+      r(batch);
+  });
+}
+exports.batchN = batchN;

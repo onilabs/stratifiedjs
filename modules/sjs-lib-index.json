@@ -1890,6 +1890,14 @@
     "sequence": {
       "type": "module",
       "children": {
+        "BatchedStream": {
+          "type": "class",
+          "children": {
+            "BatchedStream": {
+              "type": "ctor"
+            }
+          }
+        },
         "Sequence": {
           "type": "class",
           "children": {}
@@ -1919,6 +1927,9 @@
           "type": "function"
         },
         "at": {
+          "type": "function"
+        },
+        "batchN": {
           "type": "function"
         },
         "buffer": {
@@ -1982,6 +1993,9 @@
           "type": "function"
         },
         "intersperse": {
+          "type": "function"
+        },
+        "isBatchedStream": {
           "type": "function"
         },
         "isSequence": {

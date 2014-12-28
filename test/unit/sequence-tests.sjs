@@ -1303,3 +1303,22 @@ context("mirror") {||
     log .. @assert.eq([1, 'ERROR: stream failed']);
   }
 }
+
+context("batchN") {||
+  test("exact batching") {||
+    s.integers(1,100) .. s.batchN(10) .. s.count() .. assert.eq(100);
+  }
+
+  test("batching with remainder") {||
+    s.integers(1,102) .. s.batchN(10) .. s.count() .. assert.eq(102);
+  }
+
+  test("batching larger than sequence") {||
+    s.integers(1,102) .. s.batchN(1000) .. s.count() .. assert.eq(102);
+  }
+
+  test("double batching") {||
+    s.integers(1,102) .. s.batchN(10) .. s.batchN(10) .. s.count() .. assert.eq(102);
+  }
+}
+
