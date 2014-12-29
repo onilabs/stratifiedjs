@@ -59,12 +59,24 @@ __js {
         var diff = left.depth - right.depth;
         assert.ok(diff === -1 || diff === 0 || diff === 1, diff);
 
+        assert.ok(node.array.length <= 125);
+
         assert.is(node.size, left.size + right.size + node.array.length);
         loop(left);
         loop(right);
       }
     }
     loop(tree.root);
+
+    var count = 0;
+    var cons = tree.tail;
+    while (cons !== nil) {
+      ++count;
+      cons = cons.cdr;
+    }
+
+    assert.is(count, tree.tail_size);
+    assert.ok(tree.tail_size <= 125);
 
     assert.equal(toJS(tree), array);
 

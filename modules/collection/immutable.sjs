@@ -1,12 +1,8 @@
 /*
- * StratifiedJS 'collection/immutable' module
- * Various immutable data structures, including dictionaries, lists, sets, queues, and stacks
- *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2014 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
