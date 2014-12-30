@@ -2028,6 +2028,9 @@
         "partition": {
           "type": "function"
         },
+        "product": {
+          "type": "function"
+        },
         "reduce": {
           "type": "function"
         },

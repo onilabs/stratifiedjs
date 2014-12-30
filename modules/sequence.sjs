@@ -1750,8 +1750,52 @@ function zipLongest(/* sequences... */) {
       iterators .. each { |iter| iter.destroy() }
     }
   });
-};
+}
 exports.zipLongest = zipLongest;
+
+/**
+   @function product
+   @param {::Sequence} [sequence...] One or more sequences
+   @return {::Stream}
+   @summary  Builds a stream of the Cartesian product of the input sequences
+   @desc
+      Builds a Cartesian product stream 
+      `[x1,y1,z1,...],[x1,y1,z2,...],...,[x1,y2,z1,...],...,[x2,y1,z1,...]` where `x_n, y_n, z_n, ...` are
+      elements of the input sequences `x, y, z, ...`.
+
+      The input sequences y, z, ... will be iterated multiple and must therefore be repeatable. E.g. 
+      `generate(Math.random)` is a non-repeatable sequence; `generate(Math.random) .. take(100) .. toArray` is
+      a repeatable one.
+
+      ### Example:
+
+          product(['timid', 'bloodthirsty'], 
+                  ['wild', 'domesticated'],
+                  ['cat', 'dog', 'shark']) .. map(tuple -> tuple .. join(' '));
+
+          // -> ['timid wild cat', 'timid wild dog', 'timid wild shark',
+          //     'timid domesticated cat', 'timid domesticated dog', 
+          //     'timid domesticated shark', 'bloodthristy wild cat', 
+          //     'bloodthirsty wild dog', 'bloodthirsty wild shark',
+          //     'bloodthirsty domesticated cat', 'bloodthirsty domesticated dog', 
+          //     'bloodthirsty domesticated shark'] 
+*/
+function product(/* arguments */) {
+  var args = arguments;
+  if (args.length === 1)
+    return args[0] .. transform(x->[x]);
+  else
+    return Stream(function(r) {
+      args[0] .. each {
+        |head|
+        product.apply(null, args .. skip(1) .. toArray()) .. each {
+          |tail|
+          r(concat([head], tail) .. toArray);
+        }
+      }
+    })
+}
+exports.product = product;
 
 /**
    @function indexed

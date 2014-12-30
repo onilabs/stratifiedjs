@@ -635,6 +635,19 @@ context('zip') {||
   }
 }
 
+test('product') {||
+  s.product([1,2], [3,4,5], [6,7]) .. s.toArray .. assert.eq([
+    [1,3,6], [1,3,7], [1,4,6], [1,4,7], [1,5,6], [1,5,7],
+    [2,3,6], [2,3,7], [2,4,6], [2,4,7], [2,5,6], [2,5,7]
+  ]);
+
+  s.product([1]) .. s.toArray .. assert.eq([[1]]);
+
+  s.product([1,2], [3], [4]) .. s.toArray .. assert.eq([
+    [1,3,4], [2,3,4]
+  ]);
+
+}
 
 test('groupBy') {||
   [2,4,6,7,9,10] .. s.groupBy(even) .. s.toArray .. assert.eq([

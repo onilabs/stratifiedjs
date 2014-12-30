@@ -236,6 +236,7 @@ module.exports = require(modules);
    - **monitor**: (function [sjs:sequence::monitor])
    - **pack**: (function [sjs:sequence::pack])
    - **partition**: (function [sjs:sequence::partition])
+   - **product**: (function [sjs:sequence::product])
    - **reduce**: (function [sjs:sequence::reduce])
    - **reduce1**: (function [sjs:sequence::reduce1])
    - **reverse**: (function [sjs:sequence::reverse])
