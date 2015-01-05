@@ -56,6 +56,51 @@ var test = testUtil.test;
       "onetwothree" .. @stream.pump(s.dest);
       s.dest.contents() .. @assert.eq("onetwothree");
     }
+
+    @context("pumping a large, buffering duplex stream") {||
+      var { BufferingStream } = require('./buffering_stream.js');
+      var build = function(size) {
+        var b = new Buffer(size);
+        b.fill("x");
+        return b.toString('ascii');
+      };
+
+      var result = [];
+      var expectedSize = 1024;
+
+      var input = build(expectedSize);
+
+      @test("ReadableSteam.pipe()") {||
+        // This test is a canary - if it fails, it probably means that our
+        // BufferingStream implementation is wrong, rather than the stream module.
+        require('sjs:nodejs/tempfile').TemporaryFile {|f|
+          var output = f.writeStream();
+          var s = new BufferingStream();
+          s.pipe(output);
+          input .. @toArray .. @each {|chunk|
+            if(!s.write(chunk)) {
+              s .. @wait('drain');
+            }
+          }
+          s.end();
+          output .. @wait('finish');
+          @fs.readFile(f.path, 'ascii').length .. @assert.eq(input.length);
+        }
+      }
+
+      @test("@stream.pump()") {||
+        var duplex = new BufferingStream();
+        waitfor {
+          input .. @toStream .. @stream.pump(duplex);
+        } and {
+          duplex .. @stream.contents .. @each {|chunk|
+            result.push(chunk);
+          }
+        }
+        var totalSize = result.reduce(function(size, chunk) { return size + chunk.length; }, 0);
+        totalSize .. @assert.eq(expectedSize);
+      }
+    }.skip("BROKEN");
   }
 
   // ReadableStringStream:
