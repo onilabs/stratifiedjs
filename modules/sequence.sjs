@@ -214,14 +214,12 @@ __js {
         // but it cannot modify `arr` directly.
 
     */
-__js {
-  var toStream = function(arr) {
-    if (isStream(arr)) return arr;
-    return Stream(function(r) { each(arr, r)});
-  };
+var toStream = function(arr) {
+  if (isStream(arr)) return arr;
+  return Stream(function(r) { each(arr, r)});
+};
 
-  exports.toStream = toStream;
-}
+exports.toStream = toStream;
 
 /**
    @function isStream

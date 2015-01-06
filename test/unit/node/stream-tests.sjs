@@ -100,7 +100,7 @@ var test = testUtil.test;
         var totalSize = result.reduce(function(size, chunk) { return size + chunk.length; }, 0);
         totalSize .. @assert.eq(expectedSize);
       }
-    }.skip("BROKEN");
+    }//.skip("BROKEN");
   }
 
   // ReadableStringStream:
