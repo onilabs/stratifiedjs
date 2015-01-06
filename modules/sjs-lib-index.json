@@ -1998,6 +1998,12 @@
         "isBatchedStream": {
           "type": "function"
         },
+        "isConcreteSequence": {
+          "type": "function"
+        },
+        "isLazySequence": {
+          "type": "function"
+        },
         "isSequence": {
           "type": "function"
         },
@@ -2586,6 +2592,9 @@
               "type": "function"
             },
             "isBrowser": {
+              "type": "variable"
+            },
+            "isServer": {
               "type": "variable"
             },
             "isWindows": {

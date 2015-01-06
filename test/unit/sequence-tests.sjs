@@ -122,6 +122,27 @@ testEq("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
 
+@test("concrete / lazy sequences") {||
+  [ 1, 2, 3] .. s.isConcreteSequence .. @assert.ok;
+  [ 1, 2, 3] .. s.isLazySequence .. @assert.notOk;
+
+  "123" .. s.isConcreteSequence .. @assert.ok;
+  "123" .. s.isLazySequence .. @assert.notOk;
+
+  ([1,2,3] .. s.toStream()) .. s.isConcreteSequence .. @assert.notOk;
+  ([1,2,3] .. s.toStream()) .. s.isLazySequence .. @assert.ok;
+
+  if(@isServer !== false) {
+    var stream = require('sjs:nodejs/stream');
+    var readable = new stream.ReadableStream('foo');
+    readable .. s.isSequence() .. @assert.ok();
+
+    readable .. s.isConcreteSequence() .. @assert.notOk();
+    readable .. s.isLazySequence() .. @assert.ok();
+  }
+};
+
+
 testEq("skip", "45", function() {
   var rv = '';
   [1,2,3,4,5] .. s.skip(3) .. s.each { |x| rv += x }
@@ -706,20 +727,53 @@ context('unique') {||
 }
 
 context('slice') {||
-  var seq = [0,1,2,3,4,5];
+  var seq = ['0','1','2','3','4','5'];
+
   test('parity with array.slice()') {||
     // just brute force all interesting indexes for our input
     var indexes = [undefined, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
+
+
+    var flattenToString = arr -> arr .. s.map(String) .. s.join;
+    var conversions = [
+      ['toArray', s.toArray],
+      ['toStream', s.toStream],
+      ['flattenToString', flattenToString],
+    ];
+
+    if(@isServer) {
+      conversions.push(['flattenToBuffer', arr -> new Buffer(arr .. flattenToString), String.fromCharCode]);
+    } else {
+      conversions.push(['toNodeList', function(arr) {
+        var parent = document.createElement('div');
+        arr .. s.each {|text|
+          var node = document.createElement('span');
+          node.appendChild(document.createTextNode(text));
+          parent.appendChild(node);
+        }
+        return parent.childNodes;
+      }, (node) -> node.textContent]);
+    }
+
     indexes .. s.each {|start|
       indexes .. s.each {|end|
         var args = [start];
         if (end !== undefined) args.push(end);
-
-        var desc = "seq .. slice(#{args.join(",")})";
-        var result = seq .. s.slice(start, end);
         var expected = seq.slice.apply(seq, args);
-        result .. toArray .. assert.eq(expected, desc);
-        result .. toArray .. assert.eq(expected, "(re-enumerate) #{desc}");
+
+        conversions .. s.each {|[method, convert, convertBack]|
+          var desc = "seq .. #{method} .. slice(#{args.join(",")})";
+          var input = seq .. convert();
+          var result = input .. s.slice(start, end);
+          if(convertBack) result = result .. s.map(convertBack);
+          result .. toArray .. assert.eq(expected, desc);
+          result .. toArray .. assert.eq(expected, "(re-enumerate) #{desc}");
+
+          // we may gain concreteness in some code paths, but we should never lose it:
+          if(input .. s.isConcreteSequence) {
+            s.isConcreteSequence(result) .. assert.ok("result lost concreteness in #{desc}");
+          }
+        }
       }
     }
   }
@@ -775,6 +829,7 @@ context('intersperse') {||
 }
 
 context("iterable nodejs datatypes") {||
+  var stream = require('sjs:nodejs/stream');
   test("Buffer") {||
     new Buffer("12345") .. s.isSequence() .. assert.eq(true);
     new Buffer("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
@@ -800,6 +855,11 @@ context("iterable nodejs datatypes") {||
     require('sjs:nodejs/tempfile').TemporaryFile() {|f|
       f.readStream() .. s.isSequence .. @assert.ok();
     }
+  }
+
+  test("sjs:nodejs/stream::ReadableStream") {||
+    var readable = new stream.ReadableStream();
+    readable .. s.isSequence .. @assert.ok();
   }
 
   test("child_process stdout") {||

@@ -57,7 +57,7 @@ var isBuffer = nope, isReadableStream = nope;
 var nodeStream;
 var nodeStream;
 if (sys.hostenv == 'nodejs') {
-  var readableStreamProto = require('nodejs:stream').Readable;
+  var readableStreamProto = require('nodejs:stream').Readable.prototype;
   var socketProto = require('nodejs:net').Socket.prototype;
   var fsReadStreamProto = require('nodejs:fs').ReadStream.prototype;
   __js {
@@ -88,12 +88,40 @@ function sequential(f) {
 
 /**
    @class Sequence
-   @summary An Array, array-like object (like `arguments` or `NodeList`), String, nodejs Buffer or [::Stream]
+   @summary
+    An Array, array-like object (like `arguments` or `NodeList`),
+    String,
+    nodejs Buffer
+    or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
-     Of the built-in JavaScript constructs, Arrays, the `arguments` object,
-     `NodeList`s (in the xbrowser hostenv), Buffer (in the nodejs hostenv) and Strings are sequences.
-     Strings are treated like Character arrays, and buffers are treated like Integer arrays.
+     Every sequence type is either _concrete_ or _lazy_. This can be tested with
+     [::isConcreteSequence] and [::isLazySequence].
+
+     # Concrete sequences:
+
+     A concrete sequence is one where all elements are already known and present in memory.
+     These can always be iterated over multiple times, and will produce consistent results.
+
+     # Concrete sequence types:
+
+     - Array
+     - String (treated as a Character array)
+     - nodejs Buffer (trated as an Integer array; nodejs only)
+     - any `arguments` object
+     - NodeList (xbrowser only)
+
+     # Lazy sequences:
+
+     A lazy sequence is one where elements are returned on-demand during iteration, and may
+     even be infinite. Iterating over a lazy sequence multiple times may produce
+     different results or even throw an error (depending on the implementation of
+     that sequence).
+
+     ## Lazy sequence types:
+
+     - [::Stream]
+     - nodejs ReadableStream, File stream, Socket, etc
 */
 
 /**
@@ -214,12 +242,9 @@ __js {
         // but it cannot modify `arr` directly.
 
     */
-__js {
-  function toStream(arr) {
-    if (isStream(arr)) return arr;
-    return Stream(function(r) { return each(arr, r)});
-  }
-  exports.toStream = toStream;
+__js var toStream = exports.toStream = function(arr) {
+  if (isStream(arr)) return arr;
+  return Stream(function(r) { return each(arr, r)});
 }
 
 /**
@@ -228,12 +253,7 @@ __js {
    @return {Boolean}
    @summary Returns `true` if `s` is a [::Stream], `false` otherwise.
 */
-__js {
-  function isStream(s) {
-    return s && s.__oni_is_Stream === true;
-  }
-  exports.isStream = isStream;
-}
+__js var isStream = exports.isStream = (s) -> s && s.__oni_is_Stream === true;
 
 /**
    @function isBatchedStream
@@ -241,13 +261,34 @@ __js {
    @return {Boolean}
    @summary Returns `true` if `s` is a [::BatchedStream], `false` otherwise.
 */
-__js {
-  function isBatchedStream(s) {
-    return s && s.__oni_is_BatchedStream === true;
-  }
-  exports.isBatchedStream = isBatchedStream;
-}
+__js var isBatchedStream = exports.isBatchedStream = s ->
+    s && s.__oni_is_BatchedStream === true;
 
+/**
+   @function isConcreteSequence
+   @param {Object} [s] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `s` is a concrete sequence
+   
+   @desc
+    See [::Sequence] for a description of concrete & lazy sequences;
+*/
+__js var isConcrete = exports.isConcreteSequence = (s) ->
+    isArrayLike(s) || isString(s) || isBuffer(s);
+
+/**
+   @function isLazySequence
+   @param {Object} [s] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `s` is a lazy sequence
+   
+   @desc
+    See [::Sequence] for a description of concrete & lazy sequences;
+*/
+__js var isLazy = exports.isLazySequence = (s) ->
+    // XXX interface_each is assumed to be lazy - should we have a type
+    // marker for concrete iterables?
+    isStream(s) || hasInterface(s, interface_each) || isReadableStream(s);
 
 /**
    @function isSequence
@@ -255,17 +296,7 @@ __js {
    @return {Boolean}
    @summary Returns `true` if `s` is a [::Sequence], `false` otherwise.
 */
-__js {
-  function isSequence(s) {
-    return isArrayLike(s) ||
-           isStream(s) ||
-           hasInterface(s, interface_each) ||
-           isString(s) ||
-           isBuffer(s) ||
-           isReadableStream(s);
-  }
-  exports.isSequence = isSequence;
-}
+__js var isSequence = exports.isSequence = (s) -> isConcrete(s) || isLazy(s);
 
 /**
    @function generate
@@ -648,7 +679,7 @@ exports.last = (seq, defaultValue) -> (arguments.length == 1) ? at(seq, -1) : at
   @param {::Sequence} [sequence]
   @param {Number} [start]
   @param {optional Number} [end]
-  @return {::Stream}
+  @return {::Sequence}
   @desc
     This function operates exactly like [Array.slice][],
     except that it accepts any [::Sequence] as input and returns
@@ -663,11 +694,16 @@ exports.last = (seq, defaultValue) -> (arguments.length == 1) ? at(seq, -1) : at
 
     [Array.slice]: https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/slice
 
-    Note that you must not rely on this function returning an array,
-    even though it will do so from some code paths. If you need an array,
-    you should always call [::toArray] on the result.
+    Calling `slice` with a concrete [::Sequence] will always return an Array.
+
+    Calling `slice` with a lazy [::Sequence] will return a [::Sequence].
+    This will either be a [::Stream] or an Array, but you should not depend on
+    which - pass the result through [::toArray] if you require a concrete result.
 */
 function slice(sequence, start, end) {
+  if(isString(sequence) || isBuffer(sequence)) return sequence.slice(start, end);
+  if(isArrayLike(sequence)) return Array.prototype.slice.call(sequence, start, end);
+
   // drop leading values:
   var dropped = 0;
   if (start !== undefined && start !== 0) {
@@ -1158,7 +1194,7 @@ exports.filter = filter;
       `predicate(x)` is truthy, the second contains items where it is falsy. The
       order of the original sequence is maintained in each output sequence.
 
-      If the input is an Array, the output will also be a pair of Arrays. Otherwise,
+      If the input is an Array or other concrete sequence, the output will be a pair of Arrays. Otherwise,
       the output will be a pair of [::Stream]s which consume the input on demand.
 
       Note that if you pass a [::Stream] to this function and then consume the
@@ -1181,7 +1217,7 @@ exports.filter = filter;
 */
 function partition(sequence, predicate) {
   var buffers = [[], []];
-  if (isArrayLike(sequence)) {
+  if (isConcrete(sequence)) {
     sequence .. each {|item|
       buffers[predicate(item) ? 0 : 1].push(item);
     }

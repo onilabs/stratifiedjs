@@ -77,6 +77,11 @@ var { each, filter } = require('../sequence');
   @summary whether the suite is being run in a browser
 */
 var isBrowser = exports.isBrowser = sys.hostenv == "xbrowser";
+/**
+  @variable isServer
+  @summary whether the suite is being run in nodejs (i.e `!isBrowser`)
+*/
+var isServer = exports.isServer = !isBrowser;
 
 /**
   @variable isWindows

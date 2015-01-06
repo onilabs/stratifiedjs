@@ -104,6 +104,11 @@ var test = testUtil.test;
   }
 
   // ReadableStringStream:
+  test("ReadableStringStream is a readable stream", true, function() {
+    var stream = new s.ReadableStringStream("data");
+    return stream .. @stream.isReadableStream();
+  });
+
   test("ReadableStringStream emits data", "data", function() {
     var stream = new s.ReadableStringStream("data");
     var data = '';
