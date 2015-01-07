@@ -227,7 +227,6 @@ module.exports = require(modules);
    - **intersperse**: (function [sjs:sequence::intersperse])
    - **isBatchedStream**: (function [sjs:sequence::isBatchedStream])
    - **isConcreteSequence**: (function [sjs:sequence::isConcreteSequence])
-   - **isLazySequence**: (function [sjs:sequence::isLazySequence])
    - **isSequence**: (function [sjs:sequence::isSequence])
    - **isStream**: (function [sjs:sequence::isStream])
    - **join**: (function [sjs:sequence::join])

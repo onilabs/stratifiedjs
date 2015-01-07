@@ -122,23 +122,16 @@ testEq("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
 
-@test("concrete / lazy sequences") {||
+@test("concrete sequences") {||
   [ 1, 2, 3] .. s.isConcreteSequence .. @assert.ok;
-  [ 1, 2, 3] .. s.isLazySequence .. @assert.notOk;
-
   "123" .. s.isConcreteSequence .. @assert.ok;
-  "123" .. s.isLazySequence .. @assert.notOk;
-
   ([1,2,3] .. s.toStream()) .. s.isConcreteSequence .. @assert.notOk;
-  ([1,2,3] .. s.toStream()) .. s.isLazySequence .. @assert.ok;
 
   if(@isServer !== false) {
     var stream = require('sjs:nodejs/stream');
     var readable = new stream.ReadableStream('foo');
     readable .. s.isSequence() .. @assert.ok();
-
     readable .. s.isConcreteSequence() .. @assert.notOk();
-    readable .. s.isLazySequence() .. @assert.ok();
   }
 };
 

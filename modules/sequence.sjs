@@ -95,13 +95,14 @@ function sequential(f) {
     or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
-     Every sequence type is either _concrete_ or _lazy_. This can be tested with
-     [::isConcreteSequence] and [::isLazySequence].
 
      # Concrete sequences:
 
-     A concrete sequence is one where all elements are already known and present in memory.
-     These can always be iterated over multiple times, and will produce consistent results.
+     A concrete sequence is one where:
+     
+      - all elements are already known and present in memory
+      - iteration will not mutate the sequence
+      - iteration will not suspend between successive elements
 
      # Concrete sequence types:
 
@@ -111,17 +112,23 @@ function sequential(f) {
      - any `arguments` object
      - NodeList (xbrowser only)
 
-     # Lazy sequences:
+     You can use [::isConcreteSequence] to check if a sequence is concrete.
 
-     A lazy sequence is one where elements are returned on-demand during iteration, and may
-     even be infinite. Iterating over a lazy sequence multiple times may produce
-     different results or even throw an error (depending on the implementation of
-     that sequence).
-
-     ## Lazy sequence types:
+     # Non-concrete sequences types:
 
      - [::Stream]
      - nodejs ReadableStream, File stream, Socket, etc
+
+     There are no particular guarantees about the behaviour of non-concrete
+     sequences. In particular, each individual sequence _may or may not_ be:
+
+     - infinite
+     - arbitrarily large
+     - non-replayable (i.e. you may only iterate over the sequence once)
+     - intermittent (successive items may be separated by long periods of time)
+
+     Whether or not a given sequence has any of these traits depends
+     on its implementation, and cannot be tested programmatically.
 */
 
 /**
@@ -271,24 +278,10 @@ __js var isBatchedStream = exports.isBatchedStream = s ->
    @summary Returns `true` if `s` is a concrete sequence
    
    @desc
-    See [::Sequence] for a description of concrete & lazy sequences;
+    See [::Sequence] for a description of concrete sequences;
 */
 __js var isConcrete = exports.isConcreteSequence = (s) ->
     isArrayLike(s) || isString(s) || isBuffer(s);
-
-/**
-   @function isLazySequence
-   @param {Object} [s] Object to test
-   @return {Boolean}
-   @summary Returns `true` if `s` is a lazy sequence
-   
-   @desc
-    See [::Sequence] for a description of concrete & lazy sequences;
-*/
-__js var isLazy = exports.isLazySequence = (s) ->
-    // XXX interface_each is assumed to be lazy - should we have a type
-    // marker for concrete iterables?
-    isStream(s) || hasInterface(s, interface_each) || isReadableStream(s);
 
 /**
    @function isSequence
@@ -296,7 +289,9 @@ __js var isLazy = exports.isLazySequence = (s) ->
    @return {Boolean}
    @summary Returns `true` if `s` is a [::Sequence], `false` otherwise.
 */
-__js var isSequence = exports.isSequence = (s) -> isConcrete(s) || isLazy(s);
+__js var isSequence = exports.isSequence = (s) ->
+  isConcrete(s) ||
+  isStream(s) || hasInterface(s, interface_each) || isReadableStream(s);
 
 /**
    @function generate
@@ -696,9 +691,10 @@ exports.last = (seq, defaultValue) -> (arguments.length == 1) ? at(seq, -1) : at
 
     Calling `slice` with a concrete [::Sequence] will always return an Array.
 
-    Calling `slice` with a lazy [::Sequence] will return a [::Sequence].
-    This will either be a [::Stream] or an Array, but you should not depend on
-    which - pass the result through [::toArray] if you require a concrete result.
+    Otherwise, the return value will be a [::Sequence] - the exact type is
+    implementation-dependent (it will currently be a [::Stream] or Array).
+    You should pass the result through [::toArray] if your code depends
+    on Array-specific behaviour.
 */
 function slice(sequence, start, end) {
   if(isString(sequence) || isBuffer(sequence)) return sequence.slice(start, end);
