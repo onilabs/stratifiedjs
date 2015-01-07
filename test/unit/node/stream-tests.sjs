@@ -70,7 +70,7 @@ var test = testUtil.test;
 
       var input = build(expectedSize);
 
-      @test("ReadableSteam.pipe()") {||
+      @test("ReadableStream.pipe()") {||
         // This test is a canary - if it fails, it probably means that our
         // BufferingStream implementation is wrong, rather than the stream module.
         require('sjs:nodejs/tempfile').TemporaryFile {|f|

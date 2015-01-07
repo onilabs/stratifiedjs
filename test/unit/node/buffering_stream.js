@@ -70,7 +70,7 @@ BufferingStream.prototype._write = function(chunk, encoding, cb) {
 		// console.log("pretend to be slow at writing...");
 		setTimeout(function() { cb(); }, WRITE_TIME);
 	} else {
-		setTimeout(function() { cb(); }, 0);
+		setImmediate(function() { cb(); });
 	}
 };
 BufferingStream.prototype._id = 'BufferingStream';
