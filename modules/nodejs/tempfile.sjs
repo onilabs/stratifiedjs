@@ -128,7 +128,7 @@ exports.tmp = function() {
     **Note:** If you use [::File::readStream] or [::File::writeStream], there will be
     multiple open file descriptors pointing to the same file. The
     [::File::close] method will close all such streams (as well as the actual file),
-    so you should use this instead of just claling [./fs::close].
+    so you should use this instead of just calling [./fs::close].
 */
 exports.TemporaryFile = function(opts, block) {
   if (arguments.length == 1 && @isFunction(opts)) {
