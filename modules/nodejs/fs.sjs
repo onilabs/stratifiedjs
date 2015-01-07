@@ -264,7 +264,9 @@ exports.readdir = function(path) {
 */
 exports.close = function(fd) {
   waitfor (var err) { fs.close(fd, resume); }
-  if (err) throw err;
+  // XXX sometimes node closes the file, but still returns an error "OK, closed"
+  // see also https://www.bountysource.com/issues/104833-fs-close-passes-ok-error-message-to-callback
+  if (err && !/^OK/.test(err.message)) throw err;
 };
 
 /**
