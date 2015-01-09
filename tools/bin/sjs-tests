@@ -7,8 +7,48 @@ from __future__ import print_function
 # $r -- runner: comma-separated list of karma,nodejs
 # $t -- test suite:  unit|integration
 
-import os,sys,subprocess,time
-TRAVIS = os.environ.get('TRAVIS', 'false') == 'true'
+import os,sys,subprocess,time,signal
+def bool_env(name, default='false'):
+	return os.environ.get(name, default).lower() == 'true'
+
+def log(s):
+	print(s)
+	sys.stdout.flush()
+
+def err(s):
+	print(s, file=sys.stderr)
+	sys.stderr.flush()
+
+def log_cmd(cmd):
+	err("Running %r" % (cmd,))
+
+CI = bool_env('CI')
+TRAVIS = bool_env('TRAVIS')
+WINDOWS = sys.platform.startswith('win')
+
+def _annotate_popen_args(k):
+	if WINDOWS:
+		k['creationflags']=subprocess.CREATE_NEW_PROCESS_GROUP
+	return k
+
+def Popen(cmd, **k):
+	log_cmd(cmd)
+	return subprocess.Popen(cmd, **_annotate_popen_args(k))
+
+def kill(proc):
+	if WINDOWS:
+		proc.send_signal(signal.CTRL_BREAK_EVENT)
+		# NOTE: we don't wait() on windows, since that can hang forever.
+		# Just hope for the best...
+	else:
+		proc.terminate()
+		proc.wait();
+
+def check_call(cmd, **k):
+	log_cmd(cmd)
+	return subprocess.check_call(cmd, **_annotate_popen_args(k))
+
+
 browsers = os.environ.get('BROWSERS', 'PhantomJS').strip().split(',')
 suite = os.environ.get('t', None)
 args = sys.argv[1:]
@@ -22,7 +62,7 @@ else: sjs_root = os.getcwd()
 
 default_runners = 'node,karma'
 
-if TRAVIS:
+if CI:
 	# use presence of BROWSERS to imply node/karma runner
 	default_runners = 'karma' if 'BROWSERS' in os.environ else 'node'
 
@@ -31,7 +71,7 @@ runners = os.environ.get('r', default_runners).lower().split(',')
 if TRAVIS and 'karma' in runners:
 	if browsers != ['PhantomJS']:
 		os.environ['DISPLAY'] = ':99'
-		subprocess.check_call(["sh", "-e", "/etc/init.d/xvfb", "start"])
+		check_call(["sh", "-e", "/etc/init.d/xvfb", "start"])
 		time.sleep(3)
 
 node = os.environ.get('NODEJS', 'node')
@@ -46,30 +86,65 @@ if suite and 'integration' in suite:
 	# make sure npm-installed conductance can be found on $PATH
 	os.environ['PATH'] = os.pathsep.join([
 		os.environ['PATH'],
-		os.path.abspath('node_modules/.bin')
+
+		# npm-generated binaries don't even work on windows, so don't bother
+		os.path.abspath('node_modules/conductance') if WINDOWS else os.path.abspath('node_modules/.bin'),
 	])
-	if subprocess.Popen(['which', 'conductance'], stdout=null, stderr=subprocess.STDOUT).wait() != 0:
-		subprocess.check_call([npm, 'install', '--production', 'conductance'])
-	conductance = subprocess.Popen(['conductance', 'serve', 'test/config.mho'], stdout=null)
+
+	conductance_installed = False
+	conductance_exe = None
+
+	def find_conductance():
+		# ext = '.cmd' if WINDOWS else ''
+		for p in os.environ['PATH'].split(os.pathsep):
+			candidate = os.path.join(p, 'conductance')
+			if os.path.exists(candidate):
+				err("Found conductance in %s" % candidate)
+				if WINDOWS:
+					# NOTE: we don't use conductance.cmd because that
+					# doesn't get killed properly.
+					return [node, candidate]
+				return [candidate]
+		else:
+			return None
+
+	conductance_args = find_conductance()
+	if conductance_args is None:
+		check_call([npm, 'install', '--production', 'conductance'])
+		conductance_args = find_conductance()
+		if conductance_args is None:
+			err("Could not find conductance.")
+			sys.exit(1)
+
+	conductance = Popen(conductance_args + ['serve', 'test/config.mho'], stdout=null)
 	time.sleep(1)
 	assert conductance.poll() is None, "conductance process exited with status %s" % conductance.poll()
+	err("conductance launched (pid %s)" % conductance.pid)
 
 try:
-	if TRAVIS:
+	if TRAVIS: # should probably be CI, but appveyor fails to build some stuff properly atm
 		# fail if there are outstanding VCS changes
-		subprocess.check_call([node, 'sjs', 'src/build/buildscript.sjs'])
-		subprocess.check_call([node, 'sjs', 'tools/vcs-changes.sjs'])
+		check_call([node, 'sjs', 'src/build/buildscript.sjs'])
+		check_call([node, 'sjs', 'tools/vcs-changes.sjs'])
 
 	for runner in runners:
 		if runner == 'node':
-			subprocess.check_call([node, 'sjs', testmod] + args)
+			check_call([node, 'sjs', testmod] + args)
 		elif runner == 'karma':
 			if not os.path.exists('node_modules/karma-sjs-adapter'):
-				subprocess.check_call([npm, 'install'])
+				check_call([npm, 'install'])
 
+			# XXX do the same hacks as test/karma, because we can't
+			# rely on bash being installed (windows)
+			np = os.environ.get('NODE_PATH')
+			np = np.split(os.pathsep) if np else []
+			np.append(os.path.dirname(sjs_root))
+			os.environ['NODE_PATH'] = os.pathsep.join(np)
 
-			subprocess.check_call([
-				'test/karma',
+			check_call([
+				node,
+				'node_modules/karma-sjs-adapter/karma-sjs',
+				# 'test/karma',
 				'start',
 				'tools/karma/conf.js',
 				'--single-run',
@@ -80,10 +155,11 @@ try:
 			raise AssertionError("Unknown runner: %s" % (runner,))
 
 except subprocess.CalledProcessError as e:
-	print(str(e), file=sys.stderr)
+	err("Error: " + str(e))
 	sys.exit(1)
 finally:
 	if conductance is not None:
-		conductance.terminate()
-		conductance.wait()
+		err("Shutting down conductance server (pid %s)..." % conductance.pid)
+		kill(conductance)
+		err("Server shutdown complete.")
 

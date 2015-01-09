@@ -856,11 +856,7 @@ context("iterable nodejs datatypes") {||
   }
 
   test("child_process stdout") {||
-    var p;
-    if (process.platform === 'win32')
-      p = @childProcess.launch('cmd',['/c', 'echo 123'], {'stdio':['ignore','pipe',2]});
-    else
-      p = @childProcess.launch('echo', ['123'], {'stdio':['ignore','pipe',2]});
+    var p = @childProcess.launch(process.execPath, ['-e', 'console.log(123)'], {'stdio':['ignore','pipe',2]});
     p.stdout .. s.isSequence .. @assert.ok();
     p.stdout .. @each(@info); // consume stream
     p .. @childProcess.wait();
