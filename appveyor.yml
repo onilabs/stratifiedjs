@@ -26,9 +26,7 @@ matrix:
 branches:
   # build only master and release braches
   only:
-    # - master
-    # - /^\d+(\.\d+)+$/
-    #XXX testing
-    - appveyor
+    - master
+    - /^\d+(\.\d+)+$/
 
 version: "{build}"
