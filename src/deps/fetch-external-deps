@@ -46,7 +46,7 @@ for (var i=0; i<sources.length; ++i) {
   console.log('Checking out revision '+src.commit);
   run('git', ['checkout', src.commit], {cwd: src.dir});
   console.log('Reapplying our patches');
-  run('git', ['checkout', '--'], {cwd: src.dir});
+  run('git', ['checkout', '--', src.dir]);
 }
 
 
