@@ -34,9 +34,9 @@
    @home      sjs:service
 */
 
-var { extend, hasOwn, ownKeys, ownPropertyPairs } = require('./object');
+var { get, extend, hasOwn, ownKeys, ownPropertyPairs } = require('./object');
 var { isFunction } = require('./function');
-var { each, sort, join } = require('./sequence');
+var { transform, each, sort, join } = require('./sequence');
 
 /**
   @class Registry
@@ -135,23 +135,30 @@ RegistryProto.lazy = function(key, factory) {
     If the value has not been defined in this registry (or a parent),
     `default` will be returned or an error thrown if no `default` given.
 */
+RegistryProto._NotFound = function(key) {
+  return new Error("Key '#{key}' not found in #{this}");
+};
+
 RegistryProto.get = function(key, _default) {
-  if (!this.has(key)) {
+  var pair = this._get(key);
+  if (!pair) {
     if (arguments.length > 1) return _default;
-    throw new Error("Key '#{key}' not found in #{this}");
+    throw this._NotFound(key);
   }
-  if (this._has(key)) {
-    var service = this._db[key];
-    if (!service .. hasOwn('instance')) {
-      var instance = service.factory.call(this, this);
-      if (service.cache) {
-        service.instance = instance;
-      }
-      return instance;
-    }
+
+  var [owner, service] = pair;
+  if (service .. hasOwn('instance')) {
     return service.instance;
+  } else {
+    var instance = service.factory.call(owner, owner);
+    if (service.cache) service.instance = instance;
+    return instance;
   }
-  return this._parent.get(key);
+};
+
+RegistryProto._get = function(key) {
+  if (this._has(key)) return [this, this._db[key]];
+  if (this._parent) return this._parent._get(key);
 };
 
 /* like _has, but this instance only - no inherited keys from _parent */
@@ -169,19 +176,53 @@ RegistryProto._has = function(key) {
     `false` otherwise.
 */
 RegistryProto.has = function(key) {
-  if (this._has(key)) return true;
-  if (this._parent) return this._parent.has(key);
+  return Boolean(this._get(key));
+};
+
+/**
+  @function Registry.hasCached
+  @param {String} [key]
+  @summary Return whether a lazy value has been cached
+  @return {Boolean}
+  @desc
+    Returns `true` if the key is defined as a [::Registry::lazy], and its
+    value has already been generated.
+*/
+RegistryProto.hasCached = function(key) {
+  var pair = this._get(key);
+  if(pair) {
+    var service = pair[1];
+    return service .. hasOwn('factory') && service .. hasOwn('instance');
+  }
   return false;
 };
 
 /**
   @function Registry.clearCached
-  @summary Delete all cached [::Registry::lazy] results from this [::Registry]
+  @summary Delete cached [::Registry::lazy] results from this [::Registry]
+  @param {optional Array|String} [keys] Clear specific keys
   @desc
+    If `keys` is specified (as either a String or an Array of Strings), those
+    specific keys are cleared (whether they appear in this registry or a parent).
+
+    It is an error to give a key which is not defined, however it is _not_
+    an error if the given key is not actually `lazy`, or has not been generated.
+    
+    Otherwise, all cached value defined _on this specific registry_ (not a parent)
+    will be cleared.
+
     **Note**: This function does not affect cached values in parent registries.
 */
-RegistryProto.clearCached = function() {
-  this._db .. ownPropertyPairs .. each {|[key, val]|
+RegistryProto.clearCached = function(keys) {
+  if(!keys) {
+    keys = this._db .. ownKeys; // .. each {|[key, val]|
+  } else {
+    if (!Array.isArray(keys)) keys = [keys];
+  }
+  keys .. each {|key|
+    var val = this._get(key);
+    if(!val) throw this._NotFound(key);
+    val = val[1];
     if (val .. hasOwn('factory')) {
       delete val.instance;
     }

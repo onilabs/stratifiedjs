@@ -72,6 +72,23 @@ context('service registry') {||
       s.log .. assert.eq(['a','b','c','a','b','c']);
     }
 
+    test('clearCached with explicit keys') {|s|
+      s.reg.get('c') .. assert.eq('c');
+      s.log .. assert.eq(['a','b','c']);
+
+      s.reg.clearCached('c');
+
+      s.reg.get('c') .. assert.eq('c');
+      s.log .. assert.eq(['a','b','c','c']);
+
+      s.reg.clearCached(['b','c']);
+      s.reg.get('c') .. assert.eq('c');
+      s.log .. assert.eq(['a','b','c','c','b','c']);
+    }
+
+    test('clearCached on missing key') {|s|
+      assert.raises({message: /^Key 'foo' not found in <#Registry.*/}, -> s.reg.clearCached('foo'));
+    }
   }
     
   context("inheritance") {||
@@ -113,8 +130,12 @@ context('service registry') {||
       s.reg.clearCached();
       s.childReg.get('childVal');
       s.log .. assert.eq(['parent','child', 'child', 'parent', 'child']);
-    }
 
+      // parent value can be cleared from child if explicitly specified
+      s.childReg.clearCached(['parentVal', 'childVal']);
+      s.childReg.get('childVal');
+      s.log .. assert.eq(['parent','child', 'child', 'parent', 'child', 'parent','child']);
+    }
   }
 
   test('calling registry as a shortcut for get()') {|s|
