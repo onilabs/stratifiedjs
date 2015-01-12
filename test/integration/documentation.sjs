@@ -152,7 +152,10 @@ exports.testLibrary = function(hub) {
             // filter out symbols that are specifically unavailable in this hostenv
             function shouldBeImportable(sym) {
               var doc = moduleDoc.children[sym];
-              if (doc.type === 'class') return false; // classes aren't exported, only constructors
+              if (['class','feature'] .. @hasElem(doc.type)) {
+                // these types aren't actually runtime symbols
+                return false;
+              }
               var hostenv = doc.hostenv;
               return (hostenv == null || hostenv === @sys.hostenv);
             }
