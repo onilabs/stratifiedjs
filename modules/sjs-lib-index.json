@@ -2121,6 +2121,9 @@
             "has": {
               "type": "function"
             },
+            "hasCached": {
+              "type": "function"
+            },
             "lazy": {
               "type": "function"
             },
