@@ -247,12 +247,18 @@ function is(x, y) {
 }
 exports.is = is;
 
+__js function escape(x) {
+  return x.replace(/[\\ ]/g, function (s) {
+    return "\\" + s;
+  });
+}
+
 /**
   @function Token
   @summary Create a string unique across all loaded modules
   @param {Module} [module]
   @param {String} [type] Token type (such as 'interface')
-  @param {String} [name] 
+  @param {String} [name]
   @return {String}
   @desc
     Before you can use `Interface` you must use [#language/builtins::module.setCanonicalId]
@@ -268,14 +274,14 @@ exports.is = is;
     Tokens are "transportable" across system boundaries in the sense
     that Tokens with the same `(type, name)` tuple are identical
     strings if they are defined in modules that have identical
-    canonical ids. 
+    canonical ids.
 */
 function Token(module, type, name) {
   var id = module.getCanonicalId();
   if (id == null) {
     throw new Error("You must use module.setCanonicalId before you can use Token(.)");
   } else {
-    return "__#{type}_" + id + "_" + name.replace(/_/g, '__') + "__";
+    return "(#{type} " + escape(id) + " " + escape(name) + ")";
   }
 }
 exports.Token = Token;
