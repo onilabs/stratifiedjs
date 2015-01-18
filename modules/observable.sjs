@@ -37,7 +37,11 @@
 
 
 var cutil = require('./cutil');
-var { Stream, toArray, slice, integers, each, transform, first, skip, mirror } = require('./sequence');
+var { Stream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_ObservableArray_project } = require('./sequence');
+var { merge, clone } = require('./object');
+var { Interface, Token } = require('./type');
+
+module.setCanonicalId('sjs:observable');
 
 /**
   @class Observable
@@ -258,7 +262,9 @@ exports.isConflictError = function(ex) {
     When the returned stream is being iterated, the `transformer` function will be called
     to generate the current value whenever one of the inputs changes.
     `transformer` is passed the most recent value of all inputs, in the same order
-    they were passed to the `observe` function.
+    they were passed to the `observe` function. All inputs will be passed through 
+    [::reconstitute], ensuring that the value seen by the transformer for a given input 
+    represents that inputs current value and not a mutation object.  
 
     If one of the inputs changes during execution of `transformer`, the execution will be
     aborted, and `transformer` will be called with the new set of inputs.
@@ -329,7 +335,7 @@ function observe(/* var1, ...*/) {
       cutil.waitforAll(
         function(i) {
           var first = true;
-          deps[i] .. each {
+          deps[i] .. reconstitute .. each {
             |x|
             if (first) {
               ++primed;
@@ -411,3 +417,262 @@ function eventStreamToObservable(events, getInitial) {
   });
 }
 exports.eventStreamToObservable = eventStreamToObservable;
+
+//----------------------------------------------------------------------
+
+/**
+   @class ObservableArray
+   @inherit ::Observable
+   @summary An Observable stream tracking Array mutations
+   @desc
+      An ObservableArray is a Stream (with [::Observable] semantics) representing 
+      the changing state of an array (e.g. that of an [::ObservableArrayVar]).
+
+      The first element in the stream is a copy of the current array. (This implies
+      that calling [::current] on an ObservableArray yields the desired result of 
+      returning the tracked arrays current value).
+
+      Subsequent elements of the stream consist of objects that contain a list of mutations:
+
+          { mutations: [ ... ] }, { mutations: [ ... ] }, ...
+
+      There are 3 types of mutations:
+
+      * Resetting the complete array to the given value:
+      
+            { type: 'reset', val: NEW_ARRAY_VALUE }
+
+      * Inserting a new element:
+
+            { type: 'ins', val: NEW_ELEMENT_VALUE, idx: INDEX_WHERE_TO_INSERT }
+
+      * Removing an element at a given index:
+
+            { type: 'del', idx: INDEX_WHERE_TO_REMOVE }
+
+      * Setting the value at a given index:
+
+            { type: 'set', val: NEW_ELEMENT_VALUE, idx: INDEX_WHERE_TO_SET }
+
+      An ObservableArray can be 'reconstituted' into a plain
+      Observable of the complete array (and not only mutations) by
+      using [::reconstitute].
+
+      Calling [sequence::project] on an ObservableArray is equivalent to calling
+      `@transform(elems -> elems .. @project(elem -> f(elem)))` on the reconsitituted 
+      stream, but it yields an ObservableArray (i.e. a stream of mutations).
+*/
+
+// project method, hooked into sequence::knownProjectionMethods:
+function ObservableArray_project(upstream, transformer) {
+  return ObservableArray(
+    upstream .. 
+      transform(function(item) {
+        if (item.mutations) {
+          return {mutations: 
+                  item.mutations .. 
+                  project(function(delta) {
+                    switch (delta.type) {
+                    case 'reset':
+                      delta = delta .. merge({val: delta.val .. project(transformer)});
+                      break;
+                    case 'set':
+                    case 'ins':
+                      delta = delta .. merge({val: transformer(delta.val)});
+                      break;
+                    case 'del':
+                      break;
+                    default:
+                      throw new Error("Unknown operation in ObservableArray stream");
+                    }
+                    return delta;
+                  })
+                 };
+        }
+        else {
+          // first value in stream
+          return item .. project(transformer);
+        }
+      }));
+};
+exports.ObservableArray_project = ObservableArray_project;
+
+function ObservableArray(stream) {
+  stream[ITF_PROJECT] = METHOD_ObservableArray_project;
+  stream[ITF_RECONSTITUTE] = METHOD_ObservableArray_reconstitute;
+  return stream;
+}
+exports.ObservableArray = ObservableArray;
+
+/**
+   @class ObservableArrayVar
+   @summary An array variable trackable with an [::ObservableArray] stream.
+
+   @function ObservableArrayVar
+   @param {Array|undefined} [val] Initial value
+   
+   @function ObservableArrayVar.set
+   @param {Integer} [idx] Index
+   @param {Object} [val] Value
+   @summary Sets the element at a given index
+
+   @function ObservableArrayVar.remove
+   @param {Integer} [idx] Index
+   @summary Removes the element at a given index
+
+   @function ObservableArrayVar.insert
+   @param {Integer} [idx] Index
+   @param {Object} [val] Value
+   @summary Inserts an element at the given index
+
+   @function ObservableArrayVar.get
+   @summary Returns the array
+
+   @variable ObservableArrayVar.stream
+   @summary [::ObservableArray] stream with with the ObservableArrayVar can be tracked
+*/
+function ObservableArrayVar(arr) {
+  arr = arr || [];
+
+  var most_recent_revision = 0;
+  var oldest_revision = 1;
+  var mutations = [];
+
+  var mutation = Object.create(cutil._Waitable);
+  mutation.init();
+
+  function emit_mutation(m) {
+    // we maintain a backlog of around array.length mutations;
+    // assumption is that each array item costs about as much to
+    // serialize as a single mutation. XXX Could make this
+    // configurable.
+    ++most_recent_revision;
+    mutations.push(m);
+    if (mutations.length > arr.length) {
+      mutations.shift();
+      ++oldest_revision;
+    }
+    mutation.emit();
+  }
+
+  return {
+    set: function(idx, value) {
+      arr[idx] = value;
+      emit_mutation({type:'set', val: value, idx: idx});
+    },
+    insert: function(idx, value) {
+      arr.splice(idx, 0, value);
+      emit_mutation({type:'ins', val: value, idx: idx});
+    },
+    remove: function(idx) {
+      arr.splice(idx, 1);
+      emit_mutation({type:'del', idx: idx});
+    },
+    get: -> arr,
+
+    stream: ObservableArray(Stream(function(r) {
+      var have_revision = most_recent_revision;
+      r(arr .. clone);
+      while (true) {
+        if (have_revision === most_recent_revision)
+          mutation.wait();
+        if (have_revision+1 < oldest_revision) {
+          // we don't have enough history; send a reset:
+          have_revision = most_recent_revision;
+          r({mutations:[{type: 'reset', val: arr .. clone}]});
+        }
+        else {
+          var deltas = mutations.slice(have_revision+1-oldest_revision);
+          have_revision = most_recent_revision;
+          r({mutations:deltas});
+        }
+      }
+    }))
+  };
+}
+exports.ObservableArrayVar = ObservableArrayVar;
+
+
+//----------------------------------------------------------------------
+// reconstitute
+
+var METHOD_ObservableArray_reconstitute = Token(module, 'method', 'ObservableArray_reconstitute');
+function ObservableArray_reconstitute(obsarr) {
+  return Stream(function(r) {
+    var arr = undefined;
+    obsarr .. each {
+      |item|
+      if (arr === undefined) {
+        arr = item .. clone; // the first item in the stream is always the value itself
+      }
+      else {
+        item.mutations .. each {
+          |mutation|
+          switch (mutation.type) {
+          case 'reset':
+            arr = mutation.val .. clone;
+            break;
+          case 'set':
+            arr[mutation.idx] = mutation.val;
+            break;
+          case 'ins':
+            arr.splice(mutation.idx, 0, mutation.val);
+            break;
+          case 'del':
+            arr.splice(mutation.idx, 1);
+            break;
+          default:
+            throw new Error("Unknown operation in ObservableArray stream");
+          }
+        }
+      }
+      r(arr);
+    }
+  });
+};
+
+
+__js {
+  /*
+    @variable ITF_RECONSTITUTE
+    XXX document
+   */
+  var ITF_RECONSTITUTE = Interface(module, 'reconstitute');
+  exports.ITF_RECONSTITUTE = ITF_RECONSTITUTE;
+
+  /*
+    @variable knownReconstitutionMethods
+    XXX document
+   */
+  var knownReconstitutionMethods = {};
+  knownReconstitutionMethods[METHOD_ObservableArray_reconstitute] = ObservableArray_reconstitute;
+  exports.knownReconstitutionMethods = knownReconstitutionMethods;
+  
+  /**
+    @function reconstitute
+    @param {sequence::Sequence}
+    @summary Reconstitute a stream of mutations into a stream of the mutated value
+    @desc
+      Some streams, such as [::ObservableArray], consist of mutations to an underlying value,
+      rather than the underlying value itself.
+      `reconstitute` generates a stream that contains the current 'reconstituted' value rather
+      than the mutations.
+
+      For generic streams, `reconstitute` just returns the stream itself. 
+  */
+
+  function reconstitute(stream) {
+    var method = stream[ITF_RECONSTITUTE];
+    if (typeof method === 'function') { 
+      return method(stream);
+    }
+    else if (typeof method === 'string') {
+      method = knownReconstitutionMethods[method];
+      if (!method) throw new Error('unknown reconstitution method');
+      return method(stream);
+    }
+    else
+      return stream;
+  }
+  exports.reconstitute = reconstitute;
+}

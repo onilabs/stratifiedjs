@@ -182,8 +182,10 @@ module.exports = require(modules);
    - **eventStreamToObservable**: (function [sjs:observable::eventStreamToObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
    - **isObservableVar**: (function [sjs:observable::isObservableVar])
+   - **ObservableArrayVar**: (class [sjs:observable::ObservableArrayVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
    - **observe**: (function [sjs:observable::observe])
+   - **reconstitute**: (function [sjs:observable::reconstitute])
   
   
   ### Symbols from the [sjs:quasi](#sjs%3Aquasi) module:
@@ -238,6 +240,7 @@ module.exports = require(modules);
    - **pack**: (function [sjs:sequence::pack])
    - **partition**: (function [sjs:sequence::partition])
    - **product**: (function [sjs:sequence::product])
+   - **project**: (function [sjs:sequence::project])
    - **reduce**: (function [sjs:sequence::reduce])
    - **reduce1**: (function [sjs:sequence::reduce1])
    - **reverse**: (function [sjs:sequence::reverse])

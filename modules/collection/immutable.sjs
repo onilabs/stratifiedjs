@@ -1573,24 +1573,24 @@ SetNode.prototype.forEach = function (f) {
   this.right.forEach(f);
 };
 
-ImmutableDict.prototype[@interface_each] = function (x, f) {
+ImmutableDict.prototype[@ITF_EACH] = function (x, f) {
   x.root.forEach(f);
 };
 
 
-ImmutableSet.prototype[@interface_each] = ImmutableDict.prototype[@interface_each];
+ImmutableSet.prototype[@ITF_EACH] = ImmutableDict.prototype[@ITF_EACH];
 
-ImmutableList.prototype[@interface_each] = function (x, f) {
+ImmutableList.prototype[@ITF_EACH] = function (x, f) {
   x.root.forEach(f);
   x.tail.forEachRev(f);
 };
 
-ImmutableQueue.prototype[@interface_each] = function (x, f) {
+ImmutableQueue.prototype[@ITF_EACH] = function (x, f) {
   x.left.forEach(f);
   x.right.forEachRev(f);
 };
 
-ImmutableStack.prototype[@interface_each] = function (x, f) {
+ImmutableStack.prototype[@ITF_EACH] = function (x, f) {
   x.root.forEachRev(f);
 };
 

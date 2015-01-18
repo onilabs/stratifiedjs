@@ -1808,6 +1808,33 @@
           "type": "class",
           "children": {}
         },
+        "ObservableArray": {
+          "type": "class",
+          "children": {}
+        },
+        "ObservableArrayVar": {
+          "type": "class",
+          "children": {
+            "ObservableArrayVar": {
+              "type": "ctor"
+            },
+            "get": {
+              "type": "function"
+            },
+            "insert": {
+              "type": "function"
+            },
+            "remove": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "stream": {
+              "type": "variable"
+            }
+          }
+        },
         "ObservableVar": {
           "type": "class",
           "children": {
@@ -1841,6 +1868,9 @@
           "type": "function"
         },
         "observe": {
+          "type": "function"
+        },
+        "reconstitute": {
           "type": "function"
         }
       },
@@ -2032,6 +2062,9 @@
           "type": "function"
         },
         "product": {
+          "type": "function"
+        },
+        "project": {
           "type": "function"
         },
         "reduce": {
@@ -2625,12 +2658,10 @@
       "type": "module",
       "children": {
         "Interface": {
-          "type": "class",
-          "children": {
-            "Interface": {
-              "type": "ctor"
-            }
-          }
+          "type": "function"
+        },
+        "Token": {
+          "type": "function"
         },
         "hasInterface": {
           "type": "function"

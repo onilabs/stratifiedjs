@@ -42,7 +42,7 @@
 
 var {isArrayLike, isQuasi, streamContents} = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
-var { Interface, hasInterface } = require('./type');
+var { Interface, hasInterface, Token } = require('./type');
 var sys = require('builtin:apollo-sys');
 
 module.setCanonicalId('sjs:sequence');
@@ -291,7 +291,7 @@ __js var isConcrete = exports.isConcreteSequence = (s) ->
 */
 __js var isSequence = exports.isSequence = (s) ->
   isConcrete(s) ||
-  isStream(s) || hasInterface(s, interface_each) || isReadableStream(s);
+  isStream(s) || hasInterface(s, ITF_EACH) || isReadableStream(s);
 
 /**
    @function generate
@@ -348,11 +348,11 @@ slightly non-trivial implementation to optimize performance in the
 non-synchronous case:
 */
 __js {
-var interface_each = Interface(module, 'each');
-exports.interface_each = interface_each;
+var ITF_EACH = Interface(module, 'each');
+exports.ITF_EACH = ITF_EACH;
 
 function each(sequence, r) {
-  var fn = sequence[interface_each];
+  var fn = sequence[ITF_EACH];
   if (fn != null) {
     return fn(sequence, r);
 
@@ -408,6 +408,86 @@ function iterate_batched_stream(sequence, r) {
     arr .. each(r);
   })
 }
+
+
+//----------------------------------------------------------------------
+// projection
+
+
+
+__js {
+  /*
+    @variable ITF_PROJECT
+    XXX TO BE DOCUMENTED
+  */
+  var ITF_PROJECT = Interface(module, 'project');
+  exports.ITF_PROJECT = ITF_PROJECT;
+  
+
+  /*
+    @variable knownProjectionMethods
+    XXX TO BE DOCUMENTED
+  */
+  var METHOD_ObservableArray_project = Token(module, 'method', 'ObservableArray_project');
+  exports.METHOD_ObservableArray_project = METHOD_ObservableArray_project;
+
+  var knownProjectionMethods = {};
+  exports.knownProjectionMethods = knownProjectionMethods;
+}
+
+knownProjectionMethods[METHOD_ObservableArray_project] = (s,t) -> require('sjs:observable').ObservableArray_project(s,t);
+
+__js {
+  /**
+    @function project
+    @altsyntax sequence .. project(f)
+    @param {::Sequence} [sequence] Input sequence
+    @param {Function} [f] Function to map over `sequence`
+    @return {::Sequence} Sequence of same type as input sequence
+    @summary  Map a function over a sequence in a type-preserving way
+   @desc
+
+      Performs a type-preserving map transformation. 
+      `sequence .. project(f)` is equivalent to
+
+       * `sequence .. @transform(f)` if `sequence` is a generic [::Stream].
+       * `arr .. @transform(f) .. @toArray` if `arr` is array-like.
+       * `str .. @transform(f) .. @join('')` if  `str` is a string.
+
+
+      For [observable::ObservableArray], `sequence .. project(f)`
+      returns an [observable::ObservableArray] where each element
+      `e` of the array is transformed to `f(e)`. 
+  */
+  function project(sequence, f) {
+    var method = sequence[ITF_PROJECT];
+    if (typeof method === 'function') {
+      return method(sequence, f);
+    }
+    else if (typeof method === 'string') {
+      method = knownProjectionMethods[method];
+      if (!method) throw new Error('unknown projection method');
+      return method(sequence, f);
+    }
+    // else if (isBatchedStream(sequence)) //XXX
+    else if (isStream(sequence)) {
+      return transform(sequence, f);
+    }
+    else if (isArrayLike(sequence)) {
+      return map(sequence, f);
+    }
+    else if (isString(sequence)) {
+      return project_string(sequence, f);
+    }
+    else 
+      throw new Error("Don't know how to project this sequence");
+  }
+  exports.project = project;
+}
+
+var project_string = (str, f) -> str .. transform(f) .. join('');
+
+
 
 __js var noop = function() {};
 __js function exhaust(seq) { return each(seq, noop); }
@@ -1257,6 +1337,7 @@ exports.partition = partition;
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to apply to each element of `sequence`
    @return {Array}
+   @deprecated Usually you want to use [::transform] or [::project]
    @summary  Create an array `f(x)` of elements `x` of `sequence`
    @desc
       Generates an array of elements `[f(x1), f(x2), f(x3),...]` where `x1, x2, x3, ..`
