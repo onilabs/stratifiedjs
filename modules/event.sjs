@@ -96,8 +96,9 @@ function Emitter() {
       waitfor(var val) {
         listeners.push(resume);
       }
-      // could clean up listener under retraction, but benign to just
-      // leave it; it's an uncommon case
+      retract {
+        __js listeners.splice(listeners.indexOf(resume), 1);
+      }
       receiver(val);
     }
   });
