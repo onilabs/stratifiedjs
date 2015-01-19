@@ -311,6 +311,15 @@ function request_hostenv(url, settings) {
   retract {
     req.abort();
   }
+  finally {
+    if (typeof req.onerror !== 'undefined') {
+      req.onload = null;
+      req.onerror = null;
+      req.onabort = null;
+    }
+    else
+      req.onreadystatechange = null;
+  }
 
   // file urls will return a success code '0', not '2'!
   if (error ||
