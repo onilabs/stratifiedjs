@@ -241,11 +241,16 @@ exports.Driver = function(url) {
   @function Driver.enter
   @param {DOMElement} [elem]
   @param {String} [text]
-  @summary Enter text into an element (typically an <input>
+  @summary Enter text into an element (typically an <input>)
 */
 fns.enter = function(elem, value) {
-	elem.value = value;
-	elem .. fns.trigger('input');
+	var typ = elem.getAttribute('type');
+	if(typ === 'checkbox') {
+		elem.checked = Boolean(value);
+	} else {
+		elem.value = value;
+		elem .. fns.trigger('input');
+	}
 	elem .. fns.trigger('change');
 };
 
