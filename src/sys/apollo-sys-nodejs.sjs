@@ -372,14 +372,17 @@ function request_hostenv(url, settings) {
     switch (response.statusCode) {
     case 300: case 301: case 302: case 303: case 307:
       if (max_redirects > 0) {
-        //console.log('redirect to ' + response.headers['location']);
-        opts.headers.host = null;
-        --max_redirects;
+        response.socket.end(); // otherwise we fill up the active request pool and deadlock
+        opts = exports.mergeObjects(settings, {
+          headers: exports.mergeObjects(settings, { host: null }),
+          max_redirects: max_redirects-1,
+        });
+        //console.log('redirect to ' + response.headers['location'] + ', with opts', opts);
         // we use canonicalizeURL here, because some sites
         // (e.g. dailymotion) use a relative url in the Location
         // header (which is forbidden according to RFC1945)
         return request_hostenv(
-          exports.canonicalizeURL(response.headers['location'],url_string), 
+          exports.canonicalizeURL(response.headers['location'],url_string),
           opts);
       }
       // else fall through

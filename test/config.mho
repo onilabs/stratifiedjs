@@ -1,3 +1,4 @@
+#!/usr/bin/env conductance
 // Default conductance configuration
 
 @ = require('mho:std');
@@ -18,9 +19,27 @@ exports.serve = function(args) {
           req.response.end("failure response data");
         }
       }),
+      @Route('http/ok', {
+        GET: function(req) {
+          req .. @response.setStatus(200);
+          req.response.end("ok");
+        }
+      }),
+      @Route('http/redirect', {
+        GET: function(req) {
+          var p = req.url.params();
+          var dest = p.dest;
+          if (!dest && p.infinite) dest = req.url.source;
+          if (!dest) throw new Error('`dest` required');
+
+          req .. @response.writeRedirectResponse(@url.normalize(dest, req.url.source));
+        }
+      }),
       @route.CodeDirectory(root),
     ]
     .. @route.LogRequests(@logging.INFO)
     .. @route.AllowCORS()
   });
 };
+
+if (require.main === module) exports.serve();

@@ -36,6 +36,22 @@ context("request") {||
       -> http.request(getHttpURL("no_such_url")));
   }
 
+  context("redirect") {||
+    test("bails out on infinite redirect") {||
+      var response = http.request(getHttpURL("/http/redirect?infinite=1"), {max_redirects:10, throwing: false, response:'full'});
+      @info(response);
+      // browser infinite redirect returns generic `0` error code
+      response.status .. @assert.eq(@isBrowser ? 0 : 302);
+    }
+
+    test("persists settings") {||
+      var response = http.request(getHttpURL("/http/redirect?dest=ok"), {response:'full'});
+      @info(response);
+      response.status .. @assert.eq(200); // make sure we got a "full" response, not the default "string"
+    }
+
+  } .. requiresConductance();
+
   @context("error response data") {||
     @test('for standard response') {||
       try {
@@ -177,4 +193,5 @@ context("raw return objects") {||
     var data = response .. @stream.readAll();
     assert.ok(data.length > 1024);
   });
+
 }.serverOnly();
