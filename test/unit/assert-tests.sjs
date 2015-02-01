@@ -142,6 +142,29 @@ context("eq") {||
         -> assert.eq(["one", "two", "three"], ["one", "three"]));
     }
 
+    test("typed array comparison") {||
+      assert.eq(
+          new Uint8Array([1,2,3]),
+          new Uint8Array([1,2,3])
+      );
+
+      assert.raises(
+        {message:/objects differ at index `2`/},
+        -> assert.eq(
+          new Uint8Array([1,2,3]),
+          new Uint8Array([1,2,4])
+        )
+      );
+
+      assert.raises(
+        {message:/expected is a Int8Array, actual is a Uint8Array/},
+        -> assert.eq(
+          new Uint8Array([1,2,3]),
+          new Int8Array([1,2,4])
+        )
+      );
+    }
+
     context("comparing buffers") {||
       test("against other kinds of buffers") {||
         // Buffers and SlowBuffers are different types, but should be treated the same.

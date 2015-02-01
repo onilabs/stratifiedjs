@@ -42,6 +42,9 @@ var isNode = require('builtin:apollo-sys').hostenv === 'nodejs';
 
 __js {
 
+  // return true for Array types as well as typed arrays (e.g. Uint8Array)
+  var isArrayType = (cls) -> /Array\]$/.test(cls);
+
   /**
     @function equals
     @param {Object} [a]
@@ -203,7 +206,7 @@ __js {
     var childEq = deep ? eq : simpleEq;
     var size = 0, result = [true, null];
     // Recursively compare objects and arrays.
-    if (className == '[object Array]') {
+    if (isArrayType(className)) {
       // Compare array lengths to determine if a deep comparison is necessary.
       size = a.length;
       result = [size == b.length, describe && ('expected has ' + b.length + ' elements, actual has ' + size)];
