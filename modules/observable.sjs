@@ -650,7 +650,7 @@ __js {
   
   /**
     @function reconstitute
-    @param {sequence::Sequence}
+    @param {sequence::Sequence} [seq]
     @summary Reconstitute a stream of mutations into a stream of the mutated value
     @desc
       Some streams, such as [::ObservableArray], consist of mutations to an underlying value,
