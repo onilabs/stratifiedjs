@@ -288,11 +288,11 @@ module.exports = require(modules);
    - **sanitize**: (function [sjs:string::sanitize])
    - **split**: (function [sjs:string::split])
    - **startsWith**: (function [sjs:string::startsWith])
+   - **stringToUtf8**: (function [sjs:string::stringToUtf8])
    - **strip**: (function [sjs:string::strip])
    - **supplant**: (function [sjs:string::supplant])
    - **unindent**: (function [sjs:string::unindent])
-   - **utf16ToUtf8**: (function [sjs:string::utf16ToUtf8])
-   - **utf8ToUtf16**: (function [sjs:string::utf8ToUtf16])
+   - **utf8ToString**: (function [sjs:string::utf8ToString])
   
   
   ### Symbols from the [sjs:sys](#sjs%3Asys) module:

@@ -495,62 +495,74 @@ exports.capitalize = function(s) {
 };
 
 /**
-   @function utf16ToUtf8
-   @summary  Convert a UTF-16 string to a UTF-8 string.
-   @param    {String} [s] UTF-16 encoded string
-   @return   {String}
+  @class Octets
+  @summary Byte sequence
+  @desc
+    Octets are opaque sequences of bytes. While they happen to be implemented
+    as strings, you should generally only use the functions in the [sjs:string::] module to
+    convert them to other useful types.
+
+    **Notes:**
+
+      * Octets strings are implemented as JS strings where the upper half of
+        each 16-bit 'character' is set to 0.
+*/
+
+/**
+   @function stringToUtf8
+   @summary  Encode a String into UTF-8 [::Octets].
+   @param    {String} [s]
+   @return   {::Octets} UTF-8 encoded octets.
    @desc
+     See also [::utf8ToString].
+
      **Notes:**
 
        * This function is only tested for characters in the [BMP](http://en.wikipedia.org/w/index.php?title=Basic_Multilingual_Plane).
        * JS strings are natively encoded as a sequence of 16-bit words. (Inside the
          BMP this is equivalent to UTF-16 encoding.)
-       * UTF-8 is mapped into JS strings as a sequence of octets, with the upper half
-         of each 16-bit 'character' set to 0.
        * See http://mathiasbynens.be/notes/javascript-encoding for a
          good discussion on JS string encoding.
 */
-exports.utf16ToUtf8 = function(s) {
+exports.stringToUtf8 = exports.utf16ToUtf8 = function(s) {
   return unescape(encodeURIComponent(s));
 };
 
 /**
-   @function utf8ToUtf16
-   @summary  Convert a UTF-8 string to a UTF-16 string.
-   @param    {String} [s] UTF-8 encoded string
+   @function utf8ToString
+   @summary  Decode UTF-8 octets into a String.
+   @param    {::Octets} [octets] UTF-8 octets
    @return   {String}
    @desc
+     See also [::stringToUtf8].
+
      **Notes:**
 
        * This function is only tested for characters in the [BMP](http://en.wikipedia.org/w/index.php?title=Basic_Multilingual_Plane).
        * JS strings are natively encoded as a sequence of 16-bit words. (Inside the
          BMP this is equivalent to UTF-16 encoding.)
-       * UTF-8 is mapped into JS strings as a sequence of octets, with the upper half
-         of each 16-bit 'character' set to 0.
        * See http://mathiasbynens.be/notes/javascript-encoding for a
          good discussion on JS string encoding.
 */
-exports.utf8ToUtf16 = function(s) {
+exports.utf8ToString = exports.utf8ToUtf16 = function(s) {
   return decodeURIComponent(escape(s));
 };
 
 /**
    @function octetsToBase64
-   @summary  Convert a sequence of octets into a Base64 encoded string
-   @param    {String} [s] Octet string
+   @summary  Convert [::Octets] into a Base64 encoded string
+   @param    {::Octets} [octets]
    @return   {String}
    @desc
       **Notes:**
 
         * On modern browsers, this function is equivalent to `window.atob`.
-        * Octet strings are equivalent to JS strings where the upper half of
-          each 16-bit 'character' is set to 0.
         * This function will produce incorrect output or throw an error if any
           character code of the input
           falls outside the range 0-255.
-        * You probably want to encode native JS strings representing
-          textual data (== UTF-16 or UCS-2 string) as UTF-8 strings
-          before converting to Base64 (see [::utf16ToUtf8]).
+        * You should encode native JS strings representing
+          textual data (== UTF-16 or UCS-2 string) as UTF-8 octets
+          before converting to Base64 (see [::stringToUtf8]).
         * This function appends padding characters ('=') if the input string
           length is not a multiple of 3.
         * No line breaks will be inserted into the output string.
@@ -599,15 +611,13 @@ else {
 
 /**
    @function base64ToOctets
-   @summary  Convert a Base64 encoded string into a sequence of octets
+   @summary  Convert a Base64 encoded string into an octet string
    @param    {String} [s] Base64 encoded string
-   @return   {String}
+   @return   {::Octets}
    @desc
       **Notes:**
 
         * On modern browsers, this function is equivalent to `window.atob`.
-        * Octet strings are equivalent to JS strings where the upper half of
-          each 16-bit 'character' is set to 0.
         * This function will silently ignore characters in the input that
           outside of the Base64 range (A-Z, a-z, 0-9, +, /, =)
         * The input function needs to contain padding characters ('=') if the
@@ -649,21 +659,15 @@ else {
   @summary  **Deprecated** Convert a Base64 encoded string to an ArrayBuffer
   @param    {String} [s] Base64 encoded string
   @return   {ArrayBuffer}
+  @desc
+    Use [::base64ToOctets] and [::octetsToArrayBuffer].
 */
-__js exports.base64ToArrayBuffer = function(s) {
-  var octets = exports.base64ToOctets(s);
-  var rv = new ArrayBuffer(octets.length);
-  var view = new Uint8Array(rv);
-  for (var i=0; i<view.length; ++i)
-    view[i] = octets.charCodeAt(i);
-
-  return rv;
-};
+__js exports.base64ToArrayBuffer = (s) -> s .. exports.base64ToOctets .. exports.octetsToArrayBuffer;
 
 /**
    @function octetsToArrayBuffer
-   @summary Write a string of octets to an ArrayBuffer
-   @param {String} [s] Octet string (upper half of each 'character' will be ignored)
+   @summary Write [::Octets] to an ArrayBuffer
+   @param {::Octets} [octets]
    @param {optional ArrayBuffer} [buffer] ArrayBuffer to write to; if not provided, a new one will be created
    @param {optional Integer} [offset] Offset at where to start writing into `buffer`
    @return {ArrayBuffer}
@@ -683,7 +687,7 @@ __js exports.octetsToArrayBuffer = function(s, buffer, offset) {
    @param {ArrayBuffer} [src]
    @param {optional Integer} [offset] Byte offset into `src`
    @param {optional Integer} [length] Byte length
-   @return {String} Octet string (upper half of each 'character' set to 0)
+   @return {::Octets}
 */
 __js (function() {
   var workaround = false;

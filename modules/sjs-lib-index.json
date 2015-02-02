@@ -2349,6 +2349,10 @@
     "string": {
       "type": "module",
       "children": {
+        "Octets": {
+          "type": "class",
+          "children": {}
+        },
         "arrayBufferToOctets": {
           "type": "function"
         },
@@ -2412,6 +2416,9 @@
         "startsWith": {
           "type": "function"
         },
+        "stringToUtf8": {
+          "type": "function"
+        },
         "strip": {
           "type": "function"
         },
@@ -2421,10 +2428,7 @@
         "unindent": {
           "type": "function"
         },
-        "utf16ToUtf8": {
-          "type": "function"
-        },
-        "utf8ToUtf16": {
+        "utf8ToString": {
           "type": "function"
         }
       },
