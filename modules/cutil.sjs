@@ -508,14 +508,28 @@ QueueProto = {
 
 
 /**
+  @class SuspendedContext
+  @summary The result of [::breaking].
+
+  @variable SuspendedContext.value
+  @valtype Object
+  @summary The value passed to this context
+
+  @function SuspendedContext.resume
+  @summary Resume this context
+
+  @function SuspendedContext.wait
+  @summary Suspend until this context is retracted
+*/
+
+/**
   @function breaking
   @summary Pause a piece of code's execution and resume it later
   @param {Function} [block]
-  @return {Object} An object with `value` and `resume` properties
+  @return {::SuspendedContext}
   @desc
     **Warning**: You should not use this function unless you're certain you
-    need it, since it creates opportunity to leak resources if
-    you're not careful.
+    need it, since it creates opportunity to leak resources if you're not careful.
 
     A common StratifiedJS idiom is the function which takes a "block" argument, and performs
     setup before the block is called, as well as cleanup after the block finishes.
@@ -542,27 +556,47 @@ QueueProto = {
 
     However, in some cases it can be useful to extract the intermediate result
     (in this case, the file object), and explicitly perform the cleanup stage
-    at a later time.
+    at a later time. This is what `breaking` does.
 
-    `breaking` is a way to achieve this with minimal fuss. It will call the
-    provided `block` with a single argument - a function to halt the
-    currently executing code and save it for resuming later:
+    It will call the provided `block` with a single argument - a function to halt the
+    currently executing code and save it for resuming later. Once that function is called,
+    the call to `breaking` will return a {::SuspendedContext} object.
 
+    ### Example:
+
+        // idiomatic code - passing a block to `withFile:
+        
+        withFile('output.txt', 'w') {|file|
+          try {
+            console.log("withFile passed #{file} to the block");
+            hold(1000);
+            console.log("OK, done with file");
+          } retract {
+            console.log("withFile was cancelled, and retracted the block we passed it");
+          }
+        }
+
+        // equivalent code using `breaking` to separate setup & teardown
+        // into explicit functions:
+        
         var ctx = func.breaking {|brk|
           withFile('output.txt', 'w') {|file|
             brk(file);
           }
         }
 
-        ctx.value
-        // -> the argument given to `brk` - in this case, our file object
-        
-        ctx.resume
-        // -> a function that you can call to resume execution from after
-        // you called `brk`. This is the "cleanup" stage - failing to call
-        // this function when you are done with the file will leak resources.
+        waitfor {
+          console.log("withFile passed #{ctx.value} to the block");
+          hold(1000);
+          console.log("OK, done with file");
+        } or {
+          ctx.retracted();
+          console.log("withFile was cancelled, and retracted the block we passed it");
+        } finally {
+          ctx.resume();
+        }
 
-    In this case, since all the block does is to call `brk`, we can pass it
+    In this example, since all the block does is to call `brk`, we could pass it
     directly to `withFile`:
 
         var ctx = func.breaking {|brk|
@@ -574,24 +608,53 @@ QueueProto = {
     to `ctx.resume()`.
 */
 exports.breaking = function(block) {
-  var cont;
+  var cont, stratum;
+  var retracted = function() {
+    if(!stratum) hold(0);
+    try {
+      stratum.value();
+    } catch(e) {
+      // this should never happen, but just in case:
+      if(!e instanceof exports.StratumAborted) throw e;
+    }
+  }
   waitfor(var err, rv) {
     var ready = resume;
-    spawn (function() {
-      try { // catch exceptions in `block` setup
+    var ret = null;
+    stratum = spawn (function() {
+      try {
         block {|result|
-          waitfor(var err) {
-            cont = resume;
-            ready(null, result);
+          try {
+            waitfor(var err) {
+              var cleanup = resume;
+              cont = function(block_err) {
+                var err;
+                if(cleanup) {
+                  waitfor(err) {
+                    ret = resume;
+                    cleanup(block_err);
+                  }
+                }
+                if(err) throw err;
+              };
+              var _ready = ready;
+              ready = null;
+              _ready(null, result);
+            }
+            if (err) throw err;
+          } retract {
+            cleanup = null;
           }
-          if (err) throw err;
         }
       } catch(err) {
-        ready(err);
+        if(ready) ready(err) // exception in block setup
+        else ret(err); // exception in block teardown; reported by resume()
+        ret = null;
       }
+      if(ret) ret();
     })();
   }
   if(err) throw err;
-  return { value: rv, resume: cont };
+  return { value: rv, resume: cont, wait: retracted };
 }
 

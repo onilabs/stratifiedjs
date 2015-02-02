@@ -718,6 +718,20 @@
           "type": "class",
           "children": {}
         },
+        "SuspendedContext": {
+          "type": "class",
+          "children": {
+            "resume": {
+              "type": "function"
+            },
+            "value": {
+              "type": "variable"
+            },
+            "wait": {
+              "type": "function"
+            }
+          }
+        },
         "breaking": {
           "type": "function"
         },
