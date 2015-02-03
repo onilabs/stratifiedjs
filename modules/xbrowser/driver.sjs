@@ -426,10 +426,20 @@ fns.hasClass = (elem, cls) -> elem.classList.contains(cls);
   @param {optional Number} [timeout] Timeout (seconds)
   @param {optional Number} [interval] Interval (milliseconds)
   @summary Keep calling `fn` until it completes without throwing an exception
+  @desc
+
+    Note: `desc` can be omitted - if the second argument is a Number, it will be interpreted
+    as the `timeout` argument.
 */
 var DEFAULT_TIMEOUT = 2; // seconds
 var DEFAULT_INTERVAL = 100; // ms
 fns.waitforSuccess = function(fn, desc, timeout, interval) {
+	if(typeof(desc) === 'number') {
+		// desc not provided; shift up the timeout & interval
+		interval = timeout;
+		timeout = desc;
+		desc = undefined;
+	}
 	timeout = timeout || DEFAULT_TIMEOUT;
 	interval = interval || DEFAULT_INTERVAL;
 	var lastError;
@@ -458,8 +468,18 @@ fns.waitforSuccess = function(fn, desc, timeout, interval) {
   @param {optional Number} [timeout] Timeout (seconds)
   @param {optional Number} [interval] Interval (milliseconds)
   @summary Keep calling `fn` until it returns a truthy value
+  @desc
+
+    Note: `desc` can be omitted - if the second argument is a Number, it will be interpreted
+    as the `timeout` argument.
 */
 fns.waitforCondition = function(fn, desc, timeout, interval) {
+	if(typeof(desc) === 'number') {
+		// desc not provided; shift up the timeout & interval
+		interval = timeout;
+		timeout = desc;
+		desc = undefined;
+	}
 	timeout = timeout || DEFAULT_TIMEOUT;
 	interval = interval || DEFAULT_INTERVAL;
 	waitfor {
