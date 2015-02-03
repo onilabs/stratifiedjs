@@ -1890,6 +1890,15 @@
       },
       "summary": "Constructs for manipulating streams backed by time-varying values"
     },
+    "pool": {
+      "type": "module",
+      "children": {
+        "sharedContext": {
+          "type": "function"
+        }
+      },
+      "summary": "Utilities for shared resources"
+    },
     "quasi": {
       "type": "module",
       "children": {
