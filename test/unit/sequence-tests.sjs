@@ -1368,6 +1368,27 @@ context("mirror") {||
 
     log .. @assert.eq([1, 'ERROR: stream failed']);
   }
+
+  test("NaN edge case") {|s|
+    var stream = @Stream(function(emit) {
+      emit(NaN);
+      hold();
+    });
+    var s = stream .. @mirror();
+    var count = 0;
+    waitfor {
+      s .. @each { |x|
+        ++count;
+        hold(0);
+      }
+    }
+    or {
+      hold(100);
+    }
+    
+    count .. @assert.eq(1);
+  }
+  
 }
 
 context("batchN") {||

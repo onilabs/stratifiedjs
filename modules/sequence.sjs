@@ -2671,7 +2671,7 @@ each.track = function(seq, r) {
       - the most recent value (if one has been seen, and only if `latest` is true)
       - all future values
 
-     `mirror` will _not_ store or emit vaues that occurred in the past,
+     `mirror` will _not_ store or emit values that occurred in the past,
      aside from the most recently seen value (which will only be set
      if another consumer is concurrently iterating over the output Stream).
 */
@@ -2679,16 +2679,15 @@ exports.mirror = function(stream, latest) {
   var emitter = Object.create(_Waitable); emitter.init();
   var listeners = 0;
   var done = false;
-  var None = {};
-  var current = None;
+  var current, current_version = 0;
   var loop;
 
   return Stream(function(emit) {
-    var v = None;
+    var have_version = 0;
     var catchupLoop = latest === false ? (->null) : function() {
-      while (v !== current) {
-        v = current;
-        emit(v);
+      while (have_version !== current_version) {
+        have_version = current_version;
+        emit(current);
       }
     };
 
@@ -2696,9 +2695,10 @@ exports.mirror = function(stream, latest) {
       ++listeners;
       catchupLoop();
       while(true) {
-        v = emitter.wait();
+        emitter.wait();
         if (done) return;
-        emit(v);
+        have_version = current_version;
+        emit(current);
         catchupLoop();
         if (done) return;
       }
@@ -2708,10 +2708,11 @@ exports.mirror = function(stream, latest) {
         loop = spawn(function() {
           stream .. each {|item|
             current = item;
-            emitter.emit(item);
+            ++current_version;
+            emitter.emit();
           }
           done = true;
-          emitter.emit(current);
+          emitter.emit();
         }());
       }
     } and {
@@ -2720,7 +2721,8 @@ exports.mirror = function(stream, latest) {
       if (--listeners === 0) {
         // last one out: stop the loop
         loop.abort();
-        current = None;
+        current = undefined;
+        current_version = 0;
         done = false;
       }
     }
