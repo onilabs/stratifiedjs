@@ -205,6 +205,8 @@ exports.pump = function(src, dest, fn_or_opts) {
   waitfor {
     throw dest .. @wait('error');
   } or {
+    // streams don't naturally support Uint8Array, so convert to buffer
+    if (src instanceof Uint8Array) src = new Buffer(src);
     if (@isString(src) || Buffer.isBuffer(src)) {
       // just a single chunk
       _write(dest, src);

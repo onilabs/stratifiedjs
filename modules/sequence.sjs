@@ -40,7 +40,7 @@
 
 */
 
-var {isArrayLike, isQuasi, streamContents} = require('builtin:apollo-sys');
+var {isArrayLike, isQuasi, streamContents } = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
 var { Interface, hasInterface, Token } = require('./type');
 var sys = require('builtin:apollo-sys');
@@ -54,8 +54,6 @@ __js function isString(obj) {
 }
 var nope = -> false;
 var isBuffer = nope, isReadableStream = nope;
-var nodeStream;
-var nodeStream;
 if (sys.hostenv == 'nodejs') {
   var readableStreamProto = require('nodejs:stream').Readable.prototype;
   var socketProto = require('nodejs:net').Socket.prototype;
@@ -89,9 +87,10 @@ function sequential(f) {
 /**
    @class Sequence
    @summary
-    An Array, array-like object (like `arguments` or `NodeList`),
+    An Array, array-like object (like `arguments`, `NodeList`, `TypedArray`, etc),
     String,
-    nodejs Buffer
+    nodejs Buffer,
+    Uint8Array
     or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
@@ -108,7 +107,8 @@ function sequential(f) {
 
      - Array
      - String (treated as a Character array)
-     - nodejs Buffer (trated as an Integer array; nodejs only)
+     - nodejs Buffer (treated as an Integer array; nodejs only)
+     - TypedArray (treated as an Integer array)
      - any `arguments` object
      - NodeList (xbrowser only)
 
@@ -261,6 +261,17 @@ __js var toStream = exports.toStream = function(arr) {
    @summary Returns `true` if `s` is a [::Stream], `false` otherwise.
 */
 __js var isStream = exports.isStream = (s) -> s && s.__oni_is_Stream === true;
+
+/**
+   @function isBytes
+   @param {Object} [s] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `s` is a Uint8Array or nodejs Buffer
+*/
+__js {
+  var isUint8 = typeof(Uint8Array) === 'undefined' ? nope : o -> o instanceof Uint8Array;
+  var isBytes = exports.isBytes = d -> isBuffer(d) || isUint8(d);
+}
 
 /**
    @function isBatchedStream
@@ -778,7 +789,11 @@ exports.last = (seq, defaultValue) -> (arguments.length == 1) ? at(seq, -1) : at
 */
 function slice(sequence, start, end) {
   if(isString(sequence) || isBuffer(sequence)) return sequence.slice(start, end);
-  if(isArrayLike(sequence)) return Array.prototype.slice.call(sequence, start, end);
+  if(isArrayLike(sequence)) {
+    var m = (sequence.slice || Array.prototype.slice);
+    // TypedArray `slice` method is buggy if you pass `undefined` as second argument.
+    return (end === undefined) ? m.call(sequence, start) : m.call(sequence, start, end);
+  }
 
   // drop leading values:
   var dropped = 0;
@@ -844,7 +859,7 @@ var padEnd = function(seq, padding) {
    @function join
    @altsyntax sequence .. join(separator)
    @param {::Sequence} [sequence] Input sequence
-   @param {optional String|Buffer|quasi::Quasi} [separator='']
+   @param {optional String|Array|Buffer|Uint8Array|quasi::Quasi} [separator='']
    @return {String|Buffer|quasi::Quasi}
    @summary Joins all elements of the sequence with the given separator
    @desc
@@ -854,9 +869,10 @@ var padEnd = function(seq, padding) {
      `sequence` are coerced into quasis using [quasi::toQuasi], and
      the sequence with interspersed separators will be joined using [quasi::joinQuasis].
 
-     If the first element of `sequence` is a nodejs Buffer, then
-     all items will be joined into a single Buffer (not a String). In this case,
-     `separator` must also be a Buffer (or the empty string).
+     If the first element of `sequence` is a nodejsBuffer, a TypedArray or play Array, then
+     all items will be joined into a single return value of the same type, rather than
+     a string. In this case, `separator` should be a concrete sequence of the appropriate
+     element type.
 */
 function join(sequence, separator) {
   separator = separator || '';
@@ -865,10 +881,31 @@ function join(sequence, separator) {
   }
   var arr = sequence .. toArray;
   if (arr.length == 0) return '';
-  if (arr[0] .. isBuffer) {
+  if (arr[0] .. isBytes || arr[0] .. isArrayLike) {
     if (separator.length > 0)
       arr = arr .. intersperse(separator) .. toArray;
-    return Buffer.concat(arr);
+    if (arr[0] .. isBuffer) {
+      return Buffer.concat(arr);
+    } else if (arr[0] .. isArrayLike) {
+      var len=0;
+      arr .. each {|i| len += i.length};
+      var cons = arr[0].constructor || Array;
+      var rv = new cons(len);
+      var offset = 0;
+      if(rv.set) {
+        arr .. each {|a|
+          rv.set(a, offset);
+          offset += a.length;
+        }
+      } else { // bytewise
+        arr .. each {|a|
+          a .. each {|b|
+            rv[offset++] = b;
+          }
+        }
+      }
+      return rv;
+    }
   }
   return arr.join(separator);
 }

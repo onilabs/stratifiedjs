@@ -84,19 +84,26 @@ __js exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
    @function isArrayLike
-   @summary  Tests if an object is an array, `arguments` object or, in an xbrowser hostenv of StratifiedJS, a NodeList or FileList
+   @summary  Tests if an object is an array, `arguments` object, TypedArray or, in an xbrowser hostenv of StratifiedJS, a NodeList or FileList
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
    @desc
      See [../../modules/array::isArrayLike]
 */
+
+var arrayCtors=[], arrayCtorNames = [
+  'Uint8Array', 'Uint16Array', 'Uint32Array',
+  'Int8Array', 'Int16Array', 'Int32Array',
+  'Float32Array', 'Float64Array',
+  'NodeList', 'HTMLCollection', 'FileList', 'StaticNodeList'
+]; for(var i=0; i<arrayCtorNames.length; i++) {
+  var c = __oni_rt.G[arrayCtorNames[i]];
+  if(c) arrayCtors.push(c);
+}
 __js exports.isArrayLike = function(obj) {
-  return Array.isArray(obj) ||
-         !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee')) ||
-         !!(__oni_rt.G.NodeList && obj instanceof NodeList) ||
-         !!(__oni_rt.G.HTMLCollection && obj instanceof HTMLCollection) ||
-         !!(__oni_rt.G.FileList && obj instanceof FileList) ||
-         !!(__oni_rt.G.StaticNodeList && obj instanceof StaticNodeList);
+  if ( Array.isArray(obj) || !!(obj && Object.prototype.hasOwnProperty.call(obj, 'callee'))) return true;
+  for (var i=0;i<arrayCtors.length; i++) if(obj instanceof arrayCtors[i]) return true;
+  return false;
 };
 
 /**

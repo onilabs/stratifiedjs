@@ -2051,6 +2051,9 @@
         "isBatchedStream": {
           "type": "function"
         },
+        "isBytes": {
+          "type": "function"
+        },
         "isConcreteSequence": {
           "type": "function"
         },

@@ -122,6 +122,16 @@ testEq("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
 
+test("isBytes()") {||
+  new Uint8Array([1,2,3]) .. s.isBytes .. assert.eq(true, 'Uint8Array');
+  new Int8Array([1,2,3]) .. s.isBytes .. assert.eq(false, 'Int8Array');
+  [1,2,3] .. s.isBytes .. assert.eq(false, 'plain array');
+};
+
+test("isBytes(Buffer)") {||
+  new Buffer([1,2,3]) .. s.isBytes .. assert.ok();
+}.skipIf(@isBrowser);
+
 @test("concrete sequences") {||
   [ 1, 2, 3] .. s.isConcreteSequence .. @assert.ok;
   "123" .. s.isConcreteSequence .. @assert.ok;
@@ -732,6 +742,10 @@ context('slice') {||
       ['toArray', s.toArray],
       ['toStream', s.toStream],
       ['flattenToString', flattenToString],
+      ['flattenToTypedArray',
+        arr -> new Uint8Array(arr .. @concat .. @map(ch -> ch.charCodeAt(0))),
+        String.fromCharCode
+      ],
     ];
 
     if(@isServer) {
@@ -1037,6 +1051,43 @@ context("join") {||
       ]) .. s.join(new Buffer('||')) .. assert.eq(new Buffer('abc||def', 'ascii'));
     }
   }.skipIf(@isBrowser || process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0, "nodejs 0.6 lacks Buffer.concat")
+
+  context("on TypedArrays") {||
+    test("with no separator") {||
+      nonRepeatableSequence([
+        new Uint8Array([1, 2, 3]),
+        new Uint8Array([4, 5, 6]),
+      ]) .. s.join() .. assert.eq(new Uint8Array([1,2,3,4,5,6]));
+    }
+
+    test("with a TypedArray separator") {||
+      nonRepeatableSequence([
+        new Uint8Array([1, 2, 3]),
+        new Uint8Array([4, 5, 6]),
+      ]) .. s.join(new Uint8Array([100,100])) .. assert.eq(new Uint8Array([1,2,3,100,100,4,5,6]));
+
+      nonRepeatableSequence([
+        new Uint8Array([1, 2, 3]),
+        new Uint8Array([4, 5, 6]),
+      ]) .. s.join([100,100]) .. assert.eq(new Uint8Array([1,2,3,100,100,4,5,6]));
+    }
+  }
+
+  context("on Arrays") {||
+    test("with no separator") {||
+      nonRepeatableSequence([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]) .. s.join() .. assert.eq([1,2,3,4,5,6]);
+    }
+
+    test("with an Array separator") {||
+      nonRepeatableSequence([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]) .. s.join([100,100]) .. assert.eq([1,2,3,100,100,4,5,6]);
+    }
+  }
 }
 
 test("hasElem") {||

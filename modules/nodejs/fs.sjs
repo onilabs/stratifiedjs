@@ -44,6 +44,7 @@ var fs = require('fs'); // builtin fs
 var evt = require('../event');
 var seq = require('../sequence');
 var stream = require('./stream');
+var { isString } = require('../string');
 
 //----------------------------------------------------------------------
 // low-level:
@@ -395,12 +396,14 @@ exports.fileContents = function(path, encoding) {
 */
 exports.writeFile = function(filename, data, encoding /*='utf8'*/) {
   // we can't use isSequence, as that would catch strings / buffers too
-  if(Array.isArray(data) || seq.isStream(data)) {
+  // if we have a non-concrete sequence (or an Array), pump it
+  if(seq.isSequence(data) && (Array.isArray(data) || !seq.isConcreteSequence(data))) {
     exports.withWriteStream(filename, {encoding: encoding}) {|f|
       data .. stream.pump(f);
     }
   } else {
-    // write one big string / data chunk
+    // Assume the concrete non-array is a single chunk (i.e TypedArray, String, Buffer)
+    if(!isString(data) && !Buffer.isBuffer(data)) data = new Buffer(data);
     waitfor (var err) { fs.writeFile(filename, data, encoding, resume); }
     if (err) throw err;
   }
