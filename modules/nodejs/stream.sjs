@@ -460,8 +460,8 @@ exports.DelimitedReader = DelimitedReader;
 /**
   @function lines
   @param    {Stream} [stream] the stream to read from
+  @param    {optional String} [encoding]
   @param    {optional String} [sep="\n"]
-  @param    {optional String} [encoding="utf-8"]
   @return   {../sequence::Stream} A sequence of lines
   @summary  Return a [../sequence::Stream] of lines from a nodejs Stream
   @desc
@@ -483,7 +483,7 @@ exports.DelimitedReader = DelimitedReader;
     `sep` will be treated as an ASCII byte.
 */
 //TODO: convert this to a stream function, possibly in sequence?
-exports.lines = function(stream, sep, encoding) {
+exports.lines = function(stream, encoding, sep) {
   if (encoding) stream.setEncoding(encoding);
   var reader = DelimitedReader(stream);
   if(!sep) sep = '\n';
