@@ -560,7 +560,7 @@ QueueProto = {
 
     It will call the provided `block` with a single argument - a function to halt the
     currently executing code and save it for resuming later. Once that function is called,
-    the call to `breaking` will return a {::SuspendedContext} object.
+    the call to `breaking` will return a [::SuspendedContext] object.
 
     ### Example:
 
