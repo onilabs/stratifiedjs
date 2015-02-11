@@ -40,6 +40,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/child-process module only runs in a nodejs environment');
 
 var child_process = require('child_process');
+@ = require(['../array', '../object', '../sequence', '../cutil', {id:'./stream', name:'stream'}]);
 var array = require('../array');
 
 var version = process.versions.node.split('.').map(n -> parseInt(n, 10));
@@ -52,6 +53,31 @@ var SUPPORTS_DETACHED = array.cmp(version, [0,7,10]) >= 0;
 
 // returning a value from `kill` was added in 0.8
 var KILL_RETURNS_RESULT = array.cmp(version, [0,8]) >= 0;
+
+__js var stdioGetters = [
+  // NOTE: these *MUST* be lazy, in order to support `string` outputs
+  // (which are set by mutating `stdio` just before [::run] returns)
+  ['stdin', -> this.stdio[0]],
+  ['stdout', -> this.stdio[1]],
+  ['stderr', -> this.stdio[2]],
+];
+
+var formatCommandFailed = (code, cmd) -> "child process #{cmd ? "`#{cmd}` " : ""}exited with nonzero exit status: #{code}"
+var setFailedCommand = function(err, cmd, args) {
+  err.command = [cmd].concat(args);
+  err.message = formatCommandFailed(err.code, err.command .. @join(' '));
+}
+var CommandFailed = function(child) {
+  var e = new Error(formatCommandFailed(child.exitCode));
+  e.childProcessFailed = true;
+  e.code = child.exitCode;
+  e.signal = child.signalCode;
+  e.stdio = child.stdio;
+  stdioGetters .. @each {|[k,g]|
+    Object.defineProperty(e, k, {get: g});
+  }
+  return e;
+};
 
 /**
    @function exec
@@ -80,35 +106,132 @@ exports.exec = function(command, options) {
 
 /**
    @function run
-   @summary Execute a child process and return output
+   @summary Execute a child process
    @param {String} [command] Command to execute
    @param {optional Array} [args] Array of command-line arguments
    @param {optional Settings} [options] Hash of options passed to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options), to [::kill] and to [::wait]
-   @setting {String} [encoding] Encoding of stdout / stderr data
-   @return {Object} Object with 'stdout' and 'stderr' members (both Strings)
+   @setting {String} [encoding] Encoding of stdout / stderr data when using `'string'` output
+   @setting {Object|String} [stdio] Standard I/O settings for the process
+   @return {Object} The child object
    @desc
-      This function is just like the deprecated [::exec], but takes an
-      array of arguments instead of a string. This has a number of
-      advantages:
+      This function runs a process directly, it does not run
+      a shell (like [::exec] does). This means you can pass an
+      array of values, and don't have to worry about whitespace or other
+      special characters that might be interpreted by a shell.
 
-      * arguments containing whitespace are not interpreted as
-        multiple arguments.
+      If `block` is passed, the block will be run with a single argument (the child process).
+      `run` wait for both `block` and the child process to complete, unless an error is thrown
+      (in which case it will retract currently executing code).
 
-      * No subshell is executed; the specified file is executed directly.
+      ### `options`:
+
+      Unless otherwise described (below), all options are passed as-is to the underlying
+      [nodeJS `spawn` function](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options).
+
+      ### `stdio` option:
+
+      All `stdio` options supported by the underlying nodeJS `spawn` function are
+      supported. In addition, each `stdio` value can be:
+
+       - a [sequence::Stream] (`stdin` only): The contents of the stream will be
+         piped into the process' stdin.
+       - a [stream::WriteableStream] (for anything but `stdin`): The contents of
+         the relevant output pipe will be pumped into this stream.
+         The underlying nodejs API only supports streams with an underlying file descriptor,
+         but this function supports _all_ streams (even the in-memory [stream::WriteableStream]).
+       - `'buffer'` for (anything but `stdin`): Accumulate all output in a Buffer.
+       - `'string'` for (anything but `stdin`): Capture all output in a String.
+         If you do not provide an `encoding` option, utf-8 i assumed.
+
+      The `'string'` and `'buffer'` options store the entire output in memory,
+      so you should be only use them when you are confident the output will
+      safely fit in memory.
+
+      The following shorthands are supported:
+
+       - `'string'`: `['pipe','string','inherit']`
+       - `'buffer'`: `['pipe','buffer','inherit']`
+       - `'pipe'`: `['pipe','pipe','inherit']`
+       - `'ignore'`: `['ignore','ignore','ignore']`
+       - `'quiet'`: `['ignore','ignore','inherit']`
+       - `'inherit'`: `['inherit','inherit','inherit']`
+       - `undefined` or `null`: `['pipe','inherit','inherit']` if `block` is
+         provided, otherwise `['pipe','pipe','pipe']` for backwards compatibility.
+
+      **Note:** Unlike the nodejs `spawn` functionality, most of the shorthands above
+      default stderr to `'inherit'`. This is a conscious effort to limit the circumstances
+      in which a command fails and nobody knows why, because its `stderr` is discarded.
+
+      If you wish to access `stderr` programmatically, you must explicitly pass an array
+      including `'pipe'` or `'string'` as the third element.
+
+      ### `'pipe'` IO when no `block` is given:
+
+      When `block` is not supplied, any `'pipe'` element in `stdio` (aside from `stdin`) is
+      treated as if it were `'string'`. This may be surprising, but there are two good
+      reasons for it:
+
+       - It's backwards compatible - this is what StratifiedJS versions prior to 0.20 did implicitly,
+         before the introduction of the `block` argument (and the `'string'` stdio option).
+       - Actually using a `pipe` in these situations is useless, because you won't be able to
+         read any data from the pipe after the command has finished.
+
+      ### `'string'` and `'buffer'` IO when `block` is given:
       
-      * Options (such as 'detached' - see below) can be passed to 
-        [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options)
+      Note that the `string` and `buffer` output values accumulate the entire
+      output of the given stream. For this reason, they will not be set until
+      the process has ended. For any `stdio` values
+      set to `'string'` or `'buffer'`, you should not rely on their
+      value being set until [::run] returns. Notably, you should never use
+      such a value within `block`. If you need to act on a stream's contents during
+      `block`, you should use a `'pipe'` output.
 
-      When the command fails, any `stderr` and `stdout` output that was captured so far is
-      added to the exception thrown (accessible by the `stderr` and `stdout` properties).
+      ### Warning: you must start reading from `'pipe'` outputs _immediately_:
 
-      Upon retraction, the child process will be killed with the
+      Due to [a bug in nodejs](https://github.com/joyent/node/issues/6595), you must
+      begin reading all output pipes immediately when passing a block to `run`.
+
+      For example:
+
+          var userInput = [ ... ]; // some stream of input data
+          @childProcess.run('node', [ ... ], {stdio: ['pipe','pipe','pipe']) {|proc|
+            waitfor {
+              var out = proc.stdout .. @stream.readAll();
+            } and {
+              var err = proc.stderr .. @stream.readAll();
+            } and {
+              userInput .. @stream.pump(proc.stdin);
+            }
+          }
+
+      You should *not* perform any actions that may suspend before beginning to read output
+      data, as that may lead to data loss:
+
+          var userInput = [ ... ]; // some stream of input data
+          @childProcess.run('node', [ ... ], {stdio: ['pipe','pipe','pipe']) {|proc|
+            userInput .. @stream.pump(proc.stdin);
+            // at this point, output pipes will probably be closed already, and their data lost
+            waitfor {
+              var out = proc.stdout .. @stream.readAll();
+            } and {
+              var err = proc.stderr .. @stream.readAll();
+            }
+          }
+
+
+      ### Failed commands:
+
+      When the command fails (and `throwing` is true, an exception will be thrown.
+      The child's `stdio`, `stdin`, `stdout` and `stderr` properties will be copied
+      to the error object for your inspection.
+
+      Upon retraction (unless `settings.kill` is false), the child process will be killed with the
       `killSignal` specified in the options ('SIGTERM' by default), using [::kill].
 
       Note that the `options` hash are used as options to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options)
       function, *not* to nodejs's `execFile`.
 
-      ### Usage Note
+      ### Process groups:
 
       It is often a good idea to run external programs as a *process group*, rather than a 
       process. In this way, when we need to terminate a program, we can send a kill to the 
@@ -130,37 +253,153 @@ exports.exec = function(command, options) {
 
       **NOTE**: `detached` is not supported in nodejs v0.6 and earlier.
 */
-exports.run = function(command, args, options) {
-  var stdout = [], stderr = [];
+var readString = encoding -> stream -> @stream.readAll(stream, encoding);
+var pumpFrom = contents -> stream -> contents .. @stream.pump(stream);
+var stdioMap = ['stdin','stdout','stderr'];
+exports.run = function(command, args, options, block) {
+  if(typeof(options) === 'function') {
+    block = options;
+    options = {};
+  }
   if(!options) options = {};
-  function appendTo(buffer) {
-    return function(data) { buffer.push(data); }
-  };
+
+  // XXX these defaults may be surprising, but they match the
+  // old `run` API which accepted no block.
+
+  if(!block && !options.stdio) {
+    options.stdio = ['pipe', 'pipe', 'pipe'];
+  }
+
+  var stdioConversions = [];
+  var stdio = options.stdio;
+  if(!Array.isArray(stdio)) {
+    if(stdio == 'inherit') {
+      stdio = [0,1,2];
+    } else {
+      switch(stdio) {
+        case 'string':
+          stdio = [null, 'string', 'inherit'];
+          break;
+        case 'buffer':
+          stdio = [null, 'buffer', 'inherit'];
+          break;
+        case 'pipe':
+          stdio = ['pipe', 'pipe', 'inherit'];
+          break;
+        case 'ignore':
+          stdio = ['ignore', 'ignore', 'ignore'];
+          break;
+        case 'quiet':
+          stdio = ['ignore', 'ignore', 'inherit'];
+          break;
+        case undefined:
+        case null:
+          stdio = ['pipe', 'inherit', 'inherit'];
+          break;
+        default:
+          throw new Error("Unknown `stdio` option: #{stdio}");
+      }
+    }
+  }
+
+  // some stdio options we support aren't known to `nodejs`, so
+  // we replace them with a dumb `pipe` and perform conversions in parallel
+  // with the child process execution.
+  stdio .. @indexed .. @each {|[i, io]|
+    if(@isStream(io)) {
+      if(i !== 0) throw new Error("Input streams are only supported for `stdin`");
+      stdioConversions.push([i, pumpFrom(io)]);
+      stdio[i] = 'pipe';
+    } else if (io === 'inherit') {
+      stdio[i] = i;
+    } else if (io === 'string' || ((io === 'pipe' || io == null) && !block && i > 0)) {
+      // NOTE: whenever we have a `pipe` output (which is the default for FDS 1 & 2) and
+      // we don't have a block, treat it as if we specified `string`.
+      //
+      // Not only is it useless to specify a `pipe` without a block (you won't see
+      // any output), it also happens to be backwards-compatible with SJS<0.20.
+      if(i === 0) throw new Error("'string' is not supported for stdin");
+      stdioConversions.push([i, readString(options.encoding || 'utf-8')]);
+      stdio[i] = 'pipe';
+    } else if (io === 'buffer') {
+      if(i === 0) throw new Error("'buffer' is not supported for stdin");
+      stdioConversions.push([i, readString()]);
+      stdio[i] = 'pipe';
+    }
+  }
+  options.stdio = stdio;
+  var stdioReplacements = [];
 
   var child = exports.launch(command, args, options);
-  var collect = function(stream, dest) {
-    if(!stream) return;
-    stream.setEncoding(options.encoding || 'utf-8');
-    stream.on('data', appendTo(dest));
-  };
-  collect(child.stdout, stdout);
-  collect(child.stderr, stderr);
-  function join(arr) { return arr.join(''); };
 
-  try {
-    exports.wait(child, options);
-  } catch(e) {
-    // annotate error with stdout / err info
-    e.stdout = join(stdout);
-    e.stderr = join(stderr);
-    throw e;
-  } retract {
-    kill(child, options);
+  // We report `err` (command failed) in preference to any IO
+  // errors, but will report the most recent ioErr if no `err` was thrown.
+  var err, ioErr, abort = @Condition();
+  waitfor {
+    if(block) {
+      // we use an explicit `abort` condition here because we only want to retract
+      // when an error is pending, and not just when the process completes.
+      waitfor {
+        block(child);
+      } or {
+        abort.wait();
+      }
+    }
+  } and {
+    waitfor {
+      try {
+        exports.wait(child, options .. @merge({kill:true}));
+      } catch(e) {
+        err = e;
+        abort.set();
+        // don't throw immediately; wait for stdio conversions to complete
+      }
+    } and {
+      @waitforAll(function([i, conv]) {
+        try {
+          var rv = conv(child.stdio[i]);
+        } catch(e) {
+          if(i === 0 && (e.code === 'ECONNRESET' || e.code === 'EPIPE')) {
+            // fix stdin write failure, because the default message is useless
+            // (see https://github.com/joyent/node/issues/6043)
+            e.message = "Failed writing to child process `stdin`";
+          }
+          ioErr = e;
+          abort.set();
+        }
+        stdioReplacements.push([i, rv]);
+      }, stdioConversions);
+    }
+  } finally {
+    stdioReplacements .. @each {|[i, v]|
+      child.stdio[i] = v;
+    }
   }
-  return {stdout: join(stdout), stderr: join(stderr), code: child.code, signal: child.signal};
+
+  stdioGetters .. @each {|[k, get]|
+    child[k] = get.call(child);
+  }
+
+  if(err) {
+    if(err.childProcessFailed) {
+      // annotate error with additional info
+      setFailedCommand(err, command, args);
+      // special affordance for old-style ['pipe','pipe','pipe'] stdio settings,
+      // we'll end up with `stderr` as a String, and nobody looks at it.
+      // Include it in the error message:
+      if(typeof(child.stderr) === 'string') err.message += "\n#{child.stderr}"
+    }
+    throw err;
+  }
+  if(ioErr) throw ioErr
+
+  // compatibility with old property names (SJS<0.20)
+  // XXX should we deprecate these?
+  child.code = child.exitCode;
+  child.signal = child.signalCode;
+  return child;
 };
 
-//TODO is `launch` too similar to `run`? maybe `popen` or even `fork`?
 /**
    @function launch
    @summary Launch a child process
@@ -169,8 +408,13 @@ exports.run = function(command, args, options) {
    @param {optional Object} [options] Hash of options (see nodejs's child-process.spawn docs)
    @return {Object} [ ] [nodejs ChildProcess](http://nodejs.org/api/child_process.html#child_process_class_childprocess)
    @desc
-     This function wraps the `spawn` function of node's child_process module, but
+     Unless you are doing something very advanced, you should generally use [::run] instead.
+
+     This function simply wraps the `spawn` function of node's child_process module, but
      is called `launch` to avoid confusion with the SJS `spawn` construct.
+
+     Any options to [::run] which differ from the underlying nodejs `child_process`
+     module will not be supported by this function.
 
      The returned process will not yet have started - you will typically want to set
      up event handlers on the child and then call `wait(child)`.
@@ -184,6 +428,7 @@ exports.launch = function(command, args, options) {
    @summary Wait for a child process to finish
    @param {Object} [child] The child process object obtained from `run`.
    @param {Settings} [opts] settings
+   @setting {Boolean=false} [kill] kill the process if the call to `wait()` is retracted
    @return {Object} The child process object passed in.
    @setting {Boolean} [throwing=true] Set to `false` to suppress the default error-throwing behaviour when the child is unsuccessful
    @desc
@@ -196,17 +441,23 @@ exports.launch = function(command, args, options) {
 */
 exports.wait = function(child, opts) {
   var code, signal, error;
-  waitfor {
-    waitfor(code, signal) {
-      child.on(STREAMS_CLOSED_SIGNAL, resume);
-    } retract {
-      child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
+  try {
+    waitfor {
+      waitfor(code, signal) {
+        child.on(STREAMS_CLOSED_SIGNAL, resume);
+      } retract {
+        child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
+      }
+    } or {
+      waitfor(error) {
+        child.on('error', resume);
+      } retract {
+        child.removeListener('error', resume);
+      }
     }
-  } or {
-    waitfor(error) {
-      child.on('error', resume);
-    } retract {
-      child.removeListener('error', resume);
+  } retract {
+    if(opts.kill) {
+      exports.kill(child, opts);
     }
   }
   if(error !== undefined) {
@@ -217,10 +468,7 @@ exports.wait = function(child, opts) {
   if (opts && opts.throwing === false) {
     return child;
   } else if(code != 0) {
-    var err = new Error('child process exited with nonzero exit status: ' + code);
-    err.code = code;
-    err.signal = signal;
-    throw err;
+    throw CommandFailed(child);
   }
   return child;
 };
@@ -251,12 +499,16 @@ var kill = exports.kill = function(child, options) {
   if(options && options.wait === false) {
     kill();
   } else {
-    if (KILL_RETURNS_RESULT && !child .. isRunning()) return;
-    waitfor() {
-      child.on(STREAMS_CLOSED_SIGNAL, resume);
-      kill();
-    } finally {
-      child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
+    waitfor {
+      waitfor() {
+        child.on(STREAMS_CLOSED_SIGNAL, resume);
+        kill();
+      } finally {
+        child.removeListener(STREAMS_CLOSED_SIGNAL, resume);
+      }
+    } or {
+      if (KILL_RETURNS_RESULT && !child .. isRunning()) return;
+      hold();
     }
   }
 };

@@ -1,4 +1,5 @@
 @ = require('sjs:test/std');
+@seq = require('sjs:sequence');
 var { context, test, assert, isWindows } = require('sjs:test/suite');
 var { integers, take, any } = require('sjs:sequence');
 
@@ -54,6 +55,117 @@ context {||
     }
   }.skipIf(NODE_VERSION .. array.cmp([0,8]) < 0, "process.kill() returns no result before 0.8");
 
+  context('run() with block') {||
+    test("output pipes are readable streams") {||
+      child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:['ignore', 'pipe', 'pipe']}) {|p|
+        p.stdout .. @seq._isReadableStream .. @assert.ok();
+        p.stderr .. @seq._isReadableStream .. @assert.ok();
+        p.stderr .. @stream.readAll('ascii') .. @assert.eq('');
+        p.stdout .. @stream.readAll('ascii') .. @assert.eq('1\n');
+      }
+    }
+
+    test("default `stdio` is ['pipe','inherit','inherit']") {||
+      child_process.run(process.execPath, ['-e', '1']) {|p|
+        p.stdin.write .. @assert.ok();
+        p.stdout .. @assert.eq(null);
+        p.stderr .. @assert.eq(null);
+      }
+    }
+
+    test("process is killed upon retraction") {||
+      var proc;
+      var ready = @Condition();
+      waitfor {
+        child_process.run('bash', ['-c', 'sleep 5']) {|p|
+          proc = p;
+          ready.set();
+          p.stdin.write .. @assert.ok();
+          p.stdout .. @assert.eq(null);
+          p.stderr .. @assert.eq(null);
+        }
+      } or {
+        ready.wait();
+      }
+      hold(200);
+      proc .. child_process.isRunning() .. @assert.eq(false);
+      proc.exitCode .. @assert.eq(null);
+      proc.signalCode .. @assert.eq('SIGTERM');
+    }
+
+    @test("retracts block upon process failure") {||
+      var retracted = false;
+      @assert.raises( -> child_process.run('bash', ['-c','sleep 1; exit 2']) {|p|
+        try {
+          hold(2000);
+        } retract {
+          retracted = true;
+        }
+      })
+      retracted .. @assert.eq(true);
+    }
+
+    @test("does not retract block upon process failure when throwing=false") {||
+      var retracted = false;
+      child_process.run('bash', ['-c','sleep 1; exit 2'], {throwing: false}) {|p|
+        try {
+          hold(2000);
+        } retract {
+          retracted = true;
+        }
+      }
+      retracted .. @assert.eq(false);
+    }
+
+    @test("run will not return until block is complete") {||
+      // NOTE: pipes are only allowed as fd3+ when not passing a block, for backwards compatibility
+      var output = [];
+      var child = child_process.run('bash', ['-c', 'head --bytes=' + (65536*2) + ' /dev/urandom'], {stdio: ['ignore', 'pipe','inherit']}) {|p|
+        // XXX we can't just insert a hold(1000) here, because of https://github.com/joyent/node/issues/6595
+        p.stdout .. @each {|chunk|
+          hold(500);
+          output.push(chunk);
+          @info("seen #{output.length} chunks");
+        }
+      };
+      (output.length > 1) .. @assert.ok("output data was read in a single chunk - increase limit!");
+      Buffer.concat(output).length .. @assert.eq(65536*2);
+    }
+
+    @test("error from failed command will wait for `stdio` collection") {||
+      try {
+        child_process.run(process.execPath, [@sys.executable, '-e', 'hold(1000); console.log("exiting"); process.exit(1);'], {stdio:['ignore','string', 'inherit']})
+        @assert.fail('Command succeeded');
+      } catch(e) {
+        e.stdout .. normalize .. @assert.eq("exiting\n");
+        e.code .. @assert.eq(1);
+        e.signal .. @assert.eq(null);
+      }
+    }
+
+    @test("`buffer` output type") {||
+      var output = child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:'buffer'}).stdout;
+      output .. Buffer.isBuffer .. @assert.eq(true);
+      output.toString('ascii') .. normalize .. @assert.eq('1\n');
+    }
+
+    @context("Writing to `stdin`") {||
+      var stdin = @integers() .. @transform(function(i) { hold(100); return String(i) + "\n"; });
+
+      @test("reports IO failure if command succeeds") {||
+        @assert.raises({message: "Failed writing to child process `stdin`"},
+          -> child_process.run(@sys.executable, ['-e', 'console.log(1)'], {stdio:[stdin, 'string', 'inherit']})
+        );
+      }
+
+      @test("reports command failure if both command and IO fail") {||
+        @assert.raises({message: /exited with nonzero exit status: 1/},
+          -> child_process.run(@sys.executable, ['-e', 'console.log(1); process.exit(1)'], {stdio:[stdin, 'string', 'inherit']})
+        );
+      }
+    }
+  }
+
   //-------------------------------------------------------------
   context('run (an array of args)') {||
     testEq('arguments with spaces', '1  2\n', function() {
@@ -68,12 +180,10 @@ context {||
     testEq('run returns stdout / stderr', {"code":1,"signal":null,"stdout":"out\n","stderr":"err\n"}, function() {
       var { filter } = require('sjs:sequence');
       var { propertyPairs, pairsToObject } = require('sjs:object');
-      try{
+      try {
         return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']) .. normalizeOutput;
       } catch(e) {
-        return propertyPairs(e) ..
-          filter([key,val] => ['stdout', 'stderr', 'code', 'signal'].indexOf(key) != -1) ..
-          pairsToObject .. normalizeOutput;
+        return ['stdout', 'stderr', 'code', 'signal'] .. @map(k -> [k, e[k]]) .. @pairsToObject() .. normalizeOutput;
       }
     });
 
@@ -83,6 +193,11 @@ context {||
       child.code .. @assert.eq(2);
       child.stdout .. @strip() .. @assert.eq('out');
       child.stderr .. @strip() .. @assert.eq('err');
+    }
+
+    @test("run throws an error with stdout when it is a string") {||
+      var err = @assert.raises( -> child_process.run('bash', ['-c', 'echo "some error" >&2; sleep 1;exit 2']))
+      err.message .. normalizeOutput .. @assert.eq("child process `bash -c echo \"some error\" >&2; sleep 1;exit 2` exited with nonzero exit status: 2\nsome error\n");
     }
   }
 
