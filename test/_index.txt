@@ -3,6 +3,7 @@
 unit/array-tests.sjs
 unit/assert-tests.sjs
 unit/bundle-tests.sjs
+unit/bytes-tests.sjs
 unit/collection/immutable-tests.sjs
 unit/compile/deps-tests.sjs
 unit/compile/minify-tests.sjs

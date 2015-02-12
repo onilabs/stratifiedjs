@@ -53,6 +53,7 @@ if (hostenv === 'nodejs') {
     {id:'sjs:nodejs/stream', name:'stream'},
     {id:'sjs:nodejs/stream', include:['pump']},
     {id:'sjs:sys', include: ['argv', 'eval']},
+    'sjs:bytes',
     {id:'nodejs:path', name: 'path'},
     {id:'sjs:nodejs/fs', name: 'fs'},
     {id:'sjs:nodejs/child-process', name: 'childProcess'},
@@ -100,6 +101,18 @@ module.exports = require(modules);
    - **isArrayLike**: (function [sjs:array::isArrayLike])
    - **remove**: (function [sjs:array::remove])
    - **union**: (function [sjs:array::union])
+  
+  
+  ### Symbols from the [sjs:bytes](#sjs%3Abytes) module:
+  *(when in the nodejs environment)*
+  
+   - **isArrayBuffer**: (function [sjs:bytes::isArrayBuffer])
+   - **isBuffer**: (function [sjs:bytes::isBuffer])
+   - **isBytes**: (function [sjs:bytes::isBytes])
+   - **isUint8Array**: (function [sjs:bytes::isUint8Array])
+   - **toArrayBuffer**: (function [sjs:bytes::toArrayBuffer])
+   - **toBuffer**: (function [sjs:bytes::toBuffer])
+   - **toUint8Array**: (function [sjs:bytes::toUint8Array])
   
   
   ### Symbols from the [sjs:compare](#sjs%3Acompare) module:
@@ -228,7 +241,6 @@ module.exports = require(modules);
    - **integers**: (function [sjs:sequence::integers])
    - **intersperse**: (function [sjs:sequence::intersperse])
    - **isBatchedStream**: (function [sjs:sequence::isBatchedStream])
-   - **isBytes**: (function [sjs:sequence::isBytes])
    - **isConcreteSequence**: (function [sjs:sequence::isConcreteSequence])
    - **isSequence**: (function [sjs:sequence::isSequence])
    - **isStream**: (function [sjs:sequence::isStream])

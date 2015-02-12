@@ -89,8 +89,7 @@ function sequential(f) {
    @summary
     An Array, array-like object (like `arguments`, `NodeList`, `TypedArray`, etc),
     String,
-    nodejs Buffer,
-    Uint8Array
+    [bytes::Bytes]
     or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
@@ -261,17 +260,6 @@ __js var toStream = exports.toStream = function(arr) {
    @summary Returns `true` if `s` is a [::Stream], `false` otherwise.
 */
 __js var isStream = exports.isStream = (s) -> s && s.__oni_is_Stream === true;
-
-/**
-   @function isBytes
-   @param {Object} [s] Object to test
-   @return {Boolean}
-   @summary Returns `true` if `s` is a Uint8Array or nodejs Buffer
-*/
-__js {
-  var isUint8 = typeof(Uint8Array) === 'undefined' ? nope : o -> o instanceof Uint8Array;
-  var isBytes = exports.isBytes = d -> isBuffer(d) || isUint8(d);
-}
 
 /**
    @function isBatchedStream
@@ -859,8 +847,8 @@ var padEnd = function(seq, padding) {
    @function join
    @altsyntax sequence .. join(separator)
    @param {::Sequence} [sequence] Input sequence
-   @param {optional String|Array|Buffer|Uint8Array|quasi::Quasi} [separator='']
-   @return {String|Buffer|quasi::Quasi}
+   @param {optional String|Array|bytes::Bytes|Uint8Array|quasi::Quasi} [separator='']
+   @return {String|Buffer|Uint8Array|quasi::Quasi}
    @summary Joins all elements of the sequence with the given separator
    @desc
      By default, all elements in `sequence` are coerced into a String.
@@ -881,7 +869,7 @@ function join(sequence, separator) {
   }
   var arr = sequence .. toArray;
   if (arr.length == 0) return '';
-  if (arr[0] .. isBytes || arr[0] .. isArrayLike) {
+  if (arr[0] .. isBuffer || arr[0] .. isArrayLike) {
     if (separator.length > 0)
       arr = arr .. intersperse(separator) .. toArray;
     if (arr[0] .. isBuffer) {

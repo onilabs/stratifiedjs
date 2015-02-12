@@ -282,6 +282,37 @@
       },
       "summary": "Create SJS code bundles"
     },
+    "bytes": {
+      "type": "module",
+      "children": {
+        "Bytes": {
+          "type": "class",
+          "children": {}
+        },
+        "isArrayBuffer": {
+          "type": "function"
+        },
+        "isBuffer": {
+          "type": "function"
+        },
+        "isBytes": {
+          "type": "function"
+        },
+        "isUint8Array": {
+          "type": "function"
+        },
+        "toArrayBuffer": {
+          "type": "function"
+        },
+        "toBuffer": {
+          "type": "function"
+        },
+        "toUint8Array": {
+          "type": "function"
+        }
+      },
+      "summary": "Type checking and conversions for binary types."
+    },
     "collection/": {
       "type": "lib",
       "children": {
@@ -2049,9 +2080,6 @@
           "type": "function"
         },
         "isBatchedStream": {
-          "type": "function"
-        },
-        "isBytes": {
           "type": "function"
         },
         "isConcreteSequence": {

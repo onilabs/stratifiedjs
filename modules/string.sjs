@@ -496,7 +496,7 @@ exports.capitalize = function(s) {
 
 /**
   @class Octets
-  @summary Byte sequence
+  @summary Byte sequence implemented as a String
   @desc
     Octets are opaque sequences of bytes. While they happen to be implemented
     as strings, you should generally only use the functions in the [sjs:string::] module to

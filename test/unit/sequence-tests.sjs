@@ -122,16 +122,6 @@ testEq("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
 
-test("isBytes()") {||
-  new Uint8Array([1,2,3]) .. s.isBytes .. assert.eq(true, 'Uint8Array');
-  new Int8Array([1,2,3]) .. s.isBytes .. assert.eq(false, 'Int8Array');
-  [1,2,3] .. s.isBytes .. assert.eq(false, 'plain array');
-};
-
-test("isBytes(Buffer)") {||
-  new Buffer([1,2,3]) .. s.isBytes .. assert.ok();
-}.skipIf(@isBrowser);
-
 @test("concrete sequences") {||
   [ 1, 2, 3] .. s.isConcreteSequence .. @assert.ok;
   "123" .. s.isConcreteSequence .. @assert.ok;

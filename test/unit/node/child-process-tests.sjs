@@ -183,7 +183,7 @@ context {||
         @TemporaryDir {|dest|
           var input = @fs.fileContents(@url.normalize('./does_not_exist.tgz', module.id) .. @url.toPath());
           @childProcess.run('gunzip', {cwd:dest, stdio: [input, 'pipe']}) {|gunzip|
-            @childProcess.run('tar', ['-xv'], {stdio: [gunzip.stdout, 'pipe']}) {|tar|
+            @childProcess.run('tar', ['-xv'], {stdio: [gunzip.stdout, 'pipe', 'string']}) {|tar|
               tar.stdout .. @stream.lines('utf-8') .. @each {|line|
                 @logging.info("tar: #{line.trim()}");
               }

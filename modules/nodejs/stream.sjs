@@ -53,7 +53,7 @@ if (sys.hostenv != 'nodejs')
   throw new Error('The nodejs/stream module only runs in a nodejs environment');
 
 var nodeVersion = process.versions.node.split('.');
-@ = require(['../sequence', '../object', '../array', '../event', '../cutil', '../string']);
+@ = require(['../sequence', '../object', '../array', '../event', '../cutil', '../string', '../bytes']);
 @assert = require('../assert');
 
 /**
@@ -174,13 +174,13 @@ exports.end = function(dest, data, encoding) {
 /**
   @function pump
   @summary  Keep writing data from `src` into `dest` until `src` ends.
-  @param    {Stream|String|Buffer|sequence::Sequence} [src] the source data
+  @param    {Stream|String|bytes::Bytes|sequence::Sequence} [src] the source data
   @param    {String} [dest] the destination stream
   @param    {optional Settings} [opts]
   @setting  {Boolean} [end=true] end `dest` after writing
   @return   {Stream} `dest`
   @desc
-    If passed a single String or Buffer, the data will be
+    If passed a single String or [bytes::Bytes], the data will be
     written as a single chunk. Otherwise, `src` will be
     iterated and written to `dest` as capacity allows.
 
@@ -205,11 +205,10 @@ exports.pump = function(src, dest, fn_or_opts) {
   waitfor {
     throw dest .. @wait('error');
   } or {
-    // streams don't naturally support Uint8Array, so convert to buffer
-    if (src instanceof Uint8Array) src = new Buffer(src);
-    if (@isString(src) || Buffer.isBuffer(src)) {
-      // just a single chunk
+    if (@isString(src)) {
       _write(dest, src);
+    } else if (@isBytes(src)) {
+      _write(dest, src .. @toBuffer);
     } else {
       // if it's not already a sequence, it should be a stream
       // which doesn't inherit from ReadableStream. Force it:

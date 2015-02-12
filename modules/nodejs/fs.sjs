@@ -45,6 +45,7 @@ var evt = require('../event');
 var seq = require('../sequence');
 var stream = require('./stream');
 var { isString } = require('../string');
+var { isBytes, toBuffer } = require('../bytes');
 
 //----------------------------------------------------------------------
 // low-level:
@@ -384,28 +385,26 @@ exports.fileContents = function(path, encoding) {
    @function writeFile
    @summary Write data to a file, replacing the file if it already exists
    @param {String} [filename]
-   @param {String|Buffer|sequence::Stream|Array} [data]
+   @param {String|bytes::Bytes|sequence::Stream|Array} [data]
    @param {optional String} [encoding='utf8']
    @desc
      If `data` is an Array or [sequence::Stream], its chunks will
      be written in sequence.
 
-     The `encoding` parameter is ignored if `data` is a
-     [Buffer](http://nodejs.org/docs/latest/api/buffer.html)
-     (or a sequence of buffers).
+     The `encoding` parameter is only used when passing one or more
+     strings as the `data` argument.
 */
 exports.writeFile = function(filename, data, encoding /*='utf8'*/) {
-  // we can't use isSequence, as that would catch strings / buffers too
-  // if we have a non-concrete sequence (or an Array), pump it
-  if(seq.isSequence(data) && (Array.isArray(data) || !seq.isConcreteSequence(data))) {
+  if(isString(data) || isBytes(data)) {
+    // write file in one go if it's a single chunk
+    if(!isString(data)) data = data .. toBuffer();
+    waitfor (var err) { fs.writeFile(filename, data, encoding, resume); }
+    if (err) throw err;
+  } else {
+    // Otherwise, stream it to the file
     exports.withWriteStream(filename, {encoding: encoding}) {|f|
       data .. stream.pump(f);
     }
-  } else {
-    // Assume the concrete non-array is a single chunk (i.e TypedArray, String, Buffer)
-    if(!isString(data) && !Buffer.isBuffer(data)) data = new Buffer(data);
-    waitfor (var err) { fs.writeFile(filename, data, encoding, resume); }
-    if (err) throw err;
   }
 };
 
