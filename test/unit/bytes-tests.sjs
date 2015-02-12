@@ -2,10 +2,13 @@
 
 var input = [1,2,3];
 var types = [
-	['Buffer', 'isBuffer', 'toBuffer', new Buffer([1,2,3])],
 	['Uint8Array', 'isUint8Array', 'toUint8Array', new Uint8Array([1,2,3])],
 	['ArrayBuffer', 'isArrayBuffer', 'toArrayBuffer', (new Uint8Array([1,2,3])).buffer],
 ];
+
+if(!@isBrowser) {
+	types.push(['Buffer', 'isBuffer', 'toBuffer', new Buffer([1,2,3])]);
+}
 
 @context("Array") {||
 	@test("Array isBytes") {||
@@ -50,5 +53,5 @@ types .. @each {|[className, testMethod, convertMethod, sourceExample]|
 			}
 		}
 
-	}.skipIf(className === 'Buffer' && @isBrowser);
+	}
 }

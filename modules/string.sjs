@@ -729,6 +729,7 @@ __js {
   if (sys.hostenv === 'nodejs') {
     /**
       @function encode
+      @hostenv nodejs
       @param {optional String} [data]
       @param {String} [encoding]
       @summary Encode string -> bytes
@@ -740,6 +741,7 @@ __js {
         function which accepts a string and encodes it.
 
       @function decode
+      @hostenv nodejs
       @param {optional Buffer} [data]
       @param {String} [encoding]
       @summary Decode bytes -> string
