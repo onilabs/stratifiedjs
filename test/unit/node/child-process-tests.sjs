@@ -174,6 +174,23 @@ context {||
         );
       }
     }
+
+    @test("failure in a multi-process pipeline") {||
+      // tar file does not exist. While pumping the stream into
+      // tar.stdin, this should raise.
+      @assert.raises({message:/ENOENT.*does_not_exist.tgz/}, ->
+        @TemporaryDir {|dest|
+          var input = @fs.fileContents(@url.normalize('./does_not_exist.tgz', module.id) .. @url.toPath());
+          @childProcess.run('gunzip', {cwd:dest, stdio: [input, 'pipe']}) {|gunzip|
+            @childProcess.run('tar', ['-xv'], {stdio: [gunzip.stdout, 'pipe']}) {|tar|
+              tar.stdout .. @stream.lines('utf-8') .. @each {|line|
+                @logging.info("tar: #{line.trim()}");
+              }
+            } .. @childProcess.isRunning .. @assert.eq(false);
+          } .. @childProcess.isRunning .. @assert.eq(false);
+        }
+      )
+    }
   }
 
   //-------------------------------------------------------------
@@ -210,22 +227,6 @@ context {||
       err.message .. normalizeOutput .. @assert.eq("child process `bash -c echo \"some error\" >&2; sleep 1;exit 2` exited with nonzero exit status: 2\nsome error\n");
     }
 
-    @test("failure in a multi-process pipeline") {||
-      // tar file does not exist. While pumping the stream into
-      // tar.stdin, this should raise.
-      @assert.raises({message:/ENOENT.*does_not_exist.tgz/}, ->
-        @TemporaryDir {|dest|
-          var input = @fs.fileContents(@url.normalize('./does_not_exist.tgz', module.id) .. @url.toPath());
-          @childProcess.run('gunzip', {cwd:dest, stdio: [input, 'pipe']}) {|gunzip|
-            @childProcess.run('tar', ['-xv'], {stdio: [gunzip.stdout, 'pipe']}) {|tar|
-              tar.stdout .. @stream.lines('utf-8') .. @each {|line|
-                @logging.info("tar: #{line.trim()}");
-              }
-            } .. @childProcess.isRunning .. @assert.eq(false);
-          } .. @childProcess.isRunning .. @assert.eq(false);
-        }
-      )
-    }
   }
 
   //-------------------------------------------------------------
