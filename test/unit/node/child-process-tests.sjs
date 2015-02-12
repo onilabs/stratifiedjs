@@ -1,4 +1,4 @@
-@ = require(['sjs:test/std', 'sjs:nodejs/tempfile']);
+@ = require('sjs:test/std');
 @seq = require('sjs:sequence');
 var { context, test, assert, isWindows } = require('sjs:test/suite');
 var { integers, take, any } = require('sjs:sequence');
@@ -15,6 +15,7 @@ context {||
   var child_process = require('sjs:nodejs/child-process');
   var fs = require('sjs:nodejs/fs');
   var stream = require('sjs:nodejs/stream');
+  var { @TemporaryDir } = require('sjs:nodejs/tempfile');
   var NODE_VERSION = process.versions['node'].split('.').map(x -> parseInt(x));
   var initPid = isWindows ? 4 : 1;
 
