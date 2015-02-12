@@ -1,4 +1,4 @@
-@ = require('sjs:test/std');
+@ = require(['sjs:test/std', 'sjs:nodejs/tempfile']);
 @seq = require('sjs:sequence');
 var { context, test, assert, isWindows } = require('sjs:test/suite');
 var { integers, take, any } = require('sjs:sequence');
@@ -163,6 +163,16 @@ context {||
           -> child_process.run(@sys.executable, ['-e', 'console.log(1); process.exit(1)'], {stdio:[stdin, 'string', 'inherit']})
         );
       }
+
+      @test("aborts if an error occurs in stdio iteration") {||
+        var input = @Stream(function(emit) {
+          hold(500);
+          throw new Error("Can't stream this");
+        });
+        @assert.raises({message: /Can't stream this/},
+          -> child_process.run('bash', ['-c', 'sleep 10'], {stdio:[input, 'inherit', 'inherit']})
+        );
+      }
     }
   }
 
@@ -198,6 +208,23 @@ context {||
     @test("run throws an error with stdout when it is a string") {||
       var err = @assert.raises( -> child_process.run('bash', ['-c', 'echo "some error" >&2; sleep 1;exit 2']))
       err.message .. normalizeOutput .. @assert.eq("child process `bash -c echo \"some error\" >&2; sleep 1;exit 2` exited with nonzero exit status: 2\nsome error\n");
+    }
+
+    @test("failure in a multi-process pipeline") {||
+      // tar file does not exist. While pumping the stream into
+      // tar.stdin, this should raise.
+      @assert.raises({message:/ENOENT.*does_not_exist.tgz/}, ->
+        @TemporaryDir {|dest|
+          var input = @fs.fileContents(@url.normalize('./does_not_exist.tgz', module.id) .. @url.toPath());
+          @childProcess.run('gunzip', {cwd:dest, stdio: [input, 'pipe']}) {|gunzip|
+            @childProcess.run('tar', ['-xv'], {stdio: [gunzip.stdout, 'pipe']}) {|tar|
+              tar.stdout .. @stream.lines('utf-8') .. @each {|line|
+                @logging.info("tar: #{line.trim()}");
+              }
+            } .. @childProcess.isRunning .. @assert.eq(false);
+          } .. @childProcess.isRunning .. @assert.eq(false);
+        }
+      )
     }
   }
 
@@ -235,7 +262,7 @@ context {||
       return {events: events, error: 'no error'};
     });
 
-    testEq('wait() throws error with signal', {events: [], signal: 'SIGTERM'}, function() {
+    testEq('wait() throws error with signal', {events: ['child killed'], signal: 'SIGTERM'}, function() {
       var events = [];
       var child = child_process.launch('sleep', ['1'], {stdio:'inherit'});
       try {
@@ -245,6 +272,7 @@ context {||
         hold(250);
         child_process.kill(child);
         events.push('child killed');
+        hold(100);
       } catch (e) {
         return {events: events, signal: e.signal};
       }
