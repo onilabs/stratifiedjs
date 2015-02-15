@@ -518,7 +518,7 @@ function streamContext(ctor, dtor) {
    @function withWriteStream
    @summary Perform an action with a nodejs [WritableStream](http://nodejs.org/api/stream.html#stream_class_stream_writable) connected to a file
    @param {String} [path]
-   @param {Settings} [opts]
+   @param {optional Settings} [opts]
    @param {Function} [block]
    @setting {String} [flags="w"]
    @setting {String} [encoding=null]
