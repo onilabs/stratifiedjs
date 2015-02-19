@@ -240,8 +240,8 @@ exports.Driver = function(url) {
 /**
   @function Driver.enter
   @param {DOMElement} [elem]
-  @param {String} [text]
-  @summary Enter text into an element (typically an <input>)
+  @param {String|Boolean} [value]
+  @summary Enter a value into an element (typically an <input>, <checkbox>, etc)
 */
 fns.enter = function(elem, value) {
 	var typ = elem.getAttribute('type');
@@ -285,7 +285,7 @@ fns.trigger = function(elem, name, attrs) {
 				evt = document.createEvent('KeyboardEvent');
 				if (evt.initKeyEvent) {
 					// present on firefox.
-					// chrome has a but that prevent KeyboardEvents from working, but
+					// chrome has a bug that prevent KeyboardEvents from working, but
 					// *does* work with HTMLEvents (so we just let it fall through)
 					evt.initKeyEvent(name, true, true,
 						null, false, false, false, false,
