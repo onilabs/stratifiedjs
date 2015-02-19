@@ -348,6 +348,11 @@ test('scan on empty or single-element array') {||
   [1] .. s.scan(x -> x) .. s.toArray .. @assert.eq([]);
 };
 
+test('all & any predicate is optional') {||
+  [true] .. s.all() .. assert.eq(true);
+  [false] .. s.any() .. assert.eq(false);
+}
+
 testEq('any.par returns early', {checked: [3, 2], result: true}, function() {
   var checked = [];
   var result = [1,2,3] .. s.any.par(

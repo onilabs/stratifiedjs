@@ -2159,11 +2159,12 @@ exports.hasElem = hasElem;
    @function all
    @altsyntax sequence .. all(p)
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [p] Predicate function
+   @param {optional Function} [p=identity] Predicate function
    @return {Boolean}
    @summary Returns `true` if `p(x)` is truthy for all elements in `sequence`, `false` otherwise.
 */
 function all(sequence, p) {
+  if(!p) p = identity;
   sequence .. each { |x| if (!p(x)) return false }
   return true;
 }
@@ -2173,11 +2174,12 @@ exports.all = all;
    @function any
    @altsyntax sequence .. any(p)
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [p] Predicate function
+   @param {optional Function} [p=identity] Predicate function
    @return {Boolean}
    @summary Returns `true` if `p(x)` is truthy for any elements in `sequence`, `false` otherwise.
 */
 function any(sequence, p) {
+  if(!p) p = identity;
   sequence .. each { |x| if (p(x)) return true }
   return false;
 }
