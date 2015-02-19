@@ -54,9 +54,9 @@ var NAKED_SPECIAL_CHARS = '[;# \t\r\n\'\0{}()&|*?<>!' + DQ_SPECIAL_CHARS.slice(1
 
 /**
   @function quote
-  @param {Array} [args]
+  @param {Array|String} [args] An array of strings (or a single string)
   @return {String}
-  @summary Quote an array of arguments.
+  @summary Quote one or more arguments.
   @desc
     **NOTE**: this function is *not guaranteed* to safely sanitize data for use with any
     specific shell. You should not rely on it for protecting against shell-injection.
