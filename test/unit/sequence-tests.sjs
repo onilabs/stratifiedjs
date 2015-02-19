@@ -339,6 +339,15 @@ testEq('reduce1 on empty array', 'reduce1 on empty sequence', function() {
   }
 });
 
+testEq('scan', [3, 6], function() {
+  return s.scan([1,2,3], function(accum, el) { return accum + el; }) .. s.toArray();
+});
+
+test('scan on empty or single-element array') {||
+  [] .. s.scan(x -> x) .. s.toArray .. @assert.eq([]);
+  [1] .. s.scan(x -> x) .. s.toArray .. @assert.eq([]);
+};
+
 testEq('any.par returns early', {checked: [3, 2], result: true}, function() {
   var checked = [];
   var result = [1,2,3] .. s.any.par(

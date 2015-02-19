@@ -1498,6 +1498,51 @@ function async_rf(fx, r) {
 transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x != null);
 
 /**
+   @function scan
+   @altsyntax sequence .. scan([predicate])
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [fn] accumulator function
+   @return {::Stream}
+   @summary Emits successive combinations of `fn(accum, item)`.
+   @desc
+     `scan` is similar to [::reduce], in that it combines successive
+     elements with an accumulator value (the result being the new
+     accumulator value). While [::reduce] returns only
+     the final value, [::scan] emits each accumulator value as
+     it is calculated. Scan does not emit anything until the first two
+     elements have been consumed, and from then on it emits one item per input.
+
+     ### Example:
+
+       // sum integers from 1 to 10, printing out the intermediate sums
+       integers(1, 10) .. scan((sum,x) -> sum + x) .. each(console.log);
+       // 3
+       // 6
+       // 10
+       // 15
+       // 21
+       // 28
+       // 36
+       // 45
+       // 55
+
+*/
+var scan = exports.scan = function(sequence, fn) {
+  return Stream(function(emit) {
+    var accum;
+    var first = true;
+    sequence .. each {|elem|
+      if(first) {
+        first = false;
+        accum = elem;
+        continue;
+      }
+      else emit(accum = fn(accum, elem));
+    }
+  });
+};
+
+/**
    @function monitor
    @altsyntax sequence .. monitor(f)
    @param {::Sequence} [sequence] Input sequence
@@ -2028,6 +2073,8 @@ exports.intersperse = intersperse;
          // sum integers from 1 to 100:
 
          integers(1,100) .. reduce(0, (sum, x) -> sum + x)
+     
+     See also [::scan].
 */
 function reduce(sequence, initial, f) {
   var accu = initial;
