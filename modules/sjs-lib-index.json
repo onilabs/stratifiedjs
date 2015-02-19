@@ -2100,6 +2100,9 @@
         "map": {
           "type": "function"
         },
+        "map.filter": {
+          "type": "function"
+        },
         "map.par": {
           "type": "function"
         },
@@ -2128,6 +2131,9 @@
           "type": "function"
         },
         "reverse": {
+          "type": "function"
+        },
+        "scan": {
           "type": "function"
         },
         "skip": {
@@ -2161,6 +2167,9 @@
           "type": "function"
         },
         "transform": {
+          "type": "function"
+        },
+        "transform.filter": {
           "type": "function"
         },
         "transform.par": {
