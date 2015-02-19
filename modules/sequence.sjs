@@ -1265,11 +1265,11 @@ exports.skipWhile = skipWhile;
 
           // print first 10 odd integers:
 
-          each(take(filter(integers(), x=>x%2), 10), function(x) { console.log(x) })
+          each(take(filter(integers(), x->x%2), 10), function(x) { console.log(x) })
 
           // same as above, with double dot and blocklamdba syntax:
 
-          integers() .. filter(x=>x%2) .. take(10) .. each { |x| console.log(x) }
+          integers() .. filter(x->x%2) .. take(10) .. each { |x| console.log(x) }
 */
 function filter(sequence, predicate) {
   if (!predicate) predicate = identity;
@@ -1378,11 +1378,11 @@ exports.partition = partition;
 
           // print first 10 squares:
 
-          each(map(take(integers(), 10), x=>x*x), function(x) { console.log(x) })
+          each(map(take(integers(), 10), x->x*x), function(x) { console.log(x) })
 
           // same as above, with double dot and blocklamdba syntax:
 
-          integers() .. take(10) .. map(x=>x*x) .. each { |x| console.log(x) }
+          integers() .. take(10) .. map(x->x*x) .. each { |x| console.log(x) }
 */
 /*
   equivalent, but sometimes slower implementation:
@@ -1427,17 +1427,17 @@ function async_map_value(rv, val) {
 
           // print first 10 squares:
 
-          each(take(transform(integers(), x=>x*x), 10), function(x) { console.log(x) })
+          each(take(transform(integers(), x->x*x), 10), function(x) { console.log(x) })
 
           // same as above, with double dot and blocklamdba syntax:
 
-          integers() .. transform(x=>x*x) .. take(10) .. each { |x| console.log(x) }
+          integers() .. transform(x->x*x) .. take(10) .. each { |x| console.log(x) }
 
       Note that, because `transform` is lazy, if you iterate over the
       resulting stream more than once, the results will be re-computed
       each time:
 
-          var squares = [1,2,3,4] .. transform(x=>x*x);
+          var squares = [1,2,3,4] .. transform(x->x*x);
 
           squares .. each { |x| ... } // squares will be calculated as we iterate
           ...
@@ -1445,7 +1445,7 @@ function async_map_value(rv, val) {
 
       This is in contrast to [::map], which generates an array:
 
-          var squares = [1,2,3,4] .. map(x=>x*x);
+          var squares = [1,2,3,4] .. map(x->x*x);
           // squares have now been calculated and put into an array
 
           squares .. each { |x| ... } // no recalculation here
@@ -1565,11 +1565,11 @@ exports.concat = concat;
 
           // create a stream of adjacent integer pairs:
 
-          pack(integers(), next => [next(),next()]) // -> [1,2], [3,4], [5,6], ...
+          pack(integers(), next -> [next(),next()]) // -> [1,2], [3,4], [5,6], ...
 
           // same as above, with double dot call syntax:
 
-          integers() .. pack(next => [next(),next()])
+          integers() .. pack(next -> [next(),next()])
 */
 function pack(sequence, settings) {
   // untangle settings:
@@ -1645,16 +1645,16 @@ exports.pack = pack;
 
           var pairs = [ {a:1, b:2}, {a:3, b:4}, {a:5, b:6} ];
 
-          unpack(pairs, {a,b} => [a,b]) // -> 1,2,3,4,5,6 ...
+          unpack(pairs, {a,b} -> [a,b]) // -> 1,2,3,4,5,6 ...
 
           // same as above, with double dot call syntax:
 
-          pairs .. unpack({a,b} => [a,b])
+          pairs .. unpack({a,b} -> [a,b])
 
 
           // create a stream 1, 1,2, 1,2,3, 1,2,3,4, 1,2,3,4,5, ...:
 
-          integers() .. unpack(n => integers(1,n))
+          integers() .. unpack(n -> integers(1,n))
 */
 function unpack(sequence, u) {
   if (!u) u = identity;
@@ -1825,7 +1825,7 @@ exports.groupBy = groupBy;
 function zip(/* sequences... */) {
   var sequences = arguments;
   return Stream(function(r) {
-    var iterators = sequences .. map(seq => makeIterator(seq));
+    var iterators = sequences .. map(seq -> makeIterator(seq));
     try {
       while (1) {
         var x = [];
@@ -1865,7 +1865,7 @@ exports.zip = zip;
 function zipLongest(/* sequences... */) {
   var sequences = arguments;
   return Stream(function(r) {
-    var iterators = sequences .. map(seq => makeIterator(seq));
+    var iterators = sequences .. map(seq -> makeIterator(seq));
     try {
       var done = false;
       while (!done) {
@@ -2007,7 +2007,7 @@ exports.intersperse = intersperse;
 
          // sum integers from 1 to 100:
 
-         integers(1,100) .. reduce(0, (sum, x) => sum + x)
+         integers(1,100) .. reduce(0, (sum, x) -> sum + x)
 */
 function reduce(sequence, initial, f) {
   var accu = initial;
@@ -2031,7 +2031,7 @@ exports.reduce = reduce;
 
          // sum integers from 1 to 100:
 
-         integers(1,100) .. reduce((sum, x) => sum + x)
+         integers(1,100) .. reduce1((sum, x) -> sum + x)
 */
 function reduce1(sequence, f, default_val) {
   var accu;
