@@ -298,6 +298,17 @@ testEq('filter', {checked: [1,2,3], result: [1,3]}, function() {
   return {checked:checked, result:result};
 });
 
+test('transform.filter') {||
+  var rv = [1,2,3, 4, 5] .. s.transform.filter(x -> x % 2 == 0 ? x*2);
+  rv .. s.isStream() .. assert.ok();
+  rv .. s.toArray() .. assert.eq([4, 8]);
+};
+
+test('map.filter') {||
+  var rv = [1,2,3, 4, 5] .. s.map.filter(x -> x % 2 == 0 ? x*2);
+  rv .. assert.eq([4, 8]);
+};
+
 test('filter with no arguments') {||
   s.filter([1,true, 0, 3, null]) .. s.toArray() .. assert.eq([1, true, 3]);
 };

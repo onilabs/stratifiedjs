@@ -1414,6 +1414,16 @@ function async_map_value(rv, val) {
 }
 
 /**
+   @function map.filter
+   @altsyntax sequence .. map.filter([predicate])
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [fn] mapping function
+   @return {::Stream}
+   @summary Like [::map], but skips items where `fn(x)` returns `null`/`undefined`.
+*/
+map.filter = (sequence, fn) -> transform.filter(sequence, fn) .. toArray;
+
+/**
    @function transform
    @altsyntax sequence .. transform(f)
    @param {::Sequence} [sequence] Input sequence
@@ -1476,6 +1486,16 @@ function async_rf(fx, r) {
   fx = fx.wait();
   return r(fx);
 }
+
+/**
+   @function transform.filter
+   @altsyntax sequence .. transform.filter([predicate])
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [fn] mapping function
+   @return {::Stream}
+   @summary Like [::transform], but skips items where `fn(x)` returns `null`/`undefined`.
+*/
+transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x != null);
 
 /**
    @function monitor
