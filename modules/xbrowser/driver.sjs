@@ -186,7 +186,10 @@ DriverProto.reload = function(wait) {
 DriverProto.click = function(elem) {
 	var doc = elem.ownerDocument;
 	var currentHref = doc.location.href;
-	var propagate = elem .. exports.trigger('click');
+	var propagate = true;
+	;['mousedown', 'click', 'mouseup'] .. each {|evt|
+		if(!fns.trigger(elem, evt)) propagate = false;
+	}
 	if (!propagate) return;
 
 	switch(elem.tagName.toLowerCase()) {
