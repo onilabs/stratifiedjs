@@ -118,7 +118,7 @@ var _write = exports._write = function(dest, data /*, ... */) {
 /**
   @function contents
   @summary  Return a [sequence::Stream] of chunks of data from a nodejs stream
-  @param    {Stream} [dest] the stream to read from
+  @param    {Stream} [stream] the stream to read from
   @param    {optional String} [encoding]
   @return   {sequence::Stream} A sequence of data chunks (String or Buffer)
   @desc
@@ -128,9 +128,44 @@ var _write = exports._write = function(dest, data /*, ... */) {
 
     The returned stream will end only when the underlying nodejs stream
     ends (or emits an error).
+
+    **Note:** if `stream` is a [./child-process::] `stdout` or `stderr` stream,
+    this function will eagerly read all data as it arrives and buffer it in memory,
+    rather than only reading new data when needed. This is the only way to ensure
+    data is not lost due to [a bug in nodejs](https://github.com/joyent/node/issues/6595).
 */
 exports.contents = function(stream, encoding) {
   if(encoding) stream.setEncoding(encoding);
+
+  // certain streams (e.g child stdout) cannot be safely
+  // read on-demand - they drop data when nobody is watching.
+  // In that case, we have no choice but to buffer in memory
+  // and hope the stream gets drained quickly enough to keep
+  // memory usage reasonable.
+  if(stream.__oni_must_read_immediately) {
+    var buf = [];
+    var eof = false;
+    var error = null;
+    var check = @Emitter();
+    stream.on('data', function(d) {
+      buf.push(d);
+      check.emit();
+    });
+    stream.on('error', function(e) {
+      error = e;
+      check.emit();
+    });
+    stream.on('end', function(e) {
+      eof = true;
+      check.emit();
+    });
+    return @Stream(function(emit) {
+      while(buf.length > 0) emit(buf.shift());
+      if (error) throw error;
+      if (eof) return;
+      else check .. @wait();
+    });
+  }
   return @Stream(function(emit) {
     sys.streamContents(stream, emit);
   });

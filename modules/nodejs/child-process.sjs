@@ -205,37 +205,21 @@ exports.exec = function(command, options) {
       set to `'string'` or `'buffer'`, you should not rely on their
       value being set until [::run] returns.
 
-      ### Warning: you must start reading from `'pipe'` outputs _immediately_:
+      ### Warning: you must consume `'pipe'` outputs _immediately_:
 
       Due to [a bug in nodejs](https://github.com/joyent/node/issues/6595), you must
-      begin reading all output pipes immediately when passing a block to `run`.
+      consume data from readable pipes immediately when passing a block to `run`.
 
-      For example:
+      As a general rule, you should do one of the following to each output
+      stream at the start of `block`:
 
-          var userInput = [ ... ]; // some stream of input data
-          @childProcess.run('node', [ ... ], {stdio: ['pipe','pipe','pipe']) {|proc|
-            waitfor {
-              var out = proc.stdout .. @stream.readAll();
-            } and {
-              var err = proc.stderr .. @stream.readAll();
-            } and {
-              userInput .. @stream.pump(proc.stdin);
-            }
-          }
+       - pass the stream to [./stream::contents]
+       - attach the stream to another process' `stdin` (or some other method which
+         consumes the underlying file descriptor)
 
-      You should *not* perform any actions that may suspend before beginning to read output
-      data, as that may lead to data loss:
-
-          var userInput = [ ... ]; // some stream of input data
-          @childProcess.run('node', [ ... ], {stdio: ['pipe','pipe','pipe']) {|proc|
-            userInput .. @stream.pump(proc.stdin);
-            // at this point, output pipes will probably be closed already, and their data lost
-            waitfor {
-              var out = proc.stdout .. @stream.readAll();
-            } and {
-              var err = proc.stderr .. @stream.readAll();
-            }
-          }
+      If you're consuming a stream in another way, you must be careful not to
+      apply back-pressure to the stream, as `nodejs` may drop data instead of
+      delaying its delivery.
 
       ### Failed commands:
 
@@ -365,6 +349,14 @@ exports.run = function(command, args, options, block) {
   var stdioReplacements = [];
 
   var child = exports.launch(command, args, options);
+  // Add a flag which is used by sjs:stream/contents to workaround
+  // https://github.com/joyent/node/issues/6595
+  // XXX should we do this for _all_ readable streams, not just stdio?
+  [child.stdout, child.stderr] .. @each {|child|
+    if(child && child.read) {
+      child.__oni_must_read_immediately = true;
+    }
+  };
 
   // On failure, it can be hard to know which error to report. The priority (lowest to highest) is:
   //  - Write failures (to stdin)

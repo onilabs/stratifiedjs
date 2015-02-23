@@ -415,4 +415,44 @@ context {||
     // ^ should work on windows, it's probably just weirdness in winbash that makes the test fail
     
   }.timeout(4);
+
+
+  @test("stream::contents eagerly collects data from a stdio stream") {||
+    var input = @fs.readFile(module.id .. @url.toPath(), 'ascii');
+    var run = function(block) {
+      @childProcess.run('cat', [], {stdio:['pipe', 'pipe']}) {|proc|
+        waitfor {
+          block(proc);
+        } and {
+          var inputStream = @Stream(function(emit) {
+            var i=0;
+            var chunkSize = 600;
+            while(i<input.length) {
+              emit(input.slice(i, i+chunkSize));
+              i+=chunkSize;
+              hold(100);
+            }
+          });
+          inputStream .. @stream.pump(proc.stdin);
+          //input .. @transform(chunk -> (hold(1), chunk)) .. @stream.pump(proc.stdin);
+        }
+      }
+    };
+
+    run {|proc|
+      var output = proc.stdout .. @stream.contents('ascii');
+      hold(2000);
+      var buf = [];
+      output .. @each {|chunk|
+        buf.push(chunk);
+        hold(400);
+      }
+      output = buf .. @toArray();
+
+      @info("got #{output.length} chunks");
+      @assert.ok(output.length > 2, "this test requires at least three chunks, got #{output.length}");
+      output .. @join .. @count .. @assert.eq(input.length);
+      output .. @join .. @assert.eq(input);
+    }
+  }.timeout(60);
 }.serverOnly();
