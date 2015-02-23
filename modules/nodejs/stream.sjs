@@ -71,7 +71,15 @@ var nodeVersion = process.versions.node.split('.');
     but which do not inherit from any of these prototypes,
     in which case this test will return `false`.
 */
-exports.isReadableStream = require('../sequence')._isReadableStream;
+var readableStreamProto = require('nodejs:stream').Readable.prototype;
+var socketProto = require('nodejs:net').Socket.prototype;
+var fsReadStreamProto = require('nodejs:fs').ReadStream.prototype;
+__js {
+  exports.isReadableStream = s -> readableStreamProto.isPrototypeOf(s)
+    || socketProto.isPrototypeOf(s)
+    || fsReadStreamProto.isPrototypeOf(s)
+  ;
+}
 
 // reads a chunk, but the parent must be listening for `end` / `error`
 exports._read = function readStream(stream, size) {

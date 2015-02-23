@@ -126,13 +126,6 @@ testEq("isStream()", true, function() {
   [ 1, 2, 3] .. s.isConcreteSequence .. @assert.ok;
   "123" .. s.isConcreteSequence .. @assert.ok;
   ([1,2,3] .. s.toStream()) .. s.isConcreteSequence .. @assert.notOk;
-
-  if(@isServer !== false) {
-    var stream = require('sjs:nodejs/stream');
-    var readable = new stream.ReadableStream('foo');
-    readable .. s.isSequence() .. @assert.ok();
-    readable .. s.isConcreteSequence() .. @assert.notOk();
-  }
 };
 
 
@@ -855,40 +848,6 @@ context("iterable nodejs datatypes") {||
   test("Buffer") {||
     new Buffer("12345") .. s.isSequence() .. assert.eq(true);
     new Buffer("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
-  }
-
-  test("stream::Readable") {||
-    var contents = '';
-    var myPath = module.id .. @url.toPath();
-    var stream = @fs.fileContents(myPath, 'utf-8');
-    stream .. s.isSequence() .. assert.eq(true);
-    stream .. @each {|chunk|
-      contents += chunk;
-    }
-    contents.slice(0, 50) .. @assert.eq(@fs.readFile(myPath, 'utf-8').slice(0, 50));
-  }
-
-  test("net::Socket") {||
-    var sock = new require('nodejs:net').Socket();
-    sock .. s.isSequence .. @assert.ok();
-  }
-
-  test("fs::ReadStream") {||
-    require('sjs:nodejs/tempfile').TemporaryFile() {|f|
-      f.readStream() .. s.isSequence .. @assert.ok();
-    }
-  }
-
-  test("sjs:nodejs/stream::ReadableStream") {||
-    var readable = new stream.ReadableStream();
-    readable .. s.isSequence .. @assert.ok();
-  }
-
-  test("child_process stdout") {||
-    var p = @childProcess.launch(process.execPath, ['-e', 'console.log(123)'], {'stdio':['ignore','pipe',2]});
-    p.stdout .. s.isSequence .. @assert.ok();
-    p.stdout .. @each(@info); // consume stream
-    p .. @childProcess.wait();
   }
 }.serverOnly();
 

@@ -48,25 +48,17 @@ var sys = require('builtin:apollo-sys');
 module.setCanonicalId('sjs:sequence');
 
 // identity function:
-__js var identity = (x) -> x;
-__js function isString(obj) {
-  return typeof obj == 'string' || obj instanceof String;
-}
-var nope = -> false;
-var isBuffer = nope, isReadableStream = nope;
-if (sys.hostenv == 'nodejs') {
-  var readableStreamProto = require('nodejs:stream').Readable.prototype;
-  var socketProto = require('nodejs:net').Socket.prototype;
-  var fsReadStreamProto = require('nodejs:fs').ReadStream.prototype;
-  __js {
-    isBuffer = Buffer.isBuffer.bind(Buffer);
-    isReadableStream = s -> readableStreamProto.isPrototypeOf(s)
-      || socketProto.isPrototypeOf(s)
-      || fsReadStreamProto.isPrototypeOf(s)
-    ;
+__js {
+  var identity = (x) -> x;
+  function isString(obj) {
+    return typeof obj == 'string' || obj instanceof String;
+  }
+  var nope = -> false;
+  var isBuffer = nope;
+  if (sys.hostenv == 'nodejs') {
+      isBuffer = Buffer.isBuffer.bind(Buffer);
   }
 }
-exports._isReadableStream = isReadableStream;
 
 // XXX `sequential` is from the 'function.sjs' module - we can't
 // import that because that would it would lead to a dependency
@@ -116,7 +108,6 @@ function sequential(f) {
      # Non-concrete sequences types:
 
      - [::Stream]
-     - nodejs ReadableStream, File stream, Socket, etc
 
      There are no particular guarantees about the behaviour of non-concrete
      sequences. In particular, each individual sequence _may or may not_ be:
@@ -290,7 +281,7 @@ __js var isConcrete = exports.isConcreteSequence = (s) ->
 */
 __js var isSequence = exports.isSequence = (s) ->
   isConcrete(s) ||
-  isStream(s) || hasInterface(s, ITF_EACH) || isReadableStream(s);
+  isStream(s) || hasInterface(s, ITF_EACH);
 
 /**
    @function generate
@@ -377,9 +368,6 @@ function each(sequence, r) {
         if (__oni_rt.is_ef(res))
           return async_each(sequence, r, i, res);
       }
-    }
-    else if (isReadableStream(sequence)) {
-      return streamContents(sequence, r);
     }
     else
       throw new Error("Unsupported sequence type '#{typeof sequence}'");

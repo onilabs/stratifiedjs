@@ -50,7 +50,7 @@
     @test("works") {|s|
       var contents;
       @fs.withReadStream(s.path('data'), {encoding:'utf-8'}) {|f|
-        contents = f .. @join();
+        contents = f .. @stream.contents .. @join();
       }
       contents .. @assert.eq('Hello world');
     }

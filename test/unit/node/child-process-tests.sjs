@@ -59,8 +59,8 @@ context {||
   context('run() with block') {||
     test("output pipes are readable streams") {||
       child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:['ignore', 'pipe', 'pipe']}) {|p|
-        p.stdout .. @seq._isReadableStream .. @assert.ok();
-        p.stderr .. @seq._isReadableStream .. @assert.ok();
+        p.stdout .. @stream.isReadableStream .. @assert.ok();
+        p.stderr .. @stream.isReadableStream .. @assert.ok();
         p.stderr .. @stream.readAll('ascii') .. @assert.eq('');
         p.stdout .. @stream.readAll('ascii') .. @assert.eq('1\n');
       }
@@ -120,17 +120,12 @@ context {||
 
     @test("run will not return until block is complete") {||
       // NOTE: pipes are only allowed as fd3+ when not passing a block, for backwards compatibility
-      var output = [];
-      var child = child_process.run('bash', ['-c', 'head --bytes=' + (65536*2) + ' /dev/urandom'], {stdio: ['ignore', 'pipe','inherit']}) {|p|
-        // XXX we can't just insert a hold(1000) here, because of https://github.com/joyent/node/issues/6595
-        p.stdout .. @each {|chunk|
-          hold(500);
-          output.push(chunk);
-          @info("seen #{output.length} chunks");
-        }
+      var waited = false;
+      var child = child_process.run('bash', ['-c', 'exit 0']) {|p|
+        hold(1000);
+        waited = true;
       };
-      (output.length > 1) .. @assert.ok("output data was read in a single chunk - increase limit!");
-      Buffer.concat(output).length .. @assert.eq(65536*2);
+      waited .. @assert.eq(true);
     }
 
     @test("error from failed command will wait for `stdio` collection") {||
@@ -384,7 +379,7 @@ context {||
       }
 
       waitfor {
-        child.stdout .. @each(process_data);
+        child.stdout .. @stream.contents .. @each(process_data);
         logging.info("stdout finished");
       } and {
         var pid = pidEvt.wait();
