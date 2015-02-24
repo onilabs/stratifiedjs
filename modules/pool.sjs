@@ -179,7 +179,7 @@ exports.sharedContext = function(opts, fn) {
       log(`Dropping shared $name - ${users-1} users left`);
       if((--users) === 0) {
         // last one out
-        beginReap();
+        if(shared.isSet) beginReap();
       }
     }
     

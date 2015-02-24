@@ -49,6 +49,15 @@
       s.total .. @assert.eq(1);
     }
 
+    @test('retraction during connect') {|s|
+      s.init({ connect: -> hold() });
+      waitfor {
+        s.ctx( -> null);
+      } or {
+        hold(0);
+      }
+    }
+
     @test('retracts all concurrent users when block is retracted') {|s|
       s.ctx = @sharedContext({
         log: @logging.info,
