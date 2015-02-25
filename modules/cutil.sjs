@@ -590,7 +590,7 @@ QueueProto = {
           hold(1000);
           console.log("OK, done with file");
         } or {
-          ctx.retracted();
+          ctx.wait();
           console.log("withFile was cancelled, and retracted the block we passed it");
         } finally {
           ctx.resume();
@@ -609,10 +609,15 @@ QueueProto = {
 */
 exports.breaking = function(block) {
   var cont, stratum;
+  var uncaught = Condition();
   var retracted = function() {
     if(!stratum) hold(0);
     try {
-      stratum.value();
+      waitfor {
+        stratum.value();
+      } or {
+        throw uncaught.wait();
+      }
     } catch(e) {
       // this should never happen, but just in case:
       if(!e instanceof exports.StratumAborted) throw e;
@@ -648,8 +653,16 @@ exports.breaking = function(block) {
         }
       } catch(err) {
         if(ready) ready(err) // exception in block setup
-        else ret(err); // exception in block teardown; reported by resume()
-        ret = null;
+        else if (ret) {
+          ret(err); // exception in block teardown; reported by resume()
+          ret = null;
+        } else {
+          // Error thrown from main body. This is rare, since the main body
+          // is just waiting for a resume(). But errors can be thrown from
+          // code running concurrently, e.g:
+          //     waitfor { block() } and { throw error.wait() }
+          uncaught.set(err);
+        }
       }
       if(ret) ret();
     })();
