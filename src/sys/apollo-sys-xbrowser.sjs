@@ -494,13 +494,12 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
     }
   };
   
-  if (document.readyState === "complete") {
+  if (document.readyState === "complete" || document.readyState === "interactive") {
     runScripts();
   }
   else {
-    // XXX maybe use DOMContentLoaded here, if available
     if (__oni_rt.G.addEventListener)
-      __oni_rt.G.addEventListener("load", runScripts, true);
+      __oni_rt.G.addEventListener("DOMContentLoaded", runScripts, true);
     else
       __oni_rt.G.attachEvent("onload", runScripts);
   }
