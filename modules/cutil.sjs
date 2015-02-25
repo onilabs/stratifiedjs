@@ -641,6 +641,7 @@ exports.breaking = function(block) {
                   }
                 }
                 if(err) throw err;
+                if(uncaught.isSet) throw uncaught.value;
               };
               var _ready = ready;
               ready = null;
