@@ -118,7 +118,7 @@ exports._isSkip = e -> e.is_skip === skip_sn;
   @param {optional String} [reason] Reasin for skipping test
   @summary Abort the currently executing test, marking it as `skipped`
   @desc
-    This is similar to the [::Test.skip] method, except it
+    This is similar to the [::Test::skip] method, except it
     happens during the test body.
 
     These two examples are _almost_ equivalent:
