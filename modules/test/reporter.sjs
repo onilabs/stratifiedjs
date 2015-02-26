@@ -555,6 +555,7 @@ var KarmaReporter = exports.KarmaReporter = function() {
 
 KarmaReporter.prototype.init = function(opts) {
   this.ctx = window.__karma__;
+  this._pendingLog = "";
 }
 
 KarmaReporter.prototype.suiteBegin = function(results) {
@@ -604,8 +605,19 @@ KarmaReporter.prototype.linkToTest = function(testId) {
   return shell_quote.quote([testId]);
 }
 
+KarmaReporter.prototype.color = (c,txt) -> txt;
+KarmaReporter.prototype.print = function(txt, endl) {
+  if(endl === false) {
+    this._pendingLog += txt;
+    return;
+  }
+  this.ctx.info({log:this._pendingLog+txt, type:'RUNNER'});
+  this._pendingLog = "";
+}
+
 
 ReporterMixins.mixInto(KarmaReporter);
+LogReporterMixins.mixInto(KarmaReporter);
 
 
 /** NodeJS Reporter **/
