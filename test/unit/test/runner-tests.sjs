@@ -1,5 +1,5 @@
 var suite = require("sjs:test/suite");
-var {context, test, assert} = suite;
+var {context, test, assert, skipTest} = suite;
 var {merge} = require('sjs:object');
 var runnerMod = require("sjs:test/runner");
 var {Runner} = runnerMod;
@@ -644,7 +644,7 @@ context("timeout") {||
     ]);
   }
 
-  test("does not skip or abourt hooks on timeout") {||
+  test("does not skip or abort hooks on timeout") {||
     var watcher = new CollectWatcher();
     var opts = runnerMod.getRunOpts(defaultOpts, ['--timeout=0.2'])
     var hooksCompleted = 0;
@@ -732,4 +732,22 @@ context("bail") {||
       ["fail1", "Failed"],
     ]);
   }
+}
+
+test("dynamic skipping") {||
+  var watcher = new CollectWatcher();
+  var opts = runnerMod.getRunOpts(defaultOpts, [])
+  var runner = new Runner(opts);
+  runner.context("root") {||
+    test("ok", -> null);
+    test("skip", function() {
+      skipTest("dynamic skip");
+      assert.fail();
+    });
+  }
+  runner.run(watcher);
+  watcher.conciseResults() .. assert.eq([
+    ["ok", null],
+    ["skip", null],
+  ]);
 }

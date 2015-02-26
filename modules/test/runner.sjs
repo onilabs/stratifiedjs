@@ -410,11 +410,18 @@ Runner.prototype.run = function(reporter) {
       if (test.shouldSkip()) {
         results._skip(result, test.skipReason);
       } else {
-        test.run(defaultTimeout);
-
-        extraGlobals = getGlobals(initGlobals);
-        checkGlobals(test, extraGlobals);
-        results._pass(result);
+        try {
+          test.run(defaultTimeout);
+          extraGlobals = getGlobals(initGlobals);
+          checkGlobals(test, extraGlobals);
+          results._pass(result);
+        } catch(e) {
+          if(e .. suite._isSkip()) {
+            results._skip(result, e.reason);
+          } else {
+            throw e;
+          }
+        }
       }
     } catch (e) {
       results._fail(result, e);

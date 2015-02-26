@@ -110,6 +110,42 @@ exports._withRunner = function(runner, fn) {
   }
 }
 
+var skip_sn = exports._skip_sn = {};
+exports._isSkip = e -> e.is_skip === skip_sn;
+
+/**
+  @function skipTest
+  @param {optional String} [reason] Reasin for skipping test
+  @summary Abort the currently executing test, marking it as `skipped`
+  @desc
+    This is similar to the [::Test.skip] method, except it
+    happens during the test body.
+
+    These two examples are _almost_ equivalent:
+
+        test("some function", function() {
+          // test body
+        }).skipIf(someCondition());
+
+        test("some function", function() {
+          if(someCondition()) skipTest();
+          // test body
+        });
+
+    The difference is that in the first case, `someCondition()` is evaluated
+    when the module is loaded. In the second case, `someCondition()` is not
+    evaluated until the test is actually running.
+    
+    This is an important distinction for some conditions which can't easily be
+    checked up front but can be checked during the test's execution.
+*/
+exports.skipTest = function(reason) {
+  var e = new Error("Test skipped: #{reason}");
+  e.reason = reason;
+  e.is_skip = skip_sn;
+  throw e;
+}
+
 /**
   @function context
   @param {String} [desc] Context description

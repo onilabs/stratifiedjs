@@ -2700,6 +2700,9 @@
             "isWindows": {
               "type": "variable"
             },
+            "skipTest": {
+              "type": "function"
+            },
             "test": {
               "type": "function"
             },
