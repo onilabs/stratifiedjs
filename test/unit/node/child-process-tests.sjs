@@ -137,7 +137,9 @@ context {||
         e.code .. @assert.eq(1);
         e.signal .. @assert.eq(null);
       }
-    }
+    // no matter how long we wait, windows doesn't
+    // seem to collect further output from a dead process.
+    }.skipIf(@isWindows, "TODO: windows bug?");
 
     @test("`buffer` output type") {||
       var output = child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:'buffer'}).stdout;
@@ -149,14 +151,15 @@ context {||
       var stdin = @integers() .. @transform(function(i) { hold(100); return String(i) + "\n"; });
 
       @test("reports IO failure if command succeeds") {||
-        @assert.raises({message: "Failed writing to child process `stdin`"},
-          -> child_process.run(@sys.executable, ['-e', 'console.log(1)'], {stdio:[stdin, 'string', 'inherit']})
+        // message is consistent on linux, but can be one of two alternatives on linux
+        @assert.raises({message: /^(Socket is closed|Failed writing to child process `stdin`)$/},
+          -> child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:[stdin, 'string', 'inherit']})
         );
       }
 
       @test("reports command failure if both command and IO fail") {||
         @assert.raises({message: /exited with nonzero exit status: 1/},
-          -> child_process.run(@sys.executable, ['-e', 'console.log(1); process.exit(1)'], {stdio:[stdin, 'string', 'inherit']})
+          -> child_process.run(process.execPath, ['-e', 'console.log(1); process.exit(1)'], {stdio:[stdin, 'string', 'inherit']})
         );
       }
 
@@ -186,7 +189,7 @@ context {||
           } .. @childProcess.isRunning .. @assert.eq(false);
         }
       )
-    }
+    }.skipIf(@isWindows); // XXX should replace / augment this with a version that runs on Windows.
   }
 
   //-------------------------------------------------------------
@@ -221,6 +224,11 @@ context {||
     @test("run throws an error with stdout when it is a string") {||
       var err = @assert.raises( -> child_process.run('bash', ['-c', 'echo "some error" >&2; sleep 1;exit 2']))
       err.message .. normalizeOutput .. @assert.eq("child process `bash -c echo \"some error\" >&2; sleep 1;exit 2` exited with nonzero exit status: 2\nsome error\n");
+    }
+
+    @test("run throws ENOENT when command cannot be found") {||
+      var err = @assert.raises( -> child_process.run('nonexistent-command', []))
+      err.code .. @assert.eq('ENOENT');
     }
 
   }
@@ -302,7 +310,10 @@ context {||
 
   //-------------------------------------------------------------
   context('kill') {||
-    var stdio = logging.isEnabled(logging.DEBUG) ? 'inherit' : null;
+    var stdio;
+    test.beforeAll {||
+      stdio = logging.isEnabled(logging.DEBUG) ? 'inherit' : null;
+    }
     var sleep_for_10 = "i=10; while [ $i -gt 0 ]; do sleep 1; i=`expr $i - 1`; done; echo TIMED_OUT";
     function trap_and_exit_after(seconds, message) {
       return "trap \"sleep #{seconds}; echo \\\"#{message || 'interrupted'}\\\"; exit\" SIGINT SIGTERM";

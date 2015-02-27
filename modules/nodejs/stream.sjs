@@ -168,10 +168,12 @@ exports.contents = function(stream, encoding) {
       check.emit();
     });
     return @Stream(function(emit) {
-      while(buf.length > 0) emit(buf.shift());
-      if (error) throw error;
-      if (eof) return;
-      else check .. @wait();
+      while(true) {
+        while(buf.length > 0) emit(buf.shift());
+        if (error) throw error;
+        if (eof) return;
+        check .. @wait();
+      }
     });
   }
   return @Stream(function(emit) {

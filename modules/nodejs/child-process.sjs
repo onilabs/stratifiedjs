@@ -39,6 +39,8 @@
 if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/child-process module only runs in a nodejs environment');
 
+var isWindows = process.platform === 'win32';
+
 var child_process = require('child_process');
 @ = require(['../array', '../object', '../sequence', '../cutil', {id:'./stream', name:'stream'}]);
 var array = require('../array');
@@ -255,7 +257,17 @@ exports.exec = function(command, options) {
 
       **NOTE**: `detached` is not supported in nodejs v0.6 and earlier.
 */
-var readString = encoding -> stream -> @stream.readAll(stream, encoding);
+var readString = function(encoding) {
+  return function(stream, dest) {
+    var rv = [];
+    try {
+      stream .. @stream.contents(encoding) .. @each(chunk -> rv.push(chunk));
+    } finally {
+      // Write whatever we've collected, so that we still get partial output on error.
+      dest.push(encoding ? rv.join() : Buffer.concat(rv));
+    }
+  }
+};
 var pumpFrom = contents -> stream -> contents .. @stream.pump(stream);
 var stdioMap = ['stdin','stdout','stderr'];
 exports.run = function(command, args, options, block) {
@@ -385,27 +397,43 @@ exports.run = function(command, args, options, block) {
         // don't throw immediately; wait for stdio conversions to complete
       }
     } and {
-      @waitforAll(function([i, conv]) {
-        try {
-          var rv = conv(child.stdio[i]);
-        } catch(e) {
-          if(i === 0 && (e.code === 'ECONNRESET' || e.code === 'EPIPE')) {
-            // fix stdin write failure, because the default message is useless
-            // (see https://github.com/joyent/node/issues/6043)
-            e.message = "Failed writing to child process `stdin`";
-            ioErr = e;
-          } else {
-            err = e;
+      if(stdioConversions.length > 0) {
+        var stdioLoop = -> @waitforAll(function([i, conv]) {
+          var dest = [i];
+          try {
+            var rv = conv(child.stdio[i], dest);
+          } catch(e) {
+            if(i === 0 && (e.code === 'ECONNRESET' || e.code === 'EPIPE')) {
+              // fix stdin write failure, because the default message is useless
+              // (see https://github.com/joyent/node/issues/6043)
+              e.message = "Failed writing to child process `stdin`";
+              ioErr = e;
+            } else {
+              err = e;
+            }
+            if(!abort.isSet) {
+              // if the child hasn't died yet, kill it to prevent deadlocks
+              // (e.g. waiting for a process that is waiting for (failed) input)
+              exports.kill(child, options .. @merge({wait:false}));
+            }
+            abort.set();
+          } finally {
+            if(dest[1] !== undefined) {
+              stdioReplacements.push(dest);
+            }
           }
-          if(!abort.isSet) {
-            // if the child hasn't died yet, kill it to prevent deadlocks
-            // (e.g. waiting for a process that is waiting for (failed) input)
-            exports.kill(child, options .. @merge({wait:false}));
+        }, stdioConversions);
+        if(isWindows) {
+          // Windows doesn't always close a pipe when the process fails, so
+          // we can't rely on this ever terminating. Retract stream collection
+          // if the process fails.
+          waitfor {
+            abort.wait();
+          } or {
+            stdioLoop();
           }
-          abort.set();
-        }
-        stdioReplacements.push([i, rv]);
-      }, stdioConversions);
+        } else stdioLoop();
+      }
     }
   } finally {
     stdioReplacements .. @each {|[i, v]|
