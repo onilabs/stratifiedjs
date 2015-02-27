@@ -380,6 +380,25 @@ var LogReporterMixins = {
     this.prefix = repeatStr(this.indent, this.indentLevels);
   },
 
+  print: function(msg, endl) {
+    if(msg === undefined) msg = '';
+    this._print(msg, endl);
+  },
+
+  report: function(results) {
+    var parts = [];
+    if (results.failed > 0)  parts.push(this.color('red',   " #{results.failed} failed"));
+    if (results.skipped > 0) parts.push(this.color('cyan',  " #{results.skipped} skipped"));
+    if (results.passed > 0)  parts.push(this.color('green', " #{results.passed} passed"));
+
+
+    this.print(this.color({attribute: 'bright'}, "Ran #{results.count()} tests."), false);
+    parts .. seq.intersperse(",") .. each(x => this.print(x, false));
+    this.print(this.color({attribute: 'dim'}, " (in #{results.durationSeconds()}s)"), false);
+    if(this.endReport) this.endReport();
+    this.print();
+  },
+
   mixInto: function (cls) {
     this .. object.ownKeys .. each { |k|
       if (k == 'mixInto') continue;
@@ -460,7 +479,6 @@ var getDocumentHeight = -> Math.max(document.documentElement.offsetHeight, docum
 HtmlOutput.prototype.print = function(msg, endl) {
   var scrollBottom = getScrollBottom();
   var followOutput = getDocumentHeight() <= scrollBottom;
-  if (msg === undefined) msg = '';
   if (!dom.isDOMNode(msg)) {
     msg = document.createTextNode(msg);
   }
@@ -489,7 +507,7 @@ HtmlReporter.prototype.init = function(opts) {
     throw new Error("HtmlReporter instantiated before HtmlOutput.instance set");
   }
   this.console = exports.HtmlOutput.instance;
-  this.print = this.console.print.bind(this.console);
+  this._print = this.console.print.bind(this.console);
 }
 
 HtmlReporter.prototype.color = function(col, text, endl) {
@@ -508,21 +526,7 @@ HtmlReporter.prototype.color = function(col, text, endl) {
 LogReporterMixins.mixInto(HtmlReporter);
 
 
-HtmlReporter.prototype.report = function(results) {
-  var parts = [];
-  if (results.failed > 0)  parts.push(this.color('red',   "#{results.failed} failed"));
-  if (results.skipped > 0) parts.push(this.color('cyan',  "#{results.skipped} skipped"));
-  if (results.passed > 0)  parts.push(this.color('green', "#{results.passed} passed"));
-  this.print(this.color({attribute: 'bright'}, "Ran #{results.count()} tests. "), false);
-  var first = true;
-  parts .. each {|part|
-    if (!first) {
-      this.print(", ", false)
-    }
-    first = false;
-    this.print(part, false);
-  }
-  this.print(this.color({attribute: 'dim'}, " (in #{results.durationSeconds()}s)"), false);
+HtmlReporter.prototype.endReport = function(results) {
   if (document.location.hash) {
     var elem = document.createElement("a");
     elem.appendChild(document.createTextNode("#"));
@@ -531,7 +535,6 @@ HtmlReporter.prototype.report = function(results) {
     this.print(" ", false);
     this.print(elem, false);
   }
-  this.print();
 }
 
 HtmlReporter.prototype.linkToTest = function(testId, inline) {
@@ -606,15 +609,14 @@ KarmaReporter.prototype.linkToTest = function(testId) {
 }
 
 KarmaReporter.prototype.color = (c,txt) -> txt;
-KarmaReporter.prototype.print = function(txt, endl) {
+KarmaReporter.prototype._print = function(txt, endl) {
   if(endl === false) {
     this._pendingLog += txt;
     return;
   }
-  this.ctx.info({log:this._pendingLog+txt, type:'RUNNER'});
+  this.ctx.info({log:this._pendingLog+txt, type:'SUITE'});
   this._pendingLog = "";
 }
-
 
 ReporterMixins.mixInto(KarmaReporter);
 LogReporterMixins.mixInto(KarmaReporter);
@@ -661,19 +663,9 @@ NodejsReporter.prototype.linkToTest = function(testId, inline) {
   this.print(this.color({attribute:'dim'}, this.prefix + "# " + shell_quote.quote(args)));
 }
 
-NodejsReporter.prototype.print = function(msg, endl) {
-  if (msg === undefined) msg = '';
+NodejsReporter.prototype._print = function(msg, endl) {
   process.stdout.write(String(msg));
   if (endl !== false) process.stdout.write('\n');
-}
-
-NodejsReporter.prototype.report = function(results) {
-  var parts = [];
-  if (results.failed > 0)  parts.push(this.color('red',   "#{results.failed} failed"));
-  if (results.skipped > 0) parts.push(this.color('cyan',  "#{results.skipped} skipped"));
-  if (results.passed > 0)  parts.push(this.color('green', "#{results.passed} passed"));
-  var durationDesc = this.color({attribute: 'dim'}, "(in #{results.durationSeconds()}s)");
-  console.log("Ran #{results.count()} tests. #{parts.join(", ")} #{durationDesc}");
 }
 
 // initialization should only be performed once globally, so we 
