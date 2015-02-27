@@ -264,7 +264,7 @@ var readString = function(encoding) {
       stream .. @stream.contents(encoding) .. @each(chunk -> rv.push(chunk));
     } finally {
       // Write whatever we've collected, so that we still get partial output on error.
-      dest.push(encoding ? rv.join() : Buffer.concat(rv));
+      dest.push(encoding ? rv.join('') : Buffer.concat(rv));
     }
   }
 };
