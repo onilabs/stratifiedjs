@@ -12,7 +12,7 @@ var sys = require('builtin:apollo-sys');
 var IE9 = suite.isIE() && suite.ieVersion() < 10;
 var expected404Status = 404;
 
-var requiresConductance = t -> t.skipIf(suite.isBrowser && document.location.host == 'code.onilabs.com', "requires conductance server");
+var {requiresConductance} = require('./helper');
 
 context("request") {||
   testEq('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {

@@ -45,6 +45,7 @@ unit/url-tests.sjs
 unit/xbrowser/console-tests.sjs
 unit/xbrowser/dom-tests.sjs
 unit/xbrowser/iframe-tests.sjs
+integration/bundle-tests.sjs
 integration/documentation-tests.sjs
 integration/http-tests.sjs
 integration/require-tests.sjs

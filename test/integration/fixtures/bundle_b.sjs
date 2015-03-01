@@ -1,0 +1,1 @@
+require('./bundle_a');
