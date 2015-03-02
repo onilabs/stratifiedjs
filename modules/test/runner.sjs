@@ -425,11 +425,11 @@ Runner.prototype.run = function(reporter) {
       }
     } catch (e) {
       results._fail(result, e);
-      if (opts.bail) BAIL = true;
     } finally {
       if (extraGlobals == null) extraGlobals = getGlobals(initGlobals);
       deleteGlobals(extraGlobals);
     }
+    if (opts.bail && results.failed) BAIL = true;
     report('testEnd', result);
     if (suite.isBrowser) hold(0); // don't lock up the browser's UI thread
   };
