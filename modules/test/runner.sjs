@@ -1168,7 +1168,14 @@ var karma;
   }
   var onUncaught = function(handler) {
     if (suite.isBrowser) {
-      window.onerror = handler;
+      window.onerror = function(msg, url, lineno, column, err) {
+        if (err && err instanceof Error) {
+          handler(err);
+        } else {
+          // wrap lame message-only event into an Error object
+          handler(new Error(msg));
+        }
+      };
     } else {
       process.on('uncaughtException', handler);
     }
