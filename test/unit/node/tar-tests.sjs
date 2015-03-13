@@ -1,4 +1,4 @@
-@ = require('sjs:test/std');
+@ = require(['sjs:test/std', 'sjs:nodejs/tempfile', 'sjs:nodejs/rimraf']);
 @context("tar") {||
   @stream = require('sjs:nodejs/stream');
   var { @TemporaryDir } = require('sjs:nodejs/tempfile');
@@ -22,6 +22,69 @@
 
   var decode = b -> b.toString('utf-8').trim();
 
+  @context("safety") {||
+    // `undefined` doesn't exist, which is both technically true and really dumb
+    var exists = function(path) {
+      @assert.string(path, 'path');
+      return @fs.exists(path);
+    }
+
+    function run(dest, name) {
+      @childProcess.run('python', [
+        @url.normalize('../fixtures/gen_tarfile.py', module.id) .. @url.toPath(),
+        name,
+      ], {stdio:['ignore', 'pipe','inherit']}) {|proc|
+        proc.stdout .. @tar.extract({path:dest})
+      }
+    }
+    function cleanup(target) {
+      if(target && @fs.exists(target)) @fs.unlink(target);
+    }
+
+    @test.afterEach {|s|
+      cleanup(s.target);
+    }
+
+    @test("refuses to write outside base directory") {|s|
+      @TemporaryDir {|dir|
+        var parentDir = @path.dirname(dir);
+        s.target = @path.join(parentDir, 'extracted');
+        cleanup(s.target);
+
+        var initial = @fs.readdir(parentDir);
+        dir .. run('relative');
+        s.target .. @fs.exists .. @assert.eq(false);
+        parentDir .. @fs.readdir .. @assert.eq(initial);
+        dir .. @fs.readdir .. @assert.eq(['extracted']);
+      }
+    }
+
+    @context {||
+
+      @test.beforeEach {|s|
+        s.target = '/tmp/extracted';
+        cleanup(s.target);
+      }
+
+      @test("refuses to write absolute path") {|s|
+        @TemporaryDir {|dir|
+          dir .. run('absolute');
+          s.target .. @fs.exists .. @assert.eq(false);
+
+          // where did it go? It just stripped off the leading slash
+          @path.join(dir, 'tmp', 'extracted') .. exists .. @assert.ok();
+        }
+      }
+
+      @test("refuses to write over symlink") {|s|
+        @TemporaryDir {|dir|
+          @assert.raises({filter: e -> e.code === 'EEXIST'},
+            -> dir .. run('symlink'));
+          s.target .. @fs.exists .. @assert.eq(false);
+        }
+      }
+    }
+  }
   @context("`tar` compatibility") {||
     ;[false, true] .. @each {|compress|
       var desc = compress?" compressed":" plain";
