@@ -643,14 +643,17 @@
           "children": {},
           "summary": "Utility for generating documentation indexes"
         },
+        "espree": {
+          "type": "module",
+          "children": {}
+        },
+        "lint": {
+          "type": "module",
+          "children": {}
+        },
         "minify": {
           "type": "module",
-          "children": {
-            "compile": {
-              "type": "function"
-            }
-          },
-          "summary": "SJS source code minifier"
+          "children": {}
         },
         "sjs": {
           "type": "module",
@@ -663,12 +666,7 @@
         },
         "stringify": {
           "type": "module",
-          "children": {
-            "compile": {
-              "type": "function"
-            }
-          },
-          "summary": "SJS source code stringifier"
+          "children": {}
         }
       },
       "summary": "SJS compilation utilities"

@@ -279,7 +279,7 @@ function is_ef(obj){return obj&&obj.__oni_ef;
 }
 exports.is_ef=is_ef;
 
-function setEFProto(t){for(var p in EF_Proto)t[p]=EF_Proto[p]}
+function setEFProto(t){for(var p=null in EF_Proto)t[p]=EF_Proto[p]}
 
 
 
@@ -1608,7 +1608,7 @@ if(idx==1){
 
 if((val&&val.__oni_cfx))return this.returnToParent(val);
 
-for(var x in val){
+for(var x=null in val){
 if(typeof this.remainingX==='undefined'){
 val=this.ndata[1](this.env,x);
 if((val&&val.__oni_cfx)){

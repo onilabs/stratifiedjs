@@ -1,6 +1,5 @@
 /*
  * StratifiedJS 'compile/doc' module
- * Utility functions and constructs for concurrent stratified programming
  *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: '0.20.0-development'
