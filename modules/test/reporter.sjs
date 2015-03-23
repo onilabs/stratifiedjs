@@ -565,12 +565,6 @@ KarmaReporter.prototype.suiteBegin = function(results) {
   this.ctx.info({total:results.total});
 };
 
-KarmaReporter.prototype.suiteEnd = function(results) {
-  if (!results.ok()) {
-    throw new Error();
-  }
-};
-
 KarmaReporter.prototype.testBegin = function(result) {
   if (this.logCapture) this.logCapture.drain();
   this.testStartTime = new Date();
@@ -605,7 +599,7 @@ KarmaReporter.prototype.testEnd = function(result) {
 };
 
 KarmaReporter.prototype.linkToTest = function(testId) {
-  return shell_quote.quote([testId]);
+  this.print(shell_quote.quote([testId]));
 }
 
 KarmaReporter.prototype.color = (c,txt) -> txt;
