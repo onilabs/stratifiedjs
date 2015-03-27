@@ -60,7 +60,8 @@
   @docsoff
 */
 __js {
-var sys = require('util');
+
+var sys = (require('builtin:apollo-sys').hostenv === 'nodejs') ? require('nodejs:util') : null;
 
 // Terminal object
 // Allows for controlling the terminal by outputting control characters

@@ -408,6 +408,30 @@ var LogReporterMixins = {
   },
 };
 
+function initConsoleColors(opts) {
+  // initialize console (ANSI) coloring, for both NodeJS & Karma reporters
+  var color_pref = opts.color;
+  var color_noop = function(col, text) { return text; }
+  if (color_pref === false) {
+    this.color = color_noop;
+  } else if (color_pref === true) {
+  } else if (color_pref === 'auto' || color_pref == null) {
+    if (sys.hostenv === 'nodejs' && !require('nodejs:tty').isatty(process.stdout.fd)) {
+      this.color = color_noop;
+    }
+  } else {
+    throw new Error("Unknown color pref: #{color_pref}");
+  }
+
+  if(!this.color) {
+    // if color has not been set (to color_noop), set it:
+    // NOTE: this actually works in the browser (for the functionality we use)
+    var terminal = require('../nodejs/terminal');
+    this.color = function(col, text) { return terminal._color(col) + text + terminal.reset_code; };
+  }
+}
+
+
 
 var HtmlOutput = exports.HtmlOutput = function() {
   this.prepareStyles();
@@ -559,6 +583,7 @@ var KarmaReporter = exports.KarmaReporter = function() {
 KarmaReporter.prototype.init = function(opts) {
   this.ctx = window.__karma__;
   this._pendingLog = "";
+  initConsoleColors.call(this, opts);
 }
 
 KarmaReporter.prototype.suiteBegin = function(results) {
@@ -579,30 +604,18 @@ KarmaReporter.prototype.testEnd = function(result) {
     time: new Date().getTime() - this.testStartTime.getTime(),
     log: []
   };
-  if (result.skipped) {
-    report.log = this.formatSkip(result.test.skipReason).split("\n");
-  } else if (result.ok) {
-    // noop
-  } else {
-    this.failures.push(result);
-    var log = ["# " + this.linkToTest(fullDescription)];
-    log = log.concat(String(result.error).split("\n"));
-    if (this.logCapture && this.logCapture.messages.length > 0) {
-      log.push('-- Captured logging ---');
-      log = log.concat(this.logCapture.messages);
-    }
-    report.log = log;
-  }
   this.ctx.result(report);
-
-  if (this.logCapture) this.logCapture.reset();
 };
 
-KarmaReporter.prototype.linkToTest = function(testId) {
-  this.print(shell_quote.quote([testId]));
+KarmaReporter.prototype.linkToTest = function(testId, inline) {
+  if(inline) this.print();
+  this.print(this.prefix + "# " + this._linkToTest(testId));
 }
 
-KarmaReporter.prototype.color = (c,txt) -> txt;
+KarmaReporter.prototype._linkToTest = function(testId) {
+  return shell_quote.quote([testId]);
+}
+
 KarmaReporter.prototype._print = function(txt, endl) {
   if(endl === false) {
     this._pendingLog += txt;
@@ -623,24 +636,7 @@ var NodejsReporter = exports.NodejsReporter = function() {
 };
 
 NodejsReporter.prototype.init = function(opts) {
-  var color_pref = opts.color;
-  var color_noop = function(col, text) { return text; }
-  if (color_pref === false) {
-    this.color = color_noop;
-  } else if (color_pref === true) {
-  } else if (color_pref === 'auto' || color_pref == null) {
-    if (! require('nodejs:tty').isatty(process.stdout.fd)) {
-      this.color = color_noop;
-    }
-  } else {
-    throw new Error("Unknown color pref: #{color_pref}");
-  }
-
-  if(!this.color) {
-    // if color has not been set (to color_noop), set it:
-    var terminal = require('../nodejs/terminal');
-    this.color = function(col, text) { return terminal._color(col) + text + terminal.reset_code; };
-  }
+  initConsoleColors.call(this, opts);
 }
 
 LogReporterMixins.mixInto(NodejsReporter);

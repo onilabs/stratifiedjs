@@ -60,3 +60,5 @@
   @docsoff
 */
 __js {
+
+var sys = (require('builtin:apollo-sys').hostenv === 'nodejs') ? require('nodejs:util') : null;
