@@ -27,7 +27,7 @@ module.exports = function(config) {
 
     // test results reporter to use
     // possible values: 'dots', 'progress', 'junit', 'growl', 'coverage'
-    reporters: ['progress'],
+    reporters: ['quiet'],
 
     // web server port
     port: 9876,
@@ -63,6 +63,7 @@ module.exports = function(config) {
       ,'karma-script-launcher'
       ,'karma-phantomjs-launcher'
       ,'karma-sjs-adapter'
+      ,'karma-quiet-reporter'
     ],
   });
 };
