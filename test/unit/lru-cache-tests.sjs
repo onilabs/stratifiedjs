@@ -15,6 +15,34 @@ test('put/get', 'asdf', function() {
   return rv;
 });
 
+test('put return value', [{ changed: true, discarded: [] },
+                          { changed: true, discarded: [] },
+                          { changed: true, discarded: [] },
+                          { changed: true, discarded: [] },
+                          { changed: true, discarded: [] },
+                          { changed: true, discarded: ['foo'] },
+                          { changed: true, discarded: ['foo'] },
+                          { changed: true, discarded: ['bar'] },
+                          { changed: true, discarded: ['qux'] },
+                          { changed: false, discarded: [] },
+                          { changed: true,
+                            discarded: ['corge', 'foobar', 'barqux', 'yesno', 'yesno'] }], function() {
+  var cache = lru.makeCache(5);
+  return [
+    cache.put('foo', 1),
+    cache.put('foo', 1),
+    cache.put('bar', 2),
+    cache.put('qux', 3),
+    cache.put('corge', 4),
+    cache.put('foobar', 5),
+    cache.put('barqux', 6),
+    cache.put('yesno', 7),
+    cache.put('yesno', 8),
+    cache.put('uhhuh', 9, 9001),
+    cache.put('uhhuh', 9, 5),
+  ];
+});
+
 test('discard lru', true, function() {
   var cache = lru.makeCache(3);
   var data = [[Math.random()+'a','a'],  // 0
@@ -24,7 +52,7 @@ test('discard lru', true, function() {
   each(data) { |d| cache.put(d[0],d[1]) }
   if (cache.get(data[1][0]) != 's') return 1;
   if (cache.get(data[0][0]) != undefined) return 2;
-  cache.put('x', 'y'); 
+  cache.put('x', 'y');
   if (cache.get(data[2][0]) != undefined) return 3;
   if (cache.get(data[1][0]) != 's') return 4;
   return true;
@@ -36,7 +64,7 @@ test('discard multiple', true, function() {
               [Math.random()+'b','s',10],  // 1
               [Math.random()+'c','d',10],  // 2
               [Math.random()+'d','f',21]]; // 3
-  each(data) { |d| cache.put(d[0],d[1], d[2]) }  
+  each(data) { |d| cache.put(d[0],d[1], d[2]) }
   if (cache.get(data[0][0]) != undefined) return 1;
   if (cache.get(data[1][0]) != undefined) return 2;
   if (cache.get(data[2][0]) != undefined) return 3;
@@ -50,7 +78,7 @@ test('discard multiple 2', true, function() {
               [Math.random()+'b','s',10],  // 1
               [Math.random()+'c','d',10],  // 2
               [Math.random()+'d','f',10]]; // 3
-  each(data) { |d| cache.put(d[0],d[1], d[2]) }  
+  each(data) { |d| cache.put(d[0],d[1], d[2]) }
   each(data) { |d| if (cache.get(d[0]) != d[1]) return d[1] }
   cache.get(data[0][0]); // put item 0 to front
   cache.put('x', 'y', 30);

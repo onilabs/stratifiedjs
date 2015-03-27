@@ -81,7 +81,7 @@ CacheProto.clear = function() {
   this.size = 0;
   this.index = {};
   // init with a dummy node, so that we need fewer edge case checks
-  this.lru = this.mru = { 
+  this.lru = this.mru = {
     key: "sentinel", // note: deliberately no prefix here
     size: 0
   };
@@ -93,14 +93,26 @@ CacheProto.clear = function() {
    @param    {String} [key]
    @param    {Object} [value]
    @param    {optional Number} [size=1]
+   @return {Object}
    @desc
+     Returns an object:
+
+     * `changed` is `true` if `key` was successfully set to `value`
+     * `discarded` is an array of discarded keys
+
+     ----
+
      * Will discard least recently used items if the new item causes the cache to overrun its `maxsize`.
      * If the item's size is larger than the cache's `maxsize`, the item will not be put into
        the cache, and the cache content will not be modified.
 */
 CacheProto.put = function(key, value, size) {
   if (size === undefined) size = 1;
-  if (size > this.maxsize) return; // cache too small for this item
+
+  // cache too small for this item
+  if (size > this.maxsize) {
+    return { changed: false, discarded: [] };
+  }
 
   // we give the key a prefix to avoid aliasing with any object properties:
   key = keyPrefix + key;
@@ -113,13 +125,21 @@ CacheProto.put = function(key, value, size) {
 
   this.size += size;
 
+  var discarded = [];
+
   // discard items from cache until we get down to size
   while (this.size > this.maxsize) {
+    if (this.lru.key !== "sentinel") {
+      // strip away the prefix
+      discarded.push(this.lru.key.slice(1));
+    }
     this.size -= this.lru.size;
     delete this.index[this.lru.key]; // this is benign when deleting the sentinel
     this.lru.younger.older = undefined;
     this.lru = this.lru.younger;
   }
+
+  return { changed: true, discarded: discarded };
 };
 
 /**
@@ -129,14 +149,14 @@ CacheProto.put = function(key, value, size) {
    @return {Object | null}
    @desc
      * Returns `null` if the cache doesn't contain an item for the given key.
-     * Otherwise, if an item for the key is found, the item will be moved into 
+     * Otherwise, if an item for the key is found, the item will be moved into
        the 'most recently used' position and returned.
 */
 CacheProto.get = function(key) {
   key = keyPrefix + key;
   var entry = this.index[key];
   if (!entry) return null;
-  
+
   // entry is now the most-recently used item:
   if (entry !== this.mru) {
     // splice out of linked list:
@@ -173,7 +193,7 @@ CacheProto.discard = function(key) {
   if (entry === this.lru) {
     if (entry === this.mru) {
       // we've delete the last item in the cache; reinitialize with sentinel:
-      this.lru = this.mru = { 
+      this.lru = this.mru = {
         key: "sentinel", // note: deliberately no prefix here
         size: 0
       };
