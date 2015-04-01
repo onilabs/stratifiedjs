@@ -61,6 +61,12 @@ exports.makeCache = function(maxsize) {
 
 
 /**
+   @variable Cache.discarded
+   @summary [::Stream] of keys which were discarded in any way ([::put], [::discard], or [::clear])
+*/
+
+
+/**
    @function Cache.init
    @summary  (Re-)Initialize this [::Cache] instance
    @param {Number} [maxsize] Maximum size to which the cache is allowed to grow before items
