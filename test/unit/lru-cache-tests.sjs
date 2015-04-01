@@ -32,7 +32,7 @@ test('discards', ['foo',
   waitfor {
     var a = [];
 
-    cache.discards ..each(function (x) {
+    cache.discarded ..each(function (x) {
       a.push(x);
     });
 

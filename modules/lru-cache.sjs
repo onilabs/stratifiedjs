@@ -70,7 +70,7 @@ exports.makeCache = function(maxsize) {
 */
 CacheProto.init = function(maxsize) {
   this.maxsize = maxsize;
-  this.discards = @Emitter();
+  this.discarded = @Emitter();
   this.clear();
 };
 
@@ -108,7 +108,7 @@ CacheProto.clear = function() {
   var self = this;
 
   discarded ..@each(function (x) {
-    self.discards.emit(x);
+    self.discarded.emit(x);
   });
 };
 
@@ -158,7 +158,7 @@ CacheProto.put = function(key, value, size) {
   var self = this;
 
   discarded ..@each(function (x) {
-    self.discards.emit(x);
+    self.discarded.emit(x);
   });
 };
 
@@ -233,7 +233,7 @@ CacheProto.discard = function(old_key) {
   }
 
   // We make sure to emit *after* the key is discarded
-  this.discards.emit(old_key);
+  this.discarded.emit(old_key);
 
   return true;
 };
