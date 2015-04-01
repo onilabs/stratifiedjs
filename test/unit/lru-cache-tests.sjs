@@ -15,32 +15,47 @@ test('put/get', 'asdf', function() {
   return rv;
 });
 
-test('put return value', [{ changed: true, discarded: [] },
-                          { changed: true, discarded: [] },
-                          { changed: true, discarded: [] },
-                          { changed: true, discarded: [] },
-                          { changed: true, discarded: [] },
-                          { changed: true, discarded: ['foo'] },
-                          { changed: true, discarded: ['foo'] },
-                          { changed: true, discarded: ['bar'] },
-                          { changed: true, discarded: ['qux'] },
-                          { changed: false, discarded: [] },
-                          { changed: true,
-                            discarded: ['corge', 'foobar', 'barqux', 'yesno', 'yesno'] }], function() {
+test('discards', ['foo',
+                  'foo',
+                  'bar',
+                  'qux',
+                  'corge',
+                  'foobar',
+                  'barqux',
+                  'yesno',
+                  'yesno',
+                  'uhhuh',
+                  'foo2',
+                  'foo3'], function() {
   var cache = lru.makeCache(5);
-  return [
-    cache.put('foo', 1),
-    cache.put('foo', 1),
-    cache.put('bar', 2),
-    cache.put('qux', 3),
-    cache.put('corge', 4),
-    cache.put('foobar', 5),
-    cache.put('barqux', 6),
-    cache.put('yesno', 7),
-    cache.put('yesno', 8),
-    cache.put('uhhuh', 9, 9001),
-    cache.put('uhhuh', 9, 5),
-  ];
+
+  waitfor {
+    var a = [];
+
+    cache.discards ..each(function (x) {
+      a.push(x);
+    });
+
+  } or {
+    cache.put('foo', 1);
+    cache.put('foo', 1);
+    cache.put('bar', 2);
+    cache.put('qux', 3);
+    cache.put('corge', 4);
+    cache.put('foobar', 5);
+    cache.put('barqux', 6);
+    cache.put('yesno', 7);
+    cache.put('yesno', 8);
+    cache.put('uhhuh', 9, 9001);
+    cache.put('uhhuh', 9, 5);
+    cache.put('foo2', 1);
+    cache.put('foo3', 2);
+    cache.discard('foo2');
+    cache.discard('undefined');
+    cache.clear();
+  }
+
+  return a;
 });
 
 test('discard lru', true, function() {

@@ -35,6 +35,8 @@
    @home    sjs:lru-cache
 */
 
+@ = require(['sjs:event', 'sjs:sequence']);
+
 /**
    @class   Cache
    @summary LRU Cache Class
@@ -68,16 +70,33 @@ exports.makeCache = function(maxsize) {
 */
 CacheProto.init = function(maxsize) {
   this.maxsize = maxsize;
+  this.discards = @Emitter();
   this.clear();
 };
 
 var keyPrefix = "_";
+
+function unprefix(key) {
+  return key.slice(1);
+}
 
 /**
    @function Cache.clear
    @summary  Dispose of all elements in the cache
 */
 CacheProto.clear = function() {
+  // We store the discarded keys in an array so that we guarantee
+  // that any listeners are run *after* the keys are discarded
+  var discarded = [];
+
+  if (this.index) {
+    // TODO hasOwnProperty
+    // TODO use ownKeys instead ?
+    for (var s in this.index) {
+      discarded.push(unprefix(s));
+    }
+  }
+
   this.size = 0;
   this.index = {};
   // init with a dummy node, so that we need fewer edge case checks
@@ -85,6 +104,12 @@ CacheProto.clear = function() {
     key: "sentinel", // note: deliberately no prefix here
     size: 0
   };
+
+  var self = this;
+
+  discarded ..@each(function (x) {
+    self.discards.emit(x);
+  });
 };
 
 /**
@@ -93,15 +118,7 @@ CacheProto.clear = function() {
    @param    {String} [key]
    @param    {Object} [value]
    @param    {optional Number} [size=1]
-   @return {Object}
    @desc
-     Returns an object:
-
-     * `changed` is `true` if `key` was successfully set to `value`
-     * `discarded` is an array of discarded keys
-
-     ----
-
      * Will discard least recently used items if the new item causes the cache to overrun its `maxsize`.
      * If the item's size is larger than the cache's `maxsize`, the item will not be put into
        the cache, and the cache content will not be modified.
@@ -110,9 +127,7 @@ CacheProto.put = function(key, value, size) {
   if (size === undefined) size = 1;
 
   // cache too small for this item
-  if (size > this.maxsize) {
-    return { changed: false, discarded: [] };
-  }
+  if (size > this.maxsize) return;
 
   // we give the key a prefix to avoid aliasing with any object properties:
   key = keyPrefix + key;
@@ -125,13 +140,14 @@ CacheProto.put = function(key, value, size) {
 
   this.size += size;
 
+  // We store the discarded keys in an array so that we guarantee
+  // that any listeners are run *after* the keys are discarded
   var discarded = [];
 
   // discard items from cache until we get down to size
   while (this.size > this.maxsize) {
     if (this.lru.key !== "sentinel") {
-      // strip away the prefix
-      discarded.push(this.lru.key.slice(1));
+      discarded.push(unprefix(this.lru.key));
     }
     this.size -= this.lru.size;
     delete this.index[this.lru.key]; // this is benign when deleting the sentinel
@@ -139,7 +155,11 @@ CacheProto.put = function(key, value, size) {
     this.lru = this.lru.younger;
   }
 
-  return { changed: true, discarded: discarded };
+  var self = this;
+
+  discarded ..@each(function (x) {
+    self.discards.emit(x);
+  });
 };
 
 /**
@@ -181,8 +201,8 @@ CacheProto.get = function(key) {
    @param {String} [key] Item to remove
    @return {Boolean} `true` if the item was removed; `false` if the item was not found
 */
-CacheProto.discard = function(key) {
-  key = keyPrefix + key;
+CacheProto.discard = function(old_key) {
+  var key = keyPrefix + old_key;
   var entry = this.index[key];
   if (!entry) return false;
 
@@ -211,5 +231,9 @@ CacheProto.discard = function(key) {
     entry.older.younger = entry.younger;
     entry.younger.older = entry.older;
   }
+
+  // We make sure to emit *after* the key is discarded
+  this.discards.emit(old_key);
+
   return true;
 };
