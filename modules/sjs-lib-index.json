@@ -1019,6 +1019,9 @@
             "discard": {
               "type": "function"
             },
+            "discarded": {
+              "type": "variable"
+            },
             "get": {
               "type": "function"
             },

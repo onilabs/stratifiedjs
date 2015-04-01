@@ -62,7 +62,7 @@ exports.makeCache = function(maxsize) {
 
 /**
    @variable Cache.discarded
-   @summary [::Stream] of keys which were discarded in any way ([::put], [::discard], or [::clear])
+   @summary [./sequence::Stream] of keys which were discarded in any way ([::Cache::put], [::Cache::discard], or [::Cache::clear])
 */
 
 
