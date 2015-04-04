@@ -1025,6 +1025,9 @@
             "get": {
               "type": "function"
             },
+            "has": {
+              "type": "function"
+            },
             "init": {
               "type": "function"
             },

@@ -58,6 +58,74 @@ test('discards', ['foo',
   return a;
 });
 
+test('has', [false,
+             null,
+             false,
+
+             true,
+             1,
+             true,
+
+             false,
+             null,
+             false,
+
+             true,
+             null,
+             true,
+
+             false,
+             null,
+             false,
+
+             true,
+             false], function () {
+  var output = [];
+  var cache = lru.makeCache(5);
+
+  output.push(cache.has('foo'));
+  output.push(cache.get('foo'));
+  output.push(cache.has('foo'));
+
+  cache.put('foo', 1);
+
+  output.push(cache.has('foo'));
+  output.push(cache.get('foo'));
+  output.push(cache.has('foo'));
+
+  cache.discard('foo');
+
+  output.push(cache.has('foo'));
+  output.push(cache.get('foo'));
+  output.push(cache.has('foo'));
+
+  cache.put('foo', null);
+
+  output.push(cache.has('foo'));
+  output.push(cache.get('foo'));
+  output.push(cache.has('foo'));
+
+  cache.discard('foo');
+
+  output.push(cache.has('foo'));
+  output.push(cache.get('foo'));
+  output.push(cache.has('foo'));
+
+  cache.put('bar', 2);
+  cache.put('qux', 3);
+  cache.put('corge', 4);
+  cache.put('yes', 5);
+  cache.put('no', 6);
+
+  output.push(cache.has('bar'));
+
+  cache.put('test', 7);
+
+  output.push(cache.has('bar'));
+
+  return output;
+});
+
 test('discard lru', true, function() {
   var cache = lru.makeCache(3);
   var data = [[Math.random()+'a','a'],  // 0

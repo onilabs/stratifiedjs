@@ -169,6 +169,18 @@ CacheProto.put = function(key, value, size) {
 };
 
 /**
+   @function Cache.has
+   @summary Whether the key is in the cache or not
+   @param {String} [key]
+   @return {Boolean}
+   @desc
+     * Returns `true` if `key` is in the cache.
+*/
+CacheProto.has = function(key) {
+  return this.index[keyPrefix + key] != null;
+};
+
+/**
    @function Cache.get
    @summary Retrieve item for the given key
    @param {String} [key]
