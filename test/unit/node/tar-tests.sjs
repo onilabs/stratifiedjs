@@ -1,5 +1,6 @@
-@ = require(['sjs:test/std', 'sjs:nodejs/tempfile', 'sjs:nodejs/rimraf']);
-@context("tar") {||
+@ = require('sjs:test/std');
+@context() {||
+  @ .. @extend(require(['sjs:nodejs/tempfile', 'sjs:nodejs/rimraf']));
   @stream = require('sjs:nodejs/stream');
   var { @TemporaryDir } = require('sjs:nodejs/tempfile');
   var fixtureDir = @url.normalize('../fixtures', module.id) .. @url.toPath();
