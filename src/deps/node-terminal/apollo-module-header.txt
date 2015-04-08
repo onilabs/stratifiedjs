@@ -61,4 +61,7 @@
 */
 __js {
 
-var sys = (require('builtin:apollo-sys').hostenv === 'nodejs') ? require('nodejs:util') : null;
+// original lib requires nodejs:util, but only `print` is used (and it's deprecated now)
+var sys = {
+  print: s -> process.stdout.write(s)
+}
