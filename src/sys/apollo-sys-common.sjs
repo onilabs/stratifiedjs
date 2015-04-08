@@ -1000,8 +1000,7 @@ function requireInnerMultiple(modules, require_obj, parent, opts) {
   }
 
   // kick off the load:
-  inner(0, modules.length);
-
+  if (modules.length !== 0) inner(0, modules.length);
   return rv;
 }
 

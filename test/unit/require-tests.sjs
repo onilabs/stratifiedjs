@@ -271,3 +271,8 @@ context('hubs.addDefault()') {||
     require.hubs.length .. assert.eq(s.hublen);
   }
 }
+
+testEq('empty array', {}, function() {
+  return require([]);
+});
+
