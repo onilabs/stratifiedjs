@@ -11,6 +11,12 @@ var Url = require('sjs:url');
 
 var dataRoot = './fixtures';
 
+test.beforeAll {||
+  // These shouldn't actually be set, but if they are (by accident)
+  // it can mask real issues
+  ;['exports', 'module'] .. each {|prop| delete global[prop] };
+
+}
 test.beforeEach {||
   require.modules .. ownKeys .. toArray() .. each {|id|
     if(id .. startsWith(Url.normalize('./fixtures', module.id))) {
@@ -18,7 +24,6 @@ test.beforeEach {||
     }
   }
 }
-
 
 testEq('force extension/sjs', "a=1&b=2", function() {
   return Url.buildQuery({a:1},{b:2});

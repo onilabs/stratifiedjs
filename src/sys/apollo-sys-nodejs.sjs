@@ -548,13 +548,16 @@ function getExtensions_hostenv() {
 
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
     'js': function(src, descriptor) {
+      var ctx = Object.create(global);
+      ctx.module = descriptor;
+      ctx.exports = descriptor.exports;
+      ctx.require = descriptor.require;
       var vm = __oni_rt.nodejs_require("vm");
-      var sandbox = vm.createContext(global);
-      sandbox.module = descriptor;
-      sandbox.exports = descriptor.exports;
-      sandbox.require = descriptor.require;
-      vm.runInNewContext(src, sandbox, "module " + descriptor.id);
+      ctx = vm.createContext(ctx);
+      vm.runInContext(src, ctx, "module " + descriptor.id);
     },
+
+
     'html': html_sjs_extractor
   };
 }
