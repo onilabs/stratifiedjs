@@ -535,6 +535,31 @@ function getHubs_hostenv() {
   ];
 }
 
+var js_loader = function(src, descriptor) {
+  var nodejs_version = process.versions.node.split('.').map(x -> parseInt(x, 10));
+  var vm = __oni_rt.nodejs_require("vm");
+  js_loader = (nodejs_version[0] === 0 && nodejs_version[1] <= 10)
+    ? function(src, descriptor) {
+        // old api (pre 0.12) - wrap global object and then extend it:
+        var ctx = vm.createContext(global);
+        ctx.module = descriptor;
+        ctx.exports = descriptor.exports;
+        ctx.require = descriptor.require;
+        vm.runInContext(src, ctx, "module " + descriptor.id);
+      }
+    : function(src, descriptor) {
+        // new api (since 0.12) - create new global object and then wrap it:
+        var ctx = Object.create(global);
+        ctx.module = descriptor;
+        ctx.exports = descriptor.exports;
+        ctx.require = descriptor.require;
+        var vm = __oni_rt.nodejs_require("vm");
+        ctx = vm.createContext(ctx);
+        vm.runInContext(src, ctx, "module " + descriptor.id);
+      };
+  return js_loader(src, descriptor);
+};
+
 function getExtensions_hostenv() {
   return {
     // normal sjs modules
@@ -547,16 +572,7 @@ function getExtensions_hostenv() {
     'mho': default_compiler,
 
     // plain non-sjs js modules (note: for 'nodejs' scheme we bypass this)
-    'js': function(src, descriptor) {
-      var ctx = Object.create(global);
-      ctx.module = descriptor;
-      ctx.exports = descriptor.exports;
-      ctx.require = descriptor.require;
-      var vm = __oni_rt.nodejs_require("vm");
-      ctx = vm.createContext(ctx);
-      vm.runInContext(src, ctx, "module " + descriptor.id);
-    },
-
+    'js': js_loader,
 
     'html': html_sjs_extractor
   };
