@@ -10,7 +10,7 @@ env:
 matrix:
   # just run unit tests on other node versions
   include:
-    - node_js: "0.11"
+    - node_js: "0.12"
       env: t=unit
   
   allow_failures:
@@ -20,7 +20,7 @@ matrix:
       env: t=integration BROWSERS=PhantomJS,Firefox
     - node_js: "0.10"
       env: t=unit BROWSERS=Firefox
-    - node_js: "0.11"
+    - node_js: "0.12"
       env: t=unit
 notifications:
   email:
