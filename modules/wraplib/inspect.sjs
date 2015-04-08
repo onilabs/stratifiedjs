@@ -57,9 +57,10 @@ var inspect = exports.inspect = function(obj) {
 
 	function crawl(subject, maxdepth, emitter) {
 		maxdepth = maxdepth || 50;
-		seen_objects = {};
+		var seen_objects = [];
 		function _crawl(prefix, subject, depth)
 		{
+			if(!subject) return;
 			depth += 1;
 			if(depth > maxdepth) {
 				prefix.push("... (max)");
@@ -88,11 +89,12 @@ var inspect = exports.inspect = function(obj) {
 						emit();
 						continue;
 					}
-					if(val in seen_objects)
+					if(seen_objects.indexOf(val) !== -1)
 					{
 						branch_prefix.push("... (dup)");
 						emit();
 					} else {
+						seen_objects.push(val);
 						emit();
 						if(val != null && is_a.call(val, String)) {
 							// strings have the inconvenient builtin loop that
