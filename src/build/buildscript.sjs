@@ -9,7 +9,6 @@
 var fs = require('sjs:nodejs/fs');
 var { extend } = require('sjs:object');
 var { each, transform, join } = require('sjs:sequence');
-var util = require('util');
 var sys = require('sjs:sys');
 var url = require('sjs:url');
 
@@ -669,7 +668,7 @@ function process_args() {
 var targets = process_args();
 for(var i=0; i<targets.length; i++) {
   var target = targets[i];
-  util.puts("\nBuilding target: " + target);
+  log("\nBuilding target: " + target);
   build_target(target);
 }
 

@@ -80,7 +80,7 @@ context("quoting") {||
 var roundtripTests = {
   bash: function(args) {
     var proc = process.execPath;
-    var cmd = "exec #{process.execPath .. shellQuote.quote()} -e 'require(\"util\").print(JSON.stringify(process.argv.slice(2)))' STOP_PARSING_OPTIONS #{args .. shellQuote.quote}";
+    var cmd = "exec #{process.execPath .. shellQuote.quote()} -e 'console.log(JSON.stringify(process.argv.slice(2)))' STOP_PARSING_OPTIONS #{args .. shellQuote.quote}";
     @info(cmd);
     var proc = @childProcess.run('bash', ['-euc',cmd], {'stdio':['ignore','pipe', 2]});
     proc.stdout .. JSON.parse .. @assert.eq(args, 'roundtrip through `bash`');
