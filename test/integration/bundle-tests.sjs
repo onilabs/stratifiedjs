@@ -1,5 +1,6 @@
 @ = require('sjs:test/std');
 var {requiresConductance} = require('./helper');
+var {getHttpURL} = require('../lib/testContext');
 
 @context {||
 
@@ -10,7 +11,8 @@ var {requiresConductance} = require('./helper');
   initialModule .. @assert.ok();
 
   // now load a bundle containing both `b` and `a`:
-  require('sjs:xbrowser/dom').script(@url.normalize('./fixtures/bundle_b.sjs?format=bundle', module.id));
+  var bundleUrl = getHttpURL('/test/integration/fixtures/bundle_b.sjs!bundle');
+  require('sjs:xbrowser/dom').script(bundleUrl);
   var keys = window.__oni_rt_bundle.m .. @ownKeys .. @toArray();
   keys .. @any(k -> k .. @contains('bundle_a')) .. @assert.ok(keys);
 

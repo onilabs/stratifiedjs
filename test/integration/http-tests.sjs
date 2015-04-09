@@ -45,7 +45,8 @@ context("request") {||
     }
 
     test("persists settings") {||
-      var response = http.request(getHttpURL("/http/redirect?dest=ok"), {response:'full'});
+      var dest = getHttpURL("/http/ok");
+      var response = http.request(getHttpURL("/http/redirect?dest="+encodeURIComponent(dest)), {response:'full'});
       @info(response);
       response.status .. @assert.eq(200); // make sure we got a "full" response, not the default "string"
     }

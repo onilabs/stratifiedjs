@@ -27,12 +27,14 @@ exports.serve = function(args) {
       }),
       @Route('http/redirect', {
         GET: function(req) {
-          var p = req.url.params();
-          var dest = p.dest;
-          if (!dest && p.infinite) dest = req.url.source;
-          if (!dest) throw new Error('`dest` required');
+          var url = req.url;
+          var p = url.params();
 
-          req .. @response.writeRedirectResponse(@url.normalize(dest, req.url.source));
+          var dest = p.dest;
+          if (!dest && p.infinite) dest = url.source;
+          if (!dest) throw new Error("`dest` required (url: #{url.source})");
+
+          req .. @response.writeRedirectResponse(@url.normalize(dest, url.source));
         }
       }),
       @route.CodeDirectory(root),

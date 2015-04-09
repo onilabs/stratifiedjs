@@ -20,7 +20,10 @@ module.exports = function(config) {
 
     proxies: {
       // http tests rely on dynamic behaviour (served by conductance)
-      '/http': 'http://localhost:7071/http'
+      '/http': 'http://localhost:7071/http',
+
+      // bundle-tests rely on conductance bundle functionality
+      '/test/integration/fixtures': 'http://localhost:7071/test/integration/fixtures'
     },
 
     exclude: [],
