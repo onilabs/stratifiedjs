@@ -336,6 +336,7 @@ exports.extend = extendObject;
         appear in the argument list. I.e. properties appearing later will override
         properties appearing in objects to the left.
       * `source` can be a multiple object arguments, or a single Array argument.
+      * null or undefined source objects will be ignored.
 */
 exports.merge = mergeObjects;
 
