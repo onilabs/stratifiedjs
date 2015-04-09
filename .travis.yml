@@ -15,13 +15,7 @@ matrix:
   
   allow_failures:
     - node_js: "0.10"
-      env: t=integration
-    - node_js: "0.10"
-      env: t=integration BROWSERS=PhantomJS,Firefox
-    - node_js: "0.10"
       env: t=unit BROWSERS=Firefox
-    - node_js: "0.12"
-      env: t=unit
 notifications:
   email:
     recipients:
