@@ -1,42 +1,47 @@
 @ = require('sjs:test/std');
-@seq = require('sjs:sequence');
 var { context, test, assert, isWindows } = require('sjs:test/suite');
 var { integers, take, any } = require('sjs:sequence');
 
 context {||
   var testUtil = require('../../lib/testUtil')
   var testEq = testUtil.test;
-  var str = require('sjs:string');
-  var logging = require('sjs:logging');
-  var cutil = require('sjs:cutil');
-  var seq = require('sjs:sequence');
-  var array = require('sjs:array');
-  var event = require('sjs:event');
+  @array = require('sjs:array');
+  var { @TemporaryDir, @TemporaryFile } = require('sjs:nodejs/tempfile');
   var child_process = require('sjs:nodejs/child-process');
-  var fs = require('sjs:nodejs/fs');
-  var stream = require('sjs:nodejs/stream');
-  var { @TemporaryDir } = require('sjs:nodejs/tempfile');
   var NODE_VERSION = process.versions['node'].split('.').map(x -> parseInt(x));
   var initPid = isWindows ? 4 : 1;
 
-  var normalize = function(str) {
-    return str.replace(/\r\n/g,'\n').replace(/ *\n/, '\n');
-  }
+  var { normalize, normalizeOutput, commonTests } = require('./child-process-common');
+  
+  // NOTE: if you're adding tests that should apply to the `ssh` client API
+  // as well, put them in ../child-process-common
+  commonTests(child_process, {
+    supportsAllNodeStreams: false,
+  });
 
-  var normalizeOutput = function(proc) {
-    if (proc.stdout) proc.stdout = proc.stdout .. normalize;
-    if (proc.stderr) proc.stderr = proc.stderr .. normalize;
-    return proc;
-  }
 
-  context('exec (simple string)') {||
-    testEq('exec("echo 1")', {stdout: "1\n", stderr: ''}, function() {
-      return child_process.exec('echo 1') .. normalizeOutput;
-    });
+  @test("failure in a multi-process pipeline") {||
+    // tar file does not exist. While pumping the stream into
+    // tar.stdin, this should raise.
+    @assert.raises({message:/ENOENT.*does_not_exist.tgz/}, ->
+      @TemporaryDir {|dest|
+        var input = @fs.fileContents(@url.normalize('./does_not_exist.tgz', module.id) .. @url.toPath());
+        @childProcess.run('gunzip', {cwd:dest, stdio: [input, 'pipe']}) {|gunzip|
+          @childProcess.run('tar', ['-xv'], {stdio: [gunzip.stdout, 'pipe', 'string']}) {|tar|
+            tar.stdout .. @stream.lines('utf-8') .. @each {|line|
+              @logging.info("tar: #{line.trim()}");
+            }
+          } .. @childProcess.isRunning .. @assert.eq(false);
+        } .. @childProcess.isRunning .. @assert.eq(false);
+      }
+    )
+  }.skipIf(@isWindows); // XXX should replace / augment this with a version that runs on Windows.
 
-    testEq('exec("echo 2>&2")', {stdout: '', stderr: "2\n"}, function() {
-      return child_process.exec('echo 2 >&2') .. normalizeOutput;
-    });
+  context('run (an array of args)') {||
+    @test("run throws ENOENT when command cannot be found") {||
+      var err = @assert.raises( -> child_process.run('nonexistent-command', []))
+      err.code .. @assert.eq('ENOENT');
+    }
   }
 
   context('isRunning') {||
@@ -54,184 +59,8 @@ context {||
       var pids = integers(process.pid, undefined, 100) .. take(50);
       pids .. any(p -> child_process.isRunning({pid: p})) .. assert.ok();
     }
-  }.skipIf(NODE_VERSION .. array.cmp([0,8]) < 0, "process.kill() returns no result before 0.8");
+  }.skipIf(NODE_VERSION .. @array.cmp([0,8]) < 0, "process.kill() returns no result before 0.8");
 
-  context('run() with block') {||
-    test("output pipes are readable streams") {||
-      child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:['ignore', 'pipe', 'pipe']}) {|p|
-        p.stdout .. @stream.isReadableStream .. @assert.ok();
-        p.stderr .. @stream.isReadableStream .. @assert.ok();
-        p.stderr .. @stream.readAll('ascii') .. @assert.eq('');
-        p.stdout .. @stream.readAll('ascii') .. @assert.eq('1\n');
-      }
-    }
-
-    test("default `stdio` is ['pipe','inherit','inherit']") {||
-      child_process.run(process.execPath, ['-e', '1']) {|p|
-        p.stdin.write .. @assert.ok();
-        p.stdout .. @assert.eq(null);
-        p.stderr .. @assert.eq(null);
-      }
-    }
-
-    test("process is killed upon retraction") {||
-      var proc;
-      var ready = @Condition();
-      waitfor {
-        child_process.run('bash', ['-c', 'sleep 5']) {|p|
-          proc = p;
-          ready.set();
-          p.stdin.write .. @assert.ok();
-          p.stdout .. @assert.eq(null);
-          p.stderr .. @assert.eq(null);
-        }
-      } or {
-        ready.wait();
-      }
-      hold(200);
-      proc .. child_process.isRunning() .. @assert.eq(false);
-      proc.exitCode .. @assert.eq(null);
-      proc.signalCode .. @assert.eq('SIGTERM');
-    }
-
-    @test("retracts block upon process failure") {||
-      var retracted = false;
-      @assert.raises( -> child_process.run('bash', ['-c','sleep 1; exit 2']) {|p|
-        try {
-          hold(2000);
-        } retract {
-          retracted = true;
-        }
-      })
-      retracted .. @assert.eq(true);
-    }
-
-    @test("does not retract block upon process failure when throwing=false") {||
-      var retracted = false;
-      child_process.run('bash', ['-c','sleep 1; exit 2'], {throwing: false}) {|p|
-        try {
-          hold(2000);
-        } retract {
-          retracted = true;
-        }
-      }
-      retracted .. @assert.eq(false);
-    }
-
-    @test("run will not return until block is complete") {||
-      // NOTE: pipes are only allowed as fd3+ when not passing a block, for backwards compatibility
-      var waited = false;
-      var child = child_process.run('bash', ['-c', 'exit 0']) {|p|
-        hold(1000);
-        waited = true;
-      };
-      waited .. @assert.eq(true);
-    }
-
-    @test("error from failed command will wait for `stdio` collection") {||
-      try {
-        child_process.run(process.execPath, [@sys.executable, '-e', 'hold(1000); console.log("exiting"); process.exit(1);'], {stdio:['ignore','string', 'inherit']})
-        @assert.fail('Command succeeded');
-      } catch(e) {
-        e.stdout .. normalize .. @assert.eq("exiting\n");
-        e.code .. @assert.eq(1);
-        e.signal .. @assert.eq(null);
-      }
-    // no matter how long we wait, windows doesn't
-    // seem to collect further output from a dead process.
-    }.skipIf(@isWindows, "TODO: windows bug?");
-
-    @test("`buffer` output type") {||
-      var output = child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:'buffer'}).stdout;
-      output .. Buffer.isBuffer .. @assert.eq(true);
-      output.toString('ascii') .. normalize .. @assert.eq('1\n');
-    }
-
-    @context("Writing to `stdin`") {||
-      var stdin = @integers() .. @transform(function(i) { hold(100); return String(i) + "\n"; });
-
-      @test("reports IO failure if command succeeds") {||
-        // message is consistent on linux, but can be one of two alternatives on linux
-        @assert.raises({message: /^(Socket is closed|Failed writing to child process `stdin`)$/},
-          -> child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:[stdin, 'string', 'inherit']})
-        );
-      }
-
-      @test("reports command failure if both command and IO fail") {||
-        @assert.raises({message: /exited with nonzero exit status: 1/},
-          -> child_process.run(process.execPath, ['-e', 'console.log(1); process.exit(1)'], {stdio:[stdin, 'string', 'inherit']})
-        );
-      }
-
-      @test("aborts if an error occurs in stdio iteration") {||
-        var input = @Stream(function(emit) {
-          hold(500);
-          throw new Error("Can't stream this");
-        });
-        @assert.raises({message: /Can't stream this/},
-          -> child_process.run('bash', ['-c', 'sleep 10'], {stdio:[input, 'inherit', 'inherit']})
-        );
-      }
-    }
-
-    @test("failure in a multi-process pipeline") {||
-      // tar file does not exist. While pumping the stream into
-      // tar.stdin, this should raise.
-      @assert.raises({message:/ENOENT.*does_not_exist.tgz/}, ->
-        @TemporaryDir {|dest|
-          var input = @fs.fileContents(@url.normalize('./does_not_exist.tgz', module.id) .. @url.toPath());
-          @childProcess.run('gunzip', {cwd:dest, stdio: [input, 'pipe']}) {|gunzip|
-            @childProcess.run('tar', ['-xv'], {stdio: [gunzip.stdout, 'pipe', 'string']}) {|tar|
-              tar.stdout .. @stream.lines('utf-8') .. @each {|line|
-                @logging.info("tar: #{line.trim()}");
-              }
-            } .. @childProcess.isRunning .. @assert.eq(false);
-          } .. @childProcess.isRunning .. @assert.eq(false);
-        }
-      )
-    }.skipIf(@isWindows); // XXX should replace / augment this with a version that runs on Windows.
-  }
-
-  //-------------------------------------------------------------
-  context('run (an array of args)') {||
-    testEq('arguments with spaces', '1  2\n', function() {
-      // if spaces are interpreted by the shell, argv[1] will just be "1"
-      return child_process.run(process.execPath, ['-e', 'console.log(process.argv[1])', '1  2']).stdout .. normalize;
-    });
-
-    testEq('run("bash", ["-c", "echo 2 >&2"]).stderr', '2\n', function() {
-      return child_process.run('bash', ['-c', 'echo 2 >&2']).stderr .. normalize;
-    });
-
-    testEq('run returns stdout / stderr', {"code":1,"signal":null,"stdout":"out\n","stderr":"err\n"}, function() {
-      var { filter } = require('sjs:sequence');
-      var { propertyPairs, pairsToObject } = require('sjs:object');
-      try {
-        return child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']) .. normalizeOutput;
-      } catch(e) {
-        return ['stdout', 'stderr', 'code', 'signal'] .. @map(k -> [k, e[k]]) .. @pairsToObject() .. normalizeOutput;
-      }
-    });
-
-    @test("run returns child object when throwing == false") {||
-      var child = child_process.run('bash', ['-c', 'echo out; echo err >&2; sleep 1;exit 2'], {throwing: false});
-
-      child.code .. @assert.eq(2);
-      child.stdout .. @strip() .. @assert.eq('out');
-      child.stderr .. @strip() .. @assert.eq('err');
-    }
-
-    @test("run throws an error with stdout when it is a string") {||
-      var err = @assert.raises( -> child_process.run('bash', ['-c', 'echo "some error" >&2; sleep 1;exit 2']))
-      err.message .. normalizeOutput .. @assert.eq("child process `bash -c echo \"some error\" >&2; sleep 1;exit 2` exited with nonzero exit status: 2\nsome error\n");
-    }
-
-    @test("run throws ENOENT when command cannot be found") {||
-      var err = @assert.raises( -> child_process.run('nonexistent-command', []))
-      err.code .. @assert.eq('ENOENT');
-    }
-
-  }
 
   //-------------------------------------------------------------
   context('wait') {||
@@ -312,7 +141,7 @@ context {||
   context('kill') {||
     var stdio;
     test.beforeAll {||
-      stdio = logging.isEnabled(logging.DEBUG) ? 'inherit' : null;
+      stdio = @logging.isEnabled(@logging.DEBUG) ? 'inherit' : null;
     }
     var sleep_for_10 = "i=10; while [ $i -gt 0 ]; do sleep 1; i=`expr $i - 1`; done; echo TIMED_OUT";
     function trap_and_exit_after(seconds, message) {
@@ -374,14 +203,14 @@ context {||
       child.pid .. isRunning() .. assert.ok("child pid not running! (#{child.pid})");
 
       var lines = [];
-      var pidEvt = cutil.Condition();
+      var pidEvt = @Condition();
 
       var process_data = function(data) {
-        data.toString().split("\n") .. seq.filter(x -> x.trim()) .. seq.each {|line|
-          logging.info("got line: #{JSON.stringify(line)}");
-          if (line .. str.startsWith('SPAWNED_')) {
+        data.toString().split("\n") .. @filter(x -> x.trim()) .. @each {|line|
+          @logging.info("got line: #{JSON.stringify(line)}");
+          if (line .. @startsWith('SPAWNED_')) {
             var pid = (line.split('_')[1].trim());
-            logging.info("pid:", pid);
+            @logging.info("pid:", pid);
             pidEvt.set(+pid);
           } else {
             lines.push(line);
@@ -391,7 +220,7 @@ context {||
 
       waitfor {
         child.stdout .. @stream.contents .. @each(process_data);
-        logging.info("stdout finished");
+        @logging.info("stdout finished");
       } and {
         var pid = pidEvt.wait();
         
@@ -400,15 +229,15 @@ context {||
         pid .. assert.notEq(child.pid, "child pid == grandchild pid");
 
         // then kill the process group:
-        logging.info("killing child group");
+        @logging.info("killing child group");
         child_process.kill(child, {detached:true, wait:true});
-        logging.info("killed");
+        @logging.info("killed");
         hold(100);
 
         // check *both* processes are dead
         child.pid .. isRunning() .. assert.eq(false, "child pid still running! (#{child.pid})");
         pid       .. isRunning() .. assert.eq(false, "grandchild pid still running! (#{pid})");
-        logging.info("all processes ended");
+        @logging.info("all processes ended");
       }
 
       assert.eq(lines, [
@@ -417,48 +246,10 @@ context {||
         'interrupted grandchild',
         'interrupted child'
       ]);
-    }.skipIf(isWindows || NODE_VERSION .. array.cmp([0,8]) < 0, 'unix only, nodejs>0.8')
+    }.skipIf(isWindows || NODE_VERSION .. @array.cmp([0,8]) < 0, 'unix only, nodejs>0.8')
     // ^ should work on windows, it's probably just weirdness in winbash that makes the test fail
     
   }.timeout(4);
 
 
-  @test("stream::contents eagerly collects data from a stdio stream") {||
-    var input = @fs.readFile(module.id .. @url.toPath(), 'ascii');
-    var run = function(block) {
-      @childProcess.run('cat', [], {stdio:['pipe', 'pipe']}) {|proc|
-        waitfor {
-          block(proc);
-        } and {
-          var inputStream = @Stream(function(emit) {
-            var i=0;
-            var chunkSize = 600;
-            while(i<input.length) {
-              emit(input.slice(i, i+chunkSize));
-              i+=chunkSize;
-              hold(100);
-            }
-          });
-          inputStream .. @stream.pump(proc.stdin);
-          //input .. @transform(chunk -> (hold(1), chunk)) .. @stream.pump(proc.stdin);
-        }
-      }
-    };
-
-    run {|proc|
-      var output = proc.stdout .. @stream.contents('ascii');
-      hold(2000);
-      var buf = [];
-      output .. @each {|chunk|
-        buf.push(chunk);
-        hold(400);
-      }
-      output = buf .. @toArray();
-
-      @info("got #{output.length} chunks");
-      @assert.ok(output.length > 2, "this test requires at least three chunks, got #{output.length}");
-      output .. @join .. @count .. @assert.eq(input.length);
-      output .. @join .. @assert.eq(input);
-    }
-  }.timeout(60);
 }.serverOnly();

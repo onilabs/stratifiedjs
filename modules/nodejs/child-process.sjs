@@ -56,7 +56,7 @@ var SUPPORTS_DETACHED = array.cmp(version, [0,7,10]) >= 0;
 // returning a value from `kill` was added in 0.8
 var KILL_RETURNS_RESULT = array.cmp(version, [0,8]) >= 0;
 
-__js var stdioGetters = [
+__js var stdioGetters = exports._stdioGetters = [
   // NOTE: these *MUST* be lazy, in order to support `string` outputs
   // (which are set by mutating `stdio` just before [::run] returns)
   ['stdin', -> this.stdio[0]],
@@ -64,7 +64,7 @@ __js var stdioGetters = [
   ['stderr', -> this.stdio[2]],
 ];
 
-var formatCommandFailed = (code, signal, cmd) -> "child process #{cmd ? "`#{cmd}` " : ""}exited with #{signal !== null ? "signal: #{signal}" : "nonzero exit status: #{code}"}";
+var formatCommandFailed = exports._formatCommandFailed = (code, signal, cmd) -> "child process #{cmd ? "`#{cmd}` " : ""}exited with #{signal !== null ? "signal: #{signal}" : "nonzero exit status: #{code}"}";
 var setFailedCommand = function(err, cmd, args) {
   err.command = [cmd].concat(args);
   err.message = formatCommandFailed(err.code, err.signal, err.command .. @join(' '));
@@ -232,14 +232,14 @@ exports.exec = function(command, options) {
       Upon retraction (unless `settings.kill` is false), the child process will be killed with the
       `killSignal` specified in the options ('SIGTERM' by default), using [::kill].
 
-      Note that the `options` hash are used as options to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options)
+      Note that the `options` hash is passed to [nodejs's spawn](http://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options)
       function, *not* to nodejs's `execFile`.
 
       ### Process groups:
 
-      It is often a good idea to run external programs as a *process group*, rather than a 
-      process. In this way, when we need to terminate a program, we can send a kill to the 
-      process group, rather than just the process, and any sub-processes spawned by the 
+      It is often a good idea to run external programs as a *process group*, rather than a
+      process. In this way, when we need to terminate a program, we can send a kill to the
+      process group, rather than just the process, and any sub-processes spawned by the
       program will also be terminated. See also this [nodejs google group post](https://groups.google.com/d/topic/nodejs/-8fwv9ZjlvQ/discussion).
 
       To run as a process group, specify `{ detached: true }` in the `options`. Retraction
@@ -270,30 +270,13 @@ var readString = function(encoding) {
 };
 var pumpFrom = contents -> stream -> contents .. @stream.pump(stream);
 var stdioMap = ['stdin','stdout','stderr'];
-exports.run = function(command, args, options, block) {
-  if(!@isArrayLike(args)) {
-    // shift options / block
-    block = options;
-    options = args;
-    args = [];
-  }
-  if(typeof(options) === 'function') {
-    // shift `block`
-    block = options;
-    options = null;
-  }
-  options = options ? options .. @clone() : {};
 
-  // XXX these defaults may be surprising, but they match the
-  // old `run` API which accepted no block.
-
-  if(!block && !options.stdio) {
-    options.stdio = ['pipe', 'pipe', 'pipe'];
-  }
-
-  var stdioConversions = [];
+var _processStdio = exports._processStdio = function(options, block) {
   var stdio = options.stdio;
-  if(!Array.isArray(stdio)) {
+  var stdioConversions = [];
+  if(Array.isArray(stdio)) {
+    stdio = stdio.slice(); // we mutate `stdio`, so clone it
+  } else {
     if(stdio == 'inherit') {
       stdio = [0,1,2];
     } else {
@@ -352,6 +335,34 @@ exports.run = function(command, args, options, block) {
   if(stdio[0] == null) stdio[0] = 'pipe';
   if(stdio[1] == null) stdio[1] = 1;
   if(stdio[2] == null) stdio[2] = 2;
+  return {
+    stdio: stdio,
+    conversions: stdioConversions,
+  };
+}
+
+exports.run = function(command, args, options, block) {
+  if(!@isArrayLike(args)) {
+    // shift options / block
+    block = options;
+    options = args;
+    args = [];
+  }
+  if(typeof(options) === 'function') {
+    // shift `block`
+    block = options;
+    options = null;
+  }
+  options = options ? options .. @clone() : {};
+
+  // XXX these defaults may be surprising, but they match the
+  // old `run` API which accepted no block.
+
+  if(!block && !options.stdio) {
+    options.stdio = ['pipe', 'pipe', 'pipe'];
+  }
+
+  var { stdio, conversions: stdioConversions } = _processStdio(options, block);
 
   options.stdio = stdio;
   options.kill = true;
