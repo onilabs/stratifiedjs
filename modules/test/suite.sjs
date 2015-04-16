@@ -115,7 +115,7 @@ exports._isSkip = e -> e.is_skip === skip_sn;
 
 /**
   @function skipTest
-  @param {optional String} [reason] Reasin for skipping test
+  @param {optional String} [reason] Reason for skipping test
   @summary Abort the currently executing test, marking it as `skipped`
   @desc
     This is similar to the [::Test::skip] method, except it
