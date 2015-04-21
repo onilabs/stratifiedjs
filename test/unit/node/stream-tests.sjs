@@ -5,19 +5,48 @@ var test = testUtil.test;
 @context() {||
   var s = @stream = require("sjs:nodejs/stream");
 
-  @test("contents returns a stream of buffers") {||
-    @fs.withReadStream(module.id .. @url.toPath) {|stream|
-      var contents = s.contents(stream);
-      contents .. @isStream .. @assert.ok();
-      contents .. @first .. Buffer.isBuffer .. @assert.ok();
+  @context("contents") {||
+    @test("returns a stream of buffers") {||
+      @fs.withReadStream(module.id .. @url.toPath) {|stream|
+        var contents = s.contents(stream);
+        contents .. @isStream .. @assert.ok();
+        contents .. @first .. Buffer.isBuffer .. @assert.ok();
+      }
     }
-  }
 
-  @test("contents(encoding) returns a stream of strings") {||
-    @fs.withReadStream(module.id .. @url.toPath) {|stream|
-      var contents = s.contents(stream, 'utf-8');
-      contents .. @isStream .. @assert.ok();
-      contents .. @first .. @isString .. @assert.ok();
+    @test("returns a stream of strings if encoding is given") {||
+      @fs.withReadStream(module.id .. @url.toPath) {|stream|
+        var contents = s.contents(stream, 'utf-8');
+        contents .. @isStream .. @assert.ok();
+        contents .. @first .. @isString .. @assert.ok();
+      }
+    }
+
+    function testRetractWhileReading(src) {
+      var retracted = false;
+      waitfor {
+        try {
+          src .. s.contents .. @each {|chunk|
+            console.log("CHUNK #{chunk.length}");
+          };
+          throw new Error("End of stream reached before retraction");
+        } retract {
+          retracted = true;
+        }
+      } or {
+        hold(0);
+      }
+      retracted .. @assert.eq(true, "expected read to be retracted");
+    };
+
+    @test("retraction while reading stdin") {||
+      testRetractWhileReading(process.stdin);
+    }.skip("BUG - see https://github.com/joyent/node/issues/17204");
+
+    @test("retraction while reading fs.ReadableStream") {||
+      @fs.withReadStream(module.id .. @url.toPath) {|stream|
+        testRetractWhileReading(stream);
+      }
     }
   }
 

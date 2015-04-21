@@ -200,6 +200,27 @@ exports.commonTests = function(child_process, opts) {
       lines[1] .. @assert.eq("some error");
     }
 
+    @context("exits when stdin is inherited") {||
+      var run = function(stdin) {
+        child_process.run(process.execPath, ['-e', 'process.exit(0)'], {stdio:[stdin, 'ignore', 'ignore']});
+      }
+      
+      @test("with `inherit`") {||
+        run('inherit');
+      }
+
+      @test("explicitly") {||
+        run(process.stdin);
+      }
+
+      @test("with @stream.contents") {||
+        @assert.raises(
+          {message: /write after end/},
+          -> run(process.stdin .. @stream.contents)
+        );
+      }.skip("BUG - see https://github.com/joyent/node/issues/17204");
+    }
+
     @test("stdio accepts nodejs file streams") {||
       @TemporaryFile {|f0|
         f0.path .. @fs.writeFile('input');
