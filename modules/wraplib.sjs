@@ -38,6 +38,12 @@
    @nodoc
 */
 
+var SENTINEL_SYNC = {};
+SENTINEL_SYNC.toString = -> '<sync>';
+
+var SENTINEL_IGNORE = {};
+SENTINEL_IGNORE.toString = -> '<ignore>';
+
 // the whole of wraplib's operation is parameterised with values for `debug` and `timeout`,
 // so this function generates an implementation of `wraplib` for the given values
 function generateWrapLib(debug, timeout) {
@@ -51,14 +57,70 @@ function generateWrapLib(debug, timeout) {
   }
 
   /**
-    @function mark_sync
-    @summary Mark a function as synchronous (i.e not needing any further wrapping)
-    @param {Function} [fn]
-   */
-  var mark_sync = exports.mark_sync = function(obj) { obj.__sjs_ok = true; return obj; };
+    @function annotate
+    @summary Convenience function to declaratively wrap an entire library.
+    @param {object} [subject] The root object to wrap.
+    @param {object} [spec]    The specification to use to wrap the library.
+    @desc
+      `spec` is a plain javascript object which will be used to traverse & annotate
+      the given `subject`. The keys of the object will control traversal of the
+      subject, and the values will either be nested objects, [::sync], or an array
+      of arguments to pass into [::annotate.fn]. For example:
+   
+          // Original javascript library code:
+          var module = {};
+          module.ClassA = function() { this.val = 42; }
+          module.ClassA.prototype = {
+            "slowStringify": function(cb) {
+              window.setTimeout(500, cb(this.toString()));
+            },
+            "fetch": function(id, on_success, on_fail) {
+              // some code that fetches a resource via AJAX, for example
+            }
+          }
+   
+          // Wrap for SJS:
+          var wraplib = require("sjs:wraplib");
+          wraplib.annotate(module,
+            {
+              "ClassA": {
+                // `this` key applies an annotation to `ClassA`, while allowing
+                // child properties to be annotated as well
+                "this": wraplib.sync,
+   
+                "prototype": {
+                  // slowStringify has no regular arguments, uses a callback with a single value,
+                  // and has no failure callback
+                  "slowStringify": [0, wraplib.handle_success],
+   
+                  // fetch has one regular argument and uses two callbacks
+                  //  - the first is used in case of success, the second in case of error:
+                  "fetch": [1, wraplib.handle_success, wraplib.handle_error],
+                }
+              }
+            });
+   **/
+  var annotate = exports.annotate = function(subject, spec) {
+    for (var k in spec) {
+      if(k == 'this') continue;
+      if(!spec.hasOwnProperty(k)) continue;
+      var annotation = spec[k];
+      
+      if(annotation == null) {
+        throw new Error("null annotation given for key " + k);
+      }
+      _apply_annotation(subject, k, annotation);
+      
+      // we apply "this" annotations from the parent, so that
+      // `k` and `val` apply to the correct things
+      if(annotation.hasOwnProperty('this')) {
+        _apply_annotation(subject, k, annotation['this']);
+      }
+    }
+  };
 
   /**
-    @function wrap
+    @function annotate.fn
     @summary Replace the given function with a wrapped version
     @param {object} [source] The parent object.
     @param {String} [name]   The name of the property to wrap / replace.
@@ -86,7 +148,7 @@ function generateWrapLib(debug, timeout) {
        own, you should consult the source code of this module and follow the existing
        examples.
    */
-  var wrap = exports.wrap = function(source, name, num_args/*, [result_handler ... ]*/) {
+  var wrap = annotate.fn = exports.wrap /* compat */ = function(source, name, num_args/*, [result_handler ... ]*/) {
     var result_handlers = Array.prototype.slice.call(arguments, 3);
     var orig = source[name];
 
@@ -173,77 +235,33 @@ function generateWrapLib(debug, timeout) {
     }
   }
 
+
   /**
-    @function annotate
-    @summary Convenience function to declaratively wrap an entire library.
-    @param {object} [subject] The root object to wrap.
-    @param {object} [spec]    The specification to use to wrap the library.
-    @desc
-      `spec` is a plain javascript object which will be used to traverse & annotate
-      the given `subject`. The keys of the object will control traversal of the
-      subject, and the values will either be nested objects, `sync`, or an array
-      of arguments to pass into `wrap`. For example:
-   
-          // Original javascript library code:
-          var module = {};
-          module.ClassA = function() { this.val = 42; }
-          module.ClassA.prototype = {
-            "slowStringify": function(cb) {
-              window.setTimeout(500, cb(this.toString()));
-            },
-            "fetch": function(id, on_success, on_fail) {
-              // some code that fetches a resource via AJAX, for example
-            }
-          }
-   
-          // Wrap for SJS:
-          var wraplib = require("sjs:wraplib");
-          wraplib.annotate(module,
-            {
-              "ClassA": {
-                // `this` key applies an annotation to `ClassA`, while allowing
-                // child properties to be annotated as well
-                "this": wraplib.sync,
-   
-                "prototype": {
-                  // slowStringify has no regular arguments, uses a callback with a single value,
-                  // and has no failure callback
-                  "slowStringify": [0, wraplib.handle_success],
-   
-                  // fetch has one regular argument and uses two callbacks
-                  //  - the first is used in case of success, the second in case of error:
-                  "fetch": [1, wraplib.handle_success, wraplib.handle_error],
-                }
-              }
-            });
-   **/
-  var annotate = exports.annotate = function(subject, spec) {
-    for (var k in spec) {
-      if(k == 'this') continue;
-      if(!spec.hasOwnProperty(k)) continue;
-      var annotation = spec[k];
-      
-      if(annotation == null) {
-        throw new Error("null annotation given for key " + k);
-      }
-      _apply_annotation(subject, k, annotation);
-      
-      // we apply "this" annotations from the parent, so that
-      // `k` and `val` apply to the correct things
-      if(annotation.hasOwnProperty('this')) {
-        _apply_annotation(subject, k, annotation['this']);
-      }
-    }
-  };
+    @function annotate.sync
+    @summary Mark a function as synchronous (i.e not needing any further wrapping)
+    @param {Function} [fn]
+   */
+  var mark_sync = annotate.sync = exports.mark_sync /* for backwards compat */ = function(obj) { obj.__sjs_ok = true; return obj; };
+
+  /**
+    @function annotate.ignore
+    @summary Mark an object as ignored (i.e not reported by [./inspect::])
+    @param {Function} [fn]
+   */
+  var mark_ignore = annotate.ignore = function(obj) { obj.__sjs_wraplib_ignore = true; return obj; };
+
 
   var _apply_annotation = function(subject, k, annotation) {
     try {
       if(annotation == null) {
         throw new Error("annotation is null!");
       }
-      if(annotation == 'sync')
+      if(annotation === 'sync' /* compat */
+      || annotation === SENTINEL_SYNC)
       {
         mark_sync(subject[k]);
+      } else if (annotation === SENTINEL_IGNORE) {
+        mark_ignore(subject[k]);
       } else {
         if(annotation instanceof Array) {
           var args = [subject, k].concat(annotation);
@@ -258,7 +276,16 @@ function generateWrapLib(debug, timeout) {
     }
   };
 
-  exports.sync = 'sync';
+  /**
+    @variable sync
+    @summary Synchronous function marker
+   */
+  exports.sync = SENTINEL_SYNC;
+  /**
+    @variable ignore
+    @summary Ignored object marker
+   */
+  exports.ignore = SENTINEL_IGNORE;
   return exports;
 };
 
@@ -287,5 +314,6 @@ exports.withDebug = function(timeout) { return generateWrapLib(true, timeout || 
 require("builtin:apollo-sys").extendObject(exports, generateWrapLib(false));
 
 if (require.main === module) {
-  require('./wraplib/inspect').main();
+  process.exit(require('./wraplib/inspect').main());
 }
+
