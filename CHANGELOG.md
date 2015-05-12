@@ -34,6 +34,13 @@ property. i.e:
 
 For convenience, the `pump` method is still exposed as a top-level property (i.e both `pump` and `stream.pump` refer to the same function).
 
+The (undocumented) `wraplib` module has also seen a rework. There are new methods which better support wrapping complex / nested APIs, and the following exports have been moved:
+
+ - mark_sync -> annotate.mark_sync
+ - wrap -> annotate.fn
+
+The old names will still work for now, but they are deprecated.
+
 ## Version 0.19:
 
 This version includes a number of additions to nodejs-specific modules, as well
