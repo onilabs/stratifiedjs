@@ -61,7 +61,7 @@ function isRegExp(re) {
   @return   {String} Sanitized string.
   @desc
     Returns sanitized string with **<**,**>**, and **&** replaced by their corresponding html entities.
-**/
+*/
 
 var replacements = {
   '&':'&amp;',
