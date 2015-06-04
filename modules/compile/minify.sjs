@@ -1,3 +1,4 @@
+__js {
 /*
  * C1 Stratified JavaScript parser 
  *
@@ -2001,6 +2002,7 @@ function scan(pctx, id, tokenizer) {
   return pctx.token;
 }
 
+}
 if (require.main === module) {
 	var seq = require('sjs:sequence'), fs = require('sjs:nodejs/fs');
 	require('sjs:sys').argv() .. seq.each {|f|

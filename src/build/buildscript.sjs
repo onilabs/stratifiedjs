@@ -63,9 +63,9 @@ function build_deps() {
   var jsHeader = "src/headers/__js.txt", jsFooter = "src/footers/__js.txt", compileFooter = "src/footers/compiler-main.sjs";
   var compilerSources = function(js) {
     return [
-    //jsHeader,
+    jsHeader,
     js,
-    //jsFooter,
+    jsFooter,
     compileFooter];
   }
 

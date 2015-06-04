@@ -643,10 +643,6 @@
           "children": {},
           "summary": "Utility for generating documentation indexes"
         },
-        "espree": {
-          "type": "module",
-          "children": {}
-        },
         "lint": {
           "type": "module",
           "children": {}
