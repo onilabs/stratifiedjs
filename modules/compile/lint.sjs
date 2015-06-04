@@ -4,7 +4,7 @@ var { linter:@eslint, @CLIEngine } = require('nodejs:eslint/lib/api');
 var compile = require('./ast').compile;
 
 var globals = [];
-['module','exports','require','hold','resume', '@'] .. @each {|key|
+['module','exports','require','hold','resume', '@','console'] .. @each {|key|
 	globals[key] = true;
 }
 
@@ -23,10 +23,12 @@ exports.verify = function(filename, text) {
 			strict: 0,
 			quotes: 0,
 			'semi': 0, // XXX this is a legit issue, but has too many false positives with blocks
-			'no-trailing-spaces':1,
+			'semi-spacing':0, // as above (although just cosmetic)
+			'no-trailing-spaces':0,
+			'no-underscore-dangle':0,
+			'no-console':1,
 			'space-infix-ops':0,
-			'comma-spacing': 1,
-			'multiline-stmt-indent': 2,
+			'comma-spacing': 0,
 			'no-shadow':1,
 			'no-loop-func':0, // false positives from AST hack
 			'no-lone-blocks': 0, // triggered by __js { ... }
