@@ -91,7 +91,7 @@ function gen_block(code) {
   return "{"+code+"}";
 }
 
-#define END_FBODY(pctx,dummy)                           \
+#define END_FBODY(pctx,dummy, ext)                           \
   return gen_block(pop_scope(pctx).stmts.join(""));
 
 #define BEGIN_BLOCK(pctx)                       \
@@ -100,7 +100,7 @@ function gen_block(code) {
 #define ADD_BLOCK_STMT(stmt, pctx)              \
   top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
 
-#define END_BLOCK(pctx)                           \
+#define END_BLOCK(pctx, ext)                           \
   return gen_block(pop_scope(pctx).stmts.join(""));
 
 
@@ -111,7 +111,7 @@ function gen_block(code) {
 #define ADD_CASE_CLAUSE_STMT(stmt, pctx)        \
   top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
 
-#define END_CASE_CLAUSE(pctx)                     \
+#define END_CASE_CLAUSE(pctx, ext)                     \
   var scope = pop_scope(pctx);                    \
   var rv;                                         \
   if (scope.exp)                                  \
@@ -132,26 +132,26 @@ function gen_block(code) {
 #define ADD_BLAMBDABODY_STMT(stmt, pctx)              \
   top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
 
-#define END_BLAMBDABODY(pctx)                           \
+#define END_BLAMBDABODY(pctx, ext)                           \
   return pop_scope(pctx).stmts.join("");
 
 
 //----------------------------------------------------------------------
 // statements:
-#define GEN_EMPTY_STMT(pctx) return ";";
+#define GEN_EMPTY_STMT(pctx, ext) return ";";
 
-#define GEN_EXP_STMT(exp, pctx) return exp +";";
+#define GEN_EXP_STMT(exp, pctx, ext) return exp +";";
 
-#define GEN_LBL_STMT(lbl, stmt, pctx) return lbl+": "+stmt;
+#define GEN_LBL_STMT(lbl, stmt, pctx, ext) return lbl+": "+stmt;
 
 function gen_fun_pars(pars) {
   return pars.join(",");
 }
 
-#define GEN_FUN_DECL(fname, pars, body, pctx)           \
+#define GEN_FUN_DECL(fname, pars, body, pctx, ext)           \
   return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
 
-#define GEN_VAR_DECL(decls, pctx)                \
+#define GEN_VAR_DECL(decls, pctx, ext)                \
   var rv = "var ";                               \
   for (var i=0; i<decls.length; ++i) {           \
     if (i) rv += ",";                            \
@@ -161,7 +161,7 @@ function gen_fun_pars(pars) {
   }                                              \
   return rv+";";
 
-#define GEN_IF(test, consequent, alternative, pctx)   \
+#define GEN_IF(test, consequent, alternative, pctx, ext)   \
   var rv = "if("+test+")"+consequent;                 \
   if (alternative !== null){                          \
     if( alternative[0] != "{")                        \
@@ -171,20 +171,20 @@ function gen_fun_pars(pars) {
   }                                                   \
   return rv;
 
-#define GEN_DO_WHILE(body, test, pctx)          \
+#define GEN_DO_WHILE(body, test, pctx, ext)          \
   return "do "+body+"while("+test+");";
 
-#define GEN_WHILE(test, body, pctx)             \
+#define GEN_WHILE(test, body, pctx, ext)             \
   return "while("+test+")"+body;
 
-#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx)         \
+#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx, ext)         \
   var rv = "for(";                                                      \
   if (init_exp) {                                                       \
     rv += init_exp + ";";                                               \
   }                                                                     \
   else if (decls) {                                                     \
   var d = (function(decls, pctx) {                                      \
-      GEN_VAR_DECL(decls, pctx) })(decls, pctx);                        \
+      GEN_VAR_DECL(decls, pctx, null) })(decls, pctx);                        \
   rv += d;                                                              \
   }                                                                     \
   else                                                                  \
@@ -196,7 +196,7 @@ function gen_fun_pars(pars) {
   rv += body;                                                           \
   return rv;
 
-#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx)  \
+#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx, ext)  \
   var rv = "for(";                                      \
   if (lhs_exp) {                                        \
     rv += lhs_exp;                                      \
@@ -210,31 +210,31 @@ function gen_fun_pars(pars) {
   rv += body;                                           \
   return rv;
 
-#define GEN_CONTINUE(lbl, pctx)                 \
+#define GEN_CONTINUE(lbl, pctx, ext)                 \
   var rv = "continue";                          \
   if (lbl !== null)                             \
     rv += " "+lbl;                              \
   return rv+";"
 
-#define GEN_BREAK(lbl, pctx)                    \
+#define GEN_BREAK(lbl, pctx, ext)                    \
   var rv = "break";                             \
   if (lbl !== null)                             \
     rv += " "+lbl;                              \
   return rv+";"
 
-#define GEN_RETURN(exp, pctx)                   \
+#define GEN_RETURN(exp, pctx, ext)                   \
   var rv = "return";                            \
   if (exp != null)                              \
     rv += " "+exp;                              \
   return rv+";";
 
-#define GEN_WITH(exp, body, pctx)               \
+#define GEN_WITH(exp, body, pctx, ext)               \
   return "with("+exp+")"+body;
 
-#define GEN_SWITCH(exp, clauses, pctx)          \
+#define GEN_SWITCH(exp, clauses, pctx, ext)          \
   return "switch("+exp+")"+gen_block(clauses.join(""));
 
-#define GEN_THROW(exp, pctx) return "throw "+exp+";";
+#define GEN_THROW(exp, pctx, ext) return "throw "+exp+";";
 
 function gen_crf(crf) {
   var rv = "";
@@ -247,13 +247,13 @@ function gen_crf(crf) {
   return rv;
 }
 
-#define GEN_TRY(block, crf, pctx)               \
+#define GEN_TRY(block, crf, pctx, ext)               \
   return "try"+block+gen_crf(crf);                                    
 
 //----------------------------------------------------------------------
 // expressions:
 
-#define GEN_INFIX_OP(left, id, right, pctx)  \
+#define GEN_INFIX_OP(left, id, right, pctx, ext)  \
   return gen_infix_op(left, id, right, pctx);
 
 function gen_infix_op(left, id, right, pctx) {
@@ -265,10 +265,10 @@ function gen_infix_op(left, id, right, pctx) {
     return left+id+right;
 }
 
-#define GEN_ASSIGN_OP(left, id, right, pctx)     \
+#define GEN_ASSIGN_OP(left, id, right, pctx, ext)     \
   return left+id+right;
 
-#define GEN_PREFIX_OP(id, right, pctx)          \
+#define GEN_PREFIX_OP(id, right, pctx, ext)          \
   return gen_prefix_op(id, right, pctx);
 
 function gen_prefix_op(id, right, pctx) {
@@ -279,43 +279,43 @@ function gen_prefix_op(id, right, pctx) {
     return id+right;
 }
 
-#define GEN_POSTFIX_OP(left, id, pctx)          \
+#define GEN_POSTFIX_OP(left, id, pctx, ext)          \
   return left + id + " ";
 
 #ifdef SJS_ARROWS
-#define GEN_THIN_ARROW(body, ptcx) GEN_PREFIX_OP('->', body, pctx)
-#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx) GEN_INFIX_OP(pars, '->', body, pctx)
+#define GEN_THIN_ARROW(body, pctx, ext) GEN_PREFIX_OP('->', body, pctx, ext)
+#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx, ext) GEN_INFIX_OP(pars, '->', body, pctx, ext)
 // note the intentional space in ' =>' below; it is to fix cases like '= => ...'
-#define GEN_FAT_ARROW(body, ptcx) GEN_PREFIX_OP(' =>', body, pctx)
-#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx) GEN_INFIX_OP(pars, '=>', body, pctx)
+#define GEN_FAT_ARROW(body, pctx, ext) GEN_PREFIX_OP(' =>', body, pctx, ext)
+#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx, ext) GEN_INFIX_OP(pars, '=>', body, pctx, ext)
 #endif
 
 #ifdef SJS_DOUBLEDOT
-#define GEN_DOUBLEDOT_CALL(l,r,pctx) return l+".."+r;
+#define GEN_DOUBLEDOT_CALL(l,r,pctx, ext) return l+".."+r;
 #endif
 
 #ifdef SJS_DOUBLECOLON
-#define GEN_DOUBLECOLON_CALL(l,r,pctx) return l+"::"+r;
+#define GEN_DOUBLECOLON_CALL(l,r,pctx, ext) return l+"::"+r;
 #endif
 
 #ifdef SJS_ALTERNATE_NAMESPACE
-#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx) return '@';
-#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx) return '@'+value;
+#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx, ext) return '@';
+#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx, ext) return '@'+value;
 #endif
 
 #ifdef STRINGIFY
-#define GEN_LITERAL(type, value, pctx)                                  \
+#define GEN_LITERAL(type, value, pctx, ext)                                  \
   if (type == "<string>")                                               \
     value = value.replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"'); \
   else if (type == "<regex>")                                           \
     value = value.replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"'); \
   return value;
 #else
-#define GEN_LITERAL(type, value, pctx) return value;
+#define GEN_LITERAL(type, value, pctx, ext) return value;
 #endif
 
 #ifdef INTERPOLATING_STRINGS
-#define GEN_INTERPOLATING_STR(parts, pctx) return interpolating_string(parts);
+#define GEN_INTERPOLATING_STR(parts, pctx, ext) return interpolating_string(parts);
 function interpolating_string(parts) {
 #ifdef STRINGIFY
   var rv = '\\"';
@@ -343,7 +343,7 @@ function interpolating_string(parts) {
 #endif /* INTERPOLATING_STRINGS */
 
 #ifdef QUASIS
-#define GEN_QUASI(parts, pctx) return quasi(parts);
+#define GEN_QUASI(parts, pctx, ext) return quasi(parts);
 function quasi(parts) {
   var rv = '`';
   for (var i=0,l=parts.length;i<l;++i) {
@@ -362,10 +362,10 @@ function quasi(parts) {
 #endif /* QUASIS */
 
 
-#define GEN_IDENTIFIER(value, pctx) return value;
+#define GEN_IDENTIFIER(value, pctx, ext) return value;
 
 #ifdef STRINGIFY
-#define GEN_OBJ_LIT(props, pctx)                                    \
+#define GEN_OBJ_LIT(props, pctx, ext)                                    \
   var rv = "{";                                                     \
   for (var i=0; i<props.length; ++i) {                              \
     if (i!=0) rv += ",";                                            \
@@ -387,7 +387,7 @@ function quasi(parts) {
   rv += "}";                                                        \
   return rv;
 #else
-#define GEN_OBJ_LIT(props, pctx)                                    \
+#define GEN_OBJ_LIT(props, pctx, ext)                                    \
   var rv = "{";                                                     \
   for (var i=0; i<props.length; ++i) {                              \
     if (i!=0) rv += ",";                                            \
@@ -408,42 +408,42 @@ function quasi(parts) {
   return rv;
 #endif
 
-#define GEN_ARR_LIT(elements, pctx) return "["+elements.join(",")+"]";
+#define GEN_ARR_LIT(elements, pctx, ext) return "["+elements.join(",")+"]";
 
 #define GEN_ELISION(pctx) return " ";
 
-#define GEN_DOT_ACCESSOR(l, name, pctx) return l+"."+name;
+#define GEN_DOT_ACCESSOR(l, name, pctx, ext) return l+"."+name;
 
-#define GEN_NEW(exp, args, pctx)                \
+#define GEN_NEW(exp, args, pctx, ext)                \
   return "new "+exp+"("+args.join(",")+")";
 
-#define GEN_IDX_ACCESSOR(l, idxexp, pctx) return l+"["+idxexp+"]";
+#define GEN_IDX_ACCESSOR(l, idxexp, pctx, ext) return l+"["+idxexp+"]";
 
-#define GEN_FUN_CALL(l, args, pctx) return l+"("+args.join(",")+")";
+#define GEN_FUN_CALL(l, args, pctx, ext) return l+"("+args.join(",")+")";
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return)  \
+#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext)  \
   if (fname.length)                                       \
     return "function "+fname+"("+gen_fun_pars(pars)+")"+body; \
   else                                                    \
     return "function("+gen_fun_pars(pars)+")"+body;
 
-#define GEN_CONDITIONAL(test, consequent, alternative, pctx) \
+#define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext) \
   return test+"?"+consequent+(alternative === undefined ? "" : ":"+alternative);
 
-#define GEN_GROUP(e, pctx) return "("+e+")";
+#define GEN_GROUP(e, pctx, ext) return "("+e+")";
 
-#define GEN_THIS(pctx) return "this";
+#define GEN_THIS(pctx, ext) return "this";
 
-#define GEN_TRUE(pctx) return "true";
+#define GEN_TRUE(pctx, ext) return "true";
 
-#define GEN_FALSE(pctx) return "false";
+#define GEN_FALSE(pctx, ext) return "false";
 
-#define GEN_NULL(pctx) return "null";
+#define GEN_NULL(pctx, ext) return "null";
 
 
 // Stratified constructs:
 
-#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)  \
+#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, ext)  \
   var rv = "waitfor";                             \
   for (var i=0; i<blocks.length; ++i){            \
     if (i) rv += op;                              \
@@ -454,7 +454,7 @@ function quasi(parts) {
 
 #define BEGIN_SUSPEND_BLOCK(pctx) /*nothing*/
 #define END_SUSPEND_BLOCK(pctx) /*nothing*/
-#define GEN_SUSPEND(has_var, decls, block, crf, pctx)  \
+#define GEN_SUSPEND(has_var, decls, block, crf, pctx, ext)  \
   var rv = "waitfor(";                                 \
   if (has_var) rv += "var ";                           \
   for (var i=0; i<decls.length; ++i) {                 \
@@ -467,9 +467,9 @@ function quasi(parts) {
   rv += gen_crf(crf);                                  \
   return rv;
 
-#define GEN_COLLAPSE(pctx) return "collapse";
+#define GEN_COLLAPSE(pctx, ext) return "collapse";
 
-#define GEN_USING(has_var, lhs, exp, body, pctx)  \
+#define GEN_USING(has_var, lhs, exp, body, pctx, ext)  \
   var rv = "using(";                              \
   if (has_var) rv += "var ";                      \
   if (lhs) rv += lhs + "=";                       \
@@ -478,8 +478,8 @@ function quasi(parts) {
 
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
-#define GEN___JS(body, pctx) return "__js "+body;
+#define GEN___JS(body, pctx, ext) return "__js "+body;
 
-#define GEN_BLOCKLAMBDA(pars, body, pctx) \
+#define GEN_BLOCKLAMBDA(pars, body, pctx, ext) \
   return "{|"+gen_fun_pars(pars)+"| "+body+"}";
 

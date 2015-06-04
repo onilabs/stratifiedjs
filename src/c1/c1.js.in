@@ -547,7 +547,7 @@ var TOKENIZER_QUASI = /((?:\\PAT_DOT|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\PAT_
 #define POP_EXTENT(pctx) null
 #define TOP_EXTENT() null
 #define STORE_EXTENT_LENGTH(pctx)
-#define CHECK_EXTENT_LENGTH(pctx)
+#define CHECK_EXTENT_LENGTH(pctx, exp)
 #endif
 
 #ifndef EMIT_TOKENS

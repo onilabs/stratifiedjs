@@ -310,19 +310,19 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 
 #define ADD_FBODY_STMT(stmt, pctx) /* */
 
-#define END_FBODY(pctx,dummy) return Dynamic;
+#define END_FBODY(pctx,dummy, ext) return Dynamic;
 
 #define BEGIN_BLOCK(pctx) push_scope(pctx);
 
 #define ADD_BLOCK_STMT(stmt, pctx) top_scope(pctx).stmts.push(stmt);
 
-#define END_BLOCK(pctx) return seq(pop_scope(pctx).stmts);
+#define END_BLOCK(pctx, ext) return seq(pop_scope(pctx).stmts);
 
 #define BEGIN_CASE_CLAUSE(cexp, pctx) /* */
 
 #define ADD_CASE_CLAUSE_STMT(stmt, pctx) /* */
 
-#define END_CASE_CLAUSE(pctx) /* */
+#define END_CASE_CLAUSE(pctx, ext) /* */
 
 #define BEGIN_LOOP_SCOPE(pctx)   /* */
 #define END_LOOP_SCOPE(pctx)     /* */
@@ -334,48 +334,48 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 
 #define ADD_BLAMBDABODY_STMT(stmt, pctx) /* */
 
-#define END_BLAMBDABODY(pctx) return Dynamic;
+#define END_BLAMBDABODY(pctx, ext) return Dynamic;
 
 
 //----------------------------------------------------------------------
 // statements:
-#define GEN_EMPTY_STMT(pctx) return Dynamic;
+#define GEN_EMPTY_STMT(pctx, ext) return Dynamic;
 
-#define GEN_EXP_STMT(exp, pctx) return exp;
+#define GEN_EXP_STMT(exp, pctx, ext) return exp;
 
-#define GEN_LBL_STMT(lbl, stmt, pctx) return stmt;
+#define GEN_LBL_STMT(lbl, stmt, pctx, ext) return stmt;
 
-#define GEN_FUN_DECL(fname, pars, body, pctx) return Dynamic;
+#define GEN_FUN_DECL(fname, pars, body, pctx, ext) return Dynamic;
 
-#define GEN_VAR_DECL(decls, pctx)                 \
+#define GEN_VAR_DECL(decls, pctx, ext)                 \
   for (var i=0; i<decls.length; ++i) {            \
     if (decls[i][1] != null) {                    \
       top_scope(pctx).assignments.push(decls[i]); \
-      GEN_EXP_STMT(decls[i][1], pctx);            \
+      GEN_EXP_STMT(decls[i][1], pctx, null);            \
     }                                             \
   };
 
-#define GEN_IF(test, consequent, alternative, pctx) return test;
+#define GEN_IF(test, consequent, alternative, pctx, ext) return test;
 
-#define GEN_DO_WHILE(body, test, pctx) return body.seq(test);
+#define GEN_DO_WHILE(body, test, pctx, ext) return body.seq(test);
 
-#define GEN_WHILE(test, body, pctx) return test;
+#define GEN_WHILE(test, body, pctx, ext) return test;
 
-#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx) return Dynamic;
+#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx, ext) return Dynamic;
 
-#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx) return Dynamic;
+#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx, ext) return Dynamic;
 
-#define GEN_CONTINUE(lbl, pctx) return Dynamic;
+#define GEN_CONTINUE(lbl, pctx, ext) return Dynamic;
 
-#define GEN_BREAK(lbl, pctx) return Dynamic;
+#define GEN_BREAK(lbl, pctx, ext) return Dynamic;
 
-#define GEN_RETURN(exp, pctx) return exp;
+#define GEN_RETURN(exp, pctx, ext) return exp;
 
-#define GEN_WITH(exp, body, pctx) return body;
+#define GEN_WITH(exp, body, pctx, ext) return body;
 
-#define GEN_SWITCH(exp, clauses, pctx) return exp;
+#define GEN_SWITCH(exp, clauses, pctx, ext) return exp;
 
-#define GEN_THROW(exp, pctx) return Dynamic;
+#define GEN_THROW(exp, pctx, ext) return Dynamic;
 
 function gen_crf(crf) {
   var rv = Dynamic;
@@ -384,56 +384,56 @@ function gen_crf(crf) {
   return rv;
 }
 
-#define GEN_TRY(block, crf, pctx) return block.seq(gen_crf(pctx));
+#define GEN_TRY(block, crf, pctx, ext) return block.seq(gen_crf(pctx));
 
 //----------------------------------------------------------------------
 // expressions:
 
-#define GEN_INFIX_OP(left, id, right, pctx) \
+#define GEN_INFIX_OP(left, id, right, pctx, ext) \
   if (id == '||' || id == '&&') return left; else return left.seq(right);
 
-#define GEN_ASSIGN_OP(left, id, right, pctx) \
+#define GEN_ASSIGN_OP(left, id, right, pctx, ext) \
   if (id == '=') top_scope(pctx).assignments.push([left, right]); \
   return right;
-#define GEN_PREFIX_OP(id, right, pctx) return right;
-#define GEN_POSTFIX_OP(left, id, pctx) return left;
+#define GEN_PREFIX_OP(id, right, pctx, ext) return right;
+#define GEN_POSTFIX_OP(left, id, pctx, ext) return left;
 
 #ifdef SJS_ARROWS
-#define GEN_THIN_ARROW(body, ptcx) return Dynamic;
-#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx) return Dynamic;
+#define GEN_THIN_ARROW(body, pctx, ext) return Dynamic;
+#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx, ext) return Dynamic;
 // note the intentional space in ' =>' below; it is to fix cases like '= => ...'
-#define GEN_FAT_ARROW(body, ptcx) return Dynamic;
-#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx) return Dynamic;
+#define GEN_FAT_ARROW(body, pctx, ext) return Dynamic;
+#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx, ext) return Dynamic;
 #endif
 
 #ifdef SJS_DOUBLEDOT
-#define GEN_DOUBLEDOT_CALL(l,r,pctx) return l.seq(r);
+#define GEN_DOUBLEDOT_CALL(l,r,pctx, ext) return l.seq(r);
 #endif
 
 #ifdef SJS_DOUBLECOLON
 // XXX not sure this is right
-#define GEN_DOUBLECOLON_CALL(l,r,pctx) return l.seq(r);
+#define GEN_DOUBLECOLON_CALL(l,r,pctx, ext) return l.seq(r);
 #endif
 
 #ifdef SJS_ALTERNATE_NAMESPACE
-#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx) return new Id("__oni_altns");
-#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx) return (new Id("__oni_altns")).dot(value);
+#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx, ext) return new Id("__oni_altns");
+#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx, ext) return (new Id("__oni_altns")).dot(value);
 #endif
 
-#define GEN_LITERAL(type, value, pctx) return new Lit(value);
+#define GEN_LITERAL(type, value, pctx, ext) return new Lit(value);
 
 #ifdef INTERPOLATING_STRINGS
-#define GEN_INTERPOLATING_STR(parts, pctx) return Dynamic;
+#define GEN_INTERPOLATING_STR(parts, pctx, ext) return Dynamic;
 #endif /* INTERPOLATING_STRINGS */
 
 #ifdef QUASIS
-#define GEN_QUASI(parts, pctx) return Dynamic;
+#define GEN_QUASI(parts, pctx, ext) return Dynamic;
 #endif /* QUASIS */
 
 
-#define GEN_IDENTIFIER(value, pctx) return new Id(value, top_scope(pctx).assignments);
+#define GEN_IDENTIFIER(value, pctx, ext) return new Id(value, top_scope(pctx).assignments);
 
-#define GEN_OBJ_LIT(props, pctx)             \
+#define GEN_OBJ_LIT(props, pctx, ext)             \
   var rv = [];                               \
   for (var i=0; i<props.length; ++i) {       \
     if (props[i][0] == "prop") {             \
@@ -442,33 +442,33 @@ function gen_crf(crf) {
   }                                          \
   return new ObjectLit(rv);
 
-#define GEN_ARR_LIT(elements, pctx) return new ArrayLit(elements);
+#define GEN_ARR_LIT(elements, pctx, ext) return new ArrayLit(elements);
 
 #define GEN_ELISION(pctx) return Dynamic;
 
-#define GEN_DOT_ACCESSOR(l, name, pctx) return l.dot(name);
+#define GEN_DOT_ACCESSOR(l, name, pctx, ext) return l.dot(name);
 
-#define GEN_NEW(exp, args, pctx) return Dynamic;
+#define GEN_NEW(exp, args, pctx, ext) return Dynamic;
 
-#define GEN_IDX_ACCESSOR(l, idxexp, pctx) return l.dot(idxexp);
+#define GEN_IDX_ACCESSOR(l, idxexp, pctx, ext) return l.dot(idxexp);
 
-#define GEN_FUN_CALL(l, args, pctx) return l.call(args);
+#define GEN_FUN_CALL(l, args, pctx, ext) return l.call(args);
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return) return Dynamic;
+#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext) return Dynamic;
 
-#define GEN_CONDITIONAL(test, consequent, alternative, pctx) return Dynamic;
+#define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext) return Dynamic;
 
-#define GEN_GROUP(e, pctx) return e;
+#define GEN_GROUP(e, pctx, ext) return e;
 
-#define GEN_THIS(pctx) return new Id("this");
+#define GEN_THIS(pctx, ext) return new Id("this");
 
-#define GEN_TRUE(pctx) return new Lit("true");
+#define GEN_TRUE(pctx, ext) return new Lit("true");
 
-#define GEN_FALSE(pctx) return new Lit("false");
+#define GEN_FALSE(pctx, ext) return new Lit("false");
 
-#define GEN_NULL(pctx) return new Lit("null");
+#define GEN_NULL(pctx, ext) return new Lit("null");
 
-#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)  \
+#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, ext)  \
   var rv = Dynamic;                               \
   for (var i=0; i<blocks.length; ++i){            \
     rv = rv.seq(blocks[i]);                       \
@@ -477,12 +477,12 @@ function gen_crf(crf) {
 
 #define BEGIN_SUSPEND_BLOCK(pctx) /*nothing*/
 #define END_SUSPEND_BLOCK(pctx) /*nothing*/
-#define GEN_SUSPEND(has_var, decls, block, crf, pctx)  return block;
-#define GEN_COLLAPSE(pctx) /* */
-#define GEN_USING(has_var, lhs, exp, body, pctx)  return body;
+#define GEN_SUSPEND(has_var, decls, block, crf, pctx, ext)  return block;
+#define GEN_COLLAPSE(pctx, ext) /* */
+#define GEN_USING(has_var, lhs, exp, body, pctx, ext)  return body;
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
-#define GEN___JS(body, pctx) return Dynamic;
-#define GEN_BLOCKLAMBDA(pars, body, pctx) return Dynamic;
+#define GEN___JS(body, pctx, ext) return Dynamic;
+#define GEN_BLOCKLAMBDA(pars, body, pctx, ext) return Dynamic;
 
 

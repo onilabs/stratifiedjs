@@ -59,7 +59,7 @@ function top_scope(pctx) {
 #define ADD_FBODY_STMT(stmt, pctx)              \
   top_scope(pctx).stmts.push(stmt);
 
-#define END_FBODY(pctx,dummy)                      \
+#define END_FBODY(pctx,dummy, ext)                      \
   return "{"+pop_scope(pctx).stmts.join("")+"}";
 
 
@@ -69,7 +69,7 @@ function top_scope(pctx) {
 #define ADD_BLOCK_STMT(stmt, pctx)              \
   top_scope(pctx).stmts.push(stmt);
 
-#define END_BLOCK(pctx)                           \
+#define END_BLOCK(pctx, ext)                           \
   return "{"+pop_scope(pctx).stmts.join("")+"}";
 
 
@@ -80,7 +80,7 @@ function top_scope(pctx) {
 #define ADD_CASE_CLAUSE_STMT(stmt, pctx)        \
   top_scope(pctx).stmts.push(stmt);
 
-#define END_CASE_CLAUSE(pctx)                     \
+#define END_CASE_CLAUSE(pctx, ext)                     \
   var scope = pop_scope(pctx);                    \
   var rv;                                         \
   if (scope.exp)                                  \
@@ -96,20 +96,20 @@ function top_scope(pctx) {
 
 //----------------------------------------------------------------------
 // statements:
-#define GEN_EMPTY_STMT(pctx) return ";";
+#define GEN_EMPTY_STMT(pctx, ext) return ";";
 
-#define GEN_EXP_STMT(exp, pctx) return exp +";";
+#define GEN_EXP_STMT(exp, pctx, ext) return exp +";";
 
-#define GEN_LBL_STMT(lbl, stmt, pctx) return lbl+": "+stmt;
+#define GEN_LBL_STMT(lbl, stmt, pctx, ext) return lbl+": "+stmt;
 
 function gen_fun_pars(pars) {
   return pars.join(",");
 }
 
-#define GEN_FUN_DECL(fname, pars, body, pctx)           \
+#define GEN_FUN_DECL(fname, pars, body, pctx, ext)           \
   return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
 
-#define GEN_VAR_DECL(decls, pctx)                \
+#define GEN_VAR_DECL(decls, pctx, ext)                \
   var rv = "var ";                               \
   for (var i=0; i<decls.length; ++i) {           \
     if (i) rv += ",";                            \
@@ -119,19 +119,19 @@ function gen_fun_pars(pars) {
   }                                              \
   return rv+";";
 
-#define GEN_IF(test, consequent, alternative, pctx) \
+#define GEN_IF(test, consequent, alternative, pctx, ext) \
   var rv = "if ("+test+")"+consequent;              \
   if (alternative !== null)                         \
     rv += "else "+alternative;                      \
   return rv;
 
-#define GEN_DO_WHILE(body, test, pctx)          \
+#define GEN_DO_WHILE(body, test, pctx, ext)          \
   return "do "+body+"while("+test+");";
 
-#define GEN_WHILE(test, body, pctx)             \
+#define GEN_WHILE(test, body, pctx, ext)             \
   return "while("+test+")"+body;
 
-#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx)         \
+#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx, ext)         \
   var rv = "for(";                                                      \
   if (init_exp) {                                                       \
     rv += init_exp + ";";                                               \
@@ -150,7 +150,7 @@ function gen_fun_pars(pars) {
   rv += body;                                                           \
   return rv;
 
-#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx)  \
+#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx, ext)  \
   var rv = "for(";                                      \
   if (lhs_exp) {                                        \
     rv += lhs_exp;                                      \
@@ -164,33 +164,33 @@ function gen_fun_pars(pars) {
   rv += body;                                           \
   return rv;
 
-#define GEN_CONTINUE(lbl, pctx)                 \
+#define GEN_CONTINUE(lbl, pctx, ext)                 \
   var rv = "continue";                          \
   if (lbl !== null)                             \
     rv += " "+lbl;                              \
   return rv+";"
 
-#define GEN_BREAK(lbl, pctx)                    \
+#define GEN_BREAK(lbl, pctx, ext)                    \
   var rv = "break";                             \
   if (lbl !== null)                             \
     rv += " "+lbl;                              \
   return rv+";"
 
-#define GEN_RETURN(exp, pctx)                   \
+#define GEN_RETURN(exp, pctx, ext)                   \
   var rv = "return";                            \
   if (exp != null)                              \
     rv += " "+exp;                              \
   return rv+";";
 
-#define GEN_WITH(exp, body, pctx)               \
+#define GEN_WITH(exp, body, pctx, ext)               \
   return "with("+exp+")"+body;
 
-#define GEN_SWITCH(exp, clauses, pctx)          \
+#define GEN_SWITCH(exp, clauses, pctx, ext)          \
   return "switch("+exp+"){"+clauses.join("")+"}";
 
-#define GEN_THROW(exp, pctx) return "throw "+exp+";";
+#define GEN_THROW(exp, pctx, ext) return "throw "+exp+";";
 
-#define GEN_TRY(block, crf, pctx)                                  \
+#define GEN_TRY(block, crf, pctx, ext)                                  \
   var rv = "try"+block;                                            \
   if (crf[0])                                                      \
     rv += "catch("+crf[0][0]+")"+crf[0][1];                        \
@@ -203,23 +203,23 @@ function gen_fun_pars(pars) {
 //----------------------------------------------------------------------
 // expressions:
 
-#define GEN_INFIX_OP(left, id, right, pctx)     \
+#define GEN_INFIX_OP(left, id, right, pctx, ext)     \
   return left+" "+id+" "+right;
 
-#define GEN_ASSIGN_OP(left, id, right, pctx)     \
+#define GEN_ASSIGN_OP(left, id, right, pctx, ext)     \
   return left+id+right;
 
-#define GEN_PREFIX_OP(id, right, pctx)          \
+#define GEN_PREFIX_OP(id, right, pctx, ext)          \
   return id + " " + right;
 
-#define GEN_POSTFIX_OP(left, id, pctx)          \
+#define GEN_POSTFIX_OP(left, id, pctx, ext)          \
   return left + id + " ";
 
-#define GEN_LITERAL(type, value, pctx) return value;
+#define GEN_LITERAL(type, value, pctx, ext) return value;
 
-#define GEN_IDENTIFIER(value, pctx) return value;
+#define GEN_IDENTIFIER(value, pctx, ext) return value;
 
-#define GEN_OBJ_LIT(props, pctx)                                    \
+#define GEN_OBJ_LIT(props, pctx, ext)                                    \
   var rv = "{";                                                     \
   for (var i=0; i<props.length; ++i) {                              \
     if (i!=0) rv += ",";                                            \
@@ -233,33 +233,33 @@ function gen_fun_pars(pars) {
   rv += "}";                                                        \
   return rv;
 
-#define GEN_ARR_LIT(elements, pctx) return "["+elements.join(",")+"]";
+#define GEN_ARR_LIT(elements, pctx, ext) return "["+elements.join(",")+"]";
 
 #define GEN_ELISION(pctx) return " ";
 
-#define GEN_DOT_ACCESSOR(l, name, pctx) return l+"."+name;
+#define GEN_DOT_ACCESSOR(l, name, pctx, ext) return l+"."+name;
 
-#define GEN_NEW(exp, args, pctx)                \
+#define GEN_NEW(exp, args, pctx, ext)                \
   return "new "+exp+"("+args.join(",")+")";
 
-#define GEN_IDX_ACCESSOR(l, idxexp, pctx) return l+"["+idxexp+"]";
+#define GEN_IDX_ACCESSOR(l, idxexp, pctx, ext) return l+"["+idxexp+"]";
 
-#define GEN_FUN_CALL(l, args, pctx) return l+"("+args.join(",")+")";
+#define GEN_FUN_CALL(l, args, pctx, ext) return l+"("+args.join(",")+")";
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, dummy)            \
+#define GEN_FUN_EXP(fname, pars, body, pctx, dummy, ext)            \
   return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
 
-#define GEN_CONDITIONAL(test, consequent, alternative, pctx) \
+#define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext) \
   return test+"?"+consequent+":"+alternative;
 
-#define GEN_GROUP(e, pctx) return "("+e+")";
+#define GEN_GROUP(e, pctx, ext) return "("+e+")";
 
-#define GEN_THIS(pctx) return "this";
+#define GEN_THIS(pctx, ext) return "this";
 
-#define GEN_TRUE(pctx) return "true";
+#define GEN_TRUE(pctx, ext) return "true";
 
-#define GEN_FALSE(pctx) return "false";
+#define GEN_FALSE(pctx, ext) return "false";
 
-#define GEN_NULL(pctx) return "null";
+#define GEN_NULL(pctx, ext) return "null";
 
 

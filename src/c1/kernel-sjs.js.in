@@ -251,7 +251,7 @@ function pop_block(pctx) {
     return new ph_block(pop_stmt_scope(pctx));
   }
 }
-#define END_BLOCK(pctx) return pop_block(pctx);
+#define END_BLOCK(pctx, ext) return pop_block(pctx);
 
 //----------------------------------------------------------------------
 
@@ -319,7 +319,7 @@ ph_block.prototype.val = function(accept_list) {
 #define ADD_CASE_CLAUSE_STMT(stmt, pctx)        \
   add_stmt(stmt, pctx);
 
-#define END_CASE_CLAUSE(pctx)                                   \
+#define END_CASE_CLAUSE(pctx, ext)                                   \
   return [top_stmt_scope(pctx).exp, pop_block(pctx)];
 
 #define GEN_SWITCH return new ph_switch(exp, clauses);
@@ -358,7 +358,7 @@ ph_switch.prototype.val = function() {
 
 #define ADD_FBODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
 
-#define END_FBODY(pctx,implicit_return)                                 \
+#define END_FBODY(pctx,implicit_return, ext)                                 \
   var decls = pctx.decl_scopes.pop();                                   \
   var flags = SEQ_FLAG_FUNCTION;                                        \
     if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                     \
@@ -367,7 +367,7 @@ ph_switch.prototype.val = function() {
     pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,"+pctx.filename+",["+flags, \
     "])");
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return) return new ph_fun_exp(fname, pars, body, pctx, implicit_return);
+#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext) return new ph_fun_exp(fname, pars, body, pctx, implicit_return);
 function ph_fun_exp(fname, pars, body, pctx, implicit_return) {
   this.is_nblock = pctx.allow_nblock;
 
@@ -402,7 +402,7 @@ ph_fun_exp.prototype.v = function() {
 };
 ph_fun_exp.prototype.nblock_val = function() { return this.code; };
 
-#define GEN_FUN_DECL(fname, pars, body, pctx) return gen_fun_decl(fname, pars, body, pctx);
+#define GEN_FUN_DECL(fname, pars, body, pctx, ext) return gen_fun_decl(fname, pars, body, pctx);
 function gen_fun_decl(fname, pars, body, pctx) {
   if (top_decl_scope(pctx).fscoped_ctx) {
     // XXX see comment under ph_fun_exp as to why we encode ph_fun_exp without
@@ -474,7 +474,7 @@ ph_compound_stmt.prototype.toBlock = function() {
     return pop_block(this.pctx);
 }
 
-#define GEN_EXP_STMT(exp, pctx) return new ph_exp_stmt(exp, pctx);
+#define GEN_EXP_STMT(exp, pctx, ext) return new ph_exp_stmt(exp, pctx);
 function ph_exp_stmt(exp, pctx) {
   this.exp = exp;
   this.line = this.exp.line;
@@ -485,7 +485,7 @@ ph_exp_stmt.prototype.is_value = true;
 ph_exp_stmt.prototype.nblock_val = function() { return this.exp.nb()+";"; };
 ph_exp_stmt.prototype.v = function(accept_list) { return this.exp.v(accept_list); }
 
-#define GEN_VAR_DECL(decls, pctx) return gen_var_decl(decls, pctx);
+#define GEN_VAR_DECL(decls, pctx, ext) return gen_var_decl(decls, pctx);
 //XXX this is really hacky and suboptimal
 function gen_var_compound(decls, pctx) {
   var rv = new ph_compound_stmt(pctx);
@@ -547,7 +547,7 @@ ph_var_decl.prototype.val = function() {
       "=_oniX;},"+this.d[1].v()+")";
 }; 
 
-#define GEN_IF(test, consequent, alternative, pctx) \
+#define GEN_IF(test, consequent, alternative, pctx, ext) \
   return new ph_if(test, consequent, alternative, pctx);
 function ph_if(t, c, a, pctx) {
   this.t = t;
@@ -591,7 +591,7 @@ ph_if.prototype.val = function() {
   __oni_rt.Try(flags,try_node,catch_func(env,v),finally_node,retract_node)
 */
 
-#define GEN_TRY(block, crf, pctx) \
+#define GEN_TRY(block, crf, pctx, ext) \
   return new ph_try(block, crf, pctx);
 function ph_try(block, crf, pctx) {
   this.block = block;
@@ -639,13 +639,13 @@ ph_try.prototype.val = function() {
     return rv+")";
 }
 
-#define GEN_EMPTY_STMT(pctx) return ph_empty_stmt;
+#define GEN_EMPTY_STMT(pctx, ext) return ph_empty_stmt;
 var ph_empty_stmt = new ph(WHENDEBUG("ph_empty_stmt"));
 ph_empty_stmt.is_nblock = true;
 ph_empty_stmt.nblock_val = function() { return ';'; };
 ph_empty_stmt.v = function() { return '0'; };
 
-#define GEN_THROW(exp, pctx) return new ph_throw(exp, pctx);
+#define GEN_THROW(exp, pctx, ext) return new ph_throw(exp, pctx);
 function ph_throw(exp, pctx) {
   this.exp = exp;
   this.line = exp.line;
@@ -663,7 +663,7 @@ ph_throw.prototype.val = function() {
 }
 
 #ifdef SJS_BLOCKLAMBDA
-#define GEN_RETURN(exp, pctx)             \
+#define GEN_RETURN(exp, pctx, ext)             \
     if (top_decl_scope(pctx).bl)          \
       return new ph_bl_return(exp, pctx); \
     else                                  \
@@ -680,7 +680,7 @@ ph_bl_return.prototype.val = function() {
 };
 
 #else
-#define GEN_RETURN(exp, pctx) return new ph_return(exp, pctx);
+#define GEN_RETURN(exp, pctx, ext) return new ph_return(exp, pctx);
 #endif
 
 // XXX should find a tail-safe way of encoding this
@@ -714,7 +714,7 @@ ph_return.prototype.val = function() {
     return "__oni_rt.Sc("+this.line+",__oni_rt.Return"+v+")";
   }
 
-#define GEN_COLLAPSE(pctx) return new ph_collapse(pctx);
+#define GEN_COLLAPSE(pctx, ext) return new ph_collapse(pctx);
 
 function ph_collapse(pctx) {
   this.line = pctx.line;
@@ -724,7 +724,7 @@ ph_collapse.prototype.val = function() {
   return "__oni_rt.Collapse("+this.line+")";
 };
 
-#define GEN_BREAK(lbl, pctx)                    \
+#define GEN_BREAK(lbl, pctx, ext)                    \
     if (top_decl_scope(pctx).break_scope)       \
       return new ph_cfe("b", pctx, lbl);        \
     else if (top_decl_scope(pctx).bl)           \
@@ -732,7 +732,7 @@ ph_collapse.prototype.val = function() {
     else                                        \
       throw new Error("Unexpected 'break' statement");
 
-#define GEN_CONTINUE(lbl, pctx)                 \
+#define GEN_CONTINUE(lbl, pctx, ext)                 \
     if (top_decl_scope(pctx).continue_scope)    \
       return new ph_cfe("c", pctx, lbl);        \
     else if (top_decl_scope(pctx).bl)           \
@@ -784,7 +784,7 @@ ph_bl_break.prototype.nblock_val = function() {
 
 #endif
 
-#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx) \
+#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx, ext) \
 return gen_for(init_exp, decls, test_exp, inc_exp, body, pctx);
 
 function gen_for(init_exp, decls, test_exp, inc_exp, body, pctx) {
@@ -805,10 +805,10 @@ function gen_for(init_exp, decls, test_exp, inc_exp, body, pctx) {
   return rv;
 }
 
-#define GEN_WHILE(test, body, pctx)             \
+#define GEN_WHILE(test, body, pctx, ext)             \
   return new ph_loop(0, test, body);
 
-#define GEN_DO_WHILE(body, test, pctx)          \
+#define GEN_DO_WHILE(body, test, pctx, ext)          \
   return new ph_loop(2, test, body);
 
 
@@ -844,7 +844,7 @@ ph_loop.prototype.val = function() {
 };
 
 
-#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx)  \
+#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx, ext)  \
   return gen_for_in(lhs_exp, decl, obj_exp, body, pctx);
 
 function gen_for_in(lhs_exp, decl, obj_exp, body, pctx) {
@@ -884,7 +884,7 @@ ph_for_in.prototype.val = function() {
     return rv + "), __oni_env)})";
 };
 
-#define GEN_WITH(exp, body, pctx) return new ph_with(exp, body, pctx);
+#define GEN_WITH(exp, body, pctx, ext) return new ph_with(exp, body, pctx);
 function ph_with(exp, body, pctx) {
   this.exp = exp;
   this.body = body;
@@ -907,7 +907,7 @@ ph_with.prototype.val = function() {
 //----------------------------------------------------------------------
 // expressions:
 
-#define GEN_LITERAL(type, value, pctx) return new ph_literal(value, pctx, type);
+#define GEN_LITERAL(type, value, pctx, ext) return new ph_literal(value, pctx, type);
 function ph_literal(value, pctx, type) {
   this.value = value;
   this.line  = pctx.line;
@@ -922,7 +922,7 @@ ph_literal.prototype.destruct = function() { if (this.value != "") throw new Err
 ph_literal.prototype.collect_var_decls = function() { };
 #endif
 
-#define GEN_INFIX_OP(left, id, right, pctx)  return new ph_infix_op(left, id, right, pctx);
+#define GEN_INFIX_OP(left, id, right, pctx, ext)  return new ph_infix_op(left, id, right, pctx);
 function ph_infix_op(left, id, right, pctx) {
   // XXX can also do literal simplification here (e.g. 1+1 -> 2)
   this.left = left;
@@ -968,7 +968,7 @@ ph_infix_op.prototype.val = function() {
 
 
 #ifdef INTERPOLATING_STRINGS
-#define GEN_INTERPOLATING_STR(parts, pctx)  return new ph_interpolating_str(parts, pctx);
+#define GEN_INTERPOLATING_STR(parts, pctx, ext)  return new ph_interpolating_str(parts, pctx);
 function ph_interpolating_str(parts, pctx) {
   this.is_nblock = pctx.allow_nblock;
   this.line = pctx.line;
@@ -1011,7 +1011,7 @@ ph_interpolating_str.prototype.val = function() {
 #endif /* INTERPOLATING_STRINGS */
 
 #ifdef QUASIS
-#define GEN_QUASI(parts, pctx) return new ph_quasi_template(parts, pctx);
+#define GEN_QUASI(parts, pctx, ext) return new ph_quasi_template(parts, pctx);
 function ph_quasi_template(parts, pctx) {
   this.parts = parts;
   this.line = pctx.line;
@@ -1031,7 +1031,7 @@ ph_quasi_template.prototype.val = function() {
 };
 #endif /* QUASIS */
 
-#define GEN_ASSIGN_OP(left, id, right, pctx) return new ph_assign_op(left, id, right, pctx);
+#define GEN_ASSIGN_OP(left, id, right, pctx, ext) return new ph_assign_op(left, id, right, pctx);
 function ph_assign_op(left, id, right, pctx) {
   if (!left.is_ref && !left.is_id)
 #ifdef SJS_DESTRUCTURE
@@ -1105,7 +1105,7 @@ ph_assign_op.prototype.val = function() {
     return rv;
 };
 
-#define GEN_PREFIX_OP(id, right, pctx) return new ph_prefix_op(id, right, pctx);
+#define GEN_PREFIX_OP(id, right, pctx, ext) return new ph_prefix_op(id, right, pctx);
 function ph_prefix_op(id, right, pctx) {
   this.id = id;
   this.right = right;
@@ -1138,7 +1138,7 @@ ph_prefix_op.prototype.val = function() {
   return rv;
 };
 
-#define GEN_POSTFIX_OP(left, id, pctx) return new ph_postfix_op(left, id, pctx);
+#define GEN_POSTFIX_OP(left, id, pctx, ext) return new ph_postfix_op(left, id, pctx);
 function ph_postfix_op(left, id, pctx) {
   if (!left.is_ref && !left.is_id) throw new Error("Invalid argument for postfix op '"+id+"'");
   this.left = left;
@@ -1208,10 +1208,10 @@ function gen_function_header(pars) {
 }
 
 
-#define GEN_THIN_ARROW(body, pctx) GEN_THIN_ARROW_WITH_PARS(undefined, body, pctx)
-#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx) return new ph_arrow(pars, body, pctx);
-#define GEN_FAT_ARROW(body, pctx) GEN_FAT_ARROW_WITH_PARS(undefined, body, pctx)
-#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx) return new ph_arrow(pars, body, pctx, true);
+#define GEN_THIN_ARROW(body, pctx, ext) GEN_THIN_ARROW_WITH_PARS(undefined, body, pctx, ext)
+#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx, ext) return new ph_arrow(pars, body, pctx);
+#define GEN_FAT_ARROW(body, pctx, ext) GEN_FAT_ARROW_WITH_PARS(undefined, body, pctx, ext)
+#define GEN_FAT_ARROW_WITH_PARS(pars, body, pctx, ext) return new ph_arrow(pars, body, pctx, true);
 
 
 function ph_arrow(pars_exp, body, pctx, bound) {
@@ -1261,7 +1261,7 @@ ph_arrow.prototype.nb = function() {
 #endif /* SJS_ARROWS */
 
 #ifdef SJS_DOUBLEDOT
-#define GEN_DOUBLEDOT_CALL(l,r,pctx) return gen_doubledot_call(l, r, pctx);
+#define GEN_DOUBLEDOT_CALL(l,r,pctx, ext) return gen_doubledot_call(l, r, pctx);
 
 function gen_doubledot_call(l, r, pctx) {
   // XXX not very elegant show we inject ourselves into the funcall
@@ -1283,7 +1283,7 @@ function gen_doubledot_call(l, r, pctx) {
 #endif /* SJS_DOUBLEDOT */
 
 #ifdef SJS_DOUBLECOLON
-#define GEN_DOUBLECOLON_CALL(l,r,pctx) return gen_doublecolon_call(l, r, pctx);
+#define GEN_DOUBLECOLON_CALL(l,r,pctx, ext) return gen_doublecolon_call(l, r, pctx);
 
 function gen_doublecolon_call(l, r, pctx) {
   // XXX not very elegant show we inject ourselves into the funcall
@@ -1321,13 +1321,13 @@ function gen_doublecolon_call(l, r, pctx) {
 
 
 #ifdef SJS_ALTERNATE_NAMESPACE
-#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx) return new ph_identifier("__oni_altns", pctx);
-#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx) \
+#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx, ext) return new ph_identifier("__oni_altns", pctx);
+#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx, ext) \
     return new ph_dot_accessor(new ph_identifier("__oni_altns", pctx), value, pctx);
 #endif
 
 
-#define GEN_IDENTIFIER(name, pctx) return gen_identifier(name, pctx);
+#define GEN_IDENTIFIER(name, pctx, ext) return gen_identifier(name, pctx);
 function gen_identifier(name, pctx) {
   // special case built-in stratified functions here:
   // XXX not quite right to put them here maybe. they should be assignable, etc.
@@ -1388,13 +1388,13 @@ ph_envobj.prototype.collect_var_decls = function() {
 #endif
 
 
-#define GEN_THIS(pctx) return new ph_envobj('this', 'tobj', pctx);
+#define GEN_THIS(pctx, ext) return new ph_envobj('this', 'tobj', pctx);
 
-#define GEN_TRUE(pctx) return new ph_literal('true', pctx);
+#define GEN_TRUE(pctx, ext) return new ph_literal('true', pctx);
 
-#define GEN_FALSE(pctx) return new ph_literal('false', pctx);
+#define GEN_FALSE(pctx, ext) return new ph_literal('false', pctx);
 
-#define GEN_NULL(pctx) return new ph_literal('null', pctx);
+#define GEN_NULL(pctx, ext) return new ph_literal('null', pctx);
 
 function is_nblock_arr(arr) {
   for (var i=0; i<arr.length; ++i)
@@ -1402,7 +1402,7 @@ function is_nblock_arr(arr) {
   return true;
 }
 
-#define GEN_FUN_CALL(l, args, pctx) return new ph_fun_call(l, args, pctx);
+#define GEN_FUN_CALL(l, args, pctx, ext) return new ph_fun_call(l, args, pctx);
 function ph_fun_call(l, args, pctx) {
   this.l = l;
   this.args = args;
@@ -1447,7 +1447,7 @@ ph_fun_call.prototype.val = function() {
     return rv;
 };
 
-#define GEN_DOT_ACCESSOR(l, name, pctx) return new ph_dot_accessor(l, name, pctx);
+#define GEN_DOT_ACCESSOR(l, name, pctx, ext) return new ph_dot_accessor(l, name, pctx);
 function ph_dot_accessor(l, name, pctx) {
   this.l = l;
   this.name = name;
@@ -1486,7 +1486,7 @@ ph_dot_accessor.prototype.collect_var_decls = function(vars) {
 };
 #endif
 
-#define GEN_IDX_ACCESSOR(l, idxexp, pctx) return new ph_idx_accessor(l, idxexp, pctx);
+#define GEN_IDX_ACCESSOR(l, idxexp, pctx, ext) return new ph_idx_accessor(l, idxexp, pctx);
 function ph_idx_accessor(l, idxexp, pctx) {
   this.l = l;
   this.idxexp = idxexp;
@@ -1518,7 +1518,7 @@ ph_idx_accessor.prototype.ref = function() {
 };
 
 
-#define GEN_GROUP(e, pctx) return new ph_group(e, pctx);
+#define GEN_GROUP(e, pctx, ext) return new ph_group(e, pctx);
 function ph_group(e, pctx) {
   this.e = e;
   this.is_nblock = pctx.allow_nblock && e.is_nblock;
@@ -1538,7 +1538,7 @@ ph_group.prototype.collect_pars = function(pars) {
 };
 #endif
 
-#define GEN_ARR_LIT(elements, pctx) return new ph_arr_lit(elements, pctx);
+#define GEN_ARR_LIT(elements, pctx, ext) return new ph_arr_lit(elements, pctx);
 function ph_arr_lit(elements, pctx) {
   this.elements = elements;
   this.line = pctx.line; // XXX is this the correct line?
@@ -1578,7 +1578,7 @@ ph_arr_lit.prototype.collect_var_decls = function(vars) {
 
 #define GEN_ELISION(pctx) return new ph_literal("", pctx);
 
-#define GEN_OBJ_LIT(props, pctx) return new ph_obj_lit(props, pctx);
+#define GEN_OBJ_LIT(props, pctx, ext) return new ph_obj_lit(props, pctx);
 function ph_obj_lit(props, pctx) {
   this.props = props;
   this.line = pctx.line; // XXX is this the correct line?
@@ -1675,7 +1675,7 @@ ph_obj_lit.prototype.collect_var_decls = function(vars) {
 #endif
 
 //XXX merge with GEN_IF?
-#define GEN_CONDITIONAL(test, consequent, alternative, pctx)  \
+#define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext)  \
   return new ph_conditional(test, consequent, alternative, pctx);
 function ph_conditional(t, c, a, pctx) {
   this.t = t;
@@ -1693,7 +1693,7 @@ ph_conditional.prototype.val = function() {
     return "__oni_rt.If("+this.t.v()+","+this.c.v()+","+(this.a ? this.a.v() : "undefined")+")";
 };
 
-#define GEN_NEW(exp, args, pctx) return new ph_new(exp, args);
+#define GEN_NEW(exp, args, pctx, ext) return new ph_new(exp, args);
 function ph_new(exp, args) {
   this.exp = exp;
   this.args = args;
@@ -1729,7 +1729,7 @@ ph_new.prototype.val = function() {
 #define BEGIN_SUSPEND_BLOCK(pctx) ++top_decl_scope(pctx).fscoped_ctx;
 #define END_SUSPEND_BLOCK(pctx) --top_decl_scope(pctx).fscoped_ctx;
 
-#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx) \
+#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, ext) \
   return gen_waitfor_andor(op, blocks, crf, pctx);
 
 function gen_waitfor_andor(op, blocks, crf, pctx) {
@@ -1759,7 +1759,7 @@ ph_par_alt.prototype.val = function() {
   return rv + ")";
 };
 
-#define GEN_SUSPEND(has_var, decls, block, crf, pctx)  \
+#define GEN_SUSPEND(has_var, decls, block, crf, pctx, ext)  \
   return gen_suspend(has_var, decls, block, crf, pctx);
 function gen_suspend(has_var, decls, block, crf, pctx) {
   var rv;
@@ -1824,7 +1824,7 @@ ph_suspend_wrapper.prototype.val = function() {
 
 
 #ifdef SJS_USING
-#define GEN_USING(has_var, lhs, exp, body, pctx)  \
+#define GEN_USING(has_var, lhs, exp, body, pctx, ext)  \
   return gen_using(has_var, lhs, exp, body, pctx);
 
 function gen_using(has_var, lhs, exp, body, pctx) {
@@ -1870,7 +1870,7 @@ ph_using.prototype.val = function() {
 #ifdef SJS___JS
 #define BEGIN___JS_BLOCK(pctx) if (pctx.allow_nblock) ++pctx.js_ctx;
 #define END___JS_BLOCK(pctx) if (pctx.allow_nblock) --pctx.js_ctx;
-#define GEN___JS(body, pctx) body.is_nblock=pctx.allow_nblock; return body;
+#define GEN___JS(body, pctx, ext) body.is_nblock=pctx.allow_nblock; return body;
 #endif /* SJS___JS */
 
 
@@ -1881,7 +1881,7 @@ ph_using.prototype.val = function() {
 
 #define ADD_BLAMBDABODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
 
-#define END_BLAMBDABODY(pctx)                                             \
+#define END_BLAMBDABODY(pctx, ext)                                             \
   var decls = pctx.decl_scopes.pop();                                     \
   var flags = SEQ_FLAG_FUNCTION + SEQ_FLAG_BLOCKLAMBDA;                   \
   if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                         \
@@ -1889,7 +1889,7 @@ ph_using.prototype.val = function() {
     pop_stmt_scope(pctx, "return __oni_rt.exbl(this,["+flags,             \
     "])");
 
-#define GEN_BLOCKLAMBDA(pars, body, pctx) return new ph_blocklambda(pars, body, pctx);
+#define GEN_BLOCKLAMBDA(pars, body, pctx, ext) return new ph_blocklambda(pars, body, pctx);
 
 function ph_blocklambda(pars, body, pctx) {
   this.code = "__oni_rt.Bl(function"+gen_function_header(pars)+body+"})";
@@ -1899,7 +1899,7 @@ ph_blocklambda.prototype.val = function() { return this.code; };
 
 #endif /* SJS_BLOCKLAMBDA */
 
-#define GEN_LBL_STMT(lbl, stmt, pctx) return new ph_lbl_stmt(lbl, stmt);
+#define GEN_LBL_STMT(lbl, stmt, pctx, ext) return new ph_lbl_stmt(lbl, stmt);
 
 function ph_lbl_stmt(lbl, stmt) {
   this.lbl = lbl;
