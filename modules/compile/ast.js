@@ -2480,7 +2480,7 @@ function compile(src, settings) {
     var line = e.line || pctx.line;
     var exception = new Error("SJS syntax error "+(pctx.filename?"in "+pctx.filename+",": "at") +" line " + line + ": " + mes);
     exception.line = line;
-    exception.column = getColumn(pctx.column);
+    exception.column = pctx.getColumn(pctx.column);
     exception.compileError = {message: mes, line: line};
     throw exception;
   }

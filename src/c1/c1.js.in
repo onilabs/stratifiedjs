@@ -2005,7 +2005,7 @@ function compile(src, settings) {
     var exception = new Error("SJS syntax error "+(pctx.filename?"in "+pctx.filename+",": "at") +" line " + line + ": " + mes);
 #ifdef TRACK_EXTENTS
     exception.line = line;
-    exception.column = getColumn(pctx.column);
+    exception.column = pctx.getColumn(pctx.column);
 #endif
     exception.compileError = {message: mes, line: line};
     throw exception;
