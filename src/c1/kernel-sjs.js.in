@@ -506,7 +506,7 @@ function ph_var_decl(d, pctx) {
 #else
   throw new Error("Invalid expression in variable declaration");
 #endif
-  this.is_empty = this.d.length<2;
+  this.is_empty = this.d[1] == null;
   this.pctx = pctx;
   this.line = pctx.line;
   if (!this.is_empty)

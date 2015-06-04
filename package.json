@@ -19,7 +19,9 @@
     "karma-firefox-launcher": "*",
     "karma-phantomjs-launcher": "*",
     "karma-ie-launcher": "*",
-    "karma-script-launcher": "*"
+    "karma-script-launcher": "*",
+    "eslint": "~0.16.1",
+    "espree":"~1.10.0"
   },
   "engines": {
     "node": ">=0.10.0"

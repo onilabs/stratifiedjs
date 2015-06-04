@@ -700,6 +700,7 @@ Hash.prototype = {
 
 
 
+
 // tokenizer for tokens in a statement/argument position:
 var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
@@ -713,6 +714,8 @@ var TOKENIZER_IS = /((?:\\[^\r\n]|\#(?!\{)|[^#\\\"\r\n])+)|(\\(?:\r\n|\n|\r))|((
 
 // tokenizer for tokens in an quasi-literal:
 var TOKENIZER_QUASI = /((?:\\[^\r\n]|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\(?:\r\n|\n|\r))|((?:\r\n|\n|\r))|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
+
+
 
 //----------------------------------------------------------------------
 // Syntax Table
@@ -756,12 +759,12 @@ SemanticToken.prototype = {
     this.stmtf = f;
     return this;
   },
-
   // encode infix operation
   ifx: function(bp, right_assoc) {
     this.excbp = bp;
     if (right_assoc) bp -= .5;
     this.excf = function(left, pctx) {
+      
       var right = parseExp(pctx, bp);
       
       if (this.id == '||' || this.id == '&&') return left; else return left.seq(right);
@@ -773,6 +776,7 @@ SemanticToken.prototype = {
     this.excbp = bp;
     if (right_assoc) bp -= .5;
     this.excf = function(left, pctx) {
+      
       var right = parseExp(pctx, bp);
       
       if (this.id == '=') top_scope(pctx).assignments.push([left, right]);   return right;
@@ -782,7 +786,9 @@ SemanticToken.prototype = {
   // encode prefix operation
   pre: function(bp) {
     return this.exs(function(pctx) {
+      
       var right = parseExp(pctx, bp);
+      
       
       return right;
     });
@@ -791,13 +797,15 @@ SemanticToken.prototype = {
   pst: function(bp) {
     return this.exc(bp, function(left, pctx) {
       
+      
+      
       return left;
     });
   }  
 };
 
 //-----
-function Literal(type, value) {
+function Literal(type, value, length) {
   this.id = type;
   this.value = value;
 }
@@ -846,6 +854,8 @@ function S(id, tokenizer) {
   if (tokenizer)
     t.tokenizer = tokenizer;
   ST.put(id, t);
+
+
   return t;
 }
 
@@ -927,6 +937,7 @@ expressions up to BP 100
 S("[").
   // array literal
   exs(function(pctx) {
+    
     var elements = [];
     while (pctx.token.id != "]") {
       if (elements.length) scan(pctx, ",");
@@ -944,22 +955,27 @@ S("[").
   }).
   // indexed property access
   exc(270, function(l, pctx) {
+    
     var idxexp = parseExp(pctx);
+    
     scan(pctx, "]");
     
     return l.dot(idxexp);
   });
 
 S(".").exc(270, function(l, pctx) {
+  
   if (pctx.token.id != "<id>")
     throw new Error("Expected an identifier, found '"+pctx.token+"' instead");
   var name = pctx.token.value;
+  
   scan(pctx);
   
   return l.dot(name);
 });
 
 S("new").exs(function(pctx) {
+  
   var exp = parseExp(pctx, 260);
   var args = [];
   if (pctx.token.id == "(") {
@@ -968,6 +984,7 @@ S("new").exs(function(pctx) {
       if (args.length) scan(pctx, ",");
       args.push(parseExp(pctx, 110));
     }
+    
     scan(pctx, ")");
   }
   
@@ -986,6 +1003,7 @@ S("(").
       scan(pctx);
       return op.exsf(pctx);
     }
+    
     var e = parseExp(pctx);
     scan(pctx, ")");
     
@@ -993,11 +1011,13 @@ S("(").
   }).
   // function call
   exc(260, function(l, pctx) {
+    
     var args = [];
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
       args.push(parseExp(pctx, 110)); // only parse up to comma
     }
+    
     scan(pctx, ")");
     // special case for blocklambdas: pull the blocklambda into the argument list
     // f(a,b,c) {|..| ...} --> f(a,b,c,{|..| ...})
@@ -1024,6 +1044,7 @@ S("(").
   });
 
 S("..").exc(255, function(l, pctx) {
+  
   var r = parseExp(pctx, 255);
   
   return l.seq(r);
@@ -1051,6 +1072,7 @@ S(">>").ifx(210);
 S(">>>").ifx(210);
 
 S("::").exc(205, function(l, pctx) {
+  
   var r = parseExp(pctx, 204.5);
   
   return l.seq(r);
@@ -1077,6 +1099,7 @@ S("&&").ifx(150);
 S("||").ifx(140);
 
 S("?").exc(130, function(test, pctx) {
+  
   var consequent = parseExp(pctx, 110);
   if (pctx.token.id == ":") {
     scan(pctx, ":");
@@ -1102,12 +1125,14 @@ S("|=").asg(120, true);
 S("->")
   // prefix form without parameters expression
   .exs(function(pctx) {
+    
     var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
     
     return Dynamic;
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
+    
     var body = parseExp(pctx, 119.5);
     
     return Dynamic;
@@ -1115,12 +1140,14 @@ S("->")
 S("=>")
   // prefix form without parameters expression
   .exs(function(pctx) {
+    
     var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
     
     return Dynamic;
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
+    
     var body = parseExp(pctx, 119.5);
     
     return Dynamic;
@@ -1150,17 +1177,20 @@ function parsePropertyName(token, pctx) {
 function parseBlock(pctx) {
   
   push_scope(pctx);
+  
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
     
     top_scope(pctx).stmts.push(stmt);
   }
+  
   scan(pctx, "}");
   
   return seq(pop_scope(pctx).stmts);
 }
 
 function parseBlockLambdaBody(pctx) {
+  
   
   /* */
   while (pctx.token.id != "}") {
@@ -1174,6 +1204,7 @@ function parseBlockLambdaBody(pctx) {
 }
 function parseBlockLambda(start, pctx) {
   // collect parameters
+  
   var pars;
   if (start == '||') {
     pars = [];
@@ -1197,6 +1228,7 @@ S("{").
     else {
       // object literal:
       var props = [];
+      
       while (pctx.token.id != "}") {
         if (props.length) scan(pctx, ",");
         var prop = pctx.token;
@@ -1225,12 +1257,13 @@ S("{").
   }).
   // block lambda call:
   exc(260, function(l, pctx) {
+    
     var start = pctx.token.id;
     if (start != "|" && start != "||")
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     
-    return l.call(args);;
+    return l.call(args);
   }).
   // block:
   stmt(parseBlock);
@@ -1252,12 +1285,14 @@ S("<eof>").
 function parseFunctionBody(pctx, implicit_return) {
   
   /* */
+  
   scan(pctx, "{");
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
     
     /* */
   }
+  
   scan(pctx, "}");
   
   return Dynamic;
@@ -1305,6 +1340,7 @@ S("function").
   // expression function form ('function expression')
   exs(function(pctx) {
     var fname = "";
+    
     if (pctx.token.id == "<id>") {
       fname = pctx.token.value;
       scan(pctx);
@@ -1312,15 +1348,18 @@ S("function").
     var pars = parseFunctionParams(pctx);
     var body = parseFunctionBody(pctx);
     
+    
     return Dynamic;
   }).
   // statement function form ('function declaration')
   stmt(function(pctx) {
+    
     if (pctx.token.id != "<id>") throw new Error("Malformed function declaration");
     var fname = pctx.token.value;
     scan(pctx);
     var pars = parseFunctionParams(pctx);
     var body = parseFunctionBody(pctx);
+    
     
     return Dynamic;
   });
@@ -1364,14 +1403,17 @@ S('"', TOKENIZER_IS).exs(function(pctx) {
     default:
       throw new Error("Internal parser error: Unknown token in string ("+pctx.token+")");
     }
+    
     scan(pctx, undefined, TOKENIZER_IS);
   }
-  scan(pctx);
 
   if (last == -1) {
+    
     parts.push('');
     last = 0;
   }
+
+  scan(pctx);
 
   if (last == 0 && typeof parts[0] == 'string') {
     var val = '"'+parts[0]+'"';
@@ -1385,6 +1427,7 @@ S('istr-"', TOKENIZER_OP);
 
 S('`', TOKENIZER_QUASI).exs(function(pctx) {
   var parts = [], current=0;
+  
   while (pctx.token.id != 'quasi-`') {
     switch (pctx.token.id) {
     case '<string>':
@@ -1427,6 +1470,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
     default:
       throw new Error('Internal parser error: Unknown token in string ('+pctx.token+')');
     }
+    
     scan(pctx, undefined, TOKENIZER_QUASI);
   }
   scan(pctx);
@@ -1448,6 +1492,7 @@ function parseQuasiInlineEscape(pctx) {
     return identifier.exsf(pctx);
   }
   else {
+    
     scan(pctx); // consume identifier
     scan(pctx, '('); // consume '('
     // $func(args)
@@ -1469,8 +1514,10 @@ function isStmtTermination(token) {
 }
 
 function parseStmtTermination(pctx) {
-  if (pctx.token.id != "}" && pctx.token.id != "<eof>" && !pctx.newline)
+  if (pctx.token.id != "}" && pctx.token.id != "<eof>" && !pctx.newline) {
+    
     scan(pctx, ";");
+  }
 }
 
 function parseVarDecls(pctx, noIn) {
@@ -1478,28 +1525,31 @@ function parseVarDecls(pctx, noIn) {
   var parse = noIn ? parseExpNoIn : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
-    var id_or_pattern = parse(pctx, 120);
+    
+    var id_or_pattern = parse(pctx, 120), initialiser=null;
     if (pctx.token.id == "=") {
       scan(pctx);
-      var initialiser = parse(pctx, 110);
-      decls.push([id_or_pattern, initialiser]);
+      initialiser = parse(pctx, 110);
+      
     }
-    else
-      decls.push([id_or_pattern]);
+    decls.push([id_or_pattern, initialiser, null]);
   } while (pctx.token.id == ",");
+  
   return decls;
 }
     
 S("var").stmt(function(pctx) {
+  
   var decls = parseVarDecls(pctx);
   parseStmtTermination(pctx);
   
-  for (var i=0; i<decls.length; ++i) {                if (decls[i].length == 2) {                         top_scope(pctx).assignments.push(decls[i]);       return decls[i][1];;                }                                               };
+  for (var i=0; i<decls.length; ++i) {                if (decls[i][1] != null) {                          top_scope(pctx).assignments.push(decls[i]);       return decls[i][1];;                }                                               };
 });
 
 S("else");
 
 S("if").stmt(function(pctx) {
+  
   scan(pctx, "(");
   var test = parseExp(pctx);
   scan(pctx, ")");
@@ -1514,6 +1564,7 @@ S("if").stmt(function(pctx) {
 });
 
 S("while").stmt(function(pctx) {
+  
   scan(pctx, "(");
   var test = parseExp(pctx);
   scan(pctx, ")");
@@ -1525,12 +1576,14 @@ S("while").stmt(function(pctx) {
 });
 
 S("do").stmt(function(pctx) {
+  
   /* */
   var body = parseStmt(pctx);
   /* */
   scan(pctx, "while");
   scan(pctx, "(");
   var test = parseExp(pctx);
+  
   scan(pctx, ")");
   parseStmtTermination(pctx);
   
@@ -1538,10 +1591,12 @@ S("do").stmt(function(pctx) {
 });
 
 S("for").stmt(function(pctx) {
+  
   scan(pctx, "(");
   var start_exp = null;
   var decls = null;
   if (pctx.token.id == "var") {
+    
     scan(pctx); // consume 'var'
     decls = parseVarDecls(pctx, true);
   }
@@ -1585,9 +1640,11 @@ S("for").stmt(function(pctx) {
 });
 
 S("continue").stmt(function(pctx) {
+  
   var label = null;
   if (pctx.token.id == "<id>" && !pctx.newline) {
     label = pctx.token.value;
+    
     scan(pctx);
   }
   parseStmtTermination(pctx);
@@ -1596,9 +1653,11 @@ S("continue").stmt(function(pctx) {
 });
 
 S("break").stmt(function(pctx) {
+  
   var label = null;
   if (pctx.token.id == "<id>" && !pctx.newline) {
     label = pctx.token.value;
+    
     scan(pctx);
   }
   parseStmtTermination(pctx);
@@ -1607,19 +1666,24 @@ S("break").stmt(function(pctx) {
 });
 
 S("return").stmt(function(pctx) {
+  
   var exp = null;
-  if (!isStmtTermination(pctx.token) && !pctx.newline)
+  if (!isStmtTermination(pctx.token) && !pctx.newline) {
     exp = parseExp(pctx);
+    
+  }
   parseStmtTermination(pctx);
   
   return exp;
 });
 
 S("with").stmt(function(pctx) {
+  
   scan(pctx, "(");
   var exp = parseExp(pctx);
   scan(pctx, ")");
   var body = parseStmt(pctx);
+  
   
   return body;
 });
@@ -1628,6 +1692,7 @@ S("case");
 S("default");
 
 S("switch").stmt(function(pctx) {
+  
   scan(pctx, "(");
   var exp = parseExp(pctx);
   scan(pctx, ")");
@@ -1636,6 +1701,7 @@ S("switch").stmt(function(pctx) {
   var clauses = [];
   while (pctx.token.id != "}") {
     var clause_exp = null;
+    
     if (pctx.token.id == "case") {
       scan(pctx);
       clause_exp = parseExp(pctx);
@@ -1647,23 +1713,31 @@ S("switch").stmt(function(pctx) {
       throw new Error("Invalid token '"+pctx.token+"' in switch statement");
     scan(pctx, ":");
     
+    
     /* */
     while (pctx.token.id != "case" && pctx.token.id != "default" && pctx.token.id != "}") {
       var stmt = parseStmt(pctx);
       
+      
       /* */
     }
-    clauses.push((function(pctx) {  /* */ })(pctx));
+    clauses.push((function(pctx) {
+      
+      /* */
+    })(pctx));
   }
   /* */
+  
   scan(pctx, "}");
   
   return exp;
 });
 
 S("throw").stmt(function(pctx) {
+  
   if (pctx.newline) throw new Error("Illegal newline after throw");
   var exp = parseExp(pctx);
+  
   parseStmtTermination(pctx);
   
   return Dynamic;;
@@ -1712,6 +1786,7 @@ function parseCRF(pctx) {
 }
 
 S("try").stmt(function(pctx) {
+  
   scan(pctx, "{");
   var block = parseBlock(pctx);
   var op = pctx.token.value; // XXX maybe use proper syntax token
@@ -1737,6 +1812,7 @@ S("try").stmt(function(pctx) {
 });
 
 S("waitfor").stmt(function(pctx) {
+  
   if (pctx.token.id == "{") {
     // DEPRECATED and/or forms
     scan(pctx, "{");
@@ -1778,6 +1854,7 @@ S("waitfor").stmt(function(pctx) {
 
 
 S("using").stmt(function(pctx) {
+  
   var has_var;
   scan(pctx, "(");
   if (has_var = (pctx.token.id == "var"))
@@ -1801,6 +1878,7 @@ S("using").stmt(function(pctx) {
 });
 
 S("__js").stmt(function(pctx) {
+  
   
   
   var body = parseStmt(pctx);
@@ -1884,7 +1962,7 @@ function compile(src, settings) {
     throw exception;
   }
 }
-exports.compile = compile;
+exports.compile = exports.parse = compile;
 
 function parseScript(pctx) {
   if (typeof pctx.scopes !== 'undefined')                        throw new Error("Internal parser error: Nested script");   pctx.scopes = [];                                            push_scope(pctx);
@@ -1899,10 +1977,13 @@ function parseScript(pctx) {
 
 function parseStmt(pctx) {
   var t = pctx.token;
+  
+  
   scan(pctx);
   if (t.stmtf) {
     // a specialized statement construct
-    return t.stmtf(pctx);
+    var rv = t.stmtf(pctx);
+    return rv;
   }
   else if (t.id == "<id>" && pctx.token.id == ":") {
     // a labelled statement
@@ -1910,32 +1991,39 @@ function parseStmt(pctx) {
     // XXX should maybe code this in non-recursive style:
     var stmt = parseStmt(pctx);
     
+    
     return stmt;
   }
   else {
     // an expression statement
     var exp = parseExp(pctx, 0, t);
+    
     parseStmtTermination(pctx);
+    
     
     return exp;
   }
 }
 
-// bp: binding power of enclosing exp, t: optional next token 
+// bp: binding power of enclosing exp, t: optional next token
 function parseExp(pctx, bp, t) {
   bp = bp || 0;
   if (!t) {
     t = pctx.token;
     scan(pctx);
   }
+  
+  
   var left = t.exsf(pctx);
   while (bp < pctx.token.excbp) {
-    t = pctx.token;
     // automatic semicolon insertion:
     if (pctx.newline && t.asi_restricted)
-      return left;
+      break;
+    t = pctx.token;
+    
     scan(pctx);
     left = t.excf(left, pctx);
+    
   }
   return left;
 }
@@ -1947,6 +2035,8 @@ function parseExpNoIn(pctx, bp, t) {
     t = pctx.token;
     scan(pctx);
   }
+  
+  
   var left = t.exsf(pctx);
   while (bp < pctx.token.excbp && pctx.token.id != 'in') {
     t = pctx.token;
@@ -1969,7 +2059,7 @@ function scan(pctx, id, tokenizer) {
   }
   
   if (id && (!pctx.token || pctx.token.id != id))
-    throw new Error("Unexpected " + pctx.token);
+    throw new Error("Unexpected " + pctx.token + ", looking for " + id + " on " + pctx.line);
   pctx.token = null;
   pctx.newline = 0;
   while (!pctx.token) {
@@ -1997,15 +2087,17 @@ function scan(pctx, id, tokenizer) {
         }
         // go round loop again
       }
-      else if (matches[5])
+      else if (matches[5]) {
         pctx.token = new Literal("<string>", matches[5]);
+      }
       else if (matches[6]) {
         var val = matches[6];
         var m = val.match(/(?:\r\n|\n|\r)/g);
         pctx.line += m.length;
         pctx.newline += m.length;
-        val = val.replace(/\\(?:\r\n|\n|\r)/g, "").replace(/(?:\r\n|\n|\r)/g, "\\n");
-        pctx.token = new Literal("<string>", val);
+        var lit = val.replace(/\\(?:\r\n|\n|\r)/g, "").replace(/(?:\r\n|\n|\r)/g, "\\n");
+        pctx.token = new Literal("<string>", lit
+            );
       }
       else if (matches[2])
         pctx.token = new Literal("<number>", matches[2]);
@@ -2042,11 +2134,11 @@ function scan(pctx, id, tokenizer) {
       }
       //print("op:"+pctx.token);
     }
-    else if (tokenizer == TOKENIZER_IS) { 
+    else if (tokenizer == TOKENIZER_IS) {
       // interpolating string tokenizer
-      if (matches[1])
+      if (matches[1]) {
         pctx.token = new Literal("<string>", matches[1]);
-      else if (matches[2]) {
+      } else if (matches[2]) {
         ++pctx.line;
         ++pctx.newline;
         // go round loop again
@@ -2054,7 +2146,7 @@ function scan(pctx, id, tokenizer) {
       else if (matches[3]) {
         ++pctx.line;
         ++pctx.newline;
-        pctx.token = new Literal("<string>", '\\n');
+        pctx.token = new Literal("<string>", '\\n', 1);
       }
       else if (matches[4]) {
         pctx.token = ST.lookup("istr-"+matches[4]);
@@ -2062,9 +2154,10 @@ function scan(pctx, id, tokenizer) {
     }
     else if (tokenizer == TOKENIZER_QUASI) {
       // quasiliteral tokenizer
-      if (matches[1])
+      if (matches[1]) {
         pctx.token = new Literal("<string>", matches[1]);
-      else if (matches[2]) {
+        pctx.token.inner = '`';
+      } else if (matches[2]) {
         ++pctx.line;
         ++pctx.newline;
         // go round loop again

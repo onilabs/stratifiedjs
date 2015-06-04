@@ -43,6 +43,7 @@ function build_deps() {
                                                   "modules/xbrowser/html2canvas.sjs",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
+                                                  "modules/compile/ast.js",
                                                   "modules/compile/deps.js",
                                                   "modules/compile/sjs.sjs",
                                                   "modules/compile/minify.sjs",
@@ -61,11 +62,19 @@ function build_deps() {
 
   var jsHeader = "src/headers/__js.txt", jsFooter = "src/footers/__js.txt", compileFooter = "src/footers/compiler-main.sjs";
   var compilerSources = function(js) {
-    return [jsHeader, js, jsFooter, compileFooter];
+    return [
+    //jsHeader,
+    js,
+    //jsFooter,
+    compileFooter];
   }
 
   CPP("tmp/c1jsmin.js", "-DC1_KERNEL_JSMIN",
       ["src/c1/c1.js.in", "src/c1/kernel-jsmin.js.in"]);
+
+  CPP("modules/compile/ast.js", "-DC1_KERNEL_AST",
+      ["src/c1/c1.js.in", "src/c1/kernel-ast.js.in"]);
+
   // stringifier (used by STRINGIFY):
   CPP("tmp/c1jsstr.js", "-DC1_KERNEL_JSMIN -DSTRINGIFY",
       ["src/c1/c1.js.in", "src/c1/kernel-jsmin.js.in"]);

@@ -1,0 +1,1044 @@
+/*
+ * C1 JS/SJS->minified/stringified compiler kernel  
+ *
+ * Part of Oni StratifiedJS
+ * http://onilabs.com/stratifiedjs
+ *
+ * (c) 2011 Oni Labs, http://onilabs.com
+ *
+ * This file is licensed under the terms of the GPL v2, see
+ * http://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
+//----------------------------------------------------------------------
+// helpers:
+
+function push_scope(pctx) {
+  pctx.scopes.push({stmts:[]});
+}
+function pop_scope(pctx) {
+  return pctx.scopes.pop();
+}
+function top_scope(pctx) {
+  return pctx.scopes[pctx.scopes.length-1];
+}
+
+//define DEBUG_EXTENTS 1
+//define DEBUG_TOKENS 1
+
+//----------------------------------------------------------------------
+// misc:
+
+#define HANDLE_NEWLINES(n, pctx) ;
+
+/* estree types */
+function Loc(source, start, end) {
+  if(source) this.source = source;
+  this.start = start;
+  this.end = end;
+}
+Loc.prototype.toString = function() { return this.start+":"+this.end; };
+Loc.prototype.clone = function() {
+  return new Loc(this.source, this.start, this.end);
+}
+Loc.prototype.merge = function(end) {
+  if(!end) throw new Error("empty `end` passed to loc.merge");
+  return new Loc(this.source, this.start, end.end);
+}
+function Pos(line, col) {
+  this.line = line;
+  this.column = col;
+}
+Pos.prototype.toString = function() { return "("+this.line+","+this.column+")"; };
+var NodeProto = {};
+NodeProto._init = function(pctx, extents) {
+  if(pctx.extents) {
+    _delegateExtents.call(this, extents);
+  }
+}
+function Node(pctx) { }
+Node.prototype = NodeProto;
+Node.prototype.toString = function() {
+  return "#<"+this.type+" node>";
+}
+
+function _delegateExtents(extents) {
+  var node = this;
+  var start = extents;
+  var end;
+  if(Array.isArray(extents)) {
+    if(extents.length > 1) end = extents[1];
+    start = extents[0];
+  }
+
+  if(!node) throw new Error("no node given!");
+  if(!start) { throw new Error("Bad delegate for " + summarize(node)); }
+#ifdef DEBUG_EXTENTS
+  console.log("  Delegating extents for "+ node + " to ", summarize(start), '::', summarize(end));
+#endif
+  if(start.loc) {
+    if(end && !end.loc) throw new Error("locless:" + end);
+    node.loc = end ? start.loc.merge(end.loc) : start.loc;
+  }
+  if(!node.loc) throw new Error("empty location on " + node);
+  if(start.range) {
+    node.range = end ? [start.range[0], end.range[1]] : start.range;
+  }
+}
+
+
+var NodeType = function(type, cons) {
+  var proto = Object.create(NodeProto);
+  proto.type = type;
+  var rv = function(pctx, extents /*, ... */) {
+    if(!pctx || !Object.hasOwnProperty.call(pctx, 'token')) {
+      throw new Error("Not pctx: " + (pctx ? pctx.type : null) + "\n" + JSON.stringify(pctx));
+    }
+    var instance = Object.create(proto);
+    Node.call(instance, pctx);
+    cons.apply(instance, Array.prototype.slice.call(arguments, 2).concat([pctx, extents]));
+    instance._init(pctx, extents);
+    return instance;
+  }
+  rv.prototype = proto;
+  Node[type] = rv;
+  return proto;
+};
+
+var addComments = function(pctx, node) {
+  if(pctx.comment) node.comments = []; // XXX
+}
+
+NodeType('Program', function Program(pctx) {
+  this.body = [];
+  addComments(pctx, this);
+});
+Node.Program.prototype._init = function() { /* noop */ }
+Node.Program.prototype._end = function(pctx) {
+  if(pctx.extents) _delegateExtents.call(this, this.body);
+}
+
+NodeType("BlockStatement", function(body, pctx) {
+  this.body = body;
+});
+
+NodeType('MemberExpression', function(object, property, computed, pctx) {
+  this.computed = computed;
+  this.object = object;
+  this.property = property;
+});
+// Node.MemberExpression.prototype.extents = function() { return [this.object, this.property] };
+
+NodeType('Identifier', function(id, pctx) {
+  this.name = id;
+});
+
+NodeType('BinaryExpression', function(left, id, right) {
+  this.operator = id;
+  this.left = left;
+  this.right = right;
+});
+
+function UnaryExpression(pctx, ext, id, right, prefix) {
+  var rv;
+  if(id === '--' || id == '++') {
+    rv = Node.UpdateExpression(pctx, ext, id, right, prefix);
+  } else {
+    rv = Node.UnaryExpression(pctx, ext, id, right, prefix);
+  }
+  return rv;
+}
+NodeType('UnaryExpression', function(id, right, prefix) {
+  this.operator = id;
+  this.argument = right;
+  this.prefix = prefix;
+});
+NodeType('UpdateExpression', function(id, right, prefix) {
+  this.operator = id;
+  this.argument = right;
+  this.prefix = prefix;
+});
+
+NodeType('AssignmentExpression', function(left, id, right) {
+  this.operator = id;
+  this.left = left;
+  this.right = right;
+});
+
+NodeType('SequenceExpression', function(seq) {
+  this.expressions = seq;
+});
+NodeType('ArrowFunctionExpression', function(params, body) {
+  this.body = body;
+
+  this.id = null;
+  this.expression = true;
+  var p = this.params = [];
+  function collect(param) {
+    if(param) {
+      if(param instanceof Node.BinaryExpression) {
+        if(param.operator !== ',') throw new Error("Unsupported operator in param list: " + param.operator);
+        collect(param.left);
+        collect(param.right);
+      } else if(param instanceof Node.SequenceExpression) {
+        for (var i=0; i<param.expressions.length; i++) {
+          collect(param.expressions[i]);
+        }
+      } else {
+        p.push(param);
+      }
+    }
+  }
+  collect(params);
+  processParams(params);
+});
+Node.ArrowFunctionExpression.prototype.defaults = [];
+Node.ArrowFunctionExpression.prototype.rest = null; // ?
+Node.ArrowFunctionExpression.prototype.generator = false;
+
+var StringLiteral = function(pctx, ext, val) {
+  return Node.Literal(pctx, ext, '<string>', JSON.stringify(val), val);
+}
+NodeType('Literal', function(type, raw, expr, pctx, ext) {
+  if(expr === undefined) {
+    switch(type) {
+      case '<number>':
+      case '<string>':
+      case '<regex>':
+        // XXX this seems dodgy...
+        // console.log("WARN: eval " + raw);
+        expr = eval(raw); break;
+      default: throw new Error("Unsupported literal type: "+type);
+    }
+  }
+  this.raw = raw;
+  this.value = expr;
+  if(type === '<regex>') {
+    var parts = raw.split('/'); // "/foo/g" -> ["", "foo", "g"];
+    this.regex = {
+      pattern: parts[1],
+      flags: parts[2] || "",
+    };
+  }
+});
+Node.Literal.prototype.toString = function() { return "#<Literal("+this.raw+")>"; };
+NodeType('Property', function(spec, pctx, ext) {
+  this.kind = 'init'; // XXX
+  this.method = false;
+  this.shorthand = false;
+  this.computed = false;
+
+  this.key = Node.Identifier(pctx, ext, spec[1]);
+  switch(spec[0]) {
+    case 'prop':
+      this.value = spec[2];
+      break;
+
+    case 'pat':
+      this.value = this.key;
+      this.shorthand = true;
+      break;
+
+    default:
+      throw new Error("`"+spec[0]+"` props not supported");
+  }                                                               \
+});
+
+NodeType('VariableDeclarator', function(id, value) {
+  this.id = id;
+  this.init = value || null;
+});
+
+NodeType('VariableDeclaration', function(decls, pctx, ext) {
+  this.kind = 'var';
+  this.declarations = decls.map(function(decl) {
+    return Node.VariableDeclarator(pctx, decl[2] || ext, decl[0], decl[1]);
+  });
+});
+
+NodeType('ArrayExpression', function(elems) {
+  this.elements = elems;
+  if(this.elements.indexOf(null) !== -1) {
+    // elisions can't be values; must be a pattern
+    this.type = 'ArrayPattern';
+  }
+});
+
+NodeType('ObjectPattern', function(props) {
+  this.properties = props;
+});
+
+NodeType('ConditionalExpression', function(test, cons, alt, pctx, ext) {
+  this.test = test;
+  this.consequent = cons;
+  if(alt === undefined) alt = Node.Identifier(pctx, ext, 'undefined');
+  this.alternate = alt;
+});
+
+function appendToken(pctx, token, dest) {
+#ifdef DEBUG_TOKENS
+  console.log("Appending token", token);
+#endif
+  if(pctx.loc || pctx.range) {
+    var length = 0;
+  }
+
+  var copied = false;
+  var copy = function() {
+    if(!copied) {
+      copied = true;
+      // XXX it's assumed that token.clone exists on all reusable tokens
+      if(token.clone) token = token.clone();
+    }
+  }
+
+
+  var value;
+  var range;
+  if(token.id === '<string>') {
+    // XXX this logic really belongs in the tokenizer...
+    copy();
+    value = token.value;
+    if(token.inner) {
+      var current = currentlyOpenToken(pctx);
+      if(!current || current[0] !== token.inner) {
+        console.log("Currently open tokens:", pctx.open_tokens);
+        throw new Error("bad token nesting");
+      }
+      value = token.inner + token.value + token.inner;
+
+      if(token.range) {
+        range = token.range;
+      } else {
+        var endIndex = pctx.lastIndex;
+        var startIndex = endIndex - (token.length);
+#ifdef DEBUG_TOKENS
+        console.log("naive token ranges" + JSON.stringify(pctx.src.slice(startIndex, endIndex)));
+#endif
+        if (current[1]++ == 0) {
+          // leading token takes the opening `"`
+          startIndex--;
+#ifdef DEBUG_TOKENS
+          console.log("adjusted startindex : " + startIndex);
+#endif
+        }
+
+        // trailing token takes the closing `"'
+        if(pctx.src.charAt(endIndex) === token.inner) {
+#ifdef DEBUG_TOKENS
+          console.log("adjusted endindex : " + startIndex);
+#endif
+          endIndex++;
+        }
+#ifdef DEBUG_TOKENS
+        console.log(String(token));
+        console.log("token starts["+startIndex+"] with " + JSON.stringify(pctx.src.charAt(startIndex)));
+        console.log("token ends["+endIndex+"] with " + JSON.stringify(pctx.src.charAt(endIndex)));
+        console.log("token ranges" + JSON.stringify(pctx.src.slice(startIndex, endIndex)));
+#endif
+        range = [startIndex, endIndex];
+      }
+    }
+  }
+
+  if(pctx.loc) {
+    copy();
+    if(!range) range = [pctx.lastIndex-token.length,pctx.lastIndex];
+#ifdef DEBUG_TOKENS
+    console.log("start = "+(range[0])+ " which is char " + pctx.src[range[0]] + ", and col " + pctx.getColumn(range[0]));
+    console.log("endpoint = "+(range[1])+ " which is char " + pctx.src[range[1]] + ", and col " + pctx.getColumn(range[1]));
+#endif
+    var startPos = new Pos(pctx.line - (token.lines || 0), pctx.getColumn(range[0]));
+    var endPos = new Pos(pctx.line, pctx.getColumn(range[1]));
+    var loc = new Loc(pctx.filename, startPos, endPos);
+    token.loc = loc;
+  }
+
+  if(pctx.range) {
+    copy();
+    token.range = range;
+  }
+
+#ifdef DEBUG_EXTENTS
+  if(pctx.loc && pctx.range) {
+    console.log(extent_indent(pctx) + "> token " + token.id + " @ "+token.loc+" // "+token.range.join(',')+" is " +
+        JSON.stringify(pctx.src.slice(token.range[0], token.range[1])));
+  }
+#endif
+
+  if (['"','`'].indexOf(token.id) !== -1) {
+      pctx.open_tokens.push([token.id,0]);
+      return token;
+  }
+
+  if(!dest) return token;
+
+  switch(token.id) {
+    case '<id>':
+      type = 'Identifier';
+      value = token.value;
+      break;
+
+    case '<@id>':
+      type = 'Identifier';
+      value = '@'+token.value;
+      break;
+
+    case '<string>':
+      type = 'String';
+      break;
+
+    case '<regex>':
+      type = 'RegularExpression';
+      value = token.value;
+      break;
+
+    case '<number>':
+      type = 'Numeric';
+      value = token.value;
+      break;
+
+    default:
+      // operator or keyword
+      if(token.id.charAt(0) === '<' && token.id.charAt(token.id.length-1) === '>') {
+        throw new Error("Line 123: Unknown token: " + token.id);
+      }
+      value = token.id;
+      type = /^[a-zA-Z]+$/.test(token.id) ? 'Keyword' : 'Punctuator';
+      if(value == 'null') type = 'Null';
+  }
+#ifdef DEBUG_TOKENS
+  console.log("pushing token ", token);
+#endif
+  dest.push(Node.Token(pctx, token, type, value));
+  return token;
+}
+
+var currentlyOpenToken = function(pctx) {
+  return pctx.open_tokens[pctx.open_tokens.length-1]
+};
+
+function emitToken(pctx, token, dest) {
+  var value, type;
+#ifdef DEBUG_TOKENS
+  console.log("Saw token ", token);
+#endif
+  if(token.id !== '<eof>') {
+    if(token.id.indexOf('istr') === 0) {
+      var current = currentlyOpenToken(pctx);
+
+      if(current[1] === 0) {
+        // empty string start - add a fake token
+        var str = new Literal("<string>", '');
+        var offset = token.id.length - 6; // istr-" = 0 offset, itsr-#{ = 1
+        str.range = [pctx.lastIndex - 2 - offset, pctx.lastIndex - offset];
+        str.inner = '"';
+        appendToken(pctx, str, dest);
+        // token has bad extents; fix up
+        token.range = str.range;
+        token.loc = str.loc;
+      }
+
+      if(token.id === 'istr-'+current[0]) {
+        pctx.open_tokens.pop();
+      }
+      return token;
+    }
+
+    token = appendToken(pctx, token, dest);
+  }
+
+  return token;
+};
+
+NodeType('Token', function(type, value) {
+  this.type = type;
+  this.value = value;
+  // if(token.loc) this.loc = token.loc;
+  // if(token.range) this.range = token.range;
+});
+// XXX fix this inheritance?
+// Node.Token.prototype._init = function(pctx) {
+//   // get extents from token, not pctx
+//   _delegateExtents.call(this, pctx.token);
+// }
+
+//----------------------------------------------------------------------
+// contexts:
+
+#define BEGIN_SCRIPT(pctx)                                   \
+  if (typeof pctx.scopes !== 'undefined')                    \
+    throw new Error("Internal parser error: Nested script"); \
+  pctx.scopes = [];                                          \
+  pctx.open_tokens = []; \
+  if(pctx.tokens) { \
+    pctx.all_tokens = []; \
+  } \
+  if(pctx.range||pctx.range) pctx.extents = []; \
+  pctx.program = Node.Program(pctx); \
+  push_scope(pctx);
+
+#define ADD_SCRIPT_STMT(stmt, pctx)             \
+  top_scope(pctx).stmts.push(stmt);
+
+#define END_SCRIPT(pctx)                        \
+  if(pctx.tokens) pctx.program.tokens = pctx.all_tokens; \
+  pctx.program.body = pop_scope(pctx).stmts; \
+  if(pctx.extents && pctx.extents.length > 0) throw new Error(pctx.extents.length + " extents remaining after parse"); \
+  pctx.program._end(pctx); \
+  return pctx.program;
+
+#define EMIT_TOKEN(pctx, t) \
+  pctx.token = emitToken(pctx, t, pctx.all_tokens);
+
+function Extent(source) {
+  if(!source.loc) throw new Error("invalid extent");
+  this.loc = source.loc;
+  this.range = source.range;
+}
+Extent.prototype.toString = function() {
+  return "#<Extent " + this.loc + " // " + this.range + " >";
+}
+Extent.prototype.merge = function(other) {
+#ifdef DEBUG_EXTENTS
+  console.log("Merging "+this + " with " +other);
+#endif
+  if(other.range[1] < this.range[1]) return;
+  if(this.loc) this.loc = this.loc.merge(other.loc);
+  if(this.range) this.range = [this.range[0], other.range[1]];
+}
+
+function push_extent(pctx, token, reason) {
+  if(!pctx.extents) return;
+#ifdef DEBUG_EXTENTS
+  console.log(extent_indent(pctx) + "+extent["+pctx.extents.length+"]", summarize(token), reason ? reason : "");
+#endif
+  if(token && !token.loc) throw new Error("bad token: " + token);
+  var extents = token ? [new Extent(token)] : pctx.extents[pctx.extents.length-1].slice();
+  pctx.extents.push(extents);
+};
+
+#define PUSH_EXTENT(pctx, token, reason) \
+  push_extent(pctx, token, reason);
+
+#define STORE_EXTENT_LENGTH(pctx) var _ast_extentLength = pctx.extents ? pctx.extents.length : null;
+#define CHECK_EXTENT_LENGTH(pctx, thing) \
+  if(_ast_extentLength !== null) { \
+    if(pctx.extents.length !== _ast_extentLength) \
+      throw new Error("mismatch extent: " + thing + " - Expected " +_ast_extentLength+", got " + pctx.extents.length); \
+  }
+
+// XXX remove (developer aid);
+function summarize(thing) {
+  if(!thing) return thing;
+  if(Array.isArray(thing)) {
+    return "["+thing.map(summarize).join(", ")+"]";
+  }
+  if(thing instanceof Node) return String(thing);
+  if(thing.id && thing.tokenizer) return "Token(`"+thing.id+"` // "+(thing.range||[]).join(",")+")";
+  return thing;
+}
+function extent_indent(pctx) {
+  var rv='', i=pctx.extents.length;
+  while(i>0) { rv += ' '; i-- };
+  return rv;
+}
+function pop_extent(pctx, reason) {
+  if(!pctx.extents) return null;
+  var rv = pctx.extents.pop();
+#ifdef DEBUG_EXTENTS
+  console.log(extent_indent(pctx) + "-extent["+(pctx.extents.length)+"] = ",
+      summarize(rv), reason ? reason : "");
+#endif
+  if(!rv) throw new Error("extents exhausted");
+  return rv;
+};
+
+#define POP_EXTENT(reason) pop_extent(pctx, reason)
+#define TOP_EXTENT() (pctx.extents ? pctx.extents[pctx.extents.length-1] : null)
+
+function end_extent(pctx, e) {
+  if(!pctx.extents || pctx.extents.length == 0) return;
+#ifdef DEBUG_EXTENTS
+  console.log(extent_indent(pctx)+"* end extent ["+(pctx.extents.length-1)+"]", summarize(e));
+#endif
+  var current = pctx.extents[pctx.extents.length-1];
+  e = Array.isArray(e) ? e[e.length-1] : e;
+  if(current.length > 1) {
+    current[1].merge(e);
+  } else {
+    current[1] = new Extent(e);
+  }
+}
+
+#define END_EXTENT(pctx, e) \
+  end_extent(pctx, e);
+
+#define BEGIN_FBODY(pctx,dummy)                       \
+  push_scope(pctx);
+
+#define ADD_FBODY_STMT(stmt, pctx)              \
+  top_scope(pctx).stmts.push(stmt);
+
+#define END_FBODY(pctx,dummy, ext)                           \
+  return gen_block(pop_scope(pctx).stmts, pctx, ext);
+
+#define BEGIN_BLOCK(pctx)                       \
+  push_scope(pctx);
+
+#define ADD_BLOCK_STMT(stmt, pctx)              \
+  top_scope(pctx).stmts.push(stmt);
+
+#define END_BLOCK(pctx, ext)                           \
+  return gen_block(pop_scope(pctx).stmts, pctx, ext);
+
+
+NodeType('SwitchCase', function(scope) {
+  this.test = scope.exp;
+  this.consequent = scope.stmts;
+});
+
+#define BEGIN_CASE_CLAUSE(cexp, pctx)          \
+  push_scope(pctx);                            \
+  top_scope(pctx).exp = cexp;
+
+#define ADD_CASE_CLAUSE_STMT(stmt, pctx)        \
+  top_scope(pctx).stmts.push(stmt);
+
+#define END_CASE_CLAUSE(pctx, ext)                     \
+  return Node.SwitchCase(pctx, ext, pop_scope(pctx)); \
+
+#define BEGIN_LOOP_SCOPE(pctx)   /* */
+#define END_LOOP_SCOPE(pctx)     /* */
+#define BEGIN_SWITCH_SCOPE(pctx) /* */
+#define END_SWITCH_SCOPE(pctx)   /* */
+
+
+#define BEGIN_BLAMBDABODY(pctx)                       \
+  push_scope(pctx);
+
+#define ADD_BLAMBDABODY_STMT(stmt, pctx)              \
+  top_scope(pctx).stmts.push(stmt);
+
+#define END_BLAMBDABODY(pctx, ext)                           \
+  return Node.BlockStatement(pctx, ext, pop_scope(pctx).stmts);
+
+
+//----------------------------------------------------------------------
+// statements:
+NodeType("EmptyStatement", function(pctx) {
+});
+#define GEN_EMPTY_STMT(pctx, ext) return Node.EmptyStatement(pctx, ext);
+
+NodeType("ExpressionStatement", function(expr, pctx, ext) {
+  this.expression = expr;
+});
+#define GEN_EXP_STMT(exp, pctx, ext) return Node.ExpressionStatement(pctx, ext, exp);
+
+NodeType('LabeledStatement', function(lbl, body, pctx, ext) {
+  this.label = Node.Identifier(pctx, ext, lbl);
+  this.body = body;
+});
+#define GEN_LBL_STMT(lbl, stmt, pctx, ext) \
+  return Node.LabeledStatement(pctx, ext, lbl, stmt);
+
+var processParams = function(params) {
+  var process = function(param) {
+    // rewrite array expressions as patterns
+    if(param.type === 'ArrayExpression') {
+      param.type = 'ArrayPattern';
+    } else if (param.type === 'ObjectPattern') {
+      param.properties.forEach(function(prop) {
+        process(prop.value);
+      });
+    }
+  };
+
+  if (!params) return params;
+  if (Array.isArray(params)) params.forEach(process);
+  else process(params)
+  return params;
+}
+NodeType('Function', function (name, params, body, decl, expression, pctx, ext) {
+  this.type = "Function"+(decl?"Declaration":"Expression");
+  this.id = name && name.length ? Node.Identifier(pctx, ext, name) : null;
+  this.params = processParams(params);
+  this.body = body;
+  this.expression = expression;
+});
+
+Node.Function.prototype.defaults = [];
+Node.Function.prototype.rest = null; // ?
+// Node.Function.prototype.comments = [];
+Node.Function.prototype.generator = false;
+
+#define GEN_FUN_DECL(fname, pars, body, pctx, ext)           \
+  return Node.Function(pctx, ext, fname, pars, body, true, false);
+
+
+#define GEN_VAR_DECL(decls, pctx, ext)                \
+  return Node.VariableDeclaration(pctx, ext, decls);
+
+NodeType('IfStatement', function(test, cons, alt) {
+  this.test = test;
+  this.consequent = cons;
+  this.alternate = alt;
+});
+#define GEN_IF(test, consequent, alternative, pctx, ext)   \
+  return Node.IfStatement(pctx, ext, test, consequent, alternative);
+
+NodeType('WhileStatement', function(test, body) {
+  this.test = test;
+  this.body = body;
+});
+#define GEN_DO_WHILE(body, test, pctx, ext)          \
+  return Node.DoWhileStatement(pctx, ext, body, test);
+
+NodeType('DoWhileStatement', function(body, test) {
+  this.test = test;
+  this.body = body;
+});
+#define GEN_WHILE(test, body, pctx, ext)             \
+  return Node.WhileStatement(pctx, ext, test, body);
+
+NodeType('ForStatement', function(init, decls, test, inc, body, pctx, ext) {
+  this.update = inc;
+  this.test = test;
+  this.init = null;
+  this.body = body;
+  if(init)
+    this.init = init;
+  else if(decls)
+    this.init = Node.VariableDeclaration(pctx, decls.extent || ext, decls);
+});
+
+#define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx, ext)         \
+  return Node.ForStatement(pctx, ext, init_exp, decls, test_exp, inc_exp, body);
+
+NodeType('ForInStatement', function(lhs, decl, obj, body, pctx, ext) {
+  this.body = body;
+  this.right = obj;
+  this.left = null;
+  if(lhs)
+    this.left = lhs;
+  else if (decl)
+    this.left = Node.VariableDeclaration(pctx, ext, [decl]);
+});
+Node.ForInStatement.prototype.each = false;
+#define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx, ext)  \
+  return Node.ForInStatement(pctx, ext, lhs_exp, decl, obj_exp, body);
+
+NodeType('ContinueStatement', function(lbl, pctx) {
+  this.label = lbl;
+});
+#define GEN_CONTINUE(lbl, pctx, ext) return Node.ContinueStatement(pctx, ext, lbl);
+
+NodeType('BreakStatement', function(lbl, pctx) {
+  this.label = lbl;
+});
+#define GEN_BREAK(lbl, pctx, ext) return Node.BreakStatement(pctx, ext, lbl);
+
+NodeType("ReturnStatement", function(val) {
+  this.argument = val;
+});
+#define GEN_RETURN(exp, pctx, ext)                   \
+  return Node.ReturnStatement(pctx, ext, exp);
+
+NodeType('WithStatement', function(exp, body) {
+  this.object = exp;
+  this.body = body;
+});
+#define GEN_WITH(exp, body, pctx, ext) return Node.WithStatement(pctx, ext, exp, body);
+
+NodeType('SwitchStatement', function(exp, clauses) {
+  this.discriminant = exp;
+  this.cases = clauses;
+});
+#define GEN_SWITCH(exp, clauses, pctx, ext) \
+  return Node.SwitchStatement(pctx, ext, exp, clauses);
+
+NodeType('ThrowStatement', function(exp) {
+  this.argument = exp;
+});
+#define GEN_THROW(exp, pctx, ext) return Node.ThrowStatement(pctx, ext, exp);
+
+function gen_block(body, pctx, ext) {
+  var block = Node.BlockStatement(pctx, ext, body);
+  return block;
+}
+
+var hiddenVar = function(pctx, ext) {
+  // XXX make this avoid collisions with user vars?
+  return Node.Identifier(pctx, ext, '__unused');
+}
+NodeType('CatchClause', function(param, body, pctx, ext) {
+  this.param = param || hiddenVar(pctx, ext);
+  this.body = body;
+});
+
+function gen_crf(s, crf, pctx, ext) {
+  var handlerBody = null;
+  var handlerParam = null;
+  if (crf[0]) {
+    handlerParam = Node.Identifier(pctx, ext, crf[0][0]);
+    handlerBody = crf[0][1];
+  }
+  if (crf[1]) {
+    if(handlerBody)
+      handlerBody.body = handlerBody.body.concat(crf[1].body);
+    else
+      handlerBody = crf[1];
+  }
+  if(handlerParam || handlerBody)
+    s.handlers = [Node.CatchClause(pctx, ext, handlerParam, handlerBody)];
+  if (crf[2])
+    s.finalizer = crf[2];
+}
+
+NodeType('TryStatement', function(block, crf, pctx, ext) {
+  this.block = block;
+  gen_crf(this, crf, pctx, ext);
+});
+// some blocks (like waitfor/and) are represented in the AST as:
+//  - a blockstatement
+//  - a TryStatement (when accompanied by catch / retract / finally)
+function CoerceToTry(pctx, ext, block, crf) {
+  var has_crf = false;
+  for(var i=0; i<crf.length; i++) {
+    if(crf[i]) {
+      has_crf=true;
+      break;
+    }
+  }
+  if(!has_crf) return block;
+  return Node.TryStatement(pctx, ext, block, crf);
+}
+Node.TryStatement.prototype.guardedHandlers = [];
+Node.TryStatement.prototype.finalizer = null;
+Node.TryStatement.prototype.handlers = [];
+#define GEN_TRY(block, crf, pctx, ext)               \
+  return Node.TryStatement(pctx, ext, block, crf);
+
+//----------------------------------------------------------------------
+// expressions:
+
+#define GEN_INFIX_OP(left, id, right, pctx, ext)  \
+  return Node.BinaryExpression(pctx, ext, left, id, right);
+
+#define GEN_ASSIGN_OP(left, id, right, pctx, ext)     \
+  return Node.AssignmentExpression(pctx, ext, left, id, right);
+
+#define GEN_PREFIX_OP(id, right, pctx, ext)          \
+  return UnaryExpression(pctx, ext, id, right, true);
+
+#define GEN_POSTFIX_OP(left, id, pctx, ext)          \
+  return UnaryExpression(pctx, ext, id, left, false);
+
+#ifdef SJS_ARROWS
+#define GEN_THIN_ARROW(body, ptcx, ext) return Node.ArrowFunctionExpression(pctx, ext, null, body);
+#define GEN_THIN_ARROW_WITH_PARS(pars, body, pctx, ext) return Node.ArrowFunctionExpression(pctx, ext, pars, body);
+// note the intentional space in ' =>' below; it is to fix cases like '= => ...'
+#define GEN_FAT_ARROW GEN_THIN_ARROW
+#define GEN_FAT_ARROW_WITH_PARS GEN_THIN_ARROW_WITH_PARS
+#endif
+
+#ifdef SJS_DOUBLEDOT
+#define GEN_DOUBLEDOT_CALL(l,r,pctx, ext) return gen_doubledot_call(l, r, pctx, ext);
+function gen_doubledot_call(l, r, pctx, ext) {
+  // XXX not very elegant
+  if (r.type === 'CallExpression') r['arguments'].unshift(l);
+  else r = Node.CallExpression(pctx, ext, r, [l]);
+  return r;
+}
+
+#endif
+
+#ifdef SJS_ALTERNATE_NAMESPACE
+#define GEN_ALTERNATE_NAMESPACE_OBJ(pctx, ext) return Node.Identifier(pctx, ext, '@');
+#define GEN_ALTERNATE_NAMESPACE_IDENTIFIER(value, pctx, _ext) \
+  var ext = _ext; \
+  return Node.MemberExpression(pctx, ext, \
+      Node.Identifier(pctx, ext, '@'), \
+      Node.Identifier(pctx, ext, value), false);
+#endif
+
+#define GEN_LITERAL(type, value, pctx, ext) \
+  var rv = Node.Literal(pctx, ext, type, value, undefined); \
+  return rv;
+
+#ifdef INTERPOLATING_STRINGS
+#define GEN_INTERPOLATING_STR(parts, pctx, ext) return interpolating_string(pctx, ext, parts);
+function interpolating_string(pctx, ext, parts) {
+  // console.log("GEN_INTERPOLATING_STR", parts);
+  var deref = function(x) {
+    if (Array.isArray(x))
+      return x[0];
+    return StringLiteral(pctx, ext, x);
+  }
+  var rv = deref(parts.shift());
+  while(parts.length > 0) {
+    rv = Node.BinaryExpression(pctx, ext, rv, '+', deref(parts.shift()));
+  }
+  return rv;
+}
+#endif /* INTERPOLATING_STRINGS */
+
+#ifdef QUASIS
+#define GEN_QUASI(parts, pctx, ext) return quasi(pctx, ext, parts);
+function quasi(pctx, ext, parts) {
+  var rv = [];
+  for (var i=0,l=parts.length;i<l;++i) {
+    if (i % 2)
+      rv.push(parts[i]);
+    else {
+      rv.push(StringLiteral(pctx, ext, parts[i]));
+    }
+  }
+  return Node.ArrayExpression(pctx, ext, rv);
+}
+#endif /* QUASIS */
+
+
+#define GEN_IDENTIFIER(value, pctx, ext) return Node.Identifier(pctx, ext, value);
+
+#define GEN_OBJ_LIT(props, pctx, _ext)            \
+  var ext = _ext; \
+  var rv = [];                              \
+  for (var i=0; i<props.length; ++i) {      \
+    rv.push(Node.Property(pctx, ext, props[i])); \
+  }                                         \
+  return Node.ObjectPattern(pctx, ext, rv);
+
+#define GEN_ARR_LIT(elements, pctx, ext) return Node.ArrayExpression(pctx, ext, elements);
+
+#define GEN_ELISION(pctx) return null;
+
+#define GEN_DOT_ACCESSOR(l, name, pctx, _ext) \
+  var ext = _ext; \
+  var ident = Node.Identifier(pctx, pctx.token, name); \
+  return Node.MemberExpression(pctx, ext, l, ident, false);
+
+#define GEN_IDX_ACCESSOR(l, idxexp, pctx, ext) \
+  return Node.MemberExpression(pctx, ext, l, idxexp, true);
+
+NodeType('CallExpression', function(fun, args) {
+  this.callee = fun;
+  this['arguments'] = args;
+});
+#define GEN_FUN_CALL(l, args, pctx, ext) return Node.CallExpression(pctx, ext, l, args);
+
+NodeType('NewExpression', function(fun, args) {
+  this.callee = fun;
+  this['arguments'] = args;
+});
+#define GEN_NEW(exp, args, pctx, ext) return Node.NewExpression(pctx, ext, exp, args);
+
+#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext)  \
+  return Node.Function(pctx, ext, fname, pars, body, false, false);
+
+#define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext) \
+  return Node.ConditionalExpression(pctx, ext, test, consequent, alternative);
+
+#define GEN_GROUP(e, pctx, ext) return group_exp(pctx, ext, e);
+function group_exp(pctx, ext, e) {
+  var seq = [];
+  function collect(e) {
+    if(e instanceof Node.BinaryExpression && e.operator === ",") {
+      collect(e.left);
+      collect(e.right);
+    } else {
+      seq.push(e);
+    }
+  }
+  collect(e);
+  if(seq.length === 1) {
+    return seq[0];
+  }
+  return Node.SequenceExpression(pctx, ext, seq);
+}
+
+NodeType('ThisExpression', function(pctx) {
+});
+#define GEN_THIS(pctx, ext) return Node.ThisExpression(pctx, ext);
+
+#define GEN_TRUE(pctx, ext) return Node.Literal(pctx, ext, '<bool>', 'true', true);
+
+#define GEN_FALSE(pctx, ext) return Node.Literal(pctx, ext, '<bool>', 'false', false);
+
+#define GEN_NULL(pctx, ext) return Node.Literal(pctx, ext, '<null>', 'null', null);
+
+
+// Stratified constructs:
+
+function gen_waitfor_andor(op, blocks, crf, pctx, ext) {
+  var rv =[];
+  for (var i=0; i<blocks.length; ++i){
+    rv = rv.concat(blocks[i].body);
+  }
+  return CoerceToTry(pctx, ext, Node.BlockStatement(pctx, ext, rv), crf);
+}
+
+#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, ext) \
+  return gen_waitfor_andor(op, blocks, crf, pctx, ext);
+
+function gen_suspend(has_var, decls, block, crf, pctx, ext) {
+  var body = block;
+  if(has_var && decls.length) {
+    body = Node.BlockStatement(pctx, ext,
+        [Node.VariableDeclaration(pctx, ext, decls)].concat(block.body));
+  }
+  return CoerceToTry(pctx, ext, body, crf);
+}
+#define BEGIN_SUSPEND_BLOCK(pctx) /*nothing*/
+#define END_SUSPEND_BLOCK(pctx) /*nothing*/
+#define GEN_SUSPEND(has_var, decls, block, crf, pctx, ext) \
+  return gen_suspend(has_var, decls, block, crf, pctx, ext);
+
+#define GEN_COLLAPSE(pctx, ext) return Node.EmptyStatement(pctx, ext);
+
+#define GEN_USING(has_var, lhs, exp, body, pctx, ext) \
+  return gen_using(has_var, lhs, exp, body, pctx, ext);
+
+function gen_using(has_var, lhs, exp, body, pctx, ext) {
+  var subject = lhs || hiddenVar(pctx, ext);
+  var init = lhs && !has_var
+    ? [Node.ExpressionStatement(pctx, ext,
+        Node.AssignmentExpression(pctx, ext, lhs, '=', exp))]
+    : [Node.VariableDeclaration(pctx, ext, [[subject,exp]])];
+  return Node.TryStatement(pctx, ext,
+      Node.BlockStatement(pctx, ext, init.concat(body.body)),
+      [null, null, Node.BlockStatement(pctx, ext, [
+        Node.ExpressionStatement(pctx, ext,
+          Node.CallExpression(pctx, ext,
+            Node.MemberExpression(pctx, ext, subject,
+              Node.Identifier(pctx, ext, '__finally__'), false),
+            []
+          )
+        )
+      ])]
+    );
+}
+
+#define BEGIN___JS_BLOCK(pctx)
+#define END___JS_BLOCK(pctx)
+#define GEN___JS(body, pctx, ext) ext; return body;
+
+// XXX so that break / continue / etc are valid, we wrap in an imaginary while() loop
+#define GEN_BLOCKLAMBDA(pars, body, pctx, ext) \
+  return gen_blocklambda(pars, body, pctx, ext);
+
+function gen_blocklambda(pars, body, pctx, ext) {
+  body = Node.BlockStatement(pctx, ext, [
+      Node.WhileStatement(pctx, ext, Node.Literal(pctx, ext, '<bool>', 'true', true), body)
+  ]);
+  return Node.Function(pctx, ext, null, pars, body, false, false);
+}

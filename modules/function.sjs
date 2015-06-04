@@ -37,7 +37,7 @@
 
 module.setCanonicalId('sjs:function');
 
-var sys   = require('builtin:apollo-sys');
+var sys    = require('builtin:apollo-sys');
 var cutil  = require('./cutil');
 var { extend } = require('./object');
 var { map, zip, each } = require('./sequence');
@@ -214,7 +214,7 @@ exports.exclusive = function(f, reuse) {
   var stratum, cancel;
   return function() {
     if (!reuse && cancel) cancel();
-    if (!cancel) stratum = spawn(function(t,a){
+    if (!cancel) stratum = spawn (function(t,a){
       waitfor {
         waitfor() { cancel = resume; }
       } or {

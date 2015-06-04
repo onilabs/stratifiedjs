@@ -337,6 +337,28 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define ONE_SIDED_CONDITIONALS 1
 #include "kernel-jsmin.js.in"
 
+#elif defined(C1_KERNEL_AST)
+
+#define SJS_CORE 1
+#define MULTILINE_STRINGS 1
+#define SJS_USING 1
+#define SJS___JS 1
+#define SJS_DESTRUCTURE 1
+#define SJS_BLOCKLAMBDA 1
+#define SJS_ARROWS 1
+#define SJS_DOUBLEDOT 1
+#define SJS_DOUBLECOLON 1
+#define SJS_ALTERNATE_NAMESPACE 1
+#define INTERPOLATING_STRINGS 1
+#define QUASIS 1
+#define ONE_SIDED_CONDITIONALS 1
+
+#define EMIT_TOKENS 1
+#define TRACK_EXTENTS 1
+
+#define PARSE_ERROR_INCLUDE_POS 1
+#include "kernel-ast.js.in"
+
 /**
    @executable
 #ifdef STRINGIFY
@@ -463,6 +485,7 @@ Hash.prototype = {
 #define PAT_STRLIT PAT_STRLIT_SGL|PAT_STRLIT_DBL
 #endif
 
+
 #ifdef MULTILINE_STRINGS
 #define PAT_ML_STRLIT_SGL '(?:\\(?:PAT_DOTALL)|[^\\\'])*'
 #ifdef INTERPOLATING_STRINGS
@@ -518,6 +541,19 @@ var TOKENIZER_QUASI = /((?:\\PAT_DOT|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\PAT_
 #define QUASI_OPERATOR_MATCH 4
 #endif
 
+#ifndef TRACK_EXTENTS
+#define PUSH_EXTENT(pctx, ext, desc)
+#define END_EXTENT(pctx, ext)
+#define POP_EXTENT(pctx) null
+#define TOP_EXTENT() null
+#define STORE_EXTENT_LENGTH(pctx)
+#define CHECK_EXTENT_LENGTH(pctx)
+#endif
+
+#ifndef EMIT_TOKENS
+#define EMIT_TOKEN(pctx, token)
+#endif
+
 //----------------------------------------------------------------------
 // Syntax Table
 
@@ -568,15 +604,15 @@ SemanticToken.prototype = {
     this.stmtf = f;
     return this;
   },
-
   // encode infix operation
   ifx: function(bp, right_assoc) {
     this.excbp = bp;
     if (right_assoc) bp -= .5;
     this.excf = function(left, pctx) {
+      PUSH_EXTENT(pctx, left, this.id + " (ifx)")
       var right = parseExp(pctx, bp);
       LOGM('infix_op('+this.id+')')
-      GEN_INFIX_OP(left, this.id, right, pctx)
+      GEN_INFIX_OP(left, this.id, right, pctx, POP_EXTENT('GEN_INFIX_OP'))
     };
     return this;
   },
@@ -585,33 +621,41 @@ SemanticToken.prototype = {
     this.excbp = bp;
     if (right_assoc) bp -= .5;
     this.excf = function(left, pctx) {
+      PUSH_EXTENT(pctx, left, 'assign op')
       var right = parseExp(pctx, bp);
       LOGM('assign_op('+this.id+')')
-      GEN_ASSIGN_OP(left, this.id, right, pctx)
+      GEN_ASSIGN_OP(left, this.id, right, pctx, POP_EXTENT('GEN_ASSIGN_OP'))
     };
     return this;
   },
   // encode prefix operation
   pre: function(bp) {
     return this.exs(function(pctx) {
+      PUSH_EXTENT(pctx, this, 'pre')
       var right = parseExp(pctx, bp);
       LOGM('prefix_op')
-      GEN_PREFIX_OP(this.id, right, pctx)
+      END_EXTENT(pctx, right)
+      GEN_PREFIX_OP(this.id, right, pctx, POP_EXTENT('GEN_PREFIX_OP'))
     });
   },
   // encode postfix operation
   pst: function(bp) {
     return this.exc(bp, function(left, pctx) {
+      PUSH_EXTENT(pctx, left, 'pst')
       LOGM('postfix_op')
-      GEN_POSTFIX_OP(left, this.id, pctx)
+      END_EXTENT(pctx, this)
+      GEN_POSTFIX_OP(left, this.id, pctx, POP_EXTENT('GEN_POSTFIX_OP'))
     });
   }  
 };
 
 //-----
-function Literal(type, value) {
+function Literal(type, value, length) {
   this.id = type;
   this.value = value;
+#ifdef TRACK_EXTENTS
+  this.length = length !== undefined ? length : (value ? value.length : 0); // XXX why do we have undefined literal values?
+#endif
 }
 Literal.prototype = new SemanticToken();
 Literal.prototype.tokenizer = TOKENIZER_OP;
@@ -622,12 +666,15 @@ Literal.prototype.toString = function() { return "literal '"+this.value+"'"; };
 #endif
 Literal.prototype.exsf = function(pctx) {
   LOGM('literal')
-  GEN_LITERAL(this.id, this.value, pctx)
+  GEN_LITERAL(this.id, this.value, pctx, TOP_EXTENT())
 };
 
 #ifdef SJS_ALTERNATE_NAMESPACE
 //-----
 function Identifier(value) {
+#ifdef TRACK_EXTENTS
+  this.length = value.length;
+#endif
   if (value.charAt(0) === '@') {
     this.alternate = true;
     this.id = "<@id>";
@@ -641,16 +688,16 @@ Identifier.prototype.exsf = function(pctx) {
   if (this.alternate === true) {
     if (this.value.length) {
       LOGM('@identifier('+this.value+')')
-      GEN_ALTERNATE_NAMESPACE_IDENTIFIER(this.value, pctx)
+      GEN_ALTERNATE_NAMESPACE_IDENTIFIER(this.value, pctx, TOP_EXTENT())
     }
     else {
       LOGM('@ object')
-      GEN_ALTERNATE_NAMESPACE_OBJ(pctx)
+      GEN_ALTERNATE_NAMESPACE_OBJ(pctx, TOP_EXTENT())
     }
   }
   else {
     LOGM('identifier('+this.value+')')
-    GEN_IDENTIFIER(this.value, pctx)
+    GEN_IDENTIFIER(this.value, pctx, TOP_EXTENT())
   }
 };
 #else /* ! SJS_ALTERNATE_NAMESPACE */
@@ -662,7 +709,7 @@ Identifier.prototype = new Literal("<id>");
 Identifier.prototype.alternate = false;
 Identifier.prototype.exsf = function(pctx) {
   LOGM('identifier('+this.value+')')
-  GEN_IDENTIFIER(this.value, pctx)
+  GEN_IDENTIFIER(this.value, pctx, TOP_EXTENT())
 };
 
 #ifndef VERBOSE_COMPILE_ERRORS
@@ -676,9 +723,28 @@ var ST = new Hash();
 function S(id, tokenizer) {
   var t = new SemanticToken();
   t.id = id;
+#ifdef TRACK_EXTENTS
+  t.length = id.length;
+#endif
   if (tokenizer)
     t.tokenizer = tokenizer;
   ST.put(id, t);
+
+#ifdef EMIT_TOKENS
+  // XXX pretty hacky. The AST backend attaches extent information to each token,
+  // but that requires tokens are never reused. So that backend clones each reusable
+  // token before attaching that information.
+  t.clone = function() {
+    var rv = new SemanticToken();
+    for(var k in this) {
+      if(Object.prototype.hasOwnProperty.call(this, k)) {
+        rv[k] = this[k];
+      }
+    }
+    return rv;
+  };
+#endif
+
   return t;
 }
 
@@ -763,6 +829,7 @@ expressions up to BP 100
 S("[").
   // array literal
   exs(function(pctx) {
+    PUSH_EXTENT(pctx, null, 'GEN_ARR_LIT')
     var elements = [];
     while (pctx.token.id != "]") {
       if (elements.length) scan(pctx, ",");
@@ -776,26 +843,31 @@ S("[").
     }
     scan(pctx, "]");
     LOGM('arr_lit')
-    GEN_ARR_LIT(elements, pctx)
+    GEN_ARR_LIT(elements, pctx, POP_EXTENT('GEN_ARR_LIT'))
   }).
   // indexed property access
   exc(270, function(l, pctx) {
+    PUSH_EXTENT(pctx, null, '[ exc')
     var idxexp = parseExp(pctx);
+    END_EXTENT(pctx, pctx.token)
     scan(pctx, "]");
     LOGM('idx_accessor')
-    GEN_IDX_ACCESSOR(l, idxexp, pctx)
+    GEN_IDX_ACCESSOR(l, idxexp, pctx, POP_EXTENT('GEN_IDX_ACCESSOR'))
   });
 
 S(".").exc(270, function(l, pctx) {
+  PUSH_EXTENT(pctx, null, '[dot] exc')
   if (pctx.token.id != "<id>")
     throw new Error("Expected an identifier, found '"+pctx.token+"' instead");
   var name = pctx.token.value;
+  END_EXTENT(pctx, pctx.token)
   scan(pctx);
   LOGM('dot_accessor')
-  GEN_DOT_ACCESSOR(l, name, pctx)
+  GEN_DOT_ACCESSOR(l, name, pctx, POP_EXTENT('GEN_DOT_ACCESSOR'))
 });
 
 S("new").exs(function(pctx) {
+  PUSH_EXTENT(pctx, null, 'new')
   var exp = parseExp(pctx, BP_CALLEXP);
   var args = [];
   if (pctx.token.id == "(") {
@@ -804,10 +876,11 @@ S("new").exs(function(pctx) {
       if (args.length) scan(pctx, ",");
       args.push(parseExp(pctx, BP_COMMA));
     }
+    END_EXTENT(pctx, pctx.token)
     scan(pctx, ")");
   }
   LOGM('new')
-  GEN_NEW(exp, args, pctx)
+  GEN_NEW(exp, args, pctx, POP_EXTENT('GEN_NEW'))
 });
 
 S("(").
@@ -824,18 +897,31 @@ S("(").
       return op.exsf(pctx);
     }
 #endif
+    PUSH_EXTENT(pctx, null, 'GEN_GROUP')
     var e = parseExp(pctx);
+#ifdef TRACK_EXTENTS
+    var closer = pctx.token;
+    END_EXTENT(pctx, closer)
+#endif
     scan(pctx, ")");
     LOGM('group')
-    GEN_GROUP(e, pctx)
+#ifdef TRACK_EXTENTS
+    var ext = POP_EXTENT('GEN_GROUP');
+    // the inner expression may ignore the closing paren,
+    // but the outer expression shouldn't
+    END_EXTENT(pctx, closer)
+#endif
+    GEN_GROUP(e, pctx, ext)
   }).
   // function call
   exc(260, function(l, pctx) {
+    PUSH_EXTENT(pctx, null, 'funcall(')
     var args = [];
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
       args.push(parseExp(pctx, BP_COMMA)); // only parse up to comma
     }
+    END_EXTENT(pctx, pctx.token)
     scan(pctx, ")");
 #ifdef SJS_BLOCKLAMBDA
     // special case for blocklambdas: pull the blocklambda into the argument list
@@ -860,14 +946,15 @@ S("(").
 #endif
 
     LOGM('fun_call')
-    GEN_FUN_CALL(l, args, pctx)
+    GEN_FUN_CALL(l, args, pctx, POP_EXTENT('GEN_FUN_CALL'))
   });
 
 #ifdef SJS_DOUBLEDOT
 S("..").exc(255, function(l, pctx) {
+  PUSH_EXTENT(pctx, l, "..")
   var r = parseExp(pctx, 255);
   LOGM('doubledot')
-  GEN_DOUBLEDOT_CALL(l,r,pctx)
+  GEN_DOUBLEDOT_CALL(l,r,pctx, POP_EXTENT('GEN_DOUBLEDOT_CALL'))
 });
 #endif
 
@@ -894,9 +981,10 @@ S(">>>").ifx(210);
 
 #ifdef SJS_DOUBLECOLON
 S("::").exc(205, function(l, pctx) {
+  PUSH_EXTENT(pctx, l, "::")
   var r = parseExp(pctx, 204.5);
   LOGM('doublecolon')
-  GEN_DOUBLECOLON_CALL(l,r,pctx)
+  GEN_DOUBLECOLON_CALL(l,r,pctx, POP_EXTENT('GEN_DOUBLECOLON_CALL'))
 });
 #endif
 
@@ -921,6 +1009,7 @@ S("&&").ifx(150);
 S("||").ifx(140);
 
 S("?").exc(130, function(test, pctx) {
+  PUSH_EXTENT(pctx, null, '? ternary')
   var consequent = parseExp(pctx, BP_COMMA);
 #ifdef ONE_SIDED_CONDITIONALS
   if (pctx.token.id == ":") {
@@ -931,8 +1020,11 @@ S("?").exc(130, function(test, pctx) {
   scan(pctx, ":");
   var alternative = parseExp(pctx, BP_COMMA);
 #endif
+#ifdef TRACK_EXTENTS
+  if(alternative) { END_EXTENT(pctx, alternative) }
+#endif
   LOGM('conditional')
-  GEN_CONDITIONAL(test, consequent, alternative, pctx)
+  GEN_CONDITIONAL(test, consequent, alternative, pctx, POP_EXTENT('GEN_CONDITIONAL'))
 });
 
 S("=").asg(BP_ASSIGN, true);
@@ -952,28 +1044,32 @@ S("|=").asg(120, true);
 S("->")
   // prefix form without parameters expression
   .exs(function(pctx) {
+    PUSH_EXTENT(pctx, pctx.token, 'arrow call')
     var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
     LOGM('thinarray/prefix')
-    GEN_THIN_ARROW(body, pctx)
+    GEN_THIN_ARROW(body, pctx, POP_EXTENT('GEN_THIN_ARROW'))
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
+    PUSH_EXTENT(pctx, left, 'arrow call')
     var body = parseExp(pctx, 119.5);
     LOGM('thinarray/infix')
-    GEN_THIN_ARROW_WITH_PARS(left, body, pctx)
+    GEN_THIN_ARROW_WITH_PARS(left, body, pctx, POP_EXTENT('GEN_THIN_ARROW'))
   });
 S("=>")
   // prefix form without parameters expression
   .exs(function(pctx) {
+    PUSH_EXTENT(pctx, pctx.token, 'arrow call')
     var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
     LOGM('fatarray/prefix')
-    GEN_FAT_ARROW(body, pctx)
+    GEN_FAT_ARROW(body, pctx, POP_EXTENT('GEN_FAT_ARROW'))
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
+    PUSH_EXTENT(pctx, left, 'arrow call')
     var body = parseExp(pctx, 119.5);
     LOGM('fatarray/infix')
-    GEN_FAT_ARROW_WITH_PARS(left, body, pctx)
+    GEN_FAT_ARROW_WITH_PARS(left, body, pctx, POP_EXTENT('GEN_FAT_ARROW'))
   });
 #endif
 
@@ -1007,18 +1103,21 @@ function parsePropertyName(token, pctx) {
 function parseBlock(pctx) {
   LOGM('block<')
   BEGIN_BLOCK(pctx)
+  PUSH_EXTENT(pctx, null, 'BLOCK')
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
     LOGM('+block_stmt')
     ADD_BLOCK_STMT(stmt, pctx)
   }
+  END_EXTENT(pctx, pctx.token)
   scan(pctx, "}");
   LOGM('>block')
-  END_BLOCK(pctx)
+  END_BLOCK(pctx, POP_EXTENT('BLOCK'))
 }
 
 #ifdef SJS_BLOCKLAMBDA
 function parseBlockLambdaBody(pctx) {
+  PUSH_EXTENT(pctx, null, 'BLAMBDA_BODY')
   LOGM('blamdabody<')
   BEGIN_BLAMBDABODY(pctx)
   while (pctx.token.id != "}") {
@@ -1028,10 +1127,11 @@ function parseBlockLambdaBody(pctx) {
   }
   scan(pctx, "}");
   LOGM('>blamdabody')
-  END_BLAMBDABODY(pctx)
+  END_BLAMBDABODY(pctx, POP_EXTENT('BLAMBDA_BODY'))
 }
 function parseBlockLambda(start, pctx) {
   // collect parameters
+  PUSH_EXTENT(pctx, pctx.token, 'BLOCKLAMBDA')
   var pars;
   if (start == '||') {
     pars = [];
@@ -1042,7 +1142,7 @@ function parseBlockLambda(start, pctx) {
 
   var body = parseBlockLambdaBody(pctx);
   LOGM('blocklambda')
-  GEN_BLOCKLAMBDA(pars, body, pctx)
+  GEN_BLOCKLAMBDA(pars, body, pctx, POP_EXTENT('GEN_BLOCKLAMBDA'))
 }
 #endif /* SJS_BLOCKLAMBDA */
 
@@ -1058,6 +1158,7 @@ S("{").
 #endif /* SJS_BLOCKLAMBDA */
       // object literal:
       var props = [];
+      PUSH_EXTENT(pctx, null, 'objlit')
       while (pctx.token.id != "}") {
         if (props.length) scan(pctx, ",");
         var prop = pctx.token;
@@ -1109,7 +1210,7 @@ S("{").
       }
       scan(pctx, "}", TOKENIZER_OP); // note the special tokenizer case here
       LOGM('obj_lit')
-      GEN_OBJ_LIT(props, pctx)
+      GEN_OBJ_LIT(props, pctx, POP_EXTENT('GEN_OBJ_LIT'))
 #ifdef SJS_BLOCKLAMBDA
     }
 #endif /* SJS_BLOCKLAMBDA */
@@ -1117,19 +1218,20 @@ S("{").
 #ifdef SJS_BLOCKLAMBDA
   // block lambda call:
   exc(260, function(l, pctx) {
+    PUSH_EXTENT(pctx, l, 'blocklambda call')
     var start = pctx.token.id;
     if (start != "|" && start != "||")
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     LOGM('fun_call')
-    GEN_FUN_CALL(l, args, pctx);
+    GEN_FUN_CALL(l, args, pctx, POP_EXTENT('GEN_FUN_CALL'))
   }).
 #endif /* SJS_BLOCKLAMBD */
   // block:
   stmt(parseBlock);
 
 // deliminators
-S(";").stmt(function(pctx) { LOGM('empty_stmt') GEN_EMPTY_STMT(pctx) });
+S(";").stmt(function(pctx) { LOGM('empty_stmt') GEN_EMPTY_STMT(pctx, TOP_EXTENT()) });
 S(")", TOKENIZER_OP);
 S("]", TOKENIZER_OP);
 S("}"); // note the special tokenizer case for object literals, above
@@ -1145,15 +1247,17 @@ S("<eof>").
 function parseFunctionBody(pctx, implicit_return) {
   LOGM('fbody<')
   BEGIN_FBODY(pctx, implicit_return)
+  PUSH_EXTENT(pctx, pctx.token, 'fbody')
   scan(pctx, "{");
   while (pctx.token.id != "}") {
     var stmt = parseStmt(pctx);
     LOGM('+fbody_stmt')
     ADD_FBODY_STMT(stmt, pctx)
   }
+  END_EXTENT(pctx, pctx.token)
   scan(pctx, "}");
   LOGM('>fbody')
-  END_FBODY(pctx, implicit_return)
+  END_FBODY(pctx, implicit_return, POP_EXTENT('fbody'))
 }
 
 function parseFunctionParam(pctx) {
@@ -1199,10 +1303,12 @@ function parseFunctionParams(pctx, starttok, endtok) {
 // parse an abbreviated-syntax method (as in { x() { ... }, y() { ... } })
 function parseMethod(pctx) {
   //console.log("**** Deprecated method definition syntax in "+pctx.filename+":"+pctx.line);
+  PUSH_EXTENT(pctx, null, 'GEN_FUN_EXP')
   var pars = parseFunctionParams(pctx);
   var body = parseFunctionBody(pctx, true);
+  END_EXTENT(pctx, body)
   LOGM('method_exp()')
-  GEN_FUN_EXP("", pars, body, pctx, true)
+  GEN_FUN_EXP("", pars, body, pctx, true, POP_EXTENT('GEN_FUN_EXP'))
 }
 #endif
 
@@ -1210,33 +1316,37 @@ S("function").
   // expression function form ('function expression')
   exs(function(pctx) {
     var fname = "";
+    PUSH_EXTENT(pctx, null, 'function.exs')
     if (pctx.token.id == "<id>") {
       fname = pctx.token.value;
       scan(pctx);
     }
     var pars = parseFunctionParams(pctx);
     var body = parseFunctionBody(pctx);
+    END_EXTENT(pctx, body)
     LOGM('fun_exp('+(fname||'')+')')
-    GEN_FUN_EXP(fname, pars, body, pctx, false)
+    GEN_FUN_EXP(fname, pars, body, pctx, false, POP_EXTENT('GEN_FUN_EXP'))
   }).
   // statement function form ('function declaration')
   stmt(function(pctx) {
+    PUSH_EXTENT(pctx, null, 'function.stmt')
     if (pctx.token.id != "<id>") throw new Error("Malformed function declaration");
     var fname = pctx.token.value;
     scan(pctx);
     var pars = parseFunctionParams(pctx);
     var body = parseFunctionBody(pctx);
+    END_EXTENT(pctx, body)
     LOGM('fun_decl')
-    GEN_FUN_DECL(fname, pars, body, pctx)
+    GEN_FUN_DECL(fname, pars, body, pctx, POP_EXTENT('GEN_FUN_DECL'))
   });
 
-S("this", TOKENIZER_OP).exs(function(pctx) { LOGM('this') GEN_THIS(pctx) });
-S("true", TOKENIZER_OP).exs(function(pctx) { LOGM('true') GEN_TRUE(pctx) });
-S("false", TOKENIZER_OP).exs(function(pctx) { LOGM('false') GEN_FALSE(pctx) });
-S("null", TOKENIZER_OP).exs(function(pctx) { LOGM('null') GEN_NULL(pctx) });
+S("this", TOKENIZER_OP).exs(function(pctx) { LOGM('this') GEN_THIS(pctx, TOP_EXTENT()) });
+S("true", TOKENIZER_OP).exs(function(pctx) { LOGM('true') GEN_TRUE(pctx, TOP_EXTENT()) });
+S("false", TOKENIZER_OP).exs(function(pctx) { LOGM('false') GEN_FALSE(pctx, TOP_EXTENT()) });
+S("null", TOKENIZER_OP).exs(function(pctx) { LOGM('null') GEN_NULL(pctx, TOP_EXTENT()) });
 
 #ifdef SJS_CORE
-S("collapse", TOKENIZER_OP).exs(function(pctx) { LOGM('collapse') GEN_COLLAPSE(pctx) });
+S("collapse", TOKENIZER_OP).exs(function(pctx) { LOGM('collapse') GEN_COLLAPSE(pctx, TOP_EXTENT()) });
 #endif
 
 #ifdef INTERPOLATING_STRINGS
@@ -1272,20 +1382,23 @@ S('"', TOKENIZER_IS).exs(function(pctx) {
     default:
       throw new Error("Internal parser error: Unknown token in string ("+pctx.token+")");
     }
+    END_EXTENT(pctx, pctx.token)
     scan(pctx, undefined, TOKENIZER_IS);
   }
-  scan(pctx);
 
   if (last == -1) {
+    END_EXTENT(pctx, pctx.token)
     parts.push('');
     last = 0;
   }
 
+  scan(pctx);
+
   if (last == 0 && typeof parts[0] == 'string') {
     var val = '"'+parts[0]+'"';
-    GEN_LITERAL('<string>',val,pctx)
+    GEN_LITERAL('<string>',val,pctx, TOP_EXTENT())
   }
-  GEN_INTERPOLATING_STR(parts, pctx)
+  GEN_INTERPOLATING_STR(parts, pctx, TOP_EXTENT())
 });
 
 S('istr-#{', TOKENIZER_SA);
@@ -1295,6 +1408,7 @@ S('istr-"', TOKENIZER_OP);
 #ifdef QUASIS
 S('`', TOKENIZER_QUASI).exs(function(pctx) {
   var parts = [], current=0;
+  PUSH_EXTENT(pctx, pctx.token, "GEN_QUASI")
   while (pctx.token.id != 'quasi-`') {
     switch (pctx.token.id) {
     case '<string>':
@@ -1337,6 +1451,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
     default:
       throw new Error('Internal parser error: Unknown token in string ('+pctx.token+')');
     }
+    END_EXTENT(pctx, pctx.token)
     scan(pctx, undefined, TOKENIZER_QUASI);
   }
   scan(pctx);
@@ -1346,7 +1461,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
     parts.push('');
   }
 
-  GEN_QUASI(parts, pctx);
+  GEN_QUASI(parts, pctx, POP_EXTENT('GEN_QUASI'));
 });
 
 function parseQuasiInlineEscape(pctx) {
@@ -1358,6 +1473,7 @@ function parseQuasiInlineEscape(pctx) {
     return identifier.exsf(pctx);
   }
   else {
+    PUSH_EXTENT(pctx, pctx.token, 'parseQuasiInlineEscape')
     scan(pctx); // consume identifier
     scan(pctx, '('); // consume '('
     // $func(args)
@@ -1366,7 +1482,7 @@ function parseQuasiInlineEscape(pctx) {
       if (args.length) scan(pctx, ',');
       args.push(parseExp(pctx, BP_COMMA)); // only parse up to comma
     }
-    GEN_FUN_CALL(identifier.exsf(pctx), args, pctx)
+    GEN_FUN_CALL(identifier.exsf(pctx), args, pctx, POP_EXTENT('GEN_FUN_CALL'))
   }
 }
 
@@ -1382,8 +1498,10 @@ function isStmtTermination(token) {
 }
 
 function parseStmtTermination(pctx) {
-  if (pctx.token.id != "}" && pctx.token.id != "<eof>" && !pctx.newline)
+  if (pctx.token.id != "}" && pctx.token.id != "<eof>" && !pctx.newline) {
+    END_EXTENT(pctx, pctx.token)
     scan(pctx, ";");
+  }
 }
 
 function parseVarDecls(pctx, noIn) {
@@ -1391,28 +1509,31 @@ function parseVarDecls(pctx, noIn) {
   var parse = noIn ? parseExpNoIn : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
-    var id_or_pattern = parse(pctx, BP_ASSIGN);
+    PUSH_EXTENT(pctx, pctx.token, 'parseVarDecls')
+    var id_or_pattern = parse(pctx, BP_ASSIGN), initialiser=null;
     if (pctx.token.id == "=") {
       scan(pctx);
-      var initialiser = parse(pctx, BP_COMMA);
-      decls.push([id_or_pattern, initialiser]);
+      initialiser = parse(pctx, BP_COMMA);
+      END_EXTENT(pctx, initialiser)
     }
-    else
-      decls.push([id_or_pattern]);
+    decls.push([id_or_pattern, initialiser, POP_EXTENT('parseVarDecls')]);
   } while (pctx.token.id == ",");
+  END_EXTENT(pctx, decls[decls.length-1][2])
   return decls;
 }
     
 S("var").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, 'var.stmt')
   var decls = parseVarDecls(pctx);
   parseStmtTermination(pctx);
   LOGM('var_decl')
-  GEN_VAR_DECL(decls, pctx)
+  GEN_VAR_DECL(decls, pctx, POP_EXTENT('GEN_VAR_DECL'))
 });
 
 S("else");
 
 S("if").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, 'if.stmt')
   scan(pctx, "(");
   var test = parseExp(pctx);
   scan(pctx, ")");
@@ -1423,10 +1544,11 @@ S("if").stmt(function(pctx) {
     alternative = parseStmt(pctx);
   }
   LOGM('if')
-  GEN_IF(test, consequent, alternative, pctx)
+  GEN_IF(test, consequent, alternative, pctx, POP_EXTENT('GEN_IF'))
 });
 
 S("while").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   scan(pctx, "(");
   var test = parseExp(pctx);
   scan(pctx, ")");
@@ -1434,29 +1556,36 @@ S("while").stmt(function(pctx) {
   var body = parseStmt(pctx);
   END_LOOP_SCOPE(pctx)
   LOGM('while')
-  GEN_WHILE(test, body, pctx)
+  GEN_WHILE(test, body, pctx, POP_EXTENT('GEN_WHILE'))
 });
 
 S("do").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   BEGIN_LOOP_SCOPE(pctx)
   var body = parseStmt(pctx);
   END_LOOP_SCOPE(pctx)
   scan(pctx, "while");
   scan(pctx, "(");
   var test = parseExp(pctx);
+  END_EXTENT(pctx, pctx.token)
   scan(pctx, ")");
   parseStmtTermination(pctx);
   LOGM('do_while')
-  GEN_DO_WHILE(body, test, pctx)
+  GEN_DO_WHILE(body, test, pctx, POP_EXTENT('GEN_DO_WHILE'))
 });
 
 S("for").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   scan(pctx, "(");
   var start_exp = null;
   var decls = null;
   if (pctx.token.id == "var") {
+    PUSH_EXTENT(pctx, pctx.token, 'for var decls')
     scan(pctx); // consume 'var'
     decls = parseVarDecls(pctx, true);
+#ifdef TRACK_EXTENTS
+    decls.extent = POP_EXTENT('for var decls');
+#endif
   }
   else {
     if (pctx.token.id != ';')
@@ -1477,7 +1606,7 @@ S("for").stmt(function(pctx) {
     var body = parseStmt(pctx);
     END_LOOP_SCOPE(pctx)
     LOGM('for')
-    GEN_FOR(start_exp, decls, test_exp, inc_exp, body, pctx)
+    GEN_FOR(start_exp, decls, test_exp, inc_exp, body, pctx, POP_EXTENT('GEN_FOR'))
   }
   else if (pctx.token.id == "in") {
     scan(pctx);
@@ -1491,56 +1620,66 @@ S("for").stmt(function(pctx) {
     END_LOOP_SCOPE(pctx)
     var decl = decls ? decls[0] : null;
     LOGM('for_in')
-    GEN_FOR_IN(start_exp, decl, obj_exp, body, pctx)
+    GEN_FOR_IN(start_exp, decl, obj_exp, body, pctx, POP_EXTENT('GEN_FOR_IN'))
   }
   else
     throw new Error("Unexpected token '"+pctx.token+"' in for-statement");
 });
 
 S("continue").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   var label = null;
   if (pctx.token.id == "<id>" && !pctx.newline) {
     label = pctx.token.value;
+    END_EXTENT(pctx, pctx.token)
     scan(pctx);
   }
   parseStmtTermination(pctx);
   LOGM('continue')
-  GEN_CONTINUE(label, pctx)
+  GEN_CONTINUE(label, pctx, POP_EXTENT('GEN_CONTINUE'))
 });
 
 S("break").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   var label = null;
   if (pctx.token.id == "<id>" && !pctx.newline) {
     label = pctx.token.value;
+    END_EXTENT(pctx, pctx.token)
     scan(pctx);
   }
   parseStmtTermination(pctx);
   LOGM('break')
-  GEN_BREAK(label, pctx)
+  GEN_BREAK(label, pctx, POP_EXTENT('GEN_BREAK'))
 });
 
 S("return").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   var exp = null;
-  if (!isStmtTermination(pctx.token) && !pctx.newline)
+  if (!isStmtTermination(pctx.token) && !pctx.newline) {
     exp = parseExp(pctx);
+    END_EXTENT(pctx, pctx.token)
+  }
   parseStmtTermination(pctx);
   LOGM('return')
-  GEN_RETURN(exp, pctx)
+  GEN_RETURN(exp, pctx, POP_EXTENT('GEN_RETURN'))
 });
 
 S("with").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   scan(pctx, "(");
   var exp = parseExp(pctx);
   scan(pctx, ")");
   var body = parseStmt(pctx);
+  END_EXTENT(pctx, body)
   LOGM('with')
-  GEN_WITH(exp, body, pctx)
+  GEN_WITH(exp, body, pctx, POP_EXTENT('GEN_WITH'))
 });
 
 S("case");
 S("default");
 
 S("switch").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, 'switch.stmt')
   scan(pctx, "(");
   var exp = parseExp(pctx);
   scan(pctx, ")");
@@ -1549,6 +1688,7 @@ S("switch").stmt(function(pctx) {
   var clauses = [];
   while (pctx.token.id != "}") {
     var clause_exp = null;
+    PUSH_EXTENT(pctx, pctx.token, 'case clause')
     if (pctx.token.id == "case") {
       scan(pctx);
       clause_exp = parseExp(pctx);
@@ -1559,27 +1699,35 @@ S("switch").stmt(function(pctx) {
     else
       throw new Error("Invalid token '"+pctx.token+"' in switch statement");
     scan(pctx, ":");
+    END_EXTENT(pctx, pctx.token)
     LOGM('case_clause<')
     BEGIN_CASE_CLAUSE(clause_exp, pctx)
     while (pctx.token.id != "case" && pctx.token.id != "default" && pctx.token.id != "}") {
       var stmt = parseStmt(pctx);
       LOGM('+case_clause_stmt')
+      END_EXTENT(pctx, stmt)
       ADD_CASE_CLAUSE_STMT(stmt, pctx)
     }
-    clauses.push((function(pctx) { LOGM('>case_clause') END_CASE_CLAUSE(pctx) })(pctx));
+    clauses.push((function(pctx) {
+      LOGM('>case_clause')
+      END_CASE_CLAUSE(pctx, POP_EXTENT('case clause'))
+    })(pctx));
   }
   END_SWITCH_SCOPE(pctx)
+  END_EXTENT(pctx, pctx.token)
   scan(pctx, "}");
   LOGM('switch')
-  GEN_SWITCH(exp, clauses, pctx)
+  GEN_SWITCH(exp, clauses, pctx, POP_EXTENT('GEN_SWITCH'))
 });
 
 S("throw").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, 'throw.stmt')
   if (pctx.newline) throw new Error("Illegal newline after throw");
   var exp = parseExp(pctx);
+  END_EXTENT(pctx, exp)
   parseStmtTermination(pctx);
   LOGM('throw')
-  GEN_THROW(exp, pctx);
+  GEN_THROW(exp, pctx, POP_EXTENT('GEN_THROW'));
 });
 
 S("catch");
@@ -1635,6 +1783,7 @@ function parseCRF(pctx) {
 
 #ifdef SJS_CORE
 S("try").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   scan(pctx, "{");
   var block = parseBlock(pctx);
   var op = pctx.token.value; // XXX maybe use proper syntax token
@@ -1644,7 +1793,7 @@ S("try").stmt(function(pctx) {
     if (!crf[0] && !crf[1] && !crf[2])
       throw new Error("Missing 'catch', 'finally' or 'retract' after 'try'");
     LOGM('try')
-    GEN_TRY(block, crf, pctx)
+    GEN_TRY(block, crf, pctx, POP_EXTENT('GEN_TRY'))
   }
   else {
     var blocks = [block];
@@ -1655,23 +1804,25 @@ S("try").stmt(function(pctx) {
     } while (pctx.token.value == op);
     var crf = parseCRF(pctx);
     LOGM('waitfor_andor')
-    GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)
+    GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, POP_EXTENT('GEN_WAITFOR_ANDOR'))
   }
 });
 #else
 S("try").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   scan(pctx, "{");
   var block = parseBlock(pctx);
   var crf = parseCRF(pctx);
   if (!crf[0] && !crf[2])
     throw new Error("Missing 'catch' or 'finally' after 'try'");
   LOGM('try')
-  GEN_TRY(block, crf, pctx)
+  GEN_TRY(block, crf, pctx, POP_EXTENT('GEN_TRY'))
 });
 #endif
 
 #ifdef SJS_CORE
 S("waitfor").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, 'waitfor.stmt')
   if (pctx.token.id == "{") {
     // DEPRECATED and/or forms
     scan(pctx, "{");
@@ -1685,7 +1836,7 @@ S("waitfor").stmt(function(pctx) {
     } while (pctx.token.value == op);
     var crf = parseCRF(pctx);
     LOGM('waitfor_andor')
-    GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)
+    GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, POP_EXTENT('GEN_WAITFOR_ANDOR'))
   }
   else {
     // suspend form
@@ -1707,7 +1858,7 @@ S("waitfor").stmt(function(pctx) {
     LOGM('>suspend')
     END_SUSPEND_BLOCK(pctx)
     LOGM('suspend')
-    GEN_SUSPEND(has_var, decls, block, crf, pctx)
+    GEN_SUSPEND(has_var, decls, block, crf, pctx, POP_EXTENT('GEN_SUSPEND'))
   }    
 });
 
@@ -1715,6 +1866,7 @@ S("waitfor").stmt(function(pctx) {
 
 #ifdef SJS_USING
 S("using").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '.stmt')
   var has_var;
   scan(pctx, "(");
   if (has_var = (pctx.token.id == "var"))
@@ -1734,19 +1886,20 @@ S("using").stmt(function(pctx) {
   scan(pctx, ")");
   var body = parseStmt(pctx);
   LOGM('using')
-  GEN_USING(has_var, lhs, exp, body, pctx)
+  GEN_USING(has_var, lhs, exp, body, pctx, POP_EXTENT('GEN_USING'))
 });
 #endif /* SJS_USING */
 
 #ifdef SJS___JS
 S("__js").stmt(function(pctx) {
+  PUSH_EXTENT(pctx, null, '__JS.stmt')
   LOGM('__js<')
   BEGIN___JS_BLOCK(pctx)
   var body = parseStmt(pctx);
   LOGM('>__js')
   END___JS_BLOCK(pctx)
   LOGM('__js')
-  GEN___JS(body, pctx)
+  GEN___JS(body, pctx, POP_EXTENT('GEN_JS'))
 });
 #endif /* SJS___JS */
 
@@ -1794,6 +1947,36 @@ function makeParserContext(src, settings) {
     lastIndex : 0,
     token     : null
   };
+#ifdef TRACK_EXTENTS
+  ctx.getColumn = function(idx) {
+      // console.log("COLUMN @ line:");
+      var pos = idx;
+      if(this.src.charAt(idx) === '\n') {
+        // console.log("Is a newline");
+        pos--;
+      }
+      var lineStart = this.src.lastIndexOf('\n', pos)+1;
+
+      // console.log("lineStart["+idx+"] = "+lineStart);
+      if(lineStart>idx) return 0;
+      // var lineEnd = this.src.indexOf('\n', idx);
+      // if(lineEnd === -1) lineEnd = this.src.length-1;
+      // console.log("LINE: "+idx+"="+JSON.stringify(this.src.charAt(idx))+" :: " + JSON.stringify([
+      //     lineStart,
+      //     idx,
+      //     lineEnd,
+      //     this.src.slice(lineStart, lineEnd),
+      //     // this.src.slice(lineStart, idx),
+      //     idx - lineStart,
+      // ]));
+      return idx - lineStart;
+  };
+
+  // TODO: track this eagerly, rather than on-demand?
+  Object.defineProperty(ctx, 'column', {get:
+    function() { return this.getColumn(this.lastIndex); }
+  });
+#endif
 
   if (settings)
     for (var a in settings)
@@ -1820,11 +2003,15 @@ function compile(src, settings) {
     var mes = e.mes || e;
     var line = e.line || pctx.line;
     var exception = new Error("SJS syntax error "+(pctx.filename?"in "+pctx.filename+",": "at") +" line " + line + ": " + mes);
+#ifdef TRACK_EXTENTS
+    exception.line = line;
+    exception.column = getColumn(pctx.column);
+#endif
     exception.compileError = {message: mes, line: line};
     throw exception;
   }
 }
-exports.compile = compile;
+exports.compile = exports.parse = compile;
 
 function parseScript(pctx) {
   BEGIN_SCRIPT(pctx)
@@ -1839,10 +2026,18 @@ function parseScript(pctx) {
 
 function parseStmt(pctx) {
   var t = pctx.token;
+  PUSH_EXTENT(pctx, t, 'parseStmt')
+  STORE_EXTENT_LENGTH(pctx)
   scan(pctx);
   if (t.stmtf) {
     // a specialized statement construct
-    return t.stmtf(pctx);
+    var rv = t.stmtf(pctx);
+#ifdef TRACK_EXTENTS
+    CHECK_EXTENT_LENGTH(pctx, rv)
+    POP_EXTENT('parseStmt');
+    END_EXTENT(pctx, rv)
+#endif
+    return rv;
   }
   else if (t.id == "<id>" && pctx.token.id == ":") {
     // a labelled statement
@@ -1850,33 +2045,45 @@ function parseStmt(pctx) {
     // XXX should maybe code this in non-recursive style:
     var stmt = parseStmt(pctx);
     LOGM('lbl_stmt')
-    GEN_LBL_STMT(t.value, stmt, pctx)
+    CHECK_EXTENT_LENGTH(pctx, stmt)
+    GEN_LBL_STMT(t.value, stmt, pctx, POP_EXTENT('GEN_LBL_STMT'))
   }
   else {
     // an expression statement
     var exp = parseExp(pctx, 0, t);
+    END_EXTENT(pctx, exp)
     parseStmtTermination(pctx);
     LOGM('exp_stmt')
-    GEN_EXP_STMT(exp, pctx)
+    CHECK_EXTENT_LENGTH(pctx, exp)
+    GEN_EXP_STMT(exp, pctx, POP_EXTENT('GEN_EXP_STMT'))
   }
 }
 
-// bp: binding power of enclosing exp, t: optional next token 
+// bp: binding power of enclosing exp, t: optional next token
 function parseExp(pctx, bp, t) {
   bp = bp || 0;
   if (!t) {
     t = pctx.token;
     scan(pctx);
   }
+  STORE_EXTENT_LENGTH(pctx)
+  PUSH_EXTENT(pctx, t, 'parseExp')
   var left = t.exsf(pctx);
   while (bp < pctx.token.excbp) {
-    t = pctx.token;
     // automatic semicolon insertion:
     if (pctx.newline && t.asi_restricted)
-      return left;
+      break;
+    t = pctx.token;
+    END_EXTENT(pctx, t)
     scan(pctx);
     left = t.excf(left, pctx);
+    END_EXTENT(pctx, t)
   }
+#ifdef TRACK_EXTENTS
+  var exprEnd = POP_EXTENT('<parseExp');
+  END_EXTENT(pctx, exprEnd)
+  CHECK_EXTENT_LENGTH(pctx, left)
+#endif
   return left;
 }
 
@@ -1887,6 +2094,8 @@ function parseExpNoIn(pctx, bp, t) {
     t = pctx.token;
     scan(pctx);
   }
+  PUSH_EXTENT(pctx, t, 'parseExpNoIn')
+  STORE_EXTENT_LENGTH(pctx)
   var left = t.exsf(pctx);
   while (bp < pctx.token.excbp && pctx.token.id != 'in') {
     t = pctx.token;
@@ -1896,6 +2105,10 @@ function parseExpNoIn(pctx, bp, t) {
     scan(pctx);
     left = t.excf(left, pctx);
   }
+#ifdef TRACK_EXTENTS
+  CHECK_EXTENT_LENGTH(pctx, left)
+  POP_EXTENT('<parseExpNoIn');
+#endif
   return left;
 }
 
@@ -1909,7 +2122,7 @@ function scan(pctx, id, tokenizer) {
   }
   
   if (id && (!pctx.token || pctx.token.id != id))
-    throw new Error("Unexpected " + pctx.token);
+    throw new Error("Unexpected " + pctx.token + ", looking for " + id + " on " + pctx.line);
   pctx.token = null;
   pctx.newline = 0;
   while (!pctx.token) {
@@ -1937,16 +2150,26 @@ function scan(pctx, id, tokenizer) {
         }
         // go round loop again
       }
-      else if (matches[SA_STRLIT_MATCH])
+      else if (matches[SA_STRLIT_MATCH]) {
         pctx.token = new Literal("<string>", matches[SA_STRLIT_MATCH]);
+      }
 #ifdef MULTILINE_STRINGS
       else if (matches[SA_ML_STRLIT_MATCH]) {
         var val = matches[SA_ML_STRLIT_MATCH];
         var m = val.match(/PAT_NEWLINE/g);
         pctx.line += m.length;
         pctx.newline += m.length;
-        val = val.replace(/\\PAT_NEWLINE/g, "").replace(/PAT_NEWLINE/g, "\\n");
-        pctx.token = new Literal("<string>", val);
+#ifdef TRACK_EXTENTS
+        var length = val.length;
+#endif
+        var lit = val.replace(/\\PAT_NEWLINE/g, "").replace(/PAT_NEWLINE/g, "\\n");
+        pctx.token = new Literal("<string>", lit
+#ifdef TRACK_EXTENTS
+            , val.length);
+        pctx.token.lines = m.length;
+#else
+            );
+#endif
       }
 #endif
       else if (matches[SA_NUMLIT_MATCH])
@@ -1985,11 +2208,14 @@ function scan(pctx, id, tokenizer) {
       //print("op:"+pctx.token);
     }
 #ifdef INTERPOLATING_STRINGS
-    else if (tokenizer == TOKENIZER_IS) { 
+    else if (tokenizer == TOKENIZER_IS) {
       // interpolating string tokenizer
-      if (matches[IS_CONTENT_MATCH])
+      if (matches[IS_CONTENT_MATCH]) {
         pctx.token = new Literal("<string>", matches[IS_CONTENT_MATCH]);
-      else if (matches[IS_ESCAPED_NEWLINE_MATCH]) {
+#ifdef TRACK_EXTENTS
+        pctx.token.inner = '"';
+#endif
+      } else if (matches[IS_ESCAPED_NEWLINE_MATCH]) {
         ++pctx.line;
         ++pctx.newline;
         // go round loop again
@@ -1997,7 +2223,11 @@ function scan(pctx, id, tokenizer) {
       else if (matches[IS_NEWLINE_MATCH]) {
         ++pctx.line;
         ++pctx.newline;
-        pctx.token = new Literal("<string>", '\\n');
+        pctx.token = new Literal("<string>", '\\n', 1);
+#ifdef TRACK_EXTENTS
+        pctx.token.inner = '"';
+        pctx.token.lines = 1;
+#endif
       }
       else if (matches[IS_OPERATOR_MATCH]) {
         pctx.token = ST.lookup("istr-"+matches[IS_OPERATOR_MATCH]);
@@ -2007,9 +2237,10 @@ function scan(pctx, id, tokenizer) {
 #ifdef QUASIS
     else if (tokenizer == TOKENIZER_QUASI) {
       // quasiliteral tokenizer
-      if (matches[QUASI_CONTENT_MATCH])
+      if (matches[QUASI_CONTENT_MATCH]) {
         pctx.token = new Literal("<string>", matches[QUASI_CONTENT_MATCH]);
-      else if (matches[QUASI_ESCAPED_NEWLINE_MATCH]) {
+        pctx.token.inner = '`';
+      } else if (matches[QUASI_ESCAPED_NEWLINE_MATCH]) {
         ++pctx.line;
         ++pctx.newline;
         // go round loop again
@@ -2018,6 +2249,9 @@ function scan(pctx, id, tokenizer) {
         ++pctx.line;
         ++pctx.newline;
         pctx.token = new Literal("<string>", '\\n');
+#ifdef TRACK_EXTENTS
+        pctx.token.inner = '`';
+#endif
       }
       else if (matches[QUASI_OPERATOR_MATCH]) {
         pctx.token = ST.lookup("quasi-"+matches[QUASI_OPERATOR_MATCH]);
@@ -2027,6 +2261,9 @@ function scan(pctx, id, tokenizer) {
     else
       throw new Error("Internal scanner error: no tokenizer");
   }
+#ifdef EMIT_TOKENS
+  EMIT_TOKEN(pctx, pctx.token);
+#endif
   return pctx.token;
 }
 
