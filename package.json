@@ -20,7 +20,7 @@
     "karma-phantomjs-launcher": "*",
     "karma-ie-launcher": "*",
     "karma-script-launcher": "*",
-    "eslint": "~0.16.1",
+    "eslint": "git://github.com/gfxmonk/eslint.git#750e1eba3f23a913abfc57ad085a2e835fc7083b",
     "espree":"~1.10.0"
   },
   "engines": {
