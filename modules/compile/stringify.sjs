@@ -495,6 +495,20 @@ function quasi(parts) {
 
 
 
+/**
+   @executable
+   @module  compile/stringify
+   @summary SJS source code stringifier
+   @home    sjs:compile/stringify
+ 
+   @function compile
+   @summary  Minify a string of SJS source code into a javascript string literal
+   @param    {String} [src]
+   @param    {optional Object} [settings]
+   @setting  {Boolean} [keeplines] Maintain line numbers
+   @return   {String} Minified SJS as a string literal
+*/
+
 
 //----------------------------------------------------------------------
 // Helpers

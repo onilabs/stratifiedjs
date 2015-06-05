@@ -649,7 +649,12 @@
         },
         "minify": {
           "type": "module",
-          "children": {}
+          "children": {
+            "compile": {
+              "type": "function"
+            }
+          },
+          "summary": "SJS source code minifier"
         },
         "sjs": {
           "type": "module",
@@ -662,7 +667,12 @@
         },
         "stringify": {
           "type": "module",
-          "children": {}
+          "children": {
+            "compile": {
+              "type": "function"
+            }
+          },
+          "summary": "SJS source code stringifier"
         }
       },
       "summary": "SJS compilation utilities"

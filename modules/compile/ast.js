@@ -1122,21 +1122,6 @@ function gen_blocklambda(pars, body, pctx, ext) {
   return Node.Function(pctx, ext, null, pars, body, false, false);
 }
 
-/**
-   @executable
-   @module  compile/minify
-   @summary SJS source code minifier
-   @home    sjs:compile/minify
-
-   @function compile
-   @summary  Minify a string of SJS source code
-   @param    {String} [src]
-   @param    {optional Object} [settings]
-   @setting  {Boolean} [keeplines] Maintain line numbers
-   @return   {String} Minified SJS
-*/
-
-
 
 //----------------------------------------------------------------------
 // Helpers

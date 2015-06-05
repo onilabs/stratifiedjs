@@ -337,28 +337,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define ONE_SIDED_CONDITIONALS 1
 #include "kernel-jsmin.js.in"
 
-#elif defined(C1_KERNEL_AST)
-
-#define SJS_CORE 1
-#define MULTILINE_STRINGS 1
-#define SJS_USING 1
-#define SJS___JS 1
-#define SJS_DESTRUCTURE 1
-#define SJS_BLOCKLAMBDA 1
-#define SJS_ARROWS 1
-#define SJS_DOUBLEDOT 1
-#define SJS_DOUBLECOLON 1
-#define SJS_ALTERNATE_NAMESPACE 1
-#define INTERPOLATING_STRINGS 1
-#define QUASIS 1
-#define ONE_SIDED_CONDITIONALS 1
-
-#define EMIT_TOKENS 1
-#define TRACK_EXTENTS 1
-
-#define PARSE_ERROR_INCLUDE_POS 1
-#include "kernel-ast.js.in"
-
 /**
    @executable
 #ifdef STRINGIFY
@@ -386,6 +364,27 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #endif /* STRINGIFY */
 */
 
+#elif defined(C1_KERNEL_AST)
+
+#define SJS_CORE 1
+#define MULTILINE_STRINGS 1
+#define SJS_USING 1
+#define SJS___JS 1
+#define SJS_DESTRUCTURE 1
+#define SJS_BLOCKLAMBDA 1
+#define SJS_ARROWS 1
+#define SJS_DOUBLEDOT 1
+#define SJS_DOUBLECOLON 1
+#define SJS_ALTERNATE_NAMESPACE 1
+#define INTERPOLATING_STRINGS 1
+#define QUASIS 1
+#define ONE_SIDED_CONDITIONALS 1
+
+#define EMIT_TOKENS 1
+#define TRACK_EXTENTS 1
+
+#define PARSE_ERROR_INCLUDE_POS 1
+#include "kernel-ast.js.in"
 
 #elif defined(C1_KERNEL_DEPS)
 
