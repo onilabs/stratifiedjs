@@ -504,12 +504,8 @@
 			}
 		};
 
-		function expect(source, expected) {
-
-		}
-
 	}
 
 	// TODO: we could probably run many of espree's own unit tests. But the
 	// failures might be very noisy.
-}
+}.serverOnly();
