@@ -32,16 +32,29 @@
 
 /**
   @nodoc
+  @eslint
+    {
+      "rules": {
+        "no-console": 0,
+        "curly": 0,
+        "no-process-exit": 0
+      }
+    }
 */
 
-@ = require(['sjs:sequence', 'sjs:sys', 'sjs:object']);
+@ = require([
+	'../sequence',
+	'../sys',
+	'../object',
+	{id:'../docutil', name:'docutil'},
+]);
 var { linter:@eslint, @CLIEngine } = require('nodejs:eslint/lib/api');
 @url = require('sjs:url');
 var compile = require('./ast').compile;
 
-var globals = [];
-['module','exports','require','hold','resume', '@','console'] .. @each {|key|
-	globals[key] = true;
+var DEFAULT_GLOBALS = [];
+['module','exports','require','hold','resume', '@','console', 'process'] .. @each {|key|
+	DEFAULT_GLOBALS[key] = true;
 }
 
 var OK = 0, WARN = 1, ERROR = 2;
@@ -67,7 +80,7 @@ function worseStatus(a,b) {
 exports.verify = function(opts) {
 	var text = opts.text;
 	var filename = opts.filename;
-	var config = opts.config;
+	var globalConf = opts.config;
 
 	if(text == null) {
 		text = require('sjs:nodejs/fs').readFile(filename, 'utf-8');
@@ -98,9 +111,35 @@ exports.verify = function(opts) {
 		'no-unreachable': 0, // confused by waitfor/*
 		'comma-dangle':0, // deficiency in JS parsers, fine in SJS
 	});
+	var globals = DEFAULT_GLOBALS;
 
-	if(config && config.rules) {
-		rules = rules .. @merge(config.rules);
+	function extendConfig(config) {
+		if(!config) return;
+		if(config.rules) {
+			rules .. @extend(config.rules);
+		}
+		if(config.globals) {
+			var g = config.globals;
+			if(Array.isArray(g)) {
+				var keys = g;
+				g = {};
+				keys .. @each{|key| g[key]=true; };
+			}
+			globals = globals .. @merge(g);
+		}
+	}
+
+	extendConfig(globalConf);
+
+	var moduleMetadata = @docutil.parseModuleDocs(text);
+	var moduleConfig = moduleMetadata.eslint;
+	if(moduleConfig) {
+		try {
+			moduleConfig = moduleConfig .. JSON.parse();
+		} catch(e) {
+			throw new Error("invalid JSON in @lint-config for #{filename}:\n#{e}");
+		}
+		extendConfig(moduleConfig);
 	}
 
 	var eslintConfig = defaults .. @merge({
@@ -148,6 +187,5 @@ if (require.main === module) {
 			config: config
 		}));
 	});
-	console.log();
 	process.exit(rv);
 }
