@@ -508,4 +508,12 @@
 
 	// TODO: we could probably run many of espree's own unit tests. But the
 	// failures might be very noisy.
-}.serverOnly();
+}.serverOnly().skipIf((function() { 
+  try {
+    require('nodejs:espree');
+  }
+  catch(e) {
+    return true;
+  }
+  return false;
+})(), "Module nodejs:espree required");
