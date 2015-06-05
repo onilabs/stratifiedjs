@@ -643,10 +643,6 @@
           "children": {},
           "summary": "Utility for generating documentation indexes"
         },
-        "lint": {
-          "type": "module",
-          "children": {}
-        },
         "minify": {
           "type": "module",
           "children": {
