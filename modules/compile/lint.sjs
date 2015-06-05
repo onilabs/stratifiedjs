@@ -76,6 +76,7 @@ function worseStatus(a,b) {
 	if(a === OK && b === OK) return OK;
 	console.warn("Unknown lint status: #{a}/#{b}");
 }
+exports.mergeStatus = worseStatus;
 
 exports.verify = function(opts) {
 	var text = opts.text;

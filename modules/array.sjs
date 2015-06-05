@@ -33,6 +33,7 @@
    @module  array
    @summary Functions for working with arrays
    @home    sjs:array
+   @eslint  { "rules": { "no-labels": 0 } }
 */
 
 var { Stream } = require('./sequence');
