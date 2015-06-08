@@ -35,5 +35,5 @@ branches:
     - master
     - /^\d+(\.\d+)+$/
 
-script: "./tools/bin/sjs-tests --show-failed"
+script: "./tools/bin/sjs-tests"
 
