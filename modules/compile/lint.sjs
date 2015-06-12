@@ -105,6 +105,7 @@ exports.verify = function(opts) {
 		'no-shadow':1,
 		'no-loop-func':0, // false positives from AST hack
 		'no-lone-blocks': 0, // triggered by __js { ... }
+		'no-spaced-func': 0, // XXX breaks due to AST differences
 		'no-constant-condition': 0, // XXX false positives triggered by AST hack
 		'no-multi-spaces': 0,
 		'curly': 1,
