@@ -277,21 +277,17 @@ var SemaphoreProto = {
      @altsyntax semaphore.synchronize { || ... some code ... }
      @summary Acquire permit, execute function, and release permit.
      @param {Function} [f] Argument-less function or block lambda to execute
+     @return {value} Return the result of `f`
      @desc
-       `f` will be executed in a `try/finally` construct after the 
+       `f` will be executed in a `try/finally` construct after the
        permit has been acquired. The permit will be released in
        the `finally` clause, i.e. it is guaranteed to to be released
        even if `f` throws an exception or is cancelled.
-
-       [::Semaphore::synchronize] is intended to be used with paren-free 
-       block lambda call syntax:
-
-           S.synchronize { || ... some code ... }
    */
   synchronize : function(f) {
     this.acquire();
     try {
-      f();
+      return f();
     }
     finally {
       this.release();
