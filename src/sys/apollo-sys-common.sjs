@@ -747,10 +747,12 @@ function default_loader(path, parent, src_loader, opts, spec) {
     // loads the *module* .../foo.sjs.
     // In practice this means that in rare cases a cycle might only
     // be detected on the second loop.
-    while (p.loaded_by) {
-      if (path === p.id)
-        return descriptor.exports;
-      p = p.loaded_by;
+    if(descriptor) {
+      while (p.loaded_by) {
+        if (path === p.id)
+          return descriptor.exports;
+        p = p.loaded_by;
+      }
     }
 
     // wait for load to complete:
