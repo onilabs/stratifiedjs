@@ -455,3 +455,22 @@ exports.removeCookie = function(name) {
 exports.isDOMNode = function(o) {
   return o && typeof o === "object" && o !== null && o.nodeType > 0 && typeof o.nodeName==="string";
 }
+
+/**
+  @function locationHash
+  @summary  return a consistent version of `document.location.hash`
+  @return   {String}
+  @desc
+     In some browsers (notably [Firefox](https://bugzilla.mozilla.org/show_bug.cgi?id=483304)),
+     accessing `document.location.hash` gives you a _decoded_ version of the location hash
+     (as if you had passed it through [../url::decode]).
+     This loses information, and creates inconsistencies between browsers.
+
+     This function returns the raw hash string in all browsers, without URL decoding.
+     You should always use it in preference to `document.location.hash`.
+ */
+exports.locationHash = function() {
+  var l = String(document.location);
+  var i = l.indexOf('#');
+  return i === -1 ? '' : l.slice(i);
+};

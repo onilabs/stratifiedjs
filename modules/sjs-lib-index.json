@@ -2881,6 +2881,9 @@
             "isDOMNode": {
               "type": "function"
             },
+            "locationHash": {
+              "type": "function"
+            },
             "pageX": {
               "type": "function"
             },
