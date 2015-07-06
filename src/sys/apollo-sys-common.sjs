@@ -372,6 +372,9 @@ __js exports.canonicalizeURL = function(url, base) {
     }
   }
 
+  // collapse multiple slashes
+  a.directory = a.directory.replace(/\/\/+/g, '/');
+
   // collapse "." & "..":
   var pin = a.directory.split("/");
   var l = pin.length;

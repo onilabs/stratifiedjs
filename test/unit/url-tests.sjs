@@ -39,6 +39,7 @@ context('build URL') {||
 
 context("normalize URL") {||
   testFn(url, 'normalize', ["/foo/bar.txt", "http://a.b/c/d/baz.txt"], "http://a.b/foo/bar.txt");
+  testFn(url, 'normalize', ["/foo//bar.txt", "http://a.b/c/d/baz.txt"], "http://a.b/foo/bar.txt");
   testFn(url, 'normalize', ["foo/bar.txt", "http://a.b/c/d/baz.txt"], "http://a.b/c/d/foo/bar.txt");
   testFn(url, 'normalize', ["././foo/./bar.txt", "http://a.b/c/d/"], "http://a.b/c/d/foo/bar.txt");
   testFn(url, 'normalize', [".././foo/../bar.txt", "http://a.b/c/d/"], "http://a.b/c/bar.txt");
