@@ -2,7 +2,9 @@ This changelog lists the most prominent, developer-visible changes in each relea
 
 ## Version 0.20:
 
-This version includes an overhaul to the nodejs/stream module, which offers more convenient interop
+### Streams API
+
+Version 0.20 includes an overhaul to the nodejs/stream module, which offers more convenient interop
 with StratifiedJS streams, and works more reliably with third-party nodejs stream implementations. Specifically:
 
  - It uses the new (nodejs 0.10) non-flowing stream API. The older "flowing" API is poorly implemented / supported by many third-party streams.
@@ -34,12 +36,22 @@ property. i.e:
 
 For convenience, the `pump` method is still exposed as a top-level property (i.e both `pump` and `stream.pump` refer to the same function).
 
+### `wraplib`
+
 The (undocumented) `wraplib` module has also seen a rework. There are new methods which better support wrapping complex / nested APIs, and the following exports have been moved:
 
  - mark_sync -> annotate.mark_sync
  - wrap -> annotate.fn
 
 The old names will still work for now, but they are deprecated.
+
+### `object`
+
+The `keys`, `values` and `propertyPairs` functions in the `sjs:object` module have been deprecated, replaced with
+the more explicit `allKeys`, `allValues` and `allPropertyPairs` aliases. This clarifies that these functions
+operate on all properties (i.e. inherited as well as own), and forces the user to make an explicit choice
+between `ownKeys` and `allKeys`. In practice, we have found that almost all uses of `keys` etc. are actually incorrect,
+chosen out of convenience rather than correctness. Obviously, this should be discouraged.
 
 ## Version 0.19:
 
