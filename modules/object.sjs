@@ -221,17 +221,17 @@ exports.has = function(subject, key) { return hasProperty.call(subject, key); }
 exports.hasOwn = function(subject, key) { return hasOwnProperty.call(subject, key); }
 
 /**
-   @function keys
+   @function allKeys
    @param {Object} [obj]
    @return {sequence::Stream}
    @summary  Returns a [sequence::Stream] of the names of `obj`'s enumerable properties, including those defined on `obj`'s prototype chain.
    @desc     
       See also [::ownKeys].
 */
-function keys(obj) {  
+function allKeys(obj) {  
   return Stream(function(r) { for (var p in obj) r(p) });
 }
-exports.keys = keys;
+exports.allKeys = exports.keys = allKeys;
 
 /**
    @function ownKeys
@@ -243,21 +243,21 @@ exports.keys = keys;
        Note that you can also use the ECMA-263/5 function `Object.keys` - 
        on older JS engines StratifiedJS adds a shim to emulate this function. 
 
-       See also [::keys].
+       See also [::allKeys].
 */
 var ownKeys = exports.ownKeys = Object.keys;
 
 /**
-  @function values
+  @function allValues
   @param    {Object} [obj]
   @return   {sequence::Stream}
   @summary  Returns a [sequence::Stream] of the values of `obj`'s enumerable properties,
             including those defined on `obj`'s prototype chain.
 */
-function values(obj) {
-  return keys(obj) .. transform(k => obj[k]);
+function allValues(obj) {
+  return allKeys(obj) .. transform(k => obj[k]);
 }
-exports.values = values;
+exports.allValues = exports.values = allValues;
 
 /**
   @function ownValues
@@ -272,16 +272,16 @@ function ownValues(obj) {
 exports.ownValues = ownValues;
 
 /**
-  @function propertyPairs
+  @function allPropertyPairs
   @param    {Object} [obj]
   @return   {sequence::Stream}
   @summary  Returns a [sequence::Stream] `[key1,val1], [key2,val2], ...` of `obj`'s 
             enumerable properties, including those defined on `obj`'s prototype chain.
 */
-function propertyPairs(obj) {
-  return keys(obj) .. transform(k => [k,obj[k]]);
+function allPropertyPairs(obj) {
+  return allKeys(obj) .. transform(k => [k,obj[k]]);
 }
-exports.propertyPairs = propertyPairs;
+exports.allPropertyPairs = exports.propertyPairs = allPropertyPairs;
 
 /**
   @function ownPropertyPairs
