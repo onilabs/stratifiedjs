@@ -166,6 +166,9 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:object](#sjs%3Aobject) module:
   
+   - **allKeys**: (function [sjs:object::allKeys])
+   - **allPropertyPairs**: (function [sjs:object::allPropertyPairs])
+   - **allValues**: (function [sjs:object::allValues])
    - **clone**: (function [sjs:object::clone])
    - **construct**: (function [sjs:object::construct])
    - **Constructor**: (function [sjs:object::Constructor])
@@ -175,17 +178,14 @@ module.exports = require(modules);
    - **getPath**: (function [sjs:object::getPath])
    - **has**: (function [sjs:object::has])
    - **hasOwn**: (function [sjs:object::hasOwn])
-   - **keys**: (function [sjs:object::keys])
    - **merge**: (function [sjs:object::merge])
    - **override**: (function [sjs:object::override])
    - **ownKeys**: (function [sjs:object::ownKeys])
    - **ownPropertyPairs**: (function [sjs:object::ownPropertyPairs])
    - **ownValues**: (function [sjs:object::ownValues])
    - **pairsToObject**: (function [sjs:object::pairsToObject])
-   - **propertyPairs**: (function [sjs:object::propertyPairs])
    - **setPath**: (function [sjs:object::setPath])
    - **tap**: (function [sjs:object::tap])
-   - **values**: (function [sjs:object::values])
   
   
   ### Symbols from the [sjs:observable](#sjs%3Aobservable) module:

@@ -1782,6 +1782,15 @@
         "Constructor": {
           "type": "function"
         },
+        "allKeys": {
+          "type": "function"
+        },
+        "allPropertyPairs": {
+          "type": "function"
+        },
+        "allValues": {
+          "type": "function"
+        },
         "clone": {
           "type": "function"
         },
@@ -1806,9 +1815,6 @@
         "hasOwn": {
           "type": "function"
         },
-        "keys": {
-          "type": "function"
-        },
         "merge": {
           "type": "function"
         },
@@ -1827,16 +1833,10 @@
         "pairsToObject": {
           "type": "function"
         },
-        "propertyPairs": {
-          "type": "function"
-        },
         "setPath": {
           "type": "function"
         },
         "tap": {
-          "type": "function"
-        },
-        "values": {
           "type": "function"
         }
       },
