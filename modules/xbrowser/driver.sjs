@@ -45,7 +45,7 @@
      [Selenium]: http://docs.seleniumhq.org/
 */
 
-var {get, extend, propertyPairs, ownPropertyPairs} = require('sjs:object');
+var {get, extend, ownPropertyPairs} = require('sjs:object');
 var {isDOMNode, findNode} = require('sjs:xbrowser/dom');
 var logging = require('sjs:logging');
 var {each, toArray} = require('sjs:sequence');
@@ -66,7 +66,8 @@ var fns = {};
 var DriverProto = Object.create(fns);
 
 DriverProto.mixInto = function(ctx) {
-	propertyPairs(this) .. each{|[k, v]|
+	ctx .. extend(fns);
+	ownPropertyPairs(DriverProto) .. each{|[k, v]|
 		if (k === 'mixInto') continue;
 		ctx[k] = v;
 	}
