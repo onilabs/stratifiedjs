@@ -250,7 +250,17 @@ function withServer(config, server_loop) {
       res.end();
       return;
     }
-    request_queue.put(ServerRequest(req, res, config.ssl));
+    try {
+      var server_req = ServerRequest(req, res, config.ssl);
+    }
+    catch(e) {
+      // we hit this e.g. if the body is too long
+      config.log('Dropping request ('+e+')');
+      res.writeHead(500);
+      res.end();
+      return;
+    }
+    request_queue.put(server_req);
   }
 
   var server;
