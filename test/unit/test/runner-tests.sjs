@@ -337,13 +337,17 @@ context("logging") {||
 context("test state") {||
   test("before / after shares state") {||
     var runner = new Runner(defaultOpts);
+    var context_state = null;
     var before_all_state = null;
     var after_all_state = null;
     var before_each_state = [];
     var after_each_state = [];
     var test_state = [];
 
-    runner.context("ctx") {||
+    runner.context("ctx") {|state|
+      state.contextLevel = true;
+      context_state = state;
+
       test.beforeAll { |state|
         state.contextLevel = true;
         before_all_state = state;
@@ -374,8 +378,11 @@ context("test state") {||
     results.ok() .. assert.ok(debug.inspect(results));
     
     // context level states
+    assert.ok(context_state.contextLevel);
+    assert.ok(before_all_state.contextLevel);
     assert.ok(before_all_state.contextLevel);
     assert.ok(before_all_state === before_all_state);
+    assert.ok(context_state === before_all_state);
 
     assert.eq(before_each_state.length, 2);
     assert.eq(after_each_state.length, 2);

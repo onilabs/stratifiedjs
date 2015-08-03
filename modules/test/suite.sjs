@@ -400,9 +400,11 @@ var Context = context.Cls = function(desc, body, module_name) {
 }
 addMetaFunctions(Context);
 
-Context.prototype.withHooks = function(defaultTimeout, fn) {
+Context.prototype.initState = function() {
   this.state = this.parent ? Object.create(this.parent.state) : {};
+};
 
+Context.prototype.withHooks = function(defaultTimeout, fn) {
   try {
     this._withTimeout(defaultTimeout, "beforeAll hooks") {||
       runHooks(this.hooks.before.all, this.state);
@@ -431,6 +433,7 @@ Context.prototype.addChild = function(child) {
 }
 
 Context.prototype.collect = function() {
+  this.initState();
   if (this._collected) {
     logging.verbose("Ignoring double-collection: #{this.fullDescription()}");
     return;
