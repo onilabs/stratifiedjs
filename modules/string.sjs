@@ -484,6 +484,20 @@ exports.unindent = function(s, c) {
 };
 
 /**
+   @function prefixLines
+   @summary Add a prefix to all lines in a string
+   @param   {String} [s]
+   @param   {String} [prefix]
+   @return  {String} String with every line prefixed with `prefix`
+*/
+exports.prefixLines = function(s, prefix) {
+  var lines = s.split(`\n`);
+  for(var i=0; i<lines.length; ++i)
+    lines[i] = prefix + lines[i];
+  return lines.join('\n');
+};
+
+/**
    @function capitalize
    @summary  Capitalize first character of the string
    @param    {String} [s]

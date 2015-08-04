@@ -298,6 +298,7 @@ module.exports = require(modules);
    - **padBoth**: (function [sjs:string::padBoth])
    - **padLeft**: (function [sjs:string::padLeft])
    - **padRight**: (function [sjs:string::padRight])
+   - **prefixLines**: (function [sjs:string::prefixLines])
    - **repeat**: (function [sjs:string::repeat])
    - **rsplit**: (function [sjs:string::rsplit])
    - **rstrip**: (function [sjs:string::rstrip])

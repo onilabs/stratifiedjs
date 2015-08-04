@@ -2461,6 +2461,9 @@
         "padRight": {
           "type": "function"
         },
+        "prefixLines": {
+          "type": "function"
+        },
         "repeat": {
           "type": "function"
         },
