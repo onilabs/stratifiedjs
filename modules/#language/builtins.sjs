@@ -270,7 +270,7 @@
 @function require.resolve
 @summary Resolve a module ID without actually loading it
 @desc
-  Require.resolve can be used to resolve the details of a given
+  require.resolve can be used to resolve the details of a given
   module ID, such as its canonical location.
 
   The returned object will have the following properties:
@@ -278,6 +278,17 @@
    - `path`: The module ID, with any hubs expanded (this is typically a URL, except in the case of custom loaders like `github:` and `nodejs:`)
    - loader: The module loader
    - src: The module source (String) or source loader (Function)
+
+  require.resolve can also be used to resolve a directory location (if the 'module id' argument ends with a '/').
+
+  Note that require.resolve automatically appends default extensions to the resolved path. In the
+  'xbrowser' hostenv, this will be '.sjs' (unless a directory location is being resolved). In the
+  'nodejs' hostenv, '.sjs' will be appended if the given file exists on disk with an 'sjs' extension.
+
+@function require.url
+@summary Resolve a module ID (or directory) to a URL without loading it
+@desc
+  `require.url(module)` is a shorthand for `require.resolve(module).path`. See the documentation for [::require.resolve]
 
 @function require.hubs.addDefault
 @param {Array} [hub]

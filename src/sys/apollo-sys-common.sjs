@@ -531,8 +531,7 @@ function makeRequire(parent) {
 
   // because resolve can suspend this must not be in a __js block:
   rf.url = function(relative) {
-    // Hack: We set a 'dummy' loader to prevent the resolver from appending '.sjs'
-    return resolve(relative, rf, parent, {loader: 'dummy'}).path;
+    return resolve(relative, rf, parent).path;
   };
 
   return rf;
@@ -784,8 +783,8 @@ function default_loader(path, parent, src_loader, opts, spec) {
 }
 
 __js function default_resolver(spec) {
-  // append extension if it doesn't have one
-  if (!spec.ext) spec.path += "." + spec.type;
+  // append extension if it doesn't have one and it is not a directory
+  if (!spec.ext && spec.path.charAt(spec.path.length-1) !== '/') spec.path += "." + spec.type;
 };
 
 
@@ -837,7 +836,7 @@ function resolve(module, require_obj, parent, opts) {
 
   var hubs = exports.require.hubs;
   // apply global aliases
-  var resolveSpec = resolveHubs(path, hubs, require_obj, parent, opts);
+  var resolveSpec = resolveHubs(path, hubs, require_obj, parent, opts || {});
 
   // make sure we have an absolute url with '.' & '..' collapsed:
   resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);

@@ -68,6 +68,9 @@
             },
             "require.resolve": {
               "type": "function"
+            },
+            "require.url": {
+              "type": "function"
             }
           },
           "summary": "Globally-available functions and objects"
