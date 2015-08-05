@@ -2778,6 +2778,9 @@
         "buildQuery": {
           "type": "function"
         },
+        "coerceToPath": {
+          "type": "function"
+        },
         "coerceToURL": {
           "type": "function"
         },

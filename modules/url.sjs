@@ -241,21 +241,38 @@ exports.decode = decodeURIComponent;
 /**
    @function toPath
    @summary Convert URL -> path
-   @param {String} [url] file:// URL
+   @param {String} [url] file: URL
    @return {String} The filesystem path.
    @hostenv nodejs
    @desc
      The returned path will be absolute or relative,
      depending on the input path. An error will be thrown
-     if `url` is not a file:// URL.
+     if `url` is not a file: URL.
 */
 exports.toPath = sys.fileUrlToPath;
 
 /**
+   @function coerceToPath
+   @param {String} [pathOrUrl] A 'file:' URL or filesystem path
+   @return {String} A URL
+   @summary Coerce `pathOrUrl` to a local file path
+   @hostenv nodejs
+   @desc
+      If `pathOrUrl` doesn't start with 'file:', it is returned unchanged otherwise it will be
+      converted to file path using [::toPath].
+*/
+__js exports.coerceToPath = function(pathOrUrl) {
+  if (pathOrUrl.indexOf('file:') === 0)
+    return sys.fileUrlToPath(pathOrUrl);
+  else
+    return pathOrUrl;
+};
+
+/**
    @function fileURL
-   @summary Convert a filesystem path into a file:// URL
+   @summary Convert a filesystem path into a 'file:' URL
    @param {String} [path] The input path (absolute or relative)
-   @return {String} An absolute file:// URL
+   @return {String} An absolute 'file:' URL
    @hostenv nodejs
    @desc
       If the path is relative, it will be canonicalized (against process.cwd())
@@ -273,7 +290,7 @@ exports.fileURL = sys.pathToFileUrl;
    @desc
       If `pathOrUrl` is already a URL, it is returned unchanged. If it doesn't
       look like a URL, it's assumed to be a local file path and converted to
-      a file:// URL using [::fileURL].
+      a 'file:' URL using [::fileURL].
       
       This is often useful for command line tools which accept a
       URLs for generality, but which are often used with local paths

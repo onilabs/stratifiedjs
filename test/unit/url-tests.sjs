@@ -178,5 +178,28 @@ context {|| // serverOnly()
     }
   }
 
+  context("coerceToPath") {||
+    test("leave non-URLs as-is") {||
+      [
+        './local/file',
+        'C:\\local\\file',
+        '/var/local/file',
+        'filename',
+      ] .. each {|path|
+        path .. url.coerceToPath() .. assert.eq(path);
+      }
+    }
+
+    test("coerce 'file:' URLs to paths") {||
+      [
+        'file://C:/path',
+        'file:///path/to/file',
+        'file:test/run',
+      ] .. each {|u|
+        u .. url.coerceToPath() .. assert.eq(u .. url.toPath);
+      }
+    }
+  }
+
 }.serverOnly();
 
