@@ -65,6 +65,11 @@ var fns = {};
 */
 var DriverProto = Object.create(fns);
 
+/**
+  @function Driver.mixInto
+  @param {Object} [dest]
+  @summary Mix all properties of `this` into `dest`
+*/
 DriverProto.mixInto = function(ctx) {
 	allPropertyPairs(this) .. each{|[k, v]|
 		if (k === 'mixInto') continue;
@@ -556,7 +561,7 @@ fns.elems = function(container, selector, predicate) {
   @param {optional Object} [subject=../suite::test]
   @param {optional Function} [getDriver] Function to return the current driver
   @return {Array}
-  @summary Add before & after hooks to set up basic diver functionality per-test
+  @summary Add before & after hooks to set up basic driver functionality per-test
   @desc
     These hooks ensure that [::Driver::waitUntilLoaded] and [::Driver::interceptLogging]
     are called at the start of each test, and that [::Driver::removeLogIntercept] is called
@@ -585,4 +590,5 @@ exports.addTestHooks = function(t, getDriver) {
 
 
 exports .. extend(fns);
+
 exports.mixInto = (subject) -> subject .. extend(fns);
