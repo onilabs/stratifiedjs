@@ -2983,6 +2983,9 @@
                 "isVisible": {
                   "type": "function"
                 },
+                "mixInto": {
+                  "type": "function"
+                },
                 "navigate": {
                   "type": "function"
                 },
