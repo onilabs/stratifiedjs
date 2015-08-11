@@ -110,6 +110,10 @@ testEq('sanitize', "abc&amp;foo;def&gt;ght&lt;", function() {
   return str.sanitize("abc&foo;def>ght<");
 });
 
+testEq('sanitize quotes', "foo&#39;s and &quot;bars&quot;", function() {
+  return str.sanitize("foo's and \"bars\"");
+});
+
 context("substring tests") {||
   testEq('startsWith("foo", "oo")', false, function() { return str.startsWith("foo", "oo"); });
   testEq('startsWith("foo", "foo")', true, function() { return str.startsWith("foo", "foo"); });

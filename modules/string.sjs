@@ -56,22 +56,30 @@ function isRegExp(re) {
 
 /**
   @function sanitize
-  @summary  Make a string safe for insertion into html.
+  @summary  Make a string safe for insertion into most html locations.
   @param    {String} [str] String to sanitize.
   @return   {String} Sanitized string.
   @desc
-    Returns sanitized string with **<**,**>**, and **&** replaced by their corresponding html entities.
+    Returns sanitized string with **<**,**>**, **"**, **'** and **&** replaced by their corresponding html entities.
+
+    **Note:** HTML has a number of special-cased locations where this encoding is not correct, and may
+    still lead to code injection. For example, `<script>` and `<style>` tags both have unique encoding rules. If you
+    try to use [::sanitize] for data in these special tags, it will *not* always be correct and *will* be possible
+    to inject code into your page. Where possible, you should use a template mechanism which can perform the
+    appropriate escaping for you (such as the `surface` module in Conductance).
 */
 
 var replacements = {
   '&':'&amp;',
   '>':'&gt;',
-  '<':'&lt;'
+  '<':'&lt;',
+  '\'':'&#39;',
+  '"':'&quot;',
 };
 
 exports.sanitize = function(str) {
   str = str === undefined ? "" : str.toString();
-  return str.replace(/[<>&]/g, function(c) {
+  return str.replace(/['"<>&]/g, function(c) {
     return replacements[c];
   })
 };
