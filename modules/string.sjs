@@ -89,6 +89,7 @@ exports.sanitize = function(str) {
   @summary  Performs variable substitution on a string.
   @param    {String} [template] A string holding variable names enclosed in **{ }** braces.
   @param    {Object} [replacements] Hash of key/value pairs that will be replaced in *template*.
+  @param    {optional Function} [filter] Function to apply to values before substitution
   @return   {String} String with placeholders replaced by variables.
   @desc
     ###Notes:
@@ -108,13 +109,14 @@ exports.sanitize = function(str) {
         var rv = "Hello #{obj.who}";
 */
 //XXX how should you escape {foo}? {{foo}}? \{foo\}?
-exports.supplant = function(str, o) {
+exports.supplant = function(str, o, filter) {
   return str.replace(/\\[{\\]|{([^{} ]*)}/g,
     function(text, key) {
       if(text.charAt(0) == '\\') return text.charAt(1);
       var replacement = o[key];
       if(replacement === undefined) throw new Error("No substitution found for \"" + key + "\"");
       if(replacement instanceof Function) { replacement = replacement.call(o); };
+      if (filter) replacement = filter(replacement);
       return replacement;
     }
   );
