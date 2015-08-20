@@ -175,6 +175,7 @@ exports.testLibrary = function(hub) {
             @assert.ok(documentedSymbols.length > 0);
           }
           .skipIf(['module-guidelines', 'std', 'dom-shim'] .. @hasElem(modulePath .. @split('/') .. @at(-1)), 'whitelisted')
+          .skipIf(['google_api'] .. @hasElem(modulePath .. @split('/') .. @at(-2, false)), 'whitelisted')
           .skipIf(['app'] .. @hasElem(modulePath), 'whitelisted')
           .skipIf(moduleDoc.executable, "executable module")
           ;
