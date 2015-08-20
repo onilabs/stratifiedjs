@@ -501,7 +501,7 @@ exports.unindent = function(s, c) {
    @return  {String} String with every line prefixed with `prefix`
 */
 exports.prefixLines = function(s, prefix) {
-  var lines = s.split(`\n`);
+  var lines = s.split('\n');
   for(var i=0; i<lines.length; ++i)
     lines[i] = prefix + lines[i];
   return lines.join('\n');
