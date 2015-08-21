@@ -200,7 +200,7 @@ function generateWrapLib(debug, timeout) {
       throw new Error("Must provide at least one result handler");
     }
 
-    var call = call_async.apply(Array.prototype.slice.call(arguments, 2));
+    var call = call_async.apply(null, Array.prototype.slice.call(arguments, 2));
     var replacement = function() {
       return call(orig, this, arguments, name);
     }
@@ -507,7 +507,7 @@ function generateWrapLib(debug, timeout) {
       result_handlers = null;
     }
 
-    var as_async = function(property, subject, args) {
+    var as_async = function(orig, subject, args) {
       var args = args .. @toArray();
       waitfor(var err, rv) {
         if(result_handlers) {
@@ -519,7 +519,7 @@ function generateWrapLib(debug, timeout) {
           args.push(resume);
         }
         args.push(resume);
-        property.apply(subject, args);
+        orig.apply(subject, args);
       }
       if(err) throw err;
       return rv;
