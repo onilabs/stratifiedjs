@@ -63,7 +63,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
    @return {String|Object}
    @setting {String} [method="GET"] Request method.
    @setting {QUERYHASHARR} [query] Additional query hash(es) to append to url. Accepts same format as [url::buildQuery].
-   @setting {String} [body] Request body.
+   @setting {String|ArrayBuffer|Blob|nodejs Buffer} [body] Request body.
    @setting {Object} [headers] Hash of additional request headers.
    @setting {String} [username] Username for authentication.
    @setting {String} [password] Password for authentication.
@@ -173,7 +173,7 @@ exports.get = exports.request;
   @function  post
   @summary   Perform a HTTP POST request and return the response text.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
-  @param     {String|null} [body] Request body.
+  @param     {String|ArrayBuffer|Blob|nodejs Buffer|null} [body] Request body.
   @param {optional Object} [settings] Hash of settings (or array of hashes) as accepted by [::request].
   @return    {String} 
   @shortcut  request

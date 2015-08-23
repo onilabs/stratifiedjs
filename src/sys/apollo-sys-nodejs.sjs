@@ -252,65 +252,72 @@ var streamContents = exports.streamContents = function (stream, fn) {
    @summary See [sjs:http::request] for docs
 */
 function request_hostenv(url, settings) {
-  var opts = exports.mergeObjects({
-                                     method : "GET",
-                                     // query : undefined
-                                     // body : undefined,
-                                     headers : {},
-                                     // username : undefined
-                                     // password : undefined
-                                     // response : 'string',
-                                     throwing : true,
-                                     max_redirects : 5
-                                     // agent : undefined
-                                     // ca : undefined
-                                  },
-                                  settings);
-  
-  // extract & remove options that are meant for me (not http.request)
-  var pop = function(k) {
-    var rv = opts[k];
-    delete opts[k];
-    return rv;
-  };
-  var responseMode = pop('response') || 'string';
-  var body = pop('body');
-  var throwing = pop('throwing');
-  var max_redirects = pop('max_redirects');
-  var username = pop('username');
-  var password = pop('password');
-  var query = pop('query');
+  __js {
+    var opts = exports.mergeObjects(
+      {
+        method : "GET",
+        // query : undefined
+        // body : undefined,
+        headers : {},
+        // username : undefined
+        // password : undefined
+        // response : 'string',
+        throwing : true,
+        max_redirects : 5
+        // agent : undefined
+        // ca : undefined
+      },
+      settings);
+    
+    // extract & remove options that are meant for me (not http.request)
+    var pop = function(k) {
+      var rv = opts[k];
+      delete opts[k];
+      return rv;
+    };
+    var responseMode = pop('response') || 'string';
+    var body = pop('body');
+    var throwing = pop('throwing');
+    var max_redirects = pop('max_redirects');
+    var username = pop('username');
+    var password = pop('password');
+    var query = pop('query');
+    
+    var url_string = exports.constructURL(url, query);
 
-  var url_string = exports.constructURL(url, opts.query);
-  //console.log('req '+url_string);
-  // XXX ok, it sucks that we have to take this URL apart again :-/
-  var url = exports.parseURL(url_string);
-  var protocol = url.protocol;
+
+    // XXX ok, it sucks that we have to take this URL apart again :-/
+    var url = exports.parseURL(url_string);
+    var protocol = url.protocol;
+
+    opts.host = url.host;
+    opts.port = url.port || (protocol === 'https' ? 443 : 80);
+    opts.path = url.relative || '/';
+    
+    if (!opts.headers['Host'])
+      opts.headers.Host = url.authority;
+    
+    if (!opts.headers['User-Agent'])
+      opts.headers['User-Agent'] = "Oni Labs StratifiedJS engine"; //XXX should have a version here
+    
+    if (body && !opts.headers['Transfer-Encoding']) {
+      // opts.headers['Transfer-Encoding'] = 'chunked';
+      // Some APIs (github, here's looking at you) don't accept chunked encoding, 
+      // so for maximum compatibility we determine the content length:
+      body = new Buffer(body);
+      opts.headers['Content-Length'] = body.length;
+    }
+    else {
+      opts.headers['Content-Length'] = 0;
+    }
+    if (username != null && password != null)
+      opts.auth = username + ":" + password;
+    
+  } /* __js */
+  
   if(!(protocol === 'http' || protocol === 'https')) {
     throw new Error('Unsupported protocol: ' + protocol);
   }
-  opts.host = url.host;
-  opts.port = url.port || (protocol === 'https' ? 443 : 80);
-  opts.path = url.relative || '/';
-
-  if (!opts.headers['Host'])
-    opts.headers.Host = url.authority;
-
-  if (!opts.headers['User-Agent'])
-    opts.headers['User-Agent'] = "Oni Labs StratifiedJS engine"; //XXX should have a version here
-
-  if (body && !opts.headers['Transfer-Encoding']) {
-    // opts.headers['Transfer-Encoding'] = 'chunked';
-    // Some APIs (github, here's looking at you) don't accept chunked encoding, 
-    // so for maximum compatibility we determine the content length:
-    body = new Buffer(body);
-    opts.headers['Content-Length'] = body.length;
-  }
-  else {
-    opts.headers['Content-Length'] = 0;
-  }
-  if (username != null && password != null)
-    opts.auth = username + ":" + password;
 
   var request = __oni_rt.nodejs_require(protocol).request(opts);
   request.end(body);
