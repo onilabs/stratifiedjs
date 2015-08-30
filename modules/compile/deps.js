@@ -963,11 +963,20 @@ S("[").
     return l.dot(idxexp);
   });
 
+// regexp to identify symbols that are valid identifier names according to ES5 (all the keywords):
+// (this is not the actual identifier name syntax; it is just a regexp to discriminate between
+//  our operator & keyword symbols)
+var VALID_IDENTIFIER_NAME = /^[a-z]+$/;
+
 S(".").exc(270, function(l, pctx) {
   
-  if (pctx.token.id != "<id>")
+  var name;
+  if (pctx.token.id == "<id>")
+    name = pctx.token.value;
+  else if (VALID_IDENTIFIER_NAME.test(pctx.token.id)) // ES5 allows keywords to be used as identifier names
+    name = pctx.token.id;
+  else
     throw new Error("Expected an identifier, found '"+pctx.token+"' instead");
-  var name = pctx.token.value;
   
   scan(pctx);
   
@@ -1171,6 +1180,8 @@ function parsePropertyName(token, pctx) {
       throw new Error("Non-literal strings can't be used as property names ("+token+")");
     return '"'+token.value+'"';
   }
+  if (VALID_IDENTIFIER_NAME.test(token.id)) // ES5 allows keywords to be used as identifier names
+    return token.id;
   throw new Error("Invalid object literal syntax; property name expected, but saw "+token);
 }
 

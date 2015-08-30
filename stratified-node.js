@@ -4818,11 +4818,20 @@ scan(pctx,"]");
 return new ph_idx_accessor(l,idxexp,pctx);
 });
 
-S(".").exc(270,function(l,pctx){if(pctx.token.id!="<id>")throw new Error("Expected an identifier, found '"+pctx.token+"' instead");
 
 
 
-var name=pctx.token.value;
+var VALID_IDENTIFIER_NAME=/^[a-z]+$/;
+
+S(".").exc(270,function(l,pctx){var name;
+
+
+if(pctx.token.id=="<id>")name=pctx.token.value;else if(VALID_IDENTIFIER_NAME.test(pctx.token.id))name=pctx.token.id;else throw new Error("Expected an identifier, found '"+pctx.token+"' instead");
+
+
+
+
+
 
 scan(pctx);
 
@@ -5026,6 +5035,8 @@ if((token=scan(pctx)).id!="<string>"||scan(pctx,undefined,TOKENIZER_IS).id!='ist
 
 return '"'+token.value+'"';
 }
+if(VALID_IDENTIFIER_NAME.test(token.id))return token.id;
+
 throw new Error("Invalid object literal syntax; property name expected, but saw "+token);
 }
 
