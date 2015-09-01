@@ -119,11 +119,6 @@ DriverProto.window = -> this.frame.contentWindow;
 */
 DriverProto.close = -> document.body.removeChild(this.frame);
 /**
-  @function Driver.__finally__
-  @summary Alias for [::Driver::close]
-*/
-DriverProto.__finally__ = DriverProto.close;
-/**
   @function Driver.isLoaded
   @summary Return whether the frame is loaded
   @desc

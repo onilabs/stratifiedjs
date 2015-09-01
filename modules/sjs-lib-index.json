@@ -2929,9 +2929,6 @@
                 "Driver": {
                   "type": "ctor"
                 },
-                "__finally__": {
-                  "type": "function"
-                },
                 "assertHidden": {
                   "type": "function"
                 },
