@@ -140,9 +140,6 @@
             "try-retract": {
               "type": "syntax"
             },
-            "using": {
-              "type": "syntax"
-            },
             "waitfor-and": {
               "type": "syntax"
             },

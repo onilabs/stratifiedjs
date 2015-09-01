@@ -605,40 +605,6 @@
 
   **Note:** The body of an arrow function needs to be an *expression*. Multiple expressions can be chained together using parentheses and the comma operator, e.g. `a -> (console.log(a), a+1)`, but you cannot put *statements* (such as `for(...) {...}`) into an arrow function. If you need statements, you should use the regular `function() {...}` syntax. 
 
-
-@syntax using
-@summary Factoring out try/finally
-@desc
-
-  **Note:** The `using` keyword is currently under review. It might change semantics or be removed in future versions of StratifiedJS.
-
-
-  Similar to Python's `with` statement
-  ([PEP-0343](http://www.python.org/dev/peps/pep-0343/)), SJS has a `using`
-  statement for factoring out standard uses of `try/finally`:
-
-      using (context_manager) {
-        ... some code ...
-      }
-
-  This code executes the code block `some code`. When `some code` is
-  exited (either normally, by exception or by cancellation),
-  `context_manager.__finally__()` will be called, if this function exists.
-
-
-  I.e. the above code is equivalent to something like:
-
-
-      try {
-        ... some code ...
-      }
-      finally { 
-        if (context_manager && 
-            typeof context_manager.__finally__ == "function")
-          context_manager.__finally__();
-      }
-
-
 @syntax calling-javascript
 @summary Interfacing with plain Javascript code
 @desc
