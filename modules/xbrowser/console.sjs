@@ -586,12 +586,5 @@ Console.prototype = {
     this.root.parentNode.removeChild(this.root);
     this.cmdloop_stratum.abort();
     this.shutdown = -> null;
-  },
-  
-  /**
-    @function  Console.__finally__
-    @summary   Calls [::Console::shutdown].
-               Allows Console to be used in a 'using' construct.
-   */
-  __finally__: function() { this.shutdown(); }
+  }  
 };

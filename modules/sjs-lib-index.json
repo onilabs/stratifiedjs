@@ -2814,9 +2814,6 @@
             "Console": {
               "type": "class",
               "children": {
-                "__finally__": {
-                  "type": "function"
-                },
                 "clear": {
                   "type": "function"
                 },
