@@ -235,17 +235,3 @@
       // equivalent to:
       var x = function(x) { return this.add(x, 1); }.bind(this);
 
-  ### Factoring out try/finally - [::syntax::using]
-
-  Similar to Python's `with` statement
-  ([PEP-0343](http://www.python.org/dev/peps/pep-0343/)), SJS has a `using`
-  statement for factoring out standard uses of `try/finally`:
-
-      using (context_manager) {
-        ... some code ...
-      }
-
-  This code executes the code block `some code`. When `some code` is
-  exited (either normally, by exception or by cancellation),
-  `context_manager.__finally__()` will be called, if this function exists.
-
