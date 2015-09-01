@@ -283,21 +283,23 @@ exports.error = printfn(exports.ERROR,'error');
 /**
   @function logContext
   @summary  A content manager to temporarily modify the logging configuration.
+  @deprecated Because of the global effects on parallel code (see description), it is discouraged to use this function
   @desc
     Once the context has ended, all settings will be reverted to the values
     they had when `logContext()` was invoked.
 
-    Note that this function affects global settings, so any other strata currently
+    *Warning* Note that this function affects global settings, so any other strata currently
     running will use these settings until the context ends.
 
     Example usage:
 
-        using(logging.logContext({level:logging.WARN}) {
+        @logging.logContext({level:logging.WARN}) { ||
           // some code that logs too much at INFO level
         }
   @param    {Object} [settings] Settings for the context. Valid keys are `level`, `console`, and `formatter`.
+  @param    {Function} [block] Code block to execute with the new settings
 */
-exports.logContext = function(settings) {
+exports.logContext = function(settings, block) {
   var oldLevel = currentLevel;
   var oldFormatter = currentFormatter;
   var oldConsole = consoleOverride;
@@ -305,15 +307,15 @@ exports.logContext = function(settings) {
   if (settings.formatter != undefined) exports.setFormatter(settings.formatter);
   if (settings.console != undefined) exports.setConsole(settings.console);
 
-  var ret = {
-    __finally__: function() {
-      if (settings.level != undefined) exports.setLevel(oldLevel);
-      if (settings.formatter != undefined) exports.setFormatter(oldFormatter);
-      if (settings.console != undefined) exports.setConsole(oldConsole);
-    }
-  };
-  return ret;
-}
+  try {
+    block();
+  }
+  finally {
+    if (settings.level != undefined) exports.setLevel(oldLevel);
+    if (settings.formatter != undefined) exports.setFormatter(oldFormatter);
+    if (settings.console != undefined) exports.setConsole(oldConsole);
+  }
+};
 
 /**
   @function setConsole

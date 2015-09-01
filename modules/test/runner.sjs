@@ -466,7 +466,7 @@ Runner.prototype.run = function(reporter) {
   // ----------------------------
   // run the tests
   report('suiteBegin', results);
-  using(logging.logContext({level: this.opts.logLevel})) {
+  logging.logContext({level: this.opts.logLevel}) { ||
     var unusedFilters = this.opts.testFilter.unusedFilters();
     if (unusedFilters.length > 0) {
       throw new UsageError("Some filters didn't match anything: #{unusedFilters .. join(", ")}");

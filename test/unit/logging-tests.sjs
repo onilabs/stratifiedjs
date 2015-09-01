@@ -31,11 +31,11 @@ test('print all log levels and revert') {||
   }
   var fmt = (rec) -> ['(test)', rec.level + ':'].concat(rec.args);
 
-  using(logging.logContext({
+  logging.logContext({
     level: logging.DEBUG,
     console: console,
     formatter: fmt
-  })) {
+  }) { ||
     assert.eq(logging.getLevel(), logging.DEBUG);
     assert.eq(logging.getConsole(), console);
     assert.eq(logging.getFormatter(), fmt);
