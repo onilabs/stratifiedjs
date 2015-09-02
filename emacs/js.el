@@ -1697,7 +1697,9 @@ This performs fontification according to `js--class-styles'."
          (or (not (looking-at "|")) ;; parameters of blocklambda
              (and (not (looking-at "|.*|"))
                   (not (search-backward "|"  (line-beginning-position) t))))
-         (or (not (looking-at ":"))
+         (or (or (not (looking-at ":\\([^:]\\|$\\)"))
+                 (looking-back ":"))
+             
              (save-excursion
                (and (js--re-search-backward "[?:{]\\|\\_<case\\_>" nil t)
                     (looking-at "?")))))))
