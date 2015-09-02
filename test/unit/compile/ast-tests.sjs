@@ -114,9 +114,6 @@
 		desugar('waitfor(a,b) { c }', '{ c }'); // XXX is this correct?
 		desugar('waitfor() { a } retract { b }', 'try { a } catch(__unused) { b }');
 		desugar('waitfor(var a, b) { c }', '{ var a, b; c }');
-		desugar('using(resource()) { b }', 'try { var __unused=resource(); b } finally { __unused.__finally__(); }');
-		desugar('using(a=obj) { b }', 'try { a=obj; b } finally { a.__finally__(); }');
-		desugar('using(var a=obj) { b }', 'try { var a=obj; b } finally { a.__finally__(); }');
 		desugar('__js { a; }', '{ a; }');
 
 		desugar('__js a', 'a');

@@ -618,8 +618,12 @@ exports.create = function(opts) {
     if (opts.output == '-') {
       write(process.stdout.fd);
     } else {
-      using (var output = fs.open(opts.output, 'w')) {
+      var output = fs.open(opts.output, 'w');
+      try {
         write(output);
+      }
+      finally {
+        fs.close(output);
       }
     }
     return deps;

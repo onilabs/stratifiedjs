@@ -2900,11 +2900,6 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
-
-
-
-
-
 pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,continue_scope:0,break_scope:0});
 
 
@@ -4452,47 +4447,6 @@ ph_suspend_wrapper.prototype.val=function(){return "__oni_rt.Nb(function(){var r
 
 
 
-function gen_using(has_var,lhs,exp,body,pctx){var rv;
-
-if(has_var){
-
-if(!lhs.is_id)throw new Error("Variable name expected in 'using' expression");
-rv=gen_var_compound([[lhs]],pctx);
-rv.stmts.push(new ph_using(lhs,exp,body,pctx));
-rv=rv.toBlock();
-}else rv=new ph_using(lhs,exp,body,pctx);
-
-
-return rv;
-}
-
-function ph_using(lhs,exp,body,pctx){this.line=pctx.line;
-
-this.body=body;
-this.assign1=new ph_assign_op(new ph_identifier("_oniW",pctx),"=",exp,pctx);
-
-if(lhs)this.assign2=new ph_assign_op(lhs,"=",new ph_identifier("_oniW",pctx),pctx);
-
-
-}
-
-
-
-
-ph_using.prototype=new ph();
-ph_using.prototype.val=function(){var rv="__oni_rt.Nb(function(){var _oniW;"+"return __oni_rt.ex(__oni_rt.Seq("+0+","+this.assign1.v()+",";
-
-
-
-if(this.assign2)rv+=this.assign2.v()+",";
-
-rv+="__oni_rt.Try("+0+","+this.body.v()+",0,"+"__oni_rt.Nb(function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},"+this.line+"),0)),this)},"+this.line+")";
-
-return rv;
-};
-
-
-
 
 
 
@@ -5718,30 +5672,6 @@ return gen_suspend(has_var,decls,block,crf,pctx);
 }
 });
 
-
-S("using").stmt(function(pctx){var has_var;
-
-
-scan(pctx,"(");
-if(has_var=(pctx.token.id=="var"))scan(pctx);
-
-var lhs,exp;
-var e1=parseExp(pctx,120);
-if(pctx.token.id=="="){
-lhs=e1;
-scan(pctx);
-exp=parseExp(pctx);
-}else{
-
-if(has_var)throw new Error("Syntax error in 'using' expression");
-
-exp=e1;
-}
-scan(pctx,")");
-var body=parseStmt(pctx);
-
-return gen_using(has_var,lhs,exp,body,pctx);
-});
 
 S("__js").stmt(function(pctx){if(pctx.allow_nblock)++pctx.js_ctx;
 

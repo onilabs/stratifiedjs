@@ -1005,29 +1005,6 @@ function gen_suspend(has_var, decls, block, crf, pctx, ext) {
 
 #define GEN_COLLAPSE(pctx, ext) return Node.EmptyStatement(pctx, ext);
 
-#define GEN_USING(has_var, lhs, exp, body, pctx, ext) \
-  return gen_using(has_var, lhs, exp, body, pctx, ext);
-
-function gen_using(has_var, lhs, exp, body, pctx, ext) {
-  var subject = lhs || hiddenVar(pctx, ext);
-  var init = lhs && !has_var
-    ? [Node.ExpressionStatement(pctx, ext,
-        Node.AssignmentExpression(pctx, ext, lhs, '=', exp))]
-    : [Node.VariableDeclaration(pctx, ext, [[subject,exp]])];
-  return Node.TryStatement(pctx, ext,
-      Node.BlockStatement(pctx, ext, init.concat(body.body)),
-      [null, null, Node.BlockStatement(pctx, ext, [
-        Node.ExpressionStatement(pctx, ext,
-          Node.CallExpression(pctx, ext,
-            Node.MemberExpression(pctx, ext, subject,
-              Node.Identifier(pctx, ext, '__finally__'), false),
-            []
-          )
-        )
-      ])]
-    );
-}
-
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
 #define GEN___JS(body, pctx, ext) ext; return body;

@@ -479,7 +479,6 @@ function gen_crf(crf) {
 #define END_SUSPEND_BLOCK(pctx) /*nothing*/
 #define GEN_SUSPEND(has_var, decls, block, crf, pctx, ext)  return block;
 #define GEN_COLLAPSE(pctx, ext) /* */
-#define GEN_USING(has_var, lhs, exp, body, pctx, ext)  return body;
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
 #define GEN___JS(body, pctx, ext) return Dynamic;

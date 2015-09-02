@@ -1822,51 +1822,6 @@ ph_suspend_wrapper.prototype.val = function() {
     "return __oni_rt.ex("+this.code+",this)},"+this.line+")";
 };
 
-
-#ifdef SJS_USING
-#define GEN_USING(has_var, lhs, exp, body, pctx, ext)  \
-  return gen_using(has_var, lhs, exp, body, pctx);
-
-function gen_using(has_var, lhs, exp, body, pctx) {
-  var rv;
-  if (has_var) {
-    //XXX this is suboptimal
-    if (!lhs.is_id) throw new Error("Variable name expected in 'using' expression");
-    rv = gen_var_compound([[lhs]], pctx);
-    rv.stmts.push(new ph_using(lhs, exp, body, pctx));
-    rv = rv.toBlock();
-  }
-  else
-    rv = new ph_using(lhs, exp, body, pctx);
-  return rv;
-}
-
-function ph_using(lhs, exp, body, pctx) {
-  this.line = pctx.line;
-  this.body = body;
-  this.assign1 = new ph_assign_op(new ph_identifier("_oniW",pctx),
-                                  "=", exp, pctx);
-  if (lhs)
-    this.assign2 = new ph_assign_op(lhs, "=",
-                                    new ph_identifier("_oniW",pctx), pctx);
-}
-/*
-  using(lhs=A) { body } -> f(args){var _oniW; ex(Seq(a1,a2,Try(body,f(){_oniW.final})))}
-
-*/
-ph_using.prototype = new ph(WHENDEBUG("ph_using"));
-ph_using.prototype.val = function() {
-  var rv = "__oni_rt.Nb(function(){var _oniW;"+
-    "return __oni_rt.ex(__oni_rt.Seq("+SEQ_FLAG_NONE+","+
-    this.assign1.v()+",";
-  if (this.assign2)
-    rv += this.assign2.v()+",";
-  rv += "__oni_rt.Try("+TRY_FLAG_NONE+","+this.body.v()+",0,"+
-    "__oni_rt.Nb(function(){if(_oniW&&_oniW.__finally__)return _oniW.__finally__()},"+this.line+"),0)),this)},"+this.line+")";
-  return rv;
-};
-#endif /* SJS_USING */
-
 #ifdef SJS___JS
 #define BEGIN___JS_BLOCK(pctx) if (pctx.allow_nblock) ++pctx.js_ctx;
 #define END___JS_BLOCK(pctx) if (pctx.allow_nblock) --pctx.js_ctx;

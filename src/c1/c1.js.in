@@ -107,7 +107,6 @@ general:
    define ECMA_GETTERS_SETTERS : allow ecma-style getters/setters
    define SJS_CORE : parse core SJS statements (set below)
    define MULTILINE_STRINGS : allow strings to include newlines; map to '\n' (set below)
-   define SJS_USING: parse SJS's "using" keyword
    define SJS___JS: parse SJS's "__js" keyword
    define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
@@ -262,10 +261,6 @@ GEN_TRY(block, crf, pctx)
     crf is [ [catch_id,catch_block,catchall?]|null, retract_block|null, finally_block|null ]
     (instead of the non-SJS version above)
 
-- if SJS_USING is set:
-
-GEN_USING(isvar, vname, exp, body, pctx)
-
 - if SJS___JS is set:
 
 BEGIN___JS_BLOCK(pctx)
@@ -307,7 +302,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
-#define SJS_USING 1
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
@@ -324,7 +318,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
-#define SJS_USING 1
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
@@ -368,7 +361,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
-#define SJS_USING 1
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
@@ -390,7 +382,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
-#define SJS_USING 1
 #define SJS___JS 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
@@ -1873,32 +1864,6 @@ S("waitfor").stmt(function(pctx) {
 });
 
 #endif /* SJS_CORE */
-
-#ifdef SJS_USING
-S("using").stmt(function(pctx) {
-  PUSH_EXTENT(pctx, null, '.stmt')
-  var has_var;
-  scan(pctx, "(");
-  if (has_var = (pctx.token.id == "var"))
-    scan(pctx);
-  var lhs, exp;
-  var e1 = parseExp(pctx, BP_ASSIGN); // parse expression up to '=' at most
-  if (pctx.token.id == "=") {
-    lhs = e1; // need to check in kernel that lhs is a variable!
-    scan(pctx);
-    exp = parseExp(pctx);
-  }
-  else {
-    if (has_var)
-      throw new Error("Syntax error in 'using' expression");
-    exp = e1;
-  }
-  scan(pctx, ")");
-  var body = parseStmt(pctx);
-  LOGM('using')
-  GEN_USING(has_var, lhs, exp, body, pctx, POP_EXTENT('GEN_USING'))
-});
-#endif /* SJS_USING */
 
 #ifdef SJS___JS
 S("__js").stmt(function(pctx) {

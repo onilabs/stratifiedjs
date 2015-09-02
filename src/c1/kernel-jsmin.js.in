@@ -469,13 +469,6 @@ function quasi(parts) {
 
 #define GEN_COLLAPSE(pctx, ext) return "collapse";
 
-#define GEN_USING(has_var, lhs, exp, body, pctx, ext)  \
-  var rv = "using(";                              \
-  if (has_var) rv += "var ";                      \
-  if (lhs) rv += lhs + "=";                       \
-  rv += exp + ")";                                \
-  return rv + body;
-
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
 #define GEN___JS(body, pctx, ext) return "__js "+body;
