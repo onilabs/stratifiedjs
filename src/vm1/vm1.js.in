@@ -219,6 +219,13 @@ CFException.prototype = {
   }
 };
 
+//----------------------------------------------------------------------
+// Dynamic variable support:
+
+// current_dyn_vars is a global variable holding dynamic variable
+// bindings for the currently stratum. It will be manipulated by the
+// VM when a stratum switch takes place:
+exports.current_dyn_vars = null; 
 
 //----------------------------------------------------------------------
 // Execution Frames
@@ -1843,9 +1850,11 @@ EF_Par.prototype.cont = function(idx, val) {
   }
   else {
     if (idx == -1) {
+      var parent_dyn_vars = exports.current_dyn_vars;
       // kick off all children
       for (var i=0; i<this.ndata.length; ++i) {
         val = execIN(this.ndata[i], this.env);
+        exports.current_dyn_vars = parent_dyn_vars;
         if (this.aborted) {
           // this check is to catch the case of reentrant abortion through
           // suspend/resume
@@ -2002,6 +2011,7 @@ EF_Alt.prototype.cont = function(idx, val) {
   }
   else {
     if (idx == -1) {
+      var parent_dyn_vars = exports.current_dyn_vars;
       // kick off all children
       for (var i=0; i<this.ndata.length; ++i) {
         // create a new environment for 'collapse' support
@@ -2010,6 +2020,7 @@ EF_Alt.prototype.cont = function(idx, val) {
         env.fold = this;
         env.branch = i;
         val = execIN(this.ndata[i], env);
+        exports.current_dyn_vars = parent_dyn_vars;
                      
         if (this.aborted) {
           // the check for !aborted here is to catch the case of
@@ -2239,13 +2250,16 @@ EF_Suspend.prototype.cont = function(idx, val) {
     case 0:
     try {
       var ef = this;
+      this.dyn_vars = exports.current_dyn_vars;
 #ifdef ASYNC_RESUME
       var resumefunc = function() { ResumeQueue.post([ef,2,arguments]); };
 #else
   // XXX We could return something from resumefunc
   var resumefunc = function() {
     try {
-      cont(ef, 2, arguments)
+      var caller_dyn_vars = exports.current_dyn_vars;
+      exports.current_dyn_vars = ef.dyn_vars;
+      cont(ef, 2, arguments);
     }
     catch(e) {
       var s = function() { throw e; };
@@ -2256,6 +2270,10 @@ EF_Suspend.prototype.cont = function(idx, val) {
 #else
       callAsync(s);
 #endif
+    }
+    finally {
+      delete ef.dyn_vars; // aid gc
+      exports.current_dyn_vars = caller_dyn_vars;
     }
   };
       
@@ -2366,6 +2384,7 @@ EF_Suspend.prototype.quench = function() {
 
 EF_Suspend.prototype.abort = function() {
   //  LOG('SUSPEND abort (childf='+this.child_frame+')')
+  exports.current_dyn_vars = this.dyn_vars;
   this.returning = true;
   if (!this.suspendCompleted)
     return this.child_frame.abort();
@@ -2407,15 +2426,19 @@ EF_Spawn.prototype.type = "Spawn";
 #endif
 
 EF_Spawn.prototype.cont = function(idx, val) {
-  if (idx == 0)
+  if (idx == 0) {
+    this.parent_dyn_vars = exports.current_dyn_vars;
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
-  
+  }
+
+  exports.current_dyn_vars = this.parent_dyn_vars;
   if (is_ef(val)) {
     this.setChildFrame(val, 1);
     if (idx == 0)
       this.notifyAsync();
   }
   else {
+    delete this.parent_dyn_vars; // aid gc
     this.notifyVal(val);
   }
 };
@@ -2432,6 +2455,7 @@ EF_Spawn.prototype.abort = function() {
 };
 
 function EF_SpawnWaitFrame(waitarr) {
+  this.dyn_vars = exports.current_dyn_vars;
   this.waitarr = waitarr;
   waitarr.push(this);
 }
@@ -2445,8 +2469,11 @@ EF_SpawnWaitFrame.prototype.abort = function() {
   this.waitarr.splice(idx, 1);
 }
 EF_SpawnWaitFrame.prototype.cont = function(val) {
-  if (this.parent)
+  if (this.parent) {
+    exports.current_dyn_vars = this.dyn_vars;
+    delete this.dyn_vars; // aid gc
     cont(this.parent, this.parent_idx, val);
+  }
 }
 
 function I_spawn(ndata, env) {
@@ -2669,16 +2696,31 @@ if (!hold0) {
 }
 
 exports.Hold = function(duration_ms) {
+  var dyn_vars = exports.current_dyn_vars;
+
+  function abort() {
+    // restore dyn vars for finally clauses
+    exports.current_dyn_vars = dyn_vars;
+  }
+  
   if (duration_ms === UNDEF)
-    return { __oni_ef: true, wait: function() { return this; }, quench: dummy, abort: dummy };
+    return { __oni_ef: true,
+             wait: function() { return this; },
+             quench: dummy,
+             abort: abort
+           };
+
   if (duration_ms === 0) {
     var sus = { __oni_ef: true, 
                 wait: function() { return this },
-                abort: dummy,
+                abort: abort,
                 quench: function() { sus = null; clear0(this.co); },
                 co: hold0(function() { 
-                  if (sus && sus.parent) 
+                  if (sus && sus.parent) {
+                    exports.current_dyn_vars = dyn_vars;
                     cont(sus.parent, sus.parent_idx, UNDEF);
+                    exports.current_dyn_vars = null;
+                  }
                 })
               };
     return sus;
@@ -2686,15 +2728,22 @@ exports.Hold = function(duration_ms) {
   else {
     var sus = { __oni_ef: true,
                 wait: function() { return this },
-                abort: dummy,
+                abort: abort,
 #if defined (CLIENTSIDE) || defined (NODEJS)
                 quench: function() { sus = null; clearTimeout(this.co); }
 #else
                 quench: function() { sus = null; this.co.cancel(); }
 #endif
               };
-    sus.co = setTimeout(function() { if (sus && sus.parent) cont(sus.parent, sus.parent_idx, UNDEF); },
-                        duration_ms);
+    sus.co = setTimeout(
+      function() {
+        if (sus && sus.parent) {
+          exports.current_dyn_vars = dyn_vars;
+          cont(sus.parent, sus.parent_idx, UNDEF);
+          exports.current_dyn_vars = null;
+        }
+      },
+      duration_ms);
     return sus;
   }
 };

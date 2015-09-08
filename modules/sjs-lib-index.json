@@ -2506,11 +2506,17 @@
         "argv": {
           "type": "function"
         },
+        "clearDynVar": {
+          "type": "function"
+        },
         "eval": {
           "type": "function"
         },
         "executable": {
           "type": "variable"
+        },
+        "getDynVar": {
+          "type": "function"
         },
         "getGlobal": {
           "type": "function"
@@ -2518,8 +2524,14 @@
         "hostenv": {
           "type": "variable"
         },
+        "setDynVar": {
+          "type": "function"
+        },
         "version": {
           "type": "variable"
+        },
+        "withDynVarContext": {
+          "type": "function"
         }
       },
       "summary": "SJS runtime utilities"

@@ -14,6 +14,7 @@ unit/cutil-tests.sjs
 unit/dashdash-tests.sjs
 unit/debug-tests.sjs
 unit/docutil-tests.sjs
+unit/dynamic-vars-tests.sjs
 unit/event-tests.sjs
 unit/function-tests.sjs
 unit/http-tests.sjs

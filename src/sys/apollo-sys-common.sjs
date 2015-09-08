@@ -83,6 +83,70 @@ exports.hostenv = __oni_rt.hostenv;
 __js exports.getGlobal = function() { return __oni_rt.G; };
 
 /**
+   @function withDynVarContext
+   @summary see [../../modules/sys::withDynVarContext]
+   @param {Function} [block]
+*/
+exports.withDynVarContext = function(block) {
+  var old_dyn_vars = __oni_rt.current_dyn_vars;
+  try {
+    __oni_rt.current_dyn_vars = Object.create(old_dyn_vars);
+    block();
+  }
+  finally {
+    __oni_rt.current_dyn_vars = old_dyn_vars;
+  }
+};
+
+/**
+   @function setDynVar
+   @summary  see [../../modules/sys::setDynVar]
+   @param {String} [name]
+   @param {Object} [value]
+*/
+exports.setDynVar = function(name, value) {
+  if (__oni_rt.current_dyn_vars === null)
+    throw new Error("No dynamic variable context to retrieve #{name}");
+  var key = '$'+name;
+  __oni_rt.current_dyn_vars[key] = value;
+};
+
+/**
+   @function clearDynVar
+   @summary  see [../../modules/sys::clearDynVar]
+   @param {String} [name]
+*/
+exports.clearDynVar = function(name) {
+  if (__oni_rt.current_dyn_vars === null)
+    throw new Error("No dynamic variable context to clear #{name}");  
+  var key = '$'+name;
+  delete __oni_rt.current_dyn_vars[key];
+};
+
+/**
+   @function getDynVar
+   @summary  see [../../modules/sys::getDynVar]
+   @param {String} [name]
+   @param {optional Object} [default_val]
+*/
+exports.getDynVar = function(name, default_val) {
+  var key = '$'+name;
+  if (__oni_rt.current_dyn_vars === null) {
+    if (arguments.length > 1)
+      return default_val;
+    else
+      throw new Error("Dynamic Variable '#{name}' does not exist (no dynamic variable context)");
+  }
+  if (!(key in __oni_rt.current_dyn_vars)) {
+    if (arguments.length > 1)
+      return default_val;
+    else
+      throw new Error("Dynamic Variable '#{name}' does not exist");
+  }
+  return __oni_rt.current_dyn_vars[key];
+};
+
+/**
    @function isArrayLike
    @summary  Tests if an object is an array, `arguments` object, TypedArray or, in an xbrowser hostenv of StratifiedJS, a NodeList or FileList
    @param    {anything} [testObj] Object to test.

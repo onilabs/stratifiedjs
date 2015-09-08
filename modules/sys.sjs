@@ -63,6 +63,78 @@ module.exports = {
   eval: s.eval,
 
 /**
+   @function withDynVarContext
+   @altsyntax withDynVarContext { || ... }
+   @summary  Execute code in a new dynamic variable context
+   @param {Function} [block]
+   @desc
+      `withDynVarContext(block)` executes `block` in a new 
+      dynamic variable context in which variables can be set, cleared and retrieved 
+      using [::setDynVar], [::clearDynVar] and [::getDynVar], respectively.
+
+      #### Nested contexts
+
+      Nested dynamic variable contexts behave like prototype-chained JS objects:
+      [::setDynVar] and [::clearDynVar] always operate on the inner-most context only, 
+      whereas [::getDynVar] retrieves values from the closest context in which the variable 
+      is defined.
+
+      #### Spawned strata
+      
+      A stratum spawned (using [sjs:#language/syntax::spawn]) in a given context maintains
+      affinity to the context, even if the context has been exited on the original stratum:
+
+          @sys.withDynVarContext {
+            ||
+            @sys.setDynVar('foo', 'bar');
+            spawn (function() { 
+                     hold(1000);
+                     @assert.is(@sys.getDynVar('foo'), 'bar'); // true
+                   })();
+          }
+          // context exited
+          // ... 1s later the assert is executed on the spawned stratum
+ 
+*/
+  withDynVarContext: s.withDynVarContext,
+  
+/**
+   @function setDynVar
+   @summary  Set a variable in a dynamic variable context
+   @param {String} [name]
+   @param {Object} [value]
+   @desc
+     See [::withDynVarContext].
+*/
+  setDynVar: s.setDynVar,
+
+/**
+   @function clearDynVar
+   @summary Clear a variable in a dynamic variable context
+   @param {String} [name]
+   @desc
+     See [::withDynVarContext].
+*/
+  clearDynVar: s.clearDynVar,
+
+/**
+   @function getDynVar
+   @summary Retrieve a variable value from a dynamic variable context
+   @param {String} [name]
+   @param {optional Object} [default_val]
+   @desc
+     Retrieves a variable value from a dynamic variable context or the closest
+     ancestor context that has the variable defined.
+
+     If no enclosing context defines the variable, returns `default_val` or throws
+     if no `default_val` has been provided.
+
+     See also [::withDynVarContext].
+*/
+  getDynVar: s.getDynVar,
+
+  
+/**
   @variable version
   @summary The current SJS version string
   @desc
@@ -118,3 +190,4 @@ if (s.hostenv === 'nodejs') {
   module.exports.executable = s.canonicalizeURL("../sjs", module.id) .. require('sjs:url').toPath();
   module.exports.argv = -> process.argv.slice(2); // remove `node` and main SJS module
 }
+
