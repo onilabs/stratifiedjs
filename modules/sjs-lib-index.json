@@ -2899,6 +2899,9 @@
             "locationHash": {
               "type": "function"
             },
+            "matchesSelector": {
+              "type": "function"
+            },
             "pageX": {
               "type": "function"
             },

@@ -330,7 +330,7 @@ __js function traverseDOM(from, to, f) {
 exports.traverseDOM = traverseDOM;
 
 
-/** 
+/**
     @function matchesSelector
     @summary  Check if a given DOM element matches a CSS selector
     @param    {DOMElement} [elem] DOM element
