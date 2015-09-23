@@ -103,21 +103,26 @@ exports.summarizeLib = function(dir) {
 
   entries .. each {|ent|
     var path = Path.join(dir, ent);
-    if (fs.stat(path).isDirectory()) {
-      var lib = exports.summarizeLib(path);
-      if (lib) {
-        children[ent + '/'] = lib;
-      }
-    } else {
-      if (ent .. str.startsWith(INDEX_BASENAME + '.')) {
-        continue;
+    try {
+      if (fs.stat(path).isDirectory()) {
+        var lib = exports.summarizeLib(path);
+        if (lib) {
+          children[ent + '/'] = lib;
+        }
       } else {
-        var mod = exports.readModule(path);
-        if (mod) {
-          var [name, mod] = mod;
-          children[name] = summarizeModule(mod);
+        if (ent .. str.startsWith(INDEX_BASENAME + '.')) {
+          continue;
+        } else {
+          var mod = exports.readModule(path);
+          if (mod) {
+            var [name, mod] = mod;
+            children[name] = summarizeModule(mod);
+          }
         }
       }
+    }
+    catch (e) {
+      logging.info("Error processing #{ent} -> skipping");
     }
   }
 
