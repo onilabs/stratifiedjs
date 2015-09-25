@@ -49,7 +49,7 @@ var assert = require('../assert');
 var INDEX_BASENAME = 'sjs-lib-index';
 var INDEX_FILENAME = "#{INDEX_BASENAME}.txt";
 var OUTPUT_FILENAME = "#{INDEX_BASENAME}.json";
-var EXTS = {'sjs':true, 'api':true, 'app':true};
+var EXTS = {'sjs':true, 'api':true, 'app':true, 'gen':true};
 
 exports.compile = function(root, outputPath) {
   var info = exports.summarizeLib(root);
