@@ -2787,6 +2787,9 @@
         "buildQuery": {
           "type": "function"
         },
+        "canonicalize": {
+          "type": "function"
+        },
         "coerceToPath": {
           "type": "function"
         },

@@ -55,7 +55,7 @@ __js function determineLocation() {
     var scripts = document.getElementsByTagName("script"), matches;
     for (var i=0; i<scripts.length; ++i) {
       if ((matches = /^(.*\/)(?:[^\/]*)stratified(?:[^\/]*)\.js(?:\?.*)?$/.exec(scripts[i].src))) {
-        location.location = exports.canonicalizeURL(matches[1]+"modules/", document.location.href);
+        location.location = exports.normalizeURL(matches[1]+"modules/", document.location.href);
         location.requirePrefix = scripts[i].getAttribute("require-prefix");
         location.req_base = scripts[i].getAttribute("req-base") || document.location.href;
         location.main = scripts[i].getAttribute("main");
@@ -247,7 +247,7 @@ __js function getTopReqParent_hostenv() {
 __js function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
   if (req_obj.path && req_obj.path.length)
     url_string = exports.constructURL(req_obj.path, url_string);
-  return exports.canonicalizeURL(url_string, parent.id);
+  return exports.normalizeURL(url_string, parent.id);
 }
 
 

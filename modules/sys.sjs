@@ -187,7 +187,7 @@ module.exports = {
     of `argv` format.
 */
 if (s.hostenv === 'nodejs') {
-  module.exports.executable = s.canonicalizeURL("../sjs", module.id) .. require('sjs:url').toPath();
+  module.exports.executable = s.normalizeURL("../sjs", module.id) .. require('sjs:url').toPath();
   module.exports.argv = -> process.argv.slice(2); // remove `node` and main SJS module
 }
 

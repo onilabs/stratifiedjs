@@ -128,9 +128,9 @@ function ServerRequest(req, res, ssl) {
   rv.response = res;
   /**
    @variable ServerRequest.url
-   @summary Full canonicalized request URL object in the format as returned by [../url::parse].
+   @summary Full canonicalized & normalized request URL object in the format as returned by [../url::parse].
    */
-  rv.url = url.parse(url.normalize(req.url, 
+  rv.url = url.parse(url.normalize(url.canonicalize(req.url), 
                                       "http#{ssl ? 's' : ''}://#{req.headers.host}"));
   /**
    @variable ServerRequest.body

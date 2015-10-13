@@ -184,7 +184,7 @@ function getTopReqParent_hostenv() {
 */
 function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
   if (/^\.\.?\//.test(url_string))
-    return exports.canonicalizeURL(url_string, parent.id);
+    return exports.normalizeURL(url_string, parent.id);
   else if (!isWindows && /^\//.test(url_string))
     // We *could* allow this, but it would break whenever URL semantics != path semantics
     // (e.g windows).
@@ -385,11 +385,11 @@ function request_hostenv(url, settings) {
           max_redirects: max_redirects-1,
         });
         //console.log('redirect to ' + response.headers['location'] + ', with opts', opts);
-        // we use canonicalizeURL here, because some sites
+        // we use normalizeURL here, because some sites
         // (e.g. dailymotion) use a relative url in the Location
         // header (which is forbidden according to RFC1945)
         return request_hostenv(
-          exports.canonicalizeURL(response.headers['location'],url_string),
+          exports.normalizeURL(response.headers['location'],url_string),
           opts);
       }
       // else fall through

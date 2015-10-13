@@ -201,9 +201,9 @@ exports.isSameOrigin = sys.isSameOrigin;
   @function normalize
   @summary Convert relative to absolute URLs and collapse '.' and '..' path
            components.
-  @param {String} [url] URL to canonicalize.
+  @param {String} [url] URL to normalize.
   @param {optional String} [base] URL which will be taken as a base if *url* is relative.
-  @return {String} Canonicalized URL.
+  @return {String} Normalized URL.
   @desc
     ###Examples:
 
@@ -220,7 +220,42 @@ exports.isSameOrigin = sys.isSameOrigin;
         // --> "http://a.b/c/bar.txt"
 
 */
-exports.normalize = sys.canonicalizeURL;
+exports.normalize = sys.normalizeURL;
+
+/**
+   @function canonicalize
+   @summary Decode all percent-encoded unreserved characters in a url
+   @param {String} [url] URL to canonicalize
+   @return {String} Canonicalized URL
+   @desc
+     URIs that differ only by whether an unreserved character (as defined in RFC 3986)
+     is percent-encoded or appears literally are equivalent by definition.
+     
+     `canonicalize` idempotently decodes all percent-encoded unreserved 
+     characters to their literal representation.
+*/
+__js {
+
+  function replaceUnreserved(p_encoded) {
+    var charcode = p_encoded.substring(1) .. parseInt(16);
+
+    // unreserved are A-Z a-z 0-9 '-' '_' '.' '~'
+    if ( (charcode >= 65 && charcode <= 90) || // A-Z
+         (charcode >= 97 && charcode <= 122) || // a-z
+         (charcode === 45) || // -
+         (charcode === 95) || // _
+         (charcode === 46) || // .
+         (charcode === 126) // ~
+       )
+      return String.fromCharCode(charcode);
+    else
+      return p_encoded;
+  }
+  
+  exports.canonicalize = function(url) {
+    return url.replace(/\%[A-Fa-f0-9][A-Fa-f0-9]/g, replaceUnreserved); 
+  };
+}
 
 /**
    @function encode
@@ -275,7 +310,7 @@ __js exports.coerceToPath = function(pathOrUrl) {
    @return {String} An absolute 'file:' URL
    @hostenv nodejs
    @desc
-      If the path is relative, it will be canonicalized (against process.cwd())
+      If the path is relative, it will be normalized (against process.cwd())
       in the nodejs environment. Relative paths will be left as-is in an xbrowser
       environment, since there is no concept of a working directory there.
 */

@@ -400,14 +400,14 @@ __js exports.isSameOrigin = function(url1, url2) {
 
 
 /**
-  @function canonicalizeURL
+  @function normalizeURL
   @summary Convert relative to absolute URLs and collapse '.' and '..' path
            components.
-  @param {String} [url] URL to canonicalize.
+  @param {String} [url] URL to normalize.
   @param {optional String} [base] URL which will be taken as a base if *url* is relative.
-  @return {String} Canonicalized URL.
+  @return {String} Normalized URL.
 */
-__js exports.canonicalizeURL = function(url, base) {
+__js exports.normalizeURL = function(url, base) {
 
   if (__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32') {
     // special case for mapping Windows paths in nodejs hostenv
@@ -903,7 +903,7 @@ function resolve(module, require_obj, parent, opts) {
   var resolveSpec = resolveHubs(path, hubs, require_obj, parent, opts || {});
 
   // make sure we have an absolute url with '.' & '..' collapsed:
-  resolveSpec.path = exports.canonicalizeURL(resolveSpec.path, parent.id);
+  resolveSpec.path = exports.normalizeURL(resolveSpec.path, parent.id);
 
   // resolveSpec.ext is the explicit extension given (could be anything)
   // resolveSpec.type is the type of the file (which is a guess if `.ext` is undefined), and is always a key in require.extensions

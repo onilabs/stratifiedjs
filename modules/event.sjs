@@ -164,6 +164,7 @@ exports.Emitter = Emitter;
       for calling things like `e.preventDefault`, as it runs *before* any event filter.
 */
 function events(emitters, events, opts) {
+  if (arguments.length < 2) throw new Error("Too few arguments supplied to event::events; expected at least an emitter (e.g. a DOM element) and a string naming the event");
   return seq.Stream(function(receiver) {
     var host_emitter = HostEmitter(emitters, events, opts);
     try {
