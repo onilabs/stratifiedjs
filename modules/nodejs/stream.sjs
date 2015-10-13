@@ -246,7 +246,6 @@ exports.pump = function(src, dest, fn_or_opts) {
   opts = opts || {};
   var end = opts.end !== false;
 
- 
   waitfor {
     throw dest .. @wait('error');
   } or {
@@ -263,7 +262,7 @@ exports.pump = function(src, dest, fn_or_opts) {
       if(fn) src = src .. @transform(fn);
 
       src .. @each {|data|
-        _write(dest, data);
+        _write(dest, @isString(data) ? data : data .. @toBuffer);
       }
     }
     if(end) _end(dest);
