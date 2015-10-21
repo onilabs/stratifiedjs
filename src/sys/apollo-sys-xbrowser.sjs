@@ -62,6 +62,10 @@ __js function determineLocation() {
         break;
       }
     }
+
+    // make sure we always have a 'req-base', so that we can convert relative to absolute urls:
+    if (!location.req_base)
+      location.req_base = document.location.href;
   }
   return location;
 }
