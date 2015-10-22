@@ -394,10 +394,10 @@
   Instead of just converting each embedded value to a string (as string interpolation does), using quasis allows the logging module to be smarter about how values are presented. Specifically, it will pass any non-string values through `debug.inspect`:
 
       var name = { first: "john", last: "smith" };
-      logging.print("New user: #{name}");
-      // prints: New user: [Object object]
-      logging.print(`New user: ${name}`);
-      // prints: New user: { first: "john", last: "smith" }
+      logging.info("New user: #{name}");
+      // prints: INFO: New user: [Object object]
+      logging.info(`New user: ${name}`);
+      // prints: INFO: New user: { first: "john", last: "smith" }
 
   The [sjs:quasi::] module provides functions for dealing with quasi-quote objects at runtime.
 
