@@ -7,7 +7,7 @@ var http = require('sjs:http');
 var node_vm = require('vm');
 var { merge } = require('sjs:object');
 var child_process = require('sjs:nodejs/child-process');
-var apollo_home = http.canonicalizeURL('../../', module.id);
+xxx var apollo_home = http.canonicalizeURL('../../', module.id);
 
 function load(name) {
   var base = http.constructURL(['file:///', process.cwd() + '/'])

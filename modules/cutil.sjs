@@ -55,7 +55,7 @@ var sys  = require('builtin:apollo-sys');
           }
         }
 */
-exports.StratumAborted = __oni_rt.StratumAborted;
+__js exports.StratumAborted = __oni_rt.StratumAborted;
 
 
 /**
@@ -78,7 +78,7 @@ exports.StratumAborted = __oni_rt.StratumAborted;
     third argument set to the `args`.
 */
 function waitforAll(funcs, args, this_obj) {
-  this_obj = this_obj || null;
+  __js this_obj = this_obj || null;
   if (sys.isArrayLike(funcs)) {
     if (!funcs.length) return;
     //...else
@@ -147,7 +147,7 @@ function waitforAllArgs(f, args, i, l, this_obj) {
     third argument set to the `args`.  
 */
 function waitforFirst(funcs, args, this_obj) {
-  this_obj = this_obj || this;
+  __js this_obj = this_obj || this;
   if (sys.isArrayLike(funcs)) {
     if (!funcs.length) return;
     //...else
@@ -161,7 +161,7 @@ function waitforFirst(funcs, args, this_obj) {
   // else
   throw new Error("waitforFirst: argument error; either funcs or args needs to be an array");
 };
-exports.waitforFirst = waitforFirst;
+__js exports.waitforFirst = waitforFirst;
 
 function waitforFirstFuncs(funcs, args, this_obj) {
   if (funcs.length == 1)
@@ -206,7 +206,7 @@ function waitforFirstArgs(f, args, i, l, this_obj) {
     Example:
     `var S = cutil.Semaphore(10);`
 */
-function Semaphore(permits, sync) {
+__js function Semaphore(permits, sync) {
   var rv = Object.create(SemaphoreProto);
 
   /**
@@ -220,7 +220,7 @@ function Semaphore(permits, sync) {
 
   return rv;
 }
-exports.Semaphore = Semaphore;
+__js exports.Semaphore = Semaphore;
 
 var SemaphoreProto = {
   /**
@@ -347,7 +347,7 @@ Waitable.wait = function wait() {
   @summary  the currently set value, or `undefined` if the condition is not set
 */
 function Condition() {
-  var rv = Object.create(ConditionProto);
+  __js var rv = Object.create(ConditionProto);
   rv.init();
   return rv;
 };
@@ -399,7 +399,7 @@ ConditionProto.set = function set(value) {
     Once cleared, the condition can be waited upon and triggered again with
     `wait` and `set`.
 */
-ConditionProto.clear = function clear() {
+__js ConditionProto.clear = function clear() {
   this.isSet = false;
   this.value = undefined;
 };
@@ -415,7 +415,7 @@ ConditionProto.clear = function clear() {
            accept puts when there is a pending get.
   @param   {optional Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [::Semaphore]).
 */
-function Queue(capacity, sync) {
+__js function Queue(capacity, sync) {
   var rv = Object.create(QueueProto);
 
   rv.items = [];
@@ -424,7 +424,7 @@ function Queue(capacity, sync) {
 
   return rv;
 }
-exports.Queue = Queue;
+__js exports.Queue = Queue;
 
 QueueProto = {
   /**

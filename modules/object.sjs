@@ -217,8 +217,8 @@ __js  exports.setPath = function(subject, path, value) {
   @return {Boolean}
   @summary Return whether the given object has a non-inherited property named `prop`.
 */
-exports.has = function(subject, key) { return hasProperty.call(subject, key); }
-exports.hasOwn = function(subject, key) { return hasOwnProperty.call(subject, key); }
+__js exports.has = function(subject, key) { return hasProperty.call(subject, key); }
+__js exports.hasOwn = function(subject, key) { return hasOwnProperty.call(subject, key); }
 
 /**
    @function allKeys
@@ -255,7 +255,7 @@ var ownKeys = exports.ownKeys = Object.keys;
             including those defined on `obj`'s prototype chain.
 */
 function allValues(obj) {
-  return allKeys(obj) .. transform(k => obj[k]);
+  return allKeys(obj) .. transform(k -> obj[k]);
 }
 exports.allValues = exports.values = allValues;
 
@@ -267,7 +267,7 @@ exports.allValues = exports.values = allValues;
             excluding those defined on `obj`'s prototype chain.
 */
 function ownValues(obj) {
-  return ownKeys(obj) .. transform(k => obj[k]);
+  return ownKeys(obj) .. transform(k -> obj[k]);
 }
 exports.ownValues = ownValues;
 
@@ -279,7 +279,7 @@ exports.ownValues = ownValues;
             enumerable properties, including those defined on `obj`'s prototype chain.
 */
 function allPropertyPairs(obj) {
-  return allKeys(obj) .. transform(k => [k,obj[k]]);
+  return allKeys(obj) .. transform(k -> [k,obj[k]]);
 }
 exports.allPropertyPairs = exports.propertyPairs = allPropertyPairs;
 
@@ -291,7 +291,7 @@ exports.allPropertyPairs = exports.propertyPairs = allPropertyPairs;
             enumerable properties, excluding those defined on `obj`'s prototype chain.
 */
 function ownPropertyPairs(obj) {
-  return ownKeys(obj) .. transform(k => [k,obj[k]]);
+  return ownKeys(obj) .. transform(k -> [k,obj[k]]);
 }
 exports.ownPropertyPairs = ownPropertyPairs;
 
@@ -303,8 +303,8 @@ exports.ownPropertyPairs = ownPropertyPairs;
    @summary Create an object from a [sequence::Stream] `[key1,val1],[key2,val2],...` of property pairs
 */
 function pairsToObject(sequence, prototype) {
-  if (prototype === undefined) prototype = Object.prototype;
-  var rv = Object.create(prototype);
+  __js if (prototype === undefined) prototype = Object.prototype;
+  __js var rv = Object.create(prototype);
   sequence .. each {
     |prop|
     rv[prop[0]] = prop[1];
@@ -411,6 +411,7 @@ __js exports.override = function(/*dest, source...*/) {
 
 /**
    @function construct
+   @deprecated Under review
    @param {Object} [proto] Prototype to inherit from
    @param {Arguments} [arguments] Arguments to pass to `_init`
    @return {Object} The newly-constructed object
@@ -424,13 +425,14 @@ __js exports.override = function(/*dest, source...*/) {
           return rv;
 */
 exports.construct = function(proto, args) {
-  var rv = Object.create(proto);
+  __js var rv = Object.create(proto);
   if (rv._init) rv._init.apply(rv, args);
   return rv;
 };
 
 /**
    @function Constructor
+   @deprecated Under review
    @param {Object} [proto] Prototype to inherit from
    @return {Object} An object constructor
    @summary Create a constructor function for the given prototype.

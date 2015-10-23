@@ -48,7 +48,7 @@
 // from <script> tag:
 
 
-var location;
+__js var location;
 __js function determineLocation() {
   if (!location) {
     location = {};
@@ -73,7 +73,7 @@ __js function determineLocation() {
 //----------------------------------------------------------------------
 // exports into global scope:
 
-if (determineLocation().requirePrefix) {
+__js if (determineLocation().requirePrefix) {
   __oni_rt.G[determineLocation().requirePrefix] = {require: __oni_rt.sys.require};
 }
 else
@@ -93,40 +93,46 @@ else
    @setting {String} [forcecb] Force the name of the callback to the given string. Note: setting this value automatically forces the setting *iframe*=*true*.  
 */
 function jsonp_hostenv(url, settings) {
-  var opts = exports.mergeObjects(
-    {
-      iframe : false,
-      //    query : undefined,
-      cbfield : "callback",
-      //    forcecb : undefined,
-    },
-    settings
-  );
-
-  url = exports.constructURL(url, opts.query);
+  __js {
+    var opts = exports.mergeObjects(
+      {
+        iframe : false,
+        //    query : undefined,
+        cbfield : "callback",
+        //    forcecb : undefined,
+      },
+      settings
+    );
+    
+    url = exports.constructURL(url, opts.query);
+  } // __js 
   if (opts.iframe || opts.forcecb)
     return jsonp_iframe(url, opts);
   else
     return jsonp_indoc(url, opts);
 };
 
-var jsonp_req_count = 0;
-var jsonp_cb_obj = "_oni_jsonpcb";
+__js var jsonp_req_count = 0;
+__js var jsonp_cb_obj = "_oni_jsonpcb";
 function jsonp_indoc(url, opts) {
-  if (!window[jsonp_cb_obj])
-    window[jsonp_cb_obj] = {};
-  var cb = "cb" + (jsonp_req_count++);
-  var cb_query = {};
-  cb_query[opts.cbfield] = jsonp_cb_obj + "." + cb;
-  url = exports.constructURL(url, cb_query);
-  var elem = document.createElement("script");
-  elem.setAttribute("src", url);
-  elem.setAttribute("async", "async"); //XXX ?
-  elem.setAttribute("type", "text/javascript");
-  var complete = false;
+
+  __js {
+    if (!window[jsonp_cb_obj])
+      window[jsonp_cb_obj] = {};
+    var cb = "cb" + (jsonp_req_count++);
+    var cb_query = {};
+    cb_query[opts.cbfield] = jsonp_cb_obj + "." + cb;
+    url = exports.constructURL(url, cb_query);
+    var elem = document.createElement("script");
+    elem.setAttribute("src", url);
+    elem.setAttribute("async", "async"); //XXX ?
+    elem.setAttribute("type", "text/javascript");
+    var complete = false;
+  } // __js
+    
   waitfor (var rv) {
     window[jsonp_cb_obj][cb] = resume;
-    document.getElementsByTagName("head")[0].appendChild(elem);
+    __js document.getElementsByTagName("head")[0].appendChild(elem);
 
     waitfor(var error) {
       if (elem.addEventListener)
@@ -155,14 +161,17 @@ function jsonp_indoc(url, opts) {
 }
 
 function jsonp_iframe(url, opts) {
-  var cb = opts.forcecb || "R";
-  var cb_query = {};
-  if (opts.cbfield)
-    cb_query[opts.cbfield] = cb;
-  url = exports.constructURL(url, cb_query);
-  var iframe = document.createElement("iframe");
-  document.getElementsByTagName("head")[0].appendChild(iframe);
-  var doc = iframe.contentWindow.document;
+  __js {
+    var cb = opts.forcecb || "R";
+    var cb_query = {};
+    if (opts.cbfield)
+      cb_query[opts.cbfield] = cb;
+    url = exports.constructURL(url, cb_query);
+    var iframe = document.createElement("iframe");
+    document.getElementsByTagName("head")[0].appendChild(iframe);
+    var doc = iframe.contentWindow.document;
+  }
+
   waitfor (var rv) {
     doc.open();
     iframe.contentWindow[cb] = resume;
@@ -181,11 +190,10 @@ function jsonp_iframe(url, opts) {
   return rv; 
 };
 
-    
-var XHR_caps;
-var activex_xhr_ver;
+__js var XHR_caps;
+__js var activex_xhr_ver;
 // construct/retrieve xhr caps.
-function getXHRCaps() {
+__js function getXHRCaps() {
   if (!XHR_caps) {
     XHR_caps = {};
     // set xhr ctor:
@@ -224,7 +232,7 @@ function getXHRCaps() {
    @summary Returns the cross-domain capabilities of the host environment ('CORS'|'none'|'*')
    @return {String}
 */
-function getXDomainCaps_hostenv() {
+__js function getXDomainCaps_hostenv() {
   return getXHRCaps().CORS;
 }
 
@@ -260,7 +268,8 @@ __js function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
    @summary See [sjs:http::request] for docs
 */
 function request_hostenv(url, settings) {
-  var opts = exports.mergeObjects({
+  __js {
+    var opts = exports.mergeObjects({
                                     method   : "GET",
                                     //    query    : undefined,
                                     body     : null,
@@ -271,18 +280,18 @@ function request_hostenv(url, settings) {
                                     throwing : true
                                   },
                                   settings);
-  url = exports.constructURL(url, opts.query);
-
-  var caps = getXHRCaps();
-  if (!caps.XDR || exports.isSameOrigin(url, document.location)) {
-    var req = caps.XHR_ctor();
-    req.open(opts.method, url, true, opts.username || "", opts.password || "");
-  }
-  else {
-    // A cross-site request on IE<10, where we have to use XDR instead of XHR:
-    req = new XDomainRequest();
-    req.open(opts.method, url);
-  }
+    url = exports.constructURL(url, opts.query);
+    var caps = getXHRCaps();
+    if (!caps.XDR || exports.isSameOrigin(url, document.location)) {
+      var req = caps.XHR_ctor();
+      req.open(opts.method, url, true, opts.username || "", opts.password || "");
+    }
+    else {
+      // A cross-site request on IE<10, where we have to use XDR instead of XHR:
+      req = new XDomainRequest();
+      req.open(opts.method, url);
+    }
+  } // __js
   
   waitfor(var error) {
     if (typeof req.onerror !== 'undefined') {
@@ -299,18 +308,20 @@ function request_hostenv(url, settings) {
       };
     }
 
-    if (opts.headers && req.setRequestHeader) // XXX IE's
-                                              // XDomainRequest
-                                              // doesn't allow setting
-                                              // headers; we'll silently ignore for now
-      for (var h in opts.headers)
-        req.setRequestHeader(h, opts.headers[h]);
-    if (opts.mime && req.overrideMimeType)
-      req.overrideMimeType(opts.mime);
-    if (opts.response === 'arraybuffer')
-      req.responseType = 'arraybuffer';
-
-    req.send(opts.body);
+    __js {
+      if (opts.headers && req.setRequestHeader) // XXX IE's
+                                                // XDomainRequest
+                                                // doesn't allow setting
+                                                // headers; we'll silently ignore for now
+        for (var h in opts.headers)
+          req.setRequestHeader(h, opts.headers[h]);
+      if (opts.mime && req.overrideMimeType)
+        req.overrideMimeType(opts.mime);
+      if (opts.response === 'arraybuffer')
+        req.responseType = 'arraybuffer';
+      
+      req.send(opts.body);
+    } // __js
   }
   retract {
     req.abort();
@@ -329,7 +340,7 @@ function request_hostenv(url, settings) {
   if (error ||
       (typeof req.status !== 'undefined' && // req.status is undefined for IE XDR objs
        !(req.status.toString().charAt(0) in {'0':1,'2':1}))) {
-    if (opts.throwing) {
+    __js if (opts.throwing) {
       var txt = "Failed " + opts.method + " request to '"+url+"'";
       if (req.statusText) txt += ": "+req.statusText;
       if (req.status) txt += " ("+req.status+")";
@@ -338,7 +349,8 @@ function request_hostenv(url, settings) {
       err.data = req.response;
       throw err;
     }
-    else if (opts.response === 'string'){
+    /*else*/
+    if (opts.response === 'string'){
       return "";
     }
     // else fall through
@@ -385,7 +397,7 @@ __js function getHubs_hostenv() {
   ];
 }
 
-function getExtensions_hostenv() {
+__js function getExtensions_hostenv() {
   return {
     // normal sjs modules
     'sjs': default_compiler,
@@ -393,7 +405,7 @@ function getExtensions_hostenv() {
     // plain non-sjs js modules
     'js': function(src, descriptor) {
       var f = new Function("module", "exports", src);
-      f.apply(descriptor.exports, [descriptor, descriptor.exports]);
+      return f.apply(descriptor.exports, [descriptor, descriptor.exports]);
     },
 
     'html': html_sjs_extractor
@@ -446,43 +458,47 @@ function eval_msie(code, settings) {
 //----------------------------------------------------------------------
 // the init function serves no useful purpose in the xbrowser environment,
 // all initialization is done below
-function init_hostenv(){}
+__js function init_hostenv(){}
 
 //----------------------------------------------------------------------
 // script loading:
 
 if (!__oni_rt.G.__oni_rt_no_script_load) {
   function runScripts() {
-    var scripts = document.getElementsByTagName("script");
-    
-    // if there is something like a require('google').load() call in
-    // one of the scripts, our 'scripts' variable will change. In some
-    // circumstances this can lead to scripts being executed twice. To
-    // prevent this, we select text/sjs scripts and eval them in two passes:
-    
-    // this doesn't work on IE: ("JScript object expected")
-    //var ss = Array.prototype.slice.call(scripts, 0);
-    var ss = [];
-    for (var i=0; i<scripts.length; ++i) {
-      var s = scripts[i];
-      if (s.getAttribute("type") == "text/sjs") {
-        ss.push(s);
-      }
-    }
-    
-    for (var i=0; i<ss.length; ++i) {
-      var s = ss[i];
-      var m = s.getAttribute("module");
-      // textContent is for XUL compatibility:
-      var content = s.textContent || s.innerHTML;
-      if (__oni_rt.UA == "msie") {
-        // special casing for IE: remove spurious CRLF at beginning of content
-        content = content.replace(/\r\n/, "");
+    __js {
+      var scripts = document.getElementsByTagName("script");
+      
+      // if there is something like a require('google').load() call in
+      // one of the scripts, our 'scripts' variable will change. In some
+      // circumstances this can lead to scripts being executed twice. To
+      // prevent this, we select text/sjs scripts and eval them in two passes:
+      
+      // this doesn't work on IE: ("JScript object expected")
+      //var ss = Array.prototype.slice.call(scripts, 0);
+      var ss = [];
+      for (var i=0; i<scripts.length; ++i) {
+        var s = scripts[i];
+        if (s.getAttribute("type") == "text/sjs") {
+          ss.push(s);
         }
+      }
+    } // __js
+
+    for (var i=0; i<ss.length; ++i) {
+      __js {
+        var s = ss[i];
+        var m = s.getAttribute("module");
+        // textContent is for XUL compatibility:
+        var content = s.textContent || s.innerHTML;
+        if (__oni_rt.UA == "msie") {
+          // special casing for IE: remove spurious CRLF at beginning of content
+          content = content.replace(/\r\n/, "");
+        }
+      } // __js
       if (m)
-        __oni_rt.modsrc[m] = content;
+        __js __oni_rt.modsrc[m] = content;
       else {
-        var descriptor = {
+        __js var descriptor = {
           id: document.location.href + "_inline_sjs_" + (i + 1),
         };
          __oni_rt.sys.require.main = descriptor;
@@ -492,7 +508,7 @@ if (!__oni_rt.G.__oni_rt_no_script_load) {
       }
     }
 
-    var mainModule = determineLocation().main;
+    __js var mainModule = determineLocation().main;
     if(mainModule) {
        __oni_rt.sys.require(mainModule, {main:true});
     }

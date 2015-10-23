@@ -301,7 +301,7 @@ var relax = function(fn) {
 function generateBundle(deps, settings) {
   settings = sanitizeOpts(settings);
   var compile;
-  if (settings.compile) {
+  if (settings.compile) { 
     var compiler = require('./compile/sjs');
     compile = function(src, path) {
       var js = compiler.compile(src, {globalReturn:true, filename: "'#{path.replace(/\'/g,'\\\'')}'"});

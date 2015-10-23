@@ -44,7 +44,7 @@ var { each, Stream } = require('./sequence');
   @param    {Object} [re]
   @return   {Boolean}
 */
-exports.isRegExp = function(re) {
+__js exports.isRegExp = function(re) {
   return Object.prototype.toString.call(re) === '[object RegExp]';
 }
 
@@ -75,7 +75,7 @@ exports.isRegExp = function(re) {
     function is much more efficient for this purpose.
 */
 
-exports.escape = function(str) {
+__js exports.escape = function(str) {
   return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
 };
 

@@ -188,7 +188,7 @@ exports.formatMessage = function(lvl, args) {
   args = Array.prototype.slice.call(args);
   for (var i=0; i<args.length; i++) {
     var message = args[i];
-    if (quasi.isQuasi(message)) {
+    if (quasi.isQuasi(message)) { 
       args[i] = quasi.mapQuasi(message, inspect).join("");
     }
   }

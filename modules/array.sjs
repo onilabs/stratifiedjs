@@ -46,7 +46,7 @@ var { isArrayLike, flatten } = require('builtin:apollo-sys');
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
-exports.isArrayLike = isArrayLike;
+__js exports.isArrayLike = isArrayLike;
 
 /**
    @function remove
@@ -75,10 +75,10 @@ exports.remove = remove;
      * Throws an exception is the array is empty
 */
 function cycle(arr) {
-  if (arr.length == 0) throw new Error('Cannot cycle an empty array');
+  __js if (arr.length == 0) throw new Error('Cannot cycle an empty array');
   return Stream(function(r) { var idx = 0; while (1) { r(arr[idx]); ++idx; idx%=arr.length; } });
 }
-exports.cycle = cycle;
+__js exports.cycle = cycle;
 
 /**
   @function flatten
@@ -94,7 +94,7 @@ exports.cycle = cycle;
          var b = flatten(a);
          // b is now [1,2,3,4,5,6,7,8,9,10]
 */
-exports.flatten = flatten;
+__js exports.flatten = flatten;
 
 /**
   @function union
@@ -137,7 +137,7 @@ __js function union(a, b) {
   }
   return rv;
 }
-exports.union = union;
+__js exports.union = union;
 
 /**
   @function difference
@@ -154,7 +154,7 @@ __js function difference(a, b) {
   }
   return rv;
 }
-exports.difference = difference;
+__js exports.difference = difference;
 
 /**
   @function haveCommonElements

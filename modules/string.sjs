@@ -44,12 +44,12 @@ var global = sys.getGlobal();
    @param   {anything} [testObj] Object to test.
    @return  {Boolean}
 */
-function isString(obj) {
+__js function isString(obj) {
   return typeof obj == 'string' || obj instanceof String;
 }
 exports.isString = isString;
 
-function isRegExp(re) {
+__js function isRegExp(re) {
   // copied from ./regexp to reduce imports
   return Object.prototype.toString.call(re) === '[object RegExp]';
 }
@@ -69,7 +69,7 @@ function isRegExp(re) {
     appropriate escaping for you (such as the `surface` module in Conductance).
 */
 
-var replacements = {
+__js var replacements = {
   '&':'&amp;',
   '>':'&gt;',
   '<':'&lt;',
@@ -77,7 +77,7 @@ var replacements = {
   '"':'&quot;',
 };
 
-exports.sanitize = function(str) {
+__js exports.sanitize = function(str) {
   str = str === undefined ? "" : str.toString();
   return str.replace(/['"<>&]/g, function(c) {
     return replacements[c];
@@ -131,7 +131,7 @@ exports.supplant = function(str, o, filter) {
   @desc
     `" " ..@repeat(5)` returns `"     "`.
  */
-exports.repeat = function(str, times) {
+__js exports.repeat = function(str, times) {
   // TODO check that `times` is greater than or equal to 0
   return new Array(times + 1).join(str);
 };
@@ -151,7 +151,7 @@ exports.repeat = function(str, times) {
             startsWith("abcd", "bc")
             // false
 */
-exports.startsWith = function(str, prefix) {
+__js exports.startsWith = function(str, prefix) {
   return str.lastIndexOf(prefix, 0) === 0;
 }
 
@@ -170,7 +170,7 @@ exports.startsWith = function(str, prefix) {
         endsWith("abcd", "bc")
         // false
 */
-exports.endsWith = function(str, suffix) {
+__js exports.endsWith = function(str, suffix) {
   var endPos = str.length - suffix.length;
   if (endPos < 0) return false;
   return str.indexOf(suffix, endPos) == endPos;
@@ -191,7 +191,7 @@ exports.endsWith = function(str, suffix) {
         contains("abcd", "abd")
         // false
 */
-exports.contains = function(str, substr) {
+__js exports.contains = function(str, substr) {
   if (!isString(str)) throw new Error('contains() expects a string');
   return str.indexOf(substr) != -1;
 }
@@ -216,7 +216,7 @@ exports.contains = function(str, substr) {
         strip("||a|b||c|", "|")
         // "a|b||c"
 */
-exports.strip = function(s, ch){
+__js exports.strip = function(s, ch){
   if (ch == undefined) return s.trim();
   return s .. exports.lstrip(ch) .. exports.rstrip(ch);
 };
@@ -240,7 +240,7 @@ exports.strip = function(s, ch){
         strip("||a|b||c|", "|")
         // "a|b||c|"
 */
-exports.lstrip = function(s, ch){
+__js exports.lstrip = function(s, ch){
   if (ch == undefined) return s.replace(/^\s+/,'');
   while(s.charAt(0) == ch) {
     s = s.slice(1);
@@ -267,7 +267,7 @@ exports.lstrip = function(s, ch){
         strip("|a|b||c||", "|")
         // "|a|b||c"
 */
-exports.rstrip = function(s, ch){
+__js exports.rstrip = function(s, ch){
   if (ch == undefined) return s.replace(/\s+$/,'');
   while(s.charAt( s.length-1 ) == ch) {
     s = s.slice(0, -1)
@@ -405,7 +405,7 @@ exports.rstrip = function(s, ch){
         padRight("str", 5, '-');
         // 'str--'
 */
-exports.padRight = function(s, len, ch) {
+__js exports.padRight = function(s, len, ch) {
   if (!ch) ch = ' ';
   s = String(s);
   while(s.length < len) s += ch;
@@ -433,7 +433,7 @@ exports.padRight = function(s, len, ch) {
         padLeft("x", 5, '-');
         // '--str'
 */
-exports.padLeft = function(s, len, ch) {
+__js exports.padLeft = function(s, len, ch) {
   if (!ch) ch = ' ';
   s = String(s);
   while(s.length < len) s = ch + s;
@@ -462,7 +462,7 @@ exports.padLeft = function(s, len, ch) {
         // '----uneven string---'
 
 */
-exports.padBoth = function(s, len, ch) {
+__js exports.padBoth = function(s, len, ch) {
   if (!ch) ch = ' ';
   s = String(s);
   var t = len - s.length;
@@ -484,7 +484,7 @@ exports.padBoth = function(s, len, ch) {
      Note: If a line in `s` does not contain `c` leading whitespace characters,
            this particular line will be left untouched by `unindent`.
 */
-exports.unindent = function(s, c) {
+__js exports.unindent = function(s, c) {
   if (!c) {
     var matches = /^([ \t]+)/.exec(s);
     if (!matches) return s;
@@ -500,7 +500,7 @@ exports.unindent = function(s, c) {
    @param   {String} [prefix]
    @return  {String} String with every line prefixed with `prefix`
 */
-exports.prefixLines = function(s, prefix) {
+__js exports.prefixLines = function(s, prefix) {
   var lines = s.split('\n');
   for(var i=0; i<lines.length; ++i)
     lines[i] = prefix + lines[i];
@@ -513,7 +513,7 @@ exports.prefixLines = function(s, prefix) {
    @param    {String} [s]
    @return   {String} Capitalized string
 */
-exports.capitalize = function(s) {
+__js exports.capitalize = function(s) {
   if (s.length == 0) return s;
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
@@ -548,7 +548,7 @@ exports.capitalize = function(s) {
        * See http://mathiasbynens.be/notes/javascript-encoding for a
          good discussion on JS string encoding.
 */
-exports.stringToUtf8 = exports.utf16ToUtf8 = function(s) {
+__js exports.stringToUtf8 = exports.utf16ToUtf8 = function(s) {
   return unescape(encodeURIComponent(s));
 };
 
@@ -568,7 +568,7 @@ exports.stringToUtf8 = exports.utf16ToUtf8 = function(s) {
        * See http://mathiasbynens.be/notes/javascript-encoding for a
          good discussion on JS string encoding.
 */
-exports.utf8ToString = exports.utf8ToUtf16 = function(s) {
+__js exports.utf8ToString = exports.utf8ToUtf16 = function(s) {
   return decodeURIComponent(escape(s));
 };
 
@@ -591,7 +591,7 @@ exports.utf8ToString = exports.utf8ToUtf16 = function(s) {
           length is not a multiple of 3.
         * No line breaks will be inserted into the output string.
 */
-var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+__js var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 __js {
 
