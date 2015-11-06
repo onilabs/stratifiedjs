@@ -1434,3 +1434,18 @@ context("batchN") {||
   }
 }
 
+test("consume/retract edge case") {||
+  var producer = s.Stream(function(r) {
+    r('a');
+    hold(10);
+    r('b');
+  });
+
+  producer .. s.consume {
+    |next|
+    assert.eq(next(), 'a');
+    waitfor { next() } or { hold(0); } // retracted next()
+    hold(100); // give producer a chance to emit next item
+    assert.eq(next(), 'b');
+  }
+}

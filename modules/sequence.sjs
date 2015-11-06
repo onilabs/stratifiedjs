@@ -559,6 +559,14 @@ function consume(/* sequence, [opt]eos, loop */) {
         // listener and then emit x. This ensures that everything works
         // in the synchronous case, where 'emit_next' causes 'want_next'
         // to be called synchronously.
+
+        if (!emit_next) {
+          // our emit_next function has been retracted while the
+          // upstream generated its value 'x'. we need to wait until
+          // the next item is requested:
+          waitfor() { want_next = resume; }
+        }
+        
         waitfor() {
           want_next = resume;
           emit_next(x);
