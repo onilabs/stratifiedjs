@@ -1153,9 +1153,33 @@ context("pack") {||
   }
 
 
-  test("settings precedence") {||
-    // packing_func overrides count:
-    [1,2,3,4,5] .. s.pack({count: 3, packing_func:next -> [next(),next()], pad:'pad'}) .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
+  test("settings precedence 1") {||
+    // packing_func overrides count & interval:
+    [1,2,3,4,5] .. s.pack({count: 3, interval: 200, packing_func:next -> [next(),next()], pad:'pad'}) .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
+  }
+
+  test("settings precedence 2") {||
+    // count overrides interval:
+    [1,2,3,4,5] .. s.pack({count: 2, interval: 200}) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);
+  }
+
+  test("with interval") {||
+    [1,2,3,4,5] .. s.pack({interval: 100}) .. s.toArray .. assert.eq([[1,2,3,4,5]]);
+  }
+
+  test("with interval 2") {||
+    var source = s.Stream(function(r) { 
+      r(1);
+      hold(10);
+      r(2);
+      hold(10);
+      r(3);
+      hold(40);
+      r(4);
+      hold(10);
+      r(5);
+    });
+    source .. s.pack({interval:40}) .. s.toArray .. assert.eq([[1,2,3],[4,5]]);
   }
 
 }

@@ -252,6 +252,7 @@ module.exports = require(modules);
    - **mirror**: (function [sjs:sequence::mirror])
    - **monitor**: (function [sjs:sequence::monitor])
    - **pack**: (function [sjs:sequence::pack])
+   - **PACK_OMIT**: (variable [sjs:sequence::PACK_OMIT])
    - **partition**: (function [sjs:sequence::partition])
    - **product**: (function [sjs:sequence::product])
    - **project**: (function [sjs:sequence::project])
