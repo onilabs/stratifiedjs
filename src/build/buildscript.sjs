@@ -41,6 +41,7 @@ function build_deps() {
                                                   "modules/std.sjs",
                                                   "modules/dashdash.sjs",
                                                   "modules/xbrowser/html2canvas.sjs",
+                                                  "modules/xbrowser/filesaver.sjs",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
                                                   "modules/compile/ast.js",
@@ -288,6 +289,16 @@ function build_deps() {
         ["src/deps/html2canvas/apollo-module-header.txt",
          "tmp/html2canvas.js",
          "src/deps/html2canvas/apollo-module-footer.txt",
+        ]);
+
+  // filesaver
+  BUILD("modules/xbrowser/filesaver.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/FileSaver.js/apollo-module-header.txt",
+         "src/deps/FileSaver.js/FileSaver.min.js",
+         "src/deps/FileSaver.js/apollo-module-footer.txt"
         ]);
 
   // std module

@@ -21,3 +21,7 @@ jsdiff/ git://github.com/kpdecker/jsdiff.git 1f4bf7a708fc1121bb49e3b10d2ec7218c5
 
 # html2canvas:
 html2canvas/ git://github.com/niklasvh/html2canvas.git 069140974b3bbcaa442a3c7c597b345ff04da1ce
+
+# FileSaver.js:
+FileSaver.js/ https://github.com/eligrey/FileSaver.js.git ec5c3cca113f9c0fba66c8d0ef44d4a6bf985357
+

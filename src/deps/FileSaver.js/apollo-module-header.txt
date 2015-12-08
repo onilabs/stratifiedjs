@@ -1,0 +1,55 @@
+/*
+ * StratifiedJS 'filesaver' module
+ *
+ * Part of the Stratified JavaScript Standard Module Library
+ * http://onilabs.com/stratifiedjs
+ *
+ * (c) 2015 Oni Labs, http://onilabs.com
+ *
+ *
+ *   ***************************************************************
+ *   *    DO NOT EDIT jsondiffpatch.sjs - IT IS A GENERATED FILE!  *
+ *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
+ *   *    stratifiedjs/src/build/make-sjs                          *
+ *   ***************************************************************
+ *
+ *
+ * This file is derived from the "FileSaver.js" project 
+ * (https://github.com/eligrey/FileSaver.js.git), 
+ * which is available under the terms of the MIT License.
+ *
+ * Original License Text:
+ *
+ *  Copyright © 2015 Eli Grey.
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/**
+  @module    filesaver
+  @summary   Blob saveAs() functionality
+  @home      sjs:xbrowser/filesaver
+  @desc      
+             This module tracks the [FileSaver.js](https://github.com/eligrey/FileSaver.js) by Eli Grey
+*/
+
+/**
+    @function saveAs
+    @summary  Open a 'Save As' dialog for the given Blob
+    @param {Blob} [data]
+    @param {String} [filename]
+    @param {optional Boolean} [disableAutoBOM=false] If this flag is `true`, no Unicode byte order marks will be applied
+    @desc
+          * Note that this function will return immediately and not wait for the download to complete.
+          * Note also the limitations listed at https://github.com/eligrey/FileSaver.js.
+*/
+
+/**
+  turn off docs from this point onwards:
+  @docsoff
+*/
+__js {
