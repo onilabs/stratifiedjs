@@ -33,6 +33,7 @@
   @module    filesaver
   @summary   Blob saveAs() functionality
   @home      sjs:xbrowser/filesaver
+  @hostenv   xbrowser
   @desc      
              This module tracks the [FileSaver.js](https://github.com/eligrey/FileSaver.js) by Eli Grey
 */
