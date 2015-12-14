@@ -1173,7 +1173,6 @@ function parseFunctionParams(pctx, starttok, endtok) {
       default:
         throw new Error("Expected function parameter but found '"+pctx.token+"'");
     }
-    token = pctx.token;
   }
   scan(pctx, endtok);
   return pars;
