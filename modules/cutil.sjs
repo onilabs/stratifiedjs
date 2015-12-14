@@ -426,7 +426,7 @@ __js function Queue(capacity, sync) {
 }
 __js exports.Queue = Queue;
 
-QueueProto = {
+var QueueProto = {
   /**
     @function Queue.count
     @summary  Returns current number of elements in the queue.
