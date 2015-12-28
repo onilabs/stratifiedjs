@@ -418,6 +418,18 @@ function eventStreamToObservable(events, getInitial) {
 }
 exports.eventStreamToObservable = eventStreamToObservable;
 
+/**
+   @function constantObservable
+   @param {Object} [obj]
+   @summary Create an observable that always returns `obj`
+*/
+exports.constantObservable = function(obj) {
+  return Stream(function(receiver) {
+    receiver(obj);
+    hold();
+  });
+};
+
 //----------------------------------------------------------------------
 
 /**
