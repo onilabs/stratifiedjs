@@ -53,13 +53,13 @@ var PAT_COMMENT = "(" + PAT_NBCOMMENT + "|" + PAT_BCOMMENT + ")";
 // e.g. " /* */ " <-- a string, not a comment
 //      /\/* .*/  <-- a regexp, not a comment
 var PAT_REGEXLIT = "\\/(?:\\\\.|\\[(?:\\\\.|[^\\n\\]])*\\]|[^\\[\\/\\n])+\\/[gimy]*";
-var PAT_ML_STRLIT_SGL = "'(?:\\\\.|[^\\'])*'";
-var PAT_ML_STRLIT_DBL = '"(?:\\\\.|[^\\"])*"';
+var PAT_ML_STRLIT_SGL = "'(?:\\\\.|[^\\'\\\\])*'";
+var PAT_ML_STRLIT_DBL = '"(?:\\\\.|[^\\"\\\\])*"';
 var PAT_ML_STRLIT = PAT_ML_STRLIT_SGL+"|"+PAT_ML_STRLIT_DBL;
 var PAT_COMMENT_SHADOW = PAT_REGEXLIT + "|" + PAT_ML_STRLIT;
 
 // safe, non-shadowing pattern:
-var PAT_SAFE = "(?:[^\'\"^\\/]+|(?:\\/))";
+var PAT_SAFE = "(?:[^\'\"\\/]+|(?:\\/))";
 
 var SOURCE_SPLITTER = new RegExp(PAT_COMMENT + "|(" + 
                                  PAT_COMMENT_SHADOW + "|" + PAT_SAFE + ")", "g");
@@ -90,10 +90,12 @@ var parseSource = exports.parseSource = function(src, handle_comment, handle_cod
     // reentrantly with different source code during invocations of
     // handle_comment/handle_code.
     var lastIndex = SOURCE_SPLITTER.lastIndex;
-    if (matches[1])
+    if (matches[1]) {
       handle_comment(matches[1]);
-    else
+    }
+    else {
       handle_code(matches[2]);
+    }
     SOURCE_SPLITTER.lastIndex = lastIndex;
   }
 };
