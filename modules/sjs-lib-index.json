@@ -1045,6 +1045,16 @@
       },
       "summary": "Markdown to Html Converter (tracking the [marked library](https://github.com/chjj/marked))"
     },
+    "moment-timezone": {
+      "type": "module",
+      "children": {},
+      "summary": "Timezone support for sjs:moment"
+    },
+    "moment": {
+      "type": "module",
+      "children": {},
+      "summary": "Parsing, validating, manipulating and displaying dates"
+    },
     "nodejs/": {
       "type": "lib",
       "children": {
@@ -1898,6 +1908,9 @@
           }
         },
         "changes": {
+          "type": "function"
+        },
+        "constantObservable": {
           "type": "function"
         },
         "current": {
@@ -2829,39 +2842,10 @@
         "console": {
           "type": "module",
           "children": {
-            "Console": {
-              "type": "class",
-              "children": {
-                "clear": {
-                  "type": "function"
-                },
-                "error": {
-                  "type": "function"
-                },
-                "exec": {
-                  "type": "function"
-                },
-                "expand": {
-                  "type": "function"
-                },
-                "focus": {
-                  "type": "function"
-                },
-                "log": {
-                  "type": "function"
-                },
-                "shut": {
-                  "type": "function"
-                },
-                "shutdown": {
-                  "type": "function"
-                },
-                "warn": {
-                  "type": "function"
-                }
-              }
+            "Console.focus": {
+              "type": "function"
             },
-            "console": {
+            "Console.shutdown": {
               "type": "function"
             },
             "log": {

@@ -42,6 +42,8 @@ function build_deps() {
                                                   "modules/dashdash.sjs",
                                                   "modules/xbrowser/html2canvas.sjs",
                                                   "modules/xbrowser/filesaver.sjs",
+                                                  "modules/moment.sjs",
+                                                  "modules/moment-timezone.sjs",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
                                                   "modules/compile/ast.js",
@@ -300,6 +302,27 @@ function build_deps() {
          "src/deps/FileSaver.js/FileSaver.min.js",
          "src/deps/FileSaver.js/apollo-module-footer.txt"
         ]);
+
+  // moment
+  BUILD("modules/moment.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/moment/apollo-module-header.txt",
+         "src/deps/moment/min/moment.min.js",
+         "src/deps/moment/apollo-module-footer.txt"
+        ]);
+
+  // moment-timezone
+  BUILD("modules/moment-timezone.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/moment-timezone/apollo-module-header.txt",
+         "src/deps/moment-timezone/builds/moment-timezone-with-data.min.js",
+         "src/deps/moment-timezone/apollo-module-footer.txt"
+        ]);
+
 
   // std module
   BUILD("modules/std.sjs", function(dest) {
