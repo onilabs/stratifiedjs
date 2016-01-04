@@ -1264,7 +1264,7 @@ ph_arrow.prototype.nb = function() {
 #define GEN_DOUBLEDOT_CALL(l,r,pctx, ext) return gen_doubledot_call(l, r, pctx);
 
 function gen_doubledot_call(l, r, pctx) {
-  // XXX not very elegant show we inject ourselves into the funcall
+  // XXX not very elegant how we inject ourselves into the funcall
   // here (and it was the source of a very hard to track down bug
   // already!)
   if (r.is_fun_call) {
@@ -1286,7 +1286,7 @@ function gen_doubledot_call(l, r, pctx) {
 #define GEN_DOUBLECOLON_CALL(l,r,pctx, ext) return gen_doublecolon_call(l, r, pctx);
 
 function gen_doublecolon_call(l, r, pctx) {
-  // XXX not very elegant show we inject ourselves into the funcall
+  // XXX not very elegant how we inject ourselves into the funcall
   // here (and it was the source of a very hard to track down bug
   // already!)
   if (l.is_doubledot) {

@@ -857,9 +857,37 @@ function gen_doubledot_call(l, r, pctx, ext) {
   // XXX not very elegant
   if (r.type === 'CallExpression') r['arguments'].unshift(l);
   else r = Node.CallExpression(pctx, ext, r, [l]);
+  r.is_doubledot = true;
   return r;
 }
 
+#endif
+
+#ifdef SJS_DOUBLECOLON
+#define GEN_DOUBLECOLON_CALL(l,r,pctx, ext) return gen_doublecolon_call(l, r, pctx, ext);
+function gen_doublecolon_call(l, r, pctx, ext) {
+  // XXX not very elegant
+  if (l.is_doubledot) {
+    // walk up the call tree until we find the first argument that isn't a doubledot:
+    var target = l;
+    while (target.type === 'CallExpression' && target['arguments'][0].is_doubledot) {
+      target = target['arguments'][0];
+    }
+    if (target['arguments'][0].type === 'CallExpression') {
+      target['arguments'][0]['arguments'].unshift(r);
+    }
+    else {
+      target['arguments'][0] = Node.CallExpression(pctx, ext, target['arguments'][0], [r]);
+    }
+    return l;
+  }
+  else if (l.type === 'CallExpression') {
+    l['arguments'].unshift(r);
+    return l;
+  }
+  else
+    return Node.CallExpression(pctx, ext, l, [r]);
+}
 #endif
 
 #ifdef SJS_ALTERNATE_NAMESPACE
