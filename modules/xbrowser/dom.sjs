@@ -338,7 +338,8 @@ exports.traverseDOM = traverseDOM;
     @return   {Boolean} 
 */
 var matchesSelectorFunc = 
-  ['matchesSelector',
+  [ 'matches',
+    'matchesSelector',
    'webkitMatchesSelector',
    'mozMatchesSelector',
    'msMatchesSelector'
