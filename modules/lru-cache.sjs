@@ -42,6 +42,8 @@
      Use function [::makeCache] to create a new Cache instance
 */
 
+__js {
+
 function Cache() {};
 var CacheProto = Cache.prototype = {};
 
@@ -193,3 +195,5 @@ CacheProto.discard = function(key) {
   }
   return true;
 };
+
+} // __js
