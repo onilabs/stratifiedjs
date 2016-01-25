@@ -576,6 +576,13 @@ function consume(/* sequence, [opt]eos, loop */) {
     catch (e) {
       // Propagate the exception to our 'loop' block
 
+      if (!emit_next) {
+        // our emit_next function has been retracted while the
+        // upstream generated the exception. we need to wait until
+        // the next item is requested:
+        waitfor() { want_next = resume; }
+      }
+
       // we need to do this in a loop to account for the case where we
       // are being called repeatedly through e.g. a cached Iterator
       while (1) {
@@ -588,6 +595,14 @@ function consume(/* sequence, [opt]eos, loop */) {
 
     // The sequence has finished. Emit 'eos' until exiting of the
     // user loop pulls down the waitfor-or:
+
+    if (!emit_next) {
+      // our emit_next function has been retracted while the
+      // upstream finished. we need to wait until
+      // the next item is requested:
+      waitfor() { want_next = resume; }
+    }
+    
     while (1) {
       waitfor() {
         want_next = resume;

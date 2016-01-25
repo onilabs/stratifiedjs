@@ -1473,3 +1473,81 @@ test("consume/retract edge case") {||
     assert.eq(next(), 'b');
   }
 }
+
+test("consume exception propagation") {||
+  var producer = s.Stream(function(r) {
+    r('a');
+    hold(10);
+    throw 'b';
+  });
+
+  producer .. s.consume {
+    |next|
+    assert.eq(next(), 'a');
+    try {
+      next();
+      assert.fail('should not be reached')
+    }
+    catch(e) {
+      assert.eq(e, 'b');
+    }
+    // exception should repeat:
+    try {
+      next();
+      assert.fail('should not be reached')
+    }
+    catch(e) {
+      assert.eq(e, 'b');
+    }
+  }
+}
+
+test("consume exception propagation / retract edge case") {||
+  var producer = s.Stream(function(r) {
+    r('a');
+    hold(10);
+    throw 'b';
+  });
+
+  producer .. s.consume {
+    |next|
+    assert.eq(next(), 'a');
+    waitfor { next(); } or { hold(0); }
+    hold(100); // give producer a chance to emit next item
+    try {
+      next();
+      assert.fail('should not be reached')
+    }
+    catch(e) {
+      assert.eq(e, 'b');
+    }
+    // exception should repeat:
+    try {
+      next();
+      assert.fail('should not be reached')
+    }
+    catch(e) {
+      assert.eq(e, 'b');
+    }
+  }
+}
+
+test("consume eos / retract edge case") {||
+  var producer = s.Stream(function(r) {
+    r('a');
+    hold(10);
+  });
+
+  var eos = {};
+
+  producer .. s.consume(eos) {
+    |next|
+    assert.eq(next(), 'a');
+    waitfor { next() } or { hold(0); } // retracted next()
+    hold(100); // give producer a chance to get to eos
+    assert.eq(next(), eos);
+
+    // should be repeatable:
+    assert.eq(next(), eos);
+  }
+}
