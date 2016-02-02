@@ -172,6 +172,9 @@ var getConnections = function(server) {
    @setting {String}  [cert] The server certificate in PEM format. (Required when `ssl=true`.)
    @setting {Array}   [ca] Optional array of authority certificates. (Only used when `ssl=true`.)
    @setting {String}  [passphrase] Optional passphrase to decrypt an encrypted private `key`.
+   @setting {String}  [secureProtocol] SSL method to use. (Only used when `ssl=true`.)
+   @setting {Integer} [secureOptions] Options to pass to the OpenSSL context. (Only used when `ssl=true`.)
+   @setting {String}  [ciphers] Optional string describing the ciphers to use or exclude, separated by `:`. (Only used when `ssl=true`.)
    @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, uses [../logging::info]
    @desc
       `withServer` will start a HTTP(S) server according to the given 
@@ -232,6 +235,9 @@ function withServer(config, server_loop) {
     fd: undefined,
     log: x => logging.info(address, ":", x),
     print: logging.print,
+    secureOptions: undefined,
+    secureProtocol: undefined,
+    ciphers: undefined
   }, config);
 
   var [,host,port] = /^(?:(.*)?\:)?(\d+)$/.exec(config.address);
@@ -272,7 +278,10 @@ function withServer(config, server_loop) {
         key: undefined,
         cert: undefined,
         ca: undefined,
-        passphrase: undefined
+        passphrase: undefined,
+        secureOptions: undefined,
+        secureProtocol: undefined,
+        ciphers: undefined
       } .. override(config),
       dispatchRequest);
 
