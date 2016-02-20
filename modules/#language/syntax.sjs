@@ -140,6 +140,9 @@
   stratum at the point of `next code`. Only the first call to `resume`
   will have an effect (and only if the suspended waitfor has not been
   cancelled). Subsequent calls to `resume()` will be ignored.
+
+  A call to `resume()` will immediately begin executing `next_code`. 
+  When `next_code` finishes or suspends, the code after the `resume()` will be executed.
   
   Example: In a web browser we can use `waitfor()` with `window.setTimeout`
   to make a 'pause' function (similar to `hold(t)`):

@@ -126,3 +126,30 @@
 		c .. @first() .. @assert.eq(1);
 	}
 }
+
+@test('each.track edge case') {||
+  // if the block of an each.track blocks while an upstream value is generated, 
+  // we're ok to lose intermediate values, but we want to make sure that we 
+  // always see the last one
+  var rv = '';
+  var X = @ObservableVar('');
+  waitfor {
+    X .. @changes .. @each.track {
+      |x|
+      try {
+        rv += x;
+        hold();
+      }
+      finally {
+        hold(0);
+      }
+    }
+  }
+  or {
+    X.set('a');
+    X.set('b');
+    X.set('c');
+    hold(0);
+  }
+  rv .. @assert.eq('ac');
+}

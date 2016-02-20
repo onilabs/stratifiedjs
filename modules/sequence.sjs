@@ -2776,18 +2776,34 @@ any.par = function(/* sequence, max_strata, p */) {
            console.log('You paused the mouse');
          }
 
+     #### Edge case behavior:
+
+     Usually `f` will see every value of the upstream sequence, no matter how quickly the
+     upstream generates values: If `f` happens to be blocked when a new upstream sequence arrives, 
+     then it will be aborted and started again with the new value. 
+
+     If, however, `f` happens to be *blocked in a finally clause* while the upstream sequence generates a number of values `X1, ..., Xn`, then `f` will only see the last of those values `Xn`.
+
+     In other words, `each.track` is usually robust for use with [./event::EventStream]s, unless `f` contains logic that might block in a `finally{}` clause. In the latter case `each.track` is still robust under [observable::Observable] semantics.
+
 */
 each.track = function(seq, r) {
-  var val, next, done=false, executing_downstream=false;
+  var val, have_new_value=false, prod, done=false, executing_downstream=false;
   waitfor {
-    waitfor(val) { next = resume; }
+    waitfor() { prod = resume; }
     while (true) {
       waitfor {
-        waitfor(val) { next = resume; }
+        waitfor() { prod = resume; }
       }
-      or {
+      or { 
         executing_downstream = true;
-        r(val);
+        // this while-loop is to support the edge case where
+        // values are generated while `r` is blocked in a finally clause.
+        // we want to make sure r always gets the most recent value
+        while (have_new_value) {
+          have_new_value = false;
+          r(val);
+        }
         executing_downstream = false;
         if (done) return;
         hold();
@@ -2795,7 +2811,7 @@ each.track = function(seq, r) {
     }
   }
   and {
-    seq .. each { |x| next(x) };
+    seq .. each { |x| have_new_value = true; val = x; prod(x); }
     done = true;
     if (!executing_downstream) return;
   }
