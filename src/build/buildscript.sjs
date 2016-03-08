@@ -179,11 +179,12 @@ function build_deps() {
         ["src/headers/oni-apollo.js.txt",
          "tmp/vm1client.js.min",
          "tmp/c1.js.min",
-         "tmp/apollo-sys-common.sjs.min",
-         "tmp/apollo-sys-xbrowser.sjs.min",
+//         "tmp/apollo-sys-common.sjs.min",
+//         "tmp/apollo-sys-xbrowser.sjs.min",
          "tmp/apollo-jsshim-xbrowser.js.min",
-         "tmp/apollo-bootstrap-common.js.min",
-         "tmp/apollo-bootstrap-xbrowser.js.min",
+         "tmp/apollo-sys-xbrowser-aot.js",
+//         "tmp/apollo-bootstrap-common.js.min",
+//         "tmp/apollo-bootstrap-xbrowser.js.min",
          ]);
 
   // precompiled xbrowser version
