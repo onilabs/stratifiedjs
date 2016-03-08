@@ -389,6 +389,10 @@ function generateBundle(deps, settings) {
     if (!strict) addDep = relax(addDep);
 
     usedModules .. each(addDep);
+
+    // support for sjs script's 'wait-for-bundle' attribute; see apollo-sys-xbrowser.sjs:
+    write("if(typeof(__oni_rt_bundle_hook) === 'function') __oni_rt_bundle_hook();");
+
     write("})();");
   }
   return rv;

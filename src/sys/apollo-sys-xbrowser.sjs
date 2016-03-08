@@ -59,6 +59,8 @@ __js function determineLocation() {
         location.requirePrefix = scripts[i].getAttribute("require-prefix");
         location.req_base = scripts[i].getAttribute("req-base") || document.location.href;
         location.main = scripts[i].getAttribute("main");
+        location.noInlineScripts = scripts[i].getAttribute("no-inline-scripts");
+        location.waitForBundle = scripts[i].getAttribute("wait-for-bundle");
         break;
       }
     }
@@ -465,49 +467,60 @@ __js function init_hostenv(){}
 
 if (!__oni_rt.G.__oni_rt_no_script_load) {
   function runScripts() {
-    __js {
-      var scripts = document.getElementsByTagName("script");
-      
-      // if there is something like a require('google').load() call in
-      // one of the scripts, our 'scripts' variable will change. In some
-      // circumstances this can lead to scripts being executed twice. To
-      // prevent this, we select text/sjs scripts and eval them in two passes:
-      
-      // this doesn't work on IE: ("JScript object expected")
-      //var ss = Array.prototype.slice.call(scripts, 0);
-      var ss = [];
-      for (var i=0; i<scripts.length; ++i) {
-        var s = scripts[i];
-        if (s.getAttribute("type") == "text/sjs") {
-          ss.push(s);
-        }
-      }
-    } // __js
 
-    for (var i=0; i<ss.length; ++i) {
-      __js {
-        var s = ss[i];
-        var m = s.getAttribute("module");
-        // textContent is for XUL compatibility:
-        var content = s.textContent || s.innerHTML;
-        if (__oni_rt.UA == "msie") {
-          // special casing for IE: remove spurious CRLF at beginning of content
-          content = content.replace(/\r\n/, "");
-        }
-      } // __js
-      if (m)
-        __js __oni_rt.modsrc[m] = content;
-      else {
-        __js var descriptor = {
-          id: document.location.href + "_inline_sjs_" + (i + 1),
-        };
-         __oni_rt.sys.require.main = descriptor;
-        var f = exports.eval("(function(module, __onimodulename){"+content+"\n})",
-                        {filename:"module #{descriptor.id}"});
-        f(descriptor);
+    if (determineLocation().waitForBundle) {
+
+      if (__oni_rt_bundle.h === undefined) {
+        // see modules/bundle.sjs for where this hook gets called:
+        __oni_rt_bundle_hook = runScripts;
+        return;
       }
     }
 
+    if (!determineLocation().noInlineScripts) {
+      __js {
+        var scripts = document.getElementsByTagName("script");
+      
+        // if there is something like a require('google').load() call in
+        // one of the scripts, our 'scripts' variable will change. In some
+        // circumstances this can lead to scripts being executed twice. To
+        // prevent this, we select text/sjs scripts and eval them in two passes:
+      
+        // this doesn't work on IE: ("JScript object expected")
+        //var ss = Array.prototype.slice.call(scripts, 0);
+        var ss = [];
+        for (var i=0; i<scripts.length; ++i) {
+          var s = scripts[i];
+          if (s.getAttribute("type") == "text/sjs") {
+            ss.push(s);
+          }
+        }
+      } // __js
+
+      for (var i=0; i<ss.length; ++i) {
+        __js {
+          var s = ss[i];
+          var m = s.getAttribute("module");
+          // textContent is for XUL compatibility:
+          var content = s.textContent || s.innerHTML;
+          if (__oni_rt.UA == "msie") {
+            // special casing for IE: remove spurious CRLF at beginning of content
+            content = content.replace(/\r\n/, "");
+          }
+        } // __js
+        if (m)
+          __js __oni_rt.modsrc[m] = content;
+        else {
+          __js var descriptor = {
+            id: document.location.href + "_inline_sjs_" + (i + 1),
+          };
+           __oni_rt.sys.require.main = descriptor;
+          var f = exports.eval("(function(module, __onimodulename){"+content+"\n})",
+                          {filename:"module #{descriptor.id}"});
+          f(descriptor);
+        }
+      }
+    }
     __js var mainModule = determineLocation().main;
     if(mainModule) {
        __oni_rt.sys.require(mainModule, {main:true});
