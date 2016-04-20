@@ -634,13 +634,18 @@
 @summary Embed javascript code
 @desc
   You can embed plain javascript code inside SJS using the `__js` block
-  syntax:
+  and expression syntax:
 
+      // block syntax
       __js {
         exports.foo = function() {
           // ...
         }
       }
+
+      // expression syntax:
+      [3,2,1].sort(__js (x,y) -> x-y)
+
 
   This is primarily used for low-level optimisations, similar
   to how `asm` blocks are used in C code. The code inside a `__js`
@@ -652,6 +657,11 @@
   you should use them only when you have determined the code will still
   function correctly without SJS features, and that the frequency of its
   use makes the speed improvement worth the reduced debuggability.
+
+  It is advisable to wrap only complete functions as `__js`. If wrap code inside
+  an sjs function, note that some control flow features (most notably 
+  `return` and `throw`) will not work as expected from inside the `__js` code.
+
 
 @syntax ?
 @summary Binary version of the ternary operator

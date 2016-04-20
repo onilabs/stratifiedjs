@@ -760,6 +760,7 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 *      R     =>           Args AssignExp                 Fat Arrow
 *      R     =>           AssignExp                      Fat Arrow (prefix form)
 *115         spawn        SpawnExp                       StratifiedJS 'spawn'
+*112         __js         JS_EXP                         non-blocking JS optimized expression
 110 17 L     ,            Expression AssignExp           SequentialEvaluation
 
 expressions up to BP 100
@@ -1705,7 +1706,16 @@ S("__js").stmt(function(pctx) {
   
   
   return "__js "+body;
-});
+}).
+  exs(function(pctx) {
+    
+    
+    var right = parseExp(pctx, 112);
+    
+    
+    
+    return "__js "+right;
+  });
 
 
 // reserved keywords:

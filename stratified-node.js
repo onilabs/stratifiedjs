@@ -4792,6 +4792,7 @@ return t;
 
 
 
+
 S("[").exs(function(pctx){
 
 var elements=[];
@@ -5730,6 +5731,15 @@ var body=parseStmt(pctx);
 if(pctx.allow_nblock)--pctx.js_ctx;
 
 body.is_nblock=pctx.allow_nblock;return body;
+}).exs(function(pctx){
+if(pctx.allow_nblock)++pctx.js_ctx;
+
+
+var right=parseExp(pctx,112);
+if(pctx.allow_nblock)--pctx.js_ctx;
+
+
+right.is_nblock=pctx.allow_nblock;return right;
 });
 
 
