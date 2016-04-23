@@ -69,10 +69,11 @@
 			}
 		};
 
-		var desugar = function(sjs, js) {
+		var desugar = function(sjs, js, amendEspree) {
+      if (!amendEspree) amendEspree = (x->x);
 			@test(sjs) {||
 				ast.compile .. compile(sjs)
-					.. @assert.eq((code -> espree.parse(code, espreeConfig)) .. compile(js));
+					.. @assert.eq((code -> espree.parse(code, espreeConfig)) .. compile(js) .. amendEspree);
 			}
 		}
 
@@ -86,8 +87,11 @@
 		desugar('`quasi $call()`', '["quasi ", call()]');
 		desugar('`quasi ${call()}`', '["quasi ", call()]');
 		desugar('"interp #{`nested $quasi ${"quote"}`}"', '"interp "+["nested ",quasi, " ", "quote"]');
-		desugar("foo .. bar", "bar(foo)");
-		desugar("foo .. bar(arg)", "bar(foo, arg)");
+
+    // our double-dot operators add an 'is_doubledot' flag to the expression:
+		desugar("foo .. bar", "bar(foo)", tree -> (tree[0].expression.is_doubledot=true,tree));
+		desugar("foo .. bar(arg)", "bar(foo, arg)", tree -> (tree[0].expression.is_doubledot=true,tree));
+
 		desugar("-> 1", "() => 1");
 		desugar("x -> 1", "(x) => 1");
 		desugar("(x,y) -> 1", "(x, y) => 1");
