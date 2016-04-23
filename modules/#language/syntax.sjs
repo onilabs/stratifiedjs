@@ -416,7 +416,7 @@
 
 
 @syntax double-dot
-@summary Function chaining operator
+@summary Postfix function chaining operator
 @desc
 
   *created for SJS; although we later discovered [elixir](http://elixir-lang.org/)'s `|>` pipe operator was created independently with the same functionality*
@@ -578,6 +578,140 @@
       // (c will not be processed, just as if we broke out of a loop early)
     
   This provides a similar syntax to the builtin `for(var key in obj) { ... }` but it ignores inherited properties, and is implemented with normal functions - you can use this syntax to implement your own control-flow mechanisms.
+
+@syntax double-colon
+@summary Prefix function chaining operator
+@desc
+
+   Similar to how the [::double-dot] operator allows you to chain function calls by _postfixing_ a function application to an expression, the double-colon operator allows you to _prefix_ a function `foo` to be applied to an expression which will be passed as first argument to `foo`:
+
+       function foo(x,y,z) { ... }
+
+       // normal function call syntax:
+       foo('a', 'b', 'c');
+
+       // equivalent double-dot postfix syntax:
+       'a' .. foo('b', 'c');
+
+       // equivalent double-colon prefix syntax:
+       foo('b', 'c') :: 'a';
+
+   The double-colon operator associates to the right:
+
+       function bar(x,y,z) { ... }
+
+       // normal function call syntax:
+       foo(bar('a', 'b', 'c'), 'd', 'e');
+
+       // equivalent double-dot syntax:
+       'a' .. bar('b', 'c') .. foo('d', 'e');
+
+       // equivalent double-colon syntax:
+       foo('d', 'e') :: bar('b', 'c') :: 'a'
+
+   Just as for the [::double-dot] operator, function call parenthesis can be
+   omitted (which will only make sense for functions that take a single argument):
+
+       function foo(x) { ... }
+       function bar(x) { ... }
+
+       // normal function call syntax:
+       foo(bar('a'));
+
+       // equivalent double-dot syntax:
+       'a' .. bar .. foo;
+
+       // equivalent double-colon syntax:
+       foo :: bar :: 'a'
+
+   Mixed double-colon and double-dot expressions have somewhat counter-intuitive semantics: While the double-dot operator binds stronger than the double-colon operator, if there is a chain `f .. g .. h` of double-dot calls on the left of a double-colon expression `f .. g .. h :: a`, the right side `a` will be passed as first argument to `f`:
+
+       function f(x) { ... }
+       function g(x) { ... }
+       function h(x) { ... }
+
+       f .. g .. h :: a;
+
+       // is equivalent to:
+      
+       f(a) .. g .. h;
+ 
+       // or, in normal syntax:
+ 
+       h(g(f(a)));
+
+   The semantics of mixed double-colon and double-dot expressions imply that the left-most expression in a double-dot chain on the left side of a double-colon expression must be a function (or function call) expression:
+
+       // invalid: a string is not a function
+       'a' .. f :: a;
+
+  ### Uses
+
+  There are two important use cases where double-colon syntax can make code easier to
+  construct and maintain.
+
+  Firstly, the syntax lends itself to wrapping/annotating functions:
+
+       var {rateLimit} = require('sjs:function');
+
+       var pollServer = rateLimit(10) :: function() { ... }
+
+       // equivalent to:
+
+       var pollServer = (function() { ... }) .. rateLimit(10);
+
+       // or:
+
+       var pollServer = rateLimit(function() { ... }, 10);
+
+  Here the latter two forms are especially unsatisfactory if the function definition
+  stretches over many lines.
+
+  Secondly, double-colon syntax is convenient for constructing tree datastructures, such
+  as e.g. HTML in conductance's [mho:surface/html::] module:
+
+       @ = require(['mho:std', 'mho:html'])
+
+       var my_form = 
+          @Div .. @Class('form') ::
+            [
+               @H1 :: 'Enter your name',
+               @Div .. @Class('input-field') ::
+                 [
+                    @B :: 'First Name', 
+                    @Input()
+                 ],
+               @Div .. @Class('input-field') ::
+                 [
+                    @B :: 'Last Name',
+                    @Input()
+                 ]
+            ];
+               
+       // equivalent to:
+
+       var my_form = 
+          @Div(
+            [
+              @H1('Enter your name'),
+              @Div(
+                [
+                  @B('First Name'),
+                  @Input()
+                ]
+              ) .. @Class('input-field'),
+              @Div(
+                [
+                  @B('First Name'),
+                  @Input()
+                ]
+              ) .. @Class('input-field')
+            ]
+          ) .. @Class('form');
+       
+  Note how this example leverages the somewhat counter-intuitive mixed double-colon/double-dot syntax described above.
+             
+
 
 @syntax arrow-function
 @summary Shorthand function syntax
