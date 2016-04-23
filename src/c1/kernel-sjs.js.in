@@ -352,31 +352,23 @@ ph_switch.prototype.val = function() {
 //----------------------------------------------------------------------
 // functions:
 
-#define BEGIN_FBODY(pctx,dummy)                 \
+#define BEGIN_FBODY(pctx)                 \
   push_decl_scope(pctx);                        \
   push_stmt_scope(pctx);
 
 #define ADD_FBODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
 
-#define END_FBODY(pctx,implicit_return, ext)                                 \
+#define END_FBODY(pctx,ext)                                 \
   var decls = pctx.decl_scopes.pop();                                   \
   var flags = SEQ_FLAG_FUNCTION;                                        \
     if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                     \
-    if (implicit_return) flags += SEQ_FLAG_IMPLICIT_RETURN;             \
   return collect_decls(decls) +                                         \
     pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,"+pctx.filename+",["+flags, \
     "])");
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext) return new ph_fun_exp(fname, pars, body, pctx, implicit_return);
-function ph_fun_exp(fname, pars, body, pctx, implicit_return) {
+#define GEN_FUN_EXP(fname, pars, body, pctx, ext) return new ph_fun_exp(fname, pars, body, pctx);
+function ph_fun_exp(fname, pars, body, pctx) {
   this.is_nblock = pctx.allow_nblock;
-
-  // special case to allow method definition syntax in __js and get the 
-  // right return semantics.
-  // we expect the body to contain just one expression; everyhing else is 
-  // illegal in __js.
-  if (implicit_return && pctx.js_ctx)
-    body = "return "+body;
 
   // XXX gotto be careful here. Under some circumstances, IE doesn't
   // like fnames in function expressions:

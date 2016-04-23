@@ -306,11 +306,11 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 #define END_SCRIPT(pctx)                        \
   return process_script(pop_scope(pctx).stmts);
 
-#define BEGIN_FBODY(pctx,dummy) /* */
+#define BEGIN_FBODY(pctx) /* */
 
 #define ADD_FBODY_STMT(stmt, pctx) /* */
 
-#define END_FBODY(pctx,dummy, ext) return Dynamic;
+#define END_FBODY(pctx,ext) return Dynamic;
 
 #define BEGIN_BLOCK(pctx) push_scope(pctx);
 
@@ -454,7 +454,7 @@ function gen_crf(crf) {
 
 #define GEN_FUN_CALL(l, args, pctx, ext) return l.call(args);
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext) return Dynamic;
+#define GEN_FUN_EXP(fname, pars, body, pctx, ext) return Dynamic;
 
 #define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext) return Dynamic;
 

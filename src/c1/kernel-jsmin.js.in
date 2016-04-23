@@ -79,7 +79,7 @@ function flush_newlines(pctx) {
   return pop_scope(pctx).stmts.join("");
 #endif
 
-#define BEGIN_FBODY(pctx,dummy)                       \
+#define BEGIN_FBODY(pctx)                       \
   push_scope(pctx);
 
 #define ADD_FBODY_STMT(stmt, pctx)              \
@@ -91,7 +91,7 @@ function gen_block(code) {
   return "{"+code+"}";
 }
 
-#define END_FBODY(pctx,dummy, ext)                           \
+#define END_FBODY(pctx,ext)                           \
   return gen_block(pop_scope(pctx).stmts.join(""));
 
 #define BEGIN_BLOCK(pctx)                       \
@@ -421,7 +421,7 @@ function quasi(parts) {
 
 #define GEN_FUN_CALL(l, args, pctx, ext) return l+"("+args.join(",")+")";
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext)  \
+#define GEN_FUN_EXP(fname, pars, body, pctx, ext)  \
   if (fname.length)                                       \
     return "function "+fname+"("+gen_fun_pars(pars)+")"+body; \
   else                                                    \

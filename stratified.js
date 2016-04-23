@@ -3004,13 +3004,6 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
-
-
-
-
-
-
-
 pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,continue_scope:0,break_scope:0});
 
 
@@ -3262,14 +3255,7 @@ return "__oni_rt.Switch("+this.exp.v()+","+clauses+")";
 
 
 
-function ph_fun_exp(fname,pars,body,pctx,implicit_return){this.is_nblock=pctx.allow_nblock;
-
-
-
-
-
-
-if(implicit_return&&pctx.js_ctx)body="return "+body;
+function ph_fun_exp(fname,pars,body,pctx){this.is_nblock=pctx.allow_nblock;
 
 
 
@@ -5214,7 +5200,7 @@ throw new Error("Unexpected end of input (stmt)")});
 
 
 
-function parseFunctionBody(pctx,implicit_return){push_decl_scope(pctx);
+function parseFunctionBody(pctx){push_decl_scope(pctx);
 
 push_stmt_scope(pctx);
 
@@ -5227,7 +5213,7 @@ add_stmt(stmt,pctx);
 
 scan(pctx,"}");
 
-var decls=pctx.decl_scopes.pop();var flags=1;if(decls.notail)flags+=8;if(implicit_return)flags+=32;return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,"+pctx.filename+",["+flags,"])");
+var decls=pctx.decl_scopes.pop();var flags=1;if(decls.notail)flags+=8;return collect_decls(decls)+pop_stmt_scope(pctx,"return __oni_rt.exseq(arguments,this,"+pctx.filename+",["+flags,"])");
 }
 
 function parseFunctionParam(pctx){var t=pctx.token;
@@ -5266,7 +5252,6 @@ scan(pctx,endtok);
 return pars;
 }
 
-
 S("function").exs(function(pctx){
 
 var fname="";
@@ -5280,7 +5265,7 @@ var pars=parseFunctionParams(pctx);
 var body=parseFunctionBody(pctx);
 
 
-return new ph_fun_exp(fname,pars,body,pctx,false);
+return new ph_fun_exp(fname,pars,body,pctx);
 }).stmt(function(pctx){
 
 if(pctx.token.id!="<id>")throw new Error("Malformed function declaration");

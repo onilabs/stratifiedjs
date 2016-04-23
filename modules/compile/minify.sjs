@@ -117,7 +117,6 @@ general:
    define SJS_ALTERNATE_NAMESPACE: allow '@' and '@identifier'
    define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    define QUASIS: allow quasi templates (`foo#{bar}baz`)
-   define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
    define ONE_SIDED_CONDITIONALS: allows `foo ? bar` expressions (i.e. `foo ? bar : baz` without alternative `baz`). in the `false` case they yield `undefined`
 
 for :
@@ -147,12 +146,9 @@ BEGIN_SCRIPT(pctx)
 ADD_SCRIPT_STMT(stmt, pctx)
 END_SCRIPT(pctx)
 
-BEGIN_FBODY(pctx , implicit_return)
+BEGIN_FBODY(pctx)
 ADD_FBODY_STMT(stmt, pctx)
-END_FBODY(pctx , implicit_return)
-   'implicit_return' is a flag to indicate whether the function should return
-   the value of its last expression. It is only meaningful when 
-   'METHOD_DEFINITIONS' is turned on.
+END_FBODY(pctx)
 
 BEGIN_BLOCK(pctx)
 ADD_BLOCK_STMT(stmt, pctx)
@@ -221,16 +217,13 @@ GEN_OBJ_LIT(props, pctx)
                    ["set", string|id, id, function_body]
           if SJS_DESTRUCTURE is defined, also: (destructure pattern)
                    ["pat", string|id, line]
-          if METHOD_DEFINITIONS is defined, also:
-                   ["method", string|id, function]
 GEN_ARR_LIT(elements, pctx)
 GEN_ELISION(pctx)
 GEN_DOT_ACCESSOR(l, name, pctx)
 GEN_NEW(exp, args, pctx)
 GEN_IDX_ACCESSOR(l, idxexp, pctx)
 GEN_FUN_CALL(l, args, pctx)
-GEN_FUN_EXP(fname, pars, body, pctx, implicit_return)
-  -- see END_FBODY above for 'implicit_return'
+GEN_FUN_EXP(fname, pars, body, pctx)
 GEN_CONDITIONAL(test, consequent, alternative, pctx)
 GEN_GROUP(e, pctx)
 GEN_THIS(pctx)
@@ -1127,7 +1120,7 @@ S("<eof>").
 // statements/misc
 
 // helper to parse a function body:
-function parseFunctionBody(pctx, implicit_return) {
+function parseFunctionBody(pctx) {
   
   push_scope(pctx);
   
@@ -1178,7 +1171,6 @@ function parseFunctionParams(pctx, starttok, endtok) {
   scan(pctx, endtok);
   return pars;
 }
-
 
 S("function").
   // expression function form ('function expression')

@@ -583,13 +583,13 @@ function end_extent(pctx, e) {
 #define END_EXTENT(pctx, e) \
   end_extent(pctx, e);
 
-#define BEGIN_FBODY(pctx,dummy)                       \
+#define BEGIN_FBODY(pctx)                       \
   push_scope(pctx);
 
 #define ADD_FBODY_STMT(stmt, pctx)              \
   top_scope(pctx).stmts.push(stmt);
 
-#define END_FBODY(pctx,dummy, ext)                           \
+#define END_FBODY(pctx,ext)                           \
   return gen_block(pop_scope(pctx).stmts, pctx, ext);
 
 #define BEGIN_BLOCK(pctx)                       \
@@ -970,7 +970,7 @@ NodeType('NewExpression', function(fun, args) {
 });
 #define GEN_NEW(exp, args, pctx, ext) return Node.NewExpression(pctx, ext, exp, args);
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, implicit_return, ext)  \
+#define GEN_FUN_EXP(fname, pars, body, pctx, ext)  \
   return Node.Function(pctx, ext, fname, pars, body, false, false);
 
 #define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext) \

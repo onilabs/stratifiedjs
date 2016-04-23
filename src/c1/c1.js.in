@@ -116,7 +116,6 @@ general:
    define SJS_ALTERNATE_NAMESPACE: allow '@' and '@identifier'
    define INTERPOLATING_STRINGS: allow strings with ruby-like interpolation
    define QUASIS: allow quasi templates (`foo#{bar}baz`)
-   define METHOD_DEFINITIONS: allows methods on objects to be specified like { a (pars) { body } }
    define ONE_SIDED_CONDITIONALS: allows `foo ? bar` expressions (i.e. `foo ? bar : baz` without alternative `baz`). in the `false` case they yield `undefined`
 
 for C1_KERNEL_JSMIN:
@@ -153,12 +152,9 @@ BEGIN_SCRIPT(pctx)
 ADD_SCRIPT_STMT(stmt, pctx)
 END_SCRIPT(pctx)
 
-BEGIN_FBODY(pctx , implicit_return)
+BEGIN_FBODY(pctx)
 ADD_FBODY_STMT(stmt, pctx)
-END_FBODY(pctx , implicit_return)
-   'implicit_return' is a flag to indicate whether the function should return
-   the value of its last expression. It is only meaningful when 
-   'METHOD_DEFINITIONS' is turned on.
+END_FBODY(pctx)
 
 BEGIN_BLOCK(pctx)
 ADD_BLOCK_STMT(stmt, pctx)
@@ -227,16 +223,13 @@ GEN_OBJ_LIT(props, pctx)
                    ["set", string|id, id, function_body]
           if SJS_DESTRUCTURE is defined, also: (destructure pattern)
                    ["pat", string|id, line]
-          if METHOD_DEFINITIONS is defined, also:
-                   ["method", string|id, function]
 GEN_ARR_LIT(elements, pctx)
 GEN_ELISION(pctx)
 GEN_DOT_ACCESSOR(l, name, pctx)
 GEN_NEW(exp, args, pctx)
 GEN_IDX_ACCESSOR(l, idxexp, pctx)
 GEN_FUN_CALL(l, args, pctx)
-GEN_FUN_EXP(fname, pars, body, pctx, implicit_return)
-  -- see END_FBODY above for 'implicit_return'
+GEN_FUN_EXP(fname, pars, body, pctx)
 GEN_CONDITIONAL(test, consequent, alternative, pctx)
 GEN_GROUP(e, pctx)
 GEN_THIS(pctx)
@@ -1195,11 +1188,6 @@ S("{").
           props.push(["set", prop, pars[0], body]);
         }
 #endif /* ECMA_GETTERS_SETTERS */
-#ifdef METHOD_DEFINITIONS
-        else if (pctx.token.id == "(") {
-          props.push(["method",prop,parseMethod(pctx)]);
-        }
-#endif /* METHOD_DEFINITIONS */
 #ifdef SJS_DESTRUCTURE
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
           if (prop.charAt(0) == "'" || prop.charAt(0) == '"')
@@ -1246,9 +1234,9 @@ S("<eof>").
 // statements/misc
 
 // helper to parse a function body:
-function parseFunctionBody(pctx, implicit_return) {
+function parseFunctionBody(pctx) {
   LOGM('fbody<')
-  BEGIN_FBODY(pctx, implicit_return)
+  BEGIN_FBODY(pctx)
   PUSH_EXTENT(pctx, pctx.token, 'fbody')
   scan(pctx, "{");
   while (pctx.token.id != "}") {
@@ -1259,7 +1247,7 @@ function parseFunctionBody(pctx, implicit_return) {
   END_EXTENT(pctx, pctx.token)
   scan(pctx, "}");
   LOGM('>fbody')
-  END_FBODY(pctx, implicit_return, POP_EXTENT('fbody'))
+  END_FBODY(pctx, POP_EXTENT('fbody'))
 }
 
 function parseFunctionParam(pctx) {
@@ -1300,19 +1288,6 @@ function parseFunctionParams(pctx, starttok, endtok) {
   return pars;
 }
 
-#ifdef METHOD_DEFINITIONS
-// parse an abbreviated-syntax method (as in { x() { ... }, y() { ... } })
-function parseMethod(pctx) {
-  //console.log("**** Deprecated method definition syntax in "+pctx.filename+":"+pctx.line);
-  PUSH_EXTENT(pctx, null, 'GEN_FUN_EXP')
-  var pars = parseFunctionParams(pctx);
-  var body = parseFunctionBody(pctx, true);
-  END_EXTENT(pctx, body)
-  LOGM('method_exp()')
-  GEN_FUN_EXP("", pars, body, pctx, true, POP_EXTENT('GEN_FUN_EXP'))
-}
-#endif
-
 S("function").
   // expression function form ('function expression')
   exs(function(pctx) {
@@ -1326,7 +1301,7 @@ S("function").
     var body = parseFunctionBody(pctx);
     END_EXTENT(pctx, body)
     LOGM('fun_exp('+(fname||'')+')')
-    GEN_FUN_EXP(fname, pars, body, pctx, false, POP_EXTENT('GEN_FUN_EXP'))
+    GEN_FUN_EXP(fname, pars, body, pctx, POP_EXTENT('GEN_FUN_EXP'))
   }).
   // statement function form ('function declaration')
   stmt(function(pctx) {

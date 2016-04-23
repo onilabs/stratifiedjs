@@ -53,13 +53,13 @@ function top_scope(pctx) {
   return pop_scope(pctx).stmts.join("");
 
 
-#define BEGIN_FBODY(pctx,dummy)                    \
+#define BEGIN_FBODY(pctx)                    \
   push_scope(pctx);
 
 #define ADD_FBODY_STMT(stmt, pctx)              \
   top_scope(pctx).stmts.push(stmt);
 
-#define END_FBODY(pctx,dummy, ext)                      \
+#define END_FBODY(pctx,ext)                      \
   return "{"+pop_scope(pctx).stmts.join("")+"}";
 
 
@@ -246,7 +246,7 @@ function gen_fun_pars(pars) {
 
 #define GEN_FUN_CALL(l, args, pctx, ext) return l+"("+args.join(",")+")";
 
-#define GEN_FUN_EXP(fname, pars, body, pctx, dummy, ext)            \
+#define GEN_FUN_EXP(fname, pars, body, pctx, ext)            \
   return "function "+fname+"("+gen_fun_pars(pars)+")"+body;
 
 #define GEN_CONDITIONAL(test, consequent, alternative, pctx, ext) \
