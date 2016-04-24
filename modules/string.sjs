@@ -713,41 +713,26 @@ __js exports.octetsToArrayBuffer = function(s, buffer, offset) {
    @param {optional Integer} [length] Byte length
    @return {::Octets}
 */
-__js (function() {
-  var workaround = false;
-  var fn = function(src, offset, length) {
-    var view;
-    if (length)
-      view = new Uint8Array(src, offset, length);
-    else
-      view = new Uint8Array(src, offset);
 
-    // workaround for 'apply' call stack size limits. see
-    // e.g. https://code.google.com/p/chromium/issues/detail?id=56588
-    var rv = '', length = view.byteLength;
-    for (var i=0; i<length; /**/) {
-      var j = Math.min(i+50000, length);
-      if (workaround) {
-        // workaround for https://github.com/ariya/phantomjs/issues/11172
-        // XXX should get rid of this when phantomjs sort out the problem
-        for (var k = i; k<j; ++k)
-          rv += String.fromCharCode.call(null, view[k]);
-      }
-      else {
-        rv += String.fromCharCode.apply(null, view.subarray(i,j));
-      }
-      i = j;
-    }
-    return rv;
-  };
+__js exports.arrayBufferToOctets = function(src, offset, length) {
+  var view;
+  if (length)
+    view = new Uint8Array(src, offset, length);
+  else
+    view = new Uint8Array(src, offset);
 
-  try {
-    String.fromCharCode.apply(null, new Uint8Array(1));
-  } catch(e) {
-    workaround = true;
+  // workaround for 'apply' call stack size limits. see
+  // e.g. https://code.google.com/p/chromium/issues/detail?id=56588
+  var rv = '', length = view.byteLength;
+  for (var i=0; i<length; /**/) {
+    // XXX only phantomjs requires a limit of 50000 here; other browsers work fine with
+    // at least 100000
+    var j = Math.min(i+50000, length);
+    rv += String.fromCharCode.apply(null, view.subarray(i,j));
+    i = j;
   }
-  exports.arrayBufferToOctets = fn;
-})();
+  return rv;
+};
 
 __js {
   if (sys.hostenv === 'nodejs') {
