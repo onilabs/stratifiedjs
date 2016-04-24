@@ -764,6 +764,7 @@ function ph_bl_break(pctx, lbl) {
   this.line = pctx.line;
   this.lbl = lbl;
   this.is_nblock = true;
+  this.js_ctx = pctx.js_ctx;
 }
 ph_bl_break.prototype = new ph(WHENDEBUG("ph_bl_break"));
 ph_bl_break.prototype.nblock_val = function() {
@@ -1850,11 +1851,14 @@ ph_suspend_wrapper.prototype.val = function() {
 #define GEN_BLOCKLAMBDA(pars, body, pctx, ext) return new ph_blocklambda(pars, body, pctx);
 
 function ph_blocklambda(pars, body, pctx) {
-  this.code = "__oni_rt.Bl(function"+gen_function_header(pars)+body+"})";
+  this.code = "function"+gen_function_header(pars)+body+"}";
 }
 ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));
-ph_blocklambda.prototype.val = function() { return this.code; };
-
+ph_blocklambda.prototype.val = function() { return "__oni_rt.Bl("+this.code+")"; };
+ph_blocklambda.prototype.nblock_val = function() { 
+  // This should only be called in a js_ctx, and any attempt to have 'break' or 'return' in the blocklambda should throw a "not allowed in __js" error
+  return this.code; 
+};
 #endif /* SJS_BLOCKLAMBDA */
 
 #define GEN_LBL_STMT(lbl, stmt, pctx, ext) return new ph_lbl_stmt(lbl, stmt);

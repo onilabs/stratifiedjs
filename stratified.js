@@ -3606,6 +3606,7 @@ function ph_bl_break(pctx,lbl){this.line=pctx.line;
 
 this.lbl=lbl;
 this.is_nblock=true;
+this.js_ctx=pctx.js_ctx;
 }
 ph_bl_break.prototype=new ph();
 ph_bl_break.prototype.nblock_val=function(){if(this.js_ctx)throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
@@ -4559,12 +4560,15 @@ ph_suspend_wrapper.prototype.val=function(){return "__oni_rt.Nb(function(){var r
 
 
 
-function ph_blocklambda(pars,body,pctx){this.code="__oni_rt.Bl(function"+gen_function_header(pars)+body+"})";
+function ph_blocklambda(pars,body,pctx){this.code="function"+gen_function_header(pars)+body+"}";
 
 }
 ph_blocklambda.prototype=new ph();
-ph_blocklambda.prototype.val=function(){return this.code};
+ph_blocklambda.prototype.val=function(){return "__oni_rt.Bl("+this.code+")"};
+ph_blocklambda.prototype.nblock_val=function(){return this.code;
 
+
+};
 
 
 function ph_lbl_stmt(lbl,stmt){this.lbl=lbl;

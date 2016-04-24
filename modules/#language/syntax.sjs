@@ -808,6 +808,7 @@
   * [::double-colon]
   * [::quasi-quote], provided the SJS runtime is present
   * [::destructure], but only in function argument lists
+  * [::blocklambda], but no `return` or `break` statements are allowed in the blocklambda body
 
 @syntax binary-conditional
 @summary Binary version of the ternary conditional operator `?:`
