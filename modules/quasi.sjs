@@ -31,7 +31,7 @@
  */
 /**
    @module  quasi
-   @summary Functions for working with quasis
+   @summary Functions for working with quasis (see also [sjs:#language/syntax::quasi-quote])
    @home    sjs:quasi
 */
 

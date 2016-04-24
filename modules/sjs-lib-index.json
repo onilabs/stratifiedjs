@@ -101,9 +101,6 @@
         "syntax": {
           "type": "module",
           "children": {
-            "?": {
-              "type": "syntax"
-            },
             "@altns": {
               "type": "syntax"
             },
@@ -111,6 +108,9 @@
               "type": "syntax"
             },
             "arrow-function": {
+              "type": "syntax"
+            },
+            "binary-conditional": {
               "type": "syntax"
             },
             "blocklambda": {
@@ -777,10 +777,6 @@
         }
       },
       "summary": "Functions and constructs for concurrent stratified programming"
-    },
-    "d3": {
-      "type": "module",
-      "children": {}
     },
     "dashdash": {
       "type": "module",
@@ -1974,7 +1970,7 @@
           "type": "function"
         }
       },
-      "summary": "Functions for working with quasis"
+      "summary": "Functions for working with quasis (see also [sjs:#language/syntax::quasi-quote])"
     },
     "regexp": {
       "type": "module",

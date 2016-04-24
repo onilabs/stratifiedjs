@@ -3842,6 +3842,17 @@ if(i%2)rv+=","+this.parts[i].v();else rv+=',"'+this.parts[i].replace(/\"/g,'\\"'
 }
 return rv+")";
 };
+ph_quasi_template.prototype.nblock_val=function(){var rv="__oni_rt.Quasi(";
+
+for(var i=0;i<this.parts.length;++i){
+if(i>0)rv+=",";
+if(i%2)rv+=this.parts[i].nb();else rv+='"'+this.parts[i].replace(/\"/g,'\\"')+'"';
+
+
+
+}
+return rv+")";
+};
 
 function ph_assign_op(left,id,right,pctx){if(!left.is_ref&&!left.is_id){
 

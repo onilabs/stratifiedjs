@@ -782,10 +782,7 @@
 
 
   This is primarily used for low-level optimisations, similar
-  to how `asm` blocks are used in C code. The code inside a `__js`
-  block will be reproduced as-is into the compiled JS, so it won't
-  have any access to SJS language features. But it will
-  also avoid any overhead imposed by the SJS runtime.
+  to how `asm` blocks are used in C code. 
 
   Because `__js` blocks are limited in the same way as [::calling-javascript],
   you should use them only when you have determined the code will still
@@ -796,11 +793,26 @@
   an sjs function, note that some control flow features (most notably 
   `return` and `throw`) will not work as expected from inside the `__js` code.
 
+  ### SJS features supported in __js code
 
-@syntax ?
-@summary Binary version of the ternary operator
+  The code inside a `__js`
+  block will be reproduced as-is into the compiled JS, so it only has access to some of  SJS's 'language sugaring' features. But it will
+  also avoid any overhead imposed by the SJS runtime.
+
+  The following SJS features *are* supported in __js:
+
+  * [::arrow-function]
+  * [::string-interpolation]
+  * [::binary-conditional]
+  * [::double-dot]
+  * [::double-colon]
+  * [::quasi-quote], provided the SJS runtime is present
+  * [::destructure], but only in function argument lists
+
+@syntax binary-conditional
+@summary Binary version of the ternary conditional operator `?:`
 @desc
-  The ternary operator in JavaScript takes the form `x ? y : z`:
+  The ternary conditional operator in JavaScript takes the form `x ? y : z`:
 
       var val = x ? y : z;
       
