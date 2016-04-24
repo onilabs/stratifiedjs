@@ -48,9 +48,15 @@
   @summary   Parsing, validating, manipulating and displaying dates
   @home      sjs:moment
   @desc      
-             This module tracks the [momentjs](https://github.com/moment/moment/) library (without locale bundles).
+             This module tracks the [momentjs](https://github.com/moment/moment/) library (version 2.13.0 without locale bundles).
 
-             See the documentation at http://momentjs.com/
+             ### Usage
+
+             There are no exported symbols from this module. The return value of `require('sjs:moment')` is itself a function, as documented at http://momentjs.com.
+
+             If you need timezone support, you should use [./moment-timezone::] instead.
+             Requireing the latter also amends any previously loaded 'moment' module with
+             timezone functionality.
 */
 
 /**

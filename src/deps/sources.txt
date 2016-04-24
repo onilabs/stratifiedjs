@@ -29,5 +29,5 @@ FileSaver.js/ https://github.com/eligrey/FileSaver.js.git ec5c3cca113f9c0fba66c8
 moment/ https://github.com/moment/moment.git 0897f50b38e94fb397cc10239c46767c4095ce3e
 
 # moment-timezone
-moment-timezone https://github.com/moment/moment-timezone.git 44ce91b03aa528ceb3832d13dbcee041f09c577a
+moment-timezone https://github.com/moment/moment-timezone.git a35db0367651d7bafcc750114a124343d349b8f5
 

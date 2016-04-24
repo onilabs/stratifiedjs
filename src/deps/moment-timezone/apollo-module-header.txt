@@ -48,12 +48,15 @@
   @summary   Timezone support for sjs:moment
   @home      sjs:moment-timezone
   @desc      
-             This module tracks the [momentjs/timezone](https://github.com/moment/moment-timezone/) library with all current (2015g) IANA timezone data built-in. 
+             This module tracks the [momentjs/timezone](https://github.com/moment/moment-timezone/) library (version: 0.5.3) with all current (2016c) IANA timezone data built-in.
+
+             ### Usage
 
              sjs:moment-timezone `require`s the sjs:moment module, amends it with 
              timezone functionality and returns it as its module.export.
 
-             See the documentation at http://momentjs.com/timezone
+             There are no exported symbols from this module. The return value of `require('sjs:moment')` is itself a function, as documented at http://momentjs.com.
+
 */
 
 /**
