@@ -726,7 +726,7 @@ __js (function() {
     // e.g. https://code.google.com/p/chromium/issues/detail?id=56588
     var rv = '', length = view.byteLength;
     for (var i=0; i<length; /**/) {
-      var j = Math.min(i+100000, length);
+      var j = Math.min(i+50000, length);
       if (workaround) {
         // workaround for https://github.com/ariya/phantomjs/issues/11172
         // XXX should get rid of this when phantomjs sort out the problem
