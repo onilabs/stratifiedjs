@@ -93,6 +93,8 @@ function sequential(f) {
       - all elements are already known and present in memory
       - iteration will not mutate the sequence
       - iteration will not suspend between successive elements
+      - the sequence object has a `length` member containing the number of elements
+      - elements are accessible using bracket notation (i.e. `seq[index]`)
 
      # Concrete sequence types:
 
@@ -355,16 +357,9 @@ function each(sequence, r) {
 
   } 
   else {
-    if (isArrayLike(sequence) || isBuffer(sequence)) {
+    if (isConcrete(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
         var res = r(sequence[i]);
-        if (__oni_rt.is_ef(res))
-          return async_each(sequence, r, i, res);
-      }
-    }
-    else if (isString(sequence)) {
-      for (var i=0, l=sequence.length; i<l; ++i) {
-        var res = r(sequence.charAt(i));
         if (__oni_rt.is_ef(res))
           return async_each(sequence, r, i, res);
       }
@@ -379,14 +374,8 @@ exports.each = each;
 function async_each(arr, r, i, ef) {
   ef.wait();
   var l = arr.length;
-  if (isString(arr)) {
-    for (++i; i<l; ++i)
-      r(arr.charAt(i));
-  }
-  else { // == array
-    for (++i; i<l; ++i)
-      r(arr[i]);
-  }
+  for (++i; i<l; ++i)
+    r(arr[i]);
 }
 
 function iterate_batched_stream(sequence, r) {
@@ -1134,7 +1123,14 @@ exports.reverse = reverse;
    @return {Integer}
    @summary Count number of elements in the sequence
 */
-function count(sequence) {
+__js function count(sequence) {
+  if (isConcrete(sequence)) 
+    return sequence.length;
+  else
+    return countStream(sequence);
+}
+
+function countStream(sequence) {
   var n = 0;
   sequence .. each(__js function() { ++n });
   return n;
@@ -1954,8 +1950,38 @@ exports.groupBy = groupBy;
 
           // -> 1:T, 2:h, 3:i, 4:s, 5: , 6:i, 7:s, ...
 */
-function zip(/* sequences... */) {
+__js function zip(/* sequences... */) {
   var sequences = arguments;
+  var max_l;
+  for (var i=0; i<sequences.length;++i) {
+    var seq = sequences[i];
+    if (!isConcrete(seq))
+      return zipStreams(sequences);
+    else if (!isSequence(seq))
+      throw new Error("Invalid argument passed to sequence::zip (#{seq})");
+    else if (i===0 || max_l > seq.length)
+      max_l = seq.length;
+  }
+  // all our sequences are concrete:
+  return zipConcrete(sequences, max_l);
+}
+
+function zipConcrete(sequences, max_l) {
+  __js var sequence_count = sequences.length;
+  return Stream(function(r) {
+    for (var i=0; i<max_l; ++i) {
+      __js {
+        var item = new Array(sequence_count);
+        for (var s=0; s<sequence_count; ++s) {
+          item[s] = sequences[s][i];
+        }
+      }
+      r(item);
+    }
+  });
+}
+
+function zipStreams(sequences) {
   return Stream(function(r) {
     var iterators = sequences .. map(seq -> makeIterator(seq));
     try {
