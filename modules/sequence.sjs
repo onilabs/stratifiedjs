@@ -648,7 +648,7 @@ function toArray(sequence) {
   }
   else {
     var rv = [];
-    sequence .. each { |x| rv.push(x) }
+    sequence .. each(__js function(x) { rv.push(x) });
     return rv;
   }
 }
@@ -887,20 +887,20 @@ function join(sequence, separator) {
       return Buffer.concat(arr);
     } else if (arr[0] .. isArrayLike) {
       var len=0;
-      arr .. each {|i| len += i.length};
+      arr .. each(__js function(i) { len += i.length});
       var cons = arr[0].constructor || Array;
       var rv = new cons(len);
       var offset = 0;
       if(rv.set) {
-        arr .. each {|a|
+        arr .. each( __js function(a) {
           rv.set(a, offset);
           offset += a.length;
-        }
+        });
       } else { // bytewise
         arr .. each {|a|
-          a .. each {|b|
+          a .. each( __js function(b) {
             rv[offset++] = b;
-          }
+          });
         }
       }
       return rv;
@@ -1122,7 +1122,7 @@ function reverse(sequence) {
     return sequence.reverse();
   //else
   var rv = [];
-  sequence .. each { |x| rv.unshift(x) }
+  sequence .. each(__js function(x) { rv.unshift(x); });
   return rv;
 }
 exports.reverse = reverse;
@@ -1136,7 +1136,7 @@ exports.reverse = reverse;
 */
 function count(sequence) {
   var n = 0;
-  sequence .. each { || ++n }
+  sequence .. each(__js function() { ++n });
   return n;
 }
 exports.count = count;
@@ -2081,13 +2081,18 @@ exports.product = product;
           // returns [[1, "one"], [2, "two"], [3, "three"]]
 
 */
-function indexed(sequence, start) {
-  return Stream(function(r) {
-    var i = start || 0;
-    sequence .. each { |x| r([i++, x]) }
-  });
+__js {
+  function indexed(sequence, start) {
+    return Stream(function(r) {
+      var i = start || 0;
+      /* because we're in js, the returns are important here */
+      return sequence .. each(function(x) { 
+        return r([i++, x]) 
+      });
+    });
+  }
+  exports.indexed = indexed;
 }
-exports.indexed = indexed;
 
 /**
   @function intersperse
