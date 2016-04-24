@@ -789,7 +789,7 @@
   function correctly without SJS features, and that the frequency of its
   use makes the speed improvement worth the reduced debuggability.
 
-  It is advisable to wrap only complete functions as `__js`. If wrap code inside
+  It is advisable to wrap only complete functions as `__js`. If you wrap code inside
   an sjs function, note that some control flow features (most notably 
   `return` and `throw`) will not work as expected from inside the `__js` code.
 
