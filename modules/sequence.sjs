@@ -504,14 +504,39 @@ __js function exhaust(seq) { return each(seq, noop); }
 
 */
 
-function consume(/* sequence, [opt]eos, loop */) {
+__js function consume(/* sequence, [opt]eos, loop */) {
 
   var sequence, eos, loop;
-  if (arguments.length > 2)
-    [sequence, eos, loop] = arguments;
-  else
-    [sequence, loop] = arguments;
+  if (arguments.length > 2) {
+    sequence = arguments[0];
+    eos = arguments[1];
+    loop = arguments[2];
+  }
+  else {
+    sequence = arguments[0];
+    loop = arguments[1];
+  }
 
+  if (isConcrete(sequence)) 
+    return consumeConcreteSequence(sequence, eos, loop);
+  else
+    return consumeStream(sequence, eos, loop);
+}
+
+__js function consumeConcreteSequence(sequence, eos, loop) {
+  var i = 0, l = sequence.length;
+
+  function next() {
+    if (i<l)
+      return sequence[i++];
+    else
+      return eos;
+  } 
+
+  return loop(next);
+}
+
+function consumeStream(sequence, eos, loop) {
   var emit_next, want_next;
 
   // Note: it is *not* safe to call `next` concurrently from multiple
