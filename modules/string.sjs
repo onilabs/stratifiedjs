@@ -725,8 +725,8 @@ __js exports.arrayBufferToOctets = function(src, offset, length) {
   // e.g. https://code.google.com/p/chromium/issues/detail?id=56588
   var rv = '', length = view.byteLength;
   for (var i=0; i<length; /**/) {
-    // XXX only phantomjs requires a limit of 50000 here; other browsers work fine with
-    // at least 100000
+    // Phantomjs requires a limit of 50000 here; other browsers work fine with 
+    // higher limits, although 100000 caused occasional errors in the conductance bridge code.
     var j = Math.min(i+50000, length);
     rv += String.fromCharCode.apply(null, view.subarray(i,j));
     i = j;
