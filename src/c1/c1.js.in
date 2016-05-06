@@ -975,7 +975,7 @@ S(">>>").ifx(210);
 #ifdef SJS_DOUBLECOLON
 S("::").exc(205, function(l, pctx) {
   PUSH_EXTENT(pctx, l, "::")
-  var r = parseExp(pctx, 204.5);
+  var r = parseExp(pctx, BP_COMMA);
   LOGM('doublecolon')
   GEN_DOUBLECOLON_CALL(l,r,pctx, POP_EXTENT('GEN_DOUBLECOLON_CALL'))
 });

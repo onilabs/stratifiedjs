@@ -1551,7 +1551,7 @@ S(">>>").ifx(210);
 
 S("::").exc(205, function(l, pctx) {
   push_extent(pctx, l, "::");
-  var r = parseExp(pctx, 204.5);
+  var r = parseExp(pctx, 110);
   
   return gen_doublecolon_call(l, r, pctx, pop_extent(pctx, 'GEN_DOUBLECOLON_CALL'));
 });

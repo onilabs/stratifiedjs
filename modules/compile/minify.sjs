@@ -909,7 +909,7 @@ S(">>>").ifx(210);
 
 S("::").exc(205, function(l, pctx) {
   
-  var r = parseExp(pctx, 204.5);
+  var r = parseExp(pctx, 110);
   
   return l+"::"+r;
 });
