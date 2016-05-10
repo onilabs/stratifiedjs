@@ -1531,10 +1531,16 @@ EF_Try.prototype.abort = function() {
       // it to the abortee directly:
       this.parent = UNDEF;
 
-      if (cont(this, 0) !== this) {
-        return;
+      // temporarily need to turn off async flag, so that 'returnToParent' doesn't attempt to 
+      // return to non-existing parent, which would cause exceptions to go uncaught
+      this.async = false;
+      var rv = cont(this, 0);
+      if (rv !== this) {
+        return rv;
       }
-      // ... else fall through. we need to block
+      else
+        this.async = true;
+      // & fall through. we need to block
     }
   }
   return this;
@@ -1833,6 +1839,24 @@ exports.ForIn = function(obj,loop) {
    0..end: index of instruction node we're returning from
 */
 
+
+// helper for Par & Alt:
+function mergeExceptions(new_exception, original_exception) { 
+  if (!is_cfx(new_exception) || new_exception.type !== 't') {
+    return original_exception;
+  }
+  if (!is_cfx(original_exception) || original_exception.type !== 't')
+    return new_exception;
+  if (console) {
+    // XXX not sure what to do. Create a new exception with two sub-exceptions??
+    var msg = "Multiple exceptions from sub-strata. Swallowing "+original_exception.val;
+    if (console.error) console.error(msg);
+    else console.log(msg);
+  }
+  return new_exception; 
+}
+
+
 function EF_Par(ndata, env) {
   this.ndata = ndata;
   this.env = env;
@@ -1864,6 +1888,7 @@ EF_Par.prototype.cont = function(idx, val) {
             this.quench();
             return this.abortInner();
           }
+          this.pendingCFE = mergeExceptions(val, this.pendingCFE);
           return this.pendingCFE;
         }
         else if (is_ef(val)) {
@@ -1909,18 +1934,7 @@ EF_Par.prototype.cont = function(idx, val) {
         // Therefore we can't do a tail call.
 
         // make sure a real exception overrides a normal control flow exception
-        if (is_cfx(val) && val.type === 't') {
-          if (this.pendingCFE.type === 't') {
-            // we've already got a pending exception :/
-            // XXX not sure what to do; maybe combine the exceptions?
-            if (console) {
-              var msg = "Multiple exceptions from sub-strata. Swallowing "+this.pendingCFE.val;
-              if (console.error) console.error(msg);
-              else console.log(msg);
-            }
-          }
-          this.pendingCFE = val;
-        }
+        this.pendingCFE = mergeExceptions(val, this.pendingCFE);
 
         if (this.pending == 0)
           return this.returnToParent(this.pendingCFE);
@@ -1963,6 +1977,7 @@ EF_Par.prototype.abortInner = function() {
       if (is_ef(val)) // need to wait on this one...
         this.setChildFrame(val, i);
       else {
+        this.pendingCFE = mergeExceptions(val, this.pendingCFE);
         --this.pending;
         this.children[i] = UNDEF;
       }
@@ -2046,6 +2061,7 @@ EF_Alt.prototype.cont = function(idx, val) {
             this.quench();
             return this.abortInner();
           }
+          this.pendingRV = mergeExceptions(val, this.pendingRV);
           return this.pendingRV;
         }
         else if (is_ef(val)) {
@@ -2064,6 +2080,8 @@ EF_Alt.prototype.cont = function(idx, val) {
       // returning from a suspension. 
       --this.pending;
       this.children[idx] = UNDEF;
+      this.pendingRV = mergeExceptions(val, this.pendingRV);
+
       if (this.collapsing) {
         // we're returning from an async abort after collapsing
         // (uncommon case; see comment below)
@@ -2077,9 +2095,11 @@ EF_Alt.prototype.cont = function(idx, val) {
       }
       else {
         // 'normal' case
+
         // abort all pending branches
         if (!this.aborted) {
-          this.pendingRV = val;
+          if (!this.pendingRV)
+            this.pendingRV = val;
           this.quench();
           return this.returnToParent(this.abortInner());
         }
@@ -2139,6 +2159,7 @@ EF_Alt.prototype.abortInner = function() {
         if (is_ef(val)) // need to wait
           this.setChildFrame(val, i);
         else {
+          this.pendingRV = mergeExceptions(val, this.pendingRV);
           --this.pending;
           this.children[i] = UNDEF;
         }

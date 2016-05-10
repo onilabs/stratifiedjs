@@ -1117,6 +1117,36 @@ test('waitfor/and exception edgecase 2', 'ok',
          }
          and {
            try {
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+
+test('waitfor/and exception edgecase 2 (async)', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           return;
+         }
+         and {
+           try {
              hold(0);
              throw new Error('foo');
            }
@@ -1134,3 +1164,304 @@ test('waitfor/and exception edgecase 2', 'ok',
        }
        return 'not ok';
      });
+
+//---
+
+test('waitfor/or exception edgecase', 'ok',
+     function() {
+       function f() {
+         waitfor {
+           try {
+             hold();
+           }
+           finally {
+             hold(0);
+             throw new Error('foo');
+           }
+         }
+         or {
+           // this return used to cause the Error 'foo' being swallowed
+           return;
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+test('waitfor/or exception edgecase (async)', 'ok',
+     function() {
+       function f() {
+         waitfor {
+           try {
+             hold();
+           }
+           finally {
+             hold(0);
+             throw new Error('foo');
+           }
+         }
+         or {
+           hold(0);
+           // this return used to cause the Error 'foo' being swallowed
+           return;
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+test('waitfor/or exception edgecase 2', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           // the return here used to cause the error 'foo' being swallowed
+           return;
+         }
+         or {
+           try {
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+
+test('waitfor/or exception edgecase 2 (async)', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           // the return here used to cause the error 'foo' being swallowed
+           return;
+         }
+         or {
+           try {
+             hold(0);
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+//--
+
+test('waitfor/or exception edgecase 3', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           // the implicit teardown of the waitfor/or here used to cause the error 'foo' being swallowed
+         }
+         or {
+           try {
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+test('waitfor/or exception edgecase 3 (async)', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           // the implicit teardown of the waitfor/or here used to cause the error 'foo' being swallowed
+         }
+         or {
+           try {
+             hold(0);
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+//--
+
+test('waitfor/or exception edgecase 4', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           // the collapse of the waitfor/or here used to cause the error 'foo' being swallowed
+           collapse;
+         }
+         or {
+           try {
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+test('waitfor/or exception edgecase 4 (async)', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           // the collapse of the waitfor/or here used to cause the error 'foo' being swallowed
+           collapse;
+         }
+         or {
+           try {
+             hold(0);
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+//--
+
+test('waitfor/or uncaught exception edgecase', 'ok',
+     function() {
+       function f() {
+         waitfor {
+           try {
+             hold();
+           }
+           finally {
+             // this used to be thrown as an uncaught exception
+             throw new Error('foo');
+           }
+         }
+         or {
+           hold(0);
+           return;
+         }
+       }
+       
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+test('waitfor/and uncaught exception edgecase', 'ok',
+     function() {
+       function f() {
+         waitfor {
+           try {
+             hold();
+           }
+           finally {
+             // this used to be thrown as an uncaught exception
+             throw new Error('foo');
+           }
+         }
+         and {
+           hold(0);
+           return;
+         }
+       }
+       
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+

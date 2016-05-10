@@ -1415,9 +1415,15 @@ this.setChildFrame(val);
 
 this.parent=UNDEF;
 
-if(cont(this,0)!==this){
-return;
-}
+
+
+this.async=false;
+var rv=cont(this,0);
+if(rv!==this){
+return rv;
+}else this.async=true;
+
+
 
 }
 }
@@ -1705,6 +1711,24 @@ exports.ForIn=function(obj,loop){return {exec:I_forin,ndata:[obj,loop],__oni_dis
 
 
 
+
+
+function mergeExceptions(new_exception,original_exception){if(!(new_exception&&new_exception.__oni_cfx)||new_exception.type!=='t'){
+
+return original_exception;
+}
+if(!(original_exception&&original_exception.__oni_cfx)||original_exception.type!=='t')return new_exception;
+
+if(console){
+
+var msg="Multiple exceptions from sub-strata. Swallowing "+original_exception.val;
+if(console.error)console.error(msg);else console.log(msg);
+
+}
+return new_exception;
+}
+
+
 function EF_Par(ndata,env){this.ndata=ndata;
 
 this.env=env;
@@ -1733,6 +1757,7 @@ this.setChildFrame(val,i);
 this.quench();
 return this.abortInner();
 }
+this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 return this.pendingCFE;
 }else if(is_ef(val)){
 
@@ -1778,18 +1803,7 @@ return this.returnToParent(new CFException("i","invalid state in Par"));
 
 
 
-if((val&&val.__oni_cfx)&&val.type==='t'){
-if(this.pendingCFE.type==='t'){
-
-
-if(console){
-var msg="Multiple exceptions from sub-strata. Swallowing "+this.pendingCFE.val;
-if(console.error)console.error(msg);else console.log(msg);
-
-}
-}
-this.pendingCFE=val;
-}
+this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 
 if(this.pending==0)return this.returnToParent(this.pendingCFE);
 
@@ -1832,6 +1846,7 @@ var val=this.children[i].abort();
 if(is_ef(val))this.setChildFrame(val,i);else{
 
 
+this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 --this.pending;
 this.children[i]=UNDEF;
 }
@@ -1912,6 +1927,7 @@ this.setChildFrame(val,i);
 this.quench();
 return this.abortInner();
 }
+this.pendingRV=mergeExceptions(val,this.pendingRV);
 return this.pendingRV;
 }else if(is_ef(val)){
 
@@ -1930,6 +1946,8 @@ return this.abortInner();
 
 --this.pending;
 this.children[idx]=UNDEF;
+this.pendingRV=mergeExceptions(val,this.pendingRV);
+
 if(this.collapsing){
 
 
@@ -1944,8 +1962,10 @@ return;
 
 
 
+
 if(!this.aborted){
-this.pendingRV=val;
+if(!this.pendingRV)this.pendingRV=val;
+
 this.quench();
 return this.returnToParent(this.abortInner());
 }
@@ -2005,6 +2025,7 @@ var val=this.children[i].abort();
 if(is_ef(val))this.setChildFrame(val,i);else{
 
 
+this.pendingRV=mergeExceptions(val,this.pendingRV);
 --this.pending;
 this.children[i]=UNDEF;
 }
