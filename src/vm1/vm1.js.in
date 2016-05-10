@@ -1907,6 +1907,21 @@ EF_Par.prototype.cont = function(idx, val) {
       else {
         // There is a pending control flow exception which we need to return.
         // Therefore we can't do a tail call.
+
+        // make sure a real exception overrides a normal control flow exception
+        if (is_cfx(val) && val.type === 't') {
+          if (this.pendingCFE.type === 't') {
+            // we've already got a pending exception :/
+            // XXX not sure what to do; maybe combine the exceptions?
+            if (console) {
+              var msg = "Multiple exceptions from sub-strata. Swallowing "+this.pendingCFE.val;
+              if (console.error) console.error(msg);
+              else console.log(msg);
+            }
+          }
+          this.pendingCFE = val;
+        }
+
         if (this.pending == 0)
           return this.returnToParent(this.pendingCFE);
       }

@@ -1776,6 +1776,21 @@ return this.returnToParent(new CFException("i","invalid state in Par"));
 
 
 
+
+
+if((val&&val.__oni_cfx)&&val.type==='t'){
+if(this.pendingCFE.type==='t'){
+
+
+if(console){
+var msg="Multiple exceptions from sub-strata. Swallowing "+this.pendingCFE.val;
+if(console.error)console.error(msg);else console.log(msg);
+
+}
+}
+this.pendingCFE=val;
+}
+
 if(this.pending==0)return this.returnToParent(this.pendingCFE);
 
 }

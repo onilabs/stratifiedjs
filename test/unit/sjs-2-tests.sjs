@@ -1049,3 +1049,88 @@ test('tailcalled blocklambda break / par edge case', 'b',
        }
        return rv;
      });
+
+test('waitfor/and exception edgecase', 'ok',
+     function() {
+       function f() {
+         waitfor {
+           try {
+             hold();
+           }
+           finally {
+             hold(0);
+             throw new Error('foo');
+           }
+         }
+         and {
+           // this return used to cause the Error 'foo' being swallowed
+           return;
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+test('waitfor/and exception edgecase (async)', 'ok',
+     function() {
+       function f() {
+         waitfor {
+           try {
+             hold();
+           }
+           finally {
+             hold(0);
+             throw new Error('foo');
+           }
+         }
+         and {
+           hold(0);
+           // this return used to cause the Error 'foo' being swallowed
+           return;
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
+
+test('waitfor/and exception edgecase 2', 'ok',
+     function() {
+       function f() {
+         var X;
+         waitfor {
+           waitfor() {
+             X = resume;
+           }
+           return;
+         }
+         and {
+           try {
+             hold(0);
+             throw new Error('foo');
+           }
+           finally {
+             X();
+           }
+         }
+       }
+
+       try {
+         f();
+       }
+       catch(e) {
+         return 'ok';
+       }
+       return 'not ok';
+     });
