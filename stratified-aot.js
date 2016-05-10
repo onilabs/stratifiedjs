@@ -1306,8 +1306,7 @@ return this;
 case 1:
 
 this.state=2;
-if(!this.aborted&&this.ndata[2]&&(((val&&val.__oni_cfx)&&val.type=="t")||this.ndata[0]&1)){
-
+if(this.ndata[2]&&(((val&&val.__oni_cfx)&&val.type=="t")||this.ndata[0]&1)){
 
 
 var v;

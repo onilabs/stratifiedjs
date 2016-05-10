@@ -1427,8 +1427,7 @@ EF_Try.prototype.cont = function(idx, val) {
     case 1:
     // returning from try block
     this.state = 2;
-    if (!this.aborted &&
-        this.NDATA_TRY_CATCH_FUNC() &&
+    if (this.NDATA_TRY_CATCH_FUNC() &&
         ((is_cfx(val) && val.type == "t") ||
          this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_CATCHALL)) {
       var v;
@@ -1525,7 +1524,7 @@ EF_Try.prototype.abort = function() {
       this.setChildFrame(val);
     }
     else {
-      // attempt to execute retract/finally blocks synchronously:
+      // attempt to execute catch/retract/finally blocks synchronously:
 
       // prevent continuation from ending up at parent, we want to feed
       // it to the abortee directly:
