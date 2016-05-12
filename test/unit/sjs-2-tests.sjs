@@ -767,9 +767,9 @@ test('reentrant stratum abort', 'stratum aborted|a|b|c', function() {
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
-        stratum.abort();
+        spawn stratum.abort();
         append_to_rv('|a');
-        hold(0); // this should be aborted
+        hold(0); // this should be retracted
         rv += 'X';
       }
       retract {
@@ -784,7 +784,35 @@ test('reentrant stratum abort', 'stratum aborted|a|b|c', function() {
   return rv;
 });
 
-test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|b|c', function() {
+test('synchronous reentrant stratum abort', 'stratum aborted|c', function() {
+
+  var rv = '';
+
+  function append_to_rv(txt) { rv += txt }
+
+  var stratum = spawn (
+    function() {
+      hold(0); // ensure 'stratum' var is filled in
+      try {
+        stratum.abort(); // this should be aborted
+        append_to_rv('|a');
+        hold(0); 
+        rv += 'X';
+      }
+      retract {
+        rv += '|b';
+      } 
+    })();
+
+   // wait for stratum to finish
+   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
+   hold(0);
+   rv += '|c';
+  return rv;
+});
+
+
+test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|c', function() {
 
   var rv = '';
 
@@ -802,9 +830,45 @@ test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|b|c', 
       try {
         bl_caller { 
           ||
-          stratum.abort();
+          stratum.abort(); // this should be aborted
           rv += '|a';
-          hold(0); // this should be aborted
+          hold(0); 
+          rv += 'X';
+        }
+      }
+      retract {
+        rv += '|b';
+      } 
+    })();
+
+   // wait for stratum to finish
+   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
+   hold(100);
+   rv += '|c';
+  return rv;
+});
+
+test('synchronous reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|b|c', function() {
+
+  var rv = '';
+
+  function bl_caller(f) {
+    while (1) {
+      hold(0);
+      f();
+      hold(0);
+    }
+  }
+
+  var stratum = spawn (
+    function() {
+      hold(0); // ensure 'stratum' var is filled in
+      try {
+        bl_caller { 
+          ||
+          spawn stratum.abort();
+          rv += '|a';
+          hold(0); // this should be retracted
           rv += 'X';
         }
       }
@@ -821,7 +885,7 @@ test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|b|c', 
 });
 
 
-test('reentrant stratum abort via loop & resume', 'stratum aborted|a|b|c', function() {
+test('reentrant stratum abort via loop & resume', 'stratum aborted|c', function() {
 
   var rv = '';
 
@@ -838,9 +902,9 @@ test('reentrant stratum abort via loop & resume', 'stratum aborted|a|b|c', funct
           retract {
             console.log('hitting weird retract');
           }
-          stratum.abort();
+          stratum.abort(); // this should be aborted
           rv += '|a';
-          hold(0); // this should be aborted
+          hold(0); 
           rv += 'X';
         }
       }
@@ -858,6 +922,45 @@ test('reentrant stratum abort via loop & resume', 'stratum aborted|a|b|c', funct
    rv += '|c';
   return rv;
 });
+
+test('synchronous reentrant stratum abort via loop & resume', 'stratum aborted|a|b|c', function() {
+
+  var rv = '';
+
+  var R;
+
+  var stratum = spawn (
+    function() {
+      hold(0); // ensure 'stratum' var is filled in
+      try {
+        while (1) {
+          waitfor() {
+            R = resume;
+          }
+          retract {
+            console.log('hitting weird retract');
+          }
+          spawn stratum.abort();
+          rv += '|a';
+          hold(0); // this should be retracted
+          rv += 'X';
+        }
+      }
+      retract {
+        rv += '|b';
+      } 
+    })();
+
+  hold(0);
+  spawn (hold(100),R());
+
+   // wait for stratum to finish
+   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
+   hold(100);
+   rv += '|c';
+  return rv;
+});
+
 
 test("single-sided conditional: true ? 'yes'", 'yes', function() {
   return true ? 'yes';
@@ -985,7 +1088,7 @@ function makeAbortBreakTest(async_try_catch, late_pickup) {
           throw new Error('foo');
         }
         catch(e) {
-          stratum.abort();
+          spawn stratum.abort();
           rv += 'b';
           break;
           rv += 'x';
@@ -1465,3 +1568,13 @@ test('waitfor/and uncaught exception edgecase', 'ok',
      });
 
 
+test('stratum abort waits for blocking finally', 'AabB',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { try { hold(); } finally { rv += 'a';  hold(0); rv += 'b'; } })();
+       hold(0);
+       rv += 'A';
+       stratum.abort();
+       rv += 'B';
+       return rv;
+     });

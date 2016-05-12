@@ -2296,10 +2296,12 @@ EF_Spawn.prototype.abort=function(){this.aborted=true;
 
 if(this.child_frame){
 var val=this.child_frame.abort();
-if(is_ef(val)){
-this.notifyAsync();
-this.setChildFrame(val,1);
-}
+
+
+
+
+
+return (is_ef(val)?val:true);
 }
 };
 
@@ -2329,7 +2331,7 @@ var stratum={abort:function(){
 if(!async)return;
 
 ef.quench();
-ef.abort();
+var rv=ef.abort();
 async=false;
 val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 
@@ -2337,6 +2339,8 @@ val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 
 while(waitarr.length)cont(waitarr.shift(),val);
 
+
+return rv;
 },value:function(){
 if(!async){
 picked_up=true;return val}

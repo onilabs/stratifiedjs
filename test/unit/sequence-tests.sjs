@@ -1127,6 +1127,17 @@ testEq('each.track', "5", function() {
   return rv;
 });
 
+testEq('each.track break', '12b', function() {
+  var rv = "";
+  [1,2,3,4] .. s.each.track {
+    |x|
+    if (x === 3) break;
+    rv += x;
+  }
+  rv += 'b';
+  return rv;
+});
+
 context("pack") {||
   test("with count") {||
     [1,2,3,4,5] .. s.pack({count:2}) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);
@@ -1287,28 +1298,15 @@ context("mirror") {||
         s.log.push(i);
         break;
       }
-      // this itaration should wait for the previous iteration to be cleaned up before iterating
+      // this iteration should wait for the previous iteration to be cleaned up before iterating
       s.mirror .. @each {|i|
         s.log.push(i);
         break;
       }
 
-      // XXX we would prefer:
-      //s.log .. @assert.eq([
-      //  'start', 1, 'retract', 'retracted',
-      //  'start', 1, 'retract', 'retracted'
-      //]);
-
-      // but the current behaviour is:
       s.log .. @assert.eq([
-        'start', 1, 'retract',
-        'start', 1, 'retract',
-      ]);
-      s.log = [];
-      hold(30);
-      s.log .. @assert.eq([
-        'retracted',
-        'retracted',
+        'start', 1, 'retract', 'retracted',
+        'start', 1, 'retract', 'retracted'
       ]);
     }
   }
