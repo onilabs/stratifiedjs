@@ -2448,6 +2448,7 @@ exports.Suspend = function(s,r) {
 // continuation index:
 // 0: start
 // 1: returning from async execution
+// 2: returning from async parent stratum abortion during block lambda return
   
 function EF_Spawn(ndata, env, notifyAsync, notifyVal) {
   this.ndata = ndata;
@@ -2461,12 +2462,63 @@ EF_Spawn.prototype.type = "Spawn";
 #endif
 
 EF_Spawn.prototype.cont = function(idx, val) {
+
   if (idx == 0) {
     this.parent_dyn_vars = exports.current_dyn_vars;
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
+    if (is_cfx(val))
+      return val;
+  }
+  else if (idx === 2) {
+    // returning from aborted_target during a blocklambda return
+    if (is_ef(val)) {
+      this.setChildFrame(val, 2);
+      return this.returnToParent(this);
+    }
+    else {
+      this.notifyVal(this.return_val, true);
+      return this.returnToParent(this.return_val);
+    }
   }
 
+  // XXX does this need to be here? are we not generally restoring dynvars elsewhere?
   exports.current_dyn_vars = this.parent_dyn_vars;
+
+  if (is_cfx(val)) {
+    if (val.type === 'r' && val.ef) {
+      // we have a blocklambda return
+
+      // because we're on a different stratum than the blocklambda return target and
+      // the blocklambda return might be delayed via blocking finally clauses before it
+      // reached us here, we need to recheck if we're dispatching to an active target:
+      if (val.ef.unreturnable) {
+        this.notifyVal(new CFException("t",
+                                       new Error("Blocklambda return from spawned stratum to inactive scope"),
+                                       this.NDATA_SPAWN_LINE(),
+                                       this.env.file));
+        return;
+      }
+
+      // we'll take over the return frame; make a note of where to return to:
+      this.parent = val.ef.parent;
+      this.parent_idx = val.ef.parent_idx;
+      // abort target frame
+      val.ef.quench();
+      var aborted_target = val.ef.abort();
+      if (is_ef(aborted_target)) {
+        this.return_val = val.val;
+        this.setChildFrame(aborted_target, 2);
+        // no reason to call notifyAsync here; we've already done in a previous cont() call
+        return this.returnToParent(this);
+      }
+
+      // return value to ef's parent & to value listeners:
+      this.notifyVal(val.val, true);
+      return this.returnToParent(val.val);
+    }
+    // XXX1 handle block lamda breaks
+  }
+  
   if (is_ef(val)) {
     this.setChildFrame(val, 1);
     if (idx == 0)
@@ -2479,14 +2531,14 @@ EF_Spawn.prototype.cont = function(idx, val) {
 };
 
 EF_Spawn.prototype.abort = function() {
+  // This function is only called by stratum.abort, below.
+  // We don't need to deal with notifyAsync/notifyVal, because all value listeners 
+  // will already have received a 'stratum aborted' exception.
+  if (this.aborted) return true;
   this.aborted = true;
   if (this.child_frame) {
+    this.child_frame.quench();
     var val = this.child_frame.abort();
-/*    if (is_ef(val)) {
-      this.notifyAsync();
-      this.setChildFrame(val, 1);
-    }
-*/
     return (is_ef(val) ? val : true);
   }
 };
@@ -2519,6 +2571,10 @@ function I_spawn(ndata, env) {
   var stratum = {
     abort : function() {
       if (!async) return;
+
+      // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
+      // but any value listeners will receive a 'stratum aborted' notification immediately
+
       ef.quench();
       var rv = ef.abort();
       async = false;
@@ -2547,13 +2603,13 @@ function I_spawn(ndata, env) {
   function notifyAsync() {
     async = true;
   }
-  function notifyVal(_val) {
+  function notifyVal(_val, have_caller) {
     if (val !== undefined) // this guard is important so that a
       return;              // reentrant 'stratum aborted' exception
                            // doesn't get overwritten by a later result
     val = _val;
     async = false;
-    if (!waitarr.length) {
+    if (!have_caller && !waitarr.length) {
       // make sure exceptions that noone is waiting on get reported in
       // console. Only report stray control flow exceptions & exceptions that
       // are instanceof Error;
@@ -2584,8 +2640,9 @@ function I_spawn(ndata, env) {
     
   }
   var ef = new EF_Spawn(ndata, env, notifyAsync, notifyVal);
-  cont(ef, 0);
-  return stratum;
+
+  // pass through control flow exceptions, or return stratum:
+  return cont(ef, 0) || stratum;
 }
   
 //exports.Spawn = makeINCtor(I_spawn);

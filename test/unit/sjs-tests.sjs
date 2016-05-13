@@ -1429,7 +1429,7 @@ testEq("nested blocklambda return", "inner", function() {
   return "toplevel";
 });
 
-testEq("BROKEN: detached blocklambda return", 'a', function() {
+testEq("detached blocklambda return", 'a', function() {
   function f(g) {
     spawn g();
     hold(10);
@@ -1437,9 +1437,158 @@ testEq("BROKEN: detached blocklambda return", 'a', function() {
   }
   var rv = f { || return 'a'; };
   return rv;
-}).skip();
+});
 
-testEq("BROKEN: complex detached blocklambda return", 111, function() {
+testEq("detached blocklambda return async", 'a', function() {
+  function f(g) {
+    spawn g();
+    hold(10);
+    return 'b';
+  }
+  var rv = f { || hold(0); return 'a'; };
+  return rv;
+});
+
+testEq("detached blocklambda return with finally clause", 'fa', function() {
+  var rv = '';
+  function f(g) {
+    try {
+      spawn g();
+      rv += 'b';
+      hold(10);
+      rv += 'c';
+    }
+    finally {
+      rv += 'f';
+    }
+  }
+  rv += (function() {
+    f { || return 'a'; };
+  })();
+  return rv;
+});
+
+testEq("detached blocklambda return with finally clause / async", 'bfa', function() {
+  var rv = '';
+  function f(g) {
+    try {
+      spawn g();
+      rv += 'b';
+      hold(10);
+      rv += 'c';
+    }
+    finally {
+      rv += 'f';
+    }
+  }
+  rv += (function() {
+    f { || hold(0); return 'a'; };
+  })();
+  return rv;
+});
+
+testEq("detached blocklambda return with blocking inner finally clause / async", 'bfa', function() {
+  var rv = '';
+  function f(g) {
+    spawn g();
+    rv += 'b';
+    hold(100);
+    rv += 'c';
+  }
+  rv += (function() {
+    f { || hold(0); try { return 'a'; } finally { hold(10); rv += 'f'; } };
+  })();
+  return rv;
+});
+
+testEq("detached blocklambda return with blocking finally clause 2 / async", 'bfa', function() {
+  var rv = '';
+  function f(g) {
+    try {
+      spawn g();
+      rv += 'b';
+      hold(10);
+      rv += 'c';
+    }
+    finally {
+      hold(100);
+      rv += 'f';
+    }
+  }
+  rv += (function() {
+    f { || hold(0); return 'a'; };
+  })();
+  return rv;
+});
+
+testEq("detached blocklambda return with blocking finally clause and blocking spawned finally / async", 'bifa', function() {
+  var rv = '';
+  function f(g) {
+    try {
+      spawn g();
+      rv += 'b';
+      hold(100);
+      rv += 'c';
+    }
+    finally {
+      hold(10);
+      rv += 'f';
+    }
+  }
+  rv += (function() {
+    f { || waitfor { hold(0); return 'a'; } and { try { hold(); } finally { hold(10); rv += 'i' } } };
+  })();
+  return rv;
+});
+
+testEq("detached blocklambda return with value pickup", 'vx', function() {
+  var stratum;
+  function f() { 
+    stratum = spawn ({|| hold(0); return 'x'; })();
+    hold(10);
+    return 'y';
+  }
+  
+  var rv = '';
+  waitfor {
+    rv += f();
+  }
+  and {
+    if (stratum.value() == 'x')
+      rv += 'v';
+  }
+  return rv;
+
+});
+
+testEq("detached blocklambda return to inactive scope", 'ye', function() {
+  var stratum;
+  function f() { 
+    stratum = spawn ({|| try { return 'x'; } finally { hold(10); } })();
+    hold(0);
+    return 'y';
+  }
+  
+  var rv = '';
+  waitfor {
+    rv += f();
+  }
+  and {
+    try {
+      stratum.value();
+    }
+    catch(e) {
+      if (e.message == 'Blocklambda return from spawned stratum to inactive scope')
+        rv += 'e';
+      else
+        throw e;
+    }
+  }
+  return rv;
+
+});
+
+testEq("complex detached blocklambda return", 111, function() {
   var rv = 0;
 
   var signal;
@@ -1472,7 +1621,7 @@ testEq("BROKEN: complex detached blocklambda return", 111, function() {
   }
 
   return rv;
-}).skip();
+});
 
 testEq("BROKEN: comments across strings", 1, function() {
   return /* " */ 2; /* " */1;

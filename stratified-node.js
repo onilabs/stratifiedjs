@@ -2221,6 +2221,7 @@ exports.Suspend=function(s,r){return {exec:I_sus,ndata:[s,r],__oni_dis:token_dis
 
 
 
+
 function EF_Spawn(ndata,env,notifyAsync,notifyVal){this.ndata=ndata;
 
 this.env=env;
@@ -2231,11 +2232,62 @@ setEFProto(EF_Spawn.prototype={});
 
 EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
 
+
 this.parent_dyn_vars=exports.current_dyn_vars;
 val=execIN(this.ndata[1],this.env);
+if((val&&val.__oni_cfx))return val;
+
+}else if(idx===2){
+
+
+if(is_ef(val)){
+this.setChildFrame(val,2);
+return this.returnToParent(this);
+}else{
+
+this.notifyVal(this.return_val,true);
+return this.returnToParent(this.return_val);
+}
 }
 
+
 exports.current_dyn_vars=this.parent_dyn_vars;
+
+if((val&&val.__oni_cfx)){
+if(val.type==='r'&&val.ef){
+
+
+
+
+
+if(val.ef.unreturnable){
+this.notifyVal(new CFException("t",new Error("Blocklambda return from spawned stratum to inactive scope"),this.ndata[0],this.env.file));
+
+
+
+return;
+}
+
+
+this.parent=val.ef.parent;
+this.parent_idx=val.ef.parent_idx;
+
+val.ef.quench();
+var aborted_target=val.ef.abort();
+if(is_ef(aborted_target)){
+this.return_val=val.val;
+this.setChildFrame(aborted_target,2);
+
+return this.returnToParent(this);
+}
+
+
+this.notifyVal(val.val,true);
+return this.returnToParent(val.val);
+}
+
+}
+
 if(is_ef(val)){
 this.setChildFrame(val,1);
 if(idx==0)this.notifyAsync();
@@ -2247,15 +2299,15 @@ this.notifyVal(val);
 }
 };
 
-EF_Spawn.prototype.abort=function(){this.aborted=true;
+EF_Spawn.prototype.abort=function(){if(this.aborted)return true;
 
+
+
+
+this.aborted=true;
 if(this.child_frame){
+this.child_frame.quench();
 var val=this.child_frame.abort();
-
-
-
-
-
 return (is_ef(val)?val:true);
 }
 };
@@ -2285,6 +2337,10 @@ var waitarr=[];
 var stratum={abort:function(){
 if(!async)return;
 
+
+
+
+
 ef.quench();
 var rv=ef.abort();
 async=false;
@@ -2313,13 +2369,13 @@ return "[object Stratum]"}};
 function notifyAsync(){async=true;
 
 }
-function notifyVal(_val){if(val!==undefined)return;
+function notifyVal(_val,have_caller){if(val!==undefined)return;
 
 
 
 val=_val;
 async=false;
-if(!waitarr.length){
+if(!have_caller&&!waitarr.length){
 
 
 
@@ -2350,8 +2406,9 @@ setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 }
 var ef=new EF_Spawn(ndata,env,notifyAsync,notifyVal);
-cont(ef,0);
-return stratum;
+
+
+return cont(ef,0)||stratum;
 }
 
 
