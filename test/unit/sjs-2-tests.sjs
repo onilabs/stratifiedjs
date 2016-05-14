@@ -1578,3 +1578,30 @@ test('stratum abort waits for blocking finally', 'AabB',
        rv += 'B';
        return rv;
      });
+
+test('detached blocklambda return / stratum.value / stratum.abort interaction', 'finally blocklambda',
+     function() {
+
+       var rv = '';
+
+       function outer() {
+         function inner(r) {
+           var stratum;
+           try {
+             stratum = spawn r();
+             stratum.value();
+             rv += 'not reached ';
+             return 'inner';
+           }
+           finally {
+             rv += 'finally ';
+             stratum.abort();
+           }
+         }
+         
+         return inner { || hold(0); return 'blocklambda'; };
+       }
+
+       rv += outer();
+       return rv;
+     });

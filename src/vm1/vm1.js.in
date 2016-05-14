@@ -2488,6 +2488,9 @@ EF_Spawn.prototype.cont = function(idx, val) {
     if (val.type === 'r' && val.ef) {
       // we have a blocklambda return
 
+      // mark us unabortable:
+      this.aborted = true;
+
       // because we're on a different stratum than the blocklambda return target and
       // the blocklambda return might be delayed via blocking finally clauses before it
       // reached us here, we need to recheck if we're dispatching to an active target:

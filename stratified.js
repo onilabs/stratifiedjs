@@ -2308,6 +2308,9 @@ if(val.type==='r'&&val.ef){
 
 
 
+this.aborted=true;
+
+
 
 
 if(val.ef.unreturnable){
