@@ -1758,3 +1758,37 @@ test('detached blocklambda break / stratum.value / stratum.abort interaction', '
        rv += outer();
        return rv;
      });
+
+// this test exercises some features used in our sequence::each.track implementation:
+test('nested blocklambda abort/break', '0(0)(1)(2)(3)(4)5(5)6(6)7(7)8(8)9', 
+     function() {
+       var rv = '';
+
+       function driver(consumer) {
+         var stratum;
+
+         function abort_stratum(i) {
+           try {
+             stratum.abort();
+           }
+           finally {
+             rv += '('+i+')';
+           }
+         }
+
+         for (var i=0; i<10; ++i) {
+           stratum = spawn (stratum ? abort_stratum(i-1), consumer(i));
+           if (i == 5) hold(10);
+         }         
+         rv += 'not reached';
+       }
+       
+       driver { 
+         |x| 
+         rv += x; 
+         if (x === 9) break;
+         try { hold(); } finally { if (x<5) hold(0); } 
+       };
+       
+       return rv;
+     });
