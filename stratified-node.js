@@ -551,6 +551,7 @@ exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
 
 
 
+
 function EF_Seq(ndata,env){this.ndata=ndata;
 
 this.env=env;
@@ -1237,6 +1238,7 @@ exports.Switch=function(exp,clauses){return {exec:I_switch,ndata:[exp,clauses],_
 
 
 
+
 function EF_Try(ndata,env){this.ndata=ndata;
 
 this.env=env;
@@ -1346,9 +1348,10 @@ EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
 
 };
 
-EF_Try.prototype.abort=function(){this.aborted=true;
+EF_Try.prototype.abort=function(){if(this.aborted)return this;
 
 
+this.aborted=true;
 
 if(this.state!==4){
 var val=this.child_frame.abort();
@@ -2246,6 +2249,14 @@ return this.returnToParent(this);
 }else{
 
 this.notifyVal(this.return_val,true);
+
+
+
+
+
+this.in_abortion=false;
+this.aborted=true;
+
 return this.returnToParent(this.return_val);
 }
 }
@@ -2256,9 +2267,6 @@ exports.current_dyn_vars=this.parent_dyn_vars;
 if((val&&val.__oni_cfx)){
 if(val.type==='r'&&val.ef){
 
-
-
-this.aborted=true;
 
 
 
@@ -2272,8 +2280,17 @@ return;
 }
 
 
+this.in_abortion=true;
+
+
 this.parent=val.ef.parent;
 this.parent_idx=val.ef.parent_idx;
+
+this.parent.cont(this.parent_idx,this);
+
+
+val.ef.parent=UNDEF;
+
 
 val.ef.quench();
 var aborted_target=val.ef.abort();
@@ -2286,9 +2303,79 @@ return this.returnToParent(this);
 
 
 this.notifyVal(val.val,true);
+
+this.in_abortion=false;
+this.aborted=true;
 return this.returnToParent(val.val);
+}else if(val.type==='blb'){
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var frame_to_abort=this.env.blrref;
+while(frame_to_abort.parent&&!(frame_to_abort.parent.env&&frame_to_abort.parent.env.blscope===val.ef))frame_to_abort=frame_to_abort.parent;
+
+
+
+
+
+
+if(!frame_to_abort.parent||frame_to_abort.unreturnable){
+this.notifyVal(new CFException("t",new Error("Blocklambda break from spawned stratum to invalid or inactive scope"),this.ndata[0],this.env.file));
+
+
+
+return;
 }
 
+
+this.in_abortion=true;
+
+
+this.parent=frame_to_abort.parent;
+this.parent_idx=frame_to_abort.parent_idx;
+
+this.parent.cont(this.parent_idx,this);
+
+
+frame_to_abort.parent=UNDEF;
+
+
+
+frame_to_abort.quench();
+var aborted_target=frame_to_abort.abort();
+if(is_ef(aborted_target)){
+
+this.return_val=UNDEF;
+this.setChildFrame(aborted_target,2);
+
+return this.returnToParent(this);
+}
+
+
+this.notifyVal(UNDEF,true);
+
+
+
+
+
+this.in_abortion=false;
+this.aborted=true;
+return this.returnToParent(UNDEF);
+}
 }
 
 if(is_ef(val)){
@@ -2302,11 +2389,13 @@ this.notifyVal(val);
 }
 };
 
-EF_Spawn.prototype.abort=function(){if(this.aborted)return true;
+EF_Spawn.prototype.abort=function(){if(this.in_abortion)return this;
 
 
 
 
+
+if(this.aborted)return true;
 this.aborted=true;
 if(this.child_frame){
 this.child_frame.quench();
@@ -2338,13 +2427,15 @@ function I_spawn(ndata,env){var val,async,have_val,picked_up=false;
 
 var waitarr=[];
 var stratum={abort:function(){
-if(!async)return;
+if(!async||ef.in_abortion)return;
 
 
 
 
 
-ef.quench();
+
+
+
 var rv=ef.abort();
 async=false;
 val=new CFException("t",new StratumAborted(),ndata[0],env.file);
@@ -2562,6 +2653,7 @@ function abort(){exports.current_dyn_vars=dyn_vars;
 
 if(duration_ms===UNDEF)return {__oni_ef:true,wait:function(){
 
+
 return this},quench:dummy,abort:abort};
 
 
@@ -2569,6 +2661,7 @@ return this},quench:dummy,abort:abort};
 
 if(duration_ms===0){
 var sus={__oni_ef:true,wait:function(){
+
 return this},abort:abort,quench:function(){
 
 sus=null;clear0(this.co)},co:hold0(function(){
@@ -2584,6 +2677,7 @@ return sus;
 }else{
 
 var sus={__oni_ef:true,wait:function(){
+
 return this},abort:abort,quench:function(){
 
 sus=null;clearTimeout(this.co)}};
@@ -3954,7 +4048,15 @@ function ph_prefix_op(id,right,pctx){this.id=id;
 
 this.right=right;
 this.line=pctx.line;
-this.is_nblock=(pctx.allow_nblock&&right.is_nblock)&&id!="spawn";
+if(id==='spawn'){
+
+
+pctx.decl_scopes[pctx.decl_scopes.length-1].notail=true;
+this.is_nblock=false;
+}else{
+
+this.is_nblock=(pctx.allow_nblock&&right.is_nblock);
+}
 }
 ph_prefix_op.prototype=new ph();
 ph_prefix_op.prototype.is_value=true;

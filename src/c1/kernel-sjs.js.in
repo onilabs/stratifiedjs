@@ -67,8 +67,8 @@
 
 // for blocklambda support, we have another two flags for decl_scopes:
 // bl=true means that this is a block lambda scope
-// notail=true mean that this scope is being targetted by returns from 
-// blocklambdas and can't be tail-optimized
+// notail=true mean that this scope can't be tail-optimized because is being targeted 
+// by blocklambdas returns or spawned blocklambda breaks
 
 // for 'break' and 'continue' encoding, we have the following decl_scope flags:
 // continue_scope > 0 : we're in a scope (besides possibly a blocklambda) where 
@@ -1114,7 +1114,15 @@ function ph_prefix_op(id, right, pctx) {
   this.id = id;
   this.right = right;
   this.line = pctx.line;
-  this.is_nblock = (pctx.allow_nblock && right.is_nblock) && id!="spawn";
+  if (id === 'spawn') {
+    // to support blocklambda breaks from spawned strata, we must make sure that the function
+    // from which we spawn is not tail-called:
+    pctx.decl_scopes[pctx.decl_scopes.length-1].notail = true;
+    this.is_nblock = false;
+  }
+  else {
+    this.is_nblock = (pctx.allow_nblock && right.is_nblock);
+  }
 }
 ph_prefix_op.prototype = new ph(WHENDEBUG("ph_prefix_op"));
 ph_prefix_op.prototype.is_value = true;

@@ -1605,3 +1605,156 @@ test('detached blocklambda return / stratum.value / stratum.abort interaction', 
        rv += outer();
        return rv;
      });
+
+test("detached blocklambda break", 'ad', function() {
+  var rv = '';
+  function f(g) {
+    spawn g();
+    hold(10);
+    rv += 'c';
+  }
+  f { || rv += 'a'; break; rv += 'b' };
+  rv += 'd';
+  return rv;
+});
+
+test("detached async blocklambda break 1", 'ad', function() {
+  var rv = '';
+  function f(g) {
+    spawn g();
+    hold(10);
+    rv += 'c';
+  }
+ 
+  f { || rv += 'a'; hold(0); break; rv += 'b' };
+
+  rv += 'd';
+  return rv;
+});
+
+test("detached async blocklambda break with blocking finally", 'ahfd', function() {
+  var rv = '';
+  function f(g) {
+    spawn g();
+    try {
+      rv += 'h';
+      hold(10);
+    }
+    finally {
+      hold(10);
+      rv += 'f';
+    }
+    rv += 'c';
+  }
+ 
+  f { || rv += 'a'; hold(0); break; rv += 'b' };
+
+  rv += 'd';
+  return rv;
+});
+
+
+
+test("expired detached async blocklambda break", 'acde', function() {
+  var stratum;
+  var rv = '';
+  function foo() {
+    function f(g) {
+      stratum = spawn g();
+      hold(0);
+      rv += 'c';
+    }
+    
+    f { || rv += 'a'; try { break; } finally { hold(10); } rv += 'b' };
+    
+    rv += 'd';
+    hold(2000);
+    return rv;
+  }
+
+  waitfor { 
+    return foo();
+  }
+  or {
+    stratum.value(); // this should throw
+  }
+  catch (e) {
+    if (e.message === 'Blocklambda break from spawned stratum to invalid or inactive scope')
+      rv += 'e';
+    return rv;
+  }
+});
+
+test("detached blocklambda break with value pickup", 'vb', function() {
+  var stratum;
+  var rv = '';
+  function f(s) { 
+    stratum = spawn s();
+    hold(10);
+    rv += 'a';
+  }
+  
+  waitfor {
+    f {|| hold(0); break; }
+    rv += 'b';
+  }
+  and {
+    stratum.value();
+    rv += 'v';
+  }
+  return rv;
+});
+
+test("detached blocklambda break with value pickup & finally", 'vfb', function() {
+  var stratum;
+  var rv = '';
+  function f(s) { 
+    stratum = spawn s();
+    hold(10);
+    rv += 'a';
+  }
+  
+  waitfor {
+    try {
+      f {|| hold(0); break; }
+    }
+    finally {
+      hold(10);
+      rv += 'f';
+    }
+    rv += 'b';
+  }
+  and {
+    stratum.value();
+    rv += 'v';
+  }
+  return rv;
+});
+
+test('detached blocklambda break / stratum.value / stratum.abort interaction', 'finally outer',
+     function() {
+
+       var rv = '';
+
+       function outer() {
+         function inner(r) {
+           var stratum;
+           try {
+             stratum = spawn r();
+             stratum.value();
+             rv += 'not reached ';
+             return 'inner';
+           }
+           finally {
+             rv += 'finally ';
+             stratum.abort();
+           }
+         }
+         
+         inner { || hold(0); break; };
+         return 'outer';
+       }
+
+       rv += outer();
+       return rv;
+     });

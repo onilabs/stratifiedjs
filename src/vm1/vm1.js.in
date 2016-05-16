@@ -44,8 +44,31 @@ define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
 define ASYNC_RESUME  : obsolete asynchronous resume code path
 
 */
-/* define DEBUG_VM 1 */
+/* #define DEBUG_VM 1 */
 #ifdef DEBUG_VM
+function dumpExecutionFrameParents(ef, indent) {
+  indent = indent || 0;
+  if (ef && ef.parent)
+    dumpExecutionFrameParents(ef.parent, indent+1);
+  var str = '';
+  for (var i=0; i<indent;++i) str += '  ';
+  str += ef ? ef : '<undefined>';
+  console.log(str);
+}
+function dumpExecutionFrameChildren(ef, indent) {
+  indent = indent || 0;
+  var str = '';
+  for (var i=0; i<indent;++i) str += '  ';
+  str += ef ? ef : '<undefined>';
+  console.log(str);
+  if (ef && ef.child_frame)
+    dumpExecutionFrameChildren(ef.child_frame, indent+1);
+  else if (ef && ef.children) {
+    for (var i = 0; i<ef.children.length; ++i) {
+      dumpExecutionFrameChildren(ef.children[i], indent+1);
+    }
+  }
+}
 #define EF_TYPES
 #define LOG(x) console.log(x);
 // XXX figure out why normal CPP stringification is screwed
@@ -298,7 +321,7 @@ function mergeCallstacks(target_ef, src_ef) {
 // base prototype object for execution frames
 var EF_Proto = {
 #ifdef EF_TYPES
-  toString: function() { return "<SJS Execution Frame '"+this.type+"'>"; },
+  toString: function() { return "<SJS Execution Frame '"+(typeof(this.type) === 'function' ? this.type() : this.type)+"'"+(this.id ? this.id:'')+">"; },
 #else
   toString: function() { return "<suspended SJS>"; },
 #endif
@@ -593,7 +616,14 @@ exports.Bl = function(f) {
   2..end : returning from ndata[n-1] (last one tail-called)  
  */
 
+#ifdef DEBUG_VM
+var seq_counter = 0;
+#endif
+
 function EF_Seq(ndata, env) {
+#ifdef DEBUG_VM
+  this.id = ++seq_counter;
+#endif
   this.ndata = ndata;
   this.env = env;
 
@@ -646,7 +676,17 @@ function EF_Seq(ndata, env) {
 }
 setEFProto(EF_Seq.prototype={});
 #ifdef EF_TYPES
-EF_Seq.prototype.type = "Seq";
+EF_Seq.prototype.type = function() { 
+  var rv = "Seq";
+  if (this.NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION)
+    rv += "(fun)";
+  if (this.NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_BLOCKLAMBDA)
+    rv += "(blkL)";
+  if (this.NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL)
+    rv += "(notail)";
+
+  return rv;
+};
 #endif
 EF_Seq.prototype.cont = function(idx, val) {
 #ifdef DEBUG_VM_XX
@@ -1400,7 +1440,14 @@ exports.Switch = function(exp, clauses) {
 
 */
 
+#ifdef DEBUG_VM
+var try_counter = 0;
+#endif
+
 function EF_Try(ndata, env) {
+#ifdef DEBUG_VM
+  this.id = ++try_counter;
+#endif
   this.ndata = ndata;
   this.env = env;
   this.state = 0;
@@ -1513,7 +1560,8 @@ EF_Try.prototype.quench = function() {
 };
 
 EF_Try.prototype.abort = function() {
-  ASSERT(this.aborted !== true) // sanity check; aborted before
+  ASSERT(this.aborted !== true) // sanity check; aborted before XXX we actually hit this in a couple of tests in sjs-2-tests
+  if (this.aborted) return this;
   this.aborted = true;
   ASSERT(this.state !== 3) // sanity check; aborted before
   if (this.state !== 4) { // don't abort finally block
@@ -2477,6 +2525,14 @@ EF_Spawn.prototype.cont = function(idx, val) {
     }
     else {
       this.notifyVal(this.return_val, true);
+      
+      // we might have received a reentrant abort resulting from the notifyVal call (when someone
+      // listening for stratum.value() caused us to be aborted).
+      // in_abortion = false did the right thing in that case (returning 'this'). now we can
+      // set our status to aborted, so that future abort calls receive 'true':
+      this.in_abortion = false;
+      this.aborted = true;
+      
       return this.returnToParent(this.return_val);
     }
   }
@@ -2487,9 +2543,6 @@ EF_Spawn.prototype.cont = function(idx, val) {
   if (is_cfx(val)) {
     if (val.type === 'r' && val.ef) {
       // we have a blocklambda return
-
-      // mark us unabortable:
-      this.aborted = true;
 
       // because we're on a different stratum than the blocklambda return target and
       // the blocklambda return might be delayed via blocking finally clauses before it
@@ -2502,24 +2555,103 @@ EF_Spawn.prototype.cont = function(idx, val) {
         return;
       }
 
-      // we'll take over the return frame; make a note of where to return to:
+      // mark us unabortable:
+      this.in_abortion = true;
+
+      // inject ourselves:
       this.parent = val.ef.parent;
       this.parent_idx = val.ef.parent_idx;
+      // tell parent about ourselves, so that we get any reentrant abort calls
+      this.parent.cont(this.parent_idx, this);
+      // for safety, make sure frame_to_abort doesn't send any returns
+      // to this.parent. We're taking that role
+      val.ef.parent = UNDEF;
+
       // abort target frame
       val.ef.quench();
       var aborted_target = val.ef.abort();
       if (is_ef(aborted_target)) {
         this.return_val = val.val;
         this.setChildFrame(aborted_target, 2);
-        // no reason to call notifyAsync here; we've already done in a previous cont() call
+        // no reason to call notifyAsync here; we've already done that in a previous cont() call
         return this.returnToParent(this);
       }
 
       // return value to ef's parent & to value listeners:
       this.notifyVal(val.val, true);
+      // see notes in blb codepath below
+      this.in_abortion = false;
+      this.aborted = true;
       return this.returnToParent(val.val);
     }
-    // XXX1 handle block lamda breaks
+    else if (val.type === 'blb') {
+      // we have a blocklambda break
+
+/*
+      console.log("BLOCKLAMBDA BREAK IN SPAWNED FRAME:");
+      for (var x in this.env) console.log("env["+x+"] = "+this.env[x]);
+
+      console.log("\nTOP OF SEARCH:");
+      dumpExecutionFrameParents(this.env.blrref);
+
+      console.log("\nBOTTOM OF SEARCH:");
+      dumpExecutionFrameChildren(val.ef);
+*/
+
+      // to determine the frame that needs aborting, we walk the
+      // parent chain from this.env.blrref back to the first frame
+      // that has blscope = val.ef:
+      var frame_to_abort = this.env.blrref;
+      while (frame_to_abort.parent && !(frame_to_abort.parent.env && frame_to_abort.parent.env.blscope === val.ef))
+        frame_to_abort = frame_to_abort.parent;
+
+/*
+      console.log("\nFRAME TO ABORT:");
+      console.log(""+frame_to_abort);
+*/
+      if (!frame_to_abort.parent || frame_to_abort.unreturnable) {
+        this.notifyVal(new CFException("t",
+                                       new Error("Blocklambda break from spawned stratum to invalid or inactive scope"),
+                                       this.NDATA_SPAWN_LINE(),
+                                       this.env.file));
+        return;
+      }
+
+      // mark us unabortable:
+      this.in_abortion = true;
+
+      // inject ourselves:
+      this.parent = frame_to_abort.parent;
+      this.parent_idx = frame_to_abort.parent_idx;
+      // tell parent about ourselves, so that we get any reentrant abort calls
+      this.parent.cont(this.parent_idx, this);
+      // for safety, make sure frame_to_abort doesn't send any returns
+      // to this.parent. We're taking that role
+      frame_to_abort.parent = UNDEF;
+
+
+      // Abort the frame:
+      frame_to_abort.quench();
+      var aborted_target = frame_to_abort.abort();
+      if (is_ef(aborted_target)) {
+//        console.log("WAITING FOR ABORT COMPLETION FROM "+aborted_target);
+        this.return_val = UNDEF;
+        this.setChildFrame(aborted_target, 2);
+        // no reason to call notifyAsync here; we've already done that in a previous cont() call
+        return this.returnToParent(this);
+      }
+
+      // return value to ef & value listeners:
+      this.notifyVal(UNDEF, true);
+
+      // we might have received a reentrant abort resulting from the notifyVal call (when someone
+      // listening for stratum.value() caused us to be aborted).
+      // in_abortion = false did the right thing in that case (returning 'this'). now we can
+      // set our status to aborted, so that future abort calls receive 'true':
+      this.in_abortion = false;
+      this.aborted = true;
+      return this.returnToParent(UNDEF);
+    }
   }
   
   if (is_ef(val)) {
@@ -2534,14 +2666,16 @@ EF_Spawn.prototype.cont = function(idx, val) {
 };
 
 EF_Spawn.prototype.abort = function() {
-  // This function is only called by stratum.abort, below.
+  // This function is only called by stratum.abort, below, or when we receive a reentrant abort after
+  // notifying listeners.
   // We don't need to deal with notifyAsync/notifyVal, because all value listeners 
-  // will already have received a 'stratum aborted' exception.
+  // will already have been called.
+  if (this.in_abortion) return this;
   if (this.aborted) return true;
   this.aborted = true;
   if (this.child_frame) {
     this.child_frame.quench();
-    var val = this.child_frame.abort();
+    var val = this.child_frame.abort(); 
     return (is_ef(val) ? val : true);
   }
 };
@@ -2553,7 +2687,7 @@ function EF_SpawnWaitFrame(waitarr) {
 }
 setEFProto(EF_SpawnWaitFrame.prototype={});
 #ifdef EF_TYPES
-EF_SpawnWaitFrame.prototype.type = "Spawn";
+EF_SpawnWaitFrame.prototype.type = "Stratum.value()";
 #endif
 EF_SpawnWaitFrame.prototype.quench = function() {};
 EF_SpawnWaitFrame.prototype.abort = function() {
@@ -2573,12 +2707,14 @@ function I_spawn(ndata, env) {
   var waitarr = [];
   var stratum = {
     abort : function() {
-      if (!async) return;
+      // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
+      // in a finally clause is waiting for the spawn frame and vice versa, as in:
+      // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
+      if (!async || ef.in_abortion) return;
 
       // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
       // but any value listeners will receive a 'stratum aborted' notification immediately
 
-      ef.quench();
       var rv = ef.abort();
       async = false;
       val =  new CFException("t",
@@ -2803,14 +2939,22 @@ exports.Hold = function(duration_ms) {
   }
   
   if (duration_ms === UNDEF)
-    return { __oni_ef: true,
+    return { 
+#ifdef EF_TYPES
+             toString: function() { return "<HOLD()>"; },
+#endif
+             __oni_ef: true,
              wait: function() { return this; },
              quench: dummy,
              abort: abort
            };
 
   if (duration_ms === 0) {
-    var sus = { __oni_ef: true, 
+    var sus = { 
+#ifdef EF_TYPES
+                toString: function() { return "<HOLD(0)>"; },
+#endif
+                __oni_ef: true, 
                 wait: function() { return this },
                 abort: abort,
                 quench: function() { sus = null; clear0(this.co); },
@@ -2825,7 +2969,11 @@ exports.Hold = function(duration_ms) {
     return sus;
   }
   else {
-    var sus = { __oni_ef: true,
+    var sus = { 
+#ifdef EF_TYPES
+                toString: function() { return "<HOLD("+duration_ms+"ms)>"; },
+#endif
+                __oni_ef: true,
                 wait: function() { return this },
                 abort: abort,
 #if defined (CLIENTSIDE) || defined (NODEJS)
