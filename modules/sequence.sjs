@@ -2838,11 +2838,32 @@ any.par = function(/* sequence, max_strata, p */) {
      upstream generates values: If `f` happens to be blocked when a new upstream sequence arrives, 
      then it will be aborted and started again with the new value. 
 
-     If, however, `f` happens to be *blocked in a finally clause* while the upstream sequence generates a number of values `X1, ..., Xn`, then `f` will only see the last of those values `Xn`.
+     If, however, `f` happens to be *blocked in a finally clause* while a free-running upstream sequence generates a number of values `X1, ..., Xn`, then `f` will only see the last of those values `Xn`.
 
      In other words, `each.track` is usually robust for use with [./event::EventStream]s, unless `f` contains logic that might block in a `finally{}` clause. In the latter case `each.track` is still robust under [observable::Observable] semantics.
 
 */
+each.track = function(seq, r) {
+  var stratum;
+
+  try {
+    seq .. each {
+      |x|
+      stratum = spawn (stratum ? stratum.abort(), r(x));
+    }
+    // wait for stratum to complete
+    if (stratum)
+      stratum.value();
+  }
+  finally {
+    if (stratum)
+      stratum.abort();
+  }
+};
+
+/*
+Old implementation which had the disadvantage of not nesting DynVarContexts correctly. 
+
 each.track = function(seq, r) {
   var val, have_new_value=false, prod, done=false, executing_downstream=false;
   waitfor {
@@ -2872,6 +2893,7 @@ each.track = function(seq, r) {
     if (!executing_downstream) return;
   }
 };
+*/
 
 /**
    @function mirror

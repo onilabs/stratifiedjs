@@ -149,7 +149,8 @@
     X.set('a');
     X.set('b');
     X.set('c');
+    X.set('d');
     hold(0);
   }
-  rv .. @assert.eq('ac');
+  rv .. @assert.eq('ad');
 }
