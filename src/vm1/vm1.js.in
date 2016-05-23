@@ -44,7 +44,7 @@ define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
 define ASYNC_RESUME  : obsolete asynchronous resume code path
 
 */
-/* #define DEBUG_VM 1 */
+//#define DEBUG_VM 1
 #ifdef DEBUG_VM
 function dumpExecutionFrameParents(ef, indent) {
   indent = indent || 0;
@@ -107,11 +107,11 @@ var UNDEF; // == undefined
   return obj && obj.__oni_cfx;
 }*/
 
-function CFException_toString() {
-  var rv = this.name+": "+this.message;
-  if (this.__oni_stack) {
-    for (var i=0; i<this.__oni_stack.length; ++i) {
-      var line = this.__oni_stack[i];
+function stack_to_string(stack) {
+  var rv = '';
+  if (stack) {
+    for (var i=0; i<stack.length; ++i) {
+      var line = stack[i];
       if (line.length == 1)
         line = line[0];
       else
@@ -120,6 +120,10 @@ function CFException_toString() {
     }
   }
   return rv;
+}
+
+function CFException_toString() {
+  return this.name+": "+this.message + stack_to_string(this.__oni_stack);
 }
 
 function adopt_native_stack(e, caller_module) {
@@ -1560,8 +1564,7 @@ EF_Try.prototype.quench = function() {
 };
 
 EF_Try.prototype.abort = function() {
-  ASSERT(this.aborted !== true) // sanity check; aborted before XXX we actually hit this in a couple of tests in sjs-2-tests
-  if (this.aborted) return this;
+  ASSERT(this.aborted !== true); // sanity check; aborted before
   this.aborted = true;
   ASSERT(this.state !== 3) // sanity check; aborted before
   if (this.state !== 4) { // don't abort finally block
@@ -2497,12 +2500,20 @@ exports.Suspend = function(s,r) {
 // 0: start
 // 1: returning from async execution
 // 2: returning from async parent stratum abortion during block lambda return
+
+#ifdef DEBUG_VM
+var spawn_counter = 0;
+#endif
   
-function EF_Spawn(ndata, env, notifyAsync, notifyVal) {
+function EF_Spawn(ndata, env, notifyAsync, notifyVal, notifyAborted) {
+#ifdef DEBUG_VM
+  this.id = ++spawn_counter;
+#endif
   this.ndata = ndata;
   this.env = env;
   this.notifyAsync = notifyAsync;
   this.notifyVal = notifyVal;
+  this.notifyAborted = notifyAborted;
 }
 setEFProto(EF_Spawn.prototype={});
 #ifdef EF_TYPES
@@ -2518,20 +2529,17 @@ EF_Spawn.prototype.cont = function(idx, val) {
       return val;
   }
   else if (idx === 2) {
-    // returning from aborted_target during a blocklambda return
+    // returning from waiting for an aborted frame
     if (is_ef(val)) {
       this.setChildFrame(val, 2);
       return this.returnToParent(this);
     }
-    else {
-      this.notifyVal(this.return_val, true);
-      
-      // we might have received a reentrant abort resulting from the notifyVal call (when someone
-      // listening for stratum.value() caused us to be aborted).
-      // in_abortion = false did the right thing in that case (returning 'this'). now we can
-      // set our status to aborted, so that future abort calls receive 'true':
+    else {      
       this.in_abortion = false;
-      this.aborted = true;
+      this.done = true;
+
+      this.notifyVal(this.return_val, true);
+      this.notifyAborted(val);
       
       return this.returnToParent(this.return_val);
     }
@@ -2577,26 +2585,14 @@ EF_Spawn.prototype.cont = function(idx, val) {
         return this.returnToParent(this);
       }
 
+      this.in_abortion = false;
+      this.done = true;
       // return value to ef's parent & to value listeners:
       this.notifyVal(val.val, true);
-      // see notes in blb codepath below
-      this.in_abortion = false;
-      this.aborted = true;
       return this.returnToParent(val.val);
     }
     else if (val.type === 'blb') {
       // we have a blocklambda break
-
-/*
-      console.log("BLOCKLAMBDA BREAK IN SPAWNED FRAME:");
-      for (var x in this.env) console.log("env["+x+"] = "+this.env[x]);
-
-      console.log("\nTOP OF SEARCH:");
-      dumpExecutionFrameParents(this.env.blrref);
-
-      console.log("\nBOTTOM OF SEARCH:");
-      dumpExecutionFrameChildren(val.ef);
-*/
 
       // to determine the frame that needs aborting, we walk the
       // parent chain from this.env.blrref back to the first frame
@@ -2605,10 +2601,6 @@ EF_Spawn.prototype.cont = function(idx, val) {
       while (frame_to_abort.parent && !(frame_to_abort.parent.env && frame_to_abort.parent.env.blscope === val.ef))
         frame_to_abort = frame_to_abort.parent;
 
-/*
-      console.log("\nFRAME TO ABORT:");
-      console.log(""+frame_to_abort);
-*/
       if (!frame_to_abort.parent || frame_to_abort.unreturnable) {
         this.notifyVal(new CFException("t",
                                        new Error("Blocklambda break from spawned stratum to invalid or inactive scope"),
@@ -2629,27 +2621,24 @@ EF_Spawn.prototype.cont = function(idx, val) {
       // to this.parent. We're taking that role
       frame_to_abort.parent = UNDEF;
 
-
       // Abort the frame:
       frame_to_abort.quench();
       var aborted_target = frame_to_abort.abort();
       if (is_ef(aborted_target)) {
-//        console.log("WAITING FOR ABORT COMPLETION FROM "+aborted_target);
         this.return_val = UNDEF;
         this.setChildFrame(aborted_target, 2);
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
         return this.returnToParent(this);
       }
 
-      // return value to ef & value listeners:
-      this.notifyVal(UNDEF, true);
-
-      // we might have received a reentrant abort resulting from the notifyVal call (when someone
-      // listening for stratum.value() caused us to be aborted).
-      // in_abortion = false did the right thing in that case (returning 'this'). now we can
-      // set our status to aborted, so that future abort calls receive 'true':
       this.in_abortion = false;
-      this.aborted = true;
+      this.done = true;
+
+
+      // return value to ef & listeners:
+      this.notifyVal(UNDEF, true);
+      this.notifyAborted(UNDEF);
+
       return this.returnToParent(UNDEF);
     }
   }
@@ -2661,6 +2650,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
   }
   else {
     delete this.parent_dyn_vars; // aid gc
+    this.done = true;
     this.notifyVal(val);
   }
 };
@@ -2671,12 +2661,20 @@ EF_Spawn.prototype.abort = function() {
   // We don't need to deal with notifyAsync/notifyVal, because all value listeners 
   // will already have been called.
   if (this.in_abortion) return this;
-  if (this.aborted) return true;
-  this.aborted = true;
+  if (this.done) return UNDEF;
+
+  this.in_abortion = true;
   if (this.child_frame) {
     this.child_frame.quench();
     var val = this.child_frame.abort(); 
-    return (is_ef(val) ? val : true);
+    if (is_ef(val)) {
+      // we need to wait
+      this.setChildFrame(val, 2);
+      return this;
+    }
+    else {
+      return UNDEF;
+    }
   }
 };
 
@@ -2702,39 +2700,95 @@ EF_SpawnWaitFrame.prototype.cont = function(val) {
   }
 }
 
+function EF_SpawnAbortFrame(waitarr, spawn_frame) {
+  this.dyn_vars = exports.current_dyn_vars;
+  this.waitarr = waitarr;
+  waitarr.push(this);
+  var me = this;
+  hold0(function() { me.resolveAbortCycle(spawn_frame); });
+
+}
+setEFProto(EF_SpawnAbortFrame.prototype={});
+#ifdef EF_TYPES
+EF_SpawnAbortFrame.prototype.type = "Stratum.abort()";
+#endif
+EF_SpawnAbortFrame.prototype.quench = function() {};
+EF_SpawnAbortFrame.prototype.abort = function() {
+  // we're in a finally clause... have to wait!
+  return this;
+}
+EF_SpawnAbortFrame.prototype.cont = function(val) {
+  if (this.done) return;
+  if (this.parent) {
+    exports.current_dyn_vars = this.dyn_vars;
+    delete this.dyn_vars; // aid gc
+    this.done = true;
+    cont(this.parent, this.parent_idx, val);
+  }
+  else if (is_cfx(val) && val.type === 't' || val.val instanceof Error){
+    // make sure exceptions end up somewhere
+    hold0(function() { val.mapToJS(true); });
+  }
+}
+EF_SpawnAbortFrame.prototype.resolveAbortCycle = function(spawn_frame) {
+  if (this.done) return;
+  var parent = this.parent;
+  while (parent) {
+    if (spawn_frame === parent) {
+      var msg = "Warning: Cyclic stratum.abort() call from within stratum." + stack_to_string(this.callstack);
+      if (console) {
+        if (console.error) console.error(msg);
+        else console.log(msg);
+      }
+      this.cont(UNDEF);
+      break;
+    }
+    parent = parent.parent;
+  }
+}
+
+
 function I_spawn(ndata, env) {
   var val, async, have_val, picked_up=false;
-  var waitarr = [];
+  var value_waitarr = [];
+  var abort_waitarr = [];
   var stratum = {
     abort : function() {
       // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
       // in a finally clause is waiting for the spawn frame and vice versa, as in:
       // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
-      if (!async || ef.in_abortion) return;
+      if (ef.in_abortion) return new EF_SpawnAbortFrame(abort_waitarr, ef);
 
       // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
       // but any value listeners will receive a 'stratum aborted' notification immediately
-
       var rv = ef.abort();
       async = false;
       val =  new CFException("t",
                              new StratumAborted(),
                              NDATA_SPAWN_LINE(),
                              env.file);
-      while (waitarr.length)
-        cont(waitarr.shift(), val);
+      while (value_waitarr.length)
+        cont(value_waitarr.shift(), val);
+
+      if (is_ef(rv)) {
+        return new EF_SpawnAbortFrame(abort_waitarr, ef);
+      }
+
+      if (!is_cfx(rv) || val.type !== 't')
+        rv = UNDEF;
+      notifyAborted(rv);
 
       return rv;
     },
     value : function() {
       if (!async) { picked_up=true; return val; }
-      return new EF_SpawnWaitFrame(waitarr);
+      return new EF_SpawnWaitFrame(value_waitarr);
     },
     // waitforValue deprecated:
     waitforValue : function() { return this.value() },
     running : function() { return async; },
     waiting : function() {
-      return waitarr.length;
+      return value_waitarr.length;
     },
     toString: function() { return "[object Stratum]"; }
   };
@@ -2748,7 +2802,7 @@ function I_spawn(ndata, env) {
                            // doesn't get overwritten by a later result
     val = _val;
     async = false;
-    if (!have_caller && !waitarr.length) {
+    if (!have_caller && !value_waitarr.length) {
       // make sure exceptions that noone is waiting on get reported in
       // console. Only report stray control flow exceptions & exceptions that
       // are instanceof Error;
@@ -2774,11 +2828,18 @@ function I_spawn(ndata, env) {
       }
     }
     else
-      while (waitarr.length)
-        cont(waitarr.shift(), val);
+      while (value_waitarr.length)
+        cont(value_waitarr.shift(), val);
     
   }
-  var ef = new EF_Spawn(ndata, env, notifyAsync, notifyVal);
+  function notifyAborted(_val) {
+    if (!is_cfx(_val) || _val.type !== 't')
+      _val = UNDEF;
+    while (abort_waitarr.length)
+      cont(abort_waitarr.shift(), _val);
+  }
+
+  var ef = new EF_Spawn(ndata, env, notifyAsync, notifyVal, notifyAborted);
 
   // pass through control flow exceptions, or return stratum:
   return cont(ef, 0) || stratum;

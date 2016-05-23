@@ -92,11 +92,11 @@ global.__oni_rt={};(function(exports){var UNDEF;
 
 
 
-function CFException_toString(){var rv=this.name+": "+this.message;
+function stack_to_string(stack){var rv='';
 
-if(this.__oni_stack){
-for(var i=0;i<this.__oni_stack.length;++i){
-var line=this.__oni_stack[i];
+if(stack){
+for(var i=0;i<stack.length;++i){
+var line=stack[i];
 if(line.length==1)line=line[0];else line='    at '+line.slice(0,2).join(':');
 
 
@@ -105,6 +105,10 @@ rv+='\n'+line;
 }
 }
 return rv;
+}
+
+function CFException_toString(){return this.name+": "+this.message+stack_to_string(this.__oni_stack);
+
 }
 
 function adopt_native_stack(e,caller_module){if(!e.stack)return;
@@ -1348,8 +1352,7 @@ EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
 
 };
 
-EF_Try.prototype.abort=function(){if(this.aborted)return this;
-
+EF_Try.prototype.abort=function(){;
 
 this.aborted=true;
 
@@ -2225,11 +2228,13 @@ exports.Suspend=function(s,r){return {exec:I_sus,ndata:[s,r],__oni_dis:token_dis
 
 
 
-function EF_Spawn(ndata,env,notifyAsync,notifyVal){this.ndata=ndata;
+
+function EF_Spawn(ndata,env,notifyAsync,notifyVal,notifyAborted){this.ndata=ndata;
 
 this.env=env;
 this.notifyAsync=notifyAsync;
 this.notifyVal=notifyVal;
+this.notifyAborted=notifyAborted;
 }
 setEFProto(EF_Spawn.prototype={});
 
@@ -2248,14 +2253,11 @@ this.setChildFrame(val,2);
 return this.returnToParent(this);
 }else{
 
-this.notifyVal(this.return_val,true);
-
-
-
-
-
 this.in_abortion=false;
-this.aborted=true;
+this.done=true;
+
+this.notifyVal(this.return_val,true);
+this.notifyAborted(val);
 
 return this.returnToParent(this.return_val);
 }
@@ -2301,11 +2303,10 @@ this.setChildFrame(aborted_target,2);
 return this.returnToParent(this);
 }
 
+this.in_abortion=false;
+this.done=true;
 
 this.notifyVal(val.val,true);
-
-this.in_abortion=false;
-this.aborted=true;
 return this.returnToParent(val.val);
 }else if(val.type==='blb'){
 
@@ -2314,23 +2315,8 @@ return this.returnToParent(val.val);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 var frame_to_abort=this.env.blrref;
 while(frame_to_abort.parent&&!(frame_to_abort.parent.env&&frame_to_abort.parent.env.blscope===val.ef))frame_to_abort=frame_to_abort.parent;
-
-
-
-
 
 
 if(!frame_to_abort.parent||frame_to_abort.unreturnable){
@@ -2354,26 +2340,23 @@ this.parent.cont(this.parent_idx,this);
 frame_to_abort.parent=UNDEF;
 
 
-
 frame_to_abort.quench();
 var aborted_target=frame_to_abort.abort();
 if(is_ef(aborted_target)){
-
 this.return_val=UNDEF;
 this.setChildFrame(aborted_target,2);
 
 return this.returnToParent(this);
 }
 
+this.in_abortion=false;
+this.done=true;
+
+
 
 this.notifyVal(UNDEF,true);
+this.notifyAborted(UNDEF);
 
-
-
-
-
-this.in_abortion=false;
-this.aborted=true;
 return this.returnToParent(UNDEF);
 }
 }
@@ -2385,6 +2368,7 @@ if(idx==0)this.notifyAsync();
 }else{
 
 delete this.parent_dyn_vars;
+this.done=true;
 this.notifyVal(val);
 }
 };
@@ -2395,12 +2379,20 @@ EF_Spawn.prototype.abort=function(){if(this.in_abortion)return this;
 
 
 
-if(this.aborted)return true;
-this.aborted=true;
+if(this.done)return UNDEF;
+
+this.in_abortion=true;
 if(this.child_frame){
 this.child_frame.quench();
 var val=this.child_frame.abort();
-return (is_ef(val)?val:true);
+if(is_ef(val)){
+
+this.setChildFrame(val,2);
+return this;
+}else{
+
+return UNDEF;
+}
 }
 };
 
@@ -2423,12 +2415,57 @@ cont(this.parent,this.parent_idx,val);
 }
 };
 
+function EF_SpawnAbortFrame(waitarr,spawn_frame){this.dyn_vars=exports.current_dyn_vars;
+
+this.waitarr=waitarr;
+waitarr.push(this);
+var me=this;
+hold0(function(){me.resolveAbortCycle(spawn_frame)});
+
+}
+setEFProto(EF_SpawnAbortFrame.prototype={});
+EF_SpawnAbortFrame.prototype.quench=function(){};
+EF_SpawnAbortFrame.prototype.abort=function(){return this;
+
+
+};
+EF_SpawnAbortFrame.prototype.cont=function(val){if(this.done)return;
+
+if(this.parent){
+exports.current_dyn_vars=this.dyn_vars;
+delete this.dyn_vars;
+this.done=true;
+cont(this.parent,this.parent_idx,val);
+}else if((val&&val.__oni_cfx)&&val.type==='t'||val.val instanceof Error){
+
+
+hold0(function(){val.mapToJS(true)});
+}
+};
+EF_SpawnAbortFrame.prototype.resolveAbortCycle=function(spawn_frame){if(this.done)return;
+
+var parent=this.parent;
+while(parent){
+if(spawn_frame===parent){
+var msg="Warning: Cyclic stratum.abort() call from within stratum."+stack_to_string(this.callstack);
+if(console){
+if(console.error)console.error(msg);else console.log(msg);
+
+}
+this.cont(UNDEF);
+break;
+}
+parent=parent.parent;
+}
+};
+
+
 function I_spawn(ndata,env){var val,async,have_val,picked_up=false;
 
-var waitarr=[];
+var value_waitarr=[];
+var abort_waitarr=[];
 var stratum={abort:function(){
-if(!async||ef.in_abortion)return;
-
+if(ef.in_abortion)return new EF_SpawnAbortFrame(abort_waitarr,ef);
 
 
 
@@ -2442,19 +2479,27 @@ val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 
 
 
-while(waitarr.length)cont(waitarr.shift(),val);
+while(value_waitarr.length)cont(value_waitarr.shift(),val);
 
+
+if(is_ef(rv)){
+return new EF_SpawnAbortFrame(abort_waitarr,ef);
+}
+
+if(!(rv&&rv.__oni_cfx)||val.type!=='t')rv=UNDEF;
+
+notifyAborted(rv);
 
 return rv;
 },value:function(){
 if(!async){
 picked_up=true;return val}
-return new EF_SpawnWaitFrame(waitarr);
+return new EF_SpawnWaitFrame(value_waitarr);
 },waitforValue:function(){
 
 return this.value()},running:function(){
 return async},waiting:function(){
-return waitarr.length;
+return value_waitarr.length;
 
 },toString:function(){
 return "[object Stratum]"}};
@@ -2469,7 +2514,7 @@ function notifyVal(_val,have_caller){if(val!==undefined)return;
 
 val=_val;
 async=false;
-if(!have_caller&&!waitarr.length){
+if(!have_caller&&!value_waitarr.length){
 
 
 
@@ -2493,13 +2538,20 @@ setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 },0);
 }
-}else while(waitarr.length)cont(waitarr.shift(),val);
+}else while(value_waitarr.length)cont(value_waitarr.shift(),val);
 
 
 
 
 }
-var ef=new EF_Spawn(ndata,env,notifyAsync,notifyVal);
+function notifyAborted(_val){if(!(_val&&_val.__oni_cfx)||_val.type!=='t')_val=UNDEF;
+
+
+while(abort_waitarr.length)cont(abort_waitarr.shift(),_val);
+
+}
+
+var ef=new EF_Spawn(ndata,env,notifyAsync,notifyVal,notifyAborted);
 
 
 return cont(ef,0)||stratum;
