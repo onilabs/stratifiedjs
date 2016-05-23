@@ -812,7 +812,7 @@ test('synchronous reentrant stratum abort', 'stratum aborted|c', function() {
 });
 
 
-test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|c', function() {
+test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|b|c', function() {
 
   var rv = '';
 
@@ -885,7 +885,7 @@ test('synchronous reentrant stratum abort via loop & blocklambda', 'stratum abor
 });
 
 
-test('reentrant stratum abort via loop & resume', 'stratum aborted|c', function() {
+test('reentrant stratum abort via loop & resume', 'stratum aborted|b|c', function() {
 
   var rv = '';
 
@@ -1790,5 +1790,127 @@ test('nested blocklambda abort/break', '0(0)(1)(2)(3)(4)5(5)6(6)7(7)8(8)9',
          try { hold(); } finally { if (x<5) hold(0); } 
        };
        
+       return rv;
+     });
+
+test('cyclic abort 1', '1',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); try { stratum.abort(); } finally { rv += '1' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 2', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); try { try { stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 3', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 1 async', '1',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { try { hold(0); stratum.abort(); } finally { rv += '1' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 2 async', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() {  try { try { hold(0); stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 3 async', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { waitfor { hold(0); stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 4', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 5', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { stratum.abort(); rv += '1'} } finally { rv += '2' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 1 / async finally', '1',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); try { stratum.abort(); } finally { hold(0); rv += '1' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 2 / async finally', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); try { try { stratum.abort(); } finally { hold(0); rv += '1' } }finally{ hold(0); rv+='2'} })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 3 / async finally', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 4 / async finally', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } })();
+       hold(10);
+       return rv;
+     });
+
+test('cyclic abort 5 / async finally', '12',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); stratum.abort(); rv += '1'} } finally { hold(0); rv += '2' } })();
+       hold(10);
+       return rv;
+     });
+
+test('abort resolved stratum', '1',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() { hold(0); return '1'})();
+       rv += stratum.value();
+       stratum.abort();
+       return rv;
+     });
+
+test('waitfor/or abort', '213',
+     function() {
+       var rv = '';
+       var stratum = spawn (function() {  waitfor { try {hold(); }finally { hold(0); rv+='1'} } or { try { hold(); } finally { rv += '2'} } finally { rv += '3' } })();
+       hold(0);
+       stratum.abort();
        return rv;
      });
