@@ -2725,7 +2725,7 @@ EF_SpawnAbortFrame.prototype.cont = function(val) {
     this.done = true;
     cont(this.parent, this.parent_idx, val);
   }
-  else if (is_cfx(val) && val.type === 't' || val.val instanceof Error){
+  else if (is_cfx(val) && (val.type === 't' || val.val instanceof Error)){
     // make sure exceptions end up somewhere
     hold0(function() { val.mapToJS(true); });
   }

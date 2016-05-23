@@ -2486,7 +2486,7 @@ exports.current_dyn_vars=this.dyn_vars;
 delete this.dyn_vars;
 this.done=true;
 cont(this.parent,this.parent_idx,val);
-}else if((val&&val.__oni_cfx)&&val.type==='t'||val.val instanceof Error){
+}else if((val&&val.__oni_cfx)&&(val.type==='t'||val.val instanceof Error)){
 
 
 hold0(function(){val.mapToJS(true)});
