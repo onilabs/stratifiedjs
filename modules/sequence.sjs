@@ -2971,11 +2971,14 @@ exports.mirror = function(stream, latest) {
         }());
       }
     } and {
-      loop.value();
+      loop.value() .. console.log;
     } finally {
       if (--listeners === 0) {
         // last one out: stop the loop
-        loop.abort();
+        // the check for 'loop' is important here, because of a
+        // possible exception thrown in the spawned stratum before it
+        // gets reified
+        if (loop) loop.abort();
         current = undefined;
         current_version = 0;
         done = false;
