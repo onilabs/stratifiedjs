@@ -421,7 +421,7 @@ __js {
     @param {Function} [f] Function to map over `sequence`
     @return {::Sequence} Sequence of same type as input sequence
     @summary  Map a function over a sequence in a type-preserving way
-   @desc
+    @desc
 
       Performs a type-preserving map transformation. 
       `sequence .. project(f)` is equivalent to
