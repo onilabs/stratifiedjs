@@ -2994,7 +2994,7 @@ exports.mirror = function(stream, latest) {
    @function batchN
    @altsyntax sequence .. batchN(count)
    @param {::Sequence} [sequence] Input sequence
-   @setting {Integer} [count] Maximum number of input elements to batch.
+   @param {Integer} [count] Maximum number of input elements to batch.
    @return {::BatchedStream}
    @summary  Create a [::BatchedStream] with batches of size `count`
    @desc
