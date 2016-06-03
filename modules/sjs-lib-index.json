@@ -2050,6 +2050,9 @@
         "consume": {
           "type": "function"
         },
+        "consumeMultiple": {
+          "type": "function"
+        },
         "count": {
           "type": "function"
         },

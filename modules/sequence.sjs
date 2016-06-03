@@ -633,6 +633,50 @@ function consumeStream(sequence, eos, loop) {
 }
 exports.consume = consume;
 
+/**
+   @function consumeMultiple
+   @altsyntax consumeMultiple(sequences, [eos]) { |next| ... }
+   @param {Array} [sequences] Array of input [::Sequence]s
+   @param {optional Object} [eos=undefined] End of sequence marker
+   @param {Function} [loop] Iteration loop
+   @summary Execute an iteration loop for multiple sequences
+   @desc
+     Calls function `loop` with one parameter, an array of functions [`next1`, `next2`, ...] which,
+     when called within the scope of `loop`, will return successive
+     elements from the respective sequence in `sequences`. If there are no more elements in a 
+     the nth sequence, calls to its corresponding `next` function will yield `eos`.
+
+     `consumeMultiple` is equivalent to a nested invocation of [::consume]. Note the concurrency
+     limitations regarding the `next` function listed there.
+*/
+// XXX recursive implementation doesn't scale well with large streams.count
+function consumeMultiple(streams, eos, block) {
+
+  if (arguments.length === 2) {
+    block = eos;
+    eos = undefined;
+  }
+
+  var nexts = [];
+  consumeMultiple_inner(streams);
+
+  function consumeMultiple_inner(streams) {
+    if (streams.length) {
+      consume(streams[0], eos) { 
+        |next|
+        nexts.push(next);
+        consumeMultiple_inner(streams.slice(1));
+      }
+    }
+    else {
+      block(nexts);
+    }
+    
+  }
+}
+exports.consumeMultiple = consumeMultiple;
+
+
 
 /**
    @function toArray
