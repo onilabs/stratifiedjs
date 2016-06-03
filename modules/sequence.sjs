@@ -1969,7 +1969,7 @@ exports.combine = combine;
 function combineSort(sequences, pick) {
   var eos = {};
   return Stream(function(receiver) {
-    consumeMultiple(streams, eos) { 
+    consumeMultiple(sequences, eos) { 
       |nexts|
       var vals = [];
       for (var i=nexts.length-1;i>=0;--i) {
