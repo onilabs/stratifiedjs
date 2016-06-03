@@ -1828,6 +1828,9 @@
         "hasOwn": {
           "type": "function"
         },
+        "mapValues": {
+          "type": "function"
+        },
         "merge": {
           "type": "function"
         },

@@ -408,6 +408,18 @@ __js exports.override = function(/*dest, source...*/) {
   return dest;
 };
 
+/**
+   @function mapValues
+   @summary Create an object `{key1: f(val1), key2: f(val2), ... }` from a source object `{key1: val1, key2: val2, ...}`
+   @param {Object} [obj] Source object
+   @param {Function} [f] Transformation function
+   @return {Object}
+   @desc
+      Source properties are determined by [::ownPropertyPairs], i.e. properties on `obj`'s prototype chain are
+      excluded.
+
+*/
+exports.mapValues = (obj, f) -> obj .. ownPropertyPairs .. transform([k,v] -> [k,f(v)]) .. pairsToObject;
 
 /**
    @function construct

@@ -178,6 +178,7 @@ module.exports = require(modules);
    - **getPath**: (function [sjs:object::getPath])
    - **has**: (function [sjs:object::has])
    - **hasOwn**: (function [sjs:object::hasOwn])
+   - **mapValues**: (function [sjs:object::mapValues])
    - **merge**: (function [sjs:object::merge])
    - **override**: (function [sjs:object::override])
    - **ownKeys**: (function [sjs:object::ownKeys])
