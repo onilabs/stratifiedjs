@@ -2044,6 +2044,9 @@
         "combine": {
           "type": "function"
         },
+        "combineSort": {
+          "type": "function"
+        },
         "concat": {
           "type": "function"
         },

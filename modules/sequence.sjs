@@ -1942,6 +1942,61 @@ function combine(/* streams ... */) {
 exports.combine = combine;
 
 /**
+   @function combineSort
+   @param {Array} [sequences] Array of [::Sequence]s
+   @param {Function} [pick] Function picking next element
+   @return {::Stream}
+   @summary  Combines and sorts the elements from multiple sequences into a single stream.
+   @desc
+     Each of the input sequences will be concurrently iterated. 
+
+     The first iteration blocks until 
+     a full set of values `[v1, v2, ...]` from each of the (non-ended) sequences `s1, s2, ...` has
+     been gathered. The value array `[v1, v2, ...]` will be passed to `pick()`, which is expected to return 
+     an index `N` into the value array. The item `vN = [v1, v2, ...][N]` will then be passed to the downstream and removed from the value array.
+
+     In the next and subsequent iterations, a new value will be obtained from the sequence from which the 
+     most recently picked `vN` originated, and - provided the sequence has not ended - merged into the value 
+     array, which will again be presented to the `pick` function, and so forth. 
+
+     The stream ends when all elements of the input sequences have been consumed and passed to the downstream.
+
+     #### Notes
+
+     Note that the order in which values are arranged in the value array should not be relied upon by the
+     `pick` function.
+*/
+function combineSort(sequences, pick) {
+  var eos = {};
+  return Stream(function(receiver) {
+    consumeMultiple(streams, eos) { 
+      |nexts|
+      var vals = [];
+      for (var i=nexts.length-1;i>=0;--i) {
+        var val = nexts[i]();
+        if (val === eos)
+          nexts.splice(i,1);
+        else
+          vals.unshift(val);
+      }
+      
+      while (nexts.length) {
+        var idx = pick(vals);
+        receiver(vals[idx]);
+        var val = nexts[idx]();
+        if (val === eos) {
+          nexts.splice(idx, 1);
+          vals.splice(idx, 1);
+        }
+        else
+          vals[idx] = (val);
+      }
+    }
+  });
+}
+exports.combineSort = combineSort; 
+
+/**
   @function groupBy
   @altsyntax sequence .. groupBy([key])
   @param {::Sequence} [seq]

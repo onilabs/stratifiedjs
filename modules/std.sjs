@@ -223,6 +223,7 @@ module.exports = require(modules);
    - **batchN**: (function [sjs:sequence::batchN])
    - **buffer**: (function [sjs:sequence::buffer])
    - **combine**: (function [sjs:sequence::combine])
+   - **combineSort**: (function [sjs:sequence::combineSort])
    - **concat**: (function [sjs:sequence::concat])
    - **consume**: (function [sjs:sequence::consume])
    - **consumeMultiple**: (function [sjs:sequence::consumeMultiple])
