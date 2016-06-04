@@ -2288,7 +2288,8 @@ EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
 
 this.parent_dyn_vars=exports.current_dyn_vars;
 val=execIN(this.ndata[1],this.env);
-if((val&&val.__oni_cfx))return val;
+
+if((val&&val.__oni_cfx)&&val.type!=='t')return val;
 
 }else if(idx===2){
 

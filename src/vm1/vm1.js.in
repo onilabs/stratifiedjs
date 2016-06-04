@@ -2525,7 +2525,8 @@ EF_Spawn.prototype.cont = function(idx, val) {
   if (idx == 0) {
     this.parent_dyn_vars = exports.current_dyn_vars;
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
-    if (is_cfx(val))
+    // synchronously pass through control flow exceptions, but not proper exceptions:
+    if (is_cfx(val) && val.type !== 't')
       return val;
   }
   else if (idx === 2) {
