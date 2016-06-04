@@ -2650,6 +2650,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
   }
   else {
     delete this.parent_dyn_vars; // aid gc
+    this.in_abortion = false;
     this.done = true;
     this.notifyVal(val);
   }
@@ -2673,6 +2674,8 @@ EF_Spawn.prototype.abort = function() {
       return this;
     }
     else {
+      this.in_abortion = false;
+      this.done = true;
       return UNDEF;
     }
   }
@@ -2759,6 +2762,7 @@ function I_spawn(ndata, env) {
       // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
       if (ef.in_abortion) return new EF_SpawnAbortFrame(abort_waitarr, ef);
 
+      if (ef.done) return UNDEF;
       // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
       // but any value listeners will receive a 'stratum aborted' notification immediately
       var rv = ef.abort();
@@ -2774,7 +2778,7 @@ function I_spawn(ndata, env) {
         return new EF_SpawnAbortFrame(abort_waitarr, ef);
       }
 
-      if (!is_cfx(rv) || val.type !== 't')
+      if (!is_cfx(rv) || rv.type !== 't')
         rv = UNDEF;
       notifyAborted(rv);
 

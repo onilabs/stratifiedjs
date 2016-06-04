@@ -2413,6 +2413,7 @@ if(idx==0)this.notifyAsync();
 }else{
 
 delete this.parent_dyn_vars;
+this.in_abortion=false;
 this.done=true;
 this.notifyVal(val);
 }
@@ -2436,6 +2437,8 @@ this.setChildFrame(val,2);
 return this;
 }else{
 
+this.in_abortion=false;
+this.done=true;
 return UNDEF;
 }
 }
@@ -2516,6 +2519,7 @@ if(ef.in_abortion)return new EF_SpawnAbortFrame(abort_waitarr,ef);
 
 
 
+if(ef.done)return UNDEF;
 
 
 var rv=ef.abort();
@@ -2531,7 +2535,7 @@ if(is_ef(rv)){
 return new EF_SpawnAbortFrame(abort_waitarr,ef);
 }
 
-if(!(rv&&rv.__oni_cfx)||val.type!=='t')rv=UNDEF;
+if(!(rv&&rv.__oni_cfx)||rv.type!=='t')rv=UNDEF;
 
 notifyAborted(rv);
 
