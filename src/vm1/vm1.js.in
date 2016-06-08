@@ -1485,7 +1485,7 @@ EF_Try.prototype.cont = function(idx, val) {
       if (this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_CATCHALL) {
         // we'll pass an array [rv|exception, isexception] to the
         // catch function
-        v = is_cfx(val) ? [val.val, true] : [val, false];
+        v = is_cfx(val) ? [val.type === 't' ? val.val : val, true] : [val, false];
       }
       else // 'normal' exception catching
         v = val.val;
@@ -2364,6 +2364,9 @@ EF_Suspend.prototype.cont = function(idx, val) {
   };
       
 #endif
+      // XXX we're reflecting the execution frame onto the resume function for usage
+      // in the conductance bridge (where it is needed to handle disjointed blocklambda breaks
+      resumefunc.ef = ef; 
       //      LOG("executing suspend")
       val = this.NDATA_SUSPEND_SUSPENDFUNC()(this.env, resumefunc);
     }
@@ -2525,9 +2528,13 @@ EF_Spawn.prototype.cont = function(idx, val) {
   if (idx == 0) {
     this.parent_dyn_vars = exports.current_dyn_vars;
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
-    // synchronously pass through control flow exceptions, but not proper exceptions:
-    if (is_cfx(val) && val.type !== 't')
+    // we used to synchronously pass through all control flow exceptions 
+    // (but not proper exceptions), but now we handle synchronous blocklambda 
+    // _returns_ in a special way, below, so that we can leverage the spawn logic in
+    // the conductance bridge code to handle disjointed synchronous blambda returns.
+    if (is_cfx(val) && val.type === 'blb') {
       return val;
+    }
   }
   else if (idx === 2) {
     // returning from waiting for an aborted frame
@@ -2571,7 +2578,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.parent = val.ef.parent;
       this.parent_idx = val.ef.parent_idx;
       // tell parent about ourselves, so that we get any reentrant abort calls
-      this.parent.cont(this.parent_idx, this);
+      cont(this.parent, this.parent_idx, this);
       // for safety, make sure frame_to_abort doesn't send any returns
       // to this.parent. We're taking that role
       val.ef.parent = UNDEF;
@@ -2590,6 +2597,12 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.done = true;
       // return value to ef's parent & to value listeners:
       this.notifyVal(val.val, true);
+
+      if (!this.async) {
+        // special synchronous blocklambda return handling leveraged in conductance bridge code
+        cont(this.parent, this.parent_idx, val.val);
+        return;
+      }
       return this.returnToParent(val.val);
     }
     else if (val.type === 'blb') {
@@ -2617,7 +2630,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.parent = frame_to_abort.parent;
       this.parent_idx = frame_to_abort.parent_idx;
       // tell parent about ourselves, so that we get any reentrant abort calls
-      this.parent.cont(this.parent_idx, this);
+      cont(this.parent, this.parent_idx, this);
       // for safety, make sure frame_to_abort doesn't send any returns
       // to this.parent. We're taking that role
       frame_to_abort.parent = UNDEF;
