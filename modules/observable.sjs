@@ -54,16 +54,18 @@ module.setCanonicalId('sjs:observable');
     *temporal* sequence of values representing some changing state
     (e.g. that of an [::ObservableVar]).
 
-    Observables are similar to what [Flapjax](http://www.flapjax-lang.org/tutorial/) calls "Behaviors":
     In contrast to an [sjs:event::EventStream]
     (e.g. a stream of 'click' events on a button), an observable always has
     a 'current' value, which can be accessed using [::current] (a synonym for [sjs:sequence::first]).
     Furthermore, observable streams buffer the most recent value. I.e. if the observable changes
     while the downstream receiver is blocked, the receiver will be passed the most recent
     value as soon as it unblocks.
+
+    Observables are similar to what the [Flapjax](http://www.flapjax-lang.org/tutorial/) language calls "Behaviors".
+
   @function Observable
   @summary Mark a stream or streaming function as being an Observable
-  @param {sjs:sequence::Stream|Function} [stream] A [sjs:sequence::Stream] or streaming function (as defined at [sjs:sequence::Stream] 
+  @param {sjs:sequence::Stream|Function} [stream] A [sjs:sequence::Stream] or streaming function (as defined at [sjs:sequence::Stream]) 
 */
 __js {
   var observable_toString = function() {
@@ -586,7 +588,7 @@ exports.ObservableArray = ObservableArray;
    @summary Returns the array
 
    @variable ObservableArrayVar.stream
-   @summary [::ObservableArray] stream with with the ObservableArrayVar can be tracked
+   @summary [::ObservableArray] stream with which the ObservableArrayVar can be tracked
 */
 function ObservableArrayVar(arr) {
   arr = arr || [];
