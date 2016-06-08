@@ -2577,6 +2577,13 @@ EF_Spawn.prototype.cont = function(idx, val) {
       // inject ourselves:
       this.parent = val.ef.parent;
       this.parent_idx = val.ef.parent_idx;
+
+      if (!this.parent) {
+        // synchronous edge case (when this.async == false)
+        this.done = true;
+        return val;
+      }
+
       // tell parent about ourselves, so that we get any reentrant abort calls
       cont(this.parent, this.parent_idx, this);
       // for safety, make sure frame_to_abort doesn't send any returns
