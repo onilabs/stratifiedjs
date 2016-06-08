@@ -1319,7 +1319,7 @@ var v;
 if(this.ndata[0]&1){
 
 
-v=(val&&val.__oni_cfx)?[val.val,true]:[val,false];
+v=(val&&val.__oni_cfx)?[val.type==='t'?val.val:val,true]:[val,false];
 }else v=val.val;
 
 
@@ -2139,6 +2139,9 @@ exports.current_dyn_vars=caller_dyn_vars;
 };
 
 
+
+resumefunc.ef=ef;
+
 val=this.ndata[0](this.env,resumefunc);
 }catch(e){
 
@@ -2289,8 +2292,12 @@ EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
 this.parent_dyn_vars=exports.current_dyn_vars;
 val=execIN(this.ndata[1],this.env);
 
-if((val&&val.__oni_cfx)&&val.type!=='t')return val;
 
+
+
+if((val&&val.__oni_cfx)&&val.type==='blb'){
+return val;
+}
 }else if(idx===2){
 
 
@@ -2334,7 +2341,14 @@ this.in_abortion=true;
 this.parent=val.ef.parent;
 this.parent_idx=val.ef.parent_idx;
 
-this.parent.cont(this.parent_idx,this);
+if(!this.parent){
+
+this.done=true;
+return val;
+}
+
+
+cont(this.parent,this.parent_idx,this);
 
 
 val.ef.parent=UNDEF;
@@ -2353,6 +2367,12 @@ this.in_abortion=false;
 this.done=true;
 
 this.notifyVal(val.val,true);
+
+if(!this.async){
+
+cont(this.parent,this.parent_idx,val.val);
+return;
+}
 return this.returnToParent(val.val);
 }else if(val.type==='blb'){
 
@@ -2380,7 +2400,7 @@ this.in_abortion=true;
 this.parent=frame_to_abort.parent;
 this.parent_idx=frame_to_abort.parent_idx;
 
-this.parent.cont(this.parent_idx,this);
+cont(this.parent,this.parent_idx,this);
 
 
 frame_to_abort.parent=UNDEF;

@@ -1867,7 +1867,11 @@
         },
         "Observable": {
           "type": "class",
-          "children": {}
+          "children": {
+            "Observable": {
+              "type": "ctor"
+            }
+          }
         },
         "ObservableArray": {
           "type": "class",
@@ -1926,6 +1930,9 @@
           "type": "function"
         },
         "isConflictError": {
+          "type": "function"
+        },
+        "isObservable": {
           "type": "function"
         },
         "isObservableVar": {
