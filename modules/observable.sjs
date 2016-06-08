@@ -35,9 +35,11 @@
    @home      sjs:observable
 */
 
-
+@ = require([
+  {id: 'sjs:sys', name: 'sys'}
+]);
 var cutil = require('./cutil');
-var { Stream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_ObservableArray_project } = require('./sequence');
+var { isStream, isBatchedStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_ObservableArray_project } = require('./sequence');
 var { merge, clone } = require('./object');
 var { Interface, Token } = require('./type');
 
@@ -59,7 +61,37 @@ module.setCanonicalId('sjs:observable');
     Furthermore, observable streams buffer the most recent value. I.e. if the observable changes
     while the downstream receiver is blocked, the receiver will be passed the most recent
     value as soon as it unblocks.
+  @function Observable
+  @summary Mark a stream or streaming function as being an Observable
+  @param {sjs:sequence::Stream|Function} [stream] A [sjs:sequence::Stream] or streaming function (as defined at [sjs:sequence::Stream] 
 */
+__js {
+  var observable_toString = function() {
+    return "[object Observable]";
+  }
+  var Observable = function(s) {
+    if (isBatchedStream(s)) throw new Error("Batched streams can't be Observables");
+    s.__oni_is_Stream = true;
+    s.__oni_is_Observable = true;
+    s.toString = observable_toString;
+    return s;
+  };
+  exports.Observable = Observable;
+}
+
+/**
+   @function isObservable
+   @param  {Object} [o] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `o` is an [::Observable], `false` otherwise.
+*/
+__js {
+  function isObservable(o) {
+    return o && o.__oni_is_Observable === true;
+  }
+  exports.isObservable = isObservable;
+}
+
 
 /**
   @class ObservableVar
@@ -179,7 +211,7 @@ function ObservableVar(val) {
     return change.wait();
   }
 
-  var rv = Stream(function(receiver) {
+  var rv = Observable(function(receiver) {
     var have_rev = 0;
     while (true) {
       wait(have_rev);
@@ -210,6 +242,7 @@ function ObservableVar(val) {
 
   rv.get = -> val;
 
+  rv.__oni_is_Observable = true;
   rv.__oni_is_ObservableVar = true;
 
   return rv;
@@ -255,8 +288,8 @@ exports.isConflictError = function(ex) {
 /**
   @function observe
   @return {::Observable}
-  @summary Create stream of values derived from one or more [sjs:sequence::Stream] inputs (usually [::Observable]s).
-  @param {sjs:sequence::Stream} [stream1, stream2, ...] Input stream(s)
+  @summary Create stream of values derived from one or more [::Observable] inputs.
+  @param {::Observable} [stream1, stream2, ...] Input stream(s)
   @param {Function} [transformer]
   @desc
     When the returned stream is being iterated, the `transformer` function will be called
@@ -308,7 +341,19 @@ function observe(/* var1, ...*/) {
   var deps = arguments .. slice(0,-1) .. toArray;
   var f = arguments[arguments.length-1];
 
-  return Stream(function(receiver) {
+  __js {
+    deps .. each {
+      |dep|
+      if (!isObservableVar(dep)) {
+        if (!isStream(dep)) 
+          throw new Error("invalid non-stream argument '#{typeof dep}' passed to 'observe()'");
+        // else
+        console.log("Warning: non-observable sequence passed to observe(). This will throw in future.");
+      }
+    }
+  }
+
+  return Observable(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = Object.create(cutil._Waitable);
     change.init();
@@ -385,7 +430,7 @@ exports.changes = obs -> obs .. skip(1);
      If `events` produces a value before `getInital()` returns, the `getInitial()` call will be aborted.
 */
 function eventStreamToObservable(events, getInitial) {
-  return Stream(function(receiver) {
+  return Observable(function(receiver) {
     var val, ver = 0, current_ver = 0;
     waitfor {
       var have_new_val = Object.create(cutil._Waitable);
@@ -424,7 +469,7 @@ exports.eventStreamToObservable = eventStreamToObservable;
    @summary Create an observable that always returns `obj`
 */
 exports.constantObservable = function(obj) {
-  return Stream(function(receiver) {
+  return Observable(function(receiver) {
     receiver(obj);
     hold();
   });
@@ -582,7 +627,7 @@ function ObservableArrayVar(arr) {
     },
     get: -> arr,
 
-    stream: ObservableArray(Stream(function(r) {
+    stream: ObservableArray(Observable(function(r) {
       var have_revision = most_recent_revision;
       r(arr .. clone);
       while (true) {
@@ -610,7 +655,7 @@ exports.ObservableArrayVar = ObservableArrayVar;
 
 var METHOD_ObservableArray_reconstitute = Token(module, 'method', 'ObservableArray_reconstitute');
 function ObservableArray_reconstitute(obsarr) {
-  return Stream(function(r) {
+  return Observable(function(r) {
     var arr = undefined;
     obsarr .. each {
       |item|
@@ -688,3 +733,31 @@ __js {
   }
   exports.reconstitute = reconstitute;
 }
+
+//----------------------------------------------------------------------
+// Stencil facility
+/*
+XXX this needs some fleshing out
+
+function stencil(val, block) {
+  var Stencil = ObservableVar(val);
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar("__sjs_stencil", Stencil);
+    block(Stencil);
+  }
+}
+exports.stencil = stencil;
+
+function _(name, defval) {
+  return Stream(function(r) {
+    var Stencil = @sys.getDynVar('__sjs_stencil', defval);
+    if (!Stencil || Stencil[name] === undefined) {
+      r(defval);
+      hold();
+    }
+    Stencil .. @each { |val| r(val === undefined ? defval : val) }
+  });
+}
+exports._ = _;
+*/
