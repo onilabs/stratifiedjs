@@ -130,7 +130,7 @@ function sequential(f) {
 
 /**
    @function Stream
-   @summary Create a Stream from a streaming function
+   @summary Mark a streaming function as a Stream
    @param {Function} [S] Streaming function
    @desc
      A streaming function `S` is a function with signature `S(emit)`, where `emit`, is a
