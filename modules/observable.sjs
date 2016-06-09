@@ -72,7 +72,6 @@ __js {
     return "[object Observable]";
   }
   var Observable = function(s) {
-    if (isBatchedStream(s)) throw new Error("Batched streams can't be Observables");
     s.__oni_is_Stream = true;
     s.__oni_is_Observable = true;
     s.toString = observable_toString;
