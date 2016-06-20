@@ -2911,6 +2911,9 @@
             "matchesSelector": {
               "type": "function"
             },
+            "pageOffsetTo": {
+              "type": "function"
+            },
             "pageX": {
               "type": "function"
             },

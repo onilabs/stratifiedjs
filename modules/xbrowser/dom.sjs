@@ -63,19 +63,20 @@ if (typeof document !== "undefined" && !("classList" in document.createElement("
           `dom.addListener(elem, '!click', handler); // fires during capture phase`
      
 */
-function addListener(elem, type, handler) {
-  var capture = false;
-  if (type.charAt(0) == "!") {
-    type = type.substr(1);
-    capture = true;
+__js {
+  function addListener(elem, type, handler) {
+    var capture = false;
+    if (type.charAt(0) == "!") {
+      type = type.substr(1);
+      capture = true;
+    }
+    if (elem.addEventListener)
+      elem.addEventListener(type, handler, capture);
+    else // <=IE8 XXX need capture backfill
+      elem.attachEvent("on"+type, handler);
   }
-  if (elem.addEventListener)
-    elem.addEventListener(type, handler, capture);
-  else // <=IE8 XXX need capture backfill
-    elem.attachEvent("on"+type, handler);
+  exports.addListener = addListener;
 }
-exports.addListener = addListener;
-
 
 /**
   @function removeListener
@@ -84,18 +85,20 @@ exports.addListener = addListener;
   @param {String} [type] Event type (e.g. 'click', 'mousemove').
   @param {Function} [handler] Handler function.
 */
-function removeListener(elem, type, handler) {
-  var capture = false;
-  if (type.charAt(0) == "!") {
-    type = type.substr(1);
-    capture = true;
+__js {
+  function removeListener(elem, type, handler) {
+    var capture = false;
+    if (type.charAt(0) == "!") {
+      type = type.substr(1);
+      capture = true;
+    }
+    if (elem.removeEventListener)
+      elem.removeEventListener(type, handler, capture);
+    else // <=IE8 XXX need capture backfill
+      elem.detachEvent("on"+type, handler);
   }
-  if (elem.removeEventListener)
-    elem.removeEventListener(type, handler, capture);
-  else // <=IE8 XXX need capture backfill
-    elem.detachEvent("on"+type, handler);
+  exports.removeListener = removeListener;
 }
-exports.removeListener = removeListener;
 
 /**
   @function  eventTarget
@@ -103,7 +106,7 @@ exports.removeListener = removeListener;
   @param {DOMEvent} [ev] DOM event object.
   @return {DOMElement} Event target (ev.srcElement on IE, ev.target elsewhere)
 */
-exports.eventTarget = function(ev) {
+__js exports.eventTarget = function(ev) {
   return ev.target || ev.srcElement;
 };
 
@@ -115,11 +118,13 @@ exports.eventTarget = function(ev) {
   @desc 
      **Note:** Also works for touch events
 */
-exports.pageX = function(ev) {
-  if (ev.touches) ev = ev.touches[0];
-  if (ev.pageX !== undefined) return ev.pageX;
-  return ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-};
+__js {
+  exports.pageX = function(ev) {
+    if (ev.touches) ev = ev.touches[0];
+    if (ev.pageX !== undefined) return ev.pageX;
+    return ev.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+  };
+}
 
 /**
   @function pageY
@@ -129,7 +134,7 @@ exports.pageX = function(ev) {
   @desc 
      **Note:** Also works for touch events
 */
-exports.pageY = function(ev) {
+__js exports.pageY = function(ev) {
   if (ev.touches) ev = ev.touches[0];
   if (ev.pageY !== undefined) return ev.pageY;
   return ev.clientY + document.body.scrollTop + document.documentElement.scrollTop;
@@ -140,7 +145,7 @@ exports.pageY = function(ev) {
   @summary Cross-platform event helper. Cancels default action of given event.
   @param {DOMEvent} [ev] DOM event object.
 */
-exports.preventDefault = function(ev) {
+__js exports.preventDefault = function(ev) {
   if (ev.preventDefault) {
     ev.preventDefault();
   }
@@ -155,7 +160,7 @@ exports.preventDefault = function(ev) {
   @summary Cross-platform event helper. Cancels propagation and bubbling of the given event
   @param {DOMEvent} [ev] DOM event object.
 */
-exports.stopPropagation = function(ev) {
+__js exports.stopPropagation = function(ev) {
   if (ev.stopPropagation) {
     ev.stopPropagation();
   }
@@ -171,11 +176,12 @@ exports.stopPropagation = function(ev) {
   @summary Cross-platform event helper. Cancels propagation, bubbling and default action of given event.
   @param {DOMEvent} [ev] DOM event object.
 */
-exports.stopEvent = function(ev) {
-  exports.preventDefault(ev);
-  exports.stopPropagation(ev);
-};
-
+__js {
+  exports.stopEvent = function(ev) {
+    exports.preventDefault(ev);
+    exports.stopPropagation(ev);
+  };
+}
 
 //----------------------------------------------------------------------
 
@@ -284,7 +290,7 @@ exports.script = function(/*url, queries*/) {
    @desc
      Borrowed from [tomhoppe.com](http://www.tomhoppe.com/index.php/2008/03/dynamically-adding-css-through-javascript/)
 */
-exports.addCSS = function(cssCode) {
+__js exports.addCSS = function(cssCode) {
   var styleElement = document.createElement("style");
   styleElement.type = "text/css";
   if (styleElement.styleSheet) {
@@ -301,7 +307,7 @@ exports.addCSS = function(cssCode) {
   @summary Load a CSS file into the current document.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
 */
-exports.css = function (/* url, queries */) {
+__js exports.css = function (/* url, queries */) {
   url = sys.constructURL(arguments);
   var elem = document.createElement("link");
   elem.setAttribute("rel", "stylesheet");
@@ -337,7 +343,7 @@ exports.traverseDOM = traverseDOM;
     @param    {String} [selector] CSS selector
     @return   {Boolean} 
 */
-var matchesSelectorFunc = 
+__js var matchesSelectorFunc = 
   [ 'matches',
     'matchesSelector',
    'webkitMatchesSelector',
@@ -393,6 +399,28 @@ function getOffset(elem) {
   };
 }
 exports.getOffset = getOffset;
+
+/**
+   @function pageOffsetTo
+   @summary Determine page offset to the given DOM element
+   @param {DOMElement} [elem] DOM element
+   @return {Object} Object with members `x` and `y`
+   @desc
+     This function can be used in conjunction with [::pageX] and [::pageY] to determine 
+     event coordinates relative to given DOM element
+*/
+__js {
+  function pageOffsetTo(elem) {
+    var x=0, y=0;
+    while (elem.offsetParent) {
+      x += elem.offsetLeft;
+      y += elem.offsetTop;
+      elem = elem.offsetParent;
+    }
+    return { x: x, y: y };
+  }
+  exports.pageOffsetTo = pageOffsetTo;
+}
 
 //----------------------------------------------------------------------
 
@@ -470,7 +498,7 @@ exports.isDOMNode = function(o) {
      This function returns the raw hash string in all browsers, without URL decoding.
      You should always use it in preference to `document.location.hash`.
  */
-exports.locationHash = function() {
+__js exports.locationHash = function() {
   var l = String(document.location);
   var i = l.indexOf('#');
   return i === -1 ? '' : l.slice(i);
