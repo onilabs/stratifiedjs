@@ -932,7 +932,7 @@ var padEnd = function(seq, padding) {
      a string. In this case, `separator` (and `final_separator`, if given) should be a concrete sequence of the appropriate
      element type.
 */
-__js function join(sequence, separator, final_separator) {
+function join(sequence, separator, final_separator) {
   separator = separator || '';
 
   if (separator .. isQuasi) {
@@ -987,7 +987,7 @@ exports.join = join;
 // helper for joining quasis (exposed in quasi.sjs module as 'joinQuasis'):
 // this is here and not in quasi.sjs, so that we don't need a
 // lazy (or cyclic) import
-__js join._joinQuasis = function(/*arguments*/) {
+join._joinQuasis = function(/*arguments*/) {
   var quasis = arguments.length == 1 ? arguments[0] : arguments;
   return quasis ..
     reduce(``, function(accu, quasi) {
