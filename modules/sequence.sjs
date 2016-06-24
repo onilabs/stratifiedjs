@@ -914,11 +914,12 @@ var padEnd = function(seq, padding) {
 
 /**
    @function join
-   @altsyntax sequence .. join(separator)
+   @altsyntax sequence .. join([separator, [final_separator]])
    @param {::Sequence} [sequence] Input sequence
    @param {optional String|Array|bytes::Bytes|Uint8Array|quasi::Quasi} [separator='']
+   @param {optional String|Array|bytes::Bytes|Uint8Array|quasi::Quasi} [final_separator]
    @return {String|Buffer|Uint8Array|quasi::Quasi}
-   @summary Joins all elements of the sequence with the given separator
+   @summary Joins all elements of the sequence with the given separator. If `final_separator` is given, the final two elements in the sequence will be joined with it, rather than `separator`.
    @desc
      By default, all elements in `sequence` are coerced into a String.
 
@@ -928,19 +929,30 @@ var padEnd = function(seq, padding) {
 
      If the first element of `sequence` is a nodejs Buffer, a TypedArray or plain Array, then
      all items will be joined into a single return value of the same type, rather than
-     a string. In this case, `separator` should be a concrete sequence of the appropriate
+     a string. In this case, `separator` (and `final_separator`, if given) should be a concrete sequence of the appropriate
      element type.
 */
-__js function join(sequence, separator) {
+__js function join(sequence, separator, final_separator) {
   separator = separator || '';
+
   if (separator .. isQuasi) {
+    if (final_separator !== undefined) {
+      return sequence .. transform(x -> isQuasi(x) ? x : `$x`) .. 
+        intersperse_n_1(separator, isQuasi(final_separator) ? final_separator : `$final_separator`) .. join._joinQuasis;
+    }
+    // else ... just one separator
     return sequence .. transform(x -> isQuasi(x) ? x : `$x`) .. intersperse(separator) .. join._joinQuasis;
   }
   var arr = sequence .. toArray;
   if (arr.length == 0) return '';
   if (arr[0] .. isBuffer || arr[0] .. isArrayLike) {
-    if (separator.length > 0)
-      arr = arr .. intersperse(separator) .. toArray;
+    if (separator.length > 0) {
+      // XXX we silently ignore separators of wrong type here - is that a good idea?
+      if (final_separator !== undefined && separator.length > 0)
+        arr = arr .. intersperse_n_1(separator, final_separator) .. toArray;
+      else
+        arr = arr .. intersperse(separator) .. toArray;
+    }
     if (arr[0] .. isBuffer) {
       return Buffer.concat(arr);
     } else if (arr[0] .. isArrayLike) {
@@ -964,7 +976,11 @@ __js function join(sequence, separator) {
       return rv;
     }
   }
-  return arr.join(separator);
+  // else
+  if (final_separator !== undefined)
+    return (arr .. intersperse_n_1(separator, final_separator) .. toArray).join('');
+  else
+    return arr.join(separator);
 }
 exports.join = join;
 
