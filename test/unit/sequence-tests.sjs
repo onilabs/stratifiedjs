@@ -843,6 +843,26 @@ context('intersperse') {||
 
 }
 
+context('intersperse_n_1') {||
+  testEq('[1, 2, 3, 4, 5] .. intersperse_n_1(6, 7)', [1,6,2,6,3,6,4,7,5], function() {
+    return [1, 2, 3, 4, 5] .. s.intersperse_n_1(6, 7) .. s.toArray;
+  });
+
+  testEq('[1] .. intersperse_n_1(2, 3)', [1], function() {
+    return [1] .. s.intersperse_n_1(2, 3) .. s.toArray;
+  });
+
+  testEq('[] .. intersperse_n_1(1,2)', [], function() {
+    return [] .. s.intersperse_n_1(1,2) .. s.toArray;
+  });
+
+  testEq('[1,2] .. intersperse_n_1(3, 4)', [1,4,2], function() {
+    return [1,2] .. s.intersperse_n_1(3, 4) .. s.toArray;
+  });
+
+}
+
+
 context("iterable nodejs datatypes") {||
   var stream = require('sjs:nodejs/stream');
   test("Buffer") {||

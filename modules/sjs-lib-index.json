@@ -2114,6 +2114,9 @@
         "intersperse": {
           "type": "function"
         },
+        "intersperse_n_1": {
+          "type": "function"
+        },
         "isBatchedStream": {
           "type": "function"
         },

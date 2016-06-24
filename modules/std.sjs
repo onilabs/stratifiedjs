@@ -246,6 +246,7 @@ module.exports = require(modules);
    - **indexed**: (function [sjs:sequence::indexed])
    - **integers**: (function [sjs:sequence::integers])
    - **intersperse**: (function [sjs:sequence::intersperse])
+   - **intersperse_n_1**: (function [sjs:sequence::intersperse_n_1])
    - **isBatchedStream**: (function [sjs:sequence::isBatchedStream])
    - **isConcreteSequence**: (function [sjs:sequence::isConcreteSequence])
    - **isSequence**: (function [sjs:sequence::isSequence])

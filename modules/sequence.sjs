@@ -926,12 +926,12 @@ var padEnd = function(seq, padding) {
      `sequence` are coerced into quasis using [quasi::toQuasi], and
      the sequence with interspersed separators will be joined using [quasi::joinQuasis].
 
-     If the first element of `sequence` is a nodejsBuffer, a TypedArray or play Array, then
+     If the first element of `sequence` is a nodejs Buffer, a TypedArray or plain Array, then
      all items will be joined into a single return value of the same type, rather than
      a string. In this case, `separator` should be a concrete sequence of the appropriate
      element type.
 */
-function join(sequence, separator) {
+__js function join(sequence, separator) {
   separator = separator || '';
   if (separator .. isQuasi) {
     return sequence .. transform(x -> isQuasi(x) ? x : `$x`) .. intersperse(separator) .. join._joinQuasis;
@@ -971,7 +971,7 @@ exports.join = join;
 // helper for joining quasis (exposed in quasi.sjs module as 'joinQuasis'):
 // this is here and not in quasi.sjs, so that we don't need a
 // lazy (or cyclic) import
-join._joinQuasis = function(/*arguments*/) {
+__js join._joinQuasis = function(/*arguments*/) {
   var quasis = arguments.length == 1 ? arguments[0] : arguments;
   return quasis ..
     reduce(``, function(accu, quasi) {
@@ -2274,6 +2274,50 @@ function intersperse(sequence, elem) {
   });
 }
 exports.intersperse = intersperse;
+
+/**
+  @function intersperse_n_1
+  @altsyntax sequence .. intersperse_n_1(elem_n, elem_1)
+  @param {::Sequence} [sequence]
+  @param {Object} [elem_n] Element to intersperse between the first and second to last stream elements
+  @param {Object} [elem_1] Element to intersperse between the second to last and last stream elements
+  @summary Generate a stream with `elem_n` inserted in between the first n-1 adjacent elements of `sequence`, and
+           `elem_1` inserted between the final two elements.
+  @desc
+    ### Note:
+    If there are only two elements in the stream, `elem_1` will be inserted between them.
+
+    ### Example:
+
+        ['a','b','c'] .. intersperse(',', 'and')
+
+        // -> 'a', ',', 'b', 'and', 'c'
+*/
+function intersperse_n_1(sequence, elem_n, elem_1) {
+  return Stream(function(r) {
+    var eos = {};
+    sequence .. consume(eos) {
+      |next|
+      var n = next();
+      if (n === eos) return;
+      r(n);
+      n = next();
+      if (n === eos) return;
+
+      while (1) {
+        var m = next();
+        if (m === eos)
+          break;
+        r(elem_n);
+        r(n);
+        n = m;
+      }
+      r(elem_1);
+      r(n);
+    }
+  });
+}
+exports.intersperse_n_1 = intersperse_n_1;
 
 /**
    @function reduce
