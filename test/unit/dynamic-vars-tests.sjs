@@ -414,3 +414,35 @@ function waitfor_or_retraction(blocking1, blocking2) {
   }
   
 }
+
+@test("js call / context cleared by hold()") {||
+
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+  __js {
+    setTimeout(function() { @assert.raises(->@sys.getDynVar('foo')); }, 10);
+  }
+  @sys.withDynVarContext{
+    ||
+    @sys.setDynVar('foo', 'x');
+    hold(100);
+  }
+
+}
+
+@test("js call / context cleared by waitfor()") {||
+
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+  var prod;
+
+  __js {
+    setTimeout(function() { @assert.raises(->@sys.getDynVar('foo')); prod(); }, 100);
+  }
+  @sys.withDynVarContext{
+    ||
+    @sys.setDynVar('foo', 'x');
+    waitfor() { prod = resume }
+  }
+
+}
