@@ -252,6 +252,8 @@ CFException.prototype = {
 // current_dyn_vars is a global variable holding dynamic variable
 // bindings for the currently stratum. It will be manipulated by the
 // VM when a stratum switch takes place:
+// We cannot use 'Env' for this, because environments get reset at every function
+// boundary (to support SJS being callable from JS)
 exports.current_dyn_vars = null; 
 
 //----------------------------------------------------------------------
@@ -2528,6 +2530,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
   if (idx == 0) {
     this.parent_dyn_vars = exports.current_dyn_vars;
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
+    exports.current_dyn_vars = this.parent_dyn_vars;
     // we used to synchronously pass through all control flow exceptions 
     // (but not proper exceptions), but now we handle synchronous blocklambda 
     // _returns_ in a special way, below, so that we can leverage the spawn logic in
@@ -2552,9 +2555,6 @@ EF_Spawn.prototype.cont = function(idx, val) {
       return this.returnToParent(this.return_val);
     }
   }
-
-  // XXX does this need to be here? are we not generally restoring dynvars elsewhere?
-  exports.current_dyn_vars = this.parent_dyn_vars;
 
   if (is_cfx(val)) {
     if (val.type === 'r' && val.ef) {
@@ -2718,9 +2718,11 @@ EF_SpawnWaitFrame.prototype.abort = function() {
 }
 EF_SpawnWaitFrame.prototype.cont = function(val) {
   if (this.parent) {
+    var current_dyn_vars = exports.current_dyn_vars;
     exports.current_dyn_vars = this.dyn_vars;
     delete this.dyn_vars; // aid gc
     cont(this.parent, this.parent_idx, val);
+    exports.current_dyn_vars = current_dyn_vars;
   }
 }
 
@@ -2744,10 +2746,12 @@ EF_SpawnAbortFrame.prototype.abort = function() {
 EF_SpawnAbortFrame.prototype.cont = function(val) {
   if (this.done) return;
   if (this.parent) {
+    var current_dyn_vars = exports.current_dyn_vars;
     exports.current_dyn_vars = this.dyn_vars;
     delete this.dyn_vars; // aid gc
     this.done = true;
     cont(this.parent, this.parent_idx, val);
+    exports.current_dyn_vars = current_dyn_vars;
   }
   else if (is_cfx(val) && (val.type === 't' || val.val instanceof Error)){
     // make sure exceptions end up somewhere
@@ -2778,6 +2782,8 @@ function I_spawn(ndata, env) {
   var abort_waitarr = [];
   var stratum = {
     abort : function() {
+      var dyn_vars = exports.current_dyn_vars;
+
       // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
       // in a finally clause is waiting for the spawn frame and vice versa, as in:
       // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
@@ -2787,6 +2793,9 @@ function I_spawn(ndata, env) {
       // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
       // but any value listeners will receive a 'stratum aborted' notification immediately
       var rv = ef.abort();
+
+      exports.current_dyn_vars = dyn_vars;
+
       async = false;
       val =  new CFException("t",
                              new StratumAborted(),

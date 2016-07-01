@@ -415,6 +415,91 @@ function waitfor_or_retraction(blocking1, blocking2) {
   
 }
 
+@test("spawn abort 2") {||
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = spawn (function() {
+        @sys.setDynVar('foo', 'x');
+        hold();
+    })();
+  }
+  
+  stratum.abort();
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+}
+
+@test("spawn abort 3") {||
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = spawn (function() {
+        @sys.setDynVar('foo', 'x');
+        hold();
+    })();
+  }
+  
+  hold(0);
+  stratum.abort();
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+}
+
+@test("spawn abort 4") {||
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = spawn (function() {
+        @sys.setDynVar('foo', 'x');
+        hold(10);
+    })();
+  }
+  
+  stratum.value();
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+}
+
+@test("spawn value/abort edge case") {||
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var S;
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'y');
+    S = spawn hold();
+    spawn(function() { try { S.value(); } catch(e) {}; })();
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+  S.abort();
+  @assert.raises(->@sys.getDynVar('foo')); // this used to not raise
+}
+
+@test("spawn value/abort edge case async") {||
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var S;
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'y');
+    S = spawn hold();
+    spawn(function() { try { S.value(); } catch(e) {}; })();
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+  hold(0);
+  @assert.raises(->@sys.getDynVar('foo'));
+  S.abort();
+  @assert.raises(->@sys.getDynVar('foo')); // this used to not raise
+}
+
+
 @test("js call / context cleared by hold()") {||
 
   @assert.raises(->@sys.getDynVar('foo'));

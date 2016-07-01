@@ -244,6 +244,8 @@ if(console.error)console.error(msg);else console.log(msg);
 
 
 
+
+
 exports.current_dyn_vars=null;
 
 
@@ -2291,6 +2293,7 @@ EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
 
 this.parent_dyn_vars=exports.current_dyn_vars;
 val=execIN(this.ndata[1],this.env);
+exports.current_dyn_vars=this.parent_dyn_vars;
 
 
 
@@ -2315,9 +2318,6 @@ this.notifyAborted(val);
 return this.returnToParent(this.return_val);
 }
 }
-
-
-exports.current_dyn_vars=this.parent_dyn_vars;
 
 if((val&&val.__oni_cfx)){
 if(val.type==='r'&&val.ef){
@@ -2478,9 +2478,11 @@ this.waitarr.splice(idx,1);
 };
 EF_SpawnWaitFrame.prototype.cont=function(val){if(this.parent){
 
+var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 delete this.dyn_vars;
 cont(this.parent,this.parent_idx,val);
+exports.current_dyn_vars=current_dyn_vars;
 }
 };
 
@@ -2501,10 +2503,12 @@ EF_SpawnAbortFrame.prototype.abort=function(){return this;
 EF_SpawnAbortFrame.prototype.cont=function(val){if(this.done)return;
 
 if(this.parent){
+var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 delete this.dyn_vars;
 this.done=true;
 cont(this.parent,this.parent_idx,val);
+exports.current_dyn_vars=current_dyn_vars;
 }else if((val&&val.__oni_cfx)&&(val.type==='t'||val.val instanceof Error)){
 
 
@@ -2534,16 +2538,21 @@ function I_spawn(ndata,env){var val,async,have_val,picked_up=false;
 var value_waitarr=[];
 var abort_waitarr=[];
 var stratum={abort:function(){
+var dyn_vars=exports.current_dyn_vars;
+
+
+
+
+
 if(ef.in_abortion)return new EF_SpawnAbortFrame(abort_waitarr,ef);
-
-
-
-
 
 if(ef.done)return UNDEF;
 
 
 var rv=ef.abort();
+
+exports.current_dyn_vars=dyn_vars;
+
 async=false;
 val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 
