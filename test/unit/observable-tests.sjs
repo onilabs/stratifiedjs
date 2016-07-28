@@ -154,3 +154,60 @@
   }
   rv .. @assert.eq('ad');
 }
+
+@context("synchronize") {||
+  @test('B inited from A') {
+    ||
+    var A = @ObservableVar('foo');
+    var B = @ObservableVar('bar');
+    waitfor {
+      @synchronize(A,B);
+    }
+    or {
+    }
+    @assert.eq(B .. @current, 'foo');
+  }
+
+  @test('B inited from A; aToB') {
+    ||
+    var A = @ObservableVar('foo');
+    var B = @ObservableVar('bar');
+    waitfor {
+      @synchronize(A,B, {aToB: x -> x.toUpperCase(), bToA: x -> 'not called'});
+    }
+    or {
+    }
+    @assert.eq(B .. @current, 'FOO');
+    @assert.eq(A .. @current, 'foo');
+  }
+
+  @test('setting A; aToB') {
+    ||
+    var A = @ObservableVar('foo');
+    var B = @ObservableVar('bar');
+    waitfor {
+      @synchronize(A,B, {aToB: x -> x.toUpperCase(), bToA: x -> 'not called'});
+    }
+    or {
+      A.set('xxx');
+    }
+    @assert.eq(B .. @current, 'XXX');
+    @assert.eq(A .. @current, 'xxx');
+  }
+
+  @test('setting B; bToA') {
+    ||
+    var A = @ObservableVar('foo');
+    var B = @ObservableVar('bar');
+    waitfor {
+      @synchronize(A,B, {aToB: x -> x.toUpperCase(), bToA: x -> 'xxx'});
+    }
+    or {
+      B.set('test');
+    }
+    @assert.eq(B .. @current, 'test');
+    @assert.eq(A .. @current, 'xxx');
+  }
+
+
+}

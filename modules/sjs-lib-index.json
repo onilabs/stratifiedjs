@@ -1943,6 +1943,9 @@
         },
         "reconstitute": {
           "type": "function"
+        },
+        "synchronize": {
+          "type": "function"
         }
       },
       "summary": "Constructs for manipulating streams backed by time-varying values"

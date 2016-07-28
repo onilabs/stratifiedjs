@@ -203,6 +203,7 @@ module.exports = require(modules);
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
    - **observe**: (function [sjs:observable::observe])
    - **reconstitute**: (function [sjs:observable::reconstitute])
+   - **synchronize**: (function [sjs:observable::synchronize])
   
   
   ### Symbols from the [sjs:quasi](#sjs%3Aquasi) module:

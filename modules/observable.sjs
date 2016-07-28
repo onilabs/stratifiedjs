@@ -40,7 +40,7 @@
 ]);
 var cutil = require('./cutil');
 var { isStream, isBatchedStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_ObservableArray_project } = require('./sequence');
-var { merge, clone } = require('./object');
+var { merge, clone, override } = require('./object');
 var { Interface, Token } = require('./type');
 
 module.setCanonicalId('sjs:observable');
@@ -285,6 +285,58 @@ exports.isConflictError = function(ex) {
   return Object.prototype.isPrototypeOf.call(ConflictErrorProto, ex);
 };
 
+/**
+  @function synchronize
+  @summary Synchronize two [::ObservableVar]s
+  @param {::ObservableVar} [A]
+  @param {::ObservableVar} [B]
+  @param {Object} [settings]
+  @setting {Function} [aToB] Optional transformation for values of `A` to values of `B` 
+  @setting {Function} [bToA] Optional transformation for values of `B` to values of `A`
+  @desc
+     - `synchronize` will synchronize the values of `A` and `B` until explicitly aborted (e.g. with a `waitfor{}or{}`).
+
+     - `A` is the "master" observable from which `B` will initialized.
+
+     - The optional transformation functions `aToB` and `bToA` do not need to be reversable. Setting `A` explicitly causes `B` to be set to `aToB(A)`, but won't cause a subsequent call to `bToA` with the new value of `B`. (Similar when explicitly setting `B`.)
+
+     - If `B` is set explicitly while a call `aToB(A)` is blocked, the pending `aToB(A)` call will be aborted and `A` will be set to `bToA(B)` instead. (Similar when explicitly setting `A` while an internal update `bToA(B)` is in progress.)
+
+     *** Current limitations:
+
+     - The ObservableVars must both reside on the same process (in particular `synchronize` doesn't work with ObservableVars that are remoted between client and server across conductance's bridge.
+ */
+function synchronize(A, B, settings) {
+  settings = {
+    aToB: undefined,
+    bToA: undefined
+  } .. override(settings);
+
+  var AfromB = {} /* a token that A is definitely not set to */, BfromA;
+
+  waitfor {
+    A .. each.track { 
+      |valA|
+      if (valA === AfromB) continue;
+      if (settings.aToB)
+        valA = settings.aToB(valA);
+      BfromA = valA;
+      B.set(valA);
+    }
+  }
+  and {
+    B .. exports.changes .. each.track {
+      |valB|
+      if (valB === BfromA) continue;
+      if (settings.bToA)
+        valB = settings.bToA(valB);
+      AfromB = valB;
+      A.set(valB);      
+    }
+  }
+
+}
+exports.synchronize = synchronize;
 
 /**
   @function observe
