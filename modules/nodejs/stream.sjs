@@ -33,6 +33,8 @@
   @module    nodejs/stream
   @summary   Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)
   @home      sjs:nodejs/stream
+  @inlibrary sjs:std as stream when nodejs
+  @inlibrary mho:std as stream when nodejs
   @hostenv   nodejs
   @desc
     ### Warning: Backwards compatility
@@ -184,7 +186,7 @@ exports.contents = function(stream, encoding) {
 /**
   @function end
   @summary  End the stream with a final chunk of data.
-  @param    {Stream} [dest] the stream to write to
+  @param    {nodejs Writable Stream} [dest] the stream to write to
   @param    {optional String|Buffer} [data] the data to write
   @param    {optional String} [encoding] the encoding, if `data` is a string
   @desc
@@ -219,8 +221,10 @@ exports.end = function(dest, data, encoding) {
 /**
   @function pump
   @summary  Keep writing data from `src` into `dest` until `src` ends.
+  @inlibrary sjs:std when nodejs
+  @inlibrary mho:std when nodejs
   @param    {Stream|String|bytes::Bytes|sequence::Sequence} [src] the source data
-  @param    {String} [dest] the destination stream
+  @param    {nodejs Writable Stream} [dest] the destination stream
   @param    {optional Settings} [opts]
   @setting  {Boolean} [end=true] end `dest` after writing
   @return   {Stream} `dest`

@@ -33,6 +33,8 @@
   @module    http
   @summary   Functions for performing HTTP requests and working with URLs
   @home      sjs:http
+  @inlibrary sjs:std as http
+  @inlibrary mho:std as http
 */
 
 var sys = require('builtin:apollo-sys');

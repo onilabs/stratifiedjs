@@ -33,6 +33,8 @@
    @module    observable
    @summary   Constructs for manipulating streams backed by time-varying values
    @home      sjs:observable
+   @inlibrary sjs:std
+   @inlibrary mho:std
 */
 
 @ = require([

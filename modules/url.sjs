@@ -33,6 +33,8 @@
   @module    url
   @summary   Functions for manipulating URLs
   @home      sjs:url
+  @inlibrary sjs:std as url
+  @inlibrary mho:std as url
 */
 
 var sys = require('builtin:apollo-sys');

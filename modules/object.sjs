@@ -33,6 +33,8 @@
    @module  object
    @summary Functions for working with objects
    @home    sjs:object
+   @inlibrary sjs:std
+   @inlibrary mho:std
 */
 
 var { each, transform, Stream } = require('./sequence');

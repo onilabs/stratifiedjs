@@ -33,6 +33,8 @@
   @module    logging
   @summary   Simple cross-environment logging framework
   @home      sjs:logging
+  @inlibrary sjs:std as logging
+  @inlibrary mho:std as logging
   @desc
     This module exposes a simple logging API, and is useable
     across environments.
@@ -216,6 +218,8 @@ var printfn = function(lvl, preferred_console_method) {
 
 /**
   @function print
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @summary  Print the given message to the console (if defined), regardless
             of the current log level.
   @desc
@@ -226,6 +230,8 @@ exports.print = function() { getPrinter('log').apply(null, arguments); };
 
 /**
   @function debug
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @summary  Print the given message to the console when the current log level is DEBUG or higher
   @param    {Object ...} [message] The objects to log
   @desc
@@ -250,6 +256,8 @@ exports.debug = printfn(exports.DEBUG, 'debug');
 
 /**
   @function verbose
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @summary  Print the given message to the console when the current log level is VERBOSE or higher.
             See [::debug] for more details.
   @param    {Object ...} [message]
@@ -258,6 +266,8 @@ exports.verbose = printfn(exports.VERBOSE, 'debug');
 
 /**
   @function info
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @summary  Print the given message to the console when the current log level is INFO or higher.
             See [::debug] for more details.
   @param    {Object ...} [message]
@@ -266,6 +276,8 @@ exports.info = printfn(exports.INFO,'info');
 
 /**
   @function warn
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @summary  Print the given message to the console when the current log level is WARN or higher.
             See [::debug] for more details.
   @param    {Object ...} [message]
@@ -273,6 +285,8 @@ exports.info = printfn(exports.INFO,'info');
 exports.warn = printfn(exports.WARN,'warn');
 /**
   @function error
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @summary  Print the given message to the console when the current log level is ERROR or higher.
             See [::debug] for more details.
   @param    {Object ...} [message]

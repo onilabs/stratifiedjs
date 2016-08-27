@@ -34,7 +34,8 @@
   @module  assert
   @summary Assertion functions, primarily for use in tests.
   @home    sjs:assert
-
+  @inlibrary sjs:std as assert
+  @inlibrary mho:std as assert
   @desc
     Each of the assertion functions throws an [::AssertionError] if its given assertion fails.
 

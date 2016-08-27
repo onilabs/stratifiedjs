@@ -33,6 +33,8 @@
    @module    sequence
    @summary   Constructs for manipulating sequence structures (arrays, strings and more general streams)
    @home      sjs:sequence
+   @inlibrary sjs:std
+   @inlibrary mho:std
    @desc
      The sequence module contains building blocks for working with
      sequential data streams, such as arrays, strings, and more general, possibly

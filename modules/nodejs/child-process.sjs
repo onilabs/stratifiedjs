@@ -33,6 +33,8 @@
   @module    nodejs/child-process
   @summary   Stratified wrapper of [nodejs's child_process lib](http://nodejs.org/api/child_process.html)
   @hostenv   nodejs
+  @inlibrary sjs:std as childProcess when nodejs
+  @inlibrary mho:std as childProcess when nodejs
   @home      sjs:nodejs/child-process
 */
 

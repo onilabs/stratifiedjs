@@ -33,6 +33,8 @@
    @module  function
    @summary Function composition helpers
    @home    sjs:function
+   @inlibrary sjs:std as fn
+   @inlibrary mho:std as fn
 */
 
 module.setCanonicalId('sjs:function');

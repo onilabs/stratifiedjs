@@ -208,6 +208,19 @@ var english_a = function(word) {
   return "a #{word}";
 };
 
+function parse_inlibrary_value(value) {
+  var matches = /([^ ]+)(?:\s+as\s+([^ ]+))?(?:\s+when\s+([^ ]+))?/.exec(value);
+  if (!matches) {
+    console.log("Error parsing inlibrary documentation directive ('#{value}')");
+    return undefined;
+  }
+  return {
+    library: matches[1],
+    as: matches[2],
+    when: matches[3]
+  };
+}
+
 exports.parseModuleDocs = function(src, module) {
   var module = merge({ type: "module", children: {}, }, module);
   var curr = module; // 'curr' determines where 'param', 'return', 'setting', 'attrib' are appended to
@@ -301,6 +314,13 @@ exports.parseModuleDocs = function(src, module) {
     case "altsyntax":
       if (!curr[prop]) curr[prop] = [];
       curr[prop].push(value);
+      break;
+    case "inlibrary":
+      var parsed_val = parse_inlibrary_value(value);
+      if (parsed_val) {
+        if (!curr[prop]) curr[prop] = [];
+        curr[prop].push(parsed_val);
+      }
       break;
     default:
       // By default we set prop=val.

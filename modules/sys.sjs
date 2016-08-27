@@ -33,6 +33,8 @@
   @module    sys
   @summary   SJS runtime utilities
   @home      sjs:sys
+  @inlibrary sjs:std as sys
+  @inlibrary mho:std as sys
 */
 
 var s = require('builtin:apollo-sys');
@@ -52,6 +54,8 @@ module.exports = {
 
 /**
   @function eval
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @param {String} [code]
   @param {optional Settings} [settings]
   @setting {optional String} [filename]
@@ -170,6 +174,8 @@ module.exports = {
 
 /**
   @function argv
+  @inlibrary sjs:std when nodejs
+  @inlibrary mho:std when nodejs
   @summary Return the current command line arguments.
   @hostenv nodejs
   @desc

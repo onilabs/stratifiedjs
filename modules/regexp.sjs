@@ -34,6 +34,8 @@
    @module  regexp
    @summary Functions for working with regular expressions
    @home    sjs:regexp
+   @inlibrary sjs:std as regexp
+   @inlibrary mho:std as regexp
 */
 
 var { each, Stream } = require('./sequence');

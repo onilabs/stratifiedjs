@@ -328,6 +328,7 @@ function build_deps() {
   // std module
   BUILD("modules/std.sjs", function(dest) {
     var { generateDocDescription } = require('sjs:../tools/document-stdlib');
+    // XXX contents should be generated from '@inlibrary' doc-comments 
     var contents = fs.readFile(url.normalize('./std.sjs', module.id) .. url.toPath, 'utf-8');
     var descriptionDocs = generateDocDescription(contents, "
 This module combines commonly-used functionality from the

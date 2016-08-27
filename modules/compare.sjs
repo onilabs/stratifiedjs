@@ -36,6 +36,8 @@
    @module  compare
    @summary Deep or shallow object equality comparisons
    @home    sjs:compare
+   @inlibrary sjs:std
+   @inlibrary mho:std
 */
 
 var isNode = require('builtin:apollo-sys').hostenv === 'nodejs';

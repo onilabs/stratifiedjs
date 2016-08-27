@@ -34,6 +34,8 @@
    @module  debug
    @summary Helpers for debugging
    @home    sjs:debug
+   @inlibrary sjs:std
+   @inlibrary mho:std
 */
 
 var { map, reduce, join } = require('./sequence');
@@ -454,9 +456,8 @@ __js {
 __js {
 
   function formatStopwatchDelta(start, end) {
-    // let's do 100's of milliseconds
-    var delta = Math.round((end-start)/100);
-    return "#{delta/10}s" .. padRight(6);
+    var delta = end-start;
+    return "#{delta/1000}s" .. padRight(8);
   }
 
   function Stopwatch(name) {

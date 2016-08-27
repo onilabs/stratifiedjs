@@ -32,6 +32,8 @@
   @module    event
   @summary   Event emitter and utilities for dealing with events.
   @home      sjs:event
+  @inlibrary sjs:std
+  @inlibrary mho:std
   @require   sjs:xbrowser/dom
   @desc
     This module provides abstractions around *event streams* ([::EventStream]), 

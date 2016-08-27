@@ -33,6 +33,8 @@
   @module    cutil
   @summary   Functions and constructs for concurrent stratified programming
   @home      sjs:cutil
+  @inlibrary sjs:std
+  @inlibrary mho:std
 */
 
 var sys  = require('builtin:apollo-sys');

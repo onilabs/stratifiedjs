@@ -33,6 +33,8 @@
    @module  string
    @summary Functions for working with strings
    @home    sjs:string
+   @inlibrary sjs:std
+   @inlibrary mho:std
 */
 
 var sys = require('builtin:apollo-sys');

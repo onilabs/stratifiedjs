@@ -32,6 +32,8 @@
    @module    bytes
    @summary   Type checking and conversions for binary types.
    @home      sjs:bytes
+   @inlibrary sjs:std when nodejs
+   @inlibrary mho:std when nodejs
    @desc
     This module exposes test methods for checking if a given object
     is a [::Bytes] (or a specific implementation), and for converting

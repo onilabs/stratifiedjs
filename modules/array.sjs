@@ -33,6 +33,8 @@
    @module  array
    @summary Functions for working with arrays
    @home    sjs:array
+   @inlibrary sjs:std
+   @inlibrary mho:std
    @eslint  { "rules": { "no-labels": 0 } }
 */
 

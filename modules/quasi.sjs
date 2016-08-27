@@ -33,6 +33,8 @@
    @module  quasi
    @summary Functions for working with quasis (see also [sjs:#language/syntax::quasi-quote])
    @home    sjs:quasi
+   @inlibrary sjs:std
+   @inlibrary mho:std
 */
 
 /**

@@ -34,6 +34,8 @@
   @summary   Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)
   @hostenv   nodejs
   @home      sjs:nodejs/fs
+  @inlibrary sjs:std  as fs when nodejs
+  @inlibrary mho:std  as fs when nodejs
 */
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs') 
