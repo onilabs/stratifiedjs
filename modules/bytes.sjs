@@ -116,7 +116,9 @@ __js {
   exports.isArrayBuffer = isArrayBuffer;
 
   var isBytes = exports.isBytes = b -> isBuffer(b) || isUint8Array(b) || isArrayBuffer(b);
-  var toUint8Array = exports.toUint8Array = b -> isUint8Array(b) ? b : new Uint8Array(b);
+  // XXX nodejs >= 4.5 blurs the lines between buffers and uint8arrays. we use the 'isbuffer' test below
+  // to get 'clean' uint8array. at some point we should harmonize buffers and typed arrays in conductance.
+  var toUint8Array = exports.toUint8Array = b -> (isUint8Array(b) && !isBuffer(b)) ? b : new Uint8Array(b);
   var toArrayBuffer = exports.toArrayBuffer = function(b) {
     if(isArrayBuffer(b)) return b;
     return toUint8Array(b).buffer;
