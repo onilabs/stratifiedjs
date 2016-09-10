@@ -90,11 +90,13 @@ exports.summarizeLib = function(dir) {
   var entries = fs.readdir(dir) .. sort;
   var children = {};
 
-  if (!( entries .. hasElem(INDEX_FILENAME))) {
+/*  
+    let's allow directories with missing INDEX_FILENAME 
+    if (!( entries .. hasElem(INDEX_FILENAME))) {
     logging.info("SKIP: #{dir}");
     return null;
   }
-
+*/
   var dirInfo = readDirectory(dir);
   if (dirInfo.nodoc) {
     logging.info("SKIP: #{dir}");
@@ -165,7 +167,14 @@ exports.readModule = function(path) {
 var readDirectory = function(path) {
   path = Path.join(path, INDEX_FILENAME);
   logging.debug("Reading: #{path}");
-  return docutil.parseSJSLibDocs(fs.readFile(path, 'utf-8'));
+  try {
+    var file = fs.readFile(path, 'utf-8');
+  }
+  catch (e) {
+    logging.debug("#{path} not found - using dummy #{INDEX_FILENAME}");
+    file = ("\n");
+  }
+  return docutil.parseSJSLibDocs(file);
 };
 
 if (require.main === module) {
