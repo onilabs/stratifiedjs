@@ -41,7 +41,7 @@ var Path = require('nodejs:path');
 var { ownValues, ownPropertyPairs, pairsToObject, hasOwn, ownKeys, merge } = require('../object');
 var str = require('../string');
 var docutil = require('../docutil');
-var { each, map, transform, hasElem, sortBy, sort } = require('../sequence');
+var { each, map, transform, hasElem, sortBy, sort, first } = require('../sequence');
 var logging = require('../logging');
 var array = require('../array');
 var assert = require('../assert');
@@ -53,10 +53,6 @@ var EXTS = {'sjs':true, 'api':true, 'app':true, 'gen':true};
 
 exports.compile = function(root, outputPath) {
   var info = exports.summarizeLib(root);
-  if (!info) {
-    console.error("No modules found");
-    process.exit(1);
-  }
   if (outputPath === undefined) {
     outputPath = Path.join(root, OUTPUT_FILENAME);
   }
@@ -85,7 +81,7 @@ var summarizeModule = function(module) {
   };
 };
 
-exports.summarizeLib = function(dir) {
+exports.summarizeLib = function(dir, inner) {
   logging.debug("Scanning: #{dir}");
   var entries = fs.readdir(dir) .. sort;
   var children = {};
@@ -107,7 +103,7 @@ exports.summarizeLib = function(dir) {
     var path = Path.join(dir, ent);
     try {
       if (fs.stat(path).isDirectory()) {
-        var lib = exports.summarizeLib(path);
+        var lib = exports.summarizeLib(path, true);
         if (lib) {
           children[ent + '/'] = lib;
         }
@@ -128,9 +124,13 @@ exports.summarizeLib = function(dir) {
     }
   }
 
+  if (inner && (children .. ownKeys .. first(undefined)) === undefined) {
+    // no children -> don't index
+    return null;
+  }
   var rv = {
     type: "lib",
-    children: children,
+    children: children
   };
 
   ['summary', 'version'] .. each {|key|
