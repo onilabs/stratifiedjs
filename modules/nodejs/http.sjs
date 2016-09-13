@@ -39,6 +39,9 @@
 if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/http module only runs in a nodejs environment');
 
+@ = require([
+  {id: './stream', name: 'stream'}
+])
 
 var builtin_http  = require('http');
 
@@ -51,68 +54,11 @@ var logging = require('../logging');
 var array = require('../array');
 
 //----------------------------------------------------------------------
-// XXX nodejs < v8 backfill:
-
-var concatBuffers = Buffer.concat;
-if (!concatBuffers) {
-  concatBuffers = function(list, length) {
-    if (!Array.isArray(list)) {
-      throw new Error('Usage: Buffer.concat(list, [length])');
-    }
-    
-    if (list.length === 0) {
-      return new Buffer(0);
-    } else if (list.length === 1) {
-      return list[0];
-    }
-    
-    if (typeof length !== 'number') {
-      length = 0;
-      for (var i = 0; i < list.length; i++) {
-        var buf = list[i];
-        length += buf.length;
-      }
-    }
-    
-    var buffer = new Buffer(length);
-    var pos = 0;
-    for (var i = 0; i < list.length; i++) {
-      var buf = list[i];
-      buf.copy(buffer, pos);
-      pos += buf.length;
-    }
-    return buffer;
-  };
-}
-
-//----------------------------------------------------------------------
-// helpers
-
-// helper to receive a (smallish, <10MB) request body (if any)
-function receiveBody(request) {
-  __js var rv = new Buffer(0);
-  waitfor {
-    waitfor() { __js request.on('end', resume); }
-  }
-  or {
-    while (1) { 
-      rv = concatBuffers(
-        [rv, 
-         event.wait(request, 'data')
-        ]);
-      __js if (rv.length > 1024*1024*10) throw new Error("Request body too large");
-    }
-  }
-  return rv;
-}
-
-//----------------------------------------------------------------------
 
 /**
  @class ServerRequest
  @summary Incoming HTTP request. 
  @desc
-    - Request body size is limited to 10MB.
 */
 function ServerRequest(req, res, ssl) {
   var rv = {};
@@ -133,11 +79,14 @@ function ServerRequest(req, res, ssl) {
   rv.url = url.parse(url.normalize(url.canonicalize(req.url), 
                                       "http#{ssl ? 's' : ''}://#{req.headers.host}"));
   /**
-   @variable ServerRequest.body
-   @summary Request body (nodejs buffer, possibly empty)
+   @function ServerRequest.body
+   @param {optional String} [encoding] 
+   @return {../sequence::Stream}
+   @summary Returns a stream of chunks of data of the request body
+   @desc
+     The return value will be a sequence of Strings if `encoding` is provided, otherwise the elements will be nodejs buffers.
    */
-  // receive a (smallish, <10MB) request body (if any):
-  rv.body = receiveBody(rv.request);
+  rv.body = encoding -> req .. @stream.contents(encoding)
 
   return rv;
 }

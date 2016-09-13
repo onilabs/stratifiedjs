@@ -1220,7 +1220,7 @@
               "type": "class",
               "children": {
                 "body": {
-                  "type": "variable"
+                  "type": "function"
                 },
                 "request": {
                   "type": "variable"

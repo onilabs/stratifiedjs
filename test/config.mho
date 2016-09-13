@@ -11,7 +11,7 @@ exports.serve = function(args) {
     routes: [
       @route.SystemRoutes(),
       @Route('http/post_echo', {
-        POST: (req) -> req.response.end(req.body)
+        POST: (req) -> req.response.end(req.body() .. @join)
       }),
       @Route('http/fail', {
         GET: function(req) {
