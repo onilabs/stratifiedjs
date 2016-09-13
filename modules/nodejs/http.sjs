@@ -118,12 +118,12 @@ function ServerRequest(req, res, ssl) {
   var rv = {};
   /**
    @variable ServerRequest.request
-   @summary [NodeJS http.ServerRequest](http://nodejs.org/docs/latest/api/http.html#http.ServerRequest) object
+   @summary [NodeJS http.IncomingMessage](http://nodejs.org/docs/latest/api/http.html#http_class_http_incomingmessage) object
    */
   rv.request = req;
   /**
    @variable ServerRequest.response
-   @summary [NodeJS http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http.ServerResponse) object
+   @summary [NodeJS http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http_class_http_serverresponse) object
    */
   rv.response = res;
   /**
