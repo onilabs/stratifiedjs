@@ -301,16 +301,18 @@ exports.open = function(path, flags, mode) {
 
 /**
    @function write
-   @summary Write a buffer to the given file
+   @summary Write to the given file
    @param {Integer} [fd] File descriptor
-   @param {Buffer}  [buffer] [Nodejs Buffer](http://nodejs.org/docs/latest/api/buffer.html) from which data will be written
-   @param {Integer} [offset] Offset into buffer from where data will be read
+   @param {bytes::Bytes}  [data] 
+   @param {Integer} [offset] Byte offset into `data` from which to start writing
    @param {Integer} [length] Number of bytes to write
    @param {optional Integer} [position=null] Where to begin writing to the file (`null` = write to current position)
 */
 exports.write = function(fd, buffer, offset, length, position /*=null*/) {
-  if (!Buffer.isBuffer(buffer))
-    throw new Error("buffer required");
+  if (!isBytes(buffer))
+    throw new Error("binary data required");
+
+  buffer = buffer .. toBuffer();
 
   if (position === undefined) position = null;
 
