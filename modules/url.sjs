@@ -162,9 +162,28 @@ exports.build = sys.constructURL;
   @function parse
   @summary Parses the given URL into components.
   @param {String} [url] URL to parse.
-  @return {Object} Parsed URL as described at <http://stevenlevithan.com/demo/parseuri/js/> (using 'strict' mode).
+  @return {Object} Parsed URL as described below.
   @desc
-     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
+     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri> in 'strict' mode.
+
+     A url such as `http://www.onilabs.com/foo/bar?x=y&z=a%20b#anchor%201` will be parsed to an object:
+
+         {
+           anchor: "anchor%201",
+           authority: "www.onilabs.com",
+           directory: "/foo/",
+           file: "bar",
+           host: "www.onilabs.com",
+           password: "",
+           path: "/foo/bar",
+           port: "",
+           protocol: "http",
+           query: "x=y&z=a%20b",
+           relative: "/foo/bar?x=y&z=a%20b#anchor%201",
+           source: "http://www.onilabs.com/foo/bar?x=y&z=a%20b#anchor%201"
+           user: ""
+           userInfo: ""
+         }
 
      **Note:** this function does *NOT* decode the URL components.
 
@@ -185,6 +204,8 @@ exports.build = sys.constructURL;
         The presence of invalid (non-UTF-8) escape sequences in a query string
         will cause this function to throw an error, since this is the behaviour
         of decodeURIComponent.
+
+        A call to `params()` on the example object above would return `{x: "y", z: "a b"}`.
 */
 exports.parse = sys.parseURL;
 
