@@ -161,7 +161,7 @@ __js exports.startsWith = function(str, prefix) {
   @function endsWith
   @summary  Returns whether a string ends with another.
   @param    {String} [string] The subject.
-  @param    {String} [prefix] The suffix to check for.
+  @param    {String} [suffix] The suffix to check for.
   @return   {Boolean} Whether `string` ends with `suffix`.
   @desc
         // example:
