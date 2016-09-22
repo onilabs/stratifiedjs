@@ -463,6 +463,16 @@ function eval_msie(code, settings) {
 __js function init_hostenv(){}
 
 //----------------------------------------------------------------------
+
+// install a default error handler that gives us stacktraces on Chrome for 
+// certain edge cases (see examples/xbrowser/exception-tests.html):
+__js window.onerror = function(a,b,c,d,e) {
+  if (e) { // need this check because some browsers (safari) don't implement the 5th parameter yet
+    console.error("Uncaught "+e.toString());
+    return true;
+  }
+};
+
 // script loading:
 
 if (!__oni_rt.G.__oni_rt_no_script_load) {

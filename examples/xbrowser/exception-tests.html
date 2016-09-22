@@ -55,11 +55,8 @@
       All of these scenarios should give correctly amended errors in your browser's console, like e.g.: <i>"Error: foo (in inline_script1:8)"</i> (meaning the exception was thrown in inline script 1 at line 8).
     </p>
     <p>
-     Currently the only scenario that isn't working is scenario 1 (calling
-      SJS from JS, and SJS throwing a synchronous exception) on IE and
-      Chrome. (This is not too bad, because you can inspect
-      the exception's call stack to at least get the location of the JS
-      that made the SJS call.)
+     Note that on some browsers (IE/Chrome) scenario 1 only works satisfactorily if stratifiedjs's default "onerror" handler is left in place.  
+
     </p>
     <button onclick='throwError()'>1: throwError
     JS->SJS->uncaught</button> (Not working correctly on IE and Chrome, see comment above)<br/>
@@ -67,5 +64,10 @@
     <button onclick='throwErrorAsync()'>3: throwError JS -> async SJS -> uncaught</button> (Should work on all browsers)<br/>
     <button id="button2">4: spawned throwError SJS -> uncaught</button> (Should work on all browsers)<br/>
     <button id="button3">5: throwError SJS -> uncaught</button> (Should work on all browsers)<br/>
+
+    <button onclick="window.onerror=undefined">
+      Remove window.onerror
+    </button>
+
   </body>
 </html>
