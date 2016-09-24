@@ -91,14 +91,14 @@ exports.buildQuery = sys.constructQueryString;
 /**
   @function build
   @summary Build a URL string.
-  @param {URLSPEC} [urlspec] Base string and optional path strings
+  @param {URLSPEC} [urlspec] Base string/quasi and optional path strings/quasis
                    and query hashes. See below for full syntax.
   @return {String}
   @desc
     ###Notes:
 
-    *urlspec* can be a simple string or an (arbitrarily nested) array composed
-    of one base strings, and optionally a number of path strings and/or a
+    *urlspec* can be a simple string or quasi or an (arbitrarily nested) array composed
+    of one base string/quasi, and optionally a number of path strings/quasis and/or a
     number of QUERYHASH objects (as accepted by
     [::buildQuery]).
 
@@ -110,16 +110,21 @@ exports.buildQuery = sys.constructQueryString;
          // is equivalent to
          url.build(["foo", "bar", "baz"]);
 
-    Base & path strings will be concatenated in such a way that there is
+    Base & path strings/quasis will be concatenated in such a way that there is
     exactly one '/' character between each component.
 
-    The base string may contain a '?' character. In this case no path strings
+    Quasis are useful to construct URLs with arbitrary content that needs to be encoded. The interpolated elements 
+    of quasis will be encoded with `encodeURIComponent`.
+
+    The base string/quasi may contain a '?' character. In this case no path strings
     should be given, but query hashes can be specified and will be appended
     correctly (using '&' instead of '?').
 
     ###Examples:
 
         url.build("foo.txt"); // -> "foo.txt"
+
+        url.build(`dir/${"foo/bar"}.txt`); // -> "dir/foo%2Fbar.txt"
 
         url.build("foo", "bar", "foo.txt"); // -> "foo/bar/foo.txt"
 
@@ -142,11 +147,11 @@ exports.buildQuery = sys.constructQueryString;
     Full syntax for *urlspec*:
 
         URLSPEC   : arbitrarily nested array
-                    [ BASESTR , PATHSTR* , QUERYHASH* ]
+                    [ BASESTR_OR_QUASI , PATHSTR_OR_QUASI* , QUERYHASH* ]
 
-        BASESTR   : string with url base (e.g. "http://onilabs.com/foo")
+        BASESTR   : string or quasi with url base (e.g. "http://onilabs.com/foo")
 
-        PATHSTR   : string with directory component
+        PATHSTR   : string or quasi with directory component
 
         QUERYHASH : { QUERY* } | undefined
 

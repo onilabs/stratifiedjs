@@ -359,14 +359,24 @@ __js exports.constructQueryString = function(/*hashes*/) {
 __js exports.constructURL = function(/* url_spec */) {
   var url_spec = exports.flatten(arguments);
   var l = url_spec.length;
-  var rv = url_spec[0];
+  var rv;
 
   // path components:
-  for (var i=1; i<l; ++i) {
+  for (var i=0; i<l; ++i) {
     var comp = url_spec[i];
-    if (typeof comp != "string") break;
-    if (rv.charAt(rv.length-1) != "/") rv += "/";
-    rv += comp.charAt(0) == "/" ? comp.substr(1) :comp;
+    if (exports.isQuasi(comp)) {
+      comp = comp.parts.slice();
+      for (var k=1;k<comp.length; k+=2)
+        comp[k] = encodeURIComponent(comp[k]);
+      comp = comp.join('');
+    }
+    else if (typeof comp != "string") break;
+    if (rv !== undefined) {
+      if (rv.charAt(rv.length-1) != "/") rv += "/";
+      rv += comp.charAt(0) == "/" ? comp.substr(1) :comp;
+    }
+    else
+      rv = comp; 
   }
 
   // query string:
