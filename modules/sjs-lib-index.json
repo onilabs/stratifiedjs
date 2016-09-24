@@ -2843,6 +2843,9 @@
         "encode": {
           "type": "function"
         },
+        "encodeURIComponentRFC3986": {
+          "type": "function"
+        },
         "fileURL": {
           "type": "function"
         },

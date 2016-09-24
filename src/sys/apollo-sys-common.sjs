@@ -322,6 +322,19 @@ function URI() {}
 }
 
 /**
+   @function encodeURIComponentRFC3986
+   @summary Stricter version of encodeURIComponent which also escapes !, ', (, ), and *.
+   @param {String} [uri_component]
+   @desc
+     See also https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent
+*/
+__js exports.encodeURIComponentRFC3986 = function(str) {
+  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
+    return '%' + c.charCodeAt(0).toString(16);
+  });
+};
+
+/**
   @function  constructQueryString
   @summary Build a URL query string.
   @param {QUERYHASHARR} [hashes] Object(s) with key/value pairs.
@@ -367,7 +380,7 @@ __js exports.constructURL = function(/* url_spec */) {
     if (exports.isQuasi(comp)) {
       comp = comp.parts.slice();
       for (var k=1;k<comp.length; k+=2)
-        comp[k] = encodeURIComponent(comp[k]);
+        comp[k] = exports.encodeURIComponentRFC3986(comp[k]);
       comp = comp.join('');
     }
     else if (typeof comp != "string") break;

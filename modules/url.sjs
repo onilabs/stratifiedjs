@@ -114,7 +114,7 @@ exports.buildQuery = sys.constructQueryString;
     exactly one '/' character between each component.
 
     Quasis are useful to construct URLs with arbitrary content that needs to be encoded. The interpolated elements 
-    of quasis will be encoded with `encodeURIComponent`.
+    of quasis will be encoded with [::encodeURIComponentRFC3986].
 
     The base string/quasi may contain a '?' character. In this case no path strings
     should be given, but query hashes can be specified and will be appended
@@ -286,10 +286,21 @@ __js {
 }
 
 /**
+   @function encodeURIComponentRFC3986
+   @summary Stricter version of encodeURIComponent which also escapes !, ', (, ), and *.
+   @param {String} [uri_component]
+   @desc
+     See also https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent
+*/
+exports.encodeURIComponentRFC3986 = sys.encodeURIComponentRFC3986;
+
+/**
    @function encode
    @summary Alias for encodeURIComponent
    @param {String} [uri] The component to encode
    @return {String} An encoded URI component
+   @desc
+      See also [::encodeURIComponentRFC3986]
 */
 exports.encode = encodeURIComponent;
 
