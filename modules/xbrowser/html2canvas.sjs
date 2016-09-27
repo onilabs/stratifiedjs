@@ -1,6 +1,4 @@
 /*
- * StratifiedJS 'nodejs/mkdirp' module
- *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs

@@ -33,8 +33,8 @@
   @module    xbrowser/dom
   @summary   Basic DOM functionality
   @home      sjs:xbrowser/dom
-  @inlibrary sjs:std as dom when nodejs
-  @inlibrary mho:std as dom when nodejs
+  @inlibrary sjs:std as dom when xbrowser
+  @inlibrary mho:std as dom when xbrowser
   @hostenv   xbrowser
   @desc
      Note: This module will automatically load the [./dom-shim::] module on 
@@ -104,8 +104,8 @@ __js {
 
 /**
   @function  eventTarget
-  @inlibrary sjs:std when nodejs
-  @inlibrary mho:std when nodejs
+  @inlibrary sjs:std when xbrowser
+  @inlibrary mho:std when xbrowser
   @summary Cross-platform event helper. Retrieves event target.
   @param {DOMEvent} [ev] DOM event object.
   @return {DOMElement} Event target (ev.srcElement on IE, ev.target elsewhere)
@@ -146,8 +146,8 @@ __js exports.pageY = function(ev) {
 
 /**
   @function preventDefault
-  @inlibrary sjs:std when nodejs
-  @inlibrary mho:std when nodejs
+  @inlibrary sjs:std when xbrowser
+  @inlibrary mho:std when xbrowser
   @summary Cross-platform event helper. Cancels default action of given event.
   @param {DOMEvent} [ev] DOM event object.
 */
@@ -179,8 +179,8 @@ __js exports.stopPropagation = function(ev) {
 
 /**
   @function stopEvent
-  @inlibrary sjs:std when nodejs
-  @inlibrary mho:std when nodejs
+  @inlibrary sjs:std when xbrowser
+  @inlibrary mho:std when xbrowser
   @summary Cross-platform event helper. Cancels propagation, bubbling and default action of given event.
   @param {DOMEvent} [ev] DOM event object.
 */
