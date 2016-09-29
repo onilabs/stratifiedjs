@@ -787,7 +787,26 @@ exports.first = first;
     - For a negative `index`, only `abs(index)` elements are held in memory.
 
 */
-function at(seq, n, defaultValue) {
+__js {
+  function at(seq, n, defaultValue) {
+    if (isConcrete(seq)) {
+      if (n < 0) n = seq.length + n;
+      if (n < 0 || n >= seq.length) {
+        if (arguments.length > 2) 
+          return defaultValue;
+        else
+          throw new SequenceExhausted('sequence exhausted');
+      }
+      return seq[n];
+    }
+    else 
+      return at_stream.apply(null, arguments);
+  }
+
+  exports.at = at;
+}
+
+function at_stream(seq, n, defaultValue) {
   var tail = seq;
   if (n < 0) {
     var size = -n;
@@ -801,7 +820,6 @@ function at(seq, n, defaultValue) {
   if (arguments.length > 2) firstArgs.push(defaultValue);
   return first.apply(null, firstArgs);
 };
-exports.at = at;
 
 /**
   @function last
