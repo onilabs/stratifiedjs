@@ -864,14 +864,20 @@ exports.last = (seq, defaultValue) -> (arguments.length == 1) ? at(seq, -1) : at
     You should pass the result through [::toArray] if your code depends
     on Array-specific behaviour.
 */
-function slice(sequence, start, end) {
-  if(isString(sequence) || isBuffer(sequence)) return sequence.slice(start, end);
-  if(isArrayLike(sequence)) {
-    var m = (sequence.slice || Array.prototype.slice);
-    // TypedArray `slice` method is buggy if you pass `undefined` as second argument.
-    return (end === undefined) ? m.call(sequence, start) : m.call(sequence, start, end);
+__js {
+  function slice(sequence, start, end) {
+    if(isString(sequence) || isBuffer(sequence)) return sequence.slice(start, end);
+    if(isArrayLike(sequence)) {
+      var m = (sequence.slice || Array.prototype.slice);
+      // TypedArray `slice` method is buggy if you pass `undefined` as second argument.
+      return (end === undefined) ? m.call(sequence, start) : m.call(sequence, start, end);
+    }
+    return slice_stream(sequence, start, end);
   }
+  exports.slice = slice;
+}
 
+function slice_stream(sequence, start, end) {
   // drop leading values:
   var dropped = 0;
   if (start !== undefined && start !== 0) {
@@ -899,7 +905,6 @@ function slice(sequence, start, end) {
   }
   return sequence;
 };
-exports.slice = slice;
 
 // NOTE: padEnd is a single-shot sequence,
 // as it maintains state (available via the `tail` method).
