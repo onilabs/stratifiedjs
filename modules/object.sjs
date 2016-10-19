@@ -376,7 +376,7 @@ __js exports.clone = function(obj) {
         properties appearing in objects to the left.
       * `source` parameters can be arbitrarily nested arrays of objects. These will be 
         flattend before the objects contained in them will be applied to `dest`.
-      * `source` is allowed to contain undefined or null values, which will be ignored. 
+      * The `source` array is allowed to contain undefined or null values, which will be ignored. 
         This is to support the following pattern, where `settings` is an optional parameter:
 
             function foo(x, y, z, settings) {
@@ -385,6 +385,17 @@ __js exports.clone = function(obj) {
                          } .. @override(settings);
               ...
             }
+
+      * Note that all explicitly set elements in a `source` object will be applied as overrides,
+        even if they are `null` or `undefined`. E.g. the code
+
+            var setting = { foo: 1,
+                            bar: 2
+                          } .. @override({foo:undefined, bar: null});
+
+        yields a settings object
+
+            { foo: undefined, bar: null }
 */
 __js exports.override = function(/*dest, source...*/) {
   var dest = arguments[0];
