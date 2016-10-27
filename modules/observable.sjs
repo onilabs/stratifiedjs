@@ -314,7 +314,8 @@ function synchronize(A, B, settings) {
     bToA: undefined
   } .. override(settings);
 
-  var AfromB = {} /* a token that A is definitely not set to */, BfromA;
+  var UNSET_TOKEN = {};
+  var AfromB = BfromA = UNSET_TOKEN;
 
   waitfor {
     A .. each.track { 
@@ -323,6 +324,7 @@ function synchronize(A, B, settings) {
       if (settings.aToB)
         valA = settings.aToB(valA);
       BfromA = valA;
+      AfromB = UNSET_TOKEN;
       B.set(valA);
     }
   }
@@ -333,7 +335,8 @@ function synchronize(A, B, settings) {
       if (settings.bToA)
         valB = settings.bToA(valB);
       AfromB = valB;
-      A.set(valB);      
+      BfromA = UNSET_TOKEN;
+      A.set(valB);
     }
   }
 
