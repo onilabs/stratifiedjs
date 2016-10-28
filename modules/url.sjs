@@ -222,6 +222,9 @@ exports.parse = sys.parseURL;
   @desc
     If either URL is missing an authority part (i.e. it is a relative URL),
     the function returns true as well.
+
+    Note that default ports (such as '80' for 'http' and '443' for 'https') will not be automatically inferred. E.g.
+    the URL `http://foo.com` will not be identified as being the same origin as `http://foo.com:80`.
 */
 exports.isSameOrigin = sys.isSameOrigin;
 
