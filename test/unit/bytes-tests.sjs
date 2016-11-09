@@ -40,6 +40,10 @@ types .. @each {|[className, testMethod, convertMethod, sourceExample]|
 
 		types .. @each {|[desc, _, _, example]|
 			var isSelf = example === sourceExample;
+
+      // since ca. node v 4.5, buffers are also unit8arrays:
+      if (desc ==='Buffer' && className ==='Uint8Array') continue;
+
 			@test("#{desc} .. #{testMethod} should be #{isSelf}") {||
 				example .. @[testMethod] .. @assert.eq(isSelf);
 			}
