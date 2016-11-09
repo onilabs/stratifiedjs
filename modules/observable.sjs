@@ -315,7 +315,8 @@ function synchronize(A, B, settings) {
   } .. override(settings);
 
   var UNSET_TOKEN = {};
-  var AfromB = BfromA = UNSET_TOKEN;
+  var AfromB = UNSET_TOKEN;
+  var BfromA = UNSET_TOKEN;
 
   waitfor {
     A .. each.track { 
