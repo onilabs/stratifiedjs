@@ -152,7 +152,7 @@
           ropath .. @fs.writeFile("secret", 'utf-8');
           ropath .. @fs.chmod(0000);
           try {
-            @assert.raises({message:/^EACCES, open .*readonly['"]$/},
+            @assert.raises({message:/^EACCES.*readonly['"]$/},
               -> @tar.pack(src) .. exhaust()
             );
           } finally {
@@ -166,7 +166,7 @@
         @TemporaryDir {|src|
           src .. @fs.chmod(0500);
           try {
-            @assert.raises({message:/^EACCES, mkdir/},
+            @assert.raises({message:/^EACCES.*mkdir/},
               -> @tar.pack(fixtureDir) .. @tar.extract({path:src})
             );
           } finally {
