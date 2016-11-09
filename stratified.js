@@ -3283,7 +3283,8 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
-pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,continue_scope:0,break_scope:0});
+pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,is_strict:false,continue_scope:0,break_scope:0});
+
 
 
 if(bl){
@@ -3293,6 +3294,8 @@ prev.notail=true;
 }
 
 function collect_decls(decls){var rv="";
+
+if(decls.is_strict)rv+="'use strict';";
 
 if(decls.vars.length)rv+="var "+decls.vars.join(",")+";";
 
@@ -3316,7 +3319,7 @@ if(pre)rv+=pre;
 
 for(var i=0;i<seq.length;++i){
 var v=seq[i].v();
-;
+
 if(v.length){
 if(i||pre)rv+=",";
 rv+=v;
@@ -3402,7 +3405,20 @@ return;
 
 
 var seq=top_stmt_scope(pctx).seq;
-if(stmt.is_nblock&&pctx.js_ctx==0){
+
+
+
+
+
+
+if(stmt.exp&&typeof (stmt.exp.value)==='string'&&(stmt.exp.value==='"use strict"'||stmt.exp.value==="'use strict'")&&seq.length===0&&top_decl_scope(pctx).funs===''&&top_decl_scope(pctx).vars.length===0){
+
+
+
+
+top_decl_scope(pctx).is_strict=true;
+}else if(stmt.is_nblock&&pctx.js_ctx==0){
+
 
 var last=seq.length?seq[seq.length-1]:null;
 if(!last||!last.is_nblock_seq){
