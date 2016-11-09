@@ -216,6 +216,7 @@ exports.testLibrary = function(hub) {
                 'desc',
                 'hostenv',
                 'demo',
+                'inlibrary'
           ];
 
           switch(symdoc.type) {
