@@ -421,7 +421,7 @@ Hash.prototype = {
 #define PAT_COMMENT \/\*(?:.|\n|\r)*?\*\/
 #define PAT_NEWLINES (?:PAT_NEWLINE|PAT_COMMENT)+
 
-#define PAT_NUMLIT (?:0[xX][\da-fA-F]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)
+#define PAT_NUMLIT (?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)
 
 #define PAT_REGEXLIT \/(?:\\.|\[(?:\\PAT_DOT|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*
 
