@@ -3369,9 +3369,10 @@ last.pushStmt(stmt);
 
 }
 
+
 function end_script(pctx){var decls=pctx.decl_scopes.pop();
 
-var rv=collect_decls(decls)+pop_stmt_scope(pctx,(pctx.globalReturn?"return ":"")+"__oni_rt.exseq(this.arguments,this,"+pctx.filename+",["+(16|8),"])");
+var rv=collect_decls(decls)+pop_stmt_scope(pctx,(pctx.globalReturn?"return ":"")+"__oni_rt.exseq(this ? this.arguments : undefined,this,"+pctx.filename+",["+(16|8),"])");
 
 
 
