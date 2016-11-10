@@ -722,25 +722,35 @@ __js function default_src_loader(path) {
 
 var compiled_src_tag = /^\/\*\__oni_compiled_sjs_1\*\//;
 function default_compiler(src, descriptor) {
-  //var start = new Date();
-  var f;
-  if (typeof(src) === 'function') {
-    f = src;
+  try {
+    var f;
+    if (typeof(src) === 'function') {
+      f = src;
+    }
+    else if (compiled_src_tag.exec(src)) {
+      //console.log("#{descriptor.id} precompiled");
+      // great; src is already compiled
+      // XXX apparently eval is faster on FF, but eval is tricky with
+      // precompiled code, because of IE, where we need execScript
+      
+      f = new Function("module", "exports", "require", "__onimodulename", "__oni_altns", src);
+    }
+    else {
+      f = exports.eval("(function(module,exports,require, __onimodulename, __oni_altns){"+src+"\n})",
+                       {filename:"module #{descriptor.id}"});
+    }
+    f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}", {});
+    //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
   }
-  else if (compiled_src_tag.exec(src)) {
-    //console.log("#{descriptor.id} precompiled");
-    // great; src is already compiled
-    // XXX apparently eval is faster on FF, but eval is tricky with
-    // precompiled code, because of IE, where we need execScript
-
-    f = new Function("module", "exports", "require", "__onimodulename", "__oni_altns", src);
+  catch(e) {
+    // this catches strict mode errors (e.g. octal literals not allowed) that
+    // the sjs compiler doesn't catch
+    if (e instanceof SyntaxError) {
+      throw new Error("In module #{descriptor.id}: #{e.message}");
+    }
+    else 
+      throw e;
   }
-  else {
-    f = exports.eval("(function(module,exports,require, __onimodulename, __oni_altns){"+src+"\n})",
-                     {filename:"module #{descriptor.id}"});
-  }
-  f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}", {});
-  //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
 }
 // used when precompiling modules - must be kept in sync with the above f() call
 __js default_compiler.module_args = ['module', 'exports', 'require', '__onimodulename', '__oni_altns'];
