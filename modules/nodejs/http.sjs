@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2012-2013 Oni Labs, http://onilabs.com
+ * (c) 2012-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -35,6 +35,7 @@
   @home      sjs:nodejs/http
   @hostenv   nodejs
 */
+'use strict';
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/http module only runs in a nodejs environment');

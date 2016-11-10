@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2012-2013 Oni Labs, http://onilabs.com
+ * (c) 2012-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -36,6 +36,7 @@
    @inlibrary sjs:std as fn
    @inlibrary mho:std as fn
 */
+'use strict';
 
 module.setCanonicalId('sjs:function');
 

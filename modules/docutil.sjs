@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -36,6 +36,7 @@
    @desc    Work-in-progress
    @nodoc
 */
+'use strict';
 
 var { merge, hasOwn, ownPropertyPairs } = require('./object');
 var { each } = require('./sequence');

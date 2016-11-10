@@ -5,7 +5,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2014 Oni Labs, http://onilabs.com
+ * (c) 2014-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -36,7 +36,10 @@
   @hostenv   nodejs
   @desc
     This module tracks the [rimraf](https://github.com/isaacs/rimraf) library by Isaac Z. Schlueter.
+*/
+'use strict';
 
+/**
   @function rimraf
   @param {String} [path]
   @summary Recursively remove the given `path`

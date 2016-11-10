@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -37,7 +37,7 @@
   @inlibrary mho:std as stream when nodejs
   @hostenv   nodejs
   @desc
-    ### Warning: Backwards compatility
+    ### Warning: Backwards compatibility
 
     The nodejs stream API changed significantly in nodejs 0.10. The pre-0.10 API
     is not supported by StratifiedJS.
@@ -49,6 +49,7 @@
         var newStream = new Readable().wrap(oldStream);
 
 */
+'use strict';
 
 var sys = require('builtin:apollo-sys');
 if (sys.hostenv != 'nodejs')

@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -37,6 +37,7 @@
    @inlibrary sjs:std
    @inlibrary mho:std
 */
+'use strict';
 
 var { map, reduce, join } = require('./sequence');
 var { padRight } = require('./string');

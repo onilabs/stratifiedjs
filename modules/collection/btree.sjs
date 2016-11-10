@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -35,6 +35,7 @@
    @summary   Functions for creating and manipulating B-trees
    @home      sjs:collection/btree
 */
+'use strict';
 
 var dictionary = require('./dictionary');
 var sequence   = require('../sequence');

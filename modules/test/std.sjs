@@ -11,4 +11,5 @@
 
        @ = require('sjs:test/std');
 */
+'use strict';
 module.exports = require(['./suite', '../std']);

@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -37,6 +37,7 @@
   @inlibrary mho:std as childProcess when nodejs
   @home      sjs:nodejs/child-process
 */
+'use strict';
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/child-process module only runs in a nodejs environment');

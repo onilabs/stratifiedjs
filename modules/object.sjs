@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -36,12 +36,13 @@
    @inlibrary sjs:std
    @inlibrary mho:std
 */
+'use strict';
 
 var { each, transform, Stream } = require('./sequence');
 var { extendObject, mergeObjects, flatten, isArrayLike } = require('builtin:apollo-sys');
 
-var hasProperty = function(k) { return k in this; }
-var hasOwnProperty = Object.prototype.hasOwnProperty;
+__js var hasProperty = function(k) { if (typeof this !== 'object') return false; return k in this; }
+__js var hasOwnProperty = Object.prototype.hasOwnProperty;
 
 __js var _get = function(guard, args) {
   var subject = args[0], key = args[1], defaultValue = args[2];
@@ -129,7 +130,7 @@ __js var sentinel = {};
           [["one", "two"]] .. getPath([0, 1]);
           // "two"
   */
-__js  exports.getPath = function(subject, path, defaultValue) {
+__js exports.getPath = function(subject, path, defaultValue) {
   var hasDefault = (arguments.length == 3);
   var parts = Array.isArray(path) ? path : path.split(".");
   

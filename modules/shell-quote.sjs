@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  *
  * This file is derived from the "node-shell-quote" project
@@ -45,6 +45,7 @@
     **NOTE**: [::quote] is *not guaranteed* to safely sanitize data for use with any
     specific shell. You should not rely on it for protecting against shell-injection.
 */
+'use strict';
 
 var { map, join, toArray } = require('./sequence');
 var { isArrayLike } = require('builtin:apollo-sys');

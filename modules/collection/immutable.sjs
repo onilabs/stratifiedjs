@@ -2,7 +2,7 @@
  * Part of the Stratified JavaScript Standard Module Library
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2014 Oni Labs, http://onilabs.com
+ * (c) 2014-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -30,6 +30,7 @@
    @summary   Various immutable data structures, including dictionaries, lists, sets, queues, and stacks
    @home      sjs:collection/immutable
 */
+'use strict';
 
 // TODO should these use sjs: or ../
 @ = require([

@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -37,6 +37,7 @@
   @inlibrary sjs:std  as fs when nodejs
   @inlibrary mho:std  as fs when nodejs
 */
+'use strict';
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/fs module only runs in a nodejs environment');
@@ -242,10 +243,10 @@ exports.rmdir = function(path) {
    @function mkdir
    @summary `mkdir(2)` system call
    @param {String} [path]
-   @param {optional Integer} [mode=0777]
+   @param {optional Integer} [mode=0o777]
 */
 exports.mkdir = function(path, mode) {
-  waitfor (var err) { fs.mkdir(path, mode===undefined ? 0777 : mode, resume); }
+  waitfor (var err) { fs.mkdir(path, mode===undefined ? 0o777 : mode, resume); }
   if (err) throw err;
 };
 
@@ -278,7 +279,7 @@ exports.close = function(fd) {
    @summary `open(2)` system call
    @param {String} [path] File path
    @param {String} [flags] Open flags ('r', 'r+', 'w', 'w+', 'a', or 'a+')
-   @param {optional Integer} [mode=0666] Open mode
+   @param {optional Integer} [mode=0o666] Open mode
    @return {Integer} File descriptor
 */
 exports.open = function(path, flags, mode) {
@@ -526,7 +527,7 @@ function streamContext(ctor, dtor) {
    @param {Function} [block]
    @setting {String} [flags="w"]
    @setting {String} [encoding=null]
-   @setting {Number} [mode=0666]
+   @setting {Number} [mode=0o666]
    @desc
      This function calls the nodejs [fs.createWriteStream][]
      with the provided `path` and `opts`.
@@ -557,7 +558,7 @@ exports.withWriteStream = streamContext('createWriteStream', 'end');
    @param {Function} [block]
    @setting {String} [flags="w"]
    @setting {String} [encoding=null]
-   @setting {Number} [mode=0666]
+   @setting {Number} [mode=0o666]
    @desc
      This function calls nodejs' [fs.createReadStream][]
      with the provided `path` and `opts`.

@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -37,6 +37,7 @@
    @inlibrary mho:std
    @eslint  { "rules": { "no-labels": 0 } }
 */
+'use strict';
 
 var { Stream } = require('./sequence');
 var { isArrayLike, flatten } = require('builtin:apollo-sys');

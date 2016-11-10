@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -123,6 +123,7 @@
             --debug            Set logLevel=DEBUG before test runner begins
             -h, --help         Print this help
 */
+'use strict';
 
 // import deps in parallel, as roundtrips affect browser startup time significantly.
 waitfor {

@@ -5,7 +5,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2015 Oni Labs, http://onilabs.com
+ * (c) 2015-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -45,6 +45,7 @@
     a call to `toUint8Array` (for example), it may modify the
     original value as well, depending on the original type.
 */
+'use strict';
 
 var sys = require('builtin:apollo-sys');
 

@@ -5,7 +5,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2014 Oni Labs, http://onilabs.com
+ * (c) 2014-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -45,6 +45,7 @@
     By default, all files and directories are created readable,
     writable and executable (for directories) _only_ by the current user.
 */
+'use strict';
 
 @ = require(['../function', '../object', '../sequence']);
 @fs = require('./fs');
@@ -135,7 +136,7 @@ exports.TemporaryFile = function(opts, block) {
     block = opts;
     opts = {};
   } else if (!opts) opts = {};
-  var mode = opts.mode || 0600;
+  var mode = opts.mode || 0o600;
   var del = opts['delete'] !== false;
   var flags = 'wx+';
 
@@ -208,7 +209,7 @@ exports.TemporaryDir = function(opts, block) {
     opts = {};
   } else if (!opts) opts = {};
   var del = opts['delete'] !== false;
-  var mode = opts.mode || 0700;
+  var mode = opts.mode || 0o700;
   var [ path ] = mk(opts, path -> @fs.mkdir(path, mode));
   if (block) {
     try {

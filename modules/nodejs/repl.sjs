@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -35,6 +35,7 @@
   @home    sjs:nodejs/repl
   @hostenv nodejs
 */
+'use strict';
 
 var sys = require('builtin:apollo-sys');
 if (sys.hostenv != 'nodejs') 

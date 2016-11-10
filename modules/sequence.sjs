@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -41,6 +41,7 @@
      infinite streams.
 
 */
+'use strict';
 
 var {isArrayLike, isQuasi, streamContents } = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');

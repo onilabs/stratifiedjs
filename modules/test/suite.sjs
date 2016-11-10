@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -64,6 +64,7 @@
           }.skipIf(suite.isBrowser, "Subtraction is not supported in the browser");
 
 */
+'use strict';
 
 var _runner = null;
 var sys=require('builtin:apollo-sys');

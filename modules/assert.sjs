@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -29,7 +29,6 @@
  * THE SOFTWARE.
  *
  */
-
 /**
   @module  assert
   @summary Assertion functions, primarily for use in tests.
@@ -65,6 +64,7 @@
     * (etc ... )
 
 */
+'use strict';
 
 var object = require('./object');
 var {each, all, find, toArray, hasElem, join} = require('./sequence');

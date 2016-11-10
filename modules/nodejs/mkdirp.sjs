@@ -5,7 +5,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2014 Oni Labs, http://onilabs.com
+ * (c) 2014-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -34,7 +34,10 @@
   @summary   Recursively make directories (tracking the [mkdirp library](https://github.com/substack/node-mkdirp))
   @home      sjs:nodejs/mkdirp
   @hostenv   nodejs
+*/
+'use strict';
 
+/**
   @function mkdirp
   @param {String} [path]
   @summary Ensure `path` (and any parent directories) exist

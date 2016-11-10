@@ -5,7 +5,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -33,6 +33,7 @@
    @summary   Structures for simple dependency injection
    @home      sjs:service
 */
+'use strict';
 
 var { get, extend, hasOwn, ownKeys, ownPropertyPairs } = require('./object');
 var { isFunction } = require('./function');

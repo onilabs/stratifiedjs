@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -29,7 +29,6 @@
  * THE SOFTWARE.
  *
  */
-
 /**
   @module  bundle
   @summary Create SJS code bundles
@@ -89,6 +88,7 @@
     and another bundle for just your application code. Bundles will
     add to the existing set of cached module sources.
 */
+'use strict';
 
 var compiler = require('./compile/deps.js');
 

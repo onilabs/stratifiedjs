@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013 Oni Labs, http://onilabs.com
+ * (c) 2013-2016 Oni Labs, http://onilabs.com
  *
  * Adapted from undescore.js' `eq` function. underscore.js is
  * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
@@ -39,6 +39,7 @@
    @inlibrary sjs:std
    @inlibrary mho:std
 */
+'use strict';
 
 var isNode = require('builtin:apollo-sys').hostenv === 'nodejs';
 

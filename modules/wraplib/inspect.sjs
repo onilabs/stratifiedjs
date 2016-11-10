@@ -9,7 +9,7 @@
  * e.g:
  * $ tools/wraplib/inspect.sjs dynamo.sjs
  *
- * (c) 2012 Oni Labs, http://onilabs.com
+ * (c) 2012-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the GPL v2, see
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -25,6 +25,7 @@
  */
 
 /** @nodoc */
+'use strict';
 
 var inspect = exports.inspect = function(obj, opts) {
 	/**

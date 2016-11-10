@@ -6,7 +6,7 @@
  * Version: '0.20.0-development'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2010-2013 Oni Labs, http://onilabs.com
+ * (c) 2010-2016 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -54,6 +54,7 @@
     for example. If no specific `error` method is available,
     `log` will be used instead.
 */
+'use strict';
 
 var { merge, hasOwn } = require('./object');
 var { supplant, isString } = require('./string');
