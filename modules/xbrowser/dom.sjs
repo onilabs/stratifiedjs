@@ -317,7 +317,7 @@ __js exports.addCSS = function(cssCode) {
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
 */
 __js exports.css = function (/* url, queries */) {
-  url = sys.constructURL(arguments);
+  var url = sys.constructURL(arguments);
   var elem = document.createElement("link");
   elem.setAttribute("rel", "stylesheet");
   elem.setAttribute("type", "text/css");
