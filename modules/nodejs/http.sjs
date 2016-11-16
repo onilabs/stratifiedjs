@@ -41,7 +41,8 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
   throw new Error('The nodejs/http module only runs in a nodejs environment');
 
 @ = require([
-  {id: './stream', name: 'stream'}
+  {id: './stream', name: 'stream'},
+  'sjs:observable'
 ])
 
 var builtin_http  = require('http');
@@ -183,7 +184,7 @@ function withServer(config, server_loop) {
     address: '0',
     max_connections: 1000,
     capacity: 100,
-    ssl: false,
+    ssl: undefined,
     fd: undefined,
     log: x => logging.info(address, ":", x),
     print: logging.print
@@ -209,7 +210,7 @@ function withServer(config, server_loop) {
       var server_req = ServerRequest(req, res, !!config.ssl);
     }
     catch(e) {
-      // we hit this e.g. if the body is too long
+      // shouldn't hit this
       config.log('Dropping request ('+e+')');
       res.writeHead(500);
       res.end();
@@ -219,6 +220,96 @@ function withServer(config, server_loop) {
   }
 
   var server;
+
+  // XXX is there no flag on server that has this information???
+  var server_closed = @ObservableVar(false);
+  var open_sockets = [];
+
+  // run our server_loop :
+  waitfor {
+    var Address = @ObservableVar(null);
+    runServerDispatcher(config, dispatchRequest, host, port, server_closed, open_sockets, Address);
+  }
+  or {
+    var address = Address .. find(address -> !!address);
+
+    if(config.print) config.print("Listening on #{address}");
+
+    server_loop(
+      {
+        nodeServer: server,
+        address: address,
+        stop: function() { if (!server_closed .. @current) { server_closed.set(true); } },
+        getConnections: -> server .. getConnections(),
+        eachRequest: function(handler) {
+          waitfor {
+            server_closed .. event.wait(closed -> !!closed);
+          }
+          or {
+            generate(-> request_queue.get()) ..
+              filter(function({request}) {
+                if (request.socket.writable) return true;
+                config.log("Pending connection closed");
+                return false;
+              }) ..
+              each.par(config.max_connections) {
+                |server_request|
+                waitfor {
+                  event.wait(server_request.request, 'close');
+                  config.log("Connection closed");
+                }
+                or {
+                  handler(server_request);
+                  if (!server_request.response.finished) {
+                    config.log("Unfinished response");
+                    if(!server_request.response._header) {
+                      config.log("Response without header; sending 500");
+                      server_request.response.writeHead(500);
+                      server_request.response.end();
+                    }
+                    else {
+                      // headers have already been sent; only course of action is
+                      // to close the connection
+                      server_request.request.socket.destroy();
+                    }
+                  }
+                }
+                retract { 
+                  config.log("Active request while server shutdown");
+                  // try to gracefully end this?
+                }
+              }
+          } 
+        }
+      });
+  }
+  finally {
+    if (!server_closed .. @current()) {
+      server_closed.set(true);
+    }
+
+    if (open_sockets.length > 0) {
+      config.log("destroying #{open_sockets.length} lingering connections");
+      open_sockets .. each {|s|
+        // destroy open socekts, because server.close() doesn't
+        s.destroy();
+      }
+    }
+/*    var connections = server .. getConnections();
+    if (connections) {
+      config.log("Server closed, but #{connections} lingering open connections");
+    }
+    else 
+      config.log("Server closed");
+*/
+  }
+}
+exports.withServer = withServer;
+
+// helper that runs the actual nodejs server (and restarts it when e.g. https credentials change):
+function runServerDispatcher(config, dispatchRequest, host, port, server_closed, open_sockets, Address) {
+  var server;
+
   if (!config.ssl)
     server = builtin_http.createServer(dispatchRequest);
   else
@@ -233,7 +324,7 @@ function withServer(config, server_loop) {
         ciphers: undefined
       } .. override(config.ssl),
       dispatchRequest);
-
+  
   // bind the socket:
   waitfor  {
     var error = event.wait(server, 'error');
@@ -266,9 +357,8 @@ function withServer(config, server_loop) {
     }
   }
 
-  // XXX is there no flag on server that has this information???
-  var server_closed = false;
-  var open_sockets = [];
+  // ok, we've got a listening server
+
   __js {
     // track open sockets for cleanup purposes
     // XXX can we get this info from the server object itself?
@@ -280,98 +370,26 @@ function withServer(config, server_loop) {
     });
   }
 
-  // run our server_loop :
-  waitfor {
-    var error = event.wait(server, 'error');
-    throw new Error("#{config.address}: #{error}");
-  }
-  or {
-    var address;
-
+  try {
     if (config.fd !== undefined) {
       // when inheriting an FD, address() is not defined. Just show whatever was
       // passed in (for information's sake, we can't actually tell if it's correct)
-      address = config.address || 'FD #{config.fd}';
+      Address.set(config.address || 'FD #{config.fd}');
     } else {
       var {port, family, address} = server.address() || {};
-      address = family=='IPv6' ? "[#{address}]:#{port}" : "#{address}:#{port}";
+      Address.set(family=='IPv6' ? "[#{address}]:#{port}" : "#{address}:#{port}");
     }
-
-    if(config.print) config.print("Listening on #{address}");
 
     waitfor {
-      server .. event.wait('close');
-      server_closed = true;
+      var error = event.wait(server, 'error');
+      throw new Error("#{config.address}: #{error}");
     }
-    and {
-      server_loop(
-        {
-          nodeServer: server,
-          address: address,
-          stop: function() { server.close(); },
-          getConnections: -> server .. getConnections(),
-          eachRequest: function(handler) {
-            waitfor {
-              if (!server_closed)
-                server .. event.wait('close');
-            }
-            or {
-              generate(-> request_queue.get()) ..
-                filter(function({request}) {
-                  if (request.socket.writable) return true;
-                  config.log("Pending connection closed");
-                  return false;
-                }) ..
-                each.par(config.max_connections) {
-                  |server_request|
-                  waitfor {
-                    event.wait(server_request.request, 'close');
-                    config.log("Connection closed");
-                  }
-                  or {
-                    handler(server_request);
-                    if (!server_request.response.finished) {
-                      config.log("Unfinished response");
-                      if(!server_request.response._header) {
-                        config.log("Response without header; sending 500");
-                        server_request.response.writeHead(500);
-                        server_request.response.end();
-                      }
-                      else {
-                        // headers have already been sent; only course of action is
-                        // to close the connection
-                        server_request.request.socket.destroy();
-                      }
-                    }
-                  }
-                  retract { 
-                    config.log("Active request while server shutdown");
-                    // try to gracefully end this?
-                  }
-                }
-            } 
-          }
-        });
+    or {
+      server_closed .. event.wait(closed -> !!closed);
     }
   }
   finally {
-    if (!server_closed) {
-      server.close();
-    }
-    if (open_sockets.length > 0) {
-      config.log("destroying #{open_sockets.length} lingering connections");
-      open_sockets .. each {|s|
-        // destroy open socekts, because server.close() doesn't
-        s.destroy();
-      }
-    }
-    var connections = server .. getConnections();
-    if (connections) {
-      config.log("Server closed, but #{connections} lingering open connections");
-    }
-    else 
-      config.log("Server closed");
+    server.close();
+    server_closed.set(true);
   }
 }
-exports.withServer = withServer;
-
