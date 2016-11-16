@@ -59,7 +59,6 @@ var array = require('../array');
 /**
  @class ServerRequest
  @summary Incoming HTTP request. 
- @desc
 */
 function ServerRequest(req, res, ssl) {
   var rv = {};
@@ -117,19 +116,26 @@ var getConnections = function(server) {
    @setting {String} [fd] Adopt an open file descriptor (if given, `address` is used only for information).
    @setting {Integer} [max_connections=1000] Maximum number of concurrent requests.
    @setting {Integer} [capacity=100] Maximum number of unhandled requests that the server will queue up before it starts dropping requests (with a 500 status code). The server only queues requests when there is no active [Server::eachRequest] call, or when there are already `max_connections` active concurrent connections.
-   @setting {Boolean} [ssl=false] Whether to run a HTTP server or a HTTPS server.
-   @setting {String}  [key] The server private key in PEM format. (Required when `ssl=true`.)
-   @setting {String}  [cert] The server certificate in PEM format. (Required when `ssl=true`.)
-   @setting {Array}   [ca] Optional array of authority certificates. (Only used when `ssl=true`.)
-   @setting {String}  [passphrase] Optional passphrase to decrypt an encrypted private `key`.
-   @setting {String}  [secureProtocol] SSL method to use. (Only used when `ssl=true`.)
-   @setting {Integer} [secureOptions] Options to pass to the OpenSSL context. (Only used when `ssl=true`.)
-   @setting {String}  [ciphers] Optional string describing the ciphers to use or exclude, separated by `:`. (Only used when `ssl=true`.)
+   @setting {Object} [ssl] If this is set, the server will be a HTTPS server. See description below for the structure of this object
    @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, uses [../logging::info]
    @desc
       `withServer` will start a HTTP(S) server according to the given 
       configuration and pass a [::Server] instance to `block`. The server will
-      be shut down when `block` exits.
+      be shut down, and existing sockets closed, when `block` exits.
+
+      ### HTTPS
+
+      If the `ssl` property is provided, a HTTPS server will be run. The property has the following structure:
+
+          {
+            key:            The server private key in PEM format (String)
+            cert:           The server certificate in PEM format (String)
+            ca:             Authority certificates (Array of Strings, optional)
+            passphrase:     Passphrase to decrypt an encrypted private key (String, optional)
+            secureProtocol: SSL method to use (String, optional)
+            secureOptions:  Options to pass to the OpenSSL context (Integer, optional)
+            ciphers:        List of ciphers to use or exclude, separated by `:` (String, optional)
+          }
       
       ### Example:
 
@@ -178,16 +184,9 @@ function withServer(config, server_loop) {
     max_connections: 1000,
     capacity: 100,
     ssl: false,
-    key: undefined,
-    cert: undefined,
-    ca: undefined,
-    passphrase: undefined,
     fd: undefined,
     log: x => logging.info(address, ":", x),
-    print: logging.print,
-    secureOptions: undefined,
-    secureProtocol: undefined,
-    ciphers: undefined
+    print: logging.print
   }, config);
 
   var [,host,port] = /^(?:(.*)?\:)?(\d+)$/.exec(config.address);
@@ -207,7 +206,7 @@ function withServer(config, server_loop) {
       return;
     }
     try {
-      var server_req = ServerRequest(req, res, config.ssl);
+      var server_req = ServerRequest(req, res, !!config.ssl);
     }
     catch(e) {
       // we hit this e.g. if the body is too long
@@ -232,7 +231,7 @@ function withServer(config, server_loop) {
         secureOptions: undefined,
         secureProtocol: undefined,
         ciphers: undefined
-      } .. override(config),
+      } .. override(config.ssl),
       dispatchRequest);
 
   // bind the socket:
