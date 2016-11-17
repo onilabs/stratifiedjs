@@ -117,7 +117,7 @@ var getConnections = function(server) {
    @setting {String} [fd] Adopt an open file descriptor (if given, `address` is used only for information).
    @setting {Integer} [max_connections=1000] Maximum number of concurrent requests.
    @setting {Integer} [capacity=100] Maximum number of unhandled requests that the server will queue up before it starts dropping requests (with a 500 status code). The server only queues requests when there is no active [Server::eachRequest] call, or when there are already `max_connections` active concurrent connections.
-   @setting {Object} [ssl] If this is set, the server will be a HTTPS server. See description below for the structure of this object
+   @setting {Object|observable::Observable} [ssl] If this is set, the server will be a HTTPS server. See description below for the structure of this object
    @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, uses [../logging::info]
    @desc
       `withServer` will start a HTTP(S) server according to the given 
@@ -137,6 +137,9 @@ var getConnections = function(server) {
             secureOptions:  Options to pass to the OpenSSL context (Integer, optional)
             ciphers:        List of ciphers to use or exclude, separated by `:` (String, optional)
           }
+
+      If `ssl` is an [observable::Observable], the HTTPS server will be transparently reloaded whenever
+      the credentials change. Existing connections will not be affected.
       
       ### Example:
 
@@ -226,9 +229,36 @@ function withServer(config, server_loop) {
   var open_sockets = [];
 
   // run our server_loop :
+  var Address = @ObservableVar(null);
   waitfor {
-    var Address = @ObservableVar(null);
-    runServerDispatcher(config, dispatchRequest, host, port, server_closed, open_sockets, Address);
+
+    // we restart the node server whenever there is an ssl config
+    // change (because of the 'dispatchRequest' indirection, existing
+    // connections are not affected):
+
+    if (!@isObservable(config.ssl))
+      config.ssl = @constantObservable(config.ssl);
+
+    config.ssl .. each {
+      |ssl_config|
+      if (!!ssl_config)
+        ssl_config = 
+        {
+          key: undefined,
+          cert: undefined,
+          ca: undefined,
+          passphrase: undefined,
+          secureOptions: undefined,
+          secureProtocol: undefined,
+          ciphers: undefined
+        } .. override(ssl_config);
+  
+      runServerDispatcher(config, ssl_config, dispatchRequest, host, port, server_closed, open_sockets, Address);
+    }
+
+  }
+  or {
+    server_closed .. event.wait(closed -> !!closed);
   }
   or {
     var address = Address .. find(address -> !!address);
@@ -307,23 +337,13 @@ function withServer(config, server_loop) {
 exports.withServer = withServer;
 
 // helper that runs the actual nodejs server (and restarts it when e.g. https credentials change):
-function runServerDispatcher(config, dispatchRequest, host, port, server_closed, open_sockets, Address) {
+function runServerDispatcher(config, ssl_config, dispatchRequest, host, port, server_closed, open_sockets, Address) {
   var server;
 
-  if (!config.ssl)
+  if (!ssl_config)
     server = builtin_http.createServer(dispatchRequest);
   else
-    server = require('https').createServer(
-      {
-        key: undefined,
-        cert: undefined,
-        ca: undefined,
-        passphrase: undefined,
-        secureOptions: undefined,
-        secureProtocol: undefined,
-        ciphers: undefined
-      } .. override(config.ssl),
-      dispatchRequest);
+    server = require('https').createServer(ssl_config, dispatchRequest);
   
   // bind the socket:
   waitfor  {
@@ -380,16 +400,10 @@ function runServerDispatcher(config, dispatchRequest, host, port, server_closed,
       Address.set(family=='IPv6' ? "[#{address}]:#{port}" : "#{address}:#{port}");
     }
 
-    waitfor {
-      var error = event.wait(server, 'error');
-      throw new Error("#{config.address}: #{error}");
-    }
-    or {
-      server_closed .. event.wait(closed -> !!closed);
-    }
+    var error = event.wait(server, 'error');
+    throw new Error("#{config.address}: #{error}");
   }
   finally {
     server.close();
-    server_closed.set(true);
   }
 }
