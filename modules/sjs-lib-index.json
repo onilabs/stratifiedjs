@@ -1169,6 +1169,9 @@
             "waitforChange": {
               "type": "function"
             },
+            "watch": {
+              "type": "function"
+            },
             "withReadStream": {
               "type": "function"
             },

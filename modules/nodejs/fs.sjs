@@ -42,7 +42,6 @@
 if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/fs module only runs in a nodejs environment');
 
-
 var fs = require('fs'); // builtin fs
 var evt = require('../event');
 var seq = require('../sequence');
@@ -600,3 +599,28 @@ exports.createReadStream = fs.createReadStream;
 */
 exports.createWriteStream = fs.createWriteStream;
 
+/**
+   @function watch
+   @summary Return an [event::EventStream] of changes (`[eventType, filename]`) on the given file or directory, where `eventType` is either `'rename'` or `'change'`, and `filename` is the name of the file which triggered the event
+   @param {String} [path]
+   @desc
+     * This function uses [nodejs:fs.watch](https://nodejs.org/api/fs.html#fs_fs_watch_filename_options_listener) under the hood. All the caveats found there apply.
+
+     * Because of limited OS support, the `recursive` option of nodejs:fs.watch is not supported.
+     
+*/
+exports.watch = function(path) {
+  return seq.Stream(function(r) {
+    var watcher = fs.watch(path);
+    waitfor {
+      var error = watcher .. evt.wait('error');
+      throw error;
+    }
+    or {
+      watcher .. evt.events('change') .. seq.each(r);
+    }
+    finally {
+      watcher.close();
+    }
+  });
+};
