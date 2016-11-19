@@ -239,7 +239,7 @@ function withServer(config, server_loop) {
     if (!@isObservable(config.ssl))
       config.ssl = @constantObservable(config.ssl);
 
-    config.ssl .. each {
+    config.ssl .. each.track {
       |ssl_config|
       if (!!ssl_config)
         ssl_config = 
