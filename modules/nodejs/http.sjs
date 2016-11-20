@@ -222,7 +222,7 @@ function withServer(config, server_loop) {
     request_queue.put(server_req);
   }
 
-  var nodeServer = @Observable(undefined);
+  var nodeServer = @ObservableVar(undefined);
 
   // XXX is there no flag on server that has this information???
   var server_closed = @ObservableVar(false);
