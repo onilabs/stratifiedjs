@@ -1,22 +1,15 @@
 language: node_js
 sudo: false
 node_js:
-  - "0.10"
+  - v4
+  - v6
+  - v7
 env:
   - t=unit
   - t=unit BROWSERS=PhantomJS
   - t=unit BROWSERS=Firefox
   - t=integration
   - t=integration BROWSERS=PhantomJS,Firefox
-matrix:
-  # just run unit tests on other node versions
-  include:
-    - node_js: "0.12"
-      env: t=unit
-  
-  allow_failures:
-    - node_js: "0.10"
-      env: t=unit BROWSERS=Firefox
 notifications:
   email:
     recipients:
