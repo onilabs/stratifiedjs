@@ -110,7 +110,7 @@ if suite and 'integration' in suite:
 
 	conductance_args = find_conductance()
 	if conductance_args is None:
-		check_call([npm, 'install', '--production', 'conductance'])
+		check_call([npm, 'install', '--production', 'git://github.com/onilabs/conductance.git#production'])
 		conductance_args = find_conductance()
 		if conductance_args is None:
 			err("Could not find conductance.")
