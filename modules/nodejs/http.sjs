@@ -161,7 +161,7 @@ var getConnections = function(server) {
   @summary A HTTP(S) server instance, as created by [::withServer].
 
   @variable Server.nodeServer
-  @summary The underlying [nodejs
+  @summary [observable::Observable] yielding the current underlying [nodejs
     http.Server](http://nodejs.org/docs/latest/api/http.html#http_class_http_server) or [nodejs
     https.Server](http://nodejs.org/docs/latest/api/https.html#https_class_https_server)
 
@@ -222,7 +222,7 @@ function withServer(config, server_loop) {
     request_queue.put(server_req);
   }
 
-  var server;
+  var nodeServer = @Observable(undefined);
 
   // XXX is there no flag on server that has this information???
   var server_closed = @ObservableVar(false);
@@ -253,7 +253,7 @@ function withServer(config, server_loop) {
           ciphers: undefined
         } .. override(ssl_config);
   
-      runServerDispatcher(config, ssl_config, dispatchRequest, host, port, server_closed, open_sockets, Address);
+      runServerDispatcher(config, ssl_config, dispatchRequest, host, port, server_closed, open_sockets, Address, nodeServer);
     }
 
   }
@@ -267,7 +267,7 @@ function withServer(config, server_loop) {
 
     server_loop(
       {
-        nodeServer: server,
+        nodeServer: nodeServer,
         address: address,
         stop: function() { if (!server_closed .. @current) { server_closed.set(true); } },
         getConnections: -> server .. getConnections(),
@@ -337,7 +337,7 @@ function withServer(config, server_loop) {
 exports.withServer = withServer;
 
 // helper that runs the actual nodejs server (and restarts it when e.g. https credentials change):
-function runServerDispatcher(config, ssl_config, dispatchRequest, host, port, server_closed, open_sockets, Address) {
+function runServerDispatcher(config, ssl_config, dispatchRequest, host, port, server_closed, open_sockets, Address, nodeServer) {
   var server;
 
   if (!ssl_config)
@@ -345,6 +345,8 @@ function runServerDispatcher(config, ssl_config, dispatchRequest, host, port, se
   else
     server = require('https').createServer(ssl_config, dispatchRequest);
   
+  nodeServer.set(server);
+
   // bind the socket:
   waitfor  {
     var error = event.wait(server, 'error');
