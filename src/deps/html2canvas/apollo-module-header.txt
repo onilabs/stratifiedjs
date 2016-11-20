@@ -1,5 +1,5 @@
 /*
- * StratifiedJS 'nodejs/mkdirp' module
+ * StratifiedJS 'xbrowser/html2canvas' module
  *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: 'unstable'
