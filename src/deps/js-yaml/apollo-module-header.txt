@@ -1,0 +1,51 @@
+/*
+ * StratifiedJS 'yaml' module
+ *
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: 'unstable'
+ * http://onilabs.com/stratifiedjs
+ *
+ * (c) 2013 Oni Labs, http://onilabs.com
+ *
+ *
+ *   ***************************************************************
+ *   *    DO NOT EDIT yaml.sjs - IT IS A GENERATED FILE!           *
+ *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
+ *   *    stratifiedjs/src/build/make-sjs                          *
+ *   ***************************************************************
+ *
+ *
+ * This file is derived from the "js-yaml" project
+ * (https://github.com/nodeca/js-yaml),
+ * which is available under the terms of the MIT License.
+ *
+ */
+
+/**
+  @module    yaml
+  @summary   YAML parser (tracking the [js-yaml](https://github.com/nodeca/js-yaml) library)
+  @home      sjs:yaml
+  @desc
+
+    * See https://github.com/nodeca/js-yaml#api for API documentation.
+
+    * See http://nodeca.github.io/js-yaml for a demo.
+
+    * Function expressions (via esprima) are not supported.
+*/
+
+
+/**
+  @docsoff
+*/
+
+// js-yaml attempts to load various modules (esprima, buffer) that we don't want in certain scenarios
+var normal_require = require;
+require = function(id) {    
+ if (normal_require('builtin:apollo-sys').hostenv === 'nodejs' && id === 'buffer')
+   return normal_require('buffer');
+ return undefined;
+};
+
+__js {
+

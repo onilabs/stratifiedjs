@@ -3074,6 +3074,11 @@
         }
       },
       "summary": "Basic cross-browser functionality"
+    },
+    "yaml": {
+      "type": "module",
+      "children": {},
+      "summary": "YAML parser (tracking the [js-yaml](https://github.com/nodeca/js-yaml) library)"
     }
   },
   "summary": "Standard collection of modules for the StratifiedJS language",
