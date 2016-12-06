@@ -41,7 +41,7 @@
 var { each, transform, Stream } = require('./sequence');
 var { extendObject, mergeObjects, flatten, isArrayLike } = require('builtin:apollo-sys');
 
-__js var hasProperty = function(k) { if (typeof this !== 'object') return false; return k in this; }
+__js var hasProperty = function(k) { if (typeof this !== 'object' || this === null) return false; return k in this; }
 __js var hasOwnProperty = Object.prototype.hasOwnProperty;
 
 __js var _get = function(guard, args) {
