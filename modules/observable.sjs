@@ -307,7 +307,7 @@ exports.isConflictError = function(ex) {
 
      *** Current limitations:
 
-     - The ObservableVars must both reside on the same process (in particular `synchronize` doesn't work with ObservableVars that are remoted between client and server across conductance's bridge.
+     - The ObservableVars must both reside in the same process (in particular `synchronize` doesn't work with ObservableVars that are remoted between client and server across conductance's bridge).
  */
 function synchronize(A, B, settings) {
   settings = {
