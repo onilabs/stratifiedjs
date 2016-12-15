@@ -116,7 +116,7 @@ var stringToPrefixRe = function(s) {
   else return s;
 };
 
-var shouldExcude = function(path, patterns) {
+var shouldExclude = function(path, patterns) {
   return patterns .. seq.any(function(pat) {
     if (pat.test(path)) {
       logging.verbose("Excluding: #{path}");
@@ -166,7 +166,7 @@ function findDependencies(sources, settings) {
   var usedHubs = {};
 
   function addRequire(requireName, parent) {
-    if (shouldExcude(requireName, excludes)) return;
+    if (shouldExclude(requireName, excludes)) return;
 
     logging.verbose("Processing: " + requireName);
     var module = {
@@ -183,7 +183,7 @@ function findDependencies(sources, settings) {
       requireName = url.normalize(requireName, parent.path);
       logging.debug("normalized to " + requireName);
     }
-    if (shouldExcude(requireName, excludes)) return;
+    if (shouldExclude(requireName, excludes)) return;
 
 
     // resolve with builtin hubs
@@ -194,7 +194,7 @@ function findDependencies(sources, settings) {
       throw new Error("Error resolving " + requireName + ":\n" + e);
     }
 
-    if (shouldExcude(requireName, excludes)) return;
+    if (shouldExclude(requireName, excludes)) return;
     if (parent && parent.deps) parent.deps.push(resolved.path);
 
     if (deps .. object.hasOwn(resolved.path)) {
@@ -330,7 +330,7 @@ function generateBundle(deps, settings) {
     write("if(!b.m) b.m={};");
 
     var isNotExcluded = ([path, mod]) ->
-      !(shouldExcude(path, excludes) || (mod.id && shouldExcude(mod.id, excludes)));
+      !(shouldExclude(path, excludes) || (mod.id && shouldExclude(mod.id, excludes)));
 
     var usedModules = deps.modules .. ownPropertyPairs
       .. seq.filter(isNotExcluded)
