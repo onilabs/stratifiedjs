@@ -251,7 +251,7 @@ function findDependencies(sources, settings) {
   }
 
   var root = {
-    path: url.fileURL(process.cwd()) + "/",
+    path: settings.root || url.fileURL(process.cwd()) + "/",
   };
   logging.debug("ROOT:", root);
   sources .. each {|mod|
@@ -460,6 +460,7 @@ exports.contents = function(bundle) {
   @setting {Bool} [skipFailed] Skip modules that can't be resolved / loaded
   @setting {Array} [ignore] Array of ignored paths (to skip entirely)
   @setting {Array} [exclude] Array of excluded paths (will be processed, but omitted from bundle)
+  @setting {String} [root] A file url relative to which `sources` will be resolved (default= current working directory)
   @desc
     The settings provided to this function match the options given
     to this module when run from the command line.
@@ -578,6 +579,7 @@ var sanitizeOpts = function(opts) {
   var rv = new InternalOptions();
 
   // require no processing:
+  rv.root = opts.root;
   rv.compile = opts.compile;
   rv.sources = opts.sources;
   rv.output = opts.output;
