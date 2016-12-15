@@ -236,10 +236,13 @@ function withServer(config, server_loop) {
     // change (because of the 'dispatchRequest' indirection, existing
     // connections are not affected):
 
-    if (!@isObservable(config.ssl))
-      config.ssl = @constantObservable(config.ssl);
+    var SSLConfig = config.ssl;
+    if (!@isObservable(SSLConfig))
+      SSLConfig = @constantObservable(SSLConfig);
 
-    config.ssl .. each.track {
+    // in the case of no ssl (config.ssl = undefined), this will just run a normal server
+
+    SSLConfig .. each.track {
       |ssl_config|
       if (!!ssl_config)
         ssl_config = 
