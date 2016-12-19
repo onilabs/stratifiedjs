@@ -194,6 +194,21 @@ function findDependencies(sources, settings) {
       throw new Error("Error resolving " + requireName + ":\n" + e);
     }
 
+    if (settings.allowedPaths) {
+      var found = false;
+      settings.allowedPaths .. seq.each {
+        |root|
+        if (requireName.indexOf(root) === 0) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        //console.log("#{requireName} not under allowed path");
+        return;
+      }
+    }
+
     if (shouldExclude(requireName, excludes)) return;
     if (parent && parent.deps) parent.deps.push(resolved.path);
 
@@ -460,6 +475,7 @@ exports.contents = function(bundle) {
   @setting {Bool} [skipFailed] Skip modules that can't be resolved / loaded
   @setting {Array} [ignore] Array of ignored paths (to skip entirely)
   @setting {Array} [exclude] Array of excluded paths (will be processed, but omitted from bundle)
+  @setting {Array} [allowedPaths] Array of paths ('file://' urls) from which bundling is allowed. If this is set then modules located under other path roots are ignored.
   @setting {String} [root] A file url relative to which `sources` will be resolved (default= current working directory)
   @desc
     The settings provided to this function match the options given
@@ -597,6 +613,7 @@ var sanitizeOpts = function(opts) {
     .. map([prefix, path] -> [prefix, coerceToURL(path)]);
 
   // expand ignore / exclude paths
+  rv.allowedPaths = opts.allowedPaths;
   rv.exclude = (opts.exclude || []) .. map(coerceToURL) .. map(stringToPrefixRe);
   rv.ignore  = (opts.ignore  || []) .. map(coerceToURL) .. concat([/^builtin:/, /\.api$/]) .. map(stringToPrefixRe);
   return rv;
