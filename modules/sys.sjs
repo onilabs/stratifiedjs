@@ -69,13 +69,17 @@ module.exports = {
 
 /**
    @function withDynVarContext
-   @altsyntax withDynVarContext { || ... }
+   @altsyntax withDynVarContext([context]) { || ... }
    @summary  Execute code in a new dynamic variable context
+   @param {optional Object} [context] 
    @param {Function} [block]
    @desc
-      `withDynVarContext(block)` executes `block` in a new 
-      dynamic variable context in which variables can be set, cleared and retrieved 
+      `withDynVarContext(block)` executes `block` with the dynamic variable context `context` 
+      in which variables can be set, cleared and retrieved 
       using [::setDynVar], [::clearDynVar] and [::getDynVar], respectively.
+
+      If `context` is not provided, a new nested context object will be created with its prototype 
+      set to the current context.
 
       #### Nested contexts
 

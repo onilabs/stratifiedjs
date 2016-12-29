@@ -85,12 +85,24 @@ __js exports.getGlobal = function() { return __oni_rt.G; };
 /**
    @function withDynVarContext
    @summary see [../../modules/sys::withDynVarContext]
+   @param {optional Object} [context] 
    @param {Function} [block]
 */
-exports.withDynVarContext = function(block) {
+exports.withDynVarContext = function(/*args*/) {
   __js var old_dyn_vars = __oni_rt.current_dyn_vars;
+
+  var context, block;
+  if (arguments.length === 1) {
+    __js context = Object.create(old_dyn_vars);
+    block = arguments[0];
+  }
+  else /* arguments.length === 2 */ {
+    context = arguments[0];
+    block = arguments[1];
+  }
+          
   try {
-    __js __oni_rt.current_dyn_vars = Object.create(old_dyn_vars);
+    __js __oni_rt.current_dyn_vars = context;
     block();
   }
   finally {
