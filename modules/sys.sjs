@@ -106,7 +106,25 @@ module.exports = {
           }
           // context exited
           // ... 1s later the assert is executed on the spawned stratum
+
+      #### Special considerations for remote function calls
  
+      Dynamic variable contexts work across remote function calls over the Conductance bridge, 
+      but some limitations apply:
+
+      - A particular dynamic variable context is specific to *one* server, and when making a call to another 
+        server, will not be 'seen' there. However,
+      - dynamic variable contexts *do* tunnel through the Conductance bridge, i.e. if a server S1 calls another server S2 which in turn calls back S1, then the original context will be restored on S1.
+      - This context restoration only works if the original call from S1 to S2 is still active when the S2->S1 call is being made. I.e. if S2 spawns a call S2->S1, S1's context will only be restored if the original call S1->S2 hasn't returned yet.
+      
+      For illustration, consider two servers S1 and S2:
+
+      - When calling S2.foo() from S1 with a dynamic variable context C1, C1 will not be seen on S2 while executing S2.foo().
+
+      - If, in the course of executing S2.foo(), S2 calls S1.bar(), context C1 will be restored on S1 when executing S1.bar().
+
+      - If, in the course of executing S2.foo(), S2 spawns a new stratum that calls S1.bar(), context restoration on S1 depends on whether S2.foo() is still being executed or not: If S2.foo() is still active, C1 will be restored, otherwise it will not.
+
 */
   withDynVarContext: s.withDynVarContext,
 
