@@ -69,17 +69,20 @@ module.exports = {
 
 /**
    @function withDynVarContext
-   @altsyntax withDynVarContext([context]) { || ... }
+   @altsyntax withDynVarContext([proto_context]) { || ... }
    @summary  Execute code in a new dynamic variable context
-   @param {optional Object} [context] 
+   @param {optional Object} [proto_context] Should usually be omitted
    @param {Function} [block]
    @desc
-      `withDynVarContext(block)` executes `block` with the dynamic variable context `context` 
+      `withDynVarContext(block)` executes `block` with a new dynamic variable context
       in which variables can be set, cleared and retrieved 
       using [::setDynVar], [::clearDynVar] and [::getDynVar], respectively.
 
-      If `context` is not provided, a new nested context object will be created with its prototype 
-      set to the current context.
+      In most cases, `withDynVarContext` should be called without the `proto_context` argument.
+      If `proto_context` is omitted, a new nested context object will be created with its prototype 
+      set to the current context. This is usually what is wanted - see the section on nested contexts below. 
+      The purpose of `proto_context` is mainly as a building block for advanced control flow structures 
+      (such as the Conductance bridge) in conjunction with [::getCurrentDynVarContext].
 
       #### Nested contexts
 
