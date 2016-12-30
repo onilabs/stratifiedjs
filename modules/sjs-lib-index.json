@@ -2559,6 +2559,9 @@
         "executable": {
           "type": "variable"
         },
+        "getCurrentDynVarContext": {
+          "type": "function"
+        },
         "getDynVar": {
           "type": "function"
         },

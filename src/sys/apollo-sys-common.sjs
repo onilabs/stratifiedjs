@@ -111,6 +111,14 @@ exports.withDynVarContext = function(/*args*/) {
 };
 
 /**
+   @function getCurrentDynVarContext
+   @summary see [../../modules/sys::getCurrentDynVarContext]
+*/
+__js exports.getCurrentDynVarContext = function() {
+  return __oni_rt.current_dyn_vars;
+};
+
+/**
    @function setDynVar
    @summary  see [../../modules/sys::setDynVar]
    @param {String} [name]

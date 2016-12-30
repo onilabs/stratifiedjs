@@ -106,10 +106,26 @@ module.exports = {
  
 */
   withDynVarContext: s.withDynVarContext,
-  
+
+/**
+   @function getCurrentDynVarContext
+   @summary Retrieves the current dynamic variable context
+   @desc
+     Returns the current dynamic variable context, or
+     `null` if there is no current dynamic variable context.
+
+     Note that the context is an *opaque object*. To manipulate variables in the context, use
+     [::setDynVar], [::getDynVar], etc), 
+
+     The purpose of this function is as a building block for advanced control flow 
+     structures (such as the Conductance bridge) that need to save a context for 
+     later reinstatement.
+*/
+  getCurrentDynVarContext: s.getCurrentDynVarContext,
+
 /**
    @function setDynVar
-   @summary  Set a variable in a dynamic variable context
+   @summary  Set a variable in the current dynamic variable context
    @param {String} [name]
    @param {Object} [value]
    @desc
@@ -119,7 +135,7 @@ module.exports = {
 
 /**
    @function clearDynVar
-   @summary Clear a variable in a dynamic variable context
+   @summary Clear a variable in the current dynamic variable context
    @param {String} [name]
    @desc
      See [::withDynVarContext].
@@ -128,11 +144,11 @@ module.exports = {
 
 /**
    @function getDynVar
-   @summary Retrieve a variable value from a dynamic variable context
+   @summary Retrieve a variable value from the current dynamic variable context
    @param {String} [name]
    @param {optional Object} [default_val]
    @desc
-     Retrieves a variable value from a dynamic variable context or the closest
+     Retrieves a variable value from the current dynamic variable context or the closest
      ancestor context that has the variable defined.
 
      If no enclosing context defines the variable, returns `default_val` or throws
