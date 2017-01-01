@@ -211,7 +211,7 @@ exports.sequential = function(f) {
     The returned function will be executed at most once concurrently.
 
     If `reuse` is `true`, calls that occur when the function is already running will wait for (and return) the value from the earlier execution.
-    If `reuse` is `false` (or not given), each call will cancel any currently-running call, abandoning their results.
+    If `reuse` is `false` (or not given), each call will cancel any currently-running call and return `undefined` for it, and then invoke `f` again.
 */
 exports.exclusive = function(f, reuse) {
   var stratum, cancel;
@@ -226,7 +226,13 @@ exports.exclusive = function(f, reuse) {
         cancel = null;
       }
     }(this,arguments));
-    return stratum.value();
+    try {
+      return stratum.value();
+    }
+    retract {
+      if (stratum.waiting() === 0)
+        stratum.abort();
+    }
   }
 };
 

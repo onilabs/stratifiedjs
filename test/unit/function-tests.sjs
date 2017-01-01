@@ -67,23 +67,28 @@ testEq('rate limit', true, function() {
   return invocations<=2;
 });
 
-testEq('exclusive', 'TRATCRBTD', function() {
+testEq('exclusive', 'TRATCRBTX', function() {
   var rv = "";
-  var g = f.exclusive(function() { try {rv+='T'; hold(100);} retract {rv+='R';} });
+  var g = f.exclusive(function() { try {rv+='T'; hold(100); return 'X';} retract {rv+='R';} });
   waitfor {
-    g();
-    rv+='A';
+    rv += g() || 'A';
   }
   and {
-    g();
-    rv+='B';
+    rv += g() || 'B';
   }
   and {
     hold(10);
     rv+='C';
-    g();
-    rv+='D';
+    rv += g() || 'D';
   }
+  return rv;
+});
+
+testEq('exclusive external retraction', 'AR', function() {
+  var rv = '';
+  var g = f.exclusive(function() { try { rv+='A'; hold(10); rv+='B' } retract {  rv+= 'R'; } });
+  waitfor { g() } or { /* */ }
+  hold(100);
   return rv;
 });
 
