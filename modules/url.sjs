@@ -239,17 +239,23 @@ exports.isSameOrigin = sys.isSameOrigin;
   @desc
     ###Examples:
 
-        url.normalize("/foo/bar.txt", "http://a.b/c/d/baz.txt");
-        // --> "http://a.b/foo/bar.txt"
+         url.normalize("/foo/bar.txt", "http://a.b/c/d/baz.txt");
+         // --> "http://a.b/foo/bar.txt"
 
-        url.normalize("foo/bar.txt", "http://a.b/c/d/baz.txt");
-        // --> "http://a.b/c/d/foo/bar.txt"
+         url.normalize("foo/bar.txt", "http://a.b/c/d/baz.txt");
+         // --> "http://a.b/c/d/foo/bar.txt"
 
-        url.normalize("././foo/./bar.txt", "http://a.b/c/d/");
-        // --> "http://a.b/c/d/foo/bar.txt"
+         url.normalize("././foo/./bar.txt", "http://a.b/c/d/");
+         // --> "http://a.b/c/d/foo/bar.txt"
 
-        url.normalize(".././foo/../bar.txt", "http://a.b/c/d/");
-        // --> "http://a.b/c/bar.txt"
+         url.normalize(".././foo/../bar.txt", "http://a.b/c/d/");
+         // --> "http://a.b/c/bar.txt"
+
+    Note: If there are not enough path components to collapse a '..', it will be silently 
+    ignored, i.e. the normalized url will never contain '..':
+
+        url.normalize("../../../../../baz.txt", "http://example.com/foo/bar");
+        // --> "http://example.com/baz.txt"
 
 */
 exports.normalize = sys.normalizeURL;

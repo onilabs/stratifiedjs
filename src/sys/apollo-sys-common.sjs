@@ -451,6 +451,9 @@ __js exports.isSameOrigin = function(url1, url2) {
   @param {String} [url] URL to normalize.
   @param {optional String} [base] URL which will be taken as a base if *url* is relative.
   @return {String} Normalized URL.
+  @desc
+     Note: If there are not enough path components to collapse a '..', it will silently be 
+     ignored, i.e. the normalized url will never contain '..'.
 */
 __js exports.normalizeURL = function(url, base) {
 
@@ -491,11 +494,26 @@ __js exports.normalizeURL = function(url, base) {
   for (var i=0; i<l; ++i) {
     var c = pin[i];
     if (c == ".") continue;
-    if (c == ".." && pout.length>1)
-      pout.pop();
-    else
+    if (c == "..") {
+      if (pout.length>1)
+        pout.pop();
+      // else silently ignore '..'
+    }
+    else {
       pout.push(c);
+    }
   }
+
+  if (a.file === '.') 
+    a.file = '';
+  else if (a.file === '..') {
+    if (pout.length > 2) {
+      pout.splice(-2, 1);
+    }
+    // else silently ignore '..'
+    a.file = '';
+  }
+
   a.directory = pout.join("/");
 
   // build return value:
