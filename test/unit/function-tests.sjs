@@ -92,6 +92,32 @@ testEq('exclusive external retraction', 'AR', function() {
   return rv;
 });
 
+// this used to give "Cannot read property 'value' of undefined":
+testEq('exclusive reentrancy','210', function() {
+  var rv = ''
+  var g = f.exclusive(function(n) { 
+    rv += n;
+    if (n==0) return;
+    g(--n);
+  });
+  g(2);
+  return rv;
+});
+
+// this used to yield '2'
+testEq('exclusive reentrancy/async','210', function() {
+  var rv = ''
+  var g = f.exclusive(function(n) { 
+    rv += n;
+    if (n==0) return;
+    hold(0);
+    spawn g(--n); // 'spawn' so that we don't cancel the whole g callchain (which would yield '21', because the first cancel point is the hold(0) in the call to g(1)
+  });
+  g(2);
+  hold(10);
+  return rv;
+});
+
 testEq('exclusive with reuse', [1,1,1,2], function() {
   var count = 0;
   var g = f.exclusive(function() { count++; hold(100); return count; }, true);

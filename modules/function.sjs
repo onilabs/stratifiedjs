@@ -216,16 +216,19 @@ exports.sequential = function(f) {
 exports.exclusive = function(f, reuse) {
   var stratum, cancel;
   return function() {
-    if (!reuse && cancel) cancel();
+    if (!reuse && cancel) { cancel(); cancel = null; }
     if (!cancel) stratum = spawn (function(t,a){
+      var cancel_func;
       waitfor {
-        waitfor() { cancel = resume; }
+        waitfor() { cancel_func = resume; cancel = cancel_func; }
       } or {
         return f.apply(t,a);
-      } finally {
-        cancel = null;
+      } finally { 
+        if (cancel === cancel_func) 
+          cancel = null;
       }
     }(this,arguments));
+
     try {
       return stratum.value();
     }
