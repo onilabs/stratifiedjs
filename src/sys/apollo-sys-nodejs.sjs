@@ -667,18 +667,18 @@ exports.runMainExpression = function(ef) {
     }
   } or {
     await('SIGINT');
-    sig = 'SIGINT';
+    sig = 2;
   } or {
     await('SIGHUP');
-    sig = 'SIGHUP';
+    sig = 1;
   } or {
+    await('SIGTERM');
+    sig = 15;
+  }
+  or {
     await('exit');
   }
   if(sig) {
-    waitfor {
-      await('exit');
-    } and {
-      process.kill(process.pid, sig);
-    }
+    process.exit(128+sig);
   }
 };
