@@ -551,9 +551,13 @@
 
 
   - The `this` binding of the surrounding code is maintained inside the blocklambda 
-  - A `return` statement inside a blocklambda will return from the enclosing scope, *not* just from the block. This also means that you can't return a value to the caller of a blocklambda (you should use a function if you need that).
-  - A `break` statement inside a blocklambda will cause the function that called the blocklambda to return.
+  - A `return` statement inside a blocklambda will return back up the callstack  up to and including the enclosing *lexical* function scope, i.e. the function in which the blocklambda is defined. This also means that you can't return a value to the caller of a blocklambda (you should use a function if you need that). 
+  - A `break` statement inside a blocklambda will cause the blocklambda to return back up the callstack up to and including the function call that called the blocklambda inside the *lexical* scope in which the blocklambda is defined. 
   - A `continue` statement inside a blocklambda will skip the rest of the blocklambda body and return to the caller.
+
+  See also the section on "Differences between blocklambdas and callbacks" below for more information on which conditions have to be met for the `return` and `break` statements to operate correctly.
+
+  In all cases, `finally` handlers along the return path will be honored, and parallel strata (such as in a `waitfor{} or {}`) retracted as appropriate.
 
 
   These differences are all intended to make the blocklambda useable as a control-flow mechanism, akin to the builtin block syntax of JavaScript. It allows for block-like constructs that aren't part of the core language. For example, many of the [sjs:sequence::] module functions work well with blocklambdas:
@@ -578,6 +582,46 @@
       // (c will not be processed, just as if we broke out of a loop early)
     
   This provides a similar syntax to the builtin `for(var key in obj) { ... }` but it ignores inherited properties, and is implemented with normal functions - you can use this syntax to implement your own control-flow mechanisms.
+
+  ### Differences between blocklambdas and callbacks
+
+  While blocklambdas can be used as callbacks, there are some special 
+  considerations to ensure that `break` and `return` statements within
+  the blocklambda operate correctly:
+
+  Firstly, the scope from which `break` or `return` return from must still be
+  active. E.g. the following code will generate a runtime error, because by the time `f` is called, function `foo` has already returned:
+
+      function foo(f) {
+        spawn (hold(100),f());
+      }
+      
+      foo { || console.log('blocklambda here'); break; }
+
+  Secondly, the callstack across which the blocklambda is called must not be
+  'disjointed', i.e. the blocklambda must not be called from a stratum wasn't started from the callstack rooted in the blocklambda's return scope. E.g. this code generates a runtime error, because the blocklambda is called from a stratum that is not rooted in the scope that `break` wants to return from (`foo` in this case):
+
+      var callback;
+
+      function foo(f) {
+        callback = f;
+        hold();
+      }
+
+      spawn (function() { while (1) { if (callback) callback(); hold(1000); } })();
+      foo { || console.log('blocklambda here'); break; }
+
+   Conversely, this code works fine:
+
+      function foo(f) {
+        spawn (function() { hold(1000); f(); })();
+        hold();
+      }
+
+      foo { || console.log('blocklambda here'); break; }
+
+   In practice, a good rule of thumb to ensure that `break` and `return` operate correctly is to never store a blocklambda in a variable that can be accessed from external strata.
+
 
 @syntax double-colon
 @summary Prefix function chaining operator
