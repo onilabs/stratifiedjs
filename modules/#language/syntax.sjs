@@ -555,7 +555,7 @@
   - A `break` statement inside a blocklambda will cause the blocklambda to return back up the callstack up to and including the function call that called the blocklambda inside the *lexical* scope in which the blocklambda is defined. 
   - A `continue` statement inside a blocklambda will skip the rest of the blocklambda body and return to the caller.
 
-  See also the section on "Differences between blocklambdas and callbacks" below for more information on which conditions have to be met for the `return` and `break` statements to operate correctly.
+  See also the section on "Differences between blocklambdas and general callbacks" below for more information on which conditions have to be met for the `return` and `break` statements to operate correctly.
 
   In all cases, `finally` handlers along the return path will be honored, and parallel strata (such as in a `waitfor{} or {}`) retracted as appropriate.
 
@@ -583,9 +583,9 @@
     
   This provides a similar syntax to the builtin `for(var key in obj) { ... }` but it ignores inherited properties, and is implemented with normal functions - you can use this syntax to implement your own control-flow mechanisms.
 
-  ### Differences between blocklambdas and callbacks
+  ### Differences between blocklambdas and general callbacks
 
-  While blocklambdas can be used as callbacks, there are some special 
+  Blocklambdas are typically used as a form of 'callback' function. However, when authoring functions that operate on blocklambdas, there are some special 
   considerations to ensure that `break` and `return` statements within
   the blocklambda operate correctly:
 
@@ -599,7 +599,7 @@
       foo { || console.log('blocklambda here'); break; }
 
   Secondly, the callstack across which the blocklambda is called must not be
-  'disjointed', i.e. the blocklambda must not be called from a stratum wasn't started from the callstack rooted in the blocklambda's return scope. E.g. this code generates a runtime error, because the blocklambda is called from a stratum that is not rooted in the scope that `break` wants to return from (`foo` in this case):
+  'disjointed', i.e. the blocklambda must not be called from a stratum that wasn't started from the callstack rooted in the blocklambda's return scope. E.g. this code generates a runtime error, because the blocklambda is called from a stratum that is not rooted in the scope that `break` wants to return from (`foo` in this case):
 
       var callback;
 
@@ -621,6 +621,60 @@
       foo { || console.log('blocklambda here'); break; }
 
    In practice, a good rule of thumb to ensure that `break` and `return` operate correctly is to never store a blocklambda in a variable that can be accessed from external strata.
+
+   Furthermore, executing a blocklambda from a `spawn`ed stratum (as in the
+   examples above) is discouraged because special attention needs to be paid
+   to make the code safe under retraction. E.g. the following code generates
+   a runtime error because the spawned stratum is not being retracted:
+
+      function foo(f) {
+        spawn (function() { hold(1000); f(); })();
+        hold();
+      }
+
+      waitfor {
+        foo { || console.log('blocklambda here'); break; }
+      }
+      or {
+        hold(100);
+      }
+
+   A retraction-safe version of this code would look like this:
+
+      function foo(f) {
+        var stratum = spawn (function() { hold(1000); f(); })();
+        try {
+          hold();
+        }
+        retract {
+          stratum.abort();
+        }
+      }
+
+      waitfor {
+        foo { || console.log('blocklambda here'); break; }
+      }
+      or {
+        hold(100);
+      }
+
+   Note, however, that in most cases code that makes use of `spawn` can
+   be reformulated into a 'structured' form (i.e. one that doesn't make use
+   of `spawn`), in which retraction is handled implicitly. E.g. a simpler 
+   alternative to the above code would be:
+
+      function foo(f) {
+        hold(1000);
+        f();
+        hold();
+      }
+
+      waitfor {
+        foo { || console.log('blocklambda here'); break; }
+      }
+      or {
+        hold(100);
+      }     
 
 
 @syntax double-colon
