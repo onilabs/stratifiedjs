@@ -297,6 +297,7 @@ module.exports = require(modules);
    - **base64ToOctets**: (function [sjs:string::base64ToOctets])
    - **capitalize**: (function [sjs:string::capitalize])
    - **contains**: (function [sjs:string::contains])
+   - **decapitalize**: (function [sjs:string::decapitalize])
    - **decode**: (function [sjs:string::decode])
    - **encode**: (function [sjs:string::encode])
    - **endsWith**: (function [sjs:string::endsWith])

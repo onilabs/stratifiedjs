@@ -534,6 +534,17 @@ __js exports.capitalize = function(s) {
 };
 
 /**
+   @function decapitalize
+   @summary  Decapitalize first character of the string
+   @param    {String} [s]
+   @return   {String} Decapitalized string
+*/
+__js exports.decapitalize = function(s) {
+  if (s.length == 0) return s;
+  return s.charAt(0).toLowerCase() + s.slice(1);
+};
+
+/**
   @class Octets
   @summary Byte sequence implemented as a String
   @desc
