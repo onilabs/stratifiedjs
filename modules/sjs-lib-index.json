@@ -2484,6 +2484,9 @@
         "endsWith": {
           "type": "function"
         },
+        "indent": {
+          "type": "function"
+        },
         "isString": {
           "type": "function"
         },

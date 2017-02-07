@@ -300,6 +300,7 @@ module.exports = require(modules);
    - **decode**: (function [sjs:string::decode])
    - **encode**: (function [sjs:string::encode])
    - **endsWith**: (function [sjs:string::endsWith])
+   - **indent**: (function [sjs:string::indent])
    - **isString**: (function [sjs:string::isString])
    - **lstrip**: (function [sjs:string::lstrip])
    - **octetsToArrayBuffer**: (function [sjs:string::octetsToArrayBuffer])

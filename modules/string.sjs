@@ -475,6 +475,18 @@ __js exports.padBoth = function(s, len, ch) {
 }
 
 /**
+   @function indent
+   @summary Prefix each line in the string with `n` spaces
+   @param {String} [s]
+   @param {Integer} [n] Number of spaces to indent the string by
+*/
+__js exports.indent = function(s, n) { 
+  var prefix = '';
+  for (var i=0; i<n;++i) prefix += ' ';
+  return s .. exports.prefixLines(prefix);
+};
+
+/**
    @function unindent
    @summary  Remove leading whitespace from every line in the given string.
    @param    {String} [s]
