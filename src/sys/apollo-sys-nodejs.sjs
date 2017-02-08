@@ -290,9 +290,17 @@ function request_hostenv(url, settings) {
     var url = exports.parseURL(url_string);
     var protocol = url.protocol;
 
-    opts.host = url.host;
-    opts.port = url.port || (protocol === 'https' ? 443 : 80);
-    opts.path = url.relative || '/';
+    if (url.host == 'unix') {
+      // Request to Unix Domain Socket
+      var unix_parts = url.relative.split(':');
+      opts.socketPath = unix_parts[0];
+      opts.path = unix_parts[1];
+    }
+    else {
+      opts.host = url.host;
+      opts.port = url.port || (protocol === 'https' ? 443 : 80);
+      opts.path = url.relative || '/';
+    }
     
     if (!opts.headers['Host'])
       opts.headers.Host = url.authority;

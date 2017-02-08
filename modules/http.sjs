@@ -129,6 +129,13 @@ exports.getXDomainCaps = sys.getXDomainCaps;
      In the nodejs host environment, we can always perform cross-domain requests
 
  
+     ### Requests to UNIX Domain Sockets
+
+     In the nodejs host environment, requests can be made to UNIX Domain Sockets by using
+     the request pattern `http://unix:SOCKET:PATH`, e.g.:
+
+         http.request("http://unix:/var/run/docker.sock:/v1.25/images/json");
+
      ### Example:
 
          try { 
