@@ -86,7 +86,7 @@ exports.getXDomainCaps = sys.getXDomainCaps;
      'string'                        | string with response text
      'full'                          | object `{status: number, content: string, getHeader: string->string}`
      'arraybuffer'&nbsp;&nbsp;&nbsp; | object `{status: number, content: ArrayBuffer, getHeader: string->string}`
-     'raw'                           | nodejs hostenv only: nodejs request object
+     'raw'                           | nodejs hostenv only: nodejs IncomingMessage object (https://nodejs.org/api/http.html#http_class_http_incomingmessage)
 
      ### Request failure:
 
