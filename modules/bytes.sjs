@@ -30,14 +30,14 @@
  */
 /**
    @module    bytes
-   @summary   Type checking and conversions for binary types.
+   @summary   Type checking, conversions and other utilities for binary data types.
    @home      sjs:bytes
    @inlibrary sjs:std when nodejs
    @inlibrary mho:std when nodejs
    @desc
-    This module exposes test methods for checking if a given object
-    is a [::Bytes] (or a specific implementation), and for converting
-    between the various concrete types.
+    This module exposes methods for checking if a given object
+    is a [::Bytes] (or a specific implementation), for converting
+    between the various concrete types, and for handling streams of binary data
 
     The conversion functions in this module only make a copy
     when it's necessary to do so, which means the result may be
@@ -47,7 +47,10 @@
 */
 'use strict';
 
-var sys = require('builtin:apollo-sys');
+@ = require([
+  {id:'builtin:apollo-sys', name: 'sys'},
+  './sequence'
+]);
 
 /**
   @class Bytes
@@ -125,7 +128,7 @@ __js {
     return toUint8Array(b).buffer;
   };
 
-  if (sys.hostenv == 'nodejs') {
+  if (@sys.hostenv == 'nodejs') {
     isBuffer = exports.isBuffer = Buffer.isBuffer;
     var toBuffer = exports.toBuffer = function(b) {
       if (isBuffer(b)) return b;
@@ -133,3 +136,97 @@ __js {
     }
   }
 }
+
+//----------------------------------------------------------------------
+
+// helper
+__js function concatBuffers(b1, b2, offset1) {
+  if (!isBytes(b1) || !isBytes(b2)) throw new Error("Binary data expected");
+  var rv = new Uint8Array(b1.byteLength + b2.byteLength - offset1);
+  rv.set(new Uint8Array(b1, offset1), 0);
+  rv.set(new Uint8Array(b2), b1.byteLength - offset1);
+  return rv.buffer;
+}
+
+/**
+   @function parseBytes
+   @altsyntax sequence .. parseBytes([eos], parse)
+   @param {sequence::Sequence} [sequence] Input sequence of chunks of binary data
+   @param {optional Object} [eos=undefined] End of sequence marker
+   @param {Function} [parse] Parsing function
+   @summary Parse a binary input stream into an output stream
+   @return {sequence::Stream}
+   @desc
+      On iteration, calls `parse` with an api object:
+
+          {
+            emit: function(elem), emit an element into the output stream
+            readUint8: function(), // read a Uint8 from the input stream,
+            readUint8Array: function(l), // read a Uint8Array of bytelength l
+            readUint32: function(le) // read a Uint32 (little-endian if le=true)
+          }
+
+      The `read*` functions return `eos` if the input stream is exhausted.
+
+*/
+function parseBytes(/*stream, eos, parse*/) {
+  var stream, eos, parse;
+  if (arguments.length === 2) {
+    stream = arguments[0];
+    parse = arguments[1];
+  }
+  else if (arguments.length === 3) {
+    stream = arguments[0];
+    eos = arguments[1];
+    parse = arguments[2];
+  }
+  else throw new Error("Unexpected number of arguments");
+    
+    
+  return @Stream(function(emit) {
+    var upstream_eos = {};
+    stream .. @consume(upstream_eos) {
+      |next|
+      var buffer = new ArrayBuffer(0);
+      var length = 0, offset = 0;
+
+      function fetchData() {
+        var new_data = next();
+        if (new_data === upstream_eos) return false;
+        buffer = concatBuffers(buffer, new_data, offset);
+        offset = 0;
+        length = buffer.byteLength;
+        return true;
+      }
+      
+      parse({
+        emit: emit,
+        readUint8: function() {
+          while (length-offset < 1 && fetchData())
+            /**/;
+          if (length-offset < 1) return eos;
+          var view = new DataView(buffer, offset, 1);
+          ++offset;
+          return view.getUint8(0);
+        },
+        readUint8Array: function(l) {
+          while (length-offset < l && fetchData())
+            /**/;
+          if (length-offset < l) return eos;
+          var arr = new Uint8Array(buffer, offset, l);
+          offset += l;
+          return arr;
+        },
+        readUint32: function(littleEndian) {
+          while (length-offset < 4 && fetchData())
+            /**/;
+          if (length-offset < 4) return eos;
+          var view = new DataView(buffer, offset, 4);
+          offset += 4;
+          return view.getUint32(littleEndian);
+        }
+      });
+    }
+  });  
+}
+exports.parseBytes = parseBytes;

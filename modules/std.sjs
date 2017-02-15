@@ -110,6 +110,7 @@ module.exports = require(modules);
    - **isBuffer**: (function [sjs:bytes::isBuffer])
    - **isBytes**: (function [sjs:bytes::isBytes])
    - **isUint8Array**: (function [sjs:bytes::isUint8Array])
+   - **parseBytes**: (function [sjs:bytes::parseBytes])
    - **toArrayBuffer**: (function [sjs:bytes::toArrayBuffer])
    - **toBuffer**: (function [sjs:bytes::toBuffer])
    - **toUint8Array**: (function [sjs:bytes::toUint8Array])

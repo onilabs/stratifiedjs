@@ -304,6 +304,9 @@
         "isUint8Array": {
           "type": "function"
         },
+        "parseBytes": {
+          "type": "function"
+        },
         "toArrayBuffer": {
           "type": "function"
         },
@@ -314,7 +317,7 @@
           "type": "function"
         }
       },
-      "summary": "Type checking and conversions for binary types."
+      "summary": "Type checking, conversions and other utilities for binary data types."
     },
     "collection/": {
       "type": "lib",
