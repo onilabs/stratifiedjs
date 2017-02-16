@@ -388,16 +388,25 @@ function request_hostenv(url, settings) {
     case 300: case 301: case 302: case 303: case 307:
       if (max_redirects > 0) {
         response.socket.end(); // otherwise we fill up the active request pool and deadlock
-        opts = exports.mergeObjects(settings, {
-          headers: exports.mergeObjects(settings, { host: null }),
-          max_redirects: max_redirects-1,
-        });
         //console.log('redirect to ' + response.headers['location'] + ', with opts', opts);
         // we use normalizeURL here, because some sites
         // (e.g. dailymotion) use a relative url in the Location
         // header (which is forbidden according to RFC1945)
+        var redirect_url = exports.normalizeURL(response.headers['location'],url_string);
+
+        if (url.host == 'unix') {
+          // special casing for unix domain socket requests; we need to put 
+          // the socket path back in there. this is somewhat hackish
+          redirect_url = redirect_url.replace('unix:', 'unix:'+opts.socketPath+':');
+        }
+
+        opts = exports.mergeObjects(settings, {
+          headers: exports.mergeObjects(settings, { host: null }),
+          max_redirects: max_redirects-1,
+        });
+
         return request_hostenv(
-          exports.normalizeURL(response.headers['location'],url_string),
+          redirect_url,
           opts);
       }
       // else fall through
