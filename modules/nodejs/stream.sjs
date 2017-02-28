@@ -172,7 +172,7 @@ exports.contents = function(stream, encoding) {
     });
     return @Stream(function(emit) {
       while(true) {
-        while(buf.length > 0) emit(buf.shift());
+        while(buf.length > 0) { emit(buf.shift()); }
         if (error) throw error;
         if (eof) return;
         check .. @wait();

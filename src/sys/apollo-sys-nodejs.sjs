@@ -209,6 +209,9 @@ var streamContents = exports.streamContents = function (stream, fn) {
   }
   if(stream.readable === false) return rv;
 
+  // make sure stream is not in flowing mode
+  stream.pause();
+
   waitfor {
     waitfor (var exception) {
       stream.on('error', resume);
