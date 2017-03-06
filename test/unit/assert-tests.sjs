@@ -86,6 +86,14 @@ context("eq") {||
         -> assert.eq("1", 1));
     }
 
+    // this used to throw 'Cannot create property '1' on boolean 'false' due to a return
+    // value bug in sjs:compare::eq:
+    test("nested null vs undefined") {||
+      assert.raises(
+        {message: 'Expected { foo: null }, got { foo: undefined }\n[objects differ at property `foo`]'},
+        -> assert.eq({foo:undefined}, {foo:null}));
+    }
+
     context("custom types") {||
       var Foo = function() {
         this.x = 1;

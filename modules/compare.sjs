@@ -156,7 +156,7 @@ __js {
     // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
     if (a === b) return [true, null];
     // A strict comparison is necessary because `null == undefined`.
-    if (a == null || b == null) return a === b;
+    if (a == null || b == null) return [a === b, null];
     // Compare `[[Class]]` names.
     var className = toString.call(a);
     if (className != toString.call(b)) return [false, describe && ('expected is a ' + cleanObjectName(toString.call(b)) + ', actual is a ' + cleanObjectName(className))];
@@ -282,4 +282,4 @@ __js {
     return ret;
   }
 
-}
+} // __js
