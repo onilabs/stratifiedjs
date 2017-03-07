@@ -648,7 +648,7 @@ exports.runMainExpression = function(ef) {
   // turn it into a waitfor/or branch which retracts the main
   // expression on process termination (exit or a fatal signal)
   if (!__oni_rt.is_ef(ef)) return ef; // fully synchronous, nothing to do
-  var sig;
+  var sig, signame;
 
   // On Windows, we add a dummy handler to SIGBREAK every time we remove
   // a SIG* handler, otherwise libuv dies with an assertion the next time we
@@ -687,13 +687,16 @@ exports.runMainExpression = function(ef) {
     }
   } or {
     await('SIGINT');
-    sig = 'SIGINT';
+    sig = 2;
+    signame = 'SIGINT';
   } or {
     await('SIGHUP');
-    sig = 'SIGHUP';
+    sig = 1;
+    signame = 'SIGHUP';
   } or {
     await('SIGTERM');
-    sig = 'SIGTERM';
+    sig = 15;
+    signame = 'SIGTERM';
   }
   or {
     await('exit');
@@ -703,7 +706,8 @@ exports.runMainExpression = function(ef) {
       await('exit');
     }
     and {
-      process.kill(process.pid, sig);
+      process.kill(process.pid, signame);
+      process.exit(128+sig);
     }
   }
 };
