@@ -701,13 +701,16 @@ exports.runMainExpression = function(ef) {
   or {
     await('exit');
   }
+
   if(sig) {
-    waitfor {
-      await('exit');
-    }
-    and {
-      process.kill(process.pid, signame);
-      process.exit(128+sig);
-    }
+    process.kill(process.pid, signame);
+
+    hold(0); // XXX this hold(0) allows other packages that might be running (such as nodemon) to perform cleanup, before we forcefully exit. in particular this fixes nodemon-tests, where the signal takes a tick to propagate
+
+    // XXX this is a bit dodgy... we want to give the app time to do proper cleanup,
+    // but somewhere we're not keeping track of open sockets, so any server process with
+    // connected clients will take a loooong time to shut down. 
+    // We pretty much want to shut down *now* - any graceful cleanup will have been done in try/finally
+    process.exit(128+sig); // XXX potentially we should return a different error value here, to make it clear that this is *not* orderly signal shutdown
   }
 };
