@@ -78,7 +78,7 @@ var mk = function(opts, constructor) {
 };
 
 exports.tmp = function() {
-  return @os.tmpDir ? @os.tmpDir() : (
+  return @os.tmpdir ? @os.tmpdir() : (
     process.env.TMPDIR ||
     process.env.TMP ||
     process.env.TEMP ||
@@ -116,7 +116,7 @@ exports.tmp = function() {
   @setting {Boolean} [delete=true] delete file on block completion
   @setting {String} [prefix="tmp-"] filename prefix
   @setting {String} [suffix=""] filename suffix
-  @setting {String} [base=os.tmpDir()] basedir in which to create temporary files
+  @setting {String} [base=os.tmpdir()] basedir in which to create temporary files
   @summary Create a temporary file
   @return {::File}
   @desc
@@ -195,7 +195,7 @@ exports.TemporaryFile = function(opts, block) {
   @setting {Boolean} [delete=true] recursively delete dir on block completion
   @setting {String} [prefix="tmp-"] directory prefix
   @setting {String} [suffix=""] directory suffix
-  @setting {String} [base=os.tmpDir()] basedir in which to create temporary directories
+  @setting {String} [base=os.tmpdir()] basedir in which to create temporary directories
   @summary Create a temporary directory
   @return {String} directory path
   @desc
