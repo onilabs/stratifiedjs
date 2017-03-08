@@ -245,6 +245,8 @@ exports.exec = function(command, options) {
       process group, rather than just the process, and any sub-processes spawned by the
       program will also be terminated. See also this [nodejs google group post](https://groups.google.com/d/topic/nodejs/-8fwv9ZjlvQ/discussion).
 
+      In particular, note that when spawning a child process via a shell, as in `sh -c CMD`, the shell will not propagate signals to `CMD`. This means that killing the spawned process will not kill `CMD`. Also, in this case, if conductance has opended stdout/err to the process, waiting for the process to finish (`killWait==true`) will block until `CMD` is terminated by other means (i.e. potentially forever). To ameliorate this, subprocesses started via a shell should use `exec` (as in `sh -c exec CMD`) or run as a process group.
+
       To run as a process group, specify `{ detached: true }` in the `options`. Retraction
       will automatically cause the process group rather than just the process to be
       terminated, e.g.:
@@ -514,6 +516,15 @@ exports.launch = function(command, args, options) {
       `Error` will be thrown with `code` and `signal` properties set to the exit code
       and signal that terminated the process. Otherwise (when `opts.throwing` is `false`),
       the `child` object will be returned.
+
+      ### Important note on processes that spawn other processes
+
+      Note that if stdout/err are opened to the spawned process, `wait` 
+      doesn't only wait for the exit of the process, but for the io streams to 
+      be closed. If the spawned process has in turn spawned other processes which
+      are not terminated, these might keep the io streams alive. See the 
+      "Process groups" section for [::run] for more details on how to handle this
+      situation.
 */
 exports.wait = function(child, opts) {
   if(!opts) opts = {};
