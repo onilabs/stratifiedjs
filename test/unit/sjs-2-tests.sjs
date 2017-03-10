@@ -211,6 +211,36 @@ test("blocklambda break 2", 'ac', function() {
   return rv;
 });
 
+test('return propagation', undefined, function() {
+  function foo() { bar(); }
+  function bar() { return 'x' }
+  return foo();
+});
+
+test('return propagation 2', 'x', function() {
+  function foo() { return bar(); }
+  function bar() { return 'x' }
+  return foo();
+});
+
+test('async return propagation', undefined, function() {
+  function foo() { bar(); }
+  function bar() { hold(0); return 'x' }
+  return foo();
+});
+
+test('async return propagation 2', 'x', function() {
+  function foo() { return bar(); }
+  function bar() { hold(0); return 'x' }
+  return foo();
+});
+
+test('async return propagation through arrow', 'x', function() {
+  var foo = -> bar();
+  function bar() { hold(0); return 'x' }
+  return foo();
+});
+
 test('return propagation from suspended blocklambda', undefined, function() {
   // regression test
   var withBlock = function(b) { b(); };
@@ -224,7 +254,7 @@ test('return propagation from suspended blocklambda', undefined, function() {
     makeValue();
   };
   return returnNothing();
-}).skip("BROKEN");
+});
 
 test('a() .. b()', 'ab', function() {
   var a = -> 'a', b = x -> x+'b';

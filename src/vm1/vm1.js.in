@@ -376,15 +376,39 @@ var EF_Proto = {
     }
     if (this.swallow_r) {
       if (is_cfx(val)) {
-        if (val.type == "r") {
-          if (!val.ef || val.ef == this) 
+        if (val.type === "r") {
+          if (!val.ef || val.ef === this) {
             val = val.val;
+            if (this.swallow_r === 3) {
+              // we've received a tail-called 'return' that shouldn't
+              // be returned via the present function. see also notes below
+              val = UNDEF;
+            }
+          }
         }
       }
-      else if (is_ef(val))
-        val.swallow_r = this.swallow_r; // pass down flag to child
-      else if (this.swallow_r !== 2)
+      else if (is_ef(val)) {
+        // we're tailcalling the ef 'val' through ef 'this'. I.e. ef
+        // 'this' is dropping out of the picture.
+
+        // We have to ensure that ef 'val' gets a 'swallow_r' policy consistent with that of ef 'this'.
+        // In particular, we want 'val' to have the same 'swallow_r' as 'this', with the exception where
+        // 'this' is a tail-called function (this.tailcall === true) that is set to return proper 
+        // returns only (this.swallow_r === 1) and val is *also* already set up to swallow returns (i.e. it is/was a functional context too). In this case we want to convert any 'returns' emitted
+        // by ef 'val' to undef (i.e. set val.swallow_r to 3).
+        // The swallow_r special casing fixes sjs-2-tests.sjs:async return propagation and
+        // sjs-2-tests.sjs:return propagation from suspended blocklambda
+
+        if (this.swallow_r === 1 && val.swallow_r && this.tailcall) {
+          val.swallow_r = 3;
+        }
+        else {
+          val.swallow_r = this.swallow_r; // just pass down flag to child
+        }
+      }
+      else if (this.swallow_r !== 2) {
         val = UNDEF; // only 'return' returns a value to parent
+      }
     }
   
     // Mark this frame as unreturnable. This is used by
@@ -662,9 +686,11 @@ function EF_Seq(ndata, env) {
   this.tailcall = !(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
   //WHENDEBUG(if (!this.tailcall) console.log("no tailcall!!");)
   // do we 'catch' returns? (also implies that we're catching stray break/continue)
-  // swallow_r == true : 'catch' returns
+  // swallow_r == 0    : returns tunnel through us
+  // swallow_r == 1    : 'catch' returns
   // swallow_r == 2    : allow implicit returns (i.e. last expression returns result)
-  this.swallow_r = NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION;
+  // swallow_r == 3    : 'catch' a tailcalled Return(exp) that should not be returned (i.e. convert to undefined)
+  this.swallow_r = (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION == NDATA_SEQ_FLAG_FUNCTION) ? 1 : 0;
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_IMPLICIT_RETURN)
     this.swallow_r = 2;
 

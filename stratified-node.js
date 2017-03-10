@@ -325,15 +325,39 @@ val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
 if(this.swallow_r){
 if((val&&val.__oni_cfx)){
-if(val.type=="r"){
-if(!val.ef||val.ef==this)val=val.val;
+if(val.type==="r"){
+if(!val.ef||val.ef===this){
+val=val.val;
+if(this.swallow_r===3){
 
+
+val=UNDEF;
 }
-}else if(is_ef(val))val.swallow_r=this.swallow_r;else if(this.swallow_r!==2)val=UNDEF;
+}
+}
+}else if(is_ef(val)){
 
 
 
 
+
+
+
+
+
+
+
+
+if(this.swallow_r===1&&val.swallow_r&&this.tailcall){
+val.swallow_r=3;
+}else{
+
+val.swallow_r=this.swallow_r;
+}
+}else if(this.swallow_r!==2){
+
+val=UNDEF;
+}
 }
 
 
@@ -593,7 +617,9 @@ this.tailcall=!(ndata[0]&8);
 
 
 
-this.swallow_r=ndata[0]&1;
+
+
+this.swallow_r=(ndata[0]&1==1)?1:0;
 if(ndata[0]&32)this.swallow_r=2;
 
 
