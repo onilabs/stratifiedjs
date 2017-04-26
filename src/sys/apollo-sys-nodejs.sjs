@@ -437,6 +437,10 @@ function request_hostenv(url, settings) {
   }
   
   if (responseMode === 'raw') {
+    // XXX we need this dummy error listener to prevent nodejs from
+    // throwing a socket hangup exception on the *request* object.
+    // we can still get the on the response socket object
+    request.on('error', function(){}); 
     return response;
   }
   else if (responseMode === 'arraybuffer') {
