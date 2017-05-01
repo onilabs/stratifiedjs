@@ -193,16 +193,23 @@ exports.link = function(srcpath, dstpath) {
 
 /**
    @function symlink
-   @summary To be documented
+   @summary `symlink(2)` system call
+   @param {String} [target] 
+   @param {String} [path]
+   @desc
+     Creates a symbolic link at `path` pointing to `target`.
 */
-exports.symlink = function(linkdata, path) {
-  waitfor (var err) { fs.symlink(linkdata, path, resume); }
+exports.symlink = function(target, path) {
+  waitfor (var err) { fs.symlink(target, path, resume); }
   if (err) throw err;
 };
 
 /**
    @function readlink
-   @summary To be documented
+   @summary `readlink(2)` system call
+   @param {String} [path]
+   @desc
+     Reads the value of the symbolic link at `path`
 */
 exports.readlink = function(path) {
   waitfor (var err, resolvedPath) { fs.readlink(path, resume); }
@@ -212,7 +219,11 @@ exports.readlink = function(path) {
 
 /**
    @function realpath
-   @summary To be documented
+   @summary `realpath(2)` system call
+   @param {String} [path]
+   @desc
+     Expand all symbolic links, resolve relative path components and superfluous '/' characters.
+     May use `process.cwd` to resolve relative paths.
 */
 exports.realpath = function(path) {
   waitfor (var err, resolvedPath) { fs.realpath(path, resume); }
@@ -222,7 +233,10 @@ exports.realpath = function(path) {
 
 /**
    @function unlink
-   @summary To be documented
+   @summary `unlink(2)` system call
+   @param {String} [path]
+   @desc
+     Deletes the name `path` from the filesystem and possibly the file it refers to.
 */
 exports.unlink = function(path) {
   waitfor (var err) { fs.unlink(path, resume); }
@@ -231,7 +245,10 @@ exports.unlink = function(path) {
 
 /**
    @function rmdir
-   @summary To be documented
+   @summary `rmdir(2)` system call
+   @param {String} [path]
+   @desc
+     Deletes a directory, which must be empty.
 */
 exports.rmdir = function(path) {
   waitfor (var err) { fs.rmdir(path, resume); }
