@@ -31,16 +31,23 @@
  */
 /**
   @module    nodejs/fs
-  @summary   Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)
+  @summary   Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html) and higher level file utilities
   @hostenv   nodejs
   @home      sjs:nodejs/fs
   @inlibrary sjs:std  as fs when nodejs
   @inlibrary mho:std  as fs when nodejs
+  @desc
+    Note that some of the functions in this module assume that we're being run on a linux-compatible system, with common system utilities (mv, etc) installed.
 */
 'use strict';
 
 if (require('builtin:apollo-sys').hostenv != 'nodejs') 
   throw new Error('The nodejs/fs module only runs in a nodejs environment');
+
+@ = require([
+  '../object',
+  {id: './child-process', name: 'childProcess'}
+]);
 
 var fs = require('fs'); // builtin fs
 var evt = require('../event');
@@ -54,15 +61,29 @@ var { isBytes, toBuffer } = require('../bytes');
 
 /**
    @function rename
-   @summary `rename(2)` system call
+   @summary Rename a file
    @param {String} [oldpath] Old pathname.
    @param {String} [newpath] New pathname.
+   @param {Object} [settings]
+   @setting {String} [method='mv'] 'mv': spawn a `mv` subprocess; 'rename': use `rename(2)` system call
    @desc
      Blocks until rename has been performed. Throws if there is an error.
+     Note that the default method (spawning a `mv` subprocess works across filesystems, where `rename(2)` will fail).
 */
-exports.rename = function(oldpath, newpath) {
-  waitfor (var err) { fs.rename(oldpath, newpath, resume); }
-  if (err) throw err;
+exports.rename = function(oldpath, newpath, options) {
+  options = {
+    method: 'mv'
+  } .. @override(options);
+
+  if (options.method === 'rename') {
+    waitfor (var err) { fs.rename(oldpath, newpath, resume); }
+    if (err) throw err;
+  }
+  else if (options.method === 'mv') {
+    @childProcess.run('mv', ['-T', oldpath, newpath]);
+  }
+  else
+    throw new Error("Unknown method '#{options.method}' in @fs.rename");
 };
 
 /**

@@ -1169,9 +1169,6 @@
             "utimes": {
               "type": "function"
             },
-            "waitforChange": {
-              "type": "function"
-            },
             "watch": {
               "type": "function"
             },
@@ -1188,7 +1185,7 @@
               "type": "function"
             }
           },
-          "summary": "Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html)"
+          "summary": "Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html) and higher level file utilities"
         },
         "gzip": {
           "type": "module",
