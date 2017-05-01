@@ -429,36 +429,6 @@ exports.writeFile = function(filename, data, encoding /*='utf8'*/) {
   }
 };
 
-// XXX watchFile/unwatchFile are a pretty bad interface, in the sense
-// that it's not safe to watch/unwatch the same file from different
-// places in the code at the same time. We work around that by doing
-// our own bookkeeping on top of that in fs.js:
-var watchers = {};
-
-/**
-   @function waitforChange
-   @summary To be documented
-*/
-exports.waitforChange = function(filename, interval /*=0*/) {
-  waitfor (var curr, prev) {
-    if (!watchers[filename])
-      watchers[filename] = 1;
-    else
-      ++watchers[filename];
-    fs.watchFile(filename,
-                 { persistent:true, interval:interval||0},
-                 resume);
-  }
-  finally {
-    if (--watchers[filename] <= 0) {
-      delete watchers[filename];
-      fs.unwatchFile(filename);
-    }
-  }
-  
-  return { curr: curr, prev: prev }; 
-}; 
-
 //----------------------------------------------------------------------
 // high-level
 
