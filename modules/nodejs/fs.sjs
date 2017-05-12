@@ -113,6 +113,20 @@ exports.chmod = function(path, mode) {
 };
 
 /**
+   @function chown
+   @summary `chown(2)` system call
+   @param {String} [path] Pathname.
+   @param {Integer} [uid]
+   @param {Integer} [gid]
+   @desc
+     Blocks until chown has been performed. Throws if there is an error.
+*/
+exports.chown = function(path, uid, gid) {
+  waitfor (var err) { fs.chown(path, uid, gid, resume); }
+  if (err) throw err;
+};
+
+/**
    @function stat
    @summary `stat(2)` system call
    @param {String} [path] Pathname.
