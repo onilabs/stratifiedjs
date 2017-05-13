@@ -197,7 +197,7 @@ exports.TemporaryFile = function(opts, block) {
   @setting {String} [suffix=""] directory suffix
   @setting {String} [base=os.tmpdir()] basedir in which to create temporary directories
   @summary Create a temporary directory
-  @return {String} directory path
+  @return {String} directory path (without trailing slash)
   @desc
     If `block` is given, it will be called with the full path to the created directory (which
     is also returned). Once `block` has finished, the directory will be recursively removed
