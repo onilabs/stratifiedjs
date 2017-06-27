@@ -679,6 +679,19 @@
       },
       "summary": "SJS compilation utilities"
     },
+    "crdt": {
+      "type": "module",
+      "children": {}
+    },
+    "crypto": {
+      "type": "module",
+      "children": {
+        "randomID": {
+          "type": "function"
+        }
+      },
+      "summary": "Cryptography-related utilities"
+    },
     "cutil": {
       "type": "module",
       "children": {
@@ -1092,6 +1105,9 @@
           "type": "module",
           "children": {
             "chmod": {
+              "type": "function"
+            },
+            "chown": {
               "type": "function"
             },
             "close": {
@@ -1987,6 +2003,14 @@
         }
       },
       "summary": "Functions for working with quasis (see also [sjs:#language/syntax::quasi-quote])"
+    },
+    "random": {
+      "type": "module",
+      "children": {
+        "createID": {
+          "type": "function"
+        }
+      }
     },
     "regexp": {
       "type": "module",
