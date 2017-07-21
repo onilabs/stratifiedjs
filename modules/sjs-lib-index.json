@@ -679,10 +679,6 @@
       },
       "summary": "SJS compilation utilities"
     },
-    "crdt": {
-      "type": "module",
-      "children": {}
-    },
     "crypto": {
       "type": "module",
       "children": {
@@ -2003,14 +1999,6 @@
         }
       },
       "summary": "Functions for working with quasis (see also [sjs:#language/syntax::quasi-quote])"
-    },
-    "random": {
-      "type": "module",
-      "children": {
-        "createID": {
-          "type": "function"
-        }
-      }
     },
     "regexp": {
       "type": "module",

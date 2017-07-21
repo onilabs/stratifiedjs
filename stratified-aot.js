@@ -1654,7 +1654,8 @@ if(idx==1){
 
 if((val&&val.__oni_cfx))return this.returnToParent(val);
 
-for(var x=null in val){
+var for_in_obj=val;
+for(var x=null in for_in_obj){
 if(typeof this.remainingX==='undefined'){
 val=this.ndata[1](this.env,x);
 if((val&&val.__oni_cfx)){
@@ -1669,8 +1670,10 @@ continue;
 }
 return this.returnToParent(val);
 }
-if(is_ef(val))this.remainingX=[];
-
+if(is_ef(val)){
+this.remainingX=[];
+this.for_in_obj=for_in_obj;
+}
 }else this.remainingX.push(x);
 
 
@@ -1705,10 +1708,17 @@ this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
 }
+var arg;
+while(true){
 if(!this.remainingX.length){
+delete this.for_in_obj;
 return this.returnToParent(val);
 }
-val=this.ndata[1](this.env,this.remainingX.shift());
+arg=this.remainingX.shift();
+if(arg in this.for_in_obj)break;
+
+}
+val=this.ndata[1](this.env,arg);
 
 }
 }

@@ -1944,3 +1944,28 @@ test('waitfor/or abort', '213',
        stratum.abort();
        return rv;
      });
+
+test('for-in loop property deletion', 'abd',
+     function() {
+       var X = {a:1, b:2, c:3, d:4};
+       var rv = '';
+       for (var x in X) {
+         rv += x;
+         if (x === 'b')
+           delete X.c;
+       }
+       return rv;
+     });
+
+test('for-in loop property async deletion', 'abd',
+     function() {
+       var X = {a:1, b:2, c:3, d:4};
+       var rv = '';
+       for (var x in X) {
+         hold(0);
+         rv += x;
+         if (x === 'b')
+           delete X.c;
+       }
+       return rv;
+     });

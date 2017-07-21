@@ -1832,7 +1832,8 @@ EF_ForIn.prototype.cont = function(idx, val) {
       // returning from evaluation of forin obj
       if (is_cfx(val))
         return this.returnToParent(val);
-      for (var x in val) {
+      var for_in_obj = val;
+      for (var x in for_in_obj) {
         if (typeof this.remainingX === 'undefined') {
           val = this.NDATA_FORIN_LOOPF()(this.env,x);
           if (is_cfx(val)) {
@@ -1847,8 +1848,10 @@ EF_ForIn.prototype.cont = function(idx, val) {
               }
             return this.returnToParent(val);
           }
-          if (is_ef(val))
+          if (is_ef(val)) {
             this.remainingX = [];
+            this.for_in_obj = for_in_obj;
+          }
         }
         else
           this.remainingX.push(x);
@@ -1883,10 +1886,17 @@ EF_ForIn.prototype.cont = function(idx, val) {
           this.setChildFrame(val, 2);
           return this;
         }
-        if (!this.remainingX.length) {
-          return this.returnToParent(val);
+        var arg;
+        while (true) {
+          if (!this.remainingX.length) {
+            delete this.for_in_obj;
+            return this.returnToParent(val);
+          }
+          arg = this.remainingX.shift();
+          if (arg in this.for_in_obj)
+            break;
         }
-        val = this.NDATA_FORIN_LOOPF()(this.env, this.remainingX.shift());
+        val = this.NDATA_FORIN_LOOPF()(this.env, arg);
         // go round the loop again
       }
     }
