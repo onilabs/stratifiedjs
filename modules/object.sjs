@@ -38,7 +38,7 @@
 */
 'use strict';
 
-var { each, transform, Stream } = require('./sequence');
+var { each, transform, Stream, map } = require('./sequence');
 var { extendObject, mergeObjects, flatten, isArrayLike } = require('builtin:apollo-sys');
 
 __js var hasProperty = function(k) { if (typeof this !== 'object' || this === null) return false; return k in this; }
@@ -228,7 +228,10 @@ __js exports.hasOwn = function(subject, key) { return hasOwnProperty.call(subjec
    @param {Object} [obj]
    @return {sequence::Stream}
    @summary  Returns a [sequence::Stream] of the names of `obj`'s enumerable properties, including those defined on `obj`'s prototype chain.
-   @desc     
+   @desc
+      This follows the semantics of https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...in, in particular:
+       If a property is modified in one iteration and then visited at a later time, its value in the loop is its value at that later time.
+      
       See also [::ownKeys].
 */
 function allKeys(obj) {  
@@ -239,14 +242,14 @@ exports.allKeys = exports.keys = allKeys;
 /**
    @function ownKeys
    @param {Object} [obj]
-   @return {sequence::Stream}
-   @summary  Returns a [sequence::Stream] of the names of `obj`'s own enumerable properties, 
+   @return {Array}
+   @summary  Returns an array of the names of `obj`'s own enumerable properties, 
              i.e. excluding those defined on `obj`'s prototype chain.
    @desc     
        Note that you can also use the ECMA-263/5 function `Object.keys` - 
        on older JS engines StratifiedJS adds a shim to emulate this function. 
 
-       See also [::allKeys].
+       Note that unlike [::allValues], this function returns an *array*, not a [sequence::Stream]. I.e. it is a snapshot of the state of `obj`. In particular subsequent property deletions will *not* be reflected in the array.
 */
 var ownKeys = exports.ownKeys = Object.keys;
 
@@ -256,6 +259,9 @@ var ownKeys = exports.ownKeys = Object.keys;
   @return   {sequence::Stream}
   @summary  Returns a [sequence::Stream] of the values of `obj`'s enumerable properties,
             including those defined on `obj`'s prototype chain.
+  @desc
+       As for [::allKeys]: If a property is modified in one iteration and then visited at a later time, its value in the loop is its value at that later time.
+      
 */
 function allValues(obj) {
   return allKeys(obj) .. transform(k -> obj[k]);
@@ -265,12 +271,15 @@ exports.allValues = exports.values = allValues;
 /**
   @function ownValues
   @param    {Object} [obj]
-  @return   {sequence::Stream}
-  @summary  Returns a [sequence::Stream] of the values of `obj`'s enumerable properties,
+  @return   {Array}
+  @summary  Returns an array of the values of `obj`'s enumerable properties,
             excluding those defined on `obj`'s prototype chain.
+  @desc
+      Note that unlike [::allValues], this function returns an *array*, not a [sequence::Stream]. I.e. it is a snapshot of the state of `obj`. In particular subsequent property deletions will *not* be reflected in the array.
+
 */
 function ownValues(obj) {
-  return ownKeys(obj) .. transform(k -> obj[k]);
+  return ownKeys(obj) .. map(k -> obj[k]);
 }
 exports.ownValues = ownValues;
 
@@ -280,6 +289,8 @@ exports.ownValues = ownValues;
   @return   {sequence::Stream}
   @summary  Returns a [sequence::Stream] `[key1,val1], [key2,val2], ...` of `obj`'s 
             enumerable properties, including those defined on `obj`'s prototype chain.
+  @desc
+       As for [::allKeys]: If a property is modified in one iteration and then visited at a later time, its value in the loop is its value at that later time.
 */
 function allPropertyPairs(obj) {
   return allKeys(obj) .. transform(k -> [k,obj[k]]);
@@ -289,12 +300,14 @@ exports.allPropertyPairs = exports.propertyPairs = allPropertyPairs;
 /**
   @function ownPropertyPairs
   @param    {Object} [obj]
-  @return   {sequence::Stream}
-  @summary  Returns a [sequence::Stream] `[key1,val1], [key2,val2], ...` of `obj`'s 
+  @return   {Array}
+  @summary  Returns an array `[key1,val1], [key2,val2], ...` of `obj`'s 
             enumerable properties, excluding those defined on `obj`'s prototype chain.
+  @desc
+      Note that unlike [::allPropertyPairs], this function returns an *array*, not a [sequence::Stream]. I.e. it is a snapshot of the state of `obj`. In particular subsequent property deletions will *not* be reflected in the array.
 */
 function ownPropertyPairs(obj) {
-  return ownKeys(obj) .. transform(k -> [k,obj[k]]);
+  return ownKeys(obj) .. map(k -> [k,obj[k]]);
 }
 exports.ownPropertyPairs = ownPropertyPairs;
 
