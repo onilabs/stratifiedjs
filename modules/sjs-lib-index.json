@@ -682,6 +682,9 @@
     "crypto": {
       "type": "module",
       "children": {
+        "md5": {
+          "type": "function"
+        },
         "randomID": {
           "type": "function"
         }

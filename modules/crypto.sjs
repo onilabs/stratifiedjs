@@ -43,8 +43,10 @@ var { hostenv } = require('builtin:apollo-sys');
 var imports;
 
 if (hostenv === 'nodejs') {
-  imports = [ {id:'nodejs:crypto', name:'crypto'},
-              'sjs:string'
+  imports = [ {id:'nodejs:crypto', name:'node_crypto'},
+              'sjs:string',
+              'sjs:sequence',
+              'sjs:object'
             ];
 }
 else if (hostenv === 'xbrowser') {
@@ -73,7 +75,7 @@ exports.randomID = function(words) {
   var bytes;
   if (hostenv === 'nodejs') {
     waitfor (var err, bytes) {
-      @crypto.randomBytes(byte_count, resume);
+      @node_crypto.randomBytes(byte_count, resume);
     }
     if (err) throw new Error(err);
   }
@@ -84,3 +86,38 @@ exports.randomID = function(words) {
 
   return (bytes .. @arrayBufferToOctets .. @octetsToBase64).replace(/\//g,'_').replace(/\+/g, '-').replace(/=/g, '');
 };
+
+/**
+   @function md5
+   @altsyntax data .. md5([settings])
+   @hostenv nodejs
+   @summary Compute an md5 hash digest
+   @param {sequence::Stream|Array|String|nodejs Buffer|TypedArray|DataView} [data] Data over which to compute hash (can be a single String, Buffer, TypedArray, or DataView, or a Stream or Array thereof).
+   @param {optional Object} [settings]
+   @setting {String} [input_encoding='utf8'] Encoding to apply for 'String' input data (ignored for other input data types). One of 'utf8', 'ascii', or 'latin1'.
+   @return {String} md5 hash digest in 'hex' encoding.
+*/
+if (hostenv === 'nodejs') {
+  exports.md5 = function(data, settings) {
+    settings = {
+      input_encoding: 'utf8'
+    } .. @override(settings);
+
+    var hash = @node_crypto.createHash('md5');
+    if (@isSequence(data) || Array.isArray(data))
+      data .. @each {
+        |elem|
+        hash.update(elem, settings.input_encoding);
+      }
+    else
+      hash.update(elem, settings.input_encoding);
+    return hash.digest('hex').toString();
+  };
+}
+else { /* hostenv !== 'nodejs' */
+  // XXX Once the
+  // https://developer.mozilla.org/en-US/docs/Web/API/Crypto interface
+  // is supported better by browsers, we can implement this on the
+  // client side
+  exports.md5 = function() { throw new Error("sjs:crypto::md5 is not implemented on the client-side yet"); };
+}
