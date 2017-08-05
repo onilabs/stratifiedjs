@@ -795,6 +795,30 @@ __js default_compiler.module_args = ['module', 'exports', 'require', '__onimodul
 
 __js var canonical_id_to_module = {};
 
+
+__js {
+
+  // Check for dependency cycles by doing a depth-first traversal
+  // of the graph induced by `node.waiting_on`. Note that, because
+  // this graph is traversed whenever a new node is added, we only
+  // need to check for cycles that involve `target_node`.
+  // Returns the nodes forming a cycle if one is found; false otherwise.
+  function checkForDependencyCycles(root_node, target_node) {
+    if (!root_node.waiting_on) return false;
+    for (var name in root_node.waiting_on) {
+      if (root_node.waiting_on[name] === target_node) {
+        return [root_node.id];
+      }
+      var deeper_cycle = checkForDependencyCycles(root_node.waiting_on[name], target_node);
+      if (deeper_cycle) 
+        return [root_node.id].concat(deeper_cycle);
+    }
+
+    return false;
+  }
+
+} // __js 
+
 function default_loader(path, parent, src_loader, opts, spec) {
 
   
@@ -808,6 +832,14 @@ function default_loader(path, parent, src_loader, opts, spec) {
   if ((!descriptor && !pendingHook) || opts.reload) {
     // the module has not yet started loading, or
     // we've specified `reload`
+
+    __js descriptor = {
+      id: path,
+      exports: {},
+      loaded_by: parent,
+      required_by: {}
+    };
+
     pendingHook = pendingLoads[path] = spawn (function() {
       waitfor {
         __js var src, loaded_from;
@@ -830,13 +862,8 @@ function default_loader(path, parent, src_loader, opts, spec) {
           ({src, loaded_from}) = src_loader(path);
         }
         __js {
-          var descriptor = {
-            id: path,
-            exports: {},
-            loaded_from: loaded_from,
-            loaded_by: parent,
-            required_by: {}
-          };
+          descriptor.loaded_from = loaded_from;
+
           descriptor.require = makeRequire(descriptor);
           
           var canonical_id = null;
@@ -882,31 +909,42 @@ function default_loader(path, parent, src_loader, opts, spec) {
         }
       }
     })();
+
+    pendingHook.pending_descriptor = descriptor;
+  }
+  else if (!descriptor) {
+    descriptor = pendingHook.pending_descriptor;
   }
 
   if (pendingHook) {
-    // there is already a load pending for this module.
-    // If we detect a cycle, we return the (incomplete)
-    // state of the requested module to avoid deadlock.
-    __js var p = parent;
-    // We deliberately only traverse up to toplevel-1; there
-    // are legitimate usecases in conductance where the *url* .../foo.sjs
-    // loads the *module* .../foo.sjs.
-    // In practice this means that in rare cases a cycle might only
-    // be detected on the second loop.
-    if(descriptor) {
-      while (p.loaded_by) {
-        if (path === p.id)
-          return descriptor.exports;
-        __js p = p.loaded_by;
-      }
-    }
-
+    // there is a load pending for this module.
     // wait for load to complete:
     try {
-      descriptor = pendingHook.waitforValue();
-    } retract {
-      // if the final thread waiting on this module is retracted, propagate that
+      __js {
+        if (!parent.waiting_on)
+          parent.waiting_on = {};
+        parent.waiting_on[path] = descriptor;      
+      } // __js
+
+      __js var dep_cycle = checkForDependencyCycles(descriptor, parent);
+      if (dep_cycle)
+        throw new Error("Cyclic require() dependency: #{parent.id} -> "+dep_cycle.join(' -> '));
+        
+      pendingHook.waitforValue();
+
+      __js {
+        // Note: We don't need to refcount waiting_on, if we only delete
+        // when the module at `path` has actually loaded (i.e. don't
+        // delete from retract or finally). It's ok to delete this here
+        // even in the edge case where parent waits on the module
+        // multiple times (as in e.g. `require([{id:'foo', name:'foo'},
+        // {id:'foo', name:'bar'}])`).
+        delete parent.waiting_on[path];
+      } // __js
+    } 
+    retract {
+      // if the final thread waiting on this module is retracted,
+      // propagate the retraction:
       if (pendingHook.waiting() == 0 && pendingHook.resume) {
         pendingHook.resume();
         pendingHook.value();
