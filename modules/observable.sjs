@@ -525,10 +525,14 @@ exports.eventStreamToObservable = eventStreamToObservable;
 
 /**
    @function constantObservable
+   @summary Obsolete name for [::ConstantObservable]
+   @deprecated Use [::ConstantObservable]
+
+   @function ConstantObservable
    @param {Object} [obj]
-   @summary Create an observable that always returns `obj`
+   @summary Create an observable that always returns `obj` and then `hold()`s.
 */
-exports.constantObservable = function(obj) {
+exports.ConstantObservable = exports.constantObservable = function(obj) {
   return Observable(function(receiver) {
     receiver(obj);
     hold();
