@@ -39,8 +39,10 @@
 */
 'use strict';
 
-var { map, reduce, join } = require('./sequence');
+var { map, reduce, join, toArray } = require('./sequence');
 var { padRight } = require('./string');
+var { isSet } = require('./set');
+var { isQuasi } = require('./quasi');
 var sys = require('builtin:apollo-sys');
 var isDOMNode = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isDOMNode : -> false;
 
@@ -213,6 +215,21 @@ __js function formatValue(ctx, value, recurseTimes) {
   if (isArray(value)) {
     array = true;
     braces = ['[', ']'];
+  }
+
+  // Make Sets say that they are Sets
+  if (isSet(value)) {
+    array = true;
+    base = " [Set] ";
+    //braces = ['[', ']'];
+    value = value .. toArray;
+    visibleKeys = Object.keys(value);
+    keys = ctx.showHidden ? Object.getOwnPropertyNames(value) : visibleKeys;
+  }
+
+  // Make Quasis say that they are Quasis
+  if (isQuasi(value)) {
+    base = " [Quasi] ";
   }
 
   // Make functions say that they are functions
