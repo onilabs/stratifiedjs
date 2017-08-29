@@ -1883,6 +1883,12 @@
           "type": "class",
           "children": {}
         },
+        "ConstantObservable": {
+          "type": "function"
+        },
+        "DelayedObservable": {
+          "type": "function"
+        },
         "Observable": {
           "type": "class",
           "children": {

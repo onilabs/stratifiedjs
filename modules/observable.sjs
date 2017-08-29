@@ -42,7 +42,7 @@
   {id: 'sjs:sys', name: 'sys'}
 ]);
 var cutil = require('./cutil');
-var { isStream, isBatchedStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_ObservableArray_project } = require('./sequence');
+var { isStream, isBatchedStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_ObservableArray_project, consume } = require('./sequence');
 var { merge, clone, override } = require('./object');
 var { Interface, Token } = require('./type');
 
@@ -404,11 +404,11 @@ function observe(/* var1, ...*/) {
   __js {
     deps .. each {
       |dep|
-      if (!isObservableVar(dep)) {
+      if (!isObservable(dep)) {
         if (!isStream(dep)) 
           throw new Error("invalid non-stream argument '#{typeof dep}' passed to 'observe()'");
         // else
-        console.log("Warning: non-observable sequence passed to observe(). This will throw in future.");
+        console.log("Warning: non-observable sequence passed to sjs:observable::observe(). This will throw in future.");
       }
     }
   }
@@ -539,6 +539,45 @@ exports.ConstantObservable = exports.constantObservable = function(obj) {
   });
 };
 
+/**
+   @function DelayedObservable
+   @summary Create an observable that waits before communicating updates
+   @param {::Observable} [observable] Input observable
+   @param {optional Integer} [delay_ms=0] Duration to wait before communicating updates
+   @desc
+     When iterated, `DelayedObservable` will return the current value of `observable`. 
+     When `observable` subsequently changes, `DelayedObservable` will wait `delay_ms` for 
+     before emitting the most recent value of `observable`. I.e. if `observable` changes
+     during the waiting period, only the most recent value will be emitted.
+
+     Note: Currently DelayedObservable will [::reconstitute] its input observable.
+*/
+exports.DelayedObservable = function(observable, dt) {
+  if (dt === undefined) dt = 0;
+
+  return Observable(function(receiver) {
+    var eos = {};
+    observable .. reconstitute .. consume(eos) {
+      |next|
+      var val = next();
+      while (val !== eos) {
+        receiver(val);
+        val = next();
+        waitfor {
+          while (1) {
+            var val2 = next();
+            if (val2 === eos) break;
+            val = val2;
+          }
+        }
+        or {
+          hold(dt);
+        }
+      }
+    }
+  });
+};
+
 //----------------------------------------------------------------------
 
 /**
@@ -580,7 +619,7 @@ exports.ConstantObservable = exports.constantObservable = function(obj) {
       using [::reconstitute].
 
       Calling [sequence::project] on an ObservableArray is equivalent to calling
-      `@transform(elems -> elems .. @project(elem -> f(elem)))` on the reconsitituted 
+      `@transform(elems -> elems .. @project(elem -> f(elem)))` on the reconstituted 
       stream, but it yields an ObservableArray (i.e. a stream of mutations).
 */
 
