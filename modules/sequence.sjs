@@ -2483,11 +2483,14 @@ exports.find = find;
    @return {Boolean} `true` if the element is in the sequence, `false` otherwise.
    @summary Checks whether the given element is in the sequence.
    @desc
-     Sequentially iterates the stream until `elem` is found (using `===`) or the stream is exhausted.
+     * For arrays, uses `Array.prototype.find` to check if `elem` is part of the array.
+     * For sets, uses `Set.prototype.has`.
+     * For other sequences, sequentially iterates the stream until `elem` is found (using `===`) or the stream is exhausted.
 */
 function hasElem(sequence, elem) {
   if (Array.isArray(sequence)) return (sequence.indexOf(elem) != -1);
-  sequence .. each { |x| if (x === elem) return true }
+  if (isSet(sequence)) return sequence.has(elem);
+  sequence .. each { |x| if (x === elem) return true; }
   return false;
 }
 exports.hasElem = hasElem;
