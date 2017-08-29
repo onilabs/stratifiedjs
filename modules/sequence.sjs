@@ -61,6 +61,9 @@ __js {
   if (sys.hostenv == 'nodejs') {
       isBuffer = Buffer.isBuffer.bind(Buffer);
   }
+  function isSet(obj) {
+    return obj instanceof Set;
+  }
 }
 
 // XXX `sequential` is from the 'function.sjs' module - we can't
@@ -83,7 +86,7 @@ function sequential(f) {
    @class Sequence
    @summary
     An Array, array-like object (like `arguments`, `NodeList`, `TypedArray`, etc),
-    String,
+    String, [./set::Set],
     [bytes::Bytes]
     or [::Stream]
    @desc
@@ -109,6 +112,19 @@ function sequential(f) {
      - NodeList (xbrowser only)
 
      You can use [::isConcreteSequence] to check if a sequence is concrete.
+
+     # Semi-concrete sequences:
+
+     A semi-concrete sequence is one where:
+     
+      - all elements are already known and present in memory
+      - iteration will not mutate the sequence
+      - iteration will not suspend between successive elements
+      - the iteration order is undefined
+
+     # Semi-concrete sequence types:
+
+     - [./set::Set]s
 
      # Non-concrete sequences types:
 
@@ -357,8 +373,10 @@ function each(sequence, r) {
   }
   else if (isStream(sequence)) {
     return sequence(r);
-
   } 
+  else if (isSet(sequence)) {
+    return iterate_set(sequence, r);
+  }
   else {
     if (isConcrete(sequence)) {
       for (var i=0, l=sequence.length; i<l; ++i) {
@@ -388,6 +406,12 @@ function iterate_batched_stream(sequence, r) {
   })
 }
 
+function iterate_set(set, r) {
+  var values = set.values();
+  var x;
+  while ((x = values.next()).done !== true)
+    r(x.value);
+}
 
 //----------------------------------------------------------------------
 // projection
@@ -1233,10 +1257,15 @@ exports.reverse = reverse;
    @param {::Sequence} [sequence] Input sequence
    @return {Integer}
    @summary Count number of elements in the sequence
+   @desc
+     Note: `count` is efficient for concrete and semi-concrete sequences (i.e. it doesn't need
+     to iterate over them)
 */
 __js function count(sequence) {
   if (isConcrete(sequence)) 
     return sequence.length;
+  else if (isSet(sequence))
+    return sequence.size;
   else
     return countStream(sequence);
 }

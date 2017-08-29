@@ -2,6 +2,7 @@
   // metadata for sjs:bundle:
   @require sjs:object
   @require sjs:array
+  @require sjs:set
   @require sjs:sequence
   @require sjs:string
   @require sjs:compare
@@ -23,6 +24,7 @@ var hostenv = require('builtin:apollo-sys').hostenv;
 var modules = [
   'sjs:object',
   'sjs:array',
+  'sjs:set',
   'sjs:sequence',
   'sjs:string',
   'sjs:compare',

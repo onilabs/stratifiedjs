@@ -9,6 +9,7 @@
   // metadata for sjs:bundle:
   @require sjs:object
   @require sjs:array
+  @require sjs:set
   @require sjs:sequence
   @require sjs:string
   @require sjs:compare
@@ -30,6 +31,7 @@ var hostenv = require('builtin:apollo-sys').hostenv;
 var modules = [
   'sjs:object',
   'sjs:array',
+  'sjs:set',
   'sjs:sequence',
   'sjs:string',
   'sjs:compare',
@@ -291,6 +293,12 @@ module.exports = require(modules);
    - **unpack**: (function [sjs:sequence::unpack])
    - **zip**: (function [sjs:sequence::zip])
    - **zipLongest**: (function [sjs:sequence::zipLongest])
+  
+  
+  ### Symbols from the [sjs:set](#sjs%3Aset) module:
+  
+   - **isSet**: (function [sjs:set::isSet])
+   - **Set**: (class [sjs:set::Set])
   
   
   ### Symbols from the [sjs:string](#sjs%3Astring) module:

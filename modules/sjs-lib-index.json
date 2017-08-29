@@ -2299,6 +2299,38 @@
       },
       "summary": "Structures for simple dependency injection"
     },
+    "set": {
+      "type": "module",
+      "children": {
+        "Set": {
+          "type": "class",
+          "children": {
+            "Set": {
+              "type": "ctor"
+            },
+            "add": {
+              "type": "function"
+            },
+            "clear": {
+              "type": "function"
+            },
+            "delete": {
+              "type": "function"
+            },
+            "has": {
+              "type": "function"
+            },
+            "size": {
+              "type": "variable"
+            }
+          }
+        },
+        "isSet": {
+          "type": "function"
+        }
+      },
+      "summary": "Functions for working with sets"
+    },
     "shell-quote": {
       "type": "module",
       "children": {
