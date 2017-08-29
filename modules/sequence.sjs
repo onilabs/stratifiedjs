@@ -2483,7 +2483,7 @@ exports.find = find;
    @return {Boolean} `true` if the element is in the sequence, `false` otherwise.
    @summary Checks whether the given element is in the sequence.
    @desc
-     * For arrays, uses `Array.prototype.find` to check if `elem` is part of the array.
+     * For arrays, uses `Array.prototype.indexOf` to check if `elem` is part of the array.
      * For sets, uses `Set.prototype.has`.
      * For other sequences, sequentially iterates the stream until `elem` is found (using `===`) or the stream is exhausted.
 */
