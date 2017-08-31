@@ -1636,7 +1636,7 @@ function async_rf(fx, r) {
 
 /**
    @function transform.filter
-   @altsyntax sequence .. transform.filter([predicate])
+   @altsyntax sequence .. transform.filter(fn)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [fn] mapping function
    @return {::Stream}
