@@ -1562,7 +1562,7 @@ function async_map_value(rv, val) {
 
 /**
    @function map.filter
-   @altsyntax sequence .. map.filter([predicate])
+   @altsyntax sequence .. map.filter(fn)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [fn] mapping function
    @return {::Stream}
