@@ -471,6 +471,9 @@ __js {
        * `str .. @transform(f) .. @join('')` if  `str` is a string.
        * `@Observable(obs .. @transform(f))` if `obs` is an [observable::Observable].
 
+      For [::BatchedStream]s, `sequence .. project(f)` will return a 
+      [::BatchedStream] with the same batching as `sequence`.
+
       For [observable::ObservableArray], `sequence .. project(f)`
       returns an [observable::ObservableArray] where each element
       `e` of the array is transformed to `f(e)`. 
@@ -485,7 +488,9 @@ __js {
       if (!method) throw new Error('unknown projection method');
       return method(sequence, f);
     }
-    // else if (isBatchedStream(sequence)) //XXX
+    else if (isBatchedStream(sequence)) {
+      return project_batched_stream(sequence, f);
+    }
     else if (isStream(sequence)) {
       return transform(sequence, f);
     }
@@ -503,7 +508,15 @@ __js {
 
 var project_string = (str, f) -> str .. transform(f) .. join('');
 
-
+function project_batched_stream(seq, f) {
+  return BatchedStream(function(r) {
+    // note: must not use 'each' here, because we want to operate on batches
+    seq {
+      |batch|
+      r(batch .. map(f));
+    }
+  });
+}
 
 __js var noop = function() {};
 __js function exhaust(seq) { return each(seq, noop); }
