@@ -3262,3 +3262,19 @@ function batchN(s, n) {
   });
 }
 exports.batchN = batchN;
+
+//----------------------------------------------------------------------
+
+/**
+   @function dereference
+   @altsyntax sequence .. dereference(obj)
+   @summary Project a sequence into property lookups
+   @param {::Sequence} [sequence] Input sequence of property names
+   @param {Object} [obj] Object whose properties are being accessed
+   @return {::Sequence} Type-preserved ([::project]ed) sequence.
+   @desc
+     Shorthand for:
+
+         sequence .. @project(p -> obj[p])
+*/
+exports.dereference = (seq,obj) -> seq .. project(p -> obj[p]);
