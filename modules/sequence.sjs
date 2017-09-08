@@ -431,6 +431,8 @@ __js {
     @variable knownProjectionMethods
     XXX TO BE DOCUMENTED
   */
+  var METHOD_Observable_project = Token(module, 'method', 'Observable_project');
+  exports.METHOD_Observable_project = METHOD_Observable_project;
   var METHOD_ObservableArray_project = Token(module, 'method', 'ObservableArray_project');
   exports.METHOD_ObservableArray_project = METHOD_ObservableArray_project;
 
@@ -438,7 +440,18 @@ __js {
   exports.knownProjectionMethods = knownProjectionMethods;
 }
 
-knownProjectionMethods[METHOD_ObservableArray_project] = (s,t) -> require('sjs:observable').ObservableArray_project(s,t);
+knownProjectionMethods[METHOD_Observable_project] = function(s,t) {
+  // cache access for later use:
+  var m = knownProjectionMethods[METHOD_Observable_project] = require('sjs:observable').Observable_project;
+  return m(s,t);
+};
+
+knownProjectionMethods[METHOD_ObservableArray_project] = function(s,t) {
+  // cache access for later use:
+  var m = knownProjectionMethods[METHOD_ObservableArray_project] = require('sjs:observable').ObservableArray_project;
+  return m(s,t);
+};
+
 
 __js {
   /**
@@ -456,7 +469,7 @@ __js {
        * `sequence .. @transform(f)` if `sequence` is a generic [::Stream].
        * `arr .. @transform(f) .. @toArray` if `arr` is array-like.
        * `str .. @transform(f) .. @join('')` if  `str` is a string.
-
+       * `@Observable(obs .. @transform(f))` if `obs` is an [observable::Observable].
 
       For [observable::ObservableArray], `sequence .. project(f)`
       returns an [observable::ObservableArray] where each element
