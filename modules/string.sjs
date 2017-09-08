@@ -260,7 +260,7 @@ __js exports.lstrip = function(s, ch){
   @desc
     ### Notes:
 
-    If no `ch` argument is provided, `lstrip()` removes all trailing whitespace.
+    If no `ch` argument is provided, `rstrip()` removes all trailing whitespace.
 
         // example:
 
