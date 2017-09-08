@@ -237,6 +237,7 @@ module.exports = require(modules);
    - **consumeMultiple**: (function [sjs:sequence::consumeMultiple])
    - **count**: (function [sjs:sequence::count])
    - **dedupe**: (function [sjs:sequence::dedupe])
+   - **dereference**: (function [sjs:sequence::dereference])
    - **each**: (function [sjs:sequence::each])
    - **each.par**: (function [sjs:sequence::each.par])
    - **each.track**: (function [sjs:sequence::each.track])

@@ -2096,6 +2096,9 @@
         "dedupe": {
           "type": "function"
         },
+        "dereference": {
+          "type": "function"
+        },
         "each": {
           "type": "function"
         },
