@@ -527,3 +527,18 @@ exports.Constructor = function(proto) {
         // -> [ 1, 9, 25 ]
 */
 exports.tap = (o, fn) -> (fn(o),o);
+
+/**
+   @function pick
+   @summary Copy properties from an object to a new object
+   @param {Object} [obj] Source object
+   @param {sequence::Sequence} [props] Sequence of property names
+   @desc
+     ### Example:
+
+         var A = { a: 'x', b: 'y', c: 'z' };
+
+         B = A .. pick(['a', 'c']);
+         // B is now { a: 'x', c: 'z' }
+*/
+exports.pick = (obj, props) -> props .. transform(p -> [p,obj[p]]) .. pairsToObject;

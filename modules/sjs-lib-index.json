@@ -1867,6 +1867,9 @@
         "pairsToObject": {
           "type": "function"
         },
+        "pick": {
+          "type": "function"
+        },
         "setPath": {
           "type": "function"
         },
