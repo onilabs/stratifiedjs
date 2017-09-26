@@ -781,6 +781,7 @@ exports.SequenceExhausted = SequenceExhausted;
   @param {::Sequence} [sequence]
   @param {optional Object} [defaultValue]
   @summary Get the first item from a sequence
+  @return {Object} First item in sequence or `defaultValue`
   @desc
     If `sequence` is empty, `defaultValue` is returned if it was given.
     Otherwise, this function raises a [::SequenceExhausted] error.
