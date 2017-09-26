@@ -189,6 +189,7 @@ exports.events = events;
    @param {optional any} [...] Optional `filter` function, if first argument is a [./sequence::Stream], 
                                otherwise additional arguments as for [::events].
    @summary Wait for an event or the first item of a [./sequence::Stream]
+   @return {Object} Item emitted from stream
    @desc
      This function is polymorphic:
 
