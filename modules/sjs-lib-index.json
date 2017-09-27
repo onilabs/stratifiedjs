@@ -2636,6 +2636,9 @@
         "hostenv": {
           "type": "variable"
         },
+        "isStratum": {
+          "type": "function"
+        },
         "setDynVar": {
           "type": "function"
         },

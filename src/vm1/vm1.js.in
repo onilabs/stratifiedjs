@@ -2809,58 +2809,65 @@ EF_SpawnAbortFrame.prototype.resolveAbortCycle = function(spawn_frame) {
     }
     parent = parent.parent;
   }
-}
+};
+
+
+function ReifiedStratumProto() {}
+exports.ReifiedStratumProto = ReifiedStratumProto;
+
+// waitforValue deprecated:
+ReifiedStratumProto.prototype.waitforValue = function() { return this.value() };
+ReifiedStratumProto.prototype.toString = function() {return "[object Stratum]"; };
 
 
 function I_spawn(ndata, env) {
   var val, async, have_val, picked_up=false;
   var value_waitarr = [];
   var abort_waitarr = [];
-  var stratum = {
-    abort : function() {
-      var dyn_vars = exports.current_dyn_vars;
+  var stratum = new ReifiedStratumProto();
+  stratum.abort = function() {
+    var dyn_vars = exports.current_dyn_vars;
+    
+    // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
+    // in a finally clause is waiting for the spawn frame and vice versa, as in:
+    // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
+    if (ef.in_abortion) return new EF_SpawnAbortFrame(abort_waitarr, ef);
+    
+    if (ef.done) return UNDEF;
+    // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
+    // but any value listeners will receive a 'stratum aborted' notification immediately
+    var rv = ef.abort();
+    
+    exports.current_dyn_vars = dyn_vars;
+    
+    async = false;
+    val =  new CFException("t",
+                           new StratumAborted(),
+                           NDATA_SPAWN_LINE(),
+                           env.file);
+    while (value_waitarr.length)
+      cont(value_waitarr.shift(), val);
+    
+    if (is_ef(rv)) {
+      return new EF_SpawnAbortFrame(abort_waitarr, ef);
+    }
+    
+    if (!is_cfx(rv) || rv.type !== 't')
+      rv = UNDEF;
+    notifyAborted(rv);
+    
+    return rv;
+  };
 
-      // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
-      // in a finally clause is waiting for the spawn frame and vice versa, as in:
-      // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
-      if (ef.in_abortion) return new EF_SpawnAbortFrame(abort_waitarr, ef);
+  stratum.value = function() {
+    if (!async) { picked_up=true; return val; }
+    return new EF_SpawnWaitFrame(value_waitarr);
+  };
+    
+  stratum.running = function() { return async; };
 
-      if (ef.done) return UNDEF;
-      // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
-      // but any value listeners will receive a 'stratum aborted' notification immediately
-      var rv = ef.abort();
-
-      exports.current_dyn_vars = dyn_vars;
-
-      async = false;
-      val =  new CFException("t",
-                             new StratumAborted(),
-                             NDATA_SPAWN_LINE(),
-                             env.file);
-      while (value_waitarr.length)
-        cont(value_waitarr.shift(), val);
-
-      if (is_ef(rv)) {
-        return new EF_SpawnAbortFrame(abort_waitarr, ef);
-      }
-
-      if (!is_cfx(rv) || rv.type !== 't')
-        rv = UNDEF;
-      notifyAborted(rv);
-
-      return rv;
-    },
-    value : function() {
-      if (!async) { picked_up=true; return val; }
-      return new EF_SpawnWaitFrame(value_waitarr);
-    },
-    // waitforValue deprecated:
-    waitforValue : function() { return this.value() },
-    running : function() { return async; },
-    waiting : function() {
-      return value_waitarr.length;
-    },
-    toString: function() { return "[object Stratum]"; }
+  stratum.waiting = function() {
+    return value_waitarr.length;
   };
       
   function notifyAsync() {

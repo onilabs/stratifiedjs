@@ -247,6 +247,18 @@ __js exports.expandSingleArgument = function(args) {
 }
 
 /**
+   @function isReifiedStratum
+   @summary  Tests if an object is a reified (i.e. spawned) stratum
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+   @desc
+     See [../../modules/sys::isStratum]
+*/
+__js exports.isReifiedStratum = function(obj) {
+  return (obj instanceof __oni_rt.ReifiedStratumProto);
+};
+
+/**
    @function isQuasi
    @summary  Tests if an object is a Quasi
    @param    {anything} [testObj] Object to test.

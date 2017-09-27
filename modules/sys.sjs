@@ -68,6 +68,14 @@ module.exports = {
   eval: s.eval,
 
 /**
+   @function isStratum
+   @summary  Tests if an object is a reified (i.e. spawned) stratum
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+*/
+  isStratum: s.isReifiedStratum,
+
+/**
    @function withDynVarContext
    @altsyntax withDynVarContext([proto_context]) { || ... }
    @summary  Execute code in a new dynamic variable context
