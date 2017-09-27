@@ -439,7 +439,7 @@
   the StratifiedJS runtime in response to a [./syntax::spawn] invocation.
 
 @function Stratum.abort
-@summary Aborts the stratum (if it is not finished yet)
+@summary Aborts the stratum if it is not finished yet, otherwise does nothing
 
 @function Stratum.value
 @summary Returns the value of the spawned stratum expression
