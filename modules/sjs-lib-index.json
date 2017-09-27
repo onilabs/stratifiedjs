@@ -764,8 +764,7 @@
           }
         },
         "StratumAborted": {
-          "type": "class",
-          "children": {}
+          "type": "variable"
         },
         "SuspendedContext": {
           "type": "class",

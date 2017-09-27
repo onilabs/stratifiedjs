@@ -41,12 +41,10 @@
 var sys  = require('builtin:apollo-sys');
 
 /**
-  @class StratumAborted
-  @summary the error type thrown by calling abort() on a stratum
+  @variable StratumAborted
+  @summary The error type thrown by calling abort() on a stratum
   @desc
-    You can check if an error is a stratum being aborted with:
-
-    ### Example:
+    You can check if a reified [#language/builtins::Stratum] was terminated because of a call to [#language/builtins::Stratum::abort] with the following code:
 
         try {
           stratum.value();

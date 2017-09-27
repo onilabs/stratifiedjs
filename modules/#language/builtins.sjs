@@ -435,8 +435,13 @@
 @class Stratum
 @summary The return value of [./syntax::spawn]
 @desc
-  Stratum objects cannot be created directly - they are created by
-  the StratifiedJS runtime in response to a [./syntax::spawn] invocation.
+  Strata are SJS's concurrent process abstraction. They are created and orchestrated transparently
+  by SJS's structured concurrency operators (like [./syntax::waitfor-and]) and are not directly 
+  accessible ('reified') in user code.  
+
+  The exception is the unstructured concurrency operator [./syntax::spawn], which returns a reified stratum that can be manipulated by user code.
+
+  You can use [../sys::isStratum] to check if a given object is a stratum.
 
 @function Stratum.abort
 @summary Aborts the stratum if it is not finished yet, otherwise does nothing

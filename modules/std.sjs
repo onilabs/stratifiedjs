@@ -133,6 +133,7 @@ module.exports = require(modules);
    - **Condition**: (class [sjs:cutil::Condition])
    - **Queue**: (class [sjs:cutil::Queue])
    - **Semaphore**: (class [sjs:cutil::Semaphore])
+   - **StratumAborted**: (variable [sjs:cutil::StratumAborted])
    - **waitforAll**: (function [sjs:cutil::waitforAll])
    - **waitforFirst**: (function [sjs:cutil::waitforFirst])
   
