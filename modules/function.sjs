@@ -479,3 +479,88 @@ __js {
   exports.signal = signal;
 }
 // XXX alt, curry
+
+
+/**
+   @function tailspawn
+   @param {Function} [f]
+   @return {Function}
+   @summary A decorator to allow a call to `f` to be tail-replaced with `exp` by calling `return spawn exp` inside `f`. 
+   @desc
+     This decorator is useful for chaining function calls while bailing out of 'resource manager contexts'.
+     E.g. consider the following:
+     
+         function processFile(f) {
+           @fs.withReadStream(f) {
+             |file_stream|
+             var header = file_stream .. read_header();
+             if (header.type === 'parent')
+               return processSubFile(header.child);
+             else {
+               var payload = file_stream .. read_payload();
+               return processPayload(payload);
+             }
+           }
+         }
+
+     The problem here is that this code unnecessarily keeps open file streams while processing
+     calls to `processSubFile` or `processPayload`. One way to fix this is to move the calls to
+     `processSubFile` and `processPayload` out of the `withReadStream` block. But this is awkward,
+     because we then need to replicate part of our business logic in two places:
+
+         function processFile(f) {
+           var type, child, payload;
+           @fs.withReadStream(f) {
+             |file_stream|
+             var header = file_stream .. read_header();
+             type = header.type;
+             if (type === 'parent') 
+               child = header.child;
+             else
+               payload = file_stream .. read_payload();
+           }
+
+           if (type === 'parent')
+             return processSubFile(child);
+           else
+             return processPayload(payload);
+         }
+
+     Decorating `processFile` with `tailspawn` offers a cleaner alternative. It allows us to spawn
+     a return expression (causing the read stream to be closed as soon as the return expression 
+     suspends, rather than when it has finished processing), but it exposes the 
+     return value to `processFile`'s caller as if it were not spawned:
+
+         var processFile = tailspawn :: function(f) {
+           @fs.withReadStream(f) {
+             |file_stream|
+             var header = file_stream .. read_header();
+             if (header.type === 'parent')
+               return spawn processSubFile(header.child);
+             else {
+               var payload = file_stream .. read_payload();
+               return spawn processPayload(payload);
+             }
+           }
+         }
+
+     `tailspawn` is particulary useful for chaining UI code, such as e.g. functions that call [mho:surface/widgets::dialog].
+
+     We should eventually have direct syntax support for this feature in SJS. 
+*/
+exports.tailspawn = function(f) {
+  return function() {
+    var rv = f.apply(this, arguments);
+    if (rv .. sys.isReifiedStratum) {
+      try {
+        return rv.value();
+      }
+      retract {
+        rv.abort();
+      }
+    }
+    else 
+      return rv;
+  }
+}
+

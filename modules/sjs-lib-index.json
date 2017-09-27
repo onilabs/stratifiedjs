@@ -907,6 +907,9 @@
         "signal": {
           "type": "function"
         },
+        "tailspawn": {
+          "type": "function"
+        },
         "trycatch": {
           "type": "function"
         },
