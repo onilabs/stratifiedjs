@@ -104,13 +104,13 @@ if (hostenv === 'nodejs') {
     } .. @override(settings);
 
     var hash = @node_crypto.createHash('md5');
-    if (@isSequence(data) || Array.isArray(data))
+    if (@isStream(data) || Array.isArray(data))
       data .. @each {
         |elem|
         hash.update(elem, settings.input_encoding);
       }
     else
-      hash.update(elem, settings.input_encoding);
+      hash.update(data, settings.input_encoding);
     return hash.digest('hex').toString();
   };
 }
