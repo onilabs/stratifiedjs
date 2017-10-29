@@ -168,18 +168,17 @@ __js exports.getDynVar = function(name, default_val) {
 
 /**
    @function isArrayLike
-   @summary  Tests if an object is an array, `arguments` object, TypedArray or, in an xbrowser hostenv of StratifiedJS, a NodeList or FileList
+   @summary  See [../../modules/array::isArrayLike]
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
-   @desc
-     See [../../modules/array::isArrayLike]
 */
 
 __js var arrayCtors=[], arrayCtorNames = [
   'Uint8Array', 'Uint16Array', 'Uint32Array',
   'Int8Array', 'Int16Array', 'Int32Array',
   'Float32Array', 'Float64Array',
-  'NodeList', 'HTMLCollection', 'FileList', 'StaticNodeList'
+  'NodeList', 'HTMLCollection', 'FileList', 'StaticNodeList',
+  'DataTransferItemList'
 ]; 
 
 __js for(var i=0; i<arrayCtorNames.length; i++) {
