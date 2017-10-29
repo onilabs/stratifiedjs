@@ -445,6 +445,8 @@
 
 @function Stratum.abort
 @summary Aborts the stratum if it is not finished yet, otherwise does nothing
+@desc
+  Note: Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses will be honored.
 
 @function Stratum.value
 @summary Returns the value of the spawned stratum expression
