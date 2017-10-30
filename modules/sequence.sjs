@@ -469,7 +469,7 @@ __js {
        * `sequence .. @transform(f)` if `sequence` is a generic [::Stream].
        * `arr .. @transform(f) .. @toArray` if `arr` is array-like.
        * `str .. @transform(f) .. @join('')` if  `str` is a string.
-       * `@Observable(obs .. @transform(f))` if `obs` is an [observable::Observable].
+       * `@Observable(obs .. @transform(f) .. @dedupe)` if `obs` is an [observable::Observable].
 
       For [::BatchedStream]s, `sequence .. project(f)` will return a 
       [::BatchedStream] with the same batching as `sequence`.

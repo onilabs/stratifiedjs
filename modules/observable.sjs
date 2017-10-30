@@ -42,7 +42,7 @@
   {id: 'sjs:sys', name: 'sys'}
 ]);
 var cutil = require('./cutil');
-var { isStream, isBatchedStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_Observable_project, METHOD_ObservableArray_project, consume } = require('./sequence');
+var { isStream, isBatchedStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_Observable_project, METHOD_ObservableArray_project, consume, dedupe } = require('./sequence');
 var { merge, clone, override } = require('./object');
 var { Interface, Token } = require('./type');
 
@@ -86,7 +86,7 @@ __js {
 } /* __js */
 
 function Observable_project(upstream, transformer) {
-  return Observable :: upstream .. transform(transformer);
+  return Observable :: upstream .. transform(transformer) .. dedupe;
 }
 exports.Observable_project = Observable_project;
 
