@@ -1884,6 +1884,9 @@
     "observable": {
       "type": "module",
       "children": {
+        "CompoundObservable": {
+          "type": "function"
+        },
         "ConflictError": {
           "type": "class",
           "children": {}

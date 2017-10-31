@@ -354,6 +354,7 @@ exports.synchronize = synchronize;
 
 /**
   @function observe
+  @deprecated Use [::CompoundObservable]
   @return {::Observable}
   @summary Create stream of values derived from one or more [::Observable] inputs.
   @param {::Observable} [stream1, stream2, ...] Input stream(s)
@@ -367,41 +368,46 @@ exports.synchronize = synchronize;
     represents that inputs current value and not a mutation object.  
 
     If one of the inputs changes during execution of `transformer`, the execution will be
-    aborted, and `transformer` will be called with the new set of inputs.
+    aborted, and `transformer` will be called with the new set of inputs. Downstream execution, however, 
+    will never be interrupted.
 
-    For example, you might want to compute a derived property
-    from a single observable variable:
+    Even if the `observe` stream is iterated concurrently by multiple consumers, there will only be one 
+    concurrent iteration of each input stream (the output of `observe` is passed through [./sequence::mirror]).
 
-        var person = ObservableVar({
-          firstName: "John",
-          lastName: "Smith",
-        });
+    ### Examples
 
-        var fullName = observe(person, function(current) {
-          return "#{current.firstName} #{current.lastName}";
-        });
+    * Compute a derived property from a single observable variable:
+
+          var person = ObservableVar({
+            firstName: "John",
+            lastName: "Smith",
+          });
+
+          var fullName = observe(person, function(current) {
+            return "#{current.firstName} #{current.lastName}";
+          });
 
     When `person` changes, `fullName` will be recomputed automatically, and
     any code iterating over `fullName` will see the new value immediately.
 
-    You can create a observable stream from multiple source streams:
+    * Create an observable stream from multiple source streams:
 
-        var runner = ObservableVar({
-          firstName: "John",
-          lastName: "Smith",
-          id: 5,
-        });
+          var runner = ObservableVar({
+            firstName: "John",
+            lastName: "Smith",
+            id: 5,
+          });
 
-        // The most recent race results:
-        var latestRanking = ObservableVar([8, 2, 5, 7, 1, 3]);
+          // The most recent race results:
+          var latestRanking = ObservableVar([8, 2, 5, 7, 1, 3]);
 
-        var personStatus = observe(runner, latestRanking, function(runnerVal, rankingVal) {
-          return `$(runnerVal.firstName) came #$(rankingVal.indexOf(runner.id)+1) in the last race`;
-        });
+          var personStatus = observe(runner, latestRanking, function(runnerVal, rankingVal) {
+            return `$(runnerVal.firstName) came #$(rankingVal.indexOf(runner.id)+1) in the last race`;
+          });
 
-        // If `personStatus` is displayed in a [mho:surface::HtmlFragment], the UI would
-        // initially read "John came #3 in the last race", and would update
-        // whenever `runner` or `latestRanking` changed.
+          // If `personStatus` is displayed in a [mho:surface::HtmlFragment], the UI would
+          // initially read "John came #3 in the last race", and would update
+          // whenever `runner` or `latestRanking` changed.
 
 */
 function observe(/* var1, ...*/) {
@@ -466,6 +472,141 @@ function observe(/* var1, ...*/) {
 }
 exports.observe = observe;
 
+/**
+  @function CompoundObservable
+  @summary Combine several observables into a single observable
+  @return {::Observable}
+  @param {Array} [sources] Array of source [::Observable]s
+  @param {optional Function} [transformer=identity] Optional output transformer - see description
+  @desc
+    * Creates an observable that combines the values of the observables `sources[0]`, `sources[1]`, ..., 
+      into array values `[s0, s1, ...]`, where `sN` is the current value of `source[N]`.
+      Whenever any of the source observables changes, the compound observable's value will be updated.
+
+    * The source observables will only be iterated while the compound observable is being iterated.
+
+    * Even if the compound observable is iterated concurrently by multiple consumers, there will only be one 
+      concurrent iteration of each source stream (the output of `CompoundObservable` is passed through [./sequence::mirror]).
+
+    * All sources will be passed through 
+      [::reconstitute], ensuring that the value seen downstream for a given source 
+      represents that source's current value and not a mutation object.
+
+    ### Optional transformation function
+
+    * An optional `transformer` function can be specified to modify the `CompoundObservable`'s output value. It will
+      be passed an array of current source values `[s0, s1, ...]` as argument.
+
+    * `transformer` will only be called while the compound observable is being iterated.
+
+    * If `transformer` is a blocking function and one of the inputs changes during execution of `transformer`, the execution will be
+      aborted, and `transformer` will be called with the new set of inputs. Downstream execution, however, 
+      will never be interrupted.
+
+
+    ### Examples
+
+    ##### Compute a derived property from a single observable variable:
+
+          var person = ObservableVar({
+            firstName: "John",
+            lastName: "Smith",
+          });
+
+          var fullName = [person] .. 
+            CompoundObservable([current] -> "#{current.firstName} #{current.lastName}");
+
+
+      Note: You could achieve (almost) the same effect by using [./sequence::project]:
+
+          var fullName = person .. @project(current -> "#{current.firstName} #{current.lastName}");
+
+      The difference here is that the `project` version does not do an implicit [./sequence::mirror].
+      Also, if the transformer function were to block - e.g. do a database lookup in the background -, 
+      the `CompoundObservable`-version would cancel the db lookup if `person` takes on a new value, 
+      and would call the transformer function again with the updated data immediately.
+
+
+
+    ##### Create an observable stream from multiple source streams:
+
+          var runner = ObservableVar({
+            firstName: "John",
+            lastName: "Smith",
+            id: 5,
+          });
+
+          // The most recent race results:
+          var latestRanking = ObservableVar([8, 2, 5, 7, 1, 3]);
+
+          var personStatus = [runner, latestRanking] .. 
+            CompoundObservable([runnerVal, rankingVal] ->
+              `$(runnerVal.firstName) came #$(rankingVal.indexOf(runner.id)+1) in the last race`);
+
+          // If `personStatus` is displayed in a [mho:surface::HtmlFragment], the UI would
+          // initially read "John came #3 in the last race", and would update
+          // whenever `runner` or `latestRanking` changed.
+
+*/
+function CompoundObservable(sources, transformer) {
+  var f = arguments[arguments.length-1];
+
+  __js {
+    sources .. each {
+      |source|
+      if (!isObservable(source)) {
+          throw new Error("invalid non-observable argument '#{typeof source}' passed to 'CompoundObservable()'");
+      }
+    }
+  } /* __js */
+
+  return Observable(function(receiver) {
+    var inputs = [], primed = 0, rev=1;
+    var change = Object.create(cutil._Waitable);
+    change.init();
+
+    waitfor {
+      var current_rev = 0;
+      while (1) {
+        change.wait();
+        if (primed < sources.length) continue;
+        while (current_rev < rev) {
+          waitfor {
+            change.wait();
+          }
+          or {
+            current_rev = rev;
+            var val = inputs.slice(0);
+            if (transformer) 
+              val = transformer(inputs);
+            collapse; // don't interrupt downstream call
+            receiver(val);
+          }
+        }
+      }
+    }
+    or {
+      cutil.waitforAll(
+        function(i) {
+          var first = true;
+          sources[i] .. reconstitute .. each {
+            |x|
+            if (first) {
+              ++primed;
+              first = false;
+            }
+            else {
+              ++rev;
+            }
+            inputs[i] = x;
+            change.emit();
+          }
+        },
+        integers(0,sources.length-1) .. toArray);
+    }
+  }) .. mirror;
+}
+exports.CompoundObservable = CompoundObservable;
 
 /**
    @function current

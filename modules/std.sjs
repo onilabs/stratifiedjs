@@ -197,6 +197,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:observable](#sjs%3Aobservable) module:
   
    - **changes**: (function [sjs:observable::changes])
+   - **CompoundObservable**: (function [sjs:observable::CompoundObservable])
    - **ConstantObservable**: (function [sjs:observable::ConstantObservable])
    - **constantObservable**: (function [sjs:observable::constantObservable])
    - **current**: (function [sjs:observable::current])
