@@ -198,6 +198,8 @@
   when both `some code` and `some other code` have finished will the
   execution proceed with `next code`.
 
+  If one of the branches exists prematurely (e.g. via a `return` or exception) while the other one is suspended,
+  the suspended branch will be cancelled. See the sections on "Cancellation" and "Handling retraction" on the [../#language/::] page for more details.
 
   `waitfor/and` can take more than 2 clauses, as well as optional catch/retract/finally clauses (like `try`). The full syntax is:
 
@@ -232,8 +234,9 @@
   code` or `some other code` finishes, while the other is
   suspends, the suspended code will be cancelled.
 
+  See the sections on "Cancellation" and "Handling retraction" on the [../#language/::] page for more details.
 
-  One scenario where alt composition is helpful is to add timeouts:
+  One scenario where waitfor/or composition is helpful is to add timeouts:
 
 
       waitfor {
@@ -248,7 +251,6 @@
   Here, we're timing out our database request after 1s. Note how we can
   treat `do_request_to_database_server` as a complete black box. SJS
   is modular!
-
 
   `waitfor/or` can take more than 2 clauses, as well as optional catch/retract/finally clauses (like `try`). The full syntax is:
 
@@ -296,15 +298,16 @@
         console.log("'some suspending code' has been cancelled!");
       }
 
-  Cancellation is also honoured by `try/finally`; i.e. a `finally` clause
+  Cancellation is also honored by `try/finally`; i.e. a `finally` clause
   will be executed whether a `try` block is left normally, by exception or
   by cancellation.
 
+  The cancellation path is always synchronous: The code that caused the cancellation will only resume once all `retract` and `finally` clauses
+  along the cancelled callstack have completed.
 
   As a shorthand, `catch`, `retract`, and `finally` blocks can be appended
   directly to a `waitfor()`, `waitfor/and`, or `waitfor/or`, without having to
   wrap it into a `try`-clause.
-
 
   Example: Here is a function that waits for a DOM event in the webbrowser:
 

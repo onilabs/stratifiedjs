@@ -446,7 +446,48 @@
 @function Stratum.abort
 @summary Aborts the stratum if it is not finished yet, otherwise does nothing
 @desc
-  Note: Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses will be honored.
+  Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]:
+
+  * `abort` is synchronous: It will only return after the stratum has been retracted (i.e. once all `finally` and `retract` clauses on the stratum's callstack have been executed).
+
+  * Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses will be honored. This is also true for 'cyclic aborts' (see below). 
+
+  #### Cyclic aborts
+
+  A 'cyclic abort' is a stratum calling `abort` on itself, as in e.g: 
+  
+      var S = spawn(function(){ 
+        try { 
+          hold(100); 
+          S.abort(); 
+          console.log('not reached'); 
+        } retract { 
+          console.log('retract called') 
+        } 
+      })();
+
+  Here, `console.log('not reached')` will not be executed because `S.abort()` will immediately terminate `S` (but the retract clause will be honored).
+
+  While this is allowed, it typically is indicative of flawed program logic and will generate a runtime warning:
+
+     Warning: Cyclic stratum.abort() call from within stratum.
+
+  Usually, a stratum should just terminate normally (via return) or exception. If abortion is used, typically it will be more appropriate to use a
+  non-synchronous form of abortion:
+
+      var S = spawn(function() { 
+        try { 
+          hold(100);
+          spawn S.abort();
+          console.log('this will be executed');
+          hold(); // <-- now the stratum will be aborted
+          console.log('not reached');
+        }
+        retract {
+          console.log('retract called');
+        }
+      })();
+
 
 @function Stratum.value
 @summary Returns the value of the spawned stratum expression

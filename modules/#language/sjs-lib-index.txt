@@ -115,8 +115,9 @@
 
 
   Cancellation means that a suspended `waitfor()`-construct will not wait
-  for a call to its corresponding resume any more. Also, a `hold(t)` will
+  for a call to its corresponding `resume` any more. Also, a `hold(t)` will
   not wake up any more.
+  Any code in the cancelled stratum coming after the aborted suspended code will not be executed any more.
   
   ### Handling retraction - [::syntax::try-retract]
   
