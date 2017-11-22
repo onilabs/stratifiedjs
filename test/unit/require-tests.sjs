@@ -179,7 +179,7 @@ test('circular reference returns the unfinished module') {||
       }
     },
   });
-};
+}.skip("CIRCULAR DEPS ARE NOW DISALLOWED");
 
 test('circular reference (loaded in parallel) returns the unfinished module') {||
   waitfor {
@@ -198,7 +198,7 @@ test('circular reference (loaded in parallel) returns the unfinished module') {|
       }
     },
   });
-}.skip("BROKEN");
+}.skip("CIRCULAR DEPS ARE NOW DISALLOWED");
 
 test('non-circular reference waits for the full module') {||
   var path = require.resolve('./fixtures/slow_exports').path;
