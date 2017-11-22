@@ -521,7 +521,7 @@ test('Builtin error subclass exception messages', "TypeError: err\nthis_file:#{l
 });
 
 line=523;
-test('stack from blocklambda', 'this_file:' + (line+7) + '\nthis_file:' + (line + 3), function() {
+test('stack from blocklambda', 'this_file:' + (line+7) + '\nthis_file:' + (line + 3) + '\nthis_file:' + (line + 9), function() {
   var f1 = function(block) {
     block();
   };
@@ -531,5 +531,5 @@ test('stack from blocklambda', 'this_file:' + (line+7) + '\nthis_file:' + (line 
     }
   };
   return stack_from_running(caller);
-}).skip("broken");
+});
 
