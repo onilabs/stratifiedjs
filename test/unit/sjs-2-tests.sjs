@@ -1727,6 +1727,35 @@ test("blocking finally not affecting sync processing", 'abcd', function() {
   return rv;
 });
 
+test("blocking retract not affecting sync processing", 'abcde', function() {
+  var rv = '';
+  waitfor {
+    try {
+      try {
+        rv += 'a';
+      }
+      finally {
+        hold(10);
+        rv += 'c';
+      }
+    }
+    retract {
+      hold(10);
+      rv += 'd';
+    }
+    rv += 'e';
+    hold(0); // <-- should abort here
+    rv += 'x';
+  }
+  or {
+    hold(0);
+    rv += 'b';
+  }
+
+  return rv;
+});
+
+
 test("expired detached async blocklambda break", 'acde', function() {
   var stratum;
   var rv = '';
