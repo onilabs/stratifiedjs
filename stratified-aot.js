@@ -345,19 +345,35 @@ if(this.child_frame)this.child_frame.quench();
 
 },abort:function(){
 
-this.aborted=true;
 
+;
+
+this.aborted=true;
 
 
 if(!this.child_frame){
 
 return this;
-}else return this.child_frame.abort();
+}else{
 
+var abort_val=this.child_frame.abort();
+if(is_ef(abort_val)){
+return this;
+}else{
 
+;
+return abort_val;
+}
+}
 },returnToParent:function(val){
 
 if((val&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
+
+
+
+
+
+
 
 val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
@@ -422,7 +438,7 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 
 
 
-}else if((val&&val.__oni_cfx)){
+}else if((val&&val.__oni_cfx)&&val.type!=='a'){
 
 
 val.mapToJS(true);
@@ -1361,7 +1377,9 @@ val=val.abort();
 }
 
 
-if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3])return this.returnToParent(val);
+
+
+if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3]&&!(this.aborted&&is_ef(val)))return this.returnToParent(val);
 
 
 
@@ -1409,8 +1427,11 @@ case 4:
 
 
 
-if((this.rv&&this.rv.__oni_cfx)&&!(val&&val.__oni_cfx)){
-val=this.rv;
+if(!(val&&val.__oni_cfx)){
+if((this.rv&&this.rv.__oni_cfx))val=this.rv;else if(this.aborted)val=new CFException('a');
+
+
+
 }
 break;
 default:
@@ -1441,17 +1462,22 @@ this.setChildFrame(val);
 
 
 
-this.parent=UNDEF;
+
+
 
 
 
 this.async=false;
 var rv=cont(this,0);
+;
 if(rv!==this){
+if(!(rv&&rv.__oni_cfx))rv=new CFException('a');
+
 return rv;
-}else this.async=true;
+}else{
 
-
+this.async=true;
+}
 
 }
 }
@@ -1786,7 +1812,7 @@ var parent_dyn_vars=exports.current_dyn_vars;
 for(var i=0;i<this.ndata.length;++i){
 val=execIN(this.ndata[i],this.env);
 exports.current_dyn_vars=parent_dyn_vars;
-if(this.aborted){
+if(this.inner_aborted){
 
 
 if(is_ef(val)){
@@ -1814,7 +1840,7 @@ return this.abortInner();
 
 --this.pending;
 this.children[idx]=UNDEF;
-if((val&&val.__oni_cfx)&&!this.aborted&&!(val.type==='blb'&&val.ef===this.env.blscope)){
+if((val&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb'&&val.ef===this.env.blscope)){
 
 
 
@@ -1852,7 +1878,7 @@ return this;
 }
 };
 
-EF_Par.prototype.quench=function(){if(this.aborted)return;
+EF_Par.prototype.quench=function(){if(this.inner_aborted)return;
 
 for(var i=0;i<this.children.length;++i){
 if(this.children[i])this.children[i].quench();
@@ -1860,20 +1886,24 @@ if(this.children[i])this.children[i].quench();
 }
 };
 
-EF_Par.prototype.abort=function(){this.parent=UNDEF;
+EF_Par.prototype.abort=function(){if(this.aborted){
 
 
 
-if(this.aborted){
 
 
-this.pendingCFE=UNDEF;
+
+
+
+
 return this;
+
 }
+this.aborted=true;
 return this.abortInner();
 };
 
-EF_Par.prototype.abortInner=function(){this.aborted=true;
+EF_Par.prototype.abortInner=function(){this.inner_aborted=true;
 
 
 
@@ -1889,7 +1919,7 @@ this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 this.children[i]=UNDEF;
 }
 }
-if(!this.pending)return this.pendingCFE;
+if(!this.pending)return this.pendingCFE||new CFException('a');
 
 
 this.async=true;
@@ -1930,6 +1960,7 @@ exports.Par=function(){return {exec:I_par,ndata:arguments,__oni_dis:token_dis};
 
 
 
+
 function EF_Alt(ndata,env){this.ndata=ndata;
 
 this.env=env;
@@ -1956,7 +1987,7 @@ env.branch=i;
 val=execIN(this.ndata[i],env);
 exports.current_dyn_vars=parent_dyn_vars;
 
-if(this.aborted){
+if(this.inner_aborted){
 
 
 if(is_ef(val)){
@@ -2001,7 +2032,7 @@ return;
 
 
 
-if(!this.aborted){
+if(!this.inner_aborted){
 if(!this.pendingRV)this.pendingRV=val;
 
 this.quench();
@@ -2016,7 +2047,7 @@ return this;
 }
 };
 
-EF_Alt.prototype.quench=function(except){if(this.aborted)return;
+EF_Alt.prototype.quench=function(except){if(this.inner_aborted)return;
 
 if(this.collapsing){
 
@@ -2031,16 +2062,29 @@ if(i!==except&&this.children[i])this.children[i].quench();
 }
 };
 
-EF_Alt.prototype.abort=function(){this.parent=UNDEF;
+EF_Alt.prototype.abort=function(){if(this.aborted){
 
-if(this.aborted){
-this.pendingRV=UNDEF;
+
+
+
+
 return this;
 }
-return this.abortInner();
+this.aborted=true;
+var rv;
+if(!this.inner_aborted){
+rv=this.abortInner();
+}else if(this.pending)rv=this;
+
+
+
+if(rv!==this&&!(rv&&rv.__oni_cfx))rv=new CFException('a');
+return rv;
 };
 
-EF_Alt.prototype.abortInner=function(){this.aborted=true;
+EF_Alt.prototype.abortInner=function(){this.inner_aborted=true;
+
+
 
 
 if(this.collapsing){
@@ -2092,8 +2136,9 @@ for(var i=0;i<this.children.length;++i){
 if(i==branch)continue;
 if(this.children[i]){
 var val=this.children[i].abort();
-if(is_ef(val))this.setChildFrame(val,i);else{
-
+if(is_ef(val)){
+this.setChildFrame(val,i);
+}else{
 
 --this.pending;
 this.children[i]=UNDEF;
@@ -2196,7 +2241,7 @@ if(is_ef(val)){
 
 this.setChildFrame(val,null);
 this.quench();
-val=this.abort();
+val=val.abort();
 if(is_ef(val)){
 
 this.setChildFrame(val,3);
@@ -2250,7 +2295,7 @@ return;
 }else{
 
 this.quench();
-val=this.abort();
+val=this.child_frame.abort();
 if(is_ef(val)){
 
 this.setChildFrame(val,3);
@@ -2270,6 +2315,10 @@ val=UNDEF;
 val=new CFException("i","Suspend: Return function threw ("+e+")");
 }
 break;
+case 4:
+
+
+break;
 default:
 val=new CFException("i","Invalid state in Suspend ("+idx+")");
 }
@@ -2287,8 +2336,19 @@ EF_Suspend.prototype.abort=function(){exports.current_dyn_vars=this.dyn_vars;
 
 
 this.returning=true;
-if(!this.suspendCompleted)return this.child_frame.abort();
+this.aborted=true;
+if(!this.suspendCompleted){
+var abort_val=this.child_frame.abort();
+if(is_ef(abort_val)){
+this.setChildFrame(abort_val,4);
+return this;
+}else{
 
+;
+return abort_val;
+}
+}
+return new CFException('a');
 };
 
 function I_sus(ndata,env){return cont(new EF_Suspend(ndata,env),0);
@@ -2482,7 +2542,7 @@ EF_Spawn.prototype.abort=function(){if(this.in_abortion)return this;
 
 
 
-if(this.done)return UNDEF;
+if(this.done)return new CFException('a');
 
 this.in_abortion=true;
 if(this.child_frame){
@@ -2496,7 +2556,7 @@ return this;
 
 this.in_abortion=false;
 this.done=true;
-return UNDEF;
+return new CFException('a');
 }
 }
 };
@@ -2511,6 +2571,7 @@ EF_SpawnWaitFrame.prototype.quench=function(){};
 EF_SpawnWaitFrame.prototype.abort=function(){var idx=this.waitarr.indexOf(this);
 
 this.waitarr.splice(idx,1);
+return new CFException('a');
 };
 EF_SpawnWaitFrame.prototype.cont=function(val){if(this.parent){
 
@@ -2532,9 +2593,10 @@ hold0(function(){me.resolveAbortCycle(spawn_frame)});
 }
 setEFProto(EF_SpawnAbortFrame.prototype={});
 EF_SpawnAbortFrame.prototype.quench=function(){};
-EF_SpawnAbortFrame.prototype.abort=function(){return this;
+EF_SpawnAbortFrame.prototype.abort=function(){this.aborted=true;
 
 
+return this;
 };
 EF_SpawnAbortFrame.prototype.cont=function(val){if(this.done)return;
 
@@ -2543,6 +2605,11 @@ var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 delete this.dyn_vars;
 this.done=true;
+
+
+if(this.aborted&&!(val&&val.__oni_cfx)&&this.parent.aborted)val=new CFException('a');
+
+
 cont(this.parent,this.parent_idx,val);
 exports.current_dyn_vars=current_dyn_vars;
 }else if((val&&val.__oni_cfx)&&(val.type==='t'||val.val instanceof Error)){
@@ -2588,7 +2655,9 @@ stratum.abort=function(){var dyn_vars=exports.current_dyn_vars;
 
 
 
-if(ef.in_abortion)return new EF_SpawnAbortFrame(abort_waitarr,ef);
+if(ef.in_abortion){
+return new EF_SpawnAbortFrame(abort_waitarr,ef);
+}
 
 if(ef.done)return UNDEF;
 
@@ -2727,7 +2796,7 @@ return this;
 
 
 EF_Collapse.prototype.quench=function(){};
-EF_Collapse.prototype.abort=function(){};
+EF_Collapse.prototype.abort=function(){this.aborted=true;return new CFException('a')};
 
 function I_collapse(ndata,env){return cont(new EF_Collapse(ndata,env),0);
 
@@ -2823,6 +2892,7 @@ exports.Hold=function(duration_ms){var dyn_vars=exports.current_dyn_vars;
 function abort(){exports.current_dyn_vars=dyn_vars;
 
 
+return new CFException('a');
 }
 
 if(duration_ms===UNDEF)return {__oni_ef:true,wait:function(){
