@@ -2040,3 +2040,54 @@ test('for-in loop property async deletion', 'abd',
        }
        return rv;
      });
+
+test('blocking finally clause is not abort point 1', 'abc',
+     function() {
+       var rv = '';
+       
+       function stratum() {
+         hold(0);
+         try {
+           rv += 'a';
+         }
+         finally {
+           S.abort();
+           rv+= 'b';
+         }
+         rv += 'c';
+         hold(0); // <-- this should be aborted
+       }
+       
+       var S = spawn stratum();
+
+       hold(10); // wait for stratum to be done
+
+       return rv;
+     });
+
+test('blocking finally clause is not abort point 2', 'abcd',
+     function() {
+       var rv = '';
+       
+       function stratum() {
+         hold(0);
+         try {
+           rv += 'a';
+         }
+         finally {
+           try {
+             S.abort();
+           }
+           finally { hold(0); rv+='b';}
+           rv+= 'c';
+         }
+         rv += 'd';
+         hold(0); // <-- this should be aborted
+       }
+       
+       var S = spawn stratum();
+
+       hold(10); // wait for stratum to be done
+
+       return rv;
+     });
