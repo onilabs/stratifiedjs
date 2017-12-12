@@ -72,7 +72,7 @@ function dumpExecutionFrameChildren(ef, indent) {
 #define EF_TYPES
 #define LOG(x) console.log(x);
 // XXX figure out why normal CPP stringification is screwed
-#define ASSERT(X) if(!(X)) { throw new Error("Assertion failed: " + "X" ); }
+#define ASSERT(X) if(!(X)) { console.log("Assertion failed: " + "X" ); throw new Error("Assertion failed: " + "X")}
 #define WHENDEBUG(X) X
 #else
 #define ASSERT(X)
@@ -327,7 +327,7 @@ function mergeCallstacks(target_ef, src_ef) {
 // base prototype object for execution frames
 var EF_Proto = {
 #ifdef EF_TYPES
-  toString: function() { return "<SJS Execution Frame '"+(typeof(this.type) === 'function' ? this.type() : this.type)+"'"+(this.id ? this.id:'')+">"; },
+  toString: function() { return "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+">"; },
 #else
   toString: function() { return "<suspended SJS>"; },
 #endif
@@ -358,7 +358,9 @@ var EF_Proto = {
       this.child_frame.quench();
   },
 
+  // abort must either return 'this' (if we need to wait), or a controlflow exception
   abort: function() {
+    ASSERT(!this.aborted);
     this.aborted = true;
     // see sjs-2-test 'reentrant quench/abort' for why we need to
     // check for 'this.child_frame' here and in 'quench'
@@ -366,11 +368,25 @@ var EF_Proto = {
       // reentrant abortion
       return this;
     }
-    else
-      return this.child_frame.abort();
+    else {
+      var abort_val = this.child_frame.abort();
+      if (is_ef(abort_val)) {
+        return this; // need to stay in picture because abort must not return child frame
+      }
+      else {
+        ASSERT(is_cfx(abort_val));
+        return abort_val;
+      }
+    }
   },
 
   returnToParent: function(val) {
+    // this check is incomplete: try/alt/par that are internally aborted don't have their 'aborted'
+    // flag set, yet they *do* accept 'a's
+    //    if (this.parent && this.aborted && !this.parent.aborted && is_cfx(val) && val.type === 'a') {
+    //      console.log(this+ " RETURNING 'a' to frame that doesn't expect one: "+this.parent);
+    //    }
+
     if(is_cfx(val) && val.type == 't' && this.callstack && val.val.__oni_stack) {
       val.val.__oni_stack = val.val.__oni_stack.concat(this.callstack);
     }
@@ -437,7 +453,7 @@ var EF_Proto = {
         // if (val !== this) this.parent = UNDEF;
       }
       else // noone waiting for result; make sure exceptions get reported
-        if (is_cfx(val)) {
+        if (is_cfx(val) && val.type !== 'a') {
           val.mapToJS(true);
         }
     }
@@ -1527,7 +1543,9 @@ EF_Try.prototype.cont = function(idx, val) {
       } 
 
       // tail-call optimization:
-      if (!this.NDATA_TRY_RETRACT_BLOCK && !this.NDATA_TRY_FINALLY_BLOCK())
+      // the !(aborted&&is_ef) check is important because cont() is called from EF_Try::abort, and 
+      // we don't want to be replaced by a child frame:
+      if (!this.NDATA_TRY_RETRACT_BLOCK && !this.NDATA_TRY_FINALLY_BLOCK() && !(this.aborted && is_ef(val)))
         return this.returnToParent(val);
 
 
@@ -1575,9 +1593,12 @@ EF_Try.prototype.cont = function(idx, val) {
     // returning from finally        
     // override res with stored exception (from try or catch) if
     // val isn't an exception
-    if (is_cfx(this.rv) && !is_cfx(val)) {
-      val = this.rv;
-    }
+      if (!is_cfx(val)) {
+        if (is_cfx(this.rv)) 
+          val = this.rv;
+        else if (this.aborted)
+          val = new CFException('a');
+      }
     break;
     default:
     val = new CFException("i", "invalid state in CF_Try");
@@ -1605,19 +1626,24 @@ EF_Try.prototype.abort = function() {
     else {
       // attempt to execute catch/retract/finally blocks synchronously:
 
+      // Leftover from old abort code. Not sure what the logic was here.
       // prevent continuation from ending up at parent, we want to feed
       // it to the abortee directly:
-      this.parent = UNDEF;
+      // this.parent = UNDEF;
 
       // temporarily need to turn off async flag, so that 'returnToParent' doesn't attempt to 
       // return to non-existing parent, which would cause exceptions to go uncaught
       this.async = false;
       var rv = cont(this, 0);
+      ASSERT(!is_ef(rv) || rv === this);
       if (rv !== this) {
+        if (!is_cfx(rv))
+          rv = new CFException('a');
         return rv;
       }
-      else
+      else {
         this.async = true;
+      }
       // & fall through. we need to block
     }
   }
@@ -1967,7 +1993,7 @@ EF_Par.prototype.cont = function(idx, val) {
       for (var i=0; i<this.ndata.length; ++i) {
         val = execIN(this.ndata[i], this.env);
         exports.current_dyn_vars = parent_dyn_vars;
-        if (this.aborted) {
+        if (this.inner_aborted) {
           // this check is to catch the case of reentrant abortion through
           // suspend/resume
           if (is_ef(val)) {
@@ -1995,7 +2021,7 @@ EF_Par.prototype.cont = function(idx, val) {
       // returning from a suspension
       --this.pending;
       this.children[idx] = UNDEF;
-      if (is_cfx(val) && !this.aborted && 
+      if (is_cfx(val) && !this.inner_aborted && 
           !(val.type === 'blb' && val.ef === this.env.blscope)) {
         // an exception aborts all other pending branches: (but only
         // if it is not a blb break targetted at us - this can happen
@@ -2034,7 +2060,7 @@ EF_Par.prototype.cont = function(idx, val) {
 };
 
 EF_Par.prototype.quench = function() {
-  if (this.aborted) return; // already quenched/aborted internally
+  if (this.inner_aborted) return; // already quenched/aborted internally
   for (var i=0; i<this.children.length; ++i) {
     if (this.children[i])
       this.children[i].quench();
@@ -2042,15 +2068,19 @@ EF_Par.prototype.quench = function() {
 };
 
 EF_Par.prototype.abort = function() {
+  // Leftover from old abort code. Not sure what the logic was here.
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
-  this.parent = UNDEF;
+  //this.parent = UNDEF;
   if (this.aborted) {
+    // XXX not sure this is still true
     // we already aborted internally.
     // can delete pendingCFE; our caller is not interested in it
-    this.pendingCFE = UNDEF;
+    //this.pendingCFE = UNDEF;
     return this;
+    //return this.pendingCFE || new CFException('a');
   }
+  this.aborted = true;
   return this.abortInner();
 };
 
@@ -2058,7 +2088,7 @@ EF_Par.prototype.abortInner = function() {
   // this function is both called for outside aborts (through
   // 'this.abort') as well as "internal" aborts (which occur when a
   // branch excepts)
-  this.aborted = true;
+  this.inner_aborted = true;
   for (var i=0; i<this.children.length; ++i)
     if (this.children[i]) {
       var val = this.children[i].abort();
@@ -2071,7 +2101,7 @@ EF_Par.prototype.abortInner = function() {
       }
     }
   if (!this.pending) // all done
-    return this.pendingCFE; // if there is no pending cfe, this is just 'undefined', which is ok.
+    return this.pendingCFE || new CFException('a'); // if there is no pending cfe, pendingCFE is undefined
   // we need to wait:
   this.async = true;
   return this;
@@ -2111,7 +2141,14 @@ exports.Par = function() {
    0..end: index of instruction node we're returning from
 */
 
+#ifdef DEBUG_VM
+var alt_counter = 0;
+#endif
+
 function EF_Alt(ndata, env) {
+#ifdef DEBUG_VM
+  this.id = ++alt_counter;
+#endif
   this.ndata = ndata;
   this.env = env;
 
@@ -2140,7 +2177,7 @@ EF_Alt.prototype.cont = function(idx, val) {
         val = execIN(this.ndata[i], env);
         exports.current_dyn_vars = parent_dyn_vars;
                      
-        if (this.aborted) {
+        if (this.inner_aborted) {
           // the check for !aborted here is to catch the case of
           // reentrant abortion through suspend/resume
           if (is_ef(val)) {
@@ -2185,7 +2222,7 @@ EF_Alt.prototype.cont = function(idx, val) {
         // 'normal' case
 
         // abort all pending branches
-        if (!this.aborted) {
+        if (!this.inner_aborted) {
           if (!this.pendingRV)
             this.pendingRV = val;
           this.quench();
@@ -2201,7 +2238,7 @@ EF_Alt.prototype.cont = function(idx, val) {
 };
 
 EF_Alt.prototype.quench = function(except) {
-  if (this.aborted) return; // already quenched/aborted internally
+  if (this.inner_aborted) return; // already quenched/aborted internally
   if (this.collapsing) {
     // we're being quenched after a collapse; just quench the collapsing branch
     this.children[this.collapsing.branch].quench();
@@ -2216,17 +2253,30 @@ EF_Alt.prototype.quench = function(except) {
 };
 
 EF_Alt.prototype.abort = function() {
-  this.parent = UNDEF;
+  // XXX not sure what the rationale was here
+  //this.parent = UNDEF;
   if (this.aborted) {
-    this.pendingRV = UNDEF;
+    //XXX not sure what the rationale was here
+    //this.pendingRV = UNDEF;
     return this;
   }
-  return this.abortInner();
+  this.aborted = true;
+  var rv;
+  if (!this.inner_aborted) {
+    rv = this.abortInner();
+  }
+  else if (this.pending)
+    rv = this;
+
+  if (rv !== this && !is_cfx(rv)) rv = new CFException('a');
+  return rv;
 };
 
 EF_Alt.prototype.abortInner = function() {
+//  ASSERT(!this.inner_aborted);
+
   // see Par::abortInner for more details
-  this.aborted = true;
+  this.inner_aborted = true;
   if (this.collapsing) {
     // we're being aborted after a collapse; just need to abort the collapsing branch
     var branch = this.collapsing.branch;
@@ -2276,8 +2326,9 @@ EF_Alt.prototype.docollapse = function(branch, cf) {
     if (i == branch) continue;
     if (this.children[i]) {
       var val = this.children[i].abort();
-      if (is_ef(val)) // need to wait
+      if (is_ef(val)) { // need to wait
         this.setChildFrame(val, i);
+      }
       else {
         --this.pending;
         this.children[i] = UNDEF;
@@ -2422,7 +2473,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
         // processing up to here has been synchronous; we still need to abort
         this.setChildFrame(val, /* not relevant */null);
         this.quench();
-        val = this.abort();
+        val = val.abort();
         if (is_ef(val)) {
           // wait for the abort to finish
           this.setChildFrame(val, 3);
@@ -2476,7 +2527,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
       }
       else {
         this.quench();
-        val = this.abort();
+        val = this.child_frame.abort();
         if (is_ef(val)) {
           // wait for the abort to finish
           this.setChildFrame(val, 3);
@@ -2496,6 +2547,10 @@ EF_Suspend.prototype.cont = function(idx, val) {
       val = new CFException("i", "Suspend: Return function threw ("+e+")");
     }
     break;
+    case 4:
+      // return from external abort
+      // fall through to returnToParent
+      break;
     default:
     val = new CFException("i", "Invalid state in Suspend ("+idx+")");
     }
@@ -2513,8 +2568,19 @@ EF_Suspend.prototype.abort = function() {
   //  LOG('SUSPEND abort (childf='+this.child_frame+')')
   exports.current_dyn_vars = this.dyn_vars;
   this.returning = true;
-  if (!this.suspendCompleted)
-    return this.child_frame.abort();
+  this.aborted = true;
+  if (!this.suspendCompleted) {
+    var abort_val = this.child_frame.abort();
+    if (is_ef(abort_val)) {
+      this.setChildFrame(abort_val, 4);
+      return this; // need to stay in picture, because abort must not return child frame
+    }
+    else {
+      ASSERT(is_cfx(abort_val));
+      return abort_val;
+    }
+  }
+  return new CFException('a');
 };
 
 function I_sus(ndata, env) {
@@ -2719,7 +2785,7 @@ EF_Spawn.prototype.abort = function() {
   // We don't need to deal with notifyAsync/notifyVal, because all value listeners 
   // will already have been called.
   if (this.in_abortion) return this;
-  if (this.done) return UNDEF;
+  if (this.done) return new CFException('a');
 
   this.in_abortion = true;
   if (this.child_frame) {
@@ -2733,7 +2799,7 @@ EF_Spawn.prototype.abort = function() {
     else {
       this.in_abortion = false;
       this.done = true;
-      return UNDEF;
+      return new CFException('a');
     }
   }
 };
@@ -2751,6 +2817,7 @@ EF_SpawnWaitFrame.prototype.quench = function() {};
 EF_SpawnWaitFrame.prototype.abort = function() {
   var idx = this.waitarr.indexOf(this); // assert != -1
   this.waitarr.splice(idx, 1);
+  return new CFException('a');
 }
 EF_SpawnWaitFrame.prototype.cont = function(val) {
   if (this.parent) {
@@ -2777,6 +2844,7 @@ EF_SpawnAbortFrame.prototype.type = "Stratum.abort()";
 EF_SpawnAbortFrame.prototype.quench = function() {};
 EF_SpawnAbortFrame.prototype.abort = function() {
   // we're in a finally clause... have to wait!
+  this.aborted = true;
   return this;
 }
 EF_SpawnAbortFrame.prototype.cont = function(val) {
@@ -2786,6 +2854,11 @@ EF_SpawnAbortFrame.prototype.cont = function(val) {
     exports.current_dyn_vars = this.dyn_vars;
     delete this.dyn_vars; // aid gc
     this.done = true;
+
+    // XXX needed?
+    if (this.aborted && !is_cfx(val) && this.parent.aborted)
+      val = new CFException('a');
+
     cont(this.parent, this.parent_idx, val);
     exports.current_dyn_vars = current_dyn_vars;
   }
@@ -2831,13 +2904,15 @@ function I_spawn(ndata, env) {
     // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
     // in a finally clause is waiting for the spawn frame and vice versa, as in:
     // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
-    if (ef.in_abortion) return new EF_SpawnAbortFrame(abort_waitarr, ef);
-    
+    if (ef.in_abortion) {
+      return new EF_SpawnAbortFrame(abort_waitarr, ef);
+    }
+
     if (ef.done) return UNDEF;
     // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
     // but any value listeners will receive a 'stratum aborted' notification immediately
     var rv = ef.abort();
-    
+
     exports.current_dyn_vars = dyn_vars;
     
     async = false;
@@ -2855,7 +2930,7 @@ function I_spawn(ndata, env) {
     if (!is_cfx(rv) || rv.type !== 't')
       rv = UNDEF;
     notifyAborted(rv);
-    
+
     return rv;
   };
 
@@ -2974,7 +3049,7 @@ EF_Collapse.prototype.cont = function(idx, val) {
 
 // don't need to do anything for quenching/aborting. we'll never be prodded by upstream after an abort.
 EF_Collapse.prototype.quench = function() {};
-EF_Collapse.prototype.abort = function() {};
+EF_Collapse.prototype.abort = function() { this.aborted = true; return new CFException('a')};
 
 function I_collapse(ndata, env) {
   return cont(new EF_Collapse(ndata, env), 0);
@@ -3074,6 +3149,7 @@ exports.Hold = function(duration_ms) {
   function abort() {
     // restore dyn vars for finally clauses
     exports.current_dyn_vars = dyn_vars;
+    return new CFException('a');
   }
   
   if (duration_ms === UNDEF)
