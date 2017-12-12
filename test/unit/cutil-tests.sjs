@@ -187,6 +187,7 @@ testEq('Queue: producer/consumer (async get)', 100, function() {
 });
 
 testEq('Queue: producer/consumer blocking', 100, function() {
+  var rv = 0;
   var q = new (cutil.Queue)(100);
   waitfor {
     waitfor {
@@ -202,7 +203,7 @@ testEq('Queue: producer/consumer blocking', 100, function() {
     for (var j=0; j<1000; ++j)
       rv += q.get();
   }
-  return 0;
+  return rv;
 });
 
 testEq('Queue: producer/consumer (async put)', 100, function() {

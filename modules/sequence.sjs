@@ -3089,19 +3089,42 @@ any.par = function(/* sequence, max_strata, p */) {
 */
 each.track = function(seq, r) {
   var stratum;
-
-  try {
-    seq .. each {
-      |x|
-      stratum = spawn (stratum ? stratum.abort(), r(x));
+  var signal_error;
+  waitfor {
+    waitfor(var error) {
+      signal_error = resume;
     }
-    // wait for stratum to complete
-    if (stratum)
-      stratum.value();
+    finally {
+      signal_error = undefined;
+    }
+    throw error;
   }
-  finally {
-    if (stratum)
-      stratum.abort();
+  or {
+    var safe_r = function(x) {
+      try {
+        r(x);
+      }
+      catch(e) {
+        if (signal_error)
+          signal_error(e);
+        else 
+          throw e;
+      }
+    }
+    
+    try {
+      seq .. each {
+        |x|
+        stratum = spawn (stratum ? stratum.abort(), safe_r(x));
+      }
+      // wait for stratum to complete
+      if (stratum)
+        stratum.value();
+    }
+    retract {
+      if (stratum)
+        stratum.abort();
+    }
   }
 };
 
@@ -3222,7 +3245,7 @@ exports.mirror = function(stream, latest) {
         // the check for 'loop' is important here, because of a
         // possible exception thrown in the spawned stratum before it
         // gets reified
-        if (loop) loop.abort();
+        if (loop) { loop.abort(); try { loop.value(); } catch(e) { } }
         current = undefined;
         current_version = 0;
         done = false;

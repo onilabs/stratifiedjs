@@ -1554,8 +1554,8 @@ testEq("detached blocklambda return with value pickup", 'vx', function() {
     rv += f();
   }
   and {
-    if (stratum.value() == 'x')
-      rv += 'v';
+    try { stratum.value() } catch(e) { }
+    rv += 'v';
   }
   return rv;
 

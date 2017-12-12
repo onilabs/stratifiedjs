@@ -19,7 +19,7 @@
  * THE SOFTWARE.
  *
  */
-global.__oni_rt={};(function(exports){var UNDEF;
+global.__oni_rt={};(function(exports){exports.debug={};
 
 
 
@@ -60,19 +60,34 @@ global.__oni_rt={};(function(exports){var UNDEF;
 
 
 
+function dumpExecutionFrameParents(ef,indent){indent=indent||0;
+
+if(ef&&ef.parent)dumpExecutionFrameParents(ef.parent,indent+1);
+
+var str='';
+for(var i=0;i<indent;++i)str+='  ';
+str+=ef?ef:'<undefined>';
+console.log(str);
+}
+function dumpExecutionFrameChildren(ef,indent){indent=indent||0;
+
+var str='';
+for(var i=0;i<indent;++i)str+='  ';
+str+=ef?ef:'<undefined>';
+console.log(str);
+if(ef&&ef.child_frame)dumpExecutionFrameChildren(ef.child_frame,indent+1);else if(ef&&ef.children){
+
+
+for(var i=0;i<ef.children.length;++i){
+dumpExecutionFrameChildren(ef.children[i],indent+1);
+}
+}
+}
 
 
 
 
-
-
-
-
-
-
-
-
-
+var UNDEF;
 
 
 
@@ -180,7 +195,7 @@ if(line)value.__oni_stack.push([file||'unknown SJS source',line]);
 
 }
 
-var CFETypes={r:"return",b:"break",c:"continue",blb:"blocklambda break"};
+var CFETypes={r:"return",b:"break",c:"continue",blb:"blocklambda break",a:"abort"};
 CFException.prototype={__oni_cfx:true,toString:function(){
 
 if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";else return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
@@ -249,7 +264,7 @@ rv=rv.execute();
 return rv;
 }
 
-function is_ef(obj){return obj&&obj.__oni_ef;
+function is_ef(obj){return !!(obj&&obj.__oni_ef);
 
 }
 exports.is_ef=is_ef;
@@ -279,7 +294,7 @@ target_ef.callstack=src_ef.callstack;
 
 
 var EF_Proto={toString:function(){
-return "<suspended SJS>"},__oni_ef:true,wait:function(){
+return "<"+(typeof (this.type)==='function'?this.type():this.type)+""+(this.id?this.id:'')+">"},__oni_ef:true,wait:function(){
 
 
 return this},setChildFrame:function(ef,idx){
@@ -293,36 +308,42 @@ this.async=true;
 this.child_frame=ef;
 ef.parent=this;
 ef.parent_idx=idx;
-},quench:function(){
+if(this.aborted){
+if(__oni_rt.debug.abort)console.log(this+".setChildFrame propagating abort to "+ef);
 
-
-
-
-
-
-if(this.child_frame)this.child_frame.quench();
-
-
-
-
+ef.abort();
+}
 },abort:function(){
 
+if(__oni_rt.debug.abort)console.log('abort called on '+this+'. will abort child_frame = '+this.child_frame+', parent_frame = '+this.parent);
+
+
 this.aborted=true;
-
-
-
-if(!this.child_frame){
-
-return this;
-}else return this.child_frame.abort();
-
-
+if(this.child_frame){
+this.async=true;
+this.child_frame.abort();
+}
 },returnToParent:function(val){
 
-if((val&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
+if(exports.debug.rtp)console.log((this.async?"ASYNC":"SYNC")+" "+this+" returnToParent "+this.parent+" val="+val);
 
+
+if((val&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
 val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
+if((val&&val.__oni_cfx)&&val.type==='a'){
+
+if(!this.parent||(!this.parent.aborted&&!this.parent.try_aborted)){
+if(exports.debug.rtp)console.log(this+' returnToParent NOT propagating abort to parent '+this.parent);
+
+val=UNDEF;
+}else{
+
+if(exports.debug.rtp)console.log(this+' returnToParent PROPAGATING abort to parent '+this.parent+' aborted='+this.parent.aborted);
+
+}
+}
+
 if(this.swallow_r){
 if((val&&val.__oni_cfx)){
 if(val.type==="r"){
@@ -336,6 +357,8 @@ val=UNDEF;
 }
 }
 }else if(is_ef(val)){
+
+if(exports.debug.rtp)console.log(this+' dropping out of picture, because '+val+' tailcalled');
 
 
 
@@ -364,7 +387,6 @@ val=UNDEF;
 
 
 this.unreturnable=true;
-
 
 
 
@@ -581,9 +603,11 @@ exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
 
 
 
+var seq_counter=0;
 
-function EF_Seq(ndata,env){this.ndata=ndata;
+function EF_Seq(ndata,env){this.id=++seq_counter;
 
+this.ndata=ndata;
 this.env=env;
 
 if(ndata[0]&8){
@@ -636,11 +660,25 @@ this.toplevel=true;
 }
 }
 setEFProto(EF_Seq.prototype={});
-EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Seq.prototype.type=function(){var rv="Seq";
+
+if(this.ndata[0]&1)rv+="(fun)";
+
+if(this.ndata[0]&64)rv+="(blkL)";
+
+if(this.ndata[0]&8)rv+="(notail)";
 
 
+return rv;
+};
+EF_Seq.prototype.cont=function(idx,val){if(exports.debug.seq){
+
+console.log(this+".cont("+idx+" of "+this.ndata.length+", val[ef="+is_ef(val)+",cfx="+(val&&val.__oni_cfx)+"]) @ "+this.env.file);
+}
+if(is_ef(val)){
 
 this.setChildFrame(val,idx);
+return this;
 }else{
 
 if((val&&val.__oni_cfx)){
@@ -665,14 +703,7 @@ if(!val)break;
 }
 this.child_frame=null;
 val=execIN(this.ndata[idx],this.env);
-if(this.aborted){
 
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
 if(++idx==this.ndata.length&&this.tailcall){
 
 break;
@@ -696,6 +727,7 @@ return this.returnToParent(val);
 function I_seq(ndata,env){return cont(new EF_Seq(ndata,env),1);
 
 }
+
 
 exports.Seq=function(){return {exec:I_seq,ndata:arguments,__oni_dis:token_dis};
 
@@ -728,10 +760,12 @@ this.i=2;
 this.pars=[];
 }
 setEFProto(EF_Sc.prototype={});
+EF_Sc.prototype.type="Sc";
 
 EF_Sc.prototype.cont=function(idx,val){if(is_ef(val)){
 
 this.setChildFrame(val,idx);
+return this;
 }else if((val&&val.__oni_cfx)){
 
 return this.returnToParent(val);
@@ -745,15 +779,6 @@ this.pars.push(val);
 var rv;
 while(this.i<this.ndata.length){
 rv=execIN(this.ndata[this.i],this.env);
-if(this.aborted){
-
-if(is_ef(rv)){
-rv.quench();
-rv=rv.abort();
-return this.returnToParent(rv);
-}
-}
-
 ++this.i;
 if((rv&&rv.__oni_cfx))return this.returnToParent(rv);
 if(is_ef(rv)){
@@ -826,10 +851,12 @@ this.i=2;
 this.pars=[];
 }
 setEFProto(EF_Fcall.prototype={});
+EF_Fcall.prototype.type="Fcall";
 
 EF_Fcall.prototype.cont=function(idx,val){if(is_ef(val)){
 
 this.setChildFrame(val,idx);
+return this;
 }else if((val&&val.__oni_cfx)){
 
 return this.returnToParent(val);
@@ -849,15 +876,6 @@ if(this.i==3)this.l=val;else this.pars.push(val);
 var rv;
 while(this.i<this.ndata.length){
 rv=execIN(this.ndata[this.i],this.env);
-if(this.aborted){
-
-if(is_ef(rv)){
-rv.quench();
-rv=rv.abort();
-return this.returnToParent(rv);
-}
-}
-
 ++this.i;
 if((rv&&rv.__oni_cfx))return this.returnToParent(rv);
 if(is_ef(rv)){
@@ -1032,15 +1050,15 @@ rv=UNDEF;
 
 }
 if(is_ef(rv)){
-if(this.aborted){
-
-rv=rv.abort();
-return this.returnToParent(rv);
-}
-
 
 if(!rv.callstack)rv.callstack=[];
 rv.callstack.push([this.env.file,this.ndata[1]]);
+
+if(this.aborted){
+rv.abort();
+if(__oni_rt.debug.abort)console.log(this+" passing through abort to return value");
+
+}
 }
 return this.returnToParent(rv);
 }
@@ -1075,20 +1093,13 @@ function EF_If(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_If.prototype={});
+EF_If.prototype.type="If";
 
 EF_If.prototype.cont=function(idx,val){switch(idx){case 0:
 
 
 
 val=execIN(this.ndata[0],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
 
 
 case 1:
@@ -1155,20 +1166,13 @@ this.env=env;
 this.phase=0;
 }
 setEFProto(EF_Switch.prototype={});
+EF_Switch.prototype.type="Switch";
 
 EF_Switch.prototype.cont=function(idx,val){switch(this.phase){case 0:
 
 
 if(idx==0){
 val=execIN(this.ndata[0],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
 }
 if((val&&val.__oni_cfx))return this.returnToParent(val);
 if(is_ef(val)){
@@ -1194,14 +1198,6 @@ if(++idx>=this.ndata[1].length)return this.returnToParent(null);
 
 this.child_frame=null;
 val=execIN(this.ndata[1][idx][0],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
 }
 this.phase=2;
 val=0;
@@ -1222,14 +1218,6 @@ return this.returnToParent(val);
 }
 this.child_frame=null;
 val=execIN(this.ndata[1][idx][1],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
 ++idx;
 }
 default:
@@ -1270,17 +1258,23 @@ exports.Switch=function(exp,clauses){return {exec:I_switch,ndata:[exp,clauses],_
 
 
 
+var try_counter=0;
 
-function EF_Try(ndata,env){this.ndata=ndata;
+function EF_Try(ndata,env){this.id=++try_counter;
 
+this.ndata=ndata;
 this.env=env;
 this.state=0;
 }
 setEFProto(EF_Try.prototype={});
+EF_Try.prototype.type="Try";
 
-EF_Try.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Try.prototype.cont=function(idx,val){if(exports.debug.try)console.log(this+'.cont('+idx+', is_ef='+is_ef(val)+',state='+this.state+')');
 
+
+if(is_ef(val)){
 this.setChildFrame(val,this.state);
+return this;
 }else{
 
 switch(this.state){case 0:
@@ -1289,6 +1283,8 @@ this.state=1;
 val=execIN(this.ndata[1],this.env);
 
 if(is_ef(val)){
+if(exports.debug.try)console.log(this+' returning self because continuation pending');
+
 this.setChildFrame(val);
 return this;
 }
@@ -1309,20 +1305,20 @@ v=(val&&val.__oni_cfx)?[val.type==='t'?val.val:val,true]:[val,false];
 val=this.ndata[2](this.env,v);
 
 
+if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3]){
 
-if(this.aborted&&is_ef(val)){
-
-val=val.abort();
+return this.returnToParent(val);
 }
-
-
-if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3])return this.returnToParent(val);
-
 
 
 if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val);
+if(this.try_aborted){
+if(__oni_rt.debug.abort)console.log(this+" try_aborted and catch returned continuation "+val+", which we'll abort");
+
+val.abort();
+}
 return this;
 }
 }
@@ -1332,9 +1328,8 @@ this.state=3;
 
 
 this.rv=val;
-if(this.aborted&&this.ndata[4]){
+if(this.ndata[4]&&((val&&val.__oni_cfx)&&(val.type==='a'||(val.type==='r'&&val.ef)||val.type==='blb'))){
 val=execIN(this.ndata[4],this.env);
-
 
 
 
@@ -1345,6 +1340,7 @@ if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val);
 return this;
+
 }
 }
 case 3:
@@ -1358,6 +1354,7 @@ if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val);
 return this;
+
 }
 }
 case 4:
@@ -1371,46 +1368,25 @@ break;
 default:
 val=new CFException("i","invalid state in CF_Try");
 }
+if(exports.debug.try)console.log(this+' returning '+val);
+
 return this.returnToParent(val);
 }
 };
 
-EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
+EF_Try.prototype.abort=function(){if(exports.debug.try)console.log(this+'.abort(). parent='+this.parent+' child='+this.child_frame);
 
 
-};
+this.async=true;
+if(!(this.try_aborted!==true)){console.log("Assertion failed: "+"this.try_aborted !== true")};
 
-EF_Try.prototype.abort=function(){;
 
-this.aborted=true;
 
+this.try_aborted=true;
+if(!(this.state!==3)){console.log("Assertion failed: "+"this.state !== 3")}
 if(this.state!==4){
-var val=this.child_frame.abort();
-if(is_ef(val)){
-
-
-this.setChildFrame(val);
-}else{
-
-
-
-
-
-this.parent=UNDEF;
-
-
-
-this.async=false;
-var rv=cont(this,0);
-if(rv!==this){
-return rv;
-}else this.async=true;
-
-
-
+this.child_frame.abort();
 }
-}
-return this;
 };
 
 function I_try(ndata,env){return cont(new EF_Try(ndata,env),0);
@@ -1443,6 +1419,7 @@ function EF_Loop(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_Loop.prototype={});
+EF_Loop.prototype.type="Loop";
 
 EF_Loop.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -1458,14 +1435,6 @@ return this.returnToParent(val);
 }
 
 val=execIN(this.ndata[1],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
 
 if(is_ef(val)){
 this.child_frame=null;
@@ -1501,6 +1470,10 @@ val=UNDEF;
 
 break;
 }
+if(exports.debug.XX){
+console.log(this+" propagate ctrlflow exctn to parent");
+dumpExecutionFrameParents(this,0);
+}
 return this.returnToParent(val);
 }
 }
@@ -1511,14 +1484,6 @@ if(idx>=this.ndata.length)break;
 
 this.child_frame=null;
 val=execIN(this.ndata[idx+1],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
 ++idx;
 if(is_ef(val)){
 this.setChildFrame(val,idx);
@@ -1531,15 +1496,6 @@ idx=1;
 if(this.ndata[2]){
 
 val=execIN(this.ndata[2],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
-
 if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val,0);
@@ -1581,6 +1537,7 @@ function EF_ForIn(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_ForIn.prototype={});
+EF_ForIn.prototype.type="ForIn";
 
 EF_ForIn.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -1589,15 +1546,6 @@ this.setChildFrame(val,idx);
 
 if(idx==0){
 val=execIN(this.ndata[0],this.env);
-if(this.aborted){
-
-if(is_ef(val)){
-val.quench();
-val=val.abort();
-return this.returnToParent(val);
-}
-}
-
 if(is_ef(val)){
 this.child_frame=null;
 this.setChildFrame(val,1);
@@ -1697,17 +1645,14 @@ exports.ForIn=function(obj,loop){return {exec:I_forin,ndata:[obj,loop],__oni_dis
 
 
 
+function mergeExceptions(new_exception,original_exception){if(!original_exception)return new_exception;
 
 
 
 
 
 
-
-
-
-function mergeExceptions(new_exception,original_exception){if(!(new_exception&&new_exception.__oni_cfx)||new_exception.type!=='t'){
-
+if(!(new_exception&&new_exception.__oni_cfx)||new_exception.type!=='t'){
 return original_exception;
 }
 if(!(original_exception&&original_exception.__oni_cfx)||original_exception.type!=='t')return new_exception;
@@ -1722,6 +1667,13 @@ return new_exception;
 }
 
 
+
+
+
+
+
+
+
 function EF_Par(ndata,env){this.ndata=ndata;
 
 this.env=env;
@@ -1729,9 +1681,12 @@ this.pending=0;
 this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
+EF_Par.prototype.type="Par";
 
-EF_Par.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Par.prototype.cont=function(idx,val){if(exports.debug.par)console.log(this+".cont idx="+idx+" val="+val+" pending="+this.pending);
 
+
+if(is_ef(val)){
 this.setChildFrame(val,idx);
 }else{
 
@@ -1739,29 +1694,26 @@ if(idx==-1){
 var parent_dyn_vars=exports.current_dyn_vars;
 
 for(var i=0;i<this.ndata.length;++i){
-val=execIN(this.ndata[i],this.env);
-exports.current_dyn_vars=parent_dyn_vars;
-if(this.aborted){
 
 
-if(is_ef(val)){
 ++this.pending;
-this.setChildFrame(val,i);
-this.quench();
-return this.abortInner();
-}
-this.pendingCFE=mergeExceptions(val,this.pendingCFE);
-return this.pendingCFE;
-}else if(is_ef(val)){
-
+val=execIN(this.ndata[i],this.env);
+--this.pending;
+exports.current_dyn_vars=parent_dyn_vars;
+if(is_ef(val)){
 ++this.pending;
 this.setChildFrame(val,i);
 }else if((val&&val.__oni_cfx)){
 
+if(exports.debug.par)console.log(this+" going to return pending="+this.pendingCFE+" or "+val);
 
-this.pendingCFE=val;
-this.quench();
-return this.abortInner();
+
+this.pendingCFE=mergeExceptions(val,this.pendingCFE);
+if(!this.pending)return this.pendingCFE;
+
+this.abortInner();
+this.async=true;
+return this;
 }
 }
 }else{
@@ -1775,18 +1727,20 @@ if((val&&val.__oni_cfx)&&!this.aborted&&!(val.type==='blb'&&val.ef===this.env.bl
 
 
 this.pendingCFE=val;
-this.quench();
-return this.returnToParent(this.abortInner());
+this.abortInner();
+if(this.pending===0)return this.returnToParent(val);
+
+return this;
 }
 }
 if(this.pending<2){
 if(!this.pendingCFE){
 
 
-if(this.pending==0)return this.returnToParent(val);
+if(this.pending===0)return this.returnToParent(val);
 
 
-for(var i=0;i<this.children.length;++i)if(this.children[i])return this.returnToParent(this.children[i]);
+for(var i=0;i<this.children.length;++i)if(this.children[i]!==UNDEF)return this.returnToParent(this.children[i]);
 
 
 return this.returnToParent(new CFException("i","invalid state in Par"));
@@ -1807,25 +1761,10 @@ return this;
 }
 };
 
-EF_Par.prototype.quench=function(){if(this.aborted)return;
+EF_Par.prototype.abort=function(){this.pendingCFE=new CFException("a");
 
-for(var i=0;i<this.children.length;++i){
-if(this.children[i])this.children[i].quench();
+if(!this.aborted)this.abortInner();
 
-}
-};
-
-EF_Par.prototype.abort=function(){this.parent=UNDEF;
-
-
-
-if(this.aborted){
-
-
-this.pendingCFE=UNDEF;
-return this;
-}
-return this.abortInner();
 };
 
 EF_Par.prototype.abortInner=function(){this.aborted=true;
@@ -1833,25 +1772,18 @@ EF_Par.prototype.abortInner=function(){this.aborted=true;
 
 
 
-for(var i=0;i<this.children.length;++i)if(this.children[i]){
-
-var val=this.children[i].abort();
-if(is_ef(val))this.setChildFrame(val,i);else{
 
 
-this.pendingCFE=mergeExceptions(val,this.pendingCFE);
---this.pending;
-this.children[i]=UNDEF;
+for(var i=0;i<this.children.length;++i)if(this.children[i]!==UNDEF){
+
+this.children[i].abort();
 }
-}
-if(!this.pending)return this.pendingCFE;
-
-
-this.async=true;
-return this;
 };
 
 EF_Par.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
+
+
+
 
 
 mergeCallstacks(ef,this.children[idx]);
@@ -1859,6 +1791,7 @@ mergeCallstacks(ef,this.children[idx]);
 this.children[idx]=ef;
 ef.parent=this;
 ef.parent_idx=idx;
+if(this.aborted)ef.abort();
 };
 
 function I_par(ndata,env){return cont(new EF_Par(ndata,env),-1);
@@ -1885,17 +1818,26 @@ exports.Par=function(){return {exec:I_par,ndata:arguments,__oni_dis:token_dis};
 
 
 
-function EF_Alt(ndata,env){this.ndata=ndata;
 
+var alt_counter=0;
+
+function EF_Alt(ndata,env){this.id=++alt_counter;
+
+this.ndata=ndata;
 this.env=env;
 
 this.pending=0;
 this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Alt.prototype={});
+EF_Alt.prototype.type="Alt";
 
-EF_Alt.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Alt.prototype.cont=function(idx,val){if(exports.debug.alt)console.log(this+'.cont() idx='+idx+' is_ef(val)='+is_ef(val)+' parent_frame='+this.parent+" pending="+this.pending);
 
+
+
+
+if(is_ef(val)){
 this.setChildFrame(val,idx);
 }else{
 
@@ -1911,37 +1853,33 @@ env.branch=i;
 val=execIN(this.ndata[i],env);
 exports.current_dyn_vars=parent_dyn_vars;
 
-if(this.aborted){
-
-
 if(is_ef(val)){
-++this.pending;
-this.setChildFrame(val,i);
-this.quench();
-return this.abortInner();
-}
-this.pendingRV=mergeExceptions(val,this.pendingRV);
-return this.pendingRV;
-}else if(is_ef(val)){
-
 ++this.pending;
 this.setChildFrame(val,i);
 }else{
 
+if(this.aborted){
 
-this.pendingRV=val;
-this.quench();
-return this.abortInner();
+return mergeExceptions(val,this.pendingRV);
+}
+if(!this.pending)return val;
+
+
+this.pendingRV=mergeExceptions(val,this.pendingRV);
+this.abortInner();
+break;
 }
 }
 }else{
 
 
 --this.pending;
+if(exports.debug.alt)console.log(this+' pending = '+this.pending+' collapsing='+this.collapsing+' aborted='+this.aborted);
+
 this.children[idx]=UNDEF;
-this.pendingRV=mergeExceptions(val,this.pendingRV);
 
 if(this.collapsing){
+this.pendingRV=mergeExceptions(val,this.pendingRV);
 
 
 if(this.pending==1){
@@ -1957,80 +1895,66 @@ return;
 
 
 if(!this.aborted){
-if(!this.pendingRV)this.pendingRV=val;
+this.pendingRV=mergeExceptions(val,this.pendingRV);
+if(exports.debug.alt)console.log(this+" setting a pending rv of "+this.pendingRV);
 
-this.quench();
-return this.returnToParent(this.abortInner());
-}
-if(this.pending==0)return this.returnToParent(this.pendingRV);
+this.abortInner();
+if(this.pending===0)return this.returnToParent(this.pendingRV);
 
+if(exports.debug.alt)console.log(this+" abortInner done");
+
+this.async=true;
+return this;
+}
+if(this.pending===0){
+if(exports.debug.alt){
+console.log(this+' returning '+this.pendingRV+' to '+this.parent+' idx='+this.parent_idx);
+}
+return this.returnToParent(mergeExceptions(val,this.pendingRV));
 }
 }
+}
+if(exports.debug.alt)console.log(this+' returning self');
+
 this.async=true;
 return this;
 }
 };
 
-EF_Alt.prototype.quench=function(except){if(this.aborted)return;
+EF_Alt.prototype.abort=function(){this.pendingRV=new CFException("a");
 
-if(this.collapsing){
+if(!this.aborted)this.abortInner();
 
-this.children[this.collapsing.branch].quench();
-}else{
-
-
-for(var i=0;i<this.children.length;++i){
-if(i!==except&&this.children[i])this.children[i].quench();
-
-}
-}
 };
 
-EF_Alt.prototype.abort=function(){this.parent=UNDEF;
+EF_Alt.prototype.abortInner=function(){if(exports.debug.alt)console.log(this+'.abortInner, pending='+this.pending);
 
-if(this.aborted){
-this.pendingRV=UNDEF;
-return this;
-}
-return this.abortInner();
-};
 
-EF_Alt.prototype.abortInner=function(){this.aborted=true;
+
+this.aborted=true;
 
 
 if(this.collapsing){
 
 var branch=this.collapsing.branch;
 this.collapsing=UNDEF;
-var val=this.children[branch].abort();
-if(is_ef(val))this.setChildFrame(val,branch);else{
-
-
---this.pending;
-this.children[branch]=UNDEF;
-}
+this.children[branch].abort();
 }else{
 
 
 for(var i=0;i<this.children.length;++i)if(this.children[i]){
 
-var val=this.children[i].abort();
-if(is_ef(val))this.setChildFrame(val,i);else{
+if(exports.debug.alt)console.log(this+' aborting '+this.children[i]);
 
-
-this.pendingRV=mergeExceptions(val,this.pendingRV);
---this.pending;
-this.children[i]=UNDEF;
+this.children[i].abort();
 }
 }
-}
-if(!this.pending)return this.pendingRV;
-
-this.async=true;
-return this;
 };
 
 EF_Alt.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
+
+
+
 
 
 mergeCallstacks(ef,this.children[idx]);
@@ -2038,31 +1962,22 @@ mergeCallstacks(ef,this.children[idx]);
 this.children[idx]=ef;
 ef.parent=this;
 ef.parent_idx=idx;
+if(this.aborted){
+
+if(!this.collapsing||this.collapsing.branch!==ef)ef.abort();
+
+}
 };
 
-EF_Alt.prototype.docollapse=function(branch,cf){this.quench(branch);
+EF_Alt.prototype.docollapse=function(branch,cf){for(var i=0;i<this.children.length;++i){
 
 
-for(var i=0;i<this.children.length;++i){
 if(i==branch)continue;
 if(this.children[i]){
-var val=this.children[i].abort();
-if(is_ef(val))this.setChildFrame(val,i);else{
-
-
---this.pending;
-this.children[i]=UNDEF;
+this.children[i].abort();
 }
 }
-}
-
-if(this.pending<=1)return true;
-
-
-
-
 this.collapsing={branch:branch,cf:cf};
-return false;
 };
 
 function I_alt(ndata,env){return cont(new EF_Alt(ndata,env),-1);
@@ -2096,16 +2011,23 @@ exports.Alt=function(){return {exec:I_alt,ndata:arguments,__oni_dis:token_dis};
 
 
 
+var suspend_counter=0;
 
-function EF_Suspend(ndata,env){this.ndata=ndata;
+function EF_Suspend(ndata,env){this.id=++suspend_counter;
 
+this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_Suspend.prototype={});
+EF_Suspend.prototype.type="Suspend";
 
-EF_Suspend.prototype.cont=function(idx,val){if(is_ef(val)){
 
+EF_Suspend.prototype.cont=function(idx,val){if(exports.debug.suspend){
 
+console.log(this+' cont idx='+idx+' val='+val+' child_frame='+this.child_frame);
+}
+if(is_ef(val)){
+if(!(idx==1||idx==3)){console.log("Assertion failed: "+"idx == 1 || idx == 3")}
 this.setChildFrame(val,idx);
 }else{
 
@@ -2115,15 +2037,16 @@ try{
 var ef=this;
 this.dyn_vars=exports.current_dyn_vars;
 
-var resumefunc=function(){try{
 
+var resumefunc=function(){if(ef.returning||ef.aborted)return;
+
+try{
 var caller_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=ef.dyn_vars;
 cont(ef,2,arguments);
 }catch(e){
 
-var s=function(){throw e};
-process.nextTick(s);
+hold0(function(){throw e});
 }finally{
 
 delete ef.dyn_vars;
@@ -2149,32 +2072,43 @@ if(this.returning){
 if(is_ef(val)){
 
 
-this.setChildFrame(val,null);
-this.quench();
-val=this.abort();
-if(is_ef(val)){
-
-this.setChildFrame(val,3);
+if(!(!this.child_frame)){console.log("Assertion failed: "+"!this.child_frame")};
+this.child_frame=val;
+this.abort();
 
 this.async=true;
 return this;
-}
 
 }
 return cont(this,3,null);
 }
-
 if(is_ef(val)){
+if(exports.debug.suspend)console.log(this+" remember child frame "+val);
 this.setChildFrame(val,1);
 return this;
 }
 case 1:
 
+
+if(this.aborted){
+if(exports.debug.suspend)console.log(this+' reentrant abortion '+val);
+
+
+var ef=this;
+hold0(function(){cont(ef,3,val)});
+return;
+}
+
+this.child_frame=UNDEF;
 if((val&&val.__oni_cfx)){
+
 this.returning=true;
 break;
 }
+if(exports.debug.suspend)console.log(this+' suspend completed');
+
 this.suspendCompleted=true;
+
 
 this.async=true;
 return this;
@@ -2183,7 +2117,7 @@ case 2:
 
 
 if(this.returning){
-
+console.log("UNEXPECTED CALL FROM RESUME FUNCTION IN EF_SUSPEND");
 return;
 }
 this.returning=true;
@@ -2204,19 +2138,17 @@ this.returning=true;
 return;
 }else{
 
-this.quench();
-val=this.abort();
-if(is_ef(val)){
+if(exports.debug.suspend)console.log(this+' aborting '+this.child_frame);
 
-this.setChildFrame(val,3);
-return this;
-}
+this.abort();
+if(exports.debug.suspend)console.log(this+' waiting for abort; returning self to caller; child_frame = '+this.child_frame+' idx='+(this.child_frame?this.child_frame.parent_idx:'xx'));
 
-
+return this.returnToParent(this);
 }
 }
 case 3:
 
+if(this.returning){
 try{
 this.ndata[1].apply(this.env,this.retvals);
 val=UNDEF;
@@ -2224,25 +2156,40 @@ val=UNDEF;
 
 val=new CFException("i","Suspend: Return function threw ("+e+")");
 }
+}else{
+
+if(!(this.aborted)){console.log("Assertion failed: "+"this.aborted")};
+if(exports.debug.suspend)console.log(this+' returning abortion to caller');
+val=new CFException("a");
+}
 break;
 default:
 val=new CFException("i","Invalid state in Suspend ("+idx+")");
 }
+if(exports.debug.suspend)console.log(this+' returning '+val);
+
 return this.returnToParent(val);
 }
 };
 
-EF_Suspend.prototype.quench=function(){this.returning=true;
+EF_Suspend.prototype.abort=function(){if(this.aborted)return;
 
-if(!this.suspendCompleted)this.child_frame.quench();
+if(exports.debug.suspend)console.log(this+'.abort called. child_frame is '+this.child_frame);
 
-};
+if(this.aborted)throw new Error("internal runtime error: unexpected abort on EF_Suspend");
 
-EF_Suspend.prototype.abort=function(){exports.current_dyn_vars=this.dyn_vars;
+exports.current_dyn_vars=this.dyn_vars;
+this.aborted=true;
+this.async=true;
+if(this.child_frame){
+this.setChildFrame(this.child_frame,3);
 
+}else{
 
-this.returning=true;
-if(!this.suspendCompleted)return this.child_frame.abort();
+var ef=this;
+hold0(function(){cont(ef,3)});
+}
+
 
 };
 
@@ -2269,19 +2216,23 @@ exports.Suspend=function(s,r){return {exec:I_sus,ndata:[s,r],__oni_dis:token_dis
 
 
 
+var spawn_counter=0;
 
-function EF_Spawn(ndata,env,notifyAsync,notifyVal,notifyAborted){this.ndata=ndata;
+function EF_Spawn(ndata,env,notifyAsync,notifyVal){this.id=++spawn_counter;
 
+this.ndata=ndata;
 this.env=env;
 this.notifyAsync=notifyAsync;
 this.notifyVal=notifyVal;
-this.notifyAborted=notifyAborted;
+
 }
 setEFProto(EF_Spawn.prototype={});
+EF_Spawn.prototype.type="Spawn";
 
-EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
+EF_Spawn.prototype.cont=function(idx,val){if(exports.debug.spawn)console.log(this+"cont idx="+idx+" val="+val+" aborted="+this.aborted+" done="+this.done);
 
 
+if(idx==0){
 this.parent_dyn_vars=exports.current_dyn_vars;
 val=execIN(this.ndata[1],this.env);
 exports.current_dyn_vars=this.parent_dyn_vars;
@@ -2297,16 +2248,31 @@ return val;
 
 if(is_ef(val)){
 this.setChildFrame(val,2);
-return this.returnToParent(this);
+return;
 }else{
 
-this.in_abortion=false;
+if(!((val&&val.__oni_cfx)&&val.type==='a')){
+
+console.log("WARNING "+this+" UNEXPECTED return from aborted child: "+val);
+val=new CFException('a');
+}
+
 this.done=true;
 
-this.notifyVal(this.return_val,true);
-this.notifyAborted(val);
+
+
+
+if(exports.debug.spawn)console.log(this+" notifying "+val);
+
+this.notifyVal(val);
+
+
+
+
+
 
 return this.returnToParent(this.return_val);
+
 }
 }
 
@@ -2326,7 +2292,7 @@ return;
 }
 
 
-this.in_abortion=true;
+
 
 
 this.parent=val.ef.parent;
@@ -2344,27 +2310,11 @@ cont(this.parent,this.parent_idx,this);
 
 val.ef.parent=UNDEF;
 
-
-val.ef.quench();
-var aborted_target=val.ef.abort();
-if(is_ef(aborted_target)){
 this.return_val=val.val;
-this.setChildFrame(aborted_target,2);
 
-return this.returnToParent(this);
-}
-
-this.in_abortion=false;
-this.done=true;
-
-this.notifyVal(val.val,true);
-
-if(!this.async){
-
-cont(this.parent,this.parent_idx,val.val);
+this.aborted=true;
+this.setChildFrame(val.ef,2);
 return;
-}
-return this.returnToParent(val.val);
 }else if(val.type==='blb'){
 
 
@@ -2385,7 +2335,7 @@ return;
 }
 
 
-this.in_abortion=true;
+
 
 
 this.parent=frame_to_abort.parent;
@@ -2397,24 +2347,10 @@ cont(this.parent,this.parent_idx,this);
 frame_to_abort.parent=UNDEF;
 
 
-frame_to_abort.quench();
-var aborted_target=frame_to_abort.abort();
-if(is_ef(aborted_target)){
+this.aborted=true;
+this.setChildFrame(frame_to_abort,2);
 this.return_val=UNDEF;
-this.setChildFrame(aborted_target,2);
-
-return this.returnToParent(this);
-}
-
-this.in_abortion=false;
-this.done=true;
-
-
-
-this.notifyVal(UNDEF,true);
-this.notifyAborted(UNDEF);
-
-return this.returnToParent(UNDEF);
+return;
 }
 }
 
@@ -2425,98 +2361,128 @@ if(idx==0)this.notifyAsync();
 }else{
 
 delete this.parent_dyn_vars;
-this.in_abortion=false;
+
 this.done=true;
 this.notifyVal(val);
 }
 };
 
-EF_Spawn.prototype.abort=function(){if(this.in_abortion)return this;
+EF_Spawn.prototype.abort=function(src){if(this.done||this.aborted)return;
 
 
 
 
 
-if(this.done)return UNDEF;
 
-this.in_abortion=true;
+
+
+this.aborted=true;
+
 if(this.child_frame){
-this.child_frame.quench();
-var val=this.child_frame.abort();
-if(is_ef(val)){
-
-this.setChildFrame(val,2);
-return this;
-}else{
-
-this.in_abortion=false;
-this.done=true;
-return UNDEF;
-}
+this.setChildFrame(this.child_frame,2);
 }
 };
 
-function EF_SpawnWaitFrame(waitarr){this.dyn_vars=exports.current_dyn_vars;
+exports.debug={};
 
-this.waitarr=waitarr;
-waitarr.push(this);
+function EF_SpawnWaitFrame(data){if(exports.debug.spawn)console.log('EF_SpawnWaitFrame');
+
+this.dyn_vars=exports.current_dyn_vars;
+this.data=data;
+data.waitarr.push(this);
 }
 setEFProto(EF_SpawnWaitFrame.prototype={});
-EF_SpawnWaitFrame.prototype.quench=function(){};
-EF_SpawnWaitFrame.prototype.abort=function(){var idx=this.waitarr.indexOf(this);
+EF_SpawnWaitFrame.prototype.type="Stratum.value()";
+EF_SpawnWaitFrame.prototype.abort=function(){var idx=this.data.waitarr.indexOf(this);
 
-this.waitarr.splice(idx,1);
+this.data.waitarr.splice(idx,1);
+var ef=this;
+hold0(function(){cont(ef,2,new CFException('a'))});
 };
-EF_SpawnWaitFrame.prototype.cont=function(val){if(this.parent){
+
+
+
+EF_SpawnWaitFrame.prototype.cont=function(idx,val){if(this.parent){
+
+
 
 var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 delete this.dyn_vars;
+if(idx!==2){
+if(this.data.omit_return_value){
+if(!((val&&val.__oni_cfx)&&val.type==='t')){
+val=UNDEF;
+}
+}else{
+
+if((val&&val.__oni_cfx)&&val.type==='a')val=new CFException("t",new StratumAborted(),this.data.line,this.data.env.file);
+
+
+
+
+}
+}
 cont(this.parent,this.parent_idx,val);
 exports.current_dyn_vars=current_dyn_vars;
 }
 };
 
-function EF_SpawnAbortFrame(waitarr,spawn_frame){this.dyn_vars=exports.current_dyn_vars;
 
+function EF_SpawnAbortFrame(waitarr,spawn_frame){if(exports.debug.spawn)console.log('EF_SpawnAbortFrame');
+
+this.dyn_vars=exports.current_dyn_vars;
 this.waitarr=waitarr;
-waitarr.push(this);
+waitarr.unshift(this);
 var me=this;
 hold0(function(){me.resolveAbortCycle(spawn_frame)});
 
 }
 setEFProto(EF_SpawnAbortFrame.prototype={});
-EF_SpawnAbortFrame.prototype.quench=function(){};
-EF_SpawnAbortFrame.prototype.abort=function(){return this;
+EF_SpawnAbortFrame.prototype.type="Stratum.abort()";
+EF_SpawnAbortFrame.prototype.abort=function(){this.aborted=true;
 
-
+return;
 };
-EF_SpawnAbortFrame.prototype.cont=function(val){if(this.done)return;
 
-if(this.parent){
+EF_SpawnAbortFrame.prototype.cont=function(val){if(this.parent){
+
 var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 delete this.dyn_vars;
-this.done=true;
+
+if(!this.aborted)val=UNDEF;else if(!(val&&val.__oni_cfx)||val.type!=='a'){
+
+
+
+console.log(this+' expected abortion but saw '+val);
+val=new CFException('a');
+}
 cont(this.parent,this.parent_idx,val);
 exports.current_dyn_vars=current_dyn_vars;
-}else if((val&&val.__oni_cfx)&&(val.type==='t'||val.val instanceof Error)){
-
-
-hold0(function(){val.mapToJS(true)});
 }
+
+
+
+
 };
-EF_SpawnAbortFrame.prototype.resolveAbortCycle=function(spawn_frame){if(this.done)return;
+EF_SpawnAbortFrame.prototype.resolveAbortCycle=function(spawn_frame){if(exports.debug.spawn)console.log(this+'resolveAbortCycle on '+spawn_frame+' done='+this.done);
+
 
 var parent=this.parent;
 while(parent){
+if(exports.debug.spawn){
+console.log("CHECK "+spawn_frame+" == "+parent);
+}
 if(spawn_frame===parent){
 var msg="Warning: Cyclic stratum.abort() call from within stratum."+stack_to_string(this.callstack);
 if(console){
 if(console.error)console.error(msg);else console.log(msg);
 
 }
-this.cont(UNDEF);
+this.aborted=true;
+this.waitarr.splice(this.waitarr.indexOf(this),1);
+this.cont(new CFException('a'));
 break;
 }
 parent=parent.parent;
@@ -2532,48 +2498,61 @@ ReifiedStratumProto.prototype.waitforValue=function(){return this.value()};
 ReifiedStratumProto.prototype.toString=function(){return "[object Stratum]"};
 
 
-function I_spawn(ndata,env){var val,async,have_val,picked_up=false;
+function I_spawn(ndata,env){var val,async,picked_up=false;
 
 var value_waitarr=[];
-var abort_waitarr=[];
+
 var stratum=new ReifiedStratumProto();
-stratum.abort=function(){var dyn_vars=exports.current_dyn_vars;
+stratum.abort=function(){if(ef.done||ef.aborted)return UNDEF;
+
+
+var dyn_vars=exports.current_dyn_vars;
 
 
 
 
 
-if(ef.in_abortion)return new EF_SpawnAbortFrame(abort_waitarr,ef);
-
-if(ef.done)return UNDEF;
 
 
-var rv=ef.abort();
+
+
+
+
+if(exports.debug.spawn){
+console.log("STRATUM ABORT--->");
+}
+ef.abort();
+if(exports.debug.spawn){
+console.log("<---STRATUM ABORT");
+}
 
 exports.current_dyn_vars=dyn_vars;
 
-async=false;
-val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 
 
 
-while(value_waitarr.length)cont(value_waitarr.shift(),val);
 
 
-if(is_ef(rv)){
-return new EF_SpawnAbortFrame(abort_waitarr,ef);
-}
 
-if(!(rv&&rv.__oni_cfx)||rv.type!=='t')rv=UNDEF;
 
-notifyAborted(rv);
 
-return rv;
+
+return new EF_SpawnAbortFrame(value_waitarr,ef);
+
+
 };
 
 stratum.value=function(){if(!async){
-picked_up=true;return val}
-return new EF_SpawnWaitFrame(value_waitarr);
+
+picked_up=true;
+if((val&&val.__oni_cfx)&&val.type==='a')val=new CFException("t",new StratumAborted(),ndata[0],env.file);
+
+
+
+
+return val;
+}
+return new EF_SpawnWaitFrame({waitarr:value_waitarr,env:env,line:ndata[0],omit_return_value:false});
 };
 
 stratum.running=function(){return async};
@@ -2585,13 +2564,21 @@ stratum.waiting=function(){return value_waitarr.length;
 function notifyAsync(){async=true;
 
 }
-function notifyVal(_val,have_caller){if(val!==undefined)return;
+function notifyVal(_val,have_caller){val=_val;
 
 
 
-val=_val;
+
+
+
+
+
+
+
+
+
 async=false;
-if(!have_caller&&!value_waitarr.length){
+if(!have_caller&&!value_waitarr.length&&!((_val&&_val.__oni_cfx)&&_val.type=='a')){
 
 
 
@@ -2615,20 +2602,22 @@ setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 },0);
 }
-}else while(value_waitarr.length)cont(value_waitarr.shift(),val);
+}else while(value_waitarr.length)cont(value_waitarr.shift(),1,val);
 
 
 
 
 }
-function notifyAborted(_val){if(!(_val&&_val.__oni_cfx)||_val.type!=='t')_val=UNDEF;
 
 
-while(abort_waitarr.length)cont(abort_waitarr.shift(),_val);
 
-}
 
-var ef=new EF_Spawn(ndata,env,notifyAsync,notifyVal,notifyAborted);
+
+
+
+
+
+var ef=new EF_Spawn(ndata,env,notifyAsync,notifyVal);
 
 
 return cont(ef,0)||stratum;
@@ -2657,6 +2646,7 @@ function EF_Collapse(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_Collapse.prototype={});
+EF_Collapse.prototype.type="Collapse";
 
 
 EF_Collapse.prototype.__oni_collapse=true;
@@ -2667,9 +2657,7 @@ var fold=this.env.fold;
 if(!fold)return new CFException("t",new Error("Unexpected collapse statement"),this.ndata,this.env.file);
 
 
-if(fold.docollapse(this.env.branch,this))return true;
-
-
+fold.docollapse(this.env.branch,this);
 this.async=true;
 return this;
 }else if(idx==1)return this.returnToParent(true);else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata,this.env.file));
@@ -2680,9 +2668,10 @@ return this;
 
 };
 
+EF_Collapse.prototype.abort=function(){var ef=this;
 
-EF_Collapse.prototype.quench=function(){};
-EF_Collapse.prototype.abort=function(){};
+hold0(function(){cont(ef.parent,ef.parent_idx,new CFException('a'))});
+};
 
 function I_collapse(ndata,env){return cont(new EF_Collapse(ndata,env),0);
 
@@ -2775,26 +2764,35 @@ clear0=clearTimeout;
 exports.Hold=function(duration_ms){var dyn_vars=exports.current_dyn_vars;
 
 
-function abort(){exports.current_dyn_vars=dyn_vars;
+function abort(){if(this.aborted)return;
 
 
+if(exports.debug.hold)console.log(this+' abort; sus = '+sus);
+
+exports.current_dyn_vars=dyn_vars;
+sus.quench();
+this.aborted=true;
+hold0(function(){if(sus){cont(sus.parent,sus.parent_idx,new CFException('a'));sus=null}});
 }
 
-if(duration_ms===UNDEF)return {__oni_ef:true,wait:function(){
+if(duration_ms===UNDEF){
+var sus={toString:function(){
+return "<HOLD()>"},__oni_ef:true,wait:function(){
+
+return this},abort:abort,quench:dummy};
 
 
-return this},quench:dummy,abort:abort};
 
+return sus;
+}else if(duration_ms===0){
 
-
-
-if(duration_ms===0){
-var sus={__oni_ef:true,wait:function(){
+var sus={toString:function(){
+return "<HOLD(0)>"},__oni_ef:true,wait:function(){
 
 return this},abort:abort,quench:function(){
 
-sus=null;clear0(this.co)},co:hold0(function(){
-if(sus&&sus.parent){
+clear0(this.co)},co:hold0(function(){
+if(sus&&sus.parent&&!sus.aborted){
 
 exports.current_dyn_vars=dyn_vars;
 cont(sus.parent,sus.parent_idx,UNDEF);
@@ -2805,14 +2803,15 @@ exports.current_dyn_vars=null;
 return sus;
 }else{
 
-var sus={__oni_ef:true,wait:function(){
+var sus={toString:function(){
+return "<HOLD("+duration_ms+"ms)>"},__oni_ef:true,wait:function(){
 
 return this},abort:abort,quench:function(){
 
-sus=null;clearTimeout(this.co)}};
+clearTimeout(this.co)}};
 
 sus.co=setTimeout(function(){
-if(sus&&sus.parent){
+if(sus&&sus.parent&&!sus.aborted){
 
 exports.current_dyn_vars=dyn_vars;
 cont(sus.parent,sus.parent_idx,UNDEF);
@@ -2848,8 +2847,10 @@ exports.Return=function(exp){return new CFException("r",exp);
 
 };
 
-exports.Break=function(lbl){return new CFException("b",lbl);
+exports.Break=function(lbl){if(exports.debug.XX)console.log("Executing BREAK");
 
+
+return new CFException("b",lbl);
 };
 
 exports.Cont=function(lbl){return new CFException("c",lbl);
@@ -6379,7 +6380,7 @@ return pctx.token;
 }
 
 
-})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__js __oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n__js if(!(__oni_rt.G.__oni_rt_bundle)){\n__oni_rt.G.__oni_rt_bundle={};\n}\n\n\n\n\n\n\n\n\n\n__js exports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\n__js exports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\nexports.withDynVarContext=function(){__js var old_dyn_vars=__oni_rt.current_dyn_vars;\n\n\nvar proto_context,block;\nif(arguments.length===1){\n__js proto_context=old_dyn_vars;\nblock=arguments[0];\n}else{\n\nproto_context=arguments[0];\nblock=arguments[1];\n}\n\ntry{\n__js __oni_rt.current_dyn_vars=Object.create(proto_context);\nblock();\n}finally{\n\n__js __oni_rt.current_dyn_vars=old_dyn_vars;\n}\n};\n\n\n\n\n\n__js exports.getCurrentDynVarContext=function(){return __oni_rt.current_dyn_vars;\n\n};\n\n\n\n\n\n\n\n__js exports.setDynVar=function(name,value){if(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to retrieve #{name}\");\n\n\nvar key=\'$\'+name;\n__oni_rt.current_dyn_vars[key]=value;\n};\n\n\n\n\n\n\n__js exports.clearDynVar=function(name){if(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to clear #{name}\");\n\n\nvar key=\'$\'+name;\ndelete __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n__js exports.getDynVar=function(name,default_val){var key=\'$\'+name;\n\nif(__oni_rt.current_dyn_vars===null){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist (no dynamic variable context)\");\n\n\n\n}\nif(!(key in __oni_rt.current_dyn_vars)){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist\");\n\n\n\n}\nreturn __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n\n__js var arrayCtors=[],arrayCtorNames=[\'Uint8Array\',\'Uint16Array\',\'Uint32Array\',\'Int8Array\',\'Int16Array\',\'Int32Array\',\'Float32Array\',\'Float64Array\',\'NodeList\',\'HTMLCollection\',\'FileList\',\'StaticNodeList\',\'DataTransferItemList\'];\n\n\n\n\n\n\n\n__js for(var i=0;i<arrayCtorNames.length;i++ ){\nvar c=__oni_rt.G[arrayCtorNames[i]];\nif(c)arrayCtors.push(c);\n}\n__js exports.isArrayLike=function(obj){if(Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\')))return true;\n\nfor(var i=0;i<arrayCtors.length;i++ )if(obj instanceof arrayCtors[i])return true;\nreturn false;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js {\nvar _flatten=function(arr,rv){var l=arr.length;\n\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))_flatten(elem,rv);else rv.push(elem);\n\n\n\n}\n};\n\nexports.flatten=function(arr){var rv=[];\n\nif(arr.length===UNDEF)throw new Error(\"flatten() called on non-array\");\n_flatten(arr,rv);\nreturn rv;\n};\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.expandSingleArgument=function(args){if(args.length==1&&exports.isArrayLike(args[0]))args=args[0];\n\n\nreturn args;\n};\n\n\n\n\n\n\n\n\n\n__js exports.isReifiedStratum=function(obj){return (obj instanceof __oni_rt.ReifiedStratumProto);\n\n};\n\n\n\n\n\n\n\n\n\n__js exports.isQuasi=function(obj){return (obj instanceof __oni_rt.QuasiProto);\n\n};\n\n\n\n\n\n\n__js exports.Quasi=function(arr){return __oni_rt.Quasi.apply(__oni_rt,arr)};\n\n\n\n\n\n\n__js exports.mergeObjects=function(){var rv={};\n\nvar sources=exports.expandSingleArgument(arguments);\nfor(var i=0;i<sources.length;i++ ){\nexports.extendObject(rv,sources[i]);\n}\nreturn rv;\n};\n\n\n\n\n\n__js exports.extendObject=function(dest,source){for(var o=null in source){\n\nif(Object.prototype.hasOwnProperty.call(source,o))dest[o]=source[o];\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js {\nfunction URI(){}\nURI.prototype={toString:function(){\nreturn \"#{this.protocol}://#{this.authority}#{this.relative}\";\n\n}};\n\nURI.prototype.params=function(){if(!this._params){\n\nvar rv={};\nthis.query.replace(parseURLOptions.qsParser,function(_,k,v){if(k)rv[decodeURIComponent(k)]=decodeURIComponent(v);\n\n});\nthis._params=rv;\n}\nreturn this._params;\n};\n\nvar parseURLOptions={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\nexports.parseURL=function(str){var o=parseURLOptions,m=o.parser.exec(str),uri=new URI(),i=14;\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\nreturn uri;\n};\n}\n\n\n\n\n\n\n\n\n__js exports.encodeURIComponentRFC3986=function(str){return encodeURIComponent(str).replace(/[!\'()*]/g,function(c){\nreturn \'%\'+c.charCodeAt(0).toString(16);\n\n});\n};\n\n\n\n\n\n\n\n\n\n__js exports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q=null in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\n__js exports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv;\n\n\nfor(var i=0;i<l;++i){\nvar comp=url_spec[i];\nif(exports.isQuasi(comp)){\ncomp=comp.parts.slice();\nfor(var k=1;k<comp.length;k+=2)comp[k]=exports.encodeURIComponentRFC3986(comp[k]);\n\ncomp=comp.join(\'\');\n}else if(typeof comp!=\"string\")break;\n\nif(rv!==undefined){\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}else rv=comp;\n\n\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\n__js exports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.normalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol){\na.directory=base.directory;\nif(!a.path&&(a.query||a.anchor))a.file=base.file;\n\n}else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\na.directory=a.directory.replace(/\\/\\/+/g,\'/\');\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"){\nif(pout.length>1)pout.pop();\n\n\n}else{\n\npout.push(c);\n}\n}\n\nif(a.file===\'.\')a.file=\'\';else if(a.file===\'..\'){\n\n\nif(pout.length>2){\npout.splice(-2,1);\n}\n\na.file=\'\';\n}\n\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js exports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\n__js exports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.request=request_hostenv;\n\n\n\n\n\n\nexports.makeMemoizedFunction=function(f,keyfn){var lookups_in_progress={};\n\n\nvar memoizer=function(){var key=keyfn?keyfn.apply(this,arguments):arguments[0];\n\nvar rv=memoizer.db[key];\nif(typeof rv!==\'undefined\')return rv;\nif(!lookups_in_progress[key])lookups_in_progress[key]=spawn (function(self,args){\nreturn memoizer.db[key]=f.apply(self,args);\n\n})(this,arguments);\ntry{\nreturn lookups_in_progress[key].waitforValue();\n}finally{\n\nif(lookups_in_progress[key].waiting()==0){\nlookups_in_progress[key].abort();\ndelete lookups_in_progress[key];\n}\n}\n};\n\nmemoizer.db={};\nreturn memoizer;\n};\n\n\n\n\n\n\n\n__js exports.eval=eval_hostenv;\n\n\n\n\n__js var pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\n__js var opts=exports.extendObject({},settings);\n\nif(opts.callback){\ntry{\nvar rv=exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n}catch(e){\nopts.callback(e);return;\n}\nopts.callback(UNDEF,rv);\nreturn;\n}else return exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n\n\n};\n\n__js {\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},settings);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=augmentHubs(getHubs_hostenv());\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\n\n}\n\n\nrf.url=function(relative){return resolve(relative,rf,parent).path;\n\n};\n\nreturn rf;\n}\n__js exports._makeRequire=makeRequire;\n\n__js function augmentHubs(hubs){hubs.addDefault=function(hub){\n\nif(!this.defined(hub[0])){\n\nthis.unshift(hub);\nreturn true;\n}\nreturn false;\n};\nhubs.defined=function(prefix){for(var i=0;i<this.length;i++ ){\n\nvar h=this[i][0];\nvar l=Math.min(h.length,prefix.length);\nif(h.substr(0,l)==prefix.substr(0,l))return true;\n}\nreturn false;\n};\nreturn hubs;\n}\n\n__js function html_sjs_extractor(html,descriptor){var re=/<script (?:[^>]+ )?(?:type=[\'\"]text\\/sjs[\'\"]|main=[\'\"]([^\'\"]+)[\'\"])[^>]*>((.|[\\r\\n])*?)<\\/script>/mg;\n\nvar match;\nvar src=\'\';\nwhile(match=re.exec(html)){\nif(match[1])src+=\'require(\"\'+match[1]+\'\")\';else src+=match[2];\n\nsrc+=\';\';\n}\nif(!src)throw new Error(\"No sjs found in HTML file\");\nreturn default_compiler(src,descriptor);\n}\n\n\n__js function resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw new Error(\"Too much aliasing in modulename \'\"+module+\"\'\");\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\n__js function resolveHubs(module,hubs,require_obj,parent,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\nvar resolve=default_resolver;\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nif(path.indexOf(hub[0])==0){\n\nif(typeof hub[1]==\"string\"){\npath=hub[1]+path.substring(hub[0].length);\ni=0;\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\nif(--level==0)throw new Error(\"Too much indirection in hub resolution for module \'\"+module+\"\'\");\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\nresolve=hub[1].resolve||loader.resolve||resolve;\n\nbreak;\n}else throw new Error(\"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\");\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src,resolve:resolve};\n}\n\n\n__js function default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){try{\n\nvar f;\nif(typeof (src)===\'function\'){\nf=src;\n}else if(compiled_src_tag.exec(src)){\n\n\n\n\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",\"__oni_altns\",src);\n}else{\n\nf=exports.eval(\"(function(module,exports,require, __onimodulename, __oni_altns){\"+src+\"\\n})\",{filename:\"module #{descriptor.id}\"});\n\n}\nf(descriptor,descriptor.exports,descriptor.require,\"module #{descriptor.id}\",{});\n\n}catch(e){\n\n\n\nif(e instanceof SyntaxError){\nthrow new Error(\"In module #{descriptor.id}: #{e.message}\");\n}else throw e;\n\n\n}\n}\n\n__js default_compiler.module_args=[\'module\',\'exports\',\'require\',\'__onimodulename\',\'__oni_altns\'];\n\n__js var canonical_id_to_module={};\n\n\n__js {\n\n\n\n\n\n\nfunction checkForDependencyCycles(root_node,target_node){if(!root_node.waiting_on)return false;\n\nfor(var name=null in root_node.waiting_on){\nif(root_node.waiting_on[name]===target_node){\nreturn [root_node.id];\n}\nvar deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);\nif(deeper_cycle)return [root_node.id].concat(deeper_cycle);\n\n}\n\nreturn false;\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts,spec){__js var compile=exports.require.extensions[spec.type];\n\n\n\nif(!compile)throw new Error(\"Unknown type \'\"+spec.type+\"\'\");\n\n\n__js var descriptor=exports.require.modules[path];\n__js var pendingHook=pendingLoads[path];\n\nif((!descriptor&&!pendingHook)||opts.reload){\n\n\n\n__js descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};\n\n\n\n\n\n\npendingHook=pendingLoads[path]=spawn (function(){waitfor{\n\n__js var src,loaded_from;\nif(typeof src_loader===\"string\"){\n__js {\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}\n}else if(path in __oni_rt.modsrc){\n\n__js {\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\n__js {\ndescriptor.loaded_from=loaded_from;\n\ndescriptor.require=makeRequire(descriptor);\n\nvar canonical_id=null;\n\ndescriptor.getCanonicalId=function(){return canonical_id;\n\n};\n\ndescriptor.setCanonicalId=function(id){if(id==null){\n\nthrow new Error(\"Canonical ID cannot be null\");\n}\n\nif(canonical_id!==null){\nthrow new Error(\"Canonical ID is already defined for module \"+path);\n}\n\nvar canonical=canonical_id_to_module[id];\nif(canonical!=null){\nthrow new Error(\"Canonical ID \"+id+\" is already defined in module \"+canonical.id);\n}\n\ncanonical_id=id;\ncanonical_id_to_module[id]=descriptor;\n};\n\nif(opts.main)descriptor.require.main=descriptor;\nexports.require.modules[path]=descriptor;\n}\ntry{\ncompile(src,descriptor);\nreturn descriptor;\n}catch(e){\n__js delete exports.require.modules[path];\nthrow e;\n}retract{\n__js delete exports.require.modules[path];\n}\n}or{\nwaitfor(){\nhold(0);\n__js pendingHook.resume=resume;\n}\n}\n})();\n\npendingHook.pending_descriptor=descriptor;\n}else if(!descriptor){\n\ndescriptor=pendingHook.pending_descriptor;\n}\n\nif(pendingHook){\n\n\ntry{\n__js {\nif(!parent.waiting_on)parent.waiting_on={};\n\nparent.waiting_on[path]=descriptor;\n}\n\n__js var dep_cycle=checkForDependencyCycles(descriptor,parent);\nif(dep_cycle)throw new Error(\"Cyclic require() dependency: #{parent.id} -> \"+dep_cycle.join(\' -> \'));\n\n\npendingHook.waitforValue();\n\n__js {\n\n\n\n\n\n\ndelete parent.waiting_on[path];\n}\n}retract{\n\n\n\nif(pendingHook.waiting()==0&&pendingHook.resume){\npendingHook.resume();\npendingHook.value();\n}\n}finally{\n\n\nif(pendingHook.waiting()==0)delete pendingLoads[path];\n\n}\n}\n\n__js if(!descriptor.required_by[parent.id])descriptor.required_by[parent.id]=1;else ++descriptor.required_by[parent.id];\n\n\n\n\nreturn descriptor.exports;\n}\n\n__js function default_resolver(spec){if(!spec.ext&&spec.path.charAt(spec.path.length-1)!==\'/\')spec.path+=\".\"+spec.type;\n\n\n};\n\n\nfunction http_src_loader(path){return {src:request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'}),loaded_from:path};\n\n\n\n\n}\n\n\n\n\n\n\n__js var github_api=\"https://api.github.com/\";\n__js var github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:\\/([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw new Error(\"Malformed module id \'\"+path+\"\'\")}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\nvar hubs=exports.require.hubs;\n\nvar resolveSpec=resolveHubs(path,hubs,require_obj,parent,opts||{});\n\n\n__js resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);\n\n\n\n__js var ext,extMatch=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\n__js if(extMatch){\next=extMatch[1].toLowerCase();\nresolveSpec.ext=ext;\nif(!exports.require.extensions[ext])ext=null;\n}\n__js resolveSpec.type=ext||\'sjs\';\n\nresolveSpec.resolve(resolveSpec,parent);\n\n__js {\n\nvar preload=__oni_rt.G.__oni_rt_bundle;\nvar pendingHubs=false;\nif(preload.h){\n\nvar deleteHubs=[];\nfor(var k=null in preload.h){\nif(!Object.prototype.hasOwnProperty.call(preload.h,k))continue;\nvar entries=preload.h[k];\nvar parent=getTopReqParent_hostenv();\nvar resolved=resolveHubs(k,hubs,exports.require,parent,{});\nif(resolved.path===k){\n\npendingHubs=true;\ncontinue;\n}\n\nfor(var i=0;i<entries.length;i++ ){\nvar ent=entries[i];\npreload.m[resolved.path+ent[0]]=ent[1];\n}\ndeleteHubs.push(k);\n}\n\nif(!pendingHubs)delete preload.h;else{\n\n\nfor(var i=0;i<deleteHubs.length;i++ )delete preload.h[deleteHubs[i]];\n\n}\n}\n\nif(module in __oni_rt.modsrc){\n\n\nif(!preload.m)preload.m={};\npreload.m[resolveSpec.path]=__oni_rt.modsrc[module];\ndelete __oni_rt.modsrc[module];\n}\n\nif(preload.m){\nvar path=resolveSpec.path;\n\nif(path.indexOf(\'!sjs\',path.length-4)!==-1)path=path.slice(0,-4);\n\nvar contents=preload.m[path];\nif(contents!==undefined){\nresolveSpec.src=function(){delete preload.m[path];\n\n\nreturn {src:contents,loaded_from:path+\"#bundle\"};\n};\n}\n}\n\n}\nreturn resolveSpec;\n}\n\n\n\n\n\n__js exports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){var resolveSpec=resolve(module,require_obj,parent,opts);\n\n\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec);\n\nreturn module;\n}\n\n\nfunction requireInnerMultiple(modules,require_obj,parent,opts){var rv={};\n\n\n\n\nfunction inner(i,l){if(l===1){\n\nvar descriptor=modules[i];\nvar id,exclude,include,name;\n__js if(typeof descriptor===\'string\'){\nid=descriptor;\nexclude=[];\ninclude=null;\nname=null;\n}else{\n\nid=descriptor.id;\nexclude=descriptor.exclude||[];\ninclude=descriptor.include||null;\nname=descriptor.name||null;\n}\n\nvar module=requireInner(id,require_obj,parent,opts);\n\n\n__js {\nvar addSym=function(k,v){if(rv[k]!==undefined){\n\nif(rv[k]===v)return;\nthrow new Error(\"require([.]) name clash while merging module \'#{id}\': Symbol \'#{k}\' defined in multiple modules\");\n}\nrv[k]=v;\n};\n\nif(name){\naddSym(name,module);\n}else if(include){\nfor(var i=0;i<include.length;i++ ){\nvar o=include[i];\nif(!(o in module))throw new Error(\"require([.]) module #{id} has no symbol #{o}\");\naddSym(o,module[o]);\n}\n}else{\nfor(var o=null in module){\n\n\n\nif(exclude.indexOf(o)!==-1)continue;\naddSym(o,module[o]);\n}\n}\n}\n}else{\n\nvar split=Math.floor(l/2);\nwaitfor{\ninner(i,split);\n}and{\n\ninner(i+split,l-split);\n}\n}\n}\n\n\nif(modules.length!==0)inner(0,modules.length);\nreturn rv;\n}\n\n\n__js exports.require=makeRequire(getTopReqParent_hostenv());\n\n__js exports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",required_by:{\"[system]\":1}};\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-nodejs.sjs']="var isWindows=process.platform===\'win32\';\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js var pathMod=(function(){var np=__oni_rt.nodejs_require(\'path\');\n\nvar sep=np.sep||(isWindows?\'\\\\\':\'/\');\nreturn {join:np.join,resolve:function(p){\n\nvar result=np.resolve.apply(this,arguments);\n\n\nif(/[\\\\\\/]$/.test(p))result+=sep;\nreturn result;\n}};\n\n})();\n\n__js var pathToFileUrl=exports.pathToFileUrl=function(path){var initialPath=path;\n\nvar prefix=\'file://\';\npath=pathMod.resolve(path);\nif(isWindows){\npath=path.replace(/\\\\/g,\'/\');\nif(path.lastIndexOf(\'//\',0)===0)prefix=\'file:\';else prefix=\'file:///\';\n\n\n\n\n}\n\n\nreturn prefix+encodeURIComponent(path).replace(/%(2f|3a)/gi,unescape);\n};\n\n__js var fileUrlToPath=exports.fileUrlToPath=function(url){var parsed=exports.parseURL(url);\n\nif(parsed.protocol.toLowerCase()!=\'file\'){\nthrow new Error(\"Not a file:// URL: #{url}\");\n}\nvar path=parsed.path;\n\nif(parsed.host===\'localhost\')parsed.host=\'\';\nif(isWindows){\npath=path.replace(/\\//g,\'\\\\\');\nif(parsed.host){\n\npath=\'\\\\\\\\\'+pathMod.join(parsed.host,path);\n}else{\n\n\npath=path.replace(/^\\\\/,\'\');\n}\n}else{\nif(parsed.host){\n\npath=pathMod.join(parsed.host,path);\n}\n}\nreturn decodeURIComponent(path);\n};\n\n__js var coerceToURL=exports.coerceToURL=function(path){if(path.indexOf(\':\',2)!==-1)return path;\n\n\n\n\nreturn pathToFileUrl(path);\n};\n\n\n\n\n\n\n\n\n\n\n\n\nfunction jsonp_hostenv(url,settings){var opts=exports.mergeObjects({cbfield:\"callback\",forcecb:\"jsonp\"},settings);\n\n\n\n\n\n\n\nvar query={};\nquery[opts.cbfield]=opts.forcecb;\n\nvar parser=/^[^{]*({[^]+})[^}]*$/;\nvar data=parser.exec(request_hostenv([url,opts.query,query]));\n\n\n\n\ndata[1]=data[1].replace(/([^\\\\])\\\\x/g,\"$1\\\\u00\");\n\ntry{\nreturn JSON.parse(data[1]);\n}catch(e){\n\nthrow new Error(\"Invalid jsonp response from \"+exports.constructURL(url)+\" (\"+e+\")\");\n}\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return \"*\";\n\n}\n\n\n\n\n\nvar req_base_descr;\nfunction getTopReqParent_hostenv(){if(!req_base_descr){\n\nvar base=pathToFileUrl(process.mainModule.filename);\nreq_base_descr={id:base,loaded_from:base,required_by:{\"[system]\":1}};\n\n\n\n\n}\nreturn req_base_descr;\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(/^\\.\\.?\\//.test(url_string))return exports.normalizeURL(url_string,parent.id);else if(!isWindows&&/^\\//.test(url_string))throw new Error(\"Absolute path passed to require.resolve: #{url_string}\");\n\n\n\n\n\n\n\nreturn \"nodejs:\"+url_string;\n}\n\n\n\n\n\n\nvar streamContents=exports.streamContents=function(stream,fn){var rv;\n\nvar chunk;\nvar ended=false;\nvar emitting=false;\nif(!fn){\nrv=[];\nfn=rv.push.bind(rv);\n}\nif(stream.readable===false)return rv;\n\n\nstream.pause();\n\nwaitfor{\nwaitfor(var exception){\nstream.on(\'error\',resume);\nstream.on(\'end\',resume);\n}finally{\n\nstream.removeListener(\'error\',resume);\nstream.removeListener(\'end\',resume);\n}\nif(exception)throw exception;\nif(emitting){\n\n\nended=true;\nhold();\n}\n}or{\nwhile(!ended){\n__js chunk=stream.read();\nif(chunk===null){\n\nwaitfor(){\nstream.on(\'readable\',resume);\n}finally{\n\nstream.removeListener(\'readable\',resume);\n}\n__js chunk=stream.read();\nif(chunk===null)break;\n}\nemitting=true;\nfn(chunk);\nemitting=false;\n}\n}\nreturn rv;\n};\n\n\n\n\n\nfunction request_hostenv(url,settings){__js {\n\nvar opts=exports.mergeObjects({method:\"GET\",headers:{},throwing:true,max_redirects:5},settings);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar pop=function(k){var rv=opts[k];\n\ndelete opts[k];\nreturn rv;\n};\nvar responseMode=pop(\'response\')||\'string\';\nvar body=pop(\'body\');\nvar throwing=pop(\'throwing\');\nvar max_redirects=pop(\'max_redirects\');\nvar username=pop(\'username\');\nvar password=pop(\'password\');\nvar query=pop(\'query\');\n\nvar url_string=exports.constructURL(url,query);\n\n\n\nvar url=exports.parseURL(url_string);\nvar protocol=url.protocol;\n\nif(url.host==\'unix\'){\n\nvar unix_parts=url.relative.split(\':\');\nopts.socketPath=unix_parts[0];\nopts.path=unix_parts[1];\n}else{\n\nopts.host=url.host;\nopts.port=url.port||(protocol===\'https\'?443:80);\nopts.path=url.relative||\'/\';\n}\n\nif(!opts.headers[\'Host\'])opts.headers.Host=url.authority;\n\n\nif(!opts.headers[\'User-Agent\'])opts.headers[\'User-Agent\']=\"Oni Labs StratifiedJS engine\";\n\n\nif(body&&!opts.headers[\'Transfer-Encoding\']){\n\n\n\nbody=new Buffer(body);\nopts.headers[\'Content-Length\']=body.length;\n}else{\n\nopts.headers[\'Content-Length\']=0;\n}\nif(username!=null&&password!=null)opts.auth=username+\":\"+password;\n\n\n}\n\nif(!(protocol===\'http\'||protocol===\'https\')){\nthrow new Error(\'Unsupported protocol: \'+protocol);\n}\n\nvar request=__oni_rt.nodejs_require(protocol).request(opts);\nrequest.end(body);\n\nwaitfor{\nwaitfor(var err){\nrequest.on(\'error\',resume);\n}finally{\n\nrequest.removeListener(\'error\',resume);\n}\nif(throwing){\nerr.request=request;\nerr.response=null;\nerr.status=0;\nthrow new Error(err);\n}else if(responseMode===\'string\'){\n\nreturn \'\';\n}else if(responseMode===\'full\'){\n\nreturn {status:0,content:\'\'};\n\n\n\n}else if(responseMode===\'arraybuffer\'){\n\nreturn {status:0,content:new ArrayBuffer()};\n\n\n\n}else{\n\n\n\nreturn {readable:false,statusCode:0,error:String(err)};\n\n\n\n\n}\n}or{\n\nwaitfor(var response){\nrequest.on(\'response\',resume);\n}finally{\n\nrequest.removeListener(\'response\',resume);\n}\n}retract{\n\n\n\nrequest.on(\'error\',function(){});\nrequest.abort();\n}\n\nif(response.statusCode<200||response.statusCode>=300){\nswitch(response.statusCode){case 300:\ncase 301:case 302:case 303:case 307:\nif(max_redirects>0){\nresponse.socket.end();\n\n\n\n\nvar redirect_url=exports.normalizeURL(response.headers[\'location\'],url_string);\n\nif(url.host==\'unix\'){\n\n\nredirect_url=redirect_url.replace(\'unix:\',\'unix:\'+opts.socketPath+\':\');\n}\n\nopts=exports.mergeObjects(settings,{headers:exports.mergeObjects(settings,{host:null}),max_redirects:max_redirects-1});\n\n\n\n\nreturn request_hostenv(redirect_url,opts);\n\n\n}\n\ndefault:\nif(throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url_string+\"\'\";\ntxt+=\" (\"+response.statusCode+\")\";\nvar err=new Error(txt);\n\nerr.status=response.statusCode;\nerr.request=request;\nerr.response=response;\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\nerr.data=response.data;\nthrow err;\n}else if(responseMode===\'string\'){\n\nresponse.resume();\nreturn \"\";\n}\n\n}\n}\n\nif(responseMode===\'raw\'){\n\n\n\nrequest.on(\'error\',function(){});\nreturn response;\n}else if(responseMode===\'arraybuffer\'){\n\n\n\nvar buf=Buffer.concat(streamContents(response));\n\n\n__js {\nvar array_buf=new ArrayBuffer(buf.length);\nvar view=new Uint8Array(array_buf);\nfor(var i=0,l=buf.length;i<l;++i){\nview[i]=buf[i];\n}\n}\n\nreturn {status:response.statusCode,content:array_buf,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}else{\n\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\n\nif(responseMode===\'string\')return response.data;else{\n\n\n\nreturn {status:response.statusCode,content:response.data,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}\n}\n};\n\nfunction file_src_loader(path){waitfor(var err,data){\n\n\n__oni_rt.nodejs_require(\'fs\').readFile(fileUrlToPath(path),resume);\n}\nif(err)throw err;\nreturn {src:data.toString(),loaded_from:path};\n}\n\nfunction resolve_file_url(spec){if(!spec.ext){\n\nvar ext=\".\"+spec.type;\nvar path=fileUrlToPath(spec.path);\n\nwaitfor(var err){\n__oni_rt.nodejs_require(\'fs\').lstat(path+ext,resume);\n}\nif(!err)spec.path+=ext;\n}\n}\n\nfunction nodejs_mockModule(parent){var base;\n\nif(!(/^file:/.exec(parent.id)))base=getTopReqParent_hostenv().id;else base=parent.id;\n\n\n\nbase=fileUrlToPath(base);\n\nreturn {paths:__oni_rt.nodejs_require(\'module\')._nodeModulePaths(base)};\n\n\n};\n\n\nfunction nodejs_loader(path,parent,dummy_src,opts,spec){if(spec.type==\'js\'){\n\nreturn __oni_rt.nodejs_require(path);\n}\nreturn default_loader(pathToFileUrl(path),parent,file_src_loader,opts,spec);\n}\n\n__js nodejs_loader.resolve=function resolve_nodejs(spec,parent){var path=spec.path.substr(7);\n\n\n\nvar mockModule=nodejs_mockModule(parent||getTopReqParent_hostenv());\nvar mod=__oni_rt.nodejs_require(\'module\');\nfunction tryResolve(path){try{\n\nvar resolved=mod._resolveFilename(path,mockModule);\n\nif(resolved instanceof Array)resolved=resolved[1];\nspec.path=resolved;\nreturn true;\n}catch(e){\nreturn false;\n}\n};\n\nvar ok=tryResolve(path);\nif(!spec.ext){\nif(ok){\nspec.type=\'js\';\n}else{\n\nok=tryResolve(path+\".\"+spec.type);\n}\n}\n\nif(!ok)throw new Error(\"nodejs module at \'\"+path+\"\' not found\");\n};\n\n\nfunction getHubs_hostenv(){return [[\"sjs:\",pathToFileUrl(__oni_rt.nodejs_sjs_lib_dir)],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:file_src_loader,resolve:resolve_file_url}],[\"nodejs:\",{loader:nodejs_loader}]];\n\n\n\n\n\n\n\n\n}\n\nvar js_loader=function(src,descriptor){var nodejs_version=process.versions.node.split(\'.\').map(x->parseInt(x,10));\n\nvar vm=__oni_rt.nodejs_require(\"vm\");\njs_loader=(nodejs_version[0]===0&&nodejs_version[1]<=10)?function(src,descriptor){\nvar ctx=vm.createContext(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvm.runInContext(src,ctx,\"module \"+descriptor.id);\n}:function(src,descriptor){\nvar ctx=Object.create(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvar vm=__oni_rt.nodejs_require(\"vm\");\nctx=vm.createContext(ctx);\nvm.runInContext(src,ctx,\"module \"+descriptor.id);\n};\nreturn js_loader(src,descriptor);\n};\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'api\':default_compiler,\'mho\':default_compiler,\'js\':js_loader,\'html\':html_sjs_extractor};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\nvar _sjs_initialized=false;\nfunction init_hostenv(){if(_sjs_initialized)return;\n\n\n_sjs_initialized=true;\n\nvar init_path=process.env[\'SJS_INIT\'];\nif(init_path){\nvar node_fs=__oni_rt.nodejs_require(\'fs\');\nvar files=init_path.split(isWindows?\';\':\':\');\nfor(var i=0;i<files.length;i++ ){\nvar path=files[i];\nif(!path)continue;\ntry{\nexports.require(pathToFileUrl(path));\n}catch(e){\nconsole.error(\"Error loading init script at \"+path+\": \"+e);\nthrow e;\n}\n}\n}\n};\n\nexports.runMainExpression=function(ef){if(!__oni_rt.is_ef(ef))return ef;\n\n\n\n\nvar sig,signame;\n\n\n\n\n\n\nvar dummy_handler,noop;\nif(process.platform===\'win32\'){\nnoop=function(){};\ndummy_handler=function(){console.error(\'[SIGBREAK caught; killing process immediately due to libuv bug]\');\n\nprocess.exit(1);\n};\n}\n\nvar await=function(evt){waitfor(){\n\nprocess.on(evt,resume);\n}finally{\nprocess.removeListener(evt,resume);\nif(dummy_handler&&evt.lastIndexOf(\'SIG\',0)===0){\nprocess.on(\"SIGBREAK\",dummy_handler);\ndummy_handler=noop;\n}\n}\n};\n\nwaitfor{\ntry{\nef.wait();\n}catch(e){\ne=e.toString().replace(/^Error: Cannot load module/,\"Error executing\");\ne=e.replace(/\\(in apollo-sys-common.sjs:\\d+\\)$/,\"\");\nconsole.error(e.toString());\nprocess.exit(1);\n}\n}or{\nawait(\'SIGINT\');\nsig=2;\nsigname=\'SIGINT\';\n}or{\nawait(\'SIGHUP\');\nsig=1;\nsigname=\'SIGHUP\';\n}or{\nawait(\'SIGTERM\');\nsig=15;\nsigname=\'SIGTERM\';\n}or{\n\nawait(\'exit\');\n}\n\nif(sig){\nprocess.kill(process.pid,signame);\n\nhold(0);\n\n\n\n\n\nprocess.exit(128+sig);\n}\n};\n\n";var rt=global.__oni_rt;
+})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__js __oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n__js if(!(__oni_rt.G.__oni_rt_bundle)){\n__oni_rt.G.__oni_rt_bundle={};\n}\n\n\n\n\n\n\n\n\n\n__js exports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\n__js exports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\nexports.withDynVarContext=function(){__js var old_dyn_vars=__oni_rt.current_dyn_vars;\n\n\nvar proto_context,block;\nif(arguments.length===1){\n__js proto_context=old_dyn_vars;\nblock=arguments[0];\n}else{\n\nproto_context=arguments[0];\nblock=arguments[1];\n}\n\ntry{\n__js __oni_rt.current_dyn_vars=Object.create(proto_context);\nblock();\n}finally{\n\n__js __oni_rt.current_dyn_vars=old_dyn_vars;\n}\n};\n\n\n\n\n\n__js exports.getCurrentDynVarContext=function(){return __oni_rt.current_dyn_vars;\n\n};\n\n\n\n\n\n\n\n__js exports.setDynVar=function(name,value){if(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to retrieve #{name}\");\n\n\nvar key=\'$\'+name;\n__oni_rt.current_dyn_vars[key]=value;\n};\n\n\n\n\n\n\n__js exports.clearDynVar=function(name){if(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to clear #{name}\");\n\n\nvar key=\'$\'+name;\ndelete __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n__js exports.getDynVar=function(name,default_val){var key=\'$\'+name;\n\nif(__oni_rt.current_dyn_vars===null){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist (no dynamic variable context)\");\n\n\n\n}\nif(!(key in __oni_rt.current_dyn_vars)){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist\");\n\n\n\n}\nreturn __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n\n__js var arrayCtors=[],arrayCtorNames=[\'Uint8Array\',\'Uint16Array\',\'Uint32Array\',\'Int8Array\',\'Int16Array\',\'Int32Array\',\'Float32Array\',\'Float64Array\',\'NodeList\',\'HTMLCollection\',\'FileList\',\'StaticNodeList\',\'DataTransferItemList\'];\n\n\n\n\n\n\n\n__js for(var i=0;i<arrayCtorNames.length;i++ ){\nvar c=__oni_rt.G[arrayCtorNames[i]];\nif(c)arrayCtors.push(c);\n}\n__js exports.isArrayLike=function(obj){if(Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\')))return true;\n\nfor(var i=0;i<arrayCtors.length;i++ )if(obj instanceof arrayCtors[i])return true;\nreturn false;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js {\nvar _flatten=function(arr,rv){var l=arr.length;\n\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))_flatten(elem,rv);else rv.push(elem);\n\n\n\n}\n};\n\nexports.flatten=function(arr){var rv=[];\n\nif(arr.length===UNDEF)throw new Error(\"flatten() called on non-array\");\n_flatten(arr,rv);\nreturn rv;\n};\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.expandSingleArgument=function(args){if(args.length==1&&exports.isArrayLike(args[0]))args=args[0];\n\n\nreturn args;\n};\n\n\n\n\n\n\n\n\n\n__js exports.isReifiedStratum=function(obj){return (obj instanceof __oni_rt.ReifiedStratumProto);\n\n};\n\n\n\n\n\n\n\n\n\n__js exports.isQuasi=function(obj){return (obj instanceof __oni_rt.QuasiProto);\n\n};\n\n\n\n\n\n\n__js exports.Quasi=function(arr){return __oni_rt.Quasi.apply(__oni_rt,arr)};\n\n\n\n\n\n\n__js exports.mergeObjects=function(){var rv={};\n\nvar sources=exports.expandSingleArgument(arguments);\nfor(var i=0;i<sources.length;i++ ){\nexports.extendObject(rv,sources[i]);\n}\nreturn rv;\n};\n\n\n\n\n\n__js exports.extendObject=function(dest,source){for(var o=null in source){\n\nif(Object.prototype.hasOwnProperty.call(source,o))dest[o]=source[o];\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js {\nfunction URI(){}\nURI.prototype={toString:function(){\nreturn \"#{this.protocol}://#{this.authority}#{this.relative}\";\n\n}};\n\nURI.prototype.params=function(){if(!this._params){\n\nvar rv={};\nthis.query.replace(parseURLOptions.qsParser,function(_,k,v){if(k)rv[decodeURIComponent(k)]=decodeURIComponent(v);\n\n});\nthis._params=rv;\n}\nreturn this._params;\n};\n\nvar parseURLOptions={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\nexports.parseURL=function(str){var o=parseURLOptions,m=o.parser.exec(str),uri=new URI(),i=14;\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\nreturn uri;\n};\n}\n\n\n\n\n\n\n\n\n__js exports.encodeURIComponentRFC3986=function(str){return encodeURIComponent(str).replace(/[!\'()*]/g,function(c){\nreturn \'%\'+c.charCodeAt(0).toString(16);\n\n});\n};\n\n\n\n\n\n\n\n\n\n__js exports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q=null in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\n__js exports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv;\n\n\nfor(var i=0;i<l;++i){\nvar comp=url_spec[i];\nif(exports.isQuasi(comp)){\ncomp=comp.parts.slice();\nfor(var k=1;k<comp.length;k+=2)comp[k]=exports.encodeURIComponentRFC3986(comp[k]);\n\ncomp=comp.join(\'\');\n}else if(typeof comp!=\"string\")break;\n\nif(rv!==undefined){\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}else rv=comp;\n\n\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\n__js exports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.normalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol){\na.directory=base.directory;\nif(!a.path&&(a.query||a.anchor))a.file=base.file;\n\n}else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\na.directory=a.directory.replace(/\\/\\/+/g,\'/\');\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"){\nif(pout.length>1)pout.pop();\n\n\n}else{\n\npout.push(c);\n}\n}\n\nif(a.file===\'.\')a.file=\'\';else if(a.file===\'..\'){\n\n\nif(pout.length>2){\npout.splice(-2,1);\n}\n\na.file=\'\';\n}\n\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js exports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\n__js exports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.request=request_hostenv;\n\n\n\n\n\n\nexports.makeMemoizedFunction=function(f,keyfn){var lookups_in_progress={};\n\n\nvar memoizer=function(){var key=keyfn?keyfn.apply(this,arguments):arguments[0];\n\nvar rv=memoizer.db[key];\nif(typeof rv!==\'undefined\')return rv;\nif(!lookups_in_progress[key])lookups_in_progress[key]=spawn (function(self,args){\nreturn memoizer.db[key]=f.apply(self,args);\n\n})(this,arguments);\ntry{\nreturn lookups_in_progress[key].waitforValue();\n}finally{\n\nif(lookups_in_progress[key].waiting()==0){\nlookups_in_progress[key].abort();\ndelete lookups_in_progress[key];\n}\n}\n};\n\nmemoizer.db={};\nreturn memoizer;\n};\n\n\n\n\n\n\n\n__js exports.eval=eval_hostenv;\n\n\n\n\n__js var pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\n__js var opts=exports.extendObject({},settings);\n\nif(opts.callback){\ntry{\nvar rv=exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n}catch(e){\nopts.callback(e);return;\n}\nopts.callback(UNDEF,rv);\nreturn;\n}else return exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n\n\n};\n\n__js {\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},settings);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=augmentHubs(getHubs_hostenv());\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\n\n}\n\n\nrf.url=function(relative){return resolve(relative,rf,parent).path;\n\n};\n\nreturn rf;\n}\n__js exports._makeRequire=makeRequire;\n\n__js function augmentHubs(hubs){hubs.addDefault=function(hub){\n\nif(!this.defined(hub[0])){\n\nthis.unshift(hub);\nreturn true;\n}\nreturn false;\n};\nhubs.defined=function(prefix){for(var i=0;i<this.length;i++ ){\n\nvar h=this[i][0];\nvar l=Math.min(h.length,prefix.length);\nif(h.substr(0,l)==prefix.substr(0,l))return true;\n}\nreturn false;\n};\nreturn hubs;\n}\n\n__js function html_sjs_extractor(html,descriptor){var re=/<script (?:[^>]+ )?(?:type=[\'\"]text\\/sjs[\'\"]|main=[\'\"]([^\'\"]+)[\'\"])[^>]*>((.|[\\r\\n])*?)<\\/script>/mg;\n\nvar match;\nvar src=\'\';\nwhile(match=re.exec(html)){\nif(match[1])src+=\'require(\"\'+match[1]+\'\")\';else src+=match[2];\n\nsrc+=\';\';\n}\nif(!src)throw new Error(\"No sjs found in HTML file\");\nreturn default_compiler(src,descriptor);\n}\n\n\n__js function resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw new Error(\"Too much aliasing in modulename \'\"+module+\"\'\");\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\n__js function resolveHubs(module,hubs,require_obj,parent,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\nvar resolve=default_resolver;\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nif(path.indexOf(hub[0])==0){\n\nif(typeof hub[1]==\"string\"){\npath=hub[1]+path.substring(hub[0].length);\ni=0;\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\nif(--level==0)throw new Error(\"Too much indirection in hub resolution for module \'\"+module+\"\'\");\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\nresolve=hub[1].resolve||loader.resolve||resolve;\n\nbreak;\n}else throw new Error(\"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\");\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src,resolve:resolve};\n}\n\n\n__js function default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){try{\n\nvar f;\nif(typeof (src)===\'function\'){\nf=src;\n}else if(compiled_src_tag.exec(src)){\n\n\n\n\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",\"__oni_altns\",src);\n}else{\n\nf=exports.eval(\"(function(module,exports,require, __onimodulename, __oni_altns){\"+src+\"\\n})\",{filename:\"module #{descriptor.id}\"});\n\n}\nf(descriptor,descriptor.exports,descriptor.require,\"module #{descriptor.id}\",{});\n\n}catch(e){\n\n\n\nif(e instanceof SyntaxError){\nthrow new Error(\"In module #{descriptor.id}: #{e.message}\");\n}else throw e;\n\n\n}\n}\n\n__js default_compiler.module_args=[\'module\',\'exports\',\'require\',\'__onimodulename\',\'__oni_altns\'];\n\n__js var canonical_id_to_module={};\n\n\n__js {\n\n\n\n\n\n\nfunction checkForDependencyCycles(root_node,target_node){if(!root_node.waiting_on)return false;\n\nfor(var name=null in root_node.waiting_on){\nif(root_node.waiting_on[name]===target_node){\nreturn [root_node.id];\n}\nvar deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);\nif(deeper_cycle)return [root_node.id].concat(deeper_cycle);\n\n}\n\nreturn false;\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts,spec){__js var compile=exports.require.extensions[spec.type];\n\n\n\nif(!compile)throw new Error(\"Unknown type \'\"+spec.type+\"\'\");\n\n\n__js var descriptor=exports.require.modules[path];\n__js var pendingHook=pendingLoads[path];\n\nif((!descriptor&&!pendingHook)||opts.reload){\n\n\n\n__js descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};\n\n\n\n\n\n\npendingHook=pendingLoads[path]=spawn (function(){waitfor{\n\n__js var src,loaded_from;\nif(typeof src_loader===\"string\"){\n__js {\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}\n}else if(path in __oni_rt.modsrc){\n\n__js {\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\n__js {\ndescriptor.loaded_from=loaded_from;\n\ndescriptor.require=makeRequire(descriptor);\n\nvar canonical_id=null;\n\ndescriptor.getCanonicalId=function(){return canonical_id;\n\n};\n\ndescriptor.setCanonicalId=function(id){if(id==null){\n\nthrow new Error(\"Canonical ID cannot be null\");\n}\n\nif(canonical_id!==null){\nthrow new Error(\"Canonical ID is already defined for module \"+path);\n}\n\nvar canonical=canonical_id_to_module[id];\nif(canonical!=null){\nthrow new Error(\"Canonical ID \"+id+\" is already defined in module \"+canonical.id);\n}\n\ncanonical_id=id;\ncanonical_id_to_module[id]=descriptor;\n};\n\nif(opts.main)descriptor.require.main=descriptor;\nexports.require.modules[path]=descriptor;\n}\ntry{\ncompile(src,descriptor);\n\nreturn descriptor;\n}catch(e){\n__js delete exports.require.modules[path];\nthrow e;\n}retract{\n__js delete exports.require.modules[path];\n}\n}or{\nwaitfor(){\nhold(0);\n__js pendingHook.resume=resume;\n}\n}\n})();\n\npendingHook.pending_descriptor=descriptor;\n}else if(!descriptor){\n\ndescriptor=pendingHook.pending_descriptor;\n}\n\nif(pendingHook){\n\n\ntry{\n__js {\nif(!parent.waiting_on)parent.waiting_on={};\n\nparent.waiting_on[path]=descriptor;\n}\n\n__js var dep_cycle=checkForDependencyCycles(descriptor,parent);\nif(dep_cycle)throw new Error(\"Cyclic require() dependency: #{parent.id} -> \"+dep_cycle.join(\' -> \'));\n\n\npendingHook.value();\n\n\n__js {\n\n\n\n\n\n\ndelete parent.waiting_on[path];\n}\n}retract{\n\n\n\nif(pendingHook.waiting()==0&&pendingHook.resume){\npendingHook.resume();\npendingHook.value();\n}\n}finally{\n\n\nif(pendingHook.waiting()==0)delete pendingLoads[path];\n\n}\n}\n\n__js if(!descriptor.required_by[parent.id])descriptor.required_by[parent.id]=1;else ++descriptor.required_by[parent.id];\n\n\n\n\nreturn descriptor.exports;\n}\n\n__js function default_resolver(spec){if(!spec.ext&&spec.path.charAt(spec.path.length-1)!==\'/\')spec.path+=\".\"+spec.type;\n\n\n};\n\n\nfunction http_src_loader(path){return {src:request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'}),loaded_from:path};\n\n\n\n\n}\n\n\n\n\n\n\n__js var github_api=\"https://api.github.com/\";\n__js var github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:\\/([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw new Error(\"Malformed module id \'\"+path+\"\'\")}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\nvar hubs=exports.require.hubs;\n\nvar resolveSpec=resolveHubs(path,hubs,require_obj,parent,opts||{});\n\n\n__js resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);\n\n\n\n__js var ext,extMatch=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\n__js if(extMatch){\next=extMatch[1].toLowerCase();\nresolveSpec.ext=ext;\nif(!exports.require.extensions[ext])ext=null;\n}\n__js resolveSpec.type=ext||\'sjs\';\n\nresolveSpec.resolve(resolveSpec,parent);\n\n__js {\n\nvar preload=__oni_rt.G.__oni_rt_bundle;\nvar pendingHubs=false;\nif(preload.h){\n\nvar deleteHubs=[];\nfor(var k=null in preload.h){\nif(!Object.prototype.hasOwnProperty.call(preload.h,k))continue;\nvar entries=preload.h[k];\nvar parent=getTopReqParent_hostenv();\nvar resolved=resolveHubs(k,hubs,exports.require,parent,{});\nif(resolved.path===k){\n\npendingHubs=true;\ncontinue;\n}\n\nfor(var i=0;i<entries.length;i++ ){\nvar ent=entries[i];\npreload.m[resolved.path+ent[0]]=ent[1];\n}\ndeleteHubs.push(k);\n}\n\nif(!pendingHubs)delete preload.h;else{\n\n\nfor(var i=0;i<deleteHubs.length;i++ )delete preload.h[deleteHubs[i]];\n\n}\n}\n\nif(module in __oni_rt.modsrc){\n\n\nif(!preload.m)preload.m={};\npreload.m[resolveSpec.path]=__oni_rt.modsrc[module];\ndelete __oni_rt.modsrc[module];\n}\n\nif(preload.m){\nvar path=resolveSpec.path;\n\nif(path.indexOf(\'!sjs\',path.length-4)!==-1)path=path.slice(0,-4);\n\nvar contents=preload.m[path];\nif(contents!==undefined){\nresolveSpec.src=function(){delete preload.m[path];\n\n\nreturn {src:contents,loaded_from:path+\"#bundle\"};\n};\n}\n}\n\n}\nreturn resolveSpec;\n}\n\n\n\n\n\n__js exports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){var resolveSpec=resolve(module,require_obj,parent,opts);\n\n\n\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec);\n\n\nreturn module;\n}\n\n\nfunction requireInnerMultiple(modules,require_obj,parent,opts){var rv={};\n\n\n\n\nfunction inner(i,l){if(l===1){\n\nvar descriptor=modules[i];\nvar id,exclude,include,name;\n__js if(typeof descriptor===\'string\'){\nid=descriptor;\nexclude=[];\ninclude=null;\nname=null;\n}else{\n\nid=descriptor.id;\nexclude=descriptor.exclude||[];\ninclude=descriptor.include||null;\nname=descriptor.name||null;\n}\n\nvar module=requireInner(id,require_obj,parent,opts);\n\n\n__js {\nvar addSym=function(k,v){if(rv[k]!==undefined){\n\nif(rv[k]===v)return;\nthrow new Error(\"require([.]) name clash while merging module \'#{id}\': Symbol \'#{k}\' defined in multiple modules\");\n}\nrv[k]=v;\n};\n\nif(name){\naddSym(name,module);\n}else if(include){\nfor(var i=0;i<include.length;i++ ){\nvar o=include[i];\nif(!(o in module))throw new Error(\"require([.]) module #{id} has no symbol #{o}\");\naddSym(o,module[o]);\n}\n}else{\nfor(var o=null in module){\n\n\n\nif(exclude.indexOf(o)!==-1)continue;\naddSym(o,module[o]);\n}\n}\n}\n\n}else{\n\nvar split=Math.floor(l/2);\nwaitfor{\ninner(i,split);\n\n}and{\n\ninner(i+split,l-split);\n\n}\n\n}\n}\n\n\nif(modules.length!==0)inner(0,modules.length);\nreturn rv;\n}\n\n\n__js exports.require=makeRequire(getTopReqParent_hostenv());\n\n__js exports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",required_by:{\"[system]\":1}};\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-nodejs.sjs']="var isWindows=process.platform===\'win32\';\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js var pathMod=(function(){var np=__oni_rt.nodejs_require(\'path\');\n\nvar sep=np.sep||(isWindows?\'\\\\\':\'/\');\nreturn {join:np.join,resolve:function(p){\n\nvar result=np.resolve.apply(this,arguments);\n\n\nif(/[\\\\\\/]$/.test(p))result+=sep;\nreturn result;\n}};\n\n})();\n\n__js var pathToFileUrl=exports.pathToFileUrl=function(path){var initialPath=path;\n\nvar prefix=\'file://\';\npath=pathMod.resolve(path);\nif(isWindows){\npath=path.replace(/\\\\/g,\'/\');\nif(path.lastIndexOf(\'//\',0)===0)prefix=\'file:\';else prefix=\'file:///\';\n\n\n\n\n}\n\n\nreturn prefix+encodeURIComponent(path).replace(/%(2f|3a)/gi,unescape);\n};\n\n__js var fileUrlToPath=exports.fileUrlToPath=function(url){var parsed=exports.parseURL(url);\n\nif(parsed.protocol.toLowerCase()!=\'file\'){\nthrow new Error(\"Not a file:// URL: #{url}\");\n}\nvar path=parsed.path;\n\nif(parsed.host===\'localhost\')parsed.host=\'\';\nif(isWindows){\npath=path.replace(/\\//g,\'\\\\\');\nif(parsed.host){\n\npath=\'\\\\\\\\\'+pathMod.join(parsed.host,path);\n}else{\n\n\npath=path.replace(/^\\\\/,\'\');\n}\n}else{\nif(parsed.host){\n\npath=pathMod.join(parsed.host,path);\n}\n}\nreturn decodeURIComponent(path);\n};\n\n__js var coerceToURL=exports.coerceToURL=function(path){if(path.indexOf(\':\',2)!==-1)return path;\n\n\n\n\nreturn pathToFileUrl(path);\n};\n\n\n\n\n\n\n\n\n\n\n\n\nfunction jsonp_hostenv(url,settings){var opts=exports.mergeObjects({cbfield:\"callback\",forcecb:\"jsonp\"},settings);\n\n\n\n\n\n\n\nvar query={};\nquery[opts.cbfield]=opts.forcecb;\n\nvar parser=/^[^{]*({[^]+})[^}]*$/;\nvar data=parser.exec(request_hostenv([url,opts.query,query]));\n\n\n\n\ndata[1]=data[1].replace(/([^\\\\])\\\\x/g,\"$1\\\\u00\");\n\ntry{\nreturn JSON.parse(data[1]);\n}catch(e){\n\nthrow new Error(\"Invalid jsonp response from \"+exports.constructURL(url)+\" (\"+e+\")\");\n}\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return \"*\";\n\n}\n\n\n\n\n\nvar req_base_descr;\nfunction getTopReqParent_hostenv(){if(!req_base_descr){\n\nvar base=pathToFileUrl(process.mainModule.filename);\nreq_base_descr={id:base,loaded_from:base,required_by:{\"[system]\":1}};\n\n\n\n\n}\nreturn req_base_descr;\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(/^\\.\\.?\\//.test(url_string))return exports.normalizeURL(url_string,parent.id);else if(!isWindows&&/^\\//.test(url_string))throw new Error(\"Absolute path passed to require.resolve: #{url_string}\");\n\n\n\n\n\n\n\nreturn \"nodejs:\"+url_string;\n}\n\n\n\n\n\n\nvar streamContents=exports.streamContents=function(stream,fn){var rv;\n\nvar chunk;\nvar ended=false;\nvar emitting=false;\nif(!fn){\nrv=[];\nfn=rv.push.bind(rv);\n}\nif(stream.readable===false)return rv;\n\n\nstream.pause();\n\nwaitfor{\nwaitfor(var exception){\nstream.on(\'error\',resume);\nstream.on(\'end\',resume);\n}finally{\n\nstream.removeListener(\'error\',resume);\nstream.removeListener(\'end\',resume);\n}\nif(exception)throw exception;\nif(emitting){\n\n\nended=true;\nhold();\n}\n}or{\nwhile(!ended){\n__js chunk=stream.read();\nif(chunk===null){\n\nwaitfor(){\nstream.on(\'readable\',resume);\n}finally{\n\nstream.removeListener(\'readable\',resume);\n}\n__js chunk=stream.read();\nif(chunk===null)break;\n}\nemitting=true;\nfn(chunk);\nemitting=false;\n}\n}\nreturn rv;\n};\n\n\n\n\n\nfunction request_hostenv(url,settings){__js {\n\nvar opts=exports.mergeObjects({method:\"GET\",headers:{},throwing:true,max_redirects:5},settings);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar pop=function(k){var rv=opts[k];\n\ndelete opts[k];\nreturn rv;\n};\nvar responseMode=pop(\'response\')||\'string\';\nvar body=pop(\'body\');\nvar throwing=pop(\'throwing\');\nvar max_redirects=pop(\'max_redirects\');\nvar username=pop(\'username\');\nvar password=pop(\'password\');\nvar query=pop(\'query\');\n\nvar url_string=exports.constructURL(url,query);\n\n\n\nvar url=exports.parseURL(url_string);\nvar protocol=url.protocol;\n\nif(url.host==\'unix\'){\n\nvar unix_parts=url.relative.split(\':\');\nopts.socketPath=unix_parts[0];\nopts.path=unix_parts[1];\n}else{\n\nopts.host=url.host;\nopts.port=url.port||(protocol===\'https\'?443:80);\nopts.path=url.relative||\'/\';\n}\n\nif(!opts.headers[\'Host\'])opts.headers.Host=url.authority;\n\n\nif(!opts.headers[\'User-Agent\'])opts.headers[\'User-Agent\']=\"Oni Labs StratifiedJS engine\";\n\n\nif(body&&!opts.headers[\'Transfer-Encoding\']){\n\n\n\nbody=new Buffer(body);\nopts.headers[\'Content-Length\']=body.length;\n}else{\n\nopts.headers[\'Content-Length\']=0;\n}\nif(username!=null&&password!=null)opts.auth=username+\":\"+password;\n\n\n}\n\nif(!(protocol===\'http\'||protocol===\'https\')){\nthrow new Error(\'Unsupported protocol: \'+protocol);\n}\n\nvar request=__oni_rt.nodejs_require(protocol).request(opts);\nrequest.end(body);\n\nwaitfor{\nwaitfor(var err){\nrequest.on(\'error\',resume);\n}finally{\n\nrequest.removeListener(\'error\',resume);\n}\nif(throwing){\nerr.request=request;\nerr.response=null;\nerr.status=0;\nthrow new Error(err);\n}else if(responseMode===\'string\'){\n\nreturn \'\';\n}else if(responseMode===\'full\'){\n\nreturn {status:0,content:\'\'};\n\n\n\n}else if(responseMode===\'arraybuffer\'){\n\nreturn {status:0,content:new ArrayBuffer()};\n\n\n\n}else{\n\n\n\nreturn {readable:false,statusCode:0,error:String(err)};\n\n\n\n\n}\n}or{\n\nwaitfor(var response){\nrequest.on(\'response\',resume);\n}finally{\n\nrequest.removeListener(\'response\',resume);\n}\n}retract{\n\n\n\nrequest.on(\'error\',function(){});\nrequest.abort();\n}\n\nif(response.statusCode<200||response.statusCode>=300){\nswitch(response.statusCode){case 300:\ncase 301:case 302:case 303:case 307:\nif(max_redirects>0){\nresponse.socket.end();\n\n\n\n\nvar redirect_url=exports.normalizeURL(response.headers[\'location\'],url_string);\n\nif(url.host==\'unix\'){\n\n\nredirect_url=redirect_url.replace(\'unix:\',\'unix:\'+opts.socketPath+\':\');\n}\n\nopts=exports.mergeObjects(settings,{headers:exports.mergeObjects(settings,{host:null}),max_redirects:max_redirects-1});\n\n\n\n\nreturn request_hostenv(redirect_url,opts);\n\n\n}\n\ndefault:\nif(throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url_string+\"\'\";\ntxt+=\" (\"+response.statusCode+\")\";\nvar err=new Error(txt);\n\nerr.status=response.statusCode;\nerr.request=request;\nerr.response=response;\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\nerr.data=response.data;\nthrow err;\n}else if(responseMode===\'string\'){\n\nresponse.resume();\nreturn \"\";\n}\n\n}\n}\n\nif(responseMode===\'raw\'){\n\n\n\nrequest.on(\'error\',function(){});\nreturn response;\n}else if(responseMode===\'arraybuffer\'){\n\n\n\nvar buf=Buffer.concat(streamContents(response));\n\n\n__js {\nvar array_buf=new ArrayBuffer(buf.length);\nvar view=new Uint8Array(array_buf);\nfor(var i=0,l=buf.length;i<l;++i){\nview[i]=buf[i];\n}\n}\n\nreturn {status:response.statusCode,content:array_buf,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}else{\n\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\n\nif(responseMode===\'string\')return response.data;else{\n\n\n\nreturn {status:response.statusCode,content:response.data,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}\n}\n};\n\nfunction file_src_loader(path){waitfor(var err,data){\n\n\n__oni_rt.nodejs_require(\'fs\').readFile(fileUrlToPath(path),resume);\n}\nif(err)throw err;\nreturn {src:data.toString(),loaded_from:path};\n}\n\nfunction resolve_file_url(spec){if(!spec.ext){\n\nvar ext=\".\"+spec.type;\nvar path=fileUrlToPath(spec.path);\n\nwaitfor(var err){\n__oni_rt.nodejs_require(\'fs\').lstat(path+ext,resume);\n}\nif(!err)spec.path+=ext;\n}\n}\n\nfunction nodejs_mockModule(parent){var base;\n\nif(!(/^file:/.exec(parent.id)))base=getTopReqParent_hostenv().id;else base=parent.id;\n\n\n\nbase=fileUrlToPath(base);\n\nreturn {paths:__oni_rt.nodejs_require(\'module\')._nodeModulePaths(base)};\n\n\n};\n\n\nfunction nodejs_loader(path,parent,dummy_src,opts,spec){if(spec.type==\'js\'){\n\nreturn __oni_rt.nodejs_require(path);\n}\nreturn default_loader(pathToFileUrl(path),parent,file_src_loader,opts,spec);\n}\n\n__js nodejs_loader.resolve=function resolve_nodejs(spec,parent){var path=spec.path.substr(7);\n\n\n\nvar mockModule=nodejs_mockModule(parent||getTopReqParent_hostenv());\nvar mod=__oni_rt.nodejs_require(\'module\');\nfunction tryResolve(path){try{\n\nvar resolved=mod._resolveFilename(path,mockModule);\n\nif(resolved instanceof Array)resolved=resolved[1];\nspec.path=resolved;\nreturn true;\n}catch(e){\nreturn false;\n}\n};\n\nvar ok=tryResolve(path);\nif(!spec.ext){\nif(ok){\nspec.type=\'js\';\n}else{\n\nok=tryResolve(path+\".\"+spec.type);\n}\n}\n\nif(!ok)throw new Error(\"nodejs module at \'\"+path+\"\' not found\");\n};\n\n\nfunction getHubs_hostenv(){return [[\"sjs:\",pathToFileUrl(__oni_rt.nodejs_sjs_lib_dir)],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:file_src_loader,resolve:resolve_file_url}],[\"nodejs:\",{loader:nodejs_loader}]];\n\n\n\n\n\n\n\n\n}\n\nvar js_loader=function(src,descriptor){var nodejs_version=process.versions.node.split(\'.\').map(x->parseInt(x,10));\n\nvar vm=__oni_rt.nodejs_require(\"vm\");\njs_loader=(nodejs_version[0]===0&&nodejs_version[1]<=10)?function(src,descriptor){\nvar ctx=vm.createContext(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvm.runInContext(src,ctx,\"module \"+descriptor.id);\n}:function(src,descriptor){\nvar ctx=Object.create(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvar vm=__oni_rt.nodejs_require(\"vm\");\nctx=vm.createContext(ctx);\nvm.runInContext(src,ctx,\"module \"+descriptor.id);\n};\nreturn js_loader(src,descriptor);\n};\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'api\':default_compiler,\'mho\':default_compiler,\'js\':js_loader,\'html\':html_sjs_extractor};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\nvar _sjs_initialized=false;\nfunction init_hostenv(){if(_sjs_initialized)return;\n\n\n_sjs_initialized=true;\n\nvar init_path=process.env[\'SJS_INIT\'];\nif(init_path){\nvar node_fs=__oni_rt.nodejs_require(\'fs\');\nvar files=init_path.split(isWindows?\';\':\':\');\nfor(var i=0;i<files.length;i++ ){\nvar path=files[i];\nif(!path)continue;\ntry{\nexports.require(pathToFileUrl(path));\n}catch(e){\nconsole.error(\"Error loading init script at \"+path+\": \"+e);\nthrow e;\n}\n}\n}\n};\n\nexports.runMainExpression=function(ef){if(!__oni_rt.is_ef(ef))return ef;\n\n\n\n\nvar sig,signame;\n\n\n\n\n\n\nvar dummy_handler,noop;\nif(process.platform===\'win32\'){\nnoop=function(){};\ndummy_handler=function(){console.error(\'[SIGBREAK caught; killing process immediately due to libuv bug]\');\n\nprocess.exit(1);\n};\n}\n\nvar await=function(evt){waitfor(){\n\nprocess.on(evt,resume);\n}finally{\nprocess.removeListener(evt,resume);\nif(dummy_handler&&evt.lastIndexOf(\'SIG\',0)===0){\nprocess.on(\"SIGBREAK\",dummy_handler);\ndummy_handler=noop;\n}\n}\n};\n\nwaitfor{\ntry{\nef.wait();\n}catch(e){\ne=e.toString().replace(/^Error: Cannot load module/,\"Error executing\");\ne=e.replace(/\\(in apollo-sys-common.sjs:\\d+\\)$/,\"\");\nconsole.error(e.toString());\nprocess.exit(1);\n}\n}or{\nawait(\'SIGINT\');\nsig=2;\nsigname=\'SIGINT\';\n}or{\nawait(\'SIGHUP\');\nsig=1;\nsigname=\'SIGHUP\';\n}or{\nawait(\'SIGTERM\');\nsig=15;\nsigname=\'SIGTERM\';\n}or{\n\nawait(\'exit\');\n}\n\nif(sig){\nprocess.kill(process.pid,signame);\n\nhold(0);\n\n\n\n\n\nprocess.exit(128+sig);\n}\n};\n\n";var rt=global.__oni_rt;
 
 
 

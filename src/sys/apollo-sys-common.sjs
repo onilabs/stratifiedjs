@@ -831,7 +831,7 @@ __js {
 } // __js 
 
 function default_loader(path, parent, src_loader, opts, spec) {
-
+//console.log("DEFAULT_LOADER " + path);
   
   __js var compile = exports.require.extensions[spec.type];
   if (!compile)
@@ -906,6 +906,7 @@ function default_loader(path, parent, src_loader, opts, spec) {
         } // __js
         try {
           compile(src, descriptor);
+//          console.log("SCRIPT COMPILED OK");
           return descriptor;
         } catch(e) {
           __js delete exports.require.modules[path];
@@ -940,8 +941,9 @@ function default_loader(path, parent, src_loader, opts, spec) {
       __js var dep_cycle = checkForDependencyCycles(descriptor, parent);
       if (dep_cycle)
         throw new Error("Cyclic require() dependency: #{parent.id} -> "+dep_cycle.join(' -> '));
-        
-      pendingHook.waitforValue();
+//    console.log("WAIT FOR PENDING HOOK");    
+      pendingHook.value();
+//    console.log("GOT PENDING HOOK VALUE");
 
       __js {
         // Note: We don't need to refcount waiting_on, if we only delete
@@ -1124,8 +1126,10 @@ function requireInner(module, require_obj, parent, opts) {
   var resolveSpec = resolve(module, require_obj, parent, opts);
 
   // now perform the load:
+//  console.log("REQUIRE INNER resolving "+resolveSpec.path);
   module = resolveSpec.loader(resolveSpec.path, parent, resolveSpec.src, opts, resolveSpec);
   //console.log("require(#{resolveSpec.path}) = #{(new Date())-start} ms");
+//  console.log("REQUIRE INNER RETURNING "+module);
   return module;
 }
 
@@ -1182,15 +1186,19 @@ function requireInnerMultiple(modules, require_obj, parent, opts) {
           }
         }
       }
+//      console.log("module " + id + " loaded via multiple");
     }
     else {
       var split = Math.floor(l/2);
       waitfor {
         inner(i, split);
+//        console.log("WF1 complete");
       }
       and {
         inner(i+split, l-split);
+//        console.log("WF2 complete");
       }
+//      console.log("WF COMPLETE");
     }
   }
 
