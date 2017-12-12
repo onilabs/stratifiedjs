@@ -19,7 +19,7 @@
  * THE SOFTWARE.
  *
  */
-global.__oni_rt={};(function(exports){function dumpExecutionFrameParents(ef,indent){
+global.__oni_rt={};(function(exports){var UNDEF;
 
 
 
@@ -65,34 +65,11 @@ global.__oni_rt={};(function(exports){function dumpExecutionFrameParents(ef,inde
 
 
 
-indent=indent||0;
-
-if(ef&&ef.parent)dumpExecutionFrameParents(ef.parent,indent+1);
-
-var str='';
-for(var i=0;i<indent;++i)str+='  ';
-str+=ef?ef:'<undefined>';
-console.log(str);
-}
-function dumpExecutionFrameChildren(ef,indent){indent=indent||0;
-
-var str='';
-for(var i=0;i<indent;++i)str+='  ';
-str+=ef?ef:'<undefined>';
-console.log(str);
-if(ef&&ef.child_frame)dumpExecutionFrameChildren(ef.child_frame,indent+1);else if(ef&&ef.children){
-
-
-for(var i=0;i<ef.children.length;++i){
-dumpExecutionFrameChildren(ef.children[i],indent+1);
-}
-}
-}
 
 
 
 
-var UNDEF;
+
 
 
 
@@ -302,7 +279,7 @@ target_ef.callstack=src_ef.callstack;
 
 
 var EF_Proto={toString:function(){
-return "<"+(typeof (this.type)==='function'?this.type():this.type)+""+(this.id?this.id:'')+">"},__oni_ef:true,wait:function(){
+return "<suspended SJS>"},__oni_ef:true,wait:function(){
 
 
 return this},setChildFrame:function(ef,idx){
@@ -331,8 +308,8 @@ if(this.child_frame)this.child_frame.quench();
 },abort:function(){
 
 
-if(!(!this.aborted)){
-console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")};
+;
+
 this.aborted=true;
 
 
@@ -346,7 +323,7 @@ if(is_ef(abort_val)){
 return this;
 }else{
 
-if(!((abort_val&&abort_val.__oni_cfx))){console.log("Assertion failed: "+"(abort_val && abort_val.__oni_cfx)");throw new Error("Assertion failed: "+"(abort_val && abort_val.__oni_cfx)")};
+;
 return abort_val;
 }
 }
@@ -620,11 +597,9 @@ exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
 
 
 
-var seq_counter=0;
 
-function EF_Seq(ndata,env){this.id=++seq_counter;
+function EF_Seq(ndata,env){this.ndata=ndata;
 
-this.ndata=ndata;
 this.env=env;
 
 if(ndata[0]&8){
@@ -677,17 +652,6 @@ this.toplevel=true;
 }
 }
 setEFProto(EF_Seq.prototype={});
-EF_Seq.prototype.type=function(){var rv="Seq";
-
-if(this.ndata[0]&1)rv+="(fun)";
-
-if(this.ndata[0]&64)rv+="(blkL)";
-
-if(this.ndata[0]&8)rv+="(notail)";
-
-
-return rv;
-};
 EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
 
 
@@ -781,7 +745,6 @@ this.i=2;
 this.pars=[];
 }
 setEFProto(EF_Sc.prototype={});
-EF_Sc.prototype.type="Sc";
 
 EF_Sc.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -880,7 +843,6 @@ this.i=2;
 this.pars=[];
 }
 setEFProto(EF_Fcall.prototype={});
-EF_Fcall.prototype.type="Fcall";
 
 EF_Fcall.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -1130,7 +1092,6 @@ function EF_If(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_If.prototype={});
-EF_If.prototype.type="If";
 
 EF_If.prototype.cont=function(idx,val){switch(idx){case 0:
 
@@ -1211,7 +1172,6 @@ this.env=env;
 this.phase=0;
 }
 setEFProto(EF_Switch.prototype={});
-EF_Switch.prototype.type="Switch";
 
 EF_Switch.prototype.cont=function(idx,val){switch(this.phase){case 0:
 
@@ -1327,16 +1287,13 @@ exports.Switch=function(exp,clauses){return {exec:I_switch,ndata:[exp,clauses],_
 
 
 
-var try_counter=0;
 
-function EF_Try(ndata,env){this.id=++try_counter;
+function EF_Try(ndata,env){this.ndata=ndata;
 
-this.ndata=ndata;
 this.env=env;
 this.state=0;
 }
 setEFProto(EF_Try.prototype={});
-EF_Try.prototype.type="Try";
 
 EF_Try.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -1427,7 +1384,6 @@ case 4:
 
 
 if(!(val&&val.__oni_cfx)||val.type=='a'){
-
 val=this.rv;
 
 
@@ -1436,7 +1392,6 @@ break;
 default:
 val=new CFException("i","invalid state in CF_Try");
 }
-
 return this.returnToParent(val);
 }
 };
@@ -1446,13 +1401,12 @@ EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
 
 };
 
-EF_Try.prototype.abort=function(){if(!(this.aborted!==true)){
-console.log("Assertion failed: "+"this.aborted !== true");throw new Error("Assertion failed: "+"this.aborted !== true")};
+EF_Try.prototype.abort=function(){;
+
 this.aborted=true;
-if(!(this.state!==3)){console.log("Assertion failed: "+"this.state !== 3");throw new Error("Assertion failed: "+"this.state !== 3")}
+
 if(this.state!==4){
 var val=this.child_frame.abort();
-
 if(is_ef(val)){
 
 
@@ -1470,7 +1424,7 @@ this.setChildFrame(val);
 
 this.async=false;
 var rv=cont(this,0);
-if(!(!is_ef(rv)||rv===this)){console.log("Assertion failed: "+"!is_ef(rv) || rv === this");throw new Error("Assertion failed: "+"!is_ef(rv) || rv === this")};
+;
 if(rv!==this){
 if(!(rv&&rv.__oni_cfx)||rv.type==='a')rv=val;
 
@@ -1516,7 +1470,6 @@ function EF_Loop(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_Loop.prototype={});
-EF_Loop.prototype.type="Loop";
 
 EF_Loop.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -1655,7 +1608,6 @@ function EF_ForIn(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_ForIn.prototype={});
-EF_ForIn.prototype.type="ForIn";
 
 EF_ForIn.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -1804,7 +1756,6 @@ this.pending=0;
 this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
-EF_Par.prototype.type="Par";
 
 EF_Par.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -1965,18 +1916,15 @@ exports.Par=function(){return {exec:I_par,ndata:arguments,__oni_dis:token_dis};
 
 
 
-var alt_counter=0;
 
-function EF_Alt(ndata,env){this.id=++alt_counter;
+function EF_Alt(ndata,env){this.ndata=ndata;
 
-this.ndata=ndata;
 this.env=env;
 
 this.pending=0;
 this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Alt.prototype={});
-EF_Alt.prototype.type="Alt";
 
 EF_Alt.prototype.cont=function(idx,val){if(is_ef(val)){
 
@@ -2200,11 +2148,10 @@ function EF_Suspend(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_Suspend.prototype={});
-EF_Suspend.prototype.type="Suspend";
 
 EF_Suspend.prototype.cont=function(idx,val){if(is_ef(val)){
 
-if(!(idx==1||idx==3)){console.log("Assertion failed: "+"idx == 1 || idx == 3");throw new Error("Assertion failed: "+"idx == 1 || idx == 3")}
+
 this.setChildFrame(val,idx);
 }else{
 
@@ -2246,7 +2193,7 @@ val=new CFException("t",e);
 if(this.returning){
 
 if(is_ef(val)){
-if(!(!this.child_frame)){console.log("Assertion failed: "+"!this.child_frame");throw new Error("Assertion failed: "+"!this.child_frame")}
+
 
 this.setChildFrame(val,null);
 this.quench();
@@ -2353,7 +2300,7 @@ this.setChildFrame(abort_val,4);
 return this;
 }else{
 
-if(!((abort_val&&abort_val.__oni_cfx))){console.log("Assertion failed: "+"(abort_val && abort_val.__oni_cfx)");throw new Error("Assertion failed: "+"(abort_val && abort_val.__oni_cfx)")};
+;
 return abort_val;
 }
 }
@@ -2383,18 +2330,15 @@ exports.Suspend=function(s,r){return {exec:I_sus,ndata:[s,r],__oni_dis:token_dis
 
 
 
-var spawn_counter=0;
 
-function EF_Spawn(ndata,env,notifyAsync,notifyVal,notifyAborted){this.id=++spawn_counter;
+function EF_Spawn(ndata,env,notifyAsync,notifyVal,notifyAborted){this.ndata=ndata;
 
-this.ndata=ndata;
 this.env=env;
 this.notifyAsync=notifyAsync;
 this.notifyVal=notifyVal;
 this.notifyAborted=notifyAborted;
 }
 setEFProto(EF_Spawn.prototype={});
-EF_Spawn.prototype.type="Spawn";
 
 EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
 
@@ -2579,7 +2523,6 @@ this.waitarr=waitarr;
 waitarr.push(this);
 }
 setEFProto(EF_SpawnWaitFrame.prototype={});
-EF_SpawnWaitFrame.prototype.type="Stratum.value()";
 EF_SpawnWaitFrame.prototype.quench=function(){};
 EF_SpawnWaitFrame.prototype.abort=function(){var idx=this.waitarr.indexOf(this);
 
@@ -2605,7 +2548,6 @@ hold0(function(){me.resolveAbortCycle(spawn_frame)});
 
 }
 setEFProto(EF_SpawnAbortFrame.prototype={});
-EF_SpawnAbortFrame.prototype.type="Stratum.abort()";
 EF_SpawnAbortFrame.prototype.quench=function(){};
 EF_SpawnAbortFrame.prototype.abort=function(){this.aborted=true;
 
@@ -2785,7 +2727,6 @@ function EF_Collapse(ndata,env){this.ndata=ndata;
 this.env=env;
 }
 setEFProto(EF_Collapse.prototype={});
-EF_Collapse.prototype.type="Collapse";
 
 
 EF_Collapse.prototype.__oni_collapse=true;
@@ -2910,9 +2851,8 @@ function abort(){exports.current_dyn_vars=dyn_vars;
 return new CFException('a');
 }
 
-if(duration_ms===UNDEF)return {toString:function(){
+if(duration_ms===UNDEF)return {__oni_ef:true,wait:function(){
 
-return "<HOLD()>"},__oni_ef:true,wait:function(){
 
 return this},quench:dummy,abort:abort};
 
@@ -2920,8 +2860,7 @@ return this},quench:dummy,abort:abort};
 
 
 if(duration_ms===0){
-var sus={toString:function(){
-return "<HOLD(0)>"},__oni_ef:true,wait:function(){
+var sus={__oni_ef:true,wait:function(){
 
 return this},abort:abort,quench:function(){
 
@@ -2937,8 +2876,7 @@ exports.current_dyn_vars=null;
 return sus;
 }else{
 
-var sus={toString:function(){
-return "<HOLD("+duration_ms+"ms)>"},__oni_ef:true,wait:function(){
+var sus={__oni_ef:true,wait:function(){
 
 return this},abort:abort,quench:function(){
 
