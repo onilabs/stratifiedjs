@@ -1683,7 +1683,49 @@ test("detached async blocklambda break with blocking finally", 'ahfd', function(
   return rv;
 });
 
+test("detached sync blocklambda break with blocking finally", 'ahfcd', function() {
+  var rv = '';
+  function f(g) {
+    spawn g();
+    try {
+      rv += 'h';
+    }
+    finally {
+      hold(10);
+      rv += 'f';
+    }
+    rv += 'c';
+    hold(0); // <- should break here
+    rv += 'x';
+  }
+ 
+  f { || rv += 'a'; hold(0); break; rv += 'b' };
 
+  rv += 'd';
+  return rv;
+});
+
+test("blocking finally not affecting sync processing", 'abcd', function() {
+  var rv = '';
+  waitfor {
+    try {
+      rv += 'a';
+    }
+    finally {
+      hold(10);
+      rv += 'c';
+    }
+    rv += 'd';
+    hold(0); // <-- should abort here
+    rv += 'x';
+  }
+  or {
+    hold(0);
+    rv += 'b';
+  }
+
+  return rv;
+});
 
 test("expired detached async blocklambda break", 'acde', function() {
   var stratum;

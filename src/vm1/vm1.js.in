@@ -744,6 +744,7 @@ EF_Seq.prototype.cont = function(idx, val) {
   };
   LOG("EF_Seq.prototype.cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "]) @ " + this.env.file);
 #endif
+//  console.log(this+"cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "])");
 
   if (is_ef(val)) {
     // child frame being replaced:
@@ -1593,11 +1594,10 @@ EF_Try.prototype.cont = function(idx, val) {
     // returning from finally        
     // override res with stored exception (from try or catch) if
     // val isn't an exception
-      if (!is_cfx(val)) {
-        if (is_cfx(this.rv)) 
-          val = this.rv;
-        else if (this.aborted)
-          val = new CFException('a');
+      if (!is_cfx(val) || val.type == 'a') {
+        val = this.rv;
+        //else if (this.aborted)
+        //  val = new CFException('a');
       }
     break;
     default:
@@ -1617,7 +1617,7 @@ EF_Try.prototype.abort = function() {
   this.aborted = true;
   ASSERT(this.state !== 3) // sanity check; aborted before
   if (this.state !== 4) { // don't abort finally block
-    var val = this.child_frame.abort();
+    var val = this.child_frame.abort(); 
     if (is_ef(val)) {
       // we need to wait for the try or catch block, and then let
       // cont() proceed with retract/finally:
@@ -1637,11 +1637,12 @@ EF_Try.prototype.abort = function() {
       var rv = cont(this, 0);
       ASSERT(!is_ef(rv) || rv === this);
       if (rv !== this) {
-        if (!is_cfx(rv))
-          rv = new CFException('a');
+        if (!is_cfx(rv) || rv.type === 'a')
+          rv = val; //new CFException('a');
         return rv;
       }
       else {
+        this.rv = val;
         this.async = true;
       }
       // & fall through. we need to block
