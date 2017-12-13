@@ -468,11 +468,30 @@
 
   Here, `console.log('not reached')` will not be executed because `S.abort()` will immediately terminate `S` (but the retract clause will be honored).
 
-  While this is allowed, it typically is indicative of flawed program logic and will generate a runtime warning:
+  Another variant of a cyclic abort calls `abort` from within a `finally` clause:
 
-     Warning: Cyclic stratum.abort() call from within stratum.
+      var S = spawn(function(){ 
+        try { 
+          hold(100); 
+          try {} finally { S.abort(); }
+          console.log('this will be executed'); 
+          hold(0); // <-- now the stratum will be aborted
+          console.log('not reached');
+        } retract { 
+          console.log('retract called') 
+        } 
+      })();
 
-  Usually, a stratum should just terminate normally (via return) or exception. If abortion is used, typically it will be more appropriate to use a
+  In this variant, the `finally` clause prevents `abort` from being stopping 
+  synchronous execution: The following (synchronous) code will be executed 
+  until an actual suspend point (`hold` or `waitfor/resume`) is reached.
+
+
+  While these cyclic aborts are allowed, they are typically indicative of flawed program logic and will generate a runtime warning:
+
+      Warning: Cyclic stratum.abort() call from within stratum.
+
+  If you really do need to abort a stratum from within (rather than returning 'normally' via return or via an exception), typically it will be more appropriate to use a
   non-synchronous form of abortion:
 
       var S = spawn(function() { 
@@ -495,7 +514,7 @@
 
   If the stratum isn't finished yet, `value` blocks until it is.
   If the stratum threw an exception, `value` throws this exception.
-  If the stratum was aborted (through a call to `Stratum.abort`), `value` throws a [cutil::StratumAborted] exception.
+  If the stratum was aborted (through a call to [::Stratum::abort]), `value` throws a [cutil::StratumAborted] exception _immediately_ (before executing any retract calls on the stratum)
 
 @function Stratum.waiting
 @summary Return the number of strata currently waiting for the spawned stratum to finish

@@ -332,7 +332,7 @@
 
   This *spawn expression* executes `expression` *synchronously* until `expression` suspends or finishes, and then returns a [./builtins::Stratum] object.
 
-  Further execution of `expression` proceeds asynchronously until it finishes or is aborted through a call to `Stratum.abort`.
+  Further execution of `expression` proceeds asynchronously until it finishes or is aborted through a call to [./builtins::Stratum::abort].
 
   **Note:** Instead of spawning a stratum it is often a better idea to use one of
   the *structured concurrency constructs* [::waitfor-and] and [::waitfor-or] where possible.
