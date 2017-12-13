@@ -2091,3 +2091,63 @@ test('blocking finally clause is not abort point 2', 'abcd',
 
        return rv;
      });
+
+test('blocking finally clause in loop is not abort point', 'abc',
+     function() {
+       var rv = [];
+
+       waitfor {
+         hold(0);
+         rv += 'a';
+       }
+       or {
+         do {
+           // make sure this branch gets aborted, but continue sync processing:
+           try {} finally { hold(10); }
+
+           // this 'try' statement used to be passed through the aborted loop,
+           // which meant that the 'break' was not targetted at the correct frame,
+           // and the "rv+='b'" wasn't executed.
+           try {} finally { hold(10); break; }
+         } while (0);
+         rv += 'b';
+         hold(0); // <-- should abort here
+         rv += 'x';
+       }
+       rv += 'c';
+
+       return rv;
+     });
+
+// this is a complicated variant of the previous test:
+test('blocking finally clause in loop is not abort point - complicated', 'abc',
+     function() {
+       var rv = '';
+       
+       function stratum() {
+         hold(0);
+         do {
+           try {
+             rv += 'a';
+           }
+           finally {
+             S.abort();
+             rv+= 'b';
+           }
+
+           // the 'if' statement is to package the code up in a 'seq'
+           if (true) {
+             try {} finally { hold(0); }
+             break; // this break didn't used to be seen by the loop, because the loop would return its aborted blocking body to the parent
+           }
+         } while(0);
+         rv += 'c';
+         hold(0); // <-- this should be aborted
+       }
+       
+       var S = spawn stratum();
+
+       hold(10); // wait for stratum to be done
+
+       return rv;
+     });

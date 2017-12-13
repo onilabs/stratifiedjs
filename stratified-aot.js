@@ -1589,7 +1589,10 @@ if(this.aborted){
 if(is_ef(val)){
 val.quench();
 val=val.abort();
-return this.returnToParent(val);
+
+
+if(!is_ef(val))return this.returnToParent(val);
+
 }
 }
 ++idx;

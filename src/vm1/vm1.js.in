@@ -1762,7 +1762,10 @@ EF_Loop.prototype.cont = function(idx, val) {
             if (is_ef(val)) {
               val.quench(); // not sure this is needed here XXX
               val = val.abort();
-              return this.returnToParent(val);
+              // the is_ef check is crucial here, because the frame might still produce 'break's which the loop
+              // must see - see sjs-2-tests 'blocking finally clause in loop is not abort point'
+              if (!is_ef(val))
+                return this.returnToParent(val);
             }
           }
           ++idx;
