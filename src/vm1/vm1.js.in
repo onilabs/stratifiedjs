@@ -327,7 +327,7 @@ function mergeCallstacks(target_ef, src_ef) {
 // base prototype object for execution frames
 var EF_Proto = {
 #ifdef EF_TYPES
-  toString: function() { return "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+">"; },
+  toString: function() { return "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+'@'+((this.env && this.env.file) ? this.env.file.substr(-20): 'unknown')+">"; },
 #else
   toString: function() { return "<suspended SJS>"; },
 #endif
@@ -894,6 +894,9 @@ function EF_Sc(ndata, env) {
 setEFProto(EF_Sc.prototype={});
 #ifdef EF_TYPES
 EF_Sc.prototype.type = "Sc";
+EF_Sc.prototype.toString = function() {
+  return "<Sc@"+this.env.file.substr(-20)+':'+this.ndata[0]+'>';
+};
 #endif
 
 EF_Sc.prototype.cont = function(idx, val) {
@@ -1275,7 +1278,14 @@ exports.Fcall = function() {
    1 : returning from test evaluation
 */
 
+#ifdef DEBUG_VM
+var if_counter = 0;
+#endif
+
 function EF_If(ndata, env) {
+#ifdef DEBUG_VM
+  this.id = ++if_counter;
+#endif
   this.ndata = ndata;
   this.env = env;
 }
@@ -2630,6 +2640,7 @@ function EF_Spawn(ndata, env, notifyAsync, notifyVal, notifyAborted) {
 setEFProto(EF_Spawn.prototype={});
 #ifdef EF_TYPES
 EF_Spawn.prototype.type = "Spawn";
+EF_Spawn.prototype.toString = function() { return "<Spawn"+this.id+"@"+this.env.file.substr(-20)+":"+this.ndata[0]+'>' };
 #endif
 
 EF_Spawn.prototype.cont = function(idx, val) {
@@ -2658,7 +2669,12 @@ EF_Spawn.prototype.cont = function(idx, val) {
 
       this.notifyVal(this.return_val, true);
       this.notifyAborted(val);
-      
+
+// XXX not sure what this is for
+//      if (this.aborted && !is_cfx(this.return_val)) {
+//        this.return_val = new CFException('a');
+//      }
+
       return this.returnToParent(this.return_val);
     }
   }
@@ -2704,7 +2720,10 @@ EF_Spawn.prototype.cont = function(idx, val) {
         this.return_val = val.val;
         this.setChildFrame(aborted_target, 2);
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
-        return this.returnToParent(this);
+        // We must not call 'return this.returnToParent', because this code is sometimes called in a sync setting,
+        // where we have to make sure that our original (current) caller sees an 'a' exception:
+        this.returnToParent(this); 
+        return new CFException('a'); 
       }
 
       this.in_abortion = false;
@@ -2756,7 +2775,8 @@ EF_Spawn.prototype.cont = function(idx, val) {
         this.return_val = UNDEF;
         this.setChildFrame(aborted_target, 2);
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
-        return this.returnToParent(this);
+        this.returnToParent(this);
+        return new CFException('a');
       }
 
       this.in_abortion = false;

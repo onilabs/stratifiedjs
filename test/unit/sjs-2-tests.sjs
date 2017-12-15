@@ -2151,3 +2151,43 @@ test('blocking finally clause in loop is not abort point - complicated', 'abc',
 
        return rv;
      });
+
+test('sync blocklambda break routing', 'ab', function() {
+  var rv = '';
+  function aborter(block) { var S = spawn block(); rv + 'x'; return S.value(); }
+  
+  function foo() { 
+    hold(0);
+    aborter { ||
+      rv += 'a';
+      break;
+    }
+    return true;
+  }
+
+  if (foo()) rv += 'b';
+
+  return rv;
+
+});
+
+
+// this used to just hang because of 'spawn' accidentally returning 'ef_if' frame to sync caller
+test('sync blocklambda return routing edgecase', 'ab', function() {
+  var rv = '';
+  function aborter(block) { var S = spawn block(); rv + 'x'; return S.value(); }
+  
+  function foo() { 
+    hold(0);
+    aborter { ||
+      rv += 'a';
+      return true;
+    }
+  }
+
+  if (foo()) rv += 'b';
+
+  return rv;
+
+});
+

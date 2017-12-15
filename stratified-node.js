@@ -1088,6 +1088,7 @@ exports.Fcall=function(){return {exec:I_fcall,ndata:arguments,__oni_dis:token_di
 
 
 
+
 function EF_If(ndata,env){this.ndata=ndata;
 
 this.env=env;
@@ -2371,6 +2372,11 @@ this.done=true;
 this.notifyVal(this.return_val,true);
 this.notifyAborted(val);
 
+
+
+
+
+
 return this.returnToParent(this.return_val);
 }
 }
@@ -2416,7 +2422,10 @@ if(is_ef(aborted_target)){
 this.return_val=val.val;
 this.setChildFrame(aborted_target,2);
 
-return this.returnToParent(this);
+
+
+this.returnToParent(this);
+return new CFException('a');
 }
 
 this.in_abortion=false;
@@ -2468,7 +2477,8 @@ if(is_ef(aborted_target)){
 this.return_val=UNDEF;
 this.setChildFrame(aborted_target,2);
 
-return this.returnToParent(this);
+this.returnToParent(this);
+return new CFException('a');
 }
 
 this.in_abortion=false;
