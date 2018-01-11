@@ -247,7 +247,7 @@ exports.parseModuleDocs = function(src, module) {
       if (matches && module.children[matches[1]] && module.children[matches[1]].children) {
         curr = module.children[matches[1]].children[matches[2]] = { type: prop };
       }
-      else if (module.children[value]) {
+      else if (module.children.hasOwnProperty(value)) {
         if (!module.children[value].children) {
           throw new Error("symbol #{value} (#{prop}) defined twice");
         }
