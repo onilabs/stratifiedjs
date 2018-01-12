@@ -1868,9 +1868,12 @@ if(!this.pendingCFE){
 if(this.pending==0)return this.returnToParent(val);
 
 
-for(var i=0;i<this.children.length;++i)if(this.children[i])return this.returnToParent(this.children[i]);
+var return_child;
+for(var i=0;i<this.children.length;++i)if((return_child=this.children[i])){
 
-
+delete this.children;
+return this.returnToParent(return_child);
+}
 return this.returnToParent(new CFException("i","invalid state in Par"));
 }else{
 
