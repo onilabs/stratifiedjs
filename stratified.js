@@ -322,10 +322,13 @@ return "<suspended SJS>"},__oni_ef:true,wait:function(){
 
 return this},setChildFrame:function(ef,idx){
 
-if(this.child_frame&&this.child_frame.callstack){
+if(this.child_frame){
 
+if(this.child_frame.callstack){
 
 mergeCallstacks(ef,this.child_frame);
+}
+this.child_frame.parent=UNDEF;
 }
 this.async=true;
 this.child_frame=ef;
@@ -1940,10 +1943,13 @@ this.async=true;
 return this;
 };
 
-EF_Par.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
+EF_Par.prototype.setChildFrame=function(ef,idx){if(this.children[idx]){
 
+if(this.children[idx].callstack){
 
 mergeCallstacks(ef,this.children[idx]);
+}
+this.children[idx].parent=UNDEF;
 }
 this.children[idx]=ef;
 ef.parent=this;
@@ -2133,10 +2139,13 @@ this.async=true;
 return this;
 };
 
-EF_Alt.prototype.setChildFrame=function(ef,idx){if(this.children[idx]&&this.children[idx].callstack){
+EF_Alt.prototype.setChildFrame=function(ef,idx){if(this.children[idx]){
 
+if(this.children[idx].callstack){
 
 mergeCallstacks(ef,this.children[idx]);
+}
+this.children[idx].parent=UNDEF;
 }
 this.children[idx]=ef;
 ef.parent=this;

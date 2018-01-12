@@ -336,9 +336,12 @@ var EF_Proto = {
   wait: function() { return this; },
 
   setChildFrame: function(ef, idx) {
-    if (this.child_frame && this.child_frame.callstack) {
-      // merge callstacks of old & new childframes:
-      mergeCallstacks(ef, this.child_frame);
+    if (this.child_frame) {
+      if (this.child_frame.callstack) {
+        // merge callstacks of old & new childframes:
+        mergeCallstacks(ef, this.child_frame);
+      }
+      this.child_frame.parent = UNDEF;
     }
     this.async = true;
     this.child_frame = ef;
@@ -2126,9 +2129,12 @@ EF_Par.prototype.abortInner = function() {
 };
 
 EF_Par.prototype.setChildFrame = function(ef, idx) {
-  if (this.children[idx] && this.children[idx].callstack) {
-    // merge callstacks of old & new childframes (stack-tests 28)
-    mergeCallstacks(ef, this.children[idx]);
+  if (this.children[idx]) {
+    if (this.children[idx].callstack) {
+      // merge callstacks of old & new childframes (stack-tests 28)
+      mergeCallstacks(ef, this.children[idx]);
+    }
+    this.children[idx].parent = UNDEF;
   }
   this.children[idx] = ef;
   ef.parent = this;
@@ -2328,9 +2334,12 @@ EF_Alt.prototype.abortInner = function() {
 };
 
 EF_Alt.prototype.setChildFrame = function(ef, idx) {
-  if (this.children[idx] && this.children[idx].callstack) {
-    // merge callstacks of old & new childframes (stack-tests 29)
-    mergeCallstacks(ef, this.children[idx]);
+  if (this.children[idx]) {
+    if (this.children[idx].callstack) {
+      // merge callstacks of old & new childframes (stack-tests 29)
+      mergeCallstacks(ef, this.children[idx]);
+    }
+    this.children[idx].parent = UNDEF;
   }
   this.children[idx] = ef;
   ef.parent = this;
