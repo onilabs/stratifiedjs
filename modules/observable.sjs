@@ -42,7 +42,7 @@
   {id: 'sjs:sys', name: 'sys'}
 ]);
 var cutil = require('./cutil');
-var { isStream, isBatchedStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_Observable_project, METHOD_ObservableArray_project, consume, dedupe } = require('./sequence');
+var { Stream, isSequence, isStream, toArray, slice, integers, each, transform, first, skip, mirror, ITF_PROJECT, project, METHOD_Observable_project, METHOD_ObservableArray_project, consume, dedupe } = require('./sequence');
 var { merge, clone, override } = require('./object');
 var { Interface, Token } = require('./type');
 
@@ -549,18 +549,16 @@ exports.observe = observe;
 
 */
 function CompoundObservable(sources, transformer) {
-  var f = arguments[arguments.length-1];
-
   __js {
     sources .. each {
       |source|
       if (!isObservable(source)) {
-          throw new Error("invalid non-observable argument '#{typeof source}' passed to 'CompoundObservable()'");
+          throw new Error("invalid non-observable argument of type '#{isSequence(source) ? source : typeof source}' passed to 'CompoundObservable()'");
       }
     }
   } /* __js */
 
-  return Observable(function(receiver) {
+  return Observable :: Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = Object.create(cutil._Waitable);
     change.init();
