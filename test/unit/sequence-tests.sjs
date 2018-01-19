@@ -1158,6 +1158,113 @@ testEq('each.track break', '12b', function() {
   return rv;
 });
 
+testEq('each.track exception 1', '1e', function() {
+  var rv = '';
+  function f() { 
+    [1,2,3] .. s.each.track {
+      |x|
+      rv += x;
+      throw new Error('foo');
+    }
+  }
+  try {
+    f();
+  }
+  catch(e) {
+    rv += 'e';
+  }
+  return rv;
+});
+
+testEq('each.track exception 2', '1e', function() {
+  var rv = '';
+  function f() { 
+    [1,2,3] .. s.monitor(-> hold(1)) .. s.each.track {
+      |x|
+      rv += x;
+      throw new Error('foo');
+    }
+  }
+  try {
+    f();
+  }
+  catch(e) {
+    rv += 'e';
+  }
+  return rv;
+});
+
+testEq('each.track exception 3', '1e', function() {
+  var rv = '';
+  function f() { 
+    [1,2,3] .. s.each.track {
+      |x|
+      rv += x;
+      try {
+        throw new Error('foo');
+      }
+      finally {
+        hold(10);
+      }
+    }
+  }
+  try {
+    f();
+  }
+  catch(e) {
+    rv += 'e';
+  }
+  return rv;
+});
+
+testEq('each.track exception 4', '1e', function() {
+  var rv = '';
+  function f() { 
+    [1,2,3] .. s.monitor(-> hold(1)) .. s.each.track {
+      |x|
+      rv += x;
+      try {
+        throw new Error('foo');
+      }
+      finally {
+        hold(10);
+      }
+    }
+  }
+  try {
+    f();
+  }
+  catch(e) {
+    rv += 'e';
+  }
+  return rv;
+});
+
+testEq('each.track exception 5', '3e', function() {
+  var rv = '';
+  function f() { 
+    [1,2,3] .. s.monitor(-> hold(1)) .. s.each.track {
+      |x|
+      hold(10);
+      rv += x;
+      try {
+        throw new Error('foo');
+      }
+      finally {
+        hold(10);
+      }
+    }
+  }
+  try {
+    f();
+  }
+  catch(e) {
+    rv += 'e';
+  }
+  return rv;
+});
+
+
 context("pack") {||
   test("with count") {||
     [1,2,3,4,5] .. s.pack({count:2}) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);

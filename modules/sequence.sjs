@@ -3088,12 +3088,28 @@ any.par = function(/* sequence, max_strata, p */) {
 
 */
 each.track = function(seq, r) {
-  var stratum;
-
-  try {
+  var stratum, signal_error, error;
+ 
+  waitfor {
+    waitfor(error) {
+      signal_error = resume;
+    }
+    throw error;
+  }
+  or {
     seq .. each {
       |x|
-      stratum = spawn (stratum ? stratum.abort(), r(x));
+      stratum = spawn (stratum ? stratum.abort(), 
+                       (function(){
+                         try { 
+                           r(x);
+                         }
+                         catch (e) {
+                           signal_error(e);
+                         }
+                       })());
+      // handle synchronous error case:
+      if (error) break;
     }
     // wait for stratum to complete
     if (stratum)
