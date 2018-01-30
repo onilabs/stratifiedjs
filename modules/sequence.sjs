@@ -2668,7 +2668,7 @@ exports.fib = fib;
    @param {::Sequence} [sequence] Input sequence
    @param {Integer} [count] Maximum number of elements of input stream to buffer
    @param {optional Object} [settings] Object with optional settings.
-   @setting {Boolean} [drop=false] Determines the behaviour when the buffer is full and a new upstream value is available. If `true`, the oldest element in the buffer will be dropped to make room for the new element. If `false`, the input will be blocked until the downstream retrieves the next buffered element.
+   @setting {Boolean|String} [drop=false] Determines the behaviour when the buffer is full and a new upstream value is available. If `true`, the oldest element in the buffer will be dropped to make room for the new element. If `false`, the input will be blocked until the downstream retrieves the next buffered element. If `"throw"`, an exception ('Buffer full') will be thrown when the buffer is full.
    @return {::Stream}
    @summary Create a buffered stream from a given input sequence
    @desc
@@ -2715,6 +2715,8 @@ function buffer(seq, count, options) {
       seq .. each {
         |x|
         if (options.drop && Q.isFull()) {
+          if (options.drop === 'throw')
+            throw new Error("Buffer full");
           // drop the oldest value to make room for the put():
           Q.get();
         }
