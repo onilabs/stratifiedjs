@@ -921,6 +921,8 @@ __js {
     if(isString(sequence) || isBuffer(sequence)) return sequence.slice(start, end);
     if(isArrayLike(sequence)) {
       var m = (sequence.slice || Array.prototype.slice);
+      // TypedArray `slice` method is buggy if you pass `undefined` as first argument:
+      if (start === undefined) start = 0;
       // TypedArray `slice` method is buggy if you pass `undefined` as second argument.
       return (end === undefined) ? m.call(sequence, start) : m.call(sequence, start, end);
     }
