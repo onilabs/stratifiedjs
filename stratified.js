@@ -2029,6 +2029,7 @@ this.pendingRV=val;
 this.quench();
 return this.abortInner();
 }
+if(this.collapsed)break;
 }
 }else{
 
@@ -2152,9 +2153,10 @@ ef.parent=this;
 ef.parent_idx=idx;
 };
 
-EF_Alt.prototype.docollapse=function(branch,cf){this.quench(branch);
+EF_Alt.prototype.docollapse=function(branch,cf){this.collapsed=true;
 
 
+this.quench(branch);
 for(var i=0;i<this.children.length;++i){
 if(i==branch)continue;
 if(this.children[i]){

@@ -2223,6 +2223,7 @@ EF_Alt.prototype.cont = function(idx, val) {
           this.quench();
           return this.abortInner();
         }
+        if (this.collapsed) break; // don't start any other branches
       }
     }
     else {
@@ -2347,6 +2348,7 @@ EF_Alt.prototype.setChildFrame = function(ef, idx) {
 };
 
 EF_Alt.prototype.docollapse = function(branch, cf) {
+  this.collapsed = true;
   // abort all children apart from 'branch'
   this.quench(branch);
   for (var i=0; i<this.children.length; ++i) {
