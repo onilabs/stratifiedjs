@@ -99,7 +99,7 @@ context("server-side") {||
     // at least one of these will be installed (either it's a dev environment or a self-install bundle)
     var packages = [
       ['karma-sjs-adapter', path.join('karma-sjs-adapter', 'index.js')],
-      ['tar',               path.join('tar', 'tar.js')],
+      ['fstream',               path.join('fstream', 'fstream.js')],
     ];
     var found = 0;
     packages .. each {|[name, tail]|
