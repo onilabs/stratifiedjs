@@ -1358,18 +1358,6 @@
           },
           "summary": "Stratified helpers for dealing with [nodejs's async streams](http://nodejs.org/api/stream.html)"
         },
-        "tar": {
-          "type": "module",
-          "children": {
-            "extract": {
-              "type": "function"
-            },
-            "pack": {
-              "type": "function"
-            }
-          },
-          "summary": "Create & extract tar archives"
-        },
         "tempfile": {
           "type": "module",
           "children": {
