@@ -921,6 +921,20 @@ testEq("with 3", 1, function() {
   return x;
 });
 
+testEq("sync collapse", 'x',
+       function() {
+         var rv = '';
+         waitfor {
+           rv += 'x';
+           collapse;
+           hold(0);
+         }
+         or {
+           rv += 'y';
+         }
+         return rv;
+       });
+
 testEq("collapse 1", 1, 
      function() { 
        var a = 0;
