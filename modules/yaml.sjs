@@ -32,7 +32,15 @@
     * See http://nodeca.github.io/js-yaml for a demo.
 
     * Function expressions (via esprima) are not supported.
+
+  @function safeLoad
+  @summary Parse `content` as a single YAML document
+  @param {String} [content]
+  @return {Object}
+  @desc
+    * See https://github.com/nodeca/js-yaml#api for API documentation.
 */
+
 
 
 /**

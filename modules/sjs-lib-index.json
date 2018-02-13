@@ -3141,7 +3141,11 @@
     },
     "yaml": {
       "type": "module",
-      "children": {},
+      "children": {
+        "safeLoad": {
+          "type": "function"
+        }
+      },
       "summary": "YAML parser (tracking the [js-yaml](https://github.com/nodeca/js-yaml) library)"
     }
   },
