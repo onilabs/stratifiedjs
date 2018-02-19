@@ -1492,12 +1492,15 @@ ph_dot_accessor.prototype.is_ref = true;
 ph_dot_accessor.prototype.is_value = true;
 ph_dot_accessor.prototype.nblock_val = function() { return this.l.nb() + "." + this.name };
 ph_dot_accessor.prototype.val = function() {
-    return "__oni_rt.Sc("+this.line+",function(l){return l."+this.name+";},"+
+    return "__oni_rt.Sc("+this.line+",(l)=>l."+this.name+","+
     this.l.v()+")";
 };
 ph_dot_accessor.prototype.ref = function() {
-    // XXX nblock special casing
-    return "__oni_rt.Sc("+this.line+",function(l){return [l,'"+this.name+"'];},"+
+  if (this.is_nblock) {
+    return "__oni_rt.Nb(function() { return ["+this.l.nb()+",'"+this.name+"']},"+this.line+")";
+  }
+  else
+    return "__oni_rt.Sc("+this.line+",(l)=>[l,'"+this.name+"'],"+
     this.l.v()+")";
 };
 #ifdef SJS_DESTRUCTURE
@@ -1534,7 +1537,7 @@ ph_idx_accessor.prototype.nblock_val = function() {
     return this.l.nb() + "[" + this.idxexp.nb() + "]";
 };
 ph_idx_accessor.prototype.val = function() {
-    return "__oni_rt.Sc("+this.line+",function(l, idx){return l[idx];},"+
+    return "__oni_rt.Sc("+this.line+",(l, idx)=>l[idx],"+
     this.l.v()+","+this.idxexp.v()+")";
 };
 ph_idx_accessor.prototype.ref = function() {
