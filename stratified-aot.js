@@ -101,6 +101,7 @@ var __oni_rt={};(function(exports){var UNDEF;
 
 
 
+
 function stack_to_string(stack){var rv='';
 
 if(stack){
@@ -287,10 +288,10 @@ rv=rv.execute();
 return rv;
 }
 
-function is_ef(obj){return obj&&obj.__oni_ef;
+exports.is_ef=function(obj){return obj&&obj.__oni_ef;
 
-}
-exports.is_ef=is_ef;
+};
+
 
 function setEFProto(t){for(var p=null in EF_Proto)t[p]=EF_Proto[p]}
 
@@ -360,7 +361,7 @@ return this;
 }else{
 
 var abort_val=this.child_frame.abort();
-if(is_ef(abort_val)){
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
 return this;
 }else{
 
@@ -370,7 +371,7 @@ return abort_val;
 }
 },returnToParent:function(val){
 
-if((val&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
 
 
 
@@ -381,7 +382,7 @@ if((val&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
 val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
 if(this.swallow_r){
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type==="r"){
 if(!val.ef||val.ef===this){
 val=val.val;
@@ -392,7 +393,7 @@ val=UNDEF;
 }
 }
 }
-}else if(is_ef(val)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 
 
@@ -441,7 +442,7 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 
 
 
-}else if((val&&val.__oni_cfx)&&val.type!=='a'){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type!=='a'){
 
 
 val.mapToJS(true);
@@ -450,6 +451,7 @@ val.mapToJS(true);
 
 
 }};
+
 
 
 
@@ -476,7 +478,7 @@ exports.ex=execIN;
 exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new Env(aobj,tobj,file));
 
 
-if((rv&&rv.__oni_cfx))return rv.mapToJS();
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return rv.mapToJS();
 
 return rv;
 };
@@ -486,7 +488,7 @@ return rv;
 exports.exbl=function(env,args){var rv=I_seq(args,env);
 
 
-if((rv&&rv.__oni_cfx))return rv.mapToJS();
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return rv.mapToJS();
 
 return rv;
 };
@@ -553,7 +555,7 @@ function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blbref,e.blrref,e.blsc
 function I_call(ndata,env){try{
 
 var rv=(ndata[0]).call(env);
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 
 if(!rv.callstack)rv.callstack=[];
 rv.callstack.push([env.file,ndata[1]]);
@@ -561,7 +563,7 @@ rv.callstack.push([env.file,ndata[1]]);
 return rv;
 }catch(e){
 
-if((e&&e.__oni_cfx)){
+if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 if(e.type=='blb'&&e.ef==env.blscope){
 
 
@@ -575,7 +577,7 @@ return e;
 }
 }
 
-exports.C=function(f,line){return {exec:I_call,ndata:[f,line],__oni_dis:token_dis};
+exports.C=function(){return {exec:I_call,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -593,14 +595,14 @@ function I_nblock(ndata,env){try{
 return (ndata[0]).call(env);
 }catch(e){
 
-if(!(e&&e.__oni_cfx)){
+if(!(e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 e=new CFException("t",e,ndata[1],env.file);
 }
 return e;
 }
 }
 
-exports.Nb=function(f,line){return {exec:I_nblock,ndata:[f,line],__oni_dis:token_dis};
+exports.Nb=function(){return {exec:I_nblock,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -693,7 +695,7 @@ this.toplevel=true;
 }
 }
 setEFProto(EF_Seq.prototype={});
-EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Seq.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 
 
@@ -701,7 +703,7 @@ EF_Seq.prototype.cont=function(idx,val){if(is_ef(val)){
 this.setChildFrame(val,idx);
 }else{
 
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 if(val.type=='blb'&&val.ef==this.env.blscope){
 val=UNDEF;
@@ -725,10 +727,10 @@ this.child_frame=null;
 val=execIN(this.ndata[idx],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
-if(!is_ef(val))return this.returnToParent(val);
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))return this.returnToParent(val);
 
 }
 }
@@ -736,13 +738,13 @@ if(++idx==this.ndata.length&&this.tailcall){
 
 break;
 }
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 
 if(val.type==='blb'&&val.ef===this.env.blscope)val=undefined;
 
 break;
-}else if(is_ef(val)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
 return this;
@@ -788,10 +790,10 @@ this.pars=[];
 }
 setEFProto(EF_Sc.prototype={});
 
-EF_Sc.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Sc.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
-}else if((val&&val.__oni_cfx)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }else{
@@ -806,7 +808,7 @@ while(this.i<this.ndata.length){
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 rv.quench();
 rv=rv.abort();
 return this.returnToParent(rv);
@@ -814,8 +816,8 @@ return this.returnToParent(rv);
 }
 
 ++this.i;
-if((rv&&rv.__oni_cfx))return this.returnToParent(rv);
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return this.returnToParent(rv);
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 this.setChildFrame(rv,1);
 return this;
 }
@@ -886,10 +888,10 @@ this.pars=[];
 }
 setEFProto(EF_Fcall.prototype={});
 
-EF_Fcall.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Fcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
-}else if((val&&val.__oni_cfx)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }else if(idx==2){
@@ -900,8 +902,9 @@ return this.returnToParent(this.o);
 
 if(idx==1){
 
-if(this.i==3)this.l=val;else this.pars.push(val);
-
+if(this.i===3){
+this.l=val;
+}else this.pars.push(val);
 
 
 }
@@ -910,7 +913,7 @@ while(this.i<this.ndata.length){
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 rv.quench();
 rv=rv.abort();
 return this.returnToParent(rv);
@@ -918,8 +921,8 @@ return this.returnToParent(rv);
 }
 
 ++this.i;
-if((rv&&rv.__oni_cfx))return this.returnToParent(rv);
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return this.returnToParent(rv);
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(rv,1);
 return this;
@@ -1060,7 +1063,7 @@ var f=function(){};
 f.prototype=ctor.prototype;
 this.o=new f();
 rv=ctor.apply(this.o,this.pars);
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 
 this.setChildFrame(rv,2);
 return this;
@@ -1084,7 +1087,7 @@ rv=new CFException("i","Invalid Fcall mode");
 
 
 
-if((e&&e.__oni_cfx)){
+if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 
 if(e.type=='blb'&&e.ef==this.env.blscope){
 rv=UNDEF;
@@ -1097,7 +1100,7 @@ rv=UNDEF;
 
 
 }
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 if(this.aborted){
 
 rv=rv.abort();
@@ -1150,7 +1153,7 @@ EF_If.prototype.cont=function(idx,val){switch(idx){case 0:
 val=execIN(this.ndata[0],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 return this.returnToParent(val);
@@ -1159,8 +1162,8 @@ return this.returnToParent(val);
 
 
 case 1:
-if((val&&val.__oni_cfx))break;
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))break;
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,1);
 return this;
 }
@@ -1181,7 +1184,7 @@ function I_if(ndata,env){return cont(new EF_If(ndata,env),0);
 }
 
 
-exports.If=function(t,c,a){return {exec:I_if,ndata:[t,c,a],__oni_dis:token_dis};
+exports.If=function(){return {exec:I_if,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -1230,15 +1233,15 @@ if(idx==0){
 val=execIN(this.ndata[0],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 return this.returnToParent(val);
 }
 }
 }
-if((val&&val.__oni_cfx))return this.returnToParent(val);
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))return this.returnToParent(val);
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,1);
 return this;
 }
@@ -1248,8 +1251,8 @@ idx=-1;
 case 1:
 while(true){
 if(idx>-1){
-if((val&&val.__oni_cfx))return this.returnToParent(val);
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))return this.returnToParent(val);
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,idx);
 return this;
 }else if(val==Default||val==this.testval)break;
@@ -1263,7 +1266,7 @@ this.child_frame=null;
 val=execIN(this.ndata[1][idx][0],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 return this.returnToParent(val);
@@ -1274,11 +1277,11 @@ this.phase=2;
 val=0;
 case 2:
 while(true){
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,idx);
 return this;
 }
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type=="b"){
 val=val.val;
 }
@@ -1291,7 +1294,7 @@ this.child_frame=null;
 val=execIN(this.ndata[1][idx][1],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 return this.returnToParent(val);
@@ -1309,7 +1312,7 @@ function I_switch(ndata,env){return cont(new EF_Switch(ndata,env),0);
 }
 
 
-exports.Switch=function(exp,clauses){return {exec:I_switch,ndata:[exp,clauses],__oni_dis:token_dis};
+exports.Switch=function(){return {exec:I_switch,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -1345,7 +1348,7 @@ this.state=0;
 }
 setEFProto(EF_Try.prototype={});
 
-EF_Try.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Try.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,this.state);
 }else{
@@ -1355,21 +1358,21 @@ switch(this.state){case 0:
 this.state=1;
 val=execIN(this.ndata[1],this.env);
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val);
 return this;
 }
 case 1:
 
 this.state=2;
-if(this.ndata[2]&&(((val&&val.__oni_cfx)&&val.type=="t")||this.ndata[0]&1)){
+if(this.ndata[2]&&(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=="t")||this.ndata[0]&1)){
 
 
 var v;
 if(this.ndata[0]&1){
 
 
-v=(val&&val.__oni_cfx)?[val.type==='t'?val.val:val,true]:[val,false];
+v=(val!==null&&typeof (val)==='object'&&val.__oni_cfx)?[val.type==='t'?val.val:val,true]:[val,false];
 }else v=val.val;
 
 
@@ -1377,7 +1380,7 @@ val=this.ndata[2](this.env,v);
 
 
 
-if(this.aborted&&is_ef(val)){
+if(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 val=val.abort();
 }
@@ -1385,11 +1388,11 @@ val=val.abort();
 
 
 
-if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3]&&!(this.aborted&&is_ef(val)))return this.returnToParent(val);
+if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3]&&!(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)))return this.returnToParent(val);
 
 
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(val);
 return this;
@@ -1410,7 +1413,7 @@ val=execIN(this.ndata[4],this.env);
 
 
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(val);
 return this;
@@ -1423,7 +1426,7 @@ if(this.ndata[3]){
 val=execIN(this.ndata[3],this.env);
 
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(val);
 return this;
@@ -1433,7 +1436,7 @@ case 4:
 
 
 
-if(!(val&&val.__oni_cfx)||val.type=='a'){
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type=='a'){
 val=this.rv;
 
 
@@ -1457,7 +1460,7 @@ this.aborted=true;
 
 if(this.state!==4){
 var val=this.child_frame.abort();
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 
 this.setChildFrame(val);
@@ -1476,7 +1479,7 @@ this.async=false;
 var rv=cont(this,0);
 ;
 if(rv!==this){
-if(!(rv&&rv.__oni_cfx)||rv.type==='a')rv=val;
+if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)||rv.type==='a')rv=val;
 
 return rv;
 }else{
@@ -1521,15 +1524,15 @@ this.env=env;
 }
 setEFProto(EF_Loop.prototype={});
 
-EF_Loop.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Loop.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
 }else{
 
 while(true){
 
-if(idx==0){
-if((val&&val.__oni_cfx)){
+if(idx===0){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }
@@ -1537,14 +1540,14 @@ return this.returnToParent(val);
 val=execIN(this.ndata[1],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 return this.returnToParent(val);
 }
 }
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
@@ -1553,25 +1556,25 @@ idx=2;
 }
 
 if(idx>1){
-if(idx==2){
+if(idx===2){
 
-if(!val||(val&&val.__oni_cfx)){
+if(!val||(val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 return this.returnToParent(val);
 }
 }
 while(1){
 if(idx>2){
-if((val&&val.__oni_cfx)){
-if(val.type=='blb'&&val.ef==this.env.blscope){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
+if(val.type==='blb'&&val.ef===this.env.blscope){
 
 val=UNDEF;
 }else{
 
-if(val.type=="b"){
+if(val.type==="b"){
 
 val=UNDEF;
-}else if(val.type=="c"){
+}else if(val.type==="c"){
 
 
 val=UNDEF;
@@ -1590,17 +1593,17 @@ this.child_frame=null;
 val=execIN(this.ndata[idx+1],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 
 
-if(!is_ef(val))return this.returnToParent(val);
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))return this.returnToParent(val);
 
 }
 }
 ++idx;
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,idx);
 return this;
 }
@@ -1613,14 +1616,14 @@ if(this.ndata[2]){
 val=execIN(this.ndata[2],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 return this.returnToParent(val);
 }
 }
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(val,0);
 return this;
@@ -1662,7 +1665,7 @@ this.env=env;
 }
 setEFProto(EF_ForIn.prototype={});
 
-EF_ForIn.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_ForIn.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
 }else{
@@ -1671,14 +1674,14 @@ if(idx==0){
 val=execIN(this.ndata[0],this.env);
 if(this.aborted){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort();
 return this.returnToParent(val);
 }
 }
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(val,1);
 return this;
@@ -1687,13 +1690,13 @@ idx=1;
 }
 if(idx==1){
 
-if((val&&val.__oni_cfx))return this.returnToParent(val);
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))return this.returnToParent(val);
 
 var for_in_obj=val;
 for(var x=null in for_in_obj){
 if(typeof this.remainingX==='undefined'){
 val=this.ndata[1](this.env,x);
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type=="b"){
 
 val=UNDEF;
@@ -1705,7 +1708,7 @@ continue;
 }
 return this.returnToParent(val);
 }
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.remainingX=[];
 this.for_in_obj=for_in_obj;
 }
@@ -1713,7 +1716,7 @@ this.for_in_obj=for_in_obj;
 
 
 }
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 if(!this.remainingX)this.remainingX=[];
 this.child_frame=null;
 this.setChildFrame(val,2);
@@ -1725,7 +1728,7 @@ return this.returnToParent(val);
 if(idx==2){
 while(1){
 
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type=="b"){
 
 val=UNDEF;
@@ -1738,7 +1741,7 @@ if(this.remainingX.length)continue;
 }
 return this.returnToParent(val);
 }
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.child_frame=null;
 this.setChildFrame(val,2);
 return this;
@@ -1746,7 +1749,7 @@ return this;
 var arg;
 while(true){
 if(!this.remainingX.length){
-delete this.for_in_obj;
+this.for_in_obj=undefined;
 return this.returnToParent(val);
 }
 arg=this.remainingX.shift();
@@ -1765,7 +1768,7 @@ function I_forin(ndata,env){return cont(new EF_ForIn(ndata,env),0);
 }
 
 
-exports.ForIn=function(obj,loop){return {exec:I_forin,ndata:[obj,loop],__oni_dis:token_dis};
+exports.ForIn=function(){return {exec:I_forin,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -1786,11 +1789,11 @@ exports.ForIn=function(obj,loop){return {exec:I_forin,ndata:[obj,loop],__oni_dis
 
 
 
-function mergeExceptions(new_exception,original_exception){if(!(new_exception&&new_exception.__oni_cfx)||new_exception.type!=='t'){
+function mergeExceptions(new_exception,original_exception){if(!(new_exception!==null&&typeof (new_exception)==='object'&&new_exception.__oni_cfx)||new_exception.type!=='t'){
 
 return original_exception;
 }
-if(!(original_exception&&original_exception.__oni_cfx)||original_exception.type!=='t')return new_exception;
+if(!(original_exception!==null&&typeof (original_exception)==='object'&&original_exception.__oni_cfx)||original_exception.type!=='t')return new_exception;
 
 if(console){
 
@@ -1810,7 +1813,7 @@ this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
 
-EF_Par.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Par.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
 }else{
@@ -1824,7 +1827,7 @@ exports.current_dyn_vars=parent_dyn_vars;
 if(this.inner_aborted){
 
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 ++this.pending;
 this.setChildFrame(val,i);
 this.quench();
@@ -1832,11 +1835,11 @@ return this.abortInner();
 }
 this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 return this.pendingCFE;
-}else if(is_ef(val)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 ++this.pending;
 this.setChildFrame(val,i);
-}else if((val&&val.__oni_cfx)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 
 this.pendingCFE=val;
@@ -1849,7 +1852,7 @@ return this.abortInner();
 
 --this.pending;
 this.children[idx]=UNDEF;
-if((val&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb'&&val.ef===this.env.blscope)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb'&&val.ef===this.env.blscope)){
 
 
 
@@ -1869,7 +1872,7 @@ if(this.pending==0)return this.returnToParent(val);
 var return_child;
 for(var i=0;i<this.children.length;++i)if((return_child=this.children[i])){
 
-delete this.children;
+this.children=undefined;
 return this.returnToParent(return_child);
 }
 return this.returnToParent(new CFException("i","invalid state in Par"));
@@ -1923,7 +1926,7 @@ EF_Par.prototype.abortInner=function(){this.inner_aborted=true;
 for(var i=0;i<this.children.length;++i)if(this.children[i]){
 
 var val=this.children[i].abort();
-if(is_ef(val))this.setChildFrame(val,i);else{
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,i);else{
 
 
 this.pendingCFE=mergeExceptions(val,this.pendingCFE);
@@ -1985,7 +1988,7 @@ this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Alt.prototype={});
 
-EF_Alt.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Alt.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
 }else{
@@ -2005,7 +2008,7 @@ exports.current_dyn_vars=parent_dyn_vars;
 if(this.inner_aborted){
 
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 ++this.pending;
 this.setChildFrame(val,i);
 this.quench();
@@ -2013,7 +2016,7 @@ return this.abortInner();
 }
 this.pendingRV=mergeExceptions(val,this.pendingRV);
 return this.pendingRV;
-}else if(is_ef(val)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 ++this.pending;
 this.setChildFrame(val,i);
@@ -2094,7 +2097,7 @@ rv=this.abortInner();
 
 
 
-if(rv!==this&&!(rv&&rv.__oni_cfx))rv=new CFException('a');
+if(rv!==this&&!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=new CFException('a');
 return rv;
 };
 
@@ -2108,7 +2111,7 @@ if(this.collapsing){
 var branch=this.collapsing.branch;
 this.collapsing=UNDEF;
 var val=this.children[branch].abort();
-if(is_ef(val))this.setChildFrame(val,branch);else{
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,branch);else{
 
 
 --this.pending;
@@ -2120,7 +2123,7 @@ this.children[branch]=UNDEF;
 for(var i=0;i<this.children.length;++i)if(this.children[i]){
 
 var val=this.children[i].abort();
-if(is_ef(val))this.setChildFrame(val,i);else{
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,i);else{
 
 
 this.pendingRV=mergeExceptions(val,this.pendingRV);
@@ -2156,7 +2159,7 @@ for(var i=0;i<this.children.length;++i){
 if(i==branch)continue;
 if(this.children[i]){
 var val=this.children[i].abort();
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,i);
 }else{
 
@@ -2213,7 +2216,7 @@ this.env=env;
 }
 setEFProto(EF_Suspend.prototype={});
 
-EF_Suspend.prototype.cont=function(idx,val){if(is_ef(val)){
+EF_Suspend.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 
 this.setChildFrame(val,idx);
@@ -2236,7 +2239,7 @@ var s=function(){throw e};
 setTimeout(s,0);
 }finally{
 
-delete ef.dyn_vars;
+ef.dyn_vars=undefined;
 exports.current_dyn_vars=caller_dyn_vars;
 }
 };
@@ -2256,13 +2259,13 @@ val=new CFException("t",e);
 
 if(this.returning){
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 
 this.setChildFrame(val,null);
 this.quench();
 val=val.abort();
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,3);
 
@@ -2274,13 +2277,13 @@ return this;
 return cont(this,3,null);
 }
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,1);
 return this;
 }
 case 1:
 
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 this.returning=true;
 break;
 }
@@ -2297,7 +2300,7 @@ if(this.returning){
 return;
 }
 this.returning=true;
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 
 val=new CFException("i","Suspend: Resume function threw ("+val.toString()+")");
@@ -2316,7 +2319,7 @@ return;
 
 this.quench();
 val=this.child_frame.abort();
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,3);
 return this;
@@ -2359,7 +2362,7 @@ this.returning=true;
 this.aborted=true;
 if(!this.suspendCompleted){
 var abort_val=this.child_frame.abort();
-if(is_ef(abort_val)){
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
 this.setChildFrame(abort_val,4);
 return this;
 }else{
@@ -2376,7 +2379,7 @@ function I_sus(ndata,env){return cont(new EF_Suspend(ndata,env),0);
 }
 
 
-exports.Suspend=function(s,r){return {exec:I_sus,ndata:[s,r],__oni_dis:token_dis};
+exports.Suspend=function(){return {exec:I_sus,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -2414,13 +2417,13 @@ exports.current_dyn_vars=this.parent_dyn_vars;
 
 
 
-if((val&&val.__oni_cfx)&&val.type==='blb'){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='blb'){
 return val;
 }
 }else if(idx===2){
 
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,2);
 return this.returnToParent(this);
 }else{
@@ -2440,7 +2443,7 @@ return this.returnToParent(this.return_val);
 }
 }
 
-if((val&&val.__oni_cfx)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type==='r'&&val.ef){
 
 
@@ -2477,7 +2480,7 @@ val.ef.parent=UNDEF;
 
 val.ef.quench();
 var aborted_target=val.ef.abort();
-if(is_ef(aborted_target)){
+if((aborted_target!==null&&typeof (aborted_target)==='object'&&aborted_target.__oni_ef===true)){
 this.return_val=val.val;
 this.setChildFrame(aborted_target,2);
 
@@ -2532,7 +2535,7 @@ frame_to_abort.parent=UNDEF;
 
 frame_to_abort.quench();
 var aborted_target=frame_to_abort.abort();
-if(is_ef(aborted_target)){
+if((aborted_target!==null&&typeof (aborted_target)==='object'&&aborted_target.__oni_ef===true)){
 this.return_val=UNDEF;
 this.setChildFrame(aborted_target,2);
 
@@ -2552,13 +2555,13 @@ return this.returnToParent(UNDEF);
 }
 }
 
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,1);
 if(idx==0)this.notifyAsync();
 
 }else{
 
-delete this.parent_dyn_vars;
+this.parent_dyn_vars=undefined;
 this.in_abortion=false;
 this.done=true;
 this.notifyVal(val);
@@ -2577,7 +2580,7 @@ this.in_abortion=true;
 if(this.child_frame){
 this.child_frame.quench();
 var val=this.child_frame.abort();
-if(is_ef(val)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,2);
 return this;
@@ -2606,7 +2609,7 @@ EF_SpawnWaitFrame.prototype.cont=function(val){if(this.parent){
 
 var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
-delete this.dyn_vars;
+this.dyn_vars=undefined;
 cont(this.parent,this.parent_idx,val);
 exports.current_dyn_vars=current_dyn_vars;
 }
@@ -2632,16 +2635,16 @@ EF_SpawnAbortFrame.prototype.cont=function(val){if(this.done)return;
 if(this.parent){
 var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
-delete this.dyn_vars;
+this.dyn_vars=undefined;
 this.done=true;
 
 
-if(this.aborted&&!(val&&val.__oni_cfx)&&this.parent.aborted)val=new CFException('a');
+if(this.aborted&&!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&this.parent.aborted)val=new CFException('a');
 
 
 cont(this.parent,this.parent_idx,val);
 exports.current_dyn_vars=current_dyn_vars;
-}else if((val&&val.__oni_cfx)&&(val.type==='t'||val.val instanceof Error)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&(val.type==='t'||val.val instanceof Error)){
 
 
 hold0(function(){val.mapToJS(true)});
@@ -2703,11 +2706,11 @@ val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 while(value_waitarr.length)cont(value_waitarr.shift(),val);
 
 
-if(is_ef(rv)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 return new EF_SpawnAbortFrame(abort_waitarr,ef);
 }
 
-if(!(rv&&rv.__oni_cfx)||rv.type!=='t')rv=UNDEF;
+if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)||rv.type!=='t')rv=UNDEF;
 
 notifyAborted(rv);
 
@@ -2740,7 +2743,7 @@ if(!have_caller&&!value_waitarr.length){
 
 
 
-if((val&&val.__oni_cfx)&&(val.type!='t'||val.val instanceof Error)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&(val.type!='t'||val.val instanceof Error)){
 
 
 
@@ -2764,7 +2767,7 @@ setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 
 }
-function notifyAborted(_val){if(!(_val&&_val.__oni_cfx)||_val.type!=='t')_val=UNDEF;
+function notifyAborted(_val){if(!(_val!==null&&typeof (_val)==='object'&&_val.__oni_cfx)||_val.type!=='t')_val=UNDEF;
 
 
 while(abort_waitarr.length)cont(abort_waitarr.shift(),_val);
@@ -2778,7 +2781,7 @@ return cont(ef,0)||stratum;
 }
 
 
-exports.Spawn=function(line,exp){return {exec:I_spawn,ndata:[line,exp],__oni_dis:token_dis};
+exports.Spawn=function(){return {exec:I_spawn,ndata:arguments,__oni_dis:token_dis};
 
 
 
@@ -3275,5 +3278,5 @@ String.prototype.trim=function(){return this.replace(/^\s+|\s+$/g,'');
 
 
 
-(function(exports) {var UNDEF,arrayCtors,arrayCtorNames,c,i,_flatten,parseURLOptions,pendingLoads,compiled_src_tag,canonical_id_to_module,github_api,github_opts;function URI(){}function makeRequire(parent){var rf;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rf=function (module,settings){var opts,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){opts=exports.extendObject({},settings);},631),__oni_rt.Nb(function(){if(opts.callback)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Try(0,__oni_rt.Sc(634,function(_oniX){return rv=_oniX;},__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},633),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},633),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},633))),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return opts.callback(e)},635),__oni_rt.Nb(function(){return __oni_rt.Return();},635)),__oni_env)},0),__oni_rt.C(function(){return opts.callback(UNDEF,rv)},637),__oni_rt.Nb(function(){return __oni_rt.Return();},638)),this);else return __oni_rt.ex(__oni_rt.Sc(641,__oni_rt.Return,__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},641),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},641),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},641))),this);},631)])};rf.resolve=function (module,settings){var opts;opts=exports.extendObject({},settings);return resolve(module,rf,parent,opts);};rf.path="";rf.alias={};if(exports.require){rf.hubs=exports.require.hubs;rf.modules=exports.require.modules;rf.extensions=exports.require.extensions;}else{rf.hubs=augmentHubs(getHubs_hostenv());rf.modules={};rf.extensions=getExtensions_hostenv();}rf.url=function (relative){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(672,__oni_rt.Return,__oni_rt.Sc(672,function(l){return l.path;},__oni_rt.C(function(){return resolve(relative,rf,parent)},672)))])};return __oni_rt.Return(rf);},644)])}function augmentHubs(hubs){hubs.addDefault=function (hub){if(! this.defined(hub[0])){this.unshift(hub);return true;}return false;};hubs.defined=function (prefix){var h,l,i;i=0;for(;i < this.length;i++ ){h=this[i][0];l=Math.min(h.length,prefix.length);if(h.substr(0,l) == prefix.substr(0,l)){return true;}}return false;};return hubs;}function html_sjs_extractor(html,descriptor){var re,match,src;re=/<script (?:[^>]+ )?(?:type=['"]text\/sjs['"]|main=['"]([^'"]+)['"])[^>]*>((.|[\r\n])*?)<\/script>/mg;src='';while(match=re.exec(html)){if(match[1]){src+='require("' + match[1] + '")';}else{src+=match[2];}src+=';';}if(! src){throw new Error("No sjs found in HTML file");}return default_compiler(src,descriptor);}function resolveAliases(module,aliases){var ALIAS_REST,alias_rest,alias,rv,level;ALIAS_REST=/^([^:]+):(.*)$/;rv=module;level=10;while((alias_rest=ALIAS_REST.exec(rv)) && (alias=aliases[alias_rest[1]])){if(-- level == 0){throw new Error("Too much aliasing in modulename '" + module + "'");}rv=alias + alias_rest[2];}return rv;}function resolveHubs(module,hubs,require_obj,parent,opts){var path,loader,src,resolve,level,i,hub;path=module;loader=opts.loader || default_loader;src=opts.src || default_src_loader;resolve=default_resolver;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}level=10;i=0;while(hub=hubs[i++ ]){if(path.indexOf(hub[0]) == 0){if(typeof hub[1] == "string"){path=hub[1] + path.substring(hub[0].length);i=0;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}if(-- level == 0){throw new Error("Too much indirection in hub resolution for module '" + module + "'");}}else{if(typeof hub[1] == "object"){if(hub[1].src){src=hub[1].src;}if(hub[1].loader){loader=hub[1].loader;}resolve=hub[1].resolve || loader.resolve || resolve;break;}else{throw new Error("Unexpected value for require.hubs element '" + hub[0] + "'");}}}}return {path:path,loader:loader,src:src,resolve:resolve};}function default_src_loader(path){throw new Error("Don't know how to load module at " + path);}function default_compiler(src,descriptor){var f;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof (src) === 'function')return __oni_rt.ex(__oni_rt.Nb(function(){return f=src;},777),this);else return __oni_rt.ex(__oni_rt.If(__oni_rt.C(function(){return compiled_src_tag.exec(src)},779),__oni_rt.Sc(785,function(_oniX){return f=_oniX;},__oni_rt.Fcall(2,785,__oni_rt.Nb(function(){return Function},785),"module","exports","require","__onimodulename","__oni_altns",__oni_rt.Nb(function(){return src},785))),__oni_rt.Sc(789,function(_oniX){return f=_oniX;},__oni_rt.C(function(){return exports.eval("(function(module,exports,require, __onimodulename, __oni_altns){" + src + "\n})",{filename:("module "+(descriptor.id))})},789))),this);},776),__oni_rt.C(function(){return f(descriptor,descriptor.exports,descriptor.require,("module "+(descriptor.id)),{})},791)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Nb(function(){if(e instanceof SyntaxError)return __oni_rt.ex(__oni_rt.Sc(798,__oni_rt.Throw,__oni_rt.Fcall(2,798,__oni_rt.Nb(function(){return Error},798),__oni_rt.Nb(function(){return ("In module "+(descriptor.id)+": "+(e.message))},798)),798,'apollo-sys-common.sjs'),this);else return __oni_rt.ex(__oni_rt.Sc(801,__oni_rt.Throw,__oni_rt.Nb(function(){return e},801),801,'apollo-sys-common.sjs'),this);},797),__oni_env)},0)])}function checkForDependencyCycles(root_node,target_node){var deeper_cycle,name;if(! root_node.waiting_on){return false;}for(name in root_node.waiting_on){if(root_node.waiting_on[name] === target_node){return [root_node.id];}deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);if(deeper_cycle){return [root_node.id].concat(deeper_cycle);}}return false;}function default_loader(path,parent,src_loader,opts,spec){var compile,descriptor,pendingHook,dep_cycle;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[9,__oni_rt.Nb(function(){compile=exports.require.extensions[spec.type];},837),__oni_rt.Nb(function(){if(! compile)return __oni_rt.ex(__oni_rt.Sc(838,__oni_rt.Throw,__oni_rt.Fcall(2,838,__oni_rt.Nb(function(){return Error},838),__oni_rt.Nb(function(){return "Unknown type '" + spec.type + "'"},838)),838,'apollo-sys-common.sjs'),this);},837),__oni_rt.Nb(function(){descriptor=exports.require.modules[path];pendingHook=pendingLoads[path];},841),__oni_rt.Nb(function(){if((! descriptor && ! pendingHook) || opts.reload)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};},852),__oni_rt.Sc(922,function(_oniX){return pendingHook=_oniX;},__oni_rt.Sc(922,function(_oniX){return pendingLoads[path]=_oniX;},__oni_rt.Spawn(922,__oni_rt.C(function(){return (function (){var src,loaded_from,canonical_id;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Alt(__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof src_loader === "string")return __oni_rt.ex(__oni_rt.Nb(function(){src=src_loader;loaded_from="[src string]";},0),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(path in __oni_rt.modsrc)return __oni_rt.ex(__oni_rt.Nb(function(){loaded_from="[builtin]";src=__oni_rt.modsrc[path];delete __oni_rt.modsrc[path];},0),this);else return __oni_rt.ex(__oni_rt.Sc(873,function(_oniX){src=_oniX.src;loaded_from=_oniX.loaded_from;return _oniX;},__oni_rt.C(function(){return src_loader(path)},873)),this);},863),this);},857),__oni_rt.Nb(function(){descriptor.loaded_from=loaded_from;descriptor.require=makeRequire(descriptor);canonical_id=null;descriptor.getCanonicalId=function (){return canonical_id;};descriptor.setCanonicalId=function (id){var canonical;if(id == null){throw new Error("Canonical ID cannot be null");}if(canonical_id !== null){throw new Error("Canonical ID is already defined for module " + path);}canonical=canonical_id_to_module[id];if(canonical != null){throw new Error("Canonical ID " + id + " is already defined in module " + canonical.id);}canonical_id=id;canonical_id_to_module[id]=descriptor;};if(opts.main){descriptor.require.main=descriptor;}exports.require.modules[path]=descriptor;},0),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.C(function(){return compile(src,descriptor)},908),__oni_rt.Nb(function(){return __oni_rt.Return(descriptor);},909)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},911),__oni_rt.Sc(912,__oni_rt.Throw,__oni_rt.Nb(function(){return e},912),912,'apollo-sys-common.sjs')),__oni_env)},0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},914))),__oni_rt.Suspend(function(__oni_env,resume){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return __oni_rt.Hold(0)},918),__oni_rt.Nb(function(){return pendingHook.resume=resume;},919)),__oni_env)}, function() {}))])})()},922)))),__oni_rt.Nb(function(){return pendingHook.pending_descriptor=descriptor;},924)),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(! descriptor)return __oni_rt.ex(__oni_rt.Nb(function(){return descriptor=pendingHook.pending_descriptor;},927),this);},926),this);},843),__oni_rt.Nb(function(){if(pendingHook)return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(! parent.waiting_on){parent.waiting_on={};}parent.waiting_on[path]=descriptor;dep_cycle=checkForDependencyCycles(descriptor,parent);},0),__oni_rt.Nb(function(){if(dep_cycle)return __oni_rt.ex(__oni_rt.Sc(942,__oni_rt.Throw,__oni_rt.Fcall(2,942,__oni_rt.Nb(function(){return Error},942),__oni_rt.Sc(942,__oni_rt.infix['+'],__oni_rt.Nb(function(){return ("Cyclic require() dependency: "+(parent.id)+" -> ")},942),__oni_rt.C(function(){return dep_cycle.join(' -> ')},942))),942,'apollo-sys-common.sjs'),this);},941),__oni_rt.C(function(){return pendingHook.waitforValue()},944),__oni_rt.Nb(function(){return delete parent.waiting_on[path];},953)),0,__oni_rt.If(__oni_rt.Sc(966,__oni_rt.infix['=='],__oni_rt.C(function(){return pendingHook.waiting()},966),0),__oni_rt.Nb(function(){return delete pendingLoads[path]},967)),__oni_rt.If(__oni_rt.Seq(4,__oni_rt.Sc(959,__oni_rt.infix['=='],__oni_rt.C(function(){return pendingHook.waiting()},959),0),__oni_rt.Nb(function(){return pendingHook.resume},959)),__oni_rt.Seq(0,__oni_rt.C(function(){return pendingHook.resume()},960),__oni_rt.C(function(){return pendingHook.value()},961)))),this);},930),__oni_rt.Nb(function(){if(! descriptor.required_by[parent.id]){descriptor.required_by[parent.id]=1;}else{++ descriptor.required_by[parent.id];}return __oni_rt.Return(descriptor.exports);},971)])}function default_resolver(spec){if(! spec.ext && spec.path.charAt(spec.path.length - 1) !== '/'){spec.path+="." + spec.type;}}function http_src_loader(path){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(989,__oni_rt.Return,__oni_rt.Sc(989,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.C(function(){return request_hostenv([path,{format:'compiled'}],{mime:'text/plain'})},987),__oni_rt.Nb(function(){return path},989)))])}function github_src_loader(path){var user,repo,tag,url,data,str;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Sc(1002,function(_oniX){user=_oniX[1];repo=_oniX[2];tag=_oniX[3];path=_oniX[4];return _oniX;},__oni_rt.C(function(){return /github:\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path)},1002)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Sc(1003,__oni_rt.Throw,__oni_rt.Fcall(2,1003,__oni_rt.Nb(function(){return Error},1003),__oni_rt.Nb(function(){return "Malformed module id '" + path + "'"},1003)),1003,'apollo-sys-common.sjs'),__oni_env)},0),__oni_rt.Sc(1007,function(_oniX){return url=_oniX;},__oni_rt.C(function(){return exports.constructURL(github_api,'repos',user,repo,"contents",path,{ref:tag})},1005)),__oni_rt.Alt(__oni_rt.Sc(1009,function(_oniX){return data=_oniX;},__oni_rt.Sc(1008,function(l){return l.data;},__oni_rt.C(function(){return jsonp_hostenv(url,github_opts)},1008))),__oni_rt.Seq(0,__oni_rt.C(function(){return __oni_rt.Hold(10000)},1011),__oni_rt.Sc(1012,__oni_rt.Throw,__oni_rt.Fcall(2,1012,__oni_rt.Nb(function(){return Error},1012),"Github timeout"),1012,'apollo-sys-common.sjs'))),__oni_rt.Nb(function(){if(data.message && ! data.content)return __oni_rt.ex(__oni_rt.Sc(1015,__oni_rt.Throw,__oni_rt.Fcall(2,1015,__oni_rt.Nb(function(){return Error},1015),__oni_rt.Nb(function(){return data.message},1015)),1015,'apollo-sys-common.sjs'),this);},1014),__oni_rt.Sc(1020,function(_oniX){return str=_oniX;},__oni_rt.C(function(){return exports.require('sjs:string')},1018)),__oni_rt.Sc(1023,__oni_rt.Return,__oni_rt.Sc(1023,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.Fcall(1,1021,__oni_rt.Sc(1021,function(l){return [l,'utf8ToUtf16'];},__oni_rt.Nb(function(){return str},1021)),__oni_rt.C(function(){return str.base64ToOctets(data.content)},1021)),__oni_rt.Nb(function(){return url},1023)))])}function resolve(module,require_obj,parent,opts){var path,hubs,resolveSpec,ext,extMatch,preload,pendingHubs,deleteHubs,entries,parent,resolved,ent,i,k,i,path,contents;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1031,function(_oniX){return path=_oniX;},__oni_rt.C(function(){return resolveAliases(module,require_obj.alias)},1029)),__oni_rt.Nb(function(){hubs=exports.require.hubs;},1033),__oni_rt.Sc(1036,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolveHubs(path,hubs,require_obj,parent,opts || {})},1033)),__oni_rt.Nb(function(){resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);extMatch=/.+\.([^\.\/]+)$/.exec(resolveSpec.path);if(extMatch){ext=extMatch[1].toLowerCase();resolveSpec.ext=ext;if(! exports.require.extensions[ext]){ext=null;}}return resolveSpec.type=ext || 'sjs';},1036),__oni_rt.C(function(){return resolveSpec.resolve(resolveSpec,parent)},1048),__oni_rt.Nb(function(){preload=__oni_rt.G.__oni_rt_bundle;pendingHubs=false;if(preload.h){deleteHubs=[];for(k in preload.h){if(! Object.prototype.hasOwnProperty.call(preload.h,k)){continue;}entries=preload.h[k];parent=getTopReqParent_hostenv();resolved=resolveHubs(k,hubs,exports.require,parent,{});if(resolved.path === k){pendingHubs=true;continue;}i=0;for(;i < entries.length;i++ ){ent=entries[i];preload.m[resolved.path + ent[0]]=ent[1];}deleteHubs.push(k);}if(! pendingHubs){delete preload.h;}else{i=0;for(;i < deleteHubs.length;i++ ){delete preload.h[deleteHubs[i]];}}}if(module in __oni_rt.modsrc){if(! preload.m){preload.m={};}preload.m[resolveSpec.path]=__oni_rt.modsrc[module];delete __oni_rt.modsrc[module];}if(preload.m){path=resolveSpec.path;if(path.indexOf('!sjs',path.length - 4) !== - 1){path=path.slice(0,- 4);}contents=preload.m[path];if(contents !== undefined){resolveSpec.src=function (){delete preload.m[path];return {src:contents,loaded_from:path + "#bundle"};};}}return __oni_rt.Return(resolveSpec);},0)])}function requireInner(module,require_obj,parent,opts){var resolveSpec;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1127,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolve(module,require_obj,parent,opts)},1124)),__oni_rt.Sc(1127,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec)},1127)),__oni_rt.Nb(function(){return __oni_rt.Return(module);},1129)])}function requireInnerMultiple(modules,require_obj,parent,opts){var rv;function inner(i,l){var descriptor,id,exclude,include,name,module,addSym,o,i,o,split;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){if(l === 1)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){descriptor=modules[i];if(typeof descriptor === 'string'){id=descriptor;exclude=[];include=null;name=null;}else{id=descriptor.id;exclude=descriptor.exclude || [];include=descriptor.include || null;name=descriptor.name || null;}},1141),__oni_rt.Sc(1158,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return requireInner(id,require_obj,parent,opts)},1155)),__oni_rt.Nb(function(){addSym=function (k,v){if(rv[k] !== undefined){if(rv[k] === v){return;}throw new Error(("require([.]) name clash while merging module '"+(id)+"': Symbol '"+(k)+"' defined in multiple modules"));}rv[k]=v;};if(name){addSym(name,module);}else{if(include){i=0;for(;i < include.length;i++ ){o=include[i];if(! (o in module)){throw new Error(("require([.]) module "+(id)+" has no symbol "+(o)));}addSym(o,module[o]);}}else{for(o in module){if(exclude.indexOf(o) !== - 1){continue;}addSym(o,module[o]);}}}},0)),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Sc(1188,function(_oniX){return split=_oniX;},__oni_rt.C(function(){return Math.floor(l / 2)},1187)),__oni_rt.Par(__oni_rt.C(function(){return inner(i,split)},1189),__oni_rt.C(function(){return inner(i + split,l - split)},1192))),this);},1139)])}return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rv={};},1138),__oni_rt.Nb(function(){if(modules.length !== 0)return __oni_rt.ex(__oni_rt.C(function(){return inner(0,modules.length)},1198),this);},1198),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},1199)])}__oni_rt.exseq(this ? this.arguments : undefined,this,'apollo-sys-common.sjs',[24,__oni_rt.Nb(function(){__oni_rt.sys=exports;if(! (__oni_rt.G.__oni_rt_bundle)){__oni_rt.G.__oni_rt_bundle={};}exports.hostenv=__oni_rt.hostenv;exports.getGlobal=function (){return __oni_rt.G;};exports.withDynVarContext=function (){var old_dyn_vars,proto_context,block;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){old_dyn_vars=__oni_rt.current_dyn_vars;},94),__oni_rt.Nb(function(){if(this.aobj.length === 1)return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=old_dyn_vars;return block=this.aobj[0];},96),this);else return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=this.aobj[0];return block=this.aobj[1];},100),this);},95),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=Object.create(proto_context);},105),__oni_rt.C(function(){return block()},106)),0,__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=old_dyn_vars;},109))])};exports.getCurrentDynVarContext=function (){return __oni_rt.current_dyn_vars;};exports.setDynVar=function (name,value){var key;if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to retrieve "+(name)));}key='$' + name;__oni_rt.current_dyn_vars[key]=value;};exports.clearDynVar=function (name){var key;if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to clear "+(name)));}key='$' + name;delete __oni_rt.current_dyn_vars[key];};exports.getDynVar=function (name,default_val){var key;key='$' + name;if(__oni_rt.current_dyn_vars === null){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist (no dynamic variable context)"));}}if(! (key in __oni_rt.current_dyn_vars)){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist"));}}return __oni_rt.current_dyn_vars[key];};arrayCtors=[];arrayCtorNames=['Uint8Array','Uint16Array','Uint32Array','Int8Array','Int16Array','Int32Array','Float32Array','Float64Array','NodeList','HTMLCollection','FileList','StaticNodeList','DataTransferItemList'];i=0;for(;i < arrayCtorNames.length;i++ ){c=__oni_rt.G[arrayCtorNames[i]];if(c){arrayCtors.push(c);}}exports.isArrayLike=function (obj){var i;if(Array.isArray(obj) || ! ! (obj && Object.prototype.hasOwnProperty.call(obj,'callee'))){return true;}i=0;for(;i < arrayCtors.length;i++ ){if(obj instanceof arrayCtors[i]){return true;}}return false;};_flatten=function (arr,rv){var l,elem,i;l=arr.length;i=0;for(;i < l;++ i){elem=arr[i];if(exports.isArrayLike(elem)){_flatten(elem,rv);}else{rv.push(elem);}}};exports.flatten=function (arr){var rv;rv=[];if(arr.length === UNDEF){throw new Error("flatten() called on non-array");}_flatten(arr,rv);return rv;};exports.expandSingleArgument=function (args){if(args.length == 1 && exports.isArrayLike(args[0])){args=args[0];}return args;};exports.isReifiedStratum=function (obj){return (obj instanceof __oni_rt.ReifiedStratumProto);};exports.isQuasi=function (obj){return (obj instanceof __oni_rt.QuasiProto);};exports.Quasi=function (arr){return __oni_rt.Quasi.apply(__oni_rt,arr);};exports.mergeObjects=function (){var rv,sources,i;rv={};sources=exports.expandSingleArgument(arguments);i=0;for(;i < sources.length;i++ ){exports.extendObject(rv,sources[i]);}return rv;};exports.extendObject=function (dest,source){var o;for(o in source){if(Object.prototype.hasOwnProperty.call(source,o)){dest[o]=source[o];}}return dest;};URI.prototype={toString:function (){return ((this.protocol)+"://"+(this.authority)+(this.relative));}};URI.prototype.params=function (){var rv;if(! this._params){rv={};this.query.replace(parseURLOptions.qsParser,function (_,k,v){if(k){rv[decodeURIComponent(k)]=decodeURIComponent(v);}});this._params=rv;}return this._params;};parseURLOptions={key:["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/};exports.parseURL=function (str){var o,m,uri,i;o=parseURLOptions;m=o.parser.exec(str);uri=new URI();i=14;while(i-- ){uri[o.key[i]]=m[i] || "";}return uri;};exports.encodeURIComponentRFC3986=function (str){return encodeURIComponent(str).replace(/[!'()*]/g,function (c){return '%' + c.charCodeAt(0).toString(16);});};exports.constructQueryString=function (){var hashes,hl,parts,hash,l,val,i,q,h;hashes=exports.flatten(arguments);hl=hashes.length;parts=[];h=0;for(;h < hl;++ h){hash=hashes[h];for(q in hash){l=encodeURIComponent(q) + "=";val=hash[q];if(! exports.isArrayLike(val)){parts.push(l + encodeURIComponent(val));}else{i=0;for(;i < val.length;++ i){parts.push(l + encodeURIComponent(val[i]));}}}}return parts.join("&");};exports.constructURL=function (){var url_spec,l,rv,comp,k,i,qparts,part,query;url_spec=exports.flatten(arguments);l=url_spec.length;i=0;for(;i < l;++ i){comp=url_spec[i];if(exports.isQuasi(comp)){comp=comp.parts.slice();k=1;for(;k < comp.length;k+=2){comp[k]=exports.encodeURIComponentRFC3986(comp[k]);}comp=comp.join('');}else{if(typeof comp != "string"){break;}}if(rv !== undefined){if(rv.charAt(rv.length - 1) != "/"){rv+="/";}rv+=comp.charAt(0) == "/"?comp.substr(1):comp;}else{rv=comp;}}qparts=[];for(;i < l;++ i){part=exports.constructQueryString(url_spec[i]);if(part.length){qparts.push(part);}}query=qparts.join("&");if(query.length){if(rv.indexOf("?") != - 1){rv+="&";}else{rv+="?";}rv+=query;}return rv;};exports.isSameOrigin=function (url1,url2){var a1,a2;a1=exports.parseURL(url1).authority;if(! a1){return true;}a2=exports.parseURL(url2).authority;return ! a2 || (a1 == a2);};exports.normalizeURL=function (url,base){var a,pin,l,pout,c,i,rv;if(__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32'){url=url.replace(/\\/g,"/");base=base.replace(/\\/g,"/");}a=exports.parseURL(url);if(base && (base=exports.parseURL(base)) && (! a.protocol || a.protocol == base.protocol)){if(! a.directory && ! a.protocol){a.directory=base.directory;if(! a.path && (a.query || a.anchor)){a.file=base.file;}}else{if(a.directory && a.directory.charAt(0) != '/'){a.directory=(base.directory || "/") + a.directory;}}if(! a.protocol){a.protocol=base.protocol;if(! a.authority){a.authority=base.authority;}}}a.directory=a.directory.replace(/\/\/+/g,'/');pin=a.directory.split("/");l=pin.length;pout=[];i=0;for(;i < l;++ i){c=pin[i];if(c == "."){continue;}if(c == ".."){if(pout.length > 1){pout.pop();}}else{pout.push(c);}}if(a.file === '.'){a.file='';}else{if(a.file === '..'){if(pout.length > 2){pout.splice(- 2,1);}a.file='';}}a.directory=pout.join("/");rv="";if(a.protocol){rv+=a.protocol + ":";}if(a.authority){rv+="//" + a.authority;}else{if(a.protocol == "file"){rv+="//";}}rv+=a.directory + a.file;if(a.query){rv+="?" + a.query;}if(a.anchor){rv+="#" + a.anchor;}return rv;};exports.jsonp=jsonp_hostenv;exports.getXDomainCaps=getXDomainCaps_hostenv;exports.request=request_hostenv;exports.makeMemoizedFunction=function (f,keyfn){var lookups_in_progress,memoizer;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){lookups_in_progress={};memoizer=function (){var key,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[9,__oni_rt.Sc(590,function(_oniX){return key=_oniX;},__oni_rt.If(__oni_rt.Nb(function(){return keyfn},589),__oni_rt.C(function(){return keyfn.apply(this.tobj,this.aobj)},589),__oni_rt.Nb(function(){return this.aobj[0]},589))),__oni_rt.Nb(function(){rv=memoizer.db[key];},591),__oni_rt.Nb(function(){if(typeof rv !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return(rv);},591),this);},591),__oni_rt.Nb(function(){if(! lookups_in_progress[key])return __oni_rt.ex(__oni_rt.Sc(595,function(_oniX){return lookups_in_progress[key]=_oniX;},__oni_rt.Spawn(595,__oni_rt.C(function(){return (function (self,args){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(594,__oni_rt.Return,__oni_rt.Sc(594,function(_oniX){return memoizer.db[key]=_oniX;},__oni_rt.C(function(){return f.apply(self,args)},594)))])})(this.tobj,this.aobj)},595))),this);},592),__oni_rt.Try(0,__oni_rt.Sc(597,__oni_rt.Return,__oni_rt.C(function(){return lookups_in_progress[key].waitforValue()},597)),0,__oni_rt.If(__oni_rt.Sc(600,__oni_rt.infix['=='],__oni_rt.C(function(){return lookups_in_progress[key].waiting()},600),0),__oni_rt.Seq(0,__oni_rt.C(function(){return lookups_in_progress[key].abort()},601),__oni_rt.Nb(function(){return delete lookups_in_progress[key];},602))))])};memoizer.db={};return __oni_rt.Return(memoizer);},588)])};exports.eval=eval_hostenv;pendingLoads={};exports._makeRequire=makeRequire;compiled_src_tag=/^\/\*\__oni_compiled_sjs_1\*\//;default_compiler.module_args=['module','exports','require','__onimodulename','__oni_altns'];canonical_id_to_module={};github_api="https://api.github.com/";github_opts={cbfield:"callback"};exports.resolve=function (url,require_obj,parent,opts){require_obj=require_obj || exports.require;parent=parent || getTopReqParent_hostenv();opts=opts || {};return resolve(url,require_obj,parent,opts);};exports.require=makeRequire(getTopReqParent_hostenv());exports.require.modules['builtin:apollo-sys.sjs']={id:'builtin:apollo-sys.sjs',exports:exports,loaded_from:"[builtin]",required_by:{"[system]":1}};return exports.init=function (cb){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.C(function(){return init_hostenv()},1213),__oni_rt.C(function(){return cb()},1214)])};},55)])
-var location,jsonp_req_count,jsonp_cb_obj,XHR_caps,activex_xhr_ver,IE_resume_counter;function determineLocation(){var scripts,matches,i;if(! location){location={};scripts=document.getElementsByTagName("script");i=0;for(;i < scripts.length;++ i){if((matches=/^(.*\/)(?:[^\/]*)stratified(?:[^\/]*)\.js(?:\?.*)?$/.exec(scripts[i].src))){location.location=exports.normalizeURL(matches[1] + "modules/",document.location.href);location.requirePrefix=scripts[i].getAttribute("require-prefix");location.req_base=scripts[i].getAttribute("req-base") || document.location.href;location.main=scripts[i].getAttribute("main");location.noInlineScripts=scripts[i].getAttribute("no-inline-scripts");location.waitForBundle=scripts[i].getAttribute("wait-for-bundle");break;}}if(! location.req_base){location.req_base=document.location.href;}}return location;}function jsonp_hostenv(url,settings){var opts;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){opts=exports.mergeObjects({iframe:false,cbfield:"callback"},settings);url=exports.constructURL(url,opts.query);},0),__oni_rt.Nb(function(){if(opts.iframe || opts.forcecb)return __oni_rt.ex(__oni_rt.Sc(112,__oni_rt.Return,__oni_rt.C(function(){return jsonp_iframe(url,opts)},112)),this);else return __oni_rt.ex(__oni_rt.Sc(114,__oni_rt.Return,__oni_rt.C(function(){return jsonp_indoc(url,opts)},114)),this);},111)])}function jsonp_indoc(url,opts){var cb,cb_query,elem,complete,readystatechange,error,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(! window[jsonp_cb_obj]){window[jsonp_cb_obj]={};}cb="cb" + (jsonp_req_count++ );cb_query={};cb_query[opts.cbfield]=jsonp_cb_obj + "." + cb;url=exports.constructURL(url,cb_query);elem=document.createElement("script");elem.setAttribute("src",url);elem.setAttribute("async","async");elem.setAttribute("type","text/javascript");complete=false;},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){window[jsonp_cb_obj][cb]=resume;return document.getElementsByTagName("head")[0].appendChild(elem);},136),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Nb(function(){if(elem.addEventListener)return __oni_rt.ex(__oni_rt.C(function(){return elem.addEventListener("error",resume,false)},141),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){readystatechange=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(elem.readyState == 'loaded' && ! complete)return __oni_rt.ex(__oni_rt.Fcall(0,145,__oni_rt.Nb(function(){return resume},144),__oni_rt.Fcall(2,144,__oni_rt.Nb(function(){return Error},144),"script loaded but `complete` flag not set")),this);},144)])};},146),__oni_rt.C(function(){return elem.attachEvent("onreadystatechange",readystatechange)},146)),this);},140),__oni_env)}, function() {error=arguments[0];}),0,__oni_rt.Nb(function(){if(elem.removeEventListener)return __oni_rt.ex(__oni_rt.C(function(){return elem.removeEventListener("error",resume,false)},151),this);else return __oni_rt.ex(__oni_rt.C(function(){return elem.detachEvent("onreadystatechange",readystatechange)},153),this);},150)),this)},155),__oni_rt.Sc(155,__oni_rt.Throw,__oni_rt.Fcall(2,155,__oni_rt.Nb(function(){return Error},155),__oni_rt.Nb(function(){return "Could not complete JSONP request to '" + url + "'" + (error?"\n" + error.message:"")},155)),155,'apollo-sys-xbrowser.sjs')),__oni_env)}, function() {rv=arguments[0];}),0,__oni_rt.Seq(0,__oni_rt.C(function(){return elem.parentNode.removeChild(elem)},158),__oni_rt.Nb(function(){return delete window[jsonp_cb_obj][cb];},159))),this)},161),__oni_rt.Nb(function(){complete=true;return __oni_rt.Return(rv);},161)])}function jsonp_iframe(url,opts){var cb,cb_query,iframe,doc,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){cb=opts.forcecb || "R";cb_query={};if(opts.cbfield){cb_query[opts.cbfield]=cb;}url=exports.constructURL(url,cb_query);iframe=document.createElement("iframe");document.getElementsByTagName("head")[0].appendChild(iframe);doc=iframe.contentWindow.document;},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return doc.open()},178),__oni_rt.Nb(function(){return iframe.contentWindow[cb]=resume;},179),__oni_rt.C(function(){return __oni_rt.Hold(0)},182),__oni_rt.C(function(){return doc.write("\x3Cscript type='text/javascript' src=\"" + url + "\">\x3C/script>")},183),__oni_rt.C(function(){return doc.close()},184)),__oni_env)}, function() {rv=arguments[0];}),0,__oni_rt.C(function(){return iframe.parentNode.removeChild(iframe)},187)),this)},191),__oni_rt.C(function(){return __oni_rt.Hold(0)},191),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},192)])}function getXHRCaps(){if(! XHR_caps){XHR_caps={};if(__oni_rt.G.XMLHttpRequest){XHR_caps.XHR_ctor=function (){return new XMLHttpRequest();};}else{XHR_caps.XHR_ctor=function (){var req,v;if(typeof activex_xhr_ver !== 'undefined'){return new ActiveXObject(activex_xhr_ver);}for(v in {"MSXML2.XMLHTTP.6.0":1,"MSXML2.XMLHTTP.3.0":1,"MSXML2.XMLHTTP":1}){try{req=new ActiveXObject(v);activex_xhr_ver=v;return req;}catch(e){;}}throw new Error("Browser does not support XMLHttpRequest");};}XHR_caps.XHR_CORS=("withCredentials" in XHR_caps.XHR_ctor());if(! XHR_caps.XHR_CORS){XHR_caps.XDR=(typeof __oni_rt.G.XDomainRequest !== 'undefined');}XHR_caps.CORS=(XHR_caps.XHR_CORS || XHR_caps.XDR)?"CORS":"none";}return XHR_caps;}function getXDomainCaps_hostenv(){return getXHRCaps().CORS;}function getTopReqParent_hostenv(){var base;base=determineLocation().req_base;return {id:base,loaded_from:base,required_by:{"[system]":1}};}function resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(req_obj.path && req_obj.path.length){url_string=exports.constructURL(req_obj.path,url_string);}return exports.normalizeURL(url_string,parent.id);}function request_hostenv(url,settings){var opts,caps,req,h,error,txt,err;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){opts=exports.mergeObjects({method:"GET",body:null,response:'string',throwing:true},settings);url=exports.constructURL(url,opts.query);caps=getXHRCaps();if(! caps.XDR || exports.isSameOrigin(url,document.location)){req=caps.XHR_ctor();req.open(opts.method,url,true,opts.username || "",opts.password || "");}else{req=new XDomainRequest();req.open(opts.method,url);}},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof req.onerror !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){req.onload=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume()},300)])};req.onerror=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume(true)},301)])};return req.onabort=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume(true)},302)])};},300),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return req.onreadystatechange=function (evt){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(req.readyState != 4)return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return();},307),this);else return __oni_rt.ex(__oni_rt.C(function(){return resume()},309),this);},306)])};},310),this);},299),__oni_rt.Nb(function(){if(opts.headers && req.setRequestHeader){for(h in opts.headers){req.setRequestHeader(h,opts.headers[h]);}}if(opts.mime && req.overrideMimeType){req.overrideMimeType(opts.mime);}if(opts.response === 'arraybuffer'){req.responseType='arraybuffer';}req.send(opts.body);},0)),__oni_env)}, function() {error=arguments[0];}),0,__oni_rt.Nb(function(){if(typeof req.onerror !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){req.onload=null;req.onerror=null;return req.onabort=null;},333),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return req.onreadystatechange=null},338),this);},332),__oni_rt.C(function(){return req.abort()},329)),this)},342),__oni_rt.If(__oni_rt.Seq(2,__oni_rt.Nb(function(){return error},342),__oni_rt.Seq(4,__oni_rt.Nb(function(){return typeof req.status !== 'undefined'},343),__oni_rt.Sc(344,function(r){return ! r},__oni_rt.Sc(344,__oni_rt.infix['in'],__oni_rt.Fcall(1,344,__oni_rt.Sc(344,function(l){return [l,'charAt'];},__oni_rt.C(function(){return req.status.toString()},344)),0),__oni_rt.Nb(function(){return {'0':1,'2':1}},344))))),__oni_rt.Seq(0,__oni_rt.Nb(function(){if(opts.throwing){txt="Failed " + opts.method + " request to '" + url + "'";if(req.statusText){txt+=": " + req.statusText;}if(req.status){txt+=" (" + req.status + ")";}err=new Error(txt);err.status=req.status;err.data=req.response;throw err;}},345),__oni_rt.Nb(function(){if(opts.response === 'string')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return("");},356),this);},355))),__oni_rt.Nb(function(){if(opts.response === 'string')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return(req.responseText);},361),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(opts.response === 'arraybuffer')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return({status:req.status,content:req.response,getHeader:function(name){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[33,__oni_rt.C(function(){return req.getResponseHeader(name)},367)])}});},367),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return({status:req.status,content:req.responseText,getHeader:function(name){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[33,__oni_rt.C(function(){return req.getResponseHeader(name)},375)])}});},375),this);},362),this);},360)])}function getHubs_hostenv(){return [["sjs:",determineLocation().location || {src:function (path){throw new Error("Can't load module '" + path + "': The location of the StratifiedJS standard module lib is unknown - it can only be inferred automatically if you load stratified.js in the normal way through a <script> element.");}}],["github:",{src:github_src_loader}],["http:",{src:http_src_loader}],["https:",{src:http_src_loader}],["file:",{src:http_src_loader}],["x-wmapp1:",{src:http_src_loader}],["local:",{src:http_src_loader}]];}function getExtensions_hostenv(){return {'sjs':default_compiler,'js':function (src,descriptor){var f;f=new Function("module","exports",src);return f.apply(descriptor.exports,[descriptor,descriptor.exports]);},'html':html_sjs_extractor};}function eval_hostenv(code,settings){var filename,mode,js;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(__oni_rt.UA == "msie" && __oni_rt.G.execScript)return __oni_rt.ex(__oni_rt.Sc(422,__oni_rt.Return,__oni_rt.C(function(){return eval_msie(code,settings)},422)),this);},421),__oni_rt.Nb(function(){filename=(settings && settings.filename) || "sjs_eval_code";},425),__oni_rt.Sc(425,function(_oniX){return filename=_oniX;},__oni_rt.Sc(425,__oni_rt.join_str,"'",__oni_rt.C(function(){return filename.replace(/\'/g,'\\\'')},425),"'")),__oni_rt.Nb(function(){mode=(settings && settings.mode) || "normal";},427),__oni_rt.Sc(428,function(_oniX){return js=_oniX;},__oni_rt.C(function(){return __oni_rt.c1.compile(code,{filename:filename,mode:mode})},427)),__oni_rt.Sc(428,__oni_rt.Return,__oni_rt.C(function(){return __oni_rt.G.eval(js)},428))])}function eval_msie(code,settings){var filename,mode,rc,js,rv,isexception;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){filename=(settings && settings.filename) || "sjs_eval_code";},441),__oni_rt.Sc(441,function(_oniX){return filename=_oniX;},__oni_rt.Sc(441,__oni_rt.join_str,"'",__oni_rt.C(function(){return filename.replace(/\'/g,'\\\'')},441),"'")),__oni_rt.Nb(function(){mode=(settings && settings.mode) || "normal";},443),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Suspend(function(__oni_env,resume){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){rc=++ IE_resume_counter;return __oni_rt.IE_resume[rc]=resume;},446),__oni_rt.Sc(450,function(_oniX){return js=_oniX;},__oni_rt.C(function(){return __oni_rt.c1.compile("try{" + code + "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume[" + rc + "](rv[0],rv[1])) }",{filename:filename,mode:mode})},449)),__oni_rt.C(function(){return __oni_rt.G.execScript(js)},450)),__oni_env)}, function() {rv=arguments[0];isexception=arguments[1];}),__oni_rt.Nb(function(){if(isexception)return __oni_rt.ex(__oni_rt.Sc(452,__oni_rt.Throw,__oni_rt.Nb(function(){return rv},452),452,'apollo-sys-xbrowser.sjs'),this);},452)),0,__oni_rt.Nb(function(){return delete __oni_rt.IE_resume[rc];},455)),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},457)])}function init_hostenv(){}function runScripts(){var scripts,ss,s,i,s,m,content,descriptor,f,i,mainModule;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.If(__oni_rt.Sc(481,function(l){return l.waitForBundle;},__oni_rt.C(function(){return determineLocation()},481)),__oni_rt.Nb(function(){if(__oni_rt_bundle.h === undefined)return __oni_rt.ex(__oni_rt.Nb(function(){__oni_rt_bundle_hook=runScripts;return __oni_rt.Return();},485),this);},483)),__oni_rt.If(__oni_rt.Sc(490,function(r){return ! r[0][r[1]]},__oni_rt.Sc(490,function(l){return [l,'noInlineScripts'];},__oni_rt.C(function(){return determineLocation()},490))),__oni_rt.Seq(0,__oni_rt.Nb(function(){scripts=document.getElementsByTagName("script");ss=[];i=0;for(;i < scripts.length;++ i){s=scripts[i];if(s.getAttribute("type") == "text/sjs"){ss.push(s);}}},0),__oni_rt.Seq(0,__oni_rt.Nb(function(){i=0;},533),__oni_rt.Loop(0,__oni_rt.Nb(function(){return i < ss.length},510),__oni_rt.Nb(function(){return ++ i},510),__oni_rt.Nb(function(){s=ss[i];m=s.getAttribute("module");content=s.textContent || s.innerHTML;if(__oni_rt.UA == "msie"){content=content.replace(/\r\n/,"");}},0),__oni_rt.Nb(function(){if(m)return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.modsrc[m]=content},522),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){descriptor={id:document.location.href + "_inline_sjs_" + (i + 1)};return __oni_rt.sys.require.main=descriptor;},527),__oni_rt.Sc(530,function(_oniX){return f=_oniX;},__oni_rt.C(function(){return exports.eval("(function(module, __onimodulename){" + content + "\n})",{filename:("module "+(descriptor.id))})},529)),__oni_rt.C(function(){return f(descriptor)},530)),this);},521))))),__oni_rt.Nb(function(){mainModule=determineLocation().main;},535),__oni_rt.Nb(function(){if(mainModule)return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.sys.require(mainModule,{main:true})},536),this);},535)])}__oni_rt.exseq(this ? this.arguments : undefined,this,'apollo-sys-xbrowser.sjs',[24,__oni_rt.Nb(function(){if(determineLocation().requirePrefix){__oni_rt.G[determineLocation().requirePrefix]={require:__oni_rt.sys.require};}else{__oni_rt.G.require=__oni_rt.sys.require;}jsonp_req_count=0;jsonp_cb_obj="_oni_jsonpcb";IE_resume_counter=0;__oni_rt.IE_resume={};return window.onerror=function (a,b,c,d,e){if(e){console.error("Uncaught " + e.toString());return true;}};},78),__oni_rt.Nb(function(){if(! __oni_rt.G.__oni_rt_no_script_load)return __oni_rt.ex(__oni_rt.Nb(function(){if(document.readyState === "complete" || document.readyState === "interactive")return __oni_rt.ex(__oni_rt.C(function(){return runScripts()},541),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(__oni_rt.G.addEventListener)return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.G.addEventListener("DOMContentLoaded",runScripts,true)},545),this);else return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.G.attachEvent("onload",runScripts)},547),this);},544),this);},540),this);},478)])})({})
+(function(exports) {var UNDEF,arrayCtors,arrayCtorNames,c,i,_flatten,parseURLOptions,pendingLoads,compiled_src_tag,canonical_id_to_module,github_api,github_opts;function URI(){}function makeRequire(parent){var rf;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rf=function (module,settings){var opts,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){opts=exports.extendObject({},settings);},631),__oni_rt.Nb(function(){if(opts.callback)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Try(0,__oni_rt.Sc(634,function(_oniX){return rv=_oniX;},__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},633),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},633),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},633))),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return opts.callback(e)},635),__oni_rt.Nb(function(){return __oni_rt.Return();},635)),__oni_env)},0),__oni_rt.C(function(){return opts.callback(UNDEF,rv)},637),__oni_rt.Nb(function(){return __oni_rt.Return();},638)),this);else return __oni_rt.ex(__oni_rt.Sc(641,__oni_rt.Return,__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},641),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},641),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},641))),this);},631)])};rf.resolve=function (module,settings){var opts;opts=exports.extendObject({},settings);return resolve(module,rf,parent,opts);};rf.path="";rf.alias={};if(exports.require){rf.hubs=exports.require.hubs;rf.modules=exports.require.modules;rf.extensions=exports.require.extensions;}else{rf.hubs=augmentHubs(getHubs_hostenv());rf.modules={};rf.extensions=getExtensions_hostenv();}rf.url=function (relative){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(672,__oni_rt.Return,__oni_rt.Sc(672,(l)=>l.path,__oni_rt.C(function(){return resolve(relative,rf,parent)},672)))])};return __oni_rt.Return(rf);},644)])}function augmentHubs(hubs){hubs.addDefault=function (hub){if(! this.defined(hub[0])){this.unshift(hub);return true;}return false;};hubs.defined=function (prefix){var h,l,i;i=0;for(;i < this.length;i++ ){h=this[i][0];l=Math.min(h.length,prefix.length);if(h.substr(0,l) == prefix.substr(0,l)){return true;}}return false;};return hubs;}function html_sjs_extractor(html,descriptor){var re,match,src;re=/<script (?:[^>]+ )?(?:type=['"]text\/sjs['"]|main=['"]([^'"]+)['"])[^>]*>((.|[\r\n])*?)<\/script>/mg;src='';while(match=re.exec(html)){if(match[1]){src+='require("' + match[1] + '")';}else{src+=match[2];}src+=';';}if(! src){throw new Error("No sjs found in HTML file");}return default_compiler(src,descriptor);}function resolveAliases(module,aliases){var ALIAS_REST,alias_rest,alias,rv,level;ALIAS_REST=/^([^:]+):(.*)$/;rv=module;level=10;while((alias_rest=ALIAS_REST.exec(rv)) && (alias=aliases[alias_rest[1]])){if(-- level == 0){throw new Error("Too much aliasing in modulename '" + module + "'");}rv=alias + alias_rest[2];}return rv;}function resolveHubs(module,hubs,require_obj,parent,opts){var path,loader,src,resolve,level,i,hub;path=module;loader=opts.loader || default_loader;src=opts.src || default_src_loader;resolve=default_resolver;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}level=10;i=0;while(hub=hubs[i++ ]){if(path.indexOf(hub[0]) == 0){if(typeof hub[1] == "string"){path=hub[1] + path.substring(hub[0].length);i=0;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}if(-- level == 0){throw new Error("Too much indirection in hub resolution for module '" + module + "'");}}else{if(typeof hub[1] == "object"){if(hub[1].src){src=hub[1].src;}if(hub[1].loader){loader=hub[1].loader;}resolve=hub[1].resolve || loader.resolve || resolve;break;}else{throw new Error("Unexpected value for require.hubs element '" + hub[0] + "'");}}}}return {path:path,loader:loader,src:src,resolve:resolve};}function default_src_loader(path){throw new Error("Don't know how to load module at " + path);}function default_compiler(src,descriptor){var f;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof (src) === 'function')return __oni_rt.ex(__oni_rt.Nb(function(){return f=src;},777),this);else return __oni_rt.ex(__oni_rt.If(__oni_rt.C(function(){return compiled_src_tag.exec(src)},779),__oni_rt.Sc(785,function(_oniX){return f=_oniX;},__oni_rt.Fcall(2,785,__oni_rt.Nb(function(){return Function},785),"module","exports","require","__onimodulename","__oni_altns",__oni_rt.Nb(function(){return src},785))),__oni_rt.Sc(789,function(_oniX){return f=_oniX;},__oni_rt.C(function(){return exports.eval("(function(module,exports,require, __onimodulename, __oni_altns){" + src + "\n})",{filename:("module "+(descriptor.id))})},789))),this);},776),__oni_rt.C(function(){return f(descriptor,descriptor.exports,descriptor.require,("module "+(descriptor.id)),{})},791)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Nb(function(){if(e instanceof SyntaxError)return __oni_rt.ex(__oni_rt.Sc(798,__oni_rt.Throw,__oni_rt.Fcall(2,798,__oni_rt.Nb(function(){return Error},798),__oni_rt.Nb(function(){return ("In module "+(descriptor.id)+": "+(e.message))},798)),798,'apollo-sys-common.sjs'),this);else return __oni_rt.ex(__oni_rt.Sc(801,__oni_rt.Throw,__oni_rt.Nb(function(){return e},801),801,'apollo-sys-common.sjs'),this);},797),__oni_env)},0)])}function checkForDependencyCycles(root_node,target_node){var deeper_cycle,name;if(! root_node.waiting_on){return false;}for(name in root_node.waiting_on){if(root_node.waiting_on[name] === target_node){return [root_node.id];}deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);if(deeper_cycle){return [root_node.id].concat(deeper_cycle);}}return false;}function default_loader(path,parent,src_loader,opts,spec){var compile,descriptor,pendingHook,dep_cycle;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[9,__oni_rt.Nb(function(){compile=exports.require.extensions[spec.type];},837),__oni_rt.Nb(function(){if(! compile)return __oni_rt.ex(__oni_rt.Sc(838,__oni_rt.Throw,__oni_rt.Fcall(2,838,__oni_rt.Nb(function(){return Error},838),__oni_rt.Nb(function(){return "Unknown type '" + spec.type + "'"},838)),838,'apollo-sys-common.sjs'),this);},837),__oni_rt.Nb(function(){descriptor=exports.require.modules[path];pendingHook=pendingLoads[path];},841),__oni_rt.Nb(function(){if((! descriptor && ! pendingHook) || opts.reload)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};},852),__oni_rt.Sc(922,function(_oniX){return pendingHook=_oniX;},__oni_rt.Sc(922,function(_oniX){return pendingLoads[path]=_oniX;},__oni_rt.Spawn(922,__oni_rt.C(function(){return (function (){var src,loaded_from,canonical_id;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Alt(__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof src_loader === "string")return __oni_rt.ex(__oni_rt.Nb(function(){src=src_loader;loaded_from="[src string]";},0),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(path in __oni_rt.modsrc)return __oni_rt.ex(__oni_rt.Nb(function(){loaded_from="[builtin]";src=__oni_rt.modsrc[path];delete __oni_rt.modsrc[path];},0),this);else return __oni_rt.ex(__oni_rt.Sc(873,function(_oniX){src=_oniX.src;loaded_from=_oniX.loaded_from;return _oniX;},__oni_rt.C(function(){return src_loader(path)},873)),this);},863),this);},857),__oni_rt.Nb(function(){descriptor.loaded_from=loaded_from;descriptor.require=makeRequire(descriptor);canonical_id=null;descriptor.getCanonicalId=function (){return canonical_id;};descriptor.setCanonicalId=function (id){var canonical;if(id == null){throw new Error("Canonical ID cannot be null");}if(canonical_id !== null){throw new Error("Canonical ID is already defined for module " + path);}canonical=canonical_id_to_module[id];if(canonical != null){throw new Error("Canonical ID " + id + " is already defined in module " + canonical.id);}canonical_id=id;canonical_id_to_module[id]=descriptor;};if(opts.main){descriptor.require.main=descriptor;}exports.require.modules[path]=descriptor;},0),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.C(function(){return compile(src,descriptor)},908),__oni_rt.Nb(function(){return __oni_rt.Return(descriptor);},909)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},911),__oni_rt.Sc(912,__oni_rt.Throw,__oni_rt.Nb(function(){return e},912),912,'apollo-sys-common.sjs')),__oni_env)},0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},914))),__oni_rt.Suspend(function(__oni_env,resume){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return __oni_rt.Hold(0)},918),__oni_rt.Nb(function(){return pendingHook.resume=resume;},919)),__oni_env)}, function() {}))])})()},922)))),__oni_rt.Nb(function(){return pendingHook.pending_descriptor=descriptor;},924)),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(! descriptor)return __oni_rt.ex(__oni_rt.Nb(function(){return descriptor=pendingHook.pending_descriptor;},927),this);},926),this);},843),__oni_rt.Nb(function(){if(pendingHook)return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(! parent.waiting_on){parent.waiting_on={};}parent.waiting_on[path]=descriptor;dep_cycle=checkForDependencyCycles(descriptor,parent);},0),__oni_rt.Nb(function(){if(dep_cycle)return __oni_rt.ex(__oni_rt.Sc(942,__oni_rt.Throw,__oni_rt.Fcall(2,942,__oni_rt.Nb(function(){return Error},942),__oni_rt.Sc(942,__oni_rt.infix['+'],__oni_rt.Nb(function(){return ("Cyclic require() dependency: "+(parent.id)+" -> ")},942),__oni_rt.C(function(){return dep_cycle.join(' -> ')},942))),942,'apollo-sys-common.sjs'),this);},941),__oni_rt.C(function(){return pendingHook.waitforValue()},944),__oni_rt.Nb(function(){return delete parent.waiting_on[path];},953)),0,__oni_rt.If(__oni_rt.Sc(966,__oni_rt.infix['=='],__oni_rt.C(function(){return pendingHook.waiting()},966),0),__oni_rt.Nb(function(){return delete pendingLoads[path]},967)),__oni_rt.If(__oni_rt.Seq(4,__oni_rt.Sc(959,__oni_rt.infix['=='],__oni_rt.C(function(){return pendingHook.waiting()},959),0),__oni_rt.Nb(function(){return pendingHook.resume},959)),__oni_rt.Seq(0,__oni_rt.C(function(){return pendingHook.resume()},960),__oni_rt.C(function(){return pendingHook.value()},961)))),this);},930),__oni_rt.Nb(function(){if(! descriptor.required_by[parent.id]){descriptor.required_by[parent.id]=1;}else{++ descriptor.required_by[parent.id];}return __oni_rt.Return(descriptor.exports);},971)])}function default_resolver(spec){if(! spec.ext && spec.path.charAt(spec.path.length - 1) !== '/'){spec.path+="." + spec.type;}}function http_src_loader(path){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(989,__oni_rt.Return,__oni_rt.Sc(989,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.C(function(){return request_hostenv([path,{format:'compiled'}],{mime:'text/plain'})},987),__oni_rt.Nb(function(){return path},989)))])}function github_src_loader(path){var user,repo,tag,url,data,str;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Sc(1002,function(_oniX){user=_oniX[1];repo=_oniX[2];tag=_oniX[3];path=_oniX[4];return _oniX;},__oni_rt.C(function(){return /github:\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path)},1002)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Sc(1003,__oni_rt.Throw,__oni_rt.Fcall(2,1003,__oni_rt.Nb(function(){return Error},1003),__oni_rt.Nb(function(){return "Malformed module id '" + path + "'"},1003)),1003,'apollo-sys-common.sjs'),__oni_env)},0),__oni_rt.Sc(1007,function(_oniX){return url=_oniX;},__oni_rt.C(function(){return exports.constructURL(github_api,'repos',user,repo,"contents",path,{ref:tag})},1005)),__oni_rt.Alt(__oni_rt.Sc(1009,function(_oniX){return data=_oniX;},__oni_rt.Sc(1008,(l)=>l.data,__oni_rt.C(function(){return jsonp_hostenv(url,github_opts)},1008))),__oni_rt.Seq(0,__oni_rt.C(function(){return __oni_rt.Hold(10000)},1011),__oni_rt.Sc(1012,__oni_rt.Throw,__oni_rt.Fcall(2,1012,__oni_rt.Nb(function(){return Error},1012),"Github timeout"),1012,'apollo-sys-common.sjs'))),__oni_rt.Nb(function(){if(data.message && ! data.content)return __oni_rt.ex(__oni_rt.Sc(1015,__oni_rt.Throw,__oni_rt.Fcall(2,1015,__oni_rt.Nb(function(){return Error},1015),__oni_rt.Nb(function(){return data.message},1015)),1015,'apollo-sys-common.sjs'),this);},1014),__oni_rt.Sc(1020,function(_oniX){return str=_oniX;},__oni_rt.C(function(){return exports.require('sjs:string')},1018)),__oni_rt.Sc(1023,__oni_rt.Return,__oni_rt.Sc(1023,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.Fcall(1,1021,__oni_rt.Nb(function() { return [str,'utf8ToUtf16']},1021),__oni_rt.C(function(){return str.base64ToOctets(data.content)},1021)),__oni_rt.Nb(function(){return url},1023)))])}function resolve(module,require_obj,parent,opts){var path,hubs,resolveSpec,ext,extMatch,preload,pendingHubs,deleteHubs,entries,parent,resolved,ent,i,k,i,path,contents;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1031,function(_oniX){return path=_oniX;},__oni_rt.C(function(){return resolveAliases(module,require_obj.alias)},1029)),__oni_rt.Nb(function(){hubs=exports.require.hubs;},1033),__oni_rt.Sc(1036,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolveHubs(path,hubs,require_obj,parent,opts || {})},1033)),__oni_rt.Nb(function(){resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);extMatch=/.+\.([^\.\/]+)$/.exec(resolveSpec.path);if(extMatch){ext=extMatch[1].toLowerCase();resolveSpec.ext=ext;if(! exports.require.extensions[ext]){ext=null;}}return resolveSpec.type=ext || 'sjs';},1036),__oni_rt.C(function(){return resolveSpec.resolve(resolveSpec,parent)},1048),__oni_rt.Nb(function(){preload=__oni_rt.G.__oni_rt_bundle;pendingHubs=false;if(preload.h){deleteHubs=[];for(k in preload.h){if(! Object.prototype.hasOwnProperty.call(preload.h,k)){continue;}entries=preload.h[k];parent=getTopReqParent_hostenv();resolved=resolveHubs(k,hubs,exports.require,parent,{});if(resolved.path === k){pendingHubs=true;continue;}i=0;for(;i < entries.length;i++ ){ent=entries[i];preload.m[resolved.path + ent[0]]=ent[1];}deleteHubs.push(k);}if(! pendingHubs){delete preload.h;}else{i=0;for(;i < deleteHubs.length;i++ ){delete preload.h[deleteHubs[i]];}}}if(module in __oni_rt.modsrc){if(! preload.m){preload.m={};}preload.m[resolveSpec.path]=__oni_rt.modsrc[module];delete __oni_rt.modsrc[module];}if(preload.m){path=resolveSpec.path;if(path.indexOf('!sjs',path.length - 4) !== - 1){path=path.slice(0,- 4);}contents=preload.m[path];if(contents !== undefined){resolveSpec.src=function (){delete preload.m[path];return {src:contents,loaded_from:path + "#bundle"};};}}return __oni_rt.Return(resolveSpec);},0)])}function requireInner(module,require_obj,parent,opts){var resolveSpec;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1127,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolve(module,require_obj,parent,opts)},1124)),__oni_rt.Sc(1127,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec)},1127)),__oni_rt.Nb(function(){return __oni_rt.Return(module);},1129)])}function requireInnerMultiple(modules,require_obj,parent,opts){var rv;function inner(i,l){var descriptor,id,exclude,include,name,module,addSym,o,i,o,split;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){if(l === 1)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){descriptor=modules[i];if(typeof descriptor === 'string'){id=descriptor;exclude=[];include=null;name=null;}else{id=descriptor.id;exclude=descriptor.exclude || [];include=descriptor.include || null;name=descriptor.name || null;}},1141),__oni_rt.Sc(1158,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return requireInner(id,require_obj,parent,opts)},1155)),__oni_rt.Nb(function(){addSym=function (k,v){if(rv[k] !== undefined){if(rv[k] === v){return;}throw new Error(("require([.]) name clash while merging module '"+(id)+"': Symbol '"+(k)+"' defined in multiple modules"));}rv[k]=v;};if(name){addSym(name,module);}else{if(include){i=0;for(;i < include.length;i++ ){o=include[i];if(! (o in module)){throw new Error(("require([.]) module "+(id)+" has no symbol "+(o)));}addSym(o,module[o]);}}else{for(o in module){if(exclude.indexOf(o) !== - 1){continue;}addSym(o,module[o]);}}}},0)),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Sc(1188,function(_oniX){return split=_oniX;},__oni_rt.C(function(){return Math.floor(l / 2)},1187)),__oni_rt.Par(__oni_rt.C(function(){return inner(i,split)},1189),__oni_rt.C(function(){return inner(i + split,l - split)},1192))),this);},1139)])}return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rv={};},1138),__oni_rt.Nb(function(){if(modules.length !== 0)return __oni_rt.ex(__oni_rt.C(function(){return inner(0,modules.length)},1198),this);},1198),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},1199)])}__oni_rt.exseq(this ? this.arguments : undefined,this,'apollo-sys-common.sjs',[24,__oni_rt.Nb(function(){__oni_rt.sys=exports;if(! (__oni_rt.G.__oni_rt_bundle)){__oni_rt.G.__oni_rt_bundle={};}exports.hostenv=__oni_rt.hostenv;exports.getGlobal=function (){return __oni_rt.G;};exports.withDynVarContext=function (){var old_dyn_vars,proto_context,block;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){old_dyn_vars=__oni_rt.current_dyn_vars;},94),__oni_rt.Nb(function(){if(this.aobj.length === 1)return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=old_dyn_vars;return block=this.aobj[0];},96),this);else return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=this.aobj[0];return block=this.aobj[1];},100),this);},95),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=Object.create(proto_context);},105),__oni_rt.C(function(){return block()},106)),0,__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=old_dyn_vars;},109))])};exports.getCurrentDynVarContext=function (){return __oni_rt.current_dyn_vars;};exports.setDynVar=function (name,value){var key;if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to retrieve "+(name)));}key='$' + name;__oni_rt.current_dyn_vars[key]=value;};exports.clearDynVar=function (name){var key;if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to clear "+(name)));}key='$' + name;delete __oni_rt.current_dyn_vars[key];};exports.getDynVar=function (name,default_val){var key;key='$' + name;if(__oni_rt.current_dyn_vars === null){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist (no dynamic variable context)"));}}if(! (key in __oni_rt.current_dyn_vars)){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist"));}}return __oni_rt.current_dyn_vars[key];};arrayCtors=[];arrayCtorNames=['Uint8Array','Uint16Array','Uint32Array','Int8Array','Int16Array','Int32Array','Float32Array','Float64Array','NodeList','HTMLCollection','FileList','StaticNodeList','DataTransferItemList'];i=0;for(;i < arrayCtorNames.length;i++ ){c=__oni_rt.G[arrayCtorNames[i]];if(c){arrayCtors.push(c);}}exports.isArrayLike=function (obj){var i;if(Array.isArray(obj) || ! ! (obj && Object.prototype.hasOwnProperty.call(obj,'callee'))){return true;}i=0;for(;i < arrayCtors.length;i++ ){if(obj instanceof arrayCtors[i]){return true;}}return false;};_flatten=function (arr,rv){var l,elem,i;l=arr.length;i=0;for(;i < l;++ i){elem=arr[i];if(exports.isArrayLike(elem)){_flatten(elem,rv);}else{rv.push(elem);}}};exports.flatten=function (arr){var rv;rv=[];if(arr.length === UNDEF){throw new Error("flatten() called on non-array");}_flatten(arr,rv);return rv;};exports.expandSingleArgument=function (args){if(args.length == 1 && exports.isArrayLike(args[0])){args=args[0];}return args;};exports.isReifiedStratum=function (obj){return (obj instanceof __oni_rt.ReifiedStratumProto);};exports.isQuasi=function (obj){return (obj instanceof __oni_rt.QuasiProto);};exports.Quasi=function (arr){return __oni_rt.Quasi.apply(__oni_rt,arr);};exports.mergeObjects=function (){var rv,sources,i;rv={};sources=exports.expandSingleArgument(arguments);i=0;for(;i < sources.length;i++ ){exports.extendObject(rv,sources[i]);}return rv;};exports.extendObject=function (dest,source){var o;for(o in source){if(Object.prototype.hasOwnProperty.call(source,o)){dest[o]=source[o];}}return dest;};URI.prototype={toString:function (){return ((this.protocol)+"://"+(this.authority)+(this.relative));}};URI.prototype.params=function (){var rv;if(! this._params){rv={};this.query.replace(parseURLOptions.qsParser,function (_,k,v){if(k){rv[decodeURIComponent(k)]=decodeURIComponent(v);}});this._params=rv;}return this._params;};parseURLOptions={key:["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/};exports.parseURL=function (str){var o,m,uri,i;o=parseURLOptions;m=o.parser.exec(str);uri=new URI();i=14;while(i-- ){uri[o.key[i]]=m[i] || "";}return uri;};exports.encodeURIComponentRFC3986=function (str){return encodeURIComponent(str).replace(/[!'()*]/g,function (c){return '%' + c.charCodeAt(0).toString(16);});};exports.constructQueryString=function (){var hashes,hl,parts,hash,l,val,i,q,h;hashes=exports.flatten(arguments);hl=hashes.length;parts=[];h=0;for(;h < hl;++ h){hash=hashes[h];for(q in hash){l=encodeURIComponent(q) + "=";val=hash[q];if(! exports.isArrayLike(val)){parts.push(l + encodeURIComponent(val));}else{i=0;for(;i < val.length;++ i){parts.push(l + encodeURIComponent(val[i]));}}}}return parts.join("&");};exports.constructURL=function (){var url_spec,l,rv,comp,k,i,qparts,part,query;url_spec=exports.flatten(arguments);l=url_spec.length;i=0;for(;i < l;++ i){comp=url_spec[i];if(exports.isQuasi(comp)){comp=comp.parts.slice();k=1;for(;k < comp.length;k+=2){comp[k]=exports.encodeURIComponentRFC3986(comp[k]);}comp=comp.join('');}else{if(typeof comp != "string"){break;}}if(rv !== undefined){if(rv.charAt(rv.length - 1) != "/"){rv+="/";}rv+=comp.charAt(0) == "/"?comp.substr(1):comp;}else{rv=comp;}}qparts=[];for(;i < l;++ i){part=exports.constructQueryString(url_spec[i]);if(part.length){qparts.push(part);}}query=qparts.join("&");if(query.length){if(rv.indexOf("?") != - 1){rv+="&";}else{rv+="?";}rv+=query;}return rv;};exports.isSameOrigin=function (url1,url2){var a1,a2;a1=exports.parseURL(url1).authority;if(! a1){return true;}a2=exports.parseURL(url2).authority;return ! a2 || (a1 == a2);};exports.normalizeURL=function (url,base){var a,pin,l,pout,c,i,rv;if(__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32'){url=url.replace(/\\/g,"/");base=base.replace(/\\/g,"/");}a=exports.parseURL(url);if(base && (base=exports.parseURL(base)) && (! a.protocol || a.protocol == base.protocol)){if(! a.directory && ! a.protocol){a.directory=base.directory;if(! a.path && (a.query || a.anchor)){a.file=base.file;}}else{if(a.directory && a.directory.charAt(0) != '/'){a.directory=(base.directory || "/") + a.directory;}}if(! a.protocol){a.protocol=base.protocol;if(! a.authority){a.authority=base.authority;}}}a.directory=a.directory.replace(/\/\/+/g,'/');pin=a.directory.split("/");l=pin.length;pout=[];i=0;for(;i < l;++ i){c=pin[i];if(c == "."){continue;}if(c == ".."){if(pout.length > 1){pout.pop();}}else{pout.push(c);}}if(a.file === '.'){a.file='';}else{if(a.file === '..'){if(pout.length > 2){pout.splice(- 2,1);}a.file='';}}a.directory=pout.join("/");rv="";if(a.protocol){rv+=a.protocol + ":";}if(a.authority){rv+="//" + a.authority;}else{if(a.protocol == "file"){rv+="//";}}rv+=a.directory + a.file;if(a.query){rv+="?" + a.query;}if(a.anchor){rv+="#" + a.anchor;}return rv;};exports.jsonp=jsonp_hostenv;exports.getXDomainCaps=getXDomainCaps_hostenv;exports.request=request_hostenv;exports.makeMemoizedFunction=function (f,keyfn){var lookups_in_progress,memoizer;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){lookups_in_progress={};memoizer=function (){var key,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[9,__oni_rt.Sc(590,function(_oniX){return key=_oniX;},__oni_rt.If(__oni_rt.Nb(function(){return keyfn},589),__oni_rt.C(function(){return keyfn.apply(this.tobj,this.aobj)},589),__oni_rt.Nb(function(){return this.aobj[0]},589))),__oni_rt.Nb(function(){rv=memoizer.db[key];},591),__oni_rt.Nb(function(){if(typeof rv !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return(rv);},591),this);},591),__oni_rt.Nb(function(){if(! lookups_in_progress[key])return __oni_rt.ex(__oni_rt.Sc(595,function(_oniX){return lookups_in_progress[key]=_oniX;},__oni_rt.Spawn(595,__oni_rt.C(function(){return (function (self,args){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(594,__oni_rt.Return,__oni_rt.Sc(594,function(_oniX){return memoizer.db[key]=_oniX;},__oni_rt.C(function(){return f.apply(self,args)},594)))])})(this.tobj,this.aobj)},595))),this);},592),__oni_rt.Try(0,__oni_rt.Sc(597,__oni_rt.Return,__oni_rt.C(function(){return lookups_in_progress[key].waitforValue()},597)),0,__oni_rt.If(__oni_rt.Sc(600,__oni_rt.infix['=='],__oni_rt.C(function(){return lookups_in_progress[key].waiting()},600),0),__oni_rt.Seq(0,__oni_rt.C(function(){return lookups_in_progress[key].abort()},601),__oni_rt.Nb(function(){return delete lookups_in_progress[key];},602))))])};memoizer.db={};return __oni_rt.Return(memoizer);},588)])};exports.eval=eval_hostenv;pendingLoads={};exports._makeRequire=makeRequire;compiled_src_tag=/^\/\*\__oni_compiled_sjs_1\*\//;default_compiler.module_args=['module','exports','require','__onimodulename','__oni_altns'];canonical_id_to_module={};github_api="https://api.github.com/";github_opts={cbfield:"callback"};exports.resolve=function (url,require_obj,parent,opts){require_obj=require_obj || exports.require;parent=parent || getTopReqParent_hostenv();opts=opts || {};return resolve(url,require_obj,parent,opts);};exports.require=makeRequire(getTopReqParent_hostenv());exports.require.modules['builtin:apollo-sys.sjs']={id:'builtin:apollo-sys.sjs',exports:exports,loaded_from:"[builtin]",required_by:{"[system]":1}};return exports.init=function (cb){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.C(function(){return init_hostenv()},1213),__oni_rt.C(function(){return cb()},1214)])};},55)])
+var location,jsonp_req_count,jsonp_cb_obj,XHR_caps,activex_xhr_ver,IE_resume_counter;function determineLocation(){var scripts,matches,i;if(! location){location={};scripts=document.getElementsByTagName("script");i=0;for(;i < scripts.length;++ i){if((matches=/^(.*\/)(?:[^\/]*)stratified(?:[^\/]*)\.js(?:\?.*)?$/.exec(scripts[i].src))){location.location=exports.normalizeURL(matches[1] + "modules/",document.location.href);location.requirePrefix=scripts[i].getAttribute("require-prefix");location.req_base=scripts[i].getAttribute("req-base") || document.location.href;location.main=scripts[i].getAttribute("main");location.noInlineScripts=scripts[i].getAttribute("no-inline-scripts");location.waitForBundle=scripts[i].getAttribute("wait-for-bundle");break;}}if(! location.req_base){location.req_base=document.location.href;}}return location;}function jsonp_hostenv(url,settings){var opts;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){opts=exports.mergeObjects({iframe:false,cbfield:"callback"},settings);url=exports.constructURL(url,opts.query);},0),__oni_rt.Nb(function(){if(opts.iframe || opts.forcecb)return __oni_rt.ex(__oni_rt.Sc(112,__oni_rt.Return,__oni_rt.C(function(){return jsonp_iframe(url,opts)},112)),this);else return __oni_rt.ex(__oni_rt.Sc(114,__oni_rt.Return,__oni_rt.C(function(){return jsonp_indoc(url,opts)},114)),this);},111)])}function jsonp_indoc(url,opts){var cb,cb_query,elem,complete,readystatechange,error,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(! window[jsonp_cb_obj]){window[jsonp_cb_obj]={};}cb="cb" + (jsonp_req_count++ );cb_query={};cb_query[opts.cbfield]=jsonp_cb_obj + "." + cb;url=exports.constructURL(url,cb_query);elem=document.createElement("script");elem.setAttribute("src",url);elem.setAttribute("async","async");elem.setAttribute("type","text/javascript");complete=false;},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){window[jsonp_cb_obj][cb]=resume;return document.getElementsByTagName("head")[0].appendChild(elem);},136),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Nb(function(){if(elem.addEventListener)return __oni_rt.ex(__oni_rt.C(function(){return elem.addEventListener("error",resume,false)},141),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){readystatechange=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(elem.readyState == 'loaded' && ! complete)return __oni_rt.ex(__oni_rt.Fcall(0,145,__oni_rt.Nb(function(){return resume},144),__oni_rt.Fcall(2,144,__oni_rt.Nb(function(){return Error},144),"script loaded but `complete` flag not set")),this);},144)])};},146),__oni_rt.C(function(){return elem.attachEvent("onreadystatechange",readystatechange)},146)),this);},140),__oni_env)}, function() {error=arguments[0];}),0,__oni_rt.Nb(function(){if(elem.removeEventListener)return __oni_rt.ex(__oni_rt.C(function(){return elem.removeEventListener("error",resume,false)},151),this);else return __oni_rt.ex(__oni_rt.C(function(){return elem.detachEvent("onreadystatechange",readystatechange)},153),this);},150)),this)},155),__oni_rt.Sc(155,__oni_rt.Throw,__oni_rt.Fcall(2,155,__oni_rt.Nb(function(){return Error},155),__oni_rt.Nb(function(){return "Could not complete JSONP request to '" + url + "'" + (error?"\n" + error.message:"")},155)),155,'apollo-sys-xbrowser.sjs')),__oni_env)}, function() {rv=arguments[0];}),0,__oni_rt.Seq(0,__oni_rt.C(function(){return elem.parentNode.removeChild(elem)},158),__oni_rt.Nb(function(){return delete window[jsonp_cb_obj][cb];},159))),this)},161),__oni_rt.Nb(function(){complete=true;return __oni_rt.Return(rv);},161)])}function jsonp_iframe(url,opts){var cb,cb_query,iframe,doc,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){cb=opts.forcecb || "R";cb_query={};if(opts.cbfield){cb_query[opts.cbfield]=cb;}url=exports.constructURL(url,cb_query);iframe=document.createElement("iframe");document.getElementsByTagName("head")[0].appendChild(iframe);doc=iframe.contentWindow.document;},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return doc.open()},178),__oni_rt.Nb(function(){return iframe.contentWindow[cb]=resume;},179),__oni_rt.C(function(){return __oni_rt.Hold(0)},182),__oni_rt.C(function(){return doc.write("\x3Cscript type='text/javascript' src=\"" + url + "\">\x3C/script>")},183),__oni_rt.C(function(){return doc.close()},184)),__oni_env)}, function() {rv=arguments[0];}),0,__oni_rt.C(function(){return iframe.parentNode.removeChild(iframe)},187)),this)},191),__oni_rt.C(function(){return __oni_rt.Hold(0)},191),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},192)])}function getXHRCaps(){if(! XHR_caps){XHR_caps={};if(__oni_rt.G.XMLHttpRequest){XHR_caps.XHR_ctor=function (){return new XMLHttpRequest();};}else{XHR_caps.XHR_ctor=function (){var req,v;if(typeof activex_xhr_ver !== 'undefined'){return new ActiveXObject(activex_xhr_ver);}for(v in {"MSXML2.XMLHTTP.6.0":1,"MSXML2.XMLHTTP.3.0":1,"MSXML2.XMLHTTP":1}){try{req=new ActiveXObject(v);activex_xhr_ver=v;return req;}catch(e){;}}throw new Error("Browser does not support XMLHttpRequest");};}XHR_caps.XHR_CORS=("withCredentials" in XHR_caps.XHR_ctor());if(! XHR_caps.XHR_CORS){XHR_caps.XDR=(typeof __oni_rt.G.XDomainRequest !== 'undefined');}XHR_caps.CORS=(XHR_caps.XHR_CORS || XHR_caps.XDR)?"CORS":"none";}return XHR_caps;}function getXDomainCaps_hostenv(){return getXHRCaps().CORS;}function getTopReqParent_hostenv(){var base;base=determineLocation().req_base;return {id:base,loaded_from:base,required_by:{"[system]":1}};}function resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(req_obj.path && req_obj.path.length){url_string=exports.constructURL(req_obj.path,url_string);}return exports.normalizeURL(url_string,parent.id);}function request_hostenv(url,settings){var opts,caps,req,h,error,txt,err;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){opts=exports.mergeObjects({method:"GET",body:null,response:'string',throwing:true},settings);url=exports.constructURL(url,opts.query);caps=getXHRCaps();if(! caps.XDR || exports.isSameOrigin(url,document.location)){req=caps.XHR_ctor();req.open(opts.method,url,true,opts.username || "",opts.password || "");}else{req=new XDomainRequest();req.open(opts.method,url);}},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof req.onerror !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){req.onload=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume()},300)])};req.onerror=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume(true)},301)])};return req.onabort=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume(true)},302)])};},300),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return req.onreadystatechange=function (evt){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(req.readyState != 4)return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return();},307),this);else return __oni_rt.ex(__oni_rt.C(function(){return resume()},309),this);},306)])};},310),this);},299),__oni_rt.Nb(function(){if(opts.headers && req.setRequestHeader){for(h in opts.headers){req.setRequestHeader(h,opts.headers[h]);}}if(opts.mime && req.overrideMimeType){req.overrideMimeType(opts.mime);}if(opts.response === 'arraybuffer'){req.responseType='arraybuffer';}req.send(opts.body);},0)),__oni_env)}, function() {error=arguments[0];}),0,__oni_rt.Nb(function(){if(typeof req.onerror !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){req.onload=null;req.onerror=null;return req.onabort=null;},333),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return req.onreadystatechange=null},338),this);},332),__oni_rt.C(function(){return req.abort()},329)),this)},342),__oni_rt.If(__oni_rt.Seq(2,__oni_rt.Nb(function(){return error},342),__oni_rt.Seq(4,__oni_rt.Nb(function(){return typeof req.status !== 'undefined'},343),__oni_rt.Sc(344,function(r){return ! r},__oni_rt.Sc(344,__oni_rt.infix['in'],__oni_rt.Fcall(1,344,__oni_rt.Sc(344,(l)=>[l,'charAt'],__oni_rt.C(function(){return req.status.toString()},344)),0),__oni_rt.Nb(function(){return {'0':1,'2':1}},344))))),__oni_rt.Seq(0,__oni_rt.Nb(function(){if(opts.throwing){txt="Failed " + opts.method + " request to '" + url + "'";if(req.statusText){txt+=": " + req.statusText;}if(req.status){txt+=" (" + req.status + ")";}err=new Error(txt);err.status=req.status;err.data=req.response;throw err;}},345),__oni_rt.Nb(function(){if(opts.response === 'string')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return("");},356),this);},355))),__oni_rt.Nb(function(){if(opts.response === 'string')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return(req.responseText);},361),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(opts.response === 'arraybuffer')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return({status:req.status,content:req.response,getHeader:function(name){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[33,__oni_rt.C(function(){return req.getResponseHeader(name)},367)])}});},367),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return({status:req.status,content:req.responseText,getHeader:function(name){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[33,__oni_rt.C(function(){return req.getResponseHeader(name)},375)])}});},375),this);},362),this);},360)])}function getHubs_hostenv(){return [["sjs:",determineLocation().location || {src:function (path){throw new Error("Can't load module '" + path + "': The location of the StratifiedJS standard module lib is unknown - it can only be inferred automatically if you load stratified.js in the normal way through a <script> element.");}}],["github:",{src:github_src_loader}],["http:",{src:http_src_loader}],["https:",{src:http_src_loader}],["file:",{src:http_src_loader}],["x-wmapp1:",{src:http_src_loader}],["local:",{src:http_src_loader}]];}function getExtensions_hostenv(){return {'sjs':default_compiler,'js':function (src,descriptor){var f;f=new Function("module","exports",src);return f.apply(descriptor.exports,[descriptor,descriptor.exports]);},'html':html_sjs_extractor};}function eval_hostenv(code,settings){var filename,mode,js;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(__oni_rt.UA == "msie" && __oni_rt.G.execScript)return __oni_rt.ex(__oni_rt.Sc(422,__oni_rt.Return,__oni_rt.C(function(){return eval_msie(code,settings)},422)),this);},421),__oni_rt.Nb(function(){filename=(settings && settings.filename) || "sjs_eval_code";},425),__oni_rt.Sc(425,function(_oniX){return filename=_oniX;},__oni_rt.Sc(425,__oni_rt.join_str,"'",__oni_rt.C(function(){return filename.replace(/\'/g,'\\\'')},425),"'")),__oni_rt.Nb(function(){mode=(settings && settings.mode) || "normal";},427),__oni_rt.Sc(428,function(_oniX){return js=_oniX;},__oni_rt.C(function(){return __oni_rt.c1.compile(code,{filename:filename,mode:mode})},427)),__oni_rt.Sc(428,__oni_rt.Return,__oni_rt.C(function(){return __oni_rt.G.eval(js)},428))])}function eval_msie(code,settings){var filename,mode,rc,js,rv,isexception;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){filename=(settings && settings.filename) || "sjs_eval_code";},441),__oni_rt.Sc(441,function(_oniX){return filename=_oniX;},__oni_rt.Sc(441,__oni_rt.join_str,"'",__oni_rt.C(function(){return filename.replace(/\'/g,'\\\'')},441),"'")),__oni_rt.Nb(function(){mode=(settings && settings.mode) || "normal";},443),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Suspend(function(__oni_env,resume){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){rc=++ IE_resume_counter;return __oni_rt.IE_resume[rc]=resume;},446),__oni_rt.Sc(450,function(_oniX){return js=_oniX;},__oni_rt.C(function(){return __oni_rt.c1.compile("try{" + code + "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume[" + rc + "](rv[0],rv[1])) }",{filename:filename,mode:mode})},449)),__oni_rt.C(function(){return __oni_rt.G.execScript(js)},450)),__oni_env)}, function() {rv=arguments[0];isexception=arguments[1];}),__oni_rt.Nb(function(){if(isexception)return __oni_rt.ex(__oni_rt.Sc(452,__oni_rt.Throw,__oni_rt.Nb(function(){return rv},452),452,'apollo-sys-xbrowser.sjs'),this);},452)),0,__oni_rt.Nb(function(){return delete __oni_rt.IE_resume[rc];},455)),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},457)])}function init_hostenv(){}function runScripts(){var scripts,ss,s,i,s,m,content,descriptor,f,i,mainModule;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.If(__oni_rt.Sc(481,(l)=>l.waitForBundle,__oni_rt.C(function(){return determineLocation()},481)),__oni_rt.Nb(function(){if(__oni_rt_bundle.h === undefined)return __oni_rt.ex(__oni_rt.Nb(function(){__oni_rt_bundle_hook=runScripts;return __oni_rt.Return();},485),this);},483)),__oni_rt.If(__oni_rt.Sc(490,function(r){return ! r[0][r[1]]},__oni_rt.Sc(490,(l)=>[l,'noInlineScripts'],__oni_rt.C(function(){return determineLocation()},490))),__oni_rt.Seq(0,__oni_rt.Nb(function(){scripts=document.getElementsByTagName("script");ss=[];i=0;for(;i < scripts.length;++ i){s=scripts[i];if(s.getAttribute("type") == "text/sjs"){ss.push(s);}}},0),__oni_rt.Seq(0,__oni_rt.Nb(function(){i=0;},533),__oni_rt.Loop(0,__oni_rt.Nb(function(){return i < ss.length},510),__oni_rt.Nb(function(){return ++ i},510),__oni_rt.Nb(function(){s=ss[i];m=s.getAttribute("module");content=s.textContent || s.innerHTML;if(__oni_rt.UA == "msie"){content=content.replace(/\r\n/,"");}},0),__oni_rt.Nb(function(){if(m)return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.modsrc[m]=content},522),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){descriptor={id:document.location.href + "_inline_sjs_" + (i + 1)};return __oni_rt.sys.require.main=descriptor;},527),__oni_rt.Sc(530,function(_oniX){return f=_oniX;},__oni_rt.C(function(){return exports.eval("(function(module, __onimodulename){" + content + "\n})",{filename:("module "+(descriptor.id))})},529)),__oni_rt.C(function(){return f(descriptor)},530)),this);},521))))),__oni_rt.Nb(function(){mainModule=determineLocation().main;},535),__oni_rt.Nb(function(){if(mainModule)return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.sys.require(mainModule,{main:true})},536),this);},535)])}__oni_rt.exseq(this ? this.arguments : undefined,this,'apollo-sys-xbrowser.sjs',[24,__oni_rt.Nb(function(){if(determineLocation().requirePrefix){__oni_rt.G[determineLocation().requirePrefix]={require:__oni_rt.sys.require};}else{__oni_rt.G.require=__oni_rt.sys.require;}jsonp_req_count=0;jsonp_cb_obj="_oni_jsonpcb";IE_resume_counter=0;__oni_rt.IE_resume={};return window.onerror=function (a,b,c,d,e){if(e){console.error("Uncaught " + e.toString());return true;}};},78),__oni_rt.Nb(function(){if(! __oni_rt.G.__oni_rt_no_script_load)return __oni_rt.ex(__oni_rt.Nb(function(){if(document.readyState === "complete" || document.readyState === "interactive")return __oni_rt.ex(__oni_rt.C(function(){return runScripts()},541),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(__oni_rt.G.addEventListener)return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.G.addEventListener("DOMContentLoaded",runScripts,true)},545),this);else return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.G.attachEvent("onload",runScripts)},547),this);},544),this);},540),this);},478)])})({})
