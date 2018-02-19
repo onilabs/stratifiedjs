@@ -268,9 +268,23 @@ var SemaphoreProto = {
       See documentation for [::Semaphore::synchronize]
       for an alternative to doing this manually.
    */
-  release : function() {
-    spawn ((this.sync ? null : hold(0)), ++this.permits,
-           (this.permits>0 && this.queue.length ? this.queue.shift()() : null))
+  release : __js function() {
+    if (this.sync) {
+      if (++this.permits > 0 && this.queue.length > 0)
+        this.queue.shift()();
+    }
+    else {
+      this.__spawn_release();
+    }
+  },
+
+  __spawn_release : function() {
+    // we only call this from a __js function, so the effect is like spawning
+    hold(0);
+
+    ++this.permits;
+    if (this.permits>0 && this.queue.length) 
+      this.queue.shift()();
   },
 
   /**
@@ -300,7 +314,7 @@ var SemaphoreProto = {
     @summary  Acquire a permit even if there are no available permits. The number 
               of permits will be decremented by 1.
    */
-  forceAcquire: function() {
+  forceAcquire: __js function() {
     --this.permits;
   }
 };
@@ -324,7 +338,7 @@ __js {
     for (var i=0; i<waiting.length; ++i)
       waiting[i](value);
   };
-}
+} // __js
 
 Waitable.wait = function wait() {
   waitfor(var result) {
@@ -433,7 +447,7 @@ var QueueProto = {
     @summary  Returns current number of elements in the queue.
     @return   {Integer}
    */
-  count: function() { return this.items.length; },
+  count: __js function() { return this.items.length; },
 
   /**
     @function Queue.isFull
@@ -447,7 +461,7 @@ var QueueProto = {
             will return `false` if there is a pending `queue.get()` call that is 
             waiting for a `queue.put()`.
    */
-  isFull: function() { return this.S_nonfull.permits <= 0; },
+  isFull: __js function() { return this.S_nonfull.permits <= 0; },
 
   /**
     @function Queue.put
