@@ -101,7 +101,8 @@ var UNDEF; // == undefined
 }
 */
 
-#define is_cfx(obj) (obj && obj.__oni_cfx)
+// The type checking here is to prevent V8 deoptimization when obj is a Smi
+#define is_cfx(obj) (obj !== null && typeof(obj) === 'object' && obj.__oni_cfx)
 // define is_cfx(obj) (obj instanceof CFException)
 /*function is_cfx(obj) {
   return obj && obj.__oni_cfx;
@@ -296,10 +297,11 @@ function cont(frame, idx, val) {
   return rv;
 }
 
-function is_ef(obj) {
+exports.is_ef = function(obj) {
   return obj && obj.__oni_ef;
 }
-exports.is_ef = is_ef;
+// The type checking here is to prevent V8 deoptimization when obj is a Smi
+#define is_ef(obj) (obj !== null && typeof(obj) === 'object' && obj.__oni_ef===true)
 
 function setEFProto(t) { for (var p in EF_Proto) t[p] = EF_Proto[p]; }
 //function setEFProto(t) { t.__proto__ = EF_Proto; }
@@ -463,6 +465,7 @@ var EF_Proto = {
     else // sync context
       return val;
   }
+
 };
 //EF_Proto.__proto__ = null;
 
@@ -590,10 +593,10 @@ function I_call(ndata, env) {
   }
 }
 //exports.C = makeINCtor(I_call);
-exports.C = function(f, line) {
+exports.C = function(/*f, line*/) {
   return {
     exec: I_call,
-    ndata: [f, line],
+    ndata: arguments, //[f, line],
     __oni_dis: token_dis
   }
 };
@@ -617,10 +620,10 @@ function I_nblock(ndata, env) {
   }
 }
 //exports.Nb = makeINCtor(I_nblock);
-exports.Nb = function(f, line) {
+exports.Nb = function(/*f, line*/) {
   return {
     exec: I_nblock,
-    ndata: [f, line],
+    ndata: arguments, //[f, line],
     __oni_dis: token_dis
   };
 };
@@ -1022,8 +1025,9 @@ EF_Fcall.prototype.cont = function(idx, val) {
   else {
     if (idx == 1) {
       // handle a result that has been passed in
-      if (this.i==NDATA_FCALL_ARGS_OFFSET)
+      if (this.i===NDATA_FCALL_ARGS_OFFSET) {
         this.l = val;
+      }
       else
         this.pars.push(val);
     }
@@ -1335,10 +1339,10 @@ function I_if(ndata, env) {
 }
 
 //exports.If = makeINCtor(I_if);
-exports.If = function(t,c,a) {
+exports.If = function(/*t,c,a*/) {
   return {
     exec: I_if,
-    ndata: [t,c,a],
+    ndata: arguments, //[t,c,a],
     __oni_dis: token_dis
   }
 };
@@ -1468,10 +1472,10 @@ function I_switch(ndata, env) {
 }
 
 //exports.Switch = makeINCtor(I_switch);
-exports.Switch = function(exp, clauses) {
+exports.Switch = function(/*exp, clauses*/) {
   return {
     exec: I_switch,
-    ndata: [exp, clauses],
+    ndata: arguments, //[exp, clauses],
     __oni_dis: token_dis
   }
 };
@@ -1710,7 +1714,7 @@ EF_Loop.prototype.cont = function(idx, val) {
   else {
     while (true) {
       // test:
-      if (idx == 0) {
+      if (idx === 0) {
         if (is_cfx(val)) {
           // maybe return value from body here
           return this.returnToParent(val);
@@ -1735,7 +1739,7 @@ EF_Loop.prototype.cont = function(idx, val) {
       }
       // body:
       if (idx > 1) {
-        if (idx == 2) {
+        if (idx === 2) {
           // examine return value from loop test:
           if (!val || is_cfx(val)) {
             // maybe return value from body here
@@ -1745,16 +1749,16 @@ EF_Loop.prototype.cont = function(idx, val) {
         while (1) {
           if (idx > 2) {
             if (is_cfx(val)) {
-              if (val.type == 'blb' && val.ef == this.env.blscope) {
+              if (val.type === 'blb' && val.ef === this.env.blscope) {
                 // blocklambda return
                 val = UNDEF;
               }
               else {
-                if (val.type == "b") {
+                if (val.type === "b") {
                   // break statement
                   val = UNDEF;
                 }
-                else if (val.type == "c") {
+                else if (val.type === "c") {
                   // continue statement
                   val = UNDEF;
                   // break out of the loop; pick up again at increment:
@@ -1933,7 +1937,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
         var arg;
         while (true) {
           if (!this.remainingX.length) {
-            delete this.for_in_obj;
+            this.for_in_obj = undefined;
             return this.returnToParent(val);
           }
           arg = this.remainingX.shift();
@@ -1952,10 +1956,10 @@ function I_forin(ndata, env) {
 }
 
 //exports.ForIn = makeINCtor(I_forin);
-exports.ForIn = function(obj,loop) {
+exports.ForIn = function(/*obj,loop*/) {
   return {
     exec: I_forin,
-    ndata: [obj,loop],
+    ndata: arguments, //[obj,loop],
     __oni_dis: token_dis
   }
 };
@@ -2059,7 +2063,7 @@ EF_Par.prototype.cont = function(idx, val) {
         var return_child;
         for (var i=0; i<this.children.length; ++i)
           if ((return_child = this.children[i])) { 
-            delete this.children;
+            this.children = undefined;
             return this.returnToParent(return_child);
           }
         return this.returnToParent(new CFException("i", "invalid state in Par"));
@@ -2476,7 +2480,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
 #endif
     }
     finally {
-      delete ef.dyn_vars; // aid gc
+      ef.dyn_vars = undefined; // aid gc
       exports.current_dyn_vars = caller_dyn_vars;
     }
   };
@@ -2617,10 +2621,10 @@ function I_sus(ndata, env) {
 }
 
 //exports.Suspend = makeINCtor(I_sus);
-exports.Suspend = function(s,r) {
+exports.Suspend = function(/*s,r*/) {
   return {
     exec: I_sus,
-    ndata: [s,r],
+    ndata: arguments, //[s,r],
     __oni_dis: token_dis
   }
 };
@@ -2811,7 +2815,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.notifyAsync();
   }
   else {
-    delete this.parent_dyn_vars; // aid gc
+    this.parent_dyn_vars = undefined; // aid gc
     this.in_abortion = false;
     this.done = true;
     this.notifyVal(val);
@@ -2862,7 +2866,7 @@ EF_SpawnWaitFrame.prototype.cont = function(val) {
   if (this.parent) {
     var current_dyn_vars = exports.current_dyn_vars;
     exports.current_dyn_vars = this.dyn_vars;
-    delete this.dyn_vars; // aid gc
+    this.dyn_vars = undefined; // aid gc
     cont(this.parent, this.parent_idx, val);
     exports.current_dyn_vars = current_dyn_vars;
   }
@@ -2891,7 +2895,7 @@ EF_SpawnAbortFrame.prototype.cont = function(val) {
   if (this.parent) {
     var current_dyn_vars = exports.current_dyn_vars;
     exports.current_dyn_vars = this.dyn_vars;
-    delete this.dyn_vars; // aid gc
+    this.dyn_vars = undefined; // aid gc
     this.done = true;
 
     // XXX needed?
@@ -3037,10 +3041,10 @@ function I_spawn(ndata, env) {
 }
   
 //exports.Spawn = makeINCtor(I_spawn);
-exports.Spawn = function(line, exp) {
+exports.Spawn = function(/*line, exp*/) {
   return {
     exec: I_spawn,
-    ndata: [line, exp],
+    ndata: arguments, //[line, exp],
     __oni_dis: token_dis
   }
 };
