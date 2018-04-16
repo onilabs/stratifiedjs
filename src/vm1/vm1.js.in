@@ -1327,6 +1327,13 @@ EF_If.prototype.cont = function(idx, val) {
     val = execIN(this.NDATA_IF_CONSEQUENT(), this.env);
   else
     val = execIN(this.NDATA_IF_ALTERNATIVE(), this.env);
+    if (this.aborted) {
+      // a reentrant abortion
+      if (is_ef(val)) {
+        val.quench(); // not sure this is needed here XXX
+        val = val.abort();
+      }
+    }
   break;
   default:
   val = new CFException("i", "invalid state in EF_If");

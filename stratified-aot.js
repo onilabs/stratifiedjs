@@ -1172,6 +1172,13 @@ if(val)val=execIN(this.ndata[1],this.env);else val=execIN(this.ndata[2],this.env
 
 
 
+if(this.aborted){
+
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+val.quench();
+val=val.abort();
+}
+}
 break;
 default:
 val=new CFException("i","invalid state in EF_If");

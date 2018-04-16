@@ -2191,3 +2191,25 @@ test('sync blocklambda return routing edgecase', 'ab', function() {
 
 });
 
+test('reentrant if-abortion edgecase', 'abc', function() {
+  var rv = '';
+  var R;
+  waitfor {
+    waitfor() {
+      R = resume;
+    }
+    rv += 'a';
+  }
+  or {
+    if (hold(0),true) {
+      R();
+      rv += 'b';
+      hold(0);
+      rv + 'X'; // should not be reached
+      hold();
+    }
+  }
+  // this used to be never reached
+  rv += 'c';
+  return rv;
+});
