@@ -2324,7 +2324,19 @@
             }
           }
         },
+        "difference": {
+          "type": "function"
+        },
+        "intersection": {
+          "type": "function"
+        },
         "isSet": {
+          "type": "function"
+        },
+        "toSet": {
+          "type": "function"
+        },
+        "union": {
           "type": "function"
         }
       },

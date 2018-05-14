@@ -301,8 +301,12 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:set](#sjs%3Aset) module:
   
+   - **difference**: (function [sjs:set::difference])
+   - **intersection**: (function [sjs:set::intersection])
    - **isSet**: (function [sjs:set::isSet])
    - **Set**: (class [sjs:set::Set])
+   - **toSet**: (function [sjs:set::toSet])
+   - **union**: (function [sjs:set::union])
   
   
   ### Symbols from the [sjs:string](#sjs%3Astring) module:

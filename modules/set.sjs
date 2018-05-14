@@ -38,6 +38,8 @@
 */
 'use strict';
 
+@ = require('./sequence');
+
 /**
    @class Set
    @summary Abstraction of JS [Set](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) datatype
@@ -46,7 +48,7 @@
      * Sets are semi-concrete [./sequence::Sequence]s.
    @function Set
    @summary Construct a new set
-   @param {optional ::Set|Array} [initial_elements] Initial elements to copy into the set
+   @param {optional ./sequence::Sequence} [initial_elements] Initial elements to copy into the set
    @function Set.add
    @summary Add an element to the set
    @param {Any} [element] Element to insert into the set
@@ -64,12 +66,23 @@
    @variable Set.size
    @summary Integer representing the number of elements currently in the set
 */
+function _Set(initial) {
+  return new Set(initial ? (isSet(initial) ?  initial : initial .. @toArray));
+}
+exports.Set = _Set;
+
+/**
+   @function toSet
+   @param {./sequence::Sequence} [sequence]
+   @summary Convert the given sequence to a [::Set]
+   @return {::Set}
+   @desc
+     If `sequence` is already a [::Set], it will be returned unmodified (i.e. it will not be cloned)
+*/
 __js {
-  function _Set(initial) {
-    return new Set(initial);
-  }
-  exports.Set = _Set;
-} // __js
+  var toSet = seq -> isSet(seq) ? seq : _Set(seq);
+  exports.toSet = toSet;
+}
 
 /**
    @function isSet
@@ -84,3 +97,56 @@ __js {
   exports.isSet = isSet;
 } // __js
 
+/**
+   @function union
+   @param {Array} [sets] Array of [./sequence::Sequence]s
+   @summary Create a set containing the elements of all [./sequence::Sequence]s in `sets`
+   @return {::Set}
+*/
+var union = sets -> _Set(sets .. @concat);
+exports.union = union;
+
+/**
+   @function intersection
+   @param {Array} [sets] Array of [./sequence::Sequence]s
+   @summary Create a set containing the elements common to all [./sequence::Sequence]s in `sets`
+   @return {::Set}
+*/
+function intersection(sequences) {
+  var sets = sequences .. @transform(s -> s .. toSet) .. @sortBy('size');
+  if (sets.length === 0) return _Set(); // empty set
+
+  __js {
+    var I = _Set(sets.shift());
+    sets .. @each {
+      |S|
+      I .. @each {
+        |elem|
+        if (!S.has(elem)) I.delete(elem);
+      }
+    }
+  }
+
+  return I;
+}
+exports.intersection = intersection;
+
+/**
+   @function difference
+   @param {./sequence::Sequence} [a]
+   @param {./sequence::Sequence} [b]
+   @summary Create a set containing the elements in `a` that are not in `b`
+   @return {::Set}
+*/
+function difference(a,b) {
+  var D = _Set(a);
+  b = b .. toSet;
+  __js {
+    D .. @each {
+      |elem|
+      if (b.has(elem)) D.delete(elem);
+    }
+  }
+  return D;
+}
+exports.difference = difference;
