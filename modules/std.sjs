@@ -95,14 +95,14 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:array](#sjs%3Aarray) module:
   
+   - **array_difference**: (function [sjs:array::array_difference])
+   - **array_union**: (function [sjs:array::array_union])
    - **cmp**: (function [sjs:array::cmp])
    - **cycle**: (function [sjs:array::cycle])
-   - **difference**: (function [sjs:array::difference])
    - **flatten**: (function [sjs:array::flatten])
    - **haveCommonElements**: (function [sjs:array::haveCommonElements])
    - **isArrayLike**: (function [sjs:array::isArrayLike])
    - **remove**: (function [sjs:array::remove])
-   - **union**: (function [sjs:array::union])
   
   
   ### Symbols from the [sjs:bytes](#sjs%3Abytes) module:

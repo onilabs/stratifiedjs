@@ -138,7 +138,7 @@ exports.testLibrary = function(hub) {
         var objectKeys = {} .. @keys .. @toArray;
         try {
           moduleExports = require(home.replace(/#/g, escape))
-            .. @keys .. @toArray .. @difference(objectKeys)
+            .. @keys .. @toArray .. @array_difference(objectKeys)
             .. @sort;
         } catch(e) {
           err = e;
@@ -164,7 +164,7 @@ exports.testLibrary = function(hub) {
             var hostenvSymbols = documentedSymbols .. @filter(shouldBeImportable) .. @toArray;
             @info("documentedSymbols = #{hostenvSymbols..@join(",")}");
             @info("moduleExports = #{moduleExports..@join(",")}");
-            hostenvSymbols .. @difference(moduleExports) .. @assert.eq([]);
+            hostenvSymbols .. @array_difference(moduleExports) .. @assert.eq([]);
           }
           .skipIf(isMetadataModule, 'metadata module')
           .skipIf(modulePath .. @contains('doc-template'), 'whitelisted')
@@ -182,7 +182,7 @@ exports.testLibrary = function(hub) {
 
           //TODO?
           //@test("documents all exported symbols") {|s|
-          //  moduleExports .. @difference(documentedSymbols) .. @assert.eq([]);
+          //  moduleExports .. @array_difference(documentedSymbols) .. @assert.eq([]);
           //}.skipIf(['numeric',] .. @hasElem(modulePath), "whitelisted")
         }
       }.skipIf(moduleDoc.hostenv && moduleDoc.hostenv !== @sys.hostenv, moduleDoc.hostenv)
@@ -262,7 +262,7 @@ exports.testLibrary = function(hub) {
               @assert.fail("unknown type: #{symdoc.type}", sym);
               break;
           }
-          var unknownKeys = symdoc .. @ownKeys .. @toArray .. @difference(knownKeys);
+          var unknownKeys = symdoc .. @ownKeys .. @toArray .. @array_difference(knownKeys);
           @assert.eq(unknownKeys, [], "unknown documentation keys for #{sym}");
 
           symdoc .. @ownPropertyPairs .. @each {|[key, value]|

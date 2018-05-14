@@ -75,8 +75,8 @@ exports.generateDocDescription = function(contents, description) {
       }
       if (target) {
         // extend previous module
-        target[0].include = target[0].include .. @union(mod.include);
-        target[1] = target[1] .. @union(hostenvs);
+        target[0].include = target[0].include .. @array_union(mod.include);
+        target[1] = target[1] .. @array_union(hostenvs);
       } else {
         // group duplicate modile entries together
         requiredModules.splice(requiredModules.indexOf(existing .. @at(-1)), 0, [mod, hostenvs]);
@@ -142,7 +142,7 @@ exports.generateDocDescription = function(contents, description) {
         moduleDocs.children
           .. @ownKeys
           .. @toArray
-          .. @difference(mod.exclude || [])
+          .. @array_difference(mod.exclude || [])
           .. claimAll(moduleDocs);
       }
     }

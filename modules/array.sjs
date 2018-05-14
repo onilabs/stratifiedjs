@@ -99,12 +99,15 @@ __js exports.cycle = cycle;
 __js exports.flatten = flatten;
 
 /**
-  @function union
+  @function array_union
   @param    {Array} [a] Set of unique elements
   @param    {Array} [b] Set of unique elements
   @return   {Array} New set containing union of sets `a` and `b`.
   @summary  Union of `a` and `b`, with duplicate elements (under `===`) appearing only once.
   @desc
+
+    See also [./set::union]
+
     ###Notes:
 
     * This is a general but naive implementation with a running time `O(size(a)*size(b))`.
@@ -125,7 +128,7 @@ __js exports.flatten = flatten;
     contains duplicate elements, they will appear in the resulting array, unless there is an
     equal (`===`) element in `a`.
 */
-__js function union(a, b) {
+__js function array_union(a, b) {
   var rv = a.slice();
   var i=0;
   outer:
@@ -139,16 +142,18 @@ __js function union(a, b) {
   }
   return rv;
 }
-__js exports.union = union;
+__js exports.array_union = array_union;
 
 /**
-  @function difference
+  @function array_difference
   @param    {Array} [a]
   @param    {Array} [b]
   @return   {Array} New array containing all elements of `a` that are not in `b` (under `===`)
   @summary  Create an array of elements in `a` that are not in `b` (under `===`).
+  @desc
+    See also [./set::difference]
 */
-__js function difference(a, b) {
+__js function array_difference(a, b) {
   var rv = [];
   for (var i=0; i<a.length; ++i) {
     if (b.indexOf(a[i]) == -1)
@@ -156,7 +161,7 @@ __js function difference(a, b) {
   }
   return rv;
 }
-__js exports.difference = difference;
+__js exports.array_difference = array_difference;
 
 /**
   @function haveCommonElements

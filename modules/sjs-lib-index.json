@@ -160,13 +160,16 @@
     "array": {
       "type": "module",
       "children": {
+        "array_difference": {
+          "type": "function"
+        },
+        "array_union": {
+          "type": "function"
+        },
         "cmp": {
           "type": "function"
         },
         "cycle": {
-          "type": "function"
-        },
-        "difference": {
           "type": "function"
         },
         "flatten": {
@@ -179,9 +182,6 @@
           "type": "function"
         },
         "remove": {
-          "type": "function"
-        },
-        "union": {
           "type": "function"
         }
       },

@@ -370,7 +370,7 @@ Runner.prototype.run = function(reporter) {
     // Otherwise return the names of all globals
     var keys = object.ownKeys(global) .. toArray();
     if (existing) {
-      keys = keys .. array.difference(existing);
+      keys = keys .. array.array_difference(existing);
     } else {
       if (opts.allowedGlobals) {
         keys = keys.concat(opts.allowedGlobals)
@@ -391,7 +391,7 @@ Runner.prototype.run = function(reporter) {
     var ignoreGlobals = test._getIgnoreGlobals();
     if (ignoreGlobals === true) return true; // ignore all globals
 
-    extraGlobals = extraGlobals .. array.difference(ignoreGlobals);
+    extraGlobals = extraGlobals .. array.array_difference(ignoreGlobals);
     if (extraGlobals.length > 0) {
       throw new Error("Test introduced additional global variable(s): #{extraGlobals..sort..join(", ")}");
     }
