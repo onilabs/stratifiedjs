@@ -2333,6 +2333,9 @@
         "isSet": {
           "type": "function"
         },
+        "isSubset": {
+          "type": "function"
+        },
         "toSet": {
           "type": "function"
         },

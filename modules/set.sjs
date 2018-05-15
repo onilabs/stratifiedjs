@@ -150,3 +150,24 @@ function difference(a,b) {
   return D;
 }
 exports.difference = difference;
+
+/**
+   @function isSubset
+   @param {./sequence::Sequence} [a]
+   @param {./sequence::Sequence} [b]
+   @summary Returns true if `a` is a proper subset of `b` or equal to `b`
+*/
+function isSubset(a,b) {
+  a = a .. toSet;
+  b = b .. toSet;
+  return _isSubset(a,b);
+}
+exports.isSubset = isSubset;
+
+__js function _isSubset(a,b) {
+  if (a.size > b.size) return false;
+  for (var x of a) {
+    if (!b.has(x)) return false;
+  }
+  return true;
+}

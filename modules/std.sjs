@@ -304,6 +304,7 @@ module.exports = require(modules);
    - **difference**: (function [sjs:set::difference])
    - **intersection**: (function [sjs:set::intersection])
    - **isSet**: (function [sjs:set::isSet])
+   - **isSubset**: (function [sjs:set::isSubset])
    - **Set**: (class [sjs:set::Set])
    - **toSet**: (function [sjs:set::toSet])
    - **union**: (function [sjs:set::union])
