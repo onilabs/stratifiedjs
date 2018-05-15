@@ -185,6 +185,7 @@ GEN_DO_WHILE(body, test, pctx)
 GEN_WHILE(test, body, pctx)
 GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx)
 GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx)
+GEN_FOR_OF(lhs_exp, decl, obj_exp, body, pctx)
 GEN_CONTINUE(lbl, pctx)
 GEN_BREAK(lbl, pctx)
 GEN_RETURN(exp, pctx)
@@ -889,6 +890,17 @@ NodeType('ForInStatement', function(lhs, decl, obj, body, pctx, ext) {
 });
 Node.ForInStatement.prototype.each = false;
 
+NodeType('ForOfStatement', function(lhs, decl, obj, body, pctx, ext) {
+  this.body = body;
+  this.right = obj;
+  this.left = null;
+  if(lhs)
+    this.left = lhs;
+  else if (decl)
+    this.left = Node.VariableDeclaration(pctx, ext, [decl]);
+});
+Node.ForOfStatement.prototype.each = false;
+
 NodeType('ContinueStatement', function(lbl, pctx) {
   this.label = lbl;
 });
@@ -1564,6 +1576,7 @@ S(">=").ifx(200);
 S("instanceof").ifx(200);
 
 S("in").ifx(200);
+S("of").ifx(200);
 
 S("==").ifx(190);
 S("!=").ifx(190);
@@ -1999,9 +2012,9 @@ function parseStmtTermination(pctx) {
   }
 }
 
-function parseVarDecls(pctx, noIn) {
+function parseVarDecls(pctx, noInOf) {
   var decls = [];
-  var parse = noIn ? parseExpNoIn : parseExp;
+  var parse = noInOf ? parseExpNoInOf : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
     push_extent(pctx, pctx.token, 'parseVarDecls');
@@ -2082,7 +2095,7 @@ S("for").stmt(function(pctx) {
   }
   else {
     if (pctx.token.id != ';')
-      start_exp = parseExpNoIn(pctx);
+      start_exp = parseExpNoInOf(pctx);
   }
 
   if (pctx.token.id == ";") {
@@ -2114,6 +2127,20 @@ S("for").stmt(function(pctx) {
     var decl = decls ? decls[0] : null;
     
     return Node.ForInStatement(pctx, pop_extent(pctx, 'GEN_FOR_IN'), start_exp, decl, obj_exp, body);
+  }
+  else if (pctx.token.id == "of") {
+    scan(pctx);
+    //XXX check that start_exp is a valid LHS
+    if (decls && decls.length > 1)
+      throw new Error("More than one variable declaration in for-of loop");
+    var obj_exp = parseExp(pctx);
+    scan(pctx, ")");
+    /* */
+    var body = parseStmt(pctx);
+    /* */
+    var decl = decls ? decls[0] : null;
+    
+    return Node.ForOfStatement(pctx, pop_extent(pctx, 'GEN_FOR_OF'), start_exp, decl, obj_exp, body);
   }
   else
     throw new Error("Unexpected token '"+pctx.token+"' in for-statement");
@@ -2529,17 +2556,17 @@ function parseExp(pctx, bp, t) {
   return left;
 }
 
-// parse up to keyword 'in' ( where bp might be < bp(in) )
-function parseExpNoIn(pctx, bp, t) {
+// parse up to keywords 'in' or 'of' ( where bp might be < bp(in) )
+function parseExpNoInOf(pctx, bp, t) {
   bp = bp || 0;
   if (!t) {
     t = pctx.token;
     scan(pctx);
   }
-  push_extent(pctx, t, 'parseExpNoIn');
+  push_extent(pctx, t, 'parseExpNoInOf');
   var _ast_extentLength = pctx.extents ? pctx.extents.length : null;
   var left = t.exsf(pctx);
-  while (bp < pctx.token.excbp && pctx.token.id != 'in') {
+  while (bp < pctx.token.excbp && pctx.token.id != 'in' && pctx.token.id != 'of') {
     t = pctx.token;
     // automatic semicolon insertion:
     if (pctx.newline && t.asi_restricted)
@@ -2548,7 +2575,7 @@ function parseExpNoIn(pctx, bp, t) {
     left = t.excf(left, pctx);
   }
   if(_ast_extentLength !== null) {     if(pctx.extents.length !== _ast_extentLength)       throw new Error("mismatch extent: " + left + " - Expected " +_ast_extentLength+", got " + pctx.extents.length);   }
-  pop_extent(pctx, '<parseExpNoIn');
+  pop_extent(pctx, '<parseExpNoInOf');
   return left;
 }
 

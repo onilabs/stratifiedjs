@@ -164,6 +164,20 @@ function gen_fun_pars(pars) {
   rv += body;                                           \
   return rv;
 
+#define GEN_FOR_OF(lhs_exp, decl, obj_exp, body, pctx, ext)  \
+  var rv = "for(";                                      \
+  if (lhs_exp) {                                        \
+    rv += lhs_exp;                                      \
+  }                                                     \
+  else {                                                \
+  rv += "var "+decl[0];                                 \
+  if (decl.length > 1)                                  \
+    rv += "=" +decl[1];                                 \
+  }                                                     \
+  rv += " of " + obj_exp + ")";                         \
+  rv += body;                                           \
+  return rv;
+
 #define GEN_CONTINUE(lbl, pctx, ext)                 \
   var rv = "continue";                          \
   if (lbl !== null)                             \

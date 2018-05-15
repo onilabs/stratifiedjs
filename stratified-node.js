@@ -3373,6 +3373,7 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
+
 pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,is_strict:false,continue_scope:0,break_scope:0});
 
 
@@ -4095,6 +4096,36 @@ if(this.body)rv+=","+this.body.v();
 
 return rv+"), __oni_env)})";
 };
+
+
+function gen_for_of(lhs_exp,decl,obj_exp,body,pctx){var rv;
+
+if(decl){
+rv=gen_var_compound([decl],pctx);
+rv.stmts.push(new ph_for_of(decl[0],obj_exp,body,pctx));
+
+rv=rv.toBlock();
+}else rv=new ph_for_of(lhs_exp,obj_exp,body,pctx);
+
+
+return rv;
+}
+
+function ph_for_of(lhs,obj,body,pctx){this.lhs=lhs;
+
+this.obj=obj;
+this.body=body;
+this.pctx=pctx;
+}
+ph_for_of.prototype=new ph();
+ph_for_of.prototype.nblock_val=function(){return "for("+this.lhs.nb()+" of "+this.obj.nb()+"){"+this.body.nb()+"}";
+
+
+};
+ph_for_of.prototype.val=function(){throw new Error("for-of loops are currently only supported in __js blocks");
+
+};
+
 
 function ph_with(exp,body,pctx){this.exp=exp;
 
@@ -5414,6 +5445,7 @@ S(">=").ifx(200);
 S("instanceof").ifx(200);
 
 S("in").ifx(200);
+S("of").ifx(200);
 
 S("==").ifx(190);
 S("!=").ifx(190);
@@ -5848,9 +5880,9 @@ scan(pctx,";");
 }
 }
 
-function parseVarDecls(pctx,noIn){var decls=[];
+function parseVarDecls(pctx,noInOf){var decls=[];
 
-var parse=noIn?parseExpNoIn:parseExp;
+var parse=noInOf?parseExpNoInOf:parseExp;
 do {
 if(decls.length)scan(pctx,",");
 
@@ -5929,7 +5961,7 @@ scan(pctx);
 decls=parseVarDecls(pctx,true);
 }else{
 
-if(pctx.token.id!=';')start_exp=parseExpNoIn(pctx);
+if(pctx.token.id!=';')start_exp=parseExpNoInOf(pctx);
 
 }
 
@@ -5962,6 +5994,20 @@ var body=parseStmt(pctx);
 var decl=decls?decls[0]:null;
 
 return gen_for_in(start_exp,decl,obj_exp,body,pctx);
+}else if(pctx.token.id=="of"){
+
+scan(pctx);
+
+if(decls&&decls.length>1)throw new Error("More than one variable declaration in for-of loop");
+
+var obj_exp=parseExp(pctx);
+scan(pctx,")");
+++top_decl_scope(pctx).break_scope;++top_decl_scope(pctx).continue_scope;
+var body=parseStmt(pctx);
+--top_decl_scope(pctx).break_scope;--top_decl_scope(pctx).continue_scope;
+var decl=decls?decls[0]:null;
+
+return gen_for_of(start_exp,decl,obj_exp,body,pctx);
 }else throw new Error("Unexpected token '"+pctx.token+"' in for-statement");
 
 
@@ -6342,7 +6388,7 @@ return left;
 }
 
 
-function parseExpNoIn(pctx,bp,t){bp=bp||0;
+function parseExpNoInOf(pctx,bp,t){bp=bp||0;
 
 if(!t){
 t=pctx.token;
@@ -6351,7 +6397,7 @@ scan(pctx);
 
 
 var left=t.exsf(pctx);
-while(bp<pctx.token.excbp&&pctx.token.id!='in'){
+while(bp<pctx.token.excbp&&pctx.token.id!='in'&&pctx.token.id!='of'){
 t=pctx.token;
 
 if(pctx.newline&&t.asi_restricted)return left;

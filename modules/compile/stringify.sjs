@@ -186,6 +186,7 @@ GEN_DO_WHILE(body, test, pctx)
 GEN_WHILE(test, body, pctx)
 GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx)
 GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx)
+GEN_FOR_OF(lhs_exp, decl, obj_exp, body, pctx)
 GEN_CONTINUE(lbl, pctx)
 GEN_BREAK(lbl, pctx)
 GEN_RETURN(exp, pctx)
@@ -374,6 +375,7 @@ function gen_block(code) {
 function gen_fun_pars(pars) {
   return pars.join(",");
 }
+
 
 
 
@@ -925,6 +927,7 @@ S(">=").ifx(200);
 S("instanceof").ifx(200);
 
 S("in").ifx(200);
+S("of").ifx(200);
 
 S("==").ifx(190);
 S("!=").ifx(190);
@@ -1359,9 +1362,9 @@ function parseStmtTermination(pctx) {
   }
 }
 
-function parseVarDecls(pctx, noIn) {
+function parseVarDecls(pctx, noInOf) {
   var decls = [];
-  var parse = noIn ? parseExpNoIn : parseExp;
+  var parse = noInOf ? parseExpNoInOf : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
     
@@ -1441,7 +1444,7 @@ S("for").stmt(function(pctx) {
   }
   else {
     if (pctx.token.id != ';')
-      start_exp = parseExpNoIn(pctx);
+      start_exp = parseExpNoInOf(pctx);
   }
 
   if (pctx.token.id == ";") {
@@ -1473,6 +1476,20 @@ S("for").stmt(function(pctx) {
     var decl = decls ? decls[0] : null;
     
     var rv = "for(";                                        if (start_exp) {                                            rv += start_exp;                                        }                                                       else {                                                  rv += "var "+decl[0];                                   if (decl.length > 1)                                      rv += "=" +decl[1];                                   }                                                       rv += " in " + obj_exp + ")";                           rv += body;                                             return rv;
+  }
+  else if (pctx.token.id == "of") {
+    scan(pctx);
+    //XXX check that start_exp is a valid LHS
+    if (decls && decls.length > 1)
+      throw new Error("More than one variable declaration in for-of loop");
+    var obj_exp = parseExp(pctx);
+    scan(pctx, ")");
+    /* */
+    var body = parseStmt(pctx);
+    /* */
+    var decl = decls ? decls[0] : null;
+    
+    var rv = "for(";                                        if (start_exp) {                                            rv += start_exp;                                        }                                                       else {                                                  rv += "var "+decl[0];                                   if (decl.length > 1)                                      rv += "=" +decl[1];                                   }                                                       rv += " of " + obj_exp + ")";                           rv += body;                                             return rv;
   }
   else
     throw new Error("Unexpected token '"+pctx.token+"' in for-statement");
@@ -1852,8 +1869,8 @@ function parseExp(pctx, bp, t) {
   return left;
 }
 
-// parse up to keyword 'in' ( where bp might be < bp(in) )
-function parseExpNoIn(pctx, bp, t) {
+// parse up to keywords 'in' or 'of' ( where bp might be < bp(in) )
+function parseExpNoInOf(pctx, bp, t) {
   bp = bp || 0;
   if (!t) {
     t = pctx.token;
@@ -1862,7 +1879,7 @@ function parseExpNoIn(pctx, bp, t) {
   
   
   var left = t.exsf(pctx);
-  while (bp < pctx.token.excbp && pctx.token.id != 'in') {
+  while (bp < pctx.token.excbp && pctx.token.id != 'in' && pctx.token.id != 'of') {
     t = pctx.token;
     // automatic semicolon insertion:
     if (pctx.newline && t.asi_restricted)

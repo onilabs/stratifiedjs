@@ -737,6 +737,19 @@ Node.ForInStatement.prototype.each = false;
 #define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx, ext)  \
   return Node.ForInStatement(pctx, ext, lhs_exp, decl, obj_exp, body);
 
+NodeType('ForOfStatement', function(lhs, decl, obj, body, pctx, ext) {
+  this.body = body;
+  this.right = obj;
+  this.left = null;
+  if(lhs)
+    this.left = lhs;
+  else if (decl)
+    this.left = Node.VariableDeclaration(pctx, ext, [decl]);
+});
+Node.ForOfStatement.prototype.each = false;
+#define GEN_FOR_OF(lhs_exp, decl, obj_exp, body, pctx, ext)  \
+  return Node.ForOfStatement(pctx, ext, lhs_exp, decl, obj_exp, body);
+
 NodeType('ContinueStatement', function(lbl, pctx) {
   this.label = lbl;
 });

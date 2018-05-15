@@ -894,6 +894,38 @@ ph_for_in.prototype.val = function() {
     return rv + "), __oni_env)})";
 };
 
+#define GEN_FOR_OF(lhs_exp, decl, obj_exp, body, pctx, ext)  \
+    return gen_for_of(lhs_exp, decl, obj_exp, body, pctx);
+
+function gen_for_of(lhs_exp, decl, obj_exp, body, pctx) {
+  var rv;
+  if (decl) {
+    rv = gen_var_compound([decl], pctx);
+    rv.stmts.push(new ph_for_of(decl[0], obj_exp, body, pctx));
+    // XXX suboptimal
+    rv = rv.toBlock();
+  }
+  else
+    rv = new ph_for_of(lhs_exp, obj_exp, body, pctx);
+  return rv;
+}
+
+function ph_for_of(lhs, obj, body, pctx) {
+  this.lhs = lhs;
+  this.obj = obj;
+  this.body = body;
+  this.pctx = pctx;
+}
+ph_for_of.prototype = new ph(WHENDEBUG("ph_for_of"));
+ph_for_of.prototype.nblock_val = function() {
+  // this is currently only called for forced (__js) nblock contexts
+  return "for("+this.lhs.nb()+" of "+this.obj.nb()+"){"+this.body.nb()+"}";
+};
+ph_for_of.prototype.val = function() {
+  throw new Error("for-of loops are currently only supported in __js blocks");
+};
+
+
 #define GEN_WITH(exp, body, pctx, ext) return new ph_with(exp, body, pctx);
 function ph_with(exp, body, pctx) {
   this.exp = exp;

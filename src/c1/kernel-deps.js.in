@@ -365,6 +365,8 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 
 #define GEN_FOR_IN(lhs_exp, decl, obj_exp, body, pctx, ext) return Dynamic;
 
+#define GEN_FOR_OF(lhs_exp, decl, obj_exp, body, pctx, ext) return Dynamic;
+
 #define GEN_CONTINUE(lbl, pctx, ext) return Dynamic;
 
 #define GEN_BREAK(lbl, pctx, ext) return Dynamic;
