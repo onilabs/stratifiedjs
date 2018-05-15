@@ -43,10 +43,9 @@
 
 var isNode = require('builtin:apollo-sys').hostenv === 'nodejs';
 
-__js {
+@ = require(['./sequence', './set']);
 
-  // return true for Array types as well as typed arrays (e.g. Uint8Array)
-  var isArrayType = (cls) -> /Array\]$/.test(cls);
+__js {
 
   /**
     @function equals
@@ -61,14 +60,17 @@ __js {
       * For simple types (i.e not an object or array), the strict
         equality operator is used (===)
 
-      * Two arrays are equal if they have the same number of
-        elements and the respective elements from each array
+      * Two [./set::Set]s are equal if they contain the same elements (under `===`).
+        I.e. the content of sets is always compared shallowly.
+
+      * Two concrete [./sequence::Sequence]s (e.g. arrays) are equal if they have the same number of
+        elements and the respective elements from each sequence
         are also equal.
 
-      * Two objects are equal if they have the same prototype,
+      * Two (generic) objects are equal if they have the same prototype,
         the same keys, and the values of each key are also equal.
       
-      Child objects (elements of an array and properties of an object)
+      Child objects (elements of a concrete sequence and properties of an object)
       are recursively compared with `eq` if `deep` is true (or not given).
       If `deep` is false, child elements will be compared with `===`,
 
@@ -208,8 +210,23 @@ __js {
 
     var childEq = deep ? eq : simpleEq;
     var size = 0, result = [true, null];
-    // Recursively compare objects and arrays.
-    if (isArrayType(className)) {
+    // for sets, always do a shallow compare:
+    if (@isSet(a)) {
+      // compare element count to determine if an examination of the elements is necessary.
+      size = a.size;
+      var size2 = b.size;
+      if (size !== size2)
+        result = [false, describe && ('expected has ' + size2 + ' elements, actual has ' + size)];
+      else {
+        for (var e of a) {
+          if (!b.has(e)) {
+            result = [false, null];
+            break;
+          }
+        }
+      }
+    }
+    else if (@isConcreteSequence(a)) {
       // Compare array lengths to determine if a deep comparison is necessary.
       size = a.length;
       result = [size == b.length, describe && ('expected has ' + b.length + ' elements, actual has ' + size)];
@@ -223,7 +240,8 @@ __js {
           }
         }
       }
-    } else {
+    } 
+    else {
       if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) {
         return [false, 'prototypes differ'];
       }
