@@ -2493,8 +2493,9 @@ this.setChildFrame(aborted_target,2);
 
 
 
+
 this.returnToParent(this);
-return new CFException('a');
+return;
 }
 
 this.in_abortion=false;
@@ -2547,7 +2548,7 @@ this.return_val=UNDEF;
 this.setChildFrame(aborted_target,2);
 
 this.returnToParent(this);
-return new CFException('a');
+return;
 }
 
 this.in_abortion=false;
@@ -2717,6 +2718,7 @@ if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 return new EF_SpawnAbortFrame(abort_waitarr,ef);
 }
 
+
 if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)||rv.type!=='t')rv=UNDEF;
 
 notifyAborted(rv);
@@ -2863,6 +2865,8 @@ function dummy(){}
 
 
 var hold0,clear0;
+
+
 if(exports.G.setImmediate){
 hold0=exports.G.setImmediate;
 clear0=exports.G.clearImmediate;

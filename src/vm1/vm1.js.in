@@ -785,7 +785,7 @@ EF_Seq.prototype.cont = function(idx, val) {
           val.quench(); // not sure this is needed here XXX
           val = val.abort();
           if (!is_ef(val))
-              return this.returnToParent(val);
+            return this.returnToParent(val);
         }
       }
       if (++idx == this.ndata.length && this.tailcall) {
@@ -2727,7 +2727,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.parent_idx = val.ef.parent_idx;
 
       if (!this.parent) {
-        // synchronous edge case (when this.async == false)
+        // synchronous edge case
         this.done = true;
         return val;
       }
@@ -2746,9 +2746,10 @@ EF_Spawn.prototype.cont = function(idx, val) {
         this.setChildFrame(aborted_target, 2);
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
         // We must not call 'return this.returnToParent', because this code is sometimes called in a sync setting,
-        // where we have to make sure that our original (current) caller sees an 'a' exception:
+        // where we have to make sure that our original (current) caller doesn't see the continuation frame:
+        // (see 'sjs-2-tests:sync blocklamda return routing edgecase')
         this.returnToParent(this); 
-        return new CFException('a'); 
+        return; // Note: We must not return 'a' here - see sjs-2-tests:stray-abort
       }
 
       this.in_abortion = false;
@@ -2801,7 +2802,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
         this.setChildFrame(aborted_target, 2);
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
         this.returnToParent(this);
-        return new CFException('a');
+        return;
       }
 
       this.in_abortion = false;
@@ -2977,6 +2978,7 @@ function I_spawn(ndata, env) {
       return new EF_SpawnAbortFrame(abort_waitarr, ef);
     }
     
+    // the rv.type check prevents CFException('a') from leaking out
     if (!is_cfx(rv) || rv.type !== 't')
       rv = UNDEF;
     notifyAborted(rv);
@@ -3131,6 +3133,8 @@ function dummy() {}
 // setTimeout has a minimum delay of 4ms; we want hold(0) to be faster
 // see e.g. https://github.com/NobleJS/setImmediate/blob/master/setImmediate.js
 var hold0, clear0;
+// Note: we cannot use process.nextTick, because hold(0) must not stall I/O. 
+// It would e.g. break 'require-tests:non-circular reference waits for the full module'
 if (exports.G.setImmediate) {
   hold0 = exports.G.setImmediate;
   clear0 = exports.G.clearImmediate;

@@ -2213,3 +2213,72 @@ test('reentrant if-abortion edgecase', 'abc', function() {
   rv += 'c';
   return rv;
 });
+
+
+/*
+  stray-abort
+
+  This leakage of abort control flow exceptions used to cause a disconnect in the conductance birdge for the following test case:
+
+  abort.app
+  ----------------------------------------------------------------------
+  @ = require(['mho:std', 'mho:app']);
+
+  require('mho:surface/api-connection').withAPI('./abort.api') { 
+    |api|
+
+    function via_server(g) {
+      try {
+        api.C(g);
+      }
+      finally {
+        hold(0);
+      }
+    }
+
+    function test() {
+      via_server { || return 'success'; };
+    }
+
+    document.body .. @appendContent(`<div>${test()}</div>`);
+    hold();
+
+  }
+  ----------------------------------------------------------------------
+
+  abort.api
+  ----------------------------------------------------------------------
+  @ = require(['mho:std']);
+
+  exports.C = f -> f();
+  ----------------------------------------------------------------------
+*/
+test('stray-abort', 'a', function() {
+  var rv = '';
+  function perform_in_js(f) {
+    try {
+      return f();
+    }
+    catch(e) {
+      rv += 'c';
+      throw e;
+    }
+  }
+
+  function inner(a) {
+    function call_via_spawn() {
+      return spawn a();
+    }
+    hold(0);
+    perform_in_js(call_via_spawn);
+    hold();
+  }
+
+  function test() {
+    inner { || return 'a'; }
+  }
+
+  rv += test();
+
+  return rv;  
+});
