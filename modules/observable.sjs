@@ -736,7 +736,7 @@ exports.DelayedObservable = function(observable, dt) {
 
       The first element in the stream is a copy of the current array. (This implies
       that calling [::current] on an ObservableArray yields the desired result of 
-      returning the tracked arrays current value).
+      returning the tracked array's current value).
 
       Subsequent elements of the stream consist of objects that contain a list of mutations:
 
@@ -908,7 +908,7 @@ function ObservableArray_reconstitute(obsarr) {
     var arr = undefined;
     obsarr .. each {
       |item|
-      if (arr === undefined) {
+      if (item.mutations === undefined) {
         arr = item .. clone; // the first item in the stream is always the value itself
       }
       else {
