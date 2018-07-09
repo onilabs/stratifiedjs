@@ -441,3 +441,42 @@ context('wait()') {||
     rv .. assert.eq(2);
   }
 }
+
+test('concurrent retract edgecase') {||
+  var rv = '';
+
+  var E = event.Emitter();
+  var R;
+
+  waitfor {
+    E .. event.wait();
+    waitfor {
+      E .. event.wait(); // this listener used to be erroneously removed by the listener
+                         // retraction triggered by R(), causing the test to hang forever
+      rv += 'C';
+    }
+    and {
+      R(); // this call will abort the event listener in the clause below
+      rv += 'B';
+    }
+
+    rv += 'D';
+  }
+  and {
+    waitfor() {
+      R = resume;
+      // R() will be called before we receive the event, causing the wait() call to be 
+      // aborted
+      E .. event.wait();
+    }
+    rv += 'A';
+  }
+  and {
+    hold(0);
+    E.emit();
+    hold(0);
+    E.emit();
+    rv += 'E';
+  }
+  rv .. assert.eq('ABCDE');
+}

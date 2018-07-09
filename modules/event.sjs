@@ -100,7 +100,18 @@ function Emitter() {
         listeners.push(resume);
       }
       retract {
-        __js listeners.splice(listeners.indexOf(resume), 1);
+        __js {
+          // the listeners array gets exchanged from 'emit',
+          // so if this is a concurrent retract, we must take care not to try 
+          // to accidentally call splice(-1,1) on listeners when our listener isn't found.
+          // i.e., we must not do:
+          //   listeners.splice(listeners.indexOf(resume), 1);
+          // see also event-tests.sjs:concurrent retract edgecase
+          var i = listeners.indexOf(resume);
+          if (i >= 0)
+            listeners.splice(i, 1);
+        } // __js
+
       }
       receiver(val);
     }
