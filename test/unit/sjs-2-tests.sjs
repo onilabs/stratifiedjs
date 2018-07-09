@@ -2282,3 +2282,23 @@ test('stray-abort', 'a', function() {
 
   return rv;  
 });
+
+// This test used to generate an internal SJS error (Cannot read property 'length' of undefined), 
+test('par-reentrant-tailcall-edgecase', 'abcd', function() {
+  var rv = '';
+  var R;
+  waitfor {
+    hold(0);
+    rv += 'c';
+  }
+  and {
+    waitfor() { R = resume; }
+    rv += 'a';
+  }
+  and {
+    R();
+    rv += 'b';
+  }
+  rv += 'd';
+  return rv;
+});

@@ -2070,7 +2070,9 @@ EF_Par.prototype.cont = function(idx, val) {
         var return_child;
         for (var i=0; i<this.children.length; ++i)
           if ((return_child = this.children[i])) { 
-            this.children = undefined;
+            // We must NOT delete the the child array here
+            // to prevent a reentrancy case (see sjs-2-tests:par-reentrant-tailcall-edgecase)
+            // this.children = undefined;
             return this.returnToParent(return_child);
           }
         return this.returnToParent(new CFException("i", "invalid state in Par"));
