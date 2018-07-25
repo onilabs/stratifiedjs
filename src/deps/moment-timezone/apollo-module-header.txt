@@ -48,7 +48,7 @@
   @summary   Timezone support for sjs:moment
   @home      sjs:moment-timezone
   @desc      
-             This module tracks the [momentjs/timezone](https://github.com/moment/moment-timezone/) library (version: 0.5.3) with all current (2016c) IANA timezone data built-in.
+             This module tracks the [momentjs/timezone](https://github.com/moment/moment-timezone/) library (version: 0.5.17) with all current (2016c) IANA timezone data built-in.
 
              ### Usage
 

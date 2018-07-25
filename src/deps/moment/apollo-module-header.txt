@@ -48,7 +48,7 @@
   @summary   Parsing, validating, manipulating and displaying dates
   @home      sjs:moment
   @desc      
-             This module tracks the [momentjs](https://github.com/moment/moment/) library (version 2.13.0 without locale bundles).
+             This module tracks the [momentjs](https://github.com/moment/moment/) library (version 2.22.2 without locale bundles).
 
              ### Usage
 
