@@ -31,7 +31,7 @@ moment/ https://github.com/moment/moment.git 2e2a5b35439665d4b0200143d808a7c26d6
 # moment-timezone (currently v0.5.17)
 moment-timezone/ https://github.com/moment/moment-timezone.git 75f9e6e7bf95e363b97a4d4376325272bcf5946b
 
-# js-yaml
-js-yaml/ https://github.com/nodeca/js-yaml.git f6bafed1c4d82e80ab3fc3a71a5af63308f54b2f
+# js-yaml (currently 3.12.0)
+js-yaml/ https://github.com/nodeca/js-yaml.git 5cdad9bd27ad97627b21f0111ca3f125fe618acd
 
 

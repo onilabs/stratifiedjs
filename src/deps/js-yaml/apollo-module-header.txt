@@ -23,7 +23,7 @@
 
 /**
   @module    yaml
-  @summary   YAML parser (tracking the [js-yaml](https://github.com/nodeca/js-yaml) library)
+  @summary   YAML parser (tracking the [js-yaml](https://github.com/nodeca/js-yaml) library, currently v3.12.0)
   @home      sjs:yaml
   @desc
 
