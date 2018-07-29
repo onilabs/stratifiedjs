@@ -776,17 +776,16 @@ function default_compiler(src, descriptor) {
     if (typeof(src) === 'function') {
       f = src;
     }
-    else if (compiled_src_tag.exec(src)) {
-      //console.log("#{descriptor.id} precompiled");
-      // great; src is already compiled
-      // XXX apparently eval is faster on FF, but eval is tricky with
-      // precompiled code, because of IE, where we need execScript
+    else {
+      if (!compiled_src_tag.exec(src)) {
+        var filename = "module #{descriptor.id}";
+        filename = "'#{filename.replace(/\'/g,'\\\'')}'";
+        src = __oni_rt.c1.compile(
+          src,
+          {filename:filename, mode:'normal', globalReturn:true});
+      }
       
       f = new Function("module", "exports", "require", "__onimodulename", "__oni_altns", src);
-    }
-    else {
-      f = exports.eval("(function(module,exports,require, __onimodulename, __oni_altns){"+src+"\n})",
-                       {filename:"module #{descriptor.id}"});
     }
     f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}", {});
     //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
