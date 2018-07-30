@@ -108,6 +108,7 @@ general:
    define SJS_CORE : parse core SJS statements (set below)
    define MULTILINE_STRINGS : allow strings to include newlines; map to '\n' (set below)
    define SJS___JS: parse SJS's "__js" keyword
+   define SJS___RAW_UNTIL: parse SJS's "__raw_until" keyword
    define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
@@ -253,6 +254,10 @@ GEN_TRY(block, crf, pctx)
 BEGIN___JS_BLOCK(pctx)
 END___JS_BLOCK(pctx)
 GEN___JS(body, pctx)
+
+- if SJS___RAW_UNTIL is set:
+
+GEN___RAW(raw, pctx)
 
 - if SJS_BLOCKLAMBDA is set:
 GEN_BLOCKLAMBDA(pars, body, pctx)
@@ -1161,8 +1166,10 @@ Hash.prototype = {
 
 
 // tokenizer for tokens in a statement/argument position:
-var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
+var TOKENIZER_RAW_UNTIL_END_TOKEN = /[ \t]*([^ \t\n]+)[ \t]*\n/g;
+
+var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
 // tokenizer for tokens in an operator position:
 var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
@@ -1276,6 +1283,18 @@ Literal.prototype.exsf = function(pctx) {
   
   var rv = Node.Literal(pctx, (pctx.extents ? pctx.extents[pctx.extents.length-1] : null), this.id, this.value, undefined);   return rv;
 };
+
+function RawLiteral(value) {
+  this.value = value;
+  this.length = value.length;
+}
+RawLiteral.prototype = new SemanticToken();
+RawLiteral.prototype.toString = function() { return "raw '"+this.value+"'"; };
+RawLiteral.prototype.stmtf = function(pctx) {
+  
+  /* ignore for now */
+};
+
 
 //-----
 function Identifier(value) {
@@ -1517,8 +1536,8 @@ S("(").
       while (1) {
         var matches = TOKENIZER_SA.exec(pctx.src);
         if (matches && 
-            (matches[4] == '|' ||
-             matches[4] == '||')) {
+            (matches[5] == '|' ||
+             matches[5] == '||')) {
           // ok, we've got a blocklambda -> pull it in
           args.push(parseBlockLambda(scan(pctx).id, pctx));
         }
@@ -2380,7 +2399,6 @@ S("__js").stmt(function(pctx) {
     pop_extent(pctx, 'GEN_JS_EXP'); return right;
   });
 
-
 // reserved keywords:
 S("abstract");
 S("boolean");
@@ -2602,10 +2620,10 @@ function scan(pctx, id, tokenizer) {
     pctx.lastIndex = tokenizer.lastIndex;
 
     if (tokenizer == TOKENIZER_SA) {
-      if (matches[4]) {
-        pctx.token = ST.lookup(matches[4]);
+      if (matches[5]) {
+        pctx.token = ST.lookup(matches[5]);
         if (!pctx.token) {
-          pctx.token = new Identifier(matches[4]);
+          pctx.token = new Identifier(matches[5]);
         }
       }
       else if (matches[1]) {
@@ -2617,26 +2635,52 @@ function scan(pctx, id, tokenizer) {
         }
         // go round loop again
       }
-      else if (matches[5]) {
-        pctx.token = new Literal("<string>", matches[5]);
-      }
       else if (matches[6]) {
-        var val = matches[6];
+        pctx.token = new Literal("<string>", matches[6]);
+      }
+      else if (matches[4]) {
+        //retrieve end token:
+        TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex = pctx.lastIndex;
+        var matches = TOKENIZER_RAW_UNTIL_END_TOKEN.exec(pctx.src);
+        if (!matches) {
+          throw new Error("Missing end token for __raw_until");
+        }
+        else if (matches.index !== pctx.lastIndex) {
+          throw new Error("Malformed end token for __raw_until");
+        } 
+
+        // find end token:
+        var end_token_i = pctx.src.indexOf(matches[1], TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex);
+        if (end_token_i === -1) 
+          throw new Error("__raw_until: end token '"+matches[1]+"' not found");
+
+        var val = pctx.src.substring(TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex, end_token_i);
+        pctx.lastIndex = end_token_i + matches[1].length;
+
+        var m = val.match(/(?:\r\n|\n|\r)/g);
+        pctx.line += m.length + 1; // +1 for newline matched as part of TOKENIZER_RAW_UNTIL_END_TOKEN
+        pctx.newline += m.length + 1;
+
+
+        pctx.token = new RawLiteral(val);
+      }
+      else if (matches[7]) {
+        var val = matches[7];
         var m = val.match(/(?:\r\n|\n|\r)/g);
         pctx.line += m.length;
         pctx.newline += m.length;
         var length = val.length;
         var lit = val.replace(/\\(?:\r\n|\n|\r)/g, "").replace(/(?:\r\n|\n|\r)/g, "\\n");
         pctx.token = new Literal("<string>", lit
-            , val.length);
+            , length);
         pctx.token.lines = m.length;
       }
       else if (matches[2])
         pctx.token = new Literal("<number>", matches[2]);
       else if (matches[3])
         pctx.token = new Literal("<regex>", matches[3]);
-      else if (matches[7])
-        throw new Error("Unexpected characters: '"+matches[7]+"'");
+      else if (matches[8])
+        throw new Error("Unexpected characters: '"+matches[8]+"'");
       else
         throw new Error("Internal scanner error");
       //print("sa:"+pctx.token);

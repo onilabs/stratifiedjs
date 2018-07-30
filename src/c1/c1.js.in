@@ -108,6 +108,7 @@ general:
    define SJS_CORE : parse core SJS statements (set below)
    define MULTILINE_STRINGS : allow strings to include newlines; map to '\n' (set below)
    define SJS___JS: parse SJS's "__js" keyword
+   define SJS___RAW_UNTIL: parse SJS's "__raw_until" keyword
    define SJS_DESTRUCTURE: allow destructuring assignments (see http://wiki.ecmascript.org/doku.php?id=harmony:destructuring)
    define SJS_BLOCKLAMBDA: allow block lambdas (see http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival)
    define SJS_ARROWS: allow arrays (fat & thin) (see http://wiki.ecmascript.org/doku.php?id=harmony:arrow_function_syntax ; coffeescript)
@@ -261,6 +262,10 @@ BEGIN___JS_BLOCK(pctx)
 END___JS_BLOCK(pctx)
 GEN___JS(body, pctx)
 
+- if SJS___RAW_UNTIL is set:
+
+GEN___RAW(raw, pctx)
+
 - if SJS_BLOCKLAMBDA is set:
 GEN_BLOCKLAMBDA(pars, body, pctx)
 
@@ -297,6 +302,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
 #define SJS___JS 1
+#define SJS___RAW_UNTIL 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
@@ -313,6 +319,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
 #define SJS___JS 1
+#define SJS___RAW_UNTIL 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
@@ -356,6 +363,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
 #define SJS___JS 1
+#define SJS___RAW_UNTIL 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
@@ -377,6 +385,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
 #define SJS___JS 1
+#define SJS___RAW_UNTIL 1
 #define SJS_DESTRUCTURE 1
 #define SJS_BLOCKLAMBDA 1
 #define SJS_ARROWS 1
@@ -483,15 +492,37 @@ Hash.prototype = {
 #define PAT_INVALID \S+
 
 // tokenizer for tokens in a statement/argument position:
+#ifdef SJS___RAW_UNTIL
+
+var TOKENIZER_RAW_UNTIL_END_TOKEN = /[ \t]*([^ \t\n]+)[ \t]*\n/g;
+
+#ifdef MULTILINE_STRINGS
+var TOKENIZER_SA = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_NUMLIT)|(PAT_REGEXLIT)|(__raw_until)|(PAT_ARGSYMBOL)|(PAT_STRLIT)|(PAT_ML_STRLIT)|(PAT_INVALID))/g;
+#else
+var TOKENIZER_SA = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_NUMLIT)|(PAT_REGEXLIT)|(__raw_until)|(PAT_ARGSYMBOL)|(PAT_STRLIT)|(PAT_INVALID))/g;
+#endif
+#else
 #ifdef MULTILINE_STRINGS
 var TOKENIZER_SA = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_NUMLIT)|(PAT_REGEXLIT)|(PAT_ARGSYMBOL)|(PAT_STRLIT)|(PAT_ML_STRLIT)|(PAT_INVALID))/g;
 #else
 var TOKENIZER_SA = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_NUMLIT)|(PAT_REGEXLIT)|(PAT_ARGSYMBOL)|(PAT_STRLIT)|(PAT_INVALID))/g;
 #endif
+#endif
 
 #define SA_NEWLINES_MATCH 1
 #define SA_NUMLIT_MATCH 2
 #define SA_REGEXLIT_MATCH 3
+#ifdef SJS___RAW_UNTIL
+#define SA_RAW_UNTIL_MATCH 4
+#define SA_ARGSYMBOL_MATCH 5
+#define SA_STRLIT_MATCH 6
+#ifdef MULTILINE_STRINGS
+#define SA_ML_STRLIT_MATCH 7
+#define SA_INVALID_MATCH 8
+#else
+#define SA_INVALID_MATCH 7
+#endif
+#else
 #define SA_ARGSYMBOL_MATCH 4
 #define SA_STRLIT_MATCH 5
 #ifdef MULTILINE_STRINGS
@@ -500,7 +531,7 @@ var TOKENIZER_SA = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_NUMLIT)|(PAT_REGEXLIT)|(P
 #else
 #define SA_INVALID_MATCH 6
 #endif
-
+#endif
 // tokenizer for tokens in an operator position:
 var TOKENIZER_OP = /PAT_NBIGNORE(?:(PAT_NEWLINES)|(PAT_SYMBOL))/g;
 
@@ -652,6 +683,20 @@ Literal.prototype.exsf = function(pctx) {
   LOGM('literal')
   GEN_LITERAL(this.id, this.value, pctx, TOP_EXTENT())
 };
+
+#ifdef SJS___RAW_UNTIL
+function RawLiteral(value) {
+  this.value = value;
+  this.length = value.length;
+}
+RawLiteral.prototype = new SemanticToken();
+RawLiteral.prototype.toString = function() { return "raw '"+this.value+"'"; };
+RawLiteral.prototype.stmtf = function(pctx) {
+  LOGM('raw')
+  GEN___RAW(this.value, pctx)
+};
+#endif /* SJS___RAW_UNTIL */
+
 
 #ifdef SJS_ALTERNATE_NAMESPACE
 //-----
@@ -1878,7 +1923,6 @@ S("__js").stmt(function(pctx) {
   });
 #endif /* SJS___JS */
 
-
 // reserved keywords:
 S("abstract");
 S("boolean");
@@ -2128,6 +2172,34 @@ function scan(pctx, id, tokenizer) {
       else if (matches[SA_STRLIT_MATCH]) {
         pctx.token = new Literal("<string>", matches[SA_STRLIT_MATCH]);
       }
+#ifdef SJS___RAW_UNTIL
+      else if (matches[SA_RAW_UNTIL_MATCH]) {
+        //retrieve end token:
+        TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex = pctx.lastIndex;
+        var matches = TOKENIZER_RAW_UNTIL_END_TOKEN.exec(pctx.src);
+        if (!matches) {
+          throw new Error("Missing end token for __raw_until");
+        }
+        else if (matches.index !== pctx.lastIndex) {
+          throw new Error("Malformed end token for __raw_until");
+        } 
+
+        // find end token:
+        var end_token_i = pctx.src.indexOf(matches[1], TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex);
+        if (end_token_i === -1) 
+          throw new Error("__raw_until: end token '"+matches[1]+"' not found");
+
+        var val = pctx.src.substring(TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex, end_token_i);
+        pctx.lastIndex = end_token_i + matches[1].length;
+
+        var m = val.match(/PAT_NEWLINE/g);
+        pctx.line += m.length + 1; // +1 for newline matched as part of TOKENIZER_RAW_UNTIL_END_TOKEN
+        pctx.newline += m.length + 1;
+
+
+        pctx.token = new RawLiteral(val);
+      }
+#endif
 #ifdef MULTILINE_STRINGS
       else if (matches[SA_ML_STRLIT_MATCH]) {
         var val = matches[SA_ML_STRLIT_MATCH];
@@ -2140,7 +2212,7 @@ function scan(pctx, id, tokenizer) {
         var lit = val.replace(/\\PAT_NEWLINE/g, "").replace(/PAT_NEWLINE/g, "\\n");
         pctx.token = new Literal("<string>", lit
 #ifdef TRACK_EXTENTS
-            , val.length);
+            , length);
         pctx.token.lines = m.length;
 #else
             );

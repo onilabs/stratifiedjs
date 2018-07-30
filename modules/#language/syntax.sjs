@@ -882,17 +882,25 @@
       [3,2,1].sort(__js (x,y) -> x-y)
 
 
-  This is primarily used for low-level optimisations, similar
+  This is primarily used for low-level optimizations, similar
   to how `asm` blocks are used in C code. 
 
   Because `__js` blocks are limited in the same way as [::calling-javascript],
   you should use them only when you have determined the code will still
-  function correctly without SJS features, and that the frequency of its
-  use makes the speed improvement worth the reduced debuggability.
+  function correctly without SJS concurrency orchestration features, 
+  and that the frequency of its use makes the speed improvement worth 
+  the reduced debuggability.
 
   It is advisable to wrap only complete functions as `__js`. If you wrap code inside
   an sjs function, note that some control flow features (most notably 
   `return` and `throw`) will not work as expected from inside the `__js` code.
+
+  ### JS features supported in __js code
+
+  The code inside a `__js` block will be parsed by the SJS engine, so it only
+  supports the features of JavaScript that are also present in SJS (see 'Base language' under [sjs:#language/::]). In addition, some SJS syntax features are supported (see below).
+
+  See also [::__raw_until] for a mechanism to embed any raw content in an SJS file (including JS with syntax features that are not supported in `__js`).
 
   ### SJS features supported in __js code
 
@@ -910,6 +918,43 @@
   * [::quasi-quote], provided the SJS runtime is present
   * [::destructure], but only in function argument lists
   * [::blocklambda], but no `return` or `break` statements are allowed in the blocklambda body
+
+@syntax __raw_until
+@summary Embed raw (unparsed) code
+@desc
+  `__raw_until` is used to embed unparsed code in an SJS file:
+
+      __raw_until END_TOKEN
+      ... unparsed content ...
+      END_TOKEN
+       
+  Here, `END_TOKEN` is any character stream that does not contain spaces or newlines.
+
+  Similar to [::__js], `__raw_until` is primarily used for low-level optimizations. 
+  Unlike [::__js], the content defined in the `__raw_until` construct is not 
+  parsed by the SJS engine. Therefore it can e.g. be used to defined 
+  functions that make use of language features that don't form part of SJS.
+  E.g.:
+
+      __raw_until %%%
+      function* generator() {
+        var i=0;
+        while (true) yield ++i;
+      }
+      %%%
+
+  Note that because the SJS engine doesn't parse the raw content and 
+  thus cannot infer anything about its internal structure, the raw content cannot
+  be spliced into the output of an SJS file at arbitrary locations: Much like 
+  variable and function declarations are hoisted to the top of a module or function, raw content will be moved to the top of the current module (if at top-level scope) or the closest enclosing function. E.g. the following code (somewhat counter-intuitively) produces the output `'first', 'second'`:
+
+      console.log('second');
+      __raw_until &^*xx
+      console.log('first');
+      &^*xx
+
+  Therefore, as a matter of style, `__raw_until` should only be used for declarations (which would be hoisted anyway), or be added to the top of a module or function only.
+
 
 @syntax binary-conditional
 @summary Binary version of the ternary conditional operator `?:`

@@ -1892,6 +1892,16 @@ ph_suspend_wrapper.prototype.val = function() {
 #define GEN___JS(body, pctx, ext) body.is_nblock=pctx.allow_nblock; return body;
 #endif /* SJS___JS */
 
+#ifdef SJS___RAW_UNTIL
+function ph_raw(raw) {
+  this.raw = raw;
+}
+ph_raw.prototype = new ph(WHENDEBUG("ph_raw"));
+ph_raw.prototype.is_fun_decl = true; // so that is is accumulated like function defs, rather than in sjs code
+ph_raw.prototype.fun_decl = function() { return this.raw; };
+
+#define GEN___RAW(raw, pctx) return new ph_raw(raw);
+#endif /* SJS___RAW_UNTIL */
 
 #ifdef SJS_BLOCKLAMBDA
 #define BEGIN_BLAMBDABODY(pctx)                       \

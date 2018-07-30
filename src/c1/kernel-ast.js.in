@@ -1049,6 +1049,7 @@ function gen_suspend(has_var, decls, block, crf, pctx, ext) {
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
 #define GEN___JS(body, pctx, ext) ext; return body;
+#define GEN___RAW(raw, pctx) /* ignore for now */
 
 // XXX so that break / continue / etc are valid, we wrap in an imaginary while() loop
 #define GEN_BLOCKLAMBDA(pars, body, pctx, ext) \

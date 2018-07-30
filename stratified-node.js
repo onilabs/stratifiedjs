@@ -3380,6 +3380,11 @@ exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function pu
 
 
 
+
+
+
+
+
 pctx.decl_scopes.push({vars:[],funs:"",fscoped_ctx:0,bl:bl,is_strict:false,continue_scope:0,break_scope:0});
 
 
@@ -4989,6 +4994,13 @@ ph_suspend_wrapper.prototype.val=function(){return "__oni_rt.Nb(function(){var r
 };
 
 
+function ph_raw(raw){this.raw=raw;
+
+}
+ph_raw.prototype=new ph();
+ph_raw.prototype.is_fun_decl=true;
+ph_raw.prototype.fun_decl=function(){return this.raw};
+
 
 
 
@@ -5057,8 +5069,10 @@ delete this["$"+key]}};
 
 
 
-var TOKENIZER_SA=/(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
+var TOKENIZER_RAW_UNTIL_END_TOKEN=/[ \t]*([^ \t\n]+)[ \t]*\n/g;
+
+var TOKENIZER_SA=/(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
 
 var TOKENIZER_OP=/(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
@@ -5171,6 +5185,18 @@ Literal.prototype.exsf=function(pctx){return new ph_literal(this.value,pctx,this
 
 
 };
+
+function RawLiteral(value){this.value=value;
+
+this.length=value.length;
+}
+RawLiteral.prototype=new SemanticToken();
+RawLiteral.prototype.toString=function(){return "raw '"+this.value+"'"};
+RawLiteral.prototype.stmtf=function(pctx){return new ph_raw(this.value);
+
+
+};
+
 
 
 function Identifier(value){if(value.charAt(0)==='@'){
@@ -5391,7 +5417,7 @@ if(pctx.token.id=='{'){
 TOKENIZER_SA.lastIndex=pctx.lastIndex;
 while(1){
 var matches=TOKENIZER_SA.exec(pctx.src);
-if(matches&&(matches[4]=='|'||matches[4]=='||')){
+if(matches&&(matches[5]=='|'||matches[5]=='||')){
 
 
 
@@ -6254,7 +6280,6 @@ right.is_nblock=pctx.allow_nblock;return right;
 });
 
 
-
 S("abstract");
 S("boolean");
 S("byte");
@@ -6437,10 +6462,10 @@ break;
 pctx.lastIndex=tokenizer.lastIndex;
 
 if(tokenizer==TOKENIZER_SA){
-if(matches[4]){
-pctx.token=ST.lookup(matches[4]);
+if(matches[5]){
+pctx.token=ST.lookup(matches[5]);
 if(!pctx.token){
-pctx.token=new Identifier(matches[4]);
+pctx.token=new Identifier(matches[5]);
 }
 }else if(matches[1]){
 
@@ -6451,19 +6476,45 @@ pctx.newline+=m.length;
 
 }
 
-}else if(matches[5]){
-
-pctx.token=new Literal("<string>",matches[5]);
 }else if(matches[6]){
 
-var val=matches[6];
+pctx.token=new Literal("<string>",matches[6]);
+}else if(matches[4]){
+
+
+TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex=pctx.lastIndex;
+var matches=TOKENIZER_RAW_UNTIL_END_TOKEN.exec(pctx.src);
+if(!matches){
+throw new Error("Missing end token for __raw_until");
+}else if(matches.index!==pctx.lastIndex){
+
+throw new Error("Malformed end token for __raw_until");
+}
+
+
+var end_token_i=pctx.src.indexOf(matches[1],TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex);
+if(end_token_i===-1)throw new Error("__raw_until: end token '"+matches[1]+"' not found");
+
+
+var val=pctx.src.substring(TOKENIZER_RAW_UNTIL_END_TOKEN.lastIndex,end_token_i);
+pctx.lastIndex=end_token_i+matches[1].length;
+
+var m=val.match(/(?:\r\n|\n|\r)/g);
+pctx.line+=m.length+1;
+pctx.newline+=m.length+1;
+
+
+pctx.token=new RawLiteral(val);
+}else if(matches[7]){
+
+var val=matches[7];
 var m=val.match(/(?:\r\n|\n|\r)/g);
 pctx.line+=m.length;
 pctx.newline+=m.length;
 var lit=val.replace(/\\(?:\r\n|\n|\r)/g,"").replace(/(?:\r\n|\n|\r)/g,"\\n");
 pctx.token=new Literal("<string>",lit);
 
-}else if(matches[2])pctx.token=new Literal("<number>",matches[2]);else if(matches[3])pctx.token=new Literal("<regex>",matches[3]);else if(matches[7])throw new Error("Unexpected characters: '"+matches[7]+"'");else throw new Error("Internal scanner error");
+}else if(matches[2])pctx.token=new Literal("<number>",matches[2]);else if(matches[3])pctx.token=new Literal("<regex>",matches[3]);else if(matches[8])throw new Error("Unexpected characters: '"+matches[8]+"'");else throw new Error("Internal scanner error");
 
 
 

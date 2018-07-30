@@ -484,6 +484,7 @@ function gen_crf(crf) {
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
 #define GEN___JS(body, pctx, ext) return Dynamic;
+#define GEN___RAW(raw, pctx) /* XXX */
 #define GEN_BLOCKLAMBDA(pars, body, pctx, ext) return Dynamic;
 
 

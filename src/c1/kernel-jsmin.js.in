@@ -486,7 +486,7 @@ function quasi(parts) {
 #define BEGIN___JS_BLOCK(pctx)
 #define END___JS_BLOCK(pctx)
 #define GEN___JS(body, pctx, ext) return "__js "+body;
-
+#define GEN___RAW(raw, pctx) return "__raw_until 298sd28#svXk\n"+raw+"298sd28#svXk";
 #define GEN_BLOCKLAMBDA(pars, body, pctx, ext) \
   return "{|"+gen_fun_pars(pars)+"| "+body+"}";
 

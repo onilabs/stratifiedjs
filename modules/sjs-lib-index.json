@@ -107,6 +107,9 @@
             "__js": {
               "type": "syntax"
             },
+            "__raw_until": {
+              "type": "syntax"
+            },
             "arrow-function": {
               "type": "syntax"
             },
