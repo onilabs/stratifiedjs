@@ -36,7 +36,16 @@
   @inlibrary sjs:std as sys
   @inlibrary mho:std as sys
 */
-'use strict';
+/* cannot use 'use strict'; because of withEvalContext, which needs 'eval' to add variables to enclosing scope */
+
+// EvaluatorContext for withEvalContext:
+// we use a constructor instead of function* directly so that the generated
+// closure is in global scope instead of this module
+__raw_until RAW_END
+var GeneratorFunction = Object.getPrototypeOf(function*(){}).constructor;
+var EvaluatorContext = new GeneratorFunction('ctx_name', 'file_name', "var require = __oni_rt.sys._makeRequire({id:ctx_name}); var __oni_eval_src = yield null;while (true) {var __oni_eval_val;try {__oni_eval_val = [false,eval(__oni_rt.c1.compile(__oni_eval_src, {filename:file_name}))];}catch (e) {__oni_eval_val = [true,e];} __oni_eval_src = yield __oni_eval_val;}");
+RAW_END
+var eval_context_counter = 0;
 
 var s = require('builtin:apollo-sys');
 module.exports = {
@@ -61,11 +70,67 @@ module.exports = {
   @param {optional Settings} [settings]
   @setting {optional String} [filename]
   @return {Object}
-  @summary Dynamically evaluate SJS code
+  @summary Dynamically evaluate SJS code in global scope
   @desc
     Returns the last expression from `code`.
+
+    See also [::withEvalContext].
 */
   eval: s.eval,
+
+/**
+  @function withEvalContext
+  @altsyntax withEvalContext { |eval| ... }
+  @altsyntax withEvalContext({name:'my sourcecode'}) { |eval| ... }
+  @summary Dynamically evaluate SJS code in an empty context
+  @param {optional Settings} [settings]
+  @param {Function} [block]
+  @setting {optional String} [name] Name of context for stack traces and [sjs:#language/builtins::require.modules] loaded_by/required_by information
+  @desc
+    Creates an empty evaluation context in global object scope and calls `block` with a single argument: A function `eval(src)` that compiles and executes the SJS code `src` and returns the result of evaluation.
+
+    Any variable & function declarations in `src` will be bound in the evaluation context and are only available in code executed in (possibly multiple) invocations of the `eval` function. In particular, they are neither seen in the global scope nor in the scope of `block`.
+
+    ### Example
+
+        @sys.withEvalContext {
+          |eval|
+          eval('var a = 1;');
+          console.log :: eval('hold(1000),a'); // logs '1' after a second
+
+          // console.log(a); // this would throw: 'a' is not defined in block's scope
+        }
+
+        console.log(a); // throws error: 'a' is not defined in this scope
+
+*/
+  withEvalContext: function(settings, block) {
+    if (arguments.length === 1) {
+      block = settings;
+      settings = undefined;
+    }
+    if (!settings) settings = {};
+
+    if (!settings.name)
+      settings.name = "eval-context-#{++eval_context_counter}";
+
+    var file_name = "'#{settings.name.replace(/\'/g, '\\\'')}'";
+
+    try {
+      var E = EvaluatorContext(settings.name, file_name);
+      E.next();
+
+      block(function(src) {
+        var [is_thrown, val]  = E.next(src).value;
+        if (is_thrown) throw val;
+        return val;
+      });
+    }
+    finally {
+      E.return();
+    }
+    
+  },
 
 /**
    @function isStratum
