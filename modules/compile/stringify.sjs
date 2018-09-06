@@ -662,7 +662,7 @@ RawLiteral.prototype = new SemanticToken();
 RawLiteral.prototype.toString = function() { return "raw '"+this.value+"'"; };
 RawLiteral.prototype.stmtf = function(pctx) {
   
-  return "__raw_until 298sd28#svXk\n"+this.value+"298sd28#svXk";
+  return "__raw_until 298sd28#svXk\\n"+this.value.replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,'\\"').replace(/\n/g, '\\n')+"298sd28#svXk";
 };
 
 
