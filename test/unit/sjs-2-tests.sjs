@@ -2302,3 +2302,33 @@ test('par-reentrant-tailcall-edgecase', 'abcd', function() {
   rv += 'd';
   return rv;
 });
+
+// This test used to loop forever... the `abort` wasn't fed past the inner waitfor due to buggy 
+// handling of the async abort path in vm1::EF_Alt
+test('alt-abort-edgecase', 'r', function() {
+  var rv = '';
+  waitfor {
+    while (1) {
+      //console.log('loop...');
+      waitfor {
+        try {
+          hold();
+        }
+        finally {
+          //console.log('loop finally ... ');
+          hold(100);
+          rv += 'r';
+        }
+      }
+      or {
+        hold();
+      }
+    }
+  }
+  or {
+    //console.log('retracting other branch...');
+  }
+
+  return rv;
+});
+

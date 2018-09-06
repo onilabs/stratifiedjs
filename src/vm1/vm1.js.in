@@ -2306,7 +2306,8 @@ EF_Alt.prototype.abort = function() {
   else if (this.pending)
     rv = this;
 
-  if (rv !== this && !is_cfx(rv)) rv = new CFException('a');
+  this.pendingRV = new CFException('a');
+  if (rv !== this && !is_cfx(rv)) rv = this.pendingRV;
   return rv;
 };
 

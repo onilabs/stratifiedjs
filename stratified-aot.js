@@ -2106,7 +2106,8 @@ rv=this.abortInner();
 
 
 
-if(rv!==this&&!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=new CFException('a');
+this.pendingRV=new CFException('a');
+if(rv!==this&&!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=this.pendingRV;
 return rv;
 };
 
