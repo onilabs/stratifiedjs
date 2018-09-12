@@ -144,6 +144,7 @@ function sequential(f) {
 
 /**
    @class Stream
+   @inherit ::Sequence
    @summary Stratified stream abstraction
 */
 
