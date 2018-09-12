@@ -3188,11 +3188,25 @@ each.track = function(seq, r) {
      iterating over the result, you will receive:
 
       - the most recent value (if one has been seen, and only if `latest` is true)
-      - all future values
+      - all future values (if the receiver is fast enough - see elaboration below).
 
      `mirror` will _not_ store or emit values that occurred in the past,
      aside from the most recently seen value (which will only be set
      if another consumer is concurrently iterating over the output Stream).
+
+     In particular this implies that:
+
+     - If the input stream is free-running (i.e. it is an [./event::EventStream]), 
+       events might be lost if the consumer is blocking.
+
+     - The pace of iteration is dictated by both the input
+       stream and the fastest consumer.
+       If multiple consumers iterate the input stream concurrently with at least one of 
+       the consumers blocking, then the blocking consumers might lose events even if the
+       input stream is not free-running.
+
+     A mirrored stream should therefore always be treated like an [./event::EventStream], 
+     and used with either non-blocking consumers or a suitable buffering strategy (e.g. [::tailbuffer]).
 */
 exports.mirror = function(stream, latest) {
   var emitter = Object.create(_Waitable); emitter.init();
