@@ -426,7 +426,7 @@ exports.readFile = function(filename, /* opt */ encoding) {
    @summary Return a [sequence::Stream] of the chunks in `filename`.
    @param {String} [filename]
    @param {optional String} [encoding]
-   @return {Buffer|String}
+   @return {sequence::Stream} Stream of [Nodejs buffers](http://nodejs.org/docs/latest/api/buffer.html) or strings
    @desc
      - If no encoding is specified, then raw data chunks will be emitted.
 */
