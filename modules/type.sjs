@@ -448,6 +448,8 @@ exports.Interface = Interface;
   @param {::Interface} [interface]
   @return {Boolean} `true` if `x` implements `interface`
   @summary Returns whether `x` implements `interface`
+  @desc
+    `x` 'implementing' an interface `itf` means that `x` is an object and has a property called `itf`
  */
 function hasInterface(x, interface_) {
   return isObject(x) && x[interface_] != null;
