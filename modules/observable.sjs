@@ -760,9 +760,10 @@ exports.DelayedObservable = function(observable, dt) {
 
             { type: 'set', val: NEW_ELEMENT_VALUE, idx: INDEX_WHERE_TO_SET }
 
-      An ObservableArray can be 'reconstituted' into a plain
+      An ObservableArray can be 'reconstituted' into a plain debounced
       Observable of the complete array (and not only mutations) by
-      using [::reconstitute].
+      using [::reconstitute]. ('debounced' in this context means that each value of the
+      reconstituted stream will be a new array, i.e. unequal under `===`)
 
       Calling [sequence::project] on an ObservableArray is equivalent to calling
       `@transform(elems -> elems .. @project(elem -> f(elem)))` on the reconstituted 
@@ -912,28 +913,37 @@ function ObservableArray_reconstitute(obsarr) {
         arr = item .. clone; // the first item in the stream is always the value itself
       }
       else {
+
+        var internal_mods = false;
+
         item.mutations .. each {
           |mutation|
           switch (mutation.type) {
           case 'reset':
+            internal_mods = false;
             arr = mutation.val .. clone;
             break;
           case 'set':
+            internal_mods = true;
             arr[mutation.idx] = mutation.val;
             break;
           case 'ins':
+            internal_mods = true;
             arr.splice(mutation.idx, 0, mutation.val);
             break;
           case 'del':
+            internal_mods = true;
             arr.splice(mutation.idx, 1);
             break;
           default:
             throw new Error("Unknown operation in ObservableArray stream");
           }
         }
+        if (internal_mods)
+          arr = arr .. clone; // ensure that arr is debounced
       }
       r(arr);
-    }
+    } /* each obsarr */
   });
 };
 
