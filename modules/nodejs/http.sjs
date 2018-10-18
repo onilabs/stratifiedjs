@@ -116,7 +116,7 @@ var getConnections = function(server) {
    @setting {String} [address="0"] Address to listen on, in the format `"ipaddress:port"` or `"port"`. If  `ipaddress` is not specified, the server will listen on all IP addresses. If `port` is `"0"`, an arbitrary free port will be chosen.
    @setting {String} [fd] Adopt an open file descriptor (if given, `address` is used only for information).
    @setting {Integer} [max_connections=1000] Maximum number of concurrent requests.
-   @setting {Integer} [capacity=100] Maximum number of unhandled requests that the server will queue up before it starts dropping requests (with a 500 status code). The server only queues requests when there is no active [Server::eachRequest] call, or when there are already `max_connections` active concurrent connections.
+   @setting {Integer} [capacity=100] Maximum number of unhandled requests that the server will queue up before it starts dropping requests (with a 500 status code). The server only queues requests when there is no active [::Server::eachRequest] call, or when there are already `max_connections` active concurrent connections.
    @setting {Object|observable::Observable} [ssl] If this is set, the server will be a HTTPS server. See description below for the structure of this object
    @setting {Function} [log] Logging function `f(str)` which will receive debug output. By default, uses [../logging::info]
    @desc
