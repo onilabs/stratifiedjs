@@ -1676,9 +1676,10 @@ transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x !=
 
 /**
    @function scan
-   @altsyntax sequence .. scan([predicate])
+   @altsyntax sequence .. scan(fn, [initial])
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [fn] accumulator function
+   @param {optional Object} [initial] Initial accumulator value.
    @return {::Stream}
    @summary Emits successive combinations of `fn(accum, item)`.
    @desc
@@ -1686,8 +1687,10 @@ transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x !=
      elements with an accumulator value (the result being the new
      accumulator value). While [::reduce] returns only
      the final value, [::scan] emits each accumulator value as
-     it is calculated. Scan does not emit anything until the first two
-     elements have been consumed, and from then on it emits one item per input.
+     it is calculated. If no `initial` value is provided or is `undefined`, `scan` 
+     will set `accum` to the first stream element, and start emitting 
+     `accum` for each subsequent consumed stream item. Otherwise, emitting of `accum`
+     starts when the first stream item is consumed.
 
      ### Example:
 
@@ -1704,12 +1707,13 @@ transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x !=
        // 55
 
 */
-var scan = exports.scan = function(sequence, fn) {
+var scan = exports.scan = function(sequence, fn, initial) {
   return Stream(function(emit) {
-    var accum;
-    var first = true;
+    var accum = initial;
+    var first = (accum === undefined);
+
     sequence .. each {|elem|
-      if(first) {
+      if (first) {
         first = false;
         accum = elem;
         continue;
