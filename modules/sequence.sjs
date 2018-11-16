@@ -1170,7 +1170,7 @@ function dedupe(sequence, eq) {
   return Stream(function(emit) {
     var last = sn;
     sequence .. each {|x|
-      if (x !== sn && !eq(x,last)) {
+      if (last === sn || !eq(x,last)) {
         last=x;
         emit(x);
       }
