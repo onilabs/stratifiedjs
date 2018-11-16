@@ -629,11 +629,19 @@ exports.changes = obs -> obs .. skip(1);
    @desc
      The returned observable will initially be equal to `getInitial()` and be updated with any new values
      emitted by `events`.
+     The returned observable will be 'decoupled' from the stream: Iterating the returned observable
+     stream will never block iteration of the input stream. (As a consequence, `streamToObservable` can
+     be used to convert any 'logical' event stream to an observable - the input stream
+     does not necessarily need to be a 'true' free-running [sjs:event::EventStream].)
 
      #### Notes
 
      For the returned stream to have observable semantics, `getInitial` has to yield a value in finite time.
      If `events` produces a value before `getInital()` returns, the `getInitial()` call will be aborted.
+
+     The output observable is not [sjs:sequence::mirror]ed. I.e. multiple concurrent iterations of the 
+     observable will cause multiple concurrent iterations of the input stream.
+
 */
 function eventStreamToObservable(events, getInitial) {
   return Observable(function(receiver) {
@@ -823,17 +831,30 @@ exports.ObservableArray = ObservableArray;
    @param {Object} [val] Value
    @summary Sets the element at a given index
 
+   @function ObservableArrayVar.reset
+   @param {Array} [val] Value
+   @summary Reset the whole array to the given value
+
    @function ObservableArrayVar.remove
    @param {Integer} [idx] Index
    @summary Removes the element at a given index
 
    @function ObservableArrayVar.insert
-   @param {Integer} [idx] Index
+   @param {Integer} [idx] Index (`0<=idx<=arr.length`)
    @param {Object} [val] Value
    @summary Inserts an element at the given index
 
+   @function ObservableArrayVar.push
+   @param {Objec} [val] Value
+   @summary Appends an element to the end of the array 
+   @desc
+     Equivalent to `insert(arr.length, value)`
+
    @function ObservableArrayVar.get
    @summary Returns the array
+
+   @function ObservableArrayVar.getLength
+   @summary Returns length of array
 
    @variable ObservableArrayVar.stream
    @summary [::ObservableArray] stream with which the ObservableArrayVar can be tracked
@@ -867,15 +888,28 @@ function ObservableArrayVar(arr) {
       arr[idx] = value;
       emit_mutation({type:'set', val: value, idx: idx});
     },
+    reset: function(value) {
+      arr = value;
+      ++most_recent_revision;
+      mutations = [];
+      oldest_revision = most_recent_revision + 1;
+      mutation.emit();
+    },
     insert: function(idx, value) {
       arr.splice(idx, 0, value);
       emit_mutation({type:'ins', val: value, idx: idx});
+    },
+    push: function(value) {
+      arr.push(value);
+      emit_mutation({type:'ins', val: value, idx: arr.length-1});
     },
     remove: function(idx) {
       arr.splice(idx, 1);
       emit_mutation({type:'del', idx: idx});
     },
     get: -> arr,
+
+    getLength: -> arr.length,
 
     stream: ObservableArray(Observable(function(r) {
       var have_revision = most_recent_revision;
