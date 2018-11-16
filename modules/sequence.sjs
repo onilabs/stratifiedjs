@@ -3173,7 +3173,7 @@ each.track = function(seq, r) {
    @desc
      [::Stream]s generate items on-demand. Depending on the type of stream,
      iterating over a stream `n` times concurrently will generally cause its
-     elements to be recalculated `n` times.
+     elements to be recomputed `n` times.
 
      Most of the time, this is not a problem - if you're iterating over
      a result multiple times you'll typically convert it to an array
@@ -3189,29 +3189,29 @@ each.track = function(seq, r) {
      single iteration over the source stream (for as long as there is at least one
      consumer of the resulting stream).
 
-     **Note**: `mirror` is intended for time-varying data. When you start
-     iterating over the result, you will receive:
+     The output streams will be 'decoupled' from the input stream: Even if consumers block during 
+     iteration, the input stream will never be blocked and will be iterated as fast as it can produce values.
 
-      - the most recent value (if one has been seen, and only if `latest` is true)
-      - all future values (if the receiver is fast enough - see elaboration below).
+     #### Modes of operation; 'latest' flag
 
-     `mirror` will _not_ store or emit values that occurred in the past,
-     aside from the most recently seen value (which will only be set
-     if another consumer is concurrently iterating over the output Stream).
+     ** latest = false **
 
-     In particular this implies that:
+     If the `latest` flag is set to 'false', consumers will only see values that are produced by the source 
+     stream while they are not blocked. I.e. the mirrored stream will be a free-running [./event::EventStream] 
+     and must be used with either non-blocking consumers or a suitable buffering strategy (e.g. [::tailbuffer]).
 
-     - If the input stream is free-running (i.e. it is an [./event::EventStream]), 
-       events might be lost if the consumer is blocking.
+     ** latest = true **
 
-     - The pace of iteration is dictated by both the input
-       stream and the fastest consumer.
-       If multiple consumers iterate the input stream concurrently with at least one of 
-       the consumers blocking, then the blocking consumers might lose events even if the
-       input stream is not free-running.
+     If the `latest` flag is unset (the default) or set to something other than 'false', the mirrored stream
+     will buffer the most recent emitted value. If new values are produced while a consumer is blocked (*), the
+     consumer will receive the most recent one once it becomes unblocked.
+     I.e. the mirrored streams will have [./observable::Observable] semantics as long as you can guarantee that 
+     the source stream produces a value in finite time. (The returned stream will, however, not be tagged as being an observable; it will just be a [::Stream].)
 
-     A mirrored stream should therefore always be treated like an [./event::EventStream], 
-     and used with either non-blocking consumers or a suitable buffering strategy (e.g. [::tailbuffer]).
+     See also [./observable::eventStreamToObservable].
+
+     (*) Boundary case: New consumers starting to iterate the mirrored stream while there is already at least one stream concurrently iterating, will immediately receive the most recent value, as long as one has been produced.
+
 */
 exports.mirror = function(stream, latest) {
   var emitter = Object.create(_Waitable); emitter.init();
@@ -3254,7 +3254,7 @@ exports.mirror = function(stream, latest) {
         }());
       }
     } and {
-      loop.value() .. console.log;
+      loop.value();
     } finally {
       if (--listeners === 0) {
         // last one out: stop the loop
