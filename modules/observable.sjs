@@ -813,6 +813,7 @@ function ObservableArray_project(upstream, transformer) {
 exports.ObservableArray_project = ObservableArray_project;
 
 function ObservableArray(stream) {
+  stream = Observable(stream);
   stream[ITF_PROJECT] = METHOD_ObservableArray_project;
   stream[ITF_RECONSTITUTE] = METHOD_ObservableArray_reconstitute;
   return stream;
@@ -911,7 +912,7 @@ function ObservableArrayVar(arr) {
 
     getLength: -> arr.length,
 
-    stream: ObservableArray(Observable(function(r) {
+    stream: ObservableArray(function(r) {
       var have_revision = most_recent_revision;
       r(arr .. clone);
       while (true) {
@@ -928,7 +929,7 @@ function ObservableArrayVar(arr) {
           r({mutations:deltas});
         }
       }
-    }))
+    })
   };
 }
 exports.ObservableArrayVar = ObservableArrayVar;
