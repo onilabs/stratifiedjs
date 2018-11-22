@@ -62,23 +62,26 @@ var array = require('../array');
  @summary Incoming HTTP request. 
 */
 function ServerRequest(req, res, ssl) {
-  var rv = {};
+
+  __js {
+    var rv = {};
   /**
    @variable ServerRequest.request
    @summary [NodeJS http.IncomingMessage](http://nodejs.org/docs/latest/api/http.html#http_class_http_incomingmessage) object
    */
-  rv.request = req;
+    rv.request = req;
   /**
    @variable ServerRequest.response
    @summary [NodeJS http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http_class_http_serverresponse) object
    */
-  rv.response = res;
+    rv.response = res;
   /**
    @variable ServerRequest.url
    @summary Full canonicalized & normalized request URL object in the format as returned by [../url::parse].
    */
-  rv.url = url.parse(url.normalize(url.canonicalize(req.url), 
-                                      "http#{ssl ? 's' : ''}://#{req.headers.host}"));
+    rv.url = url.parse(url.normalize(url.canonicalize(req.url), 
+                                     "http#{ssl ? 's' : ''}://#{req.headers.host}"));
+  } // __js
   /**
    @function ServerRequest.body
    @param {optional String} [encoding] 
@@ -87,7 +90,7 @@ function ServerRequest(req, res, ssl) {
    @desc
      The return value will be a sequence of Strings if `encoding` is provided, otherwise the elements will be nodejs buffers.
    */
-  rv.body = encoding -> req .. @stream.contents(encoding)
+  rv.body = encoding -> req .. @stream.contents(encoding);
 
   return rv;
 }
@@ -280,7 +283,7 @@ function withServer(config, server_loop) {
           }
           or {
             generate(-> request_queue.get()) ..
-              filter(function({request}) {
+              filter(__js function({request}) {
                 if (request.socket.writable) return true;
                 config.log("Pending connection closed");
                 return false;
@@ -293,7 +296,7 @@ function withServer(config, server_loop) {
                 }
                 or {
                   handler(server_request);
-                  if (!server_request.response.finished) {
+                  __js if (!server_request.response.finished) {
                     config.log("Unfinished response");
                     if(!server_request.response._header) {
                       config.log("Response without header; sending 500");
