@@ -43,7 +43,7 @@
 // closure is in global scope instead of this module
 __raw_until RAW_END
 var GeneratorFunction = Object.getPrototypeOf(function*(){}).constructor;
-var EvaluatorContext = new GeneratorFunction('ctx_name', 'file_name', "var require = __oni_rt.sys._makeRequire({id:ctx_name}); var __oni_eval_src = yield null;while (true) {var __oni_eval_val;try {__oni_eval_val = [false,eval(__oni_rt.c1.compile(__oni_eval_src, {filename:file_name}))];}catch (e) {__oni_eval_val = [true,e];} __oni_eval_src = yield __oni_eval_val;}");
+var EvaluatorContext = new GeneratorFunction('__oni_eval_ctx_ctx_name', '__oni_eval_ctx_imports', "var require = __oni_rt.sys._makeRequire({id:__oni_eval_ctx_ctx_name}); for (k in __oni_eval_ctx_imports) {eval('var '+k+'=__oni_eval_ctx_imports.'+k+';')} var __oni_eval_src = yield null;while (true) {var __oni_eval_val;try {__oni_eval_val = [false,eval(__oni_rt.c1.compile(__oni_eval_src[0], {filename:__oni_eval_src[1]}))];}catch (e) {__oni_eval_val = [true,e];} __oni_eval_src = yield __oni_eval_val;}");
 RAW_END
 var eval_context_counter = 0;
 
@@ -86,8 +86,10 @@ module.exports = {
   @param {optional Settings} [settings]
   @param {Function} [block]
   @setting {optional String} [name] Name of context for stack traces and [sjs:#language/builtins::require.modules] loaded_by/required_by information
+  @setting {optional Object} [imports] Optional hash of objects that should be imported into the context.
   @desc
-    Creates an empty evaluation context in global object scope and calls `block` with a single argument: A function `eval(src)` that compiles and executes the SJS code `src` and returns the result of evaluation.
+    Creates an empty evaluation context in global object scope and calls `block` with a single argument: A function `eval(src, [filename])` that compiles and executes the SJS code `src` and returns the result of evaluation.
+    Note that stacktraces will mention the context's `name`. This can be overriden for the source code passed to a particular `eval` call by passing the optional `filename` argument to `eval`.
 
     Any variable & function declarations in `src` will be bound in the evaluation context and are only available in code executed in (possibly multiple) invocations of the `eval` function. In particular, they are neither seen in the global scope nor in the scope of `block`.
 
@@ -114,14 +116,14 @@ module.exports = {
     if (!settings.name)
       settings.name = "eval-context-#{++eval_context_counter}";
 
-    var file_name = "'#{settings.name.replace(/\'/g, '\\\'')}'";
-
     try {
-      var E = EvaluatorContext(settings.name, file_name);
+      var E = EvaluatorContext(settings.name, settings.imports || {});
       E.next();
 
-      block(function(src) {
-        var [is_thrown, val]  = E.next(src).value;
+      block(function(src, file_name) {
+        var [is_thrown, val]  = E.next([src, 
+                                        "'#{(file_name||settings.name).replace(/\'/g, '\\\'')}'"]
+                                      ).value;
         if (is_thrown) throw val;
         return val;
       });
