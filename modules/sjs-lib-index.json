@@ -1909,10 +1909,19 @@
             "get": {
               "type": "function"
             },
+            "getLength": {
+              "type": "function"
+            },
             "insert": {
               "type": "function"
             },
+            "push": {
+              "type": "function"
+            },
             "remove": {
+              "type": "function"
+            },
+            "reset": {
               "type": "function"
             },
             "set": {
