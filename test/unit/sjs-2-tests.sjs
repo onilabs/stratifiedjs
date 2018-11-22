@@ -1648,6 +1648,21 @@ test("detached blocklambda break", 'ad', function() {
   return rv;
 });
 
+/*
+  detached blocklambdas are e.g. used in @each.track:
+
+    @integers() .. @monitor(-> hold(10)) .. @each.track {
+      |x|
+      hold(0);
+      console.log(x);
+      if (x === 10) break;
+    }
+
+    console.log('done');
+
+  Here, @each.track internally spawns the provided blocklambda
+
+*/
 test("detached async blocklambda break 1", 'ad', function() {
   var rv = '';
   function f(g) {
