@@ -2691,6 +2691,16 @@ function I_spawn(ndata,env){var val,async,have_val,picked_up=false;
 
 var value_waitarr=[];
 var abort_waitarr=[];
+
+
+
+env=copyEnv(env);
+env.blscope=null;
+env.blbref=null;
+
+
+
+
 var stratum=new ReifiedStratumProto();
 stratum.abort=function(){var dyn_vars=exports.current_dyn_vars;
 

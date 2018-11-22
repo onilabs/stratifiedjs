@@ -2951,6 +2951,16 @@ function I_spawn(ndata, env) {
   var val, async, have_val, picked_up=false;
   var value_waitarr = [];
   var abort_waitarr = [];
+
+  // copy environment and reset blocklambda scope/refs, so that we 
+  // don't get GC reference cycles
+  env = copyEnv(env);
+  env.blscope = null;
+  env.blbref = null;
+  // we need blrref for routing blb breaks from the spawned stratum; see EF_Spawn.prototype.cont
+  //env.blrref = null;
+
+
   var stratum = new ReifiedStratumProto();
   stratum.abort = function() {
     var dyn_vars = exports.current_dyn_vars;
