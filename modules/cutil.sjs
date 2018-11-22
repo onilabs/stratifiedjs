@@ -70,7 +70,8 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
   @desc
     If `funcs` is an array of functions, each of the functions will
     be executed on a separate stratum, with 'this' set to `this_obj` and
-    arguments set to `args`.
+    arguments set to `args`. `waitforAll` will operate on a stable snapshot of the `funcs` array. I.e. even if members are added/removed to/from the array after the initiation of the `waitforAll` call (e.g. by synchronous manipulation from one of the array members), `waitforAll` will execute precisely the functions present in the array when the `waitforAll` call is initiated.
+    
 
     If `funcs` is a single function and `args` is an array, `funcs`
     will be called `args.length` times on separate strata with its
@@ -83,6 +84,7 @@ function waitforAll(funcs, args, this_obj) {
   if (sys.isArrayLike(funcs)) {
     if (!funcs.length) return;
     //...else
+    __js funcs = Array.prototype.slice.call(funcs);
     return waitforAllFuncs(funcs, args, this_obj);
   }
   else if (sys.isArrayLike(args)) {
