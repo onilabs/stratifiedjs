@@ -487,11 +487,8 @@
   until an actual suspend point (`hold` or `waitfor/resume`) is reached.
 
 
-  While these cyclic aborts are allowed, they are typically indicative of flawed program logic and will generate a runtime warning:
-
-      Warning: Cyclic stratum.abort() call from within stratum.
-
-  If you really do need to abort a stratum from within (rather than returning 'normally' via return or via an exception), typically it will be more appropriate to use a
+  While these cyclic aborts are allowed, they can be indicative of flawed program logic, so be careful.
+  If you really do need to abort a stratum from within (rather than returning 'normally' via return or via an exception), it might be more appropriate to use a
   non-synchronous form of abortion:
 
       var S = spawn(function() { 

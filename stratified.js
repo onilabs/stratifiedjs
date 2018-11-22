@@ -2671,11 +2671,12 @@ EF_SpawnAbortFrame.prototype.resolveAbortCycle=function(spawn_frame){if(this.don
 var parent=this.parent;
 while(parent){
 if(spawn_frame===parent){
-var msg="Warning: Cyclic stratum.abort() call from within stratum."+stack_to_string(this.callstack);
-if(console){
-if(console.error)console.error(msg);else console.log(msg);
 
-}
+
+
+
+
+
 this.cont(UNDEF);
 break;
 }
