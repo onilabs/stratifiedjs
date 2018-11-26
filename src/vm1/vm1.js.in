@@ -337,9 +337,9 @@ var EF_Proto = {
 
   wait: function() { return this; },
 
-  setChildFrame: function(ef, idx) {
+  setChildFrame: function(ef, idx, prevent_callstack_copy) {
     if (this.child_frame) {
-      if (this.child_frame.callstack) {
+      if (prevent_callstack_copy !== true && this.child_frame.callstack) {
         // merge callstacks of old & new childframes:
         mergeCallstacks(ef, this.child_frame);
       }
@@ -777,7 +777,10 @@ EF_Seq.prototype.cont = function(idx, val) {
           if (!val) break; // returns val
         }
       }
-      this.child_frame = null; // ensures correct reentrant aborting
+      if (this.child_frame) {
+        this.child_frame.parent = UNDEF;
+        this.child_frame = UNDEF; // ensures correct reentrant aborting
+      }
       val = execIN(this.ndata[idx], this.env);
       if (this.aborted) {
         // a reentrant abortion
@@ -913,7 +916,10 @@ EF_Sc.prototype.cont = function(idx, val) {
     return this.returnToParent(val);
   }
   else {
-    this.child_frame = null; // prevent callstack copying; stack-tests 20
+    if (this.child_frame) {
+      this.child_frame.parent = UNDEF;
+      this.child_frame = UNDEF; // prevent callstack copying; stack-tests 20
+    }
     if (idx == 1) {
       // handle a result that has been passed in
       this.pars.push(val);
@@ -938,7 +944,10 @@ EF_Sc.prototype.cont = function(idx, val) {
       }
       this.pars.push(rv);
     }
-    this.child_frame = null;
+    if (this.child_frame) {
+      this.child_frame.parent = UNDEF;
+      this.child_frame = UNDEF;
+    }
 
     // alright, we've got the pars, let's do the call:
     try {
@@ -1046,8 +1055,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       ++this.i;
       if (is_cfx(rv)) return this.returnToParent(rv);
       if (is_ef(rv)) {
-        this.child_frame = null; // prevent unnecessary callstack copying
-        this.setChildFrame(rv, 1);
+        this.setChildFrame(rv, 1, true); // prevent unnecessary callstack copying
         return this;
       }
       if (this.i==NDATA_FCALL_ARGS_OFFSET)
@@ -1056,7 +1064,10 @@ EF_Fcall.prototype.cont = function(idx, val) {
         this.pars.push(rv);
     }
     
-    this.child_frame = null;
+    if (this.child_frame) {
+      this.child_frame.parent = UNDEF;
+      this.child_frame = UNDEF;
+    }
 
     // alright, we've got the left side + pars, let's do the call:
     try {
@@ -1429,7 +1440,10 @@ EF_Switch.prototype.cont = function(idx, val) {
     if (++idx >= this.NDATA_SWITCH_CLAUSES().length)
       return this.returnToParent(null); // all done; no matching clause found
     // test next clause:
-    this.child_frame = null; // prevent callstack copying; stack-tests 21
+    if (this.child_frame) {
+      this.child_frame.parent = UNDEF;
+      this.child_frame = UNDEF; // prevent callstack copying; stack-tests 21
+    }
     val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][0], this.env);
     if (this.aborted) {
       // a reentrant abortion
@@ -1457,7 +1471,10 @@ EF_Switch.prototype.cont = function(idx, val) {
     if (idx >= this.NDATA_SWITCH_CLAUSES().length) {
       return this.returnToParent(val);
     }
-    this.child_frame = null; // prevent callstack copying; stack-tests 22
+    if (this.child_frame) {
+      this.child_frame.parent = UNDEF;
+      this.child_frame = UNDEF; // prevent callstack copying; stack-tests 22
+    }
     val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][1], this.env);
     if (this.aborted) {
       // a reentrant abortion
@@ -1576,8 +1593,7 @@ EF_Try.prototype.cont = function(idx, val) {
 
 
       if (is_ef(val)) {
-        this.child_frame = null; // prevent callstack copying; stack-tests 23        
-        this.setChildFrame(val);
+        this.setChildFrame(val, 0, true); // prevent callstack copying; stack-tests 23
         return this;
       }
     }
@@ -1597,8 +1613,7 @@ EF_Try.prototype.cont = function(idx, val) {
 
 
       if (is_ef(val)) {
-        this.child_frame = null; // prevent unnecessary callstack copying
-        this.setChildFrame(val);
+        this.setChildFrame(val, 0, true); // prevent unnecessary callstack copying
         return this;
       }
     }
@@ -1610,8 +1625,7 @@ EF_Try.prototype.cont = function(idx, val) {
       // we can't tail-call this, because we might have to return
       // the stored rv (if it is an exception)
       if (is_ef(val)) {
-        this.child_frame = null; // prevent unnecessary callstack copying
-        this.setChildFrame(val);
+        this.setChildFrame(val, 0, true); // prevent unnecessary callstack copying
         return this;
       }
     }
@@ -1738,8 +1752,7 @@ EF_Loop.prototype.cont = function(idx, val) {
         }
 
         if (is_ef(val)) {
-          this.child_frame = null; // prevent callstack copying; stack-tests 26
-          this.setChildFrame(val, 2);
+          this.setChildFrame(val, 2, true); // prevent callstack copying; stack-tests 26
           return this;
         }
         idx = 2; // body next
@@ -1779,7 +1792,10 @@ EF_Loop.prototype.cont = function(idx, val) {
           }
             
           // perform body
-          this.child_frame = null; // ensure correct reentrant aborting & prevent callstack copying 
+          if (this.child_frame) {
+            this.child_frame.parent = UNDEF;
+            this.child_frame = UNDEF; // ensure correct reentrant aborting & prevent callstack copying 
+          }
           val = execIN(this.NDATA_LOOP_BODY(idx), this.env);
           if (this.aborted) {
             // a reentrant abortion
@@ -1814,8 +1830,7 @@ EF_Loop.prototype.cont = function(idx, val) {
         }
 
         if (is_ef(val)) {
-          this.child_frame = null; // prevent callstack copying; stack-tests 27
-          this.setChildFrame(val, 0);
+          this.setChildFrame(val, 0, true); // prevent callstack copying; stack-tests 27
           return this;
         }
       }
@@ -1877,8 +1892,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
       }
 
       if (is_ef(val)) {
-        this.child_frame = null; // prevent callstack copying
-        this.setChildFrame(val, 1);
+        this.setChildFrame(val, 1, true); // prevent callstack copying
         return this;
       }
       idx = 1;
@@ -1913,8 +1927,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
       }
       if (is_ef(val)) {
         if (!this.remainingX) this.remainingX = [];
-        this.child_frame = null; // prevent callstack copying
-        this.setChildFrame(val, 2);
+        this.setChildFrame(val, 2, true); // prevent callstack copying
         return this;
       }
       // all done
@@ -1937,8 +1950,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
           return this.returnToParent(val);
         }
         if (is_ef(val)) {
-          this.child_frame = null; // prevent callstack copying
-          this.setChildFrame(val, 2);
+          this.setChildFrame(val, 2, true); // prevent callstack copying
           return this;
         }
         var arg;
@@ -2049,7 +2061,11 @@ EF_Par.prototype.cont = function(idx, val) {
     else {
       // returning from a suspension
       --this.pending;
-      this.children[idx] = UNDEF;
+      if (this.children[idx]) {
+        // clear parent on child to aid gc:
+        this.children[idx].parent = UNDEF;
+        this.children[idx] = UNDEF;
+      }
       if (is_cfx(val) && !this.inner_aborted && 
           !(val.type === 'blb' && val.ef === this.env.blscope)) {
         // an exception aborts all other pending branches: (but only
@@ -2514,7 +2530,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
       if (is_ef(val)) {
         ASSERT(!this.child_frame)
         // processing up to here has been synchronous; we still need to abort
-        this.setChildFrame(val, /* not relevant */null);
+        this.setChildFrame(val, /* not relevant */0);
         this.quench();
         val = val.abort();
         if (is_ef(val)) {

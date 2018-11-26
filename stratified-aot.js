@@ -321,11 +321,11 @@ var EF_Proto={toString:function(){
 return "<suspended SJS>"},__oni_ef:true,wait:function(){
 
 
-return this},setChildFrame:function(ef,idx){
+return this},setChildFrame:function(ef,idx,prevent_callstack_copy){
 
 if(this.child_frame){
 
-if(this.child_frame.callstack){
+if(prevent_callstack_copy!==true&&this.child_frame.callstack){
 
 mergeCallstacks(ef,this.child_frame);
 }
@@ -723,7 +723,10 @@ if(val)break;
 if(!val)break;
 }
 }
-this.child_frame=null;
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+this.child_frame=UNDEF;
+}
 val=execIN(this.ndata[idx],this.env);
 if(this.aborted){
 
@@ -798,7 +801,10 @@ this.setChildFrame(val,idx);
 return this.returnToParent(val);
 }else{
 
-this.child_frame=null;
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+this.child_frame=UNDEF;
+}
 if(idx==1){
 
 this.pars.push(val);
@@ -823,7 +829,10 @@ return this;
 }
 this.pars.push(rv);
 }
-this.child_frame=null;
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+this.child_frame=UNDEF;
+}
 
 
 try{
@@ -923,8 +932,7 @@ return this.returnToParent(rv);
 ++this.i;
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return this.returnToParent(rv);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(rv,1);
+this.setChildFrame(rv,1,true);
 return this;
 }
 if(this.i==3)this.l=rv;else this.pars.push(rv);
@@ -933,7 +941,10 @@ if(this.i==3)this.l=rv;else this.pars.push(rv);
 
 }
 
-this.child_frame=null;
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+this.child_frame=UNDEF;
+}
 
 
 try{
@@ -1269,7 +1280,10 @@ return this;
 if(++idx>=this.ndata[1].length)return this.returnToParent(null);
 
 
-this.child_frame=null;
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+this.child_frame=UNDEF;
+}
 val=execIN(this.ndata[1][idx][0],this.env);
 if(this.aborted){
 
@@ -1297,7 +1311,10 @@ return this.returnToParent(val);
 if(idx>=this.ndata[1].length){
 return this.returnToParent(val);
 }
-this.child_frame=null;
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+this.child_frame=UNDEF;
+}
 val=execIN(this.ndata[1][idx][1],this.env);
 if(this.aborted){
 
@@ -1400,8 +1417,7 @@ if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3]&&!(this.aborted&&(val!==null&&t
 
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(val);
+this.setChildFrame(val,0,true);
 return this;
 }
 }
@@ -1421,8 +1437,7 @@ val=execIN(this.ndata[4],this.env);
 
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(val);
+this.setChildFrame(val,0,true);
 return this;
 }
 }
@@ -1434,8 +1449,7 @@ val=execIN(this.ndata[3],this.env);
 
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(val);
+this.setChildFrame(val,0,true);
 return this;
 }
 }
@@ -1555,8 +1569,7 @@ return this.returnToParent(val);
 }
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(val,2);
+this.setChildFrame(val,2,true);
 return this;
 }
 idx=2;
@@ -1596,7 +1609,10 @@ if(idx>=this.ndata.length)break;
 }
 
 
-this.child_frame=null;
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+this.child_frame=UNDEF;
+}
 val=execIN(this.ndata[idx+1],this.env);
 if(this.aborted){
 
@@ -1631,8 +1647,7 @@ return this.returnToParent(val);
 }
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(val,0);
+this.setChildFrame(val,0,true);
 return this;
 }
 }
@@ -1689,8 +1704,7 @@ return this.returnToParent(val);
 }
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(val,1);
+this.setChildFrame(val,1,true);
 return this;
 }
 idx=1;
@@ -1725,8 +1739,7 @@ this.for_in_obj=for_in_obj;
 }
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 if(!this.remainingX)this.remainingX=[];
-this.child_frame=null;
-this.setChildFrame(val,2);
+this.setChildFrame(val,2,true);
 return this;
 }
 
@@ -1749,8 +1762,7 @@ if(this.remainingX.length)continue;
 return this.returnToParent(val);
 }
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.child_frame=null;
-this.setChildFrame(val,2);
+this.setChildFrame(val,2,true);
 return this;
 }
 var arg;
@@ -1858,7 +1870,11 @@ return this.abortInner();
 
 
 --this.pending;
+if(this.children[idx]){
+
+this.children[idx].parent=UNDEF;
 this.children[idx]=UNDEF;
+}
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb'&&val.ef===this.env.blscope)){
 
 
@@ -2272,7 +2288,7 @@ if(this.returning){
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 
-this.setChildFrame(val,null);
+this.setChildFrame(val,0);
 this.quench();
 val=val.abort();
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
