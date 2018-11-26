@@ -54,8 +54,8 @@ var PAT_COMMENT = "(" + PAT_NBCOMMENT + "|" + PAT_BCOMMENT + ")";
 // e.g. " /* */ " <-- a string, not a comment
 //      /\/* .*/  <-- a regexp, not a comment
 var PAT_REGEXLIT = "\\/(?:\\\\.|\\[(?:\\\\.|[^\\n\\]])*\\]|[^\\[\\/\\n])+\\/[gimy]*";
-var PAT_ML_STRLIT_SGL = "'(?:\\\\.|[^\\'\\\\])*'";
-var PAT_ML_STRLIT_DBL = '"(?:\\\\.|[^\\"\\\\])*"';
+var PAT_ML_STRLIT_SGL = "'(?:\\\\.|[^\\'\\\\]|\\\\\\n)*'";
+var PAT_ML_STRLIT_DBL = '"(?:\\\\.|[^\\"\\\\]|\\\\\\n)*"';
 var PAT_ML_STRLIT = PAT_ML_STRLIT_SGL+"|"+PAT_ML_STRLIT_DBL;
 var PAT_COMMENT_SHADOW = PAT_REGEXLIT + "|" + PAT_ML_STRLIT;
 
