@@ -2967,10 +2967,39 @@
         "console": {
           "type": "module",
           "children": {
-            "Console.focus": {
-              "type": "function"
+            "Console": {
+              "type": "class",
+              "children": {
+                "clear": {
+                  "type": "function"
+                },
+                "error": {
+                  "type": "function"
+                },
+                "exec": {
+                  "type": "function"
+                },
+                "expand": {
+                  "type": "function"
+                },
+                "focus": {
+                  "type": "function"
+                },
+                "log": {
+                  "type": "function"
+                },
+                "shut": {
+                  "type": "function"
+                },
+                "shutdown": {
+                  "type": "function"
+                },
+                "warn": {
+                  "type": "function"
+                }
+              }
             },
-            "Console.shutdown": {
+            "console": {
               "type": "function"
             },
             "log": {
