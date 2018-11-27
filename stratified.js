@@ -379,6 +379,7 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='t'&&this.cal
 
 
 
+
 val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
 if(this.swallow_r){
@@ -1871,6 +1872,12 @@ this.quench();
 return this.abortInner();
 }
 }
+
+
+
+
+
+this.ndata=UNDEF;
 }else{
 
 

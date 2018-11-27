@@ -386,6 +386,18 @@ var EF_Proto = {
   },
 
   returnToParent: function(val) {
+#ifdef DEBUG_VM
+    // We currently call returnToParent prematurely under various reentrancy scenarios in
+    // Alt, Par, and Spawn.
+    // XXX This is wrong and extremely fragile and needs a rewrite at some point.
+    if (this.__rtp_called) {
+      console.log(this + ": redundant call to returnToParent("+val+")");
+    }
+    else {
+      this.__rtp_called = true;
+    }
+#endif
+
     // this check is incomplete: try/alt/par that are internally aborted don't have their 'aborted'
     // flag set, yet they *do* accept 'a's
     //    if (this.parent && this.aborted && !this.parent.aborted && is_cfx(val) && val.type === 'a') {
@@ -2011,8 +2023,14 @@ function mergeExceptions(new_exception, original_exception) {
   return new_exception; 
 }
 
+#ifdef DEBUG_VM
+var par_counter = 0;
+#endif
 
 function EF_Par(ndata, env) {
+#ifdef DEBUG_VM
+  this.id = ++par_counter;
+#endif
   this.ndata = ndata;
   this.env = env;
   this.pending = 0;
@@ -2057,9 +2075,15 @@ EF_Par.prototype.cont = function(idx, val) {
           return this.abortInner();
         }
       }
+      // we clear ndata here to:
+      //   (a) serve as an indication that we're done with kicking off all children. If ndata is not
+      //       UNDEF, we know that we're being called reentrantly - not used yet: see also comment at start of
+      //       returnToParent
+      //   (b) to aid garbage collection
+      this.ndata = UNDEF;
     }
     else {
-      // returning from a suspension
+      // returning from a suspension or called reentrantly from a branch that is continued by another branch
       --this.pending;
       if (this.children[idx]) {
         // clear parent on child to aid gc:
