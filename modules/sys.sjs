@@ -43,7 +43,7 @@
 // closure is in global scope instead of this module
 __raw_until RAW_END
 var GeneratorFunction = Object.getPrototypeOf(function*(){}).constructor;
-var EvaluatorContext = new GeneratorFunction('__oni_eval_ctx_ctx_name', '__oni_eval_ctx_imports', "var require = __oni_rt.sys._makeRequire({id:__oni_eval_ctx_ctx_name}); for (k in __oni_eval_ctx_imports) {eval('var '+k+'=__oni_eval_ctx_imports.'+k+';')} var __oni_eval_src = yield null;while (true) {var __oni_eval_val;try {__oni_eval_val = [false,eval(__oni_rt.c1.compile(__oni_eval_src[0], {filename:__oni_eval_src[1]}))];}catch (e) {__oni_eval_val = [true,e];} __oni_eval_src = yield __oni_eval_val;}");
+var EvaluatorContext = new GeneratorFunction('__oni_eval_ctx_ctx_name', '__oni_eval_ctx_imports', "var require = __oni_rt.sys._makeRequire({id:__oni_eval_ctx_ctx_name}); var __oni_altns = {}; for (k in __oni_eval_ctx_imports) {eval('var '+k+'=__oni_eval_ctx_imports.'+k+';')} var __oni_eval_src = yield null;while (true) {var __oni_eval_val;try {__oni_eval_val = [false,eval(__oni_rt.c1.compile(__oni_eval_src[0], {filename:__oni_eval_src[1]}))];}catch (e) {__oni_eval_val = [true,e];} __oni_eval_src = yield __oni_eval_val;}");
 RAW_END
 var eval_context_counter = 0;
 
