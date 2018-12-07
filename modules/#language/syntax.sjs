@@ -630,54 +630,70 @@
    to make the code safe under retraction. E.g. the following code generates
    a runtime error because the spawned stratum is not being retracted:
 
-      function foo(f) {
-        spawn (function() { hold(1000); f(); })();
-        hold();
+      function test() {
+        function foo(f) {
+          spawn (function() { hold(1000); f(); })();
+          hold();
+        }
+
+        waitfor {
+          foo { || console.log('blocklambda here'); break; }
+        }
+        or {
+          hold(100);
+        }
       }
 
-      waitfor {
-        foo { || console.log('blocklambda here'); break; }
-      }
-      or {
-        hold(100);
-      }
+      test();
+
+   The runtime error ('Blocklambda break to inactive scope') is generated because the scope `test`
+   will have been exited (by virtue of the `hold(100)` in the second branch of the `waitfor{}or{}`) by
+   the time the spawned stratum executes the `break`.
 
    A retraction-safe version of this code would look like this:
 
-      function foo(f) {
-        var stratum = spawn (function() { hold(1000); f(); })();
-        try {
-          hold();
+      function test() {
+        function foo(f) {
+          var stratum = spawn (function() { hold(1000); f(); })();
+          try {
+            hold();
+          }
+          retract {
+            stratum.abort();
+          }
         }
-        retract {
-          stratum.abort();
+
+        waitfor {
+          foo { || console.log('blocklambda here'); break; }
+        }
+        or {
+          hold(100);
         }
       }
 
-      waitfor {
-        foo { || console.log('blocklambda here'); break; }
-      }
-      or {
-        hold(100);
-      }
+      test();
 
    Note, however, that in most cases code that makes use of `spawn` can
    be reformulated into a 'structured' form (i.e. one that doesn't make use
    of `spawn`), in which retraction is handled implicitly. E.g. a simpler 
    alternative to the above code would be:
 
-      function foo(f) {
-        hold(1000);
-        f();
-        hold();
+      function test() {
+        function foo(f) {
+          hold(1000);
+          f();
+          hold();
+        }
+  
+        waitfor {
+          foo { || console.log('blocklambda here'); break; }
+        }
+        or {
+          hold(100);
+        }     
       }
 
-      waitfor {
-        foo { || console.log('blocklambda here'); break; }
-      }
-      or {
-        hold(100);
-      }     
+      test();
 
 
 @syntax double-colon
