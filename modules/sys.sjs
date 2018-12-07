@@ -43,7 +43,7 @@
 // closure is in global scope instead of this module
 __raw_until RAW_END
 var GeneratorFunction = Object.getPrototypeOf(function*(){}).constructor;
-var EvaluatorContext = new GeneratorFunction('__oni_eval_ctx_ctx_name', '__oni_eval_ctx_imports', "var require = __oni_rt.sys._makeRequire({id:__oni_eval_ctx_ctx_name}); var __oni_altns = {}; for (k in __oni_eval_ctx_imports) {eval('var '+k+'=__oni_eval_ctx_imports.'+k+';')} var __oni_eval_src = yield null;while (true) {var __oni_eval_val;try {__oni_eval_val = [false,eval(__oni_rt.c1.compile(__oni_eval_src[0], {filename:__oni_eval_src[1]}))];}catch (e) {__oni_eval_val = [true,e];} __oni_eval_src = yield __oni_eval_val;}");
+var EvaluatorContext = new GeneratorFunction('__oni_eval_ctx_ctx_id', '__oni_eval_ctx_imports', "var require = __oni_rt.sys._makeRequire({id:__oni_eval_ctx_ctx_id}); var __oni_altns = {}; for (k in __oni_eval_ctx_imports) {eval('var '+k+'=__oni_eval_ctx_imports.'+k+';')} var __oni_eval_src = yield null;while (true) {var __oni_eval_val;try {__oni_eval_val = [false,eval(__oni_rt.c1.compile(__oni_eval_src[0], {filename:__oni_eval_src[1]}))];}catch (e) {__oni_eval_val = [true,e];} __oni_eval_src = yield __oni_eval_val;}");
 RAW_END
 var eval_context_counter = 0;
 
@@ -85,13 +85,38 @@ module.exports = {
   @summary Dynamically evaluate SJS code in an empty context
   @param {optional Settings} [settings]
   @param {Function} [block]
-  @setting {optional String} [name] Name of context for stack traces and [sjs:#language/builtins::require.modules] loaded_by/required_by information
+  @setting {optional String} [id] Id of the context - see description below
   @setting {optional Object} [imports] Optional hash of objects that should be imported into the context.
   @desc
     Creates an empty evaluation context in global object scope and calls `block` with a single argument: A function `eval(src, [filename])` that compiles and executes the SJS code `src` and returns the result of evaluation.
-    Note that stacktraces will mention the context's `name`. This can be overriden for the source code passed to a particular `eval` call by passing the optional `filename` argument to `eval`.
+    Note that stacktraces will mention the context's `id`. This can be overriden for the source code passed to a particular `eval` call by passing the optional `filename` argument to `eval`.
 
     Any variable & function declarations in `src` will be bound in the evaluation context and are only available in code executed in (possibly multiple) invocations of the `eval` function. In particular, they are neither seen in the global scope nor in the scope of `block`.
+
+    ### Context Id
+
+    The `id` setting is used in the `require` module resolution process. If `id` is not provided, or `id` is not a URL, 
+    then require calls with relative URLs (such as `require('./foo')`) will be converted to absolute URLs based off
+    the 'top request parent'. In the xbrowser host environment, this will be the URL of the StratifiedJS library. In 
+    the nodejs host environment it will be the directory of the Conductance executable.
+    
+    One (maybe) unexpected effect of this behavior is that requests to 
+    *relative* [sjs:#language/builtins::require.hubs] will also, by default, 
+    resolve to the StratifiedJS or Conductance directory. 
+    In particular, requests to nodejs modules 
+    (e.g. `require('nodejs:foo')`) will be resolved in Conductance's node_modules directory and not your local
+    application's directory.
+    If you want these requests to resolve to your local application's directory, 
+    you need to set `id` to a (file) URL located in your application's directory tree . E.g.:
+
+        // in foo.sjs:
+
+        @sys.withEvalContext({id: require.url('./')}) {
+          |eval|
+          eval("require('nodejs:some_node_module');"); // resolves to your app's node_modules
+          eval("require('./bar')"); // resolves to [location of foo.sjs]/bar
+        }
+
 
     ### Example
 
@@ -113,16 +138,16 @@ module.exports = {
     }
     if (!settings) settings = {};
 
-    if (!settings.name)
-      settings.name = "eval-context-#{++eval_context_counter}";
+    if (!settings.id)
+      settings.id = "eval-context-#{++eval_context_counter}";
 
     try {
-      var E = EvaluatorContext(settings.name, settings.imports || {});
+      var E = EvaluatorContext(settings.id, settings.imports || {});
       E.next();
 
       block(function(src, file_name) {
         var [is_thrown, val]  = E.next([src, 
-                                        "'#{(file_name||settings.name).replace(/\'/g, '\\\'')}'"]
+                                        "'#{(file_name||settings.id).replace(/\'/g, '\\\'')}'"]
                                       ).value;
         if (is_thrown) throw val;
         return val;
