@@ -2347,3 +2347,42 @@ test('alt-abort-edgecase', 'r', function() {
   return rv;
 });
 
+//----------------------------------------------------------------------
+
+test('bl return across spawn - sync', 'xfF', function() {
+  var rv = '';
+  function foo() {
+    try {
+      spawn ({ || try { rv += 'x'; return; } retract { rv += 'r' } finally { rv += 'f' } })()
+      hold();
+    }
+    retract {
+      rv += 'R';
+    }
+    finally {
+      rv += 'F';
+    }
+  }
+  foo();
+  return rv;
+});
+
+// this used to generate 'xfRF'
+test('bl return across spawn - async', 'xfF', function() {
+  var rv = '';
+  function foo() {
+    try {
+      spawn ({ || try { hold(0); rv += 'x'; return; } retract { rv += 'r' } finally { rv += 'f' } })()
+      hold();
+    }
+    retract {
+      rv += 'R';
+    }
+    finally {
+      rv += 'F';
+    }
+  }
+  foo();
+  return rv;
+});
+

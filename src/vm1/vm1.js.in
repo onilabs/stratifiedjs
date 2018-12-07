@@ -364,9 +364,10 @@ var EF_Proto = {
   },
 
   // abort must either return 'this' (if we need to wait), or a controlflow exception
-  abort: function() {
+  abort: function(pseudo_abort) {
     ASSERT(!this.aborted);
     this.aborted = true;
+    this.pseudo_abort = pseudo_abort;
     // see sjs-2-test 'reentrant quench/abort' for why we need to
     // check for 'this.child_frame' here and in 'quench'
     if (!this.child_frame) {
@@ -374,7 +375,7 @@ var EF_Proto = {
       return this;
     }
     else {
-      var abort_val = this.child_frame.abort();
+      var abort_val = this.child_frame.abort(pseudo_abort);
       if (is_ef(abort_val)) {
         return this; // need to stay in picture because abort must not return child frame
       }
@@ -450,7 +451,7 @@ var EF_Proto = {
     this.unreturnable = true;
 
     // a little cleanup which might aid GC:
-    // XXX this breaks function-tests.sjs:8
+    // XXX this breaks function-tests.sjs:exclusive
     // this.env = UNDEF;
 
     if (this.async) {
@@ -798,7 +799,7 @@ EF_Seq.prototype.cont = function(idx, val) {
         // a reentrant abortion
         if (is_ef(val)) {
           val.quench(); // not sure this is needed here XXX
-          val = val.abort();
+          val = val.abort(this.pseudo_abort);
           if (!is_ef(val))
             return this.returnToParent(val);
         }
@@ -839,7 +840,7 @@ function I_seq(ndata, env) {
       // a reentrant abortion
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
         return this.returnToParent(val);
       }
     }
@@ -943,7 +944,7 @@ EF_Sc.prototype.cont = function(idx, val) {
         // a reentrant abortion
         if (is_ef(rv)) {
           rv.quench(); // not sure this is needed here XXX
-          rv = rv.abort();
+          rv = rv.abort(this.pseudo_abort);
           return this.returnToParent(rv);
         }
       }
@@ -1059,7 +1060,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
         // a reentrant abortion
         if (is_ef(rv)) {
           rv.quench(); // not sure this is needed here XXX
-          rv = rv.abort();
+          rv = rv.abort(this.pseudo_abort);
           return this.returnToParent(rv);
         }
       }
@@ -1269,7 +1270,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
     if (is_ef(rv)) {
       if (this.aborted) {
         // reentrant abortion
-        rv = rv.abort();
+        rv = rv.abort(this.pseudo_abort);
         return this.returnToParent(rv);
       }
 
@@ -1333,7 +1334,7 @@ EF_If.prototype.cont = function(idx, val) {
       // a reentrant abortion
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
         return this.returnToParent(val);
       }
     }
@@ -1354,7 +1355,7 @@ EF_If.prototype.cont = function(idx, val) {
       // a reentrant abortion
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
       }
     }
   break;
@@ -1425,7 +1426,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       // a reentrant abortion
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
         return this.returnToParent(val);
       }
     }
@@ -1461,7 +1462,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       // a reentrant abortion
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
         return this.returnToParent(val);
       }
     }
@@ -1492,7 +1493,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       // a reentrant abortion
       if (is_ef(val)) {
         val.quench(); // not sure this is needed here XXX
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
         return this.returnToParent(val);
       }
     }
@@ -1594,7 +1595,7 @@ EF_Try.prototype.cont = function(idx, val) {
       // see sjs-2-tests.sjs: reentrant abortion from catch()
       if (this.aborted && is_ef(val)) {
         // abort val
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
       } 
 
       // tail-call optimization:
@@ -1615,7 +1616,7 @@ EF_Try.prototype.cont = function(idx, val) {
     // save value from catch/try (the value from the retract block
     // never matters):
     this.rv = val;
-    if (this.aborted && this.NDATA_TRY_RETRACT_BLOCK()) {
+    if (this.aborted && !this.pseudo_abort && this.NDATA_TRY_RETRACT_BLOCK()) {
       val = execIN(this.NDATA_TRY_RETRACT_BLOCK(), this.env);
 
       // tail-call optimization:
@@ -1663,12 +1664,13 @@ EF_Try.prototype.quench = function() {
     this.child_frame.quench();
 };
 
-EF_Try.prototype.abort = function() {
+EF_Try.prototype.abort = function(pseudo_abort) {
   ASSERT(this.aborted !== true); // sanity check; aborted before
   this.aborted = true;
+  this.pseudo_abort = pseudo_abort;
   ASSERT(this.state !== 3) // sanity check; aborted before
   if (this.state !== 4) { // don't abort finally block
-    var val = this.child_frame.abort(); 
+    var val = this.child_frame.abort(this.pseudo_abort); 
     if (is_ef(val)) {
       // we need to wait for the try or catch block, and then let
       // cont() proceed with retract/finally:
@@ -1758,7 +1760,7 @@ EF_Loop.prototype.cont = function(idx, val) {
           // a reentrant abortion
           if (is_ef(val)) {
             val.quench(); // not sure this is needed here XXX
-            val = val.abort();
+            val = val.abort(this.pseudo_abort);
             return this.returnToParent(val);
           }
         }
@@ -1813,7 +1815,7 @@ EF_Loop.prototype.cont = function(idx, val) {
             // a reentrant abortion
             if (is_ef(val)) {
               val.quench(); // not sure this is needed here XXX
-              val = val.abort();
+              val = val.abort(this.pseudo_abort);
               // the is_ef check is crucial here, because the frame might still produce 'break's which the loop
               // must see - see sjs-2-tests 'blocking finally clause in loop is not abort point'
               if (!is_ef(val))
@@ -1836,7 +1838,7 @@ EF_Loop.prototype.cont = function(idx, val) {
           // a reentrant abortion
           if (is_ef(val)) {
             val.quench(); // not sure this is needed here XXX
-            val = val.abort();
+            val = val.abort(this.pseudo_abort);
             return this.returnToParent(val);
           }
         }
@@ -1898,7 +1900,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
         // a reentrant abortion
         if (is_ef(val)) {
           val.quench(); // not sure this is needed here XXX
-          val = val.abort();
+          val = val.abort(this.pseudo_abort);
           return this.returnToParent(val);
         }
       }
@@ -2141,7 +2143,7 @@ EF_Par.prototype.quench = function() {
   }
 };
 
-EF_Par.prototype.abort = function() {
+EF_Par.prototype.abort = function(pseudo_abort) {
   // Leftover from old abort code. Not sure what the logic was here.
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
@@ -2154,6 +2156,8 @@ EF_Par.prototype.abort = function() {
     return this;
     //return this.pendingCFE || new CFException('a');
   }
+  else
+    this.pseudo_abort = pseudo_abort;
   this.aborted = true;
   return this.abortInner();
 };
@@ -2165,7 +2169,7 @@ EF_Par.prototype.abortInner = function() {
   this.inner_aborted = true;
   for (var i=0; i<this.children.length; ++i)
     if (this.children[i]) {
-      var val = this.children[i].abort();
+      var val = this.children[i].abort(this.pseudo_abort);
       if (is_ef(val)) // need to wait on this one...
         this.setChildFrame(val, i);
       else {
@@ -2330,7 +2334,7 @@ EF_Alt.prototype.quench = function(except) {
   }
 };
 
-EF_Alt.prototype.abort = function() {
+EF_Alt.prototype.abort = function(pseudo_abort) {
   // XXX not sure what the rationale was here
   //this.parent = UNDEF;
   if (this.aborted) {
@@ -2338,6 +2342,8 @@ EF_Alt.prototype.abort = function() {
     //this.pendingRV = UNDEF;
     return this;
   }
+
+  this.pseudo_abort = pseudo_abort;
   this.aborted = true;
   var rv;
   if (!this.inner_aborted) {
@@ -2360,7 +2366,7 @@ EF_Alt.prototype.abortInner = function() {
     // we're being aborted after a collapse; just need to abort the collapsing branch
     var branch = this.collapsing.branch;
     this.collapsing = UNDEF;
-    var val = this.children[branch].abort();
+    var val = this.children[branch].abort(this.pseudo_abort);
     if (is_ef(val)) // need to wait
       this.setChildFrame(val, branch);
     else {
@@ -2372,7 +2378,7 @@ EF_Alt.prototype.abortInner = function() {
     // common case: abort all branches
     for (var i=0; i<this.children.length; ++i)
       if (this.children[i]) {
-        var val = this.children[i].abort();
+        var val = this.children[i].abort(this.pseudo_abort);
         if (is_ef(val)) // need to wait
           this.setChildFrame(val, i);
         else {
@@ -2556,7 +2562,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
         // processing up to here has been synchronous; we still need to abort
         this.setChildFrame(val, /* not relevant */0);
         this.quench();
-        val = val.abort();
+        val = val.abort(this.pseudo_abort);
         if (is_ef(val)) {
           // wait for the abort to finish
           this.setChildFrame(val, 3);
@@ -2610,7 +2616,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
       }
       else {
         this.quench();
-        val = this.child_frame.abort();
+        val = this.child_frame.abort(this.pseudo_abort);
         if (is_ef(val)) {
           // wait for the abort to finish
           this.setChildFrame(val, 3);
@@ -2647,13 +2653,14 @@ EF_Suspend.prototype.quench = function() {
     this.child_frame.quench();
 };
 
-EF_Suspend.prototype.abort = function() {
+EF_Suspend.prototype.abort = function(pseudo_abort) {
   //  LOG('SUSPEND abort (childf='+this.child_frame+')')
   exports.current_dyn_vars = this.dyn_vars;
   this.returning = true;
   this.aborted = true;
+  this.pseudo_abort = pseudo_abort;
   if (!this.suspendCompleted) {
-    var abort_val = this.child_frame.abort();
+    var abort_val = this.child_frame.abort(pseudo_abort);
     if (is_ef(abort_val)) {
       this.setChildFrame(abort_val, 4);
       return this; // need to stay in picture, because abort must not return child frame
@@ -2783,7 +2790,8 @@ EF_Spawn.prototype.cont = function(idx, val) {
 
       // abort target frame
       val.ef.quench();
-      var aborted_target = val.ef.abort();
+      // abort with a 'pseudo abort', because this is actually a return, not an abort
+      var aborted_target = val.ef.abort(true);
       if (is_ef(aborted_target)) {
         this.return_val = val.val;
         this.setChildFrame(aborted_target, 2);
@@ -2839,7 +2847,8 @@ EF_Spawn.prototype.cont = function(idx, val) {
 
       // Abort the frame:
       frame_to_abort.quench();
-      var aborted_target = frame_to_abort.abort();
+      // XXX should this be a pseudo abort??
+      var aborted_target = frame_to_abort.abort(true);
       if (is_ef(aborted_target)) {
         this.return_val = UNDEF;
         this.setChildFrame(aborted_target, 2);
@@ -2999,6 +3008,7 @@ function I_spawn(ndata, env) {
   env.blscope = null;
   env.blbref = null;
   // we need blrref for routing blb breaks from the spawned stratum; see EF_Spawn.prototype.cont
+  // see also sjs-2-tests::'detached async blocklambda break 1'
   //env.blrref = null;
 
 

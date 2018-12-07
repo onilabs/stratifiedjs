@@ -309,12 +309,13 @@ if(this.child_frame)this.child_frame.quench();
 
 
 
-},abort:function(){
+},abort:function(pseudo_abort){
 
 
 ;
 
 this.aborted=true;
+this.pseudo_abort=pseudo_abort;
 
 
 if(!this.child_frame){
@@ -322,7 +323,7 @@ if(!this.child_frame){
 return this;
 }else{
 
-var abort_val=this.child_frame.abort();
+var abort_val=this.child_frame.abort(pseudo_abort);
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
 return this;
 }else{
@@ -695,7 +696,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))return this.returnToParent(val);
 
 }
@@ -779,7 +780,7 @@ if(this.aborted){
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 rv.quench();
-rv=rv.abort();
+rv=rv.abort(this.pseudo_abort);
 return this.returnToParent(rv);
 }
 }
@@ -887,7 +888,7 @@ if(this.aborted){
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 rv.quench();
-rv=rv.abort();
+rv=rv.abort(this.pseudo_abort);
 return this.returnToParent(rv);
 }
 }
@@ -1070,7 +1071,7 @@ rv=UNDEF;
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 if(this.aborted){
 
-rv=rv.abort();
+rv=rv.abort(this.pseudo_abort);
 return this.returnToParent(rv);
 }
 
@@ -1122,7 +1123,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
@@ -1143,7 +1144,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 }
 }
 break;
@@ -1209,7 +1210,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
@@ -1245,7 +1246,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
@@ -1276,7 +1277,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
@@ -1362,7 +1363,7 @@ val=this.ndata[2](this.env,v);
 
 if(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 }
 
 
@@ -1383,7 +1384,7 @@ this.state=3;
 
 
 this.rv=val;
-if(this.aborted&&this.ndata[4]){
+if(this.aborted&&!this.pseudo_abort&&this.ndata[4]){
 val=execIN(this.ndata[4],this.env);
 
 
@@ -1431,12 +1432,13 @@ EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
 
 };
 
-EF_Try.prototype.abort=function(){;
+EF_Try.prototype.abort=function(pseudo_abort){;
 
 this.aborted=true;
+this.pseudo_abort=pseudo_abort;
 
 if(this.state!==4){
-var val=this.child_frame.abort();
+var val=this.child_frame.abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 
@@ -1519,7 +1521,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
@@ -1574,7 +1576,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 
 
 if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))return this.returnToParent(val);
@@ -1597,7 +1599,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
@@ -1654,7 +1656,7 @@ if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
@@ -1888,7 +1890,7 @@ if(this.children[i])this.children[i].quench();
 }
 };
 
-EF_Par.prototype.abort=function(){if(this.aborted){
+EF_Par.prototype.abort=function(pseudo_abort){if(this.aborted){
 
 
 
@@ -1900,7 +1902,9 @@ EF_Par.prototype.abort=function(){if(this.aborted){
 
 return this;
 
-}
+}else this.pseudo_abort=pseudo_abort;
+
+
 this.aborted=true;
 return this.abortInner();
 };
@@ -1912,7 +1916,7 @@ EF_Par.prototype.abortInner=function(){this.inner_aborted=true;
 
 for(var i=0;i<this.children.length;++i)if(this.children[i]){
 
-var val=this.children[i].abort();
+var val=this.children[i].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,i);else{
 
 
@@ -2068,7 +2072,7 @@ if(i!==except&&this.children[i])this.children[i].quench();
 }
 };
 
-EF_Alt.prototype.abort=function(){if(this.aborted){
+EF_Alt.prototype.abort=function(pseudo_abort){if(this.aborted){
 
 
 
@@ -2076,6 +2080,8 @@ EF_Alt.prototype.abort=function(){if(this.aborted){
 
 return this;
 }
+
+this.pseudo_abort=pseudo_abort;
 this.aborted=true;
 var rv;
 if(!this.inner_aborted){
@@ -2098,7 +2104,7 @@ if(this.collapsing){
 
 var branch=this.collapsing.branch;
 this.collapsing=UNDEF;
-var val=this.children[branch].abort();
+var val=this.children[branch].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,branch);else{
 
 
@@ -2110,7 +2116,7 @@ this.children[branch]=UNDEF;
 
 for(var i=0;i<this.children.length;++i)if(this.children[i]){
 
-var val=this.children[i].abort();
+var val=this.children[i].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,i);else{
 
 
@@ -2252,7 +2258,7 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,0);
 this.quench();
-val=val.abort();
+val=val.abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,3);
@@ -2306,7 +2312,7 @@ return;
 }else{
 
 this.quench();
-val=this.child_frame.abort();
+val=this.child_frame.abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,3);
@@ -2343,13 +2349,14 @@ if(!this.suspendCompleted)this.child_frame.quench();
 
 };
 
-EF_Suspend.prototype.abort=function(){exports.current_dyn_vars=this.dyn_vars;
+EF_Suspend.prototype.abort=function(pseudo_abort){exports.current_dyn_vars=this.dyn_vars;
 
 
 this.returning=true;
 this.aborted=true;
+this.pseudo_abort=pseudo_abort;
 if(!this.suspendCompleted){
-var abort_val=this.child_frame.abort();
+var abort_val=this.child_frame.abort(pseudo_abort);
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
 this.setChildFrame(abort_val,4);
 return this;
@@ -2467,7 +2474,8 @@ val.ef.parent=UNDEF;
 
 
 val.ef.quench();
-var aborted_target=val.ef.abort();
+
+var aborted_target=val.ef.abort(true);
 if((aborted_target!==null&&typeof (aborted_target)==='object'&&aborted_target.__oni_ef===true)){
 this.return_val=val.val;
 this.setChildFrame(aborted_target,2);
@@ -2523,7 +2531,8 @@ frame_to_abort.parent=UNDEF;
 
 
 frame_to_abort.quench();
-var aborted_target=frame_to_abort.abort();
+
+var aborted_target=frame_to_abort.abort(true);
 if((aborted_target!==null&&typeof (aborted_target)==='object'&&aborted_target.__oni_ef===true)){
 this.return_val=UNDEF;
 this.setChildFrame(aborted_target,2);
@@ -2676,6 +2685,7 @@ var abort_waitarr=[];
 env=copyEnv(env);
 env.blscope=null;
 env.blbref=null;
+
 
 
 
