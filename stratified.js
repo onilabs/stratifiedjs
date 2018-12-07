@@ -1432,7 +1432,6 @@ case 2:
 
 this.state=3;
 
-
 this.rv=val;
 if(this.aborted&&!this.pseudo_abort&&this.ndata[4]){
 val=execIN(this.ndata[4],this.env);
@@ -1451,6 +1450,12 @@ return this;
 case 3:
 
 this.state=4;
+
+
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==="t"){
+this.rv=val;
+}
+
 if(this.ndata[3]){
 val=execIN(this.ndata[3],this.env);
 

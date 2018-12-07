@@ -1613,8 +1613,7 @@ EF_Try.prototype.cont = function(idx, val) {
     case 2:
     // returning from try/catch
     this.state = 3;
-    // save value from catch/try (the value from the retract block
-    // never matters):
+    // save value from catch/try:
     this.rv = val;
     if (this.aborted && !this.pseudo_abort && this.NDATA_TRY_RETRACT_BLOCK()) {
       val = execIN(this.NDATA_TRY_RETRACT_BLOCK(), this.env);
@@ -1633,6 +1632,12 @@ EF_Try.prototype.cont = function(idx, val) {
     case 3:
     // returning from try/catch/retract
     this.state = 4;
+
+    // make sure exceptions from retract get passed through:
+    if (is_cfx(val) && val.type === "t") {
+      this.rv = val;
+    }
+
     if (this.NDATA_TRY_FINALLY_BLOCK()) {
       val = execIN(this.NDATA_TRY_FINALLY_BLOCK(), this.env);
       // we can't tail-call this, because we might have to return

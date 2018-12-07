@@ -2386,3 +2386,68 @@ test('bl return across spawn - async', 'xfF', function() {
   return rv;
 });
 
+//----------------------------------------------------------------------
+
+// the finally clause here used to silently swallow the error thrown in retract:
+test('retract exception pass through - sync', 'xrfe', function() {
+  var rv = '';
+
+  function foo() {
+    try {
+      rv += 'x';
+      hold();
+    }
+    retract {
+      rv += 'r';
+      throw new Error('e');
+    }
+    finally {
+      rv += 'f';
+    }
+  }
+
+  waitfor {
+    foo();
+  }
+  or {
+    /* sync */
+  }
+  catch (e) {
+    rv += 'e';
+  }
+
+  return rv;
+
+});
+
+// the finally clause here used to silently swallow the error thrown in retract:
+test('retract exception pass through - async', 'xrfe', function() {
+  var rv = '';
+
+  function foo() {
+    try {
+      rv += 'x';
+      hold();
+    }
+    retract {
+      rv += 'r';
+      throw new Error('e');
+    }
+    finally {
+      rv += 'f';
+    }
+  }
+
+  waitfor {
+    foo();
+  }
+  or {
+    hold(0);
+  }
+  catch (e) {
+    rv += 'e';
+  }
+
+  return rv;
+
+});
