@@ -203,7 +203,7 @@
       run .. @assert.ok();
       hold(s.delay*4);
     }.serverOnly();
-  }
+  }.skip("nodejs::domain module is deprecated");
 
   @context('without delay') {||
     @test.beforeEach {|s|
