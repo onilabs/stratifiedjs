@@ -1816,19 +1816,32 @@ exports.ForIn=function(){return {exec:I_forin,ndata:arguments,__oni_dis:token_di
 
 
 
-function mergeExceptions(new_exception,original_exception){if(!(new_exception!==null&&typeof (new_exception)==='object'&&new_exception.__oni_cfx)||new_exception.type!=='t'){
+function mergeExceptions(new_exception,original_exception){if((new_exception!==null&&typeof (new_exception)==='object'&&new_exception.__oni_cfx)){
 
+
+if(!(original_exception!==null&&typeof (original_exception)==='object'&&original_exception.__oni_cfx)){
+
+if(new_exception.type!=='a')return new_exception;
 return original_exception;
 }
-if(!(original_exception!==null&&typeof (original_exception)==='object'&&original_exception.__oni_cfx)||original_exception.type!=='t')return new_exception;
 
+
+if(new_exception.type!=='t')return original_exception;
 if(console){
 
-var msg="Multiple exceptions from sub-strata. Swallowing "+original_exception.val;
+var msg;
+if(original_exception.type==='t')msg="Multiple exceptions from sub-strata. Swallowing "+original_exception.val;else msg="Swallowing control-flow exception of type '"+original_exception.type+"' because it is overridden by a true exception";
+
+
+
 if(console.error)console.error(msg);else console.log(msg);
 
 }
 return new_exception;
+}else{
+
+return original_exception;
+}
 }
 
 

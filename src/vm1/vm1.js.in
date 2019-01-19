@@ -387,7 +387,7 @@ var EF_Proto = {
   },
 
   returnToParent: function(val) {
-#ifdef DEBUG_VM
+#ifdef DEBUG_VM_X
     // We currently call returnToParent prematurely under various reentrancy scenarios in
     // Alt, Par, and Spawn.
     // XXX This is wrong and extremely fragile and needs a rewrite at some point.
@@ -2016,18 +2016,31 @@ exports.ForIn = function(/*obj,loop*/) {
 
 // helper for Par & Alt:
 function mergeExceptions(new_exception, original_exception) { 
-  if (!is_cfx(new_exception) || new_exception.type !== 't') {
+
+  if (is_cfx(new_exception)) {
+    if (!is_cfx(original_exception)) {
+      // propagate everything but aborts:
+      if (new_exception.type !== 'a') return new_exception;
+      return original_exception;
+    }
+    // else... competing exceptions
+    // we'll replace any existing exception only if the new exception is a 'true' exception:
+    if (new_exception.type !== 't') return original_exception;
+    if (console) {
+      // XXX not sure what to do. Create a new exception with two sub-exceptions??
+      var msg;
+      if (original_exception.type === 't')
+        msg = "Multiple exceptions from sub-strata. Swallowing "+original_exception.val;
+      else
+        msg = "Swallowing control-flow exception of type '"+original_exception.type+"' because it is overridden by a true exception";
+      if (console.error) console.error(msg);
+      else console.log(msg);
+    }
+    return new_exception;
+  }
+  else {
     return original_exception;
   }
-  if (!is_cfx(original_exception) || original_exception.type !== 't')
-    return new_exception;
-  if (console) {
-    // XXX not sure what to do. Create a new exception with two sub-exceptions??
-    var msg = "Multiple exceptions from sub-strata. Swallowing "+original_exception.val;
-    if (console.error) console.error(msg);
-    else console.log(msg);
-  }
-  return new_exception; 
 }
 
 #ifdef DEBUG_VM

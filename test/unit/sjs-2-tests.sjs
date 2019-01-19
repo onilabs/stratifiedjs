@@ -2451,3 +2451,63 @@ test('retract exception pass through - async', 'xrfe', function() {
   return rv;
 
 });
+
+// this used to continue going around the loop despite the 'break':
+test('swallowed break bug', 'abcd', function() {
+  var rv = '';
+  function foo() {
+    var i = 10;
+    while (--i) {
+      waitfor {
+        try {
+          rv += 'a';
+          hold(0);
+          break;
+        }
+        finally {
+          rv += 'b';
+          hold(100);
+        }
+      }
+      or {
+        hold(10);
+        rv += 'c';
+      }
+    }
+    rv += 'd';
+  }
+
+  foo();
+  return rv;
+
+});
+
+// this used to continue going around the loop despite the 'break':
+test('swallowed return bug', 'abc', function() {
+  var rv = '';
+  function foo() {
+    var i = 10;
+    while (--i) {
+      waitfor {
+        try {
+          rv += 'a';
+          hold(0);
+          return;
+        }
+        finally {
+          rv += 'b';
+          hold(100);
+        }
+      }
+      or {
+        hold(10);
+        rv += 'c';
+      }
+    }
+    rv += 'd';
+  }
+
+  foo();
+  return rv;
+
+});

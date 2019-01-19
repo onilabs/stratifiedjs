@@ -1,17 +1,23 @@
 {
   "name": "stratifiedjs",
   "description": "StratifiedJS Framework",
-  "author" : "Oni Labs <maintainers@onilabs.com>",
-  "version" : "0.20.0-development",
-  "homepage" : "http://onilabs.com/stratifiedjs",
-  "private" : true,
+  "author": "Oni Labs <maintainers@onilabs.com>",
+  "version": "0.20.0-development",
+  "homepage": "http://onilabs.com/stratifiedjs",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git://github.com/onilabs/stratifiedjs.git"
   },
   "main": "stratified-node.js",
-  "keywords": ["stratifiedjs", "async", "language"],
-  "bin": { "sjs": "sjs" },
+  "keywords": [
+    "stratifiedjs",
+    "async",
+    "language"
+  ],
+  "bin": {
+    "sjs": "sjs"
+  },
   "devDependencies": {
     "karma-sjs-adapter": "~0.2.2",
     "karma-quiet-reporter": "*",
@@ -21,7 +27,7 @@
     "karma-ie-launcher": "*",
     "karma-script-launcher": "*",
     "eslint": "git://github.com/gfxmonk/eslint.git#da9f557b0857c4a4325d324ffe903bdb9a4262a4",
-    "espree":"~1.10.0"
+    "espree": "~1.10.0"
   },
   "engines": {
     "node": ">=0.10.0"
