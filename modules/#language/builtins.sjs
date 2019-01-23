@@ -448,9 +448,9 @@
 @desc
   Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]:
 
-  * `abort` is synchronous: It will only return after the stratum has been retracted (i.e. once all `finally` and `retract` clauses on the stratum's callstack have been executed).
+  * `abort` is synchronous: It will only return after the stratum has been retracted (i.e. once all `finally` and `retract` clauses on the stratum's callstack have been executed). However, any pending [::Stratum::value] calls will _immediately_ receive a [cutil::StratumAborted] exception.
 
-  * Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses will be honored. This is also true for 'cyclic aborts' (see below). 
+  * Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses inside the stratum will be honored. This is also true for 'cyclic aborts' (see below). 
 
   #### Cyclic aborts
 
