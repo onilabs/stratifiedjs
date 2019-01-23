@@ -2489,7 +2489,9 @@ return val;
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,2);
 return this.returnToParent(this);
-}else{
+}else if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||((val.type!=='r'||!val.ef)&&val.type!=='blb')){
+
+
 
 this.in_abortion=false;
 this.done=true;
@@ -2549,6 +2551,11 @@ this.return_val=val.val;
 this.setChildFrame(aborted_target,2);
 
 
+this.notifyVal(val.val,true);
+this.notifyAborted(UNDEF);
+
+
+
 
 
 this.returnToParent(this);
@@ -2559,6 +2566,7 @@ this.in_abortion=false;
 this.done=true;
 
 this.notifyVal(val.val,true);
+this.notifyAborted(UNDEF);
 
 if(!this.async){
 
@@ -2604,6 +2612,11 @@ var aborted_target=frame_to_abort.abort(true);
 if((aborted_target!==null&&typeof (aborted_target)==='object'&&aborted_target.__oni_ef===true)){
 this.return_val=UNDEF;
 this.setChildFrame(aborted_target,2);
+
+
+this.notifyVal(UNDEF,true);
+this.notifyAborted(UNDEF);
+
 
 this.returnToParent(this);
 return;
@@ -2703,8 +2716,6 @@ var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 this.dyn_vars=undefined;
 this.done=true;
-
-
 if(this.aborted&&!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&this.parent.aborted)val=new CFException('a');
 
 

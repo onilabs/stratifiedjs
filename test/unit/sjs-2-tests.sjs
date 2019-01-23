@@ -2511,3 +2511,73 @@ test('swallowed return bug', 'abc', function() {
   return rv;
 
 });
+
+
+// this test used to time out
+test('swallowed break in aborted stratum 1', 'abc', function() {
+
+  var rv = '';
+
+  function foo(block) {
+    for (var i=0; i<10; ++i) {
+      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(10); rv += 'c';} })();
+      hold(0);
+      rv += 'b';
+      spawn S.abort(); 
+
+      hold(); // used to be stuck here, as 'break' got swallowed
+
+      rv += 'd';
+    }
+  }
+
+  foo { || break; }
+
+  return rv;
+
+});
+
+test('swallowed break in aborted stratum 2', 'abc', function() {
+
+  var rv = '';
+
+  function foo(block) {
+    for (var i=0; i<10; ++i) {
+      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(10); rv += 'c';} })();
+      hold(0);
+      rv += 'b'; 
+      S.abort(); // this should be aborted
+      rv += 'd';
+    }
+  }
+
+  foo { || break; }
+
+  return rv;
+
+});
+
+test('swallowed break in aborted stratum 3', 'abcf', function() {
+
+  var rv = '';
+
+  function foo(block) {
+    for (var i=0; i<10; ++i) {
+      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(10); rv += 'c';} })();
+      hold(0);
+      rv += 'b'; 
+      try {
+        S.abort(); 
+      }
+      finally {
+        rv += 'f';
+      }
+      rv += 'd';
+    }
+  }
+
+  foo { || break; }
+
+  return rv;
+
+});

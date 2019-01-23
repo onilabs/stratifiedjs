@@ -1158,6 +1158,136 @@ testEq('each.track break', '12b', function() {
   return rv;
 });
 
+testEq('each.track break 2', '12b', function() {
+  var rv = "";
+  [1,2,3,4] .. s.each.track {
+    |x|
+    if (x === 3) {
+      try {
+        break;
+      }
+      finally {
+        hold(10);
+      }
+    }
+    rv += x;
+  }
+  rv += 'b';
+  return rv;
+});
+
+testEq('each.track break 3', '12b', function() {
+  var rv = "";
+  [1,2,3,4] .. s.monitor(-> hold(1)) .. s.each.track {
+    |x|
+    if (x === 3) {
+      try {
+        break;
+      }
+      finally {
+        hold(10);
+      }
+    }
+    rv += x;
+  }
+  rv += 'b';
+  return rv;
+});
+
+testEq('each.track break 4', '4b', function() {
+  var rv = "";
+  [1,2,3,4] .. s.monitor(-> hold(1)) .. s.each.track {
+    |x|
+    hold(10);
+    rv += x;
+    try {
+      break;
+    }
+    finally {
+      hold(10);
+    }
+  }
+  rv += 'b';
+  return rv;
+});
+
+testEq('each.track return', '12', function() {
+  var rv = "";
+  function foo() {
+    [1,2,3,4] .. s.each.track {
+      |x|
+      if (x === 3) return;
+      rv += x;
+    }
+    rv += 'b';
+  }
+  foo();
+  return rv;
+});
+
+testEq('each.track return 2', '12', function() {
+  var rv = "";
+  function foo() {
+    [1,2,3,4] .. s.each.track {
+      |x|
+      if (x === 3) {
+        try {
+          return;
+        }
+        finally {
+          hold(10);
+        }
+      }
+      rv += x;
+    }
+    rv += 'b';
+  }
+  foo();
+  return rv;
+});
+
+testEq('each.track return 3', '12', function() {
+  var rv = "";
+  function foo() {
+    [1,2,3,4] .. s.monitor(-> hold(1)) .. s.each.track {
+      |x|
+      if (x === 3) {
+        try {
+          return;
+        }
+        finally {
+          hold(10);
+        }
+      }
+      rv += x;
+    }
+    rv += 'b';
+  }
+  foo();
+  return rv;
+});
+
+testEq('each.track return 4', '4', function() {
+  var rv = "";
+  function foo() {
+    [1,2,3,4] .. s.monitor(-> hold(1)) .. s.each.track {
+      |x|
+      hold(10);
+      rv += x;
+      try {
+        return;
+      }
+      finally {
+        hold(10);
+      }
+    }
+    rv += 'b';
+  }
+  foo();
+  return rv;
+});
+
+
 testEq('each.track exception 1', '1e', function() {
   var rv = '';
   function f() { 

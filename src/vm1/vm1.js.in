@@ -2756,7 +2756,9 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.setChildFrame(val, 2);
       return this.returnToParent(this);
     }
-    else {      
+    else if (!is_cfx(val) || ((val.type !== 'r' || !val.ef) && val.type !== 'blb')) {
+      // For blocklambda breaks and returns we fall through to the cfx handling below, so that they
+      // get propagated appropriately.
       this.in_abortion = false;
       this.done = true;
 
@@ -2813,6 +2815,11 @@ EF_Spawn.prototype.cont = function(idx, val) {
       if (is_ef(aborted_target)) {
         this.return_val = val.val;
         this.setChildFrame(aborted_target, 2);
+
+        // return value to ef's parent & to value listeners:
+        this.notifyVal(val.val, true);
+        this.notifyAborted(UNDEF);
+
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
         // We must not call 'return this.returnToParent', because this code is sometimes called in a sync setting,
         // where we have to make sure that our original (current) caller doesn't see the continuation frame:
@@ -2825,6 +2832,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.done = true;
       // return value to ef's parent & to value listeners:
       this.notifyVal(val.val, true);
+      this.notifyAborted(UNDEF);
 
       if (!this.async) {
         // special synchronous blocklambda return handling leveraged in conductance bridge code
@@ -2870,6 +2878,11 @@ EF_Spawn.prototype.cont = function(idx, val) {
       if (is_ef(aborted_target)) {
         this.return_val = UNDEF;
         this.setChildFrame(aborted_target, 2);
+
+        // return value to ef & listeners:
+        this.notifyVal(UNDEF, true);
+        this.notifyAborted(UNDEF);
+
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
         this.returnToParent(this);
         return;
@@ -2975,8 +2988,6 @@ EF_SpawnAbortFrame.prototype.cont = function(val) {
     exports.current_dyn_vars = this.dyn_vars;
     this.dyn_vars = undefined; // aid gc
     this.done = true;
-
-    // XXX needed?
     if (this.aborted && !is_cfx(val) && this.parent.aborted)
       val = new CFException('a');
 
