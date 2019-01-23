@@ -3106,17 +3106,23 @@ each.track = function(seq, r) {
     throw error;
   }
   or {
+    var X, stratum_in_abortion = false;
     seq .. each {
       |x|
-      stratum = spawn (stratum ? stratum.abort(), 
-                       (function(){
-                         try { 
-                           r(x);
-                         }
-                         catch (e) {
-                           signal_error(e);
-                         }
-                       })());
+      X = x;
+
+      if (!stratum_in_abortion) {
+        stratum = spawn (stratum ? (stratum_in_abortion = true, stratum.abort()), 
+                         stratum_in_abortion = false,
+                         (function(){
+                           try { 
+                             r(X);
+                           }
+                           catch (e) {
+                             signal_error(e);
+                           }
+                         })());
+      }
       // handle synchronous error case:
       if (error) break;
     }
