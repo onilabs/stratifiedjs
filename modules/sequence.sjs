@@ -1591,18 +1591,18 @@ transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x !=
 
      ### Example:
 
-       // sum integers from 1 to 10, printing out the intermediate sums
-       integers(1, 10) .. scan((sum,x) -> sum + x) .. each(console.log);
-       // 3
-       // 6
-       // 10
-       // 15
-       // 21
-       // 28
-       // 36
-       // 45
-       // 55
-
+         // sum integers from 1 to 10, printing out the intermediate sums
+         integers(1, 10) .. scan((sum,x) -> sum + x) .. each(console.log);
+         // 3
+         // 6
+         // 10
+         // 15
+         // 21
+         // 28
+         // 36
+         // 45
+         // 55
+ 
 */
 var scan = exports.scan = function(sequence, fn, initial) {
   return Stream(function(emit) {
