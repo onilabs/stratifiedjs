@@ -226,7 +226,7 @@ exports.script = function(/*url, queries*/) {
       hook.push(resume);
     }
     if (error) {
-      throw error;
+      throw new Error(error);
     }
     //    retract {
     // XXX could remove resume function from hook here
@@ -287,7 +287,7 @@ exports.script = function(/*url, queries*/) {
       hook[i](error);
     }
     if (error) {
-      throw error;
+      throw new Error(error);
     }
   }
 };
@@ -311,18 +311,80 @@ __js exports.addCSS = function(cssCode) {
   document.getElementsByTagName("head")[0].appendChild(styleElement);
 }
 
+var _pendingCSS = {};
+var _loadedCSS = {};
+
 /**
   @function css
   @summary Load a CSS file into the current document.
   @param {URLSPEC} [url] Request URL (in the same format as accepted by [url::build])
+  @desc
+    It is safe to call this function simultaneously from several strata,
+    even for the same URL: The given URL will only be loaded **once**, and
+    all callers will block until it is loaded.
+    
+    If a browser supports the error event for script tags, 
+    this function will throw if it fails to load the URL.
+
 */
-__js exports.css = function (/* url, queries */) {
+exports.css = function (/* url, queries */) {
   var url = sys.constructURL(arguments);
-  var elem = document.createElement("link");
-  elem.setAttribute("rel", "stylesheet");
-  elem.setAttribute("type", "text/css");
-  elem.setAttribute("href", url);
-  document.getElementsByTagName("head")[0].appendChild(elem);
+  if (_loadedCSS[url])
+  return;
+  var hook = _pendingCSS[url];
+  if (hook != null) {
+    waitfor(var error) {
+      hook.push(resume);
+    }
+    if (error) {
+      throw new Error(error);
+    }
+    //    retract {
+    // XXX could remove resume function from hook here
+    //    }
+  }
+  else {
+    // we're the initial requester
+    waitfor() {
+      var elem = document.createElement("link");
+
+      var hook = [];
+      var error;
+      _pendingCSS[url] = hook;
+      
+      function listener(e) {
+        if (e.type == "error") {
+          error = "Could not load script: '" + url + "'."
+        }
+        resume();
+      }
+      
+      elem.addEventListener("load", listener, false);
+      elem.addEventListener("error", listener, false);
+
+      // kick off the load:
+      document.getElementsByTagName("head")[0].appendChild(elem);
+      elem.setAttribute("rel", "stylesheet");
+      elem.setAttribute("type", "text/css");
+      elem.setAttribute("href", url);
+    }
+    retract {
+      _pendingCSS[url] = null;
+    }
+    finally {
+      elem.removeEventListener("load", listener, false);
+      elem.removeEventListener("error", listener, false);
+    }
+
+    _pendingCSS[url] = null;
+    _loadedCSS[url] = true;
+    for (var i = 0; i < hook.length; ++i) {
+      hook[i](error);
+    }
+    if (error) {
+      throw new Error(error);
+    }
+  }
 };
 
 //----------------------------------------------------------------------
