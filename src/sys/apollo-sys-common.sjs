@@ -1042,7 +1042,15 @@ function resolve(module, require_obj, parent, opts) {
     resolveSpec.ext = ext;
     if(!exports.require.extensions[ext]) ext = null;
   }
-  __js resolveSpec.type = ext || 'sjs';
+  __js if (!ext) {
+    // for .js files, use 'js', otherwise use 'sjs':
+    if (parent.id.substr(-3) === '.js')
+      resolveSpec.type = 'js';
+    else
+      resolveSpec.type = 'sjs';
+  }
+  else 
+    resolveSpec.type = ext;
 
   resolveSpec.resolve(resolveSpec, parent);
 

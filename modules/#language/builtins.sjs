@@ -163,6 +163,22 @@
   For this mechanism to work on modern browsers, the webserver hosting the modules needs to
   be [configured to send CORS access control headers](http://esw.w3.org/CORS_Enabled).
 
+  ### Loading plain JS modules
+
+  Plain JS modules can be loaded via require by explicitly specifying a '.js' extension 
+  (e.g. `require('foo.js')`). Any CommonJS-style JS module should work fine.
+
+  Just like SJS modules, variables and functions defined within the
+  module will only be 'seen' by other modules if they are explicitly exported by adding them
+  to the 'exports' variable. 
+
+  JS modules also receive a module-specific `require` function, through which other files can be
+  loaded by URL relative to the JS module (or via hubs). If the URL does not contain a file 
+  extension, '.js' will be appended (and not '.sjs' like in the case where require() is called 
+  from an SJS module).
+  Note that any files loaded from JS modules in this way need to
+  be synchronously available (e.g. preloaded with a prior `require` call from an SJS module).
+
   ### Loading GitHub modules
 
   In StratifiedJS 0.12 and greater, `require.hubs` is pre-configured to load modules with a 'github:' prefix directly from GitHub (much like the 'sjs:' prefix is configured to load from the canonical Standard Module Library location - see above). The syntax looks like this:
