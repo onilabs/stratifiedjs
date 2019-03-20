@@ -150,7 +150,11 @@ function top_stmt_scope(pctx) {
 #define BEGIN_SCRIPT(pctx)                              \
   begin_script(pctx);
 
+var COMPILED_SRC_TAG_REGEX = /^\/\*\__oni_compiled_sjs_1\*\//;
+
 function begin_script(pctx) {
+  if (COMPILED_SRC_TAG_REGEX.exec(pctx.src))
+    throw new Error("This SJS code is already compiled - in general re-compilation will yield invalid code"); 
   // decode code generation mode settings:
   switch(pctx.mode) {
   case "debug":

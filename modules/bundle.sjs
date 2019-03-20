@@ -226,32 +226,38 @@ function findDependencies(sources, settings) {
       throw new Error("Error loading " + resolved.path + ":\n" + e);
     }
 
-    var calls;
-    try {
-      calls = compiler.compile(src);
-    } catch (e) {
-      throw new Error("Error compiling " + resolved.path + ":\n" + e);
-    }
-    module.loaded = true;
-
-    calls .. seq.each {|[name, args]|
-      if (name === 'require') {
-        if (!isArrayLike(args[0])) {
-          addRequire(args[0], module);
-        }
-        else {
-          args[0] .. each {|arg|
-            if (typeof(arg) === 'string') {
-              addRequire(arg, module);
-            } else {
-              if (arg && arg.id) {
-                addRequire(arg.id, module);
+    if (!COMPILED_SRC_TAG_REGEX.exec(src)) {
+      var calls;
+      try {
+        calls = compiler.compile(src);
+      } catch (e) {
+        throw new Error("Error compiling " + resolved.path + ":\n" + e);
+      }
+      module.loaded = true;
+      
+      calls .. seq.each {|[name, args]|
+        if (name === 'require') {
+          if (!isArrayLike(args[0])) {
+            addRequire(args[0], module);
+          }
+          else {
+            args[0] .. each {|arg|
+              if (typeof(arg) === 'string') {
+                addRequire(arg, module);
+              } else {
+                if (arg && arg.id) {
+                  addRequire(arg.id, module);
+                }
               }
             }
           }
         }
-      }
-    };
+      };
+    }
+    else {
+      // XXX not quite sure what module.loaded is for
+      module.loaded = true;
+    }
 
     var docs = docutil.parseModuleDocs(src);
     if(docs.require) {
@@ -313,6 +319,10 @@ var relax = function(fn) {
     
     Most code should not need to use this function directly - see [::create].
 */
+var COMPILED_SRC_TAG = "/*__oni_compiled_sjs_1*/";
+var COMPILED_SRC_TAG_REGEX = /^\/\*\__oni_compiled_sjs_1\*\//;
+var COMPILED_SRC_TAG_LENGTH = COMPILED_SRC_TAG.length;
+
 function generateBundle(deps, settings) {
   settings = sanitizeOpts(settings);
   var compile;
@@ -323,7 +333,13 @@ function generateBundle(deps, settings) {
       if (@path.extname(path) === '.js')
         return stringifier.compile(src, {keeplines:true});
       else {
-        var js = compiler.compile(src, {globalReturn:true, filename: "'#{path.replace(/\'/g,'\\\'')}'"});
+        var js;
+        if (COMPILED_SRC_TAG_REGEX.exec(src)) {
+          js = src.substr(24);
+        }
+        else {
+          js = compiler.compile(src, {globalReturn:true, filename: "'#{path.replace(/\'/g,'\\\'')}'"});
+        }
         return "function(#{require.extensions['sjs'].module_args.join(',')}) {
           #{js}
         }";

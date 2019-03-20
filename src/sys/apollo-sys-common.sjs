@@ -774,6 +774,7 @@ function default_compiler(src, descriptor) {
   try {
     var f;
     if (typeof(src) === 'function') {
+      // the src loader is responsible handing us a compiled file (e.g. from a bundle)
       f = src;
     }
     else {
@@ -784,6 +785,7 @@ function default_compiler(src, descriptor) {
           src,
           {filename:filename, mode:'normal', globalReturn:true});
       }
+//      else { console.error("module #{descriptor.id} is precompiled"); }
       
       f = new Function("module", "exports", "require", "__onimodulename", "__oni_altns", src);
     }
@@ -796,8 +798,10 @@ function default_compiler(src, descriptor) {
     if (e instanceof SyntaxError) {
       throw new Error("In module #{descriptor.id}: #{e.message}");
     }
-    else 
+    else {
       throw e;
+//      throw new Error("Internal compilation/execution error for #{descriptor.id}: #{e}");
+    }
   }
 }
 // used when precompiling modules - must be kept in sync with the above f() call

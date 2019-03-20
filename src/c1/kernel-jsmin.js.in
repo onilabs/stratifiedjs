@@ -71,12 +71,23 @@ function flush_newlines(pctx) {
 #define ADD_SCRIPT_STMT(stmt, pctx)             \
   top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));
 
+
+// Regarding the use of COMPILED_SRC_TAG in END_SCRIPT, below:
+// we always need maintain the COMPILED_SRC_TAG, otherwise clients of the 
+// stringifyier, such as generator::BundleGenerator in
+// default mode (compiled=false), will generate bundles with files that will be 
+// recompiled on the client. This will fail for some files (e.g. a compiled 
+// sequence.sjs when put through doc/index.bundle.js.gen)
+
+var COMPILED_SRC_TAG = "/*__oni_compiled_sjs_1*/";
+var COMPILED_SRC_TAG_REGEX = /^\/\*\__oni_compiled_sjs_1\*\//;
+
 #ifdef STRINGIFY
 #define END_SCRIPT(pctx)                        \
-  return '"'+pop_scope(pctx).stmts.join("")+'"';
+  return '"'+(COMPILED_SRC_TAG_REGEX.exec(pctx.src)?COMPILED_SRC_TAG:'')+pop_scope(pctx).stmts.join("")+'"';
 #else
 #define END_SCRIPT(pctx)                        \
-  return pop_scope(pctx).stmts.join("");
+  return (COMPILED_SRC_TAG_REGEX.exec(pctx.src)?COMPILED_SRC_TAG:'')+pop_scope(pctx).stmts.join("");
 #endif
 
 #define BEGIN_FBODY(pctx)                       \

@@ -350,6 +350,17 @@ function flush_newlines(pctx) {
 
 
 
+// Regarding the use of COMPILED_SRC_TAG in END_SCRIPT, below:
+// we always need maintain the COMPILED_SRC_TAG, otherwise clients of the 
+// stringifyier, such as generator::BundleGenerator in
+// default mode (compiled=false), will generate bundles with files that will be 
+// recompiled on the client. This will fail for some files (e.g. a compiled 
+// sequence.sjs when put through doc/index.bundle.js.gen)
+
+var COMPILED_SRC_TAG = "/*__oni_compiled_sjs_1*/";
+var COMPILED_SRC_TAG_REGEX = /^\/\*\__oni_compiled_sjs_1\*\//;
+
+
 
 
 function gen_block(code) {
@@ -1812,7 +1823,7 @@ function compile(src, settings) {
   catch (e) {
     var mes = e.mes || e;
     var line = e.line || pctx.line;
-    var exception = new Error("SJS syntax error "+(pctx.filename?"in "+pctx.filename+",": "at") +" line " + line + ": " + mes);
+    var exception = new Error("SJS syntax error "+(pctx.filename && pctx.filename !== '__onimodulename' ?"in "+pctx.filename+",": "at") +" line " + line + ": " + mes);
     exception.compileError = {message: mes, line: line};
     throw exception;
   }
@@ -1827,7 +1838,7 @@ function parseScript(pctx) {
     
     top_scope(pctx).stmts.push(stmt+flush_newlines(pctx));;
   }
-  return pop_scope(pctx).stmts.join("");
+  return (COMPILED_SRC_TAG_REGEX.exec(pctx.src)?COMPILED_SRC_TAG:'')+pop_scope(pctx).stmts.join("");
 }
 
 function parseStmt(pctx) {
