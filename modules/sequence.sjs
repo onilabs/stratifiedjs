@@ -50,8 +50,8 @@ var sys = require('builtin:apollo-sys');
 
 module.setCanonicalId('sjs:sequence');
 
-// identity function:
 __js {
+  // identity function:
   var identity = (x) -> x;
   function isString(obj) {
     return typeof obj == 'string' || obj instanceof String;
@@ -415,109 +415,6 @@ function iterate_set(set, r) {
 }
 
 //----------------------------------------------------------------------
-// projection
-
-
-
-__js {
-  /*
-    @variable ITF_PROJECT
-    XXX TO BE DOCUMENTED
-  */
-  var ITF_PROJECT = Interface(module, 'project');
-  exports.ITF_PROJECT = ITF_PROJECT;
-  
-
-  /*
-    @variable knownProjectionMethods
-    XXX TO BE DOCUMENTED
-  */
-  var METHOD_Observable_project = Token(module, 'method', 'Observable_project');
-  exports.METHOD_Observable_project = METHOD_Observable_project;
-  var METHOD_ObservableArray_project = Token(module, 'method', 'ObservableArray_project');
-  exports.METHOD_ObservableArray_project = METHOD_ObservableArray_project;
-
-  var knownProjectionMethods = {};
-  exports.knownProjectionMethods = knownProjectionMethods;
-}
-
-knownProjectionMethods[METHOD_Observable_project] = function(s,t) {
-  // cache access for later use:
-  var m = knownProjectionMethods[METHOD_Observable_project] = require('sjs:observable').Observable_project;
-  return m(s,t);
-};
-
-knownProjectionMethods[METHOD_ObservableArray_project] = function(s,t) {
-  // cache access for later use:
-  var m = knownProjectionMethods[METHOD_ObservableArray_project] = require('sjs:observable').ObservableArray_project;
-  return m(s,t);
-};
-
-
-__js {
-  /**
-    @function project
-    @altsyntax sequence .. project(f)
-    @param {::Sequence} [sequence] Input sequence
-    @param {Function} [f] Function to map over `sequence`
-    @return {::Sequence} Sequence of same type as input sequence
-    @summary  Map a function over a sequence in a type-preserving way
-    @desc
-
-      Performs a type-preserving map transformation. 
-      `sequence .. project(f)` is equivalent to
-
-       * `sequence .. @transform(f)` if `sequence` is a generic [::Stream].
-       * `arr .. @transform(f) .. @toArray` if `arr` is array-like.
-       * `str .. @transform(f) .. @join('')` if  `str` is a string.
-       * `@Observable(obs .. @transform(f) .. @dedupe)` if `obs` is an [observable::Observable].
-
-      For [::BatchedStream]s, `sequence .. project(f)` will return a 
-      [::BatchedStream] with the same batching as `sequence`.
-
-      For [observable::ObservableArray], `sequence .. project(f)`
-      returns an [observable::ObservableArray] where each element
-      `e` of the array is transformed to `f(e)`. 
-  */
-  function project(sequence, f) {
-    var method = sequence[ITF_PROJECT];
-    if (typeof method === 'function') {
-      return method(sequence, f);
-    }
-    else if (typeof method === 'string') {
-      method = knownProjectionMethods[method];
-      if (!method) throw new Error('unknown projection method');
-      return method(sequence, f);
-    }
-    else if (isBatchedStream(sequence)) {
-      return project_batched_stream(sequence, f);
-    }
-    else if (isStream(sequence)) {
-      return transform(sequence, f);
-    }
-    else if (isArrayLike(sequence)) {
-      return map(sequence, f);
-    }
-    else if (isString(sequence)) {
-      return project_string(sequence, f);
-    }
-    else 
-      throw new Error("Don't know how to project this sequence");
-  }
-  exports.project = project;
-}
-
-var project_string = (str, f) -> str .. transform(f) .. join('');
-
-function project_batched_stream(seq, f) {
-  return BatchedStream(function(r) {
-    // note: must not use 'each' here, because we want to operate on batches
-    seq {
-      |batch|
-      r(batch .. map(f));
-    }
-  });
-}
 
 __js var noop = function() {};
 __js function exhaust(seq) { return each(seq, noop); }
@@ -1539,7 +1436,7 @@ exports.partition = partition;
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to apply to each element of `sequence`
    @return {Array}
-   @deprecated Usually you want to use [::transform] or [::project]
+   @deprecated Usually you want to use [::transform] or [projection::project]
    @summary  Create an array `f(x)` of elements `x` of `sequence`
    @desc
       Generates an array of elements `[f(x1), f(x2), f(x3),...]` where `x1, x2, x3, ..`
@@ -3311,16 +3208,3 @@ exports.batchN = batchN;
 
 //----------------------------------------------------------------------
 
-/**
-   @function dereference
-   @altsyntax sequence .. dereference(obj)
-   @summary Project a sequence into property lookups
-   @param {::Sequence} [sequence] Input sequence of property names
-   @param {Object} [obj] Object whose properties are being accessed
-   @return {::Sequence} Type-preserved ([::project]ed) sequence.
-   @desc
-     Shorthand for:
-
-         sequence .. @project(p -> obj[p])
-*/
-exports.dereference = (seq,obj) -> seq .. project(p -> obj[p]);

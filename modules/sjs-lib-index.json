@@ -1896,42 +1896,6 @@
             }
           }
         },
-        "ObservableArray": {
-          "type": "class",
-          "children": {}
-        },
-        "ObservableArrayVar": {
-          "type": "class",
-          "children": {
-            "ObservableArrayVar": {
-              "type": "ctor"
-            },
-            "get": {
-              "type": "function"
-            },
-            "getLength": {
-              "type": "function"
-            },
-            "insert": {
-              "type": "function"
-            },
-            "push": {
-              "type": "function"
-            },
-            "remove": {
-              "type": "function"
-            },
-            "reset": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            },
-            "stream": {
-              "type": "variable"
-            }
-          }
-        },
         "ObservableVar": {
           "type": "class",
           "children": {
@@ -1973,9 +1937,6 @@
         "observe": {
           "type": "function"
         },
-        "reconstitute": {
-          "type": "function"
-        },
         "synchronize": {
           "type": "function"
         }
@@ -1990,6 +1951,21 @@
         }
       },
       "summary": "Utilities for shared resources"
+    },
+    "projection": {
+      "type": "module",
+      "children": {
+        "dereference": {
+          "type": "function"
+        },
+        "project": {
+          "type": "function"
+        },
+        "projectInner": {
+          "type": "function"
+        }
+      },
+      "summary": "Type preserving manipulating of streams and observables"
     },
     "quasi": {
       "type": "module",
@@ -2104,9 +2080,6 @@
         "dedupe": {
           "type": "function"
         },
-        "dereference": {
-          "type": "function"
-        },
         "each": {
           "type": "function"
         },
@@ -2195,9 +2168,6 @@
           "type": "function"
         },
         "product": {
-          "type": "function"
-        },
-        "project": {
           "type": "function"
         },
         "reduce": {
@@ -2628,6 +2598,65 @@
         }
       },
       "summary": "Functions for working with strings"
+    },
+    "structured-observable": {
+      "type": "module",
+      "children": {
+        "ObservableArray": {
+          "type": "class",
+          "children": {}
+        },
+        "ObservableArrayVar": {
+          "type": "class",
+          "children": {
+            "ObservableArrayVar": {
+              "type": "ctor"
+            },
+            "get": {
+              "type": "function"
+            },
+            "getLength": {
+              "type": "function"
+            },
+            "insert": {
+              "type": "function"
+            },
+            "push": {
+              "type": "function"
+            },
+            "remove": {
+              "type": "function"
+            },
+            "reset": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "stream": {
+              "type": "variable"
+            }
+          }
+        },
+        "StructuredObservable": {
+          "type": "class",
+          "children": {
+            "StructuredObservable": {
+              "type": "ctor"
+            }
+          }
+        },
+        "isObservableArray": {
+          "type": "function"
+        },
+        "isStructuredObservable": {
+          "type": "function"
+        },
+        "reconstitute": {
+          "type": "function"
+        }
+      },
+      "summary": "Constructs for manipulating structured streams backed by time-varying values"
     },
     "sys": {
       "type": "module",
