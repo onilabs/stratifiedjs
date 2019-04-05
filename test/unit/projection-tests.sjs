@@ -50,6 +50,14 @@
       a.push(3);
     }
   }
+  @test("BatchedStream") {||
+    var a = @integers(1,10) .. @batchN(2) .. @project(x->x+1);
+    a .. @isBatchedStream .. @assert.eq(true);
+    var batched = []
+    a { |x| batched.push(x) };
+    batched .. @assert.eq([[2,3],[4,5],[6,7],[8,9],[10,11]]);
+    a .. @toArray .. @assert.eq([2,3,4,5,6,7,8,9,10,11]);
+  }
 } // project
 
 @context("projectInner") {||

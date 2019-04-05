@@ -81,11 +81,11 @@ function projectObservableArray(upstream, transformer) {
 
 var projectString = (str, f) -> str .. @transform(f) .. @join('');
 function projectBatchedStream(seq, f) {
-  return BatchedStream(function(r) {
+  return @BatchedStream(function(r) {
     // note: must not use 'each' here, because we want to operate on batches
     seq {
       |batch|
-      r(batch .. map(f));
+      r(batch .. @map(f));
     }
   });
 }
