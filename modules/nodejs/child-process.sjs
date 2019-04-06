@@ -62,9 +62,9 @@ var KILL_RETURNS_RESULT = array.cmp(version, [0,8]) >= 0;
 __js var stdioGetters = exports._stdioGetters = [
   // NOTE: these *MUST* be lazy, in order to support `string` outputs
   // (which are set by mutating `stdio` just before [::run] returns)
-  ['stdin', -> this.stdio[0]],
-  ['stdout', -> this.stdio[1]],
-  ['stderr', -> this.stdio[2]],
+  ['stdin', -> this.stdio && this.stdio[0]],
+  ['stdout', -> this.stdio && this.stdio[1]],
+  ['stderr', -> this.stdio && this.stdio[2]],
 ];
 
 var formatCommandFailed = exports._formatCommandFailed = (code, signal, cmd) -> "child process #{cmd ? "`#{cmd}` " : ""}exited with #{signal !== null ? "signal: #{signal}" : "nonzero exit status: #{code}"}";
@@ -413,13 +413,13 @@ exports.run = function(command, args, options, block) {
         // don't throw immediately; wait for stdio conversions to complete
       }
     } and {
-      if(stdioConversions.length > 0) {
+      if(child.stdio && stdioConversions.length > 0) {
         var stdioLoop = -> @waitforAll(function([i, conv]) {
           var dest = [i];
           try {
-            var rv = conv(child.stdio[i], dest);
+            conv(child.stdio[i], dest);
           } catch(e) {
-            if(i === 0 && (e.code === 'ECONNRESET' || e.code === 'EPIPE')) {
+            if(i === 0 && (e.code === 'ECONNRESET' || e.code === 'EPIPE' || e.code === 'ERR_STREAM_DESTROYED')) {
               // fix stdin write failure, because the default message is useless
               // (see https://github.com/joyent/node/issues/6043)
               e.message = "Failed writing to child process `stdin`";
@@ -452,8 +452,10 @@ exports.run = function(command, args, options, block) {
       }
     }
   } finally {
-    stdioReplacements .. @each {|[i, v]|
-      child.stdio[i] = v;
+    if (child.stdio) {
+      stdioReplacements .. @each {|[i, v]|
+        child.stdio[i] = v;
+      }
     }
   }
 
