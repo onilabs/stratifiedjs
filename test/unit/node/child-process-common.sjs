@@ -270,7 +270,7 @@ for i, line in enumerate(sys.stdin):
     time.sleep(0.5)
 '
       ];
-      child_process.run(cmd, args, {stdio:['pipe', 'pipe'], detached:true}) {|proc|
+      child_process.run(cmd, args, {stdio:['pipe', 'pipe']}) {|proc|
         waitfor {
           block(proc);
         } and {
@@ -278,30 +278,36 @@ for i, line in enumerate(sys.stdin):
             var i=0;
             var chunkSize = 600;
             while(i<input.length) {
+//              console.log(">>> emitted #{i+chunkSize} out of #{input.length}");
               emit(input.slice(i, i+chunkSize));
               i+=chunkSize;
-              hold(100);
+              hold(10);
             }
           });
           inputStream .. @stream.pump(proc.stdin);
+//          console.log('>>> finished pumping to stdin');
         }
+//        console.log('>>> done with outer block');
       }
     };
 
     run {|proc|
       var output = proc.stdout .. @stream.contents('ascii');
-      hold(2000);
+      hold(100);
       var buf = [];
       output .. @each {|chunk|
+//        console.log('>>> received chunk');
         buf.push(chunk);
-        hold(400);
+        hold(10);
       }
+//      console.log('>>> done receiving');
       output = buf .. @toArray();
 
       @info("got #{output.length} chunks");
       @assert.ok(output.length > 2, "this test requires at least three chunks, got #{output.length}");
       output .. @join .. @count .. @assert.eq(input.length);
       output .. @join .. @assert.eq(input);
+//      console.log('>>> done with inner block');
     }
   }.timeout(60);
 
