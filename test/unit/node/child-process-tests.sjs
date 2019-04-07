@@ -232,7 +232,7 @@ context {||
         @logging.info("killing child group");
         child_process.kill(child, {detached:true, wait:true});
         @logging.info("killed");
-        hold(100);
+        hold(1000);
 
         // check *both* processes are dead
         child.pid .. isRunning() .. assert.eq(false, "child pid still running! (#{child.pid})");
@@ -249,7 +249,7 @@ context {||
     }.skipIf(isWindows || NODE_VERSION .. @array.cmp([0,8]) < 0, 'unix only, nodejs>0.8')
     // ^ should work on windows, it's probably just weirdness in winbash that makes the test fail
     
-  }.timeout(4);
+  }.timeout(8);
 
 
 }.serverOnly();
