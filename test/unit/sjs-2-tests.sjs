@@ -2496,11 +2496,11 @@ test('swallowed return bug', 'abc', function() {
         }
         finally {
           rv += 'b';
-          hold(100);
+          hold(200);
         }
       }
       or {
-        hold(10);
+        hold(100);
         rv += 'c';
       }
     }
