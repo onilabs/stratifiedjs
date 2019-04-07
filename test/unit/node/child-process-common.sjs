@@ -270,7 +270,7 @@ for i, line in enumerate(sys.stdin):
     time.sleep(0.5)
 '
       ];
-      child_process.run(cmd, args, {stdio:['pipe', 'pipe']}) {|proc|
+      child_process.run(cmd, args, {stdio:['pipe', 'pipe'], detached:true}) {|proc|
         waitfor {
           block(proc);
         } and {
