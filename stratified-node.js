@@ -2617,7 +2617,7 @@ return this;
 
 this.in_abortion=false;
 this.done=true;
-return new CFException('a');
+return val;
 }
 }
 };

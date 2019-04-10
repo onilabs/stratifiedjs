@@ -468,6 +468,10 @@
 
   * Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses inside the stratum will be honored. This is also true for 'cyclic aborts' (see below). 
 
+  * If the stratum throws an exception during abortion (in a finally or retract clause), the exception
+  will be propagated to the abort call.
+
+
   #### Cyclic aborts
 
   A 'cyclic abort' is a stratum calling `abort` on itself, as in e.g: 

@@ -2581,3 +2581,75 @@ test('swallowed break in aborted stratum 3', 'abcf', function() {
   return rv;
 
 });
+
+//----------------------------------------------------------------------
+
+test('exception in finally clause in stratum - synchronous', 'fF', function() {
+  var rv = '';
+  function foo() {
+    try {
+      hold();
+    }
+    finally {
+      rv += 'f';
+      throw 'F';
+    }
+  }
+  var S = spawn foo();
+  try { S.abort(); }
+  catch(e) { rv += e; }
+  return rv;
+});
+
+test('exception in finally clause in stratum - asynchronous', 'fF', function() {
+  var rv = '';
+  function foo() {
+    try {
+      hold();
+    }
+    finally {
+      rv += 'f';
+      hold(0);
+      throw 'F';
+    }
+  }
+  var S = spawn foo();
+  try { S.abort(); }
+  catch(e) { rv += e; }
+  return rv;
+});
+
+test('exception in retract clause in stratum - synchronous', 'fF', function() {
+  var rv = '';
+  function foo() {
+    try {
+      hold();
+    }
+    retract {
+      rv += 'f';
+      throw 'F';
+    }
+  }
+  var S = spawn foo();
+  try { S.abort(); }
+  catch(e) { rv += e; }
+  return rv;
+});
+
+test('exception in retract clause in stratum - asynchronous', 'fF', function() {
+  var rv = '';
+  function foo() {
+    try {
+      hold();
+    }
+    retract {
+      rv += 'f';
+      hold(0);
+      throw 'F';
+    }
+  }
+  var S = spawn foo();
+  try { S.abort(); }
+  catch(e) { rv += e; }
+  return rv;
+});
