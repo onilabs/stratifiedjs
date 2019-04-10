@@ -192,16 +192,14 @@ __js {
 
 /**
    @function BatchedStream
-   @summary Create a BatchedStream from a streaming function
-   @param {Function} [S] Streaming function
+   @summary Mark a stream or streaming function as being a BatchedStream
+   @param {Stream|Function} [stream] A stream or streaming function
    @desc
-     A streaming function `S` is a function with signature `S(emit)`, where `emit`, is a
-     function of a single argument.
-     When called, `S(emit)` must sequentially invoke `emit(x)` with the stream's data elements
-     `x=x1,x2,x3,...` until the stream is empty. `S` must not invoke `emit` reentrantly.
+     The `stream` argument must be a stream or streaming functions where the individual 
+     elements are **arrays**.
 
-     For a batched stream the individual data items are **arrays**. The downstream receiver
-     will see an unbatched version of the stream, with individual elements of the array flattend
+     The downstream receiver will see an unbatched version of the stream, with 
+     individual elements of the array flattend
      into the stream when [::each] is called on the stream.
 
      Batched streams are useful when remoting streams over the
@@ -213,7 +211,19 @@ __js {
      retrieved for a database query - then it makes sense to send those 
      records in batches.
 
-     To create a batched stream from an existing stream, use [::batchN].
+     An easy way to create a batched stream from an existing flattened stream is to 
+     combine [::BatchedStream] with the [::pack] function.
+     
+     #### Examples:
+
+         // create a stream that sends all synchronously available elements
+         // as batches:
+
+         seq .. @pack({interval:0}) .. @BatchedStream
+
+         // create a stream that sends data in batches of 10 elements:
+
+         seq .. @pack(10) .. @BatchedStream
      
 */
 __js {
@@ -1723,6 +1733,9 @@ exports.concat = concat;
           // same as above, with double dot call syntax:
 
           integers() .. pack(next -> [next(),next()])
+
+      See also [::BatchedStream] for a way to create packed streams that automatically 
+      flatten when iterated.
 */
 var pack_no_next_item_sentinel = {}; // helper, see below
 
@@ -3179,6 +3192,7 @@ exports.mirror = function(stream, latest) {
 /**
    @function batchN
    @altsyntax sequence .. batchN(count)
+   @deprecated Use `sequence .. @pack(count) .. @BatchedStream`
    @param {::Sequence} [sequence] Input sequence
    @param {Integer} [count] Maximum number of input elements to batch.
    @return {::BatchedStream}

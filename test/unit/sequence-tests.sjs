@@ -1732,6 +1732,25 @@ context("batchN") {||
   }
 }
 
+context("BatchedStream with pack = equivalent to deprecated batchN") {||
+  test("exact batching") {||
+    s.integers(1,100) .. s.pack(10) .. s.BatchedStream .. s.count() .. assert.eq(100);
+  }
+
+  test("batching with remainder") {||
+    s.integers(1,102) .. s.pack(10) .. s.BatchedStream .. s.count() .. assert.eq(102);
+  }
+
+  test("batching larger than sequence") {||
+    s.integers(1,102) .. s.pack(1000) .. s.BatchedStream .. s.count() .. assert.eq(102);
+  }
+
+  test("double batching") {||
+    s.integers(1,102) .. s.pack(10) .. s.BatchedStream .. s.pack(10) .. s.BatchedStream .. s.count() .. assert.eq(102);
+  }
+}
+
+
 test("consume/retract edge case") {||
   var producer = s.Stream(function(r) {
     r('a');
