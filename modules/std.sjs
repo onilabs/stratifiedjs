@@ -106,6 +106,8 @@ module.exports = require(modules);
    - **flatten**: (function [sjs:array::flatten])
    - **haveCommonElements**: (function [sjs:array::haveCommonElements])
    - **isArrayLike**: (function [sjs:array::isArrayLike])
+   - **kCombinations**: (function [sjs:array::kCombinations])
+   - **permutations**: (function [sjs:array::permutations])
    - **remove**: (function [sjs:array::remove])
   
   

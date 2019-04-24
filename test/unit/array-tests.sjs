@@ -1,6 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var testEq = testUtil.test;
 var {test, context, assert} = require('sjs:test/suite');
+@ = require('sjs:std');
 
 var array = require("sjs:array");
 
@@ -23,4 +24,58 @@ context("cmp") {||
 	test("last element (b smaller)", -> [1,2,3] .. array.cmp([1,2,2]) .. assert.eq(1));
 	test("a shorter", -> [1,2] .. array.cmp([1,2,3]) .. assert.eq(-1));
 	test("b shorter", -> [1,2,3] .. array.cmp([1,2]) .. assert.eq(1));
+}
+
+context("kCombinations") {||
+  test('4/0 -> 1 * 0 combination') {||
+    var rv = [1,2,3,4] .. array.kCombinations(0) .. @toArray;
+    assert.eq(rv, [[]]);
+  }
+  test('4/1 -> 4 * 1 combinations') {||
+    var rv = [1,2,3,4] .. array.kCombinations(1) .. @toArray;
+    assert.eq(rv, [[1], [2], [3], [4]]);
+  }
+  test('4/2 -> 6 * 2 combinations') {||
+    var rv = [1,2,3,4] .. array.kCombinations(2) .. @toArray;
+    assert.eq(rv, [[1,2], [1,3], [1,4], [2,3], [2,4], [3,4]]);
+  }
+  test('4/3 -> 4 * 3 combinations') {||
+    var rv = [1,2,3,4] .. array.kCombinations(3) .. @toArray;
+    assert.eq(rv, [[1,2,3], [1,2,4], [1,3,4], [2,3,4]]);
+  }
+  test('4/4 -> 1 * 4 combination') {||
+    var rv = [1,2,3,4] .. array.kCombinations(4) .. @toArray;
+    assert.eq(rv, [[1,2,3,4]]);
+  }
+  test('4/5 -> 0 combinations') {||
+    var rv = [1,2,3,4] .. array.kCombinations(5) .. @toArray;
+    assert.eq(rv, []);
+  }
+  test('0/0 -> 1 * 0 combination') {||
+    var rv = [] .. array.kCombinations(0) .. @toArray;
+    assert.eq(rv, [[]]);
+  }
+  test('0/1 -> 0 combinations') {||
+    var rv = [] .. array.kCombinations(1) .. @toArray;
+    assert.eq(rv, []);
+  }
+}
+
+context("permutations") {||
+  test('0') {||
+    var rv = [] .. array.permutations .. @toArray;
+    assert.eq(rv, [[]]);
+  } 
+  test('1') {||
+    var rv = [1] .. array.permutations .. @toArray;
+    assert.eq(rv, [[1]]);
+  } 
+  test('2') {||
+    var rv = [1,2] .. array.permutations .. @toArray;
+    assert.eq(rv, [[1,2],[2,1]]);
+  } 
+  test('3') {||
+    var rv = [1,2,3] .. array.permutations .. @toArray;
+    assert.eq(rv, [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]);
+  } 
 }

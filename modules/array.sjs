@@ -69,6 +69,53 @@ exports.remove = remove;
 }
 
 /**
+   @function kCombinations
+   @summary Produce the k-combinations (without repetition) of an array
+   @param {Array} [arr]
+   @param {Integer} [k] Number of elements in each combination
+   @return {sequence:Stream} Stream of k-sized arrays 
+*/
+exports.kCombinations = (arr, k) -> Stream(function(receiver) {
+  function recurse(reservoir, data) {
+    if (data.length === k) {
+      receiver(data);
+      return;
+    }
+    var l = reservoir.length + data.length;
+    if ( l >= k) {
+      var elem = reservoir[0];
+      reservoir = reservoir.slice(1);
+      recurse(reservoir, data.concat([elem]));
+      if (l>k)
+        recurse(reservoir, data);
+    }
+  }
+  recurse(arr, []);
+});
+
+/**
+   @function permutations
+   @summary Produce the permutations of an array
+   @param {Array} [arr]
+   @return {sequence:Stream} Stream of permuted arrays 
+*/
+exports.permutations = (arr) -> Stream(function(receiver) {
+  function recurse(reservoir, data) {
+    if (reservoir.length === 0) {
+      receiver(data);
+      return;
+    }
+    for (var i=0; i<reservoir.length;++i) {
+      recurse(reservoir.slice(0,i).concat(reservoir.slice(i+1)),
+              data.concat([reservoir[i]]));
+    }
+  }
+
+  recurse(arr, []);
+});
+
+
+/**
    @function cycle
    @param {Array} [arr]
    @return {sequence::Stream}

@@ -184,6 +184,12 @@
         "isArrayLike": {
           "type": "function"
         },
+        "kCombinations": {
+          "type": "function"
+        },
+        "permutations": {
+          "type": "function"
+        },
         "remove": {
           "type": "function"
         }
