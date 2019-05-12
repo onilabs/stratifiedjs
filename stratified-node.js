@@ -1346,17 +1346,10 @@ return this;
 case 1:
 
 this.state=2;
-if(this.ndata[2]&&(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=="t")||this.ndata[0]&1)){
-
+if(this.ndata[2]&&((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=="t")){
 
 var v;
-if(this.ndata[0]&1){
-
-
-v=(val!==null&&typeof (val)==='object'&&val.__oni_cfx)?[val.type==='t'?val.val:val,true]:[val,false];
-}else v=val.val;
-
-
+v=val.val;
 val=this.ndata[2](this.env,v);
 
 
@@ -1369,9 +1362,11 @@ val=val.abort(this.pseudo_abort);
 
 
 
-if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3]&&!(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)))return this.returnToParent(val);
+if(!this.ndata[4]&&!this.ndata[3]&&!(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))){
 
 
+return this.returnToParent(val);
+}
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,0,true);
@@ -1407,7 +1402,15 @@ this.rv=val;
 }
 
 if(this.ndata[3]){
+if(this.ndata[0]&1){
+var v=(this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)?[this.rv,true,!!this.aborted,!!this.pseudo_abort]:[this.rv,false,!!this.aborted,!!this.pseudo_abort];
+
+
+val=this.ndata[3](this.env,v);
+}else{
+
 val=execIN(this.ndata[3],this.env);
+}
 
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
@@ -1418,11 +1421,29 @@ return this;
 case 4:
 
 
+if(this.ndata[0]&1){
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type!=='t'){
+val=new CFException("t",new Error("augmented finally(){} block needs to throw a value"));
+}else{
+
+
+
+
+
+
+
+if(val.val.length)val=val.val[0];
+
+}
+}else{
+
+
 
 if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type=='a'){
 val=this.rv;
 
 
+}
 }
 break;
 default:
@@ -1460,7 +1481,7 @@ this.setChildFrame(val);
 
 
 this.async=false;
-var rv=cont(this,0);
+var rv=cont(this,0,val);
 ;
 if(rv!==this){
 if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)||rv.type==='a')rv=val;
@@ -2480,6 +2501,7 @@ this.in_abortion=true;
 this.parent=val.ef.parent;
 this.parent_idx=val.ef.parent_idx;
 
+
 if(!this.parent){
 
 this.done=true;
@@ -2525,6 +2547,7 @@ return;
 }
 return this.returnToParent(val.val);
 }else if(val.type==='blb'){
+
 
 
 
@@ -3940,17 +3963,18 @@ ph_try.prototype.nblock_val=function(){var rv="try{"+this.block.nb()+"}";
 
 
 if(this.crf[0]){
-if(this.crf[0][2])throw new Error("catchall statement not allowed in __js block");
 rv+="catch("+this.crf[0][0]+"){"+this.crf[0][1].nb()+"}";
 }
 if(this.crf[1])throw new Error("retract statement not allowed in __js block");
-if(this.crf[2])rv+="finally{"+this.crf[2].nb()+"}";
-
+if(this.crf[2]){
+if(this.crf[2][0]!==null)throw new Error("augmented finally clause not allowed in __js block");
+rv+="finally{"+this.crf[2][1].nb()+"}";
+}
 return rv;
 };
 ph_try.prototype.val=function(){var tb=this.block.v();
 
-var rv="__oni_rt.Try("+((this.crf[0]&&this.crf[0][2])?1:0);
+var rv="__oni_rt.Try("+((this.crf[2]&&this.crf[2][0]!==null)?1:0);
 rv+=","+tb;
 if(this.crf[0]){
 var cb=this.crf[0][1].v();
@@ -3963,8 +3987,17 @@ rv+="}";
 
 
 if(this.crf[2]){
-var fb=this.crf[2].v();
+var fb=this.crf[2][1].v();
+if(this.crf[2][0]===null){
 rv+=","+fb;
+}else{
+
+
+rv+=",function(__oni_env,"+this.crf[2][0]+"){";
+if(fb.length)rv+="return __oni_rt.ex("+fb+",__oni_env)";
+
+rv+="}";
+}
 }else rv+=",0";
 
 
@@ -6234,14 +6267,10 @@ S("finally");
 
 
 
-function parseCRF(pctx){var rv=[];
+function parseCRF(pctx,allow_augmented_finally){var rv=[];
 
 var a=null;
-if(pctx.token.id=="catch"||pctx.token.value=="catchall"){
-
-
-
-var all=pctx.token.value=="catchall";
+if(pctx.token.id=="catch"){
 a=[];
 scan(pctx);
 a.push(scan(pctx,"(").value);
@@ -6249,7 +6278,6 @@ scan(pctx,"<id>");
 scan(pctx,")");
 scan(pctx,"{");
 a.push(parseBlock(pctx));
-a.push(all);
 }
 rv.push(a);
 if(pctx.token.value=="retract"){
@@ -6261,8 +6289,20 @@ rv.push(parseBlock(pctx));
 
 if(pctx.token.id=="finally"){
 scan(pctx);
+
+a=[];
+
+if(allow_augmented_finally&&pctx.token.id==='('){
+a.push(scan(pctx).value);
+scan(pctx,"<id>");
+scan(pctx,")");
+}else a.push(null);
+
+
+
 scan(pctx,"{");
-rv.push(parseBlock(pctx));
+a.push(parseBlock(pctx));
+rv.push(a);
 }else rv.push(null);
 
 
@@ -6276,12 +6316,13 @@ var block=parseBlock(pctx);
 var op=pctx.token.value;
 if(op!="and"&&op!="or"){
 
-var crf=parseCRF(pctx);
+var crf=parseCRF(pctx,true);
 if(!crf[0]&&!crf[1]&&!crf[2])throw new Error("Missing 'catch', 'finally' or 'retract' after 'try'");
 
 
 return new ph_try(block,crf,pctx);
 }else{
+
 
 var blocks=[block];
 do {
@@ -6289,7 +6330,7 @@ scan(pctx);
 scan(pctx,"{");
 blocks.push(parseBlock(pctx));
 }while(pctx.token.value==op);
-var crf=parseCRF(pctx);
+var crf=parseCRF(pctx,false);
 
 return gen_waitfor_andor(op,blocks,crf,pctx);
 }
@@ -6308,7 +6349,7 @@ scan(pctx);
 scan(pctx,"{");
 blocks.push(parseBlock(pctx));
 }while(pctx.token.value==op);
-var crf=parseCRF(pctx);
+var crf=parseCRF(pctx,false);
 
 return gen_waitfor_andor(op,blocks,crf,pctx);
 }else{
@@ -6328,7 +6369,7 @@ scan(pctx,"{");
 
 ++top_decl_scope(pctx).fscoped_ctx;
 var block=parseBlock(pctx);
-var crf=parseCRF(pctx);
+var crf=parseCRF(pctx,true);
 
 --top_decl_scope(pctx).fscoped_ctx;
 

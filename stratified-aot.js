@@ -1391,17 +1391,10 @@ return this;
 case 1:
 
 this.state=2;
-if(this.ndata[2]&&(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=="t")||this.ndata[0]&1)){
-
+if(this.ndata[2]&&((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=="t")){
 
 var v;
-if(this.ndata[0]&1){
-
-
-v=(val!==null&&typeof (val)==='object'&&val.__oni_cfx)?[val.type==='t'?val.val:val,true]:[val,false];
-}else v=val.val;
-
-
+v=val.val;
 val=this.ndata[2](this.env,v);
 
 
@@ -1414,9 +1407,11 @@ val=val.abort(this.pseudo_abort);
 
 
 
-if(!this.NDATA_TRY_RETRACT_BLOCK&&!this.ndata[3]&&!(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)))return this.returnToParent(val);
+if(!this.ndata[4]&&!this.ndata[3]&&!(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))){
 
 
+return this.returnToParent(val);
+}
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,0,true);
@@ -1452,7 +1447,15 @@ this.rv=val;
 }
 
 if(this.ndata[3]){
+if(this.ndata[0]&1){
+var v=(this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)?[this.rv,true,!!this.aborted,!!this.pseudo_abort]:[this.rv,false,!!this.aborted,!!this.pseudo_abort];
+
+
+val=this.ndata[3](this.env,v);
+}else{
+
 val=execIN(this.ndata[3],this.env);
+}
 
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
@@ -1463,11 +1466,29 @@ return this;
 case 4:
 
 
+if(this.ndata[0]&1){
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type!=='t'){
+val=new CFException("t",new Error("augmented finally(){} block needs to throw a value"));
+}else{
+
+
+
+
+
+
+
+if(val.val.length)val=val.val[0];
+
+}
+}else{
+
+
 
 if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type=='a'){
 val=this.rv;
 
 
+}
 }
 break;
 default:
@@ -1505,7 +1526,7 @@ this.setChildFrame(val);
 
 
 this.async=false;
-var rv=cont(this,0);
+var rv=cont(this,0,val);
 ;
 if(rv!==this){
 if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)||rv.type==='a')rv=val;
@@ -2525,6 +2546,7 @@ this.in_abortion=true;
 this.parent=val.ef.parent;
 this.parent_idx=val.ef.parent_idx;
 
+
 if(!this.parent){
 
 this.done=true;
@@ -2570,6 +2592,7 @@ return;
 }
 return this.returnToParent(val.val);
 }else if(val.type==='blb'){
+
 
 
 

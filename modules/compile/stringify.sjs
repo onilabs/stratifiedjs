@@ -195,8 +195,8 @@ GEN_WITH(exp, body, pctx)
 GEN_SWITCH(exp, clauses, pctx)
 GEN_THROW(exp, pctx)
 GEN_TRY(block, crf, pctx)
-    crf is [ [catch_id,catch_block,catchall?]|null, null, finally_block|null ]
-    (ammended for SJS, see below)
+    crf is [ [catch_id,catch_block]|null, null, [null,finally_block]|null ]
+    (amended for SJS, see below)
 
 Expressions:
 ============
@@ -247,8 +247,8 @@ GEN_SUSPEND(has_var, decls, block, crf, pctx)
 GEN_COLLAPSE(pctx)
   crf: see GEN_TRY
 GEN_TRY(block, crf, pctx) 
-    crf is [ [catch_id,catch_block,catchall?]|null, retract_block|null, finally_block|null ]
-    (instead of the non-SJS version above)
+    crf is [ [catch_id,catch_block]|null, retract_block|null, [finally_id|null,finally_block]|null ]
+    (instead of the non-SJS version above. presence of finally_id signifies 'augmented' finally clause)
 
 - if SJS___JS is set:
 
@@ -409,11 +409,18 @@ function gen_fun_pars(pars) {
 function gen_crf(crf) {
   var rv = "";
   if (crf[0])
-    rv += (crf[0][2] ? "catchall(" : "catch(")+crf[0][0]+")"+crf[0][1];
+    rv += "catch("+crf[0][0]+")"+crf[0][1];
   if (crf[1])
     rv += "retract"+crf[1];
-  if (crf[2])
-    rv += "finally"+crf[2];
+  if (crf[2]) {
+    if (crf[2][0] !== null) {
+      // augmented finally
+      rv += "finally("+crf[2][0]+")"+crf[2][1];
+    }
+    else {
+      rv += "finally"+crf[2][1];
+    }
+  }
   return rv;
 }
 
@@ -1632,17 +1639,13 @@ S("catch");
 S("finally");
 
 // parse catch-retract-finally
-// returns [ [catch_id,catch_block,catchall?]|null,
+// returns [ [catch_id,catch_block]|null,
 //           retract|null,
-//           finally|null ]
-function parseCRF(pctx) {
+//           [finally_id,finally]|null ]
+function parseCRF(pctx, allow_augmented_finally) {
   var rv = [];
   var a = null;
-  if (pctx.token.id == "catch"
-      // XXX catchall should only work for try, not for waitfor!
-      || pctx.token.value == "catchall" // XXX maybe use a real syntax token
-     ) {
-    var all = pctx.token.value == "catchall";
+  if (pctx.token.id == "catch") {
     a = [];
     scan(pctx);
     a.push(scan(pctx, "(").value);
@@ -1650,7 +1653,6 @@ function parseCRF(pctx) {
     scan(pctx, ")");
     scan(pctx, "{");
     a.push(parseBlock(pctx));
-    a.push(all);
   }
   rv.push(a);
   if (pctx.token.value == "retract") { // XXX maybe use a real syntax token
@@ -1662,8 +1664,20 @@ function parseCRF(pctx) {
     rv.push(null);
   if (pctx.token.id == "finally") {
     scan(pctx);
+
+    a = [];
+
+    if (allow_augmented_finally && pctx.token.id === '(') {
+      a.push(scan(pctx).value);
+      scan(pctx, "<id>");
+      scan(pctx, ")");
+    }
+    else 
+      a.push(null);
+
     scan(pctx, "{");
-    rv.push(parseBlock(pctx));
+    a.push(parseBlock(pctx));
+    rv.push(a);
   }
   else
     rv.push(null);
@@ -1677,20 +1691,21 @@ S("try").stmt(function(pctx) {
   var op = pctx.token.value; // XXX maybe use proper syntax token
   if (op != "and" && op != "or") {
     // conventional 'try'
-    var crf = parseCRF(pctx);
+    var crf = parseCRF(pctx, true);
     if (!crf[0] && !crf[1] && !crf[2])
       throw new Error("Missing 'catch', 'finally' or 'retract' after 'try'");
     
     return "try"+block+gen_crf(crf);                                    
   }
   else {
+    // deprecated try/and/or 
     var blocks = [block];
     do {
       scan(pctx);
       scan(pctx, "{");
       blocks.push(parseBlock(pctx));
     } while (pctx.token.value == op);
-    var crf = parseCRF(pctx);
+    var crf = parseCRF(pctx, false);
     
     var rv = "waitfor";                               for (var i=0; i<blocks.length; ++i){                if (i) rv += op;                                  rv += blocks[i];                                }                                                 rv += gen_crf(crf);                               return rv;
   }
@@ -1709,7 +1724,7 @@ S("waitfor").stmt(function(pctx) {
       scan(pctx, "{");
       blocks.push(parseBlock(pctx));
     } while (pctx.token.value == op);
-    var crf = parseCRF(pctx);
+    var crf = parseCRF(pctx, false);
     
     var rv = "waitfor";                               for (var i=0; i<blocks.length; ++i){                if (i) rv += op;                                  rv += blocks[i];                                }                                                 rv += gen_crf(crf);                               return rv;
   }
@@ -1729,7 +1744,7 @@ S("waitfor").stmt(function(pctx) {
     
     /*nothing*/
     var block = parseBlock(pctx);
-    var crf = parseCRF(pctx);
+    var crf = parseCRF(pctx, true);
     
     /*nothing*/
     

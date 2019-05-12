@@ -382,7 +382,7 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 function gen_crf(crf) {
   var rv = Dynamic;
   if (crf[2])
-    rv = rv.seq(crf[2]);
+    rv = rv.seq(crf[2][1]);
   return rv;
 }
 

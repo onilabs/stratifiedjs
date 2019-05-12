@@ -813,8 +813,9 @@ function gen_crf(s, crf, pctx, ext) {
   }
   if(handlerParam || handlerBody)
     s.handlers = [Node.CatchClause(pctx, ext, handlerParam, handlerBody)];
+  // XXX need to handle augmented finally
   if (crf[2])
-    s.finalizer = crf[2];
+    s.finalizer = crf[2][1];
 }
 
 NodeType('TryStatement', function(block, crf, pctx, ext) {

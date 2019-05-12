@@ -264,11 +264,18 @@ function gen_fun_pars(pars) {
 function gen_crf(crf) {
   var rv = "";
   if (crf[0])
-    rv += (crf[0][2] ? "catchall(" : "catch(")+crf[0][0]+")"+crf[0][1];
+    rv += "catch("+crf[0][0]+")"+crf[0][1];
   if (crf[1])
     rv += "retract"+crf[1];
-  if (crf[2])
-    rv += "finally"+crf[2];
+  if (crf[2]) {
+    if (crf[2][0] !== null) {
+      // augmented finally
+      rv += "finally("+crf[2][0]+")"+crf[2][1];
+    }
+    else {
+      rv += "finally"+crf[2][1];
+    }
+  }
   return rv;
 }
 

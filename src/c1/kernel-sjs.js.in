@@ -56,7 +56,7 @@
 
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE NDATA_TRY_FLAG_'s in vm1.js.in
 #define TRY_FLAG_NONE 0
-#define TRY_FLAG_CATCHALL 1
+#define TRY_FLAG_AUGMENTED_FINALLY 1
 
 //----------------------------------------------------------------------
 // helpers:
@@ -616,17 +616,18 @@ ph_try.prototype.nblock_val = function() {
   // this is currently only called in a forced (__js) non-blocking context
   var rv = "try{"+this.block.nb()+"}";
   if (this.crf[0]) {
-    if (this.crf[0][2]) throw new Error("catchall statement not allowed in __js block");
     rv += "catch("+this.crf[0][0]+"){"+this.crf[0][1].nb()+"}";
   }
   if (this.crf[1]) throw new Error("retract statement not allowed in __js block");
-  if (this.crf[2])
-    rv += "finally{"+this.crf[2].nb()+"}";
+  if (this.crf[2]) {
+    if (this.crf[2][0] !== null) throw new Error("augmented finally clause not allowed in __js block");
+    rv += "finally{"+this.crf[2][1].nb()+"}";
+  }
   return rv;
 };
 ph_try.prototype.val = function() {
     var tb = this.block.v();
-    var rv = "__oni_rt.Try("+((this.crf[0] && this.crf[0][2])? TRY_FLAG_CATCHALL:TRY_FLAG_NONE);
+    var rv = "__oni_rt.Try("+((this.crf[2] && this.crf[2][0] !== null)? TRY_FLAG_AUGMENTED_FINALLY:TRY_FLAG_NONE);
     rv+=","+tb;
     if (this.crf[0]) {
       var cb = this.crf[0][1].v();
@@ -639,8 +640,17 @@ ph_try.prototype.val = function() {
       rv += ",0";
     
     if (this.crf[2]) {
-      var fb = this.crf[2].v();
+      var fb = this.crf[2][1].v();
+      if (this.crf[2][0] === null) {
         rv += ","+fb;
+      }
+      else {
+        // augmented finally
+        rv += ",function(__oni_env,"+this.crf[2][0]+"){";
+        if (fb.length)
+          rv += "return __oni_rt.ex("+fb+",__oni_env)";
+        rv += "}";
+      }
     }
     else
       rv += ",0";

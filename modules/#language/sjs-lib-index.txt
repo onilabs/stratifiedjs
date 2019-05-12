@@ -119,7 +119,7 @@
   not wake up any more.
   Any code in the cancelled stratum coming after the aborted suspended code will not be executed any more.
   
-  ### Handling retraction - [::syntax::try-retract]
+  ### Handling retraction - [::syntax::try-catch-retract-finally]
   
   Cancellation can be "caught" much like exceptions using `try/retract`:
 

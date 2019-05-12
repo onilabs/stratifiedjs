@@ -286,31 +286,124 @@
       }
       // This code prints a1, b1, b2.
 
-@syntax try-retract
-@summary Handle cancellation of the current stratum
+@syntax try-catch-retract-finally
+@summary Controlflow interception
 @desc
-  Cancellation of the current stratum can be "caught" much like exceptions using `try/retract`:
+  SJS provides a `try{}catch(e){}retract{}finally{}` construct to
+  intercept controlflow.
+  At least one of the `catch`,`retract` or `finally` clauses needs to be present.
+  When specifying multiple clauses, they need to appear in the order given above.
 
-      try {
-        ... some suspending code ...
-      }
-      retract {
-        console.log("'some suspending code' has been cancelled!");
+  ### catch(e){}
+  `catch(e){}` is invoked when an exception is thrown from within the `try{}` clause. The exception `e` will not be propagated up the callstack unless rethrown from within the `catch` clause. 
+
+  ### retract{}
+  The `retract` clauses "catches" cancellation of the current stratum. E.g.
+  in the following code, `foo` will be retracted after 1 second and 
+  the `retract` clause will be invoked:
+
+      function foo() {
+        try {
+          console.log("long running code...");
+          hold(1000000);
+        }
+        retract {
+          console.log("retract clause invoked!");
+          hold(10000);
+          console.log("retract done");
+        }
       }
 
-  Cancellation is also honored by `try/finally`; i.e. a `finally` clause
-  will be executed whether a `try` block is left normally, by exception or
-  by cancellation.
+      waitfor {
+        foo();
+      }
+      or {
+        hold(1000); // 1 second
+        console.log('timeout');
+      }
+      console.log("all done");
 
   The cancellation path is always synchronous: The code that caused the cancellation will only resume once all `retract` and `finally` clauses
-  along the cancelled callstack have completed.
+  along the cancelled callstack have completed. E.g. in the above example,
+  `console.log("done")` will only be executed once the `retract` clause is 
+  finished.
+  The output of the code above will be:
 
-  As a shorthand, `catch`, `retract`, and `finally` blocks can be appended
-  directly to a `waitfor()`, `waitfor/and`, or `waitfor/or`, without having to
-  wrap it into a `try`-clause.
+      long running code...
+      // after one second:
+      timeout
+      retract clause invoked!
+      // after ten seconds:
+      retract done
+      all done
+  
+  ### finally{}
+
+  The `finally{}` clause will be invoked whenever controlflow leaves the `try` 
+  clause (and when it has passed all `catch` and `retract` clauses).
+  
+  *Any* controlflow will pass through `finally{}`, i.e. the `finally{}` clause
+  will be executed whether a `try{}` clause is exited normally (sequentially,
+  by `return`, or by `break`), by exception, or by cancellation.
+
+  Code running in `finally{}` clauses **is not abortable** (unlike code running in a `catch(e){}`). E.g. in the following 
+  code, the cancellation induced by the waitfor/or will have no effect until 
+  the `hold(10);` line:
+
+      function foo() {
+        try {
+          console.log('done with try');
+        }
+        finally {
+          console.log('finally invoked');
+          hold(10000); // wait ten seconds
+          console.log('finally finished');
+        }
+        console.log('after finally');
+        hold(10);
+        console.log('not reached');
+      }
+
+      waitfor {
+        foo();
+      }
+      or {
+        hold(1000);
+        console.log('timeout');
+      }
+      console.log('all done');
+
+  The output of this code will be:
+
+      done with try
+      finally invoked
+      // after one second:
+      timeout
+      // after ten seconds:
+      finally finished
+      after finally
+      all done
+
+  Note in particular that the line `console.log('after finally')` will be 
+  executed, even though `foo()` has been aborted by that point. This is 
+  because the code within the `finally{}` clause is not abortable. Abortion
+  will only take effect at the first suspension point that is encountered, which
+  in the example is the `hold(10)`.
+
+  ** Amended `finally(c) {}` clause **
+
+  For internal use (in the conductance
+  bridge code), SJS contains an 'amended' form of the `finally` clause which,
+  similar to a `catch(e) {}` clause, takes an argument. For more information
+  on the argument format and the semantics, see unit/controlflow-tests.sjs in
+  the SJS testsuite.
+
+
+  ### Syntax shorthand
+
+  As a shorthand, `catch`, `retract`, and `finally` clauses can be appended directly to a [::waitfor-and], [::waitfor-or], or [::waitfor-resume], without having to wrap the statements in a `try` clause.
 
   Example: Here is a function that waits for a DOM event in the webbrowser:
-
 
       function waitforEvent(elem, event) {
         waitfor(var rv) {

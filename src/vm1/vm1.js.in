@@ -1524,7 +1524,7 @@ exports.Switch = function(/*exp, clauses*/) {
 // ndata[0] contains flags.
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE TRY_FLAG_'s in kernel-sjs.js.in
 #define NDATA_TRY_FLAG_NONE 0
-#define NDATA_TRY_FLAG_CATCHALL 1
+#define NDATA_TRY_FLAG_AUGMENTED_FINALLY 1
 
 #define NDATA_TRY_FLAGS() ndata[0]
 #define NDATA_TRY_TRY_BLOCK() ndata[1]
@@ -1576,40 +1576,35 @@ EF_Try.prototype.cont = function(idx, val) {
       return this;
     }
     case 1:
-    // returning from try block
-    this.state = 2;
-    if (this.NDATA_TRY_CATCH_FUNC() &&
-        ((is_cfx(val) && val.type == "t") ||
-         this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_CATCHALL)) {
-      var v;
-      if (this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_CATCHALL) {
-        // we'll pass an array [rv|exception, isexception] to the
-        // catch function
-        v = is_cfx(val) ? [val.type === 't' ? val.val : val, true] : [val, false];
-      }
-      else // 'normal' exception catching
+      // returning from try block
+      this.state = 2;
+      if (this.NDATA_TRY_CATCH_FUNC() &&
+          (is_cfx(val) && val.type == "t")) {
+        var v;
         v = val.val;
-      val = this.NDATA_TRY_CATCH_FUNC()(this.env, v);
+        val = this.NDATA_TRY_CATCH_FUNC()(this.env, v);
+        
+        // Check for a reentrant abortion triggered by our catch() block
+        // see sjs-2-tests.sjs: reentrant abortion from catch()
+        if (this.aborted && is_ef(val)) {
+          // abort val
+          val = val.abort(this.pseudo_abort);
+        }
 
-      // Check for a reentrant abortion triggered by our catch() block
-      // see sjs-2-tests.sjs: reentrant abortion from catch()
-      if (this.aborted && is_ef(val)) {
-        // abort val
-        val = val.abort(this.pseudo_abort);
-      } 
-
-      // tail-call optimization:
-      // the !(aborted&&is_ef) check is important because cont() is called from EF_Try::abort, and 
-      // we don't want to be replaced by a child frame:
-      if (!this.NDATA_TRY_RETRACT_BLOCK && !this.NDATA_TRY_FINALLY_BLOCK() && !(this.aborted && is_ef(val)))
-        return this.returnToParent(val);
-
-
-      if (is_ef(val)) {
-        this.setChildFrame(val, 0, true); // prevent callstack copying; stack-tests 23
-        return this;
+        // tail-call optimization:
+        // The !(aborted&&is_ef) check is important because cont() is called from EF_Try::abort, and 
+        // we don't want to be replaced by a child frame.
+        if (!this.NDATA_TRY_RETRACT_BLOCK() && 
+            !this.NDATA_TRY_FINALLY_BLOCK() && 
+            !(this.aborted && is_ef(val))) {
+          return this.returnToParent(val);
+        }
+        
+        if (is_ef(val)) {
+          this.setChildFrame(val, 0, true); // prevent callstack copying; stack-tests 23
+          return this;
+        }
       }
-    }
     case 2:
     // returning from try/catch
     this.state = 3;
@@ -1639,7 +1634,15 @@ EF_Try.prototype.cont = function(idx, val) {
     }
 
     if (this.NDATA_TRY_FINALLY_BLOCK()) {
-      val = execIN(this.NDATA_TRY_FINALLY_BLOCK(), this.env);
+      if (this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_AUGMENTED_FINALLY) {
+        var v = is_cfx(this.rv) ?
+          [this.rv, true, !!this.aborted, !!this.pseudo_abort] :
+          [this.rv, false, !!this.aborted, !!this.pseudo_abort];
+        val = this.NDATA_TRY_FINALLY_BLOCK()(this.env, v);
+      }
+      else {
+        val = execIN(this.NDATA_TRY_FINALLY_BLOCK(), this.env);
+      }
       // we can't tail-call this, because we might have to return
       // the stored rv (if it is an exception)
       if (is_ef(val)) {
@@ -1648,13 +1651,31 @@ EF_Try.prototype.cont = function(idx, val) {
       }
     }
     case 4:
-    // returning from finally        
-    // override res with stored exception (from try or catch) if
-    // val isn't an exception
-      if (!is_cfx(val) || val.type == 'a') {
-        val = this.rv;
-        //else if (this.aborted)
-        //  val = new CFException('a');
+      // returning from finally
+      
+      if (this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_AUGMENTED_FINALLY) {
+        if (!is_cfx(val) || val.type !== 't') {
+          val = new CFException("t", new Error("augmented finally(){} block needs to throw a value"));
+        }
+        else {
+          // we expect 'throw' in an augmented finally(e){} to rethrow
+          // 'e' (or an array with a value - exception or otherwise - as 
+          // first argument). 
+          // We also want to be able to cope with 'real' exceptions thrown
+          // if e.g. there is a logic error in the finally block, so we
+          // only resolve to val.val[0] if val.val looks like an array:
+          if (val.val.length)
+            val = val.val[0];
+        }
+      }
+      else {
+        // override res with stored exception (from try or catch) if
+        // val isn't an exception
+        if (!is_cfx(val) || val.type == 'a') {
+          val = this.rv;
+          //else if (this.aborted)
+          //  val = new CFException('a');
+        }
       }
     break;
     default:
@@ -1692,7 +1713,7 @@ EF_Try.prototype.abort = function(pseudo_abort) {
       // temporarily need to turn off async flag, so that 'returnToParent' doesn't attempt to 
       // return to non-existing parent, which would cause exceptions to go uncaught
       this.async = false;
-      var rv = cont(this, 0);
+      var rv = cont(this, 0, val);
       ASSERT(!is_ef(rv) || rv === this);
       if (rv !== this) {
         if (!is_cfx(rv) || rv.type === 'a')
@@ -1700,7 +1721,7 @@ EF_Try.prototype.abort = function(pseudo_abort) {
         return rv;
       }
       else {
-        this.rv = val;
+        this.rv = val; // XXX not sure this is necessary, since we passed 'val' to 'cont', above
         this.async = true;
       }
       // & fall through. we need to block
@@ -2796,6 +2817,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.parent = val.ef.parent;
       this.parent_idx = val.ef.parent_idx;
 
+      // XXX INVESTIGATE WHY WE DON'T HAVE THIS IN THE BLBREAK CASE
       if (!this.parent) {
         // synchronous edge case
         this.done = true;
@@ -2847,6 +2869,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       // to determine the frame that needs aborting, we walk the
       // parent chain from this.env.blrref back to the first frame
       // that has blscope = val.ef:
+      // see note in I_Spawn constructor for reason why we walk from blrref... we kinda overload the meaning of blrref for spawn
       var frame_to_abort = this.env.blrref;
       while (frame_to_abort.parent && !(frame_to_abort.parent.env && frame_to_abort.parent.env.blscope === val.ef))
         frame_to_abort = frame_to_abort.parent;

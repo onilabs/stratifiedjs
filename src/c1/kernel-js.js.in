@@ -209,7 +209,7 @@ function gen_fun_pars(pars) {
   if (crf[0])                                                      \
     rv += "catch("+crf[0][0]+")"+crf[0][1];                        \
   if (crf[2])                                                      \
-    rv += "finally"+crf[2];                                        \
+    rv += "finally"+crf[2][1];                                     \
   return rv;
 
   
