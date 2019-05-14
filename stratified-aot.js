@@ -2662,7 +2662,7 @@ this.notifyVal(val);
 }
 };
 
-EF_Spawn.prototype.abort=function(){if(this.in_abortion)return this;
+EF_Spawn.prototype.abort=function(pseudo){if(this.in_abortion)return this;
 
 
 
@@ -2673,7 +2673,7 @@ if(this.done)return new CFException('a');
 this.in_abortion=true;
 if(this.child_frame){
 this.child_frame.quench();
-var val=this.child_frame.abort();
+var val=this.child_frame.abort(pseudo);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,2);
@@ -2785,7 +2785,7 @@ env.blbref=null;
 
 
 var stratum=new ReifiedStratumProto();
-stratum.abort=function(){var dyn_vars=exports.current_dyn_vars;
+stratum.abort=function(pseudo){var dyn_vars=exports.current_dyn_vars;
 
 
 
@@ -2798,7 +2798,7 @@ return new EF_SpawnAbortFrame(abort_waitarr,ef);
 if(ef.done)return UNDEF;
 
 
-var rv=ef.abort();
+var rv=ef.abort(pseudo);
 
 exports.current_dyn_vars=dyn_vars;
 

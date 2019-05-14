@@ -460,13 +460,14 @@
   You can use [../sys::isStratum] to check if a given object is a stratum.
 
 @function Stratum.abort
+@param {optional Boolean} [omit_retract=false] Whether to omit executing `retract` clauses
 @summary Aborts the stratum if it is not finished yet, otherwise does nothing
 @desc
   Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]:
 
   * `abort` is synchronous: It will only return after the stratum has been retracted (i.e. once all `finally` and `retract` clauses on the stratum's callstack have been executed). However, any pending [::Stratum::value] calls will _immediately_ receive a [cutil::StratumAborted] exception.
 
-  * Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses inside the stratum will be honored. This is also true for 'cyclic aborts' (see below). 
+  * Unless `omit_retract` is set to `true`, aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses inside the stratum will be honored. This is also true for 'cyclic aborts' (see below). Otherwise, for `omit_retract=false`, `retract` clauses inside the stratum will not be executed. `finally` clauses will be executed in either case.
 
   * If the stratum throws an exception during abortion (in a finally or retract clause), the exception
   will be propagated to the abort call.

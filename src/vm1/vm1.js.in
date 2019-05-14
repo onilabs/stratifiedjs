@@ -2933,7 +2933,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
   }
 };
 
-EF_Spawn.prototype.abort = function() {
+EF_Spawn.prototype.abort = function(pseudo) {
   // This function is only called by stratum.abort, below, or when we receive a reentrant abort after
   // notifying listeners.
   // We don't need to deal with notifyAsync/notifyVal, because all value listeners 
@@ -2944,7 +2944,7 @@ EF_Spawn.prototype.abort = function() {
   this.in_abortion = true;
   if (this.child_frame) {
     this.child_frame.quench();
-    var val = this.child_frame.abort(); 
+    var val = this.child_frame.abort(pseudo); 
     if (is_ef(val)) {
       // we need to wait
       this.setChildFrame(val, 2);
@@ -3062,7 +3062,7 @@ function I_spawn(ndata, env) {
 
 
   var stratum = new ReifiedStratumProto();
-  stratum.abort = function() {
+  stratum.abort = function(pseudo) {
     var dyn_vars = exports.current_dyn_vars;
     
     // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
@@ -3075,7 +3075,7 @@ function I_spawn(ndata, env) {
     if (ef.done) return UNDEF;
     // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
     // but any value listeners will receive a 'stratum aborted' notification immediately
-    var rv = ef.abort();
+    var rv = ef.abort(pseudo);
 
     exports.current_dyn_vars = dyn_vars;
     
