@@ -2596,12 +2596,7 @@ return this.returnToParent(val.val);
 
 
 
-
-
-
 var frame_to_abort=this.env.blrref;
-while(frame_to_abort.parent&&!(frame_to_abort.parent.env&&frame_to_abort.parent.env.blscope===val.ef))frame_to_abort=frame_to_abort.parent;
-
 
 if(!frame_to_abort.parent||frame_to_abort.unreturnable){
 this.notifyVal(new CFException("t",new Error("Blocklambda break from spawned stratum to invalid or inactive scope"),this.ndata[0],this.env.file));
@@ -2628,7 +2623,8 @@ frame_to_abort.quench();
 
 var aborted_target=frame_to_abort.abort(true);
 if((aborted_target!==null&&typeof (aborted_target)==='object'&&aborted_target.__oni_ef===true)){
-this.return_val=UNDEF;
+
+this.return_val=val;
 this.setChildFrame(aborted_target,2);
 
 
@@ -2648,7 +2644,8 @@ this.done=true;
 this.notifyVal(UNDEF,true);
 this.notifyAborted(UNDEF);
 
-return this.returnToParent(UNDEF);
+
+return this.returnToParent(val);
 }
 }
 

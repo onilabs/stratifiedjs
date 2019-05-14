@@ -2653,3 +2653,90 @@ test('exception in retract clause in stratum - asynchronous', 'fF', function() {
   catch(e) { rv += e; }
   return rv;
 });
+
+test('blocklambda breaks across nested spawned strata', '<o<ii>o>bfifowd', function() {
+  var rv = '';
+  var spawnExec = x -> function(block) { 
+    rv += '<'+x;
+    var stratum = spawn block();
+    rv += x+'>';
+    try {
+      hold();
+    }
+    retract {
+      rv += 'X';
+    }
+    finally {
+      rv += 'f'+x;
+    }
+    rv += 'X';
+}
+
+  var blk = {
+    ||
+    hold(0);
+    rv += 'b';
+    break;
+    rv += 'X';
+  };
+
+  do {
+    spawnExec('o')(function() { 
+      spawnExec('i')(blk);
+      rv += 'X';
+    });
+
+    hold(0);
+    // should break to here:
+    // XXX arguably to the line after the `do` ?
+    rv += 'w';
+  }
+  while (0);
+  rv += 'd';
+
+  return rv;
+
+});
+
+test('sync blocklambda breaks across nested spawned strata', '<o<ibwd', function() {
+  var rv = '';
+  var spawnExec = x -> function(block) { 
+    rv += '<'+x;
+    var stratum = spawn block();
+    rv += x+'>';
+    try {
+      hold();
+    }
+    retract {
+      rv += 'X';
+    }
+    finally {
+      rv += 'f'+x;
+    }
+    rv += 'X';
+}
+
+  var blk = {
+    ||
+    rv += 'b';
+    break;
+    rv += 'X';
+  };
+
+  do {
+    spawnExec('o')(function() { 
+      spawnExec('i')(blk);
+      rv += 'X';
+    });
+
+    hold(0);
+    // should break to here:
+    // XXX arguably to the line after the `do` ?
+    rv += 'w';
+  }
+  while (0);
+  rv += 'd';
+
+  return rv;
+
+});

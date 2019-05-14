@@ -2865,14 +2865,9 @@ EF_Spawn.prototype.cont = function(idx, val) {
     }
     else if (val.type === 'blb') {
       // we have a blocklambda break
-
-      // to determine the frame that needs aborting, we walk the
-      // parent chain from this.env.blrref back to the first frame
-      // that has blscope = val.ef:
-      // see note in I_Spawn constructor for reason why we walk from blrref... we kinda overload the meaning of blrref for spawn
+      // As we don't have a parent to abort, we abort this.env.blrref and
+      // arrange for the blb to be passed on to this.env.blrref's parent:
       var frame_to_abort = this.env.blrref;
-      while (frame_to_abort.parent && !(frame_to_abort.parent.env && frame_to_abort.parent.env.blscope === val.ef))
-        frame_to_abort = frame_to_abort.parent;
 
       if (!frame_to_abort.parent || frame_to_abort.unreturnable) {
         this.notifyVal(new CFException("t",
@@ -2899,7 +2894,8 @@ EF_Spawn.prototype.cont = function(idx, val) {
       // XXX should this be a pseudo abort??
       var aborted_target = frame_to_abort.abort(true);
       if (is_ef(aborted_target)) {
-        this.return_val = UNDEF;
+        // make sure our aborted target's parent gets the blb:
+        this.return_val = val;
         this.setChildFrame(aborted_target, 2);
 
         // return value to ef & listeners:
@@ -2919,7 +2915,8 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.notifyVal(UNDEF, true);
       this.notifyAborted(UNDEF);
 
-      return this.returnToParent(UNDEF);
+      // return the blb to our aborted target's parent synchronously:
+      return this.returnToParent(val);
     }
   }
   
