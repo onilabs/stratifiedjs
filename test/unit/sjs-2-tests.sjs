@@ -2740,3 +2740,117 @@ test('sync blocklambda breaks across nested spawned strata', '<o<ibwd', function
   return rv;
 
 });
+
+test('blocklambda return across nested spawned strata', '<o<ii>o>bfifor', function() {
+  var rv = '';
+  var spawnExec = x -> function(block) { 
+    rv += '<'+x;
+    var stratum = spawn block();
+    rv += x+'>';
+    try {
+      hold();
+    }
+    retract {
+      rv += 'X';
+    }
+    finally {
+      rv += 'f'+x;
+    }
+    rv += 'X';
+}
+
+  rv += (function(){
+    var blk = {
+      ||
+      hold(0);
+      rv += 'b';
+      return 'r';
+      rv += 'X';
+    };
+    
+    do {
+      spawnExec('o')(function() { 
+        spawnExec('i')(blk);
+        rv += 'X';
+      });
+      
+      hold(0);
+      rv += 'X';
+    }
+    while (0);
+    rv += 'X';
+  })();
+
+  return rv;
+
+});
+
+// This _could_ be made to work, but at the moment it generates
+// a runtime error. The problem is the point of definition of the blocklambda.
+// It seems a pretty useless pattern though, so might not be worth fixing.
+test('bl break across spawn - async', 'xfF', function() {
+  var rv = '';
+  function foo() {
+    try {
+      spawn ({ || try { hold(0); rv += 'x'; break; } retract { rv += 'r' } finally { rv += 'f' } })();
+      hold();
+    }
+    retract {
+      rv += 'R';
+    }
+    finally {
+      rv += 'F';
+    }
+  }
+  foo();
+  return rv;
+}).skip("Needs work");
+
+// this used to not properly route the 'inactive frame' exception and cause a 
+// deadlock:
+test('bl return routing deadlock edgecase', '1234', function() {
+  var rv = '';
+
+  function spawn_and_return(f) { return spawn f(); }
+  function test() {
+    var S = spawn_and_return { || hold(10); rv+='1'; return; };
+
+    try { S.value(); rv += 'x'; }
+    finally { rv+='2'; S.abort(); rv+= '3'; }
+    rv+='y';
+  }
+
+  try { 
+    test();
+    rv += 'z';
+  }
+  catch(e) {
+    rv += '4';
+  }
+  return rv;
+});
+
+// this used to not properly route the 'inactive frame' exception and cause a 
+// deadlock:
+test('bl break routing deadlock edgecase', '1234', function() {
+  var rv = '';
+
+  function spawn_and_return(f) { return spawn f(); }
+  function test() {
+    var S = spawn_and_return { || hold(10); rv+='1'; break; };
+
+    try { S.value(); rv += 'x'; }
+    finally { rv+='2'; S.abort(); rv+= '3'; }
+    rv+='y';
+  }
+
+  try { 
+    test();
+    rv += 'z';
+  }
+  catch(e) {
+    rv += '4';
+  }
+  return rv;
+});
+

@@ -193,7 +193,7 @@ function CFException(type, value, line, file) {
     if (line)
       value.__oni_stack.push([file || 'unknown SJS source', line]);
   }
-  // this.ef = UNDEF;  // 'execution frame' tag for targetted return/break/continue
+  // this.eid = UNDEF;  // 'execution frame' tag for targetted return/break/continue
 }
 
 var CFETypes = { r:"return", b:"break", c:"continue", blb: "blocklambda break"};
@@ -240,7 +240,7 @@ CFException.prototype = {
 #endif // CLIENTSIDE
         throw this.val;
     }
-    else if (!this.ef) // XXX DO WE NEED THIS???
+    else if (!this.eid) // XXX DO WE NEED THIS???
       throw new Error(this.toString());
     else // this is a 'blb' or 'r' tunneling through a JS functions:
       throw this;
@@ -337,6 +337,18 @@ var EF_Proto = {
 
   wait: function() { return this; },
 
+#ifdef DEBUG_VM
+  gatherSuspensionTree: function() {
+    try {
+    return (this.callstack||[]).concat(this.child_frame ? this.child_frame.gatherSuspensionTree() : []);
+    }
+    catch (e) {
+      console.log("ERROR GATHERING SUSPENSION TREE FOR "+this.child_frame);
+      throw e;
+    }
+  },
+#endif
+
   setChildFrame: function(ef, idx, prevent_callstack_copy) {
     if (this.child_frame) {
       if (prevent_callstack_copy !== true && this.child_frame.callstack) {
@@ -381,6 +393,8 @@ var EF_Proto = {
       }
       else {
         ASSERT(is_cfx(abort_val));
+        // this fixes sjs-3-tests.sjs:'return via inactive scope edgecase':
+        this.unreturnable = true;
         return abort_val;
       }
     }
@@ -411,7 +425,7 @@ var EF_Proto = {
     if (this.swallow_r) {
       if (is_cfx(val)) {
         if (val.type === "r") {
-          if (!val.ef || val.ef === this) {
+          if (!val.eid || val.eid === this.sid) {
             val = val.val;
             if (this.swallow_r === 3) {
               // we've received a tail-called 'return' that shouldn't
@@ -472,6 +486,7 @@ var EF_Proto = {
       }
       else // noone waiting for result; make sure exceptions get reported
         if (is_cfx(val) && val.type !== 'a') {
+          //console.log("UNREPORTED EXCEPTION IN "+this+":"+val.type+" eid="+val.eid);
           val.mapToJS(true);
         }
     }
@@ -593,7 +608,7 @@ function I_call(ndata, env) {
   }
   catch (e) {
     if (is_cfx(e)) {
-      if (e.type == 'blb' && e.ef == env.blscope) {
+      if (e.type == 'blb' && env.blscope && e.eid == env.blscope.sid) {
         // XXX This is only reached when an fcall is encoded as
         // nblock, which currently only happens if the blocklambda is
         // called via a variable, see sjs-testsuite2:26
@@ -681,13 +696,13 @@ exports.Bl = function(f) {
   2..end : returning from ndata[n-1] (last one tail-called)  
  */
 
-#ifdef DEBUG_VM
 var seq_counter = 0;
-#endif
 
 function EF_Seq(ndata, env) {
+  // 'sid' is an id used in blocklambda break and return references
+  this.sid = ++seq_counter;
 #ifdef DEBUG_VM
-  this.id = ++seq_counter;
+  this.id = this.sid; 
 #endif
   this.ndata = ndata;
   this.env = env;
@@ -772,7 +787,7 @@ EF_Seq.prototype.cont = function(idx, val) {
   else {
     if (is_cfx(val)) {
       // block lambda break
-      if (val.type == 'blb' && val.ef == this.env.blscope) {
+      if (val.type == 'blb' && this.env.blscope && val.eid == this.env.blscope.sid) {
         val = UNDEF;
       }
       else {
@@ -811,7 +826,7 @@ EF_Seq.prototype.cont = function(idx, val) {
       if (is_cfx(val)) {
         // handle reentrant blocklambda breaks
         // (see sjs2-tests:reentrant blocklambda resume/break)
-        if (val.type === 'blb' && val.ef === this.env.blscope)
+        if (val.type === 'blb' && this.env.blscope && val.eid === this.env.blscope.sid)
           val = undefined;
         break;
       }
@@ -865,7 +880,7 @@ function I_seq(ndata, env) {
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
     if (is_cfx(val)) {
       if (val.type == "r") { 
-        if (!val.ef)
+        if (!val.eid)
           val = val.val;
       }
     }
@@ -1256,7 +1271,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
 //      rv = new CFException("t", e, "passthrough");
       if (is_cfx(e)) {
         // handle blocklambda break: 
-        if (e.type == 'blb' && e.ef == this.env.blscope) {
+        if (e.type == 'blb' && this.env.blscope && e.eid == this.env.blscope.sid) {
           rv = UNDEF;
         }
         else
@@ -1635,9 +1650,12 @@ EF_Try.prototype.cont = function(idx, val) {
 
     if (this.NDATA_TRY_FINALLY_BLOCK()) {
       if (this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_AUGMENTED_FINALLY) {
+        // Can pass in `this.parent` below, for debugging purposes:
+        // `try { hold(0); } finally(e) { console.log(e[4]); throw e; }`
+        // gives the current ef.
         var v = is_cfx(this.rv) ?
-          [this.rv, true, !!this.aborted, !!this.pseudo_abort] :
-          [this.rv, false, !!this.aborted, !!this.pseudo_abort];
+          [this.rv, true, !!this.aborted, !!this.pseudo_abort/*, this.parent*/] :
+          [this.rv, false, !!this.aborted, !!this.pseudo_abort/*, this.parent*/];
         val = this.NDATA_TRY_FINALLY_BLOCK()(this.env, v);
       }
       else {
@@ -1654,7 +1672,7 @@ EF_Try.prototype.cont = function(idx, val) {
       // returning from finally
       
       if (this.NDATA_TRY_FLAGS() & NDATA_TRY_FLAG_AUGMENTED_FINALLY) {
-        if (!is_cfx(val) || val.type !== 't') {
+        if (!is_cfx(val)) {
           val = new CFException("t", new Error("augmented finally(){} block needs to throw a value"));
         }
         else {
@@ -1664,7 +1682,7 @@ EF_Try.prototype.cont = function(idx, val) {
           // We also want to be able to cope with 'real' exceptions thrown
           // if e.g. there is a logic error in the finally block, so we
           // only resolve to val.val[0] if val.val looks like an array:
-          if (val.val.length)
+          if (val.val && val.val.length)
             val = val.val[0];
         }
       }
@@ -1809,7 +1827,7 @@ EF_Loop.prototype.cont = function(idx, val) {
         while (1) {
           if (idx > 2) {
             if (is_cfx(val)) {
-              if (val.type === 'blb' && val.ef === this.env.blscope) {
+              if (val.type === 'blb' && this.env.blscope && val.eid === this.env.blscope.sid) {
                 // blocklambda return
                 val = UNDEF;
               }
@@ -2132,7 +2150,7 @@ EF_Par.prototype.cont = function(idx, val) {
         this.children[idx] = UNDEF;
       }
       if (is_cfx(val) && !this.inner_aborted && 
-          !(val.type === 'blb' && val.ef === this.env.blscope)) {
+          !(val.type === 'blb' && this.env.blscope && val.eid === this.env.blscope.sid)) {
         // an exception aborts all other pending branches: (but only
         // if it is not a blb break targetted at us - this can happen
         // when a break is tail-called)
@@ -2223,6 +2241,25 @@ EF_Par.prototype.abortInner = function() {
   this.async = true;
   return this;
 };
+
+#ifdef DEBUG_VM
+  EF_Par.prototype.gatherSuspensionTree = function() {
+    var st = this.callstack || [];
+    var child_trees = [];
+    for (var i=0; i<this.children.length; ++i) {
+      try {
+        if (this.children[i])
+          child_trees.push(this.children[i].gatherSuspensionTree());
+      }
+      catch (e) {
+        console.log("Waitfor/and: Error gathering suspension tree for "+this.children[i]);
+        throw e;
+      }
+    }
+    st.push(['WAITFOR/AND', child_trees]);
+    return st;
+  },
+#endif
 
 EF_Par.prototype.setChildFrame = function(ef, idx) {
   if (this.children[idx]) {
@@ -2433,6 +2470,25 @@ EF_Alt.prototype.abortInner = function() {
   return this;
 };
 
+#ifdef DEBUG_VM
+  EF_Alt.prototype.gatherSuspensionTree = function() {
+    var st = this.callstack || [];
+    var child_trees = [];
+    for (var i=0; i<this.children.length; ++i) {
+      try {
+        if (this.children[i])
+          child_trees.push(this.children[i].gatherSuspensionTree());
+      }
+      catch (e) {
+        console.log("Waitfor/or: Error gathering suspension tree for "+this.children[i]);
+        throw e;
+      }
+    }
+    st.concat([['WAITFOR/OR', child_trees]]);
+    return st;
+  },
+#endif
+
 EF_Alt.prototype.setChildFrame = function(ef, idx) {
   if (this.children[idx]) {
     if (this.children[idx].callstack) {
@@ -2581,9 +2637,10 @@ EF_Suspend.prototype.cont = function(idx, val) {
   };
       
 #endif
-      // XXX we're reflecting the execution frame onto the resume function for usage
-      // in the conductance bridge (where it is needed to handle disjointed blocklambda breaks
-      resumefunc.ef = ef; 
+      // XXX If we want to enable the 'clearOrphanedBLR' functionality in the bridge
+      // then we need to reflect the execution frame onto the resume function here:
+      //resumefunc.ef = ef; 
+
       //      LOG("executing suspend")
       val = this.NDATA_SUSPEND_SUSPENDFUNC()(this.env, resumefunc);
     }
@@ -2763,11 +2820,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
     this.parent_dyn_vars = exports.current_dyn_vars;
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
     exports.current_dyn_vars = this.parent_dyn_vars;
-    // we used to synchronously pass through all control flow exceptions 
-    // (but not proper exceptions), but now we handle synchronous blocklambda 
-    // _returns_ in a special way, below, so that we can leverage the spawn logic in
-    // the conductance bridge code to handle disjointed synchronous blambda returns.
-    if (is_cfx(val) && val.type === 'blb') {
+    if (is_cfx(val) && (val.type === 'blb' || (val.type === 'r' && val.eid))) {
       return val;
     }
   }
@@ -2777,7 +2830,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.setChildFrame(val, 2);
       return this.returnToParent(this);
     }
-    else if (!is_cfx(val) || ((val.type !== 'r' || !val.ef) && val.type !== 'blb')) {
+    else if (!is_cfx(val) || ((val.type !== 'r' || !val.eid) && val.type !== 'blb')) {
       // For blocklambda breaks and returns we fall through to the cfx handling below, so that they
       // get propagated appropriately.
       this.in_abortion = false;
@@ -2796,17 +2849,19 @@ EF_Spawn.prototype.cont = function(idx, val) {
   }
 
   if (is_cfx(val)) {
-    if (val.type === 'r' && val.ef) {
+    if (val.type === 'r' && val.eid) {
       // we have a blocklambda return
+      // As we don't have a parent to abort, we abort this.env.blrref and
+      // arrange for the blb to be passed on to this.env.blrref's parent:
+      var frame_to_abort = this.env.blrref;
 
-      // because we're on a different stratum than the blocklambda return target and
-      // the blocklambda return might be delayed via blocking finally clauses before it
-      // reached us here, we need to recheck if we're dispatching to an active target:
-      if (val.ef.unreturnable) {
+      if (!frame_to_abort.parent || frame_to_abort.unreturnable) {
+        this.done = true;
         this.notifyVal(new CFException("t",
                                        new Error("Blocklambda return from spawned stratum to inactive scope"),
                                        this.NDATA_SPAWN_LINE(),
                                        this.env.file));
+        this.notifyAborted(UNDEF);
         return;
       }
 
@@ -2814,54 +2869,42 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.in_abortion = true;
 
       // inject ourselves:
-      this.parent = val.ef.parent;
-      this.parent_idx = val.ef.parent_idx;
-
-      // XXX INVESTIGATE WHY WE DON'T HAVE THIS IN THE BLBREAK CASE
-      if (!this.parent) {
-        // synchronous edge case
-        this.done = true;
-        return val;
-      }
+      this.parent = frame_to_abort.parent;
+      this.parent_idx = frame_to_abort.parent_idx;
 
       // tell parent about ourselves, so that we get any reentrant abort calls
       cont(this.parent, this.parent_idx, this);
       // for safety, make sure frame_to_abort doesn't send any returns
       // to this.parent. We're taking that role
-      val.ef.parent = UNDEF;
+      frame_to_abort.parent = UNDEF;
 
-      // abort target frame
-      val.ef.quench();
-      // abort with a 'pseudo abort', because this is actually a return, not an abort
-      var aborted_target = val.ef.abort(true);
+      // Abort the frame with a pseudo-abort (because we don't want 'retract' clauses executed)
+      frame_to_abort.quench();
+      var aborted_target = frame_to_abort.abort(true);
       if (is_ef(aborted_target)) {
-        this.return_val = val.val;
+        // make sure our aborted target's parent gets the blb:
+        this.return_val = val;
         this.setChildFrame(aborted_target, 2);
 
-        // return value to ef's parent & to value listeners:
-        this.notifyVal(val.val, true);
+        // return value to ef & listeners:
+        this.notifyVal(UNDEF, true);
         this.notifyAborted(UNDEF);
 
         // no reason to call notifyAsync here; we've already done that in a previous cont() call
-        // We must not call 'return this.returnToParent', because this code is sometimes called in a sync setting,
-        // where we have to make sure that our original (current) caller doesn't see the continuation frame:
-        // (see 'sjs-2-tests:sync blocklamda return routing edgecase')
-        this.returnToParent(this); 
-        return; // Note: We must not return 'a' here - see sjs-2-tests:stray-abort
+        this.returnToParent(this);
+        return;
       }
 
       this.in_abortion = false;
       this.done = true;
-      // return value to ef's parent & to value listeners:
-      this.notifyVal(val.val, true);
+
+
+      // return value to ef & listeners:
+      this.notifyVal(UNDEF, true);
       this.notifyAborted(UNDEF);
 
-      if (!this.async) {
-        // special synchronous blocklambda return handling leveraged in conductance bridge code
-        cont(this.parent, this.parent_idx, val.val);
-        return;
-      }
-      return this.returnToParent(val.val);
+      // return the blb to our aborted target's parent synchronously:
+      return this.returnToParent(val.eid === frame_to_abort.sid ? val.val : val);
     }
     else if (val.type === 'blb') {
       // we have a blocklambda break
@@ -2870,10 +2913,12 @@ EF_Spawn.prototype.cont = function(idx, val) {
       var frame_to_abort = this.env.blrref;
 
       if (!frame_to_abort.parent || frame_to_abort.unreturnable) {
+        this.done = true;
         this.notifyVal(new CFException("t",
                                        new Error("Blocklambda break from spawned stratum to invalid or inactive scope"),
                                        this.NDATA_SPAWN_LINE(),
                                        this.env.file));
+        this.notifyAborted(UNDEF);
         return;
       }
 
@@ -2918,7 +2963,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       // return the blb to our aborted target's parent synchronously:
       return this.returnToParent(val);
     }
-  }
+  } // is_cfx(val)
   
   if (is_ef(val)) {
     this.setChildFrame(val, 1);
@@ -3109,7 +3154,18 @@ function I_spawn(ndata, env) {
   stratum.waiting = function() {
     return value_waitarr.length;
   };
-      
+     
+  // Undocumented '_adopt' feature:
+  // _adopt is used to embed a stratum in a different scope for blreturns/breaks.
+  // It is used for continuation buffers. 
+  // See unit/sjs-3-tests:'return via different scope with _adopt'.
+  // XXX There is probably a better way to expose this feature, therefore it is 
+  // undocumented at this point.
+  stratum._adopt = function(blrref) {
+    //console.log(this+" adopting "+blrref+" as blrref. Was: "+ef.env.blrref);
+    ef.env.blrref = blrref;
+  };
+
   function notifyAsync() {
     async = true;
   }
@@ -3144,9 +3200,10 @@ function I_spawn(ndata, env) {
         }, 0);
       }
     }
-    else
+    else {
       while (value_waitarr.length)
         cont(value_waitarr.shift(), val);
+    }
     
   }
   function notifyAborted(_val) {
@@ -3326,6 +3383,9 @@ exports.Hold = function(duration_ms) {
 #endif
              __oni_ef: true,
              wait: function() { return this; },
+#ifdef DEBUG_VM
+             gatherSuspensionTree: function() { return [this.toString()] },
+#endif
              quench: dummy,
              abort: abort
            };
@@ -3337,6 +3397,9 @@ exports.Hold = function(duration_ms) {
 #endif
                 __oni_ef: true, 
                 wait: function() { return this },
+#ifdef DEBUG_VM
+                gatherSuspensionTree: function() { return [this.toString()] },
+#endif
                 abort: abort,
                 quench: function() { sus = null; clear0(this.co); },
                 co: hold0(function() { 
@@ -3356,6 +3419,9 @@ exports.Hold = function(duration_ms) {
 #endif
                 __oni_ef: true,
                 wait: function() { return this },
+#ifdef DEBUG_VM
+                gatherSuspensionTree: function() { return [this.toString()] },
+#endif
                 abort: abort,
 #if defined (CLIENTSIDE) || defined (NODEJS)
                 quench: function() { sus = null; clearTimeout(this.co); }
@@ -3413,7 +3479,7 @@ exports.BlBreak = function(env, lbl) {
   if (!env.blbref) throw new Error("Internal runtime error; no reference frame in BlBreak");
   if (env.blbref.unreturnable && !env.blbref.toplevel) // the return scope is not active anymore!
     throw new Error("Blocklambda break to inactive scope");
-  e.ef = env.blbref;
+  e.eid = env.blbref.sid;
   return e;
 };
 
@@ -3428,7 +3494,7 @@ exports.BlReturn = function(exp) {
       throw new Error("Blocklambda return to inactive function");
     }
   }
-  e.ef = this.blrref;
+  e.eid = this.blrref.sid;
   return e;
 };
 

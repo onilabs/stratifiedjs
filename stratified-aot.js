@@ -231,7 +231,7 @@ if(console.error)console.error(msg);else console.log(msg);
 }else throw this.val;
 
 
-}else if(!this.ef)throw new Error(this.toString());else throw this;
+}else if(!this.eid)throw new Error(this.toString());else throw this;
 
 
 
@@ -323,6 +323,7 @@ return "<suspended SJS>"},__oni_ef:true,wait:function(){
 
 return this},setChildFrame:function(ef,idx,prevent_callstack_copy){
 
+
 if(this.child_frame){
 
 if(prevent_callstack_copy!==true&&this.child_frame.callstack){
@@ -367,6 +368,8 @@ return this;
 }else{
 
 ;
+
+this.unreturnable=true;
 return abort_val;
 }
 }
@@ -386,7 +389,7 @@ val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 if(this.swallow_r){
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type==="r"){
-if(!val.ef||val.ef===this){
+if(!val.eid||val.eid===this.sid){
 val=val.val;
 if(this.swallow_r===3){
 
@@ -445,6 +448,7 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 
 
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type!=='a'){
+
 
 
 val.mapToJS(true);
@@ -566,7 +570,7 @@ return rv;
 }catch(e){
 
 if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
-if(e.type=='blb'&&e.ef==env.blscope){
+if(e.type=='blb'&&env.blscope&&e.eid==env.blscope.sid){
 
 
 
@@ -642,9 +646,12 @@ exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
 
 
 
+var seq_counter=0;
 
-function EF_Seq(ndata,env){this.ndata=ndata;
+function EF_Seq(ndata,env){this.sid=++seq_counter;
 
+
+this.ndata=ndata;
 this.env=env;
 
 if(ndata[0]&8){
@@ -707,7 +714,7 @@ this.setChildFrame(val,idx);
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
-if(val.type=='blb'&&val.ef==this.env.blscope){
+if(val.type=='blb'&&this.env.blscope&&val.eid==this.env.blscope.sid){
 val=UNDEF;
 }else{
 
@@ -746,7 +753,7 @@ break;
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 
-if(val.type==='blb'&&val.ef===this.env.blscope)val=undefined;
+if(val.type==='blb'&&this.env.blscope&&val.eid===this.env.blscope.sid)val=undefined;
 
 break;
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
@@ -1102,7 +1109,7 @@ rv=new CFException("i","Invalid Fcall mode");
 
 if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 
-if(e.type=='blb'&&e.ef==this.env.blscope){
+if(e.type=='blb'&&this.env.blscope&&e.eid==this.env.blscope.sid){
 rv=UNDEF;
 }else rv=e;
 
@@ -1448,6 +1455,9 @@ this.rv=val;
 
 if(this.ndata[3]){
 if(this.ndata[0]&1){
+
+
+
 var v=(this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)?[this.rv,true,!!this.aborted,!!this.pseudo_abort]:[this.rv,false,!!this.aborted,!!this.pseudo_abort];
 
 
@@ -1467,7 +1477,7 @@ case 4:
 
 
 if(this.ndata[0]&1){
-if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type!=='t'){
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 val=new CFException("t",new Error("augmented finally(){} block needs to throw a value"));
 }else{
 
@@ -1477,7 +1487,7 @@ val=new CFException("t",new Error("augmented finally(){} block needs to throw a 
 
 
 
-if(val.val.length)val=val.val[0];
+if(val.val&&val.val.length)val=val.val[0];
 
 }
 }else{
@@ -1615,7 +1625,7 @@ return this.returnToParent(val);
 while(1){
 if(idx>2){
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
-if(val.type==='blb'&&val.ef===this.env.blscope){
+if(val.type==='blb'&&this.env.blscope&&val.eid===this.env.blscope.sid){
 
 val=UNDEF;
 }else{
@@ -1923,7 +1933,7 @@ if(this.children[idx]){
 this.children[idx].parent=UNDEF;
 this.children[idx]=UNDEF;
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb'&&val.ef===this.env.blscope)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb'&&this.env.blscope&&val.eid===this.env.blscope.sid)){
 
 
 
@@ -2015,6 +2025,7 @@ if(!this.pending)return this.pendingCFE||new CFException('a');
 this.async=true;
 return this;
 };
+
 
 EF_Par.prototype.setChildFrame=function(ef,idx){if(this.children[idx]){
 
@@ -2216,6 +2227,7 @@ this.async=true;
 return this;
 };
 
+
 EF_Alt.prototype.setChildFrame=function(ef,idx){if(this.children[idx]){
 
 if(this.children[idx].callstack){
@@ -2324,7 +2336,8 @@ exports.current_dyn_vars=caller_dyn_vars;
 
 
 
-resumefunc.ef=ef;
+
+
 
 val=this.ndata[0](this.env,resumefunc);
 }catch(e){
@@ -2492,11 +2505,7 @@ EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
 this.parent_dyn_vars=exports.current_dyn_vars;
 val=execIN(this.ndata[1],this.env);
 exports.current_dyn_vars=this.parent_dyn_vars;
-
-
-
-
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='blb'){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&(val.type==='blb'||(val.type==='r'&&val.eid))){
 return val;
 }
 }else if(idx===2){
@@ -2505,7 +2514,7 @@ return val;
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 this.setChildFrame(val,2);
 return this.returnToParent(this);
-}else if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||((val.type!=='r'||!val.ef)&&val.type!=='blb')){
+}else if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||((val.type!=='r'||!val.eid)&&val.type!=='blb')){
 
 
 
@@ -2525,17 +2534,19 @@ return this.returnToParent(this.return_val);
 }
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
-if(val.type==='r'&&val.ef){
+if(val.type==='r'&&val.eid){
 
 
 
+var frame_to_abort=this.env.blrref;
 
-
-if(val.ef.unreturnable){
+if(!frame_to_abort.parent||frame_to_abort.unreturnable){
+this.done=true;
 this.notifyVal(new CFException("t",new Error("Blocklambda return from spawned stratum to inactive scope"),this.ndata[0],this.env.file));
 
 
 
+this.notifyAborted(UNDEF);
 return;
 }
 
@@ -2543,36 +2554,26 @@ return;
 this.in_abortion=true;
 
 
-this.parent=val.ef.parent;
-this.parent_idx=val.ef.parent_idx;
-
-
-if(!this.parent){
-
-this.done=true;
-return val;
-}
+this.parent=frame_to_abort.parent;
+this.parent_idx=frame_to_abort.parent_idx;
 
 
 cont(this.parent,this.parent_idx,this);
 
 
-val.ef.parent=UNDEF;
+frame_to_abort.parent=UNDEF;
 
 
-val.ef.quench();
-
-var aborted_target=val.ef.abort(true);
+frame_to_abort.quench();
+var aborted_target=frame_to_abort.abort(true);
 if((aborted_target!==null&&typeof (aborted_target)==='object'&&aborted_target.__oni_ef===true)){
-this.return_val=val.val;
+
+this.return_val=val;
 this.setChildFrame(aborted_target,2);
 
 
-this.notifyVal(val.val,true);
+this.notifyVal(UNDEF,true);
 this.notifyAborted(UNDEF);
-
-
-
 
 
 this.returnToParent(this);
@@ -2582,15 +2583,13 @@ return;
 this.in_abortion=false;
 this.done=true;
 
-this.notifyVal(val.val,true);
+
+
+this.notifyVal(UNDEF,true);
 this.notifyAborted(UNDEF);
 
-if(!this.async){
 
-cont(this.parent,this.parent_idx,val.val);
-return;
-}
-return this.returnToParent(val.val);
+return this.returnToParent(val.eid===frame_to_abort.sid?val.val:val);
 }else if(val.type==='blb'){
 
 
@@ -2599,10 +2598,12 @@ return this.returnToParent(val.val);
 var frame_to_abort=this.env.blrref;
 
 if(!frame_to_abort.parent||frame_to_abort.unreturnable){
+this.done=true;
 this.notifyVal(new CFException("t",new Error("Blocklambda break from spawned stratum to invalid or inactive scope"),this.ndata[0],this.env.file));
 
 
 
+this.notifyAborted(UNDEF);
 return;
 }
 
@@ -2833,6 +2834,17 @@ stratum.waiting=function(){return value_waitarr.length;
 
 };
 
+
+
+
+
+
+
+stratum._adopt=function(blrref){ef.env.blrref=blrref;
+
+
+};
+
 function notifyAsync(){async=true;
 
 }
@@ -2866,10 +2878,11 @@ setTimeout(function(){if(!picked_up)val.mapToJS(true);
 
 },0);
 }
-}else while(value_waitarr.length)cont(value_waitarr.shift(),val);
+}else{
 
+while(value_waitarr.length)cont(value_waitarr.shift(),val);
 
-
+}
 
 }
 function notifyAborted(_val){if(!(_val!==null&&typeof (_val)==='object'&&_val.__oni_cfx)||_val.type!=='t')_val=UNDEF;
@@ -3115,7 +3128,7 @@ exports.BlBreak=function(env,lbl){var e=new CFException('blb',lbl);
 if(!env.blbref)throw new Error("Internal runtime error; no reference frame in BlBreak");
 if(env.blbref.unreturnable&&!env.blbref.toplevel)throw new Error("Blocklambda break to inactive scope");
 
-e.ef=env.blbref;
+e.eid=env.blbref.sid;
 return e;
 };
 
@@ -3130,7 +3143,7 @@ if(this.blrref.toplevel)throw new Error("Invalid blocklambda 'return' statement;
 throw new Error("Blocklambda return to inactive function");
 }
 }
-e.ef=this.blrref;
+e.eid=this.blrref.sid;
 return e;
 };
 

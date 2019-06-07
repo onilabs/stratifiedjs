@@ -1555,6 +1555,8 @@ testEq("detached blocklambda return with blocking finally clause and blocking sp
   return rv;
 });
 
+// We've changed the behavior here for Conductance 0.7.8. The value of the stratum used to be the return value from
+// the blocklambda return
 testEq("detached blocklambda return with value pickup", 'vx', function() {
   var stratum;
   function f() { 
@@ -1568,7 +1570,7 @@ testEq("detached blocklambda return with value pickup", 'vx', function() {
     rv += f();
   }
   and {
-    if (stratum.value() == 'x')
+    if (stratum.value() === undefined)
       rv += 'v';
   }
   return rv;

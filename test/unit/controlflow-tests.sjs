@@ -880,7 +880,7 @@
         @assert.truthy(!!e[0]);
  
         if (e[0].type === 'r') {
-          if (e[0].ef)
+          if (e[0].eid)
             return 'blocklambda-return';
           else
             return 'return';
