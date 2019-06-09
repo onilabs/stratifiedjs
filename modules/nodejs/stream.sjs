@@ -149,7 +149,8 @@ exports.contents = function(stream, encoding) {
   if(encoding) stream.setEncoding(encoding);
 
   // certain streams (e.g child stdout) cannot be safely
-  // read on-demand - they drop data when nobody is watching.
+  // read in non-flowing mode - they'll sometimes truncate the 
+  // end of the output.
   // In that case, we have no choice but to buffer in memory
   // and hope the stream gets drained quickly enough to keep
   // memory usage reasonable.

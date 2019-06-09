@@ -200,14 +200,14 @@ function resolveSchemelessURL_hostenv(url_string, req_obj, parent) {
 // (iterating instead of eagerly reading in the entire data)
 var streamContents = exports.streamContents = function (stream, fn) {
   var rv;
-  var chunk;
+  var chunk = null;
   var ended = false;
   var emitting = false;
   if(!fn) {
     rv = [];
     fn = rv.push.bind(rv);
   }
-  if(stream.readable === false) return rv;
+  if (stream.readable === false) return rv;
 
   // make sure stream is not in flowing mode
   stream.pause();
@@ -229,9 +229,9 @@ var streamContents = exports.streamContents = function (stream, fn) {
       hold();
     }
   } or {
-    while(!ended) {
-      __js chunk = stream.read();
+    while(1) {
       if(chunk === null) {
+        if (ended) break;
         // wait for chunk
         waitfor () {
           stream.on('readable', resume);
@@ -239,8 +239,10 @@ var streamContents = exports.streamContents = function (stream, fn) {
         finally {
           stream.removeListener('readable', resume);
         }
-        __js chunk = stream.read();
-        if(chunk === null) break;
+      }
+      __js chunk = stream.read();
+      if(chunk === null) {
+        continue;
       }
       emitting = true;
       fn(chunk);
