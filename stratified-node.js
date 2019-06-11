@@ -281,8 +281,10 @@ function setEFProto(t){for(var p=null in EF_Proto)t[p]=EF_Proto[p]}
 
 
 
-function mergeCallstacks(target_ef,src_ef){if(target_ef.callstack){
+function mergeCallstacks(target_ef,src_ef){if(target_ef===src_ef)return;
 
+
+if(target_ef.callstack){
 
 
 
@@ -2723,6 +2725,19 @@ this.done=true;
 if(this.aborted&&!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&this.parent.aborted)val=new CFException('a');
 
 
+if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val._oniE===token_oniE)){
+
+
+
+val=cloneAnnotatedCFX(val);
+
+
+if(this.callstack){
+val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
+}
+}
+
+
 cont(this.parent,this.parent_idx,val);
 exports.current_dyn_vars=current_dyn_vars;
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&(val.type==='t'||val.val instanceof Error)){
@@ -2792,6 +2807,9 @@ var rv=ef.abort(pseudo);
 exports.current_dyn_vars=dyn_vars;
 
 async=false;
+
+
+
 val=new CFException("t",new StratumAborted(),ndata[0],env.file);
 
 
@@ -2807,6 +2825,17 @@ return new EF_SpawnAbortFrame(abort_waitarr,ef);
 if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)||rv.type!=='t')rv=UNDEF;
 
 notifyAborted(rv);
+
+
+if(((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)&&rv.type==='t'&&rv.val._oniE===token_oniE)){
+
+
+
+rv=cloneAnnotatedCFX(rv);
+
+
+throw rv.val;
+}
 
 return rv;
 };

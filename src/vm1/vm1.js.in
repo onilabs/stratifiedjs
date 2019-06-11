@@ -331,6 +331,8 @@ function setEFProto(t) { for (var p in EF_Proto) t[p] = EF_Proto[p]; }
 
 // helper to merge callstacks of two execution frames:
 function mergeCallstacks(target_ef, src_ef) {
+  // prevent duplication of the callstack if the frames are the same:
+  if (target_ef === src_ef) return;
   if (target_ef.callstack) {
     // stack-tests 17
     
@@ -3090,6 +3092,19 @@ EF_SpawnAbortFrame.prototype.cont = function(val) {
     if (this.aborted && !is_cfx(val) && this.parent.aborted)
       val = new CFException('a');
 
+    if (is_annotated_oni_cfx(val)) {
+      // we need to clone the exception, because there might be several abort() calls which
+      // all get their stack amended differently.
+      // See also note at top of definition of `is_annotated_oni_cfx`
+      val = cloneAnnotatedCFX(val);
+
+      // append callstack leading out of this `.abort()` call:
+      if (this.callstack) {
+        val.val.__oni_stack = val.val.__oni_stack.concat(this.callstack);
+      }
+    }
+
+
     cont(this.parent, this.parent_idx, val);
     exports.current_dyn_vars = current_dyn_vars;
   }
@@ -3159,6 +3174,9 @@ function I_spawn(ndata, env) {
     exports.current_dyn_vars = dyn_vars;
     
     async = false;
+
+    // value listeners will get a 'stratum aborted' exception'
+    // any 'real' exception thrown during abortion will only go to the abort call itself.
     val =  new CFException("t",
                            new StratumAborted(),
                            NDATA_SPAWN_LINE(),
@@ -3174,6 +3192,17 @@ function I_spawn(ndata, env) {
     if (!is_cfx(rv) || rv.type !== 't')
       rv = UNDEF;
     notifyAborted(rv);
+
+
+    if (is_annotated_oni_cfx(rv)) {
+      // we need to clone the exception, because there might be several abort() calls which
+      // all get their stack amended differently.
+      // See also note at top of definition of `is_annotated_oni_cfx`
+      rv = cloneAnnotatedCFX(rv);
+      // throw the value (rather than returning), so that the callstack gets amended by the 
+      // calling code:
+      throw rv.val;
+    }
 
     return rv;
   };

@@ -558,3 +558,47 @@ test('stack from spawn/value semi-sync', 'this_file:'+(line+3)+'\nthis_file:'+(l
   }
   return stack_from_running(baz);
 });
+
+line=562;
+test('stack from spawn/abort async', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+16), function() {
+  var S;
+  function foo() { try { hold(); } 
+                   finally { hold(0); throw new Error(); } } // +4
+  function bar() { 
+    S = spawn foo(); // + 6
+  } 
+  function boo() { S.value(); } // + 8
+  function  baz() { 
+    bar(); // + 8
+    waitfor {
+      boo(); // + 12 - should be swallowed by latter exception
+    }
+    or {
+      hold(0);
+      S.abort(); // + 16
+    }
+  }
+  return stack_from_running(baz);
+});
+
+line=584;
+test('stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+16), function() {
+  var S;
+  function foo() { try { hold(); } 
+                   finally { throw new Error(); } } // +4
+  function bar() { 
+    S = spawn foo(); // + 6
+  } 
+  function boo() { S.value(); } // + 8
+  function  baz() { 
+    bar(); // + 8
+    waitfor {
+      boo(); // + 12 - should be swallowed by latter exception
+    }
+    or {
+      hold(0);
+      S.abort(); // + 16
+    }
+  }
+  return stack_from_running(baz);
+});
