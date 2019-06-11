@@ -247,6 +247,28 @@ CFException.prototype = {
   }
 };
 
+
+// In certain cases where an exception might be picked up several times via different routes (as in
+// stratum.value(), we need to make sure that we don't get crosstalk between differently 
+// amended stacks.
+// For this purpose, we clone exceptions in these cases.
+// XXX Note that this will break certain *very unlikely* pathological programming patterns that check 
+// an exception for strict equality. Checking for `instanceof` (as would be more common) will still 
+// work, and this only affects exceptions that inherit from `Error` (as these are the only ones we 
+// annotate in the first place).
+// 
+#define is_annotated_oni_cfx(obj) (is_cfx(obj) && obj.type === 't' && obj.val._oniE === token_oniE)
+
+function cloneAnnotatedCFX(obj) { 
+  // ASSERT(is_annotated_oni_cfx(obj)) // caller to ensure this
+  obj = new CFException('t', Object.create(obj.val));
+  obj.val.toString = CFException_toString;
+  // make sure that the new exceptions gets its own __oni_stack property:
+  obj.val.__oni_stack = [].concat(obj.val.__oni_stack);
+  return obj;
+}
+
+
 //----------------------------------------------------------------------
 // Dynamic variable support:
 
@@ -3023,6 +3045,18 @@ EF_SpawnWaitFrame.prototype.cont = function(val) {
     var current_dyn_vars = exports.current_dyn_vars;
     exports.current_dyn_vars = this.dyn_vars;
     this.dyn_vars = undefined; // aid gc
+
+    if (is_annotated_oni_cfx(val)) {
+      // we need to clone the exception, because there might be several value listeners which
+      // all get their stack amended differently.
+      // See also note at top of definition of `is_annotated_oni_cfx`
+      val = cloneAnnotatedCFX(val);
+
+      // append callstack leading out of this `.value()` call:
+      if (this.callstack)
+        val.val.__oni_stack = val.val.__oni_stack.concat(this.callstack);
+    }
+
     cont(this.parent, this.parent_idx, val);
     exports.current_dyn_vars = current_dyn_vars;
   }
@@ -3145,7 +3179,19 @@ function I_spawn(ndata, env) {
   };
 
   stratum.value = function() {
-    if (!async) { picked_up=true; return val; }
+    if (!async) { 
+      picked_up=true; 
+      if (is_annotated_oni_cfx(val)) {
+        // we need to clone the exception, because there might be several value listeners which
+        // all get their stack amended differently.
+        // See also note at top of definition of `is_annotated_oni_cfx`
+        var v = cloneAnnotatedCFX(val);
+        // throw the value (rather than returning), so that the callstack gets amended by the
+        // calling code:
+        throw v.val;
+      }
+      return val; 
+    }
     return new EF_SpawnWaitFrame(value_waitarr);
   };
     

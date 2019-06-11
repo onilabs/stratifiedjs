@@ -247,6 +247,27 @@ if(console.error)console.error(msg);else console.log(msg);
 
 
 
+
+
+
+function cloneAnnotatedCFX(obj){obj=new CFException('t',Object.create(obj.val));
+
+
+obj.val.toString=CFException_toString;
+
+obj.val.__oni_stack=[].concat(obj.val.__oni_stack);
+return obj;
+}
+
+
+
+
+
+
+
+
+
+
 exports.current_dyn_vars=null;
 
 
@@ -2705,6 +2726,18 @@ EF_SpawnWaitFrame.prototype.cont=function(val){if(this.parent){
 var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 this.dyn_vars=undefined;
+
+if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val._oniE===token_oniE)){
+
+
+
+val=cloneAnnotatedCFX(val);
+
+
+if(this.callstack)val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
+
+}
+
 cont(this.parent,this.parent_idx,val);
 exports.current_dyn_vars=current_dyn_vars;
 }
@@ -2824,7 +2857,19 @@ return rv;
 };
 
 stratum.value=function(){if(!async){
-picked_up=true;return val}
+
+picked_up=true;
+if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val._oniE===token_oniE)){
+
+
+
+var v=cloneAnnotatedCFX(val);
+
+
+throw v.val;
+}
+return val;
+}
 return new EF_SpawnWaitFrame(value_waitarr);
 };
 

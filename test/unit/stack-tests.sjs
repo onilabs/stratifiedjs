@@ -533,3 +533,28 @@ test('stack from blocklambda', 'this_file:' + (line+7) + '\nthis_file:' + (line 
   return stack_from_running(caller);
 });
 
+line=536;
+test('stack from spawn/value async', 'this_file:'+(line+3)+'\nthis_file:'+(line+4)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+8), function() {
+  var S;
+  function foo() { hold(0); throw new Error(); } // +3
+  function bar() { S = spawn foo(); } // +4
+  function boo() { S.value(); } // + 5
+  function  baz() { 
+    bar(); // + 7
+    boo(); // + 8
+  }
+  return stack_from_running(baz);
+});
+
+line=549;
+test('stack from spawn/value semi-sync', 'this_file:'+(line+3)+'\nthis_file:'+(line+4)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+8), function() {
+  var S;
+  function foo() { hold(0); throw new Error(); } // +3
+  function bar() { S = spawn foo(); hold(0);} // +4
+  function boo() { S.value(); } // + 5
+  function  baz() { 
+    bar(); // + 7
+    boo(); // + 8
+  }
+  return stack_from_running(baz);
+});
