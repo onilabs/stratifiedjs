@@ -1843,4 +1843,27 @@ test("consume eos / retract edge case") {||
     // should be repeatable:
     assert.eq(next(), eos);
   }
-}
+};
+
+test("async exception during each.track abortion") {||
+  function t() {
+    waitfor {
+      [1] .. @each.track {
+        |x|
+        try { 
+          hold();
+        }
+        finally {
+          hold(0);
+          throw new Error("should not be swallowed");
+        }
+      }
+    }
+    or {
+      // retract the first branch
+    }
+  }
+  
+  assert.raises({message:'should not be swallowed'}, t);
+
+};

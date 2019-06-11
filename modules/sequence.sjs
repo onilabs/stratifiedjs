@@ -610,7 +610,8 @@ exports.consume = consume;
      `consumeMultiple` is equivalent to a nested invocation of [::consume]. Note the concurrency
      limitations regarding the `next` function listed there.
 */
-// XXX recursive implementation doesn't scale well with large streams.count
+// XXX recursive implementation doesn't scale well with large streams.count.
+// XXX not needed if we had a generic 'withContexts' function
 function consumeMultiple(streams, eos, block) {
 
   if (arguments.length === 2) {
@@ -3013,6 +3014,11 @@ each.track = function(seq, r) {
     waitfor(error) {
       signal_error = resume;
     }
+    retract {
+      // it's important to retract here, so that we don't swallow any errors
+      // in the case that each.track gets externally aborted. (see 'catch' clause below)
+      signal_error = undefined;
+    }
     throw error;
   }
   or {
@@ -3029,7 +3035,14 @@ each.track = function(seq, r) {
                              r(X);
                            }
                            catch (e) {
-                             signal_error(e);
+                             if (signal_error)
+                               signal_error(e);
+                             else {
+                               // we've been externally aborted, and there has been an error
+                               // during aborting. Make sure it ends up at the caller:
+                               // (see also ../tests/unit/sequence-tests.sjs:'async exception during each.track abortion')
+                               throw e;
+                             }
                            }
                          })());
       }
