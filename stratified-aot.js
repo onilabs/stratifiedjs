@@ -392,6 +392,11 @@ return this;
 
 ;
 
+if(((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx)&&abort_val.type==='t'&&abort_val.val._oniE===token_oniE)&&this.callstack){
+abort_val.val.__oni_stack=abort_val.val.__oni_stack.concat(this.callstack);
+}
+
+
 this.unreturnable=true;
 return abort_val;
 }

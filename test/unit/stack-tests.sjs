@@ -602,3 +602,43 @@ test('stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\n
   }
   return stack_from_running(baz);
 });
+
+line=606;
+test('inner stack from spawn/abort sync', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10)+'\nthis_file:'+(line+14)+'\nthis_file:'+(line+15), function() {
+  var S;
+  function foo() { try { hold(); } 
+                   finally { throw new Error(); } } // +4
+  function bar() { 
+    if (true) foo(); // + 6
+  } 
+
+  function  baz() { 
+    return bar(); // + 10
+  }
+
+  var  S = spawn (function() { 
+    baz(); // +14
+  })(); // +15
+
+  return stack_from_running(S.abort); // +17
+});
+
+line=626;
+test('inner stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10)+'\nthis_file:'+(line+14)+'\nthis_file:'+(line+15), function() {
+  var S;
+  function foo() { try { hold(); } 
+                   finally { hold(0); throw new Error(); } } // +4
+  function bar() { 
+    if (true) foo(); // + 6
+  } 
+
+  function  baz() { 
+    return bar(); // + 10
+  }
+
+  var  S = spawn (function() { 
+    baz(); // +14
+  })(); // +15
+
+  return stack_from_running(S.abort); // +17
+});

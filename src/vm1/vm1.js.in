@@ -417,6 +417,11 @@ var EF_Proto = {
       }
       else {
         ASSERT(is_cfx(abort_val));
+
+        if (is_annotated_oni_cfx(abort_val) && this.callstack) {
+          abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
+        }
+
         // this fixes sjs-3-tests.sjs:'return via inactive scope edgecase':
         this.unreturnable = true;
         return abort_val;
