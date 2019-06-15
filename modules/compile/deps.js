@@ -1336,6 +1336,7 @@ function parseFunctionParams(pctx, starttok, endtok) {
   if (!starttok) { starttok = '('; endtok = ')'; }
   var pars = [];
   scan(pctx, starttok);
+  pars.line = pctx.line;
   while (pctx.token.id != endtok) {
     if (pars.length)
       scan(pctx, ",");

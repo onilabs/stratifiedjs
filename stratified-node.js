@@ -3861,7 +3861,7 @@ function ph_fun_exp(fname,pars,body,pctx){this.is_nblock=pctx.allow_nblock;
 
 
 
-this.code="function "+fname+gen_function_header(pars)+body+"}";
+this.code="function "+fname+gen_function_header(pars,pctx)+body+"}";
 }
 ph_fun_exp.prototype=new ph();
 
@@ -3880,7 +3880,7 @@ return gen_var_decl([[new ph_identifier(fname,pctx),new ph_fun_exp("",pars,body,
 
 }
 
-function ph_fun_decl(fname,pars,body,pctx){this.code="function "+fname+gen_function_header(pars)+body+"}";
+function ph_fun_decl(fname,pars,body,pctx){this.code="function "+fname+gen_function_header(pars,pctx)+body+"}";
 
 }
 ph_fun_decl.prototype=new ph();
@@ -4606,7 +4606,7 @@ return rv;
 
 
 
-function gen_function_header(pars){var code="";
+function gen_function_header(pars,pctx){var code="";
 
 
 
@@ -4637,10 +4637,10 @@ if(vars.length){
 code+="var "+vars.join(',')+";";
 }
 
-code+=assignments;
+code+="try{"+assignments+"}catch(e){e.__oni_stack=[["+pctx.filename+","+pars.line+"]]; throw e;}";
 return '(){'+code;
 }catch(e){
-throw new Error("Invalid syntax in parameter list");
+throw {mes:"Invalid syntax in parameter list",line:pars.line};
 }
 
 }
@@ -4664,7 +4664,7 @@ if(pars_exp.collect_pars)pars_exp.collect_pars(pars);else pars.push(pars_exp);
 
 }
 
-this.code+=gen_function_header(pars);
+this.code+=gen_function_header(pars,pctx);
 
 if(pctx.js_ctx){
 this.code+="return "+body.nb()+"}";
@@ -5206,7 +5206,7 @@ ph_raw.prototype.fun_decl=function(){return this.raw};
 
 
 
-function ph_blocklambda(pars,body,pctx){this.code="function"+gen_function_header(pars)+body+"}";
+function ph_blocklambda(pars,body,pctx){this.code="function"+gen_function_header(pars,pctx)+body+"}";
 
 }
 ph_blocklambda.prototype=new ph();
@@ -5908,6 +5908,7 @@ function parseFunctionParams(pctx,starttok,endtok){if(!starttok){
 starttok='(';endtok=')'}
 var pars=[];
 scan(pctx,starttok);
+pars.line=pctx.line;
 while(pctx.token.id!=endtok){
 if(pars.length)scan(pctx,",");
 

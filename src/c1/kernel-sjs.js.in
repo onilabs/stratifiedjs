@@ -406,7 +406,7 @@ function ph_fun_exp(fname, pars, body, pctx) {
   // (e.g. our testcase:
   // var x = function e(n) { return n==1?1:e(n-1)*n; }; x(5); } )
 
-  this.code = "function "+fname+gen_function_header(pars)+body+"}";
+  this.code = "function "+fname+gen_function_header(pars,pctx)+body+"}";
 }
 ph_fun_exp.prototype = new ph(WHENDEBUG("ph_fun_exp"));
 //ph_fun_exp.prototype.is_literal = true; funs are special kinds of literals; we override 'v' instead:
@@ -427,7 +427,7 @@ function gen_fun_decl(fname, pars, body, pctx) {
 }
 
 function ph_fun_decl(fname, pars, body, pctx) {
-  this.code = "function "+fname+gen_function_header(pars)+body+"}";
+  this.code = "function "+fname+gen_function_header(pars,pctx)+body+"}";
 }
 ph_fun_decl.prototype = new ph(WHENDEBUG("ph_fun_decl"));
 ph_fun_decl.prototype.is_fun_decl = true;
@@ -1243,7 +1243,7 @@ ph_postfix_op.prototype.val = function() {
 throw new Error("Arrows require destructuring support!");
 #endif
 
-function gen_function_header(pars) {
+function gen_function_header(pars, pctx) {
   // Given a list of params, generate a function header.
   // The `header` includes both the param list *as well as* the
   // start of the function body, since both params and body initializer
@@ -1274,10 +1274,10 @@ function gen_function_header(pars) {
       code += "var "+vars.join(',')+";"
     }
 
-    code += assignments;
+    code += "try{"+assignments+"}catch(e){e.__oni_stack=[["+pctx.filename+","+pars.line+"]]; throw e;}";
     return '(){' + code;
   } catch (e) {
-    throw new Error("Invalid syntax in parameter list");
+    throw { mes:"Invalid syntax in parameter list", line:pars.line };
   }
 
 }
@@ -1305,7 +1305,7 @@ function ph_arrow(pars_exp, body, pctx, bound) {
       pars.push(pars_exp);
   }
 
-  this.code += gen_function_header(pars);
+  this.code += gen_function_header(pars,pctx);
 
   if (pctx.js_ctx) {
     this.code += "return "+body.nb()+"}";
@@ -1935,7 +1935,7 @@ ph_raw.prototype.fun_decl = function() { return this.raw; };
 #define GEN_BLOCKLAMBDA(pars, body, pctx, ext) return new ph_blocklambda(pars, body, pctx);
 
 function ph_blocklambda(pars, body, pctx) {
-  this.code = "function"+gen_function_header(pars)+body+"}";
+  this.code = "function"+gen_function_header(pars,pctx)+body+"}";
 }
 ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));
 ph_blocklambda.prototype.val = function() { return "__oni_rt.Bl("+this.code+")"; };

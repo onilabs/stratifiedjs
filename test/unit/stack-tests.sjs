@@ -4,7 +4,7 @@
 
 var test = require('../lib/testUtil').test, puts = require('sjs:logging').print;
 var clean_stack = function(e) { return String(e).replace(/module [^ ]*stack-tests.sjs/g, 'this_file').replace(/module [^ ]*fixtures/g, "fixtures").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, ''); }; // This could really do with some work ;)
-var remove_message = function(s) { return s.replace(/^Error(: [^\n]*)?\n/m, ''); };
+var remove_message = function(s) { return s.replace(/^(Type)?Error(: [^\n]*)?\n/m, ''); };
 var line;
 var stack_from_running = function(f, keep_message) {
   try {
@@ -641,4 +641,12 @@ test('inner stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+
   })(); // +15
 
   return stack_from_running(S.abort); // +17
+});
+
+line=646;
+test('parameter destructuring', 'this_file:'+(line+2), function() {
+  function foo([x,y]) {
+  }
+  
+  return stack_from_running(foo);
 });
