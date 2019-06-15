@@ -2075,7 +2075,7 @@ test('blocking finally clause is not abort point 1', 'abc',
        
        var S = spawn stratum();
 
-       hold(10); // wait for stratum to be done
+       hold(100); // wait for stratum to be done
 
        return rv;
      });
