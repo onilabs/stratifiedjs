@@ -1522,6 +1522,7 @@ S("(").
   // function call
   exc(260, function(l, pctx) {
     push_extent(pctx, null, 'funcall(');
+    var line = pctx.line;
     var args = [];
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
@@ -1550,7 +1551,7 @@ S("(").
     }
 
     
-    return Node.CallExpression(pctx, pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
+    return Node.CallExpression({line:line}, pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
   });
 
 S("..").exc(255, function(l, pctx) {
@@ -1772,12 +1773,13 @@ S("{").
   // block lambda call:
   exc(260, function(l, pctx) {
     push_extent(pctx, l, 'blocklambda call');
+    var line = pctx.line;
     var start = pctx.token.id;
     if (start != "|" && start != "||")
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     
-    return Node.CallExpression(pctx, pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
+    return Node.CallExpression({line:line}, pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
   }).
   // block:
   stmt(parseBlock);
@@ -1999,6 +2001,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
 function parseQuasiInlineEscape(pctx) {
   // scan an identifier:
   var identifier = scan(pctx);
+  var line;
   if (pctx.token.id !== "<id>" && pctx.token.id !== "<@id>") throw new Error("Unexpected " + pctx.token + " in quasi template");
   if (pctx.src.charAt(pctx.lastIndex) != '(') {
     // $variable
@@ -2008,13 +2011,14 @@ function parseQuasiInlineEscape(pctx) {
     push_extent(pctx, pctx.token, 'parseQuasiInlineEscape');
     scan(pctx); // consume identifier
     scan(pctx, '('); // consume '('
+    line = pctx.line;
     // $func(args)
     var args = [];
     while (pctx.token.id != ')') {
       if (args.length) scan(pctx, ',');
       args.push(parseExp(pctx, 110)); // only parse up to comma
     }
-    return Node.CallExpression(pctx, pop_extent(pctx, 'GEN_FUN_CALL'), identifier.exsf(pctx), args);
+    return Node.CallExpression({line:line}, pop_extent(pctx, 'GEN_FUN_CALL'), identifier.exsf(pctx), args);
   }
 }
 

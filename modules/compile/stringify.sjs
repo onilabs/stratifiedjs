@@ -889,6 +889,7 @@ S("(").
   // function call
   exc(260, function(l, pctx) {
     
+    var line = pctx.line;
     var args = [];
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
@@ -1138,6 +1139,7 @@ S("{").
   // block lambda call:
   exc(260, function(l, pctx) {
     
+    var line = pctx.line;
     var start = pctx.token.id;
     if (start != "|" && start != "||")
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
@@ -1365,6 +1367,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
 function parseQuasiInlineEscape(pctx) {
   // scan an identifier:
   var identifier = scan(pctx);
+  var line;
   if (pctx.token.id !== "<id>" && pctx.token.id !== "<@id>") throw new Error("Unexpected " + pctx.token + " in quasi template");
   if (pctx.src.charAt(pctx.lastIndex) != '(') {
     // $variable
@@ -1374,6 +1377,7 @@ function parseQuasiInlineEscape(pctx) {
     
     scan(pctx); // consume identifier
     scan(pctx, '('); // consume '('
+    line = pctx.line;
     // $func(args)
     var args = [];
     while (pctx.token.id != ')') {

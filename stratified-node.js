@@ -5601,9 +5601,10 @@ scan(pctx,")");
 return new ph_group(e,pctx);
 }).exc(260,function(l,pctx){
 
+var line=pctx.line;
+
+
 var args=[];
-
-
 while(pctx.token.id!=")"){
 if(args.length)scan(pctx,",");
 args.push(parseExp(pctx,110));
@@ -5631,7 +5632,7 @@ break;
 }
 
 
-return new ph_fun_call(l,args,pctx);
+return new ph_fun_call(l,args,{line:line});
 });
 
 S("..").exc(255,function(l,pctx){var r=parseExp(pctx,255);
@@ -5850,14 +5851,15 @@ return new ph_obj_lit(props,pctx);
 }
 }).exc(260,function(l,pctx){
 
+var line=pctx.line;
+
+
 var start=pctx.token.id;
-
-
 if(start!="|"&&start!="||")throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
 
 var args=[parseBlockLambda(start,pctx)];
 
-return new ph_fun_call(l,args,pctx);
+return new ph_fun_call(l,args,{line:line});
 }).stmt(parseBlock);
 
 
@@ -6079,6 +6081,7 @@ return new ph_quasi_template(parts,pctx);;
 function parseQuasiInlineEscape(pctx){var identifier=scan(pctx);
 
 
+var line;
 if(pctx.token.id!=="<id>"&&pctx.token.id!=="<@id>")throw new Error("Unexpected "+pctx.token+" in quasi template");
 if(pctx.src.charAt(pctx.lastIndex)!='('){
 
@@ -6088,13 +6091,14 @@ return identifier.exsf(pctx);
 
 scan(pctx);
 scan(pctx,'(');
+line=pctx.line;
 
 var args=[];
 while(pctx.token.id!=')'){
 if(args.length)scan(pctx,',');
 args.push(parseExp(pctx,110));
 }
-return new ph_fun_call(identifier.exsf(pctx),args,pctx);
+return new ph_fun_call(identifier.exsf(pctx),args,{line:line});
 }
 }
 

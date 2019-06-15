@@ -955,6 +955,7 @@ S("(").
   // function call
   exc(260, function(l, pctx) {
     PUSH_EXTENT(pctx, null, 'funcall(')
+    var line = pctx.line;
     var args = [];
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
@@ -985,7 +986,7 @@ S("(").
 #endif
 
     LOGM('fun_call')
-    GEN_FUN_CALL(l, args, pctx, POP_EXTENT('GEN_FUN_CALL'))
+    GEN_FUN_CALL(l, args, {line:line}, POP_EXTENT('GEN_FUN_CALL'))
   });
 
 #ifdef SJS_DOUBLEDOT
@@ -1256,12 +1257,13 @@ S("{").
   // block lambda call:
   exc(260, function(l, pctx) {
     PUSH_EXTENT(pctx, l, 'blocklambda call')
+    var line = pctx.line;
     var start = pctx.token.id;
     if (start != "|" && start != "||")
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     LOGM('fun_call')
-    GEN_FUN_CALL(l, args, pctx, POP_EXTENT('GEN_FUN_CALL'))
+    GEN_FUN_CALL(l, args, {line:line}, POP_EXTENT('GEN_FUN_CALL'))
   }).
 #endif /* SJS_BLOCKLAMBDA */
   // block:
@@ -1491,6 +1493,7 @@ S('`', TOKENIZER_QUASI).exs(function(pctx) {
 function parseQuasiInlineEscape(pctx) {
   // scan an identifier:
   var identifier = scan(pctx);
+  var line;
   if (pctx.token.id !== "<id>" && pctx.token.id !== "<@id>") throw new Error("Unexpected " + pctx.token + " in quasi template");
   if (pctx.src.charAt(pctx.lastIndex) != '(') {
     // $variable
@@ -1500,13 +1503,14 @@ function parseQuasiInlineEscape(pctx) {
     PUSH_EXTENT(pctx, pctx.token, 'parseQuasiInlineEscape')
     scan(pctx); // consume identifier
     scan(pctx, '('); // consume '('
+    line = pctx.line;
     // $func(args)
     var args = [];
     while (pctx.token.id != ')') {
       if (args.length) scan(pctx, ',');
       args.push(parseExp(pctx, BP_COMMA)); // only parse up to comma
     }
-    GEN_FUN_CALL(identifier.exsf(pctx), args, pctx, POP_EXTENT('GEN_FUN_CALL'))
+    GEN_FUN_CALL(identifier.exsf(pctx), args, {line:line}, POP_EXTENT('GEN_FUN_CALL'))
   }
 }
 
