@@ -1134,7 +1134,7 @@ function makeAbortBreakTest(async_try_catch, late_pickup) {
     
     try {
       if (late_pickup)
-        hold(100); // only attempt to pick up value after stratum aborted 
+        hold(200); // only attempt to pick up value after stratum aborted 
       stratum.value();
     }
     catch(e) {
@@ -1142,7 +1142,7 @@ function makeAbortBreakTest(async_try_catch, late_pickup) {
       rv += 'd';
     }
     if (!late_pickup)
-      hold(100); // allow stratum to finish cleanup
+      hold(200); // allow stratum to finish cleanup
     return rv;
     
   }
