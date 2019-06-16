@@ -1095,7 +1095,7 @@ test("reentrant 'stratum aborted' exception persistence edge case", true,
        try { 
          // wait a bit, then pick up return value from stratum; it
          // should be an exception.
-         hold(50);
+         hold(100);
          stratum.value();
          return false;
        }
@@ -1177,7 +1177,7 @@ test('tailcalled blocklambda break / par edge case', 'b',
          ({|| hold(0); break; rv += 'a';})();
        }
        and {
-         hold(50);
+         hold(100);
          rv += 'b';
        }
        return rv;
@@ -1640,7 +1640,7 @@ test("detached blocklambda break", 'ad', function() {
   var rv = '';
   function f(g) {
     spawn g();
-    hold(50);
+    hold(100);
     rv += 'c';
   }
   f { || rv += 'a'; break; rv += 'b' };
@@ -1667,7 +1667,7 @@ test("detached async blocklambda break 1", 'ad', function() {
   var rv = '';
   function f(g) {
     spawn g();
-    hold(50);
+    hold(100);
     rv += 'c';
   }
  
@@ -1683,10 +1683,10 @@ test("detached async blocklambda break with blocking finally", 'ahfd', function(
     spawn g();
     try {
       rv += 'h';
-      hold(50);
+      hold(100);
     }
     finally {
-      hold(50);
+      hold(100);
       rv += 'f';
     }
     rv += 'c';
@@ -1706,7 +1706,7 @@ test("detached sync blocklambda break with blocking finally", 'ahfcd', function(
       rv += 'h';
     }
     finally {
-      hold(50);
+      hold(100);
       rv += 'f';
     }
     rv += 'c';
@@ -1727,7 +1727,7 @@ test("blocking finally not affecting sync processing", 'abcd', function() {
       rv += 'a';
     }
     finally {
-      hold(50);
+      hold(100);
       rv += 'c';
     }
     rv += 'd';
@@ -1750,12 +1750,12 @@ test("blocking retract not affecting sync processing", 'abcde', function() {
         rv += 'a';
       }
       finally {
-        hold(50);
+        hold(100);
         rv += 'c';
       }
     }
     retract {
-      hold(50);
+      hold(100);
       rv += 'd';
     }
     rv += 'e';
@@ -1781,7 +1781,7 @@ test("expired detached async blocklambda break", 'acde', function() {
       rv += 'c';
     }
     
-    f { || rv += 'a'; try { break; } finally { hold(50); } rv += 'b' };
+    f { || rv += 'a'; try { break; } finally { hold(100); } rv += 'b' };
     
     rv += 'd';
     hold(2000);
@@ -1806,7 +1806,7 @@ test("detached blocklambda break with value pickup", 'vb', function() {
   var rv = '';
   function f(s) { 
     stratum = spawn s();
-    hold(50);
+    hold(100);
     rv += 'a';
   }
   
@@ -1826,7 +1826,7 @@ test("detached blocklambda break with value pickup & finally", 'vfb', function()
   var rv = '';
   function f(s) { 
     stratum = spawn s();
-    hold(50);
+    hold(100);
     rv += 'a';
   }
   
@@ -1835,7 +1835,7 @@ test("detached blocklambda break with value pickup & finally", 'vfb', function()
       f {|| hold(0); break; }
     }
     finally {
-      hold(50);
+      hold(100);
       rv += 'f';
     }
     rv += 'b';
@@ -1894,7 +1894,7 @@ test('nested blocklambda abort/break', '0(0)(1)(2)(3)(4)5(5)6(6)7(7)8(8)9',
 
          for (var i=0; i<10; ++i) {
            stratum = spawn (stratum ? abort_stratum(i-1), consumer(i));
-           if (i == 5) hold(50);
+           if (i == 5) hold(100);
          }         
          rv += 'not reached';
        }
@@ -1913,7 +1913,7 @@ test('cyclic abort 1', '1',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); try { stratum.abort(); } finally { rv += '1' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1921,7 +1921,7 @@ test('cyclic abort 2', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); try { try { stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1929,7 +1929,7 @@ test('cyclic abort 3', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1937,7 +1937,7 @@ test('cyclic abort 1 async', '1',
      function() {
        var rv = '';
        var stratum = spawn (function() { try { hold(0); stratum.abort(); } finally { rv += '1' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1945,7 +1945,7 @@ test('cyclic abort 2 async', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() {  try { try { hold(0); stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1953,7 +1953,7 @@ test('cyclic abort 3 async', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() { waitfor { hold(0); stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1961,7 +1961,7 @@ test('cyclic abort 4', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1969,7 +1969,7 @@ test('cyclic abort 5', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { stratum.abort(); rv += '1'} } finally { rv += '2' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1977,7 +1977,7 @@ test('cyclic abort 1 / async finally', '1',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); try { stratum.abort(); } finally { hold(0); rv += '1' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1985,7 +1985,7 @@ test('cyclic abort 2 / async finally', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); try { try { stratum.abort(); } finally { hold(0); rv += '1' } }finally{ hold(0); rv+='2'} })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -1993,7 +1993,7 @@ test('cyclic abort 3 / async finally', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -2001,7 +2001,7 @@ test('cyclic abort 4 / async finally', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -2009,7 +2009,7 @@ test('cyclic abort 5 / async finally', '12',
      function() {
        var rv = '';
        var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); stratum.abort(); rv += '1'} } finally { hold(0); rv += '2' } })();
-       hold(50);
+       hold(100);
        return rv;
      });
 
@@ -2102,7 +2102,7 @@ test('blocking finally clause is not abort point 2', 'abcd',
        
        var S = spawn stratum();
 
-       hold(50); // wait for stratum to be done
+       hold(100); // wait for stratum to be done
 
        return rv;
      });
@@ -2118,12 +2118,12 @@ test('blocking finally clause in loop is not abort point', 'abc',
        or {
          do {
            // make sure this branch gets aborted, but continue sync processing:
-           try {} finally { hold(50); }
+           try {} finally { hold(100); }
 
            // this 'try' statement used to be passed through the aborted loop,
            // which meant that the 'break' was not targetted at the correct frame,
            // and the "rv+='b'" wasn't executed.
-           try {} finally { hold(50); break; }
+           try {} finally { hold(100); break; }
          } while (0);
          rv += 'b';
          hold(0); // <-- should abort here
@@ -2162,7 +2162,7 @@ test('blocking finally clause in loop is not abort point - complicated', 'abc',
        
        var S = spawn stratum();
 
-       hold(50); // wait for stratum to be done
+       hold(100); // wait for stratum to be done
 
        return rv;
      });
@@ -2470,7 +2470,7 @@ test('swallowed break bug', 'abcd', function() {
         }
       }
       or {
-        hold(50);
+        hold(100);
         rv += 'c';
       }
     }
@@ -2520,7 +2520,7 @@ test('swallowed break in aborted stratum 1', 'abc', function() {
 
   function foo(block) {
     for (var i=0; i<10; ++i) {
-      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(50); rv += 'c';} })();
+      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} })();
       hold(0);
       rv += 'b';
       spawn S.abort(); 
@@ -2543,7 +2543,7 @@ test('swallowed break in aborted stratum 2', 'abc', function() {
 
   function foo(block) {
     for (var i=0; i<10; ++i) {
-      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(50); rv += 'c';} })();
+      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} })();
       hold(0);
       rv += 'b'; 
       S.abort(); // this should be aborted
@@ -2563,7 +2563,7 @@ test('swallowed break in aborted stratum 3', 'abcf', function() {
 
   function foo(block) {
     for (var i=0; i<10; ++i) {
-      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(50); rv += 'c';} })();
+      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} })();
       hold(0);
       rv += 'b'; 
       try {
