@@ -397,7 +397,7 @@ exports.css = function (/* url, queries */) {
    @param {DOMElement|Array} [to] DOM element (or array of elements) at which to end traversal (exclusively)
    @param {Function} [f] Function `f(elem)` to execute for each DOM node
 */
-__js function traverseDOM(from, to, f) {
+function traverseDOM(from, to, f) {
   if (!Array.isArray(to)) to = [to];
   while (from && to.indexOf(from) == -1) {
     f(from);
