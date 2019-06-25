@@ -92,8 +92,10 @@ __js exports.escape = function(str) {
   @desc
     `regexp` should always include the global (`/g`) flag.
     
-    If this function detects an infinite loop (because `regexp` is missing the
-    global flag or matches zero characters), an error will be thrown.
+    If `regexp` is missing the global flag, an error will be thrown.
+
+    To prevent an endless loop, if the regexp produces a zero character match, 
+    the index at which the next match is attempted is advanced by one character.
 */
 exports.matches = function(str, re) {
   if (!re.global) throw new Error("regex must include the /g flag");
