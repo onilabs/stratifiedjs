@@ -90,9 +90,7 @@ __js exports.escape = function(str) {
   @param    {RegExp} [regexp] Pattern to find.
   @return   {sequence::Stream} Stream of match objects.
   @desc
-    `regexp` should always include the global (`/g`) flag.
-    
-    If `regexp` is missing the global flag, an error will be thrown.
+    `regexp` should always include the global (`/g`) flag. If `regexp` is missing the global flag, an error will be thrown.
 
     To prevent an endless loop, if the regexp produces a zero character match, 
     the index at which the next match is attempted is advanced by one character.
@@ -103,8 +101,12 @@ exports.matches = function(str, re) {
     var match;
     re.lastIndex = 0;
     while (match = re.exec(str)) {
+      // store last_index, in case the same regexp is being used elsewhere while
+      // receiver is blocked
+      var last_index = re.lastIndex;
+      if (match.index === last_index) ++last_index; // avoid infinite loop
       receiver(match);
-      if (re.lastIndex === match.index) re.lastIndex++; // avoid infinite loop
+      re.lastIndex = last_index;
     }
   })
 };
