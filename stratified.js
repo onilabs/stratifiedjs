@@ -5694,7 +5694,7 @@ break;
 }
 
 
-return new ph_fun_call(l,args,{line:line});
+return new ph_fun_call(l,args,Object.assign({},pctx,{line:line}));
 });
 
 S("..").exc(255,function(l,pctx){var r=parseExp(pctx,255);
@@ -5921,7 +5921,7 @@ if(start!="|"&&start!="||")throw new Error("Unexpected token '"+pctx.token+"' - 
 
 var args=[parseBlockLambda(start,pctx)];
 
-return new ph_fun_call(l,args,{line:line});
+return new ph_fun_call(l,args,Object.assign({},pctx,{line:line}));
 }).stmt(parseBlock);
 
 
@@ -6160,7 +6160,7 @@ while(pctx.token.id!=')'){
 if(args.length)scan(pctx,',');
 args.push(parseExp(pctx,110));
 }
-return new ph_fun_call(identifier.exsf(pctx),args,{line:line});
+return new ph_fun_call(identifier.exsf(pctx),args,Object.assign({},pctx,{line:line}));
 }
 }
 

@@ -1551,7 +1551,7 @@ S("(").
     }
 
     
-    return Node.CallExpression({line:line}, pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
+    return Node.CallExpression(Object.assign({}, pctx, {line:line}), pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
   });
 
 S("..").exc(255, function(l, pctx) {
@@ -1779,7 +1779,7 @@ S("{").
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     
-    return Node.CallExpression({line:line}, pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
+    return Node.CallExpression(Object.assign({}, pctx, {line:line}), pop_extent(pctx, 'GEN_FUN_CALL'), l, args);
   }).
   // block:
   stmt(parseBlock);
@@ -2018,7 +2018,7 @@ function parseQuasiInlineEscape(pctx) {
       if (args.length) scan(pctx, ',');
       args.push(parseExp(pctx, 110)); // only parse up to comma
     }
-    return Node.CallExpression({line:line}, pop_extent(pctx, 'GEN_FUN_CALL'), identifier.exsf(pctx), args);
+    return Node.CallExpression(Object.assign({}, pctx, {line:line}), pop_extent(pctx, 'GEN_FUN_CALL'), identifier.exsf(pctx), args);
   }
 }
 

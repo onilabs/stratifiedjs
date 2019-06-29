@@ -986,7 +986,7 @@ S("(").
 #endif
 
     LOGM('fun_call')
-    GEN_FUN_CALL(l, args, {line:line}, POP_EXTENT('GEN_FUN_CALL'))
+    GEN_FUN_CALL(l, args, Object.assign({}, pctx, {line:line}), POP_EXTENT('GEN_FUN_CALL'))
   });
 
 #ifdef SJS_DOUBLEDOT
@@ -1263,7 +1263,7 @@ S("{").
       throw new Error("Unexpected token '"+pctx.token+"' - was expecting '|' or '||'");
     var args = [parseBlockLambda(start, pctx)];
     LOGM('fun_call')
-    GEN_FUN_CALL(l, args, {line:line}, POP_EXTENT('GEN_FUN_CALL'))
+    GEN_FUN_CALL(l, args, Object.assign({}, pctx, {line:line}), POP_EXTENT('GEN_FUN_CALL'))
   }).
 #endif /* SJS_BLOCKLAMBDA */
   // block:
@@ -1510,7 +1510,7 @@ function parseQuasiInlineEscape(pctx) {
       if (args.length) scan(pctx, ',');
       args.push(parseExp(pctx, BP_COMMA)); // only parse up to comma
     }
-    GEN_FUN_CALL(identifier.exsf(pctx), args, {line:line}, POP_EXTENT('GEN_FUN_CALL'))
+    GEN_FUN_CALL(identifier.exsf(pctx), args, Object.assign({}, pctx, {line:line}), POP_EXTENT('GEN_FUN_CALL'))
   }
 }
 
