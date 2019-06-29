@@ -1718,6 +1718,8 @@ EF_Try.prototype.cont = function(idx, val) {
       else {
         // override res with stored exception (from try or catch) if
         // val isn't an exception
+        // It would make sense to never override a real exception thrown in try with
+        // a 'return' or 'break' from finally, but - alas - js parity compels us to do so.
         if (!is_cfx(val) || val.type == 'a') {
           val = this.rv;
           //else if (this.aborted)

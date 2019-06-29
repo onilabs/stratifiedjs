@@ -1527,6 +1527,8 @@ if(val.val&&val.val.length)val=val.val[0];
 
 
 
+
+
 if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type=='a'){
 val=this.rv;
 

@@ -17,6 +17,8 @@
   it is not the instant that the control 
   flow was initated counts, but the instant when control flow arrives a stratum 
   juncture. The first controlflow seen at the juncture 'wins'.
+
+  For JS parity, exceptions are overriden by 'return' in 'finally' clauses.
 */
 
 
@@ -327,6 +329,23 @@
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
+  }
+
+  @test("returns in finally masks exceptions (unfortunate JS parity)") {||
+
+    function t1() {
+      try {
+        hold(0);
+        throw new Error('foo');
+      }
+      finally {
+        return 'ok';
+      }
+    }
+
+    var rv = t1();
+    @assert.eq(rv, 'ok');
+
   }
 
   @test("return superceedes sequential") {||
