@@ -780,7 +780,7 @@
       var rv = '';
       function t1() {
         try {
-          if (async1) hold(10);
+          if (async1) hold(50);
           rv += '1';
           return 'a';
         }
@@ -789,7 +789,7 @@
         }
         finally(e) {
           rv += '2';
-          if (async2) hold(10);
+          if (async2) hold(50);
           rv += '3';
           if (!missing_throw)
             throw e;
@@ -827,7 +827,7 @@
       var rv = '';
       function t1() {
         try {
-          if (async1) hold(10);
+          if (async1) hold(50);
           rv += '1';
           return 'a';
         }
@@ -836,7 +836,7 @@
         }
         finally(e) {
           rv += '2';
-          if (async2) hold(10);
+          if (async2) hold(50);
           rv += '3';
           if (!missing_throw)
             throw e;
