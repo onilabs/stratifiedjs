@@ -332,6 +332,11 @@ testEq('reduce1 on empty array', 'reduce1 on empty sequence', function() {
   }
 });
 
+testEq('reduce1 with f_first', [3,6], function() {
+  return s.reduce1([1,2,3], function([n,s],el) {return [++n,s+el];}, undefined, 
+                   function(el) { return [1,el]; });
+})
+
 testEq('scan', [3, 6], function() {
   return s.scan([1,2,3], function(accum, el) { return accum + el; }) .. s.toArray();
 });

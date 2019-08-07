@@ -2367,14 +2367,15 @@ exports.reduce = reduce;
 
 /**
    @function reduce1
-   @altsyntax sequence .. reduce1(f, [default_val])
+   @altsyntax sequence .. reduce1(f, [default_val], [f_first])
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Reducer function
    @param {optional Object} [default_val=undefined] Value to return if `sequence` is empty
+   @param {optional Function} [f_first] Function to be applied to first sequence element to compute the initial accumulator value.
    @return {Object}
    @summary Cumulatively combine elements of a sequence
    @desc
-     Same as [::reduce], but using the first element of `sequence` as initial value.
+     Same as [::reduce], but using the first element `X` of `sequence` (or optionally `f_first(X)`) as initial value.
 
      ### Example:
 
@@ -2382,13 +2383,15 @@ exports.reduce = reduce;
 
          integers(1,100) .. reduce1((sum, x) -> sum + x)
 */
-function reduce1(sequence, f, default_val) {
+function reduce1(sequence, f, default_val, f_first) {
   var accu;
   var first = true;
   sequence .. each {
     |x|
     if (first) {
       accu = x;
+      if (f_first)
+        accu = f_first(accu);
       first = false;
     }
     else
