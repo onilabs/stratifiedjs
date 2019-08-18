@@ -609,6 +609,54 @@ exports.makeMemoizedFunction = function(f, keyfn) {
 };
 
 //----------------------------------------------------------------------
+// console filtering
+/*
+  We monkey-patch the console output functions, mainly to get sane exception reporting:
+
+  Exceptions need to be stringified, because some environments (recent chrome, nodejs) might
+  otherwise display just 'Error'. They look at the 'stack' property, and if it is
+  not there, they call Error.prototype.toString.apply(e), or worse, erroneously
+  Error.prototype.toString(e)!
+
+  Alternatives considered:
+
+  - Overriding the Error.prototype.toString has no effect, because the prototype of the
+    Error object in the console context is used, not the context of the executing JS.
+
+  - We could collect our stack info in error.stack (rather than __oni_stack as we do 
+    now), but the formats are incompatible between different browsers and they seem to
+    be changing frequently, so this would be fragile.
+
+
+*/
+__js if (console) {
+  function filter_console_args(args) {
+    var rv = [];
+    for (var i=0; i<args.length; ++i) {
+      var arg = args[i];
+      // stringify exceptions (see comment above):
+      if (arg && arg._oniE) {
+        arg = String(arg);
+      }
+      rv.push(arg);
+    }
+    return rv;
+  }
+
+  var orig_console_log = console.log;
+  var orig_console_info = console.info;
+  var orig_console_warn = console.warn;
+  var orig_console_error = console.error;
+
+  console.log = function() { return orig_console_log.apply(console, filter_console_args(arguments)); };
+  console.info = function() { return orig_console_info.apply(console, filter_console_args(arguments)); };
+  console.warn = function() { return orig_console_warn.apply(console, filter_console_args(arguments)); };
+  console.error = function() { return orig_console_error.apply(console, filter_console_args(arguments)); };
+
+}
+
+
+//----------------------------------------------------------------------
 
 /**
    @function eval

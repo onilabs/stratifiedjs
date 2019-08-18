@@ -133,7 +133,7 @@ function adopt_native_stack(e, caller_module) {
   if (exports.hostenv !== 'nodejs') {
     // XXX implement stack adopting on browsers; the sticking point is that the
     // filename/linenumber information from eval'ed JS scripts is bogus...
-    e.stack = '';
+    delete e.stack;
     return;
   }
   var stack = String(e.stack);
