@@ -406,7 +406,7 @@ __js function getExtensions_hostenv() {
 
     // plain non-sjs js modules
     'js': function(src, descriptor) {
-      var f = new Function("module", "exports", "require", src);
+      var f = new Function("module", "exports", "require", src+"\n//# sourceURL=#{descriptor.id}");
       return f.apply(descriptor.exports, [descriptor, descriptor.exports, descriptor.require]);
     },
 

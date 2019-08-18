@@ -130,12 +130,6 @@ function CFException_toString() {
 function adopt_native_stack(e, caller_module) {
   if(!e.stack)
     return;
-  if (exports.hostenv !== 'nodejs') {
-    // XXX implement stack adopting on browsers; the sticking point is that the
-    // filename/linenumber information from eval'ed JS scripts is bogus...
-    delete e.stack;
-    return;
-  }
   var stack = String(e.stack);
   // Remove default toString() output, which can take form:
   // - <msg>
@@ -154,19 +148,21 @@ function adopt_native_stack(e, caller_module) {
     // remove sole <type>, assuming type ends with 'Error'
     stack = stack.replace(/^\w*Error/, '');
   }
-  stack = stack.trim();
-  e.stack = "";
+  delete e.stack;
   var lines = stack.split("\n");
   var i;
   for (i=0; i<lines.length; i++) {
+    var line = lines[i];
+    if (!line.length) continue;
     // TODO: make this check more reliable
-    if((caller_module && lines[i].indexOf(caller_module) !== -1) ||
-       lines[i].indexOf("stratified-node.js") !== -1 ||
-       lines[i].indexOf("stratified.js") !== -1 ) {
+    if((caller_module && line.indexOf(caller_module) !== -1) ||
+       line.indexOf(".app!bundle") !== -1 ||
+       line.indexOf("stratified-node.js") !== -1 ||
+       line.indexOf("stratified.js") !== -1 ) {
       // we've hit an sjs stack line.
       break;
     }
-    e.__oni_stack.push([lines[i]]);
+    e.__oni_stack.push([line]);
   }
 }
 

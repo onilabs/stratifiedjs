@@ -115,12 +115,6 @@ function CFException_toString(){return this.name+": "+this.message+stack_to_stri
 function adopt_native_stack(e,caller_module){if(!e.stack)return;
 
 
-if(exports.hostenv!=='nodejs'){
-
-
-delete e.stack;
-return;
-}
 var stack=String(e.stack);
 
 
@@ -139,19 +133,21 @@ stack=stack.slice(msgStart+msg.length);
 
 stack=stack.replace(/^\w*Error/,'');
 }
-stack=stack.trim();
-e.stack="";
+delete e.stack;
 var lines=stack.split("\n");
 var i;
 for(i=0;i<lines.length;i++ ){
+var line=lines[i];
+if(!line.length)continue;
 
-if((caller_module&&lines[i].indexOf(caller_module)!==-1)||lines[i].indexOf("stratified-node.js")!==-1||lines[i].indexOf("stratified.js")!==-1){
+if((caller_module&&line.indexOf(caller_module)!==-1)||line.indexOf(".app!bundle")!==-1||line.indexOf("stratified-node.js")!==-1||line.indexOf("stratified.js")!==-1){
+
 
 
 
 break;
 }
-e.__oni_stack.push([lines[i]]);
+e.__oni_stack.push([line]);
 }
 }
 
