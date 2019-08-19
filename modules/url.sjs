@@ -232,7 +232,7 @@ exports.isSameOrigin = sys.isSameOrigin;
 /**
   @function normalize
   @summary Convert relative to absolute URLs and collapse '.' and '..' path
-           components.
+           components as well as multiple consecutive slashes.
   @param {String} [url] URL to normalize.
   @param {optional String} [base] URL which will be taken as a base if *url* is relative.
   @return {String} Normalized URL.
