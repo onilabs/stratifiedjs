@@ -430,11 +430,69 @@ __js ConditionProto.clear = function clear() {
   @param   {Integer} [capacity] Maximum number of items to which the queue will
            be allowed to grow. A capacity of zero means that the Queue will only 
            accept puts when there is a pending get.
-  @param   {optional Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see [::Semaphore]).
+  @param   {optional Boolean} [sync=false] Whether or not this queue uses synchronous semaphores (see notes below and documentation for [::Semaphore]). Ignored for queues of capacity 0.
+  @desc
+     ### Important notes on `sync` flag:
+
+     The sync flag determines whether an item placed into a queue is available for `get` 
+     immediately, i.e. before the corresponding `put` call returns, or whether the `put` 
+     has to return first (and finish its synchronous callstack) before a pending `get` is 
+     executed.
+     
+     For historical reasons, the default (`sync=false`) corresponds to the latter behavior, which
+     is problematic under certain circumstances, especially for queues with capacity 0:
+
+     If a `get` call for such a queue is aborted just after a successful `put`, the queue implicitly
+     stores the put item until the next `get` call. I.e. for `sync=false`, queues with capacity 0
+     can, in certain scenarios, act like stateful queues of capacity 1. This is almost certainly 
+     undesirable (otherwise you would use a queue with higher capacity). Therefore, for these queues
+     the `sync` flag will be ignored and implicitly set to `true`.
+     
+
+     ### Notes on execution order of `put`s and `get`s in the case of 0-capacity queues:
+     
+     For code such as 
+
+         waitfor {
+           Q.put('x');
+           console.log('a');
+           hold(0);
+           console.log('b');
+         }
+         and {
+           Q.get();
+           console.log('c');
+           hold(0);
+           console.log('d');
+         }
+
+     the output will be `'acbd'`, i.e. the `put` will return before the `get`. Note that
+     execution of the put/get cycle is synchronous, i.e. cancellation will have no 
+     effect until the `hold(0)` after the `get` call is reached.
+
+     Conversely, for code with `put` and `get` swapped: 
+
+         waitfor {
+           Q.get();
+           console.log('a');
+           hold(0);
+           console.log('b');
+         }
+         and {
+           Q.put('x');
+           console.log('c');
+           hold(0);
+           console.log('d');
+         }
+
+     the output will also be `'acbd'`, i.e. the `get` will return before the `put`. As
+     in the previous case, the get/put cycle is synchronous, i.e. only cancellable after
+     the second `hold(0)` has been reached.
+
 */
 __js function Queue(capacity, sync) {
   var rv = Object.create(QueueProto);
-
+  if (capacity == 0) sync = true;
   rv.items = [];
   rv.S_nonfull  = Semaphore(capacity, sync);
   rv.S_nonempty = Semaphore(0, sync);
