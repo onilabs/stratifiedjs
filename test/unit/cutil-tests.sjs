@@ -448,35 +448,40 @@ testEq('Retraction with queue size 0', 'ok', function() {
   return 'ok';
 });
 
-testEq('Queue get/put retraction lockup', 'ok', function() {
+testEq('Queue(0) get/put sequencing', '123123', function() {
   var Q = cutil.Queue(0);
   var rv = '';
 
-  // attempt a get(), priming the Queue to accept put()s:
+  waitfor {
+    Q.put('x');
+    collapse; // collapse has no effect until second hold(0) reached
+    rv += '1';
+    hold(0);
+    rv += '3';
+  }
+  or {
+    Q.get();
+    rv += '2';
+    hold(0);
+    rv += 'NO';
+  }
+
   waitfor {
     Q.get();
-    return 'not reached 1';
+    collapse; // collapse has no effect until second hold(0) reached
+    rv += '1';
+    hold(0);
+    rv += 3;
   }
   or {
-    hold(0);
     Q.put('x');
-    hold();
-  }
-  or {
+    rv += '2';
     hold(0);
-    // do nothing; this effecively cancels the pending `get` before
-    // the `put` feeds through (because the `put` only wakes up the
-    // `get` asynchronously)
-
-    // We now have a situation where the queue has grown beyond its
-    // originally allowed size
+    rv += 'NO';
   }
 
-  // earlier implementations of the cutil::Queue didn't reach this
-  // point; they locked up internally in the retraction code for
-  // Q.get.
 
-  return 'ok';
+  return rv;
 });
 
 
