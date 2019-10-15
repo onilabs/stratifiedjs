@@ -544,6 +544,7 @@ Hash.prototype = {
 
 
 
+
 // symbols that can appear in an 'statement/argument position':
 // symbols that can appear in an 'operator position':
 
@@ -555,10 +556,10 @@ Hash.prototype = {
 
 var TOKENIZER_RAW_UNTIL_END_TOKEN = /[ \t]*([^ \t\n]+)[ \t]*\n/g;
 
-var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(\.\.\.|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
 // tokenizer for tokens in an operator position:
-var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
+var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|\.\.\.|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
 
 
 // tokenizer for tokens in an interpolating string position:
@@ -846,6 +847,30 @@ S(".").exc(270, function(l, pctx) {
   scan(pctx);
   
   return l+"."+name;
+});
+
+S("...").exs(function(pctx) {
+  // XXX hackish
+  if (pctx.token.id == "<id>") {
+    pctx.token.value = "..."+pctx.token.value;
+    var tok = pctx.token;
+    scan(pctx);
+    // we only allow '...' rest param at end of an argument list for arrow functions here.
+    // function/blb-lambda param list rest params are handled elsewhere.
+    // destructuring '...' is not implemented yet.
+    if (pctx.token.id !== ')') throw new Error("Unexpected '...'");
+    // very hackish lookahead test for '->'/'=>'
+    var lookahead_pctx = Object.assign({}, pctx);
+    scan(lookahead_pctx);
+    if (lookahead_pctx.token.id !== '->' &&
+        lookahead_pctx.token.id !== '=>')
+      throw new Error("Unexpected '...'");
+
+
+    return tok.exsf(pctx);
+  }
+  else
+    throw new Error("Unexpected '...'");
 });
 
 S("new").exs(function(pctx) {
@@ -1192,9 +1217,11 @@ function parseFunctionParam(pctx) {
 function parseFunctionParams(pctx, starttok, endtok) {
   if (!starttok) { starttok = '('; endtok = ')'; }
   var pars = [];
+  var have_rest = false;
   scan(pctx, starttok);
   pars.line = pctx.line;
   while (pctx.token.id != endtok) {
+    if (have_rest) throw new Error("Rest parameter must be last formal parameter");
     if (pars.length)
       scan(pctx, ",");
     switch(pctx.token.id) {
@@ -1202,6 +1229,13 @@ function parseFunctionParams(pctx, starttok, endtok) {
       case "[":
         pars.push(parseFunctionParam(pctx));
         break;
+      case "...":
+        have_rest = true;
+        scan(pctx);
+        if (pctx.token.id !== "<id>") scan(pctx, "<id>"); // this throws the right error
+        //XXX hackish:
+        pctx.token.value = "..."+pctx.token.value;
+        // fall through to id processing
       case "<id>":
         pars.push(pctx.token.exsf(pctx));
         scan(pctx);

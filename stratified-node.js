@@ -569,7 +569,7 @@ return e;
 }
 }
 
-exports.C=function(){return {exec:I_call,ndata:arguments,__oni_dis:token_dis};
+exports.C=function(...args){return {exec:I_call,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -594,7 +594,7 @@ return e;
 }
 }
 
-exports.Nb=function(){return {exec:I_nblock,ndata:arguments,__oni_dis:token_dis};
+exports.Nb=function(...args){return {exec:I_nblock,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -756,7 +756,7 @@ function I_seq(ndata,env){return cont(new EF_Seq(ndata,env),1);
 
 }
 
-exports.Seq=function(){return {exec:I_seq,ndata:arguments,__oni_dis:token_dis};
+exports.Seq=function(...args){return {exec:I_seq,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -847,7 +847,7 @@ function I_sc(ndata,env){return cont(new EF_Sc(ndata,env),0);
 }
 
 
-exports.Sc=function(){return {exec:I_sc,ndata:arguments,__oni_dis:token_dis};
+exports.Sc=function(...args){return {exec:I_sc,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -1119,7 +1119,7 @@ function I_fcall(ndata,env){return cont(new EF_Fcall(ndata,env),0);
 }
 
 
-exports.Fcall=function(){return {exec:I_fcall,ndata:arguments,__oni_dis:token_dis};
+exports.Fcall=function(...args){return {exec:I_fcall,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -1190,7 +1190,7 @@ function I_if(ndata,env){return cont(new EF_If(ndata,env),0);
 }
 
 
-exports.If=function(){return {exec:I_if,ndata:arguments,__oni_dis:token_dis};
+exports.If=function(...args){return {exec:I_if,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -1324,7 +1324,7 @@ function I_switch(ndata,env){return cont(new EF_Switch(ndata,env),0);
 }
 
 
-exports.Switch=function(){return {exec:I_switch,ndata:arguments,__oni_dis:token_dis};
+exports.Switch=function(...args){return {exec:I_switch,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -1539,7 +1539,7 @@ function I_try(ndata,env){return cont(new EF_Try(ndata,env),0);
 }
 
 
-exports.Try=function(){return {exec:I_try,ndata:arguments,__oni_dis:token_dis};
+exports.Try=function(...args){return {exec:I_try,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -1681,7 +1681,7 @@ function I_loop(ndata,env){return cont(new EF_Loop(ndata,env),ndata[0],true);
 }
 
 
-exports.Loop=function(){return {exec:I_loop,ndata:arguments,__oni_dis:token_dis};
+exports.Loop=function(...args){return {exec:I_loop,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -1807,7 +1807,7 @@ function I_forin(ndata,env){return cont(new EF_ForIn(ndata,env),0);
 }
 
 
-exports.ForIn=function(){return {exec:I_forin,ndata:arguments,__oni_dis:token_dis};
+exports.ForIn=function(...args){return {exec:I_forin,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -2026,7 +2026,7 @@ function I_par(ndata,env){return cont(new EF_Par(ndata,env),-1);
 }
 
 
-exports.Par=function(){return {exec:I_par,ndata:arguments,__oni_dis:token_dis};
+exports.Par=function(...args){return {exec:I_par,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -2254,7 +2254,7 @@ function I_alt(ndata,env){return cont(new EF_Alt(ndata,env),-1);
 }
 
 
-exports.Alt=function(){return {exec:I_alt,ndata:arguments,__oni_dis:token_dis};
+exports.Alt=function(...args){return {exec:I_alt,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -2299,11 +2299,11 @@ try{
 var ef=this;
 this.dyn_vars=exports.current_dyn_vars;
 
-var resumefunc=function(){try{
+var resumefunc=function(...args){try{
 
 var caller_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=ef.dyn_vars;
-cont(ef,2,arguments);
+cont(ef,2,args);
 }catch(e){
 
 var s=function(){throw e};
@@ -2452,7 +2452,7 @@ function I_sus(ndata,env){return cont(new EF_Suspend(ndata,env),0);
 }
 
 
-exports.Suspend=function(){return {exec:I_sus,ndata:arguments,__oni_dis:token_dis};
+exports.Suspend=function(...args){return {exec:I_sus,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -2931,7 +2931,7 @@ return cont(ef,0)||stratum;
 }
 
 
-exports.Spawn=function(){return {exec:I_spawn,ndata:arguments,__oni_dis:token_dis};
+exports.Spawn=function(...args){return {exec:I_spawn,ndata:args,__oni_dis:token_dis};
 
 
 
@@ -3125,13 +3125,13 @@ return sus;
 
 exports.Throw=function(exp,line,file){return new CFException("t",exp,line,file)};
 
-exports.Arr=function(){return Array.prototype.slice.call(arguments,0)};
+exports.Arr=function(...args){return args};
 
-exports.Obj=function(){var obj=new Object();
+exports.Obj=function(...args){var obj=new Object();
 
 
 
-for(var i=0;i<arguments[0].length;++i)obj[arguments[0][i]]=arguments[i+1];
+for(var i=0;i<args[0].length;++i)obj[args[0][i]]=args[i+1];
 
 return obj;
 };
@@ -3139,7 +3139,7 @@ return obj;
 function QuasiProto(parts){this.parts=parts}
 exports.QuasiProto=QuasiProto;
 
-exports.Quasi=function(){return new QuasiProto(Array.prototype.slice.call(arguments,0));
+exports.Quasi=function(...args){return new QuasiProto(args);
 
 };
 
@@ -3183,9 +3183,9 @@ exports.With=function(exp,bodyf){return bodyf(this,exp);
 
 };
 
-exports.join_str=function(){var rv='';
+exports.join_str=function(...args){var rv='';
 
-for(var i=0,l=arguments.length;i<l;++i)rv+=arguments[i];
+for(var i=0,l=args.length;i<l;++i)rv+=args[i];
 
 return rv;
 };
@@ -4533,8 +4533,7 @@ rv="__oni_rt.Sc("+this.line+",function(_oniX){return "+this.left.nb()+this.id+ar
 }else{
 
 
-rv="__oni_rt.Sc("+this.line+",function(l, r){return l[0][l[1]]"+this.id+"r;},"+this.left.ref()+","+this.right.v()+")";
-
+rv="__oni_rt.Sc("+this.line+",(l,r)=>l[0][l[1]]"+this.id+"r,"+this.left.ref()+","+this.right.v()+")";
 }
 return rv;
 };
@@ -4568,12 +4567,12 @@ if(this.id=="spawn")rv="__oni_rt.Spawn("+this.line+","+this.right.v()+")";else i
 
 rv=nblock_val_to_val(this.nb(),true,this.line);
 }else if(this.right.is_ref){
-rv="__oni_rt.Sc("+this.line+",function(r){return "+this.id+" r[0][r[1]]},"+this.right.ref()+")";
+rv="__oni_rt.Sc("+this.line+",(r)=>"+this.id+" r[0][r[1]],"+this.right.ref()+")";
 
 }else{
 
 
-rv="__oni_rt.Sc("+this.line+",function(r){return "+this.id+" r},"+this.right.v()+")";
+rv="__oni_rt.Sc("+this.line+",(r)=>"+this.id+" r,"+this.right.v()+")";
 
 }
 return rv;
@@ -4596,7 +4595,7 @@ if(this.left.is_nblock){
 rv=nblock_val_to_val(this.nb(),true,this.line);
 }else if(this.left.is_ref){
 
-rv="__oni_rt.Sc("+this.line+",function(l){return l[0][l[1]]"+this.id+"},"+this.left.ref()+")";
+rv="__oni_rt.Sc("+this.line+",(l)=>l[0][l[1]]"+this.id+","+this.left.ref()+")";
 
 }
 return rv;
@@ -5268,12 +5267,13 @@ delete this["$"+key]}};
 
 
 
+
 var TOKENIZER_RAW_UNTIL_END_TOKEN=/[ \t]*([^ \t\n]+)[ \t]*\n/g;
 
-var TOKENIZER_SA=/(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA=/(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(\.\.\.|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
 
-var TOKENIZER_OP=/(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
+var TOKENIZER_OP=/(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|\.\.\.|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
 
 
 
@@ -5561,6 +5561,30 @@ if(pctx.token.id=="<id>")name=pctx.token.value;else if(VALID_IDENTIFIER_NAME.tes
 scan(pctx);
 
 return new ph_dot_accessor(l,name,pctx);
+});
+
+S("...").exs(function(pctx){if(pctx.token.id=="<id>"){
+
+
+pctx.token.value="..."+pctx.token.value;
+var tok=pctx.token;
+scan(pctx);
+
+
+
+if(pctx.token.id!==')')throw new Error("Unexpected '...'");
+
+var lookahead_pctx=Object.assign({},pctx);
+scan(lookahead_pctx);
+if(lookahead_pctx.token.id!=='->'&&lookahead_pctx.token.id!=='=>')throw new Error("Unexpected '...'");
+
+
+
+
+return tok.exsf(pctx);
+}else throw new Error("Unexpected '...'");
+
+
 });
 
 S("new").exs(function(pctx){var exp=parseExp(pctx,260);
@@ -5907,9 +5931,11 @@ return left;
 function parseFunctionParams(pctx,starttok,endtok){if(!starttok){
 starttok='(';endtok=')'}
 var pars=[];
+var have_rest=false;
 scan(pctx,starttok);
 pars.line=pctx.line;
 while(pctx.token.id!=endtok){
+if(have_rest)throw new Error("Rest parameter must be last formal parameter");
 if(pars.length)scan(pctx,",");
 
 switch(pctx.token.id){case "{":
@@ -5917,6 +5943,13 @@ switch(pctx.token.id){case "{":
 case "[":
 pars.push(parseFunctionParam(pctx));
 break;
+case "...":
+have_rest=true;
+scan(pctx);
+if(pctx.token.id!=="<id>")scan(pctx,"<id>");
+
+pctx.token.value="..."+pctx.token.value;
+
 case "<id>":
 pars.push(pctx.token.exsf(pctx));
 scan(pctx);

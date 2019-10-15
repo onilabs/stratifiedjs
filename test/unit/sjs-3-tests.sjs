@@ -68,3 +68,28 @@
   rv += exec();
   @assert.eq(rv, 'abcdacr');
 }
+
+@context("rest parameters") { ||
+  @test("functions") { ||
+    var f1 = function(...args) { return args; }
+    @assert.eq(f1(1,2,3), [1,2,3]);
+    var f2 = function(a,b,...args) { return [a,b,args]; }
+    @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
+  }
+  @test("blocklambdas") { ||
+    ({|...args| @assert.eq(args, [1,2,3]) })(1,2,3);
+    ({|a,b,...args| @assert.eq([a,b,args], [1,2,[3,4]]) })(1,2,3,4);
+  }
+  @test("thin arrows") { ||
+    var f1 = (...args) -> args;
+    @assert.eq(f1(1,2,3), [1,2,3]);
+    var f2 = (a,b,...args) -> [a,b,args];
+    @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
+  }
+  @test("fat arrows") { ||
+    var f1 = (...args) => args;
+    @assert.eq(f1(1,2,3), [1,2,3]);
+    var f2 = (a,b,...args) => [a,b,args];
+    @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
+  }
+}

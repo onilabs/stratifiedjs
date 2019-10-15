@@ -646,10 +646,10 @@ function I_call(ndata, env) {
   }
 }
 //exports.C = makeINCtor(I_call);
-exports.C = function(/*f, line*/) {
+exports.C = function(...args/*f, line*/) {
   return {
     exec: I_call,
-    ndata: arguments, //[f, line],
+    ndata: args, //[f, line],
     __oni_dis: token_dis
   }
 };
@@ -673,10 +673,10 @@ function I_nblock(ndata, env) {
   }
 }
 //exports.Nb = makeINCtor(I_nblock);
-exports.Nb = function(/*f, line*/) {
+exports.Nb = function(...args/*f, line*/) {
   return {
     exec: I_nblock,
-    ndata: arguments, //[f, line],
+    ndata: args, //[f, line],
     __oni_dis: token_dis
   };
 };
@@ -920,10 +920,10 @@ function I_seq(ndata, env) {
 }
 #endif /* HOTPATH */
 //exports.Seq = makeINCtor(I_seq);
-exports.Seq = function() {
+exports.Seq = function(...args) {
   return {
     exec: I_seq,
-    ndata: arguments,
+    ndata: args,
     __oni_dis: token_dis
   }
 };
@@ -1020,10 +1020,10 @@ function I_sc(ndata, env) {
 }
 
 //exports.Sc = makeINCtor(I_sc);
-exports.Sc = function() {
+exports.Sc = function(...args) {
   return {
     exec: I_sc,
-    ndata: arguments,
+    ndata: args,
     __oni_dis: token_dis
   }
 };
@@ -1327,10 +1327,10 @@ function I_fcall(ndata, env) {
 }
 
 //exports.Fcall = makeINCtor(I_fcall);
-exports.Fcall = function() {
+exports.Fcall = function(...args) {
   return {
     exec: I_fcall,
-    ndata: arguments,
+    ndata: args,
     __oni_dis: token_dis
   }
 };
@@ -1410,10 +1410,10 @@ function I_if(ndata, env) {
 }
 
 //exports.If = makeINCtor(I_if);
-exports.If = function(/*t,c,a*/) {
+exports.If = function(...args/*t,c,a*/) {
   return {
     exec: I_if,
-    ndata: arguments, //[t,c,a],
+    ndata: args, //[t,c,a],
     __oni_dis: token_dis
   }
 };
@@ -1549,10 +1549,10 @@ function I_switch(ndata, env) {
 }
 
 //exports.Switch = makeINCtor(I_switch);
-exports.Switch = function(/*exp, clauses*/) {
+exports.Switch = function(...args/*exp, clauses*/) {
   return {
     exec: I_switch,
-    ndata: arguments, //[exp, clauses],
+    ndata: args, //[exp, clauses],
     __oni_dis: token_dis
   }
 };
@@ -1780,10 +1780,10 @@ function I_try(ndata, env) {
 }
 
 //exports.Try = makeINCtor(I_try);
-exports.Try = function() {
+exports.Try = function(...args) {
   return {
     exec: I_try,
-    ndata: arguments,
+    ndata: args,
     __oni_dis: token_dis
   }
 };
@@ -1929,10 +1929,10 @@ function I_loop(ndata, env) {
 }
 
 //exports.Loop = makeINCtor(I_loop);
-exports.Loop = function() {
+exports.Loop = function(...args) {
   return {
     exec: I_loop,
-    ndata: arguments,
+    ndata: args,
     __oni_dis: token_dis
   }
 };
@@ -2060,10 +2060,10 @@ function I_forin(ndata, env) {
 }
 
 //exports.ForIn = makeINCtor(I_forin);
-exports.ForIn = function(/*obj,loop*/) {
+exports.ForIn = function(...args/*obj,loop*/) {
   return {
     exec: I_forin,
-    ndata: arguments, //[obj,loop],
+    ndata: args, //[obj,loop],
     __oni_dis: token_dis
   }
 };
@@ -2306,10 +2306,10 @@ function I_par(ndata, env) {
 }
 
 //exports.Par = makeINCtor(I_par);
-exports.Par = function() {
+exports.Par = function(...args) {
   return {
     exec: I_par,
-    ndata: arguments,
+    ndata: args,
     __oni_dis: token_dis
   }
 };
@@ -2561,10 +2561,10 @@ function I_alt(ndata, env) {
 }
 
 //exports.Alt = makeINCtor(I_alt);
-exports.Alt = function() {
+exports.Alt = function(...args) {
   return {
     exec: I_alt,
-    ndata: arguments,
+    ndata: args,
     __oni_dis: token_dis
   }
 };
@@ -2638,14 +2638,14 @@ EF_Suspend.prototype.cont = function(idx, val) {
       var ef = this;
       this.dyn_vars = exports.current_dyn_vars;
 #ifdef ASYNC_RESUME
-      var resumefunc = function() { ResumeQueue.post([ef,2,arguments]); };
+      var resumefunc = function(...args) { ResumeQueue.post([ef,2,args]); };
 #else
   // XXX We could return something from resumefunc
-  var resumefunc = function() {
+  var resumefunc = function(...args) {
     try {
       var caller_dyn_vars = exports.current_dyn_vars;
       exports.current_dyn_vars = ef.dyn_vars;
-      cont(ef, 2, arguments);
+      cont(ef, 2, args);
     }
     catch(e) {
       var s = function() { throw e; };
@@ -2801,10 +2801,10 @@ function I_sus(ndata, env) {
 }
 
 //exports.Suspend = makeINCtor(I_sus);
-exports.Suspend = function(/*s,r*/) {
+exports.Suspend = function(...args/*s,r*/) {
   return {
     exec: I_sus,
-    ndata: arguments, //[s,r],
+    ndata: args, //[s,r],
     __oni_dis: token_dis
   }
 };
@@ -3298,10 +3298,10 @@ function I_spawn(ndata, env) {
 }
   
 //exports.Spawn = makeINCtor(I_spawn);
-exports.Spawn = function(/*line, exp*/) {
+exports.Spawn = function(...args/*line, exp*/) {
   return {
     exec: I_spawn,
-    ndata: arguments, //[line, exp],
+    ndata: args, //[line, exp],
     __oni_dis: token_dis
   }
 };
@@ -3522,22 +3522,22 @@ exports.Hold = function(duration_ms) {
 
 exports.Throw = function(exp, line, file) { return new CFException("t", exp, line, file); };
 
-exports.Arr = function(/*args*/) { return Array.prototype.slice.call(arguments, 0); };
+exports.Arr = function(...args) { return args };
 
-exports.Obj = function(/*args*/) {
+exports.Obj = function(...args) {
   // note comment in kernel-sjs.js.in::ph_obj_lit about the way props
   // are encoded into arguments object
   var obj = new Object();
-  for (var i=0; i<arguments[0].length; ++i)
-    obj[arguments[0][i]] = arguments[i+1];
+  for (var i=0; i<args[0].length; ++i)
+    obj[args[0][i]] = args[i+1];
   return obj;
 };
 
 function QuasiProto(parts) {this.parts=parts;}
 exports.QuasiProto = QuasiProto;
 
-exports.Quasi = function(/*args*/) {
-  return new QuasiProto(Array.prototype.slice.call(arguments, 0));
+exports.Quasi = function(...args) {
+  return new QuasiProto(args);
 };
 
 exports.Return = function(exp) {
@@ -3580,10 +3580,10 @@ exports.With = function(exp, bodyf) {
   return bodyf(this, exp);
 };
 
-exports.join_str = function() {
+exports.join_str = function(...args) {
   var rv = '';
-  for (var i=0,l=arguments.length;i<l;++i)
-    rv += arguments[i];
+  for (var i=0,l=args.length;i<l;++i)
+    rv += args[i];
   return rv;
 };
 

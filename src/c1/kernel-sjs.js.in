@@ -1166,8 +1166,7 @@ ph_assign_op.prototype.val = function() {
     }
     else {
       // reference assignment
-      rv = "__oni_rt.Sc("+this.line+",function(l, r){return l[0][l[1]]"+
-        this.id+"r;},"+this.left.ref()+","+this.right.v()+")";
+      rv = "__oni_rt.Sc("+this.line+",(l,r)=>l[0][l[1]]"+this.id+"r,"+this.left.ref()+","+this.right.v()+")"; 
     }
     return rv;
 };
@@ -1202,12 +1201,12 @@ ph_prefix_op.prototype.val = function() {
     // by the catchall clause below.
     rv = nblock_val_to_val(this.nb(), true, this.line);
   } else if (this.right.is_ref) {
-    rv = "__oni_rt.Sc("+this.line+",function(r){return "+this.id+" r[0][r[1]]},"+
+    rv = "__oni_rt.Sc("+this.line+",(r)=>"+this.id+" r[0][r[1]],"+
       this.right.ref()+")";
   }
   else {
     // 'generic' non-ref case (e.g. "typeof a()" )
-    rv = "__oni_rt.Sc("+this.line+",function(r){return "+this.id+" r},"+
+    rv = "__oni_rt.Sc("+this.line+",(r)=>"+this.id+" r,"+
       this.right.v()+")";
   }
   return rv;
@@ -1231,7 +1230,7 @@ ph_postfix_op.prototype.val = function() {
       rv = nblock_val_to_val(this.nb(), true, this.line);
     }
     else if (this.left.is_ref) {
-      rv = "__oni_rt.Sc("+this.line+",function(l){return l[0][l[1]]"+this.id+"},"+
+      rv = "__oni_rt.Sc("+this.line+",(l)=>l[0][l[1]]"+this.id+","+
         this.left.ref()+")";
     }
     return rv;

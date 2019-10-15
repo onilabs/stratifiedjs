@@ -452,6 +452,8 @@ Hash.prototype = {
 #define PAT_OPERATOR2 ==|!=|>>|<<|<=|>=|--|\+\+|\|\||&&|[-*\/%+&^|]=
 #endif
 
+#define PAT_SPREAD \.\.\.
+
 #ifdef INTERPOLATING_STRINGS
 #define PAT_OPERATOR1 [;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]
 #else
@@ -466,7 +468,7 @@ Hash.prototype = {
 #endif
 
 // symbols that can appear in an 'statement/argument position':
-#define PAT_ARGSYMBOL PAT_OPERATOR2|PAT_OPERATOR1|PAT_IDENTIFIER
+#define PAT_ARGSYMBOL PAT_SPREAD|PAT_OPERATOR2|PAT_OPERATOR1|PAT_IDENTIFIER
 // symbols that can appear in an 'operator position':
 #define PAT_SYMBOL PAT_OPERATOR4|PAT_OPERATOR3|PAT_ARGSYMBOL
 
@@ -905,6 +907,30 @@ S(".").exc(270, function(l, pctx) {
   GEN_DOT_ACCESSOR(l, name, pctx, POP_EXTENT('GEN_DOT_ACCESSOR'))
 });
 
+S("...").exs(function(pctx) {
+  // XXX hackish
+  if (pctx.token.id == "<id>") {
+    pctx.token.value = "..."+pctx.token.value;
+    var tok = pctx.token;
+    scan(pctx);
+    // we only allow '...' rest param at end of an argument list for arrow functions here.
+    // function/blb-lambda param list rest params are handled elsewhere.
+    // destructuring '...' is not implemented yet.
+    if (pctx.token.id !== ')') throw new Error("Unexpected '...'");
+    // very hackish lookahead test for '->'/'=>'
+    var lookahead_pctx = Object.assign({}, pctx);
+    scan(lookahead_pctx);
+    if (lookahead_pctx.token.id !== '->' &&
+        lookahead_pctx.token.id !== '=>')
+      throw new Error("Unexpected '...'");
+
+
+    return tok.exsf(pctx);
+  }
+  else
+    throw new Error("Unexpected '...'");
+});
+
 S("new").exs(function(pctx) {
   PUSH_EXTENT(pctx, null, 'new')
   var exp = parseExp(pctx, BP_CALLEXP);
@@ -1314,9 +1340,11 @@ function parseFunctionParam(pctx) {
 function parseFunctionParams(pctx, starttok, endtok) {
   if (!starttok) { starttok = '('; endtok = ')'; }
   var pars = [];
+  var have_rest = false;
   scan(pctx, starttok);
   pars.line = pctx.line;
   while (pctx.token.id != endtok) {
+    if (have_rest) throw new Error("Rest parameter must be last formal parameter");
     if (pars.length)
       scan(pctx, ",");
     switch(pctx.token.id) {
@@ -1326,6 +1354,13 @@ function parseFunctionParams(pctx, starttok, endtok) {
         pars.push(parseFunctionParam(pctx));
         break;
 #endif
+      case "...":
+        have_rest = true;
+        scan(pctx);
+        if (pctx.token.id !== "<id>") scan(pctx, "<id>"); // this throws the right error
+        //XXX hackish:
+        pctx.token.value = "..."+pctx.token.value;
+        // fall through to id processing
       case "<id>":
         pars.push(pctx.token.exsf(pctx));
         scan(pctx);
