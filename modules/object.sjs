@@ -39,7 +39,7 @@
 'use strict';
 
 var { each, transform, Stream, map } = require('./sequence');
-var { extendObject, mergeObjects, flatten, isArrayLike } = require('builtin:apollo-sys');
+var { extendObject, mergeObjects, flatten, isArrayLike, overrideObject } = require('builtin:apollo-sys');
 
 __js var hasProperty = function(k) { if (typeof this !== 'object' || this === null) return false; return k in this; }
 __js var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -411,29 +411,7 @@ __js exports.clone = function(obj) {
 
             { foo: undefined, bar: null }
 */
-__js exports.override = function(/*dest, source...*/) {
-  var dest = arguments[0];
-  var sources = flatten(Array.prototype.slice.call(arguments, 1));
-  // strip out undefined sources:
-  for (var h = sources.length-1; h>=0; --h) {
-    if (sources[h] == null)
-      sources.splice(h, 1);
-  }
-  var hl = sources.length;
-  if (hl) {
-    // copy values:
-    for (var o in dest) {
-      for (var h=hl-1; h>=0; --h) {
-        var source = sources[h];
-        if (o in source) {
-          dest[o] = source[o];
-          break;
-        }
-      }
-    }
-  }
-  return dest;
-};
+exports.override = overrideObject;
 
 /**
    @function mapValues

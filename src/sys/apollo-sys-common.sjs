@@ -301,6 +301,33 @@ __js exports.extendObject = function(dest, source) {
   return dest;
 };
 
+/**
+   @function overrideObject
+   @summary See [../../modules/object::override]
+*/
+__js exports.overrideObject = function(dest, ...sources) {
+  var sources = exports.flatten(sources);
+  // strip out undefined sources:
+  for (var h = sources.length-1; h>=0; --h) {
+    if (sources[h] == null)
+      sources.splice(h, 1);
+  }
+  var hl = sources.length;
+  if (hl) {
+    // copy values:
+    for (var o in dest) {
+      for (var h=hl-1; h>=0; --h) {
+        var source = sources[h];
+        if (o in source) {
+          dest[o] = source[o];
+          break;
+        }
+      }
+    }
+  }
+  return dest;
+};
+
 
 /**
   @function parseURL
