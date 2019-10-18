@@ -1737,21 +1737,23 @@ context("batchN") {||
   }
 }
 
-context("BatchedStream with pack = equivalent to deprecated batchN") {||
+context("batch") {||
   test("exact batching") {||
-    s.integers(1,100) .. s.pack(10) .. s.BatchedStream .. s.count() .. assert.eq(100);
+    s.integers(1,100) .. s.batch(10) .. s.count() .. assert.eq(100);
   }
 
   test("batching with remainder") {||
-    s.integers(1,102) .. s.pack(10) .. s.BatchedStream .. s.count() .. assert.eq(102);
+    s.integers(1,102) .. s.batch(10) .. s.count() .. assert.eq(102);
   }
 
   test("batching larger than sequence") {||
-    s.integers(1,102) .. s.pack(1000) .. s.BatchedStream .. s.count() .. assert.eq(102);
+    s.integers(1,102) .. s.batch(1000) .. s.count() .. assert.eq(102);
   }
 
   test("double batching") {||
-    s.integers(1,102) .. s.pack(10) .. s.BatchedStream .. s.pack(10) .. s.BatchedStream .. s.count() .. assert.eq(102);
+    s.integers(1,102) .. s.batch(10) .. s.batch(10) .. s.isStructuredStream('batched') .. assert.ok();
+    (s.integers(1,102) .. s.batch(10) .. s.batch(10)).base .. s.isStructuredStream() .. assert.notOk();
+    s.integers(1,102) .. s.batch(10) .. s.batch(10) .. s.count() .. assert.eq(102);
   }
 }
 
@@ -1872,3 +1874,229 @@ test("async exception during each.track abortion") {||
   assert.raises({message:'should not be swallowed'}, t);
 
 };
+
+context("withOpenStream") {||
+  test("sequence sync") {||
+    [1,2,3,4] .. s.withOpenStream {
+      |S|
+      S .. s.first .. assert.eq(1);
+      S .. s.take(10) .. s.toArray .. assert.eq([2,3,4]);
+      S .. s.take(10) .. s.toArray .. assert.eq([]);
+    }
+  }
+  test("sequence async") {||
+    [1,2,3,4] .. s.withOpenStream {
+      |S|
+      S .. s.monitor(->hold(0)) .. s.first .. assert.eq(1);
+      S .. s.monitor(->hold(0)) .. s.take(10) .. s.toArray .. assert.eq([2,3,4]);
+      S .. s.monitor(->hold(0)) .. s.take(10) .. s.toArray .. assert.eq([]);
+    }
+  }
+  test("stream sync") {||
+    s.integers(1) .. s.withOpenStream {
+      |S|
+      S .. s.first .. assert.eq(1);
+      S .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
+      S .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
+    }
+  }
+  test("stream async") {||
+    s.integers(1) .. s.withOpenStream {
+      |S|
+      S .. s.monitor(->hold(0)) .. s.first .. assert.eq(1);
+      S .. s.monitor(->hold(0)) .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
+      S .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
+    }
+  }
+  test("async stream sync") {||
+    s.integers(1) .. s.monitor(->hold(0)) .. s.withOpenStream {
+      |S|
+      S .. s.first .. assert.eq(1);
+      S .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
+      S .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
+    }
+  }
+  test("async stream async") {||
+    s.integers(1) .. s.monitor(->hold(0)) .. s.withOpenStream {
+      |S|
+      S .. s.monitor(->hold(0)) .. s.first .. assert.eq(1);
+      S .. s.monitor(->hold(0)) .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
+      S .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
+    }
+  }
+  test("exhausted") {||
+    [1] .. s.withOpenStream {
+      |S|
+      S .. s.first .. assert.eq(1);
+      assert.raises({ inherits: s.SequenceExhausted },
+                    -> S .. @first());
+    };
+    [] .. s.withOpenStream {
+      |S|
+      assert.raises({ inherits: s.SequenceExhausted },
+                    -> S .. @first());
+      assert.raises({ inherits: s.SequenceExhausted },
+                    -> S .. @first());
+    }
+  }
+  test("takeWhile") {||
+    [0,2,4,5,6,7,8] .. s.withOpenStream {
+      |S|
+      S .. s.takeWhile(x->x%2==0) .. s.toArray .. assert.eq([0,2,4]);
+      // 5 is swallowed by takeWhile
+      S .. s.toArray .. assert.eq([6,7,8]);
+    }
+  }
+}
+
+context("rollingWindow") {||
+  test("typing") {||
+    [1,2,3,4] .. s.rollingWindow(3) .. s.isStructuredStream('rolling') .. assert.ok();
+  }
+  test("basic") {||
+    [1,2,3,4] .. s.rollingWindow(3) .. s.toArray .. 
+      assert.eq([[1,2,3],[2,3,4]]);
+  }
+  test("no cliff") {||
+    [1,2,3,4] .. s.rollingWindow({window:3,cliff:false}) .. s.toArray .. 
+      assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4],[4]]);
+  }
+  test("window size barely reached") {||
+    [1,2,3,4] .. s.rollingWindow(4) .. s.toArray .. assert.eq([[1,2,3,4]]);
+  }
+  test("window size not reached") {||
+    [1,2,3,4] .. s.rollingWindow(5) .. s.toArray .. assert.eq([]);
+  }
+  test("window size not reached, cliff=false") {||
+    [1,2,3,4] .. s.rollingWindow({window:5,cliff:false}) .. s.toArray .. 
+      assert.eq([ [1],[1,2],[1,2,3],[1,2,3,4], [2,3,4], [3,4], [4] ]);
+  }
+
+  test("stream") {||
+    s.integers(1) .. s.rollingWindow(3) .. s.take(5) .. s.toArray ..
+      assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
+  }
+  test("stream, no cliff") {||
+    s.integers(1) .. s.rollingWindow({window:3,cliff:false}) .. s.take(5) .. s.toArray ..
+      assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
+  }
+  test("async stream") {||
+    s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow(3) .. s.take(5) .. s.toArray ..
+      assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
+  }
+  test("async stream, no cliff") {||
+    s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow({window:3,cliff:false}) .. s.take(5) .. s.toArray ..
+      assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
+  }
+  test("stream async") {||
+    s.integers(1) .. s.rollingWindow(3) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
+      assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
+  }
+  test("stream  async, no cliff") {||
+    s.integers(1) .. s.rollingWindow({window:3,cliff:false}) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
+      assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
+  }
+  test("async stream async") {||
+    s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow(3) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
+      assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
+  }
+  test("async stream async, no cliff") {||
+    s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow({window:3,cliff:false}) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
+      assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
+  }
+  test("window(window)") {||
+    [1,2,3,4] .. s.rollingWindow(3) .. s.rollingWindow(2) .. @toArray ..
+      assert.eq([[[1,2,3],[2,3,4]]]);
+  }
+  test("window no cliff(window)") {||
+    // [[1],[1,2],[1,2,3],[2,3,4],[3,4],[4]]
+    [1,2,3,4] .. s.rollingWindow({window:3,cliff:false}) .. s.rollingWindow(2) .. @toArray ..
+      assert.eq([ [[1],[1,2]], [[1,2],[1,2,3]], [[1,2,3],[2,3,4]], [[2,3,4],[3,4]], [[3,4],[4]] ]);
+  }
+}
+
+context("transform typing/batching") {||
+  test("typing") {||
+    var a = [1,2,3,4] .. s.transform(x->x*x);
+    assert.ok(a .. s.isStream);
+    assert.notOk(a .. s.isStructuredStream);
+
+    var b = [1,2,3,4] .. s.batch(2) .. s.transform(x->x*x);
+    assert.ok(b .. s.isStream);
+    assert.ok(b .. s.isStructuredStream('batched'));
+  }
+  test("batching") {||
+    var a = [1,2,3,4,5] .. s.batch(2) .. s.transform(x->x*x);
+    assert.eq(a..s.toArray, [1,4,9,16,25]);
+    assert.eq(a.base ..  s.toArray, [[1,4],[9,16],[25]]);
+  }
+  test("async batching") {||
+    var a = [1,2,3,4,5] .. s.monitor(->hold(0)) .. s.batch(2) .. s.transform(x->x*x);
+    assert.eq(a..s.toArray, [1,4,9,16,25]);
+    assert.eq(a.base ..  s.toArray, [[1,4],[9,16],[25]]);
+  }
+  test("batching async") {||
+    var a = [1,2,3,4,5] .. s.batch(2) .. s.transform(x->x*x);
+    assert.eq(a.. s.monitor(->hold(0)) .. s.toArray, [1,4,9,16,25]);
+    assert.eq(a.base ..  s.monitor(->hold(0)) .. s.toArray, [[1,4],[9,16],[25]]);
+  }
+  test("async batching async") {||
+    var a = [1,2,3,4,5] .. s.monitor(->hold(0)) .. s.batch(2) .. s.transform(x->x*x);
+    assert.eq(a.. s.monitor(->hold(0)) .. s.toArray, [1,4,9,16,25]);
+    assert.eq(a.base ..  s.monitor(->hold(0)) .. s.toArray, [[1,4],[9,16],[25]]);
+  }
+}
+
+context("transform.map") {||
+  test("typing") { ||
+    var a = [[1,2],[2,3],[3,4]] .. s.transform.map(x->x*x);
+    assert.ok(a .. s.isStream);
+    assert.notOk(a .. s.isStructuredStream);
+
+    var b = [1,2,3,4] .. s.rollingWindow(2) .. s.transform.map(x->x*x);
+    assert.ok(b .. s.isStream);
+    assert.ok(b .. s.isStructuredStream('rolling'));
+  }
+  test("plain") { ||
+    var executions = 0;
+    [[1,2],[2,3],[3,4]] .. s.transform.map(x->(++executions,x*x)) .. s.toArray ..
+      assert.eq([[1,4],[4,9],[9,16]]);
+    assert.eq(executions, 6);
+  }
+  test("rolling") { ||
+    var executions = 0;
+    [1,2,3,4] .. s.rollingWindow(2) .. s.transform.map(x->(++executions,x*x)) .. s.toArray ..
+      assert.eq([[1,4],[4,9],[9,16]]);
+    assert.eq(executions, 4);
+  }
+}
+
+context("monitor.raw") {||
+  test("typing") {||
+    var a = [1,2,3,4] .. s.monitor.raw(x->0);
+    assert.notOk(a .. s.isStructuredStream());
+    assert.ok(a .. s.isStream());
+
+    var b = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2) .. s.monitor.raw(x->0);
+    assert.ok(b .. s.isStructuredStream('rolling'));
+    assert.ok(b.base .. s.isStructuredStream('batched'));
+  }
+  test("batched") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.raw(x->log.push(x)) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,[[1,2],[3,4]]);
+  }
+  test("rolling") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.monitor.raw(x->log.push(x)) .. s.toArray;
+    assert.eq(rv,[[1,2],[2,3],[3,4]]);
+    assert.eq(log,[[0,[1,2]],[1,[3]],[1,[4]]]);
+  }
+  test("rolling batched") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2) .. s.monitor.raw(x->log.push(x)) .. s.toArray;
+    assert.eq(rv,[[1,2],[2,3],[3,4]]);
+    assert.eq(log,[ [[0,[1,2]],[1,[3]]],[[1,[4]]]]);
+  }
+}

@@ -18,7 +18,6 @@
   @require sjs:regexp
   @require sjs:url
   @require sjs:observable
-  @require sjs:structured-observable
   @require sjs:projection
 */
 
@@ -43,7 +42,6 @@ var modules = [
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
   'sjs:observable',
-  'sjs:structured-observable',
   'sjs:projection'
 ];
 

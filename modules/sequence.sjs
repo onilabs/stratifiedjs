@@ -43,7 +43,7 @@
 */
 'use strict';
 
-var {isArrayLike, isQuasi, streamContents } = require('builtin:apollo-sys');
+var {isArrayLike, isQuasi, streamContents, overrideObject } = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
 var { Interface, hasInterface, Token } = require('./type');
 var sys = require('builtin:apollo-sys');
@@ -87,7 +87,8 @@ function sequential(f) {
    @summary
     An Array, array-like object (like `arguments`, `NodeList`, `TypedArray`, etc),
     String, [./set::Set],
-    [bytes::Bytes]
+    [bytes::Bytes],
+    [::StructuredStream],
     or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
@@ -128,7 +129,7 @@ function sequential(f) {
 
      # Non-concrete sequences types:
 
-     - [::Stream]
+     - [::Stream] & its subtypes ([::StructuredStream])
 
      There are no particular guarantees about the behaviour of non-concrete
      sequences. In particular, each individual sequence _may or may not_ be:
@@ -145,7 +146,7 @@ function sequential(f) {
 /**
    @class Stream
    @inherit ::Sequence
-   @summary Stratified stream abstraction
+   @summary A data producer that can be sequentially iterated by [::each]
 */
 
 /**
@@ -172,35 +173,64 @@ function sequential(f) {
           s .. each { |x| console.log(x*x) }  // -> 1,4,9,...,100
 
 */
-__js {
-  var stream_toString = function() {
-    return "[object Stream]";
-  };
-  var Stream = function(S) {
-    S.__oni_is_Stream = true;
-    S.toString = stream_toString;
-    return S;
-  }
-  exports.Stream = Stream;
-}
 
 /**
-   @class BatchedStream
+   @class StructuredStream
    @inherit ::Stream
-   @summary Stratified stream abstraction
+   @summary Structured stream abstraction
 */
 
 /**
-   @function BatchedStream
-   @summary Mark a stream or streaming function as being a BatchedStream
-   @param {Stream|Function} [stream] A stream or streaming function
+   @function StructuredStream
+   @param {::Sequence} [base] Sequence to wrap as being structured
+   @param {String} [type] One of: 'batched' or 'rolling'.
+   @summary Add a wrapper to a sequence `base` that designates `base` as being structured according to `type`
    @desc
-     The `stream` argument must be a stream or streaming functions where the individual 
-     elements are **arrays**.
+     'Structured streams' are streams where the individual elements are encoded in some way
+     to make their transmission and/or processing more efficient.
 
-     The downstream receiver will see an unbatched version of the stream, with 
-     individual elements of the array flattend
-     into the stream when [::each] is called on the stream.
+     Structured streams operate (mostly) invisible to the user in the background: 
+
+     Some sequence primitives (e.g. [::rollingWindow]) return structured streams 
+     instead of 'plain' [::Stream]s. When operating on these streams with other 
+     primitives, the individual elements will automatically be reconstructed back to their
+     unencoded values if necessary. E.g. when iterating such a stream (with e.g. [::each] 
+     or [::consume]), the elements seen in the iteration loop are the reconstructed values.
+
+     Some primitives are able to operate on certain structured streams in ways that are
+     more efficient than operating on the reconstructed stream, or that maintain the 
+     structure of the stream. E.g.:
+
+     - [::transform.map] can operate on 'rolling' structured streams in a way that
+     only processes a fraction of the data than a comparable unstructured stream.
+     - When presented with a 'batched' structured stream, [::transform] will maintain
+     the batching structure, and return a 'batched' structured stream itself.
+
+     Because all of the structured stream functionality happens automatically in the 
+     background, as a user you generally don't have to concern yourself with the 
+     details unless you want to tune the performance of processing a particular stream. 
+
+     As a general rule to maximize performance, you should always use the most 
+     specialized primitive from the SJS libraries when operating on streams. E.g.
+     use [::transform.map] instead of `transform(x->x .. map(...))`.
+
+     ### Implementation details
+
+     Structured streams are objects with a `base` and a `type` member.
+     `base` is a [::Sequence] that contains the encoded elements.
+     As `base` can be *any* sequence, streams can have nested structure: E.g.
+     you might have a 'rolling batched' stream, or even a 
+     'batched rolling rolling batched' stream.
+
+     To inspect the raw elements of a structured stream (with all levels
+     of structuring removed) while iterating the stream you can use [::monitor.raw].
+     
+   
+     ### type='batched'
+
+     For batched streams, a base stream `[a,b,c], [d,e,f], ...` will be reconstructed
+     to `a, b, c, d, e, f`. I.e. each element of the base stream consists of an
+     array (or batch) of values that will be unpacked into the reconstructed stream.
 
      Batched streams are useful when remoting streams over the
      network: A 'normal' unbatched stream makes a return trip over the
@@ -211,32 +241,71 @@ __js {
      retrieved for a database query - then it makes sense to send those 
      records in batches.
 
-     An easy way to create a batched stream from an existing flattened stream is to 
-     combine [::BatchedStream] with the [::pack] function.
-     
-     #### Examples:
+     To create a batched stream, use [::batch].
 
-         // create a stream that sends all synchronously available elements
-         // as batches:
 
-         seq .. @pack({interval:0}) .. @BatchedStream
+     ### type='rolling'
 
-         // create a stream that sends data in batches of 10 elements:
+     For rolling streams, the base stream consists of `[drop_count, new_elems]` elements.
+     The reconstructed stream consists of elements that accumulate `new_elems` and drop
+     `drop_count` elements compared to the previous value. E.g. the base stream 
+     `[0,[1,2,3]], [0, [4,5,6]], [2, [7,8,9]], [2,[]]` reconstructs to 
+     `[1,2,3], [1,2,3,4,5,6], [3,4,5,6,7,8,9], [5,6,7,8,9]`.
 
-         seq .. @pack(10) .. @BatchedStream
-     
+     Rolling streams are e.g. produced by [::rollingWindow].
+     In addition to being more efficient for transmission, some primitives can 
+     process rolling streams more efficiently than their plain counterparts.
+     E.g. calling `transform.map(x->x*x)` on the above stream performs the function
+     `x->x*x` only once for every number seen (i.e. 9 times). Operating on the 
+     reconstructed stream, it would need to call `x->x*x` 21 times.
+
 */
 __js {
-  var batchedStream_toString = function() {
-    return "[object BatchedStream]";
+
+  function StructuredStream_toString() {
+    return "[object StructuredStream<#{this.type}>(#{this.base .. isConcrete ? 'concrete' : this.base})]";
+  }
+
+  function StructuredStream(base, type) {
+    if (type !== 'batched' && type !== 'rolling') 
+      throw new Error("StructuredStream constructor: Invalid structured stream type '#{type}'");
+    if (!isSequence(base))
+      throw new Error("StructuredStream constructor: Invalid base object (needs to be a sequence)");
+    return { __oni_structured_stream: true,
+             base: base,
+             type: type,
+             toString: StructuredStream_toString
+           };
+  }
+  exports.StructuredStream = StructuredStream;
+} // __js
+
+/**
+   @function isStructuredStream
+   @summary Returns `true` if `obj` is a [::StructuredStream] and of the given `type` (if provided) 
+   @param {Object} [obj] Object to test
+   @param {optional String} [type] Type to test against (if not provided, test against any structured stream type
+   @return {Boolean}
+*/
+__js {
+  function isStructuredStream(obj, type) {
+    if (!obj || obj.__oni_structured_stream !== true) return false;
+    return (type === undefined)|| (obj.type === type);
+  }
+  exports.isStructuredStream = isStructuredStream;
+} // __js 
+
+
+__js {
+  var stream_toString = function() {
+    return "[object Stream]";
   };
-  var BatchedStream = function(S) {
+  var Stream = function(S) {
     S.__oni_is_Stream = true;
-    S.__oni_is_BatchedStream = true;
-    S.toString = batchedStream_toString;
+    S.toString = stream_toString;
     return S;
   }
-  exports.BatchedStream = BatchedStream;
+  exports.Stream = Stream;
 }
 
 
@@ -282,16 +351,7 @@ __js var toStream = exports.toStream = function(arr) {
    @return {Boolean}
    @summary Returns `true` if `s` is a [::Stream], `false` otherwise.
 */
-__js var isStream = exports.isStream = (s) -> s && s.__oni_is_Stream === true;
-
-/**
-   @function isBatchedStream
-   @param {Object} [s] Object to test
-   @return {Boolean}
-   @summary Returns `true` if `s` is a [::BatchedStream], `false` otherwise.
-*/
-__js var isBatchedStream = exports.isBatchedStream = s ->
-    s && s.__oni_is_BatchedStream === true;
+__js var isStream = exports.isStream = (s) -> s && (s.__oni_is_Stream === true || s.__oni_structured_stream === true);
 
 /**
    @function isConcreteSequence
@@ -313,7 +373,7 @@ __js var isConcrete = exports.isConcreteSequence = (s) ->
 */
 __js var isSequence = exports.isSequence = (s) ->
   isConcrete(s) ||
-  isStream(s) || hasInterface(s, ITF_EACH);
+  isStream(s);
 
 /**
    @function generate
@@ -370,17 +430,18 @@ slightly non-trivial implementation to optimize performance in the
 non-synchronous case:
 */
 __js {
-var ITF_EACH = Interface(module, 'each');
-exports.ITF_EACH = ITF_EACH;
-
 function each(sequence, r) {
-  var fn = sequence[ITF_EACH];
-  if (fn != null) {
-    return fn(sequence, r);
-
-  }
-  else if (isBatchedStream(sequence)) {
-    return iterate_batched_stream(sequence, r);
+  if (isStructuredStream(sequence)) {
+    switch(sequence.type) {
+      case 'batched':
+      return iterate_batched_stream(sequence.base, r);
+      break;
+      case 'rolling':
+      return iterate_rolling_stream(sequence.base, r);
+      break;
+      default:
+        throw new Error("Cannot iterate unknown structured sequence type '#{sequence.type}'");
+    }
   }
   else if (isStream(sequence)) {
     return sequence(r);
@@ -411,10 +472,19 @@ function async_each(arr, r, i, ef) {
 }
 
 function iterate_batched_stream(sequence, r) {
-  sequence({
+  sequence .. each {
     |arr|
     arr .. each(r);
-  })
+  }
+}
+
+function iterate_rolling_stream(sequence, r) {
+  var accu = [];
+  sequence .. each {
+    |x|
+    __js accu = accu.concat(x[1]).slice(x[0]);
+    r(accu);
+  }
 }
 
 function iterate_set(set, r) {
@@ -434,11 +504,11 @@ __js function exhaust(seq) { return each(seq, noop); }
    @altsyntax sequence .. consume([eos]) { |next| ... }
    @param {::Sequence} [sequence] Input sequence
    @param {optional Object} [eos=undefined] End of sequence marker
-   @param {Function} [loop] Iteration loop
-   @summary Execute an iteration loop for the given sequence
+   @param {Function} [block] Scope block
+   @summary Create an iterator scope for the given sequence
    @desc
-     Calls function `loop` with one parameter, a `next` function which,
-     when called within the scope of `loop`, will return successive
+     Calls function `block` with one parameter, a `next` iterator function which,
+     when called within the scope of `block`, will return successive
      elements from `sequence`. If there are no more elements in `sequence`,
      calls to `next()` will yield `eos`.
 
@@ -507,10 +577,12 @@ function consumeStream(sequence, eos, loop) {
   var next = function() {
     if (emit_next) throw new Error("Must not make concurrent calls to a `consume` loop's `next` function.");
     waitfor(var rv, is_error) {
-      emit_next = resume;
-      want_next();
+      __js {
+        emit_next = resume;
+        want_next();
+      }
     }
-    finally { emit_next = undefined; }
+    finally { __js emit_next = undefined; }
     if (is_error) throw rv;
     return rv;
   };
@@ -543,8 +615,10 @@ function consumeStream(sequence, eos, loop) {
         }
         
         waitfor() {
-          want_next = resume;
-          emit_next(x);
+          __js {
+            want_next = resume;
+            emit_next(x);
+          }
         }
       }
     }
@@ -638,7 +712,139 @@ function consumeMultiple(streams, eos, block) {
 }
 exports.consumeMultiple = consumeMultiple;
 
+//----------------------------------------------------------------------
 
+/**
+   @function withOpenStream
+   @altsyntax sequence .. withOpenStream { |open_stream| ... }
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [block] Scope block
+   @summary Keep a stream open for the duration of a scoping block
+   @desc
+     Calls function `block` with one parameter `open_stream`, a [::Stream] 
+     iterating the input `sequence`. The input sequence will be kept open for
+     the duration of `block`: Each partial iteration of `open_stream` 
+     within `block` will pick up iteration of `sequence` where the
+     previous iteration left off.
+
+     ### Example
+
+         @integers() .. @withOpenStream {
+           |ints|
+           ints .. @take(5) .. @toArray .. console.log; // 0,1,2,3,4
+           ints .. @take(5) .. @toArray .. console.log; // 5,6,7,8,9
+         }
+
+         // in contrast to:
+
+         @integers() .. @take(5) .. @toArray .. console.log; // 0,1,2,3,4
+         @integers() .. @take(5) .. @toArray .. console.log; // 0,1,2,3,4
+
+     ### Caveats
+
+     When successively iterating open streams, be careful of sequence primitives that 
+     'swallow' elements as part of their operation. E.g. [::takeWhile] will swallow 
+     the first element that doesn't match its predicate:
+
+         [0,2,4,5,6,7,8] .. @withOpenStream {
+           |S|
+           S .. @takeWhile(x->x%2==0) .. @toArray; // = [0,2,4]
+           // 5 IS IMPLICITLY SWALLOWED BY @takeWhile!
+           S .. @toArray; // [6,7,8]
+         }
+*/
+
+/*
+  Naive implementation (20 times slower in synchronous case):
+function withOpenStream(seq, block) {
+  var done = {};
+  seq .. consume(done) { 
+    |next|
+    var seq_open = @Stream(function(r) { 
+      while (1) { 
+        var elem = next();
+        if (elem === done) return;
+        r(elem);
+      }
+    });
+    block(seq_open);
+  }
+}
+
+*/
+
+function withOpenStream(seq, block) {
+  var Connected = Object.create(_Waitable); Connected.init();
+  var receiver;
+  var redirect;
+
+  // helpers:
+
+  __js var iter_sync = function(x) {
+    if (!receiver)
+      return iter_wait_async(x);
+    try {
+      var rv = receiver(x);
+      if (rv && __oni_rt.is_ef(rv)) return iter_handle_controlflow_async(rv);
+    }
+    catch(e) {
+      receiver = null;
+      redirect([e]);
+    }
+  };
+  var iter_wait_async = function(x) {
+    Connected.wait();
+    return __js iter_sync(x);
+  };
+
+  var iter_handle_controlflow_async = function(ef) {
+    try { ef.wait(); } finally(e) { 
+      if (e[1]) {
+        receiver = null;
+        redirect(e);
+        throw [undefined];
+      }
+      else {
+        throw [undefined];
+      }
+    }
+  }
+
+  // main logic:
+  waitfor {
+    // iterate stream:
+    seq .. each(iter_sync);
+    // stream has ended; end consumer whenever they are trying to iterate us:
+    while(1) {
+      waitfor {
+        Connected.wait();
+      }
+      and {
+        if (redirect) {
+          redirect(undefined);
+        }
+      }
+    }
+  }
+  or {
+    block(Stream::function(r) {
+      receiver = r;
+      waitfor(var control_flow) {
+        redirect = resume;
+        __js Connected.emit();
+      }
+      if (control_flow) {
+        // copy controlflow to @Stream function:
+        try { /**/ }
+        finally(e) {
+          receiver = null;
+          throw control_flow;
+        }
+      }
+    });
+  }
+}
+exports.withOpenStream = withOpenStream;
 
 /**
    @function toArray
@@ -1237,8 +1443,8 @@ exports.count = count;
 */
 function take(sequence, count) {
   return Stream(function(r) {
-    var n = count;
-    if (n > 0) sequence .. each { |x| r(x); if (--n <= 0) return }
+    var n = count; 
+    if (n > 0) sequence .. each { |x| r(x); if (__js --n <= 0) return; }
   });
 }
 exports.take = take;
@@ -1447,7 +1653,6 @@ exports.partition = partition;
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to apply to each element of `sequence`
    @return {Array}
-   @deprecated Usually you want to use [::transform] or [projection::project]
    @summary  Create an array `f(x)` of elements `x` of `sequence`
    @desc
       Generates an array of elements `[f(x1), f(x2), f(x3),...]` where `x1, x2, x3, ..`
@@ -1513,7 +1718,7 @@ map.filter = (sequence, fn) -> transform.filter(sequence, fn) .. toArray;
    @altsyntax sequence .. transform(f)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to apply to each element of `sequence`
-   @return {::Stream}
+   @return {::Stream|::StructuredStream} Plain stream or structured stream of type 'batched' (see below)
    @summary  Create a stream `f(x)` of elements `x` of `sequence`
    @desc
       Acts like [::map], but lazily - it returns a [::Stream] instead of an Array.
@@ -1547,13 +1752,28 @@ map.filter = (sequence, fn) -> transform.filter(sequence, fn) .. toArray;
           ...
           squares .. each { |x| ... } // neither here
 
+      ### Stream structuring details
+
+      If the input sequence is a [::StructuredStream] of type `batched`, 
+      `transform` will also return a batched structured stream which 
+      maintains the same batching as the input sequence.
+      For generic input sequences, `transform` returns a plain [::Stream].
 */
 
 /*
   equivalent but sometimes slower implementation:
   var transform = (seq,f) -> Stream(r -> seq .. each { |x| r(f(x)) })
 */
+
 __js function transform(sequence, f) {
+  if (sequence .. isStructuredStream('batched'))
+    return StructuredStream('batched') ::
+             sequence.base .. transform(arr -> arr .. map(f))
+  else
+    return transform_inner(sequence, f);
+}
+
+__js function transform_inner(sequence, f) {
   return Stream(function(r) {
     function rf(x) {
       var inner = f(x);
@@ -1581,6 +1801,60 @@ function async_rf(fx, r) {
    @summary Like [::transform], but skips items where `fn(x)` returns `null`/`undefined`.
 */
 transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x != null);
+
+/**
+  @function transform.map
+  @altsyntax sequence .. transform.map(f)
+  @param {::Sequence} [sequence] Input sequence
+  @param {Function} [f] Function to map over each element of `sequence`
+  @summary Map a function over the (array) elements of `sequence`
+  @return {::Stream|::StructuredStream} Plain stream or structured stream of type 'rolling' (see below)
+  @desc
+     `seq .. @transform.map(f)` is synonymous to 
+     `seq .. @transform(arr -> arr .. @map(f))`.
+     However, unlike the latter form, `transform.map` will maintain the 
+     structure of 'rolling' [::StructuredStream]s, and can operate more efficiently
+     on them.
+     E.g.:
+
+         // a 'rolling' structured stream [1,2],[2,3],[3,4]
+         var rollingStream = [1,2,3,4] .. @rollingWindow(2);
+
+         // the following code returns a 'plain' Stream and executes
+         // f(1),f(2),f(2),f(3),f(3),f(4) when iterated:
+         rollingStream .. @transform(arr->arr .. @map(f));
+
+         // the following code returns a 'rolling' StructuredStream and 
+         // only executes f(1),f(2),f(3),f(4) when iterated:
+         rollingStream .. @transform.map(f);
+
+      ### Stream structuring details
+
+      If the input sequence is a [::StructuredStream] of type `rolling`, 
+      `transform.map` will also return a rolling structured stream, and
+      will operate on the stream more efficiently, as outlined in the 
+      example above.
+      For generic input sequences, `transform` returns a plain [::Stream].
+
+*/
+var transform_map_rolling = (seq, f) -> StructuredStream('rolling') ::
+    Stream :: function(r) {
+      seq .. each { 
+        |[drop_count, elems]|
+        elems = elems .. map(f);
+        r([drop_count, elems]);
+      }
+    };
+
+transform.map = function(seq, f) {
+  if (isStructuredStream('rolling') :: seq) {
+    return transform_map_rolling(seq.base, f);
+  }
+  else
+    return seq .. transform(elems -> elems .. map(f));
+};
+
+
 
 /**
    @function scan
@@ -1653,6 +1927,48 @@ function monitor(sequence, f) {
 
 exports.monitor = monitor;
 
+/**
+   @function monitor.raw
+   @altsyntax sequence .. monitor.raw(f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [f] Function to execution for each element of the raw `sequence`
+   @return {::Stream|::StructuredStream}
+   @summary Like [::monitor], but operates on the innermost raw base sequence if `sequence` is a [::StructuredStream]
+   @desc
+     `monitor.raw` functions like [::monitor], but for input sequences
+     that are [::StructuredStream]s, it executes `f` on the raw base 
+     sequence (with all levels of structuring removed):
+
+         [1,2,3,4] .. @batch(2) .. @monitor.raw(console.log) .. @toArray;
+         // logs:
+         [1,2]
+         [3,4]
+
+         [1,2,3,4] .. @rollingWindow(2) .. @monitor.raw(console.log) .. @toArray;
+         // logs:
+         [0,[1,2]]
+         [1,[3]]
+         [1,[4]]
+
+         [1,2,3,4] .. @rollingWindow(2) .. @batch(2) .. @monitor.raw(console.log) .. @toArray;
+         // logs:
+         [[0,[1,2]],[1,[3]]]
+         [[1,[4]]]
+
+
+     ### Stream structuring details
+
+     For input sequences that are [::StructuredStreams], `monitor.raw` will pass
+     through the same (possibly nested) stream structure.
+     For generic input sequences, `monitor.raw` returns a plain [::Stream].
+
+*/
+__js monitor.raw = function(sequence, f) {
+  if (sequence .. isStructuredStream) 
+    return StructuredStream(sequence.type):: monitor.raw(sequence.base, f);
+  else
+    return sequence .. monitor(f);
+}
 
 /**
   @function concat
@@ -1734,9 +2050,6 @@ exports.concat = concat;
           // same as above, with double dot call syntax:
 
           integers() .. pack(next -> [next(),next()])
-
-      See also [::BatchedStream] for a way to create packed streams that automatically 
-      flatten when iterated.
 */
 var pack_no_next_item_sentinel = {}; // helper, see below
 
@@ -3206,35 +3519,122 @@ exports.mirror = function(stream, latest) {
 //----------------------------------------------------------------------
 
 /**
+   @function batch
+   @altsyntax sequence .. batch(count)
+   @altsyntax sequence .. batch(packing_func, [pad])
+   @param {::Sequence} [sequence] Input sequence
+   @param {Object} [settings] Settings object.
+   @setting {Integer} [count] Number of input elements to batch into one element of the output.
+   @setting {Function} [batching_func] Batching function
+   @setting {Integer} [interval] Interval in ms over which to batch elements
+   @setting {Object} [pad=undefined] Padding object (used in conjunction with `packing_func`)
+   @return {::StructuredStream} Batched stream that maintains any existing [::StructuredStream] structure 
+   @summary  Create a batched [::StructuredStream] by collecting multiple values from the input sequence into one element of the output stream.
+   @desc
+     Note: This function has the same arguments as [::pack], but instead of generating a plain [::Stream]
+     it generates a [::StructuredStream] of type 'batched'. If the input stream is a (possibly nested) 
+     structured stream, the nesting structure will be maintained, with the innermost base sequence being
+     wrapped as a 'batched' StructuredStream. If the innermost structured stream is a batched 
+     StructuredStream, it will be merged into the generated batched stream. I.e. the output stream will
+     have exactly one innermost batched StructuredStream, with potentially a StructuredStream of another
+     type wrapped around it. E.g. applying `batch` to a stream
+
+         StructuredStream('batched') :: StructuredStream('rolling') :: StructuredStream('batched')
+
+     generates a stream of the same structure:
+
+         StructuredStream('batched') :: StructuredStream('rolling') :: StructuredStream('batched')
+
+     where the innermost batched stream is merged with the new batching.
+*/
+__js {
+  function batch(seq, settings) {
+    if (seq .. isStructuredStream('batched')) {
+      return StructuredStream('batched') :: seq.base .. pack(settings) .. transform(__js arr -> arr.reduce((acc,val)->acc.concat(val), []));
+    }
+    else if (seq .. isStructuredStream)
+      return StructuredStream(seq.type) :: batch(seq.base, settings);
+    else
+      return StructuredStream('batched') :: seq .. pack(settings);
+  }
+  exports.batch = batch;
+} // js
+
+/**
    @function batchN
    @altsyntax sequence .. batchN(count)
-   @deprecated Use `sequence .. @pack(count) .. @BatchedStream`
+   @deprecated Use `sequence .. @batch(count)`
    @param {::Sequence} [sequence] Input sequence
    @param {Integer} [count] Maximum number of input elements to batch.
-   @return {::BatchedStream}
-   @summary  Create a [::BatchedStream] with batches of size `count`
-   @desc
-     `batchN` creates a [::BatchedStream] from given [::Sequence] that is more efficient to send
-     over the network: Instead of one roundtrip for every element in `sequence`, a roundtrip will
-     only be made for every `count` elements (or when `sequence` is exhausted).
+   @summary Deprecated synonym for [::batch]
 */
-
-function batchN(s, n) {
-  return BatchedStream(function(r) {
-    var batch = [];
-    s .. each {
-      |x|
-      batch.push(x);
-      if (batch.length === n) {
-        r(batch);
-        batch = [];
-      }
-    }
-    if (batch.length)
-      r(batch);
-  });
-}
-exports.batchN = batchN;
+__js exports.batchN = batch;
 
 //----------------------------------------------------------------------
+
+/**
+   @function rollingWindow
+   @altsyntax sequence .. rollingWindow(window)
+   @summary Create a rolling stream of arrays of adjacent elements from the input sequence 
+   @param {::Sequence} [sequence]
+   @param {Object} [settings]
+   @return {::StructuredStream} structured stream of type 'rolling'
+   @setting {Integer} [window] Number of elements in the rolling window
+   @setting {Boolean} [cliff=true] If `false`, the window will gradually be built up from 1 to `window` at the start of the sequence, and wound down from `window` to 1 at the end of the sequence. If `true`, only elements with a full window (i.e. arrays of `window` elements) will be emitted; the first output element only being emitted after `window` input elements have been consumed. 
+   @desc
+      ### Examples:
+
+           @integers() .. @rollingWindow(5)
+           // = [0,1,2,3,4], [1,2,3,4,5], [2,3,4,5,6], [3,4,5,6,7], ...
+
+           @integers() .. @rollingWindow({window:3, cliff: false})
+           // = [0], [0,1], [0,1,2], [1,2,3], [2,3,4], [3,4,5], ...
+
+           [1,2,3,4] .. @rollingWindow(3)
+           // = [1,2,3], [2,3,4]
+
+           [1,2,3,4] .. @rollingWindow({window:3, cliff: false})
+           // = [1], [1,2], [1,2,3], [2,3,4], [3,4], [4]
+
+      ### Stream structuring details
+
+      `rollingWindow` creates a [::StructuredStream] of type 'rolling'.
+*/
+function rollingWindow(seq, settings) {
+  __js settings = { window: 1,
+                    cliff: true } .. 
+    overrideObject(typeof(settings) === 'number' ? 
+                 {window: settings} : settings);
+
+  return StructuredStream('rolling') ::
+    Stream :: function(r) {
+      seq .. withOpenStream {
+        |S|
+        var wind_down = 0;
+        // lead-in
+        if (settings.cliff) {
+          var arr = S .. take(settings.window) .. toArray;
+          if (arr.length < settings.window) return;
+          r([0,arr]);
+        }
+        else {
+          S .. take(settings.window) .. each {
+            |x|
+            ++wind_down;
+            r([0,[x]]);
+          }
+        }
+        // main body
+        S .. each {
+          |x|
+          r([1,[x]]);
+        }
+        // lead-out
+        while (--wind_down > 0) {
+          r([1,[]]);
+        }
+      }
+    };
+}
+exports.rollingWindow = rollingWindow;
 

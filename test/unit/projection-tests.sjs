@@ -29,35 +29,6 @@
       a.set(4);
     }
   }
-  @test("observablearray") {||
-    var a = @ObservableArrayVar([1,2,3]);
-    var projection = a.stream .. @project(x->x..@map(x->x+1));
-    projection .. @isObservable .. @assert.eq(false);
-    projection .. @isStructuredObservable .. @assert.eq(true);
-    projection .. @isObservableArray .. @assert.eq(true);
-    waitfor {
-      projection .. @consume {
-        |next|
-        @assert.eq(next(), [2,3,4]);
-        @assert.eq(next(), [2,3]);
-        @assert.eq(next(), [3,3]);
-        @assert.eq(next(), [3,3,4]);
-      }
-    }
-    and {
-      a.remove(2);
-      a.set(0,2);
-      a.push(3);
-    }
-  }
-  @test("BatchedStream") {||
-    var a = @integers(1,10) .. @batchN(2) .. @project(x->x+1);
-    a .. @isBatchedStream .. @assert.eq(true);
-    var batched = []
-    a { |x| batched.push(x) };
-    batched .. @assert.eq([[2,3],[4,5],[6,7],[8,9],[10,11]]);
-    a .. @toArray .. @assert.eq([2,3,4,5,6,7,8,9,10,11]);
-  }
 } // project
 
 @context("projectInner") {||
@@ -99,27 +70,6 @@
       a.set([2,3,4]);
       a.set([3,4,5]);
       a.set([4,5,6]);
-    }
-  }
-  @test("observablearray") {||
-    var a = @ObservableArrayVar([1,2,3]);
-    var projection = a.stream .. @projectInner(x->x+1);
-    projection .. @isObservable .. @assert.eq(false);
-    projection .. @isStructuredObservable .. @assert.eq(true);
-    projection .. @isObservableArray .. @assert.eq(true);
-    waitfor {
-      projection .. @consume {
-        |next|
-        @assert.eq(next(), [2,3,4]);
-        @assert.eq(next(), {mutations:[{type:'del', idx:2}]});
-        @assert.eq(next(), {mutations:[{type:'set', val:3, idx:0}]});
-        @assert.eq(next(), {mutations:[{type:'ins', val:4, idx:2}]});
-      }
-    }
-    and {
-      a.remove(2);
-      a.set(0,2);
-      a.push(3);
     }
   }
 } // projectInner

@@ -328,307 +328,6 @@
       },
       "summary": "Type checking, conversions and other utilities for binary data types."
     },
-    "collection/": {
-      "type": "lib",
-      "children": {
-        "dictionary": {
-          "type": "module",
-          "children": {
-            "Dictionary": {
-              "type": "class",
-              "children": {}
-            },
-            "del": {
-              "type": "function"
-            },
-            "get": {
-              "type": "function"
-            },
-            "has": {
-              "type": "function"
-            },
-            "insert": {
-              "type": "function"
-            },
-            "modify": {
-              "type": "function"
-            },
-            "remove": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            }
-          },
-          "summary": "Functions for manipulating dictionary data structures (JavaScript objects, hash tables, binary search trees, etc.)"
-        },
-        "immutable": {
-          "type": "module",
-          "children": {
-            "Dict": {
-              "type": "class",
-              "children": {
-                "Dict": {
-                  "type": "ctor"
-                },
-                "get": {
-                  "type": "function"
-                },
-                "has": {
-                  "type": "function"
-                },
-                "isEmpty": {
-                  "type": "function"
-                },
-                "modify": {
-                  "type": "function"
-                },
-                "remove": {
-                  "type": "function"
-                },
-                "set": {
-                  "type": "function"
-                }
-              }
-            },
-            "List": {
-              "type": "class",
-              "children": {
-                "List": {
-                  "type": "ctor"
-                },
-                "concat": {
-                  "type": "function"
-                },
-                "get": {
-                  "type": "function"
-                },
-                "has": {
-                  "type": "function"
-                },
-                "insert": {
-                  "type": "function"
-                },
-                "isEmpty": {
-                  "type": "function"
-                },
-                "modify": {
-                  "type": "function"
-                },
-                "remove": {
-                  "type": "function"
-                },
-                "size": {
-                  "type": "function"
-                },
-                "slice": {
-                  "type": "function"
-                }
-              }
-            },
-            "Queue": {
-              "type": "class",
-              "children": {
-                "Queue": {
-                  "type": "ctor"
-                },
-                "concat": {
-                  "type": "function"
-                },
-                "isEmpty": {
-                  "type": "function"
-                },
-                "peek": {
-                  "type": "function"
-                },
-                "pop": {
-                  "type": "function"
-                },
-                "push": {
-                  "type": "function"
-                },
-                "size": {
-                  "type": "function"
-                }
-              }
-            },
-            "Set": {
-              "type": "class",
-              "children": {
-                "Set": {
-                  "type": "ctor"
-                },
-                "add": {
-                  "type": "function"
-                },
-                "disjoint": {
-                  "type": "function"
-                },
-                "has": {
-                  "type": "function"
-                },
-                "intersect": {
-                  "type": "function"
-                },
-                "isEmpty": {
-                  "type": "function"
-                },
-                "remove": {
-                  "type": "function"
-                },
-                "subtract": {
-                  "type": "function"
-                },
-                "union": {
-                  "type": "function"
-                }
-              }
-            },
-            "SortedDict": {
-              "type": "function"
-            },
-            "SortedSet": {
-              "type": "function"
-            },
-            "Stack": {
-              "type": "class",
-              "children": {
-                "Stack": {
-                  "type": "ctor"
-                },
-                "concat": {
-                  "type": "function"
-                },
-                "isEmpty": {
-                  "type": "function"
-                },
-                "peek": {
-                  "type": "function"
-                },
-                "pop": {
-                  "type": "function"
-                },
-                "push": {
-                  "type": "function"
-                },
-                "size": {
-                  "type": "function"
-                }
-              }
-            },
-            "equal": {
-              "type": "function"
-            },
-            "isDict": {
-              "type": "function"
-            },
-            "isList": {
-              "type": "function"
-            },
-            "isQueue": {
-              "type": "function"
-            },
-            "isSet": {
-              "type": "function"
-            },
-            "isSortedDict": {
-              "type": "function"
-            },
-            "isSortedSet": {
-              "type": "function"
-            },
-            "isStack": {
-              "type": "function"
-            },
-            "toJS": {
-              "type": "function"
-            }
-          },
-          "summary": "Various immutable data structures, including dictionaries, lists, sets, queues, and stacks"
-        },
-        "list": {
-          "type": "module",
-          "children": {
-            "List": {
-              "type": "class",
-              "children": {}
-            },
-            "indexOf": {
-              "type": "function"
-            },
-            "insert": {
-              "type": "function"
-            },
-            "length": {
-              "type": "function"
-            },
-            "modify": {
-              "type": "function"
-            },
-            "nth": {
-              "type": "function"
-            },
-            "nth_has": {
-              "type": "function"
-            },
-            "nth_set": {
-              "type": "function"
-            },
-            "pop": {
-              "type": "function"
-            },
-            "push": {
-              "type": "function"
-            },
-            "remove": {
-              "type": "function"
-            },
-            "sortedIndexFor": {
-              "type": "function"
-            },
-            "sortedIndexOf": {
-              "type": "function"
-            },
-            "sortedInsert": {
-              "type": "function"
-            },
-            "sortedPush": {
-              "type": "function"
-            },
-            "sortedRemove": {
-              "type": "function"
-            }
-          },
-          "summary": "Functions for manipulating finite ordered sequences"
-        },
-        "set": {
-          "type": "module",
-          "children": {
-            "Set": {
-              "type": "class",
-              "children": {}
-            },
-            "add": {
-              "type": "function"
-            },
-            "difference": {
-              "type": "function"
-            },
-            "has": {
-              "type": "function"
-            },
-            "remove": {
-              "type": "function"
-            },
-            "union": {
-              "type": "function"
-            }
-          },
-          "summary": "Functions for manipulating data structures as a mathematical set"
-        }
-      },
-      "summary": "SJS collection utilities"
-    },
     "compare": {
       "type": "module",
       "children": {
@@ -2017,14 +1716,6 @@
     "sequence": {
       "type": "module",
       "children": {
-        "BatchedStream": {
-          "type": "class",
-          "children": {
-            "BatchedStream": {
-              "type": "ctor"
-            }
-          }
-        },
         "PACK_OMIT": {
           "type": "variable"
         },
@@ -2044,6 +1735,14 @@
             }
           }
         },
+        "StructuredStream": {
+          "type": "class",
+          "children": {
+            "StructuredStream": {
+              "type": "ctor"
+            }
+          }
+        },
         "all": {
           "type": "function"
         },
@@ -2057,6 +1756,9 @@
           "type": "function"
         },
         "at": {
+          "type": "function"
+        },
+        "batch": {
           "type": "function"
         },
         "batchN": {
@@ -2134,9 +1836,6 @@
         "intersperse_n_1": {
           "type": "function"
         },
-        "isBatchedStream": {
-          "type": "function"
-        },
         "isConcreteSequence": {
           "type": "function"
         },
@@ -2144,6 +1843,9 @@
           "type": "function"
         },
         "isStream": {
+          "type": "function"
+        },
+        "isStructuredStream": {
           "type": "function"
         },
         "join": {
@@ -2167,6 +1869,9 @@
         "monitor": {
           "type": "function"
         },
+        "monitor.raw": {
+          "type": "function"
+        },
         "pack": {
           "type": "function"
         },
@@ -2183,6 +1888,9 @@
           "type": "function"
         },
         "reverse": {
+          "type": "function"
+        },
+        "rollingWindow": {
           "type": "function"
         },
         "scan": {
@@ -2224,6 +1932,9 @@
         "transform.filter": {
           "type": "function"
         },
+        "transform.map": {
+          "type": "function"
+        },
         "transform.par": {
           "type": "function"
         },
@@ -2237,6 +1948,9 @@
           "type": "function"
         },
         "unpack": {
+          "type": "function"
+        },
+        "withOpenStream": {
           "type": "function"
         },
         "zip": {
@@ -2604,65 +2318,6 @@
         }
       },
       "summary": "Functions for working with strings"
-    },
-    "structured-observable": {
-      "type": "module",
-      "children": {
-        "ObservableArray": {
-          "type": "class",
-          "children": {}
-        },
-        "ObservableArrayVar": {
-          "type": "class",
-          "children": {
-            "ObservableArrayVar": {
-              "type": "ctor"
-            },
-            "get": {
-              "type": "function"
-            },
-            "getLength": {
-              "type": "function"
-            },
-            "insert": {
-              "type": "function"
-            },
-            "push": {
-              "type": "function"
-            },
-            "remove": {
-              "type": "function"
-            },
-            "reset": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            },
-            "stream": {
-              "type": "variable"
-            }
-          }
-        },
-        "StructuredObservable": {
-          "type": "class",
-          "children": {
-            "StructuredObservable": {
-              "type": "ctor"
-            }
-          }
-        },
-        "isObservableArray": {
-          "type": "function"
-        },
-        "isStructuredObservable": {
-          "type": "function"
-        },
-        "reconstitute": {
-          "type": "function"
-        }
-      },
-      "summary": "Constructs for manipulating structured streams backed by time-varying values"
     },
     "sys": {
       "type": "module",

@@ -42,7 +42,6 @@ unit/sjs-3-tests.sjs
 unit/sjs-tests.sjs
 unit/stack-tests.sjs
 unit/string-tests.sjs
-unit/structured-observable-tests.sjs
 unit/test/reporter-tests.sjs
 unit/test/runner-tests.sjs
 unit/url-tests.sjs

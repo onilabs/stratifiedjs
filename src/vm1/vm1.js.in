@@ -2662,7 +2662,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
       exports.current_dyn_vars = caller_dyn_vars;
     }
   };
-      
+
 #endif
       // XXX If we want to enable the 'clearOrphanedBLR' functionality in the bridge
       // then we need to reflect the execution frame onto the resume function here:

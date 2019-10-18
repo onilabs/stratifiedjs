@@ -31,6 +31,7 @@
  */
 /**
    @module    projection
+   @deprecated Module scheduled to be removed
    @summary   Type preserving manipulating of streams and observables 
    @home      sjs:projection
    @inlibrary sjs:std
@@ -41,7 +42,6 @@
 @ = require([
   'sjs:sequence',
   'sjs:observable',
-  'sjs:structured-observable',
   'sjs:array',
   'sjs:object'
 ]);
@@ -49,6 +49,7 @@
 /**
    @function project
    @altsyntax sequence .. project(f)
+   @deprecated Use [sequence::transform], maybe in conjunction with [observable::Observable]
    @param {sequence::Sequence} [sequence] Input sequence
    @param {Function} [f] Transformation function to apply to each element of `sequence`
    @return {sequence::Sequence} Sequence of same type as input sequence
@@ -64,43 +65,19 @@
        * `str .. @transform(f) .. @join('')` if  `str` is a string.
        * `sequence .. @transform(f)` if `sequence` is a generic [sequence::Stream].
 
-      For [sequence::BatchedStream]s, `sequence .. project(f)` will return a 
-      [sequence::BatchedStream] with the same batching as `sequence`.
-
-      For the projection behavior of [structured-observable::StructuredObservable]s,
-      see the documentation of the individual structured observable.
 */
 
 // helpers
 function projectObservable(upstream, transformer) {
   return @Observable :: upstream .. @transform(transformer) .. @dedupe;
 }
-function projectObservableArray(upstream, transformer) {
-  return @ObservableArray :: upstream .. @reconstitute .. @transform(transformer) .. @dedupe;
-}
 
 var projectString = (str, f) -> str .. @transform(f) .. @join('');
-function projectBatchedStream(seq, f) {
-  return @BatchedStream(function(r) {
-    // note: must not use 'each' here, because we want to operate on batches
-    seq {
-      |batch|
-      r(batch .. @map(f));
-    }
-  });
-}
 
 __js {
   function project(sequence, f) {
-    if (@isObservableArray(sequence))
-      return projectObservableArray(sequence, f);
-    else if (@isStructuredObservable(sequence))
-      throw new Error("Don't know how to project this structured observable");
     if (@isObservable(sequence))
       return projectObservable(sequence, f);
-    else if (@isBatchedStream(sequence)) {
-      return projectBatchedStream(sequence, f);
-    }
     else if (@isStream(sequence)) {
       return @transform(sequence, f);
     }
@@ -120,59 +97,21 @@ __js {
 /**
    @function projectInner
    @altsyntax sequence .. projectInner(f)
+   @deprecated Use [sequence::transform.map], maybe in conjunction with [observable::Observable]
    @param {sequence::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to map over `sequence` elements
    @return {sequence::Sequence} Sequence of same type as input sequence
    @summary  Project a function over each element of a sequence
    @desc
+      For 'normal' streams and observables,  
      `seq .. projectInner(f)` is equivalent to 
      `seq .. @project(elems -> elems .. @project(f))`.
-
-      For many [structured-observable::StructuredObservable]s, such as 
-      [structured-observable::ObservableArray], calling `projectInner` is more
-      efficient than calling `project(elems -> elems .. @project)`. 
-      E.g. for [structured-observable::ObservableArray] streams, instead of projecting
-      each array element for every mutation, only new items have to be projected.
-      For details,
-      see the documentation of the individual structured observable.
-
 */
 
-function projectInnerObservableArray(upstream, transformer) {
-  return @ObservableArray(
-    upstream .. 
-      @transform(function(item) {
-        if (item.mutations) {
-          return {mutations: 
-                  item.mutations .. 
-                  project(function(delta) {
-                    switch (delta.type) {
-                    case 'set':
-                    case 'ins':
-                      delta = delta .. @merge({val: transformer(delta.val)});
-                      break;
-                    case 'del':
-                      break;
-                    default:
-                      throw new Error("Unknown operation in ObservableArray stream");
-                    }
-                    return delta;
-                  })
-                 };
-        }
-        else {
-          // we have a copy of the full array
-          return item .. project(transformer);
-        }
-      }));
-};
 
 __js {
   function projectInner(sequence, f) {
-    if (@isObservableArray(sequence))
-      return projectInnerObservableArray(sequence, f);
-    else
-      return sequence .. project(elems -> elems .. project(f));
+    return sequence .. project(elems -> elems .. project(f));
   }
   exports.projectInner = projectInner;
 } // __js
@@ -181,6 +120,7 @@ __js {
 /**
    @function dereference
    @altsyntax sequence .. dereference(obj)
+   @deprecated Use `transform(->obj[p])`
    @summary Project a sequence into property lookups in a type preserving way
    @param {sequence::Sequence} [sequence] Input sequence of property names
    @param {Object} [obj] Object whose properties are being accessed
