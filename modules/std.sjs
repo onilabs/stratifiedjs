@@ -206,14 +206,15 @@ module.exports = require(modules);
    - **constantObservable**: (function [sjs:observable::constantObservable])
    - **current**: (function [sjs:observable::current])
    - **DelayedObservable**: (function [sjs:observable::DelayedObservable])
-   - **eventStreamToObservable**: (function [sjs:observable::eventStreamToObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
-   - **isObservable**: (function [sjs:observable::isObservable])
    - **isObservableVar**: (function [sjs:observable::isObservableVar])
-   - **Observable**: (class [sjs:observable::Observable])
+   - **isObservableWindowVar**: (function [sjs:observable::isObservableWindowVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
+   - **ObservableWindowVar**: (class [sjs:observable::ObservableWindowVar])
    - **observe**: (function [sjs:observable::observe])
+   - **sample**: (function [sjs:observable::sample])
    - **synchronize**: (function [sjs:observable::synchronize])
+   - **updatesToObservable**: (function [sjs:observable::updatesToObservable])
   
   
   ### Symbols from the [sjs:projection](#sjs%3Aprojection) module:

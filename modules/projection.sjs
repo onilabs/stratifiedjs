@@ -49,10 +49,10 @@
 /**
    @function project
    @altsyntax sequence .. project(f)
-   @deprecated Use [sequence::transform], maybe in conjunction with [observable::Observable]
+   @deprecated Use [sequence::transform]
    @param {sequence::Sequence} [sequence] Input sequence
    @param {Function} [f] Transformation function to apply to each element of `sequence`
-   @return {sequence::Sequence} Sequence of same type as input sequence
+   @return {sequence::Sequence} 
    @summary  Apply a function to each sequence element in a type preserving way
    @desc
       Performs a stream transformation that preserves the type of the input sequence,
@@ -60,7 +60,6 @@
 
       In particular `sequence .. project(f)` is equivalent to
 
-       * `@Observable(obs .. @transform(f) .. @dedupe)` if `obs` is an [observable::Observable].
        * `arr .. @transform(f) .. @toArray` if `arr` is array-like.
        * `str .. @transform(f) .. @join('')` if  `str` is a string.
        * `sequence .. @transform(f)` if `sequence` is a generic [sequence::Stream].
@@ -68,17 +67,11 @@
 */
 
 // helpers
-function projectObservable(upstream, transformer) {
-  return @Observable :: upstream .. @transform(transformer) .. @dedupe;
-}
-
 var projectString = (str, f) -> str .. @transform(f) .. @join('');
 
 __js {
   function project(sequence, f) {
-    if (@isObservable(sequence))
-      return projectObservable(sequence, f);
-    else if (@isStream(sequence)) {
+    if (@isStream(sequence)) {
       return @transform(sequence, f);
     }
     else if (@isArrayLike(sequence)) {
@@ -97,13 +90,12 @@ __js {
 /**
    @function projectInner
    @altsyntax sequence .. projectInner(f)
-   @deprecated Use [sequence::transform.map], maybe in conjunction with [observable::Observable]
+   @deprecated Use [sequence::transform.map]
    @param {sequence::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to map over `sequence` elements
-   @return {sequence::Sequence} Sequence of same type as input sequence
+   @return {sequence::Sequence}
    @summary  Project a function over each element of a sequence
    @desc
-      For 'normal' streams and observables,  
      `seq .. projectInner(f)` is equivalent to 
      `seq .. @project(elems -> elems .. @project(f))`.
 */

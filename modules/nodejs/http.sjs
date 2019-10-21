@@ -47,7 +47,7 @@ if (require('builtin:apollo-sys').hostenv != 'nodejs')
 
 var builtin_http  = require('http');
 
-var { find, generate, filter, each } = require('../sequence');
+var { find, generate, filter, each, isStream } = require('../sequence');
 var url = require('../url');
 var { Queue } = require('../cutil');
 var { override } = require('../object');
@@ -240,7 +240,7 @@ function withServer(config, server_loop) {
     // connections are not affected):
 
     var SSLConfig = config.ssl;
-    if (!@isObservable(SSLConfig))
+    if (!isStream(SSLConfig))
       SSLConfig = @constantObservable(SSLConfig);
 
     // in the case of no ssl (config.ssl = undefined), this will just run a normal server

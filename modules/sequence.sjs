@@ -93,54 +93,24 @@ function sequential(f) {
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
 
-     # Concrete sequences:
+     Sequences are either [::MaterialSequence]s or [::Stream]s. Material sequences
+     are sequences where the elements are known in advance (such as Arrays).
+     Streams are sequences where the elements are generated on-demand.
 
-     A concrete sequence is one where:
-     
-      - all elements are already known and present in memory
-      - iteration will not mutate the sequence
-      - iteration will not suspend between successive elements
-      - the sequence object has a `length` member containing the number of elements
-      - elements are accessible using bracket notation (i.e. `seq[index]`)
+     A sequence is a [::Stream] if [::isStream] returns `true` for it. Otherwise it
+     is a material sequence.
 
-     # Concrete sequence types:
+     The distinction between [::Stream]s and [::MaterialSequence]s is important for 
+     two reasons:
 
-     - Array
-     - String (treated as a Character array)
-     - nodejs Buffer (treated as an Integer array; nodejs only)
-     - TypedArray (treated as an Integer array)
-     - any `arguments` object
-     - NodeList (xbrowser only)
+     Firstly, material sequences can often be iterated more efficiently than 
+     streams. Also, some primitives (such as [::count]) can operate on material
+     sequences without actually iterating the sequence.
 
-     You can use [::isConcreteSequence] to check if a sequence is concrete.
-
-     # Semi-concrete sequences:
-
-     A semi-concrete sequence is one where:
-     
-      - all elements are already known and present in memory
-      - iteration will not mutate the sequence
-      - iteration will not suspend between successive elements
-      - the iteration order is undefined
-
-     # Semi-concrete sequence types:
-
-     - [./set::Set]s
-
-     # Non-concrete sequences types:
-
-     - [::Stream] & its subtypes ([::StructuredStream])
-
-     There are no particular guarantees about the behaviour of non-concrete
-     sequences. In particular, each individual sequence _may or may not_ be:
-
-     - infinite
-     - arbitrarily large
-     - non-replayable (i.e. you may only iterate over the sequence once)
-     - intermittent (successive items may be separated by long periods of time)
-
-     Whether or not a given sequence has any of these traits depends
-     on its implementation, and cannot be tested programmatically.
+     Secondly, a powerful design pattern is for a function to accept either a
+     material sequence or an [observable::Observable] of a material sequence as argument.
+     A distinction between material sequences and [observable::Observables] (which are 
+     streams, but not material sequences) is needed to facilitate this.
 */
 
 /**
@@ -154,6 +124,27 @@ function sequential(f) {
    @summary Mark a streaming function as a Stream
    @param {Function} [S] Streaming function
    @desc
+     Streams (as opposed to [::MaterialSequence]s) are sequences where the 
+     elements are produced programmatically.
+
+     There are no particular guarantees about the behaviour of non-concrete
+     sequences. In particular, each individual sequence _may or may not_ be:
+
+     - infinite
+     - arbitrarily large
+     - non-replayable (i.e. you may only iterate over the sequence once)
+     - intermittent (successive items may be separated by long periods of time)
+
+     Whether or not a given sequence has any of these traits depends
+     on its implementation, and cannot be tested programmatically.
+
+     ### Subtypes
+
+     There are two subtypes of streams: [::StructuredStream]s and [observable::ObservableVar]s.
+
+     ### Creating a stream from a streaming function
+
+     `@Stream(S)` creates a stream from a streaming function `S`.
      A streaming function `S` is a function with signature `S(emit)`, where `emit`, is a
      function of a single argument.
      When called, `S(emit)` must sequentially invoke `emit(x)` with the stream's data elements
@@ -352,6 +343,54 @@ __js var toStream = exports.toStream = function(arr) {
    @summary Returns `true` if `s` is a [::Stream], `false` otherwise.
 */
 __js var isStream = exports.isStream = (s) -> s && (s.__oni_is_Stream === true || s.__oni_structured_stream === true);
+
+/**
+   @class MaterialSequence
+   @inherit ::Sequence
+   @summary A finite sequence for which all elements are already known and present in memory
+   @desc
+     See the classification notes under the documentation for [::Sequence].
+     A sequence is material if [::isStream] returns false.
+
+     Material sequences are further classified into concrete and semi-concrete:
+
+     # Concrete sequences:
+
+     A concrete sequence is one where:
+     
+      - all elements are already known and present in memory
+      - iteration will not mutate the sequence
+      - iteration will not suspend between successive elements
+      - the sequence object has a `length` member containing the number of elements
+      - elements are accessible using bracket notation (i.e. `seq[index]`)
+
+     # Concrete sequence types:
+
+     - Array
+     - String (treated as a Character array)
+     - nodejs Buffer (treated as an Integer array; nodejs only)
+     - TypedArray (treated as an Integer array)
+     - any `arguments` object
+     - NodeList (xbrowser only)
+
+     You can use [::isConcreteSequence] to check if a sequence is concrete.
+
+     # Semi-concrete sequences:
+
+     A semi-concrete sequence is one where:
+     
+      - all elements are already known and present in memory
+      - iteration will not mutate the sequence
+      - iteration will not suspend between successive elements
+      - the iteration order is undefined
+
+     # Semi-concrete sequence types:
+
+     - [./set::Set]s
+
+
+
+*/
 
 /**
    @function isConcreteSequence
@@ -3450,10 +3489,10 @@ each.track = function(seq, r) {
      If the `latest` flag is unset (the default) or set to something other than 'false', the mirrored stream
      will buffer the most recent emitted value. If new values are produced while a consumer is blocked (*), the
      consumer will receive the most recent one once it becomes unblocked.
-     I.e. the mirrored streams will have [./observable::Observable] semantics as long as you can guarantee that 
-     the source stream produces a value in finite time. (The returned stream will, however, not be tagged as being an observable; it will just be a [::Stream].)
+     I.e. the mirrored streams will have [./observable::Observable] semantics as long as you ensure that 
+     the source stream produces a value in finite time.
 
-     See also [./observable::eventStreamToObservable].
+     See also [./observable::updatesToObservable] and [./observable::sample].
 
      (*) Boundary case: New consumers starting to iterate the mirrored stream while there is already at least one stream concurrently iterating, will immediately receive the most recent value, as long as one has been produced.
 

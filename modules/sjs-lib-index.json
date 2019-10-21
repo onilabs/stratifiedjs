@@ -1595,11 +1595,7 @@
         },
         "Observable": {
           "type": "class",
-          "children": {
-            "Observable": {
-              "type": "ctor"
-            }
-          }
+          "children": {}
         },
         "ObservableVar": {
           "type": "class",
@@ -1618,6 +1614,23 @@
             }
           }
         },
+        "ObservableWindowVar": {
+          "type": "class",
+          "children": {
+            "ObservableWindowVar": {
+              "type": "ctor"
+            },
+            "add": {
+              "type": "function"
+            },
+            "clear": {
+              "type": "function"
+            },
+            "stream": {
+              "type": "variable"
+            }
+          }
+        },
         "changes": {
           "type": "function"
         },
@@ -1627,22 +1640,25 @@
         "current": {
           "type": "function"
         },
-        "eventStreamToObservable": {
-          "type": "function"
-        },
         "isConflictError": {
-          "type": "function"
-        },
-        "isObservable": {
           "type": "function"
         },
         "isObservableVar": {
           "type": "function"
         },
+        "isObservableWindowVar": {
+          "type": "function"
+        },
         "observe": {
           "type": "function"
         },
+        "sample": {
+          "type": "function"
+        },
         "synchronize": {
+          "type": "function"
+        },
+        "updatesToObservable": {
           "type": "function"
         }
       },
@@ -1716,6 +1732,10 @@
     "sequence": {
       "type": "module",
       "children": {
+        "MaterialSequence": {
+          "type": "class",
+          "children": {}
+        },
         "PACK_OMIT": {
           "type": "variable"
         },

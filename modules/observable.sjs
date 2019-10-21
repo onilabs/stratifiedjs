@@ -42,7 +42,7 @@
   {id: 'sjs:sys', name: 'sys'}
 ]);
 var cutil = require('./cutil');
-var { Stream, isSequence, isStream, toArray, slice, integers, first, each, skip, mirror, consume } = require('./sequence');
+var { Stream, isSequence, isStream, toArray, slice, integers, first, each, skip, mirror, consume, isStructuredStream, StructuredStream } = require('./sequence');
 var { override } = require('./object');
 
 module.setCanonicalId('sjs:observable');
@@ -54,7 +54,8 @@ module.setCanonicalId('sjs:observable');
   @desc
     A stream is said to be an "observable" if it consists of a
     *temporal* sequence of values representing some changing state
-    (e.g. that of an [::ObservableVar]).
+    (e.g. that of an [::ObservableVar]). The most recent value emitted
+    by the stream represents the current state.
 
     In contrast to an [sjs:event::EventStream]
     (e.g. a stream of 'click' events on a button), an observable always has
@@ -64,43 +65,12 @@ module.setCanonicalId('sjs:observable');
     value as soon as it unblocks.
 
     Observables are similar to what the [Flapjax](http://www.flapjax-lang.org/tutorial/) language calls "Behaviors".
-
-  @function Observable
-  @summary Mark a stream or streaming function as being an Observable
-  @param {sjs:sequence::Stream|Function} [stream] A [sjs:sequence::Stream] or streaming function (see [sjs:sequence::Stream]) 
 */
-__js {
-  var observable_toString = function() {
-    return "[object Observable]";
-  }
-  var Observable = function(s) {
-    s.__oni_is_Stream = true;
-    s.__oni_is_Observable = true;
-    s.toString = observable_toString;
-    
-    return s;
-  };
-  exports.Observable = Observable;
-} /* __js */
-
-/**
-   @function isObservable
-   @param  {Object} [o] Object to test
-   @return {Boolean}
-   @summary Returns `true` if `o` is an [::Observable], `false` otherwise.
-*/
-__js {
-  function isObservable(o) {
-    return o && o.__oni_is_Observable === true;
-  }
-  exports.isObservable = isObservable;
-}
-
 
 /**
   @class ObservableVar
   @inherit ::Observable
-  @summary An [::Observable] stream backed by a modifiable variable.
+  @summary A modifiable variable driving an [::Observable] stream
   @desc
     **Notes:**
 
@@ -215,7 +185,7 @@ function ObservableVar(val) {
     return change.wait();
   }
 
-  var rv = Observable(function(receiver) {
+  var rv = Stream(function(receiver) {
     var have_rev = 0;
     while (true) {
       wait(have_rev);
@@ -246,7 +216,6 @@ function ObservableVar(val) {
 
   rv.get = -> val;
 
-  rv.__oni_is_Observable = true;
   rv.__oni_is_ObservableVar = true;
 
   return rv;
@@ -265,6 +234,92 @@ __js {
   }
   exports.isObservableVar = isObservableVar;
 }
+
+/**
+   @class ObservableWindowVar
+   @summary A variable containing a rolling window of elements driving an [::Observable] stream
+   @desc
+     A variable containing a rolling `window`-sized window of elements with an associated [::Observable] stream.
+
+     Elements are shifted (from the left) into the window using [ObservableWindowVar::add]. The oldest
+     element will be shifted out (to the right) to maintain the number of elements in the variable
+     at `<=window`.
+
+     ### Stream structuring details
+     The generated stream, [::ObservableWindowVar::stream], is an efficiently encoded
+     [sequence::StructuredStream] of type 'rolling'.
+
+   @function ObservableWindowVar
+   @param {Integer} [window] Number of elements in the rolling window
+
+   @function ObservableWindowVar.add
+   @param {Object} [val] Element to shift into the window.
+   @summary Shift an element into the rolling window.
+
+   @function ObservableWindowVar.clear
+   @summary Clears all elements from the rolling window.
+
+   @variable ObservableWindowVar.stream
+   @summary  [::Observable] of the variable. (A 'rolling' [sequence::StructuredStream])
+*/
+function ObservableWindowVar(window) {
+  var Update = Object.create(cutil._Waitable);
+  Update.init();
+  var queue = [];
+  var adds = 0;
+  var stream = StructuredStream('rolling') ::
+      Stream :: function(r) {
+        var pos = 0; // stream position
+        var have = 0;
+        while (1) {
+          __js {
+            var remove = have-Math.max(queue.length-(adds-pos),0);
+            var add = Math.min(adds-pos, queue.length);
+            var rv = [remove, queue.slice(queue.length-add)];
+            pos = adds;
+            have += add - remove;
+          } // __js 
+          r(rv);
+          if (pos === adds)
+            Update.wait();
+        }
+      };
+
+  return {
+    stream: stream,
+
+    add: function(x) { 
+      __js {
+        queue.push(x);
+        ++adds;
+        if (queue.length > window) queue.shift();
+      }
+      Update.emit();
+    },
+
+    clear: function() {
+      __js queue = [];
+      Update.emit();
+    },
+
+    __oni_is_ObservableWindowVar: true
+  };
+}
+__js exports.ObservableWindowVar = ObservableWindowVar;
+
+/**
+   @function isObservableWindowVar
+   @param  {Object} [o] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `o` is an [::ObservableWindowVar], `false` otherwise.
+*/
+__js {
+  function isObservableWindowVar(o) {
+    return o && o.__oni_is_ObservableWindowVar === true;
+  }
+  exports.isObservableWindowVar = isObservableWindowVar;
+}
+
 
 /**
   @class ConflictError
@@ -408,16 +463,12 @@ function observe(/* var1, ...*/) {
   __js {
     deps .. each {
       |dep|
-      if (!isObservable(dep)) {
-        if (!isStream(dep)) 
-          throw new Error("invalid non-stream argument '#{typeof dep}' passed to 'observe()'");
-        // else
-        console.log("Warning: non-observable sequence passed to sjs:observable::observe(). This will throw in future.");
-      }
+      if (!isStream(dep)) 
+        throw new Error("invalid non-stream argument '#{typeof dep}' passed to 'observe()'");
     }
   }
 
-  return Observable(function(receiver) {
+  return Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = Object.create(cutil._Waitable);
     change.init();
@@ -539,13 +590,13 @@ function CompoundObservable(sources, transformer) {
   __js {
     sources .. each {
       |source|
-      if (!isObservable(source)) {
-          throw new Error("invalid non-observable argument of type '#{isSequence(source) ? source : typeof source}' passed to 'CompoundObservable()'");
+      if (!isStream(source)) {
+          throw new Error("invalid non-stream argument of type '#{isSequence(source) ? source : typeof source}' passed to 'CompoundObservable()'");
       }
     }
   } /* __js */
 
-  return Observable :: Stream(function(receiver) {
+  return Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = Object.create(cutil._Waitable);
     change.init();
@@ -608,36 +659,35 @@ exports.current = first;
 exports.changes = obs -> obs .. skip(1);
 
 /**
-   @function eventStreamToObservable
-   @param {sjs:event::EventStream} [events]
+   @function updatesToObservable
+   @param {sjs:sequence::Stream} [updates] Stream of updates
    @param {Function} [getInitial] Function that returns the initial value of the observable.
    @return {::Observable}
-   @summary Construct an Observable of the most recent emitted event from an  [sjs:event::EventStream].
+   @summary Construct an Observable from an initial value and a stream of updates.
    @desc
      The returned observable will initially be equal to `getInitial()` and be updated with any new values
-     emitted by `events`.
-     The returned observable will be 'decoupled' from the stream: Iterating the returned observable
-     stream will never block iteration of the input stream. (As a consequence, `streamToObservable` can
-     be used to convert any 'logical' event stream to an observable - the input stream
-     does not necessarily need to be a 'true' free-running [sjs:event::EventStream].)
+     emitted by `updates`.
+     The returned observable will be 'decoupled' from the `updates` stream: Iterating the returned observable
+     stream will never block iteration of the input stream. 
 
      #### Notes
 
-     For the returned stream to have observable semantics, `getInitial` has to yield a value in finite time.
-     If `events` produces a value before `getInital()` returns, the `getInitial()` call will be aborted.
+     Iteration of `updates` begins *before* calling `getInitial()`, to prevent a stale 
+     initial value from overriding a more recent update.
+     If `updates` produces a value before `getInital()` returns, the `getInitial()` call will be aborted.
 
      The output observable is not [sjs:sequence::mirror]ed. I.e. multiple concurrent iterations of the 
      observable will cause multiple concurrent iterations of the input stream.
 
 */
-function eventStreamToObservable(events, getInitial) {
-  return Observable(function(receiver) {
+function updatesToObservable(updates, getInitial) {
+  return Stream(function(receiver) {
     var val, ver = 0, current_ver = 0;
     waitfor {
       var have_new_val = Object.create(cutil._Waitable);
       have_new_val.init();
       waitfor {
-        events .. each {
+        updates .. each {
           |e|
           val = e; 
           ++ver;
@@ -662,7 +712,7 @@ function eventStreamToObservable(events, getInitial) {
     }
   });
 }
-exports.eventStreamToObservable = eventStreamToObservable;
+exports.updatesToObservable = updatesToObservable;
 
 /**
    @function constantObservable
@@ -674,7 +724,7 @@ exports.eventStreamToObservable = eventStreamToObservable;
    @summary Create an observable that always returns `obj` and then `hold()`s.
 */
 exports.ConstantObservable = exports.constantObservable = function(obj) {
-  return Observable(function(receiver) {
+  return Stream(function(receiver) {
     receiver(obj);
     hold();
   });
@@ -695,7 +745,7 @@ exports.ConstantObservable = exports.constantObservable = function(obj) {
 exports.DelayedObservable = function(observable, dt) {
   if (dt === undefined) dt = 0;
 
-  return Observable(function(receiver) {
+  return Stream(function(receiver) {
     var eos = {};
     observable .. consume(eos) {
       |next|
@@ -745,3 +795,110 @@ function _(name, defval) {
 }
 exports._ = _;
 */
+
+//----------------------------------------------------------------------
+// sampling
+
+/**
+   @function sample
+   @summary Construct an Observable by sampling a stream
+   @param {sequence::Stream} [stream] Stream to sample
+   @return {sequence::Stream|sequence::StructuredStream} Stream with [::Observable] semantics; possibly a 'rolling' [sequence::StructuredStream]
+   @desc
+     `sample` iterates the input `stream` to produce a stream that buffers the
+     most recently seen value (i.e. a stream with [::Observable] semantics).
+     The output stream is 'decoupled' from the input stream: Even if the consumer
+     blocks during iteration, the input stream will never be blocked and will be
+     iterated as fast as it can produce values.
+
+     The output observable is not [sequence::mirror]ed. I.e. multiple concurrent 
+     iterations of the observable will cause multiple concurrent iterations of the
+     input stream.
+
+     See also [::updatesToObservable] for creating an [::Observable] from a stream
+     that might not produce a value at all (or that takes an unreasonably long time
+     to do so).
+
+     ### Stream structuring details
+
+     If the input stream is a [sequence::StructuredStream] of type `rolling`, 
+     `sample` will also return a rolling structured stream.
+     For generic input streams, `sample` returns a plain [sequence::Stream].
+     
+*/
+
+
+function withSampler_plain(block) {
+  var sample;
+  block({
+    add_elem: __js function(x) { sample = x; },
+    retrieve_sample: __js -> sample
+  });
+}
+
+function withSampler_rolling(block) {
+  var sample = [0,[]], upstream_window = 0;
+
+  block({
+    add_elem: __js function(x) {
+      var remove_from_upstream = Math.min(upstream_window - sample[0], x[0]);
+      var slice_from_sample = x[0] - remove_from_upstream;
+      sample[0] += remove_from_upstream;
+      sample[1] = sample[1].concat(x[1]).slice(slice_from_sample);
+    },
+    retrieve_sample: __js function() {
+      var rv = sample;
+      upstream_window = upstream_window + sample[1].length - sample[0];
+      sample = [0,[]];
+      return rv;
+    }
+  });
+}
+
+function sample(seq) {
+  if (isStructuredStream('rolling') :: seq) {
+    return StructuredStream('rolling') :: 
+      Stream ::
+        function(receiver) { return sample_inner(seq.base, withSampler_rolling, receiver); }
+  }
+  else {
+    return Stream ::
+      function(receiver) { return sample_inner(seq, withSampler_plain, receiver); }
+  }
+}
+exports.sample = sample;
+
+function sample_inner(seq, withSampler, receiver) {
+  var resume_pickup;
+  var have_sample = false;
+  var done = false;
+  withSampler {
+    |{add_elem, retrieve_sample}|
+    waitfor {
+      seq .. each {
+        |x|
+        add_elem(x);
+        have_sample = true;
+        if (resume_pickup) resume_pickup();
+      }
+      done = true;
+      if (resume_pickup) resume_pickup();
+    }
+    and {
+      while(true) {
+        if (!have_sample && !done) {
+          waitfor() {
+            resume_pickup = resume;
+          }
+          finally {
+            resume_pickup = undefined;
+          }
+        }
+        if (done) return;
+        have_sample = false;
+        receiver(retrieve_sample());
+      }
+    }
+  }
+}
+

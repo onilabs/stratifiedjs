@@ -13,7 +13,7 @@
   }
   @test("observable") {||
     var a = @ObservableVar(1);
-    a .. @project(x->x+1) .. @isObservable .. @assert.eq(true);
+    a .. @project(x->x+1) .. @isStream .. @assert.eq(true);
     waitfor {
       a .. @project(x->x+1) .. @consume {
         |next|
@@ -56,7 +56,7 @@
   @test("observable") {||
     var a = @ObservableVar([1,2,3]);
     var projection = a .. @projectInner(x->x+1);
-    projection .. @isObservable .. @assert.eq(true);
+    projection .. @isStream .. @assert.eq(true);
     waitfor {
       projection .. @consume {
         |next|
