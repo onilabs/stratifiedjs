@@ -109,7 +109,7 @@ function sequential(f) {
 
      Secondly, a powerful design pattern is for a function to accept either a
      material sequence or an [observable::Observable] of a material sequence as argument.
-     A distinction between material sequences and [observable::Observables] (which are 
+     A distinction between material sequences and [observable::Observable]s (which are 
      streams, but not material sequences) is needed to facilitate this.
 */
 
@@ -1997,7 +1997,7 @@ exports.monitor = monitor;
 
      ### Stream structuring details
 
-     For input sequences that are [::StructuredStreams], `monitor.raw` will pass
+     For input sequences that are [::StructuredStream]s, `monitor.raw` will pass
      through the same (possibly nested) stream structure.
      For generic input sequences, `monitor.raw` returns a plain [::Stream].
 
