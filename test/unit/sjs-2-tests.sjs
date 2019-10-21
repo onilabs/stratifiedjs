@@ -1049,6 +1049,7 @@ test("collapse from blocklambda", 'b',
              collapse;
              rv += 'b';
            })();
+           hold(200);
          }
        }
        catch (e) {
@@ -1056,6 +1057,39 @@ test("collapse from blocklambda", 'b',
        }
        return rv;
      });
+
+function callme(f) { f(); }
+
+test("collapse from blocklambda via intermediate", 'rb',
+     function() {
+       
+
+       var rv = '';
+       try {
+         waitfor {
+           try {
+             hold(100);
+           }
+           retract {
+             rv += 'r';
+           }
+           rv += 'a';
+         }
+         or {
+           callme {||
+             hold(0);
+             collapse;
+             rv += 'b';
+           };
+           hold(200);
+         }
+       }
+       catch (e) {
+         rv += 'x';
+       }
+       return rv;
+     });
+
 
 test("disallow collapse from function", 'x',
      function() {
