@@ -1443,16 +1443,16 @@ context("pack") {||
   test("with interval 2") {||
     var source = s.Stream(function(r) { 
       r(1);
-      hold(10);
+      hold(20);
       r(2);
-      hold(10);
+      hold(20);
       r(3);
-      hold(40);
+      hold(80);
       r(4);
-      hold(10);
+      hold(20);
       r(5);
     });
-    source .. s.pack({interval:40}) .. s.toArray .. assert.eq([[1,2,3],[4,5]]);
+    source .. s.pack({interval:80}) .. s.toArray .. assert.eq([[1,2,3],[4,5]]);
   }
 
 }
