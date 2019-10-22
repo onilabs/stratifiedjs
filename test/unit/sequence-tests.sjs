@@ -472,6 +472,18 @@ context('take and skip') {||
     return [head, tail];
   });
 
+  test('async take') {||
+    s.integers() .. s.monitor(->hold(0)) .. s.take(7) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
+  test('take async') {||
+    s.integers() .. s.take(7) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
+  test('take all async') {||
+    s.integers() .. s.monitor(->hold(0)) .. s.take(7) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
   test('skipWhile') {||
     [2,4,6,7,8,9,10] .. s.skipWhile(even) .. s.toArray .. assert.eq([7,8,9,10]);
   }
@@ -479,6 +491,27 @@ context('take and skip') {||
   test('takeWhile') {||
     [2,4,6,7,8,9,10] .. s.takeWhile(even) .. s.toArray .. assert.eq([2,4,6]);
   }
+
+  test('takeUntil') {||
+    s.integers() .. s.takeUntil(x->x>5) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
+  test('async takeUntil') {||
+    s.integers() .. s.monitor(->hold(0)) .. s.takeUntil(x->x>5) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
+  test('takeUntil async') {||
+    s.integers() .. s.takeUntil(x->x>5) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
+  test('takeUntil async pred') {||
+    s.integers() .. s.takeUntil(x->(hold(0),x>5)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
+  test('takeUntil all async') {||
+    s.integers() .. s.monitor(->hold(0)) .. s.takeUntil(x->(hold(0),x>5)) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
+  }
+
 }
 
 context('at') {||

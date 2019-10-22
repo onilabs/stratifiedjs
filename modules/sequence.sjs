@@ -1482,7 +1482,7 @@ exports.count = count;
 */
 
 /*
-  naive implementation (10x slower for synchronous case):
+  naive implementation (>10x slower for synchronous case):
 function take(sequence, count) {
   return Stream(function(r) {
     var n = count; 
@@ -1535,6 +1535,61 @@ function takeWhile(seq, fn) {
   });
 };
 exports.takeWhile = takeWhile;
+
+/**
+  @function takeUntil
+  @param {::Sequence} [sequence]
+  @param {Function} [predicate]
+  @return {::Stream}
+  @summary Emit elements up to and inclusive of the first item for which `predicate(x)` returns true.
+  @desc
+    Returns a [::Stream] which will emit only the leading
+    elements in `sequence` for which `predicate` returns false and the first
+    element for which `predicate` returns true.
+
+    ### Example:
+
+        var greaterThan5 = (x) -> x>5;
+        [0, 2, 4, 5, 6, 7, 8] .. seq.takeUntil(greaterThan5) .. seq.toArray();
+        // -> [0, 2, 4, 5, 6]
+*/
+/* 
+naive implementation: (>10x slower for synchronous case)
+function takeUntil(seq, fn) {
+  return Stream(function(r) {
+    seq .. each {
+      |item|
+      r(item);
+      if (fn(item)) return;
+    }
+  });
+};
+*/
+
+function takeUntil(seq, fn) {
+  return Stream(function(r) {
+    var ret = ({ || return; });
+    var sync_f = __js function(x) {
+      var inner = r(x);
+      if (__oni_rt.is_ef(inner))
+        return async_f(inner, x);
+      var pred = fn(x);
+      if (__oni_rt.is_ef(pred))
+        return async_pred(pred);
+      if (pred) return ret();
+    };
+    var async_f = function(ef, x) {
+      ef.wait();
+      if (fn(x)) ret();
+    };
+    var async_pred = function(pred_ef) {
+      var val = pred_ef.wait();
+      if (val) ret();
+    }
+    seq .. each(sync_f);
+  });
+}
+exports.takeUntil = takeUntil;
 
 /**
    @function skip

@@ -287,6 +287,7 @@ module.exports = require(modules);
    - **StructuredStream**: (class [sjs:sequence::StructuredStream])
    - **tailbuffer**: (function [sjs:sequence::tailbuffer])
    - **take**: (function [sjs:sequence::take])
+   - **takeUntil**: (function [sjs:sequence::takeUntil])
    - **takeWhile**: (function [sjs:sequence::takeWhile])
    - **toArray**: (function [sjs:sequence::toArray])
    - **toStream**: (function [sjs:sequence::toStream])

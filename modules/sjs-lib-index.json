@@ -1922,6 +1922,9 @@
         "take": {
           "type": "function"
         },
+        "takeUntil": {
+          "type": "function"
+        },
         "takeWhile": {
           "type": "function"
         },
