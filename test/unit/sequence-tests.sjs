@@ -457,11 +457,11 @@ testEq('each.par teardown on exception', '12345fffffe.', function() {
 
 context('take and skip') {||
   test("take(0)") {||
-    s.take(0, [1,2,3]) .. toArray .. assert.eq([]);
+    s.take([1,2,3],0) .. toArray .. assert.eq([]);
   }
 
   test("take with a negative argument") {||
-    s.take(-1, [1,2,3]) .. toArray .. assert.eq([]);
+    s.take([1,2,3],-1) .. toArray .. assert.eq([]);
   }
 
   testEq("take() leaves the rest", [[1], [2,3,4]], function() {

@@ -1480,10 +1480,32 @@ exports.count = count;
 
           integers() .. take(10) .. each { |x| console.log(x) }
 */
+
+/*
+  naive implementation (10x slower for synchronous case):
 function take(sequence, count) {
   return Stream(function(r) {
     var n = count; 
     if (n > 0) sequence .. each { |x| r(x); if (__js --n <= 0) return; }
+  });
+}
+*/
+function take(sequence, count) {
+  return Stream(function(r) {
+    var n = count; 
+    if (n <= 0) return;
+    var ret = ({ || return; });
+    var sync_f = __js function(x){ 
+      var inner = r(x); 
+      if (__oni_rt.is_ef(inner))
+        return async_f(inner);
+      if (--n<=0)return ret();
+    };
+    var async_f = function(ef) {
+      ef.wait();
+      if (--n<=0) ret();
+    }
+    sequence .. each(sync_f);
   });
 }
 exports.take = take;
