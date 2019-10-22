@@ -25,7 +25,6 @@
   @require sjs:regexp
   @require sjs:url
   @require sjs:observable
-  @require sjs:projection
 */
 
 var hostenv = require('builtin:apollo-sys').hostenv;
@@ -48,8 +47,7 @@ var modules = [
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
-  'sjs:observable',
-  'sjs:projection'
+  'sjs:observable'
 ];
 
 if (hostenv === 'nodejs') {
@@ -217,13 +215,6 @@ module.exports = require(modules);
    - **updatesToObservable**: (function [sjs:observable::updatesToObservable])
   
   
-  ### Symbols from the [sjs:projection](#sjs%3Aprojection) module:
-  
-   - **dereference**: (function [sjs:projection::dereference])
-   - **project**: (function [sjs:projection::project])
-   - **projectInner**: (function [sjs:projection::projectInner])
-  
-  
   ### Symbols from the [sjs:quasi](#sjs%3Aquasi) module:
   
    - **isQuasi**: (function [sjs:quasi::isQuasi])
@@ -358,8 +349,8 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:sys](#sjs%3Asys) module:
   
-   - **eval**: (function [sjs:sys::eval])
    - **argv**: (function [sjs:sys::argv])
+   - **eval**: (function [sjs:sys::eval])
   
   
   ### Symbols from the [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom) module:

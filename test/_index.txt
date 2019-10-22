@@ -29,7 +29,6 @@ unit/node/tempfile-tests.sjs
 unit/object-tests.sjs
 unit/observable-tests.sjs
 unit/pool-tests.sjs
-unit/projection-tests.sjs
 unit/quasi-tests.sjs
 unit/regexp-tests.sjs
 unit/require-tests.sjs

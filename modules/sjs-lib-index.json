@@ -1673,21 +1673,6 @@
       },
       "summary": "Utilities for shared resources"
     },
-    "projection": {
-      "type": "module",
-      "children": {
-        "dereference": {
-          "type": "function"
-        },
-        "project": {
-          "type": "function"
-        },
-        "projectInner": {
-          "type": "function"
-        }
-      },
-      "summary": "Type preserving manipulating of streams and observables"
-    },
     "quasi": {
       "type": "module",
       "children": {
