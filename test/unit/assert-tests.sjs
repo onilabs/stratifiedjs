@@ -182,33 +182,33 @@ context("eq") {||
         sb[1] = ch++;
         sb[2] = ch++;
         sb[3] = ch++;
-        assert.eq(new Buffer("1234"), sb);
+        assert.eq(Buffer.from("1234"), sb);
       }
 
       test("against slices") {||
-        assert.eq(new Buffer("1234"), new Buffer("__1234__").slice(2, 6));
+        assert.eq(Buffer.from("1234"), Buffer.from("__1234__").slice(2, 6));
       }
 
       test("with different contents") {||
         assert.raises(
           {message:/objects differ at index `6`/},
-          -> assert.eq(new Buffer("12345678"), new Buffer("123456xx")));
+          -> assert.eq(Buffer.from("12345678"), Buffer.from("123456xx")));
       }
 
       test("with different length") {||
         assert.raises(
           {message:/expected has 1 elements, actual has 4/},
-          -> assert.eq(new Buffer("1234"), new Buffer("1")));
+          -> assert.eq(Buffer.from("1234"), Buffer.from("1")));
       }
 
       test("against other objects") {||
         assert.raises(
           {message:/expected is a Array, actual is a Buffer/},
-          -> assert.eq(new Buffer([1,2,3,4]), [1,2,3,4]));
+          -> assert.eq(Buffer.from([1,2,3,4]), [1,2,3,4]));
 
         assert.raises(
           {message:/expected is a Object, actual is a Buffer/},
-          -> assert.eq(new Buffer([1,2,3,4]), {length: 4, 0:1, 1:2, 2:3, 3:4}));
+          -> assert.eq(Buffer.from([1,2,3,4]), {length: 4, 0:1, 1:2, 2:3, 3:4}));
       }
     }.serverOnly();
 

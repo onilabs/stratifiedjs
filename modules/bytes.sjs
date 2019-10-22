@@ -132,7 +132,7 @@ __js {
     isBuffer = exports.isBuffer = Buffer.isBuffer;
     var toBuffer = exports.toBuffer = function(b) {
       if (isBuffer(b)) return b;
-      return new Buffer(b .. toUint8Array);
+      return Buffer.from(b .. toUint8Array);
     }
   }
 }

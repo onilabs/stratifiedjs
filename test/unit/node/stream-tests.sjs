@@ -77,8 +77,8 @@ var test = testUtil.test;
 
     @test("accepts a buffer") {||
       var dest = new @stream.WritableStream();
-      new Buffer("onetwothree") .. @stream.pump(dest);
-      dest.contents() .. @assert.eq(new Buffer("onetwothree"));
+      Buffer.from("onetwothree") .. @stream.pump(dest);
+      dest.contents() .. @assert.eq(Buffer.from("onetwothree"));
     }
 
     @test("accepts a string") {|s|
@@ -89,7 +89,7 @@ var test = testUtil.test;
     @context("pumping a large, buffering duplex stream") {||
       var { BufferingStream } = require('./buffering_stream.js');
       var build = function(size) {
-        var b = new Buffer(size);
+        var b = Buffer.alloc(size);
         b.fill("x");
         return b.toString('ascii');
       };
@@ -191,7 +191,7 @@ var test = testUtil.test;
       var getChunk = function() {
         if (chunks.length == 0) return null;
         var chunk = chunks.shift();
-        if (byteMode) chunk = new Buffer(chunk);
+        if (byteMode) chunk = Buffer.from(chunk);
         if (chunks.length == 0) rv.readable = false;
         return chunk;
       };

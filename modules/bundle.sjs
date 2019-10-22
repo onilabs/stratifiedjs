@@ -653,7 +653,7 @@ exports.create = function(opts) {
     var write = function(output) {
       var {Buffer} = require('nodejs:buffer');
       contents .. each { |line|
-        var buf = new Buffer(line + "\n");
+        var buf = Buffer.from(line + "\n");
         fs.write(output, buf, 0, buf.length);
       }
       logging.info("wrote #{opts.output}");

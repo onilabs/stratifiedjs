@@ -74,7 +74,7 @@
 
         @fs.readFile(f.path, 'ascii') .. @assert.eq("data");
 
-        var buf = new Buffer(10);
+        var buf = Buffer.alloc(10);
         var readBytes = f.file .. @fs.read(buf, 0, 10, 0);
         buf.slice(0, readBytes).toString("ascii") .. @assert.eq("data");
       }

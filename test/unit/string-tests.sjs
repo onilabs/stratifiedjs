@@ -319,14 +319,14 @@ testEq('arrayBufferToOctets: large inputs', true, function() {
 });
 
 context {||
-  var cafebuf = new Buffer('636166c3a9', 'hex');
+  var cafebuf = Buffer.from('636166c3a9', 'hex');
   var cafestr = 'caf\u00e9';
 
   test("encode") {||
     cafestr .. str.encode('utf-8') .. assert.eq(cafebuf);
     str.encode('utf-8')(cafestr) .. assert.eq(cafebuf);
     assert.raises({message:"Not a string"},
-      -> str.encode(new Buffer([]), 'hex'));
+      -> str.encode(Buffer.from([]), 'hex'));
   }
 
   test('decode') {||

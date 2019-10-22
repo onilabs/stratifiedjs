@@ -7,7 +7,7 @@ var types = [
 ];
 
 if(!@isBrowser) {
-	types.push(['Buffer', 'isBuffer', 'toBuffer', new Buffer([1,2,3])]);
+	types.push(['Buffer', 'isBuffer', 'toBuffer', Buffer.from([1,2,3])]);
 }
 
 @context("Array") {||

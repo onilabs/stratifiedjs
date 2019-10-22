@@ -762,7 +762,7 @@ context('slice') {||
     ];
 
     if(@isServer) {
-      conversions.push(['flattenToBuffer', arr -> new Buffer(arr .. flattenToString), String.fromCharCode]);
+      conversions.push(['flattenToBuffer', arr -> Buffer.from(arr .. flattenToString), String.fromCharCode]);
     } else {
       conversions.push(['toNodeList', function(arr) {
         var parent = document.createElement('div');
@@ -871,8 +871,8 @@ context('intersperse_n_1') {||
 context("iterable nodejs datatypes") {||
   var stream = require('sjs:nodejs/stream');
   test("Buffer") {||
-    new Buffer("12345") .. s.isSequence() .. assert.eq(true);
-    new Buffer("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
+    Buffer.from("12345") .. s.isSequence() .. assert.eq(true);
+    Buffer.from("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
   }
 }.serverOnly();
 
@@ -1038,16 +1038,16 @@ context("join") {||
   context("on buffers") {||
     test("with no separator") {||
       nonRepeatableSequence([
-        new Buffer('abc', 'ascii'),
-        new Buffer('def', 'ascii'),
-      ]) .. s.join() .. assert.eq(new Buffer('abcdef', 'ascii'));
+        Buffer.from('abc', 'ascii'),
+        Buffer.from('def', 'ascii'),
+      ]) .. s.join() .. assert.eq(Buffer.from('abcdef', 'ascii'));
     }
 
     test("with a buffer separator") {||
       nonRepeatableSequence([
-        new Buffer('abc', 'ascii'),
-        new Buffer('def', 'ascii'),
-      ]) .. s.join(new Buffer('||')) .. assert.eq(new Buffer('abc||def', 'ascii'));
+        Buffer.from('abc', 'ascii'),
+        Buffer.from('def', 'ascii'),
+      ]) .. s.join(Buffer.from('||')) .. assert.eq(Buffer.from('abc||def', 'ascii'));
     }
   }.skipIf(@isBrowser || process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0, "nodejs 0.6 lacks Buffer.concat")
 

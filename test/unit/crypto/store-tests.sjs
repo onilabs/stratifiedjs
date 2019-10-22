@@ -8,9 +8,9 @@
 
     @test.beforeEach {|s|
       s.secret = "the game is afoot!";
-      s.passphrase = new Buffer('letmein');
+      s.passphrase = Buffer.from('letmein');
       s.opts = {alg:'aes256'};
-      s.memoryStore = @store.Store(new Buffer(s.secret), s.opts);
+      s.memoryStore = @store.Store(Buffer.from(s.secret), s.opts);
 
       s.root = @TemporaryDir();
 
@@ -26,9 +26,9 @@
 
     @test('encryption') {|s|
       var expectedCiphertext = [
-        new Buffer(JSON.stringify(s.opts)),
-        new Buffer("\n"),
-        new Buffer([
+        Buffer.from(JSON.stringify(s.opts)),
+        Buffer.from("\n"),
+        Buffer.from([
           4, 47, 15, 55, 20, 218, 248, 19, 207,
           33, 109, 242, 180, 218, 165, 180, 134,
           79, 198, 116, 165, 225, 221, 253, 125,

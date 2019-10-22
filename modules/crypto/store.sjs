@@ -13,7 +13,7 @@ followed by binary data.
 @stream = require('../nodejs/stream');
 @crypto = require('nodejs:crypto');
 
-var newlineBuf = new Buffer("\n", "utf-8");
+var newlineBuf = Buffer.from("\n", "utf-8");
 
 var StoreProto = {};
 var Store = @Constructor(StoreProto);
@@ -51,7 +51,7 @@ StoreProto._encryptedStream = function(passphrase) {
   var stream = this.stream;
 
   return @Stream(function(emit) {
-    emit(new Buffer(JSON.stringify(settings), "utf-8"));
+    emit(Buffer.from(JSON.stringify(settings), "utf-8"));
     emit(newlineBuf);
     var cipher = @crypto.createCipher(settings .. @get('alg'), passphrase);
 

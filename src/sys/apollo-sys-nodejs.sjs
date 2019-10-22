@@ -317,7 +317,7 @@ function request_hostenv(url, settings) {
       // opts.headers['Transfer-Encoding'] = 'chunked';
       // Some APIs (github, here's looking at you) don't accept chunked encoding, 
       // so for maximum compatibility we determine the content length:
-      body = new Buffer(body);
+      body = Buffer.from(body);
       opts.headers['Content-Length'] = body.length;
     }
     else {

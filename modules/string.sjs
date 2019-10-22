@@ -795,7 +795,7 @@ __js {
 
     var encode = function(str, enc) {
       if(!exports.isString(str)) throw new Error("Not a string");
-      return new Buffer(str, enc);
+      return Buffer.from(str, enc);
     };
 
     exports.decode = function(arg) {
