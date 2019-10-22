@@ -555,11 +555,11 @@ exports.observe = observe;
             CompoundObservable([current] -> "#{current.firstName} #{current.lastName}");
 
 
-      Note: You could achieve (almost) the same effect by using [projection::project]:
+      Note: You could achieve (almost) the same effect by using [sequence::transform]:
 
-          var fullName = person .. @project(current -> "#{current.firstName} #{current.lastName}");
+          var fullName = person .. @transform(current -> "#{current.firstName} #{current.lastName}");
 
-      The difference here is that the `project` version does not do an implicit [./sequence::mirror].
+      The difference here is that the `transform` version does not do an implicit [./sequence::mirror].
       Also, if the transformer function were to block - e.g. do a database lookup in the background -, 
       the `CompoundObservable`-version would cancel the db lookup if `person` takes on a new value, 
       and would call the transformer function again with the updated data immediately.
