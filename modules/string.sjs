@@ -390,6 +390,7 @@ __js exports.rstrip = function(s, ch){
 /**
   @function padRight
   @summary  Pad a string (on the right) to a minimum length
+  @deprecated Use String.padEnd
   @param    {String} [string]
   @param    {Number} [len] The target string length
   @param    {optional String} [pad] The padding character to use (default: `' '`)
@@ -418,6 +419,7 @@ __js exports.padRight = function(s, len, ch) {
 /**
   @function padLeft
   @summary  Pad a string (on the left) to a minimum length
+  @deprecated Use String.padStart
   @param    {String} [string]
   @param    {Number} [len] The target string length
   @param    {optional String} [pad] The padding character to use (default: `' '`)
