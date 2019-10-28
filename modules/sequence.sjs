@@ -2026,7 +2026,7 @@ var scan = exports.scan = function(sequence, fn, initial) {
    @altsyntax sequence .. monitor(f)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to execute for each element of `sequence`
-   @return {::Stream}
+   @return {::Stream|::StructuredStream} Plain stream or structured stream of type 'batched' (see below)
    @summary  Execute a function `f(x)` for each element `x` of a sequence while it is being traversed
    @desc
       Acts like [::transform], but passes `x` through unmodified:
@@ -2036,12 +2036,32 @@ var scan = exports.scan = function(sequence, fn, initial) {
       is equivalent to
 
           seq .. transform(function(x) { f(x); return x; }) .. each { |x| ... }
+
+
+      ### Stream structuring details
+
+      If the input sequence is a [::StructuredStream] of type `batched`, 
+      `transform` will also return a batched structured stream which 
+      maintains the same batching as the input sequence.
+      For generic input sequences, `transform` returns a plain [::Stream].
+
 */
-function monitor(sequence, f) {
-  return Stream(function(r) { sequence .. each { |x| f(x); r(x); } });
+__js function monitor(sequence, f) {
+  return sequence .. transform(function(x) {
+    var cont = f(x);
+    if (__oni_rt.is_ef(cont)) 
+      return monitor_async(cont, x);
+    else
+      return x;
+  });
 }
 
-exports.monitor = monitor;
+function monitor_async(cont, x) {
+  cont.wait();
+  return x;
+}
+
+__js exports.monitor = monitor;
 
 /**
    @function monitor.raw

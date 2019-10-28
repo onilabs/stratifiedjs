@@ -2132,4 +2132,54 @@ context("monitor.raw") {||
     assert.eq(rv,[[1,2],[2,3],[3,4]]);
     assert.eq(log,[ [[0,[1,2]],[1,[3]]],[[1,[4]]]]);
   }
+  test("async") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.raw(x->(hold(0),log.push(x))) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,[[1,2],[3,4]]);
+  }
+  test("sync break") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor.raw({|x| log.push(x); if (x>2) break;}) .. @each {||}
+    assert.eq(log,[1,2,3]);
+  }
+  test("async break") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor.raw({|x| hold(0); log.push(x); if (x>2) break;}) .. @each {||}
+    assert.eq(log,[1,2,3]);
+  }
+}
+
+context("monitor") {||
+  test("typing") {||
+    var a = [1,2,3,4] .. s.monitor(x->0);
+    assert.notOk(a .. s.isStructuredStream());
+    assert.ok(a .. s.isStream());
+
+    var b = [1,2,3,4] .. s.batch(2) .. s.monitor(x->0);
+    assert.ok(b .. s.isStructuredStream('batched'));
+    assert.notOk(b.base .. s.isStructuredStream());
+  }
+  test("batched") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor(x->log.push(x)) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,[1,2,3,4]);
+  }
+  test("async") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor(x->(hold(0),log.push(x))) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,[1,2,3,4]);
+  }    
+  test("sync break") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor({|x| log.push(x); if (x>2) break;}) .. @each {||}
+    assert.eq(log,[1,2,3]);
+  }
+  test("async break") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor({|x| hold(0); log.push(x); if (x>2) break;}) .. @each {||}
+    assert.eq(log,[1,2,3]);
+  }
 }
