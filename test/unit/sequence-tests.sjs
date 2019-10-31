@@ -2183,3 +2183,87 @@ context("monitor") {||
     assert.eq(log,[1,2,3]);
   }
 }
+
+context("monitor.start") {||
+  test("typing") {||
+    var a = [1,2,3,4] .. s.monitor.start(->0);
+    assert.notOk(a .. s.isStructuredStream());
+    assert.ok(a .. s.isStream());
+
+    var b = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2) .. s.monitor.start(->0);
+    assert.ok(b .. s.isStructuredStream('rolling'));
+    assert.ok(b.base .. s.isStructuredStream('batched'));
+  }
+  test("batched") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
+  }
+
+  test("rolling") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
+    assert.eq(rv,[[1,2],[2,3],[3,4]]);
+    assert.eq(log,['START2', 'START1', [0,[1,2]],[1,[3]],[1,[4]]]);
+  }
+  test("rolling batched") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2).. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
+    assert.eq(rv,[[1,2],[2,3],[3,4]]);
+    assert.eq(log,['START2', 'START1', [[0,[1,2]],[1,[3]]],[[1,[4]]]]);
+  }
+  test("async 1") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->(hold(0),log.push(x))) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
+  }
+  test("async 2") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->(log.push(x))) .. s.monitor.start(x->(hold(0),log.push('START2'))) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
+  }
+  test("async 3") {||
+    var log = [];
+    var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->(hold(0),log.push('START1'))) .. s.monitor.raw(x->(log.push(x))) .. s.monitor.start(x->(hold(0),log.push('START2'))) .. s.toArray;
+    assert.eq(rv,[1,2,3,4]);
+    assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
+  }
+  test("sync break 1") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor.start({|| break}) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. @each {||}
+    assert.eq(log,['START2']);
+  }
+  test("sync break 2") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start({|| break}) .. @each {||}
+    assert.eq(log,[]);
+  }
+  test("async break 1") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor.start({|| hold(0); break}) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. @each {||}
+    assert.eq(log,['START2']);
+  }
+  test("async break 2") {||
+    var log = [];
+    [1,2,3,4] .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start({|| hold(0); break}) .. @each {||}
+    assert.eq(log,[]);
+  }
+}
+
+context('filter') {||
+  test('sync') {||
+    [1,2,3,4] .. s.filter(s->s%2==0) .. s.toArray() .. assert.eq([2,4]);
+  }
+  test('async') {||
+    [1,2,3,4] .. s.monitor(->hold(0)) .. s.filter(s->s%2==0) .. s.toArray() .. assert.eq([2,4]);
+  }
+  test('async async') {||
+    [1,2,3,4] .. s.monitor(->hold(0)) .. s.filter(s->(hold(0),s%2==0)) .. s.toArray() .. assert.eq([2,4]);
+  }
+  test('sync async') {||
+    [1,2,3,4] .. s.filter(s->(hold(0),s%2==0)) .. s.toArray() .. assert.eq([2,4]);
+  }
+}

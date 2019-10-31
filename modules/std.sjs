@@ -226,6 +226,7 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:sequence](#sjs%3Asequence) module:
   
+   - **.monitor.start**: (function [sjs:sequence::.monitor.start])
    - **all**: (function [sjs:sequence::all])
    - **all.par**: (function [sjs:sequence::all.par])
    - **any**: (function [sjs:sequence::any])

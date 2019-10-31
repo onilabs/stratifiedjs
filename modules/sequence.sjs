@@ -1678,15 +1678,21 @@ exports.skipWhile = skipWhile;
 
           integers() .. filter(x->x%2) .. take(10) .. each { |x| console.log(x) }
 */
-function filter(sequence, predicate) {
+__js function filter(sequence, predicate) {
   if (!predicate) predicate = identity;
   return Stream(function(r) {
-    sequence .. each {
-      |x|
-      if (predicate(x))
-        r(x);
-    }
+    return sequence .. each(function(x) {
+      var pred = predicate(x);
+      if (__oni_rt.is_ef(pred))
+        return _filter_cont_async(pred, x, r);
+      else if (pred)
+        return r(x);
+      // else return
+    });
   });
+}
+function _filter_cont_async(pred, x, r) {
+  if (pred.wait()) return r(x);
 }
 exports.filter = filter;
 
@@ -1916,7 +1922,7 @@ function async_rf(fx, r) {
    @return {::Stream}
    @summary Like [::transform], but skips items where `fn(x)` returns `null`/`undefined`.
 */
-transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(x -> x != null);
+transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(__js x -> x != null);
 
 /**
   @function transform.map
@@ -2067,7 +2073,7 @@ __js exports.monitor = monitor;
    @function monitor.raw
    @altsyntax sequence .. monitor.raw(f)
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [f] Function to execution for each element of the raw `sequence`
+   @param {Function} [f] Function to execute for each element of the raw `sequence`
    @return {::Stream|::StructuredStream}
    @summary Like [::monitor], but operates on the innermost raw base sequence if `sequence` is a [::StructuredStream]
    @desc
@@ -2105,6 +2111,44 @@ __js monitor.raw = function(sequence, f) {
   else
     return sequence .. monitor(f);
 }
+
+/**
+   @function.monitor.start
+   @altsyntax sequence .. monitor.start(f)
+   @param {::Sequence} [sequence] Input sequence
+   @param {Function} [f] Function to execute
+   @return {::Stream|::StructuredStream}
+   @summary Execute a function once every time before a sequence is being iterated
+   @desc
+     `monitor.start` calls `f()` once every time before `sequence` is being iterated.
+     
+     ### Stream structuring details
+
+     For input sequences that are [::StructuredStream]s, `monitor.start` will pass
+     through the same (possibly nested) stream structure.
+     For generic input sequences, `monitor.start` returns a plain [::Stream].
+*/
+__js monitor.start = function(sequence, f) {
+  if (sequence .. isStructuredStream)
+    return StructuredStream(sequence.type):: monitor.start(sequence.base, f);
+  else
+    return sequence .. _monitor_start(f);
+};
+
+__js function _monitor_start(sequence, f) {
+  return Stream :: function(r) {
+    var cont = f();
+    if (__oni_rt.is_ef(cont))
+      return _monitor_start_cont_async(sequence, cont, r);
+    return sequence .. each(r);
+  }
+}
+
+function _monitor_start_cont_async(sequence, cont, r) {
+  cont.wait();
+  sequence .. each(r);
+}
+
 
 /**
   @function concat
