@@ -204,7 +204,7 @@ exports.testLibrary = function(hub) {
 
           var metaTypes = ['syntax','feature','directive'];
           if (!metaTypes .. @hasElem(symdoc.type)) {
-            @assert.ok(/^[a-zA-Z][._a-zA-Z0-9]*$/.test(sym), "Invalid symbol: #{sym}");
+            @assert.ok(/^[a-z$A-Z][._a-zA-Z$0-9]*$/.test(sym), "Invalid symbol: #{sym}");
           }
           @assert.ok(symdoc.summary, "missing summary for #{sym}");
 
