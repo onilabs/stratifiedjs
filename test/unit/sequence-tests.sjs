@@ -2080,25 +2080,25 @@ context("transform typing/batching") {||
   }
 }
 
-context("transform.map") {||
+context("transform$map") {||
   test("typing") { ||
-    var a = [[1,2],[2,3],[3,4]] .. s.transform.map(x->x*x);
+    var a = [[1,2],[2,3],[3,4]] .. s.transform$map(x->x*x);
     assert.ok(a .. s.isStream);
     assert.notOk(a .. s.isStructuredStream);
 
-    var b = [1,2,3,4] .. s.rollingWindow(2) .. s.transform.map(x->x*x);
+    var b = [1,2,3,4] .. s.rollingWindow(2) .. s.transform$map(x->x*x);
     assert.ok(b .. s.isStream);
     assert.ok(b .. s.isStructuredStream('rolling'));
   }
   test("plain") { ||
     var executions = 0;
-    [[1,2],[2,3],[3,4]] .. s.transform.map(x->(++executions,x*x)) .. s.toArray ..
+    [[1,2],[2,3],[3,4]] .. s.transform$map(x->(++executions,x*x)) .. s.toArray ..
       assert.eq([[1,4],[4,9],[9,16]]);
     assert.eq(executions, 6);
   }
   test("rolling") { ||
     var executions = 0;
-    [1,2,3,4] .. s.rollingWindow(2) .. s.transform.map(x->(++executions,x*x)) .. s.toArray ..
+    [1,2,3,4] .. s.rollingWindow(2) .. s.transform$map(x->(++executions,x*x)) .. s.toArray ..
       assert.eq([[1,4],[4,9],[9,16]]);
     assert.eq(executions, 4);
   }

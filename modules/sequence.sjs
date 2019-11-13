@@ -192,7 +192,7 @@ function sequential(f) {
      more efficient than operating on the reconstructed stream, or that maintain the 
      structure of the stream. E.g.:
 
-     - [::transform.map] can operate on 'rolling' structured streams in a way that
+     - [::transform$map] can operate on 'rolling' structured streams in a way that
      only processes a fraction of the data than a comparable unstructured stream.
      - When presented with a 'batched' structured stream, [::transform] will maintain
      the batching structure, and return a 'batched' structured stream itself.
@@ -203,7 +203,7 @@ function sequential(f) {
 
      As a general rule to maximize performance, you should always use the most 
      specialized primitive from the SJS libraries when operating on streams. E.g.
-     use [::transform.map] instead of `transform(x->x .. map(...))`.
+     use [::transform$map] instead of `transform(x->x .. map(...))`.
 
      ### Implementation details
 
@@ -246,7 +246,7 @@ function sequential(f) {
      Rolling streams are e.g. produced by [::rollingWindow].
      In addition to being more efficient for transmission, some primitives can 
      process rolling streams more efficiently than their plain counterparts.
-     E.g. calling `transform.map(x->x*x)` on the above stream performs the function
+     E.g. calling `transform$map(x->x*x)` on the above stream performs the function
      `x->x*x` only once for every number seen (i.e. 9 times). Operating on the 
      reconstructed stream, it would need to call `x->x*x` 21 times.
 
@@ -1925,16 +1925,16 @@ function async_rf(fx, r) {
 transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(__js x -> x != null);
 
 /**
-  @function transform.map
-  @altsyntax sequence .. transform.map(f)
+  @function transform$map
+  @altsyntax sequence .. transform$map(f)
   @param {::Sequence} [sequence] Input sequence
   @param {Function} [f] Function to map over each element of `sequence`
   @summary Map a function over the (array) elements of `sequence`
   @return {::Stream|::StructuredStream} Plain stream or structured stream of type 'rolling' (see below)
   @desc
-     `seq .. @transform.map(f)` is synonymous to 
+     `seq .. @transform$map(f)` is synonymous to 
      `seq .. @transform(arr -> arr .. @map(f))`.
-     However, unlike the latter form, `transform.map` will maintain the 
+     However, unlike the latter form, `transform$map` will maintain the 
      structure of 'rolling' [::StructuredStream]s, and can operate more efficiently
      on them.
      E.g.:
@@ -1948,12 +1948,12 @@ transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(__js x ->
 
          // the following code returns a 'rolling' StructuredStream and 
          // only executes f(1),f(2),f(3),f(4) when iterated:
-         rollingStream .. @transform.map(f);
+         rollingStream .. @transform$map(f);
 
       ### Stream structuring details
 
       If the input sequence is a [::StructuredStream] of type `rolling`, 
-      `transform.map` will also return a rolling structured stream, and
+      `transform$map` will also return a rolling structured stream, and
       will operate on the stream more efficiently, as outlined in the 
       example above.
       For generic input sequences, `transform` returns a plain [::Stream].
@@ -1968,14 +1968,14 @@ var transform_map_rolling = (seq, f) -> StructuredStream('rolling') ::
       }
     };
 
-transform.map = function(seq, f) {
+function transform$map(seq, f) {
   if (isStructuredStream('rolling') :: seq) {
     return transform_map_rolling(seq.base, f);
   }
   else
     return seq .. transform(elems -> elems .. map(f));
 };
-
+exports.transform$map = transform$map;
 
 
 /**

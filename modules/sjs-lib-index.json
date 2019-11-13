@@ -1940,10 +1940,10 @@
         "transform": {
           "type": "function"
         },
-        "transform.filter": {
+        "transform$map": {
           "type": "function"
         },
-        "transform.map": {
+        "transform.filter": {
           "type": "function"
         },
         "transform.par": {
