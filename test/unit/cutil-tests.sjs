@@ -651,3 +651,25 @@ context('breaking') {||
   }
 
 }
+
+context('advanced semaphore') {||
+  test('acquire sequencing') {||
+    var S = cutil.Semaphore(1);
+    var rv = '';
+    waitfor {
+      S.acquire();
+      rv += '1';
+      hold(0);
+      S.release();
+      // this synchronous acquire should execute after the pending one in the other waitfor/and branch:
+      S.acquire();
+      rv += '3';
+    }
+    and {
+      S.acquire();
+      rv += '2';
+      S.release();
+    }
+    @assert.eq(rv, '123')
+  }
+}

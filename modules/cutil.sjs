@@ -235,18 +235,24 @@ var SemaphoreProto = {
       with calls to [::Semaphore::release]. Instead of ensuring this pairing 
       manually, consider using [::Semaphore::synchronize].
    */
-  acquire: function() {
-    if (this.permits <= 0) {
-      waitfor() {
-        this.queue.push(resume);
-      }
-      retract {
-        this.queue.splice(this.queue.indexOf(resume), 1);
-      }
+  acquire: __js function() {
+    while (this.queue.length > 0 && this.permits > 0) {
+      this.queue.shift()();
     }
+    if (this.permits <= 0) return this._acquire_async();
     --this.permits;
   },
   
+  _acquire_async: function() {
+    waitfor() {
+      this.queue.push(resume);
+    }
+    retract {
+      this.queue.splice(this.queue.indexOf(resume), 1);
+    }
+    --this.permits;
+  },
+
   /**
     @function Semaphore.release
     @summary  Release a permit.
@@ -276,15 +282,17 @@ var SemaphoreProto = {
         this.queue.shift()();
     }
     else {
-      this.__spawn_release();
+      ++this.permits;
+      if (this.permits>0 && this.queue.length > 0) {
+        // note: no 'return' here. we don't want the caller to wait on the execution frame.
+        this.__resume_release();
+      }
     }
   },
 
-  __spawn_release : function() {
-    // we only call this from a __js function, so the effect is like spawning
+  __resume_release : function() {
+    // resume processing after holding.
     hold(0);
-
-    ++this.permits;
     if (this.permits>0 && this.queue.length) 
       this.queue.shift()();
   },
@@ -298,7 +306,7 @@ var SemaphoreProto = {
      @desc
        `f` will be executed in a `try/finally` construct after the
        permit has been acquired. The permit will be released in
-       the `finally` clause, i.e. it is guaranteed to to be released
+       the `finally` clause, i.e. it is guaranteed to be released
        even if `f` throws an exception or is cancelled.
    */
   synchronize : function(f) {
