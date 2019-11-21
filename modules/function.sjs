@@ -174,15 +174,46 @@ __js exports.nop = function() { };
   @param    {Function} [f] The function to wrap.
   @param    {Integer} [max_concurrent_calls] The maximum number of concurrent executions to allow for 'f'.
 */
-exports.bound = function(f, max_concurrent_calls) {
+exports.bound = __js function(f, max_concurrent_calls) {
   var permits = cutil.Semaphore(max_concurrent_calls);
-  return function() {
-    permits.synchronize { 
-      ||
-      return f.apply(this, arguments);
+  return function(...args) {
+    var rv, async = false;
+    if (__oni_rt.is_ef(rv = permits.acquire())) {
+      //async = true;
+      return _bound_async_1(rv, f, permits, this, args);
     }
-  };
+    try {
+      if (__oni_rt.is_ef(rv = f.apply(this, args))) {
+        async = true;
+        return _bound_async_2(rv, permits);
+      }
+      return rv; 
+    }
+    finally {
+      if (!async)
+        permits.release();
+    }
+  }
 };
+
+function _bound_async_1(ef, f, permits, _this, args) {
+  try {
+    ef.wait();
+    return f.apply(_this, args);
+  }
+  finally {
+    permits.release();
+  }
+}
+
+function _bound_async_2(ef, permits) {
+  try {
+    return ef.wait();
+  }
+  finally {
+    permits.release();
+  }
+}
 
 /**
   @function sequential
@@ -191,15 +222,7 @@ exports.bound = function(f, max_concurrent_calls) {
   @return   {Function} The wrapped function.
   @param    {Function} [f] The function to wrap.
 */
-exports.sequential = function(f) {
-  var permits = cutil.Semaphore(1);
-  return function() {
-    permits.synchronize { 
-      ||
-      return f.apply(this, arguments);
-    }
-  };
-};
+__js exports.sequential = f -> exports.bound(f, 1);
 
 /**
   @function exclusive
