@@ -2266,4 +2266,23 @@ context('filter') {||
   test('sync async') {||
     [1,2,3,4] .. s.filter(s->(hold(0),s%2==0)) .. s.toArray() .. assert.eq([2,4]);
   }
+  test("typing") {||
+    var a = [1,2,3,4] .. s.filter(x->x%2==0);
+    assert.ok(a .. s.isStream);
+    assert.notOk(a .. s.isStructuredStream);
+
+    var b = [1,2,3,4] .. s.batch(2) .. s.filter(x->x%2==0);
+    assert.ok(b .. s.isStream);
+    assert.ok(b .. s.isStructuredStream('batched'));
+  }
+  test("batching") {||
+    var a = [1,2,3,4,5,6,7,8,9,9,9,9,9,9,9,9,9,9,9] .. s.batch(4) .. s.filter(x->x%2==0);
+    assert.eq(a..s.toArray, [2,4,6,8]);
+    assert.eq(a.base .. s.toArray, [[2,4],[6,8]]);
+  }
+  test("async batching") {||
+    var a = [1,2,3,4,5,6,7,8,9,9,9,9,9,9,9,9,9,9,9] .. s.monitor(->hold(0)) ..s.batch(4) .. s.filter(x->x%2==0);
+    assert.eq(a..s.toArray, [2,4,6,8]);
+    assert.eq(a.base .. s.toArray, [[2,4],[6,8]]);
+  }
 }

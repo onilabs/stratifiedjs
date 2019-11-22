@@ -1659,7 +1659,7 @@ exports.skipWhile = skipWhile;
    @altsyntax sequence .. filter([predicate])
    @param {::Sequence} [sequence] Input sequence
    @param {optional Function} [predicate=Id] Predicate function
-   @return {::Stream}
+   @return {::Stream|::StructuredStream} Plain stream or structured stream of type 'batched' (see below)
    @summary  Create a stream of elements of `sequence` that satisfy `predicate`
    @desc
       Generates a stream that contains all items `x` from `sequence` for which
@@ -1677,9 +1677,29 @@ exports.skipWhile = skipWhile;
           // same as above, with double dot and blocklamdba syntax:
 
           integers() .. filter(x->x%2) .. take(10) .. each { |x| console.log(x) }
+
+      ### Stream structuring details
+
+      If the input sequence is a [::StructuredStream] of type `batched`, 
+      `filter` will also return a batched structured stream which 
+      maintains the same batching as the input sequence, but with filtered elements omitted. 
+      I.e. each batch might contain fewer elements than that of the corresponding input batch.
+
+      For generic input sequences, `filter` returns a plain [::Stream].
+      
 */
 __js function filter(sequence, predicate) {
   if (!predicate) predicate = identity;
+  if (sequence .. isStructuredStream('batched'))
+    return StructuredStream('batched') ::
+             sequence.base .. 
+               transform(arr -> arr .. filter_inner(predicate) .. toArray) .. 
+               filter_inner(x->x.length>0);
+  else
+    return filter_inner(sequence, predicate);
+}
+
+__js function filter_inner(sequence, predicate) {
   return Stream(function(r) {
     return sequence .. each(function(x) {
       var pred = predicate(x);
