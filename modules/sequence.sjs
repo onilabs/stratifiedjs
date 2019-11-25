@@ -551,6 +551,8 @@ __js function exhaust(seq) { return each(seq, noop); }
      elements from `sequence`. If there are no more elements in `sequence`,
      calls to `next()` will yield `eos`.
 
+     Iteration of `sequence` will only begin with the first call of `next` (unlike [::withOpenStream]).
+
      It is *not* safe to call `next()` concurrently from multiple
      strata. If you need to do that, sequentialize access to `next`
      using e.g. [function::sequential].
@@ -766,6 +768,9 @@ exports.consumeMultiple = consumeMultiple;
      within `block` will pick up iteration of `sequence` where the
      previous iteration left off.
 
+     `sequence` will be opened prior to the start of `block` (unlike [::consume], which
+     only begins iteration when the consumer makes the first call to `next`).
+
      ### Example
 
          @integers() .. @withOpenStream {
@@ -795,6 +800,7 @@ exports.consumeMultiple = consumeMultiple;
 
 /*
   Naive implementation (20 times slower in synchronous case):
+  (also, different semantics: stream will only open after first 'next' call)
 function withOpenStream(seq, block) {
   var done = {};
   seq .. consume(done) { 
