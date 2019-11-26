@@ -3053,10 +3053,18 @@ function dummy(){}
 var hold0,clear0;
 
 
+
 if(exports.G.setImmediate){
 hold0=exports.G.setImmediate;
 clear0=exports.G.clearImmediate;
 }else if(exports.G.postMessage&&!exports.G.importScripts){
+
+
+
+
+
+
+
 
 var postMessageIsAsync=true;
 var oldOnMessage=exports.G.onmessage;
@@ -3072,11 +3080,8 @@ var MESSAGE_PREFIX="com.onilabs.hold0"+Math.random();
 
 var tasks={};
 
-function isStringAndStartsWith(string,putativeStart){return typeof string==='string'&&string.substring(0,putativeStart.length)===putativeStart;
+function onGlobalMessage(event){if(event.source===exports.G&&typeof event.data==='string'&&event.data.indexOf(MESSAGE_PREFIX)===0){
 
-}
-
-function onGlobalMessage(event){if(event.source===exports.G&&isStringAndStartsWith(event.data,MESSAGE_PREFIX)){
 
 
 var id=event.data.substring(MESSAGE_PREFIX.length);

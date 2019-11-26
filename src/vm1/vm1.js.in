@@ -3383,10 +3383,18 @@ function dummy() {}
 var hold0, clear0;
 // Note: we cannot use process.nextTick, because hold(0) must not stall I/O. 
 // It would e.g. break 'require-tests:non-circular reference waits for the full module'
+// See also https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/
 if (exports.G.setImmediate) {
   hold0 = exports.G.setImmediate;
   clear0 = exports.G.clearImmediate;
 }
+/*
+similarly to process.nextTick, this will stall I/O:
+else if (false && exports.G.Promise) {
+  hold0 = function(cb) { Promise.resolve().then(cb); }
+  clear0 = function(id) { }
+}
+*/
 else if (exports.G.postMessage && !exports.G.importScripts) {
   var postMessageIsAsync = true;
   var oldOnMessage = exports.G.onmessage;
@@ -3402,13 +3410,10 @@ else if (exports.G.postMessage && !exports.G.importScripts) {
 
     var tasks = {};
 
-    function isStringAndStartsWith(string, putativeStart) {
-      return typeof string === 'string' && string.substring(0, putativeStart.length) === putativeStart;
-    }
-    
     function onGlobalMessage(event) {
       if (event.source === exports.G && 
-          isStringAndStartsWith(event.data, MESSAGE_PREFIX)) {
+          typeof event.data === 'string' &&
+          event.data.indexOf(MESSAGE_PREFIX) === 0) {
         var id = event.data.substring(MESSAGE_PREFIX.length);
         var f;
         if ((f = tasks[id])) {
