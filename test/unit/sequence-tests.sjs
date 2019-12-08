@@ -1794,7 +1794,7 @@ context("batch") {||
 test("consume/retract edge case") {||
   var producer = s.Stream(function(r) {
     r('a');
-    hold(10);
+    hold(50);
     r('b');
   });
 
@@ -1810,7 +1810,7 @@ test("consume/retract edge case") {||
 test("consume exception propagation") {||
   var producer = s.Stream(function(r) {
     r('a');
-    hold(10);
+    hold(50);
     throw 'b';
   });
 
