@@ -1838,7 +1838,7 @@ test("consume exception propagation") {||
 test("consume exception propagation / retract edge case") {||
   var producer = s.Stream(function(r) {
     r('a');
-    hold(10);
+    hold(50);
     throw 'b';
   });
 
@@ -1868,7 +1868,7 @@ test("consume exception propagation / retract edge case") {||
 test("consume eos / retract edge case") {||
   var producer = s.Stream(function(r) {
     r('a');
-    hold(10);
+    hold(50);
   });
 
   var eos = {};
