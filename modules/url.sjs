@@ -170,7 +170,7 @@ exports.build = sys.constructURL;
   @param {String} [url] URL to parse.
   @return {Object} Parsed URL as described below.
   @desc
-     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri> in 'strict' mode.
+     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri> in 'strict' mode, with an additional bug fix that corrects a parsing issue with '@' characters.
 
      A url such as `http://www.onilabs.com/foo/bar?x=y&z=a%20b#anchor%201` will be parsed to an object:
 

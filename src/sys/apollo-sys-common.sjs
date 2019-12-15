@@ -366,7 +366,7 @@ function URI() {}
     key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
     qsParser: /(?:^|&)([^&=]*)=?([^&]*)/g,
     // We're only using the 'strict' mode parser:
-    parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+    parser: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:\/@]*)(?::([^:\/@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
   }
 
   exports.parseURL = function(str) {

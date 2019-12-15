@@ -14,6 +14,11 @@ context('build query string') {||
 }
 
 context('parsing') {||
+  test('authority bug') {||
+    // this used to parse as path='/baz' and authority = 'foo.com/foo/@bar'
+    // because url.parse incorrectly allowed slashes in the url userinfo part.
+    url.parse('http://foo.com/foo/@bar/baz').path .. assert.eq('/foo/@bar/baz');
+  }
   test('decodes query string') {||
     url.parse('http://example.com?q%20s=x%26').params() .. assert.eq({'q s':'x&'});
   }
