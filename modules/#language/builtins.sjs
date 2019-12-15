@@ -247,12 +247,65 @@
       // all modules addresses as 'sjs:' will now be loaded from
       // the location above.
 
-  There is also a module-local `require.alias` variable, which performs prefix replacement similar to require.hubs, but is only applies to the current module:
+  ### Loader Objects
+
+  Loader objects determine the way modules are loaded and compiled. They are an internal detail of the SJS implementation.
+  Typically you will not need to care about the details unless you want to e.g. hook another compiler into SJS.
+  There are many customization hooks, but for the full details of the loading/compiling process you will need to 
+  dive into the system code (stratifiedjs/src/sys/*). Here's a brief overview:
+
+  A loader_object has three optional keys:
+
+      {
+        src: String or Function
+        loader: Function
+        resolve: Function (can also be specified as loader.resolve)
+      }
+
+  Once a module identifier has been resolved to a loader object (as described above), the actual loading of the module
+  proceeds as follows:
+
+  1. Firstly a `resolve_spec` object will be built that, in addition to the keys from the loader_object, contains:
+
+        {
+          path: module_id (string),
+          ext:  extension of path (part after last '.') - undefined if there is no extension
+          type: Type of module, as inferred from the extension, or guessed from the module 
+                initating the load ('js' if module was loaded from a js module, 'sjs' 
+                if module was loaded from an sjs module).
+                Will be a known type in the given hostenv (as listed in the hash 
+                'require.extensions'):
+                For xbrowser hostenv: 'js', 'sjs', 'html', 
+                For nodejs hostenv: 'sjs', 'api', 'mho', 'js', 'html'
+        }
+
+  2. This `resolve_spec` object will be passed through the loader_object's `resolve` function, which can amend 
+     it as appropriate.
+     The default resolve function (if none specified in loader_object or on loader_object.loader) will append 
+     `'.'+resolve_spec.type` to `resolve_spec.path` if `resolve_spec.ext` is undefined.
+
+  3. The module will be loaded by calling
+
+         resolve_spec.loader(resolve_spec.path, 
+                             parent, // parent module
+                             resolve_spec.src,
+                             options,
+                             resolve_spec);
+
+     The default loader loads the source code by calling `resolve_spec.src(path)`, and compiles it by 
+     calling `resolve.extensions[resolve_spec.type](source, descriptor)`
+
+
+  ### Deprecated `require.alias`
+
+  There is a deprecated module-local `require.alias` variable, which performs prefix replacement similar to require.hubs, but is only applies to the current module:
 
       require.alias.mymodules = "http://code.mydomain.com/modules/";
       var mymodule = require("mymodules:mymodule");
 
-  There is also a facility for hooking external compilers (like CoffeeScript) into the `require` mechanism. See [this Google groups post](https://groups.google.com/d/msg/oni-apollo/PjntilkeDiI/jGuWQhhTnn0J) for details.
+  ### External compilers
+
+  There is also a facility for hooking external compilers (like CoffeeScript) into the `require` mechanism. See [this Google groups post](https://groups.google.com/d/msg/stratifiedjs/PjntilkeDiI/jGuWQhhTnn0J) for details.
 
 @variable require.main
 @summary The main module ID
