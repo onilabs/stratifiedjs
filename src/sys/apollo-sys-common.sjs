@@ -812,10 +812,16 @@ __js function resolveHubs(module, hubs, require_obj, parent, opts) {
 
   var level = 10; // we allow 10 levels of rewriting indirection
   for (var i=0,hub; hub=hubs[i++]; ) {
-    if (path.indexOf(hub[0]) == 0) {
+    var match_prefix = typeof hub[0] === 'string';
+    if ((match_prefix && path.indexOf(hub[0]) === 0) ||
+        (!match_prefix && hub[0].test(path))) {
       // we've got a match
       if (typeof hub[1] == "string") {
-        path = hub[1] + path.substring(hub[0].length);
+        if (match_prefix)
+          path = hub[1] + path.substring(hub[0].length);
+        else 
+          path = path.replace(hub[0], hub[1]);
+
         i=0; // start resolution from beginning again
         // make sure the resulting path is absolute:
         if (path.indexOf(":") == -1)

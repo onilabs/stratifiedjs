@@ -225,9 +225,21 @@
 @summary The configured `require()` hubs
 @desc
   The way module identifiers are resolved can be customized through the `require.hubs` variable.
-  This variable is an array of `[prefix, replacement_string|loader_object]` pairs.
-  For a given module identifier, StratifiedJS traverses this array in order, looking for prefix matches.
-  Prefixes are replaced by `replacement_string`s until a `loader_object` is found. E.g. on the server, the prepopulated `require.hubs` array looks something like this:
+  This variable is an array of `[prefix|regexp, replacement_string|loader_object]` pairs.
+
+  For a given `module_id`, StratifiedJS traverses this array in order, looking for regexp or prefix matches:
+
+  - If a match with an associated `loader_object` is found, the resolution process terminates.
+
+  - If a _prefix_ match with an associated `replacement_string` is found, the prefix of `module_id`
+    will be replaced by the replacement string, and the hubs array will be iterated anew from the 
+    beginning.
+
+  - If a _regexp_ match with an associated `replacement_string` is found, `module_id` will 
+    be amended by calling `module_id = module_id.replace(regexp, replacement_string)`, and the 
+    hubs array will be iterated anew from the beginning.
+
+  E.g. on the server, the prepopulated `require.hubs` array looks something like this:
 
       [ [ 'sjs:', 'file:///Users/alex/stratifiedjs/modules/' ],
         [ 'github:', { src: [Function: github_src_loader] } ],
