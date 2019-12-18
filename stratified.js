@@ -939,7 +939,7 @@ return this.returnToParent(val);
 }else if(idx==2){
 
 
-return this.returnToParent(this.o);
+return this.returnToParent(typeof val==='object'?val:this.o);
 }else{
 
 if(idx==1){
@@ -1081,48 +1081,15 @@ rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function")
 break;
 case 2:
 
-
-
-
 var ctor=this.l;
-if(ctor&&(/\{\s*\[native code\]\s*\}\s*$/.test(ctor.toString())||ctor.apply==undefined)){
-
-
-
 var pars=this.pars;
-
-var command="new ctor(";
-for(var i=0;i<pars.length;++i){
-if(i)command+=",";
-command+="pars["+i+"]";
-}
-command+=")";
-rv=eval(command);
-}else if(!testIsFunction(ctor)){
-
-rv=new CFException("t",new Error("'"+ctor+"' is not a function"),this.ndata[1],this.env.file);
-
-
-
-}else{
-
-
-
-var f=function(){};
-f.prototype=ctor.prototype;
-this.o=new f();
-rv=ctor.apply(this.o,this.pars);
+rv=new ctor(... pars);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if(!rv.env)throw new Error("Invalid constructor function (no environment)");
+this.o=rv.env.tobj;
 
 this.setChildFrame(rv,2);
 return this;
-}else{
-
-
-
-if(!rv||"object function".indexOf(typeof rv)==-1)rv=this.o;
-
-}
 }
 break;
 default:
@@ -4614,6 +4581,13 @@ if(id==='spawn'){
 
 pctx.decl_scopes[pctx.decl_scopes.length-1].notail=true;
 this.is_nblock=false;
+}else if(id==='...'){
+
+
+
+
+
+this.is_nblock=false;
 }else{
 
 this.is_nblock=(pctx.allow_nblock&&right.is_nblock);
@@ -4626,7 +4600,9 @@ ph_prefix_op.prototype.nblock_val=function(){return this.id+" "+this.right.nb();
 };
 ph_prefix_op.prototype.val=function(){var rv;
 
-if(this.id=="spawn")rv="__oni_rt.Spawn("+this.line+","+this.right.v()+")";else if(this.right.is_nblock){
+if(this.id=="spawn")rv="__oni_rt.Spawn("+this.line+","+this.right.v()+")";else if(this.id==='...')throw new Error("Unexpected '...' - spread syntax is only supported in __js blocks");else if(this.right.is_nblock){
+
+
 
 
 
@@ -5581,6 +5557,7 @@ return t;
 
 
 
+
 S("[").exs(function(pctx){
 
 var elements=[];
@@ -5630,28 +5607,27 @@ scan(pctx);
 return new ph_dot_accessor(l,name,pctx);
 });
 
-S("...").exs(function(pctx){if(pctx.token.id=="<id>"){
+
+function is_arrow(id){return id==='=>'||id==='->'}
 
 
+S("...").exs(function(pctx){var lookahead_pctx=Object.assign({},pctx);
+
+
+
+if(pctx.token.id=="<id>"&&scan(lookahead_pctx).id==')'&&is_arrow(scan(lookahead_pctx).id)){
 pctx.token.value="..."+pctx.token.value;
 var tok=pctx.token;
 scan(pctx);
-
-
-
-if(pctx.token.id!==')')throw new Error("Unexpected '...'");
-
-var lookahead_pctx=Object.assign({},pctx);
-scan(lookahead_pctx);
-if(lookahead_pctx.token.id!=='->'&&lookahead_pctx.token.id!=='=>')throw new Error("Unexpected '...'");
-
-
-
-
 return tok.exsf(pctx);
-}else throw new Error("Unexpected '...'");
+}else{
 
 
+var right=parseExp(pctx,119);
+
+
+return new ph_prefix_op('...',right,pctx);
+}
 });
 
 S("new").exs(function(pctx){var exp=parseExp(pctx,260);

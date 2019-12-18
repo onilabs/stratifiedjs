@@ -939,7 +939,7 @@ return this.returnToParent(val);
 }else if(idx==2){
 
 
-return this.returnToParent(this.o);
+return this.returnToParent(typeof val==='object'?val:this.o);
 }else{
 
 if(idx==1){
@@ -1081,43 +1081,15 @@ rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function")
 break;
 case 2:
 
-
-
-
 var ctor=this.l;
-if(ctor&&(/\{\s*\[native code\]\s*\}\s*$/.test(ctor.toString())||ctor.apply==undefined)){
-
-
-
 var pars=this.pars;
-
-
-rv=new (Function.prototype.bind.apply(ctor,[null].concat(pars)))();
-}else if(!testIsFunction(ctor)){
-
-rv=new CFException("t",new Error("'"+ctor+"' is not a function"),this.ndata[1],this.env.file);
-
-
-
-}else{
-
-
-
-var f=function(){};
-f.prototype=ctor.prototype;
-this.o=new f();
-rv=ctor.apply(this.o,this.pars);
+rv=new ctor(... pars);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if(!rv.env)throw new Error("Invalid constructor function (no environment)");
+this.o=rv.env.tobj;
 
 this.setChildFrame(rv,2);
 return this;
-}else{
-
-
-
-if(!rv||"object function".indexOf(typeof rv)==-1)rv=this.o;
-
-}
 }
 break;
 default:

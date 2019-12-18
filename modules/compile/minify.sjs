@@ -207,7 +207,7 @@ GEN_INFIX_OP(left, id, right, pctx)
 GEN_ASSIGN_OP(left, id, right, pctx)
   id: = *= /= %= += -= <<= >>= >>>= &= ^= |=
 GEN_PREFIX_OP(id, right, pctx)
-  id: ++ -- delete void typeof + - ~ ! (for SJS also: 'spawn')
+  id: ++ -- delete void typeof + - ~ ! ... (for SJS also: 'spawn')
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
 GEN_LITERAL(type, value, pctx)
@@ -791,6 +791,7 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 *      R     ->           AssignExp                      Thin Arrow (prefix form)
 *      R     =>           Args AssignExp                 Fat Arrow
 *      R     =>           AssignExp                      Fat Arrow (prefix form)
+119          ...          AssignExp                      SpreadElement
 *115         spawn        SpawnExp                       StratifiedJS 'spawn'
 *112         __js         JS_EXP                         non-blocking JS optimized expression
 110 17 L     ,            Expression AssignExp           SequentialEvaluation
@@ -849,28 +850,27 @@ S(".").exc(270, function(l, pctx) {
   return l+"."+name;
 });
 
+
+function is_arrow(id) { return id === '=>' || id === '->'; }
+
+//S("...").pre(119);
 S("...").exs(function(pctx) {
-  // XXX hackish
-  if (pctx.token.id == "<id>") {
+  // XXX hackish... identify '...x' rest parameter for arrow function
+  // function/blb-lambda param list rest params are handled elsewhere.
+  var lookahead_pctx = Object.assign({}, pctx);
+  if (pctx.token.id == "<id>" && scan(lookahead_pctx).id == ')' && is_arrow(scan(lookahead_pctx).id) ) {
     pctx.token.value = "..."+pctx.token.value;
     var tok = pctx.token;
     scan(pctx);
-    // we only allow '...' rest param at end of an argument list for arrow functions here.
-    // function/blb-lambda param list rest params are handled elsewhere.
-    // destructuring '...' is not implemented yet.
-    if (pctx.token.id !== ')') throw new Error("Unexpected '...'");
-    // very hackish lookahead test for '->'/'=>'
-    var lookahead_pctx = Object.assign({}, pctx);
-    scan(lookahead_pctx);
-    if (lookahead_pctx.token.id !== '->' &&
-        lookahead_pctx.token.id !== '=>')
-      throw new Error("Unexpected '...'");
-
-
     return tok.exsf(pctx);
   }
-  else
-    throw new Error("Unexpected '...'");
+  else {
+      
+      var right = parseExp(pctx, 119);
+      
+      
+      return gen_prefix_op('...', right, pctx);
+  }
 });
 
 S("new").exs(function(pctx) {
