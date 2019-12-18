@@ -1082,7 +1082,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
   }
   else if (idx == 2) {
     // returning from a 'new' call
-    return this.returnToParent(this.o);
+    return this.returnToParent(typeof val === 'object' ? val : this.o);
   }
   else {
     if (idx == 1) {
@@ -1225,63 +1225,17 @@ EF_Fcall.prototype.cont = function(idx, val) {
       }
       break;
       case 2:
-      // 'new' call
-      
-      // XXX this sucks big-time. we need to distinguish between
-      // builtin objects and user functions :-(
-      var ctor = this.l;
-#ifdef NODEJS
-      if (ctor && (/\{ \[native code\] \}$/.test(ctor.toString()) || ctor === Buffer)) {
-#else
-      if (ctor && (/\{\s*\[native code\]\s*\}\s*$/.test(ctor.toString()) ||
-                   ctor.apply == undefined /* this last one catches XMLHttpRequest on Safari */)) {
-#endif /* !NODEJS */
-        // ctor is one of the 'builtin' functions. we need to
-        // construct it in a single stage:
+        // 'new' call
+        var ctor = this.l;
         var pars = this.pars;
-        
-#ifdef NOEVAL
-        // we could use this in the general case, but it's ~5x slower.
-        rv = new (Function.prototype.bind.apply(ctor, [null].concat(pars)));
-#else
-        var command = "new ctor(";
-        for (var i=0; i<pars.length; ++i) {
-          if (i) command +=",";
-          command += "pars["+i+"]";
-        }
-        command += ")";
-        rv = eval(command);
-#endif /* NOEVAL */
-      }
-      else if (!testIsFunction(ctor)) {
-        rv = new CFException("t",
-                             new Error("'"+ctor+"' is not a function"),
-                             this.NDATA_FCALL_LINE(),
-                             this.env.file);
-      }
-      else {
-        // ctor is a 'user' function, which could suspend under our feet.
-        // we have to construct in two stages:
-#ifdef NODEJS
-        this.o = Object.create(ctor.prototype);
-#else
-        var f = function() {};
-        f.prototype = ctor.prototype;
-        this.o = new f();
-#endif
-        rv = ctor.apply(this.o, this.pars);
+        rv = new ctor(...pars);
         if (is_ef(rv)) {
+          if (!rv.env) throw new Error("Invalid constructor function (no environment)");
+          this.o = rv.env.tobj;
           // we need to stay in the picture
           this.setChildFrame(rv, 2);
           return this;
         }
-        else {
-        // special casing for return value handling (return 'o'
-        // instead of rv if rv is not typeof object):
-          if (!rv || "object function".indexOf(typeof rv) == -1) 
-            rv = this.o;
-        }
-      }
       break;
       default:
       rv = new CFException("i", "Invalid Fcall mode");
