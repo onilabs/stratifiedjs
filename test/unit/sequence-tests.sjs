@@ -20,7 +20,7 @@ var toArray = s.toArray;
 var withDecreasingTimeout = function(fn) {
   var amount = 200;
   return function() {
-    hold(amount-=40);
+    hold(amount-=50);
     return fn.apply(this, arguments);
   };
 };
