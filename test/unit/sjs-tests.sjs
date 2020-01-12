@@ -1456,7 +1456,7 @@ testEq("detached blocklambda return", 'a', function() {
 testEq("detached blocklambda return async", 'a', function() {
   function f(g) {
     spawn g();
-    hold(10);
+    hold(30);
     return 'b';
   }
   var rv = f { || hold(0); return 'a'; };
@@ -1488,7 +1488,7 @@ testEq("detached blocklambda return with finally clause / async", 'bfa', functio
     try {
       spawn g();
       rv += 'b';
-      hold(10);
+      hold(30);
       rv += 'c';
     }
     finally {
@@ -1510,7 +1510,7 @@ testEq("detached blocklambda return with blocking inner finally clause / async",
     rv += 'c';
   }
   rv += (function() {
-    f { || hold(0); try { return 'a'; } finally { hold(10); rv += 'f'; } };
+    f { || hold(0); try { return 'a'; } finally { hold(30); rv += 'f'; } };
   })();
   return rv;
 });
@@ -1521,7 +1521,7 @@ testEq("detached blocklambda return with blocking finally clause 2 / async", 'bf
     try {
       spawn g();
       rv += 'b';
-      hold(10);
+      hold(30);
       rv += 'c';
     }
     finally {
