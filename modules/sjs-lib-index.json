@@ -1975,40 +1975,7 @@
     },
     "service": {
       "type": "module",
-      "children": {
-        "Registry": {
-          "type": "class",
-          "children": {
-            "Registry": {
-              "type": "ctor"
-            },
-            "clearCached": {
-              "type": "function"
-            },
-            "factory": {
-              "type": "function"
-            },
-            "get": {
-              "type": "function"
-            },
-            "has": {
-              "type": "function"
-            },
-            "hasCached": {
-              "type": "function"
-            },
-            "lazy": {
-              "type": "function"
-            },
-            "set": {
-              "type": "function"
-            },
-            "value": {
-              "type": "function"
-            }
-          }
-        }
-      },
+      "children": {},
       "summary": "Structures for simple dependency injection"
     },
     "set": {
