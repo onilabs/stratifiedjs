@@ -21,6 +21,74 @@
   For JS parity, exceptions are overriden by 'return' in 'finally' clauses.
 */
 
+/* 
+   * finally(e) argument:
+      e[0]: return value (value or exception)
+      e[1]: is_exception (boolean) 
+      e[2]: is_abortion (boolean)
+      e[3]: is_pseudo_abort (boolean; "true"="don't exec retract clauses")
+
+   * Various combinations of e[1],e[2],e[3] are possible; they are not mutually exlusive. see 'controlflow_type' function.
+   
+   * For 'normal' controlflow processing, "finally(e)" must "throw e"
+
+*/
+function controlflow_type(e) {
+  if (e[2] === false) {
+    // not aborted
+    // assert that we are not pseudo-aborted:
+    @assert.eq(e[3], false);
+    
+    if (e[1] === false) {
+      // not an exception -> sequential controlflow
+      return 'sequential';
+    }
+    else {
+      // we have an exception
+      @assert.truthy(!!e[0]);
+      
+      if (e[0].type === 'r') {
+        if (e[0].eid)
+          return 'blocklambda-return';
+        else
+          return 'return';
+      }
+      else if (e[0].type === 'b') {
+        return 'break';
+      }
+      else if (e[0].type === 'blb') {
+        return 'blocklambda-break';
+      }
+      else if (e[0].type === 'c') {
+        return 'continue';
+      }
+      else if (e[0].type === 't') {
+        return 'exception';
+      }
+      else 
+        throw new Error("Unknow controlflow type #{e[0].type}");
+    }
+  } // e[2] === false
+  else {
+    // e[2] = true
+    // abortion
+    var rv;
+    if (e[3])
+      rv = 'pseudo-abort';
+    else
+      rv = 'abort';
+    @assert.truthy(e[1]);
+    if (e[0].type === 't') {
+      rv += '-exception';
+      @assert.truthy(!!e[0]);
+    }
+    else 
+      @assert.eq(e[0].type, 'a');
+    return rv;
+  }
+}
+
+
 
 @context('baseline') {||
   @test("abort during finally should abort at next abort point") {||
@@ -883,61 +951,6 @@
 }
  
 @context('identify control flow') {||
-
-  function controlflow_type(e) {
-    if (e[2] === false) {
-      // not aborted
-      // assert that we are not pseudo-aborted:
-      @assert.eq(e[3], false);
-
-      if (e[1] === false) {
-        // not an exception -> sequential controlflow
-        return 'sequential';
-      }
-      else {
-        // we have an exception
-        @assert.truthy(!!e[0]);
- 
-        if (e[0].type === 'r') {
-          if (e[0].eid)
-            return 'blocklambda-return';
-          else
-            return 'return';
-        }
-        else if (e[0].type === 'b') {
-          return 'break';
-        }
-        else if (e[0].type === 'blb') {
-          return 'blocklambda-break';
-        }
-        else if (e[0].type === 'c') {
-          return 'continue';
-        }
-        else if (e[0].type === 't') {
-          return 'exception';
-        }
-        else 
-          throw new Error("Unknow controlflow type #{e[0].type}");
-      }
-    } // e[2] === false
-    else {
-      // e[2] = true
-      // abortion
-      var rv;
-      if (e[3])
-        rv = 'pseudo-abort';
-      else
-        rv = 'abort';
-      @assert.truthy(e[1]);
-      if (e[0].type === 't') {
-        rv += '-exception';
-        @assert.truthy(!!e[0]);
-      }
-      else 
-        @assert.eq(e[0].type, 'a');
-      return rv;
-    }
-  }
 
   @test('sequential') {||
     var rv;
