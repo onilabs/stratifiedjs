@@ -73,7 +73,7 @@ exports.remove = remove;
    @summary Produce the k-combinations (without repetition) of an array
    @param {Array} [arr]
    @param {Integer} [k] Number of elements in each combination
-   @return {sequence:Stream} Stream of k-sized arrays 
+   @return {sequence::Stream} Stream of k-sized arrays 
 */
 exports.kCombinations = (arr, k) -> Stream(function(receiver) {
   function recurse(reservoir, data) {
@@ -97,7 +97,7 @@ exports.kCombinations = (arr, k) -> Stream(function(receiver) {
    @function permutations
    @summary Produce the permutations of an array
    @param {Array} [arr]
-   @return {sequence:Stream} Stream of permuted arrays 
+   @return {sequence::Stream} Stream of permuted arrays 
 */
 exports.permutations = (arr) -> Stream(function(receiver) {
   function recurse(reservoir, data) {
