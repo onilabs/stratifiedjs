@@ -605,6 +605,10 @@
 @desc
   A stratum is waiting for another if it is blocked on the other stratum's [::Stratum::value].
 
+@function Stratum.running
+@summary Return `true` if the stratum is still running, `false` otherwise
+@return {Boolean}
+
 @function Stratum.waitforValue
 @deprecated Use [::Stratum::value] instead
 
