@@ -58,6 +58,175 @@ var sys  = require('builtin:apollo-sys');
 */
 __js exports.StratumAborted = __oni_rt.StratumAborted;
 
+/**
+   @function withSpawnScope
+   @altsyntax withSpawnScope { |scope| ... }
+   @summary Create a scope for executing background tasks
+   @param {Function} [scope_block] Function that will be called with a [::SpawnScopeInterface]
+   @desc
+     `withSpawnScope` creates a scope for executing 'scoped' background strata. 
+
+     The lifetime of the scope
+     and the background strata created therein (using [::SpawnScopeInterface::spawn]) is 
+     bounded by `scope_block` (typically a [#language/syntax::blocklambda]):
+   
+     When `scope_block` exits, the scope and the scoped background strata will be aborted, and
+     the `withSpawnScope` call returns.
+
+     Any exceptions thrown from a scoped background stratum will cause the scope (and 
+     any other running scoped strata) to be aborted and the `withSpawnScope` call to throw
+     the exception.
+
+     [::SpawnScopeInterface::wait] can be used to wait for completion of all currently 
+     running scoped background strata.
+
+
+     ### Blocklambda controlflow
+
+     Blocklambda controlflow passing through a scoped background stratum will be
+     correctly routed through the scope and cause the the scope (and running scoped strata) 
+     to be aborted. E.g.:
+
+         // The following code logs:
+         // 's1 running'
+         // 's2 running'
+         // 's1 abort'
+         // 's2 retval'
+
+         function foo(blk) {
+           @withSpawnScope { 
+             |scope|
+             scope.spawn { || 
+               try { console.log('s1 running'); hold(); }
+               retract { console.log('s1 abort'); }
+             }
+             scope.spawn(blk);
+             scope.wait();
+             console.log('not reached');
+           }
+           console.log('not reached');
+         }
+
+         function bar() {
+           foo { 
+             ||
+             console.log('s2 running');
+             hold(100);
+             return 's2 retval';
+           }
+           console.log('not reached');
+         }
+
+         console.log(bar());
+
+
+   @class SpawnScopeInterface
+   @summary Interface injected by [::withSpawnScope]
+
+   @function SpawnScopeInterface.spawn
+   @summary Execute a scoped background stratum
+   @param {Function} [f] Function to execute in background stratum
+   @desc
+      Begins executing `f` and returns when `f` returns or blocks.
+      In the latter case, `f` will continue to execute in the background until
+      it returns or is aborted (by virtue of the scope being aborted or otherwise exited).
+      
+      If `f` throws an exception it will cause the scope to be aborted, and the exception 
+      to be thrown by the enclosing [::withSpawnScope] call.
+
+   @function SpawnScopeInterface.wait
+   @summary Wait for all scoped background strata to complete
+*/
+function withSpawnScope(scope) {
+  var waitlist = [], pending_rv, kill, killed = false;
+
+  // Linked list for keeping track of stratum cleanup:
+  // (a simple array scales badly when there are lots (e.g. >10000) strata)
+  var sentinel = {};
+  sentinel._next = sentinel; sentinel._prev = sentinel;
+  var strata = sentinel;
+
+  __js function add_stratum(stratum) {
+    stratum._next = strata._next;
+    stratum._next._prev = stratum;
+    stratum._prev = strata;
+    strata._next = stratum;
+  }
+  __js function remove_stratum(stratum) {
+    stratum._prev._next = stratum._next;
+    stratum._next._prev = stratum._prev;
+    delete stratum._prev;
+    delete stratum._next;
+    
+    if (waitlist.length && strata._next === strata) {
+      [...waitlist].forEach(r=>r());
+    }
+  }
+
+  waitfor {
+    waitfor() { kill = resume; }
+    killed = true;
+  }
+  or {
+    var itf = {
+      spawn: function(background_task) {
+        // this check prevents synchronous spawning after we've been killed (by e.g. a blocklambda break):
+        if (killed) hold();
+        __js var ef = background_task();
+        if (!__oni_rt.is_ef(ef)) return;
+        var background_stratum = spawn (function() {
+          try { ef.wait(); /*background_task();*/ }
+          finally(e) {
+            if (e[1] /*exception*/ && !e[2] /* !abort */) {
+              // need to be careful about not leaking pending_rv into the execution frame
+              // hence the hackish 'null':
+              pending_rv = e[0],null;
+              kill();
+            }
+            
+            if (background_stratum)
+              remove_stratum(background_stratum);
+
+            // prevent further processing
+            throw [undefined];
+          }
+        })();
+        __js if (background_stratum.running())
+          add_stratum(background_stratum);
+      },
+      wait: function() {
+        if (strata._next === strata) return;
+        waitfor() {
+          waitlist.push(resume);
+        }
+        finally {
+          var idx = waitlist.indexOf(resume);
+          // assert(idx !== -1)
+          waitlist.splice(idx,1);
+        }
+      }
+    };
+    scope(itf);
+  }
+  finally {
+    __js {
+      // XXX there is probably a better way to do cleanup that doesn't involve
+      // copying the full linked list
+      var to_abort = [];
+      var iter = strata._next;
+      while (iter !== strata) {
+        to_abort.push(iter);
+        iter = iter._next;
+      }
+      to_abort.forEach(s=>s.abort());
+    }
+    itf.wait();
+  }
+
+  return pending_rv;
+}
+
+exports.withSpawnScope = withSpawnScope;
 
 /**
   @function waitforAll

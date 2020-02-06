@@ -13,6 +13,9 @@
                 "abort": {
                   "type": "function"
                 },
+                "running": {
+                  "type": "function"
+                },
                 "value": {
                   "type": "function"
                 },
@@ -471,6 +474,17 @@
             }
           }
         },
+        "SpawnScopeInterface": {
+          "type": "class",
+          "children": {
+            "spawn": {
+              "type": "function"
+            },
+            "wait": {
+              "type": "function"
+            }
+          }
+        },
         "StratumAborted": {
           "type": "variable"
         },
@@ -495,6 +509,9 @@
           "type": "function"
         },
         "waitforFirst": {
+          "type": "function"
+        },
+        "withSpawnScope": {
           "type": "function"
         }
       },

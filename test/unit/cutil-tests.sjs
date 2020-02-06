@@ -673,3 +673,336 @@ context('advanced semaphore') {||
     @assert.eq(rv, '123')
   }
 }
+
+function task(id, log_arr, blocking_retract, blocking_finally) {
+  return function() {
+    try {
+      log_arr.push(id + ' start');
+      hold(100);
+    }
+    retract {
+      if (blocking_retract) hold(0);
+      log_arr.push(id + ' retract');
+    }
+    finally {
+      if (blocking_finally) hold(0);
+      log_arr.push(id + ' finally');
+    }
+  }
+}
+
+context('withSpawnScope') {||
+  test('empty') {||
+    var rv = [];
+    cutil.withSpawnScope {
+      |scope|
+      rv.push('in scope');
+      scope.wait();
+      rv.push('cont');
+    }
+    rv.push('out of scope');
+    assert.eq(rv, ['in scope', 'cont', 'out of scope']);
+  }
+
+  @product([true,false],[true,false]) .. @each {
+    |[blocking_retract,blocking_finally]|
+
+    context("blocking_retract=#{blocking_retract}, blocking_finally=#{blocking_finally}") {||
+
+      // XXX not all tests here make use of the full 
+      // [blocking_retract,blocking_finally] matrix.
+      // We could factor them out to prevent the unnecessary redundancy.
+
+      test('single task') {||
+        var rv = [];
+        cutil.withSpawnScope {
+          |scope|
+          rv.push('in scope');
+          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          rv.push('wait');
+          scope.wait();
+          rv.push('cont');
+        }
+        rv.push('out of scope');
+        assert.eq(rv, ['in scope', '1 start', 'wait', '1 finally', 'cont', 'out of scope']);
+      }
+      
+      test('single task abort') {||
+        var rv = [];
+        cutil.withSpawnScope {
+          |scope|
+          rv.push('in scope');
+          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          rv.push('cont');
+        }
+        rv.push('out of scope');
+        assert.eq(rv, ['in scope', '1 start', 'cont', '1 retract', '1 finally',  'out of scope']);
+      }
+      
+      test('2 tasks') {||
+        var rv = [];
+        cutil.withSpawnScope {
+          |scope|
+          rv.push('in scope');
+          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          hold(50);
+          scope.spawn(task(2,rv, blocking_retract, blocking_finally));
+          rv.push('wait');
+          scope.wait();
+          rv.push('cont');
+        }
+        rv.push('out of scope');
+        assert.eq(rv, ['in scope', '1 start', '2 start', 
+                       'wait', '1 finally', '2 finally', 
+                       'cont', 'out of scope']);
+      }
+      
+      test('2 tasks abort') {||
+        var rv = [];
+        cutil.withSpawnScope {
+          |scope|
+          rv.push('in scope');
+          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          hold(50);
+          scope.spawn(task(2,rv, blocking_retract, blocking_finally));
+          rv.push('cont');
+        }
+        rv.push('out of scope');
+        if (blocking_finally) {
+          assert.eq(rv, ['in scope', '1 start', '2 start', 'cont', 
+                         '2 retract', '1 retract', '2 finally', '1 finally',  
+                         'out of scope']);
+        }
+        else {
+          assert.eq(rv, ['in scope', '1 start', '2 start', 'cont', 
+                         '2 retract', '2 finally', '1 retract', '1 finally',  
+                         'out of scope']);
+        }
+      }
+
+      test('blklamba return sync') {||
+        var rv = [];
+        function f() {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn {
+              ||
+              rv.push('1 start');
+              rv.push('1 returning');
+              try {
+                return 'rv';
+              }
+              finally {
+                if (blocking_finally) hold(0);
+              }
+            }
+            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        rv.push(f());
+        rv.push('out of scope');
+        if (blocking_finally)
+          assert.eq(rv,[ 'in scope', '1 start', '1 returning', '2 start', 'cont', '2 retract', '2 finally', 'rv', 'out of scope' ]);
+        else
+          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'rv', 'out of scope' ]);
+      }
+
+      test('exception sync') {||
+        var rv = [];
+        function f() {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn {
+              ||
+              rv.push('1 start');
+              rv.push('1 returning');
+              try {
+                throw 'except';
+              }
+              finally {
+                if (blocking_finally) hold(0);
+              }
+            }
+            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        try { f(); } catch(e) { rv.push(e); }
+        rv.push('out of scope');
+        if (blocking_finally)
+          assert.eq(rv,[ 'in scope', '1 start', '1 returning', '2 start', 'cont', '2 retract', '2 finally', 'except', 'out of scope' ]);
+        else
+          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'except', 'out of scope' ]);
+      }
+
+
+      test('blklamba return 1') {||
+        var rv = [];
+        function f() {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn {
+              ||
+              rv.push('1 start');
+              hold(0);
+              rv.push('1 returning');
+              return 'rv';
+            }
+            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        rv.push(f());
+        rv.push('out of scope');
+        assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 returning', '2 retract', '2 finally', 'rv', 'out of scope' ]);
+      }
+
+      test('exception 1') {||
+        var rv = [];
+        function f() {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn {
+              ||
+              rv.push('1 start');
+              hold(0);
+              rv.push('1 returning');
+              throw 'except';
+            }
+            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        try { f(); } catch(e) { rv.push(e); }
+        rv.push('out of scope');
+        assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 returning', '2 retract', '2 finally', 'except', 'out of scope' ]);
+      }
+
+      test('exception with sole stratum') {||
+        var rv = [];
+        function f() {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn {
+              ||
+              rv.push('1 start');
+              hold(0);
+              rv.push('1 returning');
+              try {
+                throw 'except';
+              }
+              finally {
+                if (blocking_finally) hold(0);
+              }
+            }
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        try { f(); } catch(e) { rv.push(e); }
+        rv.push('out of scope');
+        assert.eq(rv,[ 'in scope', '1 start', 'cont', '1 returning', 'except', 'out of scope' ]);
+      }
+
+      test('sync exception with sole stratum') {||
+        var rv = [];
+        function f() {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn {
+              ||
+              rv.push('1 start');
+              rv.push('1 returning');
+              try {
+                throw 'except';
+              }
+              finally {
+                if (blocking_finally) hold(0);
+              }
+            }
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        try { f(); } catch(e) { rv.push(e); }
+        rv.push('out of scope');
+        if (blocking_finally)
+          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'cont', 'except', 'out of scope' ]);
+        else
+          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'except', 'out of scope' ]);
+      }
+
+      test('blklamba break') {||
+        var rv = [];
+        function f(blk) {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn(blk);
+            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        f {
+          ||
+          rv.push('1 start');
+          hold(0);
+          rv.push('1 break');
+          break;
+        }
+        rv.push('out of scope');
+        assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 break', '2 retract', '2 finally', 'out of scope' ]);
+      }
+
+      test('blklamba return 2') {||
+        var rv = [];
+        function f(blk) {
+          cutil.withSpawnScope {
+            |scope|
+            rv.push('in scope');
+            scope.spawn(blk);
+            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            rv.push('cont');
+            scope.wait();
+            rv.push('not reached');
+          }
+        }
+        function g() {
+          f {
+            ||
+            rv.push('1 start');
+            hold(0);
+            rv.push('1 return');
+            return 'rv';
+          }
+          rv.push('not reached 2');
+        }
+        rv.push(g());
+        rv.push('out of scope');
+        assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 return', '2 retract', '2 finally', 'rv', 'out of scope' ]);
+      }
+
+
+    } // context
+  } // [blocking_retract,blocking_finally]
+
+}

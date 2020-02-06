@@ -138,6 +138,7 @@ module.exports = require(modules);
    - **StratumAborted**: (variable [sjs:cutil::StratumAborted])
    - **waitforAll**: (function [sjs:cutil::waitforAll])
    - **waitforFirst**: (function [sjs:cutil::waitforFirst])
+   - **withSpawnScope**: (function [sjs:cutil::withSpawnScope])
   
   
   ### Symbols from the [sjs:debug](#sjs%3Adebug) module:
