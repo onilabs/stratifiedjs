@@ -44,7 +44,7 @@
 'use strict';
 
 var {isArrayLike, isQuasi, streamContents, overrideObject } = require('builtin:apollo-sys');
-var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
+var { waitforAll, Queue, Semaphore, Condition, _Waitable, withSpawnScope } = require('./cutil');
 var { Interface, hasInterface, Token } = require('./type');
 var sys = require('builtin:apollo-sys');
 
@@ -2717,7 +2717,7 @@ exports.zipLongest = zipLongest;
       `[x1,y1,z1,...],[x1,y1,z2,...],...,[x1,y2,z1,...],...,[x2,y1,z1,...]` where `x_n, y_n, z_n, ...` are
       elements of the input sequences `x, y, z, ...`.
 
-      The input sequences y, z, ... will be iterated multiple and must therefore be repeatable. E.g. 
+      The input sequences y, z, ... will be iterated multiple times and must therefore be repeatable. E.g. 
       `generate(Math.random)` is a non-repeatable sequence; `generate(Math.random) .. take(100) .. toArray` is
       a repeatable one.
 
@@ -3192,109 +3192,57 @@ exports.tailbuffer = (seq,count) -> seq .. buffer(count||1, tb_settings);
    @param {optional Integer} [max_strata=undefined] Maximum number of concurrent invocations of `f`. (undefined == unbounded)
    @param {Function} [f] Function to execute for each `item` in `sequence`
    @summary Executes `f(item)` for each `item` in `sequence`, making up to `max_strata` concurrent calls to `f` at any one time.
+   @desc
+     `each.par` starts a new stratum for each element of the input stream up to a 
+     limit of `max_strata` concurrent strata. When the input stream is non-blocking, 
+     the execution is temporally contiguous: As soon as the stratum for the current
+     input element blocks (or returns), a stratum for the next input element will be
+     started (up to the `max_strata` limit).
+
+     Special attention must be paid when iterating infinite (or very large) 
+     non-blocking input streams with `each.par`.
+     E.g. ill-formed code such as
+
+         @integers() .. @each.par{ |x| hold(0); if(x===10) break; }
+
+     will loop without yielding until all memory is exhausted.
+     This can e.g. be fixed by applying a concurrency limit:
+
+         @integers() .. @each.par(1000){ |x| hold(0); if(x===10) break; }
 */
-each.par = function(/* seq, max_strata, r */) {
+
+each.par = function(/* seq, max_strata, r */...args) {
   var seq, max_strata, r;
-  if (arguments.length === 2)
-    [seq, r] = arguments;
+  if (args.length === 2)
+    [seq, r] = args;
   else /* arguments.length == 3 */
-    [seq, max_strata, r] = arguments;
+    [seq, max_strata, r] = args;
 
-  if (!max_strata) max_strata = -1;
+  if (!max_strata) max_strata = Number.MAX_SAFE_INTEGER;
 
-  var eos = {};
-  seq .. consume(eos) {
-    |next|
+  var semaphore = Semaphore(max_strata);
 
-    // flag shared between all `inner` calls that indicates whether
-    // one of them is currently in a (blocking) call to `next`. `next`
-    // must not be called from multiple strata concurrently.
-    var waiting_for_next = false;
+  withSpawnScope {
+    |scope|
 
-    // depth counter for asynchronising the generation of our `inner`
-    // nodes; see below
-    var depth = 0;
-
-    /*
-       inner() operates in two modes: If `r` doesn't block, then
-       we stay in a loop ('sync' mode)
-
-           while (1) { var x = next(); r(x); }
-
-       If `r` blocks and we haven't exhausted our maximum number of
-       strata, then we run a concurrent call to `inner` (see
-       `async_trigger`), effectively building a tree of waitfor/and
-       `inner` nodes. This also puts the current `inner` node into
-       'async' mode: We break out of the 'sync' mode loop when r() is
-       done to give the node a chance to drop out of the tree (by
-       tail-call machinery).
-
-       Note: It appears that this function could be written in a much
-       simpler way, e.g. replacing the async_trigger call with a
-       direct call to `inner`, or removing the while()-loop and just
-       always building a recursive tree. There are reasons though why
-       the function is structured in the way it is:
-
-         - We want it to be tail-call safe, so that we can run in
-           bounded memory.
-
-         - It needs to perform well even when both the upstream and
-           downstream are non-blocking (and all combinations of
-           blocking/non-blocking)
-    */
-    function inner() {
-      var async = false;
-
-      ++depth;
-
-      waitfor {
-        waitfor() { var async_trigger = resume; }
-        async = true;
-        inner();
-      }
-      and {
-        while (1) {
-          waiting_for_next = true;
-          // the hold(0) is necessary to put us into
-          // tail-recursive mode, so that we don't blow the stack
-          // when next() generates data without blocking.  For
-          // performance reasons we only do this only after having
-          // built the tree to a certain depth:
-          if (depth % 10 === 0) {
-            hold(0);
-          }
-          var x = next();
-          if (x === eos) return;
-          waiting_for_next = false;
-
-          if (--max_strata === 0) {
-            r(x);
-            ++max_strata;
-            if (waiting_for_next) return;
-          }
-          else {
-            waitfor {
-              r(x);
-              ++max_strata;
-              if (!async && !waiting_for_next) continue;
-            }
-            and {
-              async_trigger();
-            }
-            break;
-          }
+    seq .. each {
+      |x|
+      semaphore.acquire();
+      scope.spawn { 
+        || 
+        try {
+          r(x);
         }
-        if (max_strata === 1 && !waiting_for_next) {
-          // we're operating at the strata limit; process the next
-          // item from upstream:
-          inner();
+        finally {
+          semaphore.release();
         }
       }
     }
-    // kick things off:
-    inner();
+
+    scope.wait();
   }
-};
+
+}
 
 /**
    @function map.par
