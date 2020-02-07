@@ -233,6 +233,7 @@ exports.withSpawnScope = withSpawnScope;
   @summary  Execute a number of functions on separate strata and wait for all
             of them to finish, or, execute a single function with different
             arguments on separate strata and wait for all executions to finish.
+  @deprecated Use [./sequence::each.par]
   @param    {Function | Array} [funcs] Function or array of functions.
   @param    {optional Array} [args] Array of arguments.
   @param    {optional Object} [this_obj] 'this' object on which `funcs` will be executed.
@@ -303,6 +304,7 @@ function waitforAllArgs(f, args, i, l, this_obj) {
   @summary  Execute a number of functions on separate strata and wait for the first
             of them to finish, or, execute a single function with different
             arguments on separate strata and wait for the first execution to finish.
+  @deprecated Use [./sequence::each.par]
   @return   {value} Return value of function execution that finished first.
   @param    {Function | Array} [funcs] Function or array of functions.
   @param    {optional Array} [args] Array of arguments.
