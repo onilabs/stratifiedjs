@@ -427,8 +427,14 @@
 
   Further execution of `expression` proceeds asynchronously until it finishes or is aborted through a call to [./builtins::Stratum::abort].
 
-  **Note:** Instead of spawning a stratum it is often a better idea to use one of
+  ### Notes: 
+
+  - Instead of spawning a stratum it is often a better idea to use one of
   the *structured concurrency constructs* [::waitfor-and] and [::waitfor-or] where possible.
+
+  - If structured concurrency primitives cannot be used, consider using *scoped* spawned strata
+  (see [../cutil::withSpawnScope]) - in particular if you want to use spawned strata to process
+  blocklambda functions. See the discussion at the end of the [::blocklambda] documentation.
 
 @syntax destructure
 @summary Assign multiple variables from a single expression
@@ -651,8 +657,6 @@
   - A `break` statement inside a blocklambda will cause the blocklambda to return back up the callstack up to and including the function call that called the blocklambda inside the *lexical* scope in which the blocklambda is defined. 
   - A `continue` statement inside a blocklambda will skip the rest of the blocklambda body and return to the caller.
 
-  See also the section on "Differences between blocklambdas and general callbacks" below for more information on which conditions have to be met for the `return` and `break` statements to operate correctly.
-
   In all cases, `finally` handlers along the return path will be honored, and parallel strata (such as in a `waitfor{} or {}`) retracted as appropriate.
 
 
@@ -679,11 +683,11 @@
     
   This provides a similar syntax to the builtin `for(var key in obj) { ... }` but it ignores inherited properties, and is implemented with normal functions - you can use this syntax to implement your own control-flow mechanisms.
 
-  ### Differences between blocklambdas and general callbacks
 
-  Blocklambdas are typically used as a form of 'callback' function. However, when authoring functions that operate on blocklambdas, there are some special 
-  considerations to ensure that `break` and `return` statements within
-  the blocklambda operate correctly:
+  ### Blocklambdas and [./syntax::spawn]
+
+  When authoring a function that processes a callback on a spawned stratum, there are some special 
+  considerations to ensure that `throw`, `break` and `return` are routed as expected when the callback is a blocklambda.
 
   Firstly, the scope from which `break` or `return` return from must still be
   active. E.g. the following code will generate a runtime error, because by the time `f` is called, function `foo` has already returned:
@@ -718,6 +722,16 @@
 
    In practice, a good rule of thumb to ensure that `break` and `return` operate correctly is to never store a blocklambda in a variable that can be accessed from external strata.
 
+   Thirdly, to ensure exceptions are routed correctly and don't end up uncaught, there needs
+   to be an active [./builtins::Stratum::value] call. In the example above
+   any exception thrown in in the blocklambda would NOT be routed correctly. This code 
+   on the other hand would work correctly:
+
+      function foo(f) {
+        var stratum = spawn (function() { hold(1000); f(); })();
+        stratum.value();
+      }
+
    Furthermore, executing a blocklambda from a `spawn`ed stratum (as in the
    examples above) is discouraged because special attention needs to be paid
    to make the code safe under retraction. E.g. the following code generates
@@ -725,8 +739,8 @@
 
       function test() {
         function foo(f) {
-          spawn (function() { hold(1000); f(); })();
-          hold();
+          var stratum = spawn (function() { hold(1000); f(); })();
+          stratum.value();
         }
 
         waitfor {
@@ -749,7 +763,7 @@
         function foo(f) {
           var stratum = spawn (function() { hold(1000); f(); })();
           try {
-            hold();
+            stratum.value();
           }
           retract {
             stratum.abort();
@@ -788,6 +802,24 @@
 
       test();
 
+   If spawned strata absolutely need to be used (e.g. because the level of concurrency is 
+   unknown at the time of authoring the function - as is e.g. the case for 
+   [../sequence::each.par]),
+   consider using scoped spawned strata instead ([../cutil::withSpawnScope]). E.g. a somewhat
+   simplified implementation of [../sequence::each.par] that automatically takes care of 
+   all of the controlflow edgecases discussed above would look like this:
+
+       function each_par(seq, f) {
+         @withSpawnScope {
+           |scope|
+           seq .. @each {
+             |x|
+             scope.spawn(()->f(x));
+           }
+           scope.wait();
+         }
+       }
+   
 
 @syntax double-colon
 @summary Prefix function chaining operator
