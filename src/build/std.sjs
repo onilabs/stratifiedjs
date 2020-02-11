@@ -18,6 +18,7 @@
   @require sjs:regexp
   @require sjs:url
   @require sjs:observable
+  @require sjs:service
 */
 
 var hostenv = require('builtin:apollo-sys').hostenv;
@@ -40,7 +41,8 @@ var modules = [
   {id:'sjs:http', name: 'http'},
   {id:'sjs:regexp', name: 'regexp'},
   {id:'sjs:url', name: 'url'},
-  'sjs:observable'
+  'sjs:observable',
+  'sjs:service'
 ];
 
 if (hostenv === 'nodejs') {

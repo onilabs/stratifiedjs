@@ -1992,8 +1992,48 @@
     },
     "service": {
       "type": "module",
-      "children": {},
-      "summary": "Structures for simple dependency injection"
+      "children": {
+        "AttachedServiceInterface": {
+          "type": "class",
+          "children": {
+            "Status": {
+              "type": "variable"
+            },
+            "start": {
+              "type": "function"
+            },
+            "stop": {
+              "type": "function"
+            },
+            "use": {
+              "type": "function"
+            }
+          }
+        },
+        "Service": {
+          "type": "class",
+          "children": {}
+        },
+        "ServiceScopeInterface": {
+          "type": "class",
+          "children": {
+            "attach": {
+              "type": "function"
+            }
+          }
+        },
+        "ServiceUnavailableError": {
+          "type": "class",
+          "children": {}
+        },
+        "isServiceUnavailableError": {
+          "type": "function"
+        },
+        "withServiceScope": {
+          "type": "function"
+        }
+      },
+      "summary": "Utilities for managing services"
     },
     "set": {
       "type": "module",
