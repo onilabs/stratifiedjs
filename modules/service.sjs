@@ -231,7 +231,7 @@ __js {
 /**
    @function withServiceScope
    @altsyntax withServiceScope { |service_scope_itf| ... }
-   @summary A [::Service] for bounding the lifetime of other [::Services] to `scope`
+   @summary A [::Service] for bounding the lifetime of other [::Service]s to `scope`
    @param {Function} [scope] Scope function which will be executed with a [::ServiceScopeInterface]
    @desc
      `withServiceScope` is used detach the lifetime of services from their 'use' scopes.
@@ -256,8 +256,8 @@ function withServiceScope(client_scope) {
      Attaching a service will NOT automatically start it. Services start out in state `'stopped'`.
 
      When the scope exits all running services will be aborted, and attempting to use them will cause 
-     a [::ServiceUnavailableError]. See [::AttachedServiceInterface:stop] for stopping a running service
-     before the scope exits, and note the subtle difference ([::AttachedServiceInterface:stop] will not 
+     a [::ServiceUnavailableError]. See [::AttachedServiceInterface::stop] for stopping a running service
+     before the scope exits, and note the subtle difference ([::AttachedServiceInterface::stop] will not 
      cause 'retract' clauses in the service to be executed, whereas a scope exit will).
      After scope exit, services will have state `'terminated'`.
      
