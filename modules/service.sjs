@@ -213,7 +213,7 @@ function ServiceUnavailableError() {
 
 /**
    @class ServiceUnavailableError
-   @inherits Error
+   @inherit Error
    @summary Error raised by [::AttachedServiceInterface::start] if the service is terminated and by [::AttachedServiceInterface::use] if the service is or becomes unavailable.
 
    @function isServiceUnavailableError
