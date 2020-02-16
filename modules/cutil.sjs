@@ -218,8 +218,8 @@ function withSpawnScope(scope) {
         to_abort.push(iter);
         iter = iter._next;
       }
-      to_abort.forEach(s=>s.abort());
-    }
+      to_abort.forEach(s->s.abort());
+    } // __js
     itf.wait();
   }
 

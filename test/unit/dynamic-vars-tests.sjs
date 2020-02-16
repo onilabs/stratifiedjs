@@ -1,11 +1,9 @@
 @ = require('sjs:test/std');
 
-@context("no dynvar context") {||
-  @test("setDynVar") {||
-    @assert.raises(-> @sys.setDynVar('foo', 'bar'));
-  }
+@context("missing dynvar") {||
   @test("clearDynVar") {||
-    @assert.raises(-> @sys.clearDynVar('foo'));
+    @sys.clearDynVar('foo');
+    // should not throw
   }
   @test("getDynVar") {||
     @assert.raises(-> @sys.getDynVar('foo'));

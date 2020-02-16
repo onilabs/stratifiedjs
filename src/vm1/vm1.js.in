@@ -349,7 +349,11 @@ function mergeCallstacks(target_ef, src_ef) {
 // base prototype object for execution frames
 var EF_Proto = {
 #ifdef EF_TYPES
-  toString: function() { return "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+'@'+((this.env && this.env.file) ? this.env.file.substr(-20): 'unknown')+">"; },
+  toString: function() { var rv = "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+'@'+((this.env && this.env.file) ? this.env.file.substr(-20): 'unknown')+">";
+                         if (this.callstack)
+                           rv += '[' + this.callstack.join(' > ') + ']';
+                         return rv;
+ },
 #else
   toString: function() { return "<suspended SJS>"; },
 #endif
@@ -1552,7 +1556,7 @@ function EF_Try(ndata, env) {
 }
 setEFProto(EF_Try.prototype={});
 #ifdef EF_TYPES
-EF_Try.prototype.type = "Try";
+EF_Try.prototype.type = function() { return "Try("+this.state+")" };
 #endif
 
 EF_Try.prototype.cont = function(idx, val) {
@@ -2212,6 +2216,11 @@ EF_Par.prototype.abortInner = function() {
         this.setChildFrame(val, i);
       else {
         this.pendingCFE = mergeExceptions(val, this.pendingCFE);
+
+        // aid gc, but note that this will mask any superfluous (and
+        // incorrect) cont-calls from the child:
+        //this.children[i].parent = UNDEF;
+
         --this.pending;
         this.children[i] = UNDEF;
       }
@@ -2295,7 +2304,7 @@ function EF_Alt(ndata, env) {
 }
 setEFProto(EF_Alt.prototype={});
 #ifdef EF_TYPES
-EF_Alt.prototype.type = "Alt";
+EF_Alt.prototype.type = function() {return "Alt(aborted="+!!this.aborted+")"};
 #endif
 
 EF_Alt.prototype.cont = function(idx, val) {
@@ -2798,8 +2807,16 @@ EF_Spawn.prototype.toString = function() { return "<Spawn"+this.id+"@"+this.env.
 EF_Spawn.prototype.cont = function(idx, val) {
 
   if (idx == 0) {
+    // Set this.abort_path to the spawned stratum (if any) that we were started from.
+    // We'll use this information to resolve abort cycles across strata:
+    this.abort_path = exports.current_dyn_vars ? exports.current_dyn_vars.__oni__spawned_stratum : null;
     this.parent_dyn_vars = exports.current_dyn_vars;
+    // Inject ourselves as the new spawned stratum into the dynamic vars seen by our stratum's 
+    // code:
+    exports.current_dyn_vars = Object.create(this.parent_dyn_vars);
+    exports.current_dyn_vars.__oni__spawned_stratum = this;
     val = execIN(this.NDATA_SPAWN_EXP(), this.env);
+    // Reset dyn vars:
     exports.current_dyn_vars = this.parent_dyn_vars;
     if (is_cfx(val) && (val.type === 'blb' || (val.type === 'r' && val.eid))) {
       return val;
@@ -2816,6 +2833,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       // get propagated appropriately.
       this.in_abortion = false;
       this.done = true;
+      this.abort_path = undefined; // aid gc
 
       this.notifyVal(this.return_val, true);
       this.notifyAborted(val);
@@ -3035,7 +3053,7 @@ EF_SpawnAbortFrame.prototype.type = "Stratum.abort()";
 #endif
 EF_SpawnAbortFrame.prototype.quench = function() {};
 EF_SpawnAbortFrame.prototype.abort = function() {
-  // we're in a finally clause... have to wait!
+  // to ensure proper sequencing of finally clauses, abort is unabortable
   this.aborted = true;
   return this;
 }
@@ -3082,9 +3100,11 @@ EF_SpawnAbortFrame.prototype.resolveAbortCycle = function(spawn_frame) {
 //        else console.log(msg);
 //      }
       this.cont(UNDEF);
-      break;
+      return;
     }
-    parent = parent.parent;
+    // If parent is null, we'll try 'abort_path', which will be set on EF_Spawn frames
+    // that were started from other EF_Spawn's. It allows abort cycles across strata.
+    parent = parent.parent || parent.abort_path;
   }
 };
 
@@ -3116,6 +3136,8 @@ function I_spawn(ndata, env) {
   stratum.abort = function(pseudo) {
     var dyn_vars = exports.current_dyn_vars;
     
+    if (ef.done) return UNDEF;
+
     // the 'in_abortion' check is important, or we might end up with deadlock, when an abort() call
     // in a finally clause is waiting for the spawn frame and vice versa, as in:
     // try { stratum = spawn ({||hold(0); return})(); stratum.value(); }finally { stratum.abort() }
@@ -3123,7 +3145,6 @@ function I_spawn(ndata, env) {
       return new EF_SpawnAbortFrame(abort_waitarr, ef);
     }
 
-    if (ef.done) return UNDEF;
     // we abort synchronously (i.e. abort() will block for any blocking finally clauses,
     // but any value listeners will receive a 'stratum aborted' notification immediately
     var rv = ef.abort(pseudo);

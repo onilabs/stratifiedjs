@@ -1005,4 +1005,124 @@ context('withSpawnScope') {||
     } // context
   } // [blocking_retract,blocking_finally]
 
+  @product([true,false],[true,false],[true,false],[true,false],[true,false],[true,false]) ..
+    @each {
+      |[p1,p2,p3,p4,p5,p6]|
+      if (!(p1 || p2 || p3)) continue; // need to ensure 'stratum1' is available
+      test("cyclic abort #{p1} #{p2} #{p3} #{p4} #{p5} #{p6}") {||
+        var rv = [];
+        var stratum1 = spawn(function() {
+          if (p1) hold(0); 
+          try {
+            @withSpawnScope {
+              |scope|
+              if (p2) hold(0); 
+              scope.spawn {
+                || 
+                rv.push('inner');
+                if (p3) hold(0);
+                try {
+                  rv.push('abort');
+                  stratum1.abort();
+                  rv.push('not reached');
+                }
+                retract {
+                  if (p4) hold(0);
+                  rv.push('inner retract');
+                }
+                finally {
+                  if (p5) hold(0);
+                  rv.push('inner finally');
+                }
+                rv.push('not reached');
+              } 
+              rv.push('outer waiting');
+              if (p6) hold();
+              scope.wait();
+              rv.push('not reached');
+            } // spawnscope
+            rv.push('not reached');
+          }
+          retract {
+            rv.push('outer retract');
+          }
+          finally {
+            rv.push('outer finally');
+          }
+          rv.push('not reached');
+        })();
+
+        try {
+          stratum1.value();
+        }
+        catch(e) {
+          assert.truthy(e instanceof @StratumAborted);
+          stratum1.abort(); // wait for abort to complete fully
+        }
+        var expected = ['inner'];
+        if (p3) 
+          expected.push('outer waiting', 'abort');
+        else
+          expected.push('abort', 'outer waiting');
+        expected.push('inner retract', 'inner finally', 'outer retract', 'outer finally');
+          assert.eq(rv,expected);
+      }
+
+      if (p6) continue; // p6 not used in next test
+
+      test("cyclic abort in finally #{p1} #{p2} #{p3} #{p4} #{p5}") {||
+        var rv = [];
+        var stratum1 = spawn(function() {
+          if (p1) hold(0); 
+          try {} finally {
+            @withSpawnScope {
+              |scope|
+              if (p2) hold(0); 
+              scope.spawn {
+                || 
+                rv.push('inner');
+                if (p3) hold(0);
+                try {
+                  rv.push('abort');
+                  stratum1.abort();
+                  rv.push('after abort');
+                }
+                retract {
+                  if (p4) hold(0);
+                  rv.push('not reached');
+                }
+                finally {
+                  if (p5) hold(0);
+                  rv.push('inner finally');
+                }
+                rv.push('abort cont');
+              } 
+              rv.push('outer waiting');
+              scope.wait();
+              rv.push('outer cont');
+            } // spawnscope
+            rv.push('outer continue finally');
+          } // finally
+          rv.push('after outer finally');
+          hold(0);
+          rv.push('not reached');
+        })();
+
+        try {
+          stratum1.value();
+        }
+        catch(e) {
+          assert.truthy(e instanceof @StratumAborted);
+          stratum1.abort(); // wait for abort to complete fully
+        }
+        var expected = ['inner'];
+        if (p3) 
+          expected.push('outer waiting', 'abort', 'after abort');
+        else
+          expected.push('abort', 'outer waiting', 'after abort');
+        expected.push('inner finally', 'abort cont', 'outer cont', 'outer continue finally', 'after outer finally');
+          assert.eq(rv,expected);
+      }
+
+    }
 }

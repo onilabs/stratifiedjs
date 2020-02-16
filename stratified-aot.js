@@ -2013,6 +2013,11 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame
 
 
 this.pendingCFE=mergeExceptions(val,this.pendingCFE);
+
+
+
+
+
 --this.pending;
 this.children[i]=UNDEF;
 }
@@ -2500,8 +2505,16 @@ setEFProto(EF_Spawn.prototype={});
 EF_Spawn.prototype.cont=function(idx,val){if(idx==0){
 
 
+
+
+this.abort_path=exports.current_dyn_vars?exports.current_dyn_vars.__oni__spawned_stratum:null;
 this.parent_dyn_vars=exports.current_dyn_vars;
+
+
+exports.current_dyn_vars=Object.create(this.parent_dyn_vars);
+exports.current_dyn_vars.__oni__spawned_stratum=this;
 val=execIN(this.ndata[1],this.env);
+
 exports.current_dyn_vars=this.parent_dyn_vars;
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&(val.type==='blb'||(val.type==='r'&&val.eid))){
 return val;
@@ -2518,6 +2531,7 @@ return this.returnToParent(this);
 
 this.in_abortion=false;
 this.done=true;
+this.abort_path=undefined;
 
 this.notifyVal(this.return_val,true);
 this.notifyAborted(val);
@@ -2778,9 +2792,11 @@ if(spawn_frame===parent){
 
 
 this.cont(UNDEF);
-break;
+return;
 }
-parent=parent.parent;
+
+
+parent=parent.parent||parent.abort_path;
 }
 };
 
@@ -2812,6 +2828,8 @@ var stratum=new ReifiedStratumProto();
 stratum.abort=function(pseudo){var dyn_vars=exports.current_dyn_vars;
 
 
+if(ef.done)return UNDEF;
+
 
 
 
@@ -2819,7 +2837,6 @@ if(ef.in_abortion){
 return new EF_SpawnAbortFrame(abort_waitarr,ef);
 }
 
-if(ef.done)return UNDEF;
 
 
 var rv=ef.abort(pseudo);
