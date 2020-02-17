@@ -531,6 +531,10 @@
   Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]:
 
   * `abort` is synchronous: It will only return after the stratum has been retracted (i.e. once all `finally` and `retract` clauses on the stratum's callstack have been executed). However, any pending [::Stratum::value] calls will _immediately_ receive a [cutil::StratumAborted] exception.
+  
+  * An `abort` call can not be aborted itself. Even if aborted, it will only return once 
+    the abortee has finished aborting (which might include blocking `retract`/`finally` clauses).
+    An exception are 'cyclic aborts' - see below.
 
   * Unless `omit_retract` is set to `true`, aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses inside the stratum will be honored. This is also true for 'cyclic aborts' (see below). Otherwise, for `omit_retract=false`, `retract` clauses inside the stratum will not be executed. `finally` clauses will be executed in either case.
 
@@ -568,12 +572,12 @@
         } 
       })();
 
-  In this variant, the `finally` clause prevents `abort` from being stopping 
+  In this variant, the `finally` clause prevents `abort` from stopping 
   synchronous execution: The following (synchronous) code will be executed 
   until an actual suspend point (`hold` or `waitfor/resume`) is reached.
 
 
-  While these cyclic aborts are allowed, they can be indicative of flawed program logic, so be careful.
+  While these cyclic aborts are allowed (even across multiple spawned strata), they can be indicative of flawed program logic, so be careful.
   If you really do need to abort a stratum from within (rather than returning 'normally' via return or via an exception), it might be more appropriate to use a
   non-synchronous form of abortion:
 
