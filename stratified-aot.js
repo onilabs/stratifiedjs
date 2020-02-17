@@ -87,6 +87,11 @@ var __oni_rt={};(function(exports){var UNDEF;
 
 
 
+exports.G=window;
+
+
+
+
 
 
 
@@ -2734,12 +2739,22 @@ exports.current_dyn_vars=current_dyn_vars;
 }
 };
 
+
+var nextTick;
+if(exports.G.nextTick){
+nextTick=exports.G.nextTick;
+}else if(exports.G.Promise){
+
+nextTick=function(cb){Promise.resolve().then(cb)};
+}else throw new Error("host environment not supported - need 'Promise' or 'nextTick'");
+
+
 function EF_SpawnAbortFrame(waitarr,spawn_frame){this.dyn_vars=exports.current_dyn_vars;
 
 this.waitarr=waitarr;
 waitarr.push(this);
 var me=this;
-hold0(function(){me.resolveAbortCycle(spawn_frame)});
+nextTick(function(){me.resolveAbortCycle(spawn_frame)});
 
 }
 setEFProto(EF_SpawnAbortFrame.prototype={});
@@ -3026,11 +3041,6 @@ exports.Collapse=function(line){return {exec:I_collapse,ndata:line,__oni_dis:tok
 
 
 };
-
-
-
-exports.G=window;
-
 
 
 

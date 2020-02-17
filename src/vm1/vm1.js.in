@@ -91,6 +91,15 @@ var UNDEF; // == undefined
 #define MAX_CALLSTACK 20
 
 //----------------------------------------------------------------------
+
+#if defined (CLIENTSIDE)
+exports.G = window;
+#elif defined (NODEJS)
+exports.G = global;
+#endif
+
+
+//----------------------------------------------------------------------
 // Control Flow Exceptions
 
 /*
@@ -3039,12 +3048,22 @@ EF_SpawnWaitFrame.prototype.cont = function(val) {
   }
 }
 
+// XXX
+var nextTick;
+if (exports.G.nextTick) {
+  nextTick  = exports.G.nextTick;
+}
+else if (exports.G.Promise) {
+ nextTick = function(cb) { Promise.resolve().then(cb); };
+}
+else throw new Error("host environment not supported - need 'Promise' or 'nextTick'");
+
 function EF_SpawnAbortFrame(waitarr, spawn_frame) {
   this.dyn_vars = exports.current_dyn_vars;
   this.waitarr = waitarr;
   waitarr.push(this);
   var me = this;
-  hold0(function() { me.resolveAbortCycle(spawn_frame); });
+  nextTick(function() { me.resolveAbortCycle(spawn_frame); });
 
 }
 setEFProto(EF_SpawnAbortFrame.prototype={});
@@ -3338,15 +3357,6 @@ exports.Collapse = function(line) {
     __oni_dis: token_dis
   }
 };
-
-//----------------------------------------------------------------------
-
-#if defined (CLIENTSIDE)
-exports.G = window;
-#elif defined (NODEJS)
-exports.G = global;
-#endif
-
   
 //----------------------------------------------------------------------
 // builtin strict functions

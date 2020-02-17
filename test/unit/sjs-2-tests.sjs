@@ -814,8 +814,10 @@ test('reentrant stratum abort', 'stratum aborted|a|b|c', function() {
   return rv;
 });
 
-test('synchronous reentrant stratum abort', 'stratum aborted|c', function() {
-
+test('synchronous reentrant stratum abort', 'stratum aborted|b|c', function() {
+  // Note: up to version fbddca13b727870f5efd0e220e9f37d1316115ae, this used
+  // to call the retract AFTER the stratum.value call, because of the way
+  // abort cycles were resolved.
   var rv = '';
 
   function append_to_rv(txt) { rv += txt }
