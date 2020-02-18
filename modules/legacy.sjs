@@ -91,7 +91,7 @@ exports.fn.tryfinally = function(try_func, finally_func) {
    @function partition
    @deprecated This is a legacy function
    @altsyntax sequence .. partition(predicate)
-   @param {::Sequence} [sequence] Input sequence
+   @param {sjs:sequence::Sequence} [sequence] Input sequence
    @param {Function} [predicate] Predicate function
    @return {Array} A pair of sequences.
    @summary  Create a pair of [passes, fails] streams from an input stream and a predicate.
@@ -101,12 +101,12 @@ exports.fn.tryfinally = function(try_func, finally_func) {
       order of the original sequence is maintained in each output sequence.
 
       If the input is an Array or other concrete sequence, the output will be a pair of Arrays. Otherwise,
-      the output will be a pair of [::Stream]s which consume the input on demand.
+      the output will be a pair of [sjs:sequence::Stream]s which consume the input on demand.
 
-      Note that if you pass a [::Stream] to this function and then consume the
+      Note that if you pass a [sjs:sequence::Stream] to this function and then consume the
       first result before iterating over the second, `partition` will be internally buffering
       all items destined for the second stream in order to produce the first.
-      So it generally only makes sense to pass a [::Stream] as input when you
+      So it generally only makes sense to pass a [sjs:sequence::Stream] as input when you
       are planning to iterate over both result streams concurrently.
 
       ### Example:
