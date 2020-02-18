@@ -3,10 +3,6 @@ var testEq = testUtil.test;
 var f = require('sjs:function');
 var {test, context, assert} = require('sjs:test/suite');
 
-testEq('chain', 'abcde', function() {
-  return f.chain((x,y)-> (hold(0),x+y+'c'), x -> x+'d', x -> x+'e')('a','b');
-});
-
 testEq('seq', 2, function() {
   return f.seq(-> hold(0), -> 1, -> 2)();
 });
@@ -20,21 +16,6 @@ testEq("'this' in seq", 12, function() {
   return obj.foo(2,3);
 });
 
-testEq('par', 36, function() {
-  var rv = 0;
-  f.par({|x,y| hold(0); rv += 1*x*y }, {|x,y| rv += 2*x*y }, {|x,y| hold(100); rv += 3*x*y})(2,3);
-  return rv;
-});
-
-testEq("'this' in par", 18, function() {
-  var x = 1, rv=0;
-  var obj = {
-    x: 2,
-    foo: f.par({|a,b| hold(0); rv+=a*b}, function(a,b) { hold(100); rv+=this.x*a*b })
-  };
-  obj.foo(2,3);
-  return rv;
-});
 
 testEq('bound 1', 3, function() {
   var x = 0;
@@ -173,31 +154,6 @@ testEq('exclusive sync', '012', function() {
   return rv;
 });
   
-testEq('deferred 1', 'Cb(A)', function() {
-  var g = f.deferred(function() { hold(0); return 'A'; });
-  var ret;
-  g().then({|v| ret("Cb(#{v})")}, {|e| ret("Eb(#{e})")});
-  waitfor(var rv) { ret = resume }
-  return rv;
-});
-
-testEq('deferred 2', 'Eb(A)', function() {
-  var g = f.deferred(function() { hold(0); throw 'A'; });
-  var ret;
-  g().then({|v| ret("Cb(#{v})")}, {|e| ret("Eb(#{e})")});
-  waitfor(var rv) { ret = resume }
-  return rv;
-});
-
-testEq('deferred 3', 'Eb(.)', function() {
-  var g = f.deferred(function() { hold(0); return 'A'; });
-  var ret;
-  var d = g();
-  d.then({|v| ret("Cb(.)")}, {|e| ret("Eb(.)")});
-  waitfor(var rv) { ret = resume; d.cancel(); }
-  return rv;
-});
-
 testEq('memoize 1', 1, function() {
   var c = 0;
   var g = f.memoize(function(x) {

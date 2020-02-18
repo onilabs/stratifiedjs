@@ -481,32 +481,6 @@ exports.Constructor = function(proto) {
 };
 
 /**
-  @function tap
-  @param {Object} [object]
-  @param {Function} [fn]
-  @summary Call `fn` with `obj`, then return `obj`
-  @desc
-    Often useful for debugging, `tap` allows you to
-    insert a side-effect into a chain of function calls
-    without having to break them up into separate
-    statements or assign termporary variables.
-
-    ### Example:
-    
-        var numbers = [ 1, 2, 3, 4, 5 ]
-          .. map(n -> n*n)
-          .. tap(x -> console.log("Squares:", x))
-          .. filter(n -> n % 2)
-          .. toArray
-          .. tap(x -> console.log("Odd squares:", x))
-
-        // Squares: [ 1, 4, 9, 16, 25 ]
-        // Odd squares: [ 1, 9, 25 ]
-        // -> [ 1, 9, 25 ]
-*/
-exports.tap = (o, fn) -> (fn(o),o);
-
-/**
    @function pick
    @summary Copy properties from an object to a new object
    @param {Object} [obj] Source object

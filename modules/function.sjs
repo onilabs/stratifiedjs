@@ -1,6 +1,6 @@
 /*
  * StratifiedJS 'function' module
- * Function composition helpers
+ * Function wrappers & composition helpers
  *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: '0.20.0-development'
@@ -31,7 +31,7 @@
  */
 /**
    @module  function
-   @summary Function composition helpers
+   @summary Function wrappers & composition helpers
    @home    sjs:function
    @inlibrary sjs:std as fn
    @inlibrary mho:std as fn
@@ -49,27 +49,6 @@ var { Interface } = require('./type');
 __js exports.isFunction = (f) -> (typeof f === "function");
 
 /**
-   @function chain
-   @summary Function chaining composition
-   @param   {Function} [f1, f2, ...] Functions to compose
-   @return  {Function} Chain composition of f1, f2, ...
-   @desc
-      The composed function `c = chain(f,g)` will apply its arguments first 
-      to `f`, then call `g` with the result of evaluationg `f`, and return the result of evaluating `g`.
-
-      `f` and `g` will be called with the same `this` pointer that `c` is called with.
-*/
-exports.chain = function(/*f1,f2,...*/) {
-  var fs = arguments;
-  return function() { 
-    var rv = fs[0].apply(this, arguments);
-    for (var i=1; i<fs.length; ++i)
-      rv = fs[i].apply(this, [rv]); 
-    return rv;
-  }
-};
-
-/**
    @function seq
    @summary Sequential function composition
    @param   {Function} [f1, f2, ...] Functions to compose
@@ -80,79 +59,14 @@ exports.chain = function(/*f1,f2,...*/) {
 
       `f` and `g` will be called with the same `this` pointer that `c` is called with.
 */
-exports.seq = function(/*f1,f2,...*/) {
-  var fs = arguments;
-  return function() { 
+exports.seq = function(...fs) {
+  return function(...args) { 
     var rv;
     for (var i=0; i<fs.length; ++i)
-      rv = fs[i].apply(this, arguments); 
+      rv = fs[i].apply(this, args); 
     return rv;
   }
 };
-
-
-/**
-   @function par
-   @summary Parallel function composition
-   @param   {Function} [f1, f2, ...] Functions to compose
-   @return  {Function} Parallel composition of f1, f2, ...
-   @desc
-      A call `c(a1,a2,...)` to the composed function `c = par(f,g)`
-      executes as
-      `waitfor{ f(a1,a2,...) } and { g(a1,a2,...) }`.
-
-      `f` and `g` will be called with the same `this` pointer that `c` is called with.
-
-*/
-exports.par = function(/*f1,f2,...*/) {
-  var fs = Array.prototype.slice.call(arguments);
-  return function() {
-    return cutil.waitforAll(fs, arguments, this);
-  }
-};
-
-/**
-   @function tryfinally
-   @summary try-finally function composition
-   @param   {Function} [try_func] 
-   @param   {Function} [finally_func]
-   @return  {Function} Composition try { try_func } finally { finally_func }
-   @desc
-      A call `c(a1,a2,...)` to the composed function `c = tryfinally(f,g)`
-      executes as
-      `try{ return f(a1,a2,...) } finally { g(a1,a2,...) }`.
-
-      `f` and `g` will be called with the same `this` pointer that `c` is called with.
-
-*/
-exports.tryfinally = function(try_func, finally_func) {
-  return function() {
-    try     { return try_func.apply(this, arguments); }
-    finally { finally_func.apply(this, arguments); }
-  }
-};
-
-/**
-   @function trycatch
-   @summary try-catch function composition
-   @param   {Function} [try_func] 
-   @param   {Function} [catch_func]
-   @return  {Function} Composition try { try_func } catch { catch_func }
-   @desc
-      A call `c(a1,a2,...)` to the composed function `c = trycatch(f,g)`
-      executes as
-      `try{ return f(a1,a2,...) } catch(e) { return g(e) }`.
-
-      `f` and `g` will be called with the same `this` pointer that `c` is called with.
-
-*/
-exports.trycatch = function(try_func, catch_func) {
-  return function() {
-    try     { return try_func.apply(this, arguments); }
-    catch(e) { return catch_func.call(this, e); }
-  }
-};
-
 
 /**
   @function identity
@@ -282,38 +196,6 @@ exports.rateLimit = function(f, max_cps) {
       last_call = new Date();
       return f.apply(this, arguments);
     }, 1);
-};
-
-
-/**
-   @function deferred
-   @summary  A wrapper for implementing the 'deferred pattern' on a function (see 
-             [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern)).
-   @param    {Function} [f] The function to wrap.
-   @return   {Function} The wrapped function.
-   @desc
-     When the wrapped function is called, it returns a 'deferred object' which 
-     implements the methods `then` and `cancel`, as described in 
-     [ECMAScript docs](http://wiki.ecmascript.org/doku.php?id=strawman:deferred_functions#deferred_pattern). With these methods, plain JS code can be made to wait for
-     for the execution of asynchronous SJS code.
-*/
-exports.deferred = function(f) {
-  return function() {
-    var stratum = spawn f.apply(this, arguments);
-    var deferred = {
-      then : function(callback, errback) {
-        spawn (function() {
-          try { callback(stratum.value()); }
-          catch (e) { if (errback) errback(e); }
-        })();
-        return deferred;
-      },
-      cancel : function() {
-        stratum.abort();
-      }
-    };
-    return deferred;
-  }
 };
 
 /**

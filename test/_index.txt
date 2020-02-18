@@ -9,7 +9,6 @@ unit/compile/deps-tests.sjs
 unit/compile/minify-tests.sjs
 unit/compile/stringify-tests.sjs
 unit/controlflow-tests.sjs
-unit/crypto/store-tests.sjs
 unit/cutil-tests.sjs
 unit/dashdash-tests.sjs
 unit/debug-tests.sjs
@@ -18,6 +17,7 @@ unit/dynamic-vars-tests.sjs
 unit/event-tests.sjs
 unit/function-tests.sjs
 unit/http-tests.sjs
+unit/legacy-tests.sjs
 unit/logging-tests.sjs
 unit/lru-cache-tests.sjs
 unit/node/child-process-tests.sjs

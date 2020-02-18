@@ -196,7 +196,6 @@ module.exports = require(modules);
    - **pairsToObject**: (function [sjs:object::pairsToObject])
    - **pick**: (function [sjs:object::pick])
    - **setPath**: (function [sjs:object::setPath])
-   - **tap**: (function [sjs:object::tap])
   
   
   ### Symbols from the [sjs:observable](#sjs%3Aobservable) module:
@@ -275,7 +274,6 @@ module.exports = require(modules);
    - **monitor.start**: (function [sjs:sequence::monitor.start])
    - **pack**: (function [sjs:sequence::pack])
    - **PACK_OMIT**: (variable [sjs:sequence::PACK_OMIT])
-   - **partition**: (function [sjs:sequence::partition])
    - **product**: (function [sjs:sequence::product])
    - **reduce**: (function [sjs:sequence::reduce])
    - **reduce1**: (function [sjs:sequence::reduce1])

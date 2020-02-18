@@ -599,12 +599,6 @@
         "bound": {
           "type": "function"
         },
-        "chain": {
-          "type": "function"
-        },
-        "deferred": {
-          "type": "function"
-        },
         "exclusive": {
           "type": "function"
         },
@@ -615,9 +609,6 @@
           "type": "function"
         },
         "nop": {
-          "type": "function"
-        },
-        "par": {
           "type": "function"
         },
         "rateLimit": {
@@ -635,17 +626,11 @@
         "tailspawn": {
           "type": "function"
         },
-        "trycatch": {
-          "type": "function"
-        },
-        "tryfinally": {
-          "type": "function"
-        },
         "unbatched": {
           "type": "function"
         }
       },
-      "summary": "Function composition helpers"
+      "summary": "Function wrappers & composition helpers"
     },
     "http": {
       "type": "module",
@@ -688,6 +673,21 @@
         }
       },
       "summary": "Diff & patch for JSON objects"
+    },
+    "legacy": {
+      "type": "module",
+      "children": {
+        "fn.par": {
+          "type": "function"
+        },
+        "fn.tryfinally": {
+          "type": "function"
+        },
+        "partition": {
+          "type": "function"
+        }
+      },
+      "summary": "Deprecated legacy functions"
     },
     "logging": {
       "type": "module",
@@ -1587,9 +1587,6 @@
         },
         "setPath": {
           "type": "function"
-        },
-        "tap": {
-          "type": "function"
         }
       },
       "summary": "Functions for working with objects"
@@ -1889,9 +1886,6 @@
           "type": "function"
         },
         "pack": {
-          "type": "function"
-        },
-        "partition": {
           "type": "function"
         },
         "product": {
