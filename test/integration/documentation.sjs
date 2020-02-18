@@ -1,6 +1,7 @@
 @ = require('sjs:test/std');
 @regexp = require('sjs:regexp');
 @docutil = require('sjs:docutil');
+@partition = require('sjs:legacy').partition;
 
 var isSJS = f -> f .. @endsWith('.sjs');
 var removeSJS = f -> f.replace(/\.sjs$/, '');
