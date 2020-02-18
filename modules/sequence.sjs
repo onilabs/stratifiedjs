@@ -2139,7 +2139,7 @@ __js monitor.raw = function(sequence, f) {
 }
 
 /**
-   @function.monitor.start
+   @function monitor.start
    @altsyntax sequence .. monitor.start(f)
    @param {::Sequence} [sequence] Input sequence
    @param {Function} [f] Function to execute

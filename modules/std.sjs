@@ -229,7 +229,6 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:sequence](#sjs%3Asequence) module:
   
-   - **.monitor.start**: (function [sjs:sequence::.monitor.start])
    - **all**: (function [sjs:sequence::all])
    - **all.par**: (function [sjs:sequence::all.par])
    - **any**: (function [sjs:sequence::any])
@@ -273,6 +272,7 @@ module.exports = require(modules);
    - **mirror**: (function [sjs:sequence::mirror])
    - **monitor**: (function [sjs:sequence::monitor])
    - **monitor.raw**: (function [sjs:sequence::monitor.raw])
+   - **monitor.start**: (function [sjs:sequence::monitor.start])
    - **pack**: (function [sjs:sequence::pack])
    - **PACK_OMIT**: (variable [sjs:sequence::PACK_OMIT])
    - **partition**: (function [sjs:sequence::partition])

@@ -1734,9 +1734,6 @@
     "sequence": {
       "type": "module",
       "children": {
-        ".monitor.start": {
-          "type": "function"
-        },
         "MaterialSequence": {
           "type": "class",
           "children": {}
@@ -1895,6 +1892,9 @@
           "type": "function"
         },
         "monitor.raw": {
+          "type": "function"
+        },
+        "monitor.start": {
           "type": "function"
         },
         "pack": {
