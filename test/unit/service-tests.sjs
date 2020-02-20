@@ -33,8 +33,8 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     @assert.eq(rv, ['service_scope start', 'service_scope done']);
   }
 
-  @product([true,false],[true,false],[true,false]) .. @each {
-    |[b1,b2,b3]|
+  @product([true,false],[true,false],[true,false],[true,false]) .. @each {
+    |[b1,b2,b3,b4]|
     @test("single started #{b1},#{b2},#{b3}") {||
       var rv = [], service;
       @withServiceScope() {
@@ -42,8 +42,8 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         rv.push('service_scope start');
         service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3});
         @assert.eq(service.Status .. @current, 'stopped');
-        service.start();
-        @assert.eq(service.Status .. @current, b1 ? 'initializing' : 'running');
+        service.start(b4);
+        @assert.eq(service.Status .. @current, (b1&&!b4) ? 'initializing' : 'running');
       }
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('service_scope done');
@@ -76,9 +76,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     } // @test
   } // @product
 
-  @product([true,false],[true,false],[true,false],[true,false]) .. @each {
-    |[b1,b2,b3, b4]|
-    @test("single used/stopped/used #{b1},#{b2},#{b3},#{b4}") {||
+  @product([true,false],[true,false],[true,false],[true,false],[true,false]) .. @each {
+    |[b1,b2,b3, b4, b5]|
+    @test("single used/stopped/used #{b1},#{b2},#{b3},#{b4},#{b5}") {||
       var rv = [], service;
       @withServiceScope() {
         |service_scope|
@@ -90,8 +90,8 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
           rv.push(hello());
         }
         @assert.eq(service.Status .. @current, 'running');
-        service.stop();
-        @assert.eq(service.Status .. @current, b3 ? 'stopping' : 'stopped');
+        service.stop(b5);
+        @assert.eq(service.Status .. @current, (b3 && !b5) ? 'stopping' : 'stopped');
 
         service.use {
           |hello|

@@ -183,7 +183,7 @@ function runServiceHandlerStateMachine({service,args,State,Cmd}) {
   var call_args = args .. @clone;
   call_args.push(function(itf) {
     waitfor {
-      Cmd .. @filter(cmd -> cmd === 'stop') .. @first;
+      Cmd .. @filter(__js cmd -> cmd === 'stop') .. @first;
     }
     and {
       State.set(['running', itf]);
@@ -195,7 +195,7 @@ function runServiceHandlerStateMachine({service,args,State,Cmd}) {
 
   while (1) {
     waitfor {
-      Cmd .. @filter(cmd -> cmd === 'start') .. @first;
+      Cmd .. @filter(__js cmd -> cmd === 'start') .. @first;
     }
     and {
       State.set(['stopped']);
@@ -278,14 +278,14 @@ function withServiceScope(client_scope) {
             }
           }
 
-          function start() {
-            var state = State .. @filter(s->s[0] !== 'stopping') .. @current;
+          function start(sync) {
+            var state = State .. @filter(__js s->s[0] !== 'stopping') .. @current;
             if (state[0] === 'stopped') {
               waitfor {
                 // this 'start' call might have been reentrantly from a 'stop' call. in this case
                 // we must only progress when we're sure we're in 'initializing'.
                 // Otherwise synchronous follow-up code might still see state 'stopped'
-                State .. @filter(s->s[0] === 'initializing') .. @current;
+                State .. @filter(__js s->s[0] === 'initializing') .. @current;
               }
               and {
                 Cmd.emit('start');
@@ -293,27 +293,36 @@ function withServiceScope(client_scope) {
             }
             else if (state[0] === 'terminated')
               throw ServiceUnavailableError();
+
+            if (sync) {
+              var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
+              if (state[0] !== 'running') throw ServiceUnavailableError();
+            }
           }
 
-          function stop() {
-            var state = State .. @filter(s->s[0] !== 'initializing') .. @current;
+          function stop(sync) {
+            var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
             if (state[0] === 'running') {
               waitfor {
                 // this 'start' call might have been reentrantly from a 'start' call. in this case
                 // we must only progress when we're sure we're in 'stopping'.
                 // Otherwise synchronous follow-up code might still see state 'running'
-                State .. @filter(s->s[0] === 'stopping') .. @current;
+                State .. @filter(__js s->s[0] === 'stopping') .. @current;
               }
               and {
                 Cmd.emit('stop');
               }
             }
+
+            if (sync) {
+              State .. @filter(__js s->s[0] === 'stopped' || s[0] === 'terminated') .. @current;
+            }
           }
 
           function use(use_scope) {
-            start(); // this is a synchronous call; we are now in 'initializing' or 'running' 
-                     // - other states indicate service is not runnable (shuts down immediately)
-            State .. @filter(s-> s[0] !== 'initializing') .. @each.track {
+            start(true); // this is a synchronous call; we are now in 'running' 
+                         // - other states indicate service is not runnable (shuts down immediately)
+            State .. @each.track {
               |[status, itf]|
               if (status !== 'running') throw ServiceUnavailableError();
               use_scope(itf);
@@ -326,21 +335,24 @@ function withServiceScope(client_scope) {
    @summary Interface exposed by services attached to a service scope by [::ServiceScopeInterface].
 
    @function AttachedServiceInterface.start
+   @param {optional Boolean} [sync=false] If `false`, `start` will return as soon as service is initializing, otherwise `start` will wait until service is running.
    @summary Start the service if it isn't running yet
    @desc
-     - If the service is in state 'stopping', `start()` waits until the next state is reached.
+     - If the service is in state 'stopping', `start` waits until the next state is reached.
      - Throws an [::ServiceUnavailableError] if the service is in state 'terminated'.
-     - Returns with no further action if the service is 'running' or 'initializing'.
-     - Starts the given service if it isn't running yet and returns as soon as the service 
-     has entered the 'initializing' state.
+     - Starts the given service if it is in state 'stopped'.
+     - For `sync`=`false` (the default), returns when the service is in state 'initializing' or 'running'.
+     - For `sync`=`true`, returns when the service is in state 'running'. If the service cannot start
+       (i.e. it moves from 'initializing' to 'stopped' or 'terminated'), [::ServiceUnavailableError] is thrown.
 
    @function AttachedServiceInterface.stop
+   @param {optional Boolean} [sync=false] If `false`, `stop` will return as soon as service is stopping, otherwise `stop` will wait until service is fully stopped.
    @summary Stops the service if it is currently running
    @desc
-     - If the service is in state 'initializing', `stop()` waits until the next state is reached.
-     - Returns with no further action if the service is 'stopped', 'stopping' or 'terminated'.
-     - Stops the given service if it is running and returns as soon as the service has entered its 
-     'stopping' state.
+     - If the service is in state 'initializing', `stop` waits until the next state is reached.
+     - Stops the given service if it is in state 'running'.
+     - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
+     - For `sync`=`true`, returns when the service is in state 'stopped' or 'terminated'.
      
      Note that stopping a service does not *abort* the service - it just causes the block passed to the
      service to exit. In practice this means that - in contrast to a service being torn down by the scope 
