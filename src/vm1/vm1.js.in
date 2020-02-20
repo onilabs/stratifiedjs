@@ -2187,7 +2187,11 @@ EF_Par.prototype.cont = function(idx, val) {
 };
 
 EF_Par.prototype.quench = function() {
-  if (this.inner_aborted) return; // already quenched/aborted internally
+  // XXX we have to quench even if inner_aborted is true - see
+  // sjs-3-tests:'reentrant quench'.
+  // This means that we're probably doing some redundant quenches which could 
+  // be optimized away.
+  // if (this.inner_aborted) return; // already quenched/aborted internally
   for (var i=0; i<this.children.length; ++i) {
     if (this.children[i])
       this.children[i].quench();
@@ -2395,7 +2399,12 @@ EF_Alt.prototype.cont = function(idx, val) {
 };
 
 EF_Alt.prototype.quench = function(except) {
-  if (this.inner_aborted) return; // already quenched/aborted internally
+  // XXX we have to quench even if inner_aborted is true - see
+  // sjs-3-tests:'reentrant quench'.
+  // This means that we're probably doing some redundant quenches which could 
+  // be optimized away.
+  // if (this.inner_aborted) return; // already quenched/aborted internally
+
   if (this.collapsing) {
     // we're being quenched after a collapse; just quench the collapsing branch
     this.children[this.collapsing.branch].quench();

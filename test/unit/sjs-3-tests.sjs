@@ -93,3 +93,67 @@
     @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
   }
 }
+
+@context("reentrant quench") {||
+  // this used to produce '1234not reached', because EF_Alt didn't emit a 'quench'
+  @test("waitfor/or") {||
+    var rv = '', restart;
+    waitfor {
+      rv += '1';
+      waitfor() { restart = resume; }
+      rv += '3';
+    }
+    or {
+      rv += '2';
+      restart();
+      hold(0);
+      rv += 'not reached';
+    }
+    rv += '4';
+    hold(100);
+    @assert.eq(rv, '1234');
+  }
+
+  @test("waitfor/and") {||
+    var rv = '';
+    function inner() {
+      var restart;
+      waitfor {
+        rv += '1';
+        waitfor() { restart = resume; }
+        rv += '3';
+        return;
+      }
+      and {
+        rv += '2';
+        restart();
+        hold(0);
+        rv += 'not reached';
+        return;
+      }
+    }
+    inner();
+    rv += '4';
+    hold(100);
+    @assert.eq(rv, '1234');
+  }
+
+  @test("resume") {||
+    var rv = '', restart, restart2;
+    waitfor {
+      rv += '1';
+      waitfor() { restart = resume; }
+      rv += '3';
+    }
+    or {
+      rv += '2';
+      restart();
+      waitfor() { restart2 = resume; }
+      rv += 'not reached';
+    }
+    rv += '4';
+    restart2();
+    hold(100);
+    @assert.eq(rv, '1234');
+  }
+}

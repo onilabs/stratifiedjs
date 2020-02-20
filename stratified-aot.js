@@ -1979,9 +1979,13 @@ return this;
 }
 };
 
-EF_Par.prototype.quench=function(){if(this.inner_aborted)return;
+EF_Par.prototype.quench=function(){for(var i=0;i<this.children.length;++i){
 
-for(var i=0;i<this.children.length;++i){
+
+
+
+
+
 if(this.children[i])this.children[i].quench();
 
 }
@@ -2160,9 +2164,14 @@ return this;
 }
 };
 
-EF_Alt.prototype.quench=function(except){if(this.inner_aborted)return;
+EF_Alt.prototype.quench=function(except){if(this.collapsing){
 
-if(this.collapsing){
+
+
+
+
+
+
 
 this.children[this.collapsing.branch].quench();
 }else{
