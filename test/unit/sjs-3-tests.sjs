@@ -138,6 +138,7 @@
     @assert.eq(rv, '1234');
   }
 
+  // this always worked, but is here just for completeness
   @test("resume") {||
     var rv = '', restart, restart2;
     waitfor {
