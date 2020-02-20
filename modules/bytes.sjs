@@ -71,10 +71,11 @@
   @summary Returns `true` if `obj` is a [::Bytes]
 
   @function isBuffer
-  @hostenv nodejs
   @param {Object} [obj] Object to test
   @return {Boolean}
   @summary Returns `true` if `obj` is a nodejs Buffer
+  @desc 
+    Note: Always returns `false` if not in nodejs hostenv.
 
   @function isUint8Array
   @param {Object} [obj] Object to test
@@ -107,7 +108,14 @@
 
 __js {
   var nope = -> false;
-  var isBuffer = nope;
+
+  var isBuffer;
+  if (@sys.hostenv === 'nodejs') {
+    isBuffer = Buffer.isBuffer;
+  }
+  else {
+    isBuffer = nope;
+  }
 
   var isUint8Array, isArrayBuffer;
   if(typeof(Uint8Array) === 'undefined') {
@@ -118,6 +126,7 @@ __js {
   }
   exports.isUint8Array = isUint8Array;
   exports.isArrayBuffer = isArrayBuffer;
+  exports.isBuffer = isBuffer;
 
   var isBytes = exports.isBytes = b -> isBuffer(b) || isUint8Array(b) || isArrayBuffer(b);
   // XXX nodejs >= 4.5 blurs the lines between buffers and uint8arrays. we use the 'isbuffer' test below
@@ -129,8 +138,7 @@ __js {
   };
 
   if (@sys.hostenv == 'nodejs') {
-    isBuffer = exports.isBuffer = Buffer.isBuffer;
-    var toBuffer = exports.toBuffer = function(b) {
+    exports.toBuffer = function(b) {
       if (isBuffer(b)) return b;
       return Buffer.from(b .. toUint8Array);
     }
