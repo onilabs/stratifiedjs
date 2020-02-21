@@ -245,7 +245,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         service.use {|exit| exit(); try { hold(); } retract { rv.push('use retract'); hold(0);}}
       }
       catch (e) {
-        if (@isServiceUnavailableError(e)) rv.push('catch');
+        @assert.truthy(@isServiceUnavailableError(e));
+        @assert.truthy(e.message .. @contains("(Service threw xxx"));
+        rv.push('catch');
       }
     }
     @assert.eq(rv, ['throw', 'service finally', 'xxx', 'use retract', 'catch']);

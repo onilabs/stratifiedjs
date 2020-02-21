@@ -38,6 +38,7 @@
 'use strict';
 
 @ = require([
+  './string',
   './event',
   './sequence',
   './observable',
@@ -205,8 +206,11 @@ function runServiceHandlerStateMachine({service,args,State,Cmd}) {
   } // while (1)
 }
 
-function ServiceUnavailableError() { 
-  var err = new Error("Service unavailable");
+__js function ServiceUnavailableError(e) { 
+  var mes = "Service unavailable";
+  if (e) 
+    mes += '\n' + @indent("(Service threw "+e+")",4);
+  var err = new Error(mes);
   err.__oni_service_unavailable = true;
   return err;
 }
@@ -272,8 +276,13 @@ function withServiceScope(client_scope) {
             ||
             try {
               runServiceHandlerStateMachine({service:service, args:args, State:State, Cmd:Cmd});
+              State.set(['terminated']);
             }
-            finally {
+            catch(e) {
+              State.set(['terminated',e]);
+              throw e;
+            }
+            retract {
               State.set(['terminated']);
             }
           }
@@ -292,11 +301,11 @@ function withServiceScope(client_scope) {
               }
             }
             else if (state[0] === 'terminated')
-              throw ServiceUnavailableError();
+              throw ServiceUnavailableError(state[1]);
 
             if (sync) {
               var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
-              if (state[0] !== 'running') throw ServiceUnavailableError();
+              if (state[0] !== 'running') throw ServiceUnavailableError(state[0] === 'terminated' ? state[1]);
             }
           }
 
@@ -323,9 +332,9 @@ function withServiceScope(client_scope) {
             start(true); // this is a synchronous call; we are now in 'running' 
                          // - other states indicate service is not runnable (shuts down immediately)
             State .. @each.track {
-              |[status, itf]|
-              if (status !== 'running') throw ServiceUnavailableError();
-              use_scope(itf);
+              |[status, itf_or_err]|
+              if (status !== 'running') throw ServiceUnavailableError(status === 'terminated' ? itf_or_err);
+              use_scope(itf_or_err);
               break;
             }
           }
@@ -381,9 +390,9 @@ function withServiceScope(client_scope) {
             stop: stop,
             Status: State .. @transform([status]->status)
           };
-        }
-      }
-    );
-  }
+        } // attach
+      } // ServiceScopeInterface
+    ); // client_scope
+  } // withSpawnScope
 }
 exports.withServiceScope = withServiceScope;
