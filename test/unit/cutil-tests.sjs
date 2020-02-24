@@ -691,10 +691,10 @@ function task(id, log_arr, blocking_retract, blocking_finally) {
   }
 }
 
-context('withSpawnScope') {||
+context('withBackgroundStrata') {||
   test('empty') {||
     var rv = [];
-    cutil.withSpawnScope {
+    cutil.withBackgroundStrata {
       |scope|
       rv.push('in scope');
       scope.wait();
@@ -715,10 +715,10 @@ context('withSpawnScope') {||
 
       test('single task') {||
         var rv = [];
-        cutil.withSpawnScope {
+        cutil.withBackgroundStrata {
           |scope|
           rv.push('in scope');
-          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          scope.run(task(1,rv, blocking_retract, blocking_finally));
           rv.push('wait');
           scope.wait();
           rv.push('cont');
@@ -729,10 +729,10 @@ context('withSpawnScope') {||
       
       test('single task abort') {||
         var rv = [];
-        cutil.withSpawnScope {
+        cutil.withBackgroundStrata {
           |scope|
           rv.push('in scope');
-          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          scope.run(task(1,rv, blocking_retract, blocking_finally));
           rv.push('cont');
         }
         rv.push('out of scope');
@@ -741,12 +741,12 @@ context('withSpawnScope') {||
       
       test('2 tasks') {||
         var rv = [];
-        cutil.withSpawnScope {
+        cutil.withBackgroundStrata {
           |scope|
           rv.push('in scope');
-          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          scope.run(task(1,rv, blocking_retract, blocking_finally));
           hold(50);
-          scope.spawn(task(2,rv, blocking_retract, blocking_finally));
+          scope.run(task(2,rv, blocking_retract, blocking_finally));
           rv.push('wait');
           scope.wait();
           rv.push('cont');
@@ -759,12 +759,12 @@ context('withSpawnScope') {||
       
       test('2 tasks abort') {||
         var rv = [];
-        cutil.withSpawnScope {
+        cutil.withBackgroundStrata {
           |scope|
           rv.push('in scope');
-          scope.spawn(task(1,rv, blocking_retract, blocking_finally));
+          scope.run(task(1,rv, blocking_retract, blocking_finally));
           hold(50);
-          scope.spawn(task(2,rv, blocking_retract, blocking_finally));
+          scope.run(task(2,rv, blocking_retract, blocking_finally));
           rv.push('cont');
         }
         rv.push('out of scope');
@@ -783,10 +783,10 @@ context('withSpawnScope') {||
       test('blklamba return sync') {||
         var rv = [];
         function f() {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn {
+            scope.run {
               ||
               rv.push('1 start');
               rv.push('1 returning');
@@ -797,7 +797,7 @@ context('withSpawnScope') {||
                 if (blocking_finally) hold(0);
               }
             }
-            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            scope.run(task(2,rv,blocking_retract, blocking_finally));
             rv.push('cont');
             scope.wait();
             rv.push('not reached');
@@ -814,10 +814,10 @@ context('withSpawnScope') {||
       test('exception sync') {||
         var rv = [];
         function f() {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn {
+            scope.run {
               ||
               rv.push('1 start');
               rv.push('1 returning');
@@ -828,7 +828,7 @@ context('withSpawnScope') {||
                 if (blocking_finally) hold(0);
               }
             }
-            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            scope.run(task(2,rv,blocking_retract, blocking_finally));
             rv.push('cont');
             scope.wait();
             rv.push('not reached');
@@ -846,17 +846,17 @@ context('withSpawnScope') {||
       test('blklamba return 1') {||
         var rv = [];
         function f() {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn {
+            scope.run {
               ||
               rv.push('1 start');
               hold(0);
               rv.push('1 returning');
               return 'rv';
             }
-            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            scope.run(task(2,rv,blocking_retract, blocking_finally));
             rv.push('cont');
             scope.wait();
             rv.push('not reached');
@@ -870,17 +870,17 @@ context('withSpawnScope') {||
       test('exception 1') {||
         var rv = [];
         function f() {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn {
+            scope.run {
               ||
               rv.push('1 start');
               hold(0);
               rv.push('1 returning');
               throw 'except';
             }
-            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            scope.run(task(2,rv,blocking_retract, blocking_finally));
             rv.push('cont');
             scope.wait();
             rv.push('not reached');
@@ -894,10 +894,10 @@ context('withSpawnScope') {||
       test('exception with sole stratum') {||
         var rv = [];
         function f() {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn {
+            scope.run {
               ||
               rv.push('1 start');
               hold(0);
@@ -922,10 +922,10 @@ context('withSpawnScope') {||
       test('sync exception with sole stratum') {||
         var rv = [];
         function f() {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn {
+            scope.run {
               ||
               rv.push('1 start');
               rv.push('1 returning');
@@ -952,11 +952,11 @@ context('withSpawnScope') {||
       test('blklamba break') {||
         var rv = [];
         function f(blk) {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn(blk);
-            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            scope.run(blk);
+            scope.run(task(2,rv,blocking_retract, blocking_finally));
             rv.push('cont');
             scope.wait();
             rv.push('not reached');
@@ -976,11 +976,11 @@ context('withSpawnScope') {||
       test('blklamba return 2') {||
         var rv = [];
         function f(blk) {
-          cutil.withSpawnScope {
+          cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.spawn(blk);
-            scope.spawn(task(2,rv,blocking_retract, blocking_finally));
+            scope.run(blk);
+            scope.run(task(2,rv,blocking_retract, blocking_finally));
             rv.push('cont');
             scope.wait();
             rv.push('not reached');
@@ -1014,10 +1014,10 @@ context('withSpawnScope') {||
         var stratum1 = spawn(function() {
           if (p1) hold(0); 
           try {
-            @withSpawnScope {
+            @withBackgroundStrata {
               |scope|
               if (p2) hold(0); 
-              scope.spawn {
+              scope.run {
                 || 
                 rv.push('inner');
                 if (p3) hold(0);
@@ -1040,7 +1040,7 @@ context('withSpawnScope') {||
               if (p6) hold();
               scope.wait();
               rv.push('not reached');
-            } // spawnscope
+            } // background session
             rv.push('not reached');
           }
           retract {
@@ -1075,10 +1075,10 @@ context('withSpawnScope') {||
         var stratum1 = spawn(function() {
           if (p1) hold(0); 
           try {} finally {
-            @withSpawnScope {
+            @withBackgroundStrata {
               |scope|
               if (p2) hold(0); 
-              scope.spawn {
+              scope.run {
                 || 
                 rv.push('inner');
                 if (p3) hold(0);
@@ -1100,7 +1100,7 @@ context('withSpawnScope') {||
               rv.push('outer waiting');
               scope.wait();
               rv.push('outer cont');
-            } // spawnscope
+            } // background session
             rv.push('outer continue finally');
           } // finally
           rv.push('after outer finally');

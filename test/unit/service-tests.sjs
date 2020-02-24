@@ -1,11 +1,11 @@
 @ = require(['sjs:test/suite', 'sjs:std']);
 
 function simple_service({id,rv,block_init,block_finally,block_retract, block_api},
-                        scope) {
+                        session) {
   try {
     rv.push :: "#{id}:init";
     if (block_init) hold(0);
-    scope(function() { hold(0); return "#{id}:hello"; });
+    session(function() { hold(0); return "#{id}:hello"; });
   }
   retract {
     rv.push :: "#{id}:retract";
@@ -19,11 +19,11 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     
     
 
-@context('withServiceScope') {||
+@context('withBackgroundServices') {||
 
   @test('single attached') {||
     var rv = [];
-    @withServiceScope() {
+    @withBackgroundServices() {
       |service_scope|
       rv.push('service_scope start');
       var service = service_scope.attach(simple_service, {rv:rv,id: 1});
@@ -37,7 +37,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     |[b1,b2,b3,b4]|
     @test("single started #{b1},#{b2},#{b3}") {||
       var rv = [], service;
-      @withServiceScope() {
+      @withBackgroundServices {
         |service_scope|
         rv.push('service_scope start');
         service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3});
@@ -55,7 +55,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     |[b1,b2,b3, b4]|
     @test("single used #{b1},#{b2},#{b3},#{b4}") {||
       var rv = [], service;
-      @withServiceScope() {
+      @withBackgroundServices {
         |service_scope|
         rv.push('service_scope start');
         service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
@@ -80,7 +80,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     |[b1,b2,b3, b4, b5]|
     @test("single used/stopped/used #{b1},#{b2},#{b3},#{b4},#{b5}") {||
       var rv = [], service;
-      @withServiceScope() {
+      @withBackgroundServices {
         |service_scope|
         rv.push('service_scope start');
         service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
@@ -111,7 +111,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     |[b1,b2,b3, b4]|
     @test("single started/stopped #{b1},#{b2},#{b3},#{b4}") {||
       var rv = [], service;
-      @withServiceScope() {
+      @withBackgroundServices {
         |service_scope|
         rv.push('service_scope start');
         service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
@@ -134,7 +134,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     |[b1,b2,b3, b4]|
     @test("used out of scope #{b1},#{b2},#{b3}") {||
       var rv = [], service;
-      @withServiceScope() {
+      @withBackgroundServices {
         |service_scope|
         rv.push('service_scope start');
         service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3});
@@ -154,7 +154,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
   @test("stopping while using - sync") {||
     var rv = [], service;
 
-    @withServiceScope() {
+    @withBackgroundServices {
       |service_scope|
       service = service_scope.attach(function(blk) {
         var exit;
@@ -181,7 +181,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     var rv = [], service;
     
     waitfor {
-      @withServiceScope() {
+      @withBackgroundServices {
         |service_scope|
         service = service_scope.attach(function(blk) {
           var exit;
@@ -217,7 +217,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     
     waitfor {
       try {
-        @withServiceScope() {
+        @withBackgroundServices {
           |service_scope|
           service = service_scope.attach(function(blk) {
             var exit;

@@ -44,7 +44,7 @@
 'use strict';
 
 var {isArrayLike, isQuasi, streamContents, overrideObject } = require('builtin:apollo-sys');
-var { waitforAll, Queue, Semaphore, Condition, _Waitable, withSpawnScope } = require('./cutil');
+var { waitforAll, Queue, Semaphore, Condition, _Waitable, withBackgroundStrata } = require('./cutil');
 var { Interface, hasInterface, Token } = require('./type');
 var sys = require('builtin:apollo-sys');
 
@@ -3149,13 +3149,13 @@ each.par = function(/* seq, max_strata, r */...args) {
 
   var semaphore = Semaphore(max_strata);
 
-  withSpawnScope {
-    |scope|
+  withBackgroundStrata {
+    |background_strata|
 
     seq .. each {
       |x|
       semaphore.acquire();
-      scope.spawn { 
+      background_strata.run { 
         || 
         try {
           r(x);
@@ -3166,7 +3166,7 @@ each.par = function(/* seq, max_strata, r */...args) {
       }
     }
 
-    scope.wait();
+    background_strata.wait();
   }
 
 }

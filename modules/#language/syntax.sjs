@@ -432,8 +432,8 @@
   - Instead of spawning a stratum it is often a better idea to use one of
   the *structured concurrency constructs* [::waitfor-and] and [::waitfor-or] where possible.
 
-  - If structured concurrency primitives cannot be used, consider using *scoped* spawned strata
-  (see [../cutil::withSpawnScope]) - in particular if you want to use spawned strata to process
+  - If structured concurrency primitives cannot be used, consider using *sessioned* spawned strata
+  (see [../cutil::withBackgroundStrata]) - in particular if you want to use spawned strata to process
   blocklambda functions. See the discussion at the end of the [::blocklambda] documentation.
 
 @syntax destructure
@@ -805,18 +805,18 @@
    If spawned strata absolutely need to be used (e.g. because the level of concurrency is 
    unknown at the time of authoring the function - as is e.g. the case for 
    [../sequence::each.par]),
-   consider using scoped spawned strata instead ([../cutil::withSpawnScope]). E.g. a somewhat
+   consider using sessioned spawned strata instead ([../cutil::withBackgroundStrata]). E.g. a somewhat
    simplified implementation of [../sequence::each.par] that automatically takes care of 
    all of the controlflow edgecases discussed above would look like this:
 
        function each_par(seq, f) {
-         @withSpawnScope {
-           |scope|
+         @withBackgroundStrata {
+           |background_strata|
            seq .. @each {
              |x|
-             scope.spawn(()->f(x));
+             background_strata.run(()->f(x));
            }
-           scope.wait();
+           background_strata.wait();
          }
        }
    

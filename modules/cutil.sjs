@@ -59,32 +59,30 @@ var sys  = require('builtin:apollo-sys');
 __js exports.StratumAborted = __oni_rt.StratumAborted;
 
 /**
-   @function withSpawnScope
-   @altsyntax withSpawnScope { |scope| ... }
-   @summary Create a scope for executing background tasks
-   @param {Function} [scope_block] Function that will be called with a [::SpawnScopeInterface]
+   @function withBackgroundStrata
+   @altsyntax withBackgroundStrata { |background_strata_itf| ... }
+   @summary Create a session for executing background tasks
+   @param {Function} [session_func] Function that will be called with a [::IBackgroundStrataSession]
    @desc
-     `withSpawnScope` creates a scope for executing 'scoped' background strata. 
+     `withBackgroundStrata` is a [./service::Service] that creates a session for running background 
+     strata.
+ 
+     Background code is executed with [::IBackgroundStrataSession::run] and has its lifetime
+     bound by the session. I.e. when `session_func` exits, any background strata still running in
+     the session will be aborted.
 
-     The lifetime of the scope
-     and the background strata created therein (using [::SpawnScopeInterface::spawn]) is 
-     bounded by `scope_block` (typically a [#language/syntax::blocklambda]):
-   
-     When `scope_block` exits, the scope and the scoped background strata will be aborted, and
-     the `withSpawnScope` call returns.
-
-     Any exceptions thrown from a scoped background stratum will cause the scope (and 
-     any other running scoped strata) to be aborted and the `withSpawnScope` call to throw
+     Any exceptions thrown from a sessioned background stratum will cause  `session_func` (and 
+     any other running sessioned strata) to be aborted and the `withBackgroundStrata` call to throw
      the exception.
 
-     [::SpawnScopeInterface::wait] can be used to wait for completion of all currently 
-     running scoped background strata.
+     [::IBackgroundStrataSession::wait] can be used to wait for completion of all currently 
+     running sessioned background strata.
 
 
      ### Blocklambda controlflow
 
-     Blocklambda controlflow passing through a scoped background stratum will be
-     correctly routed through the scope and cause the the scope (and running scoped strata) 
+     Blocklambda controlflow passing through a sessioned background stratum will be
+     correctly routed through the session and cause `session_func` (and running sessioned strata) 
      to be aborted. E.g.:
 
          // The following code logs:
@@ -94,14 +92,14 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
          // 's2 retval'
 
          function foo(blk) {
-           @withSpawnScope { 
-             |scope|
-             scope.spawn { || 
+           @withBackgroundStrata { 
+             |background_strata|
+             background_strata.run { || 
                try { console.log('s1 running'); hold(); }
                retract { console.log('s1 abort'); }
              }
-             scope.spawn(blk);
-             scope.wait();
+             background_strata.run(blk);
+             background_strata.wait();
              console.log('not reached');
            }
            console.log('not reached');
@@ -120,24 +118,24 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
          console.log(bar());
 
 
-   @class SpawnScopeInterface
-   @summary Interface injected by [::withSpawnScope]
+   @class IBackgroundStrataSession
+   @summary Interface for controlling a [::withBackgroundStrata] session
 
-   @function SpawnScopeInterface.spawn
-   @summary Execute a scoped background stratum
+   @function IBackgroundStrataSession.run
+   @summary Execute a sessioned background stratum
    @param {Function} [f] Function to execute in background stratum
    @desc
       Begins executing `f` and returns when `f` returns or blocks.
       In the latter case, `f` will continue to execute in the background until
-      it returns or is aborted (by virtue of the scope being aborted or otherwise exited).
+      it returns or is aborted (by virtue of the session being aborted or otherwise exited).
       
-      If `f` throws an exception it will cause the scope to be aborted, and the exception 
-      to be thrown by the enclosing [::withSpawnScope] call.
+      If `f` throws an exception it will cause the session to be aborted, and the exception 
+      to be thrown by the enclosing [::withBackgroundStrata] call.
 
-   @function SpawnScopeInterface.wait
-   @summary Wait for all scoped background strata to complete
+   @function IBackgroundStrataSession.wait
+   @summary Wait for all sessioned background strata to complete
 */
-function withSpawnScope(scope) {
+function withBackgroundStrata(session) {
   var waitlist = [], pending_rv, kill, killed = false;
 
   // Linked list for keeping track of stratum cleanup:
@@ -169,7 +167,7 @@ function withSpawnScope(scope) {
   }
   or {
     var itf = {
-      spawn: function(background_task) {
+      run: function(background_task) {
         // this check prevents synchronous spawning after we've been killed (by e.g. a blocklambda break):
         if (killed) hold();
         __js var ef = background_task();
@@ -206,7 +204,7 @@ function withSpawnScope(scope) {
         }
       }
     };
-    scope(itf);
+    session(itf);
   }
   finally {
     __js {
@@ -226,7 +224,7 @@ function withSpawnScope(scope) {
   return pending_rv;
 }
 
-exports.withSpawnScope = withSpawnScope;
+exports.withBackgroundStrata = withBackgroundStrata;
 
 /**
   @function waitforAll

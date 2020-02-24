@@ -50,36 +50,45 @@
    @class Service
    @summary Function-as-service abstraction
    @desc
-     A Service is a function of signature `function S([optional_params...], client_scope)`,
-     where `client_scope` is a functional argument that takes one or more optional 
+     A Service is a function of signature `function S([optional_params...], session_func)`,
+     where `session_func` is a functional argument that takes one or more optional 
      arguments (these arguments being the service's "interface").
 
-     `S` is expected to adhere to the following semantics:
+     When invoking `S([...],session_func)`, `S` calls `session_func` to establish a "service session", 
+     optionally (but typically) passing a service session interface to `session_func`.
 
-     - Upon invocation, `S` makes exactly one call to `client_scope` (after optionally blocking for initialization).
-     - `S` optionally passes one or more arguments to `client_scope` (S's 'interface').
-     - The lifetime of `S` is bound by `client_scope`, i.e. `S` executes for as long as `client_scope` executes (barring exceptional exit). 
-       When client_scope exits, `S` will exit (after optionally blocking for cleanup in `finally` clauses).
-     - `S` must pass through any exceptions raised by `client_scope`.
-     - `client_scope` has 'control flow authority' over `S`. Among other things, this means 
+     The service session lasts until `session_func` exits (at which point `S` is expected to exit).
+     `session_func` will typically be a [./#language/syntax::blocklambda].
+
+     Services will typically be named "withRESOURCE" (e.g. [sjs:nodejs/http::withServer]) or 
+     "runTYPESession" (e.g. 'runEditSession').
+
+     Formally, a service `S` is expected to adhere to the following semantics:
+
+     - Upon invocation, `S` makes exactly one call to `session_func` (after optionally blocking for initialization).
+     - `S` optionally passes one or more arguments to `session_func` (S's 'interface').
+     - The lifetime of `S` is bound by `session_func`, i.e. `S` executes for as long as `session_func` executes (barring exceptional exit). 
+       When `session_func` exits, `S` will exit (after optionally blocking for cleanup in `finally` clauses).
+     - `S` must pass through any exceptions raised by `session_func`.
+     - `session_func` has 'control flow authority' over `S`. Among other things, this means 
        that `S` cannot rely on exceptions raised from within its interface to filter 
-       through calls made by `client_scope`. I.e. `client_scope` may catch exceptions and 
-       not feed them through to the `S(client_scope)` call).
-     - `S` is allowed to abort `client_scope`, but must throw an exception if it does so.
+       through calls made by `session_func`. I.e. `session_func` may catch exceptions and 
+       not feed them through to the `S(session_func)` call).
+     - `S` is allowed to abort `session_func`, but must throw an exception if it does so.
        See the section on 'Exceptional exit' below.
-     - `S` must not subvert `client_scope`'s control flow authority by using blocklambda
-       break/return controlflow or non-exceptional exit of the `S(client_scope)` call. See
+     - `S` must not subvert `session_func`'s control flow authority by using blocklambda
+       break/return controlflow or non-exceptional exit of the `S(session_func)` call. See
        the section on 'Control flow subversion' below.
 
      ### Examples:
 
      - Most `"with..."` functions in the sjs/mho libs are services. E.g.: [sjs:nodejs/http::withServer],
-       [sjs:sequence::withOpenStream], [sjs:sys::withEvalContext], [sjs:cutil::withSpawnScope],
-       [sjs:service::withServiceScope], [mho:websocket-client::withWebSocketClient].
+       [sjs:sequence::withOpenStream], [sjs:sys::withEvalContext], [sjs:cutil::withBackgroundStrata],
+       [sjs:service::withBackgroundServices], [mho:websocket-client::withWebSocketClient].
 
      - A logging service that in turn uses a file writer service:
 
-           function logging_service(filename, scope) {
+           function runLoggingSession(filename, logging_session) {
              @withFileWriter(filename) {
                |{write}|
   
@@ -87,18 +96,18 @@
                  log: function(str) { write("#{new Date()}: #{str}\n"); }
                };
   
-               scope(itf);
+               logging_session(itf);
   
              }
            }
 
      ### Exceptional exit
 
-     In general the lifetime of a service must be bound by its `client_scope`. The
-     service is allowed to abort `client_scope`, but it must throw an exception
+     In general the lifetime of a service must be bound by its `session_func`. The
+     service is allowed to abort `session_func`, but it must throw an exception
      if it does so. E.g.:
 
-         function withServer(server, scope) {
+         function withServer(server, session) {
            waitfor {
              while (1) {
                if (!server.ping()) throw new Error("Server gone!");
@@ -106,20 +115,20 @@
              }
            }
            or {
-             scope({uptime: -> server.uptime()});
+             session({uptime: -> server.uptime()});
            }
          }
 
      A service may throw exceptions from its interface functions, but it must not 
-     rely on those exceptions filtering through and causing `client_scope` (and hence
-     `S` itself) to be aborted. E.g. in the following example, `accumulator` will not
+     rely on those exceptions filtering through and causing `session_func` (and hence
+     `S` itself) to be aborted. E.g. in the following example, `withAccumulator` will not
      get to see the exception raised by its interface, because it is caught within 
-     `client_scope`:
+     `session_func`:
      
 
-         function accumulator(scope) {
+         function withAccumulator(session) {
            var accu = 0;
-           scope({
+           session({
              add: function(x) { if (typeof x !== 'number') 
                                   throw 'Not a number'; 
                                 accu += x;
@@ -127,16 +136,16 @@
            });
          }
 
-         accumulator { |itf|
+         withAccumulator { |{add}|
            // try-catch here prevents the exception from filtering
            // through to accumulator
-           try { itf.add('not a number'); }catch(e) {}
+           try { add('not a number'); }catch(e) {}
          }
 
-     If we want `accumulator` to exit with an error (instead of just `add`), 
+     If we want `withAccumulator` (instead of just `add`) to exit with an error, 
      the service could be rewritten like this:
      
-         function accumulator(scope) {
+         function withAccumulator(session) {
            var accu = 0, raise_error;
            waitfor {
              waitfor(var err) {
@@ -145,7 +154,7 @@
              throw err;
            }
            or {
-             scope({
+             session({
                add: function(x) { if (typeof x !== 'number')
                                     raise_error(new Error('Not a number');
                                   accu += x;
@@ -157,20 +166,21 @@
      ### Control flow subversion
 
      A service must not 'silently' (i.e. without raising an exception) exit by
-     subverting the control flow authority of `client_scope`.
+     subverting the control flow authority of `session_func`.
      E.g. in the above example, the `throw err;` line must not be omitted.
-     Doing so can cause great confusion to the caller of the server.
+     Doing so can cause great confusion to the caller of the service.
 
      Additionally, blocklambda controlflow must not be used in the 
      interface functions to subvert the controlflow, because it will not work with
-     using services that have their lifetime detached from their 'use' scopes (see 
-     [::withServiceScope].
-     E.g., the following service would work correctly when called directly, but 
-     not when called via [::withServiceScope]:
+     services that have their interface accessed outside of their session_func (as is 
+     e.g. the case when using a background service - see [::withBackgroundServices]).
 
-         function my_service(scope) {
+     E.g., the following service would work correctly when called directly, but 
+     not when called via [::withBackgroundServices]:
+
+         function my_service(session) {
            var error_raised = false;
-           scope({
+           session({
              error_exit: {|| error_raised=true; break;}
            });
            if (error_raised) throw new Error('exit with error');
@@ -218,7 +228,7 @@ __js function ServiceUnavailableError(e) {
 /**
    @class ServiceUnavailableError
    @inherit Error
-   @summary Error raised by [::AttachedServiceInterface::start] if the service is terminated and by [::AttachedServiceInterface::use] if the service is or becomes unavailable.
+   @summary Error raised by [::IBackgroundService::start] if the service is terminated and by [::IBackgroundService::use] if the service is or becomes unavailable.
 
    @function isServiceUnavailableError
    @param {Object} [e] Object to test
@@ -233,37 +243,49 @@ __js {
 
 //----------------------------------------------------------------------
 /**
-   @function withServiceScope
-   @altsyntax withServiceScope { |service_scope_itf| ... }
-   @summary A [::Service] for bounding the lifetime of other [::Service]s to `scope`
-   @param {Function} [scope] Scope function which will be executed with a [::ServiceScopeInterface]
+   @function withBackgroundServices
+   @altsyntax withBackgroundServices { |itf| ... }
+   @summary Creates a session for running [::Service]s in the background
+   @param {Function} [session_func] Function which will be executed with a [::IBackgroundServicesSession]
    @desc
-     `withServiceScope` is used detach the lifetime of services from their 'use' scopes.
+     `withBackgroundServices` is a [::Service] that creates a session for running other [::Service]s in
+     the background. Such background services have their lifetimes bounded by the session established through
+     the withBackgroundServices call, and can be interacted with through "sub-sessions" established by 
+     [::IBackgroundService::use]. I.e. `withBackgroundServices` decouples the overall 
+     lifetime of a service from individual sessions where it is used.
+
+     Background services are attached to the session using [::IBackgroundServicesSession::attach] and
+     then controlled with a [::IBackgroundService] interface. With this interface, background services 
+     can be started ([::IBackgroundService::start]), stopped ([::IBackgroundService::stop]) and 
+     interacted with ([::IBackgroundService::use]).
 */
-function withServiceScope(client_scope) {
-  @withSpawnScope {
-    |spawn_scope|
+function withBackgroundServices(session) {
+  @withBackgroundStrata {
+    |background_strata|
 
-    client_scope(
+    session(
 /**   
-   @class ServiceScopeInterface
-   @summary Interface exposed by [::withServiceScope]
+   @class IBackgroundServicesSession
+   @summary Interface exposed by [::withBackgroundServices]
 
-   @function ServiceScopeInterface.attach
-   @summary Attach a service to the service scope
+   @function IBackgroundServicesSession.attach
+   @summary Attach a service to the session
    @param {::Service} [service] Service to attach
    @param {optional Object} [...args] Arguments to provide to service
-   @return {::AttachedServiceInterface} Interface through which the service can be controlled
+   @return {::IBackgroundService} Interface through which the service can be controlled
    @desc
-     This function attaches a service to the given scope and returns an [::AttachedServiceInterface] through
-     which the service can be controlled.
+     This function attaches a service to the given session and returns an [::IBackgroundService] interface 
+     through which the service can be controlled.
      Attaching a service will NOT automatically start it. Services start out in state `'stopped'`.
 
-     When the scope exits all running services will be aborted, and attempting to use them will cause 
-     a [::ServiceUnavailableError]. See [::AttachedServiceInterface::stop] for stopping a running service
-     before the scope exits, and note the subtle difference ([::AttachedServiceInterface::stop] will not 
-     cause 'retract' clauses in the service to be executed, whereas a scope exit will).
-     After scope exit, services will have state `'terminated'`.
+     When the session exits all running background services will be aborted. 
+     Attempting to use a background service (through [::IBackgroundService::use]) after session exit 
+     will cause a [::ServiceUnavailableError]. 
+
+     See [::IBackgroundService::stop] for stopping a running service
+     before the session exits, and note the subtle difference: [::IBackgroundService::stop] will not 
+     cause 'retract' clauses in the service to be executed, whereas the session exit will.
+     After session exit, services will have state `'terminated'`.
      
 */
       {
@@ -272,7 +294,7 @@ function withServiceScope(client_scope) {
           var State = @ObservableVar(['stopped']);
           var Cmd = @Emitter();
           
-          spawn_scope.spawn {
+          background_strata.run {
             ||
             try {
               runServiceHandlerStateMachine({service:service, args:args, State:State, Cmd:Cmd});
@@ -328,33 +350,33 @@ function withServiceScope(client_scope) {
             }
           }
 
-          function use(use_scope) {
+          function use(use_session_f) {
             start(true); // this is a synchronous call; we are now in 'running' 
                          // - other states indicate service is not runnable (shuts down immediately)
             State .. @each.track {
               |[status, itf_or_err]|
               if (status !== 'running') throw ServiceUnavailableError(status === 'terminated' ? itf_or_err);
-              use_scope(itf_or_err);
+              use_session_f(itf_or_err);
               break;
             }
           }
 
 /**
-   @class AttachedServiceInterface
-   @summary Interface exposed by services attached to a service scope by [::ServiceScopeInterface].
+   @class IBackgroundService
+   @summary Interface exposed by services attached to a service session by [::IBackgroundServicesSession::attach].
 
-   @function AttachedServiceInterface.start
+   @function IBackgroundService.start
    @param {optional Boolean} [sync=false] If `false`, `start` will return as soon as service is initializing, otherwise `start` will wait until service is running.
    @summary Start the service if it isn't running yet
    @desc
      - If the service is in state 'stopping', `start` waits until the next state is reached.
-     - Throws an [::ServiceUnavailableError] if the service is in state 'terminated'.
+     - Throws a [::ServiceUnavailableError] if the service is in state 'terminated'.
      - Starts the given service if it is in state 'stopped'.
      - For `sync`=`false` (the default), returns when the service is in state 'initializing' or 'running'.
      - For `sync`=`true`, returns when the service is in state 'running'. If the service cannot start
        (i.e. it moves from 'initializing' to 'stopped' or 'terminated'), [::ServiceUnavailableError] is thrown.
 
-   @function AttachedServiceInterface.stop
+   @function IBackgroundService.stop
    @param {optional Boolean} [sync=false] If `false`, `stop` will return as soon as service is stopping, otherwise `stop` will wait until service is fully stopped.
    @summary Stops the service if it is currently running
    @desc
@@ -364,21 +386,27 @@ function withServiceScope(client_scope) {
      - For `sync`=`true`, returns when the service is in state 'stopped' or 'terminated'.
      
      Note that stopping a service does not *abort* the service - it just causes the block passed to the
-     service to exit. In practice this means that - in contrast to a service being torn down by the scope 
+     service to exit. In practice this means that - in contrast to a service being torn down by the session 
      exiting - 'retract' clauses in the service will not be executed.
 
-   @function AttachedServiceInterface.use
-   @param {Function} [use_scope] Scope function which will be executed with the services interface
-   @summary Use the interface of a service attached to a service scope.
+   @function IBackgroundService.use
+   @param {Function} [use_session_f] Session function which will be executed with the services interface
+   @summary Establish a 'use' session for a background service
    @desc
      Starts the service if it isn't running yet, waits until it is in the 'running' state and calls
-     `use_scope` with the service's interface. 
-     If the service is stopped (either explicitly or by virtue of the service scope exiting) while executing 
+     `use_session_f` with the service's interface to establish a 'use session'.
+
+     Unlike establishing a session with a direct call of a service function, a 'use session' does not bound
+     the lifetime of the service. After the 'use session' exits, the service continues running until it is 
+     explicitly stopped (via [::IBackgroundService::stop]) or by exiting of the service session to which the
+     background service is attached (via [::IBackgroundServicesSession::attach]).
+
+     If the service is stopped (either explicitly or by virtue of the service session exiting) while executing 
      `itf.use(f)`, `f` will be aborted and a [::ServiceUnavailableError] will be thrown.
      
-     Attempting to use an attached service whose scope has exited will throw a [::ServiceUnavailableError].
+     Attempting to use an attached service whose service session has exited will throw a [::ServiceUnavailableError].
 
-   @variable AttachedServiceInterface.Status
+   @variable IBackgroundService.Status
    @summary [./observable::Observable] of the service's current status
    @desc
      The status can be one of: `'stopped'`, `'initializing'`, `'running'`, `'stopping'` or `'terminated'`.
@@ -391,8 +419,8 @@ function withServiceScope(client_scope) {
             Status: State .. @transform([status]->status)
           };
         } // attach
-      } // ServiceScopeInterface
-    ); // client_scope
-  } // withSpawnScope
+      } // IBackgroundServicesSession
+    ); // session
+  } // withBackgroundStrata
 }
-exports.withServiceScope = withServiceScope;
+exports.withBackgroundServices = withBackgroundServices;

@@ -140,7 +140,7 @@ module.exports = require(modules);
    - **StratumAborted**: (variable [sjs:cutil::StratumAborted])
    - **waitforAll**: (function [sjs:cutil::waitforAll])
    - **waitforFirst**: (function [sjs:cutil::waitforFirst])
-   - **withSpawnScope**: (function [sjs:cutil::withSpawnScope])
+   - **withBackgroundStrata**: (function [sjs:cutil::withBackgroundStrata])
   
   
   ### Symbols from the [sjs:debug](#sjs%3Adebug) module:
@@ -309,7 +309,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:service](#sjs%3Aservice) module:
   
    - **isServiceUnavailableError**: (function [sjs:service::isServiceUnavailableError])
-   - **withServiceScope**: (function [sjs:service::withServiceScope])
+   - **withBackgroundServices**: (function [sjs:service::withBackgroundServices])
   
   
   ### Symbols from the [sjs:set](#sjs%3Aset) module:
