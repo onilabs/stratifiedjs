@@ -868,7 +868,7 @@ function controlflow_type(e) {
           return t1();
         }
         or {
-          hold(0);
+          hold(1);
         }
       }
       

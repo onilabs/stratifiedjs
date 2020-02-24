@@ -1389,7 +1389,7 @@ testEq('each.track exception 5', '3e', function() {
   function f() { 
     [1,2,3] .. s.monitor(-> hold(1)) .. s.each.track {
       |x|
-      hold(10);
+      hold(50);
       rv += x;
       try {
         throw new Error('foo');
