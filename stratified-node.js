@@ -218,6 +218,12 @@ function cloneAnnotatedCFX(obj){obj=new CFException('t',Object.create(obj.val));
 
 obj.val.toString=CFException_toString;
 
+
+
+Object.defineProperty(obj.val,'name',{get:function(){return this.__proto__.name}});
+Object.defineProperty(obj.val,'message',{get:function(){return this.__proto__.message}});
+
+
 obj.val.__oni_stack=[].concat(obj.val.__oni_stack);
 return obj;
 }

@@ -268,6 +268,12 @@ function cloneAnnotatedCFX(obj) {
   // ASSERT(is_annotated_oni_cfx(obj)) // caller to ensure this
   obj = new CFException('t', Object.create(obj.val));
   obj.val.toString = CFException_toString;
+  // The following are necessary to fix cloned JS errors being reported as 'illegal invocation':
+  // XXX alternatively we could use an amended CFException_toString, but it's tricky to get
+  // that to work with exceptions that are cloned multiple levels deep (if there are such exceptions?)
+  Object.defineProperty(obj.val, 'name', { get: function() { return this.__proto__.name; } });
+  Object.defineProperty(obj.val, 'message', { get: function() { return this.__proto__.message; }});
+
   // make sure that the new exceptions gets its own __oni_stack property:
   obj.val.__oni_stack = [].concat(obj.val.__oni_stack);
   return obj;
