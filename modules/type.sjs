@@ -263,7 +263,7 @@ __js function escape(x) {
   @param {String} [name]
   @return {String}
   @desc
-    Before you can use `Interface` you must use [#language/builtins::module.setCanonicalId]
+    Before you can use `Token` you must use [#language/builtins::module.setCanonicalId]
     to give the current module a unique canonical ID.
 
     For a given `(type, name)` tuple unique within the current module,

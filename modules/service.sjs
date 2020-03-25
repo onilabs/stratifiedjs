@@ -291,6 +291,9 @@ function withBackgroundServices(session) {
       {
         attach: function(service, ...args) {
 
+          if (typeof service !== 'function') 
+            throw new Error("Invalid non-function parameter to IBackgroundServicesSession::attach");
+
           var State = @ObservableVar(['stopped']);
           var Cmd = @Emitter();
           
