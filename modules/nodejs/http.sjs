@@ -61,10 +61,16 @@ var array = require('../array');
  @class ServerRequest
  @summary Incoming HTTP request. 
 */
-function ServerRequest(req, res, ssl) {
+function ServerRequest(req, res, ssl, socket, head) {
 
   __js {
     var rv = {};
+  /**
+   @variable ServerRequest.upgrade
+   @summary `true` if this is an 'upgrade' request
+  */
+    rv.upgrade = !!socket,
+
   /**
    @variable ServerRequest.request
    @summary [NodeJS http.IncomingMessage](http://nodejs.org/docs/latest/api/http.html#http_class_http_incomingmessage) object
@@ -73,8 +79,25 @@ function ServerRequest(req, res, ssl) {
   /**
    @variable ServerRequest.response
    @summary [NodeJS http.ServerResponse](http://nodejs.org/docs/latest/api/http.html#http_class_http_serverresponse) object
+   @desc
+     Note: For 'upgrade' requests, this field will be missing. The handler is expected to write to the socket (request.client) directly.
    */
     rv.response = res;
+  /**
+   @variable ServerRequest.socket
+   @summary Socket (only set for 'upgrade' requests)
+   @desc
+     Note: To indicate that an upgrade request has been handled, delete this property in the handler.
+     Otherwise, after the handler returns, the server implementation will close the socket.
+   */
+    rv.socket = socket;
+
+  /**
+   @variable ServerRequest.head
+   @summary First packet of upgraded stream (only set for 'upgrade' requests)
+   */
+    rv.head = head;
+   
   /**
    @variable ServerRequest.url
    @summary Full canonicalized & normalized request URL object in the format as returned by [../url::parse].
@@ -118,6 +141,7 @@ var getConnections = function(server) {
    @param {Function} [block] Function which will be passed a [::Server]. When `block` exits, the server will be shut down.
    @setting {String} [address="0"] Address to listen on, in the format `"ipaddress:port"` or `"port"`. If  `ipaddress` is not specified, the server will listen on all IP addresses. If `port` is `"0"`, an arbitrary free port will be chosen.
    @setting {String} [fd] Adopt an open file descriptor (if given, `address` is used only for information).
+   @setting {Boolean} [upgradable=false] Whether the server should handle requests with an 'Upgrade' header specially - see description.
    @setting {Integer} [max_connections=1000] Maximum number of concurrent requests.
    @setting {Integer} [capacity=100] Maximum number of unhandled requests that the server will queue up before it starts dropping requests (with a 500 status code). The server only queues requests when there is no active [::Server::eachRequest] call, or when there are already `max_connections` active concurrent connections.
    @setting {Object|observable::Observable} [ssl] If this is set, the server will be a HTTPS server. See description below for the structure of this object
@@ -126,6 +150,15 @@ var getConnections = function(server) {
       `withServer` will start a HTTP(S) server according to the given 
       configuration and pass a [::Server] instance to `block`. The server will
       be shut down, and existing sockets closed, when `block` exits.
+
+      ### upgradable flag
+      If the `upgradable` flag is set to true, the server will special-case any request that 
+      contains an 'Upgrade' header. Instead of creating a normal [::ServerRequest] with a 
+      preformed response object, a special 'upgrade server request' will be created, which contains
+      a `socket` member instead of the response object. A handler would write to this socket 
+      directly, possibly keeping it alive for longer than the duration of the request handler.
+      To indicate to the server logic that the request has been handled, the handler should set 
+      the `socket` member to null (otherwise the socket will be closed when the handler returns).
 
       ### HTTPS
 
@@ -188,6 +221,7 @@ function withServer(config, server_loop) {
 
   config = override({ 
     address: '0',
+    upgradable: false,
     max_connections: 1000,
     capacity: 100,
     ssl: undefined,
@@ -204,7 +238,7 @@ function withServer(config, server_loop) {
 
   var request_queue = Queue(config.capacity, true);
 
-  function dispatchRequest(req, res) {
+  function dispatchRequest(req, res, socket, head) {
     if (request_queue.count() == config.capacity) {
       // XXX
       config.log('Dropping request');
@@ -213,13 +247,17 @@ function withServer(config, server_loop) {
       return;
     }
     try {
-      var server_req = ServerRequest(req, res, !!config.ssl);
+      var server_req = ServerRequest(req, res, !!config.ssl, socket, head);
     }
     catch(e) {
       // shouldn't hit this
       config.log('Dropping request ('+e+')');
-      res.writeHead(500);
-      res.end();
+      if (res) {
+        res.writeHead(500);
+        res.end();
+      }
+      else
+        socket.destroy();
       return;
     }
     request_queue.put(server_req);
@@ -296,7 +334,15 @@ function withServer(config, server_loop) {
                 }
                 or {
                   handler(server_request);
-                  __js if (!server_request.response.finished) {
+                  __js if (server_request.upgrade) {
+                    // this is an 'upgrade' request
+                    if (server_request.socket) {
+                      // the request went unhandled; close socket
+                      server_request.socket.write('HTTP/1.1 500 Internal Server Error\r\n\r\nInvalid Upgrade request.\r\n');
+                      server_request.socket.destroy();
+                    }
+                  } // ... else 'normal' request:
+                  else if (!server_request.response.finished) {
                     config.log("Unfinished response");
                     if(!server_request.response._header) {
                       config.log("Response without header; sending 500");
@@ -351,6 +397,9 @@ function runServerDispatcher(config, ssl_config, dispatchRequest, host, port, se
   else
     server = require('https').createServer(ssl_config, dispatchRequest);
   
+  if (config.upgradable)
+    server.on('upgrade', (req,socket,head)->dispatchRequest(req, null, socket, head));
+
   nodeServer.set(server);
 
   // bind the socket:

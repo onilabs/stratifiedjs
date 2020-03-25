@@ -967,10 +967,19 @@
                 "body": {
                   "type": "function"
                 },
+                "head": {
+                  "type": "variable"
+                },
                 "request": {
                   "type": "variable"
                 },
                 "response": {
+                  "type": "variable"
+                },
+                "socket": {
+                  "type": "variable"
+                },
+                "upgrade": {
                   "type": "variable"
                 },
                 "url": {
