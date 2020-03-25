@@ -1,4 +1,3 @@
-var util = require('util');
 var object = require('sjs:object');
 var logging = require('sjs:logging');
 var http = require('sjs:http');
@@ -55,7 +54,7 @@ var waitUntilRunning = exports.waitUntilRunning = function(port) {
     }
   } or {
     hold(2000);
-    util.puts("waiting for conductance startup on port " + port);
+    console.log("waiting for conductance startup on port " + port);
     hold(8000);
     throw new Error("conductance didn't start after 10s");
   }
