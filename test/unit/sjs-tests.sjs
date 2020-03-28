@@ -1580,7 +1580,7 @@ testEq("detached blocklambda return with value pickup", 'vx', function() {
 testEq("detached blocklambda return to inactive scope", 'ye', function() {
   var stratum;
   function f() { 
-    stratum = spawn ({|| try { return 'x'; } finally { hold(10); } })();
+    stratum = spawn ({|| try { return 'x'; } finally { hold(20); } })();
     hold(0);
     return 'y';
   }
