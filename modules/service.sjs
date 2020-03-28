@@ -84,7 +84,7 @@
 
      - Most `"with..."` functions in the sjs/mho libs are services. E.g.: [sjs:nodejs/http::withServer],
        [sjs:sequence::withOpenStream], [sjs:sys::withEvalContext], [sjs:cutil::withBackgroundStrata],
-       [sjs:service::withBackgroundServices], [mho:websocket-client::withWebSocketClient].
+       [sjs:service::withBackgroundServices], [mho:websocket::withWebSocketClient].
 
      - A logging service that in turn uses a file writer service:
 

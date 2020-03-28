@@ -202,8 +202,8 @@ module.exports = require(modules);
   
    - **changes**: (function [sjs:observable::changes])
    - **CompoundObservable**: (function [sjs:observable::CompoundObservable])
-   - **ConstantObservable**: (function [sjs:observable::ConstantObservable])
    - **constantObservable**: (function [sjs:observable::constantObservable])
+   - **ConstantObservable**: (function [sjs:observable::ConstantObservable])
    - **current**: (function [sjs:observable::current])
    - **DelayedObservable**: (function [sjs:observable::DelayedObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
@@ -358,8 +358,8 @@ module.exports = require(modules);
   
   ### Symbols from the [sjs:sys](#sjs%3Asys) module:
   
-   - **eval**: (function [sjs:sys::eval])
    - **argv**: (function [sjs:sys::argv])
+   - **eval**: (function [sjs:sys::eval])
   
   
   ### Symbols from the [sjs:xbrowser/dom](#sjs%3Axbrowser%2Fdom) module:
