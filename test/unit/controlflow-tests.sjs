@@ -100,7 +100,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
     }
@@ -126,13 +126,13 @@ function controlflow_type(e) {
     var rv = '';
     function t1() {
       try {
-        hold(10);
+        hold(20);
         rv += '1';
         //return 'a';
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '3';
       }
     }
@@ -160,7 +160,7 @@ function controlflow_type(e) {
       }
       catch(e) {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
       retract {
@@ -199,7 +199,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
     }
@@ -235,7 +235,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -270,7 +270,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
     }
@@ -305,7 +305,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -340,7 +340,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
     }
@@ -373,7 +373,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -425,7 +425,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
     }
@@ -463,7 +463,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -501,7 +501,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
     }
@@ -536,7 +536,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -574,7 +574,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '2';
-        hold(10);
+        hold(20);
         rv += '4';
       }
     }
@@ -609,7 +609,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -647,7 +647,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -683,7 +683,7 @@ function controlflow_type(e) {
       }
       finally {
         rv += '3';
-        hold(10);
+        hold(20);
         rv += '5';
       }
     }
@@ -735,7 +735,7 @@ function controlflow_type(e) {
         }
         finally {
           rv += '3';
-          hold(10);
+          hold(20);
           rv += '5';
         }
       }
