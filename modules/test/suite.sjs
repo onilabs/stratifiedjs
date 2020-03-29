@@ -184,6 +184,14 @@ var context = exports.context = function(desc, fn) {
     Typically, the body of the test will contain at least one
     call to an [::assert] function.
 
+    The body of the test will always be executed in the part of the event
+    loop that handles timers (see https://nodejs.org/uk/docs/guides/event-loop-timers-and-nexttick/).
+    This ensures that if the body performs any `hold(0)` calls concurrently with timers (i.e. `hold(x)` calls
+    where `x>0`), those `hold(0)` calls will return before the timers, independent of timing.
+
+    (Technically this is accomplished by executing `hold(1)` before executing the test's body - i.e. effectively
+     starting the body from a timer).
+
     ### Example:
 
         test("will pass") {||
@@ -568,6 +576,10 @@ Test.prototype.run = function(defaultTimeout) {
 
   var first_error = null;
   try {
+    // make sure that each test is being run from a timer:
+    // this will ensure that we're at a point in the event loop where
+    // a `hold(0)` will always fire before any concurrently scheduled `hold(x)`, x>0:
+    hold(1);
     this._withTimeout(defaultTimeout, "Test") {||
       this.body.call(state, state);
     }
