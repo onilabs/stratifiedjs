@@ -1193,5 +1193,34 @@ function controlflow_type(e) {
     
   }
   
+  @test('throw exception') {||
+    function foo() {
+      try {
+        /* */
+      }
+      finally(e) {
+        throw new Error('foo error');
+      }
+    }
+    var rv;
+    try { foo(); } catch(e) { rv = e }
+    @assert.eq(rv.message, 'foo error');
+  }
+
+  // this edgecase used to fail due to a vm bug:
+  @test('throw plaintext') {||
+    function foo() {
+      try {
+        /* */
+      }
+      finally(e) {
+        throw 'plain_string_exception';
+      }
+    }
+    var rv;
+    try { foo(); } catch(e) { rv = e }
+    @assert.eq(rv, 'plain_string_exception');
+  }
+  
 }
 

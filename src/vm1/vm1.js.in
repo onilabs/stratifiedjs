@@ -1679,8 +1679,8 @@ EF_Try.prototype.cont = function(idx, val) {
           // first argument). 
           // We also want to be able to cope with 'real' exceptions thrown
           // if e.g. there is a logic error in the finally block, so we
-          // only resolve to val.val[0] if val.val looks like an array:
-          if (val.val && val.val.length)
+          // only resolve to val.val[0] if val.val is an array:
+          if (Array.isArray(val.val))
             val = val.val[0];
         }
       }

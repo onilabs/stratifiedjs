@@ -1447,7 +1447,7 @@ val=new CFException("t",new Error("augmented finally(){} block needs to throw a 
 
 
 
-if(val.val&&val.val.length)val=val.val[0];
+if(Array.isArray(val.val))val=val.val[0];
 
 }
 }else{
