@@ -192,7 +192,7 @@ context {||
       var child = child_process.launch('bash', ['-c', "
           echo child start;
           bash -c '#{trap_and_exit_after(0.1, 'interrupted grandchild')}; echo SPAWNED_$$; #{sleep_for_10};' &
-          #{trap_and_exit_after(0.5, 'interrupted child')};
+          #{trap_and_exit_after(0.8, 'interrupted child')};
           echo child continue after spawn;
           #{sleep_for_10};
         "], {
