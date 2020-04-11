@@ -59,7 +59,11 @@ var itf;
 
 /**
    @function runREPL
-   @summary Runs a stdin/stdout read-eval-print-loop.
+   @summary Runs a global stdin/stdout read-eval-print-loop.
+   @desc
+     Note: This function is used internally by the `sjs` and `conductance shell`
+     commandlines. To provide REPL functionality in your own application,
+     take a look at [sjs:sys::withEvalContext] instead.
 */
 exports.runREPL = function() {
   if (itf) throw new Error("REPL already running");
@@ -71,6 +75,11 @@ exports.runREPL = function() {
   };
   sys.getGlobal().require = __oni_rt.sys._makeRequire(cwdModule);
 
+  // patch up module.id to point to the current directory, so that 
+  // relative requires work as expected:
+  module.id = cwdModule.id;
+
+console.log(require.url('./foo'));
   // and our alternative identifier namespace:
   if (sys.getGlobal().__oni_altns === undefined)
     sys.getGlobal().__oni_altns = {};

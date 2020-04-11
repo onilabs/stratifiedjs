@@ -305,7 +305,7 @@
                              resolve_spec);
 
      The default loader loads the source code by calling `resolve_spec.src(path)`, and compiles it by 
-     calling `resolve.extensions[resolve_spec.type](source, descriptor)`
+     calling `require.extensions[resolve_spec.type](source, descriptor)`
 
 
   ### Deprecated `require.alias`
