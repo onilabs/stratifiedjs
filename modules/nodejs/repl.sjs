@@ -79,7 +79,6 @@ exports.runREPL = function() {
   // relative requires work as expected:
   module.id = cwdModule.id;
 
-console.log(require.url('./foo'));
   // and our alternative identifier namespace:
   if (sys.getGlobal().__oni_altns === undefined)
     sys.getGlobal().__oni_altns = {};
