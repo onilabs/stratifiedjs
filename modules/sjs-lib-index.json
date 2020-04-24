@@ -157,6 +157,9 @@
             },
             "waitfor-resume": {
               "type": "syntax"
+            },
+            "waitfor-while": {
+              "type": "syntax"
             }
           },
           "summary": "StratifiedJS language syntax"

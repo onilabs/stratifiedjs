@@ -1815,10 +1815,10 @@ ph_new.prototype.val = function() {
 #define BEGIN_SUSPEND_BLOCK(pctx) ++top_decl_scope(pctx).fscoped_ctx;
 #define END_SUSPEND_BLOCK(pctx) --top_decl_scope(pctx).fscoped_ctx;
 
-#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, ext) \
-  return gen_waitfor_andor(op, blocks, crf, pctx);
+#define GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx, ext) \
+  return gen_waitfor_andorwhile(op, blocks, crf, pctx);
 
-function gen_waitfor_andor(op, blocks, crf, pctx) {
+function gen_waitfor_andorwhile(op, blocks, crf, pctx) {
   if (crf[0] || crf[1] || crf[2])
     return new ph_try(new ph_par_alt(op, blocks), crf, pctx);
   else
@@ -1833,9 +1833,11 @@ ph_par_alt.prototype = new ph(WHENDEBUG("ph_par_alt"));
 ph_par_alt.prototype.is_nblock = false;
 ph_par_alt.prototype.val = function() {
   var rv = "__oni_rt.";
-  if (this.op == "and")
+  if (this.op === "and")
     rv += "Par(";
-  else // ASSERT(this.op == "or")
+  else if (this.op === "while")
+    rv += "WfW(";
+  else // ASSERT(this.op === "or")
     rv += "Alt(";
   for (var i=0; i<this.blocks.length; ++i) {
     var b = this.blocks[i].v();

@@ -528,7 +528,7 @@
 @param {optional Boolean} [omit_retract=false] Whether to omit executing `retract` clauses
 @summary Aborts the stratum if it is not finished yet, otherwise does nothing
 @desc
-  Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]:
+  Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]/[./syntax::waitfor-while]:
 
   * `abort` is synchronous: It will only return after the stratum has been retracted (i.e. once all `finally` and `retract` clauses on the stratum's callstack have been executed). However, any pending [::Stratum::value] calls will _immediately_ receive a [cutil::StratumAborted] exception.
   

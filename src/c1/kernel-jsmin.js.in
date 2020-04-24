@@ -475,7 +475,7 @@ function quasi(parts) {
 
 // Stratified constructs:
 
-#define GEN_WAITFOR_ANDOR(op, blocks, crf, pctx, ext)  \
+#define GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx, ext)  \
   var rv = "waitfor";                             \
   for (var i=0; i<blocks.length; ++i){            \
     if (i) rv += op;                              \

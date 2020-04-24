@@ -238,8 +238,8 @@ Stratified constructs:
 
 GEN_PREFIX_OP(id, right, pctx) takes another operator: 'spawn'
 
-GEN_WAITFOR_ANDOR(op, blocks, crf, pctx)
-  op: 'and' | 'or'
+GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx)
+  op: 'and' | 'or' | 'while'
   crf: see GEN_TRY
 BEGIN_SUSPEND_BLOCK(pctx)
 END_SUSPEND_BLOCK(pctx)
@@ -1753,13 +1753,13 @@ S("waitfor").stmt(function(pctx) {
     // DEPRECATED and/or forms
     scan(pctx, "{");
     var blocks = [parseBlock(pctx)];
-    var op = pctx.token.value; // XXX maybe use syntax token
-    if (op != "and" && op != "or") throw new Error("Missing 'and' or 'or' after 'waitfor' block");
+    var op = pctx.token.value || pctx.token.id; // XXX maybe create syntax token for 'and'|'or', so that we don't have to use pctx.token.value
+    if (op !== "and" && op !== "or" && op !== 'while') throw new Error("Missing 'and', 'or', or 'while' after 'waitfor' block");
     do {
       scan(pctx);
       scan(pctx, "{");
       blocks.push(parseBlock(pctx));
-    } while (pctx.token.value == op);
+    } while (pctx.token.value === op /* note: this is always false for op='while', which is what we want */ );
     var crf = parseCRF(pctx, false);
     
     var rv = "waitfor";                               for (var i=0; i<blocks.length; ++i){                if (i) rv += op;                                  rv += blocks[i];                                }                                                 rv += gen_crf(crf);                               return rv;

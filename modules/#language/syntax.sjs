@@ -261,7 +261,6 @@
       [ finally *finally_block* ]
 
 
-
 @syntax collapse
 @summary Abort other branches in a waitfor/or
 @desc
@@ -285,6 +284,66 @@
         console.log('b2');
       }
       // This code prints a1, b1, b2.
+
+@syntax waitfor-while
+@summary Execute two code paths with one controlled by the other
+@desc
+  Conceptually, waitfor/while performs 'asymmetric concurrency composition', where
+  the 'waitfor'-branch "controls" the lifetime of the 'waitfor'-branch.
+  waitfor/while offers the immensely useful guarantee that the 'waitfor'-branch will never 
+  be aborted before the 'while' branch. This means that finalization code in an aborted 
+  'waitfor'-branch can the rely on the fact that the 'while'-branch's finalization code has 
+  fully completed.
+
+  The code
+
+       waitfor { A; } while { B; }
+
+  is similar to:
+   
+       waitfor { A; hold(); } or { B; }
+
+  However, the big difference is that in the waitfor/while snippet, if the code is aborted
+  from the outside and `A` and `B` are still running, first `B` will be aborted
+  and then `A`. In the waitfor/or snippet, `A` and `B` would be abortion would be triggered
+  simultaneously. 
+
+  
+
+  The basic `waitfor/while` syntax is:
+
+       waitfor {
+         ... some code ...
+       }
+       while {
+         ... some other code ...
+       }
+       ... next code ...
+
+  This code executes `some code` until it finishes or suspends. It then 
+  executes `some other code` until the latter finishes or suspends.
+
+  If `some code` is not finished when `some other code` finishes, `some code`
+  will be aborted. 
+   
+  Only when both `some code` and `some other code` have finished, execution
+  will proceed with `next code`.
+
+  Aborting a waitfor/while has the effect of aborting `... some other code ...`, 
+  which in turn - once finished - aborts `... some code ...` if the latter hasn't 
+  finished yet.
+
+  If one of the branches exists prematurely (e.g. via a `return` or exception) while the other one is suspended,
+  the suspended branch will be cancelled. See the sections on "Cancellation" and "Handling retraction" on the [../#language/::] page for more details.
+
+  `waitfor/while` can only take 2 clauses, but optional catch/retract/finally clauses (like `try`). The full syntax is:
+
+      waitfor *block1* while *block2*
+      [ catch(e) *catch_block* ]
+      [ retract *retract_block* ]
+      [ finally *finally_block* ]
+
+
 
 @syntax try-catch-retract-finally
 @summary Controlflow interception
@@ -401,7 +460,7 @@
 
   ### Syntax shorthand
 
-  As a shorthand, `catch`, `retract`, and `finally` clauses can be appended directly to a [::waitfor-and], [::waitfor-or], or [::waitfor-resume], without having to wrap the statements in a `try` clause.
+  As a shorthand, `catch`, `retract`, and `finally` clauses can be appended directly to a [::waitfor-and], [::waitfor-or], [::waitfor-while], or [::waitfor-resume], without having to wrap the statements in a `try` clause.
 
   Example: Here is a function that waits for a DOM event in the webbrowser:
 
@@ -430,7 +489,7 @@
   ### Notes: 
 
   - Instead of spawning a stratum it is often a better idea to use one of
-  the *structured concurrency constructs* [::waitfor-and] and [::waitfor-or] where possible.
+  the *structured concurrency constructs* [::waitfor-and], [::waitfor-or] and [::waitfor-while] where possible.
 
   - If structured concurrency primitives cannot be used, consider using *sessioned* spawned strata
   (see [../cutil::withBackgroundStrata]) - in particular if you want to use spawned strata to process

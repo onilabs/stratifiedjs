@@ -2153,23 +2153,23 @@ EF_Par.prototype.cont = function(idx, val) {
           !(val.type === 'blb' && this.env.blscope && val.eid === this.env.blscope.sid)) {
         // an exception aborts all other pending branches: (but only
         // if it is not a blb break targetted at us - this can happen
-        // when a break is tail-called)
+        // when a break is tail-called: see "sjs-2-tests:tailcalled blocklambda break / par edge case")
         this.pendingCFE = val;
         this.quench();
         return this.returnToParent(this.abortInner());
       }
     }
     if (this.pending < 2) {
-      if (!this.pendingCFE) {
+      if (this.pendingCFE === undefined) {
         // 'normal' return path:
         
-        if (this.pending == 0)
+        if (this.pending === 0)
           return this.returnToParent(val);
         // make a tail-call if there is only one last pending child:
         var return_child;
         for (var i=0; i<this.children.length; ++i)
           if ((return_child = this.children[i])) { 
-            // We must NOT delete the the child array here
+            // We must NOT delete the child array here
             // to prevent a reentrancy case (see sjs-2-tests:par-reentrant-tailcall-edgecase)
             // this.children = undefined;
             return this.returnToParent(return_child);
@@ -2183,7 +2183,7 @@ EF_Par.prototype.cont = function(idx, val) {
         // make sure a real exception overrides a normal control flow exception
         this.pendingCFE = mergeExceptions(val, this.pendingCFE);
 
-        if (this.pending == 0)
+        if (this.pending === 0)
           return this.returnToParent(this.pendingCFE);
       }
     }
@@ -2270,10 +2270,11 @@ EF_Par.prototype.abortInner = function() {
   },
 #endif
 
-EF_Par.prototype.setChildFrame = function(ef, idx) {
+// setChildFrame function used by EF_Par, EF_Alt, EF_WfW:
+function setChildFramePar(ef, idx) {
   if (this.children[idx]) {
     if (this.children[idx].callstack) {
-      // merge callstacks of old & new childframes (stack-tests 28)
+      // merge callstacks of old & new childframes (stack-tests 28,29)
       mergeCallstacks(ef, this.children[idx]);
     }
     this.children[idx].parent = UNDEF;
@@ -2281,7 +2282,9 @@ EF_Par.prototype.setChildFrame = function(ef, idx) {
   this.children[idx] = ef;
   ef.parent = this;
   ef.parent_idx = idx;
-};
+}
+
+EF_Par.prototype.setChildFrame = setChildFramePar;
 
 function I_par(ndata, env) {
   return cont(new EF_Par(ndata, env), -1);
@@ -2366,7 +2369,8 @@ EF_Alt.prototype.cont = function(idx, val) {
           return this.abortInner();
         }
         if (this.collapsed) break; // don't start any other branches
-      }
+      } // end kick off children
+      this.ndata = UNDEF;
     }
     else {
       // returning from a suspension. 
@@ -2390,7 +2394,7 @@ EF_Alt.prototype.cont = function(idx, val) {
 
         // abort all pending branches
         if (!this.inner_aborted) {
-          if (!this.pendingRV)
+          if (this.pendingRV === undefined)
             this.pendingRV = val;
           this.quench();
           return this.returnToParent(this.abortInner());
@@ -2503,18 +2507,7 @@ EF_Alt.prototype.abortInner = function() {
   },
 #endif
 
-EF_Alt.prototype.setChildFrame = function(ef, idx) {
-  if (this.children[idx]) {
-    if (this.children[idx].callstack) {
-      // merge callstacks of old & new childframes (stack-tests 29)
-      mergeCallstacks(ef, this.children[idx]);
-    }
-    this.children[idx].parent = UNDEF;
-  }
-  this.children[idx] = ef;
-  ef.parent = this;
-  ef.parent_idx = idx;
-};
+EF_Alt.prototype.setChildFrame = setChildFramePar;
 
 EF_Alt.prototype.docollapse = function(branch, cf) {
   this.collapsed = true;
@@ -2554,6 +2547,189 @@ exports.Alt = function(...args) {
     ndata: args,
     __oni_dis: token_dis
   }
+};
+
+//----------------------------------------------------------------------
+// WfW: stratified waitfor-while construct
+/*
+   ndata[0] = controlled branch / children[0]
+   ndata[1] = controlling branch / children[1]
+
+   continuation index:
+   -1: start
+*/
+
+function EF_WfW(ndata, env) {
+  this.ndata = ndata;
+  this.env = env;
+  this.pending = 0;
+  this.children = new Array(2);
+}
+setEFProto(EF_WfW.prototype={});
+
+EF_WfW.prototype.cont = function(idx, val) {
+  //console.log("wfw cont("+idx+","+val+",pending="+this.pending+")");
+  if (is_ef(val)) {
+    // child frame being replaced
+    this.setChildFrame(val, idx);
+  }
+  else {
+    if (idx === -1) {
+      var parent_dyn_vars = exports.current_dyn_vars;
+      // kick off children
+      for (var i=0; i<2;++i) {
+        val = execIN(this.ndata[i], this.env);
+        exports.current_dyn_vars = parent_dyn_vars;
+        if (this.inner_aborted) {
+          if (is_ef(val)) {
+            // reentrant abortion through suspend/resume
+            // (sjs-3-tests:'waitfor/while:reentrant quench',
+            //  sjs-3-tests:'reentrant edge case')
+            ++this.pending;
+            this.setChildFrame(val, i);
+            this.quench();
+            return this.abortInner();
+          }
+          this.pendingCFE = mergeExceptions(val, this.pendingCFE);
+          return this.pendingCFE;
+        }
+        else if (is_ef(val)) {
+          ++this.pending;
+          this.setChildFrame(val, i);
+        }
+        else if (is_cfx(val) || i===1) {
+          // an exception in either branch or a 'normal' exit from the 
+          // second branch aborts the WfW:
+          this.pendingCFE = val;
+          this.quench();
+          return this.abortInner();
+        }
+      } // end kick off children
+      this.ndata = UNDEF;
+    }
+    else {
+      // returning from a suspension (or called reentrantly from a branch that is continued by
+      // another branch)
+      --this.pending;
+
+      if (this.children[idx]) {
+        // clear parent on child to aid gc:
+        this.children[idx].parent = UNDEF;
+        this.children[idx] = UNDEF;
+      }
+      if (is_cfx(val) && !this.inner_aborted &&
+          !(val.type === 'blb' && this.env.blscope && val.eid === this.env.blscope.sid)) {
+        // an exception aborts all other pending branches: (but only
+        // if it is not a blb break targetted at us - this can happen
+        // when a break is tail-called: "see sjs-3-tests:tailcalled blocklambda break / wfw edge case")
+        this.pendingCFE = val;
+        this.quench();
+        return this.returnToParent(this.abortInner());
+      }
+    }
+    
+    if (this.pending === 1) {
+      if (this.pendingCFE === undefined && this.children[1]) {
+        // we can make a tailcall:
+        return this.returnToParent(this.children[1]);
+      }
+      else if (this.children[0]) {
+        // we only have the controlled branch left; abort it:
+        this.quench();
+        return this.returnToParent(this.abortInner());
+      }
+    }
+    if (this.pending === 0) {
+      // XXX do we need the mergeExceptions call here?
+      return this.returnToParent(mergeExceptions(val, this.pendingCFE));
+    }
+
+    this.async = true;
+    return this;
+  }
+};
+
+EF_WfW.prototype.quench = function() {
+  // we have to quench even if inner_aborted is true - see
+  // sjs-3-tests:'waitfor/while:reentrant quench'.
+  // This means that we're probably doing some redundant quenches which could 
+  // be optimized away.
+  // if (this.inner_aborted) return; // already quenched/aborted internally
+  if (this.children[0]) this.children[0].quench();
+  if (this.children[1]) this.children[1].quench();
+};
+
+EF_WfW.prototype.abort = function(pseudo_abort) {
+  // Leftover from old abort code. Not sure what the logic was here.
+  // prevent continuation from ending up at parent, we want to feed
+  // it to the abortee directly:
+  //this.parent = UNDEF;
+  if (this.aborted) {
+    // XXX not sure this is still true
+    // we already aborted internally.
+    // can delete pendingCFE; our caller is not interested in it
+    //this.pendingCFE = UNDEF;
+    return this;
+    //return this.pendingCFE || new CFException('a');
+  }
+  else
+    this.pseudo_abort = pseudo_abort;
+  this.pendingCFE = this.pendingCFE || new CFException('a');
+  this.aborted = true;
+  return this.abortInner();
+};
+
+EF_WfW.prototype.abortInner = function() {
+  // this function is both called for outside aborts (through
+  // 'this.abort') as well as "internal" aborts (which occur when a 
+  // branch excepts or when the 2nd branch returns)
+  this.inner_aborted = true;
+  // we always want to abort the second branch before the first
+  if (this.children[1]) {
+    var val = this.children[1].abort(this.pseudo_abort);
+    if (is_ef(val)) { // need to wait
+      this.setChildFrame(val, 1);
+      this.async = true;
+      return this;
+    }
+    else {
+      this.pendingCFE = mergeExceptions(val, this.pendingCFE);
+      // aid gc, but note that this will mask any superfluous (and incorrect)
+      // cont-calls from the child:
+      // this.children[1].parent = UNDEF;
+      --this.pending;
+      this.children[1] = UNDEF;
+    } 
+  }
+  if (this.children[0]) {
+    var val = this.children[0].abort(this.pseudo_abort);
+    if (is_ef(val)) { // need to wait
+      this.setChildFrame(val, 0);
+      this.async = true;
+      return this;
+    }
+    else {
+      this.pendingCFE = mergeExceptions(val, this.pendingCFE);
+      // aid gc, but note that this will mask any superfluous (and incorrect)
+      // cont-calls from the child:
+      // this.children[1].parent = UNDEF;
+      --this.pending;
+      this.children[0] = UNDEF;
+    }
+  }
+  // assert this.pending === 0
+  return this.pendingCFE;
+};
+
+EF_WfW.prototype.setChildFrame = setChildFramePar;
+
+function I_wfw(ndata, env) {
+  return cont(new EF_WfW(ndata, env), -1);
+}
+exports.WfW = function(...args) {
+  return { exec: I_wfw,
+           ndata: args,
+           __oni_dis: token_dis };
 };
 
 //----------------------------------------------------------------------

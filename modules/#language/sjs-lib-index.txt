@@ -33,7 +33,7 @@
   ## Concurrency primitives:
 
   StratifiedJS contains constructs for casting asynchronous logic into
-  blocking form (`waitfor()`) and constructs for combining multiple strata (`waitfor/and`, `waitfor/or`, `spawn`) in a structured way.
+  blocking form (`waitfor()`) and constructs for combining multiple strata (`waitfor/and`, `waitfor/or`, `waitfor/while`, `spawn`) in a structured way.
 
 
   ### Pausing execution - [::builtins::hold]
@@ -86,10 +86,15 @@
       }
       ... next code ...
 
-
   ### Collapsing alternatives - [::syntax::collapse]
 
   The `collapse` keyword can be used to prematurely collapse the strata in a `waitfor/or` construct.
+
+
+  ### Asymmetric composition - [::syntax::waitfor-while]
+
+  In asymmetric composition, the lifetime of one stratum is controlled by the lifetime of another, but
+  not the other way around.
 
 
   ### Cancellation

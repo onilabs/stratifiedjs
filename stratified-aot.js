@@ -1953,10 +1953,10 @@ return this.returnToParent(this.abortInner());
 }
 }
 if(this.pending<2){
-if(!this.pendingCFE){
+if(this.pendingCFE===undefined){
 
 
-if(this.pending==0)return this.returnToParent(val);
+if(this.pending===0)return this.returnToParent(val);
 
 
 var return_child;
@@ -1976,7 +1976,7 @@ return this.returnToParent(new CFException("i","invalid state in Par"));
 
 this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 
-if(this.pending==0)return this.returnToParent(this.pendingCFE);
+if(this.pending===0)return this.returnToParent(this.pendingCFE);
 
 }
 }
@@ -2045,7 +2045,8 @@ return this;
 };
 
 
-EF_Par.prototype.setChildFrame=function(ef,idx){if(this.children[idx]){
+
+function setChildFramePar(ef,idx){if(this.children[idx]){
 
 if(this.children[idx].callstack){
 
@@ -2056,7 +2057,9 @@ this.children[idx].parent=UNDEF;
 this.children[idx]=ef;
 ef.parent=this;
 ef.parent_idx=idx;
-};
+}
+
+EF_Par.prototype.setChildFrame=setChildFramePar;
 
 function I_par(ndata,env){return cont(new EF_Par(ndata,env),-1);
 
@@ -2133,6 +2136,7 @@ return this.abortInner();
 }
 if(this.collapsed)break;
 }
+this.ndata=UNDEF;
 }else{
 
 
@@ -2156,7 +2160,7 @@ return;
 
 
 if(!this.inner_aborted){
-if(!this.pendingRV)this.pendingRV=val;
+if(this.pendingRV===undefined)this.pendingRV=val;
 
 this.quench();
 return this.returnToParent(this.abortInner());
@@ -2251,18 +2255,7 @@ return this;
 };
 
 
-EF_Alt.prototype.setChildFrame=function(ef,idx){if(this.children[idx]){
-
-if(this.children[idx].callstack){
-
-mergeCallstacks(ef,this.children[idx]);
-}
-this.children[idx].parent=UNDEF;
-}
-this.children[idx]=ef;
-ef.parent=this;
-ef.parent_idx=idx;
-};
+EF_Alt.prototype.setChildFrame=setChildFramePar;
 
 EF_Alt.prototype.docollapse=function(branch,cf){this.collapsed=true;
 
@@ -2299,6 +2292,189 @@ function I_alt(ndata,env){return cont(new EF_Alt(ndata,env),-1);
 exports.Alt=function(...args){return {exec:I_alt,ndata:args,__oni_dis:token_dis};
 
 
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+function EF_WfW(ndata,env){this.ndata=ndata;
+
+this.env=env;
+this.pending=0;
+this.children=new Array(2);
+}
+setEFProto(EF_WfW.prototype={});
+
+EF_WfW.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+
+
+
+this.setChildFrame(val,idx);
+}else{
+
+if(idx===-1){
+var parent_dyn_vars=exports.current_dyn_vars;
+
+for(var i=0;i<2;++i){
+val=execIN(this.ndata[i],this.env);
+exports.current_dyn_vars=parent_dyn_vars;
+if(this.inner_aborted){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+
+
+
+++this.pending;
+this.setChildFrame(val,i);
+this.quench();
+return this.abortInner();
+}
+this.pendingCFE=mergeExceptions(val,this.pendingCFE);
+return this.pendingCFE;
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+
+++this.pending;
+this.setChildFrame(val,i);
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||i===1){
+
+
+
+this.pendingCFE=val;
+this.quench();
+return this.abortInner();
+}
+}
+this.ndata=UNDEF;
+}else{
+
+
+
+--this.pending;
+
+if(this.children[idx]){
+
+this.children[idx].parent=UNDEF;
+this.children[idx]=UNDEF;
+}
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb'&&this.env.blscope&&val.eid===this.env.blscope.sid)){
+
+
+
+
+this.pendingCFE=val;
+this.quench();
+return this.returnToParent(this.abortInner());
+}
+}
+
+if(this.pending===1){
+if(this.pendingCFE===undefined&&this.children[1]){
+
+return this.returnToParent(this.children[1]);
+}else if(this.children[0]){
+
+
+this.quench();
+return this.returnToParent(this.abortInner());
+}
+}
+if(this.pending===0){
+
+return this.returnToParent(mergeExceptions(val,this.pendingCFE));
+}
+
+this.async=true;
+return this;
+}
+};
+
+EF_WfW.prototype.quench=function(){if(this.children[0])this.children[0].quench();
+
+
+
+
+
+
+if(this.children[1])this.children[1].quench();
+};
+
+EF_WfW.prototype.abort=function(pseudo_abort){if(this.aborted){
+
+
+
+
+
+
+
+
+
+return this;
+
+}else this.pseudo_abort=pseudo_abort;
+
+
+this.pendingCFE=this.pendingCFE||new CFException('a');
+this.aborted=true;
+return this.abortInner();
+};
+
+EF_WfW.prototype.abortInner=function(){this.inner_aborted=true;
+
+
+
+
+
+if(this.children[1]){
+var val=this.children[1].abort(this.pseudo_abort);
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+this.setChildFrame(val,1);
+this.async=true;
+return this;
+}else{
+
+this.pendingCFE=mergeExceptions(val,this.pendingCFE);
+
+
+
+--this.pending;
+this.children[1]=UNDEF;
+}
+}
+if(this.children[0]){
+var val=this.children[0].abort(this.pseudo_abort);
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+this.setChildFrame(val,0);
+this.async=true;
+return this;
+}else{
+
+this.pendingCFE=mergeExceptions(val,this.pendingCFE);
+
+
+
+--this.pending;
+this.children[0]=UNDEF;
+}
+}
+
+return this.pendingCFE;
+};
+
+EF_WfW.prototype.setChildFrame=setChildFramePar;
+
+function I_wfw(ndata,env){return cont(new EF_WfW(ndata,env),-1);
+
+}
+exports.WfW=function(...args){return {exec:I_wfw,ndata:args,__oni_dis:token_dis};
 
 
 

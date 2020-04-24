@@ -158,3 +158,356 @@
     @assert.eq(rv, '1234');
   }
 }
+
+@context("waitfor/while") {||
+  
+  @test('all sync') {||
+    var rv = '';
+    waitfor { 
+      rv += '1';
+    }
+    while {
+      rv += '2';
+    }
+    @assert.eq(rv, '12');
+  }
+
+  @test('all sync / try/finally') {||
+    var rv = '';
+    waitfor { 
+      try {
+        rv += '1';
+      }
+      retract {
+        rv += 'x';
+      }
+      finally {
+        rv += '2';
+      }
+    }
+    while {
+      rv += '3';
+    }
+    @assert.eq(rv, '123');
+  }
+
+  @test('async1') {||
+    var rv = '';
+    waitfor { 
+      hold(0);
+      rv += 'x'; // not reached
+    }
+    while {
+      rv += '1';
+    }
+    @assert.eq(rv, '1');
+  }
+
+  @test('async2') {||
+    var rv = '';
+    waitfor { 
+      hold(0);
+      rv += '2';
+    }
+    while {
+      rv += '1';
+      hold(0);
+      rv += '3';
+    }
+    @assert.eq(rv, '123');
+  }
+
+  @test('async3') {||
+    var rv = '';
+    waitfor {
+      rv += '1';
+    }
+    while {
+      rv += '2';
+      hold(0);
+      rv += '3';
+    }
+    @assert.eq(rv, '123');
+  }
+
+  @test('async4') {||
+    @product([0,1],[0,1],[0,1]) .. @each { 
+      |[p1,p2,p3]|
+      var rv = '';
+      waitfor { 
+        try {
+          hold();
+          rv += 'x'; // not reached
+        }
+        retract {
+          if (p1) hold(0);
+          rv += '2';
+        }
+        finally {
+          if (p2) hold(0);
+          rv += '3';
+        }
+      }
+      while {
+        rv += '1';
+        try {
+          if (p3) hold(0);
+          rv += 'a';
+        }
+        retract {
+          rv += 'x';
+        }
+        finally {
+          rv += 'b';
+        }
+      }
+      @assert.eq(rv, '1ab23');
+    }
+  }
+
+  @test('return 1') {||
+    @product([0,1]) .. @each {
+      |[p1]|
+      var rv = '';
+      function foo() {
+        waitfor {
+          rv += 'a';
+          hold(0);
+          return 'd';
+        }
+        while {
+          rv += 'b';
+          try {
+            hold();
+          }
+          retract {
+            if (p1) hold(0);
+            rv += 'c';
+          }
+        }
+      }
+      rv += foo();
+      @assert.eq(rv, 'abcd');
+    }
+  }
+
+  @test('return 2') {||
+    @product([0,1]) .. @each {
+      |[p1]|
+      var rv = '';
+      function foo() {
+        waitfor {
+          rv += 'a';
+          try {
+            hold();
+          }
+          retract {
+            if (p1) hold(0);
+            rv += 'c';
+          }
+        }
+        while {
+          rv += 'b';
+          hold(0);
+          return 'd';
+        }
+      }
+      rv += foo();
+      @assert.eq(rv, 'abcd');
+    }
+  }
+
+  @test('throw 1') {||
+    @product([0,1]) .. @each {
+      |[p1]|
+      var rv = '';
+      function foo() {
+        waitfor {
+          rv += 'a';
+          hold(0);
+          throw 'd';
+        }
+        while {
+          rv += 'b';
+          try {
+            hold();
+          }
+          retract {
+            if (p1) hold(0);
+            rv += 'c';
+          }
+        }
+      }
+      try { foo(); } catch(e) { rv += e; }
+      @assert.eq(rv, 'abcd');
+    }
+  }
+
+  @test('throw 2') {||
+    @product([0,1]) .. @each {
+      |[p1]|
+      var rv = '';
+      function foo() {
+        waitfor {
+          rv += 'a';
+          try {
+            hold();
+          }
+          retract {
+            if (p1) hold(0);
+            rv += 'c';
+          }
+        }
+        while {
+          rv += 'b';
+          hold(0);
+          throw 'd';
+        }
+      }
+      try { foo(); } catch(e) { rv += e; }
+      @assert.eq(rv, 'abcd');
+    }
+  }
+
+  @test('tailcalled blocklambda break / wfw edge case') {||
+    var rv = '';
+    function foo() {
+      waitfor {
+        // this `break` should only abort the blocklambda, not the waitfor/while
+        ({|| hold(0); break; rv += 'x'; })();
+        rv += 'b';
+      }
+      while {
+        rv += 'a';
+        hold(100);
+        rv += 'c';
+      }
+    }
+    foo();
+    @assert.eq(rv, 'abc');
+  }
+  @test('tailcalled blocklambda break / wfw edge case 2') {||
+    var rv = '';
+    function foo() {
+      waitfor {
+        try {
+          hold();
+        }
+        finally {
+          rv += 'b';
+        }
+      }
+      while {
+        // this `break` should only abort the blocklambda, not the waitfor/while
+        ({|| hold(0); break; rv += 'x'; })();
+        rv += 'a';
+      }
+    }
+    foo();
+    @assert.eq(rv, 'ab');
+  }
+
+  @test('abort sequencing') {||
+
+    @product([0,1],[0,1],[0,1],[0,1],[0,1]) .. @each {
+      |[p1,p2,p3,p4, p5]|
+      //console.log("#{p1} - #{p2} - #{p3} - #{p4} - #{p5}");
+      var rv = '';
+      function foo() {
+        waitfor {
+          try {
+            rv += 'a';
+            hold();
+            rv += 'x1';
+          }
+          retract {
+            if (p1) hold(0);
+            rv += 'e';
+          }
+          finally {
+            if (p2) hold(0);
+            rv += 'f';
+          }
+        }
+        while {
+          try {
+            rv += 'b';
+            hold();
+            rv += 'x2';
+          }
+          retract {
+            if (p3) hold(0);
+            rv += 'c';
+          }
+          finally {
+            if (p4) hold(0);
+            rv += 'd';
+          }
+        }
+        rv += 'x3';
+      }
+
+      waitfor {
+        foo();
+      }
+      or {
+        if (p5) hold(0);
+      }
+      @assert.eq(rv, 'abcdef');
+    }
+  }
+   
+  @test("reentrant quench") {||
+    var rv = '';
+    function inner() {
+      var restart;
+      waitfor {
+        rv += '1';
+        waitfor() { restart = resume; }
+        rv += '3';
+        return;
+      }
+      while {
+        rv += '2';
+        restart();
+        hold(0);
+        rv += 'not reached';
+        return;
+      }
+    }
+    inner();
+    rv += '4';
+    hold(100);
+    @assert.eq(rv, '1234');
+  }
+
+  @test("reentrant edge case") { ||
+    var rv='';
+    function foo() {
+      waitfor {
+        waitfor() { 
+          var r = resume;
+        }
+        rv += 'a';
+        return 'x';
+      }
+      while {
+        r();
+        try {
+          hold(0);
+        }
+        finally {
+          rv += 'b';
+        }
+        return 'x';
+      }
+      finally {
+        return 'c';
+      }
+    }
+    rv += foo();
+    @assert.eq(rv, 'abc');
+  }
+
+  
+}
