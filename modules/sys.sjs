@@ -84,14 +84,14 @@ module.exports = {
   @altsyntax withEvalContext({name:'my sourcecode'}) { |eval| ... }
   @summary Dynamically evaluate SJS code in an empty context
   @param {optional Settings} [settings]
-  @param {Function} [block]
+  @param {Function} [session_f]
   @setting {optional String} [id] Id of the context - see description below
   @setting {optional Object} [imports] Optional hash of objects that should be imported into the context.
   @desc
-    Creates an empty evaluation context in global object scope and calls `block` with a single argument: A function `eval(src, [filename])` that compiles and executes the SJS code `src` and returns the result of evaluation.
+    Creates an empty evaluation context in global object scope and calls `session_f` with a single argument: A function `eval(src, [filename])` that compiles and executes the SJS code `src` and returns the result of evaluation.
     Note that stacktraces will mention the context's `id`. This can be overriden for the source code passed to a particular `eval` call by passing the optional `filename` argument to `eval`.
 
-    Any variable & function declarations in `src` will be bound in the evaluation context and are only available in code executed in (possibly multiple) invocations of the `eval` function. In particular, they are neither seen in the global scope nor in the scope of `block`.
+    Any variable & function declarations in `src` will be bound in the evaluation context and are only available in code executed in (possibly multiple) invocations of the `eval` function. In particular, they are neither seen in the global scope nor in the scope of `session_f`.
 
     ### Context Id
 

@@ -759,8 +759,8 @@ exports.consumeMultiple = consumeMultiple;
    @function withOpenStream
    @altsyntax sequence .. withOpenStream { |open_stream| ... }
    @param {::Sequence} [sequence] Input sequence
-   @param {Function} [block] Scope block
-   @summary Keep a stream open for the duration of a scoping block
+   @param {Function} [session_f] Session Function
+   @summary A [./service::Service] for keeping a stream open for the duration of a session
    @desc
      Calls function `block` with one parameter `open_stream`, a [::Stream] 
      iterating the input `sequence`. The input sequence will be kept open for

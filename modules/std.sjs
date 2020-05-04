@@ -309,7 +309,9 @@ module.exports = require(modules);
   ### Symbols from the [sjs:service](#sjs%3Aservice) module:
   
    - **isServiceUnavailableError**: (function [sjs:service::isServiceUnavailableError])
+   - **runGlobalBackgroundService**: (function [sjs:service::runGlobalBackgroundService])
    - **withBackgroundServices**: (function [sjs:service::withBackgroundServices])
+   - **withControlledService**: (function [sjs:service::withControlledService])
   
   
   ### Symbols from the [sjs:set](#sjs%3Aset) module:

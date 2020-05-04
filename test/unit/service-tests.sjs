@@ -19,18 +19,20 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     
     
 
-@context('withBackgroundServices') {||
-
-  @test('single attached') {||
+@context('withBackgroundServices/withControlledService') {||
+  // XXX these tests mostly combine withBackgroundServices & withControlledService, because
+  // the functionality of these two functions used to be combined in just one function
+  // (withBackgroundServices)
+  @test('single runService') {||
     var rv = [];
     @withBackgroundServices() {
-      |service_scope|
-      rv.push('service_scope start');
-      var service = service_scope.attach(simple_service, {rv:rv,id: 1});
+      |background_session|
+      rv.push('background_session start');
+      var [service] = background_session.runService(@withControlledService, simple_service, {rv:rv,id: 1});
       @assert.eq(service.Status .. @current, 'stopped');
     }
-    rv.push('service_scope done');
-    @assert.eq(rv, ['service_scope start', 'service_scope done']);
+    rv.push('background_session done');
+    @assert.eq(rv, ['background_session start', 'background_session done']);
   }
 
   @product([true,false],[true,false],[true,false],[true,false]) .. @each {
@@ -38,16 +40,16 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     @test("single started #{b1},#{b2},#{b3}") {||
       var rv = [], service;
       @withBackgroundServices {
-        |service_scope|
-        rv.push('service_scope start');
-        service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3});
+        |background_session|
+        rv.push('background_session start');
+        [service] = background_session.runService(@withControlledService, simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3});
         @assert.eq(service.Status .. @current, 'stopped');
         service.start(b4);
         @assert.eq(service.Status .. @current, (b1&&!b4) ? 'initializing' : 'running');
       }
       @assert.eq(service.Status .. @current, 'terminated');
-      rv.push('service_scope done');
-      @assert.eq(rv, ['service_scope start', '1:init', '1:retract', '1:finally', 'service_scope done']);
+      rv.push('background_session done');
+      @assert.eq(rv, ['background_session start', '1:init', '1:retract', '1:finally', 'background_session done']);
     } // @test
   } // @product
 
@@ -56,9 +58,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     @test("single used #{b1},#{b2},#{b3},#{b4}") {||
       var rv = [], service;
       @withBackgroundServices {
-        |service_scope|
-        rv.push('service_scope start');
-        service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
+        |background_session|
+        rv.push('background_session start');
+        [service] = background_session.runService(@withControlledService, simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
         @assert.eq(service.Status .. @current, 'stopped');
         service.use {
           |hello|
@@ -71,8 +73,8 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         }
       }
       @assert.eq(service.Status .. @current, 'terminated');
-      rv.push('service_scope done');
-      @assert.eq(rv, ['service_scope start', '1:init', '1:hello', '1:hello', '1:retract', '1:finally', 'service_scope done']);
+      rv.push('background_session done');
+      @assert.eq(rv, ['background_session start', '1:init', '1:hello', '1:hello', '1:retract', '1:finally', 'background_session done']);
     } // @test
   } // @product
 
@@ -81,9 +83,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     @test("single used/stopped/used #{b1},#{b2},#{b3},#{b4},#{b5}") {||
       var rv = [], service;
       @withBackgroundServices {
-        |service_scope|
-        rv.push('service_scope start');
-        service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
+        |background_session|
+        rv.push('background_session start');
+        [service] = background_session.runService(@withControlledService, simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
         @assert.eq(service.Status .. @current, 'stopped');
         service.use {
           |hello|
@@ -99,11 +101,11 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         }
       }
       @assert.eq(service.Status .. @current, 'terminated');
-      rv.push('service_scope done');
-      @assert.eq(rv, ['service_scope start', 
+      rv.push('background_session done');
+      @assert.eq(rv, ['background_session start', 
                       '1:init', '1:hello', '1:finally', 
                       '1:init', '1:hello', '1:retract', '1:finally', 
-                      'service_scope done']);
+                      'background_session done']);
     } // @test
   } // @product
 
@@ -112,9 +114,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     @test("single started/stopped #{b1},#{b2},#{b3},#{b4}") {||
       var rv = [], service;
       @withBackgroundServices {
-        |service_scope|
-        rv.push('service_scope start');
-        service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
+        |background_session|
+        rv.push('background_session start');
+        [service] = background_session.runService(@withControlledService, simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3, block_api:b4});
         @assert.eq(service.Status .. @current, 'stopped');
         service.start();
         @assert.eq(service.Status .. @current, b1 ? 'initializing' : 'running');
@@ -123,10 +125,10 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         hold(0);
       }
       @assert.eq(service.Status .. @current, 'terminated');
-      rv.push('service_scope done');
-      @assert.eq(rv, ['service_scope start', 
+      rv.push('background_session done');
+      @assert.eq(rv, ['background_session start', 
                       '1:init', '1:finally', 
-                      'service_scope done']);
+                      'background_session done']);
     } // @test
   } // @product
 
@@ -135,19 +137,19 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     @test("used out of scope #{b1},#{b2},#{b3}") {||
       var rv = [], service;
       @withBackgroundServices {
-        |service_scope|
-        rv.push('service_scope start');
-        service = service_scope.attach(simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3});
+        |background_session|
+        rv.push('background_session start');
+        [service] = background_session.runService(@withControlledService, simple_service, {rv:rv, id: 1, block_init:b1,block_retract:b2,block_finally:b3});
       }
-      rv.push('service_scope done');
+      rv.push('background_session done');
       try {
         service.use {|hello| rv.push(hello()); }
       }
       catch(e) {
         @assert.truthy(e .. @isServiceUnavailableError);
       }
-      @assert.eq(rv, ['service_scope start', 
-                      'service_scope done']);
+      @assert.eq(rv, ['background_session start', 
+                      'background_session done']);
     } // @test
   } // @product
   
@@ -155,8 +157,8 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     var rv = [], service;
 
     @withBackgroundServices {
-      |service_scope|
-      service = service_scope.attach(function(blk) {
+      |background_session|
+      [service] = background_session.runService(@withControlledService, function(blk) {
         var exit;
         waitfor {
           waitfor() { exit = resume; }
@@ -182,8 +184,8 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     
     waitfor {
       @withBackgroundServices {
-        |service_scope|
-        service = service_scope.attach(function(blk) {
+        |background_session|
+        [service] = background_session.runService(@withControlledService, function(blk) {
           var exit;
           waitfor {
             waitfor() { exit = resume; }
@@ -214,12 +216,13 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
 
   @test("throw in service - sync") {||
     var rv = [], service;
-    
+    // XXX this test is structured in an odd way because of the way withBackgroundServices used
+    // to work. it could be restructured without the waitfor/or now
     waitfor {
       try {
         @withBackgroundServices {
-          |service_scope|
-          service = service_scope.attach(function(blk) {
+          |background_session|
+          [service] = background_session.runService(@withControlledService, function(blk) {
             var exit;
             waitfor {
               waitfor() { exit = resume; }
@@ -240,16 +243,34 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         rv.push(e);
       }
     }
-    and {
+    or {
       try {
         service.use {|exit| exit(); try { hold(); } retract { rv.push('use retract'); hold(0);}}
       }
       catch (e) {
         @assert.truthy(@isServiceUnavailableError(e));
         @assert.truthy(e.message .. @contains("(Service threw xxx"));
+        @assert.truthy(service.Status .. @current, 'terminated');
         rv.push('catch');
       }
     }
-    @assert.eq(rv, ['throw', 'service finally', 'xxx', 'use retract', 'catch']);
+    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch']);
   }
+
+  @test("early termination") { ||
+    [true,false] .. @each {
+      |p1|
+      var rv = [];
+      @withBackgroundServices { 
+        |session|
+        rv.push('session start');
+        var [service,term] = session.runService(simple_service, {rv:rv, id:1, block_finally:p1});
+        rv.push('terminating');
+        term();
+        rv.push('session end');
+      }
+      @assert.eq(rv, ['session start', '1:init', 'terminating', '1:finally', 'session end']);
+    }
+  }
+
 }

@@ -51,11 +51,10 @@
    @summary Function-as-service abstraction
    @desc
      A Service is a function of signature `function S([optional_params...], session_func)`,
-     where `session_func` is a functional argument that takes one or more optional 
-     arguments (these arguments being the service's "interface").
+     where `session_func` is a functional argument that takes one optional 
+     arguments (this argument being the service's "interface").
 
-     When invoking `S([...],session_func)`, `S` calls `session_func` to establish a "service session", 
-     optionally (but typically) passing a service session interface to `session_func`.
+     When invoking `S([...],session_func)`, `S` calls `session_func` to establish a "service session". `session_func` is called with a single (possibly void) argument, the "service session interface".
 
      The service session lasts until `session_func` exits (at which point `S` is expected to exit).
      `session_func` will typically be a [./#language/syntax::blocklambda].
@@ -66,7 +65,7 @@
      Formally, a service `S` is expected to adhere to the following semantics:
 
      - Upon invocation, `S` makes exactly one call to `session_func` (after optionally blocking for initialization).
-     - `S` optionally passes one or more arguments to `session_func` (S's 'interface').
+     - `S` optionally passes one argument to `session_func` (S's 'interface').
      - The lifetime of `S` is bound by `session_func`, i.e. `S` executes for as long as `session_func` executes (barring exceptional exit). 
        When `session_func` exits, `S` will exit (after optionally blocking for cleanup in `finally` clauses).
      - `S` must pass through any exceptions raised by `session_func`.
@@ -84,7 +83,7 @@
 
      - Most `"with..."` functions in the sjs/mho libs are services. E.g.: [sjs:nodejs/http::withServer],
        [sjs:sequence::withOpenStream], [sjs:sys::withEvalContext], [sjs:cutil::withBackgroundStrata],
-       [sjs:service::withBackgroundServices], [mho:websocket::withWebSocketClient].
+       [sjs:service::withBackgroundServices], [sjs:service::withControlledService], [mho:websocket::withWebSocketClient].
 
      - A logging service that in turn uses a file writer service:
 
@@ -188,9 +187,236 @@
      
 */
 
+
 //----------------------------------------------------------------------
-// helpers:
-function runServiceHandlerStateMachine({service,args,State,Cmd}) {
+
+/**
+   @function withBackgroundServices
+   @altsyntax withBackgroundServices { |itf| ... }
+   @summary Creates a session for running [::Service]s in the background
+   @param {Function} [session_func] Function which will be executed with a [::IBackgroundServicesSession]
+   @desc
+     `withBackgroundServices` is used to dynamically inject services into an existing session.
+
+     Recall that when calling a [::Service] `S(..., session_func)`, `S` itself will call
+     `session_func` to establish the session from which the service's interface is accessed. 
+
+     Sometimes this arrangement is inconvenient, and we want to dyamically inject services into
+     an __existing__ session. 
+
+     `withBackgroundServices` is used to establish such a session, and 
+     [::IBackgroundServicesSession::runService] is used to inject a service into it. Injected 
+     services will have their lifetime bound by the background services session (and they can also
+     be terminated 'early' through the interface returned by runService).
+
+     As an example, a server might want to open/interact with/close a file in response to 
+     asynchronous user input. Because open/close calls are not necessarily balanced, this 
+     code would be different to write without withBackgroundServices:
+
+         @withBackgroundServices { 
+           |bs|
+
+           var files = {};
+
+           while (1) {
+             var [cmd,arg] = getNextCommand();
+             if (cmd === 'open') {
+               files[arg] = bs.runService(withFile, arg);
+             }
+             else if (cmd === 'close') {
+               files[arg][1]();
+             }
+             else if (cmd === 'show') {
+               display(files[arg][0].readAll());
+             }
+           }
+         }
+*/
+/**   
+   @class IBackgroundServicesSession
+   @summary Interface exposed by [::withBackgroundServices]
+
+   @function IBackgroundServicesSession.runService
+   @summary Inject a service into the session
+   @param {::Service} [service] Service to inject
+   @param {optional Objects} [...args] Arguments to provide to service
+   @return {Array} Pair `[itf, terminate]` containing the service's interface `itf` and a function `terminate` for terminating the service early
+   @desc
+     `ibackgroundservicesession.runService` starts `service` with the given arguments and returns a pair `[itf, terminate]`.
+     `itf` is the service's session interface, and `terminate` is a function that can be used
+     to terminate the service's session.
+     `service` will have the lifetime of its session bound to the enclosing 'background 
+     services session' - if the former hasn't been terminated by the time the latter exits, 
+     it will be terminated then.     
+*/
+function withBackgroundServices(session_f) {
+  @withBackgroundStrata {
+    |background_strata|
+    session_f({
+      runService: function(service, ...args) {
+        var have_caller = true;
+        var terminated;
+        var Done = @Condition();
+        waitfor(var session_itf, is_err) {
+          var cont = resume;
+          background_strata.run {
+            ||
+            args.push({|itf| waitfor() { cont([itf,resume], false); }});
+            try {
+              service.apply(null, args);
+            }
+            catch (e) {
+              if (have_caller) cont(e, true);
+              else throw new Error("Background service threw: "+e);
+            }
+            finally {
+              Done.set();
+            }
+          }
+        }
+        finally {
+          have_caller = false;
+        }
+        if (is_err) throw session_itf;
+        return [session_itf[0], 
+                // slightly convoluted logic to ensure that 'terminate' only
+                // returns when service has fully ended (including any blocking cleanup)
+                function /*terminate*/() { 
+                  session_itf[1]();
+                  Done.wait();
+                }];
+      }
+    });
+  }
+}
+exports.withBackgroundServices = withBackgroundServices;
+
+//----------------------------------------------------------------------
+
+var GLOBAL_BACKGROUND_SERVICES;
+waitfor () {
+  spawn withBackgroundServices { 
+    |background_services|
+    GLOBAL_BACKGROUND_SERVICES = background_services;
+    try {
+      resume();
+      hold();
+    }
+    catch (e) {
+      throw new Error("Uncaught error in global background services: "+e);
+    }
+  }
+}
+
+/**
+   @function runGlobalBackgroundService
+   @summary Run a service with unbounded lifetime
+   @param {::Service} [service] Service to run
+   @param {optional Objects} [...args] Arguments to provide to service
+   @return {Array} Pair `[itf, terminate]` containing the service's interface `itf` and a function `terminate` for terminating the service early
+   @desc
+     `runGlobalBackgroundService` runs a service with unbounded lifetime (i.e. the service will
+     run as long as the current process, unless it is terminated explicitly). In effect, 
+     `runGlobalBackgroundService` is identical to calling [::IBackgroundServicesSession::runService] 
+     on a background services session that encompasses the complete process lifetime.
+
+     Note that services will not be shut down cleanly on process exit (i.e. `finally` clauses are not guaranteed to be executed). 
+     With some hostenvs (like xbrowser), this is technically not feasible, and on others it is currently not implemented.
+
+*/
+exports.runGlobalBackgroundService = GLOBAL_BACKGROUND_SERVICES.runService;
+
+//----------------------------------------------------------------------
+
+/**
+   @class ServiceUnavailableError
+   @inherit Error
+   @summary Error raised by [::IControlledService::start] if the controlled service has terminated and by [::IControlledService::use] if the controlled service is or becomes unavailable.
+
+   @function isServiceUnavailableError
+   @param {Object} [e] Object to test
+   @summary Returns `true` if `e` is a [::ServiceUnavailableError]
+*/
+
+__js function ServiceUnavailableError(e) { 
+  var mes = "Service unavailable";
+  if (e) 
+    mes += '\n' + @indent("(Service threw "+e+")",4);
+  var err = new Error(mes);
+  err.__oni_service_unavailable = true;
+  return err;
+}
+
+__js {
+  function isServiceUnavailableError(e) {
+    return e && e.__oni_service_unavailable === true;
+  }
+  exports.isServiceUnavailableError = isServiceUnavailableError;
+} // __js
+
+
+
+/**
+   @function withControlledService
+   @summary Executes a session with an [::IControlledService] interface controlling a given service.
+   @param {::Service} [controlled_service] The controlled service
+   @param {optional Objects} [...args] Arguments to provide to controlled service
+   @param {Function} [session_f] Session function which will be passed an [::IControlledService] interface
+   @desc
+     The controlled service starts out in state 'stopped'.
+*/
+/**
+   @class IControlledService
+   @summary Interface exposed by [::withControlledService]
+   
+   @function IControlledService.start
+   @param {optional Boolean} [sync=false] If `false`, `start` will return as soon as service is initializing, otherwise `start` will wait until service is running.
+   @summary Start the controlled service if it isn't running yet
+   @desc
+     - If the service is in state 'stopping', `start` waits until the next state is reached.
+     - Throws a [::ServiceUnavailableError] if the service is in state 'terminated'.
+     - Starts the given service if it is in state 'stopped'.
+     - For `sync`=`false` (the default), returns when the service is in state 'initializing' or 'running'.
+     - For `sync`=`true`, returns when the service is in state 'running'. If the service cannot start
+       (i.e. it moves from 'initializing' to 'stopped' or 'terminated'), [::ServiceUnavailableError] is thrown.
+
+   @function IControlledService.stop
+   @param {optional Boolean} [sync=false] If `false`, `stop` will return as soon as service is stopping, otherwise `stop` will wait until service is fully stopped.
+   @summary Stops the controlled service if it is currently running
+   @desc
+     - If the service is in state 'initializing', `stop` waits until the next state is reached.
+     - Stops the given service if it is in state 'running'.
+     - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
+     - For `sync`=`true`, returns when the service is in state 'stopped' or 'terminated'.
+     
+     Note that stopping a service does not *abort* the service - it just causes the block passed to the
+     service to exit. In practice this means that - in contrast to a service being torn down by the session 
+     exiting - 'retract' clauses in the service will not be executed.
+
+   @function IControlledService.use
+   @param {Function} [use_session_f] Session function which will be executed with the service's interface
+   @summary Establish a 'use' session for a controlled service
+   @desc
+     Starts the service if it isn't running yet, waits until it is in the 'running' state and calls
+     `use_session_f` with the service's interface to establish a 'use session'.
+
+     Unlike establishing a session with a direct call of a service function, a 'use session' does not bound
+     the lifetime of the service. After the 'use session' exits, the service continues running until it is 
+     explicitly stopped (via [::IControlledService::stop]) or by exiting the [::withControlledService] session.
+
+     If the service is stopped (either explicitly or by virtue of the service session exiting) while executing 
+     `itf.use(f)`, `f` will be aborted and a [::ServiceUnavailableError] will be thrown.
+     
+     Attempting to use a controlled service whose associated [::withControlledService] session has exited will throw a [::ServiceUnavailableError].
+
+   @variable IControlledService.Status
+   @summary [./observable::Observable] of the controlled service's current status
+   @desc
+     The status can be one of: `'stopped'`, `'initializing'`, `'running'`, `'stopping'` or `'terminated'`.
+
+*/
+// helper for withControlledService
+function runControlledServiceStateMachine({service,args,State,Cmd}) {
   var call_args = args .. @clone;
   call_args.push(function(itf) {
     waitfor {
@@ -216,214 +442,85 @@ function runServiceHandlerStateMachine({service,args,State,Cmd}) {
   } // while (1)
 }
 
-__js function ServiceUnavailableError(e) { 
-  var mes = "Service unavailable";
-  if (e) 
-    mes += '\n' + @indent("(Service threw "+e+")",4);
-  var err = new Error(mes);
-  err.__oni_service_unavailable = true;
-  return err;
-}
+function withControlledService(base_service, ...args_and_session_f) {
+  var session_f = args_and_session_f.pop();
+  var args = args_and_session_f;
 
-/**
-   @class ServiceUnavailableError
-   @inherit Error
-   @summary Error raised by [::IBackgroundService::start] if the service is terminated and by [::IBackgroundService::use] if the service is or becomes unavailable.
+  var State = @ObservableVar(['stopped']);
+  var Cmd = @Emitter();
 
-   @function isServiceUnavailableError
-   @param {Object} [e] Object to test
-   @summary Returns `true` if `e` is a [::ServiceUnavailableError]
-*/
-__js {
-  function isServiceUnavailableError(e) {
-    return e && e.__oni_service_unavailable === true;
+  function start(sync) {
+    var state = State .. @filter(__js s->s[0] !== 'stopping') .. @current;
+    if (state[0] === 'stopped') {
+      waitfor {
+        // this 'start' call might have been reentrantly from a 'stop' call. in this case
+        // we must only progress when we're sure we're in 'initializing'.
+        // Otherwise synchronous follow-up code might still see state 'stopped'
+        State .. @filter(__js s->s[0] === 'initializing') .. @current;
+      }
+      and {
+        Cmd.emit('start');
+      }
+    }
+    else if (state[0] === 'terminated')
+      throw ServiceUnavailableError(state[1]);
+    
+    if (sync) {
+      var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
+      if (state[0] !== 'running') throw ServiceUnavailableError(state[0] === 'terminated' ? state[1]);
+    }
   }
-  exports.isServiceUnavailableError = isServiceUnavailableError;
-} // __js
-
-//----------------------------------------------------------------------
-/**
-   @function withBackgroundServices
-   @altsyntax withBackgroundServices { |itf| ... }
-   @summary Creates a session for running [::Service]s in the background
-   @param {Function} [session_func] Function which will be executed with a [::IBackgroundServicesSession]
-   @desc
-     `withBackgroundServices` is a [::Service] that creates a session for running other [::Service]s in
-     the background. Such background services have their lifetimes bounded by the session established through
-     the withBackgroundServices call, and can be interacted with through "sub-sessions" established by 
-     [::IBackgroundService::use]. I.e. `withBackgroundServices` decouples the overall 
-     lifetime of a service from individual sessions where it is used.
-
-     Background services are attached to the session using [::IBackgroundServicesSession::attach] and
-     then controlled with a [::IBackgroundService] interface. With this interface, background services 
-     can be started ([::IBackgroundService::start]), stopped ([::IBackgroundService::stop]) and 
-     interacted with ([::IBackgroundService::use]).
-*/
-function withBackgroundServices(session) {
-  @withBackgroundStrata {
-    |background_strata|
-
-    session(
-/**   
-   @class IBackgroundServicesSession
-   @summary Interface exposed by [::withBackgroundServices]
-
-   @function IBackgroundServicesSession.attach
-   @summary Attach a service to the session
-   @param {::Service} [service] Service to attach
-   @param {optional Object} [...args] Arguments to provide to service
-   @return {::IBackgroundService} Interface through which the service can be controlled
-   @desc
-     This function attaches a service to the given session and returns an [::IBackgroundService] interface 
-     through which the service can be controlled.
-     Attaching a service will NOT automatically start it. Services start out in state `'stopped'`.
-
-     When the session exits all running background services will be aborted. 
-     Attempting to use a background service (through [::IBackgroundService::use]) after session exit 
-     will cause a [::ServiceUnavailableError]. 
-
-     See [::IBackgroundService::stop] for stopping a running service
-     before the session exits, and note the subtle difference: [::IBackgroundService::stop] will not 
-     cause 'retract' clauses in the service to be executed, whereas the session exit will.
-     After session exit, services will have state `'terminated'`.
-     
-*/
-      {
-        attach: function(service, ...args) {
-
-          if (typeof service !== 'function') 
-            throw new Error("Invalid non-function parameter to IBackgroundServicesSession::attach");
-
-          var State = @ObservableVar(['stopped']);
-          var Cmd = @Emitter();
-          
-          background_strata.run {
-            ||
-            try {
-              runServiceHandlerStateMachine({service:service, args:args, State:State, Cmd:Cmd});
-              State.set(['terminated']);
-            }
-            catch(e) {
-              State.set(['terminated',e]);
-              throw e;
-            }
-            retract {
-              State.set(['terminated']);
-            }
-          }
-
-          function start(sync) {
-            var state = State .. @filter(__js s->s[0] !== 'stopping') .. @current;
-            if (state[0] === 'stopped') {
-              waitfor {
-                // this 'start' call might have been reentrantly from a 'stop' call. in this case
-                // we must only progress when we're sure we're in 'initializing'.
-                // Otherwise synchronous follow-up code might still see state 'stopped'
-                State .. @filter(__js s->s[0] === 'initializing') .. @current;
-              }
-              and {
-                Cmd.emit('start');
-              }
-            }
-            else if (state[0] === 'terminated')
-              throw ServiceUnavailableError(state[1]);
-
-            if (sync) {
-              var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
-              if (state[0] !== 'running') throw ServiceUnavailableError(state[0] === 'terminated' ? state[1]);
-            }
-          }
-
-          function stop(sync) {
-            var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
-            if (state[0] === 'running') {
-              waitfor {
-                // this 'start' call might have been reentrantly from a 'start' call. in this case
-                // we must only progress when we're sure we're in 'stopping'.
-                // Otherwise synchronous follow-up code might still see state 'running'
-                State .. @filter(__js s->s[0] === 'stopping') .. @current;
-              }
-              and {
-                Cmd.emit('stop');
-              }
-            }
-
-            if (sync) {
-              State .. @filter(__js s->s[0] === 'stopped' || s[0] === 'terminated') .. @current;
-            }
-          }
-
-          function use(use_session_f) {
-            start(true); // this is a synchronous call; we are now in 'running' 
-                         // - other states indicate service is not runnable (shuts down immediately)
-            State .. @each.track {
-              |[status, itf_or_err]|
-              if (status !== 'running') throw ServiceUnavailableError(status === 'terminated' ? itf_or_err);
-              use_session_f(itf_or_err);
-              break;
-            }
-          }
-
-/**
-   @class IBackgroundService
-   @summary Interface exposed by services attached to a service session by [::IBackgroundServicesSession::attach].
-
-   @function IBackgroundService.start
-   @param {optional Boolean} [sync=false] If `false`, `start` will return as soon as service is initializing, otherwise `start` will wait until service is running.
-   @summary Start the service if it isn't running yet
-   @desc
-     - If the service is in state 'stopping', `start` waits until the next state is reached.
-     - Throws a [::ServiceUnavailableError] if the service is in state 'terminated'.
-     - Starts the given service if it is in state 'stopped'.
-     - For `sync`=`false` (the default), returns when the service is in state 'initializing' or 'running'.
-     - For `sync`=`true`, returns when the service is in state 'running'. If the service cannot start
-       (i.e. it moves from 'initializing' to 'stopped' or 'terminated'), [::ServiceUnavailableError] is thrown.
-
-   @function IBackgroundService.stop
-   @param {optional Boolean} [sync=false] If `false`, `stop` will return as soon as service is stopping, otherwise `stop` will wait until service is fully stopped.
-   @summary Stops the service if it is currently running
-   @desc
-     - If the service is in state 'initializing', `stop` waits until the next state is reached.
-     - Stops the given service if it is in state 'running'.
-     - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
-     - For `sync`=`true`, returns when the service is in state 'stopped' or 'terminated'.
-     
-     Note that stopping a service does not *abort* the service - it just causes the block passed to the
-     service to exit. In practice this means that - in contrast to a service being torn down by the session 
-     exiting - 'retract' clauses in the service will not be executed.
-
-   @function IBackgroundService.use
-   @param {Function} [use_session_f] Session function which will be executed with the services interface
-   @summary Establish a 'use' session for a background service
-   @desc
-     Starts the service if it isn't running yet, waits until it is in the 'running' state and calls
-     `use_session_f` with the service's interface to establish a 'use session'.
-
-     Unlike establishing a session with a direct call of a service function, a 'use session' does not bound
-     the lifetime of the service. After the 'use session' exits, the service continues running until it is 
-     explicitly stopped (via [::IBackgroundService::stop]) or by exiting of the service session to which the
-     background service is attached (via [::IBackgroundServicesSession::attach]).
-
-     If the service is stopped (either explicitly or by virtue of the service session exiting) while executing 
-     `itf.use(f)`, `f` will be aborted and a [::ServiceUnavailableError] will be thrown.
-     
-     Attempting to use an attached service whose service session has exited will throw a [::ServiceUnavailableError].
-
-   @variable IBackgroundService.Status
-   @summary [./observable::Observable] of the service's current status
-   @desc
-     The status can be one of: `'stopped'`, `'initializing'`, `'running'`, `'stopping'` or `'terminated'`.
-
-*/
-          return {
-            use: use,
-            start: start,
-            stop: stop,
-            Status: State .. @transform([status]->status)
-          };
-        } // attach
-      } // IBackgroundServicesSession
-    ); // session
-  } // withBackgroundStrata
+  
+  function stop(sync) {
+    var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
+    if (state[0] === 'running') {
+      waitfor {
+        // this 'start' call might have been reentrantly from a 'start' call. in this case
+        // we must only progress when we're sure we're in 'stopping'.
+        // Otherwise synchronous follow-up code might still see state 'running'
+        State .. @filter(__js s->s[0] === 'stopping') .. @current;
+      }
+      and {
+        Cmd.emit('stop');
+      }
+    }
+    
+    if (sync) {
+      State .. @filter(__js s->s[0] === 'stopped' || s[0] === 'terminated') .. @current;
+    }
+  }
+  
+  function use(use_session_f) {
+    start(true); // this is a synchronous call; we are now in 'running' 
+    // - other states indicate service is not runnable (shuts down immediately)
+    State .. @each.track {
+      |[status, itf_or_err]|
+      if (status !== 'running') throw ServiceUnavailableError(status === 'terminated' ? itf_or_err);
+      use_session_f(itf_or_err);
+      break;
+    }
+  }
+  
+  
+  waitfor {
+    try {
+      runControlledServiceStateMachine({service:base_service, args:args, State:State, Cmd:Cmd});
+    }
+    catch(e) {
+      State.set(['terminated', e]);
+    }
+    retract {
+      State.set(['terminated']);
+    }
+  }
+  while {
+    session_f({
+      use: use,
+      start: start,
+      stop: stop,
+      Status: State .. @transform([status]->status)
+    });
+  }
 }
-exports.withBackgroundServices = withBackgroundServices;
+
+exports.withControlledService = withControlledService;
