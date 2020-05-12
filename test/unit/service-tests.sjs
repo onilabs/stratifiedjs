@@ -3,8 +3,9 @@
 function simple_service({id,rv,block_init,block_finally,block_retract, block_api},
                         session) {
   try {
-    rv.push :: "#{id}:init";
+    rv.push :: "#{id}:init1";
     if (block_init) hold(0);
+    rv.push :: "#{id}:init2";
     session(function() { hold(0); return "#{id}:hello"; });
   }
   retract {
@@ -12,8 +13,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     if (block_retract) hold(0);
   }
   finally {
-    rv.push :: "#{id}:finally";
+    rv.push :: "#{id}:finally1";
     if (block_finally) hold(0);
+    rv.push :: "#{id}:finally2";
   }
 }
     
@@ -49,7 +51,10 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('background_session done');
-      @assert.eq(rv, ['background_session start', '1:init', '1:retract', '1:finally', 'background_session done']);
+      if (b1&&!b4) 
+        @assert.eq(rv, ['background_session start', '1:init1', '1:retract', '1:finally1', '1:finally2', 'background_session done']);
+      else
+        @assert.eq(rv, ['background_session start', '1:init1', '1:init2', '1:retract', '1:finally1', '1:finally2', 'background_session done']);
     } // @test
   } // @product
 
@@ -74,7 +79,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('background_session done');
-      @assert.eq(rv, ['background_session start', '1:init', '1:hello', '1:hello', '1:retract', '1:finally', 'background_session done']);
+      @assert.eq(rv, ['background_session start', '1:init1', '1:init2', '1:hello', '1:hello', '1:retract', '1:finally1', '1:finally2', 'background_session done']);
     } // @test
   } // @product
 
@@ -103,8 +108,8 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('background_session done');
       @assert.eq(rv, ['background_session start', 
-                      '1:init', '1:hello', '1:finally', 
-                      '1:init', '1:hello', '1:retract', '1:finally', 
+                      '1:init1', '1:init2', '1:hello', '1:finally1', '1:finally2',
+                      '1:init1', '1:init2', '1:hello', '1:retract', '1:finally1', '1:finally2', 
                       'background_session done']);
     } // @test
   } // @product
@@ -127,7 +132,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('background_session done');
       @assert.eq(rv, ['background_session start', 
-                      '1:init', '1:finally', 
+                      '1:init1', '1:init2', '1:finally1', '1:finally2',
                       'background_session done']);
     } // @test
   } // @product
@@ -269,8 +274,26 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         term();
         rv.push('session end');
       }
-      @assert.eq(rv, ['session start', '1:init', 'terminating', '1:finally', 'session end']);
+      @assert.eq(rv, ['session start', '1:init1', '1:init2', 'terminating', '1:finally1', '1:finally2', 'session end']);
     }
   }
 
+  @test("abort during init") { ||
+    [true, false] .. @each {
+      |p1|
+      var rv = [];
+      @withBackgroundServices { 
+        |session|
+        rv.push('session start');
+        waitfor {
+          session.runService(simple_service, {rv:rv, id:1, block_init:true, block_retract:p1});
+        }
+        or {
+          rv.push('aborting');
+        }
+        rv.push('session end');
+      }
+      @assert.eq(rv, ['session start', '1:init1', 'aborting', '1:retract', '1:finally1', '1:finally2', 'session end']);
+    }
+  }
 }

@@ -255,13 +255,12 @@ function withBackgroundServices(session_f) {
     session_f({
       runService: function(service, ...args) {
         var have_caller = true;
-        var terminated;
-        var Done = @Condition();
+        var stratum;
         waitfor(var session_itf, is_err) {
           var cont = resume;
-          background_strata.run {
+          stratum = background_strata.run {
             ||
-            args.push({|itf| waitfor() { cont([itf,resume], false); }});
+            args.push({|itf| cont(itf, false); hold(); });
             try {
               service.apply(null, args);
             }
@@ -269,21 +268,21 @@ function withBackgroundServices(session_f) {
               if (have_caller) cont(e, true);
               else throw new Error("Background service threw: "+e);
             }
-            finally {
-              Done.set();
-            }
           }
+        }
+        retract {
+          stratum.abort();
         }
         finally {
           have_caller = false;
         }
         if (is_err) throw session_itf;
-        return [session_itf[0], 
-                // slightly convoluted logic to ensure that 'terminate' only
-                // returns when service has fully ended (including any blocking cleanup)
+        return [session_itf, 
                 function /*terminate*/() { 
-                  session_itf[1]();
-                  Done.wait();
+                  // 'true' to prevent retract clauses from being called;
+                  // i.e. make it look like the inner session has exited.
+                  // Not sure this is useful for anything in particular.
+                  stratum.abort(true);
                 }];
       }
     });
