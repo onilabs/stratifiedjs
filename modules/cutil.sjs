@@ -124,6 +124,7 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
    @function IBackgroundStrataSession.run
    @summary Execute a sessioned background stratum
    @param {Function} [f] Function to execute in background stratum
+   @return {sjs:#language/builtins::Stratum} Returns the executed stratum
    @desc
       Begins executing `f` and returns when `f` returns or blocks.
       In the latter case, `f` will continue to execute in the background until
@@ -191,6 +192,7 @@ function withBackgroundStrata(session) {
         })();
         __js if (background_stratum.running())
           add_stratum(background_stratum);
+        return background_stratum;
       },
       wait: function() {
         if (strata._next === strata) return;
