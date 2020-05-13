@@ -474,6 +474,9 @@
             "acquire": {
               "type": "function"
             },
+            "countWaiting": {
+              "type": "function"
+            },
             "forceAcquire": {
               "type": "function"
             },

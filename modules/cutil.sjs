@@ -497,7 +497,15 @@ var SemaphoreProto = {
    */
   forceAcquire: __js function() {
     --this.permits;
-  }
+  },
+
+  /**
+    @function Semaphore.countWaiting
+    @summary Returns count of strata currently waiting to acquire the semaphore
+    @return {Integer}
+  */
+  countWaiting: __js function() { return this.queue.length; }
+
 };
 
 

@@ -672,6 +672,30 @@ context('advanced semaphore') {||
     }
     @assert.eq(rv, '123')
   }
+  test('sequencing2/countWaiting') {||
+    var S = cutil.Semaphore(1);
+    var rv = '';
+    waitfor {
+      S.acquire();
+      rv += '1';
+      @assert.eq(S.countWaiting(), 0);
+      hold(0);
+      @assert.eq(S.countWaiting(), 1);
+      S.release();
+      rv += '2';
+      hold(0);
+      rv += '4';
+    }
+    and {
+      S.acquire();
+      @assert.eq(S.countWaiting(), 0);
+      rv += '3';
+      hold(0);
+      rv += '5';
+      S.release();
+    }
+    @assert.eq(rv, '12345')
+  }
 }
 
 function task(id, log_arr, blocking_retract, blocking_finally) {
