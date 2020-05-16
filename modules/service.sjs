@@ -254,6 +254,7 @@ function withBackgroundServices(session_f) {
     |background_strata|
     session_f({
       runService: function(service, ...args) {
+        if (typeof service !== 'function') throw new Error("runService: First argument needs to be of type 'function', not '#{typeof service}'");
         var have_caller = true;
         var stratum;
         waitfor(var session_itf, is_err) {
