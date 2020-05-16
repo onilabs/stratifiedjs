@@ -3,7 +3,7 @@
  */
 
 var test = require('../lib/testUtil').test, puts = require('sjs:logging').print;
-var clean_stack = function(e) { return String(e).replace(/module [^ ]*stack-tests.sjs/g, 'this_file').replace(/module [^ ]*fixtures/g, "fixtures").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, ''); }; // This could really do with some work ;)
+var clean_stack = function(e) { return String(e).replace(/(?:file|http)[^ ]*stack-tests.sjs/g, 'this_file').replace(/(?:file|http)[^ ]*fixtures/g, "fixtures").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, ''); }; // This could really do with some work ;)
 var remove_message = function(s) { return s.replace(/^(Type)?Error(: [^\n]*)?\n/m, ''); };
 var line;
 var stack_from_running = function(f, keep_message) {

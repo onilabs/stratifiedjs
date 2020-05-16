@@ -335,7 +335,7 @@ var LogReporterMixins = {
     }
     String(err).split("\n") .. each {|line|
       var col = {foreground: 'yellow', attribute: 'bright'};
-      if (line.trim() .. string.startsWith("at module " + SJS_ROOT_URI)) {
+      if (line.trim() .. string.startsWith("at " + SJS_ROOT_URI)) {
         // internal module, make it dimmer
         delete col.attribute;
       }

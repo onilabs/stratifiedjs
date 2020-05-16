@@ -578,7 +578,7 @@ var js_loader = function(src, descriptor) {
         ctx.module = descriptor;
         ctx.exports = descriptor.exports;
         ctx.require = descriptor.require;
-        vm.runInContext(src, ctx, "module " + descriptor.id);
+        vm.runInContext(src, ctx, descriptor.id);
       }
     : function(src, descriptor) {
         // new api (since 0.12) - create new global object and then wrap it:
@@ -588,7 +588,7 @@ var js_loader = function(src, descriptor) {
         ctx.require = descriptor.require;
         var vm = __oni_rt.nodejs_require("vm");
         ctx = vm.createContext(ctx);
-        vm.runInContext(src, ctx, "module " + descriptor.id);
+        vm.runInContext(src, ctx, descriptor.id);
       };
   return js_loader(src, descriptor);
 };

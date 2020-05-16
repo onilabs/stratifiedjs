@@ -860,7 +860,7 @@ function default_compiler(src, descriptor) {
     }
     else {
       if (!compiled_src_tag.exec(src)) {
-        var filename = "module #{descriptor.id}";
+        var filename = "#{descriptor.id}";
         filename = "'#{filename.replace(/\'/g,'\\\'')}'";
         src = __oni_rt.c1.compile(
           src,
@@ -870,7 +870,7 @@ function default_compiler(src, descriptor) {
       
       f = new Function("module", "exports", "require", "__onimodulename", "__oni_altns", src);
     }
-    f(descriptor, descriptor.exports, descriptor.require, "module #{descriptor.id}", {});
+    f(descriptor, descriptor.exports, descriptor.require, "#{descriptor.id}", {});
     //console.log("eval(#{descriptor.id}) = #{(new Date())-start} ms");
   }
   catch(e) {
