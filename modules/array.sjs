@@ -198,7 +198,9 @@ __js exports.array_union = array_union;
   @return   {Array} New array containing all elements of `a` that are not in `b` (under `===`)
   @summary  Create an array of elements in `a` that are not in `b` (under `===`).
   @desc
-    See also [./set::difference]
+    The elements in the returned array will be in the same order as in array `a`.
+  
+    See also [./set::difference].
 */
 __js function array_difference(a, b) {
   var rv = [];
