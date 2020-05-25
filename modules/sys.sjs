@@ -145,7 +145,7 @@ module.exports = {
       var E = EvaluatorContext(settings.id, settings.imports || {});
       E.next();
 
-      block(function(src, file_name) {
+      return block(function(src, file_name) {
         var [is_thrown, val]  = E.next([src, 
                                         "'#{(file_name||settings.id).replace(/\'/g, '\\\'')}'"]
                                       ).value;

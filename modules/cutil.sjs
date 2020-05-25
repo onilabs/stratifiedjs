@@ -206,7 +206,7 @@ function withBackgroundStrata(session) {
         }
       }
     };
-    session(itf);
+    return session(itf);
   }
   finally {
     __js {

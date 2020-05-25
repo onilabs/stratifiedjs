@@ -68,6 +68,7 @@
      - `S` optionally passes one argument to `session_func` (S's 'interface').
      - The lifetime of `S` is bound by `session_func`, i.e. `S` executes for as long as `session_func` executes (barring exceptional exit). 
        When `session_func` exits, `S` will exit (after optionally blocking for cleanup in `finally` clauses).
+     - `S` must return any value returned by `session_func`, or, in the case of exceptional exit by `session_func`,
      - `S` must pass through any exceptions raised by `session_func`.
      - `session_func` has 'control flow authority' over `S`. Among other things, this means 
        that `S` cannot rely on exceptions raised from within its interface to filter 
@@ -95,10 +96,46 @@
                  log: function(str) { write("#{new Date()}: #{str}\n"); }
                };
   
-               logging_session(itf);
+               return logging_session(itf);
   
              }
            }
+
+     ### Typical use
+
+     - Typically a service will be used with a blocklambda as session function:
+
+           runLoggingSession('foo.log') {
+             |itf|
+             ...
+             itf.log(...);
+             ...
+           }
+
+     - Blocklambda session functions are allowed to use blocklamda controlflow, e.g.:
+
+           function foo() { 
+             runLoggingSession('foo.log') {
+               |itf|
+               while (1) {
+                 ...
+                 itf.log(...);
+                 if (...) return; // blocklambda return exits function foo
+               }
+             }
+             // not reached
+           }
+
+     - The requirement that sessions return the result of the execution of the session function is
+       so that they can be used in a js 'expression context' (as opposed to a 'statement context'), e.g.:
+
+           // expression form:
+           var creds = withCredentialsService(itf->itf.getDBCredentials());
+
+           // statement form:
+           var creds;
+           withCredentialsService { |itf| creds = itf.getDBCredentials() };
+
 
      ### Exceptional exit
 
@@ -114,7 +151,7 @@
              }
            }
            or {
-             session({uptime: -> server.uptime()});
+             return session({uptime: -> server.uptime()});
            }
          }
 
@@ -127,7 +164,7 @@
 
          function withAccumulator(session) {
            var accu = 0;
-           session({
+           return session({
              add: function(x) { if (typeof x !== 'number') 
                                   throw 'Not a number'; 
                                 accu += x;
@@ -153,7 +190,7 @@
              throw err;
            }
            or {
-             session({
+             return session({
                add: function(x) { if (typeof x !== 'number')
                                     raise_error(new Error('Not a number');
                                   accu += x;
@@ -179,7 +216,7 @@
 
          function my_service(session) {
            var error_raised = false;
-           session({
+           return session({
              error_exit: {|| error_raised=true; break;}
            });
            if (error_raised) throw new Error('exit with error');
@@ -252,7 +289,7 @@
 function withBackgroundServices(session_f) {
   @withBackgroundStrata {
     |background_strata|
-    session_f({
+    return session_f({
       runService: function(service, ...args) {
         if (typeof service !== 'function') throw new Error("runService: First argument needs to be of type 'function', not '#{typeof service}'");
         var have_caller = true;
@@ -496,8 +533,7 @@ function withControlledService(base_service, ...args_and_session_f) {
     State .. @each.track {
       |[status, itf_or_err]|
       if (status !== 'running') throw ServiceUnavailableError(status === 'terminated' ? itf_or_err);
-      use_session_f(itf_or_err);
-      break;
+      return use_session_f(itf_or_err);
     }
   }
   
@@ -514,7 +550,7 @@ function withControlledService(base_service, ...args_and_session_f) {
     }
   }
   while {
-    session_f({
+    return session_f({
       use: use,
       start: start,
       stop: stop,

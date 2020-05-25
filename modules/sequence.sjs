@@ -872,7 +872,7 @@ function withOpenStream(seq, block) {
     }
   }
   or {
-    block(Stream::function(r) {
+    return block(Stream::function(r) {
       receiver = r;
       waitfor(var control_flow) {
         redirect = resume;
