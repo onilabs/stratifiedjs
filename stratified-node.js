@@ -2212,6 +2212,7 @@ EF_Alt.prototype.setChildFrame=setChildFramePar;
 
 EF_Alt.prototype.docollapse=function(branch,cf){this.collapsed=true;
 
+var have_async_branch_retract=false;
 
 this.quench(branch);
 for(var i=0;i<this.children.length;++i){
@@ -2219,6 +2220,7 @@ if(i==branch)continue;
 if(this.children[i]){
 var val=this.children[i].abort();
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+have_async_branch_retract=true;
 this.setChildFrame(val,i);
 }else{
 
@@ -2227,9 +2229,10 @@ this.children[i]=UNDEF;
 }
 }
 }
-
-if(this.pending<=1)return true;
-
+if(!have_async_branch_retract){
+;
+return true;
+}
 
 
 

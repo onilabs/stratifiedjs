@@ -2267,7 +2267,7 @@ EF_Par.prototype.abortInner = function() {
     }
     st.push(['WAITFOR/AND', child_trees]);
     return st;
-  },
+  };
 #endif
 
 // setChildFrame function used by EF_Par, EF_Alt, EF_WfW:
@@ -2511,6 +2511,7 @@ EF_Alt.prototype.setChildFrame = setChildFramePar;
 
 EF_Alt.prototype.docollapse = function(branch, cf) {
   this.collapsed = true;
+  var have_async_branch_retract = false;
   // abort all children apart from 'branch'
   this.quench(branch);
   for (var i=0; i<this.children.length; ++i) {
@@ -2518,6 +2519,7 @@ EF_Alt.prototype.docollapse = function(branch, cf) {
     if (this.children[i]) {
       var val = this.children[i].abort();
       if (is_ef(val)) { // need to wait
+        have_async_branch_retract = true;
         this.setChildFrame(val, i);
       }
       else {
@@ -2526,12 +2528,13 @@ EF_Alt.prototype.docollapse = function(branch, cf) {
       }
     }
   }
-
-  if (this.pending <= 1) // =0 for sync case, =1 for async case 
+  if (!have_async_branch_retract) {
+    ASSERT(this.pending <= 1); // =0 for sync case, =1 for async case 
     return true;
+  }
   // ... else we need to wait
-  // this only happens if there is an asynchronous finally-clause 
-  // in one of the aborted branches (i.e. not a very common case)
+  // this happens if there is an asynchronous retract or finally clause 
+  // in one of the aborted branches 
   this.collapsing = { branch:branch, cf:cf};
   return false;
 };
