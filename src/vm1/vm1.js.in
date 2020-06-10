@@ -1579,6 +1579,13 @@ EF_Try.prototype.cont = function(idx, val) {
     this.setChildFrame(val, this.state);
   }
   else {
+    if (this.child_frame) {
+      this.child_frame.parent = UNDEF;
+      // ensure correct reentrant aborting:
+      // XXX not sure if this is negatively impacting call-stack copying
+      this.child_frame = UNDEF; 
+    }
+
     switch (this.state) {
     case 0:
     this.state = 1;
@@ -1600,7 +1607,7 @@ EF_Try.prototype.cont = function(idx, val) {
         // Check for a reentrant abortion triggered by our catch() block
         // see sjs-2-tests.sjs: reentrant abortion from catch()
         if (this.aborted && is_ef(val)) {
-          // abort val
+          val.quench();
           val = val.abort(this.pseudo_abort);
         }
 
@@ -1704,7 +1711,7 @@ EF_Try.prototype.cont = function(idx, val) {
 };
 
 EF_Try.prototype.quench = function() {
-  if (this.state !== 4) // don't quench inside finally block
+  if (this.child_frame && this.state !== 4 && this.state !== 3) // don't quench inside finally or retract blocks
     this.child_frame.quench();
 };
 
@@ -1712,6 +1719,9 @@ EF_Try.prototype.abort = function(pseudo_abort) {
   ASSERT(this.aborted !== true); // sanity check; aborted before
   this.aborted = true;
   this.pseudo_abort = pseudo_abort;
+
+  if (!this.child_frame) return this; // reentrant abort
+
   ASSERT(this.state !== 3) // sanity check; aborted before
   if (this.state !== 4) { // don't abort finally block
     var val = this.child_frame.abort(this.pseudo_abort); 
@@ -2446,7 +2456,7 @@ EF_Alt.prototype.abort = function(pseudo_abort) {
   else if (this.pending)
     rv = this;
 
-  this.pendingRV = new CFException('a');
+  this.pendingRV = this.pendingRV || new CFException('a');
   if (rv !== this && !is_cfx(rv)) rv = this.pendingRV;
   return rv;
 };
@@ -2569,6 +2579,9 @@ function EF_WfW(ndata, env) {
   this.children = new Array(2);
 }
 setEFProto(EF_WfW.prototype={});
+#ifdef EF_TYPES
+EF_WfW.prototype.type = function() {return "WfW(aborted="+!!this.aborted+")"};
+#endif
 
 EF_WfW.prototype.cont = function(idx, val) {
   //console.log("wfw cont("+idx+","+val+",pending="+this.pending+")");

@@ -1393,6 +1393,13 @@ EF_Try.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&
 this.setChildFrame(val,this.state);
 }else{
 
+if(this.child_frame){
+this.child_frame.parent=UNDEF;
+
+
+this.child_frame=UNDEF;
+}
+
 switch(this.state){case 0:
 
 this.state=1;
@@ -1414,7 +1421,7 @@ val=this.ndata[2](this.env,v);
 
 
 if(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-
+val.quench();
 val=val.abort(this.pseudo_abort);
 }
 
@@ -1517,7 +1524,7 @@ return this.returnToParent(val);
 }
 };
 
-EF_Try.prototype.quench=function(){if(this.state!==4)this.child_frame.quench();
+EF_Try.prototype.quench=function(){if(this.child_frame&&this.state!==4&&this.state!==3)this.child_frame.quench();
 
 
 };
@@ -1526,6 +1533,9 @@ EF_Try.prototype.abort=function(pseudo_abort){;
 
 this.aborted=true;
 this.pseudo_abort=pseudo_abort;
+
+if(!this.child_frame)return this;
+
 
 if(this.state!==4){
 var val=this.child_frame.abort(this.pseudo_abort);
@@ -2212,7 +2222,7 @@ rv=this.abortInner();
 
 
 
-this.pendingRV=new CFException('a');
+this.pendingRV=this.pendingRV||new CFException('a');
 if(rv!==this&&!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=this.pendingRV;
 return rv;
 };

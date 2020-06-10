@@ -507,7 +507,100 @@
     }
     rv += foo();
     @assert.eq(rv, 'abc');
-  }
+  }  
+}
 
-  
+@test('catch-abort edgecase') {||
+  var R;
+  var rv = '';
+  waitfor {
+    try {
+      hold(0);
+      throw 'a';
+    }
+    catch(e) {
+      rv += e;
+      R();
+      rv += 'c';
+      hold(0);
+      // NOT REACHED (BUT USED TO BE)
+      rv += 'x';
+    }
+    retract {
+      rv += 'd';
+    }
+  }
+  or {
+    waitfor() { R = resume; }
+    rv += 'b';
+  }
+  hold(0);
+  @assert.eq(rv, 'abcd');
+}
+
+@test('aborted retract deadlock edgecase') { ||
+  /*
+    retract clauses are unabortable (after all their try block has already been aborted!).
+    This somewhat convoluted test case was able to provoke a deadlock in the VM because
+    a retract block was being aborted.
+    Additionally, the final return value ('a11') was not being propagated.
+  */
+  var rv = '';
+  function L(x) { rv += x; }
+
+  function t() {
+    var R;
+    waitfor {
+      waitfor {
+        hold(0);
+        L('a1');
+        return 'a11';
+      }
+      or {
+        try {
+          try {
+            hold();
+          }
+          finally {
+            L('a2');
+            R();
+            L('a5');
+          }
+        }
+        retract {
+          L('a6');
+          hold(0);
+          // !!!! WE USED TO DEALOCK HERE 
+          L('a10');
+        }
+      }
+    }
+    or {
+      try {
+        waitfor {
+          try {
+            hold();
+          }
+          retract {
+            L('a4');
+            hold(0);
+            L('a7');
+          }
+          
+        }
+        or {
+          waitfor(){ R = resume; }
+          // retract other branch:
+          L('a3');
+          throw 'xxx';
+        }
+      }
+      catch(e) {
+        L('a8');
+      }
+      L('a9');
+    }
+  }
+  L(t());
+  @assert.eq(rv, 'a1a2a3a4a5a6a7a8a9a10a11');
 }
