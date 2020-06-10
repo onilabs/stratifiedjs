@@ -604,3 +604,59 @@
   L(t());
   @assert.eq(rv, 'a1a2a3a4a5a6a7a8a9a10a11');
 }
+
+@test('undefined exception propagation edgecase') { ||
+
+  function t() {
+    hold(0);
+    throw undefined;
+  }
+
+  try {
+    t();
+  }
+  catch(e) {
+    @assert.eq(e, undefined);
+  }
+
+}
+
+@test('null exception propagation edgecase') { ||
+
+  function t() {
+    hold(0);
+    throw null;
+  }
+
+  try {
+    t();
+  }
+  catch(e) {
+    @assert.eq(e, null);
+  }
+
+}
+
+@test('null exception propagation edgecase 2') { ||
+
+  function f() {
+    try {
+      hold();
+    }
+    finally {
+      throw null;
+    }
+  }
+
+  waitfor {
+    while(1) { f(); }
+  }
+  or {
+    hold(0);
+    /**/
+  }
+  catch(e) {
+    @assert.eq(e, null);
+  }
+
+}

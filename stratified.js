@@ -170,7 +170,7 @@ function CFException(type,value,line,file){this.type=type;
 
 this.val=value;
 
-if(type=="t"&&(value instanceof Error||(typeof value=='object'&&value.message))){
+if(type==="t"&&(value instanceof Error||(typeof value==='object'&&value!=null&&value.message))){
 
 if(value._oniE!==token_oniE){
 
@@ -208,7 +208,7 @@ if(this.type=="t"){
 
 
 
-if(uncaught&&this.val.__oni_stack){
+if(uncaught&&this.val!=null&&this.val.__oni_stack){
 var handler=window.onerror;
 var handled=false;
 var msg=this.val.toString();
@@ -399,7 +399,7 @@ return this;
 
 ;
 
-if(((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx)&&abort_val.type==='t'&&abort_val.val._oniE===token_oniE)&&this.callstack){
+if(((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx)&&abort_val.type==='t'&&abort_val.val!=null&&abort_val.val._oniE===token_oniE)&&this.callstack){
 abort_val.val.__oni_stack=abort_val.val.__oni_stack.concat(this.callstack);
 }
 
@@ -410,7 +410,7 @@ return abort_val;
 }
 },returnToParent:function(val){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val.__oni_stack){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val!=null&&val.val.__oni_stack){
 
 
 
@@ -2927,7 +2927,7 @@ var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=this.dyn_vars;
 this.dyn_vars=undefined;
 
-if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val._oniE===token_oniE)){
+if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val!=null&&val.val._oniE===token_oniE)){
 
 
 
@@ -2978,7 +2978,7 @@ this.done=true;
 if(this.aborted&&!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&this.parent.aborted)val=new CFException('a');
 
 
-if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val._oniE===token_oniE)){
+if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val!=null&&val.val._oniE===token_oniE)){
 
 
 
@@ -3083,7 +3083,7 @@ if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)||rv.type!=='t')rv=UNDEF;
 notifyAborted(rv);
 
 
-if(((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)&&rv.type==='t'&&rv.val._oniE===token_oniE)){
+if(((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)&&rv.type==='t'&&rv.val!=null&&rv.val._oniE===token_oniE)){
 
 
 
@@ -3099,7 +3099,7 @@ return rv;
 stratum.value=function(){if(!async){
 
 picked_up=true;
-if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val._oniE===token_oniE)){
+if(((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&val.val!=null&&val.val._oniE===token_oniE)){
 
 
 

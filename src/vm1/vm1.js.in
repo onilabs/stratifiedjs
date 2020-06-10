@@ -180,8 +180,8 @@ function CFException(type, value, line, file) {
   this.type = type;
   this.val = value;
   // XXX checking for "value instanceof Error" alone doesn't work for some errors on firefox
-  if (type == "t" && 
-      (value instanceof Error || (typeof value == 'object' && value.message))) {
+  if (type === "t" && 
+      (value instanceof Error || (typeof value === 'object' && value != null && value.message))) {
     if (value._oniE !== token_oniE) {
       // annotate the exception object with our oni-special fields:
       value._oniE = token_oniE;
@@ -219,7 +219,7 @@ CFException.prototype = {
       // logging on an unhandled error.
       // See https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers.onerror
       // XXX is there anything browsers do internally to handle errors other than calling onerror?
-      if (uncaught && this.val.__oni_stack) {
+      if (uncaught && this.val != null && this.val.__oni_stack) {
         var handler = window.onerror;
         var handled = false;
         var msg = this.val.toString();
@@ -262,7 +262,7 @@ CFException.prototype = {
 // work, and this only affects exceptions that inherit from `Error` (as these are the only ones we 
 // annotate in the first place).
 // 
-#define is_annotated_oni_cfx(obj) (is_cfx(obj) && obj.type === 't' && obj.val._oniE === token_oniE)
+#define is_annotated_oni_cfx(obj) (is_cfx(obj) && obj.type === 't' && obj.val != null && obj.val._oniE === token_oniE)
 
 function cloneAnnotatedCFX(obj) { 
   // ASSERT(is_annotated_oni_cfx(obj)) // caller to ensure this
@@ -463,7 +463,7 @@ var EF_Proto = {
     //      console.log(this+ " RETURNING 'a' to frame that doesn't expect one: "+this.parent);
     //    }
 
-    if(is_cfx(val) && val.type == 't' && this.callstack && val.val.__oni_stack) {
+    if(is_cfx(val) && val.type == 't' && this.callstack && val.val!=null && val.val.__oni_stack) {
       val.val.__oni_stack = val.val.__oni_stack.concat(this.callstack);
     }
     if (this.swallow_r) {
