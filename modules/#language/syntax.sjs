@@ -292,7 +292,7 @@
   the 'waitfor'-branch "controls" the lifetime of the 'waitfor'-branch.
   waitfor/while offers the immensely useful guarantee that the 'waitfor'-branch will never 
   be aborted before the 'while' branch. This means that finalization code in an aborted 
-  'waitfor'-branch can the rely on the fact that the 'while'-branch's finalization code has 
+  'waitfor'-branch can rely on the fact that the 'while'-branch's finalization code has 
   fully completed.
 
   The code
@@ -305,8 +305,7 @@
 
   However, the big difference is that in the waitfor/while snippet, if the code is aborted
   from the outside and `A` and `B` are still running, first `B` will be aborted
-  and then `A`. In the waitfor/or snippet, `A` and `B` would be abortion would be triggered
-  simultaneously. 
+  and then `A`. In the waitfor/or snippet, abortion of `A` and `B` would be triggered simultaneously. 
 
   
 
