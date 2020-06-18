@@ -221,9 +221,8 @@ function withBackgroundStrata(session) {
       to_abort.forEach(s->s.abort());
     } // __js
     itf.wait();
+    if (pending_rv) return pending_rv;
   }
-
-  return pending_rv;
 }
 
 exports.withBackgroundStrata = withBackgroundStrata;
