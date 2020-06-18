@@ -2013,6 +2013,9 @@
             "stop": {
               "type": "function"
             },
+            "terminate": {
+              "type": "function"
+            },
             "use": {
               "type": "function"
             }

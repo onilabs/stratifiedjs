@@ -221,8 +221,6 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
 
   @test("throw in service - sync") {||
     var rv = [], service;
-    // XXX this test is structured in an odd way because of the way withBackgroundServices used
-    // to work. it could be restructured without the waitfor/or now
     waitfor {
       try {
         @withBackgroundServices {
@@ -245,22 +243,113 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         }
       }
       catch(e) {
-        rv.push(e);
+        @assert.eq(e.message, "Background service threw: xxx");
+        rv.push('catch outer');
       }
     }
-    or {
+    and {
       try {
         service.use {|exit| exit(); try { hold(); } retract { rv.push('use retract'); hold(0);}}
       }
-      catch (e) {
-        @assert.truthy(@isServiceUnavailableError(e));
-        @assert.truthy(e.message .. @contains("(Service threw xxx"));
+      catch (e) { 
+        @assert.eq(e,'xxx');
         @assert.truthy(service.Status .. @current, 'terminated');
-        rv.push('catch');
+        rv.push('catch inner');
       }
     }
-    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch']);
+    @assert.eq(rv, ['throw', 'service finally', 'catch outer', 'use retract', 'catch inner']);
   }
+
+  @test("throw in service 2 - sync") {||
+    var rv = [], service;
+    try {
+      @withBackgroundServices {
+        |background_session|
+        [service] = background_session.runService(@withControlledService, function(blk) {
+          var exit;
+          waitfor {
+            waitfor() { exit = resume; }
+            rv.push('throw');
+            throw 'xxx';
+          }
+          and {
+            blk(exit);
+          }
+          finally {
+            rv.push('service finally');
+          }
+        });
+        
+        try {
+          service.use {|exit| exit(); try { hold(); } retract { rv.push('use retract'); hold(0);}}
+          rv.push('not reached 1');
+        }
+        catch (e) { 
+          rv.push('catch inner'); 
+          @assert.eq(e,'xxx');
+        }
+        finally {
+          @assert.truthy(service.Status .. @current, 'terminated');
+          rv.push('finally inner');
+        }
+        rv.push('cont outer');
+        hold(0);
+        rv.push('not reached 2');
+      }
+      rv.push('not reached 3');
+    }
+    catch(e) {
+      @assert.eq(e.message, "Background service threw: xxx");
+      rv.push('catch outer');
+    }
+
+    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch inner', 'finally inner', 'cont outer', 'catch outer']);
+  }
+
+  @test("throw in service 3 - sync") {||
+    var rv = [], service;
+    try {
+      @withBackgroundServices {
+        |background_session|
+        [service] = background_session.runService(@withControlledService, function(blk) {
+          var exit;
+          waitfor {
+            waitfor() { exit = resume; }
+            rv.push('throw');
+            throw 'xxx';
+          }
+          and {
+            blk(exit);
+          }
+          finally {
+            rv.push('service finally');
+          }
+        });
+        
+        try {}
+        finally {
+          try {
+            service.use {|exit| exit(); try { hold(); } retract { rv.push('use retract'); hold(0);}}
+            rv.push('not reached 1');
+          }
+          catch (e) { 
+            @assert.eq(e,'xxx');
+            @assert.truthy(service.Status .. @current, 'terminated');
+            rv.push('catch inner'); 
+          }
+        }
+        rv.push('catch inner sync cont');
+      }
+      rv.push('not reached 3');
+    }
+    catch(e) {
+      @assert.eq(e.message, "Background service threw: xxx");
+      rv.push('catch outer');
+    }
+
+    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch inner', 'catch inner sync cont', 'catch outer']);
+  }
+
 
   @test("early termination") { ||
     [true,false] .. @each {
@@ -296,4 +385,122 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       @assert.eq(rv, ['session start', '1:init1', 'aborting', '1:retract', '1:finally1', '1:finally2', 'session end']);
     }
   }
+}
+
+
+@context('withControlledService') {||
+  @test('throw from service - async sequencing') { ||
+    var rv = '';
+    try {
+    @withControlledService(function(sf) {
+      waitfor {
+        hold(0);
+        rv += 'b';
+        throw 'f';
+      }
+      or {
+        try {
+          return sf();
+        }
+        retract {
+          hold(0);
+          rv += 'e';
+        }
+      }
+    }) {
+      |cs|
+      try {
+        cs.use {
+          ||
+          try {
+            rv += 'a';
+            hold();
+          }
+          retract {
+            rv += 'c';
+            hold(0);
+            rv += 'd';
+          }
+        } /* cs.use */
+      }
+      catch (e) {
+        rv += e+'1';
+        hold(0);
+      }
+    }
+    }
+    catch (e) {
+      rv += e+'2';
+    }
+    @assert.eq(rv, 'abcdef1f2');
+  } // @test('throw from service - async sequencing')
+
+  @test('terminate 1') { ||
+    @product([true,false], [true,false]) .. @each {
+      |[p1, p2]|
+      var rv = '';
+      try {
+        @withControlledService(function(sf) { rv += 'x'; return sf(); }) {
+          |cs|
+          if (p1) hold(0);
+          cs.terminate('a');
+          if (p2) hold();
+        }
+      }
+      catch (e) {
+        rv += e;
+      }
+      @assert.eq(rv, 'a');
+    }
+  }
+
+  @test('terminate 2') { ||
+    @product([true,false],[true,false]) .. @each {
+      |[p1,p2]|
+      var rv = '';
+      try {
+        @withControlledService(function(sf) { if(p1) hold(0); rv += 'a'; try { return sf(); }retract{rv += 'x'}finally{rv+='b'; if(p2) hold(0);} }) {
+          |cs|
+          cs.start(true);
+          cs.terminate('c');
+        }
+      }
+      catch (e) {
+        rv += e;
+      }
+      @assert.eq(rv, 'abc');
+    }
+  }
+
+  @test('terminate 3') { ||
+    @product([true,false],[true,false],[true,false],[true,false],[true,false]) .. @each {
+      |[p1,p2,p3,p4,p5]|
+      //console.log(p1,p2,p3,p4,p5);
+      var rv = '';
+      try {
+        @withControlledService(function(sf) { if(p1) hold(0); rv += 'a'; try { return sf(); }retract{rv += 'x'}finally{rv+='b'; if(p2) hold(0);} }) {
+          |cs|
+          cs.use { 
+            ||
+            if (p5) hold(0);
+            cs.terminate('c',p3);
+            if (p4) hold();
+          }
+          rv += 'C';
+        }
+      }
+      catch (e) {
+        rv += e;
+      }
+
+      // see the comment in modules/service.sjs:~480 for why/how these cases differ:
+      if (p1 /* && p2=any */ && !p3 && !p4 && !p5)
+        @assert.eq(rv, 'aCbc');
+      else if (/* p1=any && */ p2 && !p3 && !p4 && !p5)
+        @assert.eq(rv, 'abCc');
+      else 
+        @assert.eq(rv, 'abc');
+    }
+  }
+
 }

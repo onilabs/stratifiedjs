@@ -378,7 +378,7 @@ exports.runGlobalBackgroundService = GLOBAL_BACKGROUND_SERVICES.runService;
 __js function ServiceUnavailableError(e) { 
   var mes = "Service unavailable";
   if (e) 
-    mes += '\n' + @indent("(Service threw "+e+")",4);
+    mes += '\n' + @indent("(Reason: "+e+")",4);
   var err = new Error(mes);
   err.__oni_service_unavailable = true;
   return err;
@@ -412,23 +412,40 @@ __js {
    @desc
      - If the service is in state 'stopping', `start` waits until the next state is reached.
      - Throws a [::ServiceUnavailableError] if the service is in state 'terminated'.
-     - Starts the given service if it is in state 'stopped'.
+     - Starts the controlled service if it is in state 'stopped'.
      - For `sync`=`false` (the default), returns when the service is in state 'initializing' or 'running'.
      - For `sync`=`true`, returns when the service is in state 'running'. If the service cannot start
        (i.e. it moves from 'initializing' to 'stopped' or 'terminated'), [::ServiceUnavailableError] is thrown.
+
+       Note: For `sync`=`true`, the service's session interface will be returned. It is discouraged
+       to use this return value; the structured primitive [::IControlledService::use] is preferred. 
 
    @function IControlledService.stop
    @param {optional Boolean} [sync=false] If `false`, `stop` will return as soon as service is stopping, otherwise `stop` will wait until service is fully stopped.
    @summary Stops the controlled service if it is currently running
    @desc
      - If the service is in state 'initializing', `stop` waits until the next state is reached.
-     - Stops the given service if it is in state 'running'.
+     - Stops the controlled service if it is in state 'running'.
      - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
      - For `sync`=`true`, returns when the service is in state 'stopped' or 'terminated'.
      
      Note that stopping a service does not *abort* the service - it just causes the block passed to the
      service to exit. In practice this means that - in contrast to a service being torn down by the session 
      exiting - 'retract' clauses in the service will not be executed.
+
+   @function IControlledService.terminate
+   @param {Object} [exception] Exception to throw
+   @param {optional Boolean} [sync=false] If `false`, `terminate` will return as soon as service is stopping, otherwise `terminate` will wait until service has terminated.
+   @summary Terminate the controlled service by throwing an exception
+   @desc
+     - If the controlled service is in state 'initializing' or 'stopping', `terminate` waits until the next state is reached.
+     - Stops the controlled service if it is in state 'running' by throwing `exception` from within
+       the controlled service's session.
+     - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
+     - For `sync`=`true`, returns when the service is in state 'terminated'.
+     - Once the 'terminated' state is reached, the enclosing [::withControlledService] session will
+     be aborted and the pending [::withControlledService] call will throw `exception`.
+     
 
    @function IControlledService.use
    @param {Function} [use_session_f] Session function which will be executed with the service's interface
@@ -439,12 +456,13 @@ __js {
 
      Unlike establishing a session with a direct call of a service function, a 'use session' does not bound
      the lifetime of the service. After the 'use session' exits, the service continues running until it is 
-     explicitly stopped (via [::IControlledService::stop]) or by exiting the [::withControlledService] session.
+     explicitly stopped or terminated (via [::IControlledService::stop] or [::IControlledService::terminate]) or by exiting the [::withControlledService] session.
 
-     If the service is stopped (either explicitly or by virtue of the service session exiting) while executing 
-     `itf.use(f)`, `f` will be aborted and a [::ServiceUnavailableError] will be thrown.
+     If the service is stopped (either explicitly or by virtue of the service session exiting) or terminated while executing 
+     `itf.use(f)`, `f` will be aborted and a [::ServiceUnavailableError] or, in the case of 
+     termination, the exception passed to [::IControlledService::terminate] will be thrown.
      
-     Attempting to use a controlled service whose associated [::withControlledService] session has exited will throw a [::ServiceUnavailableError].
+     Attempting to use a controlled service whose associated [::withControlledService] session has exited will throw a [::ServiceUnavailableError] or the last exception (either explicitly or via [::IControlledService::terminate]) thrown by the controlled service.
 
    @variable IControlledService.Status
    @summary [./observable::Observable] of the controlled service's current status
@@ -457,10 +475,46 @@ function runControlledServiceStateMachine({service,args,State,Cmd}) {
   var call_args = args .. @clone;
   call_args.push(function(itf) {
     waitfor {
-      Cmd .. @filter(__js cmd -> cmd === 'stop') .. @first;
+      var [cmd,arg] = Cmd .. @filter(__js [cmd,arg] -> cmd === 'stop' || cmd === 'terminate') .. @first;
+      if (cmd === 'terminate') { throw arg; }
+      // else cmd === 'stop'... just finish branch
     }
     and {
       State.set(['running', itf]);
+      /*
+        Note: State.set is synchronous, in the sense that it will execute any listeners up to 
+              the point where they block, and then continue. 
+              This can lead to some surprising behavior between blocking and non-blocking code.
+
+              E.g.:
+                    @withControlledService(function(sf){ try{sf()}finally{hold(0);}}) {
+                      |cs|
+                      cs.use { || hold(0); cs.terminate('done'); }
+                      console.log('not reached');
+                    }
+                    
+              Here the 'cs.use' call will throw an exception ('done') before the console.log line
+              is reached. The following code, however, WILL reach the console.log line:
+              
+                    @withControlledService(function(sf){ try{sf()}finally{hold(0);}}) {
+                      |cs|
+                      cs.use { || cs.terminate('done'); }
+                      console.log('not reached');
+                    }
+
+              The reason is that in the latter case, cs.use is synchronously triggered from the 
+              State.set(['running']) call above. runControlledServiceStateMachine will not 
+              return the terminating exception until the code initiated by that State.set call
+              blocks.
+
+              We could make the behavior consistent by always asynchronizing the State.set call 
+              (i.e. place a hold(0) in front of it). This would downgrade performance under some
+              circumstances however, and it is unclear if anything would be gained by harmonizing
+              behavior.
+
+              See also testcase 'withControlledService terminate 3'.
+                    
+       */
     }
     finally {
       State.set(['stopping']);
@@ -469,7 +523,9 @@ function runControlledServiceStateMachine({service,args,State,Cmd}) {
 
   while (1) {
     waitfor {
-      Cmd .. @filter(__js cmd -> cmd === 'start') .. @first;
+      var [cmd,arg] = Cmd .. @filter(__js [cmd,arg] -> cmd === 'start' || cmd === 'terminate') .. @first;
+      if (cmd === 'terminate') { throw arg; }
+      // else cmd === 'start' ... just finish branch
     }
     and {
       State.set(['stopped']);
@@ -496,15 +552,21 @@ function withControlledService(base_service, ...args_and_session_f) {
         State .. @filter(__js s->s[0] === 'initializing') .. @current;
       }
       and {
-        Cmd.emit('start');
+        Cmd.emit(['start']);
       }
     }
     else if (state[0] === 'terminated')
-      throw ServiceUnavailableError(state[1]);
+      throw state[1];
     
     if (sync) {
       var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
-      if (state[0] !== 'running') throw ServiceUnavailableError(state[0] === 'terminated' ? state[1]);
+      if (state[0] !== 'running') {
+        if (state[1] !== undefined) throw state[1];
+        else 
+          throw ServiceUnavailableError(/* reason? */);
+      }
+      // return interface
+      return state[1];
     }
   }
   
@@ -518,7 +580,7 @@ function withControlledService(base_service, ...args_and_session_f) {
         State .. @filter(__js s->s[0] === 'stopping') .. @current;
       }
       and {
-        Cmd.emit('stop');
+        Cmd.emit(['stop']);
       }
     }
     
@@ -526,14 +588,38 @@ function withControlledService(base_service, ...args_and_session_f) {
       State .. @filter(__js s->s[0] === 'stopped' || s[0] === 'terminated') .. @current;
     }
   }
+
+  function terminate(error, sync) {
+    var state = State .. @filter(__js s->s[0] !== 'initializing' && s[0] !== 'stopping') .. @current;
+    if (state[0] === 'terminated') return;
+    else {
+      Cmd.emit(['terminate', error]);
+    }
+    if (sync) {
+      State .. @filter(__js s->s[0] === 'terminated') .. @current;
+    }
+  }
   
   function use(use_session_f) {
-    start(true); // this is a synchronous call; we are now in 'running' 
-    // - other states indicate service is not runnable (shuts down immediately)
-    State .. @each.track {
-      |[status, itf_or_err]|
-      if (status !== 'running') throw ServiceUnavailableError(status === 'terminated' ? itf_or_err);
-      return use_session_f(itf_or_err);
+    var itf =  start(true); // this is a synchronous call; we are now in 'running', or we
+                            // will have thrown an exception
+
+    waitfor {
+      State .. @filter(__js s->s[0] !== 'running') .. @wait;
+      // retract other branch:
+      collapse;
+      var end_state = State .. @filter(__js s->s[0] !== 'initializing' && s[0] !== 'stopping') .. @first;
+      if (end_state[0] === 'terminated') throw end_state[1];
+      else if (end_state[0] === 'stopped') throw ServiceUnavailableError('service was stopped');
+      else if (end_state[0] === 'running') {
+        // xxx this is an odd case
+        throw ServiceUnavailableError('service was stopped (but is running again)');
+      }
+      else
+        throw new Error("Invalid State in IControlledService");
+    }
+    or {
+      return use_session_f(itf);
     }
   }
   
@@ -544,9 +630,10 @@ function withControlledService(base_service, ...args_and_session_f) {
     }
     catch(e) {
       State.set(['terminated', e]);
+      throw e;
     }
     retract {
-      State.set(['terminated']);
+      State.set(['terminated', ServiceUnavailableError(/* reason */)]);
     }
   }
   while {
@@ -554,6 +641,7 @@ function withControlledService(base_service, ...args_and_session_f) {
       use: use,
       start: start,
       stop: stop,
+      terminate: terminate,
       Status: State .. @transform([status]->status)
     });
   }
