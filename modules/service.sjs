@@ -281,7 +281,8 @@
    @desc
      `ibackgroundservicesession.runService` starts `service` with the given arguments and returns a pair `[itf, terminate]`.
      `itf` is the service's session interface, and `terminate` is a function that can be used
-     to terminate the service's session.
+     to terminate the service's session. A call to `terminate` is synchronous, i.e. it only 
+     returns once the service has terminated.
      `service` will have the lifetime of its session bound to the enclosing 'background 
      services session' - if the former hasn't been terminated by the time the latter exits, 
      it will be terminated then.     
