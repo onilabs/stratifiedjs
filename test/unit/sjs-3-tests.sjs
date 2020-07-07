@@ -660,3 +660,38 @@
   }
 
 }
+
+@context("destructure in __js") { ||
+  @test("arr 1") { ||
+    var rv = '';
+    __js function foo(x) { var a,b,f; [a,b,f] = x; rv += a + b + f; }
+    foo(['A','B','C','D']);
+    @assert.eq(rv, "ABC");
+  }
+
+  // this would previously fail
+  @test("obj edgecase 1") { ||
+    var rv = '';
+    __js function foo(x) { var a,b,f; ({a,b,c:f} = x); rv += a + b + f; }
+    foo({ a: 'A', b:'B', c:'C', d:'D'});
+    @assert.eq(rv, "ABC");
+  }
+
+  // this would previously yield NaN
+  @test("arr edgecase 2") { ||
+    var rv = '';
+    __js function foo(x) { var [a,b,f] = x; rv += a + b + f; }
+    foo(['A','B','C','D']);
+    @assert.eq(rv, "ABC");
+  }
+
+
+  // this would previously yield NaN
+  @test("obj edgecase 2") { ||
+    var rv = '';
+    __js function foo(x) { var {a,b,c:f} = x; rv += a + b + f; }
+    foo({ a: 'A', b:'B', c:'C', d:'D'});
+    @assert.eq(rv, "ABC");
+  }
+
+}

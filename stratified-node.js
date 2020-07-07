@@ -4188,9 +4188,12 @@ this.d[0].collect_var_decls(vars);
 throw new Error("Invalid syntax in variable declaration");
 }
 };
-ph_var_decl.prototype.nblock_val=function(){return this.d[0].name+"="+this.d[1].nb()+";";
+ph_var_decl.prototype.nblock_val=function(){if(this.is_dest){
 
 
+return '('+this.d[0].nb()+'='+this.d[1].nb()+');';
+}
+return this.d[0].name+"="+this.d[1].nb()+";";
 };
 ph_var_decl.prototype.val=function(){if(this.is_dest){
 
@@ -5206,7 +5209,9 @@ if(i!=0)rv+=",";
 
 
 
-rv+=this.props[i][1]+":"+this.props[i][2].nb();
+rv+=this.props[i][1];
+if(this.props[i][0]!=='pat')rv+=":"+this.props[i][2].nb();
+
 }
 return rv+"}";
 };
