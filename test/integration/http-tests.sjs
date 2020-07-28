@@ -169,7 +169,7 @@ context("jsonp") {||
     // if the iframe caches (some browsers), the jsonp callback will not be called
     // (causing a timeout)
     searchIframe() .. assert.ok();
-  }.timeout(10);
+  }.timeout(10).skip("google api retired");
 
 }.ignoreLeaks('_oni_jsonpcb').timeout(5);
 
