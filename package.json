@@ -36,7 +36,6 @@
     "test": "./sjs test/run.html"
   },
   "dependencies": {
-    "fstream": "^1.0.3",
     "mkdirp": "^0.5.0",
     "rimraf": "^2.2.8"
   }
