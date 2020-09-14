@@ -2,9 +2,9 @@
   "name": "stratifiedjs",
   "description": "StratifiedJS Framework",
   "author": "Oni Labs <maintainers@onilabs.com>",
-  "version" : "0.20.0-development",
+  "version": "0.20.0-development",
   "homepage": "http://onilabs.com/stratifiedjs",
-  "private" : true,
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git://github.com/onilabs/stratifiedjs.git"
@@ -19,15 +19,15 @@
     "sjs": "sjs"
   },
   "devDependencies": {
-    "karma-sjs-adapter": "~0.2.2",
-    "karma-quiet-reporter": "*",
+    "eslint": "git://github.com/gfxmonk/eslint.git#da9f557b0857c4a4325d324ffe903bdb9a4262a4",
+    "espree": "~1.10.0",
     "karma-chrome-launcher": "*",
     "karma-firefox-launcher": "*",
-    "karma-phantomjs-launcher": "*",
     "karma-ie-launcher": "*",
+    "karma-phantomjs-launcher": "*",
+    "karma-quiet-reporter": "*",
     "karma-script-launcher": "*",
-    "eslint": "git://github.com/gfxmonk/eslint.git#da9f557b0857c4a4325d324ffe903bdb9a4262a4",
-    "espree": "~1.10.0"
+    "karma-sjs-adapter": "~0.2.2"
   },
   "engines": {
     "node": ">=0.10.0"
@@ -36,7 +36,7 @@
     "test": "./sjs test/run.html"
   },
   "dependencies": {
-    "mkdirp": "^0.5.0",
-    "rimraf": "^2.2.8"
+    "mkdirp": "^1.0.4",
+    "rimraf": "^2.7.1"
   }
 }

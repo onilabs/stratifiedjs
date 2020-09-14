@@ -29,6 +29,21 @@
  *
  */
 
+//----------------------------------------------------------------------
+// XXX backfill as 'await' in the VM
+function AWAIT(val) {
+  if (val instanceof Promise) {
+    waitfor(var rv, except) {
+      val.then(x->resume(x, false), x->resume(x,true));
+    }
+    if (except) throw rv;
+    return rv;
+  }
+  return val;
+}
+
+
+
 /**
   @module    mkdirp
   @summary   Recursively make directories (tracking the [mkdirp library](https://github.com/substack/node-mkdirp))
@@ -45,12 +60,6 @@
     If `path` already exists and is a directory, `mkdirp` returns successfully.
 */
 var dep = require('nodejs:mkdirp');
-exports.mkdirp = function() {
-  var args = Array.prototype.slice.call(arguments);
-  waitfor(var err, rv) {
-    // call original (JS) function with callback
-    dep.apply(null, args.concat([resume]));
-  }
-  if(err) throw err;
-  return rv;
+exports.mkdirp = function(...args) {
+  return AWAIT:: dep.apply(null,args);
 }
