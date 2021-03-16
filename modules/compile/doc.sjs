@@ -49,7 +49,7 @@ var assert = require('../assert');
 var INDEX_BASENAME = 'sjs-lib-index';
 var INDEX_FILENAME = "#{INDEX_BASENAME}.txt";
 var OUTPUT_FILENAME = "#{INDEX_BASENAME}.json";
-var EXTS = {'sjs':true, 'api':true, 'app':true, 'gen':true};
+var EXTS = {'sjs':true, 'api':true, 'app':true, 'gen':true, 'page':true, 'container':true};
 
 exports.compile = function(root, outputPath) {
   var info = exports.summarizeLib(root);
@@ -110,7 +110,7 @@ exports.summarizeLib = function(dir, inner) {
       } else {
         if (ent .. str.startsWith(INDEX_BASENAME + '.')) {
           continue;
-        } else {
+        } else { 
           var mod = exports.readModule(path);
           if (mod) {
             var [name, mod] = mod;
