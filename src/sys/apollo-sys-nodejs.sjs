@@ -686,9 +686,9 @@ exports.runMainExpression = function(ef) {
     try {
       ef.wait();
     } catch(e) {
-      e = e.toString().replace(/^Error: Cannot load module/, "Error executing");
+      e = String(e).replace(/^Error: Cannot load module/, "Error executing");
       e = e.replace(/\(in apollo-sys-common.sjs:\d+\)$/, "");
-      console.error(e.toString());
+      console.error(e);
       process.exit(1);
     }
   } or {
