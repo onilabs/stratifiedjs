@@ -1463,9 +1463,21 @@ if(Array.isArray(val.val))val=val.val[0];
 
 
 
-if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type=='a'){
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type==='a'){
 val=this.rv;
 
+
+}else if((this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)&&this.rv.type==='t'){
+
+
+
+var msg;
+if(val.type==='t')msg="Exception '"+val.val+"' thrown";else msg=CFETypes[val.type];
+
+
+
+msg+=" in finally{} clause overriding try/catch exception '"+this.rv.val+"'";
+if(console.error)console.error(msg);else console.log(msg);
 
 }
 }
