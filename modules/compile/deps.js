@@ -1905,7 +1905,7 @@ S("waitfor").stmt(function(pctx) {
       scan(pctx, "{");
       blocks.push(parseBlock(pctx));
     } while (pctx.token.value === op /* note: this is always false for op='while', which is what we want */ );
-    var crf = parseCRF(pctx, false);
+    var crf = parseCRF(pctx, true);
     
     var rv = Dynamic;                                 for (var i=0; i<blocks.length; ++i){                rv = rv.seq(blocks[i]);                         }                                                 return rv;
   }

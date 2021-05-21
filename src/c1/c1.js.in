@@ -1915,7 +1915,7 @@ S("waitfor").stmt(function(pctx) {
       scan(pctx, "{");
       blocks.push(parseBlock(pctx));
     } while (pctx.token.value === op /* note: this is always false for op='while', which is what we want */ );
-    var crf = parseCRF(pctx, false);
+    var crf = parseCRF(pctx, true);
     LOGM('waitfor_andorwhile')
     GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx, POP_EXTENT('GEN_WAITFOR_ANDORWHILE'))
   }

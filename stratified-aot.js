@@ -1514,7 +1514,7 @@ if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type==='a'){
 val=this.rv;
 
 
-}else if((this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)&&this.rv.type==='t'){
+}else if((this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)&&this.rv.type==='t'&&this.rv!==val){
 
 
 

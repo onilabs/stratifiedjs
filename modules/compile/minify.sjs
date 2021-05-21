@@ -1760,7 +1760,7 @@ S("waitfor").stmt(function(pctx) {
       scan(pctx, "{");
       blocks.push(parseBlock(pctx));
     } while (pctx.token.value === op /* note: this is always false for op='while', which is what we want */ );
-    var crf = parseCRF(pctx, false);
+    var crf = parseCRF(pctx, true);
     
     var rv = "waitfor";                               for (var i=0; i<blocks.length; ++i){                if (i) rv += op;                                  rv += blocks[i];                                }                                                 rv += gen_crf(crf);                               return rv;
   }

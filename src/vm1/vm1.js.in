@@ -1701,7 +1701,7 @@ EF_Try.prototype.cont = function(idx, val) {
           //else if (this.aborted)
           //  val = new CFException('a');
         }
-        else if (is_cfx(this.rv) && this.rv.type === 't') { // val is an exception and we have a pending exception from try/catch
+        else if (is_cfx(this.rv) && this.rv.type === 't' && this.rv !== val) { // val is an exception and we have a pending exception from try/catch
           // while we cannot override finally's exception, we can log the fact that we are 
           // swallowing an exception:
           var msg; 

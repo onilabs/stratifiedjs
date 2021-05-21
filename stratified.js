@@ -1514,7 +1514,7 @@ if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx)||val.type==='a'){
 val=this.rv;
 
 
-}else if((this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)&&this.rv.type==='t'){
+}else if((this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)&&this.rv.type==='t'&&this.rv!==val){
 
 
 
@@ -6767,7 +6767,7 @@ scan(pctx);
 scan(pctx,"{");
 blocks.push(parseBlock(pctx));
 }while(pctx.token.value===op);
-var crf=parseCRF(pctx,false);
+var crf=parseCRF(pctx,true);
 
 return gen_waitfor_andorwhile(op,blocks,crf,pctx);
 }else{
