@@ -1472,7 +1472,7 @@ if(this.ndata[0]&1){
 
 
 
-var v=(this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)?[this.rv,true,!!this.aborted,!!this.pseudo_abort]:[this.rv,false,!!this.aborted,!!this.pseudo_abort];
+var v=(this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)?[this.rv,true,!!this.aborted,!!this.pseudo_abort,this.parent]:[this.rv,false,!!this.aborted,!!this.pseudo_abort,this.parent];
 
 
 val=this.ndata[3](this.env,v);

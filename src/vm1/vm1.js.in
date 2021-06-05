@@ -1659,8 +1659,8 @@ EF_Try.prototype.cont = function(idx, val) {
         // `try { hold(0); } finally(e) { console.log(e[4]); throw e; }`
         // gives the current ef.
         var v = is_cfx(this.rv) ?
-          [this.rv, true, !!this.aborted, !!this.pseudo_abort/*, this.parent*/] :
-          [this.rv, false, !!this.aborted, !!this.pseudo_abort/*, this.parent*/];
+          [this.rv, true, !!this.aborted, !!this.pseudo_abort, this.parent] :
+          [this.rv, false, !!this.aborted, !!this.pseudo_abort, this.parent];
         val = this.NDATA_TRY_FINALLY_BLOCK()(this.env, v);
       }
       else {
@@ -3130,7 +3130,7 @@ EF_Spawn.prototype.cont = function(idx, val) {
       this.notifyVal(UNDEF, true);
       this.notifyAborted(UNDEF);
 
-      // return the blb to our aborted target's parent synchronously:
+      // return the blr to our aborted target's parent synchronously:
       return this.returnToParent(val.eid === frame_to_abort.sid ? val.val : val);
     }
     else if (val.type === 'blb') {

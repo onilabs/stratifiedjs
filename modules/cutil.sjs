@@ -73,7 +73,8 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
 
      Any exceptions thrown from a sessioned background stratum will cause  `session_func` (and 
      any other running sessioned strata) to be aborted and the `withBackgroundStrata` call to throw
-     the exception.
+     the exception. If there are multiple exceptions, the final one will be thrown and previous ones logged
+     to stderr.
 
      [::IBackgroundStrataSession::wait] can be used to wait for completion of all currently 
      running sessioned background strata.
@@ -83,7 +84,13 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
 
      Blocklambda controlflow passing through a sessioned background stratum will be
      correctly routed through the session and cause `session_func` (and running sessioned strata) 
-     to be aborted. E.g.:
+     to be aborted. 
+
+     IMPORTANT LIMITATION: Note that the return scope must _enclose_ the `withBackgroundStrata` session. 
+     Trying to return/break to a scope that is _contained_ in the `withBackgroundStrata` session will fail
+     with an exception.
+
+     Example:
 
          // The following code logs:
          // 's1 running'
@@ -130,8 +137,14 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
       In the latter case, `f` will continue to execute in the background until
       it returns or is aborted (by virtue of the session being aborted or otherwise exited).
       
-      If `f` throws an exception it will cause the session to be aborted, and the exception 
-      to be thrown by the enclosing [::withBackgroundStrata] call.
+      If `f` throws an exception before `run` returns, `run` will throw the exception.
+
+      If `f` throws an exception after the `run` call returns, it will cause the session to be aborted, and the exception 
+      to be thrown by the enclosing [::withBackgroundStrata] call. If there are multiple exception
+      (either by background strata or by the enclosing [::withBackgroundStrata] call),
+      the final exception will be thrown and the previous ones reported on stderr.
+
+      See [::withBackgroundStrata] documentation for blocklambda return/break routing limitations.
 
    @function IBackgroundStrataSession.wait
    @summary Wait for all sessioned background strata to complete
@@ -175,12 +188,21 @@ function withBackgroundStrata(session) {
         if (!__oni_rt.is_ef(ef)) return;
         var background_stratum = spawn (function() {
           try { ef.wait(); /*background_task();*/ }
-          finally(e) {
-            if (e[1] /*exception*/ && !e[2] /* !abort */) {
-              // need to be careful about not leaking pending_rv into the execution frame
-              // hence the hackish 'null':
-              pending_rv = e[0],null;
-              kill();
+          finally(e) { 
+            if (e[1] /*exception*/ && e[0].type !== 'a') {
+              if (!!pending_rv) {
+                if (e[0].type === 't' /* thrown exception */) {
+                  if (pending_rv[0].type === 't') {
+                    console.warn("cutil::withBackgroundStrata: swallowing background exception '"+pending_rv[0].val+"'");
+                  }
+                  pending_rv = e;
+                }
+                // else... we don't override the pending rv
+              }
+              else
+                pending_rv = e;
+              if (!e[2] /* !abort */)
+                kill();
             }
             
             if (background_stratum)
@@ -190,8 +212,7 @@ function withBackgroundStrata(session) {
             throw [undefined];
           }
         })();
-        __js if (background_stratum.running())
-          add_stratum(background_stratum);
+        __js if (background_stratum.running()) add_stratum(background_stratum); 
         return background_stratum;
       },
       wait: function() {
@@ -208,7 +229,11 @@ function withBackgroundStrata(session) {
     };
     return session(itf);
   }
-  finally {
+  finally(e) {
+    // XXX This code might incorrectly prioritize blocklambda returns/breaks from finally clauses in background strata over
+    // blocklambda returns/breaks from the main session. Since this is a somewhat pathological case, we'll leave fixing it for 
+    // later.
+
     __js {
       // XXX there is probably a better way to do cleanup that doesn't involve
       // copying the full linked list
@@ -221,7 +246,41 @@ function withBackgroundStrata(session) {
       to_abort.forEach(s->s.abort());
     } // __js
     itf.wait();
-    if (pending_rv) return pending_rv;
+    if (!!pending_rv) {
+      if (e[1] /* exception */ && e[0].type === 't') {
+        if (pending_rv[0].type === 't') {
+          console.warn("cutil::withBackgroundStrata: swallowing background exception '"+pending_rv[0].val+"'");
+        }
+        pending_rv = e;
+      }
+      else {
+        if ((pending_rv[0].type === 'r' || pending_rv[0].type == 'blb') && pending_rv[0].eid) {
+          /*
+             Make sure the blklambda return is routable:
+
+             withBackgroundStrata can only route blocklambda returns/breaks where the return scope encloses 
+             the withBackgroundStrata session. Unfortunately the VM doesn't catch stray returns/breaks and lets
+             them bubble uncatchably to the top level.
+
+             The following code tries to determine callstack containment by checking the NECESSARY but 
+             NOT SUFFICIENT criterium that the closest sid is >= the targeted return sid. (I.e. that the return frame
+             was started *earlier* than the withBackgroundStrata session).
+
+             There are pathological constructions where this check doesn't catch unroutable returns/breaks... 
+             unfortunately these will produce an uncatchable error.
+           */
+          var parent = e[4],null;
+          var sid = 0;
+          __js while (parent) {
+            if (!!parent.sid) { sid = parent.sid; break; }
+            parent = parent.parent;
+          }
+          if (sid<pending_rv[0].eid) throw new Error("cutil::withBackgroundStrata: unroutable blocklambda return/break");
+        }
+      }
+      throw pending_rv;
+    }
+    throw e;
   }
 }
 
