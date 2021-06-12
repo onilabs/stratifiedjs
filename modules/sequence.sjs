@@ -3155,7 +3155,7 @@ each.par = function(/* seq, max_strata, r */...args) {
     seq .. each {
       |x|
       semaphore.acquire();
-      background_strata.run { 
+      background_strata.run({
         || 
         try {
           r(x);
@@ -3163,7 +3163,7 @@ each.par = function(/* seq, max_strata, r */...args) {
         finally {
           semaphore.release();
         }
-      }
+      }, true);
     }
 
     background_strata.wait();

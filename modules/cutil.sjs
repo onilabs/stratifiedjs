@@ -71,10 +71,11 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
      bound by the session. I.e. when `session_func` exits, any background strata still running in
      the session will be aborted.
 
-     Any exceptions thrown from a sessioned background stratum will cause  `session_func` (and 
-     any other running sessioned strata) to be aborted and the `withBackgroundStrata` call to throw
-     the exception. If there are multiple exceptions, the final one will be thrown and previous ones logged
-     to stderr.
+     Exceptions thrown from `session_func` itself or by any sessioned background stratum 
+     not 'waited on' by a [sjs:#language/builtins::Stratum::value] call will cause `session_func` 
+     (and, by implication, any other running sessioned strata) to be aborted and the 
+     `withBackgroundStrata` call to throw the exception. If there are multiple exceptions, 
+     the final one will be thrown and previous ones logged to stderr.
 
      [::IBackgroundStrataSession::wait] can be used to wait for completion of all currently 
      running sessioned background strata.
@@ -131,6 +132,7 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
    @function IBackgroundStrataSession.run
    @summary Execute a sessioned background stratum
    @param {Function} [f] Function to execute in background stratum
+   @param {Boolean} [ignore_return] If `true`, no reified stratum will be returned, leading to a performance gain of around 20% in the synchronous case.
    @return {sjs:#language/builtins::Stratum} Returns the executed stratum
    @desc
       Begins executing `f` and returns when `f` returns or blocks.
@@ -139,10 +141,10 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
       
       If `f` throws an exception before `run` returns, `run` will throw the exception.
 
-      If `f` throws an exception after the `run` call returns, it will cause the session to be aborted, and the exception 
-      to be thrown by the enclosing [::withBackgroundStrata] call. If there are multiple exception
-      (either by background strata or by the enclosing [::withBackgroundStrata] call),
-      the final exception will be thrown and the previous ones reported on stderr.
+      If `f` throws an exception after the `run` call returns, it will be routed to any 
+      pending [sjs:#language/builtins::Stratum::value] calls, or, if there are no such calls,
+      it will cause the session to be aborted, and the exception 
+      to be thrown by the enclosing [::withBackgroundStrata] call. 
 
       See [::withBackgroundStrata] documentation for blocklambda return/break routing limitations.
 
@@ -181,39 +183,64 @@ function withBackgroundStrata(session) {
   }
   or {
     var itf = {
-      run: function(background_task) {
+      run: function(background_task, ignore_return) {
         // this check prevents synchronous spawning after we've been killed (by e.g. a blocklambda break):
         if (killed) hold();
         __js var ef = background_task();
-        if (!__oni_rt.is_ef(ef)) return;
+        if (__js !__oni_rt.is_ef(ef)) {
+          if (ignore_return)
+            return;
+          else
+            return spawn(ef);
+        }
         var background_stratum = spawn (function() {
           try { ef.wait(); /*background_task();*/ }
-          finally(e) { 
-            if (e[1] /*exception*/ && e[0].type !== 'a') {
-              if (!!pending_rv) {
-                if (e[0].type === 't' /* thrown exception */) {
-                  if (pending_rv[0].type === 't') {
+          finally(e) {
+            var rv;
+            if (!e[1] /*!exception*/) {
+              // make sure we pass through values:
+              // this needs to be __js, so that the return doesn't cause a return.
+              __js rv = [e[0] !== undefined? __oni_rt.Return(e[0])];
+            }
+            else if (e[0].type !== 'a') {
+              if (e[0].type === 't' /* 'real' exception */) {
+                if (background_stratum && background_stratum.waiting() > 0) {
+                  // route exception to waiting 'value' call:
+                  rv = e;
+                }
+                else {
+                  // route exception to withBackgroundStrata session:
+                  if (!!pending_rv && pending_rv[0].type === 't') {
                     console.warn("cutil::withBackgroundStrata: swallowing background exception '"+pending_rv[0].val+"'");
                   }
                   pending_rv = e;
+                  rv = [undefined];
+                  if (!e[2] /* !abort */) kill();
                 }
-                // else... we don't override the pending rv
               }
-              else
-                pending_rv = e;
-              if (!e[2] /* !abort */)
-                kill();
+              else {  // control flow exception
+                // don't override existing pending_rv:
+                if (!pending_rv) {
+                  pending_rv = e;
+                }
+                rv = [undefined];
+                if (!e[2] /* !abort */) kill();
+              }
+            }
+            else {
+              rv = [undefined];
             }
             
-            if (background_stratum)
+            if (background_stratum) {
               remove_stratum(background_stratum);
-
+              background_stratum = undefined;
+            }
             // prevent further processing
-            throw [undefined];
+            throw rv;
           }
         })();
         __js if (background_stratum.running()) add_stratum(background_stratum); 
-        return background_stratum;
+        return ignore_return ? undefined : background_stratum;
       },
       wait: function() {
         if (strata._next === strata) return;

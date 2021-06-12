@@ -599,9 +599,12 @@
 @summary Returns the value of the spawned stratum expression
 @desc
 
-  If the stratum isn't finished yet, `value` blocks until it is.
-  If the stratum threw an exception, `value` throws this exception.
-  If the stratum was aborted (through a call to [::Stratum::abort]), `value` throws a [cutil::StratumAborted] exception _immediately_ (before executing any retract calls on the stratum)
+  - If the stratum isn't finished yet, `value()` blocks until it is.
+  - If the stratum threw an exception, `value()` throws this exception.
+  - If the stratum was aborted (through a call to [::Stratum::abort]), `value()` throws a [cutil::StratumAborted] exception _immediately_ (before executing any retract calls on the stratum)
+  - If a stratum is exited with blocklambda controlflow (blocklambda return or break), `value()` will yield `undefined`.
+  - 'Waiting on' a pending stratum with `value()` prevents exceptions thrown from the stratum from becoming uncatchable and aborting the current process.
+  
 
 @function Stratum.waiting
 @summary Return the number of strata currently waiting for the spawned stratum to finish

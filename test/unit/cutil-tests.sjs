@@ -1149,4 +1149,45 @@ context('withBackgroundStrata') {||
       }
 
     }
+
+  test('wait for return') { ||
+    @withBackgroundStrata {
+      |strata|
+      var S = strata.run(()-> 'x');
+      assert.eq(S.value(), 'x');
+
+      var A = strata.run(()-> (hold(0),'y'));
+      var A2 = strata.run(function() { hold(0); return 'z';});
+      assert.eq(A.value(), 'y');
+      assert.eq(A2.value(), 'z');
+      
+      try {
+        // sync exception
+        var E = strata.run(function() { throw 'e'; });
+      }
+      catch(e) {
+        assert.eq(e,'e');
+      }
+
+      try {
+        // async exception
+        var E = strata.run(function() { hold(0); throw 'e'; });
+        E.value(); // this catches the exception
+      }
+      catch(e) {
+        assert.eq(e,'e');
+      }
+      strata.wait();
+    }
+  }
+
+  test('ignore return') {||
+    @withBackgroundStrata {
+      |strata|
+      var S = strata.run(()->'x', true);
+      assert.eq(S,undefined);
+      var A = strata.run(()->(hold(0),'x'), true);
+      assert.eq(A,undefined);
+    }
+  }
 }
