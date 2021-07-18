@@ -962,7 +962,9 @@ this.l=val;
 
 }
 var rv;
-while(this.i<this.ndata.length){
+var args_length=this.ndata.length;
+if(this.ndata[0]&4)--args_length;
+while(this.i<args_length){
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
@@ -992,12 +994,29 @@ this.child_frame=UNDEF;
 
 
 try{
-switch(this.ndata[0]){case 0:
 
+var pars;
+
+if(this.ndata[0]&4){
+pars=[];
+var spreads=this.ndata[this.ndata.length-1];
+for(var i=0;i<this.pars.length;++i){
+if(spreads[0]===i){
+pars=pars.concat(this.pars[i]);
+spreads.shift();
+}else pars.push(this.pars[i]);
+
+
+}
+}else pars=this.pars;
+
+
+
+switch(this.ndata[0]&3){case 0:
 
 
 if(typeof this.l=="function"){
-rv=this.l.apply(null,this.pars);
+rv=this.l(...pars);
 }else if(!testIsFunction(this.l)){
 
 rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
@@ -1008,14 +1027,16 @@ rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1]
 
 
 
-var command="this.l(";
-for(var i=0;i<this.pars.length;++i){
-if(i)command+=",";
-command+="this.pars["+i+"]";
-}
-command+=")";
+
+
+
+
+
+
+
 try{
-rv=eval(command);
+this.l(...pars);
+
 }catch(e){
 
 
@@ -1042,7 +1063,7 @@ rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a fu
 
 
 
-rv=this.l[0][this.l[1]].apply(this.l[0],this.pars);
+rv=this.l[0][this.l[1]].apply(this.l[0],pars);
 }else if((UA!=="msie")&&!testIsFunction(this.l[0][this.l[1]])){
 
 
@@ -1065,10 +1086,11 @@ rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function")
 
 
 
+
 var command="this.l[0][this.l[1]](";
-for(var i=0;i<this.pars.length;++i){
+for(var i=0;i<pars.length;++i){
 if(i)command+=",";
-command+="this.pars["+i+"]";
+command+="pars["+i+"]";
 }
 command+=")";
 
@@ -1093,8 +1115,7 @@ break;
 case 2:
 
 var ctor=this.l;
-var pars=this.pars;
-rv=new ctor(... pars);
+rv=new ctor(...pars);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 if(!rv.env)throw new Error("Invalid constructor function (no environment)");
 this.o=rv.env.tobj;
@@ -3391,6 +3412,19 @@ return sus;
 exports.Throw=function(exp,line,file){return new CFException("t",exp,line,file)};
 
 exports.Arr=function(...args){return args};
+
+exports.ArrS=function(spreads,...args){var rv=[];
+
+for(var i=0;i<args.length;++i){
+if(spreads[0]===i){
+rv=rv.concat(args[i]);
+spreads.shift();
+}else rv.push(args[i]);
+
+
+}
+return rv;
+};
 
 exports.Obj=function(...args){var obj=new Object();
 

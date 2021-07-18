@@ -397,6 +397,7 @@ function gen_crf(crf) {
 #define GEN_ASSIGN_OP(left, id, right, pctx, ext) \
   if (id == '=') top_scope(pctx).assignments.push([left, right]); \
   return right;
+#define GEN_SPREAD(right, pctx, ext) return right;
 #define GEN_PREFIX_OP(id, right, pctx, ext) return right;
 #define GEN_POSTFIX_OP(left, id, pctx, ext) return left;
 

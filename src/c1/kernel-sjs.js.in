@@ -705,6 +705,7 @@ ph_bl_return.prototype = new ph(WHENDEBUG("ph_bl_return"));
 ph_bl_return.prototype.val = function() {
   var v = this.exp ? ","+this.exp.v() : "";
   return "__oni_rt.Sc("+this.line+",__oni_rt.BlReturn"+v+")";
+//  return "__oni_rt.BlR("+this.line+v+")"; 
 };
 
 #else
@@ -1176,6 +1177,12 @@ ph_assign_op.prototype.val = function() {
     return rv;
 };
 
+#define GEN_SPREAD(right, pctx, ext) return gen_spread(right);
+function gen_spread(right) {
+  right.spread = true;
+  return right;
+}
+
 #define GEN_PREFIX_OP(id, right, pctx, ext) return new ph_prefix_op(id, right, pctx);
 function ph_prefix_op(id, right, pctx) {
   this.id = id;
@@ -1187,13 +1194,13 @@ function ph_prefix_op(id, right, pctx) {
     pctx.decl_scopes[pctx.decl_scopes.length-1].notail = true;
     this.is_nblock = false;
   }
-  else if (id === '...') {
-    // XXX Setting is_nblock to false will cause every use apart from within '__js' blocks
-    // to throw an error ("Spread syntax is only supported in __js blocks").
-    // Allowing nblock would enable spread syntax in some cases (e.g. [...x]), but break
-    // with bad error reporting in others.
-    this.is_nblock = false;
-  }
+//  else if (id === '...') {
+//    // XXX Setting is_nblock to false will cause every use apart from within '__js' blocks
+//    // to throw an error ("Spread syntax is only supported in __js blocks").
+//    // Allowing nblock would enable spread syntax in some cases (e.g. [...x]), but break
+//    // with bad error reporting in others.
+//    this.is_nblock = false;
+//  }
   else {
     this.is_nblock = (pctx.allow_nblock && right.is_nblock);
   }
@@ -1207,8 +1214,8 @@ ph_prefix_op.prototype.val = function() {
   var rv;
   if (this.id == "spawn")
     rv = "__oni_rt.Spawn("+this.line+","+this.right.v()+")";
-  else if (this.id === '...')
-    throw new Error("Unexpected '...' - spread syntax is only supported in __js blocks");
+//  else if (this.id === '...')
+//    throw new Error("Unexpected '...' - spread syntax is only supported in __js blocks");
   else if (this.right.is_nblock) {
     // this clause is essential for things like "++i".
     // i.e. where "i" needs to be treated like a reference. they can't be encoded
@@ -1506,6 +1513,7 @@ ph_fun_call.prototype.nblock_val = function() {
     var rv = this.l.nb() + "(";
     for (var i=0; i<this.args.length;++i) {
       if (i) rv += ",";
+      if (this.args[i].spread) rv += '...';
       rv += this.args[i].nb();
     }
     return rv +")";
@@ -1516,23 +1524,40 @@ ph_fun_call.prototype.val = function() {
       rv = this.l.nb() + "(";
       for (var i=0; i<this.args.length;++i) {
         if (i) rv += ",";
+        if (this.args[i].spread) rv += '...';
         rv += this.args[i].nb();
       }
       return "__oni_rt.C(function(){return "+rv+")},"+this.line+")";
     }
-    else if (this.l.is_ref) {
-      rv = "__oni_rt.Fcall(1,"+this.line+","+this.l.ref();
-    }
-    // XXX could have an Scall form here?? (iff this.l is nb)
     else {
-      // 'normal' non-reference function call
-      rv = "__oni_rt.Fcall(0,"+this.line+","+this.l.v();
+      var args = '', spreads = [];
+      for (var i=0; i<this.args.length; ++i) {
+        if (this.args[i].spread) spreads.push(i);
+        args += ","+this.args[i].v();
+      }
+
+      var flags;
+      if (spreads.length) {
+        var flags = 4 /* FCALL_FLAG_SPREAD */;
+        args += ",["+spreads+"]";
+      }
+      else
+        flags = 0;
+
+      if (this.l.is_ref) {
+        flags |= 1 /* FCALL_MODE_REFERENCE */;
+        rv = "__oni_rt.Fcall("+flags+","+this.line+","+this.l.ref();
+      }
+      // XXX could have an Scall form here?? (iff this.l is nb)
+      else {
+        // 'normal' non-reference function call
+        //flags |= 0 /* FCALL_MODE_NORMAL */;
+        rv = "__oni_rt.Fcall("+flags+","+this.line+","+this.l.v();
+      }
+
+      rv += args + ")";
+      return rv;
     }
-    for (var i=0; i<this.args.length; ++i) {
-      rv += ","+this.args[i].v();
-    }
-    rv += ")";
-    return rv;
 };
 
 #define GEN_DOT_ACCESSOR(l, name, pctx, ext) return new ph_dot_accessor(l, name, pctx);
@@ -1642,16 +1667,25 @@ ph_arr_lit.prototype.nblock_val = function() {
     var rv = "[";
     for (var i=0; i<this.elements.length; ++i) {
       if (i) rv += ",";
-      rv += this.elements[i].nb();
+      rv += (this.elements[i].spread ? '...' : '') +this.elements[i].nb();
     }
     return rv + "]";
 };
 ph_arr_lit.prototype.val = function() {
-    var rv = "__oni_rt.Sc("+this.line+",__oni_rt.Arr";
-    for (var i=0; i<this.elements.length; ++i) {
-      rv += ","+this.elements[i].v();
+  var spreads = [];
+  for (var i=0; i<this.elements.length; ++i) {
+    if (this.elements[i].spread) {
+      spreads.push(i);
     }
-    return rv + ")";
+  }
+  var rv = "__oni_rt.Sc("+this.line+",__oni_rt.Arr";
+  if (spreads.length) {
+    rv += 'S,['+spreads+']';
+  }
+  for (var i=0; i<this.elements.length; ++i) {
+    rv += ","+this.elements[i].v();
+  }
+  return rv + ")";
 };
 #ifdef SJS_DESTRUCTURE
 ph_arr_lit.prototype.destruct = function(dpath, drefs) {
@@ -1799,18 +1833,26 @@ ph_new.prototype.nblock_val = function() {
   var rv = "new "+this.exp.nb()+"(";
   for (var i=0; i<this.args.length; ++i) {
     if (i) rv += ",";
+    if (this.args[i].spread) rv += '...';
     rv += this.args[i].nb();
   }
   return rv+")";
 };
 
 ph_new.prototype.val = function() {
-    var rv = "__oni_rt.Fcall(2,"+this.line+","+this.exp.v();
-    for (var i=0; i<this.args.length; ++i) {
-      rv += ","+this.args[i].v();
-    }
-    rv += ")";
-    return rv;
+  var args = '', spreads = [];
+  for (var i=0; i<this.args.length; ++i) {
+    if (this.args[i].spread) spreads.push(i);
+    args += ","+this.args[i].v();
+  }
+  var flags = 2 /* FCALL_MODE_NEW */;
+  if (spreads.length) {
+    flags |= 4 /* FCALL_FLAG_SPREAD */;
+    args += ",["+spreads+"]";
+  }
+  var rv = "__oni_rt.Fcall("+flags+","+this.line+","+this.exp.v();
+  rv += args + ")";
+  return rv;
 };
 
 

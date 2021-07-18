@@ -1500,18 +1500,17 @@ function take(sequence, count) {
   return Stream(function(r) {
     var n = count; 
     if (n <= 0) return;
-    var ret = ({ || return; });
-    var sync_f = __js function(x){ 
-      var inner = r(x); 
+    __js var sync_f = ret -> function(x){ 
+      var inner = r(x);
       if (__oni_rt.is_ef(inner))
-        return async_f(inner);
+        return async_f(inner, ret);
       if (--n<=0)return ret();
     };
-    var async_f = function(ef) {
+    var async_f = function(ef, ret) {
       ef.wait();
       if (--n<=0) ret();
-    }
-    sequence .. each(sync_f);
+    };
+    (ret -> sequence .. each(sync_f(ret))){|| return };
   });
 }
 exports.take = take;
@@ -1571,28 +1570,26 @@ function takeUntil(seq, fn) {
   });
 };
 */
-
 function takeUntil(seq, fn) {
   return Stream(function(r) {
-    var ret = ({ || return; });
-    var sync_f = __js function(x) {
+    __js var sync_f = ret -> function(x) {
       var inner = r(x);
       if (__oni_rt.is_ef(inner))
-        return async_f(inner, x);
+        return async_f(inner, x, ret);
       var pred = fn(x);
       if (__oni_rt.is_ef(pred))
-        return async_pred(pred);
+        return async_pred(pred, ret);
       if (pred) return ret();
     };
-    var async_f = function(ef, x) {
+    var async_f = function(ef, x, ret) {
       ef.wait();
       if (fn(x)) ret();
     };
-    var async_pred = function(pred_ef) {
+    var async_pred = function(pred_ef, ret) {
       var val = pred_ef.wait();
       if (val) ret();
-    }
-    seq .. each(sync_f);
+    };
+    (ret -> seq .. each(sync_f(ret))){|| return};
   });
 }
 exports.takeUntil = takeUntil;

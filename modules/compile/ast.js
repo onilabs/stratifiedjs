@@ -206,7 +206,8 @@ GEN_INFIX_OP(left, id, right, pctx)
 GEN_ASSIGN_OP(left, id, right, pctx)
   id: = *= /= %= += -= <<= >>= >>>= &= ^= |=
 GEN_PREFIX_OP(id, right, pctx)
-  id: ++ -- delete void typeof + - ~ ! ... (for SJS also: 'spawn')
+  id: ++ -- delete void typeof + - ~ ! (for SJS also: 'spawn')
+GEN_SPREAD(right, pctx): '...' when used as spread. rest arguments gets '...' merged into name 
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
 GEN_LITERAL(type, value, pctx)
@@ -995,6 +996,7 @@ Node.TryStatement.prototype.handlers = [];
 
 
 
+
 // note the intentional space in ' =>' below; it is to fix cases like '= => ...'
 
 function gen_doubledot_call(l, r, pctx, ext) {
@@ -1184,6 +1186,9 @@ var TOKENIZER_IS = /((?:\\[^\r\n]|\#(?!\{)|[^#\\\"\r\n])+)|(\\(?:\r\n|\n|\r))|((
 var TOKENIZER_QUASI = /((?:\\[^\r\n]|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\(?:\r\n|\n|\r))|((?:\r\n|\n|\r))|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
 
 
+
+//----------------------------------------------------------------------
+// Expression starter flags
 
 //----------------------------------------------------------------------
 // Syntax Table
@@ -1433,7 +1438,7 @@ expressions up to BP 100
 
 S("[").
   // array literal
-  exs(function(pctx) {
+  exs(function(pctx, exs_flags) {
     push_extent(pctx, null, 'GEN_ARR_LIT');
     var elements = [];
     while (pctx.token.id != "]") {
@@ -1444,7 +1449,7 @@ S("[").
       else if (pctx.token.id == "]")
         break; // allows trailing ','
       else
-        elements.push(parseExp(pctx, 110));
+        elements.push(parseExp(pctx, 110, undefined, exs_flags|2));
     }
     scan(pctx, "]");
     
@@ -1484,7 +1489,7 @@ S(".").exc(270, function(l, pctx) {
 function is_arrow(id) { return id === '=>' || id === '->'; }
 
 //S("...").pre(119);
-S("...").exs(function(pctx) {
+S("...").exs(function(pctx, exs_flags) {
   // XXX hackish... identify '...x' rest parameter for arrow function
   // function/blb-lambda param list rest params are handled elsewhere.
   var lookahead_pctx = Object.assign({}, pctx);
@@ -1494,13 +1499,19 @@ S("...").exs(function(pctx) {
     scan(pctx);
     return tok.exsf(pctx);
   }
-  else {
-      push_extent(pctx, this, 'pre');
+  else if ((exs_flags & 2) /*&& pctx.token.id == "<id>"*/) {
+    //var tok = pctx.token;
+    //tok.value = "..."+tok.value;
+    //scan(pctx);
+    //return tok.exsf(pctx);
+    
+      push_extent(pctx, this, 'GEN_SPREAD');
       var right = parseExp(pctx, 119);
       
       end_extent(pctx, right);
-      return UnaryExpression(pctx, pop_extent(pctx, 'GEN_PREFIX_OP'), '...', right, true);
+      return UnaryExpression(pctx, etc, '...', right, true);
   }
+  else throw new Error("Unexpected '...'");
 });
 
 S("new").exs(function(pctx) {
@@ -1511,7 +1522,7 @@ S("new").exs(function(pctx) {
     scan(pctx); // swallow '('
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
-      args.push(parseExp(pctx, 110));
+      args.push(parseExp(pctx, 110, undefined, 2));
     }
     end_extent(pctx, pctx.token);
     scan(pctx, ")");
@@ -1522,7 +1533,7 @@ S("new").exs(function(pctx) {
 
 S("(").
   // grouping/parameter list
-  exs(function (pctx) {
+  exs(function (pctx, exs_flags) {
     if (pctx.token.id == ')') {
       // empty parameter list
       var op = scan(pctx, ')');
@@ -1533,7 +1544,7 @@ S("(").
       return op.exsf(pctx);
     }
     push_extent(pctx, null, 'GEN_GROUP');
-    var e = parseExp(pctx);
+    var e = parseExp(pctx, 0, undefined, exs_flags);
     var closer = pctx.token;
     end_extent(pctx, closer);
     scan(pctx, ")");
@@ -1551,7 +1562,7 @@ S("(").
     var args = [];
     while (pctx.token.id != ")") {
       if (args.length) scan(pctx, ",");
-      args.push(parseExp(pctx, 110)); // only parse up to comma
+      args.push(parseExp(pctx, 110, undefined, 1 | 2)); // only parse up to comma
     }
     end_extent(pctx, pctx.token);
     scan(pctx, ")");
@@ -1759,11 +1770,13 @@ function parseBlockLambda(start, pctx) {
 }
 
 S("{").
-  exs(function(pctx) {
+  exs(function(pctx, exs_flags) {
     var start = pctx.token.id;
     if (start == "|" || start == "||") {
       // block lambda */
-      return parseBlockLambda(start, pctx);
+      if (exs_flags & 1)
+        return parseBlockLambda(start, pctx);
+      else throw new Error("Blocklambdas are only allowed in function calls");
     }
     else {
       // object literal:
@@ -1779,7 +1792,7 @@ S("{").
         if (pctx.token.id == ":") {
           // 'normal' property
           scan(pctx);
-          var exp = parseExp(pctx, 110); // only parse up to comma
+          var exp = parseExp(pctx, 110, undefined, exs_flags); // only parse up to comma
           props.push(["prop",prop,exp]);
         }
         else if (pctx.token.id == "}" || pctx.token.id == ",") {
@@ -1840,6 +1853,8 @@ function parseFunctionBody(pctx) {
 }
 
 function parseFunctionParam(pctx) {
+  // this function will allow some expressions that are invalid in a parameter list.
+  // we catch those in the kernel.
   var t = pctx.token;
   scan(pctx);
   var left = t.exsf(pctx);
@@ -2597,7 +2612,7 @@ function parseStmt(pctx) {
 }
 
 // bp: binding power of enclosing exp, t: optional next token
-function parseExp(pctx, bp, t) {
+function parseExp(pctx, bp, t, exs_flags) {
   bp = bp || 0;
   if (!t) {
     t = pctx.token;
@@ -2605,7 +2620,7 @@ function parseExp(pctx, bp, t) {
   }
   var _ast_extentLength = pctx.extents ? pctx.extents.length : null;
   push_extent(pctx, t, 'parseExp');
-  var left = t.exsf(pctx);
+  var left = t.exsf(pctx, exs_flags);
   while (bp < pctx.token.excbp) {
     // automatic semicolon insertion:
     if (pctx.newline && t.asi_restricted)

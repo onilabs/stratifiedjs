@@ -1067,13 +1067,18 @@ function testIsFunction(f) {
 
 // structure of ndata array:
 // mode: 0: normal call, 1: reference call, 2: 'new' call
-#define NDATA_FCALL_MODE() ndata[0]
+#define FCALL_MODE_NORMAL    0
+#define FCALL_MODE_REFERENCE 1
+#define FCALL_MODE_NEW       2
+#define FCALL_FLAGS_MODE_MASK 3
+#define FCALL_FLAG_SPREAD 4
+#define NDATA_FCALL_FLAGS() ndata[0]
 #define NDATA_FCALL_LINE() ndata[1]
 #define NDATA_L_INDEX 2
 #define NDATA_FCALL_L() ndata[2]
 #define NDATA_FCALL_ARGS_OFFSET 3
 // ndata[NDATA_FCALL_ARGS_OFFSET..end] : fcall args
-
+// if FCALL_FLAG_SPREAD is set, then last arg is array of 0-based indices of args that should be spread (...)
 /*
   continuation index:
    0 : start
@@ -1113,7 +1118,9 @@ EF_Fcall.prototype.cont = function(idx, val) {
         this.pars.push(val);
     }
     var rv;
-    while (this.i<this.ndata.length) {
+    var args_length = this.ndata.length;
+    if (this.NDATA_FCALL_FLAGS() & FCALL_FLAG_SPREAD) --args_length;
+    while (this.i<args_length) {
       rv = execIN(this.ndata[this.i], this.env);
       if (this.aborted) {
         // a reentrant abortion
@@ -1143,12 +1150,29 @@ EF_Fcall.prototype.cont = function(idx, val) {
 
     // alright, we've got the left side + pars, let's do the call:
     try {
-      switch (this.NDATA_FCALL_MODE()) {
-      case 0:
+
+      var pars;
+
+      if (this.NDATA_FCALL_FLAGS() & FCALL_FLAG_SPREAD) {
+        pars = [];
+        var spreads = this.ndata[this.ndata.length-1];
+        for (var i=0; i<this.pars.length;++i) {
+          if (spreads[0] === i) {
+            pars = pars.concat(this.pars[i]);
+            spreads.shift();
+          }
+          else
+            pars.push(this.pars[i]);
+        }
+      }
+      else 
+        pars = this.pars;
+
+      switch (this.NDATA_FCALL_FLAGS() & FCALL_FLAGS_MODE_MASK) {
+      case FCALL_MODE_NORMAL:
       // 'normal' call
-      // this optimization gives at least 10% performance boost vs 'eval'
       if (typeof this.l == "function") {
-        rv = this.l.apply(null, this.pars);
+        rv = this.l(...pars);
       } 
       else if (!testIsFunction(this.l)) {
         rv = new CFException("t",
@@ -1159,14 +1183,16 @@ EF_Fcall.prototype.cont = function(idx, val) {
       else {
         // a 'builtin' (on IE, maybe others)
         // can't call apply on it
-        var command = "this.l(";
-        for (var i=0; i<this.pars.length; ++i) {
-          if (i) command +=",";
-          command += "this.pars["+i+"]";
-        }
-        command += ")";
+        // XXX is this still a thing?
+        //        var command = "this.l(";
+        //        for (var i=0; i<pars.length; ++i) {
+        //          if (i) command +=",";
+        //          command += "pars["+i+"]";
+        //        }
+        //        command += ")";
         try {
-          rv = eval(command);
+          this.l(...pars);
+        //          rv = eval(command);
         }
         catch (e) {
           // we have a bit of a problem now... the command could have
@@ -1182,7 +1208,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
         }
       }
       break;
-      case 1:
+      case FCALL_MODE_REFERENCE:
       // 'reference' call
       if (typeof this.l[0] === 'undefined') {
         rv = new CFException("t",
@@ -1193,7 +1219,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       else if (typeof this.l[0][this.l[1]] == "function") {
         // 'normal' function
         // XXX not sure this is actually faster or better than 'eval' below
-        rv = this.l[0][this.l[1]].apply(this.l[0], this.pars);
+        rv = this.l[0][this.l[1]].apply(this.l[0], pars);
       }
       else if (
 #ifdef CLIENTSIDE
@@ -1218,10 +1244,11 @@ EF_Fcall.prototype.cont = function(idx, val) {
       else {
         // a 'builtin' (on IE, maybe others)
         // can't call apply on it
+        // XXX is this still a thing?
         var command = "this.l[0][this.l[1]](";
-        for (var i=0; i<this.pars.length; ++i) {
+        for (var i=0; i<pars.length; ++i) {
           if (i) command +=",";
-          command += "this.pars["+i+"]";
+          command += "pars["+i+"]";
         }
         command += ")";
 
@@ -1243,10 +1270,9 @@ EF_Fcall.prototype.cont = function(idx, val) {
         }
       }
       break;
-      case 2:
+      case FCALL_MODE_NEW:
         // 'new' call
         var ctor = this.l;
-        var pars = this.pars;
         rv = new ctor(...pars);
         if (is_ef(rv)) {
           if (!rv.env) throw new Error("Invalid constructor function (no environment)");
@@ -3732,6 +3758,19 @@ exports.Hold = function(duration_ms) {
 exports.Throw = function(exp, line, file) { return new CFException("t", exp, line, file); };
 
 exports.Arr = function(...args) { return args };
+
+exports.ArrS = function(spreads, ...args) {
+  var rv = [];
+  for (var i=0; i<args.length; ++i) {
+    if (spreads[0] === i) {
+      rv = rv.concat(args[i]);
+      spreads.shift();
+    }
+    else
+      rv.push(args[i]);
+  }
+  return rv;
+};
 
 exports.Obj = function(...args) {
   // note comment in kernel-sjs.js.in::ph_obj_lit about the way props

@@ -962,7 +962,9 @@ this.l=val;
 
 }
 var rv;
-while(this.i<this.ndata.length){
+var args_length=this.ndata.length;
+if(this.ndata[0]&4)--args_length;
+while(this.i<args_length){
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
@@ -992,12 +994,29 @@ this.child_frame=UNDEF;
 
 
 try{
-switch(this.ndata[0]){case 0:
 
+var pars;
+
+if(this.ndata[0]&4){
+pars=[];
+var spreads=this.ndata[this.ndata.length-1];
+for(var i=0;i<this.pars.length;++i){
+if(spreads[0]===i){
+pars=pars.concat(this.pars[i]);
+spreads.shift();
+}else pars.push(this.pars[i]);
+
+
+}
+}else pars=this.pars;
+
+
+
+switch(this.ndata[0]&3){case 0:
 
 
 if(typeof this.l=="function"){
-rv=this.l.apply(null,this.pars);
+rv=this.l(...pars);
 }else if(!testIsFunction(this.l)){
 
 rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
@@ -1008,14 +1027,16 @@ rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1]
 
 
 
-var command="this.l(";
-for(var i=0;i<this.pars.length;++i){
-if(i)command+=",";
-command+="this.pars["+i+"]";
-}
-command+=")";
+
+
+
+
+
+
+
 try{
-rv=eval(command);
+this.l(...pars);
+
 }catch(e){
 
 
@@ -1042,7 +1063,7 @@ rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a fu
 
 
 
-rv=this.l[0][this.l[1]].apply(this.l[0],this.pars);
+rv=this.l[0][this.l[1]].apply(this.l[0],pars);
 }else if((UA!=="msie")&&!testIsFunction(this.l[0][this.l[1]])){
 
 
@@ -1065,10 +1086,11 @@ rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function")
 
 
 
+
 var command="this.l[0][this.l[1]](";
-for(var i=0;i<this.pars.length;++i){
+for(var i=0;i<pars.length;++i){
 if(i)command+=",";
-command+="this.pars["+i+"]";
+command+="pars["+i+"]";
 }
 command+=")";
 
@@ -1093,8 +1115,7 @@ break;
 case 2:
 
 var ctor=this.l;
-var pars=this.pars;
-rv=new ctor(... pars);
+rv=new ctor(...pars);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 if(!rv.env)throw new Error("Invalid constructor function (no environment)");
 this.o=rv.env.tobj;
@@ -3392,6 +3413,19 @@ exports.Throw=function(exp,line,file){return new CFException("t",exp,line,file)}
 
 exports.Arr=function(...args){return args};
 
+exports.ArrS=function(spreads,...args){var rv=[];
+
+for(var i=0;i<args.length;++i){
+if(spreads[0]===i){
+rv=rv.concat(args[i]);
+spreads.shift();
+}else rv.push(args[i]);
+
+
+}
+return rv;
+};
+
 exports.Obj=function(...args){var obj=new Object();
 
 
@@ -3499,6 +3533,7 @@ exports.UA=UA;
 
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
+
 
 
 
@@ -4406,6 +4441,7 @@ ph_bl_return.prototype=new ph();
 ph_bl_return.prototype.val=function(){var v=this.exp?","+this.exp.v():"";
 
 return "__oni_rt.Sc("+this.line+",__oni_rt.BlReturn"+v+")";
+
 };
 
 
@@ -4818,6 +4854,11 @@ rv="__oni_rt.Sc("+this.line+",(l,r)=>l[0][l[1]]"+this.id+"r,"+this.left.ref()+",
 return rv;
 };
 
+function gen_spread(right){right.spread=true;
+
+return right;
+}
+
 function ph_prefix_op(id,right,pctx){this.id=id;
 
 this.right=right;
@@ -4827,14 +4868,14 @@ if(id==='spawn'){
 
 pctx.decl_scopes[pctx.decl_scopes.length-1].notail=true;
 this.is_nblock=false;
-}else if(id==='...'){
-
-
-
-
-
-this.is_nblock=false;
 }else{
+
+
+
+
+
+
+
 
 this.is_nblock=(pctx.allow_nblock&&right.is_nblock);
 }
@@ -4846,7 +4887,7 @@ ph_prefix_op.prototype.nblock_val=function(){return this.id+" "+this.right.nb();
 };
 ph_prefix_op.prototype.val=function(){var rv;
 
-if(this.id=="spawn")rv="__oni_rt.Spawn("+this.line+","+this.right.v()+")";else if(this.id==='...')throw new Error("Unexpected '...' - spread syntax is only supported in __js blocks");else if(this.right.is_nblock){
+if(this.id=="spawn")rv="__oni_rt.Spawn("+this.line+","+this.right.v()+")";else if(this.right.is_nblock){
 
 
 
@@ -5116,6 +5157,7 @@ ph_fun_call.prototype.nblock_val=function(){var rv=this.l.nb()+"(";
 
 for(var i=0;i<this.args.length;++i){
 if(i)rv+=",";
+if(this.args[i].spread)rv+='...';
 rv+=this.args[i].nb();
 }
 return rv+")";
@@ -5126,23 +5168,40 @@ if(this.nblock_form){
 rv=this.l.nb()+"(";
 for(var i=0;i<this.args.length;++i){
 if(i)rv+=",";
+if(this.args[i].spread)rv+='...';
 rv+=this.args[i].nb();
 }
 return "__oni_rt.C(function(){return "+rv+")},"+this.line+")";
-}else if(this.l.is_ref){
+}else{
 
-rv="__oni_rt.Fcall(1,"+this.line+","+this.l.ref();
+var args='',spreads=[];
+for(var i=0;i<this.args.length;++i){
+if(this.args[i].spread)spreads.push(i);
+args+=","+this.args[i].v();
+}
+
+var flags;
+if(spreads.length){
+var flags=4;
+args+=",["+spreads+"]";
+}else flags=0;
+
+
+
+if(this.l.is_ref){
+flags|=1;
+rv="__oni_rt.Fcall("+flags+","+this.line+","+this.l.ref();
 }else{
 
 
 
-rv="__oni_rt.Fcall(0,"+this.line+","+this.l.v();
+
+rv="__oni_rt.Fcall("+flags+","+this.line+","+this.l.v();
 }
-for(var i=0;i<this.args.length;++i){
-rv+=","+this.args[i].v();
-}
-rv+=")";
+
+rv+=args+")";
 return rv;
+}
 };
 
 function ph_dot_accessor(l,name,pctx){this.l=l;
@@ -5234,12 +5293,21 @@ ph_arr_lit.prototype.nblock_val=function(){var rv="[";
 
 for(var i=0;i<this.elements.length;++i){
 if(i)rv+=",";
-rv+=this.elements[i].nb();
+rv+=(this.elements[i].spread?'...':'')+this.elements[i].nb();
 }
 return rv+"]";
 };
-ph_arr_lit.prototype.val=function(){var rv="__oni_rt.Sc("+this.line+",__oni_rt.Arr";
+ph_arr_lit.prototype.val=function(){var spreads=[];
 
+for(var i=0;i<this.elements.length;++i){
+if(this.elements[i].spread){
+spreads.push(i);
+}
+}
+var rv="__oni_rt.Sc("+this.line+",__oni_rt.Arr";
+if(spreads.length){
+rv+='S,['+spreads+']';
+}
 for(var i=0;i<this.elements.length;++i){
 rv+=","+this.elements[i].v();
 }
@@ -5371,17 +5439,25 @@ ph_new.prototype.nblock_val=function(){var rv="new "+this.exp.nb()+"(";
 
 for(var i=0;i<this.args.length;++i){
 if(i)rv+=",";
+if(this.args[i].spread)rv+='...';
 rv+=this.args[i].nb();
 }
 return rv+")";
 };
 
-ph_new.prototype.val=function(){var rv="__oni_rt.Fcall(2,"+this.line+","+this.exp.v();
+ph_new.prototype.val=function(){var args='',spreads=[];
 
 for(var i=0;i<this.args.length;++i){
-rv+=","+this.args[i].v();
+if(this.args[i].spread)spreads.push(i);
+args+=","+this.args[i].v();
 }
-rv+=")";
+var flags=2;
+if(spreads.length){
+flags|=4;
+args+=",["+spreads+"]";
+}
+var rv="__oni_rt.Fcall("+flags+","+this.line+","+this.exp.v();
+rv+=args+")";
 return rv;
 };
 
@@ -5574,6 +5650,9 @@ var TOKENIZER_IS=/((?:\\[^\r\n]|\#(?!\{)|[^#\\\"\r\n])+)|(\\(?:\r\n|\n|\r))|((?:
 
 
 var TOKENIZER_QUASI=/((?:\\[^\r\n]|\$(?![\{a-zA-Z_$@])|[^$\\\`\r\n])+)|(\\(?:\r\n|\n|\r))|((?:\r\n|\n|\r))|(\`|\$\{|\$(?=[a-zA-Z_$@]))/g;
+
+
+
 
 
 
@@ -5808,7 +5887,7 @@ return t;
 
 
 
-S("[").exs(function(pctx){
+S("[").exs(function(pctx,exs_flags){
 
 var elements=[];
 
@@ -5817,7 +5896,7 @@ while(pctx.token.id!="]"){
 if(elements.length)scan(pctx,",");
 if(pctx.token.id==","){
 elements.push((function(pctx){return new ph_literal("",pctx)})(pctx));
-}else if(pctx.token.id=="]")break;else elements.push(parseExp(pctx,110));
+}else if(pctx.token.id=="]")break;else elements.push(parseExp(pctx,110,undefined,exs_flags|2));
 
 
 
@@ -5861,7 +5940,7 @@ return new ph_dot_accessor(l,name,pctx);
 function is_arrow(id){return id==='=>'||id==='->'}
 
 
-S("...").exs(function(pctx){var lookahead_pctx=Object.assign({},pctx);
+S("...").exs(function(pctx,exs_flags){var lookahead_pctx=Object.assign({},pctx);
 
 
 
@@ -5870,14 +5949,20 @@ pctx.token.value="..."+pctx.token.value;
 var tok=pctx.token;
 scan(pctx);
 return tok.exsf(pctx);
-}else{
+}else if((exs_flags&2)){
+
+
+
+
+
 
 
 var right=parseExp(pctx,119);
 
 
-return new ph_prefix_op('...',right,pctx);
-}
+return gen_spread(right);
+}else throw new Error("Unexpected '...'");
+
 });
 
 S("new").exs(function(pctx){var exp=parseExp(pctx,260);
@@ -5888,7 +5973,7 @@ if(pctx.token.id=="("){
 scan(pctx);
 while(pctx.token.id!=")"){
 if(args.length)scan(pctx,",");
-args.push(parseExp(pctx,110));
+args.push(parseExp(pctx,110,undefined,2));
 }
 
 scan(pctx,")");
@@ -5897,7 +5982,7 @@ scan(pctx,")");
 return new ph_new(exp,args);
 });
 
-S("(").exs(function(pctx){
+S("(").exs(function(pctx,exs_flags){
 
 if(pctx.token.id==')'){
 
@@ -5910,7 +5995,7 @@ scan(pctx);
 return op.exsf(pctx);
 }
 
-var e=parseExp(pctx);
+var e=parseExp(pctx,0,undefined,exs_flags);
 scan(pctx,")");
 
 return new ph_group(e,pctx);
@@ -5922,7 +6007,7 @@ var line=pctx.line;
 var args=[];
 while(pctx.token.id!=")"){
 if(args.length)scan(pctx,",");
-args.push(parseExp(pctx,110));
+args.push(parseExp(pctx,110,undefined,1|2));
 }
 
 scan(pctx,")");
@@ -6128,12 +6213,14 @@ var body=parseBlockLambdaBody(pctx);
 return new ph_blocklambda(pars,body,pctx);
 }
 
-S("{").exs(function(pctx){
+S("{").exs(function(pctx,exs_flags){
 var start=pctx.token.id;
 
 if(start=="|"||start=="||"){
 
-return parseBlockLambda(start,pctx);
+if(exs_flags&1)return parseBlockLambda(start,pctx);else throw new Error("Blocklambdas are only allowed in function calls");
+
+
 }else{
 
 
@@ -6149,7 +6236,7 @@ scan(pctx);
 if(pctx.token.id==":"){
 
 scan(pctx);
-var exp=parseExp(pctx,110);
+var exp=parseExp(pctx,110,undefined,exs_flags);
 props.push(["prop",prop,exp]);
 }else if(pctx.token.id=="}"||pctx.token.id==","){
 
@@ -6210,6 +6297,8 @@ var decls=pctx.decl_scopes.pop();var flags=1;if(decls.notail)flags+=8;return col
 }
 
 function parseFunctionParam(pctx){var t=pctx.token;
+
+
 
 scan(pctx);
 var left=t.exsf(pctx);
@@ -6933,7 +7022,7 @@ return new ph_exp_stmt(exp,pctx);
 }
 
 
-function parseExp(pctx,bp,t){bp=bp||0;
+function parseExp(pctx,bp,t,exs_flags){bp=bp||0;
 
 if(!t){
 t=pctx.token;
@@ -6941,7 +7030,7 @@ scan(pctx);
 }
 
 
-var left=t.exsf(pctx);
+var left=t.exsf(pctx,exs_flags);
 while(bp<pctx.token.excbp){
 
 if(pctx.newline&&t.asi_restricted)break;
