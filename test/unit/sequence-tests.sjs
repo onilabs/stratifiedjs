@@ -27,12 +27,12 @@ var withDecreasingTimeout = function(fn) {
 
 var nonRepeatableSequence = function(arr) {
   var arr = arr.slice();
-  var seq = s.Stream() {|emit| while(arr.length > 0) emit(arr.shift());}
+  var seq = s.Stream :: function(emit) { while(arr.length > 0) emit(arr.shift());}
   return seq;
 };
 
 var countSlowly = function(interval) {
-  return s.Stream {|emit|
+  return s.Stream:: function(emit) {
     s.integers() .. s.each {|i|
       emit(i);
       hold(interval);
@@ -70,11 +70,11 @@ testEq("'abc' .. each{|x| ...}", 'abc', function() {
   return rv;
 });
 
-test("each on String object") {||
+test("each on String object", function() {
   var rv = "";
   new String('abc') .. s.each { |x| rv += x };
   assert.eq(rv, 'abc');
-};
+});
 
 testEq("['a','b','c'] .. consume{ |next| ...}", 'abc', function() {
   var rv = "", eos = {};
@@ -122,11 +122,11 @@ testEq("isStream()", true, function() {
   return !s.isStream([1,2,3,4]) && s.isStream([1,2,3,4] .. s.take(5));
 });
 
-@test("concrete sequences") {||
+@test("concrete sequences", function() {
   [ 1, 2, 3] .. s.isConcreteSequence .. @assert.ok;
   "123" .. s.isConcreteSequence .. @assert.ok;
   ([1,2,3] .. s.toStream()) .. s.isConcreteSequence .. @assert.notOk;
-};
+});
 
 
 testEq("skip", "45", function() {
@@ -135,11 +135,11 @@ testEq("skip", "45", function() {
   return rv;
 });
 
-context('toArray') {||
-  test('toArray on empty stream') {||
-    var seq = s.Stream({|r| null });
+context('toArray', function() {
+  test('toArray on empty stream', function() {
+    var seq = s.Stream :: function(r) { null };
     seq .. toArray .. assert.eq([]);
-  };
+  });
 
   testEq('toArray on an array does nothing', true, function() {
     var a = [1,2,3];
@@ -158,7 +158,7 @@ context('toArray') {||
       value: arr
     }
   });
-}
+})
 
 testEq('each is ordered', [1,2,3], function() {
   var res = [];
@@ -270,7 +270,7 @@ testEq('find / find.par return defaultValue if not found',
   ];
 });
 
-test('find / find.par throws') {||
+test('find / find.par throws', function() {
   assert.raises({ inherits: s.SequenceExhausted },
                 -> [1,2,3] .. s.find(-> false));
 
@@ -279,7 +279,7 @@ test('find / find.par throws') {||
 
   assert.raises({ inherits: s.SequenceExhausted },
                 -> [1,2,3] .. s.find.par(10, -> false));
-}
+})
 
 testEq('filter', {checked: [1,2,3], result: [1,3]}, function() {
   var checked = [];
@@ -291,20 +291,20 @@ testEq('filter', {checked: [1,2,3], result: [1,3]}, function() {
   return {checked:checked, result:result};
 });
 
-test('transform.filter') {||
+test('transform.filter', function() {
   var rv = [1,2,3, 4, 5] .. s.transform.filter(x -> x % 2 == 0 ? x*2);
   rv .. s.isStream() .. assert.ok();
   rv .. s.toArray() .. assert.eq([4, 8]);
-};
+});
 
-test('map.filter') {||
+test('map.filter', function() {
   var rv = [1,2,3, 4, 5] .. s.map.filter(x -> x % 2 == 0 ? x*2);
   rv .. assert.eq([4, 8]);
-};
+});
 
-test('filter with no arguments') {||
+test('filter with no arguments', function() {
   s.filter([1,true, 0, 3, null]) .. s.toArray() .. assert.eq([1, true, 3]);
-};
+});
 
 testEq('filter.par', {checked: [3,2,1], result: [3,1]}, function() {
   var checked = [];
@@ -341,15 +341,15 @@ testEq('scan', [3, 6], function() {
   return s.scan([1,2,3], function(accum, el) { return accum + el; }) .. s.toArray();
 });
 
-test('scan on empty or single-element array') {||
+test('scan on empty or single-element array', function() {
   [] .. s.scan(x -> x) .. s.toArray .. @assert.eq([]);
   [1] .. s.scan(x -> x) .. s.toArray .. @assert.eq([]);
-};
+});
 
-test('all & any predicate is optional') {||
+test('all & any predicate is optional', function() {
   [true] .. s.all() .. assert.eq(true);
   [false] .. s.any() .. assert.eq(false);
-}
+})
 
 testEq('any.par returns early', {checked: [3, 2], result: true}, function() {
   var checked = [];
@@ -427,7 +427,7 @@ testEq('each.par teardown', '123ff.', function() {
     |x|
     rv += x;
     if (x == 3) break;
-    try { hold(); } finally { rv += 'f' }
+    try { hold(); } finally { rv += 'f'; }
   }
   rv += '.';
   return rv;
@@ -455,14 +455,14 @@ testEq('each.par teardown on exception', '12345fffffe.', function() {
 })
 
 
-context('take and skip') {||
-  test("take(0)") {||
+context('take and skip', function() {
+  test("take(0)", function() {
     s.take([1,2,3],0) .. toArray .. assert.eq([]);
-  }
+  })
 
-  test("take with a negative argument") {||
+  test("take with a negative argument", function() {
     s.take([1,2,3],-1) .. toArray .. assert.eq([]);
-  }
+  })
 
   testEq("take() leaves the rest", [[1], [2,3,4]], function() {
     var arr = [1,2,3,4];
@@ -472,55 +472,55 @@ context('take and skip') {||
     return [head, tail];
   });
 
-  test('async take') {||
+  test('async take', function() {
     s.integers() .. s.monitor(->hold(0)) .. s.take(7) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-  test('take async') {||
+  test('take async', function() {
     s.integers() .. s.take(7) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-  test('take all async') {||
+  test('take all async', function() {
     s.integers() .. s.monitor(->hold(0)) .. s.take(7) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-  test('skipWhile') {||
+  test('skipWhile', function() {
     [2,4,6,7,8,9,10] .. s.skipWhile(even) .. s.toArray .. assert.eq([7,8,9,10]);
-  }
+  })
 
-  test('takeWhile') {||
+  test('takeWhile', function() {
     [2,4,6,7,8,9,10] .. s.takeWhile(even) .. s.toArray .. assert.eq([2,4,6]);
-  }
+  })
 
-  test('takeUntil') {||
+  test('takeUntil', function() {
     s.integers() .. s.takeUntil(x->x>5) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-  test('async takeUntil') {||
+  test('async takeUntil', function() {
     s.integers() .. s.monitor(->hold(0)) .. s.takeUntil(x->x>5) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-  test('takeUntil async') {||
+  test('takeUntil async', function() {
     s.integers() .. s.takeUntil(x->x>5) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-  test('takeUntil async pred') {||
+  test('takeUntil async pred', function() {
     s.integers() .. s.takeUntil(x->(hold(0),x>5)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-  test('takeUntil all async') {||
+  test('takeUntil all async', function() {
     s.integers() .. s.monitor(->hold(0)) .. s.takeUntil(x->(hold(0),x>5)) .. s.monitor(->hold(0)) .. s.toArray .. assert.eq([0,1,2,3,4,5,6]);
-  }
+  })
 
-}
+})
 
-context('at') {||
+context('at', function() {
   test('first element', -> [1,2,3] .. s.at(0) .. assert.eq(1));
   test('first element (by negative index)', -> [1,2,3] .. s.at(-3) .. assert.eq(1));
   test('last element', -> [1,2,3] .. s.at(2) .. assert.eq(3));
   test('last element (by negative index)', -> [1,2,3] .. s.at(-1) .. assert.eq(3));
   test('middle element (by negative index)', -> [1,2,3] .. s.at(-2) .. assert.eq(2));
-  test('beyond array bounds') {||
+  test('beyond array bounds', function() {
     assert.raises({ inherits: s.SequenceExhausted },
       -> [1,2,3] .. s.at(3));
 
@@ -532,12 +532,12 @@ context('at') {||
 
     assert.raises({ inherits: s.SequenceExhausted },
       -> [1,2,3] .. s.at(-300));
-  }
+  })
   test('beyond last element (with default)', -> [1,2,3] .. s.at(5, undefined) .. assert.eq(undefined));
   test('beyond first element (with default)', -> [1,2,3] .. s.at(-5, 'default') .. assert.eq('default'));
-}
+})
 
-context('indexed') {||
+context('indexed', function() {
   testEq('indexed(["one","two","three"], 1)', [[1,"one"],[2,"two"],[3,"three"]], function() {
     return s.indexed(["one","two","three"], 1) .. toArray;
   });
@@ -553,21 +553,21 @@ context('indexed') {||
     rv.push(indexedIntegers .. s.take(2) .. s.toArray);
     return rv;
   });
-}
+})
 
 testEq('combine', ['a','b','b','a','c'], function() {
-  var as = s.Stream() {|r|
+  var as = s.Stream:: function(r) {
     r('a');
     hold(5);
     r('a');
   }
 
-  var bs = s.Stream() {|r|
+  var bs = s.Stream:: function(r) {
     r('b');
     r('b');
   }
 
-  var cs = s.Stream() {|r|
+  var cs = s.Stream:: function(r) {
     hold(10);
     r('c');
   }
@@ -575,18 +575,18 @@ testEq('combine', ['a','b','b','a','c'], function() {
 });
 
 testEq('combine with blocking receiver', ['a'], function() {
-  var as = s.Stream() {|r|
+  var as = s.Stream:: function(r) {
     r('a');
     hold(5);
     r('a');
   }
 
-  var bs = s.Stream() {|r|
+  var bs = s.Stream:: function(r) {
     r('b');
     r('b');
   }
 
-  var cs = s.Stream() {|r|
+  var cs = s.Stream:: function(r) {
     hold(10);
     r('c');
   }
@@ -604,29 +604,29 @@ testEq('concat([[1,2],[3,4]])', [1,2,3,4], function () { return s.concat([[1,2],
 testEq('concat(Stream([1,2],[3,4]))', [1,2,3,4], function () { return s.concat(nonRepeatableSequence([[1,2], [3,4]])) .. toArray; });
 
 
-context('first') {||
-  test('fails on an empty array') {||
+context('first', function() {
+  test('fails on an empty array', function() {
     assert.raises({
       inherits: s.SequenceExhausted,
       message: 'sequence exhausted'},
       -> s.first([]));
-  }
+  })
 
-  test('fails on an empty stream') {||
+  test('fails on an empty stream', function() {
     assert.raises({
       inherits: s.SequenceExhausted,
       message: 'sequence exhausted'},
-      -> s.first(s.Stream {|r| }));
-  }
+      -> s.first(s.Stream:: function(r) { }));
+  })
 
-  test('consumes and returns the first element of a nonempty sequence') {||
+  test('consumes and returns the first element of a nonempty sequence', function() {
     var seq = nonRepeatableSequence(['one','two','three']);
     s.first(seq) .. assert.eq('one');
     s.toArray(seq) .. assert.eq(['two', 'three']);
-  }
+  })
 
-  test('waits for non-atomic values') {||
-    var seq = s.Stream {|r|
+  test('waits for non-atomic values', function() {
+    var seq = s.Stream:: function(r) {
       hold(100);
       r('one');
       
@@ -635,10 +635,10 @@ context('first') {||
       r('two');
     };
     s.first(seq) .. assert.eq('one');
-  }
-}.timeout(0.5);
+  })
+}).timeout(0.5);
 
-test('last') {||
+test('last', function() {
   nonRepeatableSequence(['one','two','three']) .. s.last .. assert.eq('three');
   ['one','two','three'] .. s.last .. assert.eq('three');
   [] .. s.last('def') .. assert.eq('def');
@@ -646,27 +646,27 @@ test('last') {||
   assert.raises({
     inherits: s.SequenceExhausted,
     message: 'sequence exhausted'},
-    -> s.last(s.Stream {|r| }));
-}
+    -> s.last(s.Stream:: function(r) { }));
+})
 
-context('zip') {||
-  test('zip on same-sized arrays') {||
+context('zip', function() {
+  test('zip on same-sized arrays', function() {
     s.zip([1,2,3], ['one','two','three']) .. toArray .. assert.eq([
       [1, 'one'],
       [2, 'two'],
       [3, 'three'],
     ]);
-  }
+  })
 
-  test('zip on uneven arrays') {||
+  test('zip on uneven arrays', function() {
     s.zip([1,2,3], ['one']) .. toArray .. assert.eq([[1, 'one']]);
-  }
+  })
 
-  test('zip on empty arrays') {||
+  test('zip on empty arrays', function() {
     s.zip([], []) .. toArray .. assert.eq([]);
-  }
+  })
 
-  test('zipLongest on uneven arrays') {||
+  test('zipLongest on uneven arrays', function() {
     s.zipLongest([1,2,3], ['one']) .. toArray .. assert.eq([
       [1, 'one'],
       [2, undefined],
@@ -678,10 +678,10 @@ context('zip') {||
       [undefined, 'two'],
       [undefined, 'three'],
     ]);
-  }
-}
+  })
+})
 
-test('product') {||
+test('product', function() {
   s.product([1,2], [3,4,5], [6,7]) .. s.toArray .. assert.eq([
     [1,3,6], [1,3,7], [1,4,6], [1,4,7], [1,5,6], [1,5,7],
     [2,3,6], [2,3,7], [2,4,6], [2,4,7], [2,5,6], [2,5,7]
@@ -693,9 +693,9 @@ test('product') {||
     [1,3,4], [2,3,4]
   ]);
 
-}
+})
 
-test('groupBy') {||
+test('groupBy', function() {
   [2,4,6,7,9,10] .. s.groupBy(even) .. s.toArray .. assert.eq([
     [true, [2, 4, 6]],
     [false, [7, 9]],
@@ -721,9 +721,9 @@ test('groupBy') {||
     [{}, [{}]],
     [{}, [{}]],
   ]);
-}
+})
 
-context('sortBy') {||
+context('sortBy', function() {
   var input = [
     'zz',
     'lsdfjd',
@@ -742,19 +742,19 @@ context('sortBy') {||
 
   test('property name', -> input.slice() .. s.sortBy('length') .. assert.eq(expected));
   test('key function', -> input.slice() .. s.sortBy(x -> x.length) .. assert.eq(expected));
-}
+})
 
-context('unique') {||
+context('unique', function() {
   test('unique', -> [1,3,1,2,4] .. nonRepeatableSequence .. s.unique() .. assert.eq([1,3,2,4]));
   test('unique with custom `eq`', -> [{}, {}, {a:1}, {a:1}] .. s.unique(eq) .. assert.eq([{}, {a:1}]));
   test('uniqueBy property name', -> ['333', '22', 'xxx'] .. s.uniqueBy('length') .. assert.eq(['333','22']));
   test('uniqueBy function', -> ['333', '22', 'xxx'] .. s.uniqueBy(x -> x.length) .. assert.eq(['333','22']));
-}
+})
 
-context('slice') {||
+context('slice', function() {
   var seq = ['0','1','2','3','4','5'];
 
-  test('parity with array.slice()') {||
+  test('parity with array.slice()', function() {
     // just brute force all interesting indexes for our input
     var indexes = [undefined, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -805,18 +805,18 @@ context('slice') {||
         }
       }
     }
-  }
+  })
 
-  test('infinite emitter') {||
+  test('infinite emitter', function() {
     s.integers() .. s.slice(1, 5) .. toArray .. assert.eq([1,2,3,4]);
     s.integers() .. s.slice(1, -5) .. s.take(4) .. toArray .. assert.eq([1,2,3,4]);
-  }
+  })
 
-  test('integers with skip') {||
+  test('integers with skip', function() {
     s.integers(0, 10, 2) .. toArray .. assert.eq([0,2,4,6,8,10]);
-  }
+  })
 
-  test('slow emitter') {||
+  test('slow emitter', function() {
     var emitted = [];
     var receivedNeg = [];
     var receivedPos = [];
@@ -839,10 +839,10 @@ context('slice') {||
 
     // and the positive slice should have emitted everything so far
     receivedPos .. assert.eq([0,1,2,3,4], "positive end index");
-  }
-}
+  })
+})
 
-context('intersperse') {||
+context('intersperse', function() {
   testEq('[1, 2, 3] .. intersperse(4)', [1,4,2,4,3], function() {
     return [1, 2, 3] .. s.intersperse(4) .. s.toArray;
   });
@@ -855,9 +855,9 @@ context('intersperse') {||
     return [] .. s.intersperse(4) .. s.toArray;
   });
 
-}
+})
 
-context('intersperse_n_1') {||
+context('intersperse_n_1', function() {
   testEq('[1, 2, 3, 4, 5] .. intersperse_n_1(6, 7)', [1,6,2,6,3,6,4,7,5], function() {
     return [1, 2, 3, 4, 5] .. s.intersperse_n_1(6, 7) .. s.toArray;
   });
@@ -874,19 +874,19 @@ context('intersperse_n_1') {||
     return [1,2] .. s.intersperse_n_1(3, 4) .. s.toArray;
   });
 
-}
+})
 
 
-context("iterable nodejs datatypes") {||
+context("iterable nodejs datatypes", function() {
   var stream = require('sjs:nodejs/stream');
-  test("Buffer") {||
+  test("Buffer", function() {
     Buffer.from("12345") .. s.isSequence() .. assert.eq(true);
     Buffer.from("12345") .. s.take(3) .. s.toArray .. assert.eq([49, 50, 51]);
-  }
-}.serverOnly();
+  })
+}).serverOnly();
 
-context("node lists") {||
-  test.beforeEach {|s|
+context("node lists", function() {
+  test.beforeEach:: function(s) {
     s.added = [];
     s.cls = 'nodelist-iter-test';
     s.div = function(content) {
@@ -905,19 +905,19 @@ context("node lists") {||
     add('three');
   }
 
-  test.afterEach {|s|
+  test.afterEach:: function(s) {
     s.added .. seq.each {|elem|
       document.body.removeChild(elem);
     }
   }
 
-  test("querySelectorAll result is iterable") {|s|
+  test("querySelectorAll result is iterable", function(s) {
     document.body.querySelectorAll("div.#{s.cls}") .. seq.map(el -> el.textContent) .. assert.eq([
       'one', 'two', 'three',
     ]);
-  }
+  })
 
-  test("element.children is iterable") {|s|
+  test("element.children is iterable", function(s) {
     var elem = document.body.querySelector("div.#{s.cls}");
     elem.appendChild(s.div("child1"));
     elem.appendChild(s.div("child2"));
@@ -925,18 +925,18 @@ context("node lists") {||
     elem.children .. seq.map(el -> el.textContent) .. assert.eq([
       'child1', 'child2', 'child3',
     ]);
-  }
+  })
 
-  test("getElementsByTagName result is iterable") {|s|
+  test("getElementsByTagName result is iterable", function(s) {
     document.body.getElementsByTagName("div")
       .. seq.filter(el -> el.getAttribute('class') === s.cls)
       .. seq.map(el -> el.textContent)
       .. assert.eq([
       'one', 'two', 'three',
     ]);
-  }
+  })
 
-  test("select.options is iterable") {|s|
+  test("select.options is iterable", function(s) {
     var elem = document.body.querySelector("div.#{s.cls}");
     elem.innerHTML = '
       <select>
@@ -949,10 +949,10 @@ context("node lists") {||
     select.options .. seq.map(el -> el.textContent) .. assert.eq([
       'one', 'two', 'three',
     ]);
-  }
-}.browserOnly();
+  })
+}).browserOnly();
 
-context('buffer') {||
+context('buffer', function() {
   testEq('integers .. hold .. buffer(5) .. each { hold }', 
          'S0R0S1S2S3S4S5R1S6R2S7R3S8R4S9R5R6R7R8R9', 
          function() {
@@ -984,9 +984,9 @@ context('buffer') {||
              }
            return rv;
          });
-}
+})
 
-context("tailbuffer") {||
+context("tailbuffer", function() {
   testEq('integers .. hold .. tailbuffer(5) .. each { hold }',
          'S0R0S1S2S3S4S5S6S7S8S9R5R6R7R8R9',
          function() {
@@ -1033,42 +1033,42 @@ context("tailbuffer") {||
              }
            return rv;
          });
-}
+})
 
-context("join") {||
-  test("with string separator") {||
+context("join", function() {
+  test("with string separator", function() {
     nonRepeatableSequence([1,2,3]) .. s.join(" ") .. assert.eq("1 2 3");
-  }
+  })
 
-  test("with quasi separator") {||
+  test("with quasi separator", function() {
     nonRepeatableSequence([1,2,3]) .. s.join(`|`) .. assert.eq(Quasi(['', 1, '|', 2, '|', 3]));
-  }
+  })
 
-  context("on buffers") {||
-    test("with no separator") {||
+  context("on buffers", function() {
+    test("with no separator", function() {
       nonRepeatableSequence([
         Buffer.from('abc', 'ascii'),
         Buffer.from('def', 'ascii'),
       ]) .. s.join() .. assert.eq(Buffer.from('abcdef', 'ascii'));
-    }
+    })
 
-    test("with a buffer separator") {||
+    test("with a buffer separator", function() {
       nonRepeatableSequence([
         Buffer.from('abc', 'ascii'),
         Buffer.from('def', 'ascii'),
       ]) .. s.join(Buffer.from('||')) .. assert.eq(Buffer.from('abc||def', 'ascii'));
-    }
-  }.skipIf(@isBrowser || process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0, "nodejs 0.6 lacks Buffer.concat")
+    })
+  }).skipIf(@isBrowser || process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0, "nodejs 0.6 lacks Buffer.concat")
 
-  context("on TypedArrays") {||
-    test("with no separator") {||
+  context("on TypedArrays", function() {
+    test("with no separator", function() {
       nonRepeatableSequence([
         new Uint8Array([1, 2, 3]),
         new Uint8Array([4, 5, 6]),
       ]) .. s.join() .. assert.eq(new Uint8Array([1,2,3,4,5,6]));
-    }
+    })
 
-    test("with a TypedArray separator") {||
+    test("with a TypedArray separator", function() {
       nonRepeatableSequence([
         new Uint8Array([1, 2, 3]),
         new Uint8Array([4, 5, 6]),
@@ -1078,30 +1078,30 @@ context("join") {||
         new Uint8Array([1, 2, 3]),
         new Uint8Array([4, 5, 6]),
       ]) .. s.join([100,100]) .. assert.eq(new Uint8Array([1,2,3,100,100,4,5,6]));
-    }
-  }
+    })
+  })
 
-  context("on Arrays") {||
-    test("with no separator") {||
+  context("on Arrays", function() {
+    test("with no separator", function() {
       nonRepeatableSequence([
         [1, 2, 3],
         [4, 5, 6],
       ]) .. s.join() .. assert.eq([1,2,3,4,5,6]);
-    }
+    })
 
-    test("with an Array separator") {||
+    test("with an Array separator", function() {
       nonRepeatableSequence([
         [1, 2, 3],
         [4, 5, 6],
       ]) .. s.join([100,100]) .. assert.eq([1,2,3,100,100,4,5,6]);
-    }
-  }
-}
+    })
+  })
+})
 
-test("hasElem") {||
+test("hasElem", function() {
   assert.ok(nonRepeatableSequence([1,2,3]) .. s.hasElem(2));
   assert.notOk(nonRepeatableSequence([1,2,3]) .. s.hasElem(5));
-}
+})
 
 testEq("transform.par.unordered doesn't call downstream reentrantly", 1, function() {
   var reentrancy = 0, max_reentrancy = 0;
@@ -1409,47 +1409,47 @@ testEq('each.track exception 5', '3e', function() {
 });
 
 
-context("pack") {||
-  test("with count") {||
+context("pack", function() {
+  test("with count", function() {
     [1,2,3,4,5] .. s.pack({count:2}) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);
-  }
+  })
 
-  test("with count, shorthand") {||
+  test("with count, shorthand", function() {
     [1,2,3,4,5] .. s.pack(2) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);
-  }
+  })
 
-  test("with packing function") {||
+  test("with packing function", function() {
     [1,2,3,4,5] .. s.pack({packing_func:next -> [next(),next()], pad:'pad'}) .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
-  }
+  })
 
-  test("with packing function, shorthand") {||
+  test("with packing function, shorthand", function() {
     [1,2,3,4,5] .. s.pack(next -> [next(),next()], 'pad') .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
-  }
+  })
 
-  test("with packing function, pad default") {||
+  test("with packing function, pad default", function() {
     [1,2,3,4,5] .. s.pack({packing_func:next -> [next(),next()]}) .. s.toArray .. assert.eq([[1,2],[3,4],[5, undefined]]);
-  }
+  })
 
-  test("with packing function, pad default, shorthand") {||
+  test("with packing function, pad default, shorthand", function() {
     [1,2,3,4,5] .. s.pack(next -> [next(),next()]) .. s.toArray .. assert.eq([[1,2],[3,4],[5, undefined]]);
-  }
+  })
 
 
-  test("settings precedence 1") {||
+  test("settings precedence 1", function() {
     // packing_func overrides count & interval:
     [1,2,3,4,5] .. s.pack({count: 3, interval: 200, packing_func:next -> [next(),next()], pad:'pad'}) .. s.toArray .. assert.eq([[1,2],[3,4],[5,'pad']]);
-  }
+  })
 
-  test("settings precedence 2") {||
+  test("settings precedence 2", function() {
     // count overrides interval:
     [1,2,3,4,5] .. s.pack({count: 2, interval: 200}) .. s.toArray .. assert.eq([[1,2],[3,4],[5]]);
-  }
+  })
 
-  test("with interval") {||
+  test("with interval", function() {
     [1,2,3,4,5] .. s.pack({interval: 100}) .. s.toArray .. assert.eq([[1,2,3,4,5]]);
-  }
+  })
 
-  test("with interval 2") {||
+  test("with interval 2", function() {
     var source = s.Stream(function(r) { 
       r(1);
       hold(20);
@@ -1462,13 +1462,13 @@ context("pack") {||
       r(5);
     });
     source .. s.pack({interval:80}) .. s.toArray .. assert.eq([[1,2,3],[4,5]]);
-  }
+  })
 
-}
+})
 
-context("mirror") {||
-  context {||
-    test.beforeEach {|s|
+context("mirror", function() {
+  context(function() {
+    test.beforeEach:: function(s) {
       s.log = [];
       var upstream = @integers(1) .. @transform(function(i) {
         hold(10);
@@ -1478,15 +1478,15 @@ context("mirror") {||
       s.mirror = upstream .. @mirror();
     }
 
-    test("single consumer") {|s|
+    test("single consumer", function(s) {
       s.mirror .. @each {|i|
         if (i === 3) break;
       }
       hold(50);
       s.log .. @assert.eq([1,2,3]);
-    }
+    })
 
-    test("multiple consumers") {|s|
+    test("multiple consumers", function(s) {
       waitfor {
         var seena = [];
         s.mirror .. @each {|i|
@@ -1512,9 +1512,9 @@ context("mirror") {||
       seena .. @assert.eq([1,2,3]);
       seenb .. @assert.eq([1,2,3,4,5,6]);
       s.log .. @assert.eq([1,2,3,4,5,6]);
-    }
+    })
 
-    test("non-overlapping consumers cause restart") {|s|
+    test("non-overlapping consumers cause restart", function(s) {
       var seena = [];
       var seenb = [];
 
@@ -1531,9 +1531,9 @@ context("mirror") {||
       s.log .. @assert.eq([1,2,1,2,3,4]);
       seena .. @assert.eq([1,2]);
       seenb .. @assert.eq([1,2,3,4]);
-    }
+    })
 
-    test("non-overlapping (but contiguous) consumers cause restart") {|s|
+    test("non-overlapping (but contiguous) consumers cause restart", function(s) {
       var seena = [];
       var seenb = [];
 
@@ -1548,9 +1548,9 @@ context("mirror") {||
       s.log .. @assert.eq([1,2,1,2,3,4]);
       seena .. @assert.eq([1,2]);
       seenb .. @assert.eq([1,2,3,4]);
-    }
+    })
 
-    test("beginning iteration as previous iteration is aborting") {|s|
+    test("beginning iteration as previous iteration is aborting", function(s) {
       var stream = @Stream(function(emit) {
         s.log.push("start");
         try {
@@ -1574,16 +1574,15 @@ context("mirror") {||
         s.log.push(i);
         break;
       }
-
       s.log .. @assert.eq([
         'start', 1, 'retract', 'retracted',
         'start', 1, 'retract', 'retracted'
       ]);
-    }
-  }
+    })
+  })
 
-  context("on slow emitter") {|s|
-    test.beforeEach {|s|
+  context("on slow emitter", function(s) {
+    test.beforeEach:: function(s) {
       s.log = [];
       s.upstream = @Stream(function(e) {
         hold(100);
@@ -1595,7 +1594,7 @@ context("mirror") {||
       });
     }
 
-    test("subsequent consumers are given the most recent value if latest=true") {|s|
+    test("subsequent consumers are given the most recent value if latest=true", function(s) {
       var ready = @Condition();
       var mirror = s.upstream .. @mirror;
       waitfor {
@@ -1608,9 +1607,9 @@ context("mirror") {||
           mirror .. @first .. @assert.eq(1);
         }
       }
-    }
+    })
 
-    test("slow consumers are given the most recent value if latest=true") {|s|
+    test("slow consumers are given the most recent value if latest=true", function(s) {
       var log = [];
       var mirror = s.upstream .. @mirror;
       mirror .. @each {|item|
@@ -1619,9 +1618,9 @@ context("mirror") {||
       }
       log .. @assert.eq([1,2]);
       s.log .. @assert.eq([1,2]);
-    }
+    })
 
-    test("subsequent consumers dont get the latest value if latest=false") {|s|
+    test("subsequent consumers dont get the latest value if latest=false", function(s) {
       var ready = @Condition();
       var mirror = s.upstream .. @mirror(false);
       waitfor {
@@ -1634,9 +1633,9 @@ context("mirror") {||
           mirror .. @first .. @assert.eq(2);
         }
       }
-    }
+    })
 
-    test("slow consumers are not given the most recent value if latest=false") {|s|
+    test("slow consumers are not given the most recent value if latest=false", function(s) {
       var log = [];
       var mirror = s.upstream .. @mirror(false);
       mirror .. @each {|item|
@@ -1645,11 +1644,11 @@ context("mirror") {||
       }
       log .. @assert.eq([1]);
       s.log .. @assert.eq([1,2]);
-    }
+    })
 
-  }
+  })
 
-  test("retraction is honoured") {|s|
+  test("retraction is honoured", function(s) {
     var log = [];
     var stream = @Stream(function(emit) {
       try {
@@ -1665,9 +1664,9 @@ context("mirror") {||
     stream .. @mirror() .. @first .. @assert.eq(1);
     hold(50);
     log .. @assert.eq([1,'retract']);
-  }
+  })
 
-  test("exceptions are propagated") {|s|
+  test("exceptions are propagated", function(s) {
     var log = [];
     var stream = @Stream(function(emit) {
       emit(1);
@@ -1685,9 +1684,9 @@ context("mirror") {||
     }
 
     log .. @assert.eq([1, 'ERROR: stream failed']);
-  }
+  })
 
-  test("immediate exceptions are propagated") {|s|
+  test("immediate exceptions are propagated", function(s) {
     var log = [];
     var stream = @Stream(function(emit) {
       throw new Error("stream failed");
@@ -1703,10 +1702,10 @@ context("mirror") {||
     }
 
     log .. @assert.eq(['ERROR: stream failed']);
-  }
+  })
 
 
-  test("NaN edge case") {|s|
+  test("NaN edge case", function(s) {
     var stream = @Stream(function(emit) {
       emit(NaN);
       hold();
@@ -1724,50 +1723,50 @@ context("mirror") {||
     }
     
     count .. @assert.eq(1);
-  }
+  })
   
-}
+})
 
-context("batchN") {||
-  test("exact batching") {||
+context("batchN", function() {
+  test("exact batching", function() {
     s.integers(1,100) .. s.batchN(10) .. s.count() .. assert.eq(100);
-  }
+  })
 
-  test("batching with remainder") {||
+  test("batching with remainder", function() {
     s.integers(1,102) .. s.batchN(10) .. s.count() .. assert.eq(102);
-  }
+  })
 
-  test("batching larger than sequence") {||
+  test("batching larger than sequence", function() {
     s.integers(1,102) .. s.batchN(1000) .. s.count() .. assert.eq(102);
-  }
+  })
 
-  test("double batching") {||
+  test("double batching", function() {
     s.integers(1,102) .. s.batchN(10) .. s.batchN(10) .. s.count() .. assert.eq(102);
-  }
-}
+  })
+})
 
-context("batch") {||
-  test("exact batching") {||
+context("batch", function() {
+  test("exact batching", function() {
     s.integers(1,100) .. s.batch(10) .. s.count() .. assert.eq(100);
-  }
+  })
 
-  test("batching with remainder") {||
+  test("batching with remainder", function() {
     s.integers(1,102) .. s.batch(10) .. s.count() .. assert.eq(102);
-  }
+  })
 
-  test("batching larger than sequence") {||
+  test("batching larger than sequence", function() {
     s.integers(1,102) .. s.batch(1000) .. s.count() .. assert.eq(102);
-  }
+  })
 
-  test("double batching") {||
+  test("double batching", function() {
     s.integers(1,102) .. s.batch(10) .. s.batch(10) .. s.isStructuredStream('batched') .. assert.ok();
     (s.integers(1,102) .. s.batch(10) .. s.batch(10)).base .. s.isStructuredStream() .. assert.notOk();
     s.integers(1,102) .. s.batch(10) .. s.batch(10) .. s.count() .. assert.eq(102);
-  }
-}
+  })
+})
 
 
-test("consume/retract edge case") {||
+test("consume/retract edge case", function() {
   var producer = s.Stream(function(r) {
     r('a');
     hold(50);
@@ -1781,9 +1780,9 @@ test("consume/retract edge case") {||
     hold(100); // give producer a chance to emit next item
     assert.eq(next(), 'b');
   }
-}
+})
 
-test("consume exception propagation") {||
+test("consume exception propagation", function() {
   var producer = s.Stream(function(r) {
     r('a');
     hold(50);
@@ -1809,9 +1808,9 @@ test("consume exception propagation") {||
       assert.eq(e, 'b');
     }
   }
-}
+})
 
-test("consume exception propagation / retract edge case") {||
+test("consume exception propagation / retract edge case", function() {
   var producer = s.Stream(function(r) {
     r('a');
     hold(50);
@@ -1839,9 +1838,9 @@ test("consume exception propagation / retract edge case") {||
       assert.eq(e, 'b');
     }
   }
-}
+})
 
-test("consume eos / retract edge case") {||
+test("consume eos / retract edge case", function() {
   var producer = s.Stream(function(r) {
     r('a');
     hold(50);
@@ -1859,9 +1858,9 @@ test("consume eos / retract edge case") {||
     // should be repeatable:
     assert.eq(next(), eos);
   }
-};
+});
 
-test("async exception during each.track abortion") {||
+test("async exception during each.track abortion", function() {
   function t() {
     waitfor {
       [1] .. @each.track {
@@ -1882,58 +1881,81 @@ test("async exception during each.track abortion") {||
   
   assert.raises({message:'should not be swallowed'}, t);
 
-};
+});
 
-context("withOpenStream") {||
-  test("sequence sync") {||
+test('each.track blocking behavior', function() {
+  var rv = '';
+
+  var src = @Stream :: function(r) {
+    for (var x = 0; x<=10; ++x) {
+      try {
+        r(x);
+        if (x === 5) hold(100);
+      }
+      finally {
+        rv += '('+x+')';
+      }
+    }
+  };
+
+  src .. @each.track { |x|
+    rv += x;
+    if (x === 9) break;
+    try { hold(); } finally { if (x<5) hold(0); }
+  }
+  assert.eq(rv, '0(0)(1)(2)(3)(4)5(5)6(6)7(7)8(8)9(9)');
+});
+
+context("withOpenStream", function() {
+  test("sequence sync", function() {
     [1,2,3,4] .. s.withOpenStream {
       |S|
       S .. s.first .. assert.eq(1);
       S .. s.take(10) .. s.toArray .. assert.eq([2,3,4]);
       S .. s.take(10) .. s.toArray .. assert.eq([]);
     }
-  }
-  test("sequence async") {||
+  })
+  test("sequence async", function() {
     [1,2,3,4] .. s.withOpenStream {
       |S|
       S .. s.monitor(->hold(0)) .. s.first .. assert.eq(1);
       S .. s.monitor(->hold(0)) .. s.take(10) .. s.toArray .. assert.eq([2,3,4]);
       S .. s.monitor(->hold(0)) .. s.take(10) .. s.toArray .. assert.eq([]);
     }
-  }
-  test("stream sync") {||
+  })
+  test("stream sync", function() {
     s.integers(1) .. s.withOpenStream {
       |S|
       S .. s.first .. assert.eq(1);
       S .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
       S .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
     }
-  }
-  test("stream async") {||
+  })
+  test("stream async", function() {
     s.integers(1) .. s.withOpenStream {
       |S|
       S .. s.monitor(->hold(0)) .. s.first .. assert.eq(1);
       S .. s.monitor(->hold(0)) .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
       S .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
     }
-  }
-  test("async stream sync") {||
+  })
+  test("async stream sync", function() {
     s.integers(1) .. s.monitor(->hold(0)) .. s.withOpenStream {
       |S|
       S .. s.first .. assert.eq(1);
       S .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
       S .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
     }
-  }
-  test("async stream async") {||
+  })
+  test("async stream async", function() {
     s.integers(1) .. s.monitor(->hold(0)) .. s.withOpenStream {
       |S|
       S .. s.monitor(->hold(0)) .. s.first .. assert.eq(1);
       S .. s.monitor(->hold(0)) .. s.take(3) .. s.toArray .. assert.eq([2,3,4]);
       S .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray .. assert.eq([5,6,7,8,9]);
     }
-  }
-  test("exhausted") {||
+  })
+  test("exhausted", function() {
     [1] .. s.withOpenStream {
       |S|
       S .. s.first .. assert.eq(1);
@@ -1947,85 +1969,85 @@ context("withOpenStream") {||
       assert.raises({ inherits: s.SequenceExhausted },
                     -> S .. @first());
     }
-  }
-  test("takeWhile") {||
+  })
+  test("takeWhile", function() {
     [0,2,4,5,6,7,8] .. s.withOpenStream {
       |S|
       S .. s.takeWhile(x->x%2==0) .. s.toArray .. assert.eq([0,2,4]);
       // 5 is swallowed by takeWhile
       S .. s.toArray .. assert.eq([6,7,8]);
     }
-  }
-}
+  })
+})
 
-context("rollingWindow") {||
-  test("typing") {||
+context("rollingWindow", function() {
+  test("typing", function() {
     [1,2,3,4] .. s.rollingWindow(3) .. s.isStructuredStream('rolling') .. assert.ok();
-  }
-  test("basic") {||
+  })
+  test("basic", function() {
     [1,2,3,4] .. s.rollingWindow(3) .. s.toArray .. 
       assert.eq([[1,2,3],[2,3,4]]);
-  }
-  test("no cliff") {||
+  })
+  test("no cliff", function() {
     [1,2,3,4] .. s.rollingWindow({window:3,cliff:false}) .. s.toArray .. 
       assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4],[4]]);
-  }
-  test("window size barely reached") {||
+  })
+  test("window size barely reached", function() {
     [1,2,3,4] .. s.rollingWindow(4) .. s.toArray .. assert.eq([[1,2,3,4]]);
-  }
-  test("window size not reached") {||
+  })
+  test("window size not reached", function() {
     [1,2,3,4] .. s.rollingWindow(5) .. s.toArray .. assert.eq([]);
-  }
-  test("window size not reached, cliff=false") {||
+  })
+  test("window size not reached, cliff=false", function() {
     [1,2,3,4] .. s.rollingWindow({window:5,cliff:false}) .. s.toArray .. 
       assert.eq([ [1],[1,2],[1,2,3],[1,2,3,4], [2,3,4], [3,4], [4] ]);
-  }
+  })
 
-  test("stream") {||
+  test("stream", function() {
     s.integers(1) .. s.rollingWindow(3) .. s.take(5) .. s.toArray ..
       assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
-  }
-  test("stream, no cliff") {||
+  })
+  test("stream, no cliff", function() {
     s.integers(1) .. s.rollingWindow({window:3,cliff:false}) .. s.take(5) .. s.toArray ..
       assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
-  }
-  test("async stream") {||
+  })
+  test("async stream", function() {
     s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow(3) .. s.take(5) .. s.toArray ..
       assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
-  }
-  test("async stream, no cliff") {||
+  })
+  test("async stream, no cliff", function() {
     s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow({window:3,cliff:false}) .. s.take(5) .. s.toArray ..
       assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
-  }
-  test("stream async") {||
+  })
+  test("stream async", function() {
     s.integers(1) .. s.rollingWindow(3) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
       assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
-  }
-  test("stream  async, no cliff") {||
+  })
+  test("stream  async, no cliff", function() {
     s.integers(1) .. s.rollingWindow({window:3,cliff:false}) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
       assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
-  }
-  test("async stream async") {||
+  })
+  test("async stream async", function() {
     s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow(3) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
       assert.eq([[1,2,3],[2,3,4],[3,4,5],[4,5,6],[5,6,7]]);
-  }
-  test("async stream async, no cliff") {||
+  })
+  test("async stream async, no cliff", function() {
     s.integers(1) .. s.monitor(->hold(0)) .. s.rollingWindow({window:3,cliff:false}) .. s.monitor(->hold(0)) .. s.take(5) .. s.toArray ..
       assert.eq([[1],[1,2],[1,2,3],[2,3,4],[3,4,5]]);
-  }
-  test("window(window)") {||
+  })
+  test("window(window)", function() {
     [1,2,3,4] .. s.rollingWindow(3) .. s.rollingWindow(2) .. @toArray ..
       assert.eq([[[1,2,3],[2,3,4]]]);
-  }
-  test("window no cliff(window)") {||
+  })
+  test("window no cliff(window)", function() {
     // [[1],[1,2],[1,2,3],[2,3,4],[3,4],[4]]
     [1,2,3,4] .. s.rollingWindow({window:3,cliff:false}) .. s.rollingWindow(2) .. @toArray ..
       assert.eq([ [[1],[1,2]], [[1,2],[1,2,3]], [[1,2,3],[2,3,4]], [[2,3,4],[3,4]], [[3,4],[4]] ]);
-  }
-}
+  })
+})
 
-context("transform typing/batching") {||
-  test("typing") {||
+context("transform typing/batching", function() {
+  test("typing", function() {
     var a = [1,2,3,4] .. s.transform(x->x*x);
     assert.ok(a .. s.isStream);
     assert.notOk(a .. s.isStructuredStream);
@@ -2033,31 +2055,31 @@ context("transform typing/batching") {||
     var b = [1,2,3,4] .. s.batch(2) .. s.transform(x->x*x);
     assert.ok(b .. s.isStream);
     assert.ok(b .. s.isStructuredStream('batched'));
-  }
-  test("batching") {||
+  })
+  test("batching", function() {
     var a = [1,2,3,4,5] .. s.batch(2) .. s.transform(x->x*x);
     assert.eq(a..s.toArray, [1,4,9,16,25]);
     assert.eq(a.base ..  s.toArray, [[1,4],[9,16],[25]]);
-  }
-  test("async batching") {||
+  })
+  test("async batching", function() {
     var a = [1,2,3,4,5] .. s.monitor(->hold(0)) .. s.batch(2) .. s.transform(x->x*x);
     assert.eq(a..s.toArray, [1,4,9,16,25]);
     assert.eq(a.base ..  s.toArray, [[1,4],[9,16],[25]]);
-  }
-  test("batching async") {||
+  })
+  test("batching async", function() {
     var a = [1,2,3,4,5] .. s.batch(2) .. s.transform(x->x*x);
     assert.eq(a.. s.monitor(->hold(0)) .. s.toArray, [1,4,9,16,25]);
     assert.eq(a.base ..  s.monitor(->hold(0)) .. s.toArray, [[1,4],[9,16],[25]]);
-  }
-  test("async batching async") {||
+  })
+  test("async batching async", function() {
     var a = [1,2,3,4,5] .. s.monitor(->hold(0)) .. s.batch(2) .. s.transform(x->x*x);
     assert.eq(a.. s.monitor(->hold(0)) .. s.toArray, [1,4,9,16,25]);
     assert.eq(a.base ..  s.monitor(->hold(0)) .. s.toArray, [[1,4],[9,16],[25]]);
-  }
-}
+  })
+})
 
-context("transform$map") {||
-  test("typing") { ||
+context("transform$map", function() {
+  test("typing", function() {
     var a = [[1,2],[2,3],[3,4]] .. s.transform$map(x->x*x);
     assert.ok(a .. s.isStream);
     assert.notOk(a .. s.isStructuredStream);
@@ -2065,23 +2087,23 @@ context("transform$map") {||
     var b = [1,2,3,4] .. s.rollingWindow(2) .. s.transform$map(x->x*x);
     assert.ok(b .. s.isStream);
     assert.ok(b .. s.isStructuredStream('rolling'));
-  }
-  test("plain") { ||
+  })
+  test("plain", function() {
     var executions = 0;
     [[1,2],[2,3],[3,4]] .. s.transform$map(x->(++executions,x*x)) .. s.toArray ..
       assert.eq([[1,4],[4,9],[9,16]]);
     assert.eq(executions, 6);
-  }
-  test("rolling") { ||
+  })
+  test("rolling", function() {
     var executions = 0;
     [1,2,3,4] .. s.rollingWindow(2) .. s.transform$map(x->(++executions,x*x)) .. s.toArray ..
       assert.eq([[1,4],[4,9],[9,16]]);
     assert.eq(executions, 4);
-  }
-}
+  })
+})
 
-context("monitor.raw") {||
-  test("typing") {||
+context("monitor.raw", function() {
+  test("typing", function() {
     var a = [1,2,3,4] .. s.monitor.raw(x->0);
     assert.notOk(a .. s.isStructuredStream());
     assert.ok(a .. s.isStream());
@@ -2089,45 +2111,47 @@ context("monitor.raw") {||
     var b = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2) .. s.monitor.raw(x->0);
     assert.ok(b .. s.isStructuredStream('rolling'));
     assert.ok(b.base .. s.isStructuredStream('batched'));
-  }
-  test("batched") {||
+  })
+  test("batched", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.raw(x->log.push(x)) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,[[1,2],[3,4]]);
-  }
-  test("rolling") {||
+  })
+  test("rolling", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.monitor.raw(x->log.push(x)) .. s.toArray;
     assert.eq(rv,[[1,2],[2,3],[3,4]]);
     assert.eq(log,[[0,[1,2]],[1,[3]],[1,[4]]]);
-  }
-  test("rolling batched") {||
+  })
+  test("rolling batched", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2) .. s.monitor.raw(x->log.push(x)) .. s.toArray;
     assert.eq(rv,[[1,2],[2,3],[3,4]]);
     assert.eq(log,[ [[0,[1,2]],[1,[3]]],[[1,[4]]]]);
-  }
-  test("async") {||
+  })
+  test("async", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.raw(x->(hold(0),log.push(x))) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,[[1,2],[3,4]]);
-  }
-  test("sync break") {||
+  })
+  test("sync break", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor.raw({|x| log.push(x); if (x>2) break;}) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor.raw(mf) .. @each {||}
+    run {|x| log.push(x); if (x>2) break; }
     assert.eq(log,[1,2,3]);
-  }
-  test("async break") {||
+  });
+  test("async break", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor.raw({|x| hold(0); log.push(x); if (x>2) break;}) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor.raw(mf) .. @each {||}
+    run {|x| hold(0); log.push(x); if (x>2) break;}
     assert.eq(log,[1,2,3]);
-  }
-}
+  });
+})
 
-context("monitor") {||
-  test("typing") {||
+context("monitor", function() {
+  test("typing", function() {
     var a = [1,2,3,4] .. s.monitor(x->0);
     assert.notOk(a .. s.isStructuredStream());
     assert.ok(a .. s.isStream());
@@ -2135,33 +2159,35 @@ context("monitor") {||
     var b = [1,2,3,4] .. s.batch(2) .. s.monitor(x->0);
     assert.ok(b .. s.isStructuredStream('batched'));
     assert.notOk(b.base .. s.isStructuredStream());
-  }
-  test("batched") {||
+  })
+  test("batched", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor(x->log.push(x)) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,[1,2,3,4]);
-  }
-  test("async") {||
+  })
+  test("async", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor(x->(hold(0),log.push(x))) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,[1,2,3,4]);
-  }    
-  test("sync break") {||
+  })    
+  test("sync break", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor({|x| log.push(x); if (x>2) break;}) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor(mf) .. @each {||}
+    run {|x| log.push(x); if (x>2) break;}
     assert.eq(log,[1,2,3]);
-  }
-  test("async break") {||
+  });
+  test("async break", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor({|x| hold(0); log.push(x); if (x>2) break;}) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor(mf) .. @each {||}
+    run {|x| hold(0); log.push(x); if (x>2) break;}
     assert.eq(log,[1,2,3]);
-  }
-}
+  });
+})
 
-context("monitor.start") {||
-  test("typing") {||
+context("monitor.start", function() {
+  test("typing", function() {
     var a = [1,2,3,4] .. s.monitor.start(->0);
     assert.notOk(a .. s.isStructuredStream());
     assert.ok(a .. s.isStream());
@@ -2169,80 +2195,84 @@ context("monitor.start") {||
     var b = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2) .. s.monitor.start(->0);
     assert.ok(b .. s.isStructuredStream('rolling'));
     assert.ok(b.base .. s.isStructuredStream('batched'));
-  }
-  test("batched") {||
+  })
+  test("batched", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
-  }
+  })
 
-  test("rolling") {||
+  test("rolling", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
     assert.eq(rv,[[1,2],[2,3],[3,4]]);
     assert.eq(log,['START2', 'START1', [0,[1,2]],[1,[3]],[1,[4]]]);
-  }
-  test("rolling batched") {||
+  })
+  test("rolling batched", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.rollingWindow(2) .. s.batch(2).. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
     assert.eq(rv,[[1,2],[2,3],[3,4]]);
     assert.eq(log,['START2', 'START1', [[0,[1,2]],[1,[3]]],[[1,[4]]]]);
-  }
-  test("async 1") {||
+  })
+  test("async 1", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->(hold(0),log.push(x))) .. s.monitor.start(x->log.push('START2')) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
-  }
-  test("async 2") {||
+  })
+  test("async 2", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->(log.push(x))) .. s.monitor.start(x->(hold(0),log.push('START2'))) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
-  }
-  test("async 3") {||
+  })
+  test("async 3", function() {
     var log = [];
     var rv = [1,2,3,4] .. s.batch(2) .. s.monitor.start(x->(hold(0),log.push('START1'))) .. s.monitor.raw(x->(log.push(x))) .. s.monitor.start(x->(hold(0),log.push('START2'))) .. s.toArray;
     assert.eq(rv,[1,2,3,4]);
     assert.eq(log,['START2', 'START1', [1,2],[3,4]]);
-  }
-  test("sync break 1") {||
+  })
+  test("sync break 1", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor.start({|| break}) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor.start(mf) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. @each {||}
+    run {|| break}
     assert.eq(log,['START2']);
-  }
-  test("sync break 2") {||
+  });
+  test("sync break 2", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start({|| break}) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(mf) .. @each {||}
+    run {|| break}
     assert.eq(log,[]);
-  }
-  test("async break 1") {||
+  });
+  test("async break 1", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor.start({|| hold(0); break}) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor.start(mf) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(x->log.push('START2')) .. @each {||}
+    run {|| hold(0); break}
     assert.eq(log,['START2']);
-  }
-  test("async break 2") {||
+  });
+  test("async break 2", function() {
     var log = [];
-    [1,2,3,4] .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start({|| hold(0); break}) .. @each {||}
+    var run = mf -> [1,2,3,4] .. s.monitor.start(x->log.push('START1')) .. s.monitor.raw(x->log.push(x)) .. s.monitor.start(mf) .. @each {||}
+    run {|| hold(0); break}
     assert.eq(log,[]);
-  }
-}
+  });
+})
 
-context('filter') {||
-  test('sync') {||
+context('filter', function() {
+  test('sync', function() {
     [1,2,3,4] .. s.filter(s->s%2==0) .. s.toArray() .. assert.eq([2,4]);
-  }
-  test('async') {||
+  })
+  test('async', function() {
     [1,2,3,4] .. s.monitor(->hold(0)) .. s.filter(s->s%2==0) .. s.toArray() .. assert.eq([2,4]);
-  }
-  test('async async') {||
+  })
+  test('async async', function() {
     [1,2,3,4] .. s.monitor(->hold(0)) .. s.filter(s->(hold(0),s%2==0)) .. s.toArray() .. assert.eq([2,4]);
-  }
-  test('sync async') {||
+  })
+  test('sync async', function() {
     [1,2,3,4] .. s.filter(s->(hold(0),s%2==0)) .. s.toArray() .. assert.eq([2,4]);
-  }
-  test("typing") {||
+  })
+  test("typing", function() {
     var a = [1,2,3,4] .. s.filter(x->x%2==0);
     assert.ok(a .. s.isStream);
     assert.notOk(a .. s.isStructuredStream);
@@ -2250,15 +2280,15 @@ context('filter') {||
     var b = [1,2,3,4] .. s.batch(2) .. s.filter(x->x%2==0);
     assert.ok(b .. s.isStream);
     assert.ok(b .. s.isStructuredStream('batched'));
-  }
-  test("batching") {||
+  })
+  test("batching", function() {
     var a = [1,2,3,4,5,6,7,8,9,9,9,9,9,9,9,9,9,9,9] .. s.batch(4) .. s.filter(x->x%2==0);
     assert.eq(a..s.toArray, [2,4,6,8]);
     assert.eq(a.base .. s.toArray, [[2,4],[6,8]]);
-  }
-  test("async batching") {||
+  })
+  test("async batching", function() {
     var a = [1,2,3,4,5,6,7,8,9,9,9,9,9,9,9,9,9,9,9] .. s.monitor(->hold(0)) ..s.batch(4) .. s.filter(x->x%2==0);
     assert.eq(a..s.toArray, [2,4,6,8]);
     assert.eq(a.base .. s.toArray, [[2,4],[6,8]]);
-  }
-}
+  })
+})

@@ -546,7 +546,7 @@
 
   A 'cyclic abort' is a stratum calling `abort` on itself, as in e.g: 
   
-      var S = spawn(function(){ 
+      var S = _task(function(){ 
         try { 
           hold(100); 
           S.abort(); 
@@ -560,7 +560,7 @@
 
   Another variant of a cyclic abort calls `abort` from within a `finally` clause:
 
-      var S = spawn(function(){ 
+      var S = _task(function(){ 
         try { 
           hold(100); 
           try {} finally { S.abort(); }
@@ -581,10 +581,10 @@
   If you really do need to abort a stratum from within (rather than returning 'normally' via return or via an exception), it might be more appropriate to use a
   non-synchronous form of abortion:
 
-      var S = spawn(function() { 
+      var S = _task(function() { 
         try { 
           hold(100);
-          spawn S.abort();
+          _task S.abort();
           console.log('this will be executed');
           hold(); // <-- now the stratum will be aborted
           console.log('not reached');

@@ -59,9 +59,9 @@ testEq('waitforFirst args', 6, function() {
   return x;
 });
 
-test('Semaphore: default permits is 1') {||
+test('Semaphore: default permits is 1', function() {
   cutil.Semaphore().permits .. assert.eq(1);
-};
+});
 
 
 testEq('Semaphore: blocking on acquire', 1, function() {
@@ -485,8 +485,8 @@ testEq('Queue(0) get/put sequencing', '123123', function() {
 });
 
 
-context('breaking') {||
-  test('without error') {||
+context('breaking', function() {
+  test('without error', function() {
     var events = [];
     var context = function(block) {
       events.push('tx init');
@@ -507,18 +507,18 @@ context('breaking') {||
       'yielded',
       'tx finish',
       'block finish']);
-  };
+  });
 
-  test('error in setup') {||
+  test('error in setup', function() {
     var err = new Error("error thrown by `breaking` block");
     assert.raises({message: err.message}) {||
       cutil.breaking {|brk|
         throw err;
       }
     };
-  };
+  });
 
-  test('error in teardown') {||
+  test('error in teardown', function() {
     var err = new Error("error thrown in teardown");
     var value = 'value';
     var transaction = function(block) {
@@ -535,9 +535,9 @@ context('breaking') {||
       ctx.resume();
     };
     ok .. assert.ok();
-  };
+  });
 
-  test('resume(error)') {||
+  test('resume(error)', function() {
     var events = [];
     var context = function(block) {
       events.push('tx init');
@@ -556,9 +556,9 @@ context('breaking') {||
     events.push(block.value);
     block.resume(new Error('err'));
     events .. assert.eq(['tx init', 'yielded', 'err', 'tx finish']);
-  };
+  });
 
-  test('block retracted') {||
+  test('block retracted', function() {
     var events = [];
     events.push = (function(o) {
       return function(e) {
@@ -599,9 +599,9 @@ context('breaking') {||
     block.wait();
 
     events .. assert.eq(['init', 'yielded', 'retracting', 'finally', 'retracted']);
-  }
+  })
 
-  test('error thrown from block body') {||
+  test('error thrown from block body', function() {
     var events = [];
     events.push = (function(o) {
       return function(e) {
@@ -648,12 +648,12 @@ context('breaking') {||
     });
 
     events .. assert.eq(['init', 'setting error', 'throwing', 'retract block', 'collapsed', 'resuming']);
-  }
+  })
 
-}
+})
 
-context('advanced semaphore') {||
-  test('acquire sequencing') {||
+context('advanced semaphore', function() {
+  test('acquire sequencing', function() {
     var S = cutil.Semaphore(1);
     var rv = '';
     waitfor {
@@ -671,8 +671,8 @@ context('advanced semaphore') {||
       S.release();
     }
     @assert.eq(rv, '123')
-  }
-  test('sequencing2/countWaiting') {||
+  })
+  test('sequencing2/countWaiting', function() {
     var S = cutil.Semaphore(1);
     var rv = '';
     waitfor {
@@ -695,8 +695,8 @@ context('advanced semaphore') {||
       S.release();
     }
     @assert.eq(rv, '12345')
-  }
-}
+  })
+})
 
 function task(id, log_arr, blocking_retract, blocking_finally) {
   return function() {
@@ -715,8 +715,8 @@ function task(id, log_arr, blocking_retract, blocking_finally) {
   }
 }
 
-context('withBackgroundStrata') {||
-  test('empty') {||
+context('withBackgroundStrata', function() {
+  test('empty', function() {
     var rv = [];
     cutil.withBackgroundStrata {
       |scope|
@@ -726,18 +726,18 @@ context('withBackgroundStrata') {||
     }
     rv.push('out of scope');
     assert.eq(rv, ['in scope', 'cont', 'out of scope']);
-  }
+  })
 
   @product([true,false],[true,false]) .. @each {
     |[blocking_retract,blocking_finally]|
 
-    context("blocking_retract=#{blocking_retract}, blocking_finally=#{blocking_finally}") {||
+    context("blocking_retract=#{blocking_retract}, blocking_finally=#{blocking_finally}", function() {
 
       // XXX not all tests here make use of the full 
       // [blocking_retract,blocking_finally] matrix.
       // We could factor them out to prevent the unnecessary redundancy.
 
-      test('single task') {||
+      test('single task', function() {
         var rv = [];
         cutil.withBackgroundStrata {
           |scope|
@@ -749,9 +749,9 @@ context('withBackgroundStrata') {||
         }
         rv.push('out of scope');
         assert.eq(rv, ['in scope', '1 start', 'wait', '1 finally', 'cont', 'out of scope']);
-      }
+      })
       
-      test('single task abort') {||
+      test('single task abort', function() {
         var rv = [];
         cutil.withBackgroundStrata {
           |scope|
@@ -761,9 +761,9 @@ context('withBackgroundStrata') {||
         }
         rv.push('out of scope');
         assert.eq(rv, ['in scope', '1 start', 'cont', '1 retract', '1 finally',  'out of scope']);
-      }
+      })
       
-      test('2 tasks') {||
+      test('2 tasks', function() {
         var rv = [];
         cutil.withBackgroundStrata {
           |scope|
@@ -779,9 +779,9 @@ context('withBackgroundStrata') {||
         assert.eq(rv, ['in scope', '1 start', '2 start', 
                        'wait', '1 finally', '2 finally', 
                        'cont', 'out of scope']);
-      }
+      })
       
-      test('2 tasks abort') {||
+      test('2 tasks abort', function() {
         var rv = [];
         cutil.withBackgroundStrata {
           |scope|
@@ -794,17 +794,17 @@ context('withBackgroundStrata') {||
         rv.push('out of scope');
         if (blocking_finally) {
           assert.eq(rv, ['in scope', '1 start', '2 start', 'cont', 
-                         '2 retract', '1 retract', '2 finally', '1 finally',  
+                         '1 retract', '2 retract', '1 finally', '2 finally',  
                          'out of scope']);
         }
         else {
           assert.eq(rv, ['in scope', '1 start', '2 start', 'cont', 
-                         '2 retract', '2 finally', '1 retract', '1 finally',  
+                         '1 retract', '1 finally', '2 retract', '2 finally',  
                          'out of scope']);
         }
-      }
+      })
 
-      test('blklamba return sync') {||
+      test('blklambda return sync', function() {
         var rv = [];
         function f() {
           cutil.withBackgroundStrata {
@@ -829,13 +829,10 @@ context('withBackgroundStrata') {||
         }
         rv.push(f());
         rv.push('out of scope');
-        if (blocking_finally)
-          assert.eq(rv,[ 'in scope', '1 start', '1 returning', '2 start', 'cont', '2 retract', '2 finally', 'rv', 'out of scope' ]);
-        else
-          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'rv', 'out of scope' ]);
-      }
+        assert.eq(rv,[ 'in scope', '1 start', '1 returning', '2 start', 'cont', '2 retract', '2 finally', 'rv', 'out of scope' ]);
+      })
 
-      test('exception sync') {||
+      test('exception sync', function() {
         var rv = [];
         function f() {
           cutil.withBackgroundStrata {
@@ -860,14 +857,11 @@ context('withBackgroundStrata') {||
         }
         try { f(); } catch(e) { rv.push(e); }
         rv.push('out of scope');
-        if (blocking_finally)
-          assert.eq(rv,[ 'in scope', '1 start', '1 returning', '2 start', 'cont', '2 retract', '2 finally', 'except', 'out of scope' ]);
-        else
-          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'except', 'out of scope' ]);
-      }
+        assert.eq(rv,[ 'in scope', '1 start', '1 returning', '2 start', 'cont', '2 retract', '2 finally', 'except', 'out of scope' ]);
+      })
 
 
-      test('blklamba return 1') {||
+      test('blklambda return 1', function() {
         var rv = [];
         function f() {
           cutil.withBackgroundStrata {
@@ -889,9 +883,9 @@ context('withBackgroundStrata') {||
         rv.push(f());
         rv.push('out of scope');
         assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 returning', '2 retract', '2 finally', 'rv', 'out of scope' ]);
-      }
+      })
 
-      test('exception 1') {||
+      test('exception 1', function() {
         var rv = [];
         function f() {
           cutil.withBackgroundStrata {
@@ -913,9 +907,9 @@ context('withBackgroundStrata') {||
         try { f(); } catch(e) { rv.push(e); }
         rv.push('out of scope');
         assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 returning', '2 retract', '2 finally', 'except', 'out of scope' ]);
-      }
+      })
 
-      test('exception with sole stratum') {||
+      test('exception with sole stratum', function() {
         var rv = [];
         function f() {
           cutil.withBackgroundStrata {
@@ -934,16 +928,16 @@ context('withBackgroundStrata') {||
               }
             }
             rv.push('cont');
-            scope.wait();
+            scope.wait(); 
             rv.push('not reached');
           }
         }
         try { f(); } catch(e) { rv.push(e); }
         rv.push('out of scope');
         assert.eq(rv,[ 'in scope', '1 start', 'cont', '1 returning', 'except', 'out of scope' ]);
-      }
+      })
 
-      test('sync exception with sole stratum') {||
+      test('sync exception with sole stratum', function() {
         var rv = [];
         function f() {
           cutil.withBackgroundStrata {
@@ -962,6 +956,8 @@ context('withBackgroundStrata') {||
             }
             rv.push('cont');
             scope.wait();
+            rv.push('cont 2');
+            hold();
             rv.push('not reached');
           }
         }
@@ -970,10 +966,10 @@ context('withBackgroundStrata') {||
         if (blocking_finally)
           assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'cont', 'except', 'out of scope' ]);
         else
-          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'except', 'out of scope' ]);
-      }
+          assert.eq(rv,[ 'in scope', '1 start', '1 returning', 'cont', 'cont 2', 'except', 'out of scope' ]);
+      })
 
-      test('blklamba break') {||
+      test('blklamba break', function() {
         var rv = [];
         function f(blk) {
           cutil.withBackgroundStrata {
@@ -995,9 +991,9 @@ context('withBackgroundStrata') {||
         }
         rv.push('out of scope');
         assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 break', '2 retract', '2 finally', 'out of scope' ]);
-      }
+      })
 
-      test('blklamba return 2') {||
+      test('blklambda return 2', function() {
         var rv = [];
         function f(blk) {
           cutil.withBackgroundStrata {
@@ -1023,19 +1019,20 @@ context('withBackgroundStrata') {||
         rv.push(g());
         rv.push('out of scope');
         assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 return', '2 retract', '2 finally', 'rv', 'out of scope' ]);
-      }
+      })
 
 
-    } // context
+    }) // context
   } // [blocking_retract,blocking_finally]
 
   @product([true,false],[true,false],[true,false],[true,false],[true,false],[true,false]) ..
     @each {
       |[p1,p2,p3,p4,p5,p6]|
       if (!(p1 || p2 || p3)) continue; // need to ensure 'stratum1' is available
-      test("cyclic abort #{p1} #{p2} #{p3} #{p4} #{p5} #{p6}") {||
-        var rv = [];
-        var stratum1 = spawn(function() {
+      test("cyclic abort #{p1} #{p2} #{p3} #{p4} #{p5} #{p6}", function() {
+        var rv = [], stratum1;
+        reifiedStratum.spawn(function(S) { 
+          stratum1 = S;
           if (p1) hold(0); 
           try {
             @withBackgroundStrata {
@@ -1047,7 +1044,8 @@ context('withBackgroundStrata') {||
                 if (p3) hold(0);
                 try {
                   rv.push('abort');
-                  stratum1.abort();
+                  stratum1.abort(); 
+                  hold();
                   rv.push('not reached');
                 }
                 retract {
@@ -1059,10 +1057,12 @@ context('withBackgroundStrata') {||
                   rv.push('inner finally');
                 }
                 rv.push('not reached');
-              } 
+              } /* scope.run */ 
               rv.push('outer waiting');
-              if (p6) hold();
-              scope.wait();
+              if (p6) 
+                hold();
+              else
+                scope.wait();
               rv.push('not reached');
             } // background session
             rv.push('not reached');
@@ -1074,15 +1074,10 @@ context('withBackgroundStrata') {||
             rv.push('outer finally');
           }
           rv.push('not reached');
-        })();
+        });
 
-        try {
-          stratum1.value();
-        }
-        catch(e) {
-          assert.truthy(e instanceof @StratumAborted);
-          stratum1.abort(); // wait for abort to complete fully
-        }
+        stratum1.wait();
+
         var expected = ['inner'];
         if (p3) 
           expected.push('outer waiting', 'abort');
@@ -1090,13 +1085,14 @@ context('withBackgroundStrata') {||
           expected.push('abort', 'outer waiting');
         expected.push('inner retract', 'inner finally', 'outer retract', 'outer finally');
           assert.eq(rv,expected);
-      }
+      })
 
       if (p6) continue; // p6 not used in next test
 
-      test("cyclic abort in finally #{p1} #{p2} #{p3} #{p4} #{p5}") {||
-        var rv = [];
-        var stratum1 = spawn(function() {
+      test("cyclic abort in finally #{p1} #{p2} #{p3} #{p4} #{p5}", function() {
+        var rv = [], stratum1;
+        reifiedStratum.spawn(function(S) { 
+          stratum1 = S;
           if (p1) hold(0); 
           try {} finally {
             @withBackgroundStrata {
@@ -1127,40 +1123,46 @@ context('withBackgroundStrata') {||
             } // background session
             rv.push('outer continue finally');
           } // finally
-          rv.push('after outer finally');
+          rv.push('after outer finally'); // <- this used to be reached, but not always anymore. finally is now an abort point if it blocks
           hold(0);
           rv.push('not reached');
-        })();
+        });
 
-        try {
-          stratum1.value();
-        }
-        catch(e) {
-          assert.truthy(e instanceof @StratumAborted);
-          stratum1.abort(); // wait for abort to complete fully
-        }
+        stratum1.wait();
+
         var expected = ['inner'];
-        if (p3) 
-          expected.push('outer waiting', 'abort', 'after abort');
-        else
-          expected.push('abort', 'outer waiting', 'after abort');
-        expected.push('inner finally', 'abort cont', 'outer cont', 'outer continue finally', 'after outer finally');
-          assert.eq(rv,expected);
-      }
+        if (p3) {
+          expected.push('outer waiting', 'abort', 'after abort', 'inner finally', 'abort cont', 'outer cont', 'outer continue finally');
+        }
+        else {
+          if (!p5) {
+            expected.push('abort', 'after abort', 'inner finally', 'abort cont', 'outer waiting', 'outer cont', 'outer continue finally');
+          }
+          else
+            expected.push('abort', 'after abort', 'outer waiting', 'inner finally', 'abort cont', 'outer cont', 'outer continue finally');
+        }
+        if (!p2 && !p3 && !p5)
+          expected.push('after outer finally');
+        assert.eq(rv,expected);
+      })
 
     }
 
-  test('wait for return') { ||
+  test('wait for return', function() {
     @withBackgroundStrata {
       |strata|
-      var S = strata.run(()-> 'x');
-      assert.eq(S.value(), 'x');
+      var S = strata.run((S)-> S.value = 'x');
+      S.wait();
+      assert.eq(S.value, 'x');
 
-      var A = strata.run(()-> (hold(0),'y'));
-      var A2 = strata.run(function() { hold(0); return 'z';});
-      assert.eq(A.value(), 'y');
-      assert.eq(A2.value(), 'z');
-      
+      var A = strata.run((S)-> (hold(0),S.value = 'y'));
+      var A2 = strata.run(function(S) { hold(0); S.value = 'z';});
+      A.wait();
+      assert.eq(A.value, 'y');
+      A2.wait();
+      assert.eq(A2.value, 'z');
+
+      /* THIS DOESN'T WORK ANY LONGER: 
       try {
         // sync exception
         var E = strata.run(function() { throw 'e'; });
@@ -1177,11 +1179,12 @@ context('withBackgroundStrata') {||
       catch(e) {
         assert.eq(e,'e');
       }
+      */
       strata.wait();
     }
-  }
+  })
 
-  test('ignore return') {||
+  test('ignore return', function() {
     @withBackgroundStrata {
       |strata|
       var S = strata.run(()->'x', true);
@@ -1189,5 +1192,5 @@ context('withBackgroundStrata') {||
       var A = strata.run(()->(hold(0),'x'), true);
       assert.eq(A,undefined);
     }
-  }
-}
+  }).skip("'ignore return flag' has been retired for now"); 
+})

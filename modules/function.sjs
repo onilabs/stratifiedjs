@@ -42,6 +42,7 @@ module.setCanonicalId('sjs:function');
 
 var sys    = require('builtin:apollo-sys');
 var cutil  = require('./cutil');
+var { remove } = require('./array');
 var { extend } = require('./object');
 var { map, zip, each } = require('./sequence');
 var { Interface } = require('./type');
@@ -150,30 +151,79 @@ __js exports.sequential = f -> exports.bound(f, 1);
     If `reuse` is `true`, calls that occur when the function is already running will wait for (and return) the value from the earlier execution.
     If `reuse` is `false` (or not given), each call will cancel any currently-running call and return `undefined` for it, and then invoke `f` again.
 */
-exports.exclusive = function(f, reuse) {
-  var stratum, cancel;
-  return function() {
-    if (!reuse && cancel) { cancel(); cancel = null; }
-    if (!cancel) stratum = spawn (function(t,a){
-      var cancel_func;
-      waitfor {
-        waitfor() { cancel_func = resume; cancel = cancel_func; }
-      } or {
-        return f.apply(t,a);
-      } finally { 
-        if (cancel === cancel_func) 
-          cancel = null;
-      }
-    }(this,arguments));
-
+function exclusive_cancel_current(f) {
+  var running;
+  return function(...args) {
+    if (running)
+      running.abort().wait();
     try {
-      return stratum.value();
+      running = reifiedStratum;
+      return f.apply(this, args);
     }
-    retract {
-      if (stratum.waiting() === 0)
-        stratum.abort();
+    finally {
+      running = undefined;
     }
   }
+};
+
+// XXX only supports blocklambda controlflow through first caller; maybe don't need to support at all
+function exclusive_reuse(f) {
+  var stratum;
+  var waiting = [];
+  return function(...args) {
+    var owner = false;
+    waitfor {
+      waitfor(var rv, isException) {
+        waiting.push(resume);
+      }
+      retract {
+        waiting .. remove(resume);
+      }
+      if (isException) throw rv;
+      return rv;
+    }
+    and {
+      var me = this;
+      if (!stratum) {
+        owner = true;
+        reifiedStratum.spawn (function(s) {
+          stratum = s;
+          var rv, isException = false;
+          try {
+            rv = f.apply(me, args);
+          }
+          catch(e) {
+            rv = e;
+            isException = true;
+          }
+          finally {
+            stratum = undefined;
+            var w = waiting;
+            waiting = [];
+            while (w.length)
+              w.shift()(rv, isException);
+            //return; // this return prevents blocklambda controlflow from ending up in global stratum
+          }
+        })
+      };
+    }
+    retract {
+      if (stratum) {
+        if (waiting.length === 0) {
+          stratum.abort().wait();
+        }
+        else if (owner) {
+          // parenting by a global stratum means that blocklambda controlflow will not be routed correctly anymore, and will throw an uncaught exception instead.
+          // this should only affect pathological cases.
+          sys.spawn(function() { reifiedStratum.adopt(stratum) });
+        }
+      }
+    }
+  }
+};
+
+exports.exclusive = function(f, reuse) {
+  return reuse ? exclusive_reuse(f) : exclusive_cancel_current(f);
 };
 
 /**
@@ -227,7 +277,48 @@ exports.rateLimit = function(f, max_cps) {
      `f(X)` to finish has been aborted (i.e. noone is interested in the value 
      for `X` at the moment).
 */
-exports.memoize = sys.makeMemoizedFunction;
+exports.memoize = function(f, keyfn) {
+  var lookups_in_progress = {};
+
+  var memoizer = function(...args) {
+    var key = keyfn ? keyfn.apply(this, args) : args[0];
+    var rv = memoizer.db[key];
+    if (!Array.isArray(rv)) {
+      if (!lookups_in_progress[key]) {
+        var self = this;
+        lookups_in_progress[key] = [sys.spawn(function() {
+          try {
+            memoizer.db[key] = [f.apply(self, args), false];
+          }
+          catch(e) {
+            memoizer.db[key] = [e, true];
+          }
+          finally {
+            delete lookups_in_progress[key];
+          }
+        }), 0];
+      }
+      try {
+        ++lookups_in_progress[key][1];
+        lookups_in_progress[key][0].wait();
+      }
+      retract {
+        if (lookups_in_progress) { // XXX is this `if` needed?
+          if (--lookups_in_progress[key][1] === 0) {
+            lookups_in_progress[key][0].abort().wait();
+          }
+        }
+      }
+      rv = memoizer.db[key];
+    }
+    if (rv[1])
+      throw new Error(rv[0]);
+    return rv[0];
+  };
+  
+  memoizer.db = {};
+  return memoizer;
+};
 
 /**
    @function unbatched
@@ -250,6 +341,10 @@ exports.memoize = sys.makeMemoizedFunction;
       `batch_period`. It then calls `batched_f(X)` and distributes the
       returned array `Y=[y1,y2,...]` to the corresponding callers
       `g(x1), g(x2), ...`.
+
+      Note that `unbatched` does not support blocklambda controlflow: `X` must not contain
+      blocklambdas with `break` or `return` statements. These will lead to global uncaught errors
+      when executed.
 
       #Example
 
@@ -328,7 +423,8 @@ function unbatched(batched_f, settings) {
     waitfor (var rv, isException) {
       var req = [x, resume];
       pending_calls.push(req);
-      if (!batch_pending) spawn process_batch.call(this);
+      var me = this;
+      if (!batch_pending) sys.spawn(-> process_batch.call(me));
     }
     retract {
       var index = pending_calls.indexOf(req);
@@ -358,7 +454,7 @@ var ITF_SIGNAL = exports.ITF_SIGNAL = module .. Interface('signal');
    @summary Call a function asynchronously without waiting for the return value
    @desc
      Calling `f .. signal(this_obj, arguments)` is equivalent to
-     executing `spawn f.apply(this_obj, arguments)`.
+     executing `_XXXtask f.apply(this_obj, arguments)`.
 
      Signalling is more efficient than spawning but doesn't allow the caller to interact with the
      called function: Whereas the `spawn` call returns a [#language/builtins::Stratum], the 
@@ -384,88 +480,3 @@ __js {
   exports.signal = signal;
 }
 // XXX alt, curry
-
-
-/**
-   @function tailspawn
-   @param {Function} [f]
-   @return {Function}
-   @summary A decorator to allow a call to `f` to be tail-replaced with `exp` by calling `return spawn exp` inside `f`. 
-   @desc
-     This decorator is useful for chaining function calls while bailing out of 'resource manager contexts'.
-     E.g. consider the following:
-     
-         function processFile(f) {
-           @fs.withReadStream(f) {
-             |file_stream|
-             var header = file_stream .. read_header();
-             if (header.type === 'parent')
-               return processSubFile(header.child);
-             else {
-               var payload = file_stream .. read_payload();
-               return processPayload(payload);
-             }
-           }
-         }
-
-     The problem here is that this code unnecessarily keeps open file streams while processing
-     calls to `processSubFile` or `processPayload`. One way to fix this is to move the calls to
-     `processSubFile` and `processPayload` out of the `withReadStream` block. But this is awkward,
-     because we then need to replicate part of our business logic in two places:
-
-         function processFile(f) {
-           var type, child, payload;
-           @fs.withReadStream(f) {
-             |file_stream|
-             var header = file_stream .. read_header();
-             type = header.type;
-             if (type === 'parent') 
-               child = header.child;
-             else
-               payload = file_stream .. read_payload();
-           }
-
-           if (type === 'parent')
-             return processSubFile(child);
-           else
-             return processPayload(payload);
-         }
-
-     Decorating `processFile` with `tailspawn` offers a cleaner alternative. It allows us to spawn
-     a return expression (causing the read stream to be closed as soon as the return expression 
-     suspends, rather than when it has finished processing), but it exposes the 
-     return value to `processFile`'s caller as if it were not spawned:
-
-         var processFile = tailspawn :: function(f) {
-           @fs.withReadStream(f) {
-             |file_stream|
-             var header = file_stream .. read_header();
-             if (header.type === 'parent')
-               return spawn processSubFile(header.child);
-             else {
-               var payload = file_stream .. read_payload();
-               return spawn processPayload(payload);
-             }
-           }
-         }
-
-     `tailspawn` is particulary useful for chaining UI code, such as e.g. functions that call [mho:surface/widgets::dialog].
-
-     We should eventually have direct syntax support for this feature in SJS. 
-*/
-exports.tailspawn = function(f) {
-  return function() {
-    var rv = f.apply(this, arguments);
-    if (rv .. sys.isReifiedStratum) {
-      try {
-        return rv.value();
-      }
-      retract {
-        rv.abort();
-      }
-    }
-    else 
-      return rv;
-  }
-}
-

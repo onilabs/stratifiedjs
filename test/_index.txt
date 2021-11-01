@@ -37,6 +37,7 @@ unit/shell-quote-tests.sjs
 unit/sjcl-tests.sjs
 unit/sjs-2-tests.sjs
 unit/sjs-3-tests.sjs
+unit/sjs-4-tests.sjs
 unit/sjs-tests.sjs
 unit/stack-tests.sjs
 unit/string-tests.sjs

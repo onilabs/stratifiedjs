@@ -14,7 +14,7 @@ var expected404Status = 404;
 
 var {requiresConductance} = require('./helper');
 
-context("request") {||
+context("request", function() {
   testEq('request(["data/returnQuery.template", {a:1,b:2}])', "a=1&b=2", function() {
     return http.request([getHttpURL("data/returnQuery.template"), {a:1,b:2}]);
   }).skip("requires template filter");
@@ -27,34 +27,34 @@ context("request") {||
     return http.request(getHttpURL("data/returnQuery.template"), {query:{a:1,b:2}});
   }).skip("requires template filter");
 
-  test('request("no_such_url", {throwing:false})') {||
+  test('request("no_such_url", {throwing:false})', function() {
     http.request(getHttpURL("no_such_url"), {throwing:false}) .. assert.eq("");
-  };
+  });
 
-  test('try {request("no_such_url")}catch(e){}') {||
+  test('try {request("no_such_url")}catch(e){}', function() {
     assert.raises({filter: e -> e.status === expected404Status},
       -> http.request(getHttpURL("no_such_url")));
-  }
+  })
 
-  context("redirect") {||
-    test("bails out on infinite redirect") {||
+  context("redirect", function() {
+    test("bails out on infinite redirect", function() {
       var response = http.request(getHttpURL("/http/redirect?infinite=1"), {max_redirects:10, throwing: false, response:'full'});
       @info(response);
       // browser infinite redirect returns generic `0` error code
       response.status .. @assert.eq(@isBrowser ? 0 : 302);
-    }
+    })
 
-    test("persists settings") {||
+    test("persists settings", function() {
       var dest = getHttpURL("/http/ok");
       var response = http.request(getHttpURL("/http/redirect?dest="+encodeURIComponent(dest)), {response:'full'});
       @info(response);
       response.status .. @assert.eq(200); // make sure we got a "full" response, not the default "string"
-    }
+    })
 
-  } .. requiresConductance();
+  }) .. requiresConductance();
 
-  @context("error response data") {||
-    @test('for standard response') {||
+  @context("error response data", function() {
+    @test('for standard response', function() {
       try {
         http.request(getHttpURL("/http/fail"));
         assert.fail("No exception thrown");
@@ -63,9 +63,9 @@ context("request") {||
         @info(e);
         @assert.eq(e.data, 'failure response data');
       }
-    }
+    })
 
-    @test('for arraybuffer response') {||
+    @test('for arraybuffer response', function() {
       try {
         http.request(getHttpURL("/http/fail"), {response:'arraybuffer'});
         assert.fail("No exception thrown");
@@ -74,11 +74,11 @@ context("request") {||
         @info(e, e.data);
         @assert.eq(e.data .. @arrayBufferToOctets, 'failure response data');
       }
-    }.browserOnly();
-  } .. requiresConductance();
-}
+    }).browserOnly();
+  }) .. requiresConductance();
+})
 
-context("get") {||
+context("get", function() {
   testEq('get(["data/returnQuery.template", {a: 1, b: 2}])', "a=1&b=2", function () {
     return http.get([getHttpURL("data/returnQuery.template"), {a: 1, b: 2}]);
   }).skip("requires template filter");
@@ -87,15 +87,15 @@ context("get") {||
     return http.get([getHttpURL("data/returnQuery.template"), { a: 1 }, {b: 2}]);
   }).skip("requires template filter");
 
-  test('try {get("invalid_url")}catch(e){}') {||
+  test('try {get("invalid_url")}catch(e){}', function() {
     assert.raises({filter: e -> e.status === expected404Status},
       -> http.get(getHttpURL("no_such_url")));
-  }
-}
+  })
+})
 
-context("post") {||
+context("post", function() {
   var post_echo;
-  test.beforeAll {|s|
+  test.beforeAll:: function(s) {
     post_echo = getHttpURL("/http/post_echo");
   }
   testEq("http.post", "a=1&b=2", function () {
@@ -105,23 +105,23 @@ context("post") {||
   testEq("http.post 2", "a=1&b=b&c=3", function () {
     return http.post(post_echo, url.buildQuery([{a:1,b:"b"}, {c:3}]));
   });
-} .. requiresConductance();
+}) .. requiresConductance();
 
-context("json") {||
+context("json", function() {
 
   testEq('json("data.json")', 1, function () {
     return http.json(getHttpURL("integration/fixtures/data.json")).doc[0].value;
   });
 
-}
+})
 
-context("xml") {||
+context("xml", function() {
   testEq('xml("data.xml")', "1", function () {
   return http.xml(getHttpURL("integration/fixtures/data.xml")).getElementsByTagName("leaf")[0].getAttribute("value");
   }).skip("http.xml is obsolete");
-}
+})
 
-context("jsonp") {||
+context("jsonp", function() {
   if (suite.isBrowser) {
     // browser jsonp actually gets the `cp` url dynamically since it's
     // run as vanilla JS code:
@@ -138,42 +138,42 @@ context("jsonp") {||
     return http.jsonp(getHttpURL("integration/fixtures/jsonp." + jsonpType), [opts]).data;
   }
 
-  test("jsonp") {||
+  test("jsonp", function() {
     testJsonpRequest() .. assert.eq("result");
-  };
+  });
 
-  test("jsonp iframe") {||
+  test("jsonp iframe", function() {
     testJsonpRequest({iframe:true}) .. assert.eq("result");
-  };
+  });
 
-  test("jsonp forcecb") {||
+  test("jsonp forcecb", function() {
     testJsonpRequest({forcecb:"foobar"}) .. assert.eq("result");
-  }
+  })
 
-  test("jsonp/indoc bad url should throw") {||
+  test("jsonp/indoc bad url should throw", function() {
     assert.raises({message: errorMessage},
       -> http.jsonp(getHttpURL("nonexistingurl")));
-  }
+  })
 
-  test("jsonp/iframe bad url should throw") {||
+  test("jsonp/iframe bad url should throw", function() {
     assert.raises({message: errorMessage},
       -> http.jsonp(getHttpURL("nonexistingurl"), {iframe: true}));
-  }.skip("wontfix/cantfix");
+  }).skip("wontfix/cantfix");
 
   function searchIframe() {
     return http.jsonp(["http://ajax.googleapis.com/ajax/services/search/web", {v: "1.0", q : 'stratifiedjs' }], {iframe:true});
   }
 
-  test("http.jsonp iframe cache issue") {||
+  test("http.jsonp iframe cache issue", function() {
     searchIframe() .. assert.ok();
     // if the iframe caches (some browsers), the jsonp callback will not be called
     // (causing a timeout)
     searchIframe() .. assert.ok();
-  }.timeout(10).skip("google api retired");
+  }).timeout(10).skip("google api retired");
 
-}.ignoreLeaks('_oni_jsonpcb').timeout(5);
+}).ignoreLeaks('_oni_jsonpcb').timeout(5);
 
-context("full return objects") {||
+context("full return objects", function() {
   testEq('head request', 'text/plain', function() {
     return http.request("http://code.onilabs.com/sjs/unstable/modules/http.sjs",
                         { method: 'HEAD', response: 'full' }).getHeader('Content-Type');
@@ -183,9 +183,9 @@ context("full return objects") {||
     return http.request("http://code.onilabs.com/sjs/unstable/modules/http.sjs",
                         { method: 'GET', response: 'full' }).content.length > 0;
   });
-}
+})
 
-context("raw return objects") {||
+context("raw return objects", function() {
   @stream = require('sjs:nodejs/stream');
 
   test('returns an unconsumed response stream', function() {
@@ -195,4 +195,4 @@ context("raw return objects") {||
     assert.ok(data.length > 1024);
   });
 
-}.serverOnly();
+}).serverOnly();

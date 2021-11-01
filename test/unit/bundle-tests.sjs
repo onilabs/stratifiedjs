@@ -1,6 +1,6 @@
 var {test, context, assert} = require('sjs:test/suite');
 
-context {||
+context(function() {
 
   var fs = require('sjs:nodejs/fs');
   var path = require('nodejs:path');
@@ -16,7 +16,7 @@ context {||
 
   var tmpfile = path.join(process.env['TEMP'] || '/tmp', 'sjs-test-bundle.js');
   var createdBundles = [];
-  test.afterAll {||
+  test.afterAll :: function() {
     createdBundles .. each {|f|
       if(fs.exists(f)) fs.unlink(f);
     }
@@ -69,7 +69,7 @@ context {||
 
   var fixtureDependencyUrls = fixtureDependencies .. map(d -> 'HOST' + d);
 
-  test("includes module dependencies") {||
+  test("includes module dependencies", function() {
     var bundle = createBundle({
       resources: ["#{basePath}=/"],
       sources: [
@@ -82,9 +82,9 @@ context {||
       [ 'sjs:', ['array.sjs', 'cutil.sjs', 'object.sjs','sequence.sjs', 'string.sjs', 'type.sjs', 'xbrowser/console.sjs']],
       [ null, fixtureDependencyUrls]
     ]);
-  }
+  })
 
-  test("can exclude hubs") {||
+  test("can exclude hubs", function() {
     var bundle = createBundle({
       resources: ["#{basePath}=/"],
       sources: [
@@ -97,9 +97,9 @@ context {||
     bundle .. bundledModuleNames .. assert.eq([
       [ null, fixtureDependencyUrls]
     ]);
-  }
+  })
 
-  test("can ignore hubs") {||
+  test("can ignore hubs", function() {
     var bundle = createBundle({
       resources: ["#{basePath}=/"],
       sources: [
@@ -112,9 +112,9 @@ context {||
     bundle .. bundledModuleNames .. assert.eq([
       [ null, fixtureDependencyUrls]
     ]);
-  }
+  })
 
-  test("modules included in a test condition") {||
+  test("modules included in a test condition", function() {
     var bundle = createBundle({
       resources: ["#{basePath}=/"],
       sources: [
@@ -126,10 +126,10 @@ context {||
       [ 'sjs:', ['sys.sjs']],
       [ null, ['HOST/fixtures/hostenv_detect.sjs']]
     ]);
-  }
+  })
 
-  context("multiple bundles") {||
-    test("excludes modules that are present in an existing bundle") {||
+  context("multiple bundles", function() {
+    test("excludes modules that are present in an existing bundle", function() {
       var settings = {
         resources: ["#{basePath}=/"],
         output: tmpfile,
@@ -144,9 +144,9 @@ context {||
       var expectedDeps = fixtureDependencyUrls.slice();
       expectedDeps .. arr.remove('HOST/fixtures/child1.sjs') .. assert.ok();
       bundle2 .. assert.eq([[null, expectedDeps]]);
-    }.skip("Not yet implemented");
+    }).skip("Not yet implemented");
 
-    test("can load existing bundles") {||
+    test("can load existing bundles", function() {
       bundle.create({
         sources: ['sjs:sys', fixtureUrl + 'bundle_parent.sjs'],
         resources: ["#{basePath}=/"],
@@ -155,9 +155,9 @@ context {||
 
       var contents = bundle.contents(tmpfile);
       contents .. assert.eq([ 'sjs:sys.sjs' ].concat(fixtureDependencies));
-    }
+    })
 
-    test("only root (non-alias) hubs are included in the result") {||
+    test("only root (non-alias) hubs are included in the result", function() {
       var deps = createBundle({
         hubs: ["foo:=sjs:"],
         sources: ['foo:sys'],
@@ -165,10 +165,10 @@ context {||
       }) .. bundledModuleNames();
       deps.map(d -> d[0]) .. assert.eq(['sjs:']);
       deps[0][1] .. assert.contains('sys.sjs');
-    }
-  }
+    })
+  })
 
-  context("resource mapping slash normalisation") {||
+  context("resource mapping slash normalisation", function() {
     var base = basePath .. rstrip('/');
     var expected = ['HOST','root','fixtures','utf8.sjs'].join('/');
     var testResource = function(path, prefix) {
@@ -183,9 +183,9 @@ context {||
     test("slash on prefix only", -> testResource(base, '/root/'));
     test("slash on both",        -> testResource(base+path.sep, '/root/'));
     test("slash on neither",     -> testResource(base, '/root'));
-  }
+  })
 
-  test("resources can be given as object properties") {||
+  test("resources can be given as object properties", function() {
     var resources = {};
     resources[basePath] = "/";
     var [hub, modules] = createBundle({
@@ -194,9 +194,9 @@ context {||
     }) .. bundledModuleNames() .. seq.at(0);
 
     modules .. assert.contains('HOST/fixtures/utf8.sjs');
-  }
+  })
 
-  test("precompilation produces JS function sources") {||
+  test("precompilation produces JS function sources", function() {
     var modules = createBundle({
       sources: ['sjs:xbrowser/console'],
       compile: true,
@@ -207,6 +207,6 @@ context {||
     modules.map(m -> m[1]) .. each {|mod|
       String(typeof(mod)) .. assert.eq('function');
     }
-  }
+  })
 
-}.serverOnly();
+}).serverOnly();

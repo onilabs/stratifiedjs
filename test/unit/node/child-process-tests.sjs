@@ -2,7 +2,7 @@
 var { context, test, assert, isWindows } = require('sjs:test/suite');
 var { integers, take, any } = require('sjs:sequence');
 
-context {||
+context(function() {
   var testUtil = require('../../lib/testUtil')
   var testEq = testUtil.test;
   @array = require('sjs:array');
@@ -20,7 +20,7 @@ context {||
   });
 
 
-  @test("failure in a multi-process pipeline") {||
+  @test("failure in a multi-process pipeline", function() {
     // tar file does not exist. While pumping the stream into
     // tar.stdin, this should raise.
     @assert.raises({message:/ENOENT.*does_not_exist.tgz/}, ->
@@ -35,35 +35,35 @@ context {||
         } .. @childProcess.isRunning .. @assert.eq(false);
       }
     )
-  }.skipIf(@isWindows); // XXX should replace / augment this with a version that runs on Windows.
+  }).skipIf(@isWindows); // XXX should replace / augment this with a version that runs on Windows.
 
-  context('run (an array of args)') {||
-    @test("run throws ENOENT when command cannot be found") {||
+  context('run (an array of args)', function() {
+    @test("run throws ENOENT when command cannot be found", function() {
       var err = @assert.raises( -> child_process.run('nonexistent-command', []))
       err.code .. @assert.eq('ENOENT');
-    }
-  }
+    })
+  })
 
-  context('isRunning') {||
-    test('returns true for a running PID') {||
+  context('isRunning', function() {
+    test('returns true for a running PID', function() {
       child_process.isRunning({pid: process.pid}) .. assert.truthy();
-    }
+    })
 
-    test("returns true for a running PID that we don't own") {||
+    test("returns true for a running PID that we don't own", function() {
       child_process.isRunning({pid: initPid}) .. assert.truthy();
-    }
+    })
 
-    test("returns false for a non-running PID") {||
+    test("returns false for a non-running PID", function() {
       // can't exhaustively check for non-running PIDs, just try a bunch
       // of pids greater than our own (since we probably started recently)
       var pids = integers(process.pid, undefined, 100) .. take(50);
       pids .. any(p -> child_process.isRunning({pid: p})) .. assert.ok();
-    }
-  }.skipIf(NODE_VERSION .. @array.cmp([0,8]) < 0, "process.kill() returns no result before 0.8");
+    })
+  }).skipIf(NODE_VERSION .. @array.cmp([0,8]) < 0, "process.kill() returns no result before 0.8");
 
 
   //-------------------------------------------------------------
-  context('wait') {||
+  context('wait', function() {
     testEq('wait()', ['time passed', 'wait returned'], function() {
       var events = [];
       var child = child_process.launch('sleep', ['1'], {stdio:'inherit'});
@@ -78,11 +78,11 @@ context {||
       return events;
     });
 
-    test('wait() throws error on spawn error') {||
+    test('wait() throws error on spawn error', function() {
       //message differs between node < 0.10 and > 0.10
       assert.raises({message: /spawn.*EACCES|spawn ENOENT|child process exited with nonzero exit status: 127/},
         -> child_process.run(".")); // "." will be a directory
-    }
+    })
 
     testEq('wait() throws error with exit code', {events: [], code: 123}, function() {
       var events = [];
@@ -113,14 +113,14 @@ context {||
       return {events: events, error: 'no error'};
     });
 
-    @test('wait() returns child object on success') {||
+    @test('wait() returns child object on success', function() {
       var child = child_process.launch('bash', ['-c', 'exit 0']);
       var rv = child .. child_process.wait();
       rv .. @assert.eq(child);
       rv.code .. @assert.eq(0);
-    }
+    })
 
-    @test('wait() returns child object with code property if throwing === false') {||
+    @test('wait() returns child object with code property if throwing === false', function() {
       var child = child_process.launch('bash', ['-c', 'echo out; echo err >&2; sleep 1;exit 2']);
       waitfor {
         var stdout = child.stdout .. @stream.readAll('utf-8') .. @strip();
@@ -133,14 +133,14 @@ context {||
       child.code .. @assert.eq(2);
       stdout .. @assert.eq('out');
       stderr .. @assert.eq('err');
-    }
-  }
+    })
+  })
   
 
   //-------------------------------------------------------------
-  context('kill') {||
+  context('kill', function() {
     var stdio;
-    test.beforeAll {||
+    test.beforeAll:: function() {
       stdio = @logging.isEnabled(@logging.DEBUG) ? 'inherit' : null;
     }
     var sleep_for_10 = "i=10; while [ $i -gt 0 ]; do sleep 1; i=`expr $i - 1`; done; echo TIMED_OUT";
@@ -176,7 +176,7 @@ context {||
       return events;
     });
 
-    test('kill detached process (group)') {||
+    test('kill detached process (group)', function() {
       var isRunning = function(pid) {
         try {
           return process.kill(pid, 0);
@@ -246,10 +246,10 @@ context {||
         'interrupted grandchild',
         'interrupted child'
       ]);
-    }.skipIf(isWindows || NODE_VERSION .. @array.cmp([0,8]) < 0, 'unix only, nodejs>0.8')
+    }).skipIf(isWindows || NODE_VERSION .. @array.cmp([0,8]) < 0, 'unix only, nodejs>0.8')
     // ^ should work on windows, it's probably just weirdness in winbash that makes the test fail
     
-  }.timeout(8);
+  }).timeout(8);
 
 
-}.serverOnly();
+}).serverOnly();

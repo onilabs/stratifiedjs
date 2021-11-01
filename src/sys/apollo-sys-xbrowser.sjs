@@ -178,7 +178,7 @@ function jsonp_iframe(url, opts) {
     doc.open();
     iframe.contentWindow[cb] = resume;
     // This hold(0) is required in case the script is cached and loads
-    // synchronously. Alternatively we could spawn() this code:
+    // synchronously. Alternatively we could spawn this code:
     hold(0);
     doc.write("\x3Cscript type='text/javascript' src=\""+url+"\">\x3C/script>");
     doc.close();
@@ -418,43 +418,11 @@ __js function getExtensions_hostenv() {
 // eval_hostenv
 
 function eval_hostenv(code, settings) {
-  if (__oni_rt.UA == "msie" && __oni_rt.G.execScript)
-    return eval_msie(code, settings);
-
   var filename = (settings && settings.filename) || "sjs_eval_code";
   filename = "'#{filename.replace(/\'/g,'\\\'')}'";
   var mode = (settings && settings.mode) || "normal";
   var js = __oni_rt.c1.compile(code, {filename:filename, mode:mode});
   return __oni_rt.G.eval(js);
-}
-
-// IE hack. On IE, 'eval' doesn't fill the global scope.
-// And execScript doesn't return a value :-(
-// We use waitfor/resume & catchall foo to get things working anyway.
-// Note: it is important to check for msie above. Other browsers (chrome)
-// implement execScript too, and we don't want them to take this suboptimal
-// path.
-var IE_resume_counter = 0;
-__oni_rt.IE_resume = {};
-function eval_msie(code, settings) {  
-  var filename = (settings && settings.filename) || "sjs_eval_code";
-  filename = "'#{filename.replace(/\'/g,'\\\'')}'";
-  var mode = (settings && settings.mode) || "normal";
-  try {
-    waitfor(var rv, isexception) {
-      var rc = ++IE_resume_counter;
-      __oni_rt.IE_resume[rc]=resume;
-      var js = __oni_rt.c1.compile(
-        "try{"+code+
-          "\n}catchall(rv) { spawn(hold(0),__oni_rt.IE_resume["+rc+"](rv[0],rv[1])) }", {filename:filename, mode:mode});
-      __oni_rt.G.execScript(js);
-    }
-    if (isexception) throw rv;
-  }
-  finally {
-    delete __oni_rt.IE_resume[rc];
-  }
-  return rv;
 }
 
 //----------------------------------------------------------------------

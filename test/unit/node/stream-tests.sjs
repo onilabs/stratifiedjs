@@ -1,26 +1,27 @@
 var testUtil = require('../../lib/testUtil');
 var test = testUtil.test;
 @ = require('sjs:test/std');
+var sys = require('sjs:sys');
 
-@context() {||
+@context(function() {
   var s = @stream = require("sjs:nodejs/stream");
 
-  @context("contents") {||
-    @test("returns a stream of buffers") {||
+  @context("contents", function() {
+    @test("returns a stream of buffers", function() {
       @fs.withReadStream(module.id .. @url.toPath) {|stream|
         var contents = s.contents(stream);
         contents .. @isStream .. @assert.ok();
         contents .. @first .. Buffer.isBuffer .. @assert.ok();
       }
-    }
+    })
 
-    @test("returns a stream of strings if encoding is given") {||
+    @test("returns a stream of strings if encoding is given", function() {
       @fs.withReadStream(module.id .. @url.toPath) {|stream|
         var contents = s.contents(stream, 'utf-8');
         contents .. @isStream .. @assert.ok();
         contents .. @first .. @isString .. @assert.ok();
       }
-    }
+    })
 
     function testRetractWhileReading(src) {
       var retracted = false;
@@ -39,54 +40,54 @@ var test = testUtil.test;
       retracted .. @assert.eq(true, "expected read to be retracted");
     };
 
-    @test("retraction while reading stdin") {||
+    @test("retraction while reading stdin", function() {
       testRetractWhileReading(process.stdin);
-    }.skip("BUG - see https://github.com/joyent/node/issues/17204");
+    }).skip("BUG - see https://github.com/joyent/node/issues/17204");
 
-    @test("retraction while reading fs.ReadableStream") {||
+    @test("retraction while reading fs.ReadableStream", function() {
       @fs.withReadStream(module.id .. @url.toPath) {|stream|
         testRetractWhileReading(stream);
       }
-    }
-  }
+    })
+  })
 
-  @context("pump") {||
-    @test.beforeEach {|s|
+  @context("pump", function() {
+    @test.beforeEach:: function(s) {
       s.dest = @stream.WritableStringStream();
     }
 
-    @test("accepts a nodejs stream") {|s|
+    @test("accepts a nodejs stream", function(s) {
       @stream.ReadableStringStream('data', 'ascii') .. @stream.pump(s.dest);
       s.dest.data .. @assert.eq("data");
-    }
+    })
 
-    @test("allows data transformation (deprecated API)") {|s|
+    @test("allows data transformation (deprecated API)", function(s) {
       @stream.ReadableStringStream('data', 'ascii') .. @stream.pump(s.dest, d -> d.toUpperCase());
       s.dest.data .. @assert.eq("DATA");
-    }
+    })
 
-    @test("accepts a sequence::Stream") {|s|
+    @test("accepts a sequence::Stream", function(s) {
       ["one", "two", "three"] .. @toStream .. @stream.pump(s.dest);
       s.dest.contents() .. @assert.eq("onetwothree");
-    }
+    })
 
-    @test("accepts an array") {|s|
+    @test("accepts an array", function(s) {
       ["one", "two", "three"] .. @stream.pump(s.dest);
       s.dest.contents() .. @assert.eq("onetwothree");
-    }
+    })
 
-    @test("accepts a buffer") {||
+    @test("accepts a buffer", function() {
       var dest = new @stream.WritableStream();
       Buffer.from("onetwothree") .. @stream.pump(dest);
       dest.contents() .. @assert.eq(Buffer.from("onetwothree"));
-    }
+    })
 
-    @test("accepts a string") {|s|
+    @test("accepts a string", function(s) {
       "onetwothree" .. @stream.pump(s.dest);
       s.dest.contents() .. @assert.eq("onetwothree");
-    }
+    })
 
-    @context("pumping a large, buffering duplex stream") {||
+    @context("pumping a large, buffering duplex stream", function() {
       var { BufferingStream } = require('./buffering_stream.js');
       var build = function(size) {
         var b = Buffer.alloc(size);
@@ -99,7 +100,7 @@ var test = testUtil.test;
 
       var input = build(expectedSize);
 
-      @test("ReadableStream.pipe()") {||
+      @test("ReadableStream.pipe()", function() {
         // This test is a canary - if it fails, it probably means that our
         // BufferingStream implementation is wrong, rather than the stream module.
         require('sjs:nodejs/tempfile').TemporaryFile {|f|
@@ -115,9 +116,9 @@ var test = testUtil.test;
           output .. @wait('finish');
           @fs.readFile(f.path, 'ascii').length .. @assert.eq(input.length);
         }
-      }
+      })
 
-      @test("@stream.pump()") {||
+      @test("@stream.pump()", function() {
         var duplex = new BufferingStream();
         waitfor {
           input .. @toStream .. @stream.pump(duplex);
@@ -128,9 +129,9 @@ var test = testUtil.test;
         }
         var totalSize = result.reduce(function(size, chunk) { return size + chunk.length; }, 0);
         totalSize .. @assert.eq(expectedSize);
-      }
-    }//.skip("BROKEN");
-  }
+      })
+    })//.skip("BROKEN");
+  })
 
   // ReadableStringStream:
   test("ReadableStringStream is a readable stream", true, function() {
@@ -224,10 +225,10 @@ var test = testUtil.test;
         if(rv == null) {
           if(!ended) {
             ended = true;
-            spawn(function() {
+            sys.spawn(function() {
               hold(0);
               self.emit('end');
-            }());
+            });
           }
         }
         return rv;
@@ -236,67 +237,67 @@ var test = testUtil.test;
       return rv;
     }
 
-    @context("DelimitedReader on #{byteMode ? 'byte' : 'string'} streams") {||
+    @context("DelimitedReader on #{byteMode ? 'byte' : 'string'} streams", function() {
 
-      @test("reads up to a given character") {||
+      @test("reads up to a given character", function() {
         var reader = wrap(chunkyStream(['12345', '678']));
         reader.readUntil('4').toString('utf-8') .. @assert.eq('1234');
         reader.read().toString('utf-8') .. @assert.eq('5');
         reader.read().toString('utf-8') .. @assert.eq('678');
         reader.read() .. @assert.eq(null);
-      }
+      })
 
-      @test("buffers multiple chunks until sentinel is reached") {||
+      @test("buffers multiple chunks until sentinel is reached", function() {
         var reader = wrap(chunkyStream(['12', '345', '678']));
         reader.readUntil('7').toString('utf-8') .. @assert.eq('1234567');
         reader.read().toString('utf-8') .. @assert.eq('8');
         reader.read() .. @assert.eq(null);
-      }
+      })
 
-      @test("sentinel at the end of a chunk") {||
+      @test("sentinel at the end of a chunk", function() {
         var reader = wrap(chunkyStream(['12', '345', '678']));
         reader.readUntil('2').toString('utf-8') .. @assert.eq('12');
         reader.read().toString('utf-8') .. @assert.eq(''); // could be omitted
         reader.read().toString('utf-8') .. @assert.eq('345');
         reader.read().toString('utf-8') .. @assert.eq('678');
         reader.read() .. @assert.eq(null);
-      }
+      })
 
-      @test("readUntil returns empty sequence for multiple sentinels") {||
+      @test("readUntil returns empty sequence for multiple sentinels", function() {
         var reader = wrap(chunkyStream(['12\n\n']));
         reader.readUntil('\n').toString('utf-8') .. @assert.eq('12\n');
         reader.readUntil('\n').toString('utf-8') .. @assert.eq('\n');
         reader.readUntil('\n') .. @assert.eq(null);
-      }
+      })
 
-      @test("doesnt skip sentinels that appear in th same chunk") {||
+      @test("doesnt skip sentinels that appear in th same chunk", function() {
         var reader = wrap(chunkyStream(['123543678']));
         reader.readUntil('3').toString('utf-8') .. @assert.eq('123');
         reader.readUntil('3').toString('utf-8') .. @assert.eq('543');
         reader.read().toString('utf-8') .. @assert.eq('678');
         reader.read() .. @assert.eq(null);
-      }
+      })
 
-      @test("changing sentinel") {||
+      @test("changing sentinel", function() {
         var reader = wrap(chunkyStream(['123454321']));
         reader.readUntil('4').toString('utf-8') .. @assert.eq('1234');
         reader.readUntil('2').toString('utf-8') .. @assert.eq('5432');
         reader.read().toString('utf-8') .. @assert.eq('1');
         reader.read() .. @assert.eq(null);
-      }
+      })
 
-      @test("returns all data if sentinel is not found") {||
+      @test("returns all data if sentinel is not found", function() {
         var reader = wrap(chunkyStream(['123', '456']));
         reader.readUntil('8').toString('utf-8') .. @assert.eq('123456');
         reader.read() .. @assert.eq(null);
-      }
+      })
 
-      @test("lines") {||
+      @test("lines", function() {
         chunkyStream(['123\n456','78\n910'])
           .. s.lines
           .. @map(b -> b.toString('utf-8'))
           .. @assert.eq(['123\n','45678\n','910']);
-      }
-    }.skipIf(byteMode && (process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0), "nodejs 0.6 lacks Buffer.concat")
+      })
+    }).skipIf(byteMode && (process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0), "nodejs 0.6 lacks Buffer.concat")
   }
-}.serverOnly();
+}).serverOnly();

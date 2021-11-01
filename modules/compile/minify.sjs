@@ -207,7 +207,7 @@ GEN_INFIX_OP(left, id, right, pctx)
 GEN_ASSIGN_OP(left, id, right, pctx)
   id: = *= /= %= += -= <<= >>= >>>= &= ^= |=
 GEN_PREFIX_OP(id, right, pctx)
-  id: ++ -- delete void typeof + - ~ ! (for SJS also: 'spawn')
+  id: ++ -- delete void typeof + - ~ ! (for SJS also: '_task')
 GEN_SPREAD(right, pctx): '...' when used as spread. rest arguments gets '...' merged into name 
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
@@ -237,7 +237,7 @@ GEN_NULL(pctx)
 Stratified constructs:
 ======================
 
-GEN_PREFIX_OP(id, right, pctx) takes another operator: 'spawn'
+GEN_PREFIX_OP(id, right, pctx) takes another operator: '_task'
 
 GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx)
   op: 'and' | 'or' | 'while'
@@ -797,7 +797,7 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 *      R     =>           Args AssignExp                 Fat Arrow
 *      R     =>           AssignExp                      Fat Arrow (prefix form)
 119          ...          AssignExp                      SpreadElement
-*115         spawn        SpawnExp                       StratifiedJS 'spawn'
+*115         _task        TaskExp                        StratifiedJS '_task'
 *112         __js         JS_EXP                         non-blocking JS optimized expression
 110 17 L     ,            Expression AssignExp           SequentialEvaluation
 
@@ -1065,7 +1065,7 @@ S("=>")
     return gen_infix_op(left, '=>', body, pctx);
   });
 
-S("spawn").pre(115);
+S("_task").pre(115);
 
 S(",").ifx(110, true);
 
@@ -1454,16 +1454,18 @@ function parseVarDecls(pctx, noInOf) {
   var parse = noInOf ? parseExpNoInOf : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
-    
-    var id_or_pattern = parse(pctx, 120), initialiser=null;
+    //
+    var id_or_pattern = parse(pctx, 120);
     if (pctx.token.id == "=") {
       scan(pctx);
-      initialiser = parse(pctx, 110);
+      var initialiser = parse(pctx, 110);
       
+      decls.push([id_or_pattern, initialiser/*, null*/]);
     }
-    decls.push([id_or_pattern, initialiser, null]);
+    else
+      decls.push([id_or_pattern/*, null*/]);
   } while (pctx.token.id == ",");
-  
+  //
   return decls;
 }
     
@@ -1472,7 +1474,7 @@ S("var").stmt(function(pctx) {
   var decls = parseVarDecls(pctx);
   parseStmtTermination(pctx);
   
-  var rv = "var ";                                 for (var i=0; i<decls.length; ++i) {               if (i) rv += ",";                                rv += decls[i][0];                               if (decls[i][1] != null)                           rv += "="+decls[i][1];                       }                                                return rv+";";
+  var rv = "var ";                                 for (var i=0; i<decls.length; ++i) {               if (i) rv += ",";                                rv += decls[i][0];                               if (decls[i].length == 2)                           rv += "="+decls[i][1];                       }                                                return rv+";";
 });
 
 S("else");
@@ -1548,7 +1550,7 @@ S("for").stmt(function(pctx) {
     var body = parseStmt(pctx);
     /* */
     
-    var rv = "for(";                                                        if (start_exp) {                                                           rv += start_exp + ";";                                                 }                                                                       else if (decls) {                                                       var d = (function(decls, pctx) {                                            var rv = "var ";                                 for (var i=0; i<decls.length; ++i) {               if (i) rv += ",";                                rv += decls[i][0];                               if (decls[i][1] != null)                           rv += "="+decls[i][1];                       }                                                return rv+";"; })(decls, pctx);                          rv += d;                                                                }                                                                       else                                                                      rv += ";";                                                            if (test_exp) rv += test_exp;                                           rv += ";";                                                              if (inc_exp) rv += inc_exp;                                             rv += ")";                                                              rv += body;                                                             return rv;
+    var rv = "for(";                                                        if (start_exp) {                                                           rv += start_exp + ";";                                                 }                                                                       else if (decls) {                                                       var d = (function(decls, pctx) {                                            var rv = "var ";                                 for (var i=0; i<decls.length; ++i) {               if (i) rv += ",";                                rv += decls[i][0];                               if (decls[i].length == 2)                           rv += "="+decls[i][1];                       }                                                return rv+";"; })(decls, pctx);                          rv += d;                                                                }                                                                       else                                                                      rv += ";";                                                            if (test_exp) rv += test_exp;                                           rv += ";";                                                              if (inc_exp) rv += inc_exp;                                             rv += ")";                                                              rv += body;                                                             return rv;
   }
   else if (pctx.token.id == "in") {
     scan(pctx);
@@ -1607,6 +1609,7 @@ S("break").stmt(function(pctx) {
   
   var rv = "break";                               if (label !== null)                                 rv += " "+label;                                return rv+";"
 });
+
 
 S("return").stmt(function(pctx) {
   

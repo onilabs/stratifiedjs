@@ -52,7 +52,6 @@
 #define SEQ_FLAG_NOTAILCALL 8
 #define SEQ_FLAG_UNRETURNABLE 16
 #define SEQ_FLAG_IMPLICIT_RETURN 32
-#define SEQ_FLAG_BLOCKLAMBDA 64
 
 // THESE FLAGS NEED TO BE KEPT IN SYNC WITH THE NDATA_TRY_FLAG_'s in vm1.js.in
 #define TRY_FLAG_NONE 0
@@ -384,7 +383,7 @@ ph_switch.prototype.val = function() {
   var flags = SEQ_FLAG_FUNCTION;                                        \
     if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                     \
   return collect_decls(decls) +                                         \
-    pop_stmt_scope(pctx, "return __oni_rt.exseq(arguments,this,"+pctx.filename+",["+flags, \
+    pop_stmt_scope(pctx, "return __oni_rt.ex"+(decls.reify?"r":"")+"seq(arguments,this,"+pctx.filename+",["+flags, \
     "])");
 
 #define GEN_FUN_EXP(fname, pars, body, pctx, ext) return new ph_fun_exp(fname, pars, body, pctx);
@@ -519,7 +518,7 @@ function ph_var_decl(d, pctx) {
 #else
   throw new Error("Invalid expression in variable declaration");
 #endif
-  this.is_empty = this.d[1] == null;
+  this.is_empty = (d.length == 1);
   this.pctx = pctx;
   this.line = pctx.line;
   if (!this.is_empty)
@@ -761,6 +760,12 @@ ph_collapse.prototype.val = function() {
     else                                        \
       throw new Error("Unexpected 'break' statement");
 
+#define GEN_BREAKDANCE(pctx, ext)               \
+    if (top_decl_scope(pctx).bl)                \
+      return new ph_bl_breakdance(pctx);              \
+    else                                        \
+      throw new Error("Unexpected breakdance");
+
 #define GEN_CONTINUE(lbl, pctx, ext)                 \
     if (top_decl_scope(pctx).continue_scope)    \
       return new ph_cfe("c", pctx, lbl);        \
@@ -806,11 +811,25 @@ function ph_bl_break(pctx, lbl) {
 ph_bl_break.prototype = new ph(WHENDEBUG("ph_bl_break"));
 ph_bl_break.prototype.nblock_val = function() {
   if (this.js_ctx) throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
-  var rv = "return __oni_rt.BlBreak(this";
+  var rv = "return __oni_rt.BlBreakOld(this";
   if (this.lbl) rv += ",'"+this.lbl+"'";
   rv += ");";
   return rv;
 };
+
+
+function ph_bl_breakdance(pctx) {
+  this.line = pctx.line;
+  this.is_nblock = false;
+  this.js_ctx = pctx.js_ctx;
+}
+ph_bl_breakdance.prototype = new ph(WHENDEBUG("ph_bl_breakdance"));
+ph_bl_breakdance.prototype.val = function() {
+  if (this.js_ctx) throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
+  var rv = "__oni_rt.BlBreak()";
+  return rv;
+};
+
 
 #endif
 
@@ -1188,19 +1207,12 @@ function ph_prefix_op(id, right, pctx) {
   this.id = id;
   this.right = right;
   this.line = pctx.line;
-  if (id === 'spawn') {
+  if (id === '_task') {
     // to support blocklambda breaks from spawned strata, we must make sure that the function
     // from which we spawn is not tail-called:
     pctx.decl_scopes[pctx.decl_scopes.length-1].notail = true;
     this.is_nblock = false;
   }
-//  else if (id === '...') {
-//    // XXX Setting is_nblock to false will cause every use apart from within '__js' blocks
-//    // to throw an error ("Spread syntax is only supported in __js blocks").
-//    // Allowing nblock would enable spread syntax in some cases (e.g. [...x]), but break
-//    // with bad error reporting in others.
-//    this.is_nblock = false;
-//  }
   else {
     this.is_nblock = (pctx.allow_nblock && right.is_nblock);
   }
@@ -1212,10 +1224,8 @@ ph_prefix_op.prototype.nblock_val = function() {
 };
 ph_prefix_op.prototype.val = function() {
   var rv;
-  if (this.id == "spawn")
-    rv = "__oni_rt.Spawn("+this.line+","+this.right.v()+")";
-//  else if (this.id === '...')
-//    throw new Error("Unexpected '...' - spread syntax is only supported in __js blocks");
+  if (this.id == "_task")
+    rv = "__oni_rt.Task("+this.line+","+this.right.v()+")";
   else if (this.right.is_nblock) {
     // this clause is essential for things like "++i".
     // i.e. where "i" needs to be treated like a reference. they can't be encoded
@@ -1435,7 +1445,21 @@ function gen_identifier(name, pctx) {
   else if (name == "arguments") {
     return new ph_envobj('arguments', 'aobj', pctx);
   }
+  else if (name === "reifiedStratum") {
 
+    // mark our enclosing true function as 'reified':
+    var scope_id = pctx.decl_scopes.length, found = false;
+    while (--scope_id >= 0) {
+      if (!pctx.decl_scopes[scope_id].bl) {
+        found = true;
+        pctx.decl_scopes[scope_id].reify = true;
+        break;
+      }
+    }
+    if (!found) throw new Error("reifiedStratum must appear in a function context.");
+
+    return new ph_reified_stratum(pctx);
+  }
   // default:
   return new ph_identifier(name, pctx);
 }
@@ -1481,6 +1505,17 @@ ph_envobj.prototype.collect_var_decls = function() {
   throw new Error("'"+this.name+"' not allowed in destructuring pattern");
 };
 #endif
+
+function ph_reified_stratum(pctx) {
+  this.is_nblock = false;
+  this.js_ctx = pctx.js_ctx;
+}
+ph_reified_stratum.prototype = new ph(WHENDEBUG("ph_reified_stratum"));
+ph_reified_stratum.prototype.val = function() {
+  if (this.js_ctx) throw new Error("'reifiedStratum' not allowed in __js{...} contexts");
+  var rv = "__oni_rt.Reify()";
+  return rv;
+};
 
 
 #define GEN_THIS(pctx, ext) return new ph_envobj('this', 'tobj', pctx);
@@ -1530,29 +1565,31 @@ ph_fun_call.prototype.val = function() {
       return "__oni_rt.C(function(){return "+rv+")},"+this.line+")";
     }
     else {
-      var args = '', spreads = [];
+      var args = '', spreads = [], blocklambda_args = false;
       for (var i=0; i<this.args.length; ++i) {
         if (this.args[i].spread) spreads.push(i);
+        if (this.args[i].has_blocklambda) blocklambda_args = true;
         args += ","+this.args[i].v();
       }
 
-      var flags;
+      var flags = 0;
+
+      rv = "__oni_rt.F"+(blocklambda_args ? 'A':'')+"call(";
+
       if (spreads.length) {
-        var flags = 4 /* FCALL_FLAG_SPREAD */;
+        flags |= 4 /* FCALL_FLAG_SPREAD */;
         args += ",["+spreads+"]";
       }
-      else
-        flags = 0;
 
       if (this.l.is_ref) {
         flags |= 1 /* FCALL_MODE_REFERENCE */;
-        rv = "__oni_rt.Fcall("+flags+","+this.line+","+this.l.ref();
+        rv += flags+","+this.line+","+this.l.ref();
       }
       // XXX could have an Scall form here?? (iff this.l is nb)
       else {
         // 'normal' non-reference function call
         //flags |= 0 /* FCALL_MODE_NORMAL */;
-        rv = "__oni_rt.Fcall("+flags+","+this.line+","+this.l.v();
+        rv += flags+","+this.line+","+this.l.v();
       }
 
       rv += args + ")";
@@ -1658,7 +1695,16 @@ ph_group.prototype.collect_pars = function(pars) {
 function ph_arr_lit(elements, pctx) {
   this.elements = elements;
   this.line = pctx.line; // XXX is this the correct line?
-  this.is_nblock = pctx.allow_nblock && is_nblock_arr(elements);
+
+  var elems_nblock = true;
+  var elems_blocklambda = false;
+  for (var i=0; i<elements.length; ++i) {
+    if (!elements[i].is_nblock) elems_nblock = false;
+    if (elements[i].has_blocklambda) elems_blocklambda = true;
+  }  
+
+  this.is_nblock = pctx.allow_nblock && elems_nblock;
+  this.has_blocklambda = elems_blocklambda;
 //XXX is_literal IFF all children are literals
 }
 ph_arr_lit.prototype = new ph(WHENDEBUG("ph_arr_lit"));
@@ -1707,13 +1753,18 @@ ph_arr_lit.prototype.collect_var_decls = function(vars) {
 function ph_obj_lit(props, pctx) {
   this.props = props;
   this.line = pctx.line; // XXX is this the correct line?
-  this.is_nblock = pctx.allow_nblock && (function() {
-    for (var i=0; i<props.length;++i) {
-      // if (props[i][0] != "prop") return false; <-- this is implicit by the next line (props[i][2] is a number for props)
-      if (!props[i][2].is_nblock) return false;
-    }
-    return true;
-  })();
+
+  var props_nblock = true;
+  var props_blocklambda = false;
+
+  for (var i=0; i<props.length;++i) {
+    // if (props[i][0] != "prop") return false; <-- this is implicit by the next line (props[i][2] is a number for props)
+    if (!props[i][2].is_nblock) props_nblock = false;
+    if (props[i][2].has_blocklambda) props_blocklambda = true;
+  }
+
+  this.is_nblock = pctx.allow_nblock && props_nblock;
+  this.has_blocklambda = props_blocklambda;
 //XXX is_literal IFF all children are literals
 
 }
@@ -1985,7 +2036,7 @@ ph_raw.prototype.fun_decl = function() { return this.raw; };
 
 #define END_BLAMBDABODY(pctx, ext)                                             \
   var decls = pctx.decl_scopes.pop();                                     \
-  var flags = SEQ_FLAG_FUNCTION + SEQ_FLAG_BLOCKLAMBDA;                   \
+  var flags = SEQ_FLAG_FUNCTION;                                          \
   if (decls.notail) flags += SEQ_FLAG_NOTAILCALL;                         \
   return collect_decls(decls) +                                           \
     pop_stmt_scope(pctx, "return __oni_rt.exbl(this,["+flags,             \
@@ -1994,6 +2045,7 @@ ph_raw.prototype.fun_decl = function() { return this.raw; };
 #define GEN_BLOCKLAMBDA(pars, body, pctx, ext) return new ph_blocklambda(pars, body, pctx);
 
 function ph_blocklambda(pars, body, pctx) {
+  this.has_blocklambda = true;
   this.code = "function"+gen_function_header(pars,pctx)+body+"}";
 }
 ph_blocklambda.prototype = new ph(WHENDEBUG("ph_blocklambda"));

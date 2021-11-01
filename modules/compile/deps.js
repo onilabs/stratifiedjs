@@ -206,7 +206,7 @@ GEN_INFIX_OP(left, id, right, pctx)
 GEN_ASSIGN_OP(left, id, right, pctx)
   id: = *= /= %= += -= <<= >>= >>>= &= ^= |=
 GEN_PREFIX_OP(id, right, pctx)
-  id: ++ -- delete void typeof + - ~ ! (for SJS also: 'spawn')
+  id: ++ -- delete void typeof + - ~ ! (for SJS also: '_task')
 GEN_SPREAD(right, pctx): '...' when used as spread. rest arguments gets '...' merged into name 
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
@@ -236,7 +236,7 @@ GEN_NULL(pctx)
 Stratified constructs:
 ======================
 
-GEN_PREFIX_OP(id, right, pctx) takes another operator: 'spawn'
+GEN_PREFIX_OP(id, right, pctx) takes another operator: '_task'
 
 GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx)
   op: 'and' | 'or' | 'while'
@@ -941,7 +941,7 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 *      R     =>           Args AssignExp                 Fat Arrow
 *      R     =>           AssignExp                      Fat Arrow (prefix form)
 119          ...          AssignExp                      SpreadElement
-*115         spawn        SpawnExp                       StratifiedJS 'spawn'
+*115         _task        TaskExp                        StratifiedJS '_task'
 *112         __js         JS_EXP                         non-blocking JS optimized expression
 110 17 L     ,            Expression AssignExp           SequentialEvaluation
 
@@ -1209,7 +1209,7 @@ S("=>")
     return Dynamic;
   });
 
-S("spawn").pre(115);
+S("_task").pre(115);
 
 S(",").ifx(110, true);
 
@@ -1598,16 +1598,18 @@ function parseVarDecls(pctx, noInOf) {
   var parse = noInOf ? parseExpNoInOf : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
-    
-    var id_or_pattern = parse(pctx, 120), initialiser=null;
+    //
+    var id_or_pattern = parse(pctx, 120);
     if (pctx.token.id == "=") {
       scan(pctx);
-      initialiser = parse(pctx, 110);
+      var initialiser = parse(pctx, 110);
       
+      decls.push([id_or_pattern, initialiser/*, null*/]);
     }
-    decls.push([id_or_pattern, initialiser, null]);
+    else
+      decls.push([id_or_pattern/*, null*/]);
   } while (pctx.token.id == ",");
-  
+  //
   return decls;
 }
     
@@ -1616,7 +1618,7 @@ S("var").stmt(function(pctx) {
   var decls = parseVarDecls(pctx);
   parseStmtTermination(pctx);
   
-  for (var i=0; i<decls.length; ++i) {                if (decls[i][1] != null) {                          top_scope(pctx).assignments.push(decls[i]);       return decls[i][1];;                }                                               };
+  for (var i=0; i<decls.length; ++i) {                if (decls[i].length>1) {                          top_scope(pctx).assignments.push(decls[i]);       return decls[i][1];;                }                                               };
 });
 
 S("else");
@@ -1751,6 +1753,7 @@ S("break").stmt(function(pctx) {
   
   return Dynamic;
 });
+
 
 S("return").stmt(function(pctx) {
   

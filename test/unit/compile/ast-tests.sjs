@@ -1,6 +1,6 @@
 @ = require('sjs:test/std');
 
-@context("AST parsing") {||
+@context("AST parsing", function() {
 	var espree = require('nodejs:espree');
 	var ast = require('sjs:compile/ast');
 	var minify = require('sjs:compile/minify');
@@ -30,7 +30,7 @@
 		return rv;
 	}
 
-	@test("JS subset is espree compatible") {||
+	@test("JS subset is espree compatible", function() {
 		//@info("parsing with minifier");
 		var minified = minify.compile(sampleProgram, {filename: filename,
 		});
@@ -45,9 +45,9 @@
 		@info(expected .. canonicalize .. JSON.stringify(null, '  '));
 
 		compiled .. canonicalize .. @assert.eq(expected .. canonicalize);
-	}.skip()
+	}).skip()
 
-	@context("SJS specific syntax") {||
+	@context("SJS specific syntax", function() {
 		var expr = ex -> {type:'ExpressionStatement', expression: ex};
 		var dot = (parent, prop) -> {type:'MemberExpression', computed:false, object:parent, property:prop};
 		var id = (name) -> {type:'Identifier', name:name};
@@ -64,17 +64,17 @@
 		}
 
 		var expect = function(code, expected) {
-			@test(code) {||
+			@test(code, function() {
 				ast.compile .. compile(code) .. singleton .. @assert.eq(expected .. canonicalize);
-			}
+			})
 		};
 
 		var desugar = function(sjs, js, amendEspree) {
       if (!amendEspree) amendEspree = (x->x);
-			@test(sjs) {||
+			@test(sjs, function() {
 				ast.compile .. compile(sjs)
 					.. @assert.eq((code -> espree.parse(code, espreeConfig)) .. compile(js) .. amendEspree);
-			}
+			})
 		}
 
 		//var desugar_stmt = function(sjs, js) {
@@ -127,9 +127,9 @@
 			each(a, function([b, c]) { while(true) { d; continue; } })
 		');
 
-	}
+	})
 
-	@context("extended estree compatibility") {||
+	@context("extended estree compatibility", function() {
 		// Aside from the base AST, estree relies on additional espree features.
 		// Make sure we produce the same stuff:
 		var config = { loc: true,
@@ -487,29 +487,29 @@
 				return [compiled, expected .. canonicalize(null, exclude)];
 			};
 
-			@context(source.length < 50 ? ("`" + source.replace(/\n/g,'\\n').replace(/\t/g,'')+"`") : "sample #{i}") {||
-				@test("tokens") {||
+			@context(source.length < 50 ? ("`" + source.replace(/\n/g,'\\n').replace(/\t/g,'')+"`") : "sample #{i}", function() {
+				@test("tokens", function() {
 					var [compiled, expected] = compile();
 					compiled.tokens .. @assert.eq(expected.tokens);
-				}
+				})
 
-				@test("non-position information") {||
+				@test("non-position information", function() {
 					var [compiled, expected] = compile(['loc','range', 'comments']);
 					compiled .. @assert.eq(expected);
-				}
+				})
 
-				@test("full compatibility") {||
+				@test("full compatibility", function() {
 					var [compiled, expected] = compile();
 					compiled .. @assert.eq(expected);
-				}.skip("TODO");
-			}
+				}).skip("TODO");
+			})
 		};
 
-	}
+	})
 
 	// TODO: we could probably run many of espree's own unit tests. But the
 	// failures might be very noisy.
-}.serverOnly().skipIf((function() { 
+}).serverOnly().skipIf((function() { 
   try {
     require('nodejs:espree');
   }

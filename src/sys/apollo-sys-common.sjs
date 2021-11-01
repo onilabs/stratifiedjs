@@ -247,7 +247,7 @@ __js exports.expandSingleArgument = function(args) {
 
 /**
    @function isReifiedStratum
-   @summary  Tests if an object is a reified (i.e. spawned) stratum
+   @summary  Tests if an object is a reified stratum
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
    @desc
@@ -604,37 +604,6 @@ __js exports.getXDomainCaps = getXDomainCaps_hostenv; // to be implemented in ho
 */
 __js exports.request = request_hostenv;
 
-/**
-  @function makeMemoizedFunction
-  @summary
-    See [../../modules/cutil::makeMemoizedFunction]
-*/
-exports.makeMemoizedFunction = function(f, keyfn) {
-  var lookups_in_progress = {};
-
-  var memoizer = function() {
-    var key = keyfn ? keyfn.apply(this,arguments) : arguments[0];
-    var rv = memoizer.db[key];
-    if (typeof rv !== 'undefined') return rv;
-    if (!lookups_in_progress[key])
-      lookups_in_progress[key] = spawn (function(self, args) {
-        return memoizer.db[key] = f.apply(self, args);
-      })(this, arguments);
-    try {
-      return lookups_in_progress[key].waitforValue();
-    }
-    finally {
-      if (lookups_in_progress[key].waiting() == 0) {
-        lookups_in_progress[key].abort();
-        delete lookups_in_progress[key];
-      }
-    }
-  };
-
-  memoizer.db = {};
-  return memoizer;
-};
-
 //----------------------------------------------------------------------
 // console filtering
 /*
@@ -935,8 +904,9 @@ function default_loader(path, parent, src_loader, opts, spec) {
       required_by: {}
     };
 
-    pendingHook = pendingLoads[path] = spawn (function() {
-      waitfor {
+    exports.spawn(function(S) {
+      pendingHook = pendingLoads[path] = S;
+      try {
         __js var src, loaded_from;
         if (typeof src_loader === "string") {
           __js {
@@ -990,22 +960,21 @@ function default_loader(path, parent, src_loader, opts, spec) {
         } // __js
         try {
           compile(src, descriptor);
-          return descriptor;
+          return; // all done
         } catch(e) {
           __js delete exports.require.modules[path];
           throw e;
         } retract {
           __js delete exports.require.modules[path];
         }
-      } or {
-        waitfor () {
-          hold(0); // make sure pendingHook is set
-          __js pendingHook.resume = resume;
-        }
       }
-    })();
+      catch(e) {
+        pendingHook.error = e;
+      }
+    });
 
     pendingHook.pending_descriptor = descriptor;
+    pendingHook.waiting = 0;
   }
   else if (!descriptor) {
     descriptor = pendingHook.pending_descriptor;
@@ -1015,6 +984,8 @@ function default_loader(path, parent, src_loader, opts, spec) {
     // there is a load pending for this module.
     // wait for load to complete:
     try {
+      ++pendingHook.waiting;
+
       __js {
         if (!parent.waiting_on)
           parent.waiting_on = {};
@@ -1025,7 +996,8 @@ function default_loader(path, parent, src_loader, opts, spec) {
       if (dep_cycle)
         throw new Error("Cyclic require() dependency: #{parent.id} -> "+dep_cycle.join(' -> '));
         
-      pendingHook.waitforValue();
+      pendingHook.wait();
+      if (pendingHook.error) throw pendingHook.error;
 
       __js {
         // Note: We don't need to refcount waiting_on, if we only delete
@@ -1037,18 +1009,15 @@ function default_loader(path, parent, src_loader, opts, spec) {
         delete parent.waiting_on[path];
       } // __js
     } 
-    retract {
-      // if the final thread waiting on this module is retracted,
-      // propagate the retraction:
-      if (pendingHook.waiting() == 0 && pendingHook.resume) {
-        pendingHook.resume();
-        pendingHook.value();
-      }
-    }
     finally {
       // last one cleans up
-      if (pendingHook.waiting() == 0)
+      if (--pendingHook.waiting === 0) {
         delete pendingLoads[path];
+        if (pendingHook.running) {
+          pendingHook.abort().wait();
+          if (pendingHook.error) throw pendingHook.error;
+        }
+      }
     }
   }
 
@@ -1305,3 +1274,26 @@ exports.init = function(cb) {
   init_hostenv();
   cb();
 }
+
+//----------------------------------------------------------------------
+// global spawn:
+
+/**
+   @function spawn
+   @summary see [../../modules/sys::spawn]
+*/
+function runGlobalStratum(r) {
+  r.stratum = reifiedStratum;
+  try { hold(); }
+  finally { 
+    // asynchronize so that the VM reports uncaught errors:
+    hold(0); 
+  }
+}
+
+exports.spawn = function (f) {
+  // create a global stratum and don't wait for it to complete:
+  var r = {};
+  __js runGlobalStratum(r),null;
+  return r.stratum.spawn(f);
+};

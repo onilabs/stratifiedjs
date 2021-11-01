@@ -353,7 +353,7 @@ function generateBundle(deps, settings) {
   var strict = settings.strict;
   var excludes = settings.exclude;
 
-  var rv = seq.Stream {|write|
+  var rv = seq.Stream(function(write) {
     write("(function() {");
     write("if(typeof(__oni_rt_bundle) == 'undefined')__oni_rt_bundle={};");
     write("var o = document.location.origin, b=__oni_rt_bundle;");
@@ -425,7 +425,7 @@ function generateBundle(deps, settings) {
     write("if(typeof(__oni_rt_bundle_hook) === 'function') __oni_rt_bundle_hook();");
 
     write("})();");
-  }
+  });
   return rv;
 }
 exports.generateBundle = generateBundle;

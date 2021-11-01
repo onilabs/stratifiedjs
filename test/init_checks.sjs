@@ -8,26 +8,26 @@ var { waitforAll } = require('sjs:cutil');
 
 // suite with passing & failing tests
 var runner = new Runner({});
-runner.context("root") {||
-  context("group 1") {||
+runner.context("root", function() {
+  context("group 1", function() {
     test("OK 1", -> assert.ok(true));
     test("FAIL 1", -> assert.ok(false));
-  }
+  })
 
-  context("group 2") {||
+  context("group 2", function() {
     test("OK 2", -> assert.ok(true)).skip();
     test("FAIL 2", -> assert.ok(false));
     test("FAIL 3", -> assert.ok(false));
-  }
+  })
 
-  context("group 3") {||
-    context("group 4") {||
+  context("group 3", function() {
+    context("group 4", function() {
       test("OK 3", -> assert.ok(true));
-    }.skip();
+    }).skip();
     test("FAIL 4", -> assert.ok(false)).skip();
     test("FAIL 5", -> assert.ok(false)).skip();
-  }
-}
+  })
+})
 
 var suite_result = runner.run();
 var debug = require("sjs:debug");

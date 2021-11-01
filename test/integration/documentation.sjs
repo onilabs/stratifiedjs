@@ -49,12 +49,12 @@ exports.testLibrary = function(hub) {
       var modules = sjsFiles .. @map(removeSJS);
 
       dirsFound++;
-      @context() {||
+      @context(function() {
         try {
           var indexContents = @fs.readFile(@path.join(base, indexFilename)).toString();
         } catch(e) {
           @test("contains #{indexFilename}", -> @assert.fail(e.message));
-          continue;
+          return;
         }
         var indexDoc = @docutil.parseSJSLibDocs(indexContents);
 
@@ -67,7 +67,7 @@ exports.testLibrary = function(hub) {
           var modulePath = @path.relative(moduleRoot, @path.join(base, module)).replace(/\\/g,'/');
           testModule(moduleSrc, modulePath);
         }
-      }
+      })
     }
   } else {
     // xbrowser hostenv:
@@ -94,7 +94,7 @@ exports.testLibrary = function(hub) {
       dirsFound++;
       //var sjsFiles = modules .. @map(appendSJS);
       var ctx = dir ? dir .. @split('/') .. @at(-2) : undefined;
-      @context(ctx) {||
+      @context(ctx, function() {
         modules .. @each {|module|
           var modulePath = (dir||'') + module;
 
@@ -103,20 +103,20 @@ exports.testLibrary = function(hub) {
           try {
             var moduleSrc = @http.get([moduleRoot, relativeUrl, {format:"src"}]);
           } catch(e) {
-            @test(modulePath) {||
+            @test(modulePath, function() {
               @assert.fail(e);
-            }
+            })
             continue;
           }
           testModule(moduleSrc, modulePath);
         }
-      }
+      })
     }
   }
 
-  @test("sanity check") {||
+  @test("sanity check", function() {
     @assert.ok(dirsFound > 3, "only traversed #{dirsFound} dirs - is this check working?");
-  }
+  })
 
   function testModule(moduleSrc, modulePath) {
     var moduleDoc = @docutil.parseModuleDocs(moduleSrc);
@@ -132,8 +132,8 @@ exports.testLibrary = function(hub) {
 
     var home = hub + modulePath;
 
-    var moduleTests = @context(modulePath) {||
-      @context{||
+    var moduleTests = @context(modulePath, function() {
+      @context(function() {
         var err = null;
         var moduleExports;
         var objectKeys = {} .. @keys .. @toArray;
@@ -146,11 +146,11 @@ exports.testLibrary = function(hub) {
         }
 
         if (err) {
-          @test("should be importable") {||
+          @test("should be importable", function() {
             @assert.fail(err);
-          }
+          })
         } else {
-          @test("documents only exported symbols") {|s|
+          @test("documents only exported symbols", function(s) {
             // filter out symbols that are specifically unavailable in this hostenv
             function shouldBeImportable(sym) {
               var doc = moduleDoc.children[sym];
@@ -166,15 +166,15 @@ exports.testLibrary = function(hub) {
             @info("documentedSymbols = #{hostenvSymbols..@join(",")}");
             @info("moduleExports = #{moduleExports..@join(",")}");
             hostenvSymbols .. @array_difference(moduleExports) .. @assert.eq([]);
-          }
+          })
           .skipIf(isMetadataModule, 'metadata module')
           .skipIf(modulePath .. @contains('doc-template'), 'whitelisted')
           ;
 
-          @test("documents at least one symbol") {|s|
+          @test("documents at least one symbol", function(s) {
             @info('Docs:', moduleDoc);
             @assert.ok(documentedSymbols.length > 0);
-          }
+          })
           .skipIf(['module-guidelines', 'std', 'dom-shim', 'moment', 'moment-timezone'] .. @hasElem(modulePath .. @split('/') .. @at(-1)), 'whitelisted')
           .skipIf(['google_api'] .. @hasElem(modulePath .. @split('/') .. @at(-2, false)), 'whitelisted')
           .skipIf(['app'] .. @hasElem(modulePath), 'whitelisted')
@@ -186,16 +186,16 @@ exports.testLibrary = function(hub) {
           //  moduleExports .. @array_difference(documentedSymbols) .. @assert.eq([]);
           //}.skipIf(['numeric',] .. @hasElem(modulePath), "whitelisted")
         }
-      }.skipIf(moduleDoc.hostenv && moduleDoc.hostenv !== @sys.hostenv, moduleDoc.hostenv)
+      }).skipIf(moduleDoc.hostenv && moduleDoc.hostenv !== @sys.hostenv, moduleDoc.hostenv)
 
       if (moduleDoc.home !== undefined) {
         // we just check for invalid home paths - missing ones are OK
-        @test('has the correct `home` path') {||
+        @test('has the correct `home` path', function() {
           @assert.eq(moduleDoc.home, home);
-        }
+        })
       }
 
-      @test("documentation is valid") {|s|
+      @test("documentation is valid", function(s) {
         if (moduleDoc.hostenv) {
           ['nodejs','xbrowser'] .. @assert.contains(moduleDoc.hostenv);
         }
@@ -280,8 +280,8 @@ exports.testLibrary = function(hub) {
           };
 
         }
-      }
-    }
+      })
+    })
 
     // if there's a "TODO: document" in the module, skip these tests.
     if (/TODO:( \([a-z]+\))? document/.test(moduleSrc)) {

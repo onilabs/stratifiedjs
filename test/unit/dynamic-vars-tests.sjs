@@ -1,18 +1,18 @@
 @ = require('sjs:test/std');
 
-@context("missing dynvar") {||
-  @test("clearDynVar") {||
+@context("missing dynvar", function() {
+  @test("clearDynVar", function() {
     @sys.clearDynVar('foo');
     // should not throw
-  }
-  @test("getDynVar") {||
+  })
+  @test("getDynVar", function() {
     @assert.raises(-> @sys.getDynVar('foo'));
-  }
-  @test("getDynVar with def_val") {||
+  })
+  @test("getDynVar with def_val", function() {
     var sentinel = {descr: 'sentinel'};
     @assert.is(@sys.getDynVar('foo', sentinel), sentinel);
-  }
-}
+  })
+})
 
 
 function base_test(interstitial) {
@@ -93,35 +93,45 @@ function base_test(interstitial) {
 }  
 
 
-@test("withDynVarContext") {||
+@test("withDynVarContext", function() {
   base_test(->null);
-}
+})
 
-@test("withDynVarContext / hold(0)") {||
+@test("withDynVarContext / hold(0)", function() {
   base_test(->hold(0));
-}
+})
 
-@test("withDynVarContext / hold(10)") {||
+@test("withDynVarContext / hold(10)", function() {
   base_test(->hold(10));
-}
+})
 
-@test("withDynVarContext / nested contexts") {||
+@test("withDynVarContext / nested contexts", function() {
   base_test(function() { @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar')} });
-}
+})
 
-@test("withDynVarContext / nested contexts / hold(0)") {||
+@test("withDynVarContext / nested contexts / hold(0)", function() {
   base_test(function() { @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar'); hold(0)} });
-}
+})
 
-@test("withDynVarContext / spawned interstitial") {||
-  base_test(function() { spawn @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar')} });
-}
+@test("withDynVarContext / spawned interstitial", function() {
+  base_test(function() { reifiedStratum.spawn(-> @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar')}) });
+})
 
-@test("withDynVarContext / spawned interstitial / hold(0)") {||
-  base_test(function() { spawn @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar')}; hold(0); });
-}
+@test("withDynVarContext / global spawned interstitial", function() {
+  base_test(function() { @sys.spawn(-> @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar')}) });
+})
 
-@test("context survives spawed stratum") { ||
+
+@test("withDynVarContext / spawned interstitial / hold(0)", function() {
+  base_test(function() { reifiedStratum.spawn(-> @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar')}); hold(0); });
+})
+
+@test("withDynVarContext / global spawned interstitial / hold(0)", function() {
+  base_test(function() { @sys.spawn(-> @sys.withDynVarContext{|| @sys.clearDynVar('foo'); @sys.clearDynVar('bar')}); hold(0); });
+})
+
+
+@test("context survives spawed stratum", function() {
   var signal = @Emitter();
   var stratum;
   @sys.withDynVarContext{
@@ -132,10 +142,10 @@ function base_test(interstitial) {
       ||
       
       @sys.setDynVar('foo', 'y');
-      stratum = spawn (function() {
+      stratum = reifiedStratum.spawn (function() {
         signal .. @wait;
         @assert.is(@sys.getDynVar('foo'), 'y');
-      })();
+      });
     }
   
     waitfor {
@@ -143,15 +153,46 @@ function base_test(interstitial) {
       signal.emit();
     }
     and {
-      stratum.value();
+      stratum.wait();
       // make sure that the correct context is restored:
     hold(0);
       @assert.is(@sys.getDynVar('foo'), 'x');
     }
   }
-}
+})
 
-@test("waitfor/and") {||
+@test("context survives global spawed stratum", function() {
+  var signal = @Emitter();
+  var stratum;
+  @sys.withDynVarContext{
+    ||
+    @sys.setDynVar('foo', 'x');
+
+    @sys.withDynVarContext{
+      ||
+      
+      @sys.setDynVar('foo', 'y');
+      stratum = @sys.spawn (function() {
+        signal .. @wait;
+        @assert.is(@sys.getDynVar('foo'), 'y');
+      });
+    }
+  
+    waitfor {
+      hold(10);
+      signal.emit();
+    }
+    and {
+      stratum.wait();
+      // make sure that the correct context is restored:
+    hold(0);
+      @assert.is(@sys.getDynVar('foo'), 'x');
+    }
+  }
+})
+
+
+@test("waitfor/and", function() {
   @assert.raises(->@sys.getDynVar('foo'));
   
   waitfor {
@@ -168,9 +209,9 @@ function base_test(interstitial) {
     @assert.raises(->@sys.getDynVar('foo'));
   }
   @assert.raises(->@sys.getDynVar('foo'));  
-}
+})
 
-@test("waitfor/or") {||
+@test("waitfor/or", function() {
   @assert.raises(->@sys.getDynVar('foo'));
   
   waitfor {
@@ -188,7 +229,7 @@ function base_test(interstitial) {
     @assert.raises(->@sys.getDynVar('foo'));
   }
   @assert.raises(->@sys.getDynVar('foo'));  
-}
+})
 
 function waitfor_or_finally(blocking1, blocking2) {
   @assert.raises(->@sys.getDynVar('foo'));
@@ -213,25 +254,25 @@ function waitfor_or_finally(blocking1, blocking2) {
   @assert.raises(->@sys.getDynVar('foo'));
 }
 
-@test("waitfor/or hold() finally 1") {||
+@test("waitfor/or hold() finally 1", function() {
   waitfor_or_finally(-> hold(), -> hold(10));
-}
+})
 
-@test("waitfor/or hold() finally 2") {||
+@test("waitfor/or hold() finally 2", function() {
   waitfor_or_finally(-> hold(), -> undefined);
-}
+})
 
-@test("waitfor/or hold() finally 3") {||
+@test("waitfor/or hold() finally 3", function() {
   waitfor_or_finally(-> hold(0), -> undefined);
-}
+})
 
-@test("waitfor/or hold() finally 4") {||
+@test("waitfor/or hold() finally 4", function() {
   waitfor_or_finally(-> hold(100), -> undefined);
-}
+})
 
-@test("waitfor/or hold() finally 5") {||
+@test("waitfor/or hold() finally 5", function() {
   waitfor_or_finally(-> hold(100), -> hold(0));
-}
+})
 
 
 function waitfor_or_retraction(blocking1, blocking2) {
@@ -258,27 +299,27 @@ function waitfor_or_retraction(blocking1, blocking2) {
 }
 
 
-@test("waitfor/or hold() retraction 1") {||
+@test("waitfor/or hold() retraction 1", function() {
   waitfor_or_retraction(-> hold(), -> hold(10));
-}
+})
 
-@test("waitfor/or hold() retraction 2") {||
+@test("waitfor/or hold() retraction 2", function() {
   waitfor_or_retraction(-> hold(), -> undefined);
-}
+})
 
-@test("waitfor/or hold() retraction 3") {||
+@test("waitfor/or hold() retraction 3", function() {
   waitfor_or_retraction(-> hold(0), -> undefined);
-}
+})
 
-@test("waitfor/or hold() retraction 4") {||
+@test("waitfor/or hold() retraction 4", function() {
   waitfor_or_retraction(-> hold(100), -> undefined);
-}
+})
 
-@test("waitfor/or hold() retraction 5") {||
+@test("waitfor/or hold() retraction 5", function() {
   waitfor_or_retraction(-> hold(100), -> hold(0));
-}
+})
 
-@test("waitfor/or upon return") {||
+@test("waitfor/or upon return", function() {
   @assert.raises(->@sys.getDynVar('foo'));
   function x() {  
     waitfor {
@@ -300,9 +341,9 @@ function waitfor_or_retraction(blocking1, blocking2) {
   }
   x();
   @assert.raises(->@sys.getDynVar('foo'));
-}
+})
 
-@test("waitfor/and upon return") {||
+@test("waitfor/and upon return", function() {
   @assert.raises(->@sys.getDynVar('foo'));
   function x() {  
     waitfor {
@@ -324,9 +365,9 @@ function waitfor_or_retraction(blocking1, blocking2) {
   }
   x();
   @assert.raises(->@sys.getDynVar('foo'));
-}
+})
 
-@test("waitfor/or collapse") {||
+@test("waitfor/or collapse", function() {
   @assert.raises(->@sys.getDynVar('foo'));
   function x() {  
     waitfor {
@@ -353,37 +394,37 @@ function waitfor_or_retraction(blocking1, blocking2) {
   }
   x();
   @assert.raises(->@sys.getDynVar('foo'));
-}
+})
 
 
-@test("waitfor/or waitfor/resume retraction 1") {||
+@test("waitfor/or waitfor/resume retraction 1", function() {
   waitfor_or_retraction(function() { waitfor() { } }, -> hold(10));
-}
+})
 
-@test("waitfor/or waitfor/resume retraction 2") {||
+@test("waitfor/or waitfor/resume retraction 2", function() {
   waitfor_or_retraction(function() { waitfor() { } }, -> undefined);
-}
+})
 
-@test("waitfor/or waitfor/resume retraction 3") {||
+@test("waitfor/or waitfor/resume retraction 3", function() {
   waitfor_or_retraction(function() { hold(0); waitfor() { } }, -> undefined);
-}
+})
 
-@test("waitfor/or waitfor/resume finally 1") {||
+@test("waitfor/or waitfor/resume finally 1", function() {
   waitfor_or_finally(function() { waitfor() { } }, -> hold(10));
-}
+})
 
-@test("waitfor/or waitfor/resume finally 2") {||
+@test("waitfor/or waitfor/resume finally 2", function() {
   waitfor_or_finally(function() { waitfor() { } }, -> undefined);
-}
+})
 
-@test("waitfor/or waitfor/resume finally 3") {||
+@test("waitfor/or waitfor/resume finally 3", function() {
   waitfor_or_finally(function() { hold(0); waitfor() { } }, -> undefined);
-}
+})
 
-@test("spawn abort") {||
+@test("spawn abort", function() {
   @assert.raises(->@sys.getDynVar('foo'));
 
-  var stratum = spawn (function() {
+  var stratum = reifiedStratum.spawn (function() {
     @sys.withDynVarContext{
       ||
         try {
@@ -397,13 +438,13 @@ function waitfor_or_retraction(blocking1, blocking2) {
           @assert.is(@sys.getDynVar('foo'), 'x');
         }      
     }    
-  })();
+  });
 
   hold(0);
   @assert.raises(->@sys.getDynVar('foo'));
 
   waitfor {
-    @assert.raises(->stratum.value());
+    stratum.wait();
     @assert.raises(->@sys.getDynVar('foo'));
   }
   and {
@@ -411,94 +452,284 @@ function waitfor_or_retraction(blocking1, blocking2) {
     @assert.raises(->@sys.getDynVar('foo'));
   }
   
-}
+})
 
-@test("spawn abort 2") {||
+@test("global spawn abort", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var stratum = @sys.spawn (function() {
+    @sys.withDynVarContext{
+      ||
+        try {
+          @sys.setDynVar('foo', 'x');
+          hold();
+        }
+        retract {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+        }
+        finally {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+        }      
+    }    
+  });
+
+  hold(0);
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  waitfor {
+    stratum.wait();
+    @assert.raises(->@sys.getDynVar('foo'));
+  }
+  and {
+    stratum.abort();
+    @assert.raises(->@sys.getDynVar('foo'));
+  }
+  
+})
+
+
+@test("spawn abort 2", function() {
   @assert.raises(->@sys.getDynVar('foo'));
 
   var stratum;
   @sys.withDynVarContext {
     ||
-    stratum = spawn (function() {
+    stratum = reifiedStratum.spawn (function() {
         @sys.setDynVar('foo', 'x');
         hold();
-    })();
+    });
   }
-  
+
   stratum.abort();
   @assert.raises(->@sys.getDynVar('foo'));
   
-}
+})
 
-@test("spawn abort 3") {||
+@test("global spawn abort 2", function() {
   @assert.raises(->@sys.getDynVar('foo'));
 
   var stratum;
   @sys.withDynVarContext {
     ||
-    stratum = spawn (function() {
+    stratum = @sys.spawn (function() {
         @sys.setDynVar('foo', 'x');
         hold();
-    })();
+    });
+  }
+
+  stratum.abort();
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+})
+
+
+@test("spawn abort 3", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = reifiedStratum.spawn (function() {
+        @sys.setDynVar('foo', 'x');
+        hold();
+    });
   }
   
   hold(0);
   stratum.abort();
   @assert.raises(->@sys.getDynVar('foo'));
   
-}
+})
 
-@test("spawn abort 4") {||
+@test("global spawn abort 3", function() {
   @assert.raises(->@sys.getDynVar('foo'));
 
   var stratum;
   @sys.withDynVarContext {
     ||
-    stratum = spawn (function() {
+    stratum = @sys.spawn (function() {
+        @sys.setDynVar('foo', 'x');
+        hold();
+    });
+  }
+  
+  hold(0);
+  stratum.abort();
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+})
+
+
+@test("spawn abort 4", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = reifiedStratum.spawn(function() {
         @sys.setDynVar('foo', 'x');
         hold(10);
-    })();
+    });
   }
   
-  stratum.value();
+  stratum.wait();
   @assert.raises(->@sys.getDynVar('foo'));
   
-}
+})
 
-@test("spawn value/abort edge case") {||
+@test("global spawn abort 4", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = @sys.spawn(function() {
+        @sys.setDynVar('foo', 'x');
+        hold(10);
+    });
+  }
+  
+  stratum.wait();
+  @assert.raises(->@sys.getDynVar('foo'));
+  
+})
+
+@test("spawn/join 1", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = reifiedStratum.spawn(function() {
+      @sys.setDynVar('foo', 'x');
+      hold(10);
+      @assert.is(@sys.getDynVar('foo'), 'x');    
+    });
+  }
+
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'y');
+    stratum.join(); // this doesn't really join anything; there's no sub-stratum in stratum
+    @assert.is(@sys.getDynVar('foo'), 'y');
+  }
+  @assert.raises(->@sys.getDynVar('foo'));  
+});
+
+@test("spawn/join 2", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+  var stratum;
+  @sys.withDynVarContext {
+    ||
+    stratum = reifiedStratum.spawn(function() {
+      @sys.setDynVar('foo', 'x');
+      hold(10);
+      @assert.is(@sys.getDynVar('foo'), 'x');    
+    });
+  }
+
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'y');
+    reifiedStratum.join();
+    @assert.is(@sys.getDynVar('foo'), 'y');
+  }
+  @assert.raises(->@sys.getDynVar('foo'));  
+});
+
+
+@test("spawn wait/abort edge case", function() {
   @assert.raises(->@sys.getDynVar('foo'));
 
   var S;
   @sys.withDynVarContext {
     ||
     @sys.setDynVar('foo', 'y');
-    S = spawn hold();
-    spawn(function() { try { S.value(); } catch(e) {}; })();
+    S = reifiedStratum.spawn(->hold());
+    reifiedStratum.spawn(function() { try { S.wait(); } finally { @assert.is(@sys.getDynVar('foo'), 'y');} });
   }
   @assert.raises(->@sys.getDynVar('foo'));
   S.abort();
   @assert.raises(->@sys.getDynVar('foo')); // this used to not raise
-}
+})
 
-@test("spawn value/abort edge case async") {||
+@test("global spawn wait/abort edge case", function() {
   @assert.raises(->@sys.getDynVar('foo'));
 
   var S;
   @sys.withDynVarContext {
     ||
     @sys.setDynVar('foo', 'y');
-    S = spawn hold();
-    spawn(function() { try { S.value(); } catch(e) {}; })();
+    S = @sys.spawn(->hold());
+    @sys.spawn(function() { try { S.wait(); } finally { @assert.is(@sys.getDynVar('foo'), 'y');}});
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+  S.abort();
+  @assert.raises(->@sys.getDynVar('foo')); // this used to not raise
+})
+
+@test("spawn wait/abort edge case async", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var S;
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'y');
+    S = reifiedStratum.spawn(->hold());
+    reifiedStratum.spawn(function() { try { S.wait(); } finally { @assert.is(@sys.getDynVar('foo'),'y'); } });
   }
   @assert.raises(->@sys.getDynVar('foo'));
   hold(0);
   @assert.raises(->@sys.getDynVar('foo'));
   S.abort();
   @assert.raises(->@sys.getDynVar('foo')); // this used to not raise
-}
+})
+
+@test("global spawn wait/abort edge case async", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  var S;
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'y');
+    S = @sys.spawn(->hold());
+    @sys.spawn(function() { try { S.wait(); } finally { @assert.is(@sys.getDynVar('foo'),'y'); } });
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+  hold(0);
+  @assert.raises(->@sys.getDynVar('foo'));
+  S.abort();
+  @assert.raises(->@sys.getDynVar('foo')); // this used to not raise
+})
+
+@test("join/abort edge case", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+
+  reifiedStratum.spawn(->hold());
+  waitfor {
+    @sys.withDynVarContext {
+      ||
+      @sys.setDynVar('foo', 'x');
+      try {
+        reifiedStratum.join();
+      }
+      finally {
+        @assert.is(@sys.getDynVar('foo'), 'x'); // this used to not find the variable
+      }
+    }
+  }
+  or {
+    @sys.withDynVarContext {
+      ||
+      @sys.setDynVar('foo', 'y');
+      reifiedStratum.spawn(->hold());
+    }
+    @assert.raises(->@sys.getDynVar('foo'));
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+})
 
 
-@test("js call / context cleared by hold()") {||
+@test("js call / context cleared by hold()", function() {
 
   @assert.raises(->@sys.getDynVar('foo'));
   
@@ -511,9 +742,9 @@ function waitfor_or_retraction(blocking1, blocking2) {
     hold(100);
   }
 
-}
+})
 
-@test("js call / context cleared by waitfor()") {||
+@test("js call / context cleared by waitfor()", function() {
 
   @assert.raises(->@sys.getDynVar('foo'));
   
@@ -528,4 +759,4 @@ function waitfor_or_retraction(blocking1, blocking2) {
     waitfor() { prod = resume }
   }
 
-}
+})

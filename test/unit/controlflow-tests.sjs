@@ -11,7 +11,7 @@
   When competing controlflows arrive at a stratum juncture (e.g. a waitfor/or), 
   the following precedence applies:
 
-  exceptions > break|return > sequential
+  exceptions > break|return (whether explicit or implicit *) > sequential
 
   For controlflow of the same class (e.g. two competing returns, or a break and return), 
   it is not the instant that the control 
@@ -19,7 +19,21 @@
   juncture. For breaks & returns, the first controlflow seen at the juncture 'wins' - the other one is silently discarded.
   For exceptions, later exceptions override earlier ones. The overridden exceptions will be logged to stderr.
 
+  Aborting: Aborted controlflow will be handled according to the above rule (i.e. the aborted 
+  controlflow will be considered at the abort point - if e.g. the abort was caused by sequential 
+  controlflow in a waitfor/or, and an aborted branch returns a pending 'break' or 'return', 
+  the latter will win).
+
   For JS parity, exceptions are overridden by 'return' in 'finally' clauses.
+
+  (*) An implicit return is a return from a function. In the following code, `foo` will return 
+      'undefined' and not 'a'. The return from `foo` which triggers the sub-stratum abortion is
+      classified as an 'implicit return', even though there is no explicit 'return' statement in
+      `foo`:
+         function foo() {
+           reifiedStratum.spawn(function() { try { hold() } finally { return 'a'; }});
+         }
+       
 */
 
 /* 
@@ -36,64 +50,50 @@
 
 */
 function controlflow_type(e) {
-  if (e[2] === false) {
-    // not aborted
-    // assert that we are not pseudo-aborted:
-    @assert.eq(e[3], false);
-    
-    if (e[1] === false) {
-      // not an exception -> sequential controlflow
-      return 'sequential';
-    }
-    else {
-      // we have an exception
-      @assert.truthy(!!e[0]);
-      
-      if (e[0].type === 'r') {
-        if (e[0].eid)
-          return 'blocklambda-return';
-        else
-          return 'return';
-      }
-      else if (e[0].type === 'b') {
-        return 'break';
-      }
-      else if (e[0].type === 'blb') {
-        return 'blocklambda-break';
-      }
-      else if (e[0].type === 'c') {
-        return 'continue';
-      }
-      else if (e[0].type === 't') {
-        return 'exception';
-      }
-      else 
-        throw new Error("Unknow controlflow type #{e[0].type}");
-    }
-  } // e[2] === false
+  var rv;
+  if (e[1] === false) {
+    // not an exception -> sequential controlflow
+    rv = 'sequential';
+  }
   else {
-    // e[2] = true
-    // abortion
-    var rv;
-    if (e[3])
-      rv = 'pseudo-abort';
-    else
-      rv = 'abort';
-    @assert.truthy(e[1]);
-    if (e[0].type === 't') {
-      rv += '-exception';
-      @assert.truthy(!!e[0]);
+    // we have an exception
+    @assert.truthy(!!e[0]);
+    
+    if (e[0].type === 'r') {
+      if (e[0].eid)
+        rv = 'blocklambda-return';
+      else
+        rv = 'return';
+    }
+    else if (e[0].type === 'b') {
+      rv = 'break';
+    }
+    else if (e[0].type === 'blb_old') {
+      rv = 'blocklambda-break';
+    }
+    else if (e[0].type === 'c') {
+      rv = 'continue';
+    }
+    else if (e[0].type === 't') {
+      rv = 'exception';
     }
     else 
-      @assert.eq(e[0].type, 'a');
-    return rv;
+      throw new Error("Unknow controlflow type #{e[0].type}");
   }
+  if (e[2]) {
+    if (e[3])
+      rv += '-pseudoabort';
+    else
+      rv += '-abort';
+  }
+  else @assert.truthy(!e[3]); // pseudo flag should only be set for aborts
+  return rv;
 }
 
 
 
-@context('baseline') {||
-  @test("abort during finally should abort at next abort point") {||
+@context('baseline', function() {
+  @test("abort during finally should abort at finally", function() {
     var rv = '';
     function t1() {
       try {
@@ -104,14 +104,14 @@ function controlflow_type(e) {
         rv += '2';
         hold(20);
         rv += '4';
-      }
+      } // <- abort point
     }
     function t() {
       waitfor {
         t1();
-        rv += '5';
-        hold(0); // <- abort point
         rv += 'x';
+        hold(0); // <- used to be the abort point
+        rv += 'y';
       }
       or {
         hold(0);
@@ -121,10 +121,10 @@ function controlflow_type(e) {
     
     var x = t();
     if (x !== undefined) rv += x;
-    @assert.eq(rv, '12345');
-  }
+    @assert.eq(rv, '1234');
+  })
 
-  @test("abort should not be masked by retract & blocking finally") {||
+  @test("abort should not be masked by retract & blocking finally", function() {
     var rv = '';
     function t1() {
       try {
@@ -151,9 +151,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '23');
-  }
+  })
 
-  @test("catch is abortable") {||
+  @test("catch is abortable", function() {
     var rv = '';
     function t1() {
       try {
@@ -190,9 +190,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '123rf');
-  }
+  })
 
-  @test("first return to clear all try/catch/finally wins") {||
+  @test("first return to clear all try/catch/finally wins", function() {
     var rv = '';
     function t1() {
       try {
@@ -224,9 +224,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '1234b');
-  }
+  })
 
-  @test("first return to clear all try/catch/finally wins - exception overrides") {||
+  @test("first return to clear all try/catch/finally wins - exception overrides", function() {
     var rv = '';
     function t1() {
       try {
@@ -262,10 +262,10 @@ function controlflow_type(e) {
     }
     catch(e) { rv += e; }
     @assert.eq(rv, '1234E');
-  }
+  })
 
 
-  @test("first return to clear all try/catch/finally wins - async") {||
+  @test("first return to clear all try/catch/finally wins - async", function() {
     var rv = '';
     function t1() {
       try {
@@ -300,9 +300,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
-  }
+  })
 
-  @test("first return to clear all try/catch/finally wins - async - exception overrides") {||
+  @test("first return to clear all try/catch/finally wins - async - exception overrides", function() {
     var rv = '';
     function t1() {
       try {
@@ -341,10 +341,10 @@ function controlflow_type(e) {
     }
     catch(e) { rv += e; }
     @assert.eq(rv, '12345E');
-  }
+  })
 
 
-  @test("final exception thrown wins - other exception reported on console") {||
+  @test("final exception thrown wins - other exception reported on console", function() {
     var rv = '';
     function t1() {
       try {
@@ -375,9 +375,9 @@ function controlflow_type(e) {
 
     try { t(); } catch(e) { rv+= e; }
     @assert.eq(rv, '1234a');
-  }
+  })
 
-  @test("final exception thrown wins (async) - other exception reported on console") {||
+  @test("final exception thrown wins (async) - other exception reported on console", function() {
     var rv = '';
     function t1() {
       try {
@@ -411,9 +411,9 @@ function controlflow_type(e) {
 
     try { t(); } catch(e) { rv+= e; }
     @assert.eq(rv, '12345a');
-  }
+  })
 
-  @test("blmda-ret - like normal return") {||
+  @test("blmda-ret - like normal return", function() {
 
     var rv = '';
 
@@ -444,9 +444,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '1234b');
-  }
+  })
 
-  @test("blmda-ret async - like normal return") {||
+  @test("blmda-ret async - like normal return", function() {
 
     var rv = '';
 
@@ -480,9 +480,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
-  }
+  })
 
-  @test("returns in finally masks exceptions (unfortunate JS parity)") {||
+  @test("returns in finally masks exceptions (unfortunate JS parity)", function() {
 
     function t1() {
       try {
@@ -497,9 +497,9 @@ function controlflow_type(e) {
     var rv = t1();
     @assert.eq(rv, 'ok');
 
-  }
+  })
 
-  @test("return superceedes sequential") {||
+  @test("aborted return", function() {
     var rv = '';
     function t1() {
       try {
@@ -514,6 +514,7 @@ function controlflow_type(e) {
     }
     function t() {
       waitfor {
+        // return should be aborted
         return t1();
       }
       or {
@@ -525,17 +526,15 @@ function controlflow_type(e) {
           rv +='R';
         }
       }
-      // should not be reached
-      rv += 'x';
       return 'b';
     }
 
     var x = t();
     if (x !== undefined) rv += x;
-    @assert.eq(rv, '1234a');
-  }
+    @assert.eq(rv, '1234b');
+  })
 
-  @test("return superceedes sequential - async") {||
+  @test("aborted return - async", function() {
     var rv = '';
     function t1() {
       try {
@@ -552,6 +551,7 @@ function controlflow_type(e) {
     }
     function t() {
       waitfor {
+        // this return should be aborted
         return t1();
       }
       or {
@@ -564,17 +564,15 @@ function controlflow_type(e) {
           rv +='R';
         }
       }
-      // should not be reached
-      rv += 'x';
       return 'b';
     }
 
     var x = t();
     if (x !== undefined) rv += x;
-    @assert.eq(rv, '12345a');
-  }
+    @assert.eq(rv, '12345b');
+  })
 
-  @test("blmda-ret superceeds sequential") {||
+  @test("blmda-ret superceeds sequential", function() {
 
     var rv = '';
 
@@ -607,9 +605,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '1234a');
-  }
+  })
 
-  @test("blmda-ret superceeds sequential - async") {||
+  @test("blmda-ret superceeds sequential - async", function() {
 
     var rv = '';
 
@@ -645,9 +643,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345a');
-  }
+  })
 
-  @test("blmda-brk - later return finishing first superceeds") {||
+  @test("blmda-brk - later return finishing first superceeds", function() {
 
     var rv = '';
 
@@ -680,9 +678,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '1234b');
-  }
+  })
 
-  @test("blmda-brk - later return finishing first superceeds - exception overrides") {||
+  @test("blmda-brk - later return finishing first superceeds - exception overrides", function() {
 
     var rv = '';
 
@@ -721,10 +719,10 @@ function controlflow_type(e) {
       rv += e;
     }
     @assert.eq(rv, '1234E');
-  }
+  })
 
 
-  @test("blmda-brk - later return finishing first superceeds - async") {||
+  @test("blmda-brk - later return finishing first superceeds - async", function() {
 
     var rv = '';
 
@@ -760,9 +758,9 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
-  }
+  })
 
-  @test("blmda-brk - later return finishing first superceeds - async - exception overrides") {||
+  @test("blmda-brk - later return finishing first superceeds - async - exception overrides", function() {
 
     var rv = '';
 
@@ -802,10 +800,10 @@ function controlflow_type(e) {
     }
     catch(e) { rv += e; }
     @assert.eq(rv, '12345E');
-  }
+  })
 
 
-  @test("blmda-brk - later return finishing first superceeds - nested") {||
+  @test("blmda-brk - later return finishing first superceeds - nested", function() {
 
     var rv = '';
 
@@ -839,9 +837,9 @@ function controlflow_type(e) {
         };
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
-  }
+  })
 
-  @test("blmda-brk - later return finishing first superceeds - nested, async") {||
+  @test("blmda-brk - later return finishing first superceeds - nested, async", function() {
 
     var rv = '';
 
@@ -877,9 +875,9 @@ function controlflow_type(e) {
         };
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
-  }
+  })
 
-  @test("blmda-brk - later brk finishing first superceeds") {||
+  @test("blmda-brk - later brk finishing first superceeds", function() {
 
     var rv = '';
 
@@ -913,26 +911,25 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '123456a');
-  }
+  })
 
-}
+})
 
 //----------------------------------------------------------------------
 // same as above with sessioned strata (i.e. withBackgroundStrata)
 
-@context('baseline-sessioned') {||
+@context('baseline-sessioned', function() {
 
-  @test("blr routing") {||
+  @test("blr routing", function() {
     var rv = '';
     function t() {
-      var e1 = {||
+      @withBackgroundStrata {
+        |strata|
+        strata.run {||
         hold(0);
         rv += '1';
         return 'a';
-      };
-      @withBackgroundStrata {
-        |strata|
-        strata.run(e1);
+        };
         strata.wait();
       }
     }
@@ -940,18 +937,17 @@ function controlflow_type(e) {
     rv += t();
 
     @assert.eq(rv, '1a');
-  }
+  })
 
 
-  @test("blr routing 2") {||
+  @test("blr routing 2", function() {
     var rv = '';
     function t(strata) {
-      var e1 = {||
+      strata.run {||
         hold(0);
           rv += '1';
           return 'a'; // not routable because t() doesn't contain session
       };
-      strata.run(e1);
       hold(100);
     }
 
@@ -965,37 +961,35 @@ function controlflow_type(e) {
     }
     catch(e) { rv += 'R'; }
     @assert.eq(rv, '1R');
-  }
+  }).skip('_taskXXX FIXME');
 
 
-  @test("first bl return to clear all try/catch/finally wins") {||
+  @test("first bl return to clear all try/catch/finally wins", function() {
     var rv = '';
     function t() {
-      var e1 = {||
-        try {
-          rv += '1';
-          return 'a';
-        }
-        finally {
-          rv += '2';
-          hold(20);
-          rv += '4';
-        }
-      };
-      var e2 = {||
-        try {
-          hold(0);
-          rv += '3';
-          return 'b';
-        }
-        retract {
-          rv += 'R';
-        }
-      }
       @withBackgroundStrata {
         |strata|
-        strata.run(e1);
-        strata.run(e2);
+        strata.run {||
+          try {
+            rv += '1';
+            return 'a';
+          }
+          finally {
+            rv += '2';
+            hold(20);
+            rv += '4';
+          }
+        };
+        strata.run {||
+          try {
+            hold(0);
+            rv += '3';
+            return 'b';
+          }
+          retract {
+            rv += 'R';
+          }
+        };
         strata.wait();
       }
     }
@@ -1003,37 +997,35 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '1234b');
-  }
+  })
 
-  @test("first bl return to clear all try/catch/finally wins - exception overrides") {||
+  @test("first bl return to clear all try/catch/finally wins - exception overrides", function() {
     var rv = '';
     function t() {
-      var e1 = {||
-        try {
-          rv += '1';
-          return 'a';
-        }
-        finally {
-          rv += '2';
-          hold(20);
-          rv += '4';
-          throw 'E';
-        }
-      };
-      var e2 = {||
-        try {
-          hold(0);
-          rv += '3';
-          return 'b';
-        }
-        retract {
-          rv += 'R';
-        }
-      }
       @withBackgroundStrata {
         |strata|
-        strata.run(e1);
-        strata.run(e2);
+        strata.run {||
+          try {
+            rv += '1';
+            return 'a';
+          }
+          finally {
+            rv += '2';
+            hold(20);
+            rv += '4';
+            throw 'E';
+          }
+        };
+        strata.run {||
+          try {
+            hold(0);
+            rv += '3';
+            return 'b';
+          }
+          retract {
+            rv += 'R';
+          }
+        }
         strata.wait();
       }
     }
@@ -1044,40 +1036,38 @@ function controlflow_type(e) {
     }
     catch(e) { rv += e; }
     @assert.eq(rv, '1234E');
-  }
+  })
 
 
-  @test("first bl return to clear all try/catch/finally wins - async") {||
+  @test("first bl return to clear all try/catch/finally wins - async", function() {
     var rv = '';
     function t() {
-      var e1 = {||
-        try {
-          rv += '1';
-          hold(0);
-          rv += '2';
-          return 'a';
-        }
-        finally {
-          rv += '3';
-          hold(20);
-          rv += '5';
-        }
-      };
-      var e2 = {||
-        try {
-          hold(0);
-          hold(0);
-          rv += '4';
-          return 'b';
-        }
-        retract {
-          rv += 'R';
-        }
-      }
       @withBackgroundStrata {
         |strata|
-        strata.run(e1);
-        strata.run(e2);
+        strata.run {||
+          try {
+            rv += '1';
+            hold(0);
+            rv += '2';
+            return 'a';
+          }
+          finally {
+            rv += '3';
+            hold(20);
+            rv += '5';
+          }
+        };
+        strata.run {||
+          try {
+            hold(0);
+            hold(0);
+            rv += '4';
+            return 'b';
+          }
+          retract {
+            rv += 'R';
+          }
+        }
         strata.wait();
       }
     }
@@ -1085,40 +1075,38 @@ function controlflow_type(e) {
     var x = t();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
-  }
+  })
 
-  @test("first bl return to clear all try/catch/finally wins - async - exception overrides") {||
+  @test("first bl return to clear all try/catch/finally wins - async - exception overrides", function() {
     var rv = '';
     function t() {
-      var e1 = {||
-        try {
-          rv += '1';
-          hold(0);
-          rv += '2';
-          return 'a';
-        }
-        finally {
-          rv += '3';
-          hold(20);
-          rv += '5';
-          throw 'E';
-        }
-      };
-      var e2 = {||
-        try {
-          hold(0);
-          hold(0);
-          rv += '4';
-          return 'b';
-        }
-        retract {
-          rv += 'R';
-        }
-      }
       @withBackgroundStrata {
         |strata|
-        strata.run(e1);
-        strata.run(e2);
+        strata.run {||
+          try {
+            rv += '1';
+            hold(0);
+            rv += '2';
+            return 'a';
+          }
+          finally {
+            rv += '3';
+            hold(20);
+            rv += '5';
+            throw 'E';
+          }
+        };
+        strata.run {||
+          try {
+            hold(0);
+            hold(0);
+            rv += '4';
+            return 'b';
+          }
+          retract {
+            rv += 'R';
+          }
+        }
         strata.wait();
       }
     }
@@ -1129,24 +1117,26 @@ function controlflow_type(e) {
     }
     catch(e) { rv += e; }
     @assert.eq(rv, '12345E');
-  }
+  })
 
-  @test("exception routing - sync") {||
+  @test("exception routing - sync", function() {
     var rv = '';
     try {
       @withBackgroundStrata {
         |strata|
         strata.run(function() { rv+='1'; throw 'a'; });
-        rv += 'x';
+        rv += 'C';
+        hold(0);
+        rv += 'X';
       }
     }
     catch(e) {
       rv += 'E';
     }
-    @assert.eq(rv, '1E');
-  }
+    @assert.eq(rv, '1CE');
+  })
 
-  @test("exception routing - async") {||
+  @test("exception routing - async", function() {
     var rv = '';
     try {
       @withBackgroundStrata {
@@ -1161,10 +1151,10 @@ function controlflow_type(e) {
       rv += 'E';
     }
     @assert.eq(rv, '12E');
-  }
+  })
 
 
-  @test("final exception thrown wins - other exception reported on console") {||
+  @test("final exception thrown wins - other exception reported on console", function() {
     var rv = '';
     function t1() {
       try {
@@ -1199,9 +1189,9 @@ function controlflow_type(e) {
 
     try { t(); } catch(e) { rv+= e; }
     @assert.eq(rv, '1234a');
-  }
+  })
 
-  @test("final exception thrown wins (async) - other exception reported on console") {||
+  @test("final exception thrown wins (async) - other exception reported on console", function() {
     var rv = '';
     function t1() {
       try {
@@ -1239,9 +1229,9 @@ function controlflow_type(e) {
 
     try { t(); } catch(e) { rv+= e; }
     @assert.eq(rv, '12345a');
-  }
+  })
 
-  @test("final exception thrown wins - session throwing") {||
+  @test("final exception thrown wins - session throwing", function() {
     var rv = '';
     function t1() {
       try {
@@ -1275,10 +1265,10 @@ function controlflow_type(e) {
     }
 
     try { t(); } catch(e) { rv+= e; }
-    @assert.eq(rv, '1234x');
-  }
+    @assert.eq(rv, '1234a');
+  })
 
-  @test("final exception thrown wins - session throwing + finally") {||
+  @test("final exception thrown wins - session throwing + finally", function() {
     var rv = '';
     function t1() {
       try {
@@ -1319,20 +1309,20 @@ function controlflow_type(e) {
 
     try { t(); } catch(e) { rv+= e; }
     @assert.eq(rv, '1234x');
-  }
+  })
 
-}
+})
 
 //----------------------------------------------------------------------
 
-@context('transparent') {||
+@context('transparent', function() {
   @integers(0,7) .. @each {
     |i|
     var async1 = !!(i & 1);
     var async2 = !!(i & 2);
     var missing_throw = !!(i & 4);
     
-    @test("sequential - #{async1}/#{async2}/#{missing_throw}") {||
+    @test("sequential - #{async1}/#{async2}/#{missing_throw}", function() {
       var rv = '';
       function t() {
         try {
@@ -1359,9 +1349,9 @@ function controlflow_type(e) {
         if (x !== undefined) rv += x;
       }
       @assert.eq(rv, '123');
-    }
+    })
 
-    @test("return - #{async1}/#{async2}/#{missing_throw}") {||
+    @test("return - #{async1}/#{async2}/#{missing_throw}", function() {
       var rv = '';
       function t() {
         try {
@@ -1389,9 +1379,9 @@ function controlflow_type(e) {
         if (x !== undefined) rv += x;
         @assert.eq(rv, '123a');
       }
-    }
+    })
 
-    @test("throw - #{async1}/#{async2}/#{missing_throw}") {||
+    @test("throw - #{async1}/#{async2}/#{missing_throw}", function() {
       var rv = '';
       function t() {
         try {
@@ -1418,9 +1408,9 @@ function controlflow_type(e) {
         @assert.raises({message: 'a'},t);
         @assert.eq(rv, '123');
       }
-    }
+    })
 
-    @test("abort - #{async1}/#{async2}/#{missing_throw}") {||
+    @test("abort - #{async1}/#{async2}/#{missing_throw}", function() {
       var rv = '';
       function t1() {
         try {
@@ -1462,12 +1452,14 @@ function controlflow_type(e) {
         if (x !== undefined) rv += x;
         if (async1)
           @assert.eq(rv, 'r23');
-        else
+        else if (async2)
+          @assert.eq(rv, '123');
+        else 
           @assert.eq(rv, '123a');
       }
-    }
+    })
 
-    @test("abort2 - #{async1}/#{async2}/#{missing_throw}") {||
+    @test("abort2 - #{async1}/#{async2}/#{missing_throw}", function() {
       var rv = '';
       function t1() {
         try {
@@ -1514,21 +1506,21 @@ function controlflow_type(e) {
         if (!async1 && !async2)
           @assert.eq(rv, '123b');
         else if (!async1 && async2)
-          @assert.eq(rv, '12c3b');
+          @assert.eq(rv, '12c3');
         else if (async1 && !async2)
           @assert.eq(rv, 'cr23');
         else
           @assert.eq(rv, 'cr23');
       }
-    }
+    })
 
 
   } // @integers(0,7)
-}
+})
  
-@context('identify control flow') {||
+@context('identify control flow', function() {
 
-  @test('sequential') {||
+  @test('sequential', function() {
     var rv;
     try {
       'a';
@@ -1538,9 +1530,9 @@ function controlflow_type(e) {
       throw e;
     }
     @assert.eq(rv, 'sequential');
-  }
+  })
 
-  @test('return') {||
+  @test('return', function() {
     var rv;
     function f() {
       try {
@@ -1553,9 +1545,9 @@ function controlflow_type(e) {
     }
     f();
     @assert.eq(rv, 'return');
-  }
+  })
 
-  @test('break') {||
+  @test('break', function() {
     var rv;
     function f() {
       while (1) {
@@ -1570,9 +1562,9 @@ function controlflow_type(e) {
     }
     f();
     @assert.eq(rv, 'break');
-  }
+  })
 
-  @test('continue') {||
+  @test('continue', function() {
     var rv;
     function f() {
       do {
@@ -1587,9 +1579,9 @@ function controlflow_type(e) {
     }
     f();
     @assert.eq(rv, 'continue');
-  }
+  })
 
-  @test('exception') {||
+  @test('exception', function() {
     var rv;
     function f() {
       try {
@@ -1602,9 +1594,9 @@ function controlflow_type(e) {
     }
     try { f(); } catch(e) { }
     @assert.eq(rv, 'exception');
-  }
+  })
 
-  @test('abort') {||
+  @test('abort', function() {
     var rv;
     function f() {
       try {
@@ -1620,10 +1612,10 @@ function controlflow_type(e) {
     catch(e) {
       rv += '-caught';
     }
-    @assert.eq(rv, 'abort');
-  }
+    @assert.eq(rv, 'sequential-abort');
+  })
 
-  @test('abort2') {||
+  @test('abort2', function() {
     var rv;
     function f() {
       try {
@@ -1645,11 +1637,11 @@ function controlflow_type(e) {
       console.log(e);
       rv += '-caught';
     }
-    @assert.eq(rv, 'abort');
-  }
+    @assert.eq(rv, 'sequential-abort');
+  })
 
 
-  @test('exception during abort') {||
+  @test('exception during abort', function() {
     var rv;
     function f() {
       try {
@@ -1668,10 +1660,10 @@ function controlflow_type(e) {
     catch(e) {
       rv += '-caught';
     }
-    @assert.eq(rv, 'abort-exception-caught');
-  }
+    @assert.eq(rv, 'exception-abort-caught');
+  })
 
-  @test('blocklambda-break') {||
+  @test('blocklambda-break', function() {
     var rv;
     function f(block) {
       try {
@@ -1685,9 +1677,9 @@ function controlflow_type(e) {
     }
     f {|| hold(0); break; }
     @assert.eq(rv, 'blocklambda-break');
-  }
+  })
 
-  @test('blocklambda-return') {||
+  @test('blocklambda-return', function() {
     var rv;
     function f(block) {
       try {
@@ -1704,13 +1696,13 @@ function controlflow_type(e) {
     rv += test();
 
     @assert.eq(rv, 'blocklambda-return-R');
-  }
+  })
 
-  @test('pseudo-abort') {||
+  @test("blocklambda abort doesn't retract inner", function() {
     var rv;
     function f(block) {
       try {
-        spawn block();
+        reifiedStratum.spawn(block);
         hold();
       }
       finally(e) {
@@ -1719,17 +1711,17 @@ function controlflow_type(e) {
       }
     }
     function test() {
-      f {|| hold(0); break; }
+      f {|| hold(0); try { break; } retract { @assert.fail('not reached'); } }
     }
     test();
-    @assert.eq(rv, 'pseudo-abort');
-  }
+    @assert.eq(rv, 'sequential-abort'); 
+ })
 
-  @test('pseudo-abort / w return') {||
+  @test('abort / w return', function() {
     var rv;
     function f(block) {
       try {
-        spawn block();
+        reifiedStratum.spawn(block);
         hold();
       }
       finally(e) {
@@ -1738,18 +1730,18 @@ function controlflow_type(e) {
       }
     }
     function test() {
-      f {|| hold(0); return '-R'; }
+      f {|| hold(0); try { return '-R'; } retract { @assert.fail('not reached'); } }
     }
     rv += test();
 
-    @assert.eq(rv, 'pseudo-abort-R');
-  }
+    @assert.eq(rv, 'sequential-abort-R');
+  })
 
-}
+})
 
-@context('amend') {||
+@context('amend', function() {
   
-  @test('override blocklambda break handling') {||
+  @test('override blocklambda break handling', function() {
     var rv = '';
     function f(block) {
       try {
@@ -1767,9 +1759,9 @@ function controlflow_type(e) {
     rv += '4'
     @assert.eq(rv, '1234');
     
-  }
+  })
   
-  @test('throw exception') {||
+  @test('throw exception', function() {
     function foo() {
       try {
         /* */
@@ -1781,10 +1773,10 @@ function controlflow_type(e) {
     var rv;
     try { foo(); } catch(e) { rv = e }
     @assert.eq(rv.message, 'foo error');
-  }
+  })
 
   // this edgecase used to fail due to a vm bug:
-  @test('throw plaintext') {||
+  @test('throw plaintext', function() {
     function foo() {
       try {
         /* */
@@ -1796,7 +1788,7 @@ function controlflow_type(e) {
     var rv;
     try { foo(); } catch(e) { rv = e }
     @assert.eq(rv, 'plain_string_exception');
-  }
+  })
   
-}
+})
 

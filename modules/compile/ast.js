@@ -206,7 +206,7 @@ GEN_INFIX_OP(left, id, right, pctx)
 GEN_ASSIGN_OP(left, id, right, pctx)
   id: = *= /= %= += -= <<= >>= >>>= &= ^= |=
 GEN_PREFIX_OP(id, right, pctx)
-  id: ++ -- delete void typeof + - ~ ! (for SJS also: 'spawn')
+  id: ++ -- delete void typeof + - ~ ! (for SJS also: '_task')
 GEN_SPREAD(right, pctx): '...' when used as spread. rest arguments gets '...' merged into name 
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
@@ -236,7 +236,7 @@ GEN_NULL(pctx)
 Stratified constructs:
 ======================
 
-GEN_PREFIX_OP(id, right, pctx) takes another operator: 'spawn'
+GEN_PREFIX_OP(id, right, pctx) takes another operator: '_task'
 
 GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx)
   op: 'and' | 'or' | 'while'
@@ -548,7 +548,7 @@ NodeType('VariableDeclarator', function(id, value) {
 NodeType('VariableDeclaration', function(decls, pctx, ext) {
   this.kind = 'var';
   this.declarations = decls.map(function(decl) {
-    return Node.VariableDeclarator(pctx, decl[2] || ext, decl[0], decl[1]);
+    return Node.VariableDeclarator(pctx, /*decl[2] ||*/ ext, decl[0], decl[1]);
   });
 });
 
@@ -1427,7 +1427,7 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 *      R     =>           Args AssignExp                 Fat Arrow
 *      R     =>           AssignExp                      Fat Arrow (prefix form)
 119          ...          AssignExp                      SpreadElement
-*115         spawn        SpawnExp                       StratifiedJS 'spawn'
+*115         _task        TaskExp                        StratifiedJS '_task'
 *112         __js         JS_EXP                         non-blocking JS optimized expression
 110 17 L     ,            Expression AssignExp           SequentialEvaluation
 
@@ -1702,7 +1702,7 @@ S("=>")
     return Node.ArrowFunctionExpression(pctx, pop_extent(pctx, 'GEN_THIN_ARROW'), left, body);
   });
 
-S("spawn").pre(115);
+S("_task").pre(115);
 
 S(",").ifx(110, true);
 
@@ -2091,16 +2091,18 @@ function parseVarDecls(pctx, noInOf) {
   var parse = noInOf ? parseExpNoInOf : parseExp;
   do {
     if (decls.length) scan(pctx, ",");
-    push_extent(pctx, pctx.token, 'parseVarDecls');
-    var id_or_pattern = parse(pctx, 120), initialiser=null;
+    //push_extent(pctx, pctx.token, 'parseVarDecls');
+    var id_or_pattern = parse(pctx, 120);
     if (pctx.token.id == "=") {
       scan(pctx);
-      initialiser = parse(pctx, 110);
+      var initialiser = parse(pctx, 110);
       end_extent(pctx, initialiser);
+      decls.push([id_or_pattern, initialiser/*, pop_extent(pctx, 'parseVarDecls')*/]);
     }
-    decls.push([id_or_pattern, initialiser, pop_extent(pctx, 'parseVarDecls')]);
+    else
+      decls.push([id_or_pattern/*, pop_extent(pctx, 'parseVarDecls')*/]);
   } while (pctx.token.id == ",");
-  end_extent(pctx, decls[decls.length-1][2]);
+  //end_extent(pctx, decls[decls.length-1][2]);
   return decls;
 }
     
@@ -2245,6 +2247,7 @@ S("break").stmt(function(pctx) {
   
   return Node.BreakStatement(pctx, pop_extent(pctx, 'GEN_BREAK'), label);
 });
+
 
 S("return").stmt(function(pctx) {
   push_extent(pctx, null, '.stmt');

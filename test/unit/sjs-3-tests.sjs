@@ -1,24 +1,27 @@
 @ = require('sjs:test/std');
 
-// this used to fail to generate a 'Blocklambda return from spawned stratum to inactive scope' error, because in vm1 a synchronous abort path on EF_Seq didn't mark the frame as 'unreturnable'
-@test("return via inactive scope edgecase") {||
+// We now allow returning to the scope in question, because it is only intermediate scopes that are unreturnable.
+// (this used to fail to generate a 'Blocklambda return from spawned stratum to inactive scope' error, because in vm1 a synchronous abort path on EF_Seq didn't mark the frame as 'unreturnable')
+@test("return via inactive scope edgecase", function() {
 
   var rv = '';
-  var S;
+  var P,S;
   function scope(f) {
     rv += 'a';
-    S = spawn f();
+    S = P.spawn(f);
     rv += 'c';
-    return S.value();
+    S.wait();
+    rv += 'X';
   }
 
   function exec() {
+    P = reifiedStratum;
     waitfor {
       scope { 
         ||
         rv += 'b';
         hold(100);
-        return;
+        return 'R';
       }
     }
     or {
@@ -26,22 +29,29 @@
       hold(0);
       rv += 'd';
     }
-
-    // this S.value() call ensures that the exception doesn't go uncaught:
-    S.value();
+    try {
+      S.wait();
+    }
+    retract {
+      rv += 'r';
+    }
   }
-  @assert.raises({message:'Blocklambda return from spawned stratum to inactive scope'}, exec);
-  @assert.eq(rv, 'abcd');
-}
 
-@test("return via different scope with _adopt") {||
+ 
+ // @assert.raises({message:'Blocklambda return from spawned stratum to inactive scope'}, exec);
+  rv += exec();
+  @assert.eq(rv, 'abcdrR');
+}).skip('FIXME _taskXXX (blocklambda return)');
+
+@test("return via different scope with _adopt", function() {
 
   var rv = '';
   var S;
   function scope(f) {
     rv += 'a';
-    if (!S)
-      S = spawn f();
+    if (!S) {
+      //XXX S = task f();
+    }
     else
       __js S._adopt(this.blrref); // it is crucial that this is __js, so that 'this.blrref' refers to the right thing
     rv += 'c';
@@ -67,36 +77,37 @@
   }
   rv += exec();
   @assert.eq(rv, 'abcdacr');
-}
+}).skip('obsolete _adopt function');
 
-@context("rest parameters") { ||
-  @test("functions") { ||
+@context("rest parameters", function() {
+  @test("functions", function() {
     var f1 = function(...args) { return args; }
     @assert.eq(f1(1,2,3), [1,2,3]);
     var f2 = function(a,b,...args) { return [a,b,args]; }
     @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
-  }
-  @test("blocklambdas") { ||
-    ({|...args| @assert.eq(args, [1,2,3]) })(1,2,3);
-    ({|a,b,...args| @assert.eq([a,b,args], [1,2,[3,4]]) })(1,2,3,4);
-  }
-  @test("thin arrows") { ||
+  })
+  @test("blocklambdas", function() {
+    function call(f, ...args) { f(...args); }
+    call({|...args| @assert.eq(args, [1,2,3]) },1,2,3);
+    call({|a,b,...args| @assert.eq([a,b,args], [1,2,[3,4]]) },1,2,3,4);
+  })
+  @test("thin arrows", function() {
     var f1 = (...args) -> args;
     @assert.eq(f1(1,2,3), [1,2,3]);
     var f2 = (a,b,...args) -> [a,b,args];
     @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
-  }
-  @test("fat arrows") { ||
+  })
+  @test("fat arrows", function() {
     var f1 = (...args) => args;
     @assert.eq(f1(1,2,3), [1,2,3]);
     var f2 = (a,b,...args) => [a,b,args];
     @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
-  }
-}
+  })
+})
 
-@context("reentrant quench") {||
+@context("reentrant quench", function() {
   // this used to produce '1234not reached', because EF_Alt didn't emit a 'quench'
-  @test("waitfor/or") {||
+  @test("waitfor/or", function() {
     var rv = '', restart;
     waitfor {
       rv += '1';
@@ -112,9 +123,9 @@
     rv += '4';
     hold(100);
     @assert.eq(rv, '1234');
-  }
+  })
 
-  @test("waitfor/and") {||
+  @test("waitfor/and", function() {
     var rv = '';
     function inner() {
       var restart;
@@ -136,10 +147,10 @@
     rv += '4';
     hold(100);
     @assert.eq(rv, '1234');
-  }
+  })
 
   // this always worked, but is here just for completeness
-  @test("resume") {||
+  @test("resume", function() {
     var rv = '', restart, restart2;
     waitfor {
       rv += '1';
@@ -156,12 +167,12 @@
     restart2();
     hold(100);
     @assert.eq(rv, '1234');
-  }
-}
+  })
+})
 
-@context("waitfor/while") {||
+@context("waitfor/while", function() {
   
-  @test('all sync') {||
+  @test('all sync', function() {
     var rv = '';
     waitfor { 
       rv += '1';
@@ -170,9 +181,9 @@
       rv += '2';
     }
     @assert.eq(rv, '12');
-  }
+  })
 
-  @test('all sync / try/finally') {||
+  @test('all sync / try/finally', function() {
     var rv = '';
     waitfor { 
       try {
@@ -189,9 +200,9 @@
       rv += '3';
     }
     @assert.eq(rv, '123');
-  }
+  })
 
-  @test('async1') {||
+  @test('async1', function() {
     var rv = '';
     waitfor { 
       hold(0);
@@ -201,9 +212,9 @@
       rv += '1';
     }
     @assert.eq(rv, '1');
-  }
+  })
 
-  @test('async2') {||
+  @test('async2', function() {
     var rv = '';
     waitfor { 
       hold(0);
@@ -215,9 +226,9 @@
       rv += '3';
     }
     @assert.eq(rv, '123');
-  }
+  })
 
-  @test('async3') {||
+  @test('async3', function() {
     var rv = '';
     waitfor {
       rv += '1';
@@ -228,9 +239,9 @@
       rv += '3';
     }
     @assert.eq(rv, '123');
-  }
+  })
 
-  @test('async4') {||
+  @test('async4', function() {
     @product([0,1],[0,1],[0,1]) .. @each { 
       |[p1,p2,p3]|
       var rv = '';
@@ -263,9 +274,9 @@
       }
       @assert.eq(rv, '1ab23');
     }
-  }
+  })
 
-  @test('return 1') {||
+  @test('return 1', function() {
     @product([0,1]) .. @each {
       |[p1]|
       var rv = '';
@@ -289,9 +300,9 @@
       rv += foo();
       @assert.eq(rv, 'abcd');
     }
-  }
+  })
 
-  @test('return 2') {||
+  @test('return 2', function() {
     @product([0,1]) .. @each {
       |[p1]|
       var rv = '';
@@ -315,9 +326,9 @@
       rv += foo();
       @assert.eq(rv, 'abcd');
     }
-  }
+  })
 
-  @test('throw 1') {||
+  @test('throw 1', function() {
     @product([0,1]) .. @each {
       |[p1]|
       var rv = '';
@@ -341,9 +352,9 @@
       try { foo(); } catch(e) { rv += e; }
       @assert.eq(rv, 'abcd');
     }
-  }
+  })
 
-  @test('throw 2') {||
+  @test('throw 2', function() {
     @product([0,1]) .. @each {
       |[p1]|
       var rv = '';
@@ -367,14 +378,15 @@
       try { foo(); } catch(e) { rv += e; }
       @assert.eq(rv, 'abcd');
     }
-  }
+  })
 
-  @test('tailcalled blocklambda break / wfw edge case') {||
+  @test('tailcalled blocklambda break / wfw edge case', function() {
     var rv = '';
+    function call(f) { f(); }
     function foo() {
       waitfor {
         // this `break` should only abort the blocklambda, not the waitfor/while
-        ({|| hold(0); break; rv += 'x'; })();
+        call {|| hold(0); break; rv += 'x'; };
         rv += 'b';
       }
       while {
@@ -385,9 +397,10 @@
     }
     foo();
     @assert.eq(rv, 'abc');
-  }
-  @test('tailcalled blocklambda break / wfw edge case 2') {||
+  })
+  @test('tailcalled blocklambda break / wfw edge case 2', function() {
     var rv = '';
+    function call(f) { f(); }
     function foo() {
       waitfor {
         try {
@@ -399,15 +412,15 @@
       }
       while {
         // this `break` should only abort the blocklambda, not the waitfor/while
-        ({|| hold(0); break; rv += 'x'; })();
+        call {|| hold(0); break; rv += 'x'; };
         rv += 'a';
       }
     }
     foo();
     @assert.eq(rv, 'ab');
-  }
+  })
 
-  @test('abort sequencing') {||
+  @test('abort sequencing', function() {
 
     @product([0,1],[0,1],[0,1],[0,1],[0,1]) .. @each {
       |[p1,p2,p3,p4, p5]|
@@ -455,9 +468,9 @@
       }
       @assert.eq(rv, 'abcdef');
     }
-  }
+  })
    
-  @test("reentrant quench") {||
+  @test("reentrant quench", function() {
     var rv = '';
     function inner() {
       var restart;
@@ -479,9 +492,9 @@
     rv += '4';
     hold(100);
     @assert.eq(rv, '1234');
-  }
+  })
 
-  @test("reentrant edge case") { ||
+  @test("reentrant edge case", function() {
     var rv='';
     function foo() {
       waitfor {
@@ -507,10 +520,10 @@
     }
     rv += foo();
     @assert.eq(rv, 'abc');
-  }  
-}
+  })  
+})
 
-@test('catch-abort edgecase') {||
+@test('catch-abort edgecase', function() {
   var R;
   var rv = '';
   waitfor {
@@ -536,9 +549,9 @@
   }
   hold(0);
   @assert.eq(rv, 'abcd');
-}
+})
 
-@test('aborted retract deadlock edgecase') { ||
+@test('aborted retract deadlock edgecase', function() {
   /*
     retract clauses are unabortable (after all their try block has already been aborted!).
     This somewhat convoluted test case was able to provoke a deadlock in the VM because
@@ -603,9 +616,9 @@
   }
   L(t());
   @assert.eq(rv, 'a1a2a3a4a5a6a7a8a9a10a11');
-}
+})
 
-@test('undefined exception propagation edgecase') { ||
+@test('undefined exception propagation edgecase', function() {
 
   function t() {
     hold(0);
@@ -619,9 +632,9 @@
     @assert.eq(e, undefined);
   }
 
-}
+})
 
-@test('null exception propagation edgecase') { ||
+@test('null exception propagation edgecase', function() {
 
   function t() {
     hold(0);
@@ -635,9 +648,9 @@
     @assert.eq(e, null);
   }
 
-}
+})
 
-@test('null exception propagation edgecase 2') { ||
+@test('null exception propagation edgecase 2', function() {
 
   function f() {
     try {
@@ -659,39 +672,40 @@
     @assert.eq(e, null);
   }
 
-}
+})
 
-@context("destructure in __js") { ||
-  @test("arr 1") { ||
+@context("destructure in __js", function() {
+  @test("arr 1", function() {
     var rv = '';
     __js function foo(x) { var a,b,f; [a,b,f] = x; rv += a + b + f; }
     foo(['A','B','C','D']);
     @assert.eq(rv, "ABC");
-  }
+  })
 
   // this would previously fail
-  @test("obj edgecase 1") { ||
+  @test("obj edgecase 1", function() {
     var rv = '';
     __js function foo(x) { var a,b,f; ({a,b,c:f} = x); rv += a + b + f; }
     foo({ a: 'A', b:'B', c:'C', d:'D'});
     @assert.eq(rv, "ABC");
-  }
+  })
 
   // this would previously yield NaN
-  @test("arr edgecase 2") { ||
+  @test("arr edgecase 2", function() {
     var rv = '';
     __js function foo(x) { var [a,b,f] = x; rv += a + b + f; }
     foo(['A','B','C','D']);
     @assert.eq(rv, "ABC");
-  }
+  })
 
 
   // this would previously yield NaN
-  @test("obj edgecase 2") { ||
+  @test("obj edgecase 2", function() {
     var rv = '';
     __js function foo(x) { var {a,b,c:f} = x; rv += a + b + f; }
     foo({ a: 'A', b:'B', c:'C', d:'D'});
     @assert.eq(rv, "ABC");
-  }
+  })
 
-}
+})
+

@@ -7,8 +7,8 @@ var str = require('sjs:string');
 
 var defaultReporter = isBrowser ? reporter.HtmlReporter : reporter.NodejsReporter;
 
-context("error diffing") {||
-	test.beforeEach {|s|
+context("error diffing", function() {
+	test.beforeEach:: function(s) {
 		s.reporter = new defaultReporter({headless:true, diff:true});
 		var realErrors = false;
 		//realErrors = true; // uncomment to print real errors. NOCOMMIT
@@ -39,44 +39,44 @@ context("error diffing") {||
 		}
 	}
 
-	test("no diff displayed when `diff` option is false") {|s|
+	test("no diff displayed when `diff` option is false", function(s) {
 		s.reporter.opts.diff = false;
 		s.diff("one two three four", "one two three") .. assert.eq([]);
-	}
+	})
 
-	test("no diff displayed when nothing in common") {|s|
+	test("no diff displayed when nothing in common", function(s) {
 		s.diff("11111\n11111\n11111", "two") .. assert.eq([]);
-	}
+	})
 
-	test("no diff displayed when comparing string to non-string") {|s|
+	test("no diff displayed when comparing string to non-string", function(s) {
 		var o1 = {a:1,b:2, c:3};
 		var o2 = o1 .. obj.merge({c:4});
 		s.diff(JSON.stringify(o1), JSON.stringify(o2)) .. assert.ok();
 		s.diff(o1, JSON.stringify(o2)) .. assert.eq([]);
-	}
+	})
 
-	test("no diff displayed when structure is unserializable") {|s|
+	test("no diff displayed when structure is unserializable", function(s) {
 		var o1 = {a:1,b:2, c:3};
 		var o2 = o1 .. obj.merge({c:4});
 		o1.x = o1; // circular
 		s.diff(o1, o2) .. assert.eq([]);
-	}
+	})
 
-	test("no diff displayed when commonality is <3 chars") {|s|
+	test("no diff displayed when commonality is <3 chars", function(s) {
 		s.diff("11 0000000", "11 1111111") .. assert.eq([]);
 		s.diff("111 000000", "111 111111") .. assert.eq([
 			'111 <red:000000><green:111111>']);
-	}
+	})
 
-	test("diff for multi-line strings") {|s|
+	test("diff for multi-line strings", function(s) {
 		s.diff("one\ntwo\nthree", "one\nfour\nthree") .. assert.eq([
 			'one',
 			'<red:two><green:four>',
 			'three',
 		]);
-	}
+	})
 
-	test("line numbers are shown when diff exceeds 4 lines") {|s|
+	test("line numbers are shown when diff exceeds 4 lines", function(s) {
 		s.diff("one\ntwo\nthree\nfour\nfive", "one\ntwo\n3\nfour\nfive") .. assert.eq([
 			'<dim:1 | >one',
 			'<dim:2 | >two',
@@ -84,9 +84,9 @@ context("error diffing") {||
 			'<dim:4 | >four',
 			'<dim:5 | >five',
 		]);
-	}
+	})
 
-	test("line number padding") {|s|
+	test("line number padding", function(s) {
 		s.diff("1\n2\n3\n4\nfive\n6\n7\n8\n9", "1\n2\n3\n4\n5\n6\n7\n8\n9") .. assert.eq([
 			'<dim:1 | >1',
 			'<dim:2 | >2',
@@ -111,9 +111,9 @@ context("error diffing") {||
 			'<dim: 9 | >9',
 			'<dim:10 | >10',
 		]);
-	}
+	})
 
-	test("diff for objects") {|s|
+	test("diff for objects", function(s) {
 		s.diff(
 			{
 				a:'one',
@@ -129,9 +129,9 @@ context("error diffing") {||
 			'  "<red:b><green:c>": "<red:two><green:three>"',
 			'}'
 		]);
-	}
+	})
 
-	test("multi-line diffs") {|s|
+	test("multi-line diffs", function(s) {
 		s.diff("1\n2\n3\n5\n7", "1\n2\n3\n3\n4\n5\n7") .. assert.eq([
 			'<dim:1 | >1',
 			'<dim:2 | >2',
@@ -141,9 +141,9 @@ context("error diffing") {||
 			'<dim:6 | >5',
 			'<dim:7 | >7',
 		]);
-	}
+	})
 
-	test("character-mode diff with markers when all diffs are whitespace") {|s|
+	test("character-mode diff with markers when all diffs are whitespace", function(s) {
 		s.diff("\n1\n2\n3\n4\n5\n6", "1\n2\t\n3\n4 \n5\n\n6\n") .. assert.eq([
 			'<dim:1 | ><red:<nl>>',
 			'<dim:2 | >1<nl>',
@@ -155,9 +155,9 @@ context("error diffing") {||
 			'<dim:8 | >6<green:<nl>>',
 			'<dim:9 | >',
 		]);
-	}
+	})
 
-	test("whitespace-only diff on an inspected object") {|s|
+	test("whitespace-only diff on an inspected object", function(s) {
 		s.diff(['a','b',' c'], ['a','b','  c']) .. assert.eq([
 			'<dim:1 | >[<nl>',
 			'<dim:2 | >  "a",<nl>',
@@ -165,5 +165,5 @@ context("error diffing") {||
 			'<dim:4 | >  " <green: >c"<nl>',
 			'<dim:5 | >]',
 		]);
-	}
-}.skipIf(suite.isIE() && suite.ieVersion() < 9, "known bug");
+	})
+}).skipIf(suite.isIE() && suite.ieVersion() < 9, "known bug");

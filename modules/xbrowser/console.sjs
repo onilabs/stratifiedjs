@@ -43,7 +43,9 @@
 */
 'use strict';
 
-if (require('builtin:apollo-sys').hostenv != 'xbrowser') 
+var sys = require('builtin:apollo-sys');
+
+if (sys.hostenv != 'xbrowser') 
   throw new Error('The xbrowser/console module only runs in an xbrowser environment');
 
 var { extend, hasOwn } = require('../object');
@@ -209,7 +211,7 @@ function inspect_obj(obj, name) {
     </span>"+name+"<span style='"+systemStyle+"'>"+str.sanitize(objdesc)+"</span>\
   </span>
 </div>");
-  spawn((function() {
+  sys.spawn(function() {
     var toggle = rv.firstChild.firstChild;
     while (true) {
       event.wait(toggle, 'click');
@@ -230,7 +232,7 @@ function inspect_obj(obj, name) {
       rv.removeChild(children);
       children = null;
     }
-  })());
+  });
   return rv;
 }
 
@@ -335,7 +337,8 @@ border"+(opts.target?"":"-top")+": 1px solid #ccc;");
 position:fixed;bottom:-2px; left:-4px;border-radius: 3px;-webkit-border-radius: 3px;
 z-index:999; line-height:20px; border: 1px solid #ddd;visibility:hidden;cursor:pointer;background: #fff;");
 
-  this.cmdloop_stratum = spawn this._cmdloop();
+  var me = this;
+  this.cmdloop_stratum = sys.spawn(-> me._cmdloop());
   container.appendChild(this.summonbutton);
   container.appendChild(this.term);
   parent.appendChild(container);
@@ -455,11 +458,12 @@ Console.prototype = {
     this.summonbutton.style.visibility = "visible";
     var height = this.root.style.height;
     this.root.style.height = "20px";
-    spawn (function() {
+    var me = this;
+    sys.spawn (-> function() {
       event.wait(this.summonbutton, "click");
       this.root.style.height = height;
       this.expand();
-    }.call(this));
+    }.call(me));
   },
   
   /**
@@ -483,7 +487,7 @@ Console.prototype = {
     e.innerHTML = "<div style='"+execStyle+";margin-bottom:2px;white-space:pre;'>"+str.sanitize(cl)+"</div>";
     this._append(e);
     var me = this;
-    spawn((function() {
+    sys.spawn((function() {
       waitfor {
         var result = document.createElement('div');
         waitfor {
@@ -515,10 +519,11 @@ Console.prototype = {
           me.output.scrollTop = me.output.scrollHeight;
       } or {
         try {
+          // this.cmdloop_stratum.wait();
           this.cmdloop_stratum.waitforValue();
         } catch(e) { /* retract (i.e shutdown) */ }
       }
-    }).bind(this)());
+    }).bind(this));
   },
 
   _log: function(args, color) {

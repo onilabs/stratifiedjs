@@ -339,10 +339,10 @@ testEq("multiline strings", true, function() {
   return a === "1\n2";
 });
 
-test("multiline strings; newline escaping") {||
+test("multiline strings; newline escaping", function() {
   assert.eq("1\
 2", "12");
-};
+});
 
 testEq('reentrant resume in waitfor/or', 1, function() {
   waitfor {
@@ -557,7 +557,7 @@ testEq('spawn', 1, function() {
     return 100;
   }
   or {
-    spawn (hold(0),r());
+    reifiedStratum.spawn(->(hold(0),r()));
     ++x; 
     return 10;
   }
@@ -574,7 +574,7 @@ testEq('spawn 2', 1, function() {
     return 1;
   }
   or {
-    spawn r();
+    reifiedStratum.spawn(r);
     hold();
     // not reached
     return 2;
@@ -663,11 +663,11 @@ testEq("incorrectly calling function with 'this' object bug", true, function() {
 testEq('cancel spawn', 1, function() {
   var x = 0;
   waitfor {
-    var stratum = spawn (hold(0),x += 100);
+    var stratum = reifiedStratum.spawn(->(hold(0),x += 100));
   }
   and {
     stratum.abort();
-    hold(100);
+    stratum.wait();
     x += 1;
   }
   return x;
@@ -676,10 +676,10 @@ testEq('cancel spawn', 1, function() {
 testEq('cancel spawn 2', 1, function() {
   var x = 0;
   waitfor {
-    var stratum = spawn (function() {
+    var stratum = reifiedStratum.spawn (function() {
       hold(100);
       x += 100;
-    })();
+    });
   }
   and {
     hold(10);
@@ -692,7 +692,7 @@ testEq('cancel spawn 2', 1, function() {
 
 testEq('spawn/waitforValue', 30, function() {
   var x = 0;
-  var stratum = spawn (hold(100), 10);
+  var stratum = reifiedStratum.spawn(-> (hold(100), 10));
   waitfor {
     hold(200)
     return 1;
@@ -715,11 +715,11 @@ testEq('spawn/waitforValue', 30, function() {
   }
   x += stratum.waitforValue();
   return x;
-});
+}).skip('waitforValue() is retired');
 
 testEq('spawn/waitforValue/throw', 30, function() {
   var x = 0;
-  var stratum = spawn (function() { hold(100); throw 10; })();
+  var stratum = reifiedStratum.spawn(function() { hold(100); throw 10; });
   waitfor {
     hold(200)
     return 1;
@@ -750,7 +750,7 @@ testEq('spawn/waitforValue/throw', 30, function() {
     stratum.waitforValue();
   } catch (e) { x += e }
   return x;
-});
+}).skip('waitforValue is retired');
 
 // ecma 262-5 13.2.2:9
 testParity("var x = function() { return {a:1}}; x.prototype.a=2; (new x()).a;", function() { var x = function() { return {a:1}}; x.prototype.a=2; return (new x()).a; });
@@ -1126,7 +1126,7 @@ testEq('spawn/waitforValue/abort', [
   'second: aborting stratum',
   'error: stratum aborted'], function() {
   var log = [];
-  var s = spawn(hold());
+  var s = reifiedStratum.spawn(-> hold());
   waitfor {
     log.push("first: waiting on stratum");
     try {
@@ -1142,7 +1142,7 @@ testEq('spawn/waitforValue/abort', [
     log.push("waitforValue() didn't return");
   }
   return log;
-});
+}).skip('waitforValue retired');
 
 testEq("'this' pointer in async for-in bug", 1212331, function() { 
   var rv;
@@ -1151,13 +1151,16 @@ testEq("'this' pointer in async for-in bug", 1212331, function() {
   return rv;
 });
 
-testEq("({|| 1})()", undefined, function() { return ({|| 1})() });
-testEq("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
-     function() {
-      var bl = ({|x,y,z| hold(10); x+y+z });
-      return bl(1,2,3);
-    }
-).skip("Old blocklambda behaviour");
+// this blocklambda usage is now disallowed:
+//testEq("({|| 1})()", undefined, function() { return ({|| 1})() });
+
+// this blocklambda usage is now disallowed:
+//testEq("({|x,y,z| hold(10); x+y+z })(1,2,3)", 6,
+//     function() {
+//      var bl = ({|x,y,z| hold(10); x+y+z });
+//      return bl(1,2,3);
+//    }
+//).skip("Old blocklambda behaviour");
 
 function accu3(f) {
   var rv = 0;
@@ -1168,18 +1171,20 @@ testEq("accu3 { |x| x*10 }", 60, function() { return accu3 { |x| x*10 } }).skip(
 testEq("accu3 { |x| if (x==2) return x; }", 2,
      function() { accu3 { |x| if (x==2) return x; } });
 
-testEq("waitfor { ({|| return 1; })() } or { hold() }", 1, function() {
+testEq("waitfor { call {|| return 1; }} or { hold() }", 1, function() {
+  function call(bl) { return bl(); }
   waitfor {
-    ({|| return 1; })() 
+    call {|| return 1; };
   }
   or {
     hold();
   }
 });
 testEq("waitfor { hold(10); ({|x| hold(10); return 1; })((hold(10),1)) } or { hold() }", 1, function() {
+  function callA(arg, bl) { return bl(arg); }
   waitfor {
     hold(10);
-    ({|x| hold(10); return x; })((hold(10),1)) 
+    callA((hold(10),1)) {|x| hold(10); return x; }
   }
   or {
     hold();
@@ -1213,8 +1218,9 @@ testEq("nested {|| return}", 2, function() {
 });
 
 testEq("{ || break; }", 5, function() {
+  function callA(bl) { return bl(); }
   for (var i=0; i<10; ++i) {
-    ({ || if (i==5) break; })()
+     call { || if (i==5) break; }
   }
   return i;
 }).skip('Old blocklambda behaviour');
@@ -1262,12 +1268,12 @@ testEq("break/switch edge case", 1, function() {
 
 
 testEq("{|| break}/switch edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
+  function call(bl) { return bl(); }
   while (1) {
-    var a = {||break };
     switch (1) {
     case 1:
       hold(0);
-      a();
+      call { || break };
     }
     return 2;
   }
@@ -1283,11 +1289,11 @@ testEq("break/for-in edge case", 1, function() {
 });
 
 testEq("{|| break}/for-in edge case", 2 /* was 1 with old blocklambda behaviour */, function() {
+  function call(bl) { return bl; }
   while (1) {
-    var a = {||break };
     for (var x in [1]) {
       hold(0);
-      a();
+      call { || break };
     }
     return 2;
   }
@@ -1343,14 +1349,14 @@ testEq("blocklambda pulled into argument list: f(a) {||...}", 43, function() {
 });
 
 testEq("blocklambda with newlines", 43, function() {
-  var a = 
+  function callA(a, bl) { return bl(a); }
+  callA(42)
     {
     
         |x|
         
       return x+1
     };
-  a(42);
 });
 
 testEq("blocklambda with newline pulled into argument list", 43, function() {
@@ -1393,10 +1399,10 @@ testEq("string interpolation", true, function() {
   return x === 'This is an interpolated string 43 #{} 23';
 });
 
-test("string interpolation bad parse") {||
+test("string interpolation bad parse", function() {
   // XXX Once fixed, this test won't actually compile.
   "#{123 foo()}" .. assert.eq("(a parse error)");
-}.skip("BROKEN");
+}).skip("BROKEN");
 
 testEq("complicated blocklambda return", 111, function() {
   var rv = 0;
@@ -1445,7 +1451,7 @@ testEq("nested blocklambda return", "inner", function() {
 
 testEq("detached blocklambda return", 'a', function() {
   function f(g) {
-    spawn g();
+    reifiedStratum.spawn(g);
     hold(10);
     return 'b';
   }
@@ -1455,7 +1461,7 @@ testEq("detached blocklambda return", 'a', function() {
 
 testEq("detached blocklambda return async", 'a', function() {
   function f(g) {
-    spawn g();
+    reifiedStratum.spawn(g);
     hold(30);
     return 'b';
   }
@@ -1463,11 +1469,11 @@ testEq("detached blocklambda return async", 'a', function() {
   return rv;
 });
 
-testEq("detached blocklambda return with finally clause", 'fa', function() {
+testEq("detached blocklambda return with finally clause", 'bfa', function() {
   var rv = '';
   function f(g) {
     try {
-      spawn g();
+      reifiedStratum.spawn(g);
       rv += 'b';
       hold(10);
       rv += 'c';
@@ -1486,7 +1492,7 @@ testEq("detached blocklambda return with finally clause / async", 'bfa', functio
   var rv = '';
   function f(g) {
     try {
-      spawn g();
+      reifiedStratum.spawn(g);
       rv += 'b';
       hold(30);
       rv += 'c';
@@ -1504,7 +1510,7 @@ testEq("detached blocklambda return with finally clause / async", 'bfa', functio
 testEq("detached blocklambda return with blocking inner finally clause / async", 'bfa', function() {
   var rv = '';
   function f(g) {
-    spawn g();
+    reifiedStratum.spawn(g);
     rv += 'b';
     hold(100);
     rv += 'c';
@@ -1519,7 +1525,7 @@ testEq("detached blocklambda return with blocking finally clause 2 / async", 'bf
   var rv = '';
   function f(g) {
     try {
-      spawn g();
+      reifiedStratum.spawn(g);
       rv += 'b';
       hold(30);
       rv += 'c';
@@ -1539,7 +1545,7 @@ testEq("detached blocklambda return with blocking finally clause and blocking sp
   var rv = '';
   function f(g) {
     try {
-      spawn g();
+      reifiedStratum.spawn(g);
       rv += 'b';
       hold(100);
       rv += 'c';
@@ -1559,8 +1565,9 @@ testEq("detached blocklambda return with blocking finally clause and blocking sp
 // the blocklambda return
 testEq("detached blocklambda return with value pickup", 'vx', function() {
   var stratum;
+  function call(bl) { return bl(); }
   function f() { 
-    stratum = spawn ({|| hold(0); return 'x'; })();
+    stratum = spawn (call {|| hold(0); return 'x'; });
     hold(10);
     return 'y';
   }
@@ -1575,31 +1582,20 @@ testEq("detached blocklambda return with value pickup", 'vx', function() {
   }
   return rv;
 
-});
+}).skip('stratum.value removed');
 
-testEq("detached blocklambda return to inactive scope", 'ye', function() {
+testEq("detached blocklambda return from aborted stratum", 'y', function() {
   var stratum;
-  function f() { 
-    stratum = spawn ({|| try { return 'x'; } finally { hold(20); } })();
+  function f() {
+    stratum = reifiedStratum.spawn({|| try { return 'x'; } finally { hold(20); } });
     hold(0);
+    // this return overrides the return from the sub-stratum:
+    // we should get a message on stderr that the sub-stratum return has been overridden.
     return 'y';
   }
   
   var rv = '';
-  waitfor {
-    rv += f();
-  }
-  and {
-    try {
-      stratum.value();
-    }
-    catch(e) {
-      if (e.message == 'Blocklambda return from spawned stratum to inactive scope')
-        rv += 'e';
-      else
-        throw e;
-    }
-  }
+  rv += f();
   return rv;
 
 });
@@ -1611,7 +1607,7 @@ testEq("complex detached blocklambda return", 111, function() {
   function f(g) { 
     waitfor() { signal = resume; }
     try {
-      var S = spawn g();
+      var S = reifiedStratum.spawn(g);
       hold(100);
     }
     finally {
@@ -1716,7 +1712,7 @@ testEq('non-bracketed expressions in quasi', true, function() {
   return compareQuasiArrays(x.parts, result);
 });
 
-context("destructuring") {||
+context("destructuring", function() {
   testEq("destructuring [a,,c] = [1,2,3]", 4, function() {
     var a,c;
     [a,,c] = [1,2,3];
@@ -1831,7 +1827,7 @@ context("destructuring") {||
     return f.apply(null, args);
   }
 
-  context("lambda paramaters") {||
+  context("lambda paramaters", function() {
     testEq("object destructuring", 3, function() {
       return callWith({x: 1, y:2}, ({x, y}) -> x + y);
     });
@@ -1839,7 +1835,7 @@ context("destructuring") {||
       return callWith([1,2], ([x, y]) -> x + y);
     });
 
-    context("(no parens)") {||
+    context("(no parens)", function() {
       testEq("object destructuring", 3, function() {
         return callWith({x: 1, y:2}, {x, y} -> x + y);
       });
@@ -1847,10 +1843,10 @@ context("destructuring") {||
       testEq("array destructuring", 3, function() {
         return callWith([1,2], [x, y] -> x + y);
       });
-    }
-  }
+    })
+  })
 
-  context("blocklambda args") {||
+  context("blocklambda args", function() {
     testEq("object destructure", 3, function() {
       callWith({x: 1, y:2}) {|{x, y}|
         return x + y;
@@ -1868,9 +1864,9 @@ context("destructuring") {||
         return a + b + c + x + y;
       }
     });
-  }
+  })
 
-  context("function args") {||
+  context("function args", function() {
     testEq("object destructure", 3, function() {
       return (function({x, y}) {
         return x + y;
@@ -1888,37 +1884,37 @@ context("destructuring") {||
         return a + b + c + x + y;
       })([1,2], 3, {x:4, y:5});
     });
-  }
+  })
 
-}
+})
 
-context('@altns') {||
-  test.beforeAll{|s|
+context('@altns', function() {
+  test.beforeAll:: function(s) {
     s._at = @;
   }
-  test.afterAll{|s|
+  test.afterAll:: function(s) {
     @ = s._at;
   }
 
-  test.beforeEach {||
+  test.beforeEach:: function(s) {
     @ = {};
   }
 
-  test("Assigning to @ directly") {||
+  test("Assigning to @ directly", function() {
     @ = require("sjs:assert");
     @ok(true);
     assert.raises( -> @ok(false));
-  }
+  })
 
-  test("Assigning to @ inherits from the given object (preventing mutation)") {||
+  test("Assigning to @ inherits from the given object (preventing mutation)", function() {
     var obj = {x: 1, y: 2, z: 3};
     @ = obj;
     assert.eq(@x, 1);
     @x = 2;
     assert.eq(obj.x, 1);
-  }
+  })
 
-  test("Assigning to @ inside destructure") {||
+  test("Assigning to @ inside destructure", function() {
     var obj = {x: 1, y: 2, z: 3};
     var [_, @] = ['ignored',obj];
     assert.eq(@x, 1);
@@ -1929,33 +1925,33 @@ context('@altns') {||
     assert.eq(@x, 1);
     @x = 2;
     assert.eq(obj.x, 1);
-  }
+  })
 
-  test("destructure multiple assignment") {||
+  test("destructure multiple assignment", function() {
     var seq = require('sjs:sequence');
     var @seq = { @each } = require('sjs:sequence');
     @seq .. assert.eq(seq);
     @each .. assert.eq(seq.each);
-  }
+  })
 
-  test("destructure assignment of @keys") {||
+  test("destructure assignment of @keys", function() {
     @ = {};
     var { a: @a, b: @b } = { a: 1, b: 2 };
     [@c] = [3];
     assert.eq([@a, @b, @c], [1,2,3]);
-  }
+  })
 
-  test("shorthand destructure assignment of @keys") {||
+  test("shorthand destructure assignment of @keys", function() {
     @ = {};
     var { @a, @b, @c } = { a: 1, b: 2, c:3 };
     var { @ok } = require('sjs:assert');
     assert.eq([@a, @b, @c], [1,2,3]);
     assert.is(@ok, assert.ok);
-  }
-}
+  })
+})
 
-context("line endings") {||
-  test("consistent multi-line strings") {||
+context("line endings", function() {
+  test("consistent multi-line strings", function() {
     assert.eq("line 1
       line 2",
       "line 1\n      line 2");
@@ -1963,18 +1959,112 @@ context("line endings") {||
     assert.eq('line 1
       line 2',
       "line 1\n      line 2");
-  }
+  })
 
-  test("windows") {||
+  test("windows", function() {
     assert.eq(1, sys.eval("var x=1\r\nx"));
     assert.eq(1, sys.eval('var x=1\r\nx'));
-  }
-  test("unix") {||
+  })
+  test("unix", function() {
     assert.eq(1, sys.eval("var x=1\nx"));
     assert.eq(1, sys.eval('var x=1\nx'));
-  }
-  test("mac") {||
+  })
+  test("mac", function() {
     assert.eq(1, sys.eval("var x=1\rx"));
     assert.eq(1, sys.eval('var x=1\rx'));
-  }
-}.ignoreLeaks('x');
+  })
+}).ignoreLeaks('x');
+
+context("spreads", function() {
+
+  test("function args 1", function() {
+    function sum(x, y, z) {
+      return x+y+z;
+    }
+    var numbers = [1,2,3];
+    assert.eq(sum(...numbers), 6);
+    __js assert.eq(sum(...numbers), 6);
+  })
+
+  test("function args 2", function() {
+    function sum(x, y, z) {
+      return x+y+z;
+    }
+    var numbers = [1,2];
+    assert.eq(sum(...numbers, 3), 6);
+    __js assert.eq(sum(...numbers, 3), 6);
+  })
+
+  test("function args 3", function() {
+    function sum(a,b, c, x, y, z) {
+      return a+b+c+x+y+z;
+    }
+    var numbers = [1,2,3];
+    assert.eq(sum(1,...numbers, 4, ...numbers), 12);
+    __js assert.eq(sum(1,...numbers, 4, ...numbers), 12);
+  })
+
+  test("function args 4", function() {
+    function sum(a,b,c) { return a+b+c; }
+    assert.eq(sum(...[1,2,3]), 6);
+    __js assert.eq(sum(...[1,2,3]), 6);
+  })
+  
+  test("function args 5", function() {
+    function sum(x, y, z) {
+      return x+y+z;
+    }
+    function one() { return 1; }
+    var numbers = [3,4];
+    assert.eq(sum(one(), ...[2], ...numbers), 6);
+    __js assert.eq(sum(one(), ...[2], ...numbers), 6);
+    function one_delay() { hold(0); return 1; }
+    assert.eq(sum(one_delay(), ...[2], ...numbers), 6);
+  })
+
+  test("new", function() {
+    assert.eq(new Array(...[3]), [undefined, undefined, undefined]);
+    __js assert.eq(new Array(...[3]), [undefined, undefined, undefined]);
+    function n() { return ['a', 'b']; }
+    var arr = [10,11,12];
+    assert.eq(new Array(1,...[2,3],...n(),'c',...arr), [1,2,3,'a','b','c',10,11,12]);
+    __js assert.eq(new Array(1,...[2,3],...n(),'c',...arr), [1,2,3,'a','b','c',10,11,12]);
+    function n_delay() { hold(0); return ['a', 'b']; }
+    assert.eq(new Array(1,...[2,3],...n_delay(),'c',...arr), [1,2,3,'a','b','c',10,11,12]);
+  })
+
+  test("ref call", function() {
+    var a = { x: function(...args) { return args } };
+    function x() { return 'x'; }
+    function n() { return ['a', 'b']; }
+    var arr = [10,11,12];
+    assert.eq(a[x()](...[1,2,3]), [1,2,3]);
+    __js assert.eq(a[x()](...[1,2,3]), [1,2,3]);
+    assert.eq(a[x()](1,...[2,3],...n(),'c',...arr), [1,2,3,'a','b','c',10,11,12]);
+    __js assert.eq(a[x()](1,...[2,3],...n(),'c',...arr), [1,2,3,'a','b','c',10,11,12]);
+    function n_delay() { hold(0); return n(); }
+    assert.eq(a[x()](1,...[2,3],...n_delay(),'c',...arr), [1,2,3,'a','b','c',10,11,12]);    
+  })
+
+  test('array', function() {
+    function n() { return ['a', 'b']; }
+    function n_delay() { hold(0); return n(); }
+    var arr = [1,2,3];
+    assert.eq([...arr,...arr], [1,2,3,1,2,3]);
+    __js assert.eq([...arr,...arr], [1,2,3,1,2,3]);
+    assert.eq([arr, ...arr, n(), ...n(), 'x', ...['y', 'z']], [[1,2,3], 1, 2, 3, ['a', 'b'], 'a', 'b', 'x', 'y', 'z']);
+    __js assert.eq([arr, ...arr, n(), ...n(), 'x', ...['y', 'z']], [[1,2,3], 1, 2, 3, ['a', 'b'], 'a', 'b', 'x', 'y', 'z']);
+    assert.eq([arr, ...arr, n_delay(), ...n_delay(), 'x', ...['y', 'z']], [[1,2,3], 1, 2, 3, ['a', 'b'], 'a', 'b', 'x', 'y', 'z']);
+  })
+
+  test('function args + array', function() {
+    function a(...args) { return args; }
+    function n() { return ['a', 'b']; }
+    function n_delay() { hold(0); return n(); }
+    var arr = [1,2,3];
+    assert.eq(a([arr, ...arr, n(), ...n(), 'x', ...['y', 'z']]), [[[1,2,3], 1, 2, 3, ['a', 'b'], 'a', 'b', 'x', 'y', 'z']]);
+    __js assert.eq(a([arr, ...arr, n(), ...n(), 'x', ...['y', 'z']]), [[[1,2,3], 1, 2, 3, ['a', 'b'], 'a', 'b', 'x', 'y', 'z']]);
+    assert.eq(a([arr, ...arr, n_delay(), ...n_delay(), 'x', ...['y', 'z']]), [[[1,2,3], 1, 2, 3, ['a', 'b'], 'a', 'b', 'x', 'y', 'z']]);
+    
+  })
+})

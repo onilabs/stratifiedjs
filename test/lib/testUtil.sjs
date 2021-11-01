@@ -18,9 +18,9 @@ var IE_version = exports.IE_version = suite.ieVersion;
  * TODO: remove uses of this function, or at least rename it to `testEq`
  */
 exports.test = function test(name, expected, f) {
-  return suite.test(name) {||
+  return suite.test(name, function() {
     assert.eq(f(), expected);
-  }
+  })
 }
 
 /**
@@ -42,13 +42,13 @@ exports.testFn = function(ctx /* optional */, method, args, expected) {
   if (!Array.isArray(args)) args = [args];
   var args_desc = args .. seq.map(JSON.stringify) .. seq.join(", ");
   var desc = method ? "#{method}(#{args_desc})" : args_desc;
-  return suite.test(desc) {||
+  return suite.test(desc, function() {
     assert.eq(fn.apply(ctx, args), expected);
-  }
+  })
 }
 
 exports.testParity = function testParity(expr, f) {
-  return suite.test("parity: " + expr) {||
+  return suite.test("parity: " + expr, function() {
     var expected;
     try {
       expected = eval(expr);
@@ -64,25 +64,25 @@ exports.testParity = function testParity(expr, f) {
       actual = e;
     }
     assert.eq(actual, expected);
-  }
+  })
 }
 
 exports.time = function time(name, f) {
-  return suite.test('time: ' + name) {||
+  return suite.test('time: ' + name, function() {
     var start = new Date();
     f();
     var duration = (new Date()) - start;
     print(duration + "ms ");
-  }
+  })
 }
 
 exports.testCompilation = function testCompilation(name, src) {
-  return suite.test('compile: ' + name) { ||
+  return suite.test('compile: ' + name, function() {
     var insize = src.length;
     var start = new Date();
     for (var i=0; i<10; ++i)
       var outsize = __oni_rt.c1.compile(src).length;
     var duration = (new Date()) - start;
     print("in: " + insize + " byte, out: " + outsize + " byte, duration(*10): " + duration + "ms ");
-  }
+  })
 }

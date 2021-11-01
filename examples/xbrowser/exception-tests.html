@@ -15,12 +15,12 @@
 /* 8*/    throw new Error('foo'); /* line 8 is the line where we throw! */
 /* 9*/  }
 /*10*/  window.throwError = throwError;
-/*11*/  spawn (function() {
+/*11*/  @sys.spawn (function() {
 /*12*/    while(1) { 
 /*13*/      @events(document.getElementById('button2'), 'click') .. @wait;
-/*14*/      spawn throwError();
+/*14*/      @sys.spawn(throwError);
 /*15*/    }
-/*16*/  })();
+/*16*/  });
 /*17*/ 
 /*18*/  while (1) {
 /*19*/    @events(document.getElementById('button3'), 'click') .. @wait;

@@ -1,6 +1,7 @@
 var testUtil = require('../lib/testUtil');
 var testEq = testUtil.test;
 var f = require('sjs:function');
+var sys = require('sjs:sys');
 var {test, context, assert} = require('sjs:test/suite');
 
 testEq('seq', 2, function() {
@@ -11,7 +12,7 @@ testEq("'this' in seq", 12, function() {
   var x = 1;
   var obj = {
     x: 2,
-    foo: f.seq({|a,b| hold(0); if (a*b != 6) throw "error"; }, function(a,b) { return this.x*a*b })
+    foo: f.seq(function(a,b) { hold(0); if (a*b != 6) throw "error"; }, function(a,b) { return this.x*a*b })
   };
   return obj.foo(2,3);
 });
@@ -73,8 +74,8 @@ testEq('exclusive external retraction', 'AR', function() {
   return rv;
 });
 
-// this used to give "Cannot read property 'value' of undefined":
-testEq('exclusive reentrancy','210', function() {
+// this used to give "210" - XXX you could make the argument for either case
+testEq('exclusive reentrancy','2', function() {
   var rv = ''
   var g = f.exclusive(function(n) { 
     rv += n;
@@ -91,8 +92,8 @@ testEq('exclusive reentrancy/async','210', function() {
   var g = f.exclusive(function(n) { 
     rv += n;
     if (n==0) return;
-    hold(0);
-    spawn g(--n); // 'spawn' so that we don't cancel the whole g callchain (which would yield '21', because the first cancel point is the hold(0) in the call to g(1)
+//    hold(0); <- this hold used to be important as a cancel point; it isn't any longer
+    sys.spawn(-> g(--n)); // spawn so that we don't cancel the whole g callchain (which would yield '2', as in the test above, and in an earlier version of SJS '21', because the first cancel point is the hold(0) in the call to g(1)
   });
   g(2);
   hold(10);
@@ -154,6 +155,53 @@ testEq('exclusive sync', '012', function() {
   return rv;
 });
   
+testEq('exclusive/w reuse; blocklambda', '12', function() {
+  var rv = '';
+  var g = f.exclusive(function(x) {
+    x();
+    rv += 'x';
+  }, true);
+  
+  function foo(x) {
+    g(x);
+    rv += 'y';
+  }
+
+  foo { || rv += '1'; break; }
+  rv += '2';
+  return rv;
+});
+
+testEq('exclusive/w reuse; blocklambda pathological', '12', function() {
+  var rv = '';
+  var g = f.exclusive(function(x) {
+    x();
+    rv += 'x';
+  }, true);
+  
+  function foo(x) {
+    waitfor {
+      waitfor {
+        g(x);
+      }
+      or {
+        hold(0);
+      }
+    }
+    and {
+      // technically the blocklambda break could be routed through this second g() invocation,
+      // but that doesn't work atm
+      g(x);
+    }
+    rv += 'y';
+  }
+
+  foo { || rv += '1'; hold(0); hold(0); break; }
+  rv += '2';
+  return rv;
+}).skip('NEEDS WORK');
+
+
 testEq('memoize 1', 1, function() {
   var c = 0;
   var g = f.memoize(function(x) {
@@ -228,7 +276,7 @@ testEq('memoize retraction', 2, function() {
   return c;
 });
 
-test("'this' in memoize") {||
+test("'this' in memoize", function() {
   var obj = {};
   var bodyThis, keyThis;
 
@@ -242,7 +290,7 @@ test("'this' in memoize") {||
 
   assert.ok(bodyThis === obj);
   assert.ok(keyThis === obj);
-}
+})
 
 
 testEq('sequential', 0, function() {
@@ -305,7 +353,7 @@ testEq('unbatched parallel / retraction', [[[2, 3]], [, 4, 9]], function() {
 
   var rv = [];
   waitfor {
-    var starter = spawn rv[0] = (F(1));
+    var starter = reifiedStratum.spawn(->(rv[0] = (F(1))));
   } and {
     rv[1] = (F(2));
   } and {

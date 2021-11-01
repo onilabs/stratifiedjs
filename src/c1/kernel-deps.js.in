@@ -349,7 +349,7 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 
 #define GEN_VAR_DECL(decls, pctx, ext)                 \
   for (var i=0; i<decls.length; ++i) {            \
-    if (decls[i][1] != null) {                    \
+    if (decls[i].length>1) {                    \
       top_scope(pctx).assignments.push(decls[i]); \
       GEN_EXP_STMT(decls[i][1], pctx, null);            \
     }                                             \

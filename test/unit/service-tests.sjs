@@ -21,11 +21,11 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     
     
 
-@context('withBackgroundServices/withControlledService') {||
+@context('withBackgroundServices/withControlledService', function() {
   // XXX these tests mostly combine withBackgroundServices & withControlledService, because
   // the functionality of these two functions used to be combined in just one function
   // (withBackgroundServices)
-  @test('single runService') {||
+  @test('single runService', function() {
     var rv = [];
     @withBackgroundServices() {
       |background_session|
@@ -35,11 +35,11 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     }
     rv.push('background_session done');
     @assert.eq(rv, ['background_session start', 'background_session done']);
-  }
+  })
 
   @product([true,false],[true,false],[true,false],[true,false]) .. @each {
     |[b1,b2,b3,b4]|
-    @test("single started #{b1},#{b2},#{b3}") {||
+    @test("single started #{b1},#{b2},#{b3}", function() {
       var rv = [], service;
       @withBackgroundServices {
         |background_session|
@@ -55,12 +55,12 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         @assert.eq(rv, ['background_session start', '1:init1', '1:retract', '1:finally1', '1:finally2', 'background_session done']);
       else
         @assert.eq(rv, ['background_session start', '1:init1', '1:init2', '1:retract', '1:finally1', '1:finally2', 'background_session done']);
-    } // @test
+    }) // @test
   } // @product
 
   @product([true,false],[true,false],[true,false],[true,false]) .. @each {
     |[b1,b2,b3, b4]|
-    @test("single used #{b1},#{b2},#{b3},#{b4}") {||
+    @test("single used #{b1},#{b2},#{b3},#{b4}", function() {
       var rv = [], service;
       @withBackgroundServices {
         |background_session|
@@ -80,12 +80,12 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('background_session done');
       @assert.eq(rv, ['background_session start', '1:init1', '1:init2', '1:hello', '1:hello', '1:retract', '1:finally1', '1:finally2', 'background_session done']);
-    } // @test
+    }) // @test
   } // @product
 
   @product([true,false],[true,false],[true,false],[true,false],[true,false]) .. @each {
     |[b1,b2,b3, b4, b5]|
-    @test("single used/stopped/used #{b1},#{b2},#{b3},#{b4},#{b5}") {||
+    @test("single used/stopped/used #{b1},#{b2},#{b3},#{b4},#{b5}", function() {
       var rv = [], service;
       @withBackgroundServices {
         |background_session|
@@ -111,12 +111,12 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
                       '1:init1', '1:init2', '1:hello', '1:finally1', '1:finally2',
                       '1:init1', '1:init2', '1:hello', '1:retract', '1:finally1', '1:finally2', 
                       'background_session done']);
-    } // @test
+    }) // @test
   } // @product
 
   @product([true,false],[true,false],[true,false],[true,false]) .. @each {
     |[b1,b2,b3, b4]|
-    @test("single started/stopped #{b1},#{b2},#{b3},#{b4}") {||
+    @test("single started/stopped #{b1},#{b2},#{b3},#{b4}", function() {
       var rv = [], service;
       @withBackgroundServices {
         |background_session|
@@ -134,12 +134,12 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       @assert.eq(rv, ['background_session start', 
                       '1:init1', '1:init2', '1:finally1', '1:finally2',
                       'background_session done']);
-    } // @test
+    }) // @test
   } // @product
 
   @product([true,false],[true,false],[true,false]) .. @each {
     |[b1,b2,b3, b4]|
-    @test("used out of scope #{b1},#{b2},#{b3}") {||
+    @test("used out of scope #{b1},#{b2},#{b3}", function() {
       var rv = [], service;
       @withBackgroundServices {
         |background_session|
@@ -155,10 +155,10 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
       @assert.eq(rv, ['background_session start', 
                       'background_session done']);
-    } // @test
+    }) // @test
   } // @product
   
-  @test("stopping while using - sync") {||
+  @test("stopping while using - sync", function() {
     var rv = [], service;
 
     @withBackgroundServices {
@@ -182,9 +182,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       catch(e) { if (@isServiceUnavailableError(e)) rv.push('catch') }
     }
     @assert.eq(rv, ['retract','after_signal','catch']);
-  }
+  })
 
-  @test("stopping while using - async") {||
+  @test("stopping while using - async", function() {
     var rv = [], service;
     
     waitfor {
@@ -217,9 +217,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
     }
     @assert.eq(rv, ['stop', 'use retract', 'service finally','catch']);
-  }
+  })
 
-  @test("throw in service - sync") {||
+  @test("throw in service - sync", function() {
     var rv = [], service;
     waitfor {
       try {
@@ -258,9 +258,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
     }
     @assert.eq(rv, ['throw', 'service finally', 'catch outer', 'use retract', 'catch inner']);
-  }
+  })
 
-  @test("throw in service 2 - sync") {||
+  @test("throw in service 2 - sync", function() {
     var rv = [], service;
     try {
       @withBackgroundServices {
@@ -292,8 +292,6 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
           @assert.truthy(service.Status .. @current, 'terminated');
           rv.push('finally inner');
         }
-        rv.push('cont outer');
-        hold(0);
         rv.push('not reached 2');
       }
       rv.push('not reached 3');
@@ -303,10 +301,10 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       rv.push('catch outer');
     }
 
-    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch inner', 'finally inner', 'cont outer', 'catch outer']);
-  }
+    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch inner', 'finally inner', 'catch outer']);
+  })
 
-  @test("throw in service 3 - sync") {||
+  @test("throw in service 3 - sync", function() {
     var rv = [], service;
     try {
       @withBackgroundServices {
@@ -338,7 +336,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
             rv.push('catch inner'); 
           }
         }
-        rv.push('catch inner sync cont');
+        rv.push('not reached');
       }
       rv.push('not reached 3');
     }
@@ -347,11 +345,11 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       rv.push('catch outer');
     }
 
-    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch inner', 'catch inner sync cont', 'catch outer']);
-  }
+    @assert.eq(rv, ['throw', 'service finally', 'use retract', 'catch inner', 'catch outer']);
+  })
 
 
-  @test("early termination") { ||
+  @test("early termination", function() {
     [true,false] .. @each {
       |p1|
       var rv = [];
@@ -363,11 +361,11 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         term();
         rv.push('session end');
       }
-      @assert.eq(rv, ['session start', '1:init1', '1:init2', 'terminating', '1:finally1', '1:finally2', 'session end']);
+      @assert.eq(rv, ['session start', '1:init1', '1:init2', 'terminating', '1:retract', '1:finally1', '1:finally2', 'session end']);
     }
-  }
+  })
 
-  @test("abort during init") { ||
+  @test("abort during init", function() {
     [true, false] .. @each {
       |p1|
       var rv = [];
@@ -384,12 +382,12 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
       @assert.eq(rv, ['session start', '1:init1', 'aborting', '1:retract', '1:finally1', '1:finally2', 'session end']);
     }
-  }
-}
+  })
+})
 
 
-@context('withControlledService') {||
-  @test('throw from service - async sequencing') { ||
+@context('withControlledService', function() {
+  @test('throw from service - async sequencing', function() {
     var rv = '';
     try {
     @withControlledService(function(sf) {
@@ -433,9 +431,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       rv += e+'2';
     }
     @assert.eq(rv, 'abcdef1f2');
-  } // @test('throw from service - async sequencing')
+  }) // @test('throw from service - async sequencing')
 
-  @test('terminate 1') { ||
+  @test('terminate 1', function() {
     @product([true,false], [true,false]) .. @each {
       |[p1, p2]|
       var rv = '';
@@ -452,9 +450,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
       @assert.eq(rv, 'a');
     }
-  }
+  })
 
-  @test('terminate 2') { ||
+  @test('terminate 2', function() {
     @product([true,false],[true,false]) .. @each {
       |[p1,p2]|
       var rv = '';
@@ -470,9 +468,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       }
       @assert.eq(rv, 'abc');
     }
-  }
+  })
 
-  @test('terminate 3') { ||
+  @test('terminate 3', function() {
     @product([true,false],[true,false],[true,false],[true,false],[true,false]) .. @each {
       |[p1,p2,p3,p4,p5]|
       //console.log(p1,p2,p3,p4,p5);
@@ -501,6 +499,6 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       else 
         @assert.eq(rv, 'abc');
     }
-  }
+  })
 
-}
+})

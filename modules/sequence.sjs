@@ -43,8 +43,8 @@
 */
 'use strict';
 
-var {isArrayLike, isQuasi, streamContents, overrideObject } = require('builtin:apollo-sys');
-var { waitforAll, Queue, Semaphore, Condition, _Waitable, withBackgroundStrata } = require('./cutil');
+var {isArrayLike, isQuasi, streamContents, overrideObject, spawn } = require('builtin:apollo-sys');
+var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
 var { Interface, hasInterface, Token } = require('./type');
 var sys = require('builtin:apollo-sys');
 
@@ -1114,7 +1114,7 @@ function slice_stream(sequence, start, end) {
       // Note that `padEnd` is non-replayable, so we make a stream that
       // replays it each time.
       var orig = sequence;
-      sequence = Stream {|r| padEnd(orig, -end) .. each(r) };
+      sequence = Stream::function(r) { padEnd(orig, -end) .. each(r) };
     }
   }
   return sequence;
@@ -1642,7 +1642,7 @@ exports.skip = skip;
         // -> [5, 6, 7, 8]
 */
 function skipWhile(seq, fn) {
-  return Stream {|emit|
+  return Stream:: function(emit) {
     var done = false;
     seq .. each {|item|
       if(done) emit(item);
@@ -2916,7 +2916,7 @@ function any(sequence, p) {
 }
 exports.any = any;
 
-/* NOT PART OF DOCUMENTED API YET
+/* XXX THIS FUNCTION SHOULD GO AWAY
    @function makeIterator
    @summary To be documented
 */
@@ -2924,13 +2924,13 @@ function makeIterator(sequence) {
   if (!isSequence(sequence)) throw new Error("Invalid sequence type '#{sequence}'");
   var eos = {};
   var next_upstream = -> eos;
-  var stratum = spawn (function() {
+  var stratum = spawn(function() {
     sequence .. consume(eos) {
       |next|
       next_upstream = next;
       hold();
     }
-  })();
+  });
 
   var x;
   var have_peeked = false;
@@ -2949,6 +2949,7 @@ function makeIterator(sequence) {
     },
     destroy: function() {
       stratum.abort();
+      stratum.wait();
     }
   };
 }
@@ -3134,8 +3135,7 @@ exports.tailbuffer = (seq,count) -> seq .. buffer(count||1, tb_settings);
 
          @integers() .. @each.par(1000){ |x| hold(0); if(x===10) break; }
 */
-
-each.par = function(/* seq, max_strata, r */...args) {
+each.par = function(/*seq, max_strata, r */...args) {
   var seq, max_strata, r;
   if (args.length === 2)
     [seq, r] = args;
@@ -3145,27 +3145,12 @@ each.par = function(/* seq, max_strata, r */...args) {
   if (!max_strata) max_strata = Number.MAX_SAFE_INTEGER;
 
   var semaphore = Semaphore(max_strata);
-
-  withBackgroundStrata {
-    |background_strata|
-
-    seq .. each {
-      |x|
-      semaphore.acquire();
-      background_strata.run({
-        || 
-        try {
-          r(x);
-        }
-        finally {
-          semaphore.release();
-        }
-      }, true);
-    }
-
-    background_strata.wait();
-  }
-
+  var S = reifiedStratum;
+  seq .. each(function(x) {
+    semaphore.acquire();
+    S.adopt(reifiedStratum.spawn(function() { try { r(x); } finally { semaphore.release(); }}));
+  });
+  S.join();
 }
 
 /**
@@ -3402,56 +3387,22 @@ any.par = function(/* sequence, max_strata, p */) {
 
 */
 each.track = function(seq, r) {
-  var stratum, signal_error, error;
- 
-  waitfor {
-    waitfor(error) {
-      signal_error = resume;
-    }
-    retract {
-      // it's important to retract here, so that we don't swallow any errors
-      // in the case that each.track gets externally aborted. (see 'catch' clause below)
-      signal_error = undefined;
-    }
-    throw error;
-  }
-  or {
-    var X, stratum_in_abortion = false;
-    seq .. each {
-      |x|
-      X = x;
-
-      if (!stratum_in_abortion) {
-        stratum = spawn (stratum ? (stratum_in_abortion = true, stratum.abort()), 
-                         stratum_in_abortion = false,
-                         (function(){
-                           try { 
-                             r(X);
-                           }
-                           catch (e) {
-                             if (signal_error)
-                               signal_error(e);
-                             else {
-                               // we've been externally aborted, and there has been an error
-                               // during aborting. Make sure it ends up at the caller:
-                               // (see also ../tests/unit/sequence-tests.sjs:'async exception during each.track abortion')
-                               throw e;
-                             }
-                           }
-                         })());
+  var track_stratum = reifiedStratum, downstream;
+  seq .. each(function(x) {
+    // - executing downstream on inner stratum, so that sync controlflow shuts us right down.
+    // - then handing off to track_stratum
+    downstream = track_stratum.adopt(reifiedStratum.spawn(function() {
+      var old_downstream = downstream;
+      if (old_downstream) {
+        // - adopting old downstream, so that controlflow during abort shuts us right down.
+        reifiedStratum.adopt(old_downstream).abort().wait();
       }
-      // handle synchronous error case:
-      if (error) break;
-    }
-    // wait for stratum to complete
-    if (stratum)
-      stratum.value();
-  }
-  finally {
-    if (stratum)
-      stratum.abort();
-  }
+      r(x);
+    }));
+  });
+  track_stratum.join();
 };
+
 
 /*
 Old implementation which had the disadvantage of not nesting DynVarContexts correctly. 
@@ -3539,7 +3490,7 @@ each.track = function(seq, r) {
 exports.mirror = function(stream, latest) {
   var emitter = Object.create(_Waitable); emitter.init();
   var listeners = 0;
-  var done = false;
+  var done = false, err;
   var current, current_version = 0;
   var loop;
 
@@ -3567,27 +3518,32 @@ exports.mirror = function(stream, latest) {
       if (listeners === 1) {
         // start the loop
         loop = spawn(function() {
-          stream .. each {|item|
-            current = item;
-            ++current_version;
-            emitter.emit();
+          try {
+            stream .. each {|item|
+              current = item;
+              ++current_version;
+              emitter.emit();
+            }
+          }
+          catch(e) {
+            err = e;
           }
           done = true;
           emitter.emit();
-        }());
+        });
       }
-    } and {
-      loop.value();
     } finally {
       if (--listeners === 0) {
         // last one out: stop the loop
-        // the check for 'loop' is important here, because of a
-        // possible exception thrown in the spawned stratum before it
-        // gets reified
-        if (loop) loop.abort();
+        loop.abort().wait();
         current = undefined;
         current_version = 0;
         done = false;
+        if (err) {
+          var e = err;
+          err = undefined;
+          throw e;
+        }
       }
     }
   });

@@ -39,6 +39,7 @@
 @ = require([
   './cutil',
   './sequence',
+  './sys',
   {id:'./function', name:'fn'}
 ]);
 
@@ -139,10 +140,10 @@ function partition(sequence, predicate) {
       }
       emitters[idx] = r;
       _resume();
-      drainer.value();
+      drainer.wait();
     }));
 
-    drainer = spawn(function() {
+    drainer = @spawn(function() {
       // wait until one side wants results
       waitfor() {
         _resume = resume;
@@ -155,7 +156,7 @@ function partition(sequence, predicate) {
         if (emitter) emitter(item);
         else buffers[idx].push(item);
       }
-    }());
+    });
     return streams;
   }
 }

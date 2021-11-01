@@ -87,8 +87,8 @@ if (sys.hostenv == 'nodejs') {
 
 
 
-context("Emitter") {||
-  test('block/resume') {||
+context("Emitter", function() {
+  test('block/resume', function() {
     var result = (function() {
       var e = event.Emitter();
       waitfor {
@@ -101,9 +101,9 @@ context("Emitter") {||
       }
     })();
     assert.eq(result, 1);
-  }
+  })
 
-  test('retract from wait()') {||
+  test('retract from wait()', function() {
     var e = event.Emitter();
     waitfor {
       e .. event.wait();
@@ -112,9 +112,9 @@ context("Emitter") {||
     }
     //XXX now that we don't expose e.waiting anymore, this test is a bit pointless
     //assert.eq(e.waiting, []);
-  };
+  });
 
-  test('setting with a value') {||
+  test('setting with a value', function() {
     var e = event.Emitter();
     var results = [];
     waitfor {
@@ -127,22 +127,22 @@ context("Emitter") {||
       hold();
     }
     assert.eq(results, ["first", "second"]);
-  };
-}
+  });
+})
 
-context() {||
-  test.beforeEach {|s|
+context(function() {
+  test.beforeEach:: function(s) {
     s.emitter = new HostEmitter();
   }
 
-  test.afterEach {|s|
+  test.afterEach:: function(s) {
     s.emitter.cleanup();
     // normal usage should never leave listeners attached
     assert.eq(s.emitter.listeners('click').length, 0, 'test left listeners attached!');
   }
 
-  context("HostEmitter") {||
-    test("captures specific event and unregisters listener") {|s|
+  context("HostEmitter", function() {
+    test("captures specific event and unregisters listener", function(s) {
       var result = [];
       waitfor {
         event.events(s.emitter.raw, 'click') .. seq.consume {
@@ -168,9 +168,9 @@ context() {||
       }
 
       assert.eq(result, [1,3]);
-    }
+    })
 
-    test("captures multiple events from multiple emitters") {|s|
+    test("captures multiple events from multiple emitters", function(s) {
       var result = [];
       var emitter2 = new HostEmitter();
       event.events([s.emitter.raw, emitter2.raw], ['click', 'drag']) .. seq.consume {
@@ -193,29 +193,29 @@ context() {||
       assert.eq(s.emitter.listeners('drag').length, 0);
 
       assert.eq(result, [1, 2, 3]);
-    }
+    })
 
-    context('nodejs') {||
-      test('multiple event arguments') {|s|
+    context('nodejs', function() {
+      test('multiple event arguments', function(s) {
         waitfor {
           (event.events(s.emitter.raw, 'click') .. event.wait)
             .. assert.eq([1,2]);
         } and {
           s.emitter.raw.emit('click', 1, 2);
         }
-      }
+      })
 
-      test('empty event arguments') {|s|
+      test('empty event arguments', function(s) {
         waitfor {
           (event.events(s.emitter.raw, 'click') .. event.wait)
             .. assert.eq(undefined);
         } and {
           s.emitter.raw.emit('click');
         }
-      }
-    }.serverOnly();
+      })
+    }).serverOnly();
 
-    test('wait() shortcut') {|s|
+    test('wait() shortcut', function(s) {
       var result = [];
       waitfor {
         result.push((event.events(s.emitter.raw, 'click') .. event.wait).detail);
@@ -224,9 +224,9 @@ context() {||
         s.emitter.trigger('click', 2);
       }
       assert.eq(result, [1]);
-    }
+    })
 
-    test("filter") {|s|
+    test("filter", function(s) {
       waitfor {
         event.wait(event.events(s.emitter.raw, 'click', {filter:x -> x.detail > 2})).detail .. assert.eq(3);
       } and {
@@ -235,17 +235,17 @@ context() {||
         s.emitter.trigger('click', 3);
         s.emitter.trigger('click', 4);
       }
-    }
+    })
 
-    test("transform") {|s|
+    test("transform", function(s) {
       waitfor {
         event.events(s.emitter.raw, 'click', {transform:x -> x.detail}) .. event.wait .. assert.eq(1);
       } and {
         s.emitter.trigger('click', 1);
       }
-    }
+    })
 
-    test("filter + transform") {|s|
+    test("filter + transform", function(s) {
       waitfor {
         event.events(s.emitter.raw, 'click', {filter: x -> x > 2, transform: x -> x.detail}) .. event.wait .. assert.eq(3);
       } and {
@@ -254,10 +254,10 @@ context() {||
         s.emitter.trigger('click', 3);
         s.emitter.trigger('click', 4);
       }
-    }
-  }
+    })
+  })
 
-  context('events') {||
+  context('events', function() {
     var allEvents = [
       { type: "boring", value: 0 },
       { type: "important", value: 1 },
@@ -270,7 +270,7 @@ context() {||
       transform: x -> x.detail,
     };
 
-    test("operates synchronously by default") {|s|
+    test("operates synchronously by default", function(s) {
       var log = [];
       waitfor {
         event.events(s.emitter.raw, 'click', opts) ..
@@ -287,9 +287,9 @@ context() {||
         }
       }
       log .. assert.eq([1,3]);
-    }
+    })
 
-    test("with tailbuffer") {|s|
+    test("with tailbuffer", function(s) {
       var log = [];
       waitfor {
         event.events(s.emitter.raw, 'click', opts) ..
@@ -305,10 +305,10 @@ context() {||
         }
       }
       log .. assert.eq([1, 2, 3]);
-    }
-  }
+    })
+  })
 
-  context('queue') {||
+  context('queue', function() {
     var runTest = function(events, triggerBlock) {
       var results = [];
       waitfor {
@@ -326,25 +326,25 @@ context() {||
       assert.eq(results, [1, 2, 3]);
     };
 
-    test('queues sjs events') {||
+    test('queues sjs events', function() {
       var emitter = event.Emitter();
       runTest(emitter) {||
         emitter.emit({detail: 1});
         emitter.emit({detail: 2});
         emitter.emit({detail: 3});
       }
-    }
+    })
 
-    test('queue native events') {|s|
+    test('queue native events', function(s) {
       var emitter = event.events(s.emitter.raw, 'click');
       runTest(emitter) {||
         s.emitter.trigger('click', 1);
         s.emitter.trigger('click', 2);
         s.emitter.trigger('click', 3);
       }
-    }
+    })
 
-    test('multiple randomly-timed events') {|s|
+    test('multiple randomly-timed events', function(s) {
       var emitter = event.events(s.emitter.raw, 'click');
       waitfor {
         emitter .. seq.tailbuffer(100) .. seq.consume {
@@ -361,14 +361,14 @@ context() {||
           hold(Math.random()*100);
         }
       }
-    }
+    })
 
-  }
-}
+  })
+})
 
 
-context("stream") {||
-  test('basic iteration') {||
+context("stream", function() {
+  test('basic iteration', function() {
     var stream = event.Emitter();
     var result = [];
     waitfor {
@@ -384,9 +384,9 @@ context("stream") {||
       stream.emit(4)
     }
     result .. assert.eq([1,2,3,4]);
-  };
+  });
 
-  test('buffers up to one item if iteration blocks') {||
+  test('buffers up to one item if iteration blocks', function() {
     var stream = event.Emitter();
     var result = [];
     waitfor {
@@ -405,9 +405,9 @@ context("stream") {||
       hold(100);
     }
     result .. assert.eq([1,4,5]);
-  }
+  })
 
-  test('ignore events before iteration') {||
+  test('ignore events before iteration', function() {
     var stream = event.Emitter();
     var result = [];
     waitfor {
@@ -424,11 +424,11 @@ context("stream") {||
       }
     }
     result .. assert.eq([2,3,4]);
-  };
-}
+  });
+})
 
-context('wait()') {||
-  test('with filter arg') { ||
+context('wait()', function() {
+  test('with filter arg', function() {
     var stream = event.Emitter();
     var rv;
     waitfor {
@@ -439,10 +439,10 @@ context('wait()') {||
       stream.emit(3);
     }
     rv .. assert.eq(2);
-  }
-}
+  })
+})
 
-test('concurrent retract edgecase') {||
+test('concurrent retract edgecase', function() {
   var rv = '';
 
   var E = event.Emitter();
@@ -479,4 +479,4 @@ test('concurrent retract edgecase') {||
     rv += 'E';
   }
   rv .. assert.eq('ABCDE');
-}
+})

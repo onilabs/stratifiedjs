@@ -132,7 +132,6 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
    @function IBackgroundStrataSession.run
    @summary Execute a sessioned background stratum
    @param {Function} [f] Function to execute in background stratum
-   @param {Boolean} [ignore_return] If `true`, no reified stratum will be returned, leading to a performance gain of around 20% in the synchronous case.
    @return {sjs:#language/builtins::Stratum} Returns the executed stratum
    @desc
       Begins executing `f` and returns when `f` returns or blocks.
@@ -152,163 +151,11 @@ __js exports.StratumAborted = __oni_rt.StratumAborted;
    @summary Wait for all sessioned background strata to complete
 */
 function withBackgroundStrata(session) {
-  var waitlist = [], pending_rv, kill, killed = false;
-
-  // Linked list for keeping track of stratum cleanup:
-  // (a simple array scales badly when there are lots (e.g. >10000) strata)
-  var sentinel = {};
-  sentinel._next = sentinel; sentinel._prev = sentinel;
-  var strata = sentinel;
-
-  __js function add_stratum(stratum) {
-    stratum._next = strata._next;
-    stratum._next._prev = stratum;
-    stratum._prev = strata;
-    strata._next = stratum;
-  }
-  __js function remove_stratum(stratum) {
-    stratum._prev._next = stratum._next;
-    stratum._next._prev = stratum._prev;
-    delete stratum._prev;
-    delete stratum._next;
-    
-    if (waitlist.length && strata._next === strata) {
-      [...waitlist].forEach(r=>r());
-    }
-  }
-
-  waitfor {
-    waitfor() { kill = resume; }
-    killed = true;
-  }
-  or {
-    var itf = {
-      run: function(background_task, ignore_return) {
-        // this check prevents synchronous spawning after we've been killed (by e.g. a blocklambda break):
-        if (killed) hold();
-        __js var ef = background_task();
-        if (__js !__oni_rt.is_ef(ef)) {
-          if (ignore_return)
-            return;
-          else
-            return spawn(ef);
-        }
-        var background_stratum = spawn (function() {
-          try { ef.wait(); /*background_task();*/ }
-          finally(e) {
-            var rv;
-            if (!e[1] /*!exception*/) {
-              // make sure we pass through values:
-              // this needs to be __js, so that the return doesn't cause a return.
-              __js rv = [e[0] !== undefined? __oni_rt.Return(e[0])];
-            }
-            else if (e[0].type !== 'a') {
-              if (e[0].type === 't' /* 'real' exception */) {
-                if (background_stratum && background_stratum.waiting() > 0) {
-                  // route exception to waiting 'value' call:
-                  rv = e;
-                }
-                else {
-                  // route exception to withBackgroundStrata session:
-                  if (!!pending_rv && pending_rv[0].type === 't') {
-                    console.warn("cutil::withBackgroundStrata: swallowing background exception '"+pending_rv[0].val+"'");
-                  }
-                  pending_rv = e;
-                  rv = [undefined];
-                  if (!e[2] /* !abort */) kill();
-                }
-              }
-              else {  // control flow exception
-                // don't override existing pending_rv:
-                if (!pending_rv) {
-                  pending_rv = e;
-                }
-                rv = [undefined];
-                if (!e[2] /* !abort */) kill();
-              }
-            }
-            else {
-              rv = [undefined];
-            }
-            
-            if (background_stratum) {
-              remove_stratum(background_stratum);
-              background_stratum = undefined;
-            }
-            // prevent further processing
-            throw rv;
-          }
-        })();
-        __js if (background_stratum.running()) add_stratum(background_stratum); 
-        return ignore_return ? undefined : background_stratum;
-      },
-      wait: function() {
-        if (strata._next === strata) return;
-        waitfor() {
-          waitlist.push(resume);
-        }
-        finally {
-          var idx = waitlist.indexOf(resume);
-          // assert(idx !== -1)
-          waitlist.splice(idx,1);
-        }
-      }
-    };
-    return session(itf);
-  }
-  finally(e) {
-    // XXX This code might incorrectly prioritize blocklambda returns/breaks from finally clauses in background strata over
-    // blocklambda returns/breaks from the main session. Since this is a somewhat pathological case, we'll leave fixing it for 
-    // later.
-
-    __js {
-      // XXX there is probably a better way to do cleanup that doesn't involve
-      // copying the full linked list
-      var to_abort = [];
-      var iter = strata._next;
-      while (iter !== strata) {
-        to_abort.push(iter);
-        iter = iter._next;
-      }
-      to_abort.forEach(s->s.abort());
-    } // __js
-    itf.wait();
-    if (!!pending_rv) {
-      if (e[1] /* exception */ && e[0].type === 't') {
-        if (pending_rv[0].type === 't') {
-          console.warn("cutil::withBackgroundStrata: swallowing background exception '"+pending_rv[0].val+"'");
-        }
-        pending_rv = e;
-      }
-      else {
-        if ((pending_rv[0].type === 'r' || pending_rv[0].type == 'blb') && pending_rv[0].eid) {
-          /*
-             Make sure the blklambda return is routable:
-
-             withBackgroundStrata can only route blocklambda returns/breaks where the return scope encloses 
-             the withBackgroundStrata session. Unfortunately the VM doesn't catch stray returns/breaks and lets
-             them bubble uncatchably to the top level.
-
-             The following code tries to determine callstack containment by checking the NECESSARY but 
-             NOT SUFFICIENT criterium that the closest sid is >= the targeted return sid. (I.e. that the return frame
-             was started *earlier* than the withBackgroundStrata session).
-
-             There are pathological constructions where this check doesn't catch unroutable returns/breaks... 
-             unfortunately these will produce an uncatchable error.
-           */
-          var parent = e[4],null;
-          var sid = 0;
-          __js while (parent) {
-            if (!!parent.sid) { sid = parent.sid; break; }
-            parent = parent.parent;
-          }
-          if (sid<pending_rv[0].eid) throw new Error("cutil::withBackgroundStrata: unroutable blocklambda return/break");
-        }
-      }
-      throw pending_rv;
-    }
-    throw e;
-  }
+  var enclosing = reifiedStratum;
+  session({
+    run: enclosing.spawn,
+    wait: enclosing.join
+  });
 }
 
 exports.withBackgroundStrata = withBackgroundStrata;
@@ -870,6 +717,7 @@ var QueueProto = {
   @summary Pause a piece of code's execution and resume it later
   @param {Function} [block]
   @return {::SuspendedContext}
+  @deprecated
   @desc
     **Warning**: You should not use this function unless you're certain you
     need it, since it creates opportunity to leak resources if you're not careful.
@@ -951,13 +799,14 @@ var QueueProto = {
     to `ctx.resume()`.
 */
 exports.breaking = function(block) {
+  console.warn("CODE USES DEPRECATED cutil::breaking");
   var cont, stratum;
   var uncaught = Condition();
   var retracted = function() {
     if(!stratum) hold(0);
     try {
       waitfor {
-        stratum.value();
+        stratum.wait();
       } or {
         throw uncaught.wait();
       }
@@ -969,7 +818,7 @@ exports.breaking = function(block) {
   waitfor(var err, rv) {
     var ready = resume;
     var ret = null;
-    stratum = spawn (function() {
+    stratum = sys.spawn (function() {
       try {
         block {|result|
           try {
@@ -1009,7 +858,7 @@ exports.breaking = function(block) {
         }
       }
       if(ret) ret();
-    })();
+    });
   }
   if(err) throw err;
   return { value: rv, resume: cont, wait: retracted };

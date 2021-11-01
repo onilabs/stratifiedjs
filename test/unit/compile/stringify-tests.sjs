@@ -1,6 +1,6 @@
 var {test, context, assert} = require('sjs:test/suite');
 
-test("basic") {||
+test("basic", function() {
 	var compiled = require('sjs:compile/stringify').compile('
 		// comment
 		while(true) {
@@ -11,4 +11,4 @@ test("basic") {||
 			}
 		}');
 	assert.eq(compiled, '"while(true){waitfor{x(\\"one\\")}and{y()}}"');
-}
+})

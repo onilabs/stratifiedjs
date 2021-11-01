@@ -122,10 +122,21 @@ exports.runREPL = function() {
 };
 
 function evalCommandLine(cl, waitfor_interrupt) {
-  var stratum = spawn require('builtin:apollo-sys').eval(cl, {filename:'repl'});
+
+  var stratum = sys.spawn(function(S) { 
+    try {
+      S.rv = require('builtin:apollo-sys').eval(cl, {filename:'repl'});
+    }
+    catch(e) {
+      S.rv = e;
+      S.isException = true;
+    }
+  });
 
   waitfor {
-    try { writeVal(stratum.waitforValue()); } catch(e) { writeErr(e); }
+    stratum.wait();
+    if (stratum.isException) writeErr(stratum.rv);
+    else writeVal(stratum.rv);
   }
   or {
     // when the user enters CTRL-C, we push into background:
@@ -178,7 +189,7 @@ var bgStrata = [];
 
 function trackInBackground(s) {
   s.id = bgStrata.length ? bgStrata[bgStrata.length-1].id+1 : 1;
-  s.handler = spawn bgStratumHandler(s);
+  s.handler = sys.spawn(-> bgStratumHandler(s));
   bgStrata.push(s);
   write('<pushed to background>', s.id);
   updatePrompts();
@@ -186,13 +197,10 @@ function trackInBackground(s) {
 
 // handler for background strata; displays result, clears from array
 function bgStratumHandler(s) {
-  try {
-    var val = s.waitforValue();
-    writeVal(val, s.id);
-  } 
-  catch(e) { 
-    writeErr(e, s.id);
-  }
+  s.wait();
+  if (s.isException) writeErr(s.rv, s.id);
+  else writeVal(s.rv);
+
   bgStrata.splice(bgStrata.indexOf(s), 1);
   updatePrompts();
 }

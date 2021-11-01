@@ -23,13 +23,13 @@ var shouldSucceed = function(f) {
 }
 
 
-context("ok") {||
-  test("succeeds") {||
+context("ok", function() {
+  test("succeeds", function() {
     assert.ok(true);
     assert.notOk(false);
-  }
+  })
 
-  test("fails") {||
+  test("fails", function() {
     var err;
 
     err = assert.catchError(-> assert.ok(false));
@@ -37,64 +37,64 @@ context("ok") {||
 
     err = assert.catchError(-> assert.falsy(true));
     if(!err) throw new Error("assertion not thrown");
-  }
-}
+  })
+})
 
-context("eq") {||
-  context("succeeds") {||
-    test("for numbers") {||
+context("eq", function() {
+  context("succeeds", function() {
+    test("for numbers", function() {
       assert.eq(1,1);
       assert.eq(-34, -34);
-    }
+    })
 
-    test("for complex JSON objects") {||
+    test("for complex JSON objects", function() {
       assert.eq(
         {foo: {bar: [1,2,3, {x: "y"}]}},
         {foo: {bar: [1,2,3, {x: "y"}]}});
-    }
+    })
 
-    test("for custom types") {||
+    test("for custom types", function() {
       var Foo = function() {
         this.x = 1;
       }
       Foo.prototype.y = 2;
       assert.eq(new Foo(), new Foo());
-    }
+    })
 
-    test('for nested nulls') {||
+    test('for nested nulls', function() {
       assert.eq([ null, null, null ], [ null, null, null ]);
-    }
+    })
 
-    test('on cyclic objects') {||
+    test('on cyclic objects', function() {
       var sub = { one: { two: { three: null } } };
       sub.one.two.three = sub;
 
       assert.eq({a: sub}, {a: sub});
-    }
+    })
 
-    test("comparing a string literal to string object") {||
+    test("comparing a string literal to string object", function() {
       var so = (function() { return this; }).call("string!");
       assert.eq(so, "string!");
-    }
+    })
 
-  }
+  })
 
-  context("fails") {||
-    test("when types differ") {||
+  context("fails", function() {
+    test("when types differ", function() {
       assert.raises(
         {message: "Expected 1, got '1'\n[expected is a Number, actual is a String]"},
         -> assert.eq("1", 1));
-    }
+    })
 
     // this used to throw 'Cannot create property '1' on boolean 'false' due to a return
     // value bug in sjs:compare::eq:
-    test("nested null vs undefined") {||
+    test("nested null vs undefined", function() {
       assert.raises(
         {message: 'Expected { foo: null }, got { foo: undefined }\n[objects differ at property `foo`]'},
         -> assert.eq({foo:undefined}, {foo:null}));
-    }
+    })
 
-    context("custom types") {||
+    context("custom types", function() {
       var Foo = function() {
         this.x = 1;
       }
@@ -111,7 +111,7 @@ context("eq") {||
       FooBar.prototype = new Foo();
 
 
-      test("differ") {||
+      test("differ", function() {
         assert.raises(
           {message: /\[prototypes differ\]/},
           -> assert.eq(new Foo(), new Bar(1)));
@@ -119,9 +119,9 @@ context("eq") {||
         assert.raises(
           {message: /\[objects differ at property `x`\]/},
           -> assert.eq(new Bar(1), new Bar(2)));
-      }
+      })
 
-      test("differ by inheritance") {||
+      test("differ by inheritance", function() {
         assert.raises(
           {message: /\[prototypes differ\]/},
           -> assert.eq(new Foo(), new FooBar(1)));
@@ -129,28 +129,28 @@ context("eq") {||
         assert.raises(
           {message: /\[objects differ at property `x`\]/},
           -> assert.eq(new FooBar(1), new FooBar(2)));
-      }.skipIf(suite.isIE() && suite.ieVersion() < 9, "requires native support for getPrototypeOf()");
-    }
+      }).skipIf(suite.isIE() && suite.ieVersion() < 9, "requires native support for getPrototypeOf()");
+    })
 
-    test("comparing arrays to objects") {||
+    test("comparing arrays to objects", function() {
       assert.raises(
         {message:/expected is a Object, actual is a Array/},
         -> assert.eq(["one", "two"], {0: "one", 1: "two"}));
-    }
+    })
 
-    test("comparing arrays with different elements") {||
+    test("comparing arrays with different elements", function() {
       assert.raises(
         {message:/objects differ at index `1`/},
         -> assert.eq(["one", "two"], ["one", "three"]));
-    }
+    })
 
-    test("comparing arrays with different sizes") {||
+    test("comparing arrays with different sizes", function() {
       assert.raises(
         {message:/expected has 2 elements, actual has 3/},
         -> assert.eq(["one", "two", "three"], ["one", "three"]));
-    }
+    })
 
-    test("typed array comparison") {||
+    test("typed array comparison", function() {
       assert.eq(
           new Uint8Array([1,2,3]),
           new Uint8Array([1,2,3])
@@ -171,10 +171,10 @@ context("eq") {||
           new Int8Array([1,2,4])
         )
       );
-    }
+    })
 
-    context("comparing buffers") {||
-      test("against other kinds of buffers") {||
+    context("comparing buffers", function() {
+      test("against other kinds of buffers", function() {
         // Buffers and SlowBuffers are different types, but should be treated the same.
         var sb = new (require('nodejs:buffer').SlowBuffer)(4);
         var ch = '1'.charCodeAt(0);
@@ -183,25 +183,25 @@ context("eq") {||
         sb[2] = ch++;
         sb[3] = ch++;
         assert.eq(Buffer.from("1234"), sb);
-      }
+      })
 
-      test("against slices") {||
+      test("against slices", function() {
         assert.eq(Buffer.from("1234"), Buffer.from("__1234__").slice(2, 6));
-      }
+      })
 
-      test("with different contents") {||
+      test("with different contents", function() {
         assert.raises(
           {message:/objects differ at index `6`/},
           -> assert.eq(Buffer.from("12345678"), Buffer.from("123456xx")));
-      }
+      })
 
-      test("with different length") {||
+      test("with different length", function() {
         assert.raises(
           {message:/expected has 1 elements, actual has 4/},
           -> assert.eq(Buffer.from("1234"), Buffer.from("1")));
-      }
+      })
 
-      test("against other objects") {||
+      test("against other objects", function() {
         assert.raises(
           {message:/expected is a Array, actual is a Buffer/},
           -> assert.eq(Buffer.from([1,2,3,4]), [1,2,3,4]));
@@ -209,61 +209,61 @@ context("eq") {||
         assert.raises(
           {message:/expected is a Object, actual is a Buffer/},
           -> assert.eq(Buffer.from([1,2,3,4]), {length: 4, 0:1, 1:2, 2:3, 3:4}));
-      }
-    }.serverOnly();
+      })
+    }).serverOnly();
 
-    test("comparing different types") {||
+    test("comparing different types", function() {
       function Foo () {this.x = 1};
       function Bar () {this.x = 1};
       assert.raises({message: /prototypes differ/}, -> assert.eq(new Foo(), new Bar()));
-    }
+    })
 
-    test('on different cyclic objects') {||
+    test('on different cyclic objects', function() {
       var sub1 = { one: { two: { three: null } } };
       var sub2= { one: { two: { three: null } } };
       sub1.one.two.three = sub1;
       sub2.one.two.three = sub2;
 
       assert.eq({a: sub1}, {a: sub2});
-    }
+    })
 
-    context("descriptive error messages") {||
-      test("different property names") {||
+    context("descriptive error messages", function() {
+      test("different property names", function() {
         assert.raises(
           {message:/properties differ/},
           -> assert.eq({foo: 1}, {bar:1}));
-      }
+      })
 
-      test("different property count") {||
+      test("different property count", function() {
         assert.raises(
           {message:/properties differ/},
           -> assert.eq({}, {foo: 1, bar:2}));
-      }
+      })
 
-      test("different (nested) property values") {||
+      test("different (nested) property values", function() {
         assert.raises(
           {message: /objects differ at property `foo\.2`\]$/},
           -> assert.eq({foo: {0: 0, 1:1, 2:"two"}}, {foo: {0: 0, 1:1, 2:"2"}}));
-      }
+      })
 
-      test("different (nested) property value types") {||
+      test("different (nested) property value types", function() {
         assert.raises(
           {message: /\[objects differ at property `foo\[2\]`: expected is a Number, actual is a String\]/},
           -> assert.eq({foo: [1,2,'3']}, {foo: [1,2,3]}));
-      }
-    }
-  }
-  test("notEq") {||
+      })
+    })
+  })
+  test("notEq", function() {
     assert.notEq(1, 2);
     assert.raises(
       {message: "Arguments are equal: { a: 1 }"},
       -> assert.notEq({a:1}, {a:1}));
-  }
-}
+  })
+})
 
 
-context("shallow equality") {||
-  test("shallowEq") {||
+context("shallow equality", function() {
+  test("shallowEq", function() {
     var child = {b:1};
     var childClone = {b:1};
     assert.raises(
@@ -272,19 +272,19 @@ context("shallow equality") {||
       -> assert.shallowEq({a:child}, {a:childClone}));
 
     assert.shallowEq({a:child}, {a:child});
-  }
+  })
  
-  test("notShallowEq") {||
+  test("notShallowEq", function() {
     assert.notShallowEq(1, 2);
     assert.notShallowEq({a: [1,2,3]}, {a: [1,2,3]});
     assert.raises(
       {message: "Arguments are equal: { a: 1 }"},
       -> assert.notShallowEq({a:1}, {a:1}));
-  }
-}
+  })
+})
 
-context("contains") {||
-  test("contains") {||
+context("contains", function() {
+  test("contains", function() {
     var arr = [0, {x:1}, 2];
 
     assert.contains(arr, arr[1]);
@@ -298,9 +298,9 @@ context("contains") {||
     assert.raises(
       {message: "'the big string' does not contain 'lil string'"},
       -> assert.contains("the big string", "lil string"));
-  }
+  })
 
-  test("notContains") {||
+  test("notContains", function() {
     var arr = [0, {x:1}, 2];
 
     assert.notContains(arr, {x:2});
@@ -315,11 +315,11 @@ context("contains") {||
     assert.raises(
       {message: "'the big string' contains 'g string'"},
       -> assert.notContains("the big string", "g string"));
-  }
-}
+  })
+})
 
-context("is") {||
-  test("uses ===") {||
+context("is", function() {
+  test("uses ===", function() {
     assert.is(1, 1);
 
     assert.raises(
@@ -329,9 +329,9 @@ context("is") {||
     assert.raises(
       {message: 'Expected {}, got {}'},
       -> assert.is({}, {}));
-  }
+  })
 
-  test("isNot") {||
+  test("isNot", function() {
     assert.isNot(1, 2);
     assert.isNot({}, {});
 
@@ -339,10 +339,10 @@ context("is") {||
     assert.raises(
       {message: "Both arguments equal: {}"},
       -> assert.isNot(same, same));
-  }
-}
+  })
+})
 
-context("raises") {||
+context("raises", function() {
   var MyError = function(m) { this.message = m || "MyError"; };
   MyError.prototype = new Error();
 
@@ -354,50 +354,50 @@ context("raises") {||
     return function() { throw new type(msg); }
   }
 
-  test("succeeds on error") {||
+  test("succeeds on error", function() {
     shouldSucceed( -> assert.raises(throwA(Error)));
-  }
+  })
 
-  test("fails on no error") {||
+  test("fails on no error", function() {
     shouldFail( -> assert.raises(noop));
-  }
+  })
 
-  test("filters errors by type") {||
+  test("filters errors by type", function() {
     shouldSucceed( -> assert.raises({inherits: MyError}, throwA(MyError)));
     shouldFail( -> assert.raises({inherits: MyError}, throwA(Error)));
     shouldFail( -> assert.raises({inherits: MyError}, noop));
-  }
+  })
 
-  test("filters errors inheriting the given type") {||
+  test("filters errors inheriting the given type", function() {
     shouldSucceed( -> assert.raises({inherits: MyError}, throwA(MyErrorSubclass)));
     shouldFail( -> assert.raises({inherits: MyError}, throwA(Error)));
     shouldFail( -> assert.raises({inherits: MyError}, noop));
-  }
+  })
 
-  test("filters errors inheriting the given prototype") {||
+  test("filters errors inheriting the given prototype", function() {
     shouldSucceed( -> assert.raises({inherits: MyError.prototype}, throwA(MyError)));
     shouldSucceed( -> assert.raises({inherits: MyError.prototype}, throwA(MyErrorSubclass)));
     shouldFail( -> assert.raises({inherits: MyError.prototype}, throwA(Error)));
     shouldFail( -> assert.raises({inherits: MyError.prototype}, noop));
-  }
+  })
 
-  test("filters errors by message") {||
+  test("filters errors by message", function() {
     shouldSucceed( -> assert.raises({message: "specific" }, throwA(MyError, "specific")));
     shouldFail( -> assert.raises({message: "spec" }, throwA(MyError, "specific")));
     shouldFail( -> assert.raises({message: "specific" }, throwA(MyError)));
-  }
+  })
 
-  test("filters errors by message regex") {||
+  test("filters errors by message regex", function() {
     shouldSucceed( -> assert.raises({message: /peCIF/i}, throwA(MyError, "specific")));
     shouldFail( -> assert.raises({message: /peCIF/i }, throwA(MyError)));
-  }
+  })
 
-  test("filters errors by predicate") {||
+  test("filters errors by predicate", function() {
     shouldSucceed( -> assert.raises({filter: (e) -> e.message == "specific" }, throwA(MyError, "specific")));
     shouldFail( -> assert.raises({filter: (e) -> e.message == "specific" }, throwA(MyError, "generic")));
-  }
+  })
 
-  test("filters errors on multiple conditions") {||
+  test("filters errors on multiple conditions", function() {
     var specific_instance = new MyErrorSubclass("specific");
     var opts = {
       inherits: MyError,
@@ -410,19 +410,19 @@ context("raises") {||
     shouldFail( -> assert.raises(opts, throwA(MyErrorSubclass))); // fails message check
     shouldFail( -> assert.raises(opts, throwA(MyErrorSubclass, "specific"))); // fails filter
     shouldFail( -> assert.raises(opts, throwA(Error, "specific"))); // fails filter and inherits check
-  }
+  })
 
 
-  test("includes description in thrown error") {||
+  test("includes description in thrown error", function() {
     var msg = "badness failed to ensue";
     try {
       assert.raises({desc: msg}, throwA(MyError, "specific"));
     } catch(e) {
       assert.eq(e.message, "Nothing raised (badness failed to ensue)");
     }
-  }
+  })
 
-  test("fails on invalid option") {||
+  test("fails on invalid option", function() {
     var ran_block = false;
     try {
       assert.raises({someOpt: true}, function() { ran_block = true; });
@@ -430,44 +430,44 @@ context("raises") {||
       assert.eq(e.message, "Unknown option: someOpt");
       assert.falsy(ran_block, "assert.raises ran the provided block");
     }
-  }
-}
+  })
+})
 
-context("AssertionError") {||
-  test("error message") {||
+context("AssertionError", function() {
+  test("error message", function() {
     assert.eq(new assert.AssertionError("err").message, "err");
-  }
+  })
 
-  test("error message with description") {||
+  test("error message with description", function() {
     assert.eq(new assert.AssertionError("err", "desc").message, "err (desc)");
-  }
+  })
 
-  test("error message with quasi description") {||
+  test("error message with quasi description", function() {
     var msg = `the ${"object"} is: ${[1, "2", 3]}`;
     assert.eq(new assert.AssertionError("err", msg).message, "err (the object is: [ 1, '2', 3 ])");
-  }
-}
+  })
+})
 
-context("catchError") {||
-  test("returns error") {||
+context("catchError", function() {
+  test("returns error", function() {
     var err = new Error("e!");
     assert.eq(assert.catchError() {||
       throw err;
     }, err);
-  }
-  test("returns null for no error") {||
+  })
+  test("returns null for no error", function() {
     assert.eq(assert.catchError(-> true), null);
-  }
-}
+  })
+})
 
-context("atomic") {||
-  test("succeeds for an atomic function") {||
+context("atomic", function() {
+  test("succeeds for an atomic function", function() {
     var fn = -> null;
     assert.atomic("desc", fn);
     assert.atomic(fn);
-  }
+  })
 
-  test("fails for a suspending function") {||
+  test("fails for a suspending function", function() {
     var fn = function() {
       hold(0);
       return null;
@@ -475,31 +475,31 @@ context("atomic") {||
 
     assert.raises({message: "Function is not atomic (desc)"}, -> assert.atomic("desc", fn));
     assert.raises({message: "Function is not atomic"}, -> assert.atomic(fn));
-  }
-}
+  })
+})
 
-context("suspends") {||
-  test("succeeds for a suspending function") {||
+context("suspends", function() {
+  test("succeeds for a suspending function", function() {
     var fn = function() {
       hold(0);
       return null;
     }
     assert.suspends("desc", fn);
     assert.suspends(fn);
-  }
+  })
 
-  test("fails for an atomic function") {||
+  test("fails for an atomic function", function() {
     var fn = function() {
       return null;
     }
 
     assert.raises({message: "Function did not suspend (desc)"}, -> assert.suspends("desc", fn));
     assert.raises({message: "Function did not suspend"}, -> assert.suspends(fn));
-  }
-}
+  })
+})
 
-context("type checking") { ||
-  test('by type name') {||
+context("type checking", function() {
+  test('by type name', function() {
     assert.string("foo");
     assert.number(23);
     assert.func(-> null);
@@ -513,30 +513,30 @@ context("type checking") { ||
     assert.raises({message: 'object required'}, -> assert.object('str'));
 
     assert.raises({message:'string required (mystr)'}, -> assert.string(123, 'mystr'));
-  }
+  })
 
-  test('arrayOf<Type>') {||
+  test('arrayOf<Type>', function() {
     assert.arrayOfString(["foo"]);
     assert.raises({message:'[string] required (desc)'}, -> assert.arrayOfString(123, 'desc'));
     assert.raises({message:'[string] required'}, -> assert.arrayOfString(123));
     assert.raises({message:'string required'}, -> assert.arrayOfString([123]));
-  }
+  })
 
-  test('optional<Type>') {||
+  test('optional<Type>', function() {
     assert.optionalString("foo");
     assert.optionalString(undefined);
     assert.optionalString(null);
 
     assert.raises({message:'string required'}, -> assert.optionalString(123));
     assert.raises({message:'string required'}, -> assert.optionalString([123]));
-  }
+  })
 
-  test('optionalArrayOf<Type>') {||
+  test('optionalArrayOf<Type>', function() {
     assert.optionalArrayOfString(["foo"]);
     assert.optionalArrayOfString(undefined);
     assert.optionalArrayOfString(null);
 
     assert.raises({message:'[string] required'}, -> assert.optionalArrayOfString(123));
     assert.raises({message:'string required'}, -> assert.optionalArrayOfString([123]));
-  }
-}
+  })
+})

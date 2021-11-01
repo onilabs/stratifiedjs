@@ -43,7 +43,8 @@
   './sequence',
   './observable',
   './object',
-  './cutil'
+  './cutil',
+  {id:'sjs:sys', name: 'sys'}
 ]);
 
 /**
@@ -299,7 +300,7 @@ function withBackgroundServices(session_f) {
           var cont = resume;
           stratum = background_strata.run {
             ||
-            args.push({|itf| cont(itf, false); hold(); });
+            args.push(function(itf){ cont(itf, false); hold(); });
             try {
               service.apply(null, args);
             }
@@ -310,18 +311,19 @@ function withBackgroundServices(session_f) {
           }
         }
         retract {
-          stratum.abort();
+          stratum.abort().wait();
         }
         finally {
           have_caller = false;
         }
         if (is_err) throw session_itf;
         return [session_itf, 
-                function /*terminate*/() { 
+                function /*terminate*/() {
+                  // XXX we used to do this, but not anymore:
                   // 'true' to prevent retract clauses from being called;
                   // i.e. make it look like the inner session has exited.
                   // Not sure this is useful for anything in particular.
-                  stratum.abort(true);
+                  stratum.abort().wait();
                 }];
       }
     });
@@ -333,7 +335,7 @@ exports.withBackgroundServices = withBackgroundServices;
 
 var GLOBAL_BACKGROUND_SERVICES;
 waitfor () {
-  spawn withBackgroundServices { 
+  @sys.spawn(-> withBackgroundServices { 
     |background_services|
     GLOBAL_BACKGROUND_SERVICES = background_services;
     try {
@@ -343,7 +345,7 @@ waitfor () {
     catch (e) {
       throw new Error("Uncaught error in global background services: "+e);
     }
-  }
+  });
 }
 
 /**
@@ -430,9 +432,7 @@ __js {
      - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
      - For `sync`=`true`, returns when the service is in state 'stopped' or 'terminated'.
      
-     Note that stopping a service does not *abort* the service - it just causes the block passed to the
-     service to exit. In practice this means that - in contrast to a service being torn down by the session 
-     exiting - 'retract' clauses in the service will not be executed.
+     Note that stopping a service effectively *aborts* the service. In practice this means that - similar to a service being torn down by the session exiting - 'retract' clauses in the service will be executed.
 
    @function IControlledService.terminate
    @param {Object} [exception] Exception to throw

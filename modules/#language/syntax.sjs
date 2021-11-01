@@ -479,9 +479,9 @@
 @desc
   In addition to the structured composition operators, StratifiedJS has the `spawn` operator to execute some code in the background in an unstructured fashion, similar to how you would "spawn a thread" in other programming languages:
 
-      spawn <expression>;
+      _task <expression>;
 
-  This *spawn expression* executes `expression` *synchronously* until `expression` suspends or finishes, and then returns a [./builtins::Stratum] object.
+  This *_task expression* executes `expression` *synchronously* until `expression` suspends or finishes, and then returns a [./builtins::Stratum] object.
 
   Further execution of `expression` proceeds asynchronously until it finishes or is aborted through a call to [./builtins::Stratum::abort].
 
@@ -751,7 +751,7 @@
   active. E.g. the following code will generate a runtime error, because by the time `f` is called, function `foo` has already returned:
 
       function foo(f) {
-        spawn (hold(100),f());
+        _task (hold(100),f());
       }
       
       foo { || console.log('blocklambda here'); break; }
@@ -766,13 +766,13 @@
         hold();
       }
 
-      spawn (function() { while (1) { if (callback) callback(); hold(1000); } })();
+      _task (function() { while (1) { if (callback) callback(); hold(1000); } })();
       foo { || console.log('blocklambda here'); break; }
 
    Conversely, this code works fine:
 
       function foo(f) {
-        spawn (function() { hold(1000); f(); })();
+        _task (function() { hold(1000); f(); })();
         hold();
       }
 
@@ -786,7 +786,7 @@
    on the other hand would work correctly:
 
       function foo(f) {
-        var stratum = spawn (function() { hold(1000); f(); })();
+        var stratum = _task (function() { hold(1000); f(); })();
         stratum.value();
       }
 
@@ -797,7 +797,7 @@
 
       function test() {
         function foo(f) {
-          var stratum = spawn (function() { hold(1000); f(); })();
+          var stratum = _task (function() { hold(1000); f(); })();
           stratum.value();
         }
 
@@ -819,7 +819,7 @@
 
       function test() {
         function foo(f) {
-          var stratum = spawn (function() { hold(1000); f(); })();
+          var stratum = _task (function() { hold(1000); f(); })();
           try {
             stratum.value();
           }

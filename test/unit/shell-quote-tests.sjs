@@ -5,7 +5,7 @@ var shellQuote = require('sjs:shell-quote');
 var {parse, quote} = shellQuote;
 var {each} = require('sjs:sequence');
 
-context("parsing") {||
+context("parsing", function() {
   testFn(shellQuote, 'parse', "'foo' bar baz", ['foo','bar','baz']);
   testFn(shellQuote, 'parse', "'foo'bar baz'frob'\"z\"", ['foobar','bazfrobz']);
   testFn(shellQuote, 'parse', "foo'bar'", ['foobar']);
@@ -28,14 +28,14 @@ context("parsing") {||
   testFn(shellQuote, 'parse', ' ', []);
   testFn(shellQuote, 'parse', "\t", []);
 
-  test('functional env expansion') {||
+  test('functional env expansion', function() {
     assert.eq(parse('a $XYZ c', getEnv), [ 'a', 'xxx', 'c' ]);
     function getEnv (key) {
       return 'xxx';
     }
-  };
+  });
 
-  test('expand environment variables') {||
+  test('expand environment variables', function() {
     assert.eq(parse('a $XYZ c', { XYZ: 'b' }), [ 'a', 'b', 'c' ]);
     assert.eq(parse('a${XYZ}c', { XYZ: 'b' }), [ 'abc' ]);
     assert.eq(parse('a${XYZ}c $XYZ', { XYZ: 'b' }), [ 'abc', 'b' ]);
@@ -53,19 +53,19 @@ context("parsing") {||
     assert.eq(parse('a $XYZ c', { XYZ: '"b"' }), [ 'a', '"b"', 'c' ]);
     assert.eq(parse('a $XYZ c', { XYZ: '$X', X: 5 }), [ 'a', '$X', 'c' ]);
     assert.eq(parse('a"$XYZ"c', { XYZ: "'xyz'" }), [ "a'xyz'c" ]);
-  }
+  })
 
-  test('special shell parameters') {||
+  test('special shell parameters', function() {
     var chars = '*@#?-$!0_'.split('');
     chars..each {|c|
       var env = {};
       env[c] = 'xxx';
       assert.eq(parse('a $' + c + ' c', env), [ 'a', 'xxx', 'c' ]);
     };
-  };
-}
+  });
+})
 
-context("quoting") {||
+context("quoting", function() {
 
   testFn(shellQuote, 'quote', ['single string'], "'single string'");
   testFn(shellQuote, 'quote', [[ 'a', 'b', 'c d' ]], 'a b \'c d\'');
@@ -73,7 +73,7 @@ context("quoting") {||
   testFn(shellQuote, 'quote', [[ '$', '`', '\'' ]], "'$' '`' \"'\"");
   testFn(shellQuote, 'quote', [[]], '');
   testFn(shellQuote, 'quote', [['quote\'s and "quotes"']], '"quote\'s and \\"quotes\\""');
-}
+})
 
 
 
@@ -96,13 +96,13 @@ var testRoundtrip = function(/* args */) {
 
   // on the server, we can just throw a bunch of quoted arrays at bash
   // and check they come out the same at the other end:
-  test("bash roundtrip: #{@inspect(args)}") {||
+  test("bash roundtrip: #{@inspect(args)}", function() {
     roundtripTests.bash(args);
-  }.serverOnly();
+  }).serverOnly();
 
-  test("shell-quote roundtrip: #{@inspect(args)}") {||
+  test("shell-quote roundtrip: #{@inspect(args)}", function() {
     roundtripTests.shellQuote(args);
-  }
+  })
 };
 testRoundtrip('word1', 'word2 word3');
 testRoundtrip('$foo');

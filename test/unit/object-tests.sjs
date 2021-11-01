@@ -58,7 +58,7 @@ testEq("merge multiple array arguments", {"a":1, "0": {"b":2}}, function() {
 	return o.merge(a, [b]);
 });
 
-context {||
+context(function() {
 	var Obj = function(props) {
 		o.extend(this, props);
 	};
@@ -76,39 +76,39 @@ context {||
 	testFn(o, "has", [obj, 'c'], true);
 	testFn(o, "hasOwn", [obj, 'c'], false);
 
-	context("get()") {||
+	context("get()", function() {
 		testEq("own key", "aye", -> obj .. o.get('a'));
 		testEq("inherited key", "cee", -> obj .. o.get('c'));
-		test("missing key") {||
+		test("missing key", function() {
 			assert.raises({message: 'Object (object) has no property: d'}, -> obj .. o.get('d'));
-		}
+		})
 		testEq("missing key with default", 'default', -> obj .. o.get('d', 'default'));
 		testEq("missing key with undefined default", undefined, -> obj .. o.get('d', undefined));
-	}
+	})
 
-	context("getOwn()") {||
+	context("getOwn()", function() {
 		testEq("own key", "aye", -> obj .. o.getOwn('a'));
-		test("inherited key") {||
+		test("inherited key", function() {
 			assert.raises({message: 'Object (object) has no property: c'}, -> obj .. o.getOwn('c'));
-		}
-	}
+		})
+	})
 
-	context("getPath") {||
+	context("getPath", function() {
 		var noChild = {'parent':{}};
 		var noGrandChild = {'parent':{'child':{}}};
 		var full = {'parent':{'child':{'grandchild':'found'}}};
 
 		testEq("valid path", 'found', -> full .. o.getPath('parent.child.grandchild'));
 
-		test("missing leaf") {||
+		test("missing leaf", function() {
 			assert.raises({message: "Object (object) has no property: grandchild (traversing: parent.child.grandchild)"},
 				-> noGrandChild .. o.getPath('parent.child.grandchild'));
-		}
+		})
 
-		test("missing branch") {||
+		test("missing branch", function() {
 			assert.raises({message: "Object (string) has no property: child (traversing: parent.child.grandchild)"},
 				-> {'parent':'child'} .. o.getPath('parent.child.grandchild'));
-		}
+		})
 
 		testEq("missing leaf with default", 'default',
 			-> noGrandChild .. o.getPath('parent.child.grandchild', 'default'));
@@ -121,17 +121,17 @@ context {||
 
     testEq("empty path array", full,
       -> full .. o.getPath([], 'default'));
-	}
+	})
 
-  context("setPath") {||
+  context("setPath", function() {
     testEq("set existing", {parent: {name: 'alice'}}, -> {parent: {name: 'bob'}} .. o.setPath('parent.name', 'alice'));
     testEq("set missing", {parent: {name: 'alice', sibling: 'eve'}}, -> {parent: {sibling: 'eve'}} .. o.setPath('parent.name', 'alice'));
     testEq("construct missing path", {a: {b: {c: 1}}}, -> o.setPath({}, 'a.b.c', 1));
     testEq("set root", 'alice', -> {parent: {name: 'bob'}} .. o.setPath('', 'alice'))
-  }
-}
+  })
+})
 
-context("override") {||
+context("override", function() {
   testEq("simple", {a:1, b:2, c:3}, -> {a:1, b:'nope', c:'nope'} .. o.override({b:2, c:3, d:4}));
   testEq("undefined", {a:1, b:2, c:3}, -> {a:1, b:2, c:3} .. o.override(undefined)); 
   testEq("multiple undefined", {a:1, b:2, c:3}, -> {a:1, b:2, c:3} .. o.override(undefined, undefined, undefined));
@@ -139,4 +139,4 @@ context("override") {||
   testEq("mixed array", {a:1, b:2, c:3}, -> {a:1, b:'nope', c:'nope'} .. o.override([undefined, {b:2, c:'nope2'}, {c:3, d:'nope'}])); 
   testEq("mixed nested array", {a:1, b:2, c:3}, -> {a:1, b:'nope', c:'nope'} .. o.override([[undefined], [[{b:2, c:'nope2'}, {c:3, d:'nope'}]]])); 
  
-}
+})

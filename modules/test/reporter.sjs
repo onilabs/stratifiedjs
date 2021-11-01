@@ -289,18 +289,18 @@ var LogReporterMixins = {
     ) {
       return;
     }
-
-    var pieces = seq.Stream {|emit|
+    var that = this;
+    var pieces = (seq.Stream:: function(emit) {
       diffs .. seq.indexed .. each {|[diffIdx, str]|
         var col = 'normal';
         if (str.added) col = addedColor;
         else if (str.removed) col = removedColor;
         str.value.split('\n') .. each {|line|
-          emit([lineno++, this.color(col, line)]);
+          emit([lineno++, that.color(col, line)]);
         }
         lineno--; // last list elem didn't actually end with a newline
       }
-    } .. toArray();
+    }) .. toArray();
 
     var snd = x -> x[1];
     var lines = pieces

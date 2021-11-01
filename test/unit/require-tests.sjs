@@ -11,13 +11,13 @@ var Url = require('sjs:url');
 
 var dataRoot = './fixtures';
 
-test.beforeAll {||
+test.beforeAll:: function() {
   // These shouldn't actually be set, but if they are (by accident)
   // it can mask real issues
   ;['exports', 'module'] .. each {|prop| delete global[prop] };
 
 }
-test.beforeEach {||
+test.beforeEach:: function() {
   require.modules .. ownKeys .. toArray() .. each {|id|
     if(id .. startsWith(Url.normalize('./fixtures', module.id))) {
       delete require.modules[id];
@@ -37,7 +37,7 @@ testEq('"this" object in modules', this, function() {
   return require(dataRoot + '/testmodule.js').bar.apply(global);
 });
 
-context("server-side") {||
+context("server-side", function() {
   var child_process = require('sjs:nodejs/child-process');
   var path = require('nodejs:path');
   var fs = require('sjs:nodejs/fs');
@@ -59,25 +59,25 @@ context("server-side") {||
     }
   }
   
-  test('sjs -e') {|s|
+  test('sjs -e', function(s) {
     var result = run_with_env(['-e', 'console.log("hi");'], null);
     result .. assert.eq({stdout: 'hi\n', stderr: ''})
-  }
+  })
   
-  test('hub resolution via $SJS_INIT') {|s|
+  test('hub resolution via $SJS_INIT', function(s) {
     var hub_path = path.join(dataPath, 'literal-hub.sjs');
     var script = 'console.log(require("literal:exports.hello=\'HELLO!\'").hello);';
     var result = run_with_env(['-e', script], {SJS_INIT: hub_path});
     result .. assert.eq({stdout: 'HELLO!\n', stderr: ''});
-  }
+  })
 
-  test('loading .sjs from NODE_PATH') {|s|
+  test('loading .sjs from NODE_PATH', function(s) {
     var script = 'try{}or{}; console.log(require("nodejs:child1.sjs").child1_function1());';
     var result = run_with_env(['-e', script], {NODE_PATH: dataPath});
     result .. assert.eq({stdout: '42\n', stderr: ''});
-  }
+  })
 
-  test('loading relative module from cwd()') {|s|
+  test('loading relative module from cwd()', function(s) {
     var script = 'console.log(require("./fixtures/child1").child1_function1())';
     var orig = process.cwd();
     try {
@@ -87,15 +87,15 @@ context("server-side") {||
       process.chdir(orig);
     }
     result .. assert.eq({stdout: '42\n', stderr: ''});
-  }
+  })
 
-  test('loading .sjs (without an extension) from NODE_PATH') {|s|
+  test('loading .sjs (without an extension) from NODE_PATH', function(s) {
     var script = 'waitfor{}or{}; console.log(require("nodejs:child1").child1_function1());';
     var result = run_with_env(['-e', script], {NODE_PATH: dataPath});
     result .. assert.eq({stdout: '42\n', stderr: ''});
-  }
+  })
 
-  test('require.resolve() on valid nodejs modules') {||
+  test('require.resolve() on valid nodejs modules', function() {
     // at least one of these will be installed (either it's a dev environment or a self-install bundle)
     var packages = [
       ['karma-sjs-adapter', path.join('karma-sjs-adapter', 'index.js')],
@@ -119,42 +119,42 @@ context("server-side") {||
       }
     }
     assert.ok(found > 0, "didn't find any nodejs packages");
-  }
+  })
 
-  test('require.resolve() on missing nodejs modules') {||
+  test('require.resolve() on missing nodejs modules', function() {
     assert.raises({message: "nodejs module at 'this_module_intentionally_missing' not found"}) {||
       require.resolve('nodejs:this_module_intentionally_missing');
     }
-  }
+  })
 
-  test('require inside a .js file is synchronous') {||
+  test('require inside a .js file is synchronous', function() {
     require('./fixtures/testmodule.js').dynamicRequire() .. assert.eq(1);
-  }.skip('BROKEN');
+  }).skip('BROKEN');
 
-  test('require.resolve on sjs file without .sjs extension') {||
+  test('require.resolve on sjs file without .sjs extension', function() {
     ['sjs-module','app-module.app'] .. each {|filename|
       var path = require.resolve("./fixtures/#{filename}").path;
       path .. endsWith(filename) .. assert.ok(path);
       require("./fixtures/#{filename}").ok() .. assert.ok("module self-check");
     }
-  }
+  })
 
-  test("relative node_modules resolution") {||
+  test("relative node_modules resolution", function() {
     var dep = require(dataRoot + '/npm_dep');
     dep.js.name .. assert.eq("dep1");
     dep.js.child.name .. assert.eq("dep2");
 
     dep.sjs.name .. assert.eq("dep1");
     dep.sjs.child().name .. assert.eq("dep2");
-  }
+  })
 
-}.serverOnly();
+}).serverOnly();
 
-test('require.resolve() on sjs modules') {||
+test('require.resolve() on sjs modules', function() {
   var sjsRoot = (require.hubs .. find(h -> h[0] === 'sjs:'))[1];
   assert.ok(sjsRoot);
   require.resolve('sjs:test/suite').path .. assert.eq(Url.normalize(sjsRoot + 'test/suite.sjs', module.id));
-}
+})
 
 testEq('utf8 characters in modules: U+00E9', 233, function() {
   var data = require(dataRoot + '/utf8').test1();
@@ -166,7 +166,7 @@ testEq('utf8 characters in modules: U+0192', 402, function() {
   return data.charCodeAt(data.length-1);
 });
 
-test('circular reference returns the unfinished module') {||
+test('circular reference returns the unfinished module', function() {
   var mod = require('./fixtures/circular_a');
   mod .. assert.eq({
     start: 1,
@@ -179,9 +179,9 @@ test('circular reference returns the unfinished module') {||
       }
     },
   });
-}.skip("CIRCULAR DEPS ARE NOW DISALLOWED");
+}).skip("CIRCULAR DEPS ARE NOW DISALLOWED");
 
-test('circular reference (loaded in parallel) returns the unfinished module') {||
+test('circular reference (loaded in parallel) returns the unfinished module', function() {
   waitfor {
     var mod = require('./fixtures/circular_a');
   } and {
@@ -198,9 +198,9 @@ test('circular reference (loaded in parallel) returns the unfinished module') {|
       }
     },
   });
-}.skip("CIRCULAR DEPS ARE NOW DISALLOWED");
+}).skip("CIRCULAR DEPS ARE NOW DISALLOWED");
 
-test('non-circular reference waits for the full module') {||
+test('non-circular reference waits for the full module', function() {
   var path = require.resolve('./fixtures/slow_exports').path;
   waitfor {
     require(path) .. ownKeys .. sort .. assert.eq(['fast_export', 'slow_export']);
@@ -215,9 +215,9 @@ test('non-circular reference waits for the full module') {||
     require.modules[path].exports .. ownKeys .. toArray .. assert.eq(['fast_export']);
     require(path) .. ownKeys .. sort .. assert.eq(['fast_export', 'slow_export']);
   }
-};
+});
 
-test('failed module does not end up in require.paths') {||
+test('failed module does not end up in require.paths', function() {
   var path = require.resolve('./fixtures/slow_error').path;
   waitfor {
     assert.raises({message: "intentional error"}, -> require(path));
@@ -233,39 +233,39 @@ test('failed module does not end up in require.paths') {||
     require.modules[path].exports .. ownKeys .. toArray .. assert.eq(['fast_export']);
     assert.raises({message: "intentional error"}, -> require(path));
   }
-};
+});
 
-context('hubs.defined()') {||
+context('hubs.defined()', function() {
   test('sjs:', -> require.hubs.defined("sjs:") .. assert.eq(true));
   test('github:', -> require.hubs.defined("github:") .. assert.eq(true));
   test('sj', -> require.hubs.defined("sj") .. assert.eq(true));
   test('sjs:somemod', -> require.hubs.defined("sjs:somemod") .. assert.eq(true));
   test('sjs_', -> require.hubs.defined("sjs_") .. assert.eq(false));
-}
+})
 
-context('hubs.addDefault()') {||
-  test.beforeEach {|s|
+context('hubs.addDefault()', function() {
+  test.beforeEach:: function(s) {
     s.hubs = require.hubs.slice();
     s.hublen = require.hubs.length;
   }
-  test.afterEach {|s|
+  test.afterEach:: function(s) {
     // reset require.hubs content
     // (but not the object itself, as it has methods not present on Array)
     require.hubs.splice.apply(require.hubs, [0, require.hubs.length].concat(s.hubs));
     require.hubs.length .. assert.eq(s.hubs.length); // sanity check
   }
 
-  test('for new hub') {|s|
+  test('for new hub', function(s) {
     require.hubs.addDefault(['newhub:', 'file:///']) .. assert.ok();
     require.hubs.length .. assert.eq(s.hublen + 1);
-  }
+  })
 
-  test('for existing hub') {|s|
+  test('for existing hub', function(s) {
     require.hubs.addDefault(['sjs:somemod', 'file:///']) .. assert.notOk();
     require.hubs.addDefault(['sj', 'file:///']) .. assert.notOk();
     require.hubs.length .. assert.eq(s.hublen);
-  }
-}
+  })
+})
 
 testEq('empty array', {}, function() {
   return require([]);

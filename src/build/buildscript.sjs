@@ -9,6 +9,7 @@
 var fs = require('sjs:nodejs/fs');
 var { extend } = require('sjs:object');
 var { each, transform, join } = require('sjs:sequence');
+var { memoize } = require('sjs:function');
 var sys = require('sjs:sys');
 var url = require('sjs:url');
 
@@ -576,17 +577,11 @@ function BUILD(target, task, deps) {
     deps.push("src/build/buildscript.sjs");
 
   // We only want to execute the builder once and return the memoized
-  // result on subsequent invocations. By utilizing a stratum and
-  // waitforValue(), we can additionally ensure that these semantics
+  // result on subsequent invocations. By utilizing `memoize`
+  // we can additionally ensure that these semantics
   // also work when the builder is called concurrently while it is
   // still running:
-  var stratum;
-  builders[target] = function() {
-    if (!stratum) {
-      stratum = spawn _run_builder(target, task, deps);
-    }
-    return stratum.waitforValue();
-  }
+  builders[target] = memoize:: -> _run_builder(target, task, deps);
 }
 
 // PSEUDO: Mark given target as a pseudo-target; i.e. there is no

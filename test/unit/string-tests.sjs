@@ -4,10 +4,10 @@ var testFn = testUtil.testFn;
 var str = require('sjs:string');
 var {test, context, assert} = require('sjs:test/suite');
 
-context("isString") {||
+context("isString", function() {
   test("on primitive", -> assert.ok(str.isString("str!")));
   test("on object", -> assert.ok(str.isString(new String("str!"))));
-}
+})
 
 testEq('utf16ToUtf8', 'c692', function() {
   // f with hook = U+0192 = c6 92 in utf-8
@@ -78,7 +78,7 @@ testEq('supplant', "Hello world 1", function() {
   return str.supplant("Hello {who} {version}", {who:"world", version:1});
 });
 
-test('supplant escaping') {||
+test('supplant escaping', function() {
   str.supplant("Hello \\{world} {version}", {version:1}) .. assert.eq('Hello {world} 1');
   
   // unbalanced brackets
@@ -87,7 +87,7 @@ test('supplant escaping') {||
 
   // escaping backslashes
   str.supplant("Hello \\\\{who}", {who:'world'}) .. assert.eq('Hello \\world');
-};
+});
 
 testEq('supplant evaluates functions', "Hello world 2", function() {
   var ctx = {
@@ -114,7 +114,7 @@ testEq('sanitize quotes', "foo&#39;s and &quot;bars&quot;", function() {
   return str.sanitize("foo's and \"bars\"");
 });
 
-context("substring tests") {||
+context("substring tests", function() {
   testEq('startsWith("foo", "oo")', false, function() { return str.startsWith("foo", "oo"); });
   testEq('startsWith("foo", "foo")', true, function() { return str.startsWith("foo", "foo"); });
   testEq('startsWith("foo", "f")', true, function() { return str.startsWith("foo", "f"); });
@@ -128,14 +128,14 @@ context("substring tests") {||
   test('contains("abcd", "bc")', -> str.contains("abcd", "bc") .. assert.ok());
   test('contains("abcd", "ba")', -> str.contains("abcd", "ba") .. assert.notOk());
 
-  test('substrings longer than inputs') {||
+  test('substrings longer than inputs', function() {
     // because indexOf() returns -1 on failure, we have to special case suffixes that are 1 char longer then the source
     'xxx' .. str.endsWith('yyyy') .. assert.eq(false);
     'xxx' .. str.startsWith('yyyy') .. assert.eq(false);
-  }
-}
+  })
+})
 
-context('strip') {||
+context('strip', function() {
   testEq('strip("\\t foo ")', 'foo', function() { return str.strip("\t foo "); });
   testEq('strip(",,foo,", ",")', 'foo', function() { return str.strip(",,foo,", ","); });
   testEq('strip("foo,bar,", ",")', 'foo,bar', function() { return str.strip("foo,bar,", ","); });
@@ -145,9 +145,9 @@ context('strip') {||
 
   testEq('rstrip(" foo\\t ")', ' foo', function() { return str.rstrip(" foo\t "); });
   testEq('rstrip("|foo||", "|")', '|foo', function() { return str.rstrip("|foo||", "|"); });
-}
+})
 
-context('split') {||
+context('split', function() {
   var NPG = ''.match(/(.)?/)[1]; // non-participating group result. This varies across browser, but we take whatever we get in `split`
 
   testFn(str, 'split', ['a b c d', ' ', 2], ['a','b','c d']);
@@ -172,7 +172,7 @@ context('split') {||
   testFn(str, 'rsplit', ['a b    ', /( +)/], ['a',' ', 'b', '    ', '']);
   testFn(str, 'rsplit', ['a b .c', /( +(\.)?)/], ['a',' ', NPG, 'b', ' .', '.', 'c']);
 
-  test('split edge cases') {||
+  test('split edge cases', function() {
     // from http://stevenlevithan.com/demo/split.cfm
     var split = str.split;
     ''..split()                                   .. assert.eq([""]);
@@ -227,10 +227,10 @@ context('split') {||
 
     ('A<B>bold</B>and' +
       '<CODE>coded</CODE>')..split(/<(\/)?([^<>]+)>/) .. assert.eq(["A", NPG, "B", "bold", "/", "B", "and", NPG, "CODE", "coded", "/", "CODE", ""]);
-  }
-}
+  })
+})
 
-context('padding') {||
+context('padding', function() {
   testFn(str, 'padLeft', ['x', 5     ], '    x');
   testFn(str, 'padLeft', ['x', 5, '-'], '----x');
   testFn(str, 'padRight',['x', 5     ], 'x    ');
@@ -247,9 +247,9 @@ context('padding') {||
   testFn(str, 'padRight',[123, 2], '123');
   testFn(str, 'padBoth', [123, 2], '123');
 
-}
+})
 
-context('unindent') {||
+context('unindent', function() {
   testFn(str, 'unindent', ['foo'], 'foo');
   testFn(str, 'unindent', ['  foo'], 'foo');
   testFn(str, 'unindent', ['  foo', 1], ' foo');
@@ -260,14 +260,14 @@ context('unindent') {||
   testFn(str, 'unindent', ['\t  foo  \n   bar  \n  \t baz', 2], ' foo  \n bar  \n\t baz');
   testFn(str, 'unindent', ['  foo  \n bar  \n   baz'], 'foo  \n bar  \n baz');
 
-}
+})
 
-context('capitalize') {||
+context('capitalize', function() {
   testFn(str, 'capitalize', ['foo bar'], 'Foo bar');  
   testFn(str, 'capitalize', [' foo bar'], ' foo bar');  
   testFn(str, 'capitalize', ['f'], 'F');  
   testFn(str, 'capitalize', [''], '');
-}
+})
 
 testEq('octetsToArrayBuffer', ['a','b','c'], function() {
   var buf = str.octetsToArrayBuffer('abc');
@@ -318,21 +318,21 @@ testEq('arrayBufferToOctets: large inputs', true, function() {
   return true;
 });
 
-context {||
+context(function() {
   var cafebuf = Buffer.from('636166c3a9', 'hex');
   var cafestr = 'caf\u00e9';
 
-  test("encode") {||
+  test("encode", function() {
     cafestr .. str.encode('utf-8') .. assert.eq(cafebuf);
     str.encode('utf-8')(cafestr) .. assert.eq(cafebuf);
     assert.raises({message:"Not a string"},
       -> str.encode(Buffer.from([]), 'hex'));
-  }
+  })
 
-  test('decode') {||
+  test('decode', function() {
     cafebuf .. str.decode('utf-8') .. assert.eq(cafestr);
     str.decode('utf-8')(cafebuf) .. assert.eq(cafestr);
     assert.raises({message:"Not a buffer"},
       -> str.decode('str', 'hex'));
-  }
-}.serverOnly();
+  })
+}).serverOnly();

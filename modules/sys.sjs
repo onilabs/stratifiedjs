@@ -63,6 +63,16 @@ module.exports = {
   getGlobal:s.getGlobal,
 
 /**
+   @function spawn
+   @summary Execute a function in the background
+   @param {Function} [f]
+   @desc
+     Strata spawned via this global spawn function will route any exceptions to the global
+     process. Unless an error handler is set, these will terminate the process in the nodejs hostenv.
+*/
+  spawn: s.spawn,
+
+/**
   @function eval
   @inlibrary sjs:std
   @inlibrary mho:std
@@ -161,7 +171,7 @@ module.exports = {
 
 /**
    @function isStratum
-   @summary  Tests if an object is a reified (i.e. spawned) stratum
+   @summary  Tests if an object is a reified stratum
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
@@ -199,7 +209,7 @@ module.exports = {
           @sys.withDynVarContext {
             ||
             @sys.setDynVar('foo', 'bar');
-            spawn (function() { 
+            _taskXXX (function() {
                      hold(1000);
                      @assert.is(@sys.getDynVar('foo'), 'bar'); // true
                    })();

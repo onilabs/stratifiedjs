@@ -1,5 +1,5 @@
 @ = require('sjs:test/std');
-@context {||
+@context(function() {
   @ .. @extend(require('sjs:nodejs/rimraf'));
   @stream = require('sjs:nodejs/stream');
   @crypto = require('nodejs:crypto');
@@ -23,7 +23,7 @@
     return tmp.TemporaryDir.apply(null, arguments);
   };
 
-  @test.beforeEach {|s|
+  @test.beforeEach:: function(s) {
     if (@fs.exists(tmproot)) {
       @rimraf(tmproot);
     }
@@ -35,7 +35,7 @@
     s.root = tmproot;
   }
 
-  @test.afterEach {|s|
+  @test.afterEach:: function(s) {
     var contents = @fs.readdir(s.root);
     try {
       contents .. @assert.eq([], "leftover files");
@@ -44,8 +44,8 @@
     }
   }
 
-  @context("TemporaryFile") {||
-    @test("creates a r/w file and removes it upon completion") {|s|
+  @context("TemporaryFile", function() {
+    @test("creates a r/w file and removes it upon completion", function(s) {
       var path = null;
       @TemporaryFile({prefix:"pre-", suffix: "-suff"}) {|f|
         f.path .. assertWithin(s.root);
@@ -84,18 +84,18 @@
       /^pre-.*-suff$/.test(filename) .. @assert.ok("Unexpected filename: #{filename}");
 
       @fs.exists(path) .. @assert.eq(false, "file still exists");
-    }
+    })
 
-    @test("creates a r/w file and leaves it if delete===false") {||
+    @test("creates a r/w file and leaves it if delete===false", function() {
       var path = null;
       @TemporaryFile({'delete':false}) {|f|
         path = f.path;
       }
       @fs.exists(path) .. @assert.ok("file got deleted");
       @fs.unlink(path);
-    }
+    })
 
-    @test("returns the file if no block given") {||
+    @test("returns the file if no block given", function() {
       var f = @TemporaryFile({'delete':false});
       try {
         f.file .. @assert.number();
@@ -104,23 +104,23 @@
         f.close();
         @fs.unlink(f.path);
       }
-    }
+    })
 
-    @test("allows the user to close the file before the end of the block") {||
+    @test("allows the user to close the file before the end of the block", function() {
       tmp.TemporaryFile {|f|
         'abcd' .. @stream.pump(f.writeStream());
         f.close();
         @fs.readFile(f.path, 'utf-8') .. @assert.eq("abcd");
       }
-    }
+    })
 
-    @test("ignores ENOENT on deletion") {||
+    @test("ignores ENOENT on deletion", function() {
       tmp.TemporaryFile {|f|
         @fs.unlink(f.path);
       }
-    }
+    })
 
-    @test("deletes file on error") {||
+    @test("deletes file on error", function() {
       var e = new Error("testing");
       var path;
       @assert.raises(e, function() {
@@ -131,16 +131,16 @@
         }
       });
       @fs.exists(path) .. @assert.falsy();
-    }
+    })
 
-    @test("permissions") {||
+    @test("permissions", function() {
       @TemporaryFile({}) {|f|
         var stats = @fs.fstat(f.file);
         @assert.eq(stats.mode.toString(8).slice(-3), '600');
       }
-    }.skipIf(@isWindows, "not implemented on Windows");
+    }).skipIf(@isWindows, "not implemented on Windows");
 
-    @test("retries on collision") {||
+    @test("retries on collision", function() {
       var _open = @fs.open;
       var _randomBytes = @crypto.randomBytes;
       var attempts = {}
@@ -173,11 +173,11 @@
         @crypto.randomBytes = _randomBytes;
         @fs.unlink(extantPath);
       }
-    }
-  }.skipIf(process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0);
+    })
+  }).skipIf(process.versions.node.split('.') .. @map(i -> parseInt(i, 10)) .. @cmp([0, 8]) < 0);
 
-  @context("TemporaryDir") {||
-    @test("creates and (recursively) removes a temporary directory") {|s|
+  @context("TemporaryDir", function() {
+    @test("creates and (recursively) removes a temporary directory", function(s) {
       var path;
       @TemporaryDir({}) {|p|
         path = p;
@@ -187,9 +187,9 @@
         @fs.writeFile(@path.join(path, "dir1", "file1"), "hello!");
       }
       @fs.exists(path) .. @assert.falsy();
-    }
+    })
 
-    @test("retries on collision") {||
+    @test("retries on collision", function() {
       var _mkdir = @fs.mkdir;
       var _randomBytes = @crypto.randomBytes;
       var attempts = {}
@@ -219,9 +219,9 @@
         @crypto.randomBytes = _randomBytes;
         @rimraf(extantPath);
       }
-    }
+    })
 
-    @test("leaves directory if delete===false") {||
+    @test("leaves directory if delete===false", function() {
       var path;
       @TemporaryDir({'delete':false}) {|p|
         path = p;
@@ -231,13 +231,13 @@
       } finally {
         @rimraf(path);
       }
-    }
+    })
 
-    @test("permissions") {||
+    @test("permissions", function() {
       @TemporaryDir({}) {|path|
         var stats = @fs.stat(path);
         @assert.eq(stats.mode.toString(8).slice(-3), '700');
       }
-    }.skipIf(@isWindows, "not implemented on Windows");
-  }
-}.serverOnly();
+    }).skipIf(@isWindows, "not implemented on Windows");
+  })
+}).serverOnly();

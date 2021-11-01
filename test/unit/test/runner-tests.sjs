@@ -24,21 +24,21 @@ var defaultOpts = {
 var throwError = function() { throw new Error("thrown error"); }
 
 // blanket check to make sure no test runs modify the log level:
-test.beforeEach{|s|
+test.beforeEach:: function(s) {
   s.initialLogLevel = logging.getLevel();
 }
-test.afterEach{|s|
+test.afterEach:: function(s) {
   assert.eq(logging.getLevel(), s.initialLogLevel, 'test has modified log level!');
 }
 
-context("hooks") {||
-  test.beforeEach {|s|
+context("hooks", function() {
+  test.beforeEach:: function(s) {
     s.runner = new Runner(defaultOpts);
     s.events = [];
   }
 
-  test("runs all before / after hooks") {|s|
-    s.runner.context("ctx") {||
+  test("runs all before / after hooks", function(s) {
+    s.runner.context("ctx", function() {
       test.beforeAll( -> s.events.push("before all"));
       test.beforeEach( -> s.events.push("before each 1"));
       test.beforeEach( -> s.events.push("before each 2"));
@@ -47,7 +47,7 @@ context("hooks") {||
       test.afterAll( -> s.events.push("after all 2"));
       test("1", -> s.events.push("test 1"));
       test("1", -> s.events.push("test 2"));
-    }
+    })
     var results = s.runner.run();
     assert.ok(results.ok())
     assert.equal(results.count(), 2)
@@ -65,10 +65,10 @@ context("hooks") {||
       'after all 1',
       'after all 2',
     ]);
-  }
+  })
 
-  test("runs nested before / after hooks") {|s|
-    s.runner.context("parent") {||
+  test("runs nested before / after hooks", function(s) {
+    s.runner.context("parent", function() {
       test.beforeAll( -> s.events.push("parent before all"));
       test.beforeEach( -> s.events.push("parent before each 1"));
       test.beforeEach( -> s.events.push("parent before each 2"));
@@ -77,14 +77,14 @@ context("hooks") {||
       test.afterAll( -> s.events.push("parent after all"));
       test("parent test", -> s.events.push("parent test"));
 
-      context("child") {||
+      context("child", function() {
         test.beforeAll( -> s.events.push("child before all"));
         test.beforeEach( -> s.events.push("child before each"));
         test.afterEach( -> s.events.push("child after each"));
         test.afterAll( -> s.events.push("child after all"));
         test("child test", -> s.events.push("child test"));
-      }
-    }
+      })
+    })
     var results = s.runner.run();
     assert.ok(results.ok())
     assert.equal(results.count(), 2)
@@ -108,56 +108,56 @@ context("hooks") {||
         
       'parent after all',
     ]);
-  }
+  })
 
-  test("stops on first error in before hooks") {|s|
-    s.runner.context("parent") {||
-      test.beforeEach{||
+  test("stops on first error in before hooks", function(s) {
+    s.runner.context("parent", function() {
+      test.beforeEach:: function() {
         s.events.push('parent before each');
         throwError();
       }
 
-      context("child") {||
-        test.beforeEach {||
+      context("child", function() {
+        test.beforeEach:: function() {
           s.events.push('child before each');
         }
         test("child test", -> s.events.push("child test"));
-      }
-    }
+      })
+    })
     var results = s.runner.run();
     assert.equal(s.events, [
       'parent before each',
     ]);
     assert.notOk(results.ok())
     assert.equal(results.count(), 1)
-  }
+  })
 
-  test("fails if there is an error in afterEach hooks (after running all hooks)") {|s|
+  test("fails if there is an error in afterEach hooks (after running all hooks)", function(s) {
     var watcher = new CollectWatcher();
-    s.runner.context("grandparent") {||
-      test.afterEach{||
+    s.runner.context("grandparent", function() {
+      test.afterEach:: function() {
         s.events.push('grandparent after each');
         throw new Error('grandparent afterEach error');
       }
 
-      context("parent") {||
-        test.afterEach{||
+      context("parent", function() {
+        test.afterEach:: function(){
           s.events.push('parent after each');
           throw new Error('parent afterEach error');
         }
 
-        context("child") {||
-          test.afterEach {||
+        context("child", function() {
+          test.afterEach:: function(){
             s.events.push('child after each');
           }
           test("child test 1", -> s.events.push('child test 1'));
-          test("child test 2") {||
+          test("child test 2", function() {
             s.events.push('child test 2');
             throw new Error("child test error");
-          }
-        }
-      }
-    }
+          })
+        })
+      })
+    })
     var results = s.runner.run(watcher);
     assert.eq(s.events, [
       'child test 1',
@@ -178,13 +178,13 @@ context("hooks") {||
     assert.equal(results.count(), 2)
     assert.equal(results.passed, 0)
     assert.equal(results.failed, 2)
-  }
+  })
 
-  test("fails the suite if an afterAll hook fails") {||
-  }
-}
+  test("fails the suite if an afterAll hook fails", function() {
+  })
+})
 
-context("filtering") {||
+context("filtering", function() {
   var runWithFilter = function (filters, args) {
     var loaded = [];
     var tests_run = [];
@@ -212,23 +212,23 @@ context("filtering") {||
     };
   }
 
-  test("on exact relative path") {||
+  test("on exact relative path", function() {
     var run = runWithFilter([{file: "fixtures/test_1.sjs"}]);
     run.files .. assert.eq(["test_1.sjs"]);
     run.results.ok() .. assert.ok("result failed");
-  }
+  })
 
-  test("on parent directory") {||
+  test("on parent directory", function() {
     var run = runWithFilter([{file: "fixtures"}]);
     run.files .. assert.eq(["test_1.sjs", "test_12.sjs", "test_2.sjs"]);
-  }
+  })
 
-  test("unions filters") {||
+  test("unions filters", function() {
     var run = runWithFilter([{file: "fixtures/test_1.sjs"}, {file: "fixtures/test_2.sjs"}]);
     run.files .. assert.eq(["test_1.sjs", "test_2.sjs"]);
-  }
+  })
 
-  test("supports paths relative to cwd()") {||
+  test("supports paths relative to cwd()", function() {
     var sjsRoot = require('sjs:sys').executable .. require('nodejs:path').dirname;
     var cwd = process.cwd();
     process.chdir(sjsRoot);
@@ -238,9 +238,9 @@ context("filtering") {||
     } finally {
       process.chdir(cwd);
     }
-  }.serverOnly("no cwd");
+  }).serverOnly("no cwd");
 
-  test("requires exact match") {||
+  test("requires exact match", function() {
     assert.raises(
       {message: 'Some filters didn\'t match anything: {"file":"test_1"}'},
       -> runWithFilter([{file: "test_1"}]));
@@ -248,15 +248,15 @@ context("filtering") {||
     assert.raises(
       {message: 'Some filters didn\'t match anything: {"file":"fixtures/test"}'},
       -> runWithFilter([{file: "fixtures/test"}]));
-  }
+  })
 
-  test("fails suite if not all file filters were used") {||
+  test("fails suite if not all file filters were used", function() {
     assert.raises(
       {message: 'Some filters didn\'t match anything: {"file":"fixtures/test_34.sjs"}'},
       -> runWithFilter([{file: "fixtures/test_1.sjs"}, {file: "fixtures/test_34.sjs"}]));
-  }
+  })
 
-  test("on test name substring") {||
+  test("on test name substring", function() {
     var run = runWithFilter([{test: "test o"}]);
     run.tests .. assert.eq([
       "fixtures/test_1.sjs:test_1 context_1:test one",
@@ -265,18 +265,18 @@ context("filtering") {||
       "fixtures/test_2.sjs:test_2 context_2:test one",
     ]);
     run.results.ok() .. assert.ok();
-  }
+  })
 
-  test("on context + test name substring") {||
+  test("on context + test name substring", function() {
     var run = runWithFilter([{test: "context_1:test one"}]);
     run.tests .. assert.eq([
       "fixtures/test_1.sjs:test_1 context_1:test one",
       "fixtures/test_2.sjs:test_2 context_1:test one",
     ]);
     run.results.ok() .. assert.ok();
-  }
+  })
 
-  test("on both module and test") {||
+  test("on both module and test", function() {
     var run = runWithFilter([{file: "fixtures/test_1.sjs", test: "test one"},{file: "fixtures/test_2.sjs", test: "test two"},]);
     run.tests .. assert.eq([
       "fixtures/test_1.sjs:test_1 context_1:test one",
@@ -285,15 +285,15 @@ context("filtering") {||
       "fixtures/test_2.sjs:test_2 context_2:test two",
     ]);
     run.results.ok() .. assert.ok();
-  }
+  })
 
-  test("fails suite if unused") {||
+  test("fails suite if unused", function() {
     assert.raises(
       {message: 'Some filters didn\'t match anything: {"test":"test three"}'},
       -> runWithFilter([{test: "test three"}]));
-  }
+  })
 
-  test("running only skipped tests") {||
+  test("running only skipped tests", function() {
     // i.e get a report of all skipped tests
     var run = runWithFilter([], ['--skipped']);
     run.tests .. assert.eq([
@@ -301,18 +301,18 @@ context("filtering") {||
       "fixtures/test_12.sjs:skipped_2",
     ]);
     run.results.ok() .. assert.ok();
-  }
+  })
 
-  test("running only skipped tests with filter") {||
+  test("running only skipped tests with filter", function() {
     // i.e get a report of all skipped tests
     var run = runWithFilter([{file: "fixtures/test_1.sjs"}], ['--skipped']);
     run.tests .. assert.eq([]);
     run.results.ok() .. assert.ok();
-  }
-}
+  })
+})
 
-context("logging") {||
-  test("sets log level during tests (and reverts afterwards)") {||
+context("logging", function() {
+  test("sets log level during tests (and reverts afterwards)", function() {
     var original_level = logging.getLevel();
     var new_level = original_level + 10;
 
@@ -321,21 +321,21 @@ context("logging") {||
     }));
 
     var test_log_level = null;
-    runner.context("test") {||
-      test("1") {||
+    runner.context("test", function() {
+      test("1", function() {
         test_log_level = logging.getLevel();
-      }
-    }
+      })
+    })
     var results = runner.run();
     assert.ok(results.ok());
 
     assert.ok(logging.getLevel(), original_level);
     assert.ok(test_log_level, new_level);
-  }
-}
+  })
+})
 
-context("test state") {||
-  test("before / after shares state") {||
+context("test state", function() {
+  test("before / after shares state", function() {
     var runner = new Runner(defaultOpts);
     var context_state = null;
     var before_all_state = null;
@@ -344,36 +344,36 @@ context("test state") {||
     var after_each_state = [];
     var test_state = [];
 
-    runner.context("ctx") {|state|
+    runner.context("ctx", function(state) {
       state.contextLevel = true;
       context_state = state;
 
-      test.beforeAll { |state|
+      test.beforeAll:: function(state) {
         state.contextLevel = true;
         before_all_state = state;
       }
-      test.afterAll { |state|
+      test.afterAll:: function(state) {
         after_all_state = state;
       }
 
-      test.beforeEach { |state|
+      test.beforeEach:: function(state){
         state.testLevel = true;
         before_each_state.push(state);
       }
 
-      test.afterEach { |state|
+      test.afterEach:: function(state) {
         after_each_state.push(state);
       }
 
-      test("test 1") { |state|
+      test("test 1", function(state) {
         state.test1 = true;
         test_state.push(state);
-      }
-      test("test 1") { |state|
+      })
+      test("test 1", function(state) {
         state.test2 = true;
         test_state.push(state);
-      }
-    }
+      })
+    })
     var results = runner.run();
     results.ok() .. assert.ok(debug.inspect(results));
     
@@ -406,24 +406,24 @@ context("test state") {||
       assert.ok(list[0] === first_test_state);
       assert.ok(list[1] === second_test_state);
     }
-  }
+  })
 
-  test("context level state inherits from parent context") {||
+  test("context level state inherits from parent context", function() {
     var runner = new Runner(defaultOpts);
     var parent_state = null;
     var ctx_state = null;
 
-    runner.context("parent ctx") {||
-      test.beforeAll {|state|
+    runner.context("parent ctx", function() {
+      test.beforeAll:: function(state) {
         parent_state = state;
       }
-      context("ctx") {||
-        test.beforeAll {|state|
+      context("ctx", function() {
+        test.beforeAll:: function(state) {
           ctx_state = state;
         }
         test("test", -> null);
-      }
-    }
+      })
+    })
 
     var results = runner.run();
     results.ok() .. assert.ok(debug.inspect(results));
@@ -431,10 +431,10 @@ context("test state") {||
     // context level states
     assert.notOk(ctx_state == parent_state);
     assert.ok(parent_state.isPrototypeOf(ctx_state), "parent is not prototype of ctx");
-  }
-}
+  })
+})
 
-context("argument parsing") {||
+context("argument parsing", function() {
   var opts = {
     base: module.id,
     logLevel: null,
@@ -445,39 +445,39 @@ context("argument parsing") {||
   };
   var parseSpecs = (args) -> runnerMod.getRunOpts(opts, args).testSpecs
 
-  test('options') {||
+  test('options', function() {
     runnerMod.getRunOpts(opts, ['--color=auto']).color .. assert.eq('auto');
     runnerMod.getRunOpts(opts, ['--loglevel=info']).logLevel .. assert.eq(logging.INFO);
     runnerMod.getRunOpts(opts, ['--loglevel=INFO']).logLevel .. assert.eq(logging.INFO);
     runnerMod.getRunOpts(opts, ['--logcapture']).logCapture .. assert.eq(true);
     runnerMod.getRunOpts(opts, ['--no-logcapture']).logCapture .. assert.eq(false);
     runnerMod.getRunOpts(opts, ['--bail']).bail .. assert.eq(true);
-  }
+  })
 
-  test('invalid options') {||
+  test('invalid options', function() {
     assert.raises({message: 'unknown color mode: whatever'}, -> runnerMod.getRunOpts(opts, ['--color=whatever']));
     assert.raises({message: 'unknown log level: LOUD'}, -> runnerMod.getRunOpts(opts, ['--loglevel=loud']));
     assert.raises({message: 'unknown option: "--foo"'}, -> runnerMod.getRunOpts(opts, ['--foo']));
     assert.raises(-> runnerMod.getRunOpts(opts, ['--help']));
-  }
+  })
 
-  test('test specs') {||
+  test('test specs', function() {
     parseSpecs(['filename']) .. assert.eq([{file: 'filename'}]);
     parseSpecs(['filename:testname']) .. assert.eq([{file: 'filename', test:'testname'}]);
     parseSpecs([':testname']) .. assert.eq([{test:'testname'}]);
     parseSpecs([':testname:with : colons']) .. assert.eq([{test:'testname:with : colons'}]);
     parseSpecs(['file1', ':text']) .. assert.eq([{file: 'file1'}, {test:'text'}]);
     parseSpecs(['--', '--logcapture']) .. assert.eq([{file: '--logcapture'}]);
-  }
+  })
 
-  test('invalid test specs') {||
+  test('invalid test specs', function() {
     assert.raises({message: "empty testspec"}, -> parseSpecs(['']));
-  }
-}
+  })
+})
 
-context("global variable leaks") {||
+context("global variable leaks", function() {
 
-  test.afterEach {||
+  test.afterEach:: function() {
     // clean up any globals that may have been added
     var g = sys.getGlobal();
     delete g.foo;
@@ -486,11 +486,11 @@ context("global variable leaks") {||
   }
 
   var tests;
-  var fooTest = -> test('new global `foo`') {|| foo = 12; }
-  var barTest = -> test('new global `bar`') {|| bar = 12; }
-  var bazTest = -> test('new global `baz`') {|| baz = 12; }
+  var fooTest = -> test('new global `foo`', function() { foo = 12; })
+  var barTest = -> test('new global `bar`', function() { bar = 12; })
+  var bazTest = -> test('new global `baz`', function() { baz = 12; })
 
-  test.beforeEach {|s|
+  test.beforeEach:: function(s) {
     s.watcher = new CollectWatcher();
     s.opts = defaultOpts .. merge({
       base: module.id,
@@ -500,8 +500,8 @@ context("global variable leaks") {||
     s.runner = new Runner(s.opts);
   }
     
-  test('fails on unexpected global') {|s|
-    s.runner.context("root") {|| fooTest(); barTest(); bazTest();}
+  test('fails on unexpected global', function(s) {
+    s.runner.context("root", function() { fooTest(); barTest(); bazTest();})
     s.runner.run();
 
     assert.eq(s.watcher.conciseResults(), [
@@ -509,138 +509,138 @@ context("global variable leaks") {||
       ['new global `bar`', null],
       ['new global `baz`', "Test introduced additional global variable(s): baz"],
     ]);
-  }
+  })
 
-  test('allows any globals per-test') {|s|
-    s.runner.context("root") {|| fooTest().ignoreLeaks(); }
+  test('allows any globals per-test', function(s) {
+    s.runner.context("root", function() { fooTest().ignoreLeaks(); })
     s.runner.run();
 
     assert.eq(s.watcher.conciseResults(), [
       ['new global `foo`', null],
     ]);
-  }
+  })
 
-  test('allows any globals per-context') {|s|
-    s.runner.context("root") {|| fooTest(); }.ignoreLeaks();
+  test('allows any globals per-context', function(s) {
+    s.runner.context("root", function() { fooTest(); }).ignoreLeaks();
     s.runner.run();
 
     assert.eq(s.watcher.conciseResults(), [
       ['new global `foo`', null],
     ]);
-  }
+  })
 
-  test('allows specific globals per-test') {|s|
-    s.runner.context("root") {|| fooTest().ignoreLeaks(["foo"]); bazTest().ignoreLeaks(["not_one"]); }
+  test('allows specific globals per-test', function(s) {
+    s.runner.context("root", function() { fooTest().ignoreLeaks(["foo"]); bazTest().ignoreLeaks(["not_one"]); })
     s.runner.run();
 
     assert.eq(s.watcher.conciseResults(), [
       ['new global `foo`', null],
       ['new global `baz`', "Test introduced additional global variable(s): baz"],
     ]);
-  }
+  })
 
-  test('ignores unexpected globals if --ignore-leaks is given') {|s|
+  test('ignores unexpected globals if --ignore-leaks is given', function(s) {
     var opts = runnerMod.getRunOpts(s.opts .. merge({reporter: s.watcher}), ['--ignore-leaks'])
     var runner = new Runner(opts);
     runner.context("root", fooTest);
     runner.run(s.watcher.run).ok() .. assert.ok();
-  }
-}.skipIf(suite.isIE() && suite.ieVersion() < 9, "not supported on IE<9");
+  })
+}).skipIf(suite.isIE() && suite.ieVersion() < 9, "not supported on IE<9");
 
-context("uncaught exceptions") {||
-  test("fail the current test if it is still running") {||
+context("uncaught exceptions", function() {
+  test("fail the current test if it is still running", function() {
     var watcher = new CollectWatcher();
     var runner = new Runner(defaultOpts);
-    runner.context("root") {||
-      test("one") {||
-        spawn(function() {
+    runner.context("root", function() {
+      test("one", function() {
+        sys.spawn(function() {
           hold(1);
           logging.info("throwing");
           throw new Error("strata error (This error is deliberately generated by the test suite!)");
-        }());
+        });
         hold(1000);
-      }
-    }
+      })
+    })
     var results = runner.run(watcher);
     logging.info("runner finished");
     results.ok() .. assert.notOk();
     watcher.results[0].ok .. assert.notOk("test passed!");
-  }
+  })
 
-  test("fail the next test, if there is one") {||
+  test("fail the next test, if there is one", function() {
     var watcher = new CollectWatcher();
     var runner = new Runner(defaultOpts);
-    runner.context("root") {||
-      test("one") {||
-        spawn(function() {
+    runner.context("root", function() {
+      test("one", function() {
+        sys.spawn(function() {
           hold(1);
           logging.info("throwing");
           throw new Error("strata error (This error is deliberately generated by the test suite!)");
-        }());
-      }
-      test("two") {||
+        });
+      });
+      test("two", function() {
         logging.info("test two starting");
         hold(100);
         logging.info("test two finished");
-      }
-    }
+      })
+    })
     var results = runner.run(watcher);
     logging.info("runner finished");
     results.ok() .. assert.notOk();
     watcher.results[0].ok .. assert.ok("first test not ok!");
     watcher.results[1].ok .. assert.notOk("second test passed!");
-  }
+  })
 
-  test("fail the suite even if there is no test to fail") {||
+  test("fail the suite even if there is no test to fail", function() {
     var runner = new Runner(defaultOpts);
-    runner.context("root") {||
-      test.afterAll {||
+    runner.context("root", function() {
+      test.afterAll:: function() {
         hold(100);
       }
-      test("one") {||
-        spawn(function() {
+      test("one", function() {
+        sys.spawn(function() {
           hold(1);
           logging.info("throwing");
           throw new Error("strata error (This error is deliberately generated by the test suite!)");
-        }());
-      }
-    }
+        });
+      })
+    })
     var results = runner.run();
     results.ok() .. assert.notOk("results passed!");
     results.failed .. assert.eq(0, "test failed");
-  }
+  })
 
   //UNTESTABLE: kills the process if there is no unfinished test result instance.
-}
+})
 
-context("timeout") {||
-  test("fails the active test if timeout is exceeded") {||
+context("timeout", function() {
+  test("fails the active test if timeout is exceeded", function() {
     var watcher = new CollectWatcher();
     var opts = runnerMod.getRunOpts(defaultOpts, ['--timeout=0.2'])
     var runner = new Runner(opts);
-    runner.context("root") {||
-      test("short") {||
+    runner.context("root", function() {
+      test("short", function() {
         hold(100);
-      }
+      })
 
-      test("long") {||
+      test("long", function() {
         hold(250);
-      }
+      })
 
-      test("timeout overridden") {||
+      test("timeout overridden", function() {
         hold(250);
-      }.timeout(0.3);
+      }).timeout(0.3);
 
-      context("timeout overridden") {||
-        test("sub-test") {||
+      context("timeout overridden", function() {
+        test("sub-test", function() {
           hold(250);
-        }
-      }.timeout(0.3);
+        })
+      }).timeout(0.3);
 
-      test("no timeout") {||
+      test("no timeout", function() {
         hold(250);
-      }.timeout(null);
-    }
+      }).timeout(null);
+    })
     runner.run(watcher);
     watcher.conciseResults() .. assert.eq([
       ["short", null],
@@ -649,27 +649,27 @@ context("timeout") {||
       ["sub-test", null],
       ["no timeout", null],
     ]);
-  }
+  })
 
-  test("does not skip or abort hooks on timeout") {||
+  test("does not skip or abort hooks on timeout", function() {
     var watcher = new CollectWatcher();
     var opts = runnerMod.getRunOpts(defaultOpts, ['--timeout=0.2'])
     var hooksCompleted = 0;
     var bodiesCompleted = 0;
     var runner = new Runner(opts);
-    runner.context("root") {||
-      test.afterEach {||
+    runner.context("root", function() {
+      test.afterEach:: function() {
         hold(300);
         hooksCompleted += 1;
       }
-      test("quick") {||
+      test("quick", function() {
         bodiesCompleted += 1;
-      }
-      test("slow") {||
+      })
+      test("slow", function() {
         hold(250);
         bodiesCompleted += 1;
-      }
-    }
+      })
+    })
     runner.run(watcher);
     watcher.conciseResults() .. assert.eq([
       ["quick",null],
@@ -677,30 +677,30 @@ context("timeout") {||
     ]);
     assert.eq(hooksCompleted, 2);
     assert.eq(bodiesCompleted, 1);
-  }
+  })
 
-  test("before hooks are subject to `timeout`") {||
+  test("before hooks are subject to `timeout`", function() {
     var watcher = new CollectWatcher();
     var opts = runnerMod.getRunOpts(defaultOpts, ['--timeout=0.2'])
     var runner = new Runner(opts);
 
-    runner.context("root") {||
-      context {||
+    runner.context("root", function() {
+      context(function() {
         test.beforeEach(-> hold(1000));
         test("test beforeEach", -> null);
-      }
+      })
 
-      context {||
+      context(function() {
         test.afterEach(-> hold(1000));
         test("test afterEach", -> null);
-      }
+      })
 
-      context {||
+      context(function() {
         test.afterAll(-> hold(1000));
         test("test afterAll", -> null);
-      }
+      })
 
-    }
+    })
 
     runner.run(watcher);
     watcher.conciseResults() .. assert.eq([
@@ -711,72 +711,72 @@ context("timeout") {||
 
 
     var runner = new Runner(opts);
-    runner.context("root") {||
+    runner.context("root", function() {
       test.beforeAll(-> hold(1000));
       test("test beforeAll", -> null);
-    }
+    })
     var results = runner.run(watcher);
     logging.info("RESULTS:", results);
     results.total .. assert.eq(1);
     results.passed + results.failed + results.skipped .. assert.eq(0);
     results.ok() .. assert.eq(false);
-  }
-}
+  })
+})
 
-context("bail") {||
-  test("stops after the first failure") {||
+context("bail", function() {
+  test("stops after the first failure", function() {
     var watcher = new CollectWatcher();
     var opts = runnerMod.getRunOpts(defaultOpts, ['--bail'])
     var runner = new Runner(opts);
-    runner.context("root") {||
+    runner.context("root", function() {
       test("ok", -> null);
       test("fail1", -> assert.fail());
       test("fail2", -> assert.fail());
-    }
+    })
     runner.run(watcher);
     watcher.conciseResults() .. assert.eq([
       ["ok", null],
       ["fail1", "Failed"],
     ]);
-  }
+  })
 
-  test("stops after the first async failure") {||
+  test("stops after the first async failure", function() {
     var watcher = new CollectWatcher();
     var opts = runnerMod.getRunOpts(defaultOpts, ['--bail'])
     var runner = new Runner(opts);
-    runner.context("root") {||
+    runner.context("root", function() {
       test("ok", -> null);
-      test("fail1") {||
-        spawn(function() {
+      test("fail1", function() {
+        sys.spawn(function() {
           hold(0);
           throw new Error("strata error (This error is deliberately generated by the test suite!)");
-        }());
+        });
         hold(500);
-      };
+      });
       test("fail2", -> assert.fail());
-    }
+    })
     runner.run(watcher);
     watcher.conciseResults() .. assert.eq([
       ["ok", null],
       ["fail1", "strata error (This error is deliberately generated by the test suite!)"],
     ]);
-  }
-}
+  })
+})
 
-test("dynamic skipping") {||
+test("dynamic skipping", function() {
   var watcher = new CollectWatcher();
   var opts = runnerMod.getRunOpts(defaultOpts, [])
   var runner = new Runner(opts);
-  runner.context("root") {||
+  runner.context("root", function() {
     test("ok", -> null);
     test("skip", function() {
       skipTest("dynamic skip");
       assert.fail();
     });
-  }
+  })
   runner.run(watcher);
   watcher.conciseResults() .. assert.eq([
     ["ok", null],
     ["skip", null],
   ]);
-}
+})

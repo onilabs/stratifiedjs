@@ -3,7 +3,7 @@ var {test, context, assert} = require('sjs:test/suite');
 var {each, map} = require('sjs:sequence');
 var regexp = require('sjs:regexp');
 
-test('escape') {||
+test('escape', function() {
   var specials = [
     '.', '*', '+', '?', '^', '=', '!', ':', '$',
     '{', '}', '(', ')', '|', '[', ']', '/', '\\'
@@ -24,23 +24,23 @@ test('escape') {||
 
   var re = new RegExp(escaped);
   re.exec(allSpecials) .. assert.ok("#{allSpecials} incorrectly escaped");
-}
+})
 
-context('matches') {||
-  test("returns all matches") {||
+context('matches', function() {
+  test("returns all matches", function() {
     "foof far faz" .. regexp.matches(/f./g) .. map(m -> m[0]) .. assert.eq(['fo', 'f ', 'fa', 'fa']);
-  }
+  })
 
-  test("rejects a non-global regexp") {||
+  test("rejects a non-global regexp", function() {
     assert.raises( -> "foof far faz" .. regexp.matches(/f./));
-  }
+  })
 
-  test("handles a zero-width regexp") {||
+  test("handles a zero-width regexp", function() {
     // not actually useful, but we need to make sure it doesn't loop infinitely
     "abc" .. regexp.matches(/()/g) .. map(m -> [m[0], m.index]) .. assert.eq([
       ["", 0],
       ["", 1],
       ["", 2],
       ["", 3]]);
-  }
-}
+  })
+})

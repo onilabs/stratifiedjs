@@ -2,7 +2,7 @@
  *  thus the use of a running "line" variable to provide a base.
  */
 
-var test = require('../lib/testUtil').test, puts = require('sjs:logging').print;
+var test = require('../lib/testUtil').test, puts = require('sjs:logging').print, sys = require('sjs:sys');
 var clean_stack = function(e) { return String(e).replace(/(?:file|http)[^ ]*stack-tests.sjs/g, 'this_file').replace(/(?:file|http)[^ ]*fixtures/g, "fixtures").replace(/^ *at ([^ ]* \()?/mg, '').replace(/(:[\d]+):[\d]+\)$/gm, '$1').replace(/\nthis_file:11$/, ''); }; // This could really do with some work ;)
 var remove_message = function(s) { return s.replace(/^(Type)?Error(: [^\n]*)?\n/m, ''); };
 var line;
@@ -534,44 +534,44 @@ test('stack from blocklambda', 'this_file:' + (line+7) + '\nthis_file:' + (line 
 });
 
 line=536;
-test('stack from spawn/value async', 'this_file:'+(line+3)+'\nthis_file:'+(line+4)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+8), function() {
+test('stack from spawn async', 'this_file:'+(line+3)+'\nthis_file:'+(line+4)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+8), function() {
   var S;
   function foo() { hold(0); throw new Error(); } // +3
-  function bar() { S = spawn foo(); } // +4
-  function boo() { S.value(); } // + 5
+  function bar() { S = reifiedStratum.spawn(foo); hold(); } // +4
+  function boo() { bar(); } // + 5
   function  baz() { 
-    bar(); // + 7
+    /**/ // + 7
     boo(); // + 8
   }
   return stack_from_running(baz);
 });
 
 line=549;
-test('stack from spawn/value semi-sync', 'this_file:'+(line+3)+'\nthis_file:'+(line+4)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+8), function() {
+test('stack from spawn sync', 'this_file:'+(line+3)+'\nthis_file:'+(line+4)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+8), function() {
   var S;
-  function foo() { hold(0); throw new Error(); } // +3
-  function bar() { S = spawn foo(); hold(0);} // +4
-  function boo() { S.value(); } // + 5
+  function foo() { throw new Error(); } // +3
+  function bar() { S = reifiedStratum.spawn(foo); hold();} // +4
+  function boo() { bar(); } // + 5
   function  baz() { 
-    bar(); // + 7
+    /**/ // + 7
     boo(); // + 8
   }
   return stack_from_running(baz);
 });
 
 line=562;
-test('stack from spawn/abort async', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+16), function() {
+test('stack from spawn/abort async', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+8)+'\nthis_file:'+(line+12), function() {
   var S;
   function foo() { try { hold(); } 
                    finally { hold(0); throw new Error(); } } // +4
   function bar() { 
-    S = spawn foo(); // + 6
+    S = reifiedStratum.spawn(foo); hold(); // + 6
   } 
-  function boo() { S.value(); } // + 8
+  function boo() { bar(); } // + 8
   function  baz() { 
-    bar(); // + 8
+    /**/ // + 8
     waitfor {
-      boo(); // + 12 - should be swallowed by latter exception
+      boo(); // + 12
     }
     or {
       hold(0);
@@ -582,18 +582,18 @@ test('stack from spawn/abort async', 'this_file:'+(line+4)+'\nthis_file:'+(line+
 });
 
 line=584;
-test('stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+16), function() {
+test('stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+8)+'\nthis_file:'+(line+12), function() {
   var S;
   function foo() { try { hold(); } 
                    finally { throw new Error(); } } // +4
   function bar() { 
-    S = spawn foo(); // + 6
+    S = reifiedStratum.spawn(foo); hold(); // + 6
   } 
-  function boo() { S.value(); } // + 8
+  function boo() { bar(); } // + 8
   function  baz() { 
-    bar(); // + 8
+    /**/ // + 8
     waitfor {
-      boo(); // + 12 - should be swallowed by latter exception
+      boo(); // + 12
     }
     or {
       hold(0);
@@ -604,7 +604,7 @@ test('stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\n
 });
 
 line=606;
-test('inner stack from spawn/abort sync', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10)+'\nthis_file:'+(line+14)+'\nthis_file:'+(line+15), function() {
+test('inner stack from spawn/abort sync', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10)+'\nthis_file:'+(line+14)+'\nthis_file:'+(line+13)+'\nthis_file:'+(line+17), function() {
   var S;
   function foo() { try { hold(); } 
                    finally { throw new Error(); } } // +4
@@ -616,15 +616,15 @@ test('inner stack from spawn/abort sync', 'this_file:'+(line+4)+'\nthis_file:'+(
     return bar(); // + 10
   }
 
-  var  S = spawn (function() { 
-    baz(); // +14
-  })(); // +15
+  var  S, f = function() { reifiedStratum.spawn(function() { 
+    baz(); hold(); // +14
+  }); } // +15
 
-  return stack_from_running(S.abort); // +17
+  return stack_from_running(function() { waitfor { f(); } and { S.abort() } }); // +17
 });
 
 line=626;
-test('inner stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10)+'\nthis_file:'+(line+14)+'\nthis_file:'+(line+15), function() {
+test('inner stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10)+'\nthis_file:'+(line+14)+'\nthis_file:'+(line+13)+'\nthis_file:'+(line+17), function() {
   var S;
   function foo() { try { hold(); } 
                    finally { hold(0); throw new Error(); } } // +4
@@ -636,11 +636,11 @@ test('inner stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+
     return bar(); // + 10
   }
 
-  var  S = spawn (function() { 
+  var  S, f = function() { reifiedStratum.spawn(function() { 
     baz(); // +14
-  })(); // +15
+  }); } // +15
 
-  return stack_from_running(S.abort); // +17
+  return stack_from_running(function() { waitfor { f(); } and { S.abort() }}); // +17
 });
 
 line=646;
@@ -649,4 +649,81 @@ test('parameter destructuring', 'this_file:'+(line+2), function() {
   }
   
   return stack_from_running(foo);
+});
+
+line=654;
+test('spawn/sync adopt', 'this_file:'+(line+2)+'\nthis_file:'+(line+3)+'\nthis_file:'+(line+4)+'\nthis_file:'+(line+5), function() {
+  var s = function() { try { hold() } finally { throw new Error(); }}; // +2
+  var S = reifiedStratum.spawn(s); // +3
+  function foo() { reifiedStratum.adopt(S); hold(); } // +4
+  function bar() { waitfor { foo(); } and { S.abort(); } } // +5
+  return stack_from_running(bar); // +6
+});
+
+line=663;
+test('spawn/async 1 adopt', 'this_file:'+(line+2)+'\nthis_file:'+(line+3)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+6), function() {
+  var s = function() { try { hold() } finally { throw new Error(); }}; // +2
+  var S = reifiedStratum.spawn(s); // +3
+  hold(0);
+  function foo() { reifiedStratum.adopt(S); hold(); } // +5
+  function bar() { waitfor { foo(); } and { S.abort(); } } // +6
+  return stack_from_running(bar); // +7
+});
+
+line=673;
+test('spawn/async 2 adopt', 'this_file:'+(line+2)+'\nthis_file:'+(line+3)+'\nthis_file:'+(line+5)+'\nthis_file:'+(line+6), function() {
+  var s = function() { try { hold() } finally { throw new Error(); }}; // +2
+  var S = reifiedStratum.spawn(s); // +3
+  hold(0);
+  function foo() { reifiedStratum.adopt(S); hold(); } // +5
+  function bar() { waitfor { foo(); } and { hold(0); S.abort(); } } // +6
+  return stack_from_running(bar); // +7
+});
+
+line=683;
+test('function adopt / async', 'this_file:'+(line+8)+'\nthis_file:'+(line+10)+'\nthis_file:'+(line+6), function() {
+  function outer() {
+    var S = reifiedStratum;
+    function inner() {
+      hold(0);
+      S.adopt(reifiedStratum); // +6
+      hold(0);
+      throw new Error(); // +8
+    }
+    inner(); // +10
+    hold();
+  }
+  return stack_from_running(outer);
+});
+
+line=699;
+test('function adopt / sync', 'this_file:'+(line+8)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10), function() {
+  function outer() {
+    var S = reifiedStratum;
+    function inner() {
+      /**/
+      S.adopt(reifiedStratum); // +6
+      /**/
+      throw new Error(); // +8
+    }
+    inner(); // +10
+    hold();
+  }
+  return stack_from_running(outer);
+});
+
+line=715;
+test('function adopt / mixed', 'this_file:'+(line+8)+'\nthis_file:'+(line+6)+'\nthis_file:'+(line+10), function() {
+  function outer() {
+    var S = reifiedStratum;
+    function inner() {
+      /**/
+      S.adopt(reifiedStratum); // +6
+      hold(0);
+      throw new Error(); // +8
+    }
+    inner(); // +10
+    hold();
+  }
+  return stack_from_running(outer);
 });

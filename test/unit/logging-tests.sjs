@@ -8,9 +8,9 @@ var {test, context, assert} = require('sjs:test/suite');
 var {each} = require('sjs:sequence');
 var {remove} = require('sjs:array');
 
-test('default format') {||
+test('default format', function() {
   logging.formatMessage(logging.DEBUG, ['msg']) .. assert.eq(['DEBUG:', 'msg'])
-};
+});
 
 testEq("formatting quasis", ["INFO:", "Hello " + require("sjs:debug").inspect({'subject':'world'})], function() {
   var obj = {subject: "world"};
@@ -18,7 +18,7 @@ testEq("formatting quasis", ["INFO:", "Hello " + require("sjs:debug").inspect({'
 });
   
 
-test('print all log levels and revert') {||
+test('print all log levels and revert', function() {
   var messages = [];
   var initial = {
     level: logging.getLevel(),
@@ -60,7 +60,7 @@ test('print all log levels and revert') {||
     ['(test)', 'ERROR:', 'error with object:', { error: 'some error!' }],
     ['(test)', 'ERROR:', { error: 'some error!' }],
   ]);
-};
+});
 
 testEq('enabled levels at INFO', {DEBUG: false, VERBOSE:false, INFO:true, WARN:true, ERROR:true}, function() {
   var levels = ['DEBUG', 'VERBOSE', 'INFO', 'WARN', 'ERROR'];
@@ -73,7 +73,7 @@ testEq('enabled levels at INFO', {DEBUG: false, VERBOSE:false, INFO:true, WARN:t
 });
 
 //--------------------------------------------------------------------------------
-context {||
+context(function() {
   test.beforeEach {|s|
     s.consoles = [];
   }
@@ -82,7 +82,7 @@ context {||
       c.shutdown();
     }
   }
-  test('logging to xbrowser.console objects') {|state|
+  test('logging to xbrowser.console objects', function(state) {
     var shutdown = function(c) {
       state.consoles .. remove(c) .. assert.ok();
       c.shutdown();
@@ -119,12 +119,12 @@ context {||
     logging1.loggedMessages .. assert.eq([['INFO:', 'message 1']]);
     logging2.loggedMessages .. assert.eq([['INFO:', 'message 1'], ['INFO:', 'message 2']]);
     noLogging.loggedMessages .. assert.eq([]);
-  }.browserOnly();
-}
+  }).browserOnly();
+})
 
 
-context("nodejs") {||
-  test("all log levels go to stderr") {||
+context("nodejs", function() {
+  test("all log levels go to stderr", function() {
     try {
     var result = require('sjs:nodejs/child-process').run(process.execPath, [
       require('sjs:sys').executable,
@@ -152,5 +152,5 @@ context("nodejs") {||
       'ERROR: error',
       '',
     ]);
-  }
-}.serverOnly();
+  })
+}).serverOnly();

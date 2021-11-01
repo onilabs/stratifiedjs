@@ -1,8 +1,8 @@
 @ = require(['sjs:test/suite']);
 @docutil = require('sjs:docutil');
 
-@context('parsing comments') {||
-  @test('only extracts fields that are aligned with the initial indent level') {||
+@context('parsing comments', function() {
+  @test('only extracts fields that are aligned with the initial indent level', function() {
     @docutil.extractDocFields(["
       @key val
       @desc
@@ -14,22 +14,22 @@
       ['desc', 'A description involving indented docs:\n  @indented',],
       ['key2', 'val2'],
     ]);
-  }
+  })
 
-  @test('escaping of end-comments') {||
+  @test('escaping of end-comments', function() {
     @docutil.extractDocComments("/**comment with multiple *\\/ end (*\\/) bits*/")
     .. @assert.eq(["comment with multiple */ end (*/) bits"]);
-  }
-}
+  })
+})
     
-@context('@type') {||
-  @test('module type overrides default type') { ||
+@context('@type', function() {
+  @test('module type overrides default type', function() {
     @docutil.parseModuleDocs("/**
     @type doc
     */").type .. @assert.eq('doc');
-  }
+  })
 
-  @test('variable type is assigned to `vartype`') { ||
+  @test('variable type is assigned to `vartype`', function() {
     @docutil.parseModuleDocs("/**
     @variable a
     @type String
@@ -39,5 +39,5 @@
         valtype: 'String'
       },
     });
-  }
-}
+  })
+})

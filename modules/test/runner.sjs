@@ -1160,10 +1160,10 @@ var karma;
     exports.exit = -> null;
     if (karma) exports.exit = function(code) { throw new Error(); };
     // preload modules that may be needed at runtime
-    spawn(function() {
+    sys.spawn(function() {
       require('../shell-quote');
       require('../dashdash');
-    }());
+    });
   } else {
     exports.exit = (code) -> process.exit(code);
   }

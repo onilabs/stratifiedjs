@@ -261,7 +261,7 @@ NodeType('VariableDeclarator', function(id, value) {
 NodeType('VariableDeclaration', function(decls, pctx, ext) {
   this.kind = 'var';
   this.declarations = decls.map(function(decl) {
-    return Node.VariableDeclarator(pctx, decl[2] || ext, decl[0], decl[1]);
+    return Node.VariableDeclarator(pctx, /*decl[2] ||*/ ext, decl[0], decl[1]);
   });
 });
 

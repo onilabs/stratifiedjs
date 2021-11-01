@@ -23,7 +23,7 @@ exports.commonTests = function(child_process, opts) {
   var testEq = testUtil.test;
   var { @TemporaryDir, @TemporaryFile } = require('sjs:nodejs/tempfile');
 
-  @context('exec (simple string)') {||
+  @context('exec (simple string)', function() {
     @test('exec("echo 1")', function() {
       var rv = child_process.exec('echo 1') .. normalizeOutput;
       rv.stdout .. @assert.eq("1\n");
@@ -35,27 +35,27 @@ exports.commonTests = function(child_process, opts) {
       rv.stdout .. @assert.eq("");
       rv.stderr .. @assert.eq("2\n");
     });
-  }
+  })
 
-  @context('run() with block') {||
-    @test("output pipes are readable streams") {||
+  @context('run() with block', function() {
+    @test("output pipes are readable streams", function() {
       child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:['ignore', 'pipe', 'pipe']}) {|p|
         p.stdout .. @stream.isReadableStream .. @assert.ok();
         p.stderr .. @stream.isReadableStream .. @assert.ok();
         p.stderr .. @stream.readAll('ascii') .. @assert.eq('');
         p.stdout .. @stream.readAll('ascii') .. @assert.eq('1\n');
       }
-    }
+    })
 
-    @test("default `stdio` is ['pipe','inherit','inherit']") {||
+    @test("default `stdio` is ['pipe','inherit','inherit']", function() {
       child_process.run(process.execPath, ['-e', '1']) {|p|
         p.stdin.write .. @assert.ok();
         p.stdout .. @assert.eq(null);
         p.stderr .. @assert.eq(null);
       }
-    }
+    })
 
-    @test("process is killed upon retraction") {||
+    @test("process is killed upon retraction", function() {
       var proc;
       var ready = @Condition();
       waitfor {
@@ -71,9 +71,9 @@ exports.commonTests = function(child_process, opts) {
       proc .. child_process.isRunning() .. @assert.eq(false);
       proc.exitCode .. @assert.eq(null);
       proc.signalCode .. @assert.eq('SIGTERM');
-    }.skipIf(opts.supportsKill === false, "module does not support kill()");
+    }).skipIf(opts.supportsKill === false, "module does not support kill()");
 
-    @test("retracts block upon process failure") {||
+    @test("retracts block upon process failure", function() {
       var retracted = false;
       @assert.raises( -> child_process.run('bash', ['-c','sleep 1; exit 2']) {|p|
         try {
@@ -83,9 +83,9 @@ exports.commonTests = function(child_process, opts) {
         }
       })
       retracted .. @assert.eq(true);
-    }
+    })
 
-    @test("does not retract block upon process failure when throwing=false") {||
+    @test("does not retract block upon process failure when throwing=false", function() {
       var retracted = false;
       child_process.run('bash', ['-c','sleep 1; exit 2'], {throwing: false}) {|p|
         try {
@@ -95,9 +95,9 @@ exports.commonTests = function(child_process, opts) {
         }
       }
       retracted .. @assert.eq(false);
-    }
+    })
 
-    @test("run will not return until block is complete") {||
+    @test("run will not return until block is complete", function() {
       // NOTE: pipes are only allowed as fd3+ when not passing a block, for backwards compatibility
       var waited = false;
       var child = child_process.run('bash', ['-c', 'exit 0']) {|p|
@@ -105,9 +105,9 @@ exports.commonTests = function(child_process, opts) {
         waited = true;
       };
       waited .. @assert.eq(true);
-    }
+    })
 
-    @test("error from failed command will wait for `stdio` collection") {||
+    @test("error from failed command will wait for `stdio` collection", function() {
       try {
         child_process.run(process.execPath, [@sys.executable, '-e', 'hold(1000); console.log("exiting"); process.exit(1);'], {stdio:['ignore','string', 'inherit']})
         @assert.fail("child_process.run() didn't throw");
@@ -119,30 +119,30 @@ exports.commonTests = function(child_process, opts) {
       }
     // no matter how long we wait, windows doesn't
     // seem to collect further output from a dead process.
-    }.skipIf(@isWindows, "TODO: windows bug?");
+    }).skipIf(@isWindows, "TODO: windows bug?");
 
-    @test("`buffer` output type") {||
+    @test("`buffer` output type", function() {
       var output = child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:'buffer'}).stdout;
       output .. Buffer.isBuffer .. @assert.eq(true);
       output.toString('ascii') .. normalize .. @assert.eq('1\n');
-    }
+    })
 
-    @context("Writing to `stdin`") {||
+    @context("Writing to `stdin`", function() {
       var stdin = @integers() .. @transform(function(i) { hold(100); return String(i) + "\n"; });
 
-      @test("reports IO failure if command succeeds") {||
+      @test("reports IO failure if command succeeds", function() {
         @assert.raises({message: /^(Socket is closed|Failed writing to child process `stdin`|write after end)$/},
           -> child_process.run(process.execPath, ['-e', 'console.log(1)'], {stdio:[stdin, 'string', 'inherit']})
         );
-      }
+      })
 
-      @test("reports command failure if both command and IO fail") {||
+      @test("reports command failure if both command and IO fail", function() {
         @assert.raises({message: /exited with nonzero exit status: 1/},
           -> child_process.run(process.execPath, ['-e', 'console.log(1); process.exit(1)'], {stdio:[stdin, 'string', 'inherit']})
         );
-      }
+      })
 
-      @test("aborts if an error occurs in stdio iteration") {||
+      @test("aborts if an error occurs in stdio iteration", function() {
         var input = @Stream(function(emit) {
           hold(500);
           throw new Error("Can't stream this");
@@ -155,23 +155,23 @@ exports.commonTests = function(child_process, opts) {
         @assert.raises({message: /Can't stream this/},
           -> child_process.run('bash', ['-c', "sleep #{delay}"], {stdio:[input, 'inherit', 'inherit']})
         );
-      }
-    }
+      })
+    })
 
-  }
+  })
 
   //-------------------------------------------------------------
-  @context('run (an array of args)') {||
-    @test('arguments with spaces') {||
+  @context('run (an array of args)', function() {
+    @test('arguments with spaces', function() {
       // if spaces are interpreted by the shell, argv[1] will just be "1"
       child_process.run(process.execPath, ['-e', 'console.log(process.argv[1])', '1  2']).stdout .. normalize .. @assert.eq('1  2\n');
-    }
+    })
 
-    @test('run("bash", ["-c", "echo 2 >&2"]).stderr') {||
+    @test('run("bash", ["-c", "echo 2 >&2"]).stderr', function() {
       child_process.run('bash', ['-c', 'echo 2 >&2']).stderr .. normalize .. @assert.eq('2\n');
-    }
+    })
 
-    @test('run returns stdout / stderr') {||
+    @test('run returns stdout / stderr', function() {
       var { filter } = require('sjs:sequence');
       var { propertyPairs, pairsToObject } = require('sjs:object');
       @assert.raises({filter: function(e) {
@@ -182,46 +182,46 @@ exports.commonTests = function(child_process, opts) {
           && e.stderr === "err\n"
         );
       }}, -> child_process.run('bash', ['-c', 'echo out; echo err 1>&2; exit 1']));
-    }
+    })
 
-    @test("run returns child object when throwing == false") {||
+    @test("run returns child object when throwing == false", function() {
       var child = child_process.run('bash', ['-c', 'echo out; echo err >&2; sleep 1;exit 2'], {throwing: false});
 
       child.code .. @assert.eq(2);
       child.stdout .. @strip() .. @assert.eq('out');
       child.stderr .. @strip() .. @assert.eq('err');
-    }
+    })
 
-    @test("run throws an error with stderr when it is a string") {||
+    @test("run throws an error with stderr when it is a string", function() {
       var err = @assert.raises( -> child_process.run('bash', ['-c', 'echo "some error" >&2; sleep 1;exit 2']))
       @info(err.message);
       var lines = (err.message .. normalizeOutput).split('\n');
       /child process `bash -c (')?echo \"some error\" >&2; sleep 1;exit 2(')?` exited with nonzero exit status: 2/.test(lines[0]) .. @assert.ok();
       lines[1] .. @assert.eq("some error");
-    }
+    })
 
-    @context("exits when stdin is inherited") {||
+    @context("exits when stdin is inherited", function() {
       var run = function(stdin) {
         child_process.run(process.execPath, ['-e', 'process.exit(0)'], {stdio:[stdin, 'ignore', 'ignore']});
       }
       
-      @test("with `inherit`") {||
+      @test("with `inherit`", function() {
         run('inherit');
-      }
+      })
 
-      @test("explicitly") {||
+      @test("explicitly", function() {
         run(process.stdin);
-      }
+      })
 
-      @test("with @stream.contents") {||
+      @test("with @stream.contents", function() {
         @assert.raises(
           {message: /write after end/},
           -> run(process.stdin .. @stream.contents)
         );
-      }.skip("BUG - see https://github.com/joyent/node/issues/17204");
-    }
+      }).skip("BUG - see https://github.com/joyent/node/issues/17204");
+    })
 
-    @test("stdio accepts nodejs file streams") {||
+    @test("stdio accepts nodejs file streams", function() {
       @TemporaryFile {|f0|
         f0.path .. @fs.writeFile('input');
         var stdin = @fs.createReadStream(f0.path, {autoClose: false});
@@ -237,9 +237,9 @@ exports.commonTests = function(child_process, opts) {
           }
         }
       }
-    }.skipIf(opts.supportsAllNodeStreams === false, "module does not support arbitrary nodejs streams");
+    }).skipIf(opts.supportsAllNodeStreams === false, "module does not support arbitrary nodejs streams");
 
-    @test("stdio accepts raw file descriptors") {||
+    @test("stdio accepts raw file descriptors", function() {
       @TemporaryFile {|f0|
         f0.path .. @fs.writeFile('input');
         @TemporaryFile {|f1|
@@ -251,10 +251,10 @@ exports.commonTests = function(child_process, opts) {
           }
         }
       }
-    }.skipIf(opts.supportsRawFileDescriptors === false, "module does not support raw FDs")
-  }
+    }).skipIf(opts.supportsRawFileDescriptors === false, "module does not support raw FDs")
+  })
 
-  @test("stream::contents collects all data from a stdio stream") {||
+  @test("stream::contents collects all data from a stdio stream", function() {
     // this is special-cased to eagerly collect for a child-process, due to
     // a bug in nodejs
     var input = @fs.readFile(module.id .. @url.toPath(), 'ascii');
@@ -309,6 +309,6 @@ for i, line in enumerate(sys.stdin):
       output .. @join .. @assert.eq(input);
 //      console.log('>>> done with inner block');
     }
-  }.timeout(60);
+  }).timeout(60);
 
 };

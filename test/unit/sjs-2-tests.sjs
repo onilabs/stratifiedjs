@@ -1,5 +1,6 @@
 var testUtil = require('../lib/testUtil');
 var test = testUtil.test;
+var sys = require('sjs:sys');
 
 test("-> 5*4", 20, function() {
   var f = -> 5*4;
@@ -190,26 +191,27 @@ test("blocklambda break", 'ac', function() {
   return rv;
 });
 
-test("blocklambda break 2", 'ac', function() {
-  var rv = '';
-
-  // XXX we might disallow this non-idiomatic syntax in future!
-  // it excercises a different code path in vm1.js than the test above
-  // (grep vm1.js.in for sjs-testsuite2:26 to find the code path)
-
-  var bl = {
-    ||
-    rv += 'a';
-    break;
-    rv += 'b';
-  };
-
-  thrice(bl);
-
-  rv += 'c';
-
-  return rv;
-});
+// This syntax is now disallowed
+//test("blocklambda break 2", 'ac', function() {
+//  var rv = '';
+//
+//  // XXX we might disallow this non-idiomatic syntax in future!
+//  // it excercises a different code path in vm1.js than the test above
+//  // (grep vm1.js.in for sjs-testsuite2:26 to find the code path)
+//
+//  var bl = {
+//    ||
+//    rv += 'a';
+//    break;
+//    rv += 'b';
+//  };
+//
+//  thrice(bl);
+//
+//  rv += 'c';
+//
+//  return rv;
+// });
 
 test('return propagation', undefined, function() {
   function foo() { bar(); }
@@ -782,39 +784,38 @@ test('reentrant quench/abort', 'ok', function() {
     stratum.abort();
   }
   and {
-    stratum = spawn (hold(0),r());
+    stratum = reifiedStratum.spawn(->(hold(0),r()));
   }
   return 'ok';
 });
 
-test('reentrant stratum abort', 'stratum aborted|a|b|c', function() {
+test('reentrant stratum abort', 'a|b|c', function() {
 
   var rv = '';
 
   function append_to_rv(txt) { rv += txt }
 
-  var stratum = spawn (
+  var stratum = reifiedStratum.spawn (
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
-        spawn stratum.abort();
-        append_to_rv('|a');
+        reifiedStratum.spawn(stratum.abort);
+        append_to_rv('a');
         hold(0); // this should be retracted
         rv += 'X';
       }
       retract {
         rv += '|b';
       } 
-    })();
+    });
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
-   hold(0);
+   stratum.wait();
    rv += '|c';
   return rv;
 });
 
-test('synchronous reentrant stratum abort', 'stratum aborted|b|c', function() {
+test('synchronous reentrant stratum abort', 'a|b|c', function() {
   // Note: up to version fbddca13b727870f5efd0e220e9f37d1316115ae, this used
   // to call the retract AFTER the stratum.value call, because of the way
   // abort cycles were resolved.
@@ -822,29 +823,28 @@ test('synchronous reentrant stratum abort', 'stratum aborted|b|c', function() {
 
   function append_to_rv(txt) { rv += txt }
 
-  var stratum = spawn (
+  var stratum = reifiedStratum.spawn (
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
-        stratum.abort(); // this should be aborted
-        append_to_rv('|a');
-        hold(0); 
+        stratum.abort(); 
+        append_to_rv('a');
+        hold(0); // this should be aborted
         rv += 'X';
       }
       retract {
         rv += '|b';
       } 
-    })();
+    });
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
-   hold(0);
+  stratum.wait();
    rv += '|c';
   return rv;
 });
 
 
-test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|b|c', function() {
+test('reentrant stratum abort via loop & blocklambda', 'a|b|c', function() {
 
   var rv = '';
 
@@ -856,31 +856,30 @@ test('reentrant stratum abort via loop & blocklambda', 'stratum aborted|b|c', fu
     }
   }
 
-  var stratum = spawn (
+  var stratum = reifiedStratum.spawn (
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
         bl_caller { 
           ||
-          stratum.abort(); // this should be aborted
-          rv += '|a';
-          hold(0); 
+          stratum.abort(); 
+          rv += 'a';
+          hold(0); // this should be aborted
           rv += 'X';
         }
       }
       retract {
         rv += '|b';
       } 
-    })();
+    });
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
-   hold(100);
-   rv += '|c';
+  stratum.wait();
+  rv += '|c';
   return rv;
 });
 
-test('synchronous reentrant stratum abort via loop & blocklambda', 'stratum aborted|a|b|c', function() {
+test('synchronous reentrant stratum abort via loop & blocklambda', 'a|b|c', function() {
 
   var rv = '';
 
@@ -892,14 +891,14 @@ test('synchronous reentrant stratum abort via loop & blocklambda', 'stratum abor
     }
   }
 
-  var stratum = spawn (
+  var stratum = reifiedStratum.spawn (
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
         bl_caller { 
           ||
-          spawn stratum.abort();
-          rv += '|a';
+          reifiedStratum.spawn(stratum.abort);
+          rv += 'a';
           hold(0); // this should be retracted
           rv += 'X';
         }
@@ -907,23 +906,22 @@ test('synchronous reentrant stratum abort via loop & blocklambda', 'stratum abor
       retract {
         rv += '|b';
       } 
-    })();
+    });
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
-   hold(100);
-   rv += '|c';
+  stratum.wait();
+  rv += '|c';
   return rv;
 });
 
 
-test('reentrant stratum abort via loop & resume', 'stratum aborted|b|c', function() {
+test('reentrant stratum abort via loop & resume', 'a|b|c', function() {
 
   var rv = '';
 
   var R;
 
-  var stratum = spawn (
+  var stratum = reifiedStratum.spawn(
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
@@ -934,34 +932,34 @@ test('reentrant stratum abort via loop & resume', 'stratum aborted|b|c', functio
           retract {
             console.log('hitting weird retract');
           }
-          stratum.abort(); // this should be aborted
-          rv += '|a';
-          hold(0); 
+          stratum.abort();
+          rv += 'a';
+          hold(0);  // this should be aborted
           rv += 'X';
         }
       }
       retract {
         rv += '|b';
       } 
-    })();
+    });
 
   hold(0);
-  spawn (hold(100),R());
+  reifiedStratum.spawn(->(hold(100),R()));
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
+   stratum.wait();
    hold(100);
    rv += '|c';
   return rv;
 });
 
-test('synchronous reentrant stratum abort via loop & resume', 'stratum aborted|a|b|c', function() {
+test('synchronous reentrant stratum abort via loop & resume', 'a|b|c', function() {
 
   var rv = '';
 
   var R;
 
-  var stratum = spawn (
+  var stratum = reifiedStratum.spawn(
     function() {
       hold(0); // ensure 'stratum' var is filled in
       try {
@@ -972,8 +970,8 @@ test('synchronous reentrant stratum abort via loop & resume', 'stratum aborted|a
           retract {
             console.log('hitting weird retract');
           }
-          spawn stratum.abort();
-          rv += '|a';
+          reifiedStratum.spawn(stratum.abort);
+          rv += 'a';
           hold(0); // this should be retracted
           rv += 'X';
         }
@@ -981,15 +979,14 @@ test('synchronous reentrant stratum abort via loop & resume', 'stratum aborted|a
       retract {
         rv += '|b';
       } 
-    })();
+    });
 
   hold(0);
-  spawn (hold(100),R());
+  reifiedStratum.spawn(->(hold(100),R()));
 
    // wait for stratum to finish
-   try { stratum.value(); rv += 'Y'; } catch(e) { rv += String(e).substr(7,15); }
-   hold(100);
-   rv += '|c';
+  stratum.wait();
+  rv += '|c';
   return rv;
 });
 
@@ -1008,13 +1005,14 @@ test("single-sided conditional: true ? blocking_yes()", 'yes', function() {
 });
 
 test("reentrant blocklambda resume/break", undefined, function() {
+  function call(bl) { bl(); }
   var R;
   waitfor {
-    ({|| 
+    call {|| 
       waitfor() { R = resume } 
       break; 
       hold();
-     })();
+     };
   }
   and { R(); }
 });
@@ -1039,6 +1037,7 @@ test("reentrant abortion from catch()", 'ok', function() {
 
 test("collapse from blocklambda", 'b',
      function() {
+       function call(bl) { bl(); } 
        var rv = '';
        try {
          waitfor {
@@ -1046,11 +1045,11 @@ test("collapse from blocklambda", 'b',
            rv += 'a';
          }
          or {
-           ({||          
+           call {||          
              hold(0);
              collapse;
              rv += 'b';
-           })();
+           };
            hold(200);
          }
        }
@@ -1126,7 +1125,7 @@ test("reentrant 'stratum aborted' exception persistence edge case", true,
          stratum.abort();
          hold();
        }
-       var stratum = spawn S();
+       var stratum = spawn(S);
 
        try { 
          // wait a bit, then pick up return value from stratum; it
@@ -1138,8 +1137,15 @@ test("reentrant 'stratum aborted' exception persistence edge case", true,
        catch (e) {
          return true;
        }
-     });
+     }).skip('capability removed');
 
+
+// XXX the logic here used to be different: we used to abort at the hold() also for
+// cases where async_try_catch=true. The rationale was that the sync & async cases should produce the same
+// outcome.
+// However, a different way of looking at it is:
+//  while(1) { something_async; } next();
+// Here, we expect next() not to be executed on abortion
 function makeAbortBreakTest(async_try_catch, late_pickup) {
   return function() {
     var rv = '';
@@ -1154,38 +1160,33 @@ function makeAbortBreakTest(async_try_catch, late_pickup) {
           throw new Error('foo');
         }
         catch(e) {
-          spawn stratum.abort();
+          stratum.abort();
           rv += 'b';
           break;
           rv += 'x';
         }
         rv += 'y';
-      }
+      } // this is where stratum should abort in async case
       rv += 'c';
-      hold(); // this is where stratum should abort
+      hold(); // this is where stratum should abort in sync case
       rv += 'z';
     }
     
-    var stratum = spawn S();
+    var stratum = reifiedStratum.spawn(S);
     
-    try {
-      if (late_pickup)
-        hold(200); // only attempt to pick up value after stratum aborted 
-      stratum.value();
-    }
-    catch(e) {
-      // catch 'stratum aborted'
-      rv += 'd';
-    }
-    if (!late_pickup)
-      hold(200); // allow stratum to finish cleanup
+    // xxx the 'late_pickup' flag doesn't really make sense any more, now that we've removed the ability of strata to store return values
+    if (late_pickup)
+      hold(200); // only attempt to pick up value after stratum aborted 
+    stratum.wait();
+    rv += 'd';
+
     return rv;
     
   }
 }
 
 test("reentrant abort/break edge case with sync try/catch, early pickup", 
-     'adbc', 
+     'abcd', 
      makeAbortBreakTest(false, false));
 
 test("reentrant abort/break edge case with sync try/catch, late pickup", 
@@ -1194,23 +1195,22 @@ test("reentrant abort/break edge case with sync try/catch, late pickup",
      makeAbortBreakTest(false, true));
 
 test("reentrant abort/break edge case with async try/catch, early pickup", 
-     'adbc', 
-     // used to yield 'adb' and 'Uncaught error: Error: Unexpected break statement'
+     'abd', 
+     // used to yield 'Uncaught error: Error: Unexpected break statement'
      makeAbortBreakTest(true, false));
 
 test("reentrant abort/break edge case with async try/catch, late pickup", 
-     'abcd', 
-     // used to yield 'abd'
-    
+     'abd', 
      makeAbortBreakTest(true, true));
 
 test('tailcalled blocklambda break / par edge case', 'b', 
      function() {
+       function call(bl) { bl(); }
        var rv = '';
        waitfor {
          // this `break` should only abort the blocklambda. it
          // erroneously used to abort the waitfor/and
-         ({|| hold(0); break; rv += 'a';})();
+         call {|| hold(0); break; rv += 'a';};
        }
        and {
          hold(100);
@@ -1637,10 +1637,10 @@ test('waitfor/and uncaught exception edgecase', 'ok',
 test('stratum abort waits for blocking finally', 'AabB',
      function() {
        var rv = '';
-       var stratum = spawn (function() { try { hold(); } finally { rv += 'a';  hold(0); rv += 'b'; } })();
+       var stratum = reifiedStratum.spawn (function() { try { hold(); } finally { rv += 'a';  hold(0); rv += 'b'; } });
        hold(0);
        rv += 'A';
-       stratum.abort();
+       stratum.abort().wait();
        rv += 'B';
        return rv;
      });
@@ -1654,8 +1654,8 @@ test('detached blocklambda return / stratum.value / stratum.abort interaction', 
          function inner(r) {
            var stratum;
            try {
-             stratum = spawn r();
-             stratum.value();
+             stratum = reifiedStratum.spawn(r);
+             stratum.wait();
              rv += 'not reached ';
              return 'inner';
            }
@@ -1675,7 +1675,7 @@ test('detached blocklambda return / stratum.value / stratum.abort interaction', 
 test("detached blocklambda break", 'ad', function() {
   var rv = '';
   function f(g) {
-    spawn g();
+    reifiedStratum.spawn(g);
     hold(100);
     rv += 'c';
   }
@@ -1702,7 +1702,7 @@ test("detached blocklambda break", 'ad', function() {
 test("detached async blocklambda break 1", 'ad', function() {
   var rv = '';
   function f(g) {
-    spawn g();
+    reifiedStratum.spawn(g);
     hold(100);
     rv += 'c';
   }
@@ -1716,7 +1716,7 @@ test("detached async blocklambda break 1", 'ad', function() {
 test("detached async blocklambda break with blocking finally", 'ahfd', function() {
   var rv = '';
   function f(g) {
-    spawn g();
+    reifiedStratum.spawn(g);
     try {
       rv += 'h';
       hold(100);
@@ -1734,20 +1734,20 @@ test("detached async blocklambda break with blocking finally", 'ahfd', function(
   return rv;
 });
 
-test("detached sync blocklambda break with blocking finally", 'ahfcd', function() {
+test("detached sync blocklambda break with blocking finally", 'ahfd', function() {
   var rv = '';
   function f(g) {
-    spawn g();
+    reifiedStratum.spawn(g);
     try {
       rv += 'h';
     }
     finally {
       hold(100);
-      rv += 'f';
-    }
-    rv += 'c';
-    hold(0); // <- should break here
+      rv += 'f'; 
+    } // <- should break here
     rv += 'x';
+    hold(0); 
+    rv += 'y';
   }
  
   f { || rv += 'a'; hold(0); break; rv += 'b' };
@@ -1756,7 +1756,7 @@ test("detached sync blocklambda break with blocking finally", 'ahfcd', function(
   return rv;
 });
 
-test("blocking finally not affecting sync processing", 'abcd', function() {
+test("blocking finally is abort point in sync processing", 'abcd', function() {
   var rv = '';
   waitfor {
     try {
@@ -1765,20 +1765,20 @@ test("blocking finally not affecting sync processing", 'abcd', function() {
     finally {
       hold(100);
       rv += 'c';
-    }
-    rv += 'd';
-    hold(0); // <-- should abort here
+    } // <-- should abort here
     rv += 'x';
+    hold(0); 
+    rv += 'y';
   }
   or {
     hold(0);
     rv += 'b';
   }
-
+  rv += 'd';
   return rv;
 });
 
-test("blocking retract not affecting sync processing", 'abcde', function() {
+test("blocking retract / sync processing", 'abcd', function() {
   var rv = '';
   waitfor {
     try {
@@ -1793,10 +1793,10 @@ test("blocking retract not affecting sync processing", 'abcde', function() {
     retract {
       hold(100);
       rv += 'd';
-    }
-    rv += 'e';
-    hold(0); // <-- should abort here
+    }  // <-- should abort here
     rv += 'x';
+    hold(0);
+    rv += 'y';
   }
   or {
     hold(0);
@@ -1807,12 +1807,12 @@ test("blocking retract not affecting sync processing", 'abcde', function() {
 });
 
 
-test("expired detached async blocklambda break", 'acde', function() {
-  var stratum;
+test("unroutable async blocklambda break", 'acde', function() {
   var rv = '';
   function foo() {
+    var parent = reifiedStratum;
     function f(g) {
-      stratum = spawn g();
+      parent.spawn(g);
       hold(0);
       rv += 'c';
     }
@@ -1824,24 +1824,21 @@ test("expired detached async blocklambda break", 'acde', function() {
     return rv;
   }
 
-  waitfor { 
+  try { 
     return foo();
   }
-  or {
-    stratum.value(); // this should throw
-  }
   catch (e) {
-    if (e.message === 'Blocklambda break from spawned stratum to invalid or inactive scope')
+    if (e.message === 'Unroutable blocklambda break')
       rv += 'e';
     return rv;
   }
-});
+}).skip('FIXME _taskXXX');
 
-test("detached blocklambda break with value pickup", 'vb', function() {
+test("detached blocklambda break with value pickup", 'bv', function() {
   var stratum;
   var rv = '';
   function f(s) { 
-    stratum = spawn s();
+    stratum = reifiedStratum.spawn(s);
     hold(100);
     rv += 'a';
   }
@@ -1851,7 +1848,7 @@ test("detached blocklambda break with value pickup", 'vb', function() {
     rv += 'b';
   }
   and {
-    stratum.value();
+    stratum.wait();
     rv += 'v';
   }
   return rv;
@@ -1861,7 +1858,7 @@ test("detached blocklambda break with value pickup & finally", 'vfb', function()
   var stratum;
   var rv = '';
   function f(s) { 
-    stratum = spawn s();
+    stratum = reifiedStratum.spawn(s);
     hold(100);
     rv += 'a';
   }
@@ -1877,7 +1874,7 @@ test("detached blocklambda break with value pickup & finally", 'vfb', function()
     rv += 'b';
   }
   and {
-    stratum.value();
+    stratum.wait();
     rv += 'v';
   }
   return rv;
@@ -1892,8 +1889,8 @@ test('detached blocklambda break / stratum.value / stratum.abort interaction', '
          function inner(r) {
            var stratum;
            try {
-             stratum = spawn r();
-             stratum.value();
+             stratum = reifiedStratum.spawn(r);
+             stratum.wait();
              rv += 'not reached ';
              return 'inner';
            }
@@ -1920,16 +1917,20 @@ test('nested blocklambda abort/break', '0(0)(1)(2)(3)(4)5(5)6(6)7(7)8(8)9',
          var stratum;
 
          function abort_stratum(i) {
-           try {
-             stratum.abort();
-           }
+           try { /* */ }
            finally {
+             // this is in a finally clause, so that cascaded strata are forced to cancel on the
+             // previous one.
+             // Our each.track implementation takes a different approach: there strata adopt 
+             // their previous ones, effectively forcing them to wait for the previous one
+             // (and also taking care of correct exception routing).
+             stratum.abort().wait();
              rv += '('+i+')';
            }
          }
 
-         for (var i=0; i<10; ++i) {
-           stratum = spawn (stratum ? abort_stratum(i-1), consumer(i));
+         for (var i=0; i<=10; ++i) {
+           stratum = reifiedStratum.spawn(-> (stratum ? abort_stratum(i-1), consumer(i)));
            if (i == 5) hold(100);
          }         
          rv += 'not reached';
@@ -1945,10 +1946,13 @@ test('nested blocklambda abort/break', '0(0)(1)(2)(3)(4)5(5)6(6)7(7)8(8)9',
        return rv;
      });
 
+// XXX these cyclic abort tests don't really make sense anymore, since stratum::abort is now async.
+// What we really want to test here is a deadlock scenario (and we currently DO deadlock on stratum::wait, but that is probably OK).
+
 test('cyclic abort 1', '1',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); try { stratum.abort(); } finally { rv += '1' } })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); try { stratum.abort(); } finally { rv += '1' } });
        hold(100);
        return rv;
      });
@@ -1956,7 +1960,7 @@ test('cyclic abort 1', '1',
 test('cyclic abort 2', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); try { try { stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); try { try { stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} });
        hold(100);
        return rv;
      });
@@ -1964,7 +1968,7 @@ test('cyclic abort 2', '12',
 test('cyclic abort 3', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } });
        hold(100);
        return rv;
      });
@@ -1972,7 +1976,7 @@ test('cyclic abort 3', '12',
 test('cyclic abort 1 async', '1',
      function() {
        var rv = '';
-       var stratum = spawn (function() { try { hold(0); stratum.abort(); } finally { rv += '1' } })();
+       var stratum = reifiedStratum.spawn (function() { try { hold(0); stratum.abort(); } finally { rv += '1' } });
        hold(100);
        return rv;
      });
@@ -1980,7 +1984,7 @@ test('cyclic abort 1 async', '1',
 test('cyclic abort 2 async', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() {  try { try { hold(0); stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} })();
+       var stratum = reifiedStratum.spawn (function() {  try { try { hold(0); stratum.abort(); } finally { rv += '1' } }finally{ rv+='2'} });
        hold(100);
        return rv;
      });
@@ -1988,7 +1992,7 @@ test('cyclic abort 2 async', '12',
 test('cyclic abort 3 async', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() { waitfor { hold(0); stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
+       var stratum = reifiedStratum.spawn (function() { waitfor { hold(0); stratum.abort(); } and { try { hold(); } finally { rv += '1'} } finally { rv += '2' } });
        hold(100);
        return rv;
      });
@@ -1996,7 +2000,7 @@ test('cyclic abort 3 async', '12',
 test('cyclic abort 4', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { rv += '1'} } finally { rv += '2' } })();
+       var stratum = reifiedStratum.spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { rv += '1'} } finally { rv += '2' } });
        hold(100);
        return rv;
      });
@@ -2004,7 +2008,7 @@ test('cyclic abort 4', '12',
 test('cyclic abort 5', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { stratum.abort(); rv += '1'} } finally { rv += '2' } })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { stratum.abort(); rv += '1'} } finally { rv += '2' } });
        hold(100);
        return rv;
      });
@@ -2012,7 +2016,7 @@ test('cyclic abort 5', '12',
 test('cyclic abort 1 / async finally', '1',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); try { stratum.abort(); } finally { hold(0); rv += '1' } })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); try { stratum.abort(); } finally { hold(0); rv += '1' } });
        hold(100);
        return rv;
      });
@@ -2020,7 +2024,7 @@ test('cyclic abort 1 / async finally', '1',
 test('cyclic abort 2 / async finally', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); try { try { stratum.abort(); } finally { hold(0); rv += '1' } }finally{ hold(0); rv+='2'} })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); try { try { stratum.abort(); } finally { hold(0); rv += '1' } }finally{ hold(0); rv+='2'} });
        hold(100);
        return rv;
      });
@@ -2028,7 +2032,7 @@ test('cyclic abort 2 / async finally', '12',
 test('cyclic abort 3 / async finally', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } });
        hold(100);
        return rv;
      });
@@ -2036,7 +2040,7 @@ test('cyclic abort 3 / async finally', '12',
 test('cyclic abort 4 / async finally', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } })();
+       var stratum = reifiedStratum.spawn (function() {  waitfor { hold(0); stratum.abort(); } or { try { hold(); } finally { hold(0); rv += '1'} } finally { hold(0); rv += '2' } });
        hold(100);
        return rv;
      });
@@ -2044,7 +2048,7 @@ test('cyclic abort 4 / async finally', '12',
 test('cyclic abort 5 / async finally', '12',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); stratum.abort(); rv += '1'} } finally { hold(0); rv += '2' } })();
+       var stratum = reifiedStratum.spawn (function() { hold(0); waitfor { stratum.abort(); } and { try { hold(); } finally { hold(0); stratum.abort(); rv += '1'} } finally { hold(0); rv += '2' } });
        hold(100);
        return rv;
      });
@@ -2052,8 +2056,8 @@ test('cyclic abort 5 / async finally', '12',
 test('abort resolved stratum', '1',
      function() {
        var rv = '';
-       var stratum = spawn (function() { hold(0); return '1'})();
-       rv += stratum.value();
+       var stratum = reifiedStratum.spawn (function() { hold(0); rv+='1'});
+       stratum.wait();
        stratum.abort();
        return rv;
      });
@@ -2061,9 +2065,9 @@ test('abort resolved stratum', '1',
 test('waitfor/or abort', '213',
      function() {
        var rv = '';
-       var stratum = spawn (function() {  waitfor { try {hold(); }finally { hold(0); rv+='1'} } or { try { hold(); } finally { rv += '2'} } finally { rv += '3' } })();
+       var stratum = reifiedStratum.spawn (function() {  waitfor { try {hold(); }finally { hold(0); rv+='1'} } or { try { hold(); } finally { rv += '2'} } finally { rv += '3' } });
        hold(0);
-       stratum.abort();
+       stratum.abort().wait();
        return rv;
      });
 
@@ -2092,7 +2096,7 @@ test('for-in loop property async deletion', 'abd',
        return rv;
      });
 
-test('blocking finally clause is not abort point 1', 'abc',
+test('blocking finally clause is abort point 1', 'ab',
      function() {
        var rv = '';
        
@@ -2104,19 +2108,20 @@ test('blocking finally clause is not abort point 1', 'abc',
          finally {
            S.abort();
            rv+= 'b';
-         }
-         rv += 'c';
-         hold(0); // <-- this should be aborted
+           hold(0);
+         }  // <-- this should be aborted
+         rv += 'x';
+         hold(0);
        }
        
-       var S = spawn stratum();
+       var S = reifiedStratum.spawn(stratum);
 
-       hold(100); // wait for stratum to be done
+       reifiedStratum.join(); // wait for substratum to be done
 
        return rv;
      });
 
-test('blocking finally clause is not abort point 2', 'abcd',
+test('blocking finally clause is abort point 2', 'abc',
      function() {
        var rv = '';
        
@@ -2131,19 +2136,19 @@ test('blocking finally clause is not abort point 2', 'abcd',
            }
            finally { hold(0); rv+='b';}
            rv+= 'c';
-         }
-         rv += 'd';
-         hold(0); // <-- this should be aborted
+         } // <-- this should be aborted
+         rv += 'x';
+         hold(0); 
        }
        
-       var S = spawn stratum();
+       var S = reifiedStratum.spawn(stratum);
 
-       hold(100); // wait for stratum to be done
+       reifiedStratum.join(); // wait for stratum to be done
 
        return rv;
      });
 
-test('blocking finally clause in loop is not abort point', 'abc',
+test('blocking finally clause in loop is abort point', 'ab',
      function() {
        var rv = [];
 
@@ -2153,25 +2158,19 @@ test('blocking finally clause in loop is not abort point', 'abc',
        }
        or {
          do {
-           // make sure this branch gets aborted, but continue sync processing:
-           try {} finally { hold(100); }
-
-           // this 'try' statement used to be passed through the aborted loop,
-           // which meant that the 'break' was not targetted at the correct frame,
-           // and the "rv+='b'" wasn't executed.
-           try {} finally { hold(100); break; }
+           try {} finally { hold(100); break; } // <-- should abort here; break has no effect
          } while (0);
-         rv += 'b';
-         hold(0); // <-- should abort here
          rv += 'x';
+         hold(0);
+         rv += 'y';
        }
-       rv += 'c';
+       rv += 'b';
 
        return rv;
      });
 
 // this is a complicated variant of the previous test:
-test('blocking finally clause in loop is not abort point - complicated', 'abc',
+test('blocking finally clause in loop is abort point - complicated', 'ab',
      function() {
        var rv = '';
        
@@ -2182,30 +2181,33 @@ test('blocking finally clause in loop is not abort point - complicated', 'abc',
              rv += 'a';
            }
            finally {
-             S.abort();
+             S.abort(); hold(0);
              rv+= 'b';
-           }
+           } // <-- this should be aborted
 
            // the 'if' statement is to package the code up in a 'seq'
            if (true) {
-             try {} finally { hold(0); }
-             break; // this break didn't used to be seen by the loop, because the loop would return its aborted blocking body to the parent
+             rv += 'x';
+             try {} finally { hold(0); }  
+
+             rv += 'y';
+           //  break; // ineffective 'break'
            }
          } while(0);
          rv += 'c';
-         hold(0); // <-- this should be aborted
+         hold(0);
        }
        
-       var S = spawn stratum();
+       var S = reifiedStratum.spawn(stratum);
 
-       hold(100); // wait for stratum to be done
+       S.wait() // wait for stratum to be done
 
        return rv;
      });
 
 test('sync blocklambda break routing', 'ab', function() {
   var rv = '';
-  function aborter(block) { var S = spawn block(); rv + 'x'; return S.value(); }
+  function aborter(block) { var S = reifiedStratum.spawn(block); rv + 'x'; hold(); }
   
   function foo() { 
     hold(0);
@@ -2223,10 +2225,10 @@ test('sync blocklambda break routing', 'ab', function() {
 });
 
 
-// this used to just hang because of 'spawn' accidentally returning 'ef_if' frame to sync caller
+// this used to just hang because of old spawn implementation accidentally returning 'ef_if' frame to sync caller
 test('sync blocklambda return routing edgecase', 'ab', function() {
   var rv = '';
-  function aborter(block) { var S = spawn block(); rv + 'x'; return S.value(); }
+  function aborter(block) { var S = reifiedStratum.spawn(block); rv + 'x'; hold(); }
   
   function foo() { 
     hold(0);
@@ -2317,11 +2319,12 @@ test('stray-abort', 'a', function() {
   }
 
   function inner(a) {
-    function call_via_spawn() {
-      return spawn a();
+    var P = reifiedStratum;
+    function call_via_stratum() {
+      return P.spawn(a);
     }
     hold(0);
-    perform_in_js(call_via_spawn);
+    perform_in_js(call_via_stratum);
     hold();
   }
 
@@ -2360,7 +2363,7 @@ test('alt-abort-edgecase', 'r', function() {
   var rv = '';
   waitfor {
     while (1) {
-      //console.log('loop...');
+      console.log('loop...');
       waitfor {
         try {
           hold();
@@ -2385,15 +2388,17 @@ test('alt-abort-edgecase', 'r', function() {
 
 //----------------------------------------------------------------------
 
-test('bl return across spawn - sync', 'xfF', function() {
+test('bl return across spawn - sync', 'xfRF', function() {
   var rv = '';
   function foo() {
+    function call(f) { reifiedStratum.spawn(f); try { hold(); } retract { rv += 'R'; } }
     try {
-      spawn ({ || try { rv += 'x'; return; } retract { rv += 'r' } finally { rv += 'f' } })()
+      call { || try { rv += 'x'; return; } retract { rv += 'r' } finally { rv += 'f' } };
+      rv+='!';
       hold();
     }
     retract {
-      rv += 'R';
+      rv += '@';
     }
     finally {
       rv += 'F';
@@ -2404,15 +2409,17 @@ test('bl return across spawn - sync', 'xfF', function() {
 });
 
 // this used to generate 'xfRF'
-test('bl return across spawn - async', 'xfF', function() {
+test('bl return across spawn - async', 'xfRF', function() {
   var rv = '';
   function foo() {
+    function call(f) { reifiedStratum.spawn(f); try { hold(); } retract { rv += 'R' } }
     try {
-      spawn ({ || try { hold(0); rv += 'x'; return; } retract { rv += 'r' } finally { rv += 'f' } })()
+      call { || try { hold(0); rv += 'x'; return; } retract { rv += 'r' } finally { rv += 'f' } }
+      rv+='!';
       hold();
     }
     retract {
-      rv += 'R';
+      rv += '@';
     }
     finally {
       rv += 'F';
@@ -2556,10 +2563,10 @@ test('swallowed break in aborted stratum 1', 'abc', function() {
 
   function foo(block) {
     for (var i=0; i<10; ++i) {
-      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} })();
+      var S = reifiedStratum.spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} });
       hold(0);
       rv += 'b';
-      spawn S.abort(); 
+      reifiedStratum.spawn(S.abort); 
 
       hold(); // used to be stuck here, as 'break' got swallowed
 
@@ -2579,10 +2586,10 @@ test('swallowed break in aborted stratum 2', 'abc', function() {
 
   function foo(block) {
     for (var i=0; i<10; ++i) {
-      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} })();
+      var S = reifiedStratum.spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} });
       hold(0);
       rv += 'b'; 
-      S.abort(); // this should be aborted
+      S.abort().wait(); // this should be aborted
       rv += 'd';
     }
   }
@@ -2599,11 +2606,11 @@ test('swallowed break in aborted stratum 3', 'abcf', function() {
 
   function foo(block) {
     for (var i=0; i<10; ++i) {
-      var S = spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} })();
+      var S = reifiedStratum.spawn(function() { rv += 'a'; hold(0); try { block();} finally { hold(100); rv += 'c';} });
       hold(0);
       rv += 'b'; 
       try {
-        S.abort(); 
+        S.abort().wait(); 
       }
       finally {
         rv += 'f';
@@ -2620,7 +2627,7 @@ test('swallowed break in aborted stratum 3', 'abcf', function() {
 
 //----------------------------------------------------------------------
 
-test('exception in finally clause in stratum - synchronous', 'fF', function() {
+test('exception in finally clause in stratum - synchronous', 'afF', function() {
   var rv = '';
   function foo() {
     try {
@@ -2631,13 +2638,19 @@ test('exception in finally clause in stratum - synchronous', 'fF', function() {
       throw 'F';
     }
   }
-  var S = spawn foo();
-  try { S.abort(); }
+  function bar() {
+    var S = reifiedStratum.spawn(foo);
+    rv += 'a';
+    S.abort();
+    hold(0); // <- should be aborted
+    rv += 'x';
+  }
+  try { bar() }
   catch(e) { rv += e; }
   return rv;
 });
 
-test('exception in finally clause in stratum - asynchronous', 'fF', function() {
+test('exception in finally clause in stratum - asynchronous', 'afF', function() {
   var rv = '';
   function foo() {
     try {
@@ -2649,13 +2662,19 @@ test('exception in finally clause in stratum - asynchronous', 'fF', function() {
       throw 'F';
     }
   }
-  var S = spawn foo();
-  try { S.abort(); }
+  function bar() {
+    var S = reifiedStratum.spawn(foo);
+    rv += 'a';
+    S.abort();
+    hold(0); // <- should be aborted
+    rv += 'x';
+  }
+  try { bar() }
   catch(e) { rv += e; }
   return rv;
 });
 
-test('exception in retract clause in stratum - synchronous', 'fF', function() {
+test('exception in retract clause in stratum - synchronous', 'afF', function() {
   var rv = '';
   function foo() {
     try {
@@ -2666,13 +2685,19 @@ test('exception in retract clause in stratum - synchronous', 'fF', function() {
       throw 'F';
     }
   }
-  var S = spawn foo();
-  try { S.abort(); }
+  function bar() {
+    var S = reifiedStratum.spawn(foo);
+    rv += 'a';
+    S.abort();
+    hold(0); // <- should be aborted
+    rv += 'x';
+  }
+  try { bar(); }
   catch(e) { rv += e; }
   return rv;
 });
 
-test('exception in retract clause in stratum - asynchronous', 'fF', function() {
+test('exception in retract clause in stratum - asynchronous', 'afF', function() {
   var rv = '';
   function foo() {
     try {
@@ -2684,44 +2709,89 @@ test('exception in retract clause in stratum - asynchronous', 'fF', function() {
       throw 'F';
     }
   }
-  var S = spawn foo();
-  try { S.abort(); }
+  function bar() {
+    var S = reifiedStratum.spawn(foo);
+    rv += 'a';
+    S.abort();
+    hold(0); // <- should be aborted
+    rv += 'x';
+  }
+  try { bar(); }
   catch(e) { rv += e; }
   return rv;
 });
 
-test('blocklambda breaks across nested spawned strata', '<o<ii>o>bfifowd', function() {
+test('blocklambda breaks across nested spawned strata', '<o<ii>o>brfirfowd', function() {
   var rv = '';
   var spawnExec = x -> function(block) { 
     rv += '<'+x;
-    var stratum = spawn block();
+    var stratum = reifiedStratum.spawn(block);
     rv += x+'>';
     try {
       hold();
     }
     retract {
-      rv += 'X';
+      rv += 'r';
     }
     finally {
       rv += 'f'+x;
     }
     rv += 'X';
-}
+  }
 
-  var blk = {
-    ||
+  var spawnNested = bl -> spawnExec('o')(function() { spawnExec('i')(bl);
+                                                      rv += 'C';
+                                                    });
+  do {
+    spawnNested
+              {||
+                hold(0);
+                rv += 'b';
+                break;
+                rv += 'B';
+              }
     hold(0);
-    rv += 'b';
-    break;
+    // should break to here:
+    // XXX arguably to the line after the `do` ? NO
+    rv += 'w';
+  }
+  while (0);
+  rv += 'd';
+
+  return rv;
+
+});
+
+test('sync blocklambda breaks across nested spawned strata', '<o<ibi>rfio>rfowd', function() {
+  var rv = '';
+  var spawnExec = x -> function(block) { 
+    rv += '<'+x;
+    var stratum = reifiedStratum.spawn(block);
+    rv += x+'>';
+    try {
+      hold();
+    }
+    retract {
+      rv += 'r';
+    }
+    finally {
+      rv += 'f'+x;
+    }
     rv += 'X';
-  };
+  }
+
+  var spawnNested = bl -> spawnExec('o')(function() { 
+    spawnExec('i')(bl);
+    rv += 'X';
+  });
 
   do {
-    spawnExec('o')(function() { 
-      spawnExec('i')(blk);
-      rv += 'X';
-    });
-
+    spawnNested
+              {||
+                rv += 'b';
+                break;
+                rv += 'X';
+              }
     hold(0);
     // should break to here:
     // XXX arguably to the line after the `do` ?
@@ -2734,82 +2804,38 @@ test('blocklambda breaks across nested spawned strata', '<o<ii>o>bfifowd', funct
 
 });
 
-test('sync blocklambda breaks across nested spawned strata', '<o<ibwd', function() {
+test('blocklambda return across nested spawned strata', '<o<ii>o>brfirfov', function() {
   var rv = '';
   var spawnExec = x -> function(block) { 
     rv += '<'+x;
-    var stratum = spawn block();
+    var stratum = reifiedStratum.spawn(block);
     rv += x+'>';
     try {
       hold();
     }
     retract {
-      rv += 'X';
+      rv += 'r';
     }
     finally {
       rv += 'f'+x;
     }
     rv += 'X';
-}
-
-  var blk = {
-    ||
-    rv += 'b';
-    break;
-    rv += 'X';
-  };
-
-  do {
-    spawnExec('o')(function() { 
-      spawnExec('i')(blk);
-      rv += 'X';
-    });
-
-    hold(0);
-    // should break to here:
-    // XXX arguably to the line after the `do` ?
-    rv += 'w';
   }
-  while (0);
-  rv += 'd';
 
-  return rv;
-
-});
-
-test('blocklambda return across nested spawned strata', '<o<ii>o>bfifor', function() {
-  var rv = '';
-  var spawnExec = x -> function(block) { 
-    rv += '<'+x;
-    var stratum = spawn block();
-    rv += x+'>';
-    try {
-      hold();
-    }
-    retract {
-      rv += 'X';
-    }
-    finally {
-      rv += 'f'+x;
-    }
+  var spawnNested = bl ->spawnExec('o')(function() {
+    spawnExec('i')(bl);
     rv += 'X';
-}
+  });
 
   rv += (function(){
-    var blk = {
-      ||
-      hold(0);
-      rv += 'b';
-      return 'r';
-      rv += 'X';
-    };
-    
     do {
-      spawnExec('o')(function() { 
-        spawnExec('i')(blk);
-        rv += 'X';
-      });
-      
+      spawnNested
+               {||
+               hold(0);
+               rv += 'b';
+               return 'v';
+               rv += 'X'
+               }
       hold(0);
       rv += 'X';
     }
@@ -2824,11 +2850,12 @@ test('blocklambda return across nested spawned strata', '<o<ii>o>bfifor', functi
 // This _could_ be made to work, but at the moment it generates
 // a runtime error. The problem is the point of definition of the blocklambda.
 // It seems a pretty useless pattern though, so might not be worth fixing.
-test('bl break across spawn - async', 'xfF', function() {
+test('bl break across _taskXXX - async', 'xfF', function() {
   var rv = '';
   function foo() {
+    function call(f) { f(); }
     try {
-      spawn ({ || try { hold(0); rv += 'x'; break; } retract { rv += 'r' } finally { rv += 'f' } })();
+      //XXX _taskXXX call { || try { hold(0); rv += 'x'; break; } retract { rv += 'r' } finally { rv += 'f' } };
       hold();
     }
     retract {
@@ -2842,12 +2869,13 @@ test('bl break across spawn - async', 'xfF', function() {
   return rv;
 }).skip("Needs work");
 
-// this used to not properly route the 'inactive frame' exception and cause a 
-// deadlock:
+// We now allow routing via inactive frames:
+// (this used to not properly route the 'inactive frame' exception and cause a 
+// deadlock)
 test('bl return routing deadlock edgecase', '1234', function() {
   var rv = '';
 
-  function spawn_and_return(f) { return spawn f(); }
+  function spawn_and_return(f) { return spawn(f); }
   function test() {
     var S = spawn_and_return { || hold(10); rv+='1'; return; };
 
@@ -2858,20 +2886,20 @@ test('bl return routing deadlock edgecase', '1234', function() {
 
   try { 
     test();
-    rv += 'z';
-  }
-  catch(e) {
     rv += '4';
   }
+  catch(e) {
+    rv += 'z';
+  }
   return rv;
-});
+}).skip('obsolete stratum routing');
 
 // this used to not properly route the 'inactive frame' exception and cause a 
 // deadlock:
 test('bl break routing deadlock edgecase', '1234', function() {
   var rv = '';
 
-  function spawn_and_return(f) { return spawn f(); }
+  function spawn_and_return(f) { return spawn(f); }
   function test() {
     var S = spawn_and_return { || hold(10); rv+='1'; break; };
 
@@ -2888,5 +2916,5 @@ test('bl break routing deadlock edgecase', '1234', function() {
     rv += '4';
   }
   return rv;
-});
+}).skip('obsolete stratum routing');
 

@@ -629,9 +629,6 @@
         "signal": {
           "type": "function"
         },
-        "tailspawn": {
-          "type": "function"
-        },
         "unbatched": {
           "type": "function"
         }
@@ -2394,6 +2391,9 @@
           "type": "function"
         },
         "setDynVar": {
+          "type": "function"
+        },
+        "spawn": {
           "type": "function"
         },
         "version": {

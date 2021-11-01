@@ -2,9 +2,9 @@
 var {requiresConductance} = require('./helper');
 var {getHttpURL} = require('../lib/testContext');
 
-@context {||
+@context(function() {
 
-@test("loading an already-loaded module via bundle dependency") {||
+@test("loading an already-loaded module via bundle dependency", function() {
   var canonicalId = require.resolve('./fixtures/bundle_a').path;
   require('./fixtures/bundle_a').ping() .. @assert.eq('pong');
   var initialModule = require.modules[canonicalId];
@@ -23,6 +23,6 @@ var {getHttpURL} = require('../lib/testContext');
 
   // and module should not have been replaced
   require.modules[canonicalId] .. @assert.is(initialModule);
-} .. requiresConductance();
+}) .. requiresConductance();
 
-}.browserOnly();
+}).browserOnly();

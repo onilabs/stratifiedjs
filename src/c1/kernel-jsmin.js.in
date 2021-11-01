@@ -167,7 +167,7 @@ function gen_fun_pars(pars) {
   for (var i=0; i<decls.length; ++i) {           \
     if (i) rv += ",";                            \
     rv += decls[i][0];                           \
-    if (decls[i][1] != null)                     \
+    if (decls[i].length == 2)                     \
       rv += "="+decls[i][1];                     \
   }                                              \
   return rv+";";

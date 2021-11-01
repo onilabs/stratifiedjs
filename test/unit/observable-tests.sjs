@@ -1,16 +1,16 @@
 @ = require('sjs:test/std');
 
-@context("ObservableVar") {||
-  @test("isStream") {||
+@context("ObservableVar", function() {
+  @test("isStream", function() {
     var a = @ObservableVar();
     @assert.eq(a .. @isStream, true);
-  }
-  @test("isObservableVar") {||
+  })
+  @test("isObservableVar", function() {
     var a = @ObservableVar();
     @assert.eq(a .. @isObservableVar, true);
-  }
+  })
 
-	@test("conflict") {||
+	@test("conflict", function() {
 		var a = @ObservableVar();
 		@assert.raises({filter:@isConflictError}, function() {
 			waitfor {
@@ -26,9 +26,9 @@
 				});
 			}
 		});
-	}
+	})
 
-	@test("observe multiple values at once") {||
+	@test("observe multiple values at once", function() {
 		var log = [];
 		var a = @ObservableVar("a0");
 		var b = @ObservableVar("b0");
@@ -46,15 +46,14 @@
 			c.set("c1");
 			c.set("c2");
 		}
-
 		log .. @assert.eq([
 			["a0", "b0", "c0"],
 			["a1", "b0", "c0"],
 			["a1", "b0", "c1"],
 		]);
-	}
+	})
 
-	@test("combine multiple observables") {||
+	@test("combine multiple observables", function() {
 		var log = [];
 		var a = @ObservableVar("a0");
 		var b = @ObservableVar("b0");
@@ -79,9 +78,9 @@
 			["a1", "b0", "c0"],
 			["a1", "b0", "c1"],
 		]);
-	}
+	})
 
-	@test("only ever skips intermediate events when observing") {||
+	@test("only ever skips intermediate events when observing", function() {
 		var log = [];
 		var a = @ObservableVar("a0");
 
@@ -99,11 +98,11 @@
 		}
 
 		log .. @assert.eq(["a0","a4"]);
-	}
-}.timeout(2);
+	})
+}).timeout(2);
 
-@context("observe") {||
-	@test("emits initial value") {||
+@context("observe", function() {
+	@test("emits initial value", function() {
 		var log = [];
 		var a = @ObservableVar(0);
 		var c = @observe(a, _a -> _a + 1);
@@ -117,17 +116,17 @@
 		}
 
 		log .. @assert.eq([1, 2]);
-	}
+	})
 
-	@test("is recomputed each time it's accessed") {||
+	@test("is recomputed each time it's accessed", function() {
 		var count = 0;
 		var c = @observe(@ObservableVar(), -> count++);
 		c .. @first() .. @assert.eq(0);
 		c .. @first() .. @assert.eq(1);
-	}
-}
+	})
+})
 
-@test('each.track edge case') {||
+@test('each.track edge case', function() {
   // if the block of an each.track blocks while an upstream value is generated, 
   // we're ok to lose intermediate values, but we want to make sure that we 
   // always see the last one
@@ -153,11 +152,10 @@
     hold(0);
   }
   rv .. @assert.eq('ad');
-}
+})
 
-@context("synchronize") {||
-  @test('B inited from A') {
-    ||
+@context("synchronize", function() {
+  @test('B inited from A', function() {
     var A = @ObservableVar('foo');
     var B = @ObservableVar('bar');
     waitfor {
@@ -166,10 +164,9 @@
     or {
     }
     @assert.eq(B .. @current, 'foo');
-  }
+  })
 
-  @test('B inited from A; aToB') {
-    ||
+  @test('B inited from A; aToB', function() {
     var A = @ObservableVar('foo');
     var B = @ObservableVar('bar');
     waitfor {
@@ -179,10 +176,9 @@
     }
     @assert.eq(B .. @current, 'FOO');
     @assert.eq(A .. @current, 'foo');
-  }
+  })
 
-  @test('setting A; aToB') {
-    ||
+  @test('setting A; aToB', function() {
     var A = @ObservableVar('foo');
     var B = @ObservableVar('bar');
     waitfor {
@@ -193,10 +189,9 @@
     }
     @assert.eq(B .. @current, 'XXX');
     @assert.eq(A .. @current, 'xxx');
-  }
+  })
 
-  @test('setting B; bToA') {
-    ||
+  @test('setting B; bToA', function() {
     var A = @ObservableVar('foo');
     var B = @ObservableVar('bar');
     waitfor {
@@ -207,22 +202,22 @@
     }
     @assert.eq(B .. @current, 'test');
     @assert.eq(A .. @current, 'xxx');
-  }
+  })
 
 
-} // context 'synchronize'
+}) // context 'synchronize'
 
-@context("ObservableWindowVar") {||
+@context("ObservableWindowVar", function() {
 
-  @test("typing") {||
+  @test("typing", function() {
     var a = @ObservableWindowVar(10);
     @assert.eq(a .. @isStream, false);
     @assert.eq(a .. @isObservableWindowVar, true);
     @assert.eq(a.stream .. @isStream, true);
     @assert.eq(a.stream .. @isStructuredStream('rolling'), true);
-  }
+  })
 
-  @test("add/stream") {||
+  @test("add/stream", function() {
     var A = @ObservableWindowVar(3);
     var rv = [];
     waitfor {
@@ -233,8 +228,8 @@
     }
     @assert.eq(rv, [[],[1],[1,2],[1,2,3],[2,3,4],[3,4,5],[4,5,6]]);
     A.stream .. @first .. @assert.eq([4,5,6]);
-  }
-  @test("add/stream async") {||
+  })
+  @test("add/stream async", function() {
     var A = @ObservableWindowVar(3);
     var rv = [];
     waitfor {
@@ -245,8 +240,8 @@
     }
     @assert.eq(rv, [[],[1],[1,2],[1,2,3],[2,3,4],[3,4,5],[4,5,6]]);
     A.stream .. @first .. @assert.eq([4,5,6]);
-  }
-  @test("base stream") {||
+  })
+  @test("base stream", function() {
     var A = @ObservableWindowVar(3);
     var rv = [];
     waitfor {
@@ -257,8 +252,8 @@
     }
     @assert.eq(rv, [[0,[]],[0,[1]],[0,[2]],[0,[3]],[1,[4]],[1,[5]],[1,[6]]]);
     A.stream.base .. @first .. @assert.eq([0,[4,5,6]]);
-  }
-  @test("multiple streams") {||
+  })
+  @test("multiple streams", function() {
     var A = @ObservableWindowVar(3);
     var rv1 = [];
     var rv2 = [];
@@ -273,8 +268,8 @@
     }
     @assert.eq(rv1, [[], [1], [1,2], [1,2,3], [2,3,4], [3,4,5], [4,5,6]]);
     @assert.eq(rv2, [[1], [1,2], [1,2,3], [2,3,4], [3,4,5], [4,5,6]]);
-  }
-  @test("lagging receiver") {||
+  })
+  @test("lagging receiver", function() {
     var A = @ObservableWindowVar(3);
     A.stream .. @consume {
       |next|
@@ -285,8 +280,8 @@
       A.add(5); A.add(6);
       @assert.eq(next(), [4,5,6]);
     }
-  }
-  @test("lagging receiver async") {||
+  })
+  @test("lagging receiver async", function() {
     var A = @ObservableWindowVar(3);
     A.stream .. @consume {
       |next|
@@ -297,8 +292,8 @@
       A.add(5); A.add(6); hold(0);
       @assert.eq(next(), [4,5,6]);
     }
-  }
-  @test("multiple lagging receivers") {||
+  })
+  @test("multiple lagging receivers", function() {
     var A = @ObservableWindowVar(3);
     A.stream .. @consume {
       |next1|
@@ -317,21 +312,21 @@
         @assert.eq(next2(), [4,5,6]);
       }
     }
-  }
+  })
 
 
-} // context 'ObservableWindowVar'
+}) // context 'ObservableWindowVar'
 
-@context('sample') {||
-  @test('typing') {||
+@context('sample', function() {
+  @test('typing', function() {
     var A = @integers() .. @sample;
     var B = @integers() .. @rollingWindow(3) .. @sample;
     @assert.eq(A .. @isStream, true);
     @assert.eq(A .. @isStructuredStream, false);
     @assert.eq(B .. @isStream, true);
     @assert.eq(B .. @isStructuredStream('rolling'), true);
-  }
-  @test('sampling unstructured stream') {||
+  })
+  @test('sampling unstructured stream', function() {
     var Input = @ObservableVar(1);
     var Sampled = Input .. @sample;
     Sampled .. @consume {
@@ -346,8 +341,8 @@
       hold(0);
       @assert.eq(next(), 5);
     }
-  }
-  @test('sampling rolling stream') {||
+  })
+  @test('sampling rolling stream', function() {
     var Input = @ObservableWindowVar(3);
     var Sampled = Input.stream .. @sample;
     Sampled .. @consume {
@@ -362,19 +357,19 @@
       hold(0);
       @assert.eq(next(), [3,4,5]);
     }
-  }
-}
+  })
+})
 
-@context('updatesToObservable') {||
-  @test('typing') {||
+@context('updatesToObservable', function() {
+  @test('typing', function() {
     var A = @integers() .. @updatesToObservable(->undefined);
     var B = @integers() .. @rollingWindow(3) .. @updatesToObservable(->undefined);
     @assert.eq(A .. @isStream, true);
     @assert.eq(A .. @isStructuredStream, false);
     @assert.eq(B .. @isStream, true);
     @assert.eq(B .. @isStructuredStream, false);
-  }
-  @test('sampling unstructured stream') {||
+  })
+  @test('sampling unstructured stream', function() {
     var Input = @ObservableVar(100);
     var Sampled = Input .. @changes .. @updatesToObservable(->(hold(0),1));
     Sampled .. @consume {
@@ -390,8 +385,8 @@
       hold(0);
       @assert.eq(next(), 5);
     }
-  }
-  @test('sampling unstructured stream - quirky') {||
+  })
+  @test('sampling unstructured stream - quirky', function() {
     var Input = @ObservableVar(100);
     var Sampled = Input .. @changes .. @updatesToObservable(->(hold(0),1));
     Sampled .. @consume {
@@ -414,8 +409,8 @@
       hold(0);
       @assert.eq(next(), 5);
     }
-  }
-  @test('override initial value') {||
+  })
+  @test('override initial value', function() {
     var Input = @ObservableVar(1000);
     var Sampled = Input .. @changes .. @updatesToObservable(->(hold(1000),100));
     Sampled .. @consume {
@@ -436,5 +431,5 @@
       hold(0);
       @assert.eq(next(), 5);
     }
-  }
-}
+  })
+})
