@@ -298,8 +298,7 @@ function withBackgroundServices(session_f) {
         var stratum;
         waitfor(var session_itf, is_err) {
           var cont = resume;
-          stratum = background_strata.run {
-            ||
+          stratum = background_strata.run(function() {
             args.push(function(itf){ cont(itf, false); hold(); });
             try {
               service.apply(null, args);
@@ -308,7 +307,7 @@ function withBackgroundServices(session_f) {
               if (have_caller) cont(e, true);
               else throw new Error("Background service threw: "+e);
             }
-          }
+          });
         }
         retract {
           stratum.abort().wait();

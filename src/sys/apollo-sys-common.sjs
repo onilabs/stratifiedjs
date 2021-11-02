@@ -1297,3 +1297,11 @@ exports.spawn = function (f) {
   __js runGlobalStratum(r),null;
   return r.stratum.spawn(f);
 };
+
+//----------------------------------------------------------------------
+// helper for stratum::capture (used in vm1):
+
+exports.captureStratum = function(S) {
+  reifiedStratum.adopt(S);
+  reifiedStratum.join();
+};
