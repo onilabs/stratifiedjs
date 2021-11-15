@@ -936,15 +936,14 @@ exports.Seq=function(...args){return {exec:I_seq,ndata:args,__oni_dis:token_dis}
 function createReifiedStratum(ef){var RS={toString:function(){
 
 return "[object Stratum '"+ef.id+"']"},wait:function(){
-if(ef.done)return UNDEF;
+if(ef.done)return RS;
 
 var wef={toString:function(){
 return "<wait on stratum "+ef.id+">"},wait:function(){
 return wef},quench:function(){
-console.log(wef+" QUENCH");ef.wait_frames.delete(wef)},abort:function(){
-console.log(wef+" ABORT");
-
+ef.wait_frames.delete(wef)},abort:function(){
 exports.current_dyn_vars=wef.__oni_dynvars;
+
 
 return UNDEF;
 },__oni_ef:true,__oni_dynvars:exports.current_dyn_vars};
@@ -960,14 +959,14 @@ return wef;
 return spawnSubStratum(f,ef)},join:function(){
 if(ef.pending<2)return;
 
-console.log(ef+": JOIN ON "+ef.pending);
+
 var jef={toString:function(){
 return "<join on stratum "+ef.id+">"},wait:function(){
 return jef},quench:function(){
-console.log("QUENCH JOIN FRAME for "+ef);ef.join_frames.delete(jef)},abort:function(){
-console.log("ABORT JOIN FRAME for "+ef);
-
+ef.join_frames.delete(jef)},abort:function(){
 exports.current_dyn_vars=jef.__oni_dynvars;
+
+
 
 return UNDEF;
 },__oni_ef:true,__oni_dynvars:exports.current_dyn_vars};
@@ -994,7 +993,7 @@ return RS;
 return exports.sys.captureStratum(RS);
 
 },adopt:function(s){
-if(s._ef.done)return s;
+if(s._ef.done||s._ef.parent===ef)return s;
 
 var ef_to_adopt=s._ef;
 
@@ -1020,7 +1019,7 @@ if(old_parent){
 cont(old_parent,old_parent_idx,UNDEF);
 }else{
 
-console.log("---------- ADOPT WITH NO PARENT");
+
 
 ef_to_adopt.adopted=true;
 }
@@ -1065,7 +1064,7 @@ if(!reified_ef.adopted){
 cont(parent_ef,-2,[id,substratum_val]);
 }else{
 
-console.log("NOT HOOKING UP ADOPTED STRATUM IN .SPAWN (parent="+reified_ef.parent+")");
+
 
 cont(parent_ef,-2,[id,UNDEF]);
 }
@@ -1166,7 +1165,7 @@ this.abort();
 this.pending_rv=mergeExceptions(val,this.pending_rv);
 }else{
 
-var msg="Swallowing control-flow exception of type '"+val.type+"' from aborted sub-stratum";
+var msg="Swallowing control-flow exception '"+val+"' from aborted sub-stratum";
 if(console.error)console.error(msg);else console.log(msg);
 
 }
@@ -1217,7 +1216,7 @@ for(var wait_frame of frames){
 if(wait_frame.parent){
 var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=wait_frame.__oni_dynvars;
-cont(wait_frame.parent,wait_frame.parent_idx,UNDEF);
+cont(wait_frame.parent,wait_frame.parent_idx,this.reifiedstratum);
 exports.current_dyn_vars=current_dyn_vars;
 }
 
@@ -1237,8 +1236,8 @@ if(child[1].parent===this){
 child[1].quench();
 var abort_val=child[1].abort();
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
-console.log(this+' need to wait for '+child[0]+': '+abort_val);
-this.setChildFrame(abort_val,child[0]);
+
+
 }else{
 
 child[1].parent=UNDEF;
@@ -1255,7 +1254,7 @@ this.pending_rv=mergeExceptions(abort_val,this.pending_rv);
 }
 }else{
 
-console.log(this+" not aborting re-adopted child "+child[1]);
+
 this.strata_children.delete(child[0]);
 }
 }
@@ -1275,7 +1274,7 @@ return this;
 
 var abort_val=this.main_child.abort(pseudo_abort);
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
-this.setChildFrame(abort_val,0);
+
 return this;
 }else{
 
@@ -1507,12 +1506,12 @@ this.child_frame=UNDEF;
 }
 val=execIN(this.ndata[idx],this.env);
 if(this.aborted){
-console.log(this+' reentrantly aborting return value: '+val);
+
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort(this.pseudo_abort);
-console.log(this+' reentrant aborting yields: '+val);
+
 if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 return this.returnToParent(val);
 }
@@ -2819,7 +2818,9 @@ this.async=false;
 var rv=cont(this,0,val);
 if(!(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)||rv===this)){console.log("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this");throw new Error("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this")};
 if(rv!==this){
-if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=val;
+
+
+
 
 return rv;
 }else{
@@ -3726,7 +3727,7 @@ EF_WfW.prototype.abortInner=function(){this.inner_aborted=true;
 if(this.children[1]){
 var val=this.children[1].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.setChildFrame(val,1);
+
 this.async=true;
 return this;
 }else{
@@ -3742,7 +3743,7 @@ this.children[1]=UNDEF;
 if(this.children[0]){
 var val=this.children[0].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-this.setChildFrame(val,0);
+
 this.async=true;
 return this;
 }else{

@@ -1025,15 +1025,14 @@ function createReifiedStratum(ef) {
   var RS = {
     toString: function() { return "[object Stratum '"+ef.id+"']"; },
     wait: function() {
-      if (ef.done) return UNDEF;
+      if (ef.done) return RS;
       var wef = {
 #ifdef EF_TYPES
         toString: function() { return "<wait on stratum "+ef.id+">"; },
 #endif
         wait: function() { return wef; },
-        quench: function() { console.log(wef+" QUENCH"); ef.wait_frames.delete(wef); },
+        quench: function() { ef.wait_frames.delete(wef); },
         abort: function() { 
-          console.log(wef+" ABORT");  
           exports.current_dyn_vars = wef.__oni_dynvars;
           //to aid gc; check if this is possible: wef.__oni_dynvars = UNDEF;
           return UNDEF;
@@ -1050,15 +1049,15 @@ function createReifiedStratum(ef) {
     spawn: function(f) { return spawnSubStratum(f, ef) },
     join: function() { 
       if (ef.pending < 2) return; // no sub strata
-      console.log(ef+": JOIN ON "+ef.pending);
+      //console.log(ef+": JOIN ON "+ef.pending);
       var jef = {
 #ifdef EF_TYPES
         toString: function() { return "<join on stratum "+ef.id+">"; },
 #endif
         wait: function() { return jef; },
-        quench: function() { console.log("QUENCH JOIN FRAME for "+ef); ef.join_frames.delete(jef); },
+        quench: function() { ef.join_frames.delete(jef); },
         abort: function() { 
-          console.log("ABORT JOIN FRAME for "+ef);  
+          //console.log("ABORT JOIN FRAME for "+ef);  
           exports.current_dyn_vars = jef.__oni_dynvars;
           //XXX to aid gc; check if this is ok: jef.__oni_dynvars = UNDEF;
           return UNDEF; 
@@ -1087,7 +1086,7 @@ function createReifiedStratum(ef) {
       return exports.sys.captureStratum(RS);
     },
     adopt: function(s) { 
-      if (s._ef.done) return s; // stratum is already done; no need to adopt
+      if (s._ef.done || s._ef.parent === ef) return s; // stratum is already done; no need to adopt
       var ef_to_adopt = s._ef;
 
       // see unit/stack-tests spawn/adopt tests
@@ -1112,7 +1111,7 @@ function createReifiedStratum(ef) {
         cont(old_parent, old_parent_idx, UNDEF);
       }
       else {
-        console.log("---------- ADOPT WITH NO PARENT");
+        //console.log("---------- ADOPT WITH NO PARENT");
         // mark as adopted, so that we don't hook up to parent in `spawn`:
         ef_to_adopt.adopted = true;
       }
@@ -1157,7 +1156,7 @@ function spawnSubStratum(f, parent_ef) {
     cont(parent_ef, -2, [id,substratum_val]);
   }
   else {
-    console.log("NOT HOOKING UP ADOPTED STRATUM IN .SPAWN (parent="+reified_ef.parent+")");
+    //console.log("NOT HOOKING UP ADOPTED STRATUM IN .SPAWN (parent="+reified_ef.parent+")");
     // need to clear pending: (XXX might be able to do this by direct setting?)
     cont(parent_ef, -2, [id, UNDEF]);
   }
@@ -1260,7 +1259,7 @@ EF_Reified.prototype.cont = function(idx, val) {
         this.pending_rv = mergeExceptions(val, this.pending_rv);
       }
       else {
-        var msg = "Swallowing control-flow exception of type '"+val.type+"' from aborted sub-stratum";
+        var msg = "Swallowing control-flow exception '"+val+"' from aborted sub-stratum";
         if (console.error) console.error(msg);
         else console.log(msg);
       }
@@ -1285,7 +1284,7 @@ EF_Reified.prototype.cont = function(idx, val) {
   }
   else if (idx === 0) {
     this.async = true;
-    //console.log(this + " RET THIS, parent="+this.parent);
+    //console.log(this + " RET THIS, parent="+this.parent+" pending="+this.pending);
     return this;
   }
 };
@@ -1311,7 +1310,7 @@ EF_Reified.prototype.flush_wait_frames = function() {
     if (wait_frame.parent) {
       var current_dyn_vars = exports.current_dyn_vars;
       exports.current_dyn_vars = wait_frame.__oni_dynvars;
-      cont(wait_frame.parent, wait_frame.parent_idx, UNDEF);
+      cont(wait_frame.parent, wait_frame.parent_idx, this.reifiedstratum);
       exports.current_dyn_vars = current_dyn_vars;
     }
     //XXX to aid gc; check if this is possible: wait_frame.__oni_dynvars = UNDEF;
@@ -1319,7 +1318,7 @@ EF_Reified.prototype.flush_wait_frames = function() {
 }
 
 EF_Reified.prototype.abort_child_strata = function() {
-//  console.log('aborting child strata');
+  //console.log(this+' aborting child strata');
   //ASSERT(!this.strata_children_aborted);
 
   /* we need to be careful about how to quench&abort our children, since a still-running child
@@ -1331,8 +1330,8 @@ EF_Reified.prototype.abort_child_strata = function() {
       child[1].quench();
       var abort_val = child[1].abort(); // XXX do we need support for pseudo-abort?
       if (is_ef(abort_val)) {
-        console.log(this + ' need to wait for '+child[0]+': '+abort_val);
-        this.setChildFrame(abort_val, child[0]);
+        //console.log(this + ' need to wait for '+child[0]+': '+abort_val);
+        //XXXUNN this.setChildFrame(abort_val, child[0]);
       }
       else {
         child[1].parent = UNDEF;
@@ -1349,7 +1348,7 @@ EF_Reified.prototype.abort_child_strata = function() {
       }
     }
     else {
-      console.log(this + " not aborting re-adopted child "+child[1]);
+      //console.log(this + " not aborting re-adopted child "+child[1]);
       this.strata_children.delete(child[0]);
     }
   }
@@ -1357,7 +1356,7 @@ EF_Reified.prototype.abort_child_strata = function() {
 };
 
 EF_Reified.prototype.abort = function(pseudo_abort) {
-  //console.log(this+".ABORT pending = "+this.pending+", aborted="+this.aborted+", done="+this.done+", main_child="+this.main_child);
+  //console.log(this+".ABORT pending = "+this.pending+", aborted="+this.aborted+", done="+this.done+", main_child="+this.main_child+" parent="+this.parent);
   // allow redundant aborts
   if (this.aborted) return this;//this.done ? UNDEF : this;
   this.aborted = true;
@@ -1369,7 +1368,7 @@ EF_Reified.prototype.abort = function(pseudo_abort) {
   else {
     var abort_val = this.main_child.abort(pseudo_abort);
     if (is_ef(abort_val)) {
-      this.setChildFrame(abort_val, 0);
+      //XXXUNN this.setChildFrame(abort_val, 0);
       return this;
     }
     else {
@@ -1423,7 +1422,7 @@ EF_Reified.prototype.quench = function() {
 
 // XXX can't use setChildFramePar here, because we have to use a Map for children:
 EF_Reified.prototype.setChildFrame = function(ef, idx) {
-  //console.log(this+'.setchildframe('+ef+','+idx+')');
+  //console.log(this+'.setchildframe('+ef+','+idx+' parent='+this.parent+')');
   if (idx === 0) {
     if (this.main_child) {
       if (this.main_child.callstack) {
@@ -1605,12 +1604,12 @@ EF_BlSeq.prototype.cont = function(idx, val) {
       }
       val = execIN(this.ndata[idx], this.env);
       if (this.aborted) {
-        console.log(this + ' reentrantly aborting return value: '+val);
+        //console.log(this + ' reentrantly aborting return value: '+val);
         // a reentrant abortion
         if (is_ef(val)) {
           val.quench();
           val = val.abort(this.pseudo_abort);
-          console.log(this + ' reentrant aborting yields: '+val);
+          //console.log(this + ' reentrant aborting yields: '+val);
           if (!is_ef(val)) {
             return this.returnToParent(val);
           }
@@ -2973,8 +2972,10 @@ EF_Try.prototype.abort = function(pseudo_abort) {
       var rv = cont(this, 0, val);
       ASSERT(!is_ef(rv) || rv === this);
       if (rv !== this) {
-        if (!is_cfx(rv))
-          rv = val;
+        // XXX this would override any finally(e) clauses.
+        //if (!is_cfx(rv))
+        //  rv = val;
+        //console.log(this+' abort returning '+rv);
         return rv;
       }
       else {
@@ -3908,7 +3909,7 @@ EF_WfW.prototype.abortInner = function() {
   if (this.children[1]) {
     var val = this.children[1].abort(this.pseudo_abort);
     if (is_ef(val)) { // need to wait
-      this.setChildFrame(val, 1);
+      //XXXUN this.setChildFrame(val, 1);
       this.async = true;
       return this;
     }
@@ -3924,7 +3925,7 @@ EF_WfW.prototype.abortInner = function() {
   if (this.children[0]) {
     var val = this.children[0].abort(this.pseudo_abort);
     if (is_ef(val)) { // need to wait
-      this.setChildFrame(val, 0);
+      //XXXUN this.setChildFrame(val, 0);
       this.async = true;
      return this;
     }

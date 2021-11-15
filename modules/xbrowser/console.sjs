@@ -590,7 +590,7 @@ Console.prototype = {
   shutdown: function() {
     uninstallLogger(this);
     this.root.parentNode.removeChild(this.root);
-    this.cmdloop_stratum.abort();
+    this.cmdloop_stratum.abort().wait();
     this.shutdown = -> null;
   }  
 };

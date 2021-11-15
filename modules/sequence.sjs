@@ -3148,6 +3148,7 @@ each.par = function(/*seq, max_strata, r */...args) {
   var S = reifiedStratum;
   seq .. each(function(x) {
     semaphore.acquire();
+    // XXX this only works because S.adopt will be a noop if the stratum is finished
     S.adopt(reifiedStratum.spawn(function() { try { r(x); } finally { semaphore.release(); }}));
   });
   S.join();

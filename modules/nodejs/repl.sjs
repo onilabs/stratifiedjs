@@ -208,7 +208,7 @@ function bgStratumHandler(s) {
 function abortBgStrata() {
   var strata = bgStrata.slice(0);
   for (var i=0; i<strata.length; ++i)
-    strata[i].abort();
+    strata[i].abort().wait();
 }
 
 //----------------------------------------------------------------------
