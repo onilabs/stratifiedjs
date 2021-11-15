@@ -254,7 +254,7 @@ __js exports.expandSingleArgument = function(args) {
      See [../../modules/sys::isStratum]
 */
 __js exports.isReifiedStratum = function(obj) {
-  return (obj instanceof __oni_rt.ReifiedStratumProto);
+  return (obj !== null && typeof(obj) === 'object' && !!obj.__oni_stratum);
 };
 
 /**

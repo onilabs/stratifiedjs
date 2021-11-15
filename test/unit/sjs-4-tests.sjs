@@ -22,6 +22,7 @@ var TF = [true,false];
     (function() { 
       s1 = reifiedStratum;
       @assert.eq(s1,reifiedStratum);
+      @assert.truthy(@sys.isStratum(s1));
       @assert.truthy(typeof s1.running == 'boolean');
       @assert.truthy(typeof s1.wait == 'function');
       @assert.truthy(typeof s1.spawn == 'function');
@@ -271,6 +272,7 @@ var TF = [true,false];
     function s() { rv += 'a'; hold(0); rv+='b'; }
     function foo() {
       var ss = reifiedStratum.spawn(s);
+      @assert.truthy(@sys.isStratum(ss));
       ss.wait();
       rv += 'c';
       return 'd';
@@ -379,7 +381,7 @@ var TF = [true,false];
         var S = reifiedStratum, SS;
         function foo() {
           try {
-            SS = reifiedStratum.spawn(function(SS) { try { S.adopt(SS); } finally { if (async1) hold(0); rv+='f'; } });
+            SS = reifiedStratum.spawn(function(SS) { try { @assert.truthy(@sys.isStratum(SS)); S.adopt(SS); } finally { if (async1) hold(0); rv+='f'; } });
           }
           finally {
             rv += 'a';

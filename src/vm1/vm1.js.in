@@ -114,11 +114,6 @@ else throw new Error("host environment not supported - need 'Promise' or 'nextTi
 
 
 //----------------------------------------------------------------------
-
-//XXX NEEDED FOR ANYTHING IN THE LIB? #define is_stratum(obj) (obj !== null && typeof(obj) === 'object' && obj.__oni_stratum)
-
-
-//----------------------------------------------------------------------
 // Control Flow Exceptions
 
 /*
