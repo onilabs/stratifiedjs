@@ -1207,15 +1207,7 @@ function ph_prefix_op(id, right, pctx) {
   this.id = id;
   this.right = right;
   this.line = pctx.line;
-  if (id === '_task') {
-    // to support blocklambda breaks from spawned strata, we must make sure that the function
-    // from which we spawn is not tail-called:
-    pctx.decl_scopes[pctx.decl_scopes.length-1].notail = true;
-    this.is_nblock = false;
-  }
-  else {
-    this.is_nblock = (pctx.allow_nblock && right.is_nblock);
-  }
+  this.is_nblock = (pctx.allow_nblock && right.is_nblock);
 }
 ph_prefix_op.prototype = new ph(WHENDEBUG("ph_prefix_op"));
 ph_prefix_op.prototype.is_value = true;
@@ -1224,9 +1216,7 @@ ph_prefix_op.prototype.nblock_val = function() {
 };
 ph_prefix_op.prototype.val = function() {
   var rv;
-  if (this.id == "_task")
-    rv = "__oni_rt.Task("+this.line+","+this.right.v()+")";
-  else if (this.right.is_nblock) {
+  if (this.right.is_nblock) {
     // this clause is essential for things like "++i".
     // i.e. where "i" needs to be treated like a reference. they can't be encoded
     // by the catchall clause below.

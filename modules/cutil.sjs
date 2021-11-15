@@ -40,23 +40,6 @@
 
 var sys  = require('builtin:apollo-sys');
 
-/**
-  @variable StratumAborted
-  @summary The error type thrown by calling abort() on a stratum
-  @desc
-    You can check if a reified [#language/builtins::Stratum] was terminated because of a call to [#language/builtins::Stratum::abort] with the following code:
-
-        try {
-          stratum.value();
-        } catch(e) {
-          if (e instanceof cutil.StratumAborted) {
-            // stratum was aborted
-          } else {
-            // stratum code threw an error
-          }
-        }
-*/
-__js exports.StratumAborted = __oni_rt.StratumAborted;
 
 /**
    @function withBackgroundStrata
@@ -804,15 +787,10 @@ exports.breaking = function(block) {
   var uncaught = Condition();
   var retracted = function() {
     if(!stratum) hold(0);
-    try {
-      waitfor {
-        stratum.wait();
-      } or {
-        throw uncaught.wait();
-      }
-    } catch(e) {
-      // this should never happen, but just in case:
-      if(!e instanceof exports.StratumAborted) throw e;
+    waitfor {
+      stratum.wait();
+    } or {
+      throw uncaught.wait();
     }
   }
   waitfor(var err, rv) {

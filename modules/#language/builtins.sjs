@@ -530,7 +530,7 @@
 @desc
   Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]/[./syntax::waitfor-while]:
 
-  * `abort` is synchronous: It will only return after the stratum has been retracted (i.e. once all `finally` and `retract` clauses on the stratum's callstack have been executed). However, any pending [::Stratum::value] calls will _immediately_ receive a [cutil::StratumAborted] exception.
+  * `abort` is asynchronous: It will initiate a retraction of the stratum (if running and not yet retracted), and return.
   
   * An `abort` call can not be aborted itself. Even if aborted, it will only return once 
     the abortee has finished aborting (which might include blocking `retract`/`finally` clauses).
@@ -595,28 +595,17 @@
       })();
 
 
-@function Stratum.value
-@summary Returns the value of the spawned stratum expression
+@function Stratum.wait
+@summary Waits until the stratum has completed
+@return {::Stratum} 
 @desc
 
-  - If the stratum isn't finished yet, `value()` blocks until it is.
-  - If the stratum threw an exception, `value()` throws this exception.
-  - If the stratum was aborted (through a call to [::Stratum::abort]), `value()` throws a [cutil::StratumAborted] exception _immediately_ (before executing any retract calls on the stratum)
-  - If a stratum is exited with blocklambda controlflow (blocklambda return or break), `value()` will yield `undefined`.
-  - 'Waiting on' a pending stratum with `value()` prevents exceptions thrown from the stratum from becoming uncatchable and aborting the current process.
-  
+  - If the stratum isn't finished yet, `wait()` blocks until it is.
+  - Returns the stratum
 
-@function Stratum.waiting
-@summary Return the number of strata currently waiting for the spawned stratum to finish
-@return {Number}
-@desc
-  A stratum is waiting for another if it is blocked on the other stratum's [::Stratum::value].
 
 @function Stratum.running
 @summary Return `true` if the stratum is still running, `false` otherwise
 @return {Boolean}
-
-@function Stratum.waitforValue
-@deprecated Use [::Stratum::value] instead
 
 */

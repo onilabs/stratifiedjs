@@ -16,13 +16,7 @@
                 "running": {
                   "type": "function"
                 },
-                "value": {
-                  "type": "function"
-                },
-                "waitforValue": {
-                  "type": "function"
-                },
-                "waiting": {
+                "wait": {
                   "type": "function"
                 }
               }
@@ -490,9 +484,6 @@
               "type": "function"
             }
           }
-        },
-        "StratumAborted": {
-          "type": "variable"
         },
         "SuspendedContext": {
           "type": "class",

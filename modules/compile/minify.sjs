@@ -207,7 +207,7 @@ GEN_INFIX_OP(left, id, right, pctx)
 GEN_ASSIGN_OP(left, id, right, pctx)
   id: = *= /= %= += -= <<= >>= >>>= &= ^= |=
 GEN_PREFIX_OP(id, right, pctx)
-  id: ++ -- delete void typeof + - ~ ! (for SJS also: '_task')
+  id: ++ -- delete void typeof + - ~ !
 GEN_SPREAD(right, pctx): '...' when used as spread. rest arguments gets '...' merged into name 
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
@@ -236,8 +236,6 @@ GEN_NULL(pctx)
 
 Stratified constructs:
 ======================
-
-GEN_PREFIX_OP(id, right, pctx) takes another operator: '_task'
 
 GEN_WAITFOR_ANDORWHILE(op, blocks, crf, pctx)
   op: 'and' | 'or' | 'while'
@@ -797,7 +795,6 @@ BP  P  A    Operator      Operand Types                  Operation Performed
 *      R     =>           Args AssignExp                 Fat Arrow
 *      R     =>           AssignExp                      Fat Arrow (prefix form)
 119          ...          AssignExp                      SpreadElement
-*115         _task        TaskExp                        StratifiedJS '_task'
 *112         __js         JS_EXP                         non-blocking JS optimized expression
 110 17 L     ,            Expression AssignExp           SequentialEvaluation
 
@@ -1064,8 +1061,6 @@ S("=>")
     
     return gen_infix_op(left, '=>', body, pctx);
   });
-
-S("_task").pre(115);
 
 S(",").ifx(110, true);
 
