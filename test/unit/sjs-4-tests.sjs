@@ -596,6 +596,184 @@ var TF = [true,false];
 
 }); // context
 
+@context("blocklambda controlflow",function() {
+
+  /*
+    The way reentrant aborting works has changed:
+
+    - Previously we would execute code after a reentrant aborting call synchronously up to the next 
+    'abort point', which would be the first hold(0) or similar. The abort would be effective at
+    this abort point.
+    - Now we effect the abort also at the completion of statements that were asynchronous _before_
+    the reentrant aborting call.
+    E.g. in the test below, the 'hold(0)' asynchronizes the try{}finally{} statement. In previous
+    SJS versions the "rv += 'd'" line would be called.
+
+    XXX Arguably the old reentrant behavior was easier to follow. It is harder to implement though, 
+    and probably not worth it.
+
+   */
+  @test("reentrant abort baseline", function() {
+    var R, rv = '';
+    
+    function outer() {
+      waitfor {
+        waitfor() {
+          R = resume;
+        }
+        rv += 'a';
+      }
+      or {
+        try { hold(0); R(); rv += 'b'; } finally { rv += 'c'; };
+        // arguably this should be called:
+        rv += 'd';
+      }
+      rv += 'e';
+    }
+    outer();
+    @assert.eq(rv, 'abce');
+  });
+
+  @test("break supersedes sequential 1", function() { 
+    var R, rv = '';
+    
+    function exec(x) { x(); rv += 'y';}
+    
+    function outer() {
+      waitfor {
+        waitfor() {
+          R = resume;
+        }
+        rv += 'a';
+      }
+      or {
+        exec { ||  hold(0); try { R(); rv += 'b'; } finally { rv += 'c';  break; } }
+        // arguably this should be called:
+        rv += 'd';
+      }
+      rv += 'e';
+    }
+    outer();
+    @assert.eq(rv, 'abce');
+  });
+
+  @test("break supersedes sequential 2", function() { 
+    var R, rv = '';
+    
+    function exec(x) { x(); rv += 'y';}
+    
+    function outer() {
+      waitfor {
+        waitfor() {
+          R = resume;
+        }
+        rv += 'a';
+      }
+      or {
+        exec { ||  hold(0); try {  R(); hold(0); } finally { rv += 'b'; break;  } }
+        rv += 'x';
+      }
+      rv += 'c';
+    }
+    outer();
+    console.log("HEY THERE");
+    @assert.eq(rv, 'abc');
+  });
+
+
+  @product([true, false]) .. @each {
+    |[async]|
+    @test("return supersedes sequential - #{async}", function() { 
+      var R, rv = '';
+
+      function exec(x) { x(); }
+
+      function outer() {
+        waitfor {
+          waitfor() {
+            R = resume;
+          }
+          rv += 'a';
+        }
+        or {
+          exec { || if (async) hold(0); try { R(); hold(); } finally { return 'r'; } }
+          rv += 'x';
+        }
+        rv += 'z';
+      }
+      rv += outer();
+      @assert.eq(rv, 'ar');
+    });
+
+    @test("break supersedes sequential / w abort point - #{async}", function() { 
+      var R, rv = '';
+
+      function exec(x) { x(); rv += 'y';}
+
+      function outer() {
+        waitfor {
+          waitfor() {
+            R = resume;
+          }
+          rv += 'a';
+        }
+        or {
+          exec { || if (async) hold(0); try { R(); hold(); } finally { break;  } }
+          rv += 'b';
+        }
+        rv += 'c';
+      }
+      outer();
+      @assert.eq(rv, 'ac');
+    });
+  }
+
+  @test("reentrant FAcall abort edgecase 1", function() {
+    var R, rv = '';
+    function exec(x, ...rest) { x(); rv+= 'y'; }
+
+    function outer() {
+      waitfor {
+        waitfor() { R = resume; }
+      }
+      or {
+        // the break will cause the 'y' to be skipped
+        exec({|| try { rv+='b'; R(); hold(); } finally { break; } }, hold(0), (rv+='a')); 
+        // XXX Interestingly (concerningly?), this 'x' will be skipped because of the hold(0) -
+        // it asynchronizes the whole function call and makes it an abort point
+        rv += 'x';
+      }
+    }
+
+    outer();
+    @assert.eq(rv, 'ab');
+  });
+
+  @test("reentrant FAcall abort edgecase 2", function() {
+    var R, rv = '';
+    function exec(x, ...rest) { x(); rv+= 'y'; }
+
+    function outer() {
+      waitfor {
+        waitfor() { R = resume; }
+      }
+      or {
+        // the break will cause the 'y' to be skipped
+        exec({|| try { rv+='b'; R(); hold(); } finally { hold(0); break; } }, hold(0), (rv+='a')); 
+        // XXX Interestingly (concerningly?), this 'x' will be skipped because of the hold(0) -
+        // it asynchronizes the whole function call and makes it an abort point
+        // XXX TEST WITH SEQs etc
+        rv += 'x';
+      }
+    }
+
+    outer();
+    @assert.eq(rv, 'ab');
+  });
+
+
+});
+
 @context("blocklambda controlflow - retracting", function() {
   @product([true, false]) .. @each {
     |[sync]|
@@ -640,4 +818,33 @@ var TF = [true,false];
       @assert.eq(rv, 'abcr');
     })
   }
-}).skip("MAKE THIS STUFF WORK");
+});
+
+@test('nested blocklambda return', function() {
+  var rv = '';
+  function f(bl) { try { bl(); } retract { rv += 'r'; } finally { rv += 'f'; } }
+  function foo() {
+    try {
+      f {||
+        try {
+          f {||
+            return "i";
+          }
+          return "o";
+        }
+        retract {
+          rv += 'x';
+        }
+      }
+      return 'O';
+    }
+    retract {
+      rv += 'X';
+    }
+    finally {
+      rv += 'F';
+    }
+  }
+  rv += foo();
+  @assert.eq(rv, "rfrfFi");
+});

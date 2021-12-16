@@ -616,7 +616,7 @@ test('inner stack from spawn/abort sync', 'this_file:'+(line+4)+'\nthis_file:'+(
     return bar(); // + 10
   }
 
-  var  S, f = function() { reifiedStratum.spawn(function() { 
+  var f = function() {S = reifiedStratum.spawn(function() { 
     baz(); hold(); // +14
   }); } // +15
 
@@ -636,7 +636,7 @@ test('inner stack from spawn/abort', 'this_file:'+(line+4)+'\nthis_file:'+(line+
     return bar(); // + 10
   }
 
-  var  S, f = function() { reifiedStratum.spawn(function() { 
+  var f = function() { S = reifiedStratum.spawn(function() { 
     baz(); // +14
   }); } // +15
 

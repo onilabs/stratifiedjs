@@ -2243,7 +2243,6 @@ S("break").stmt(function(pctx) {
   return Node.BreakStatement(pctx, pop_extent(pctx, 'GEN_BREAK'), label);
 });
 
-
 S("return").stmt(function(pctx) {
   push_extent(pctx, null, '.stmt');
   var exp = null;

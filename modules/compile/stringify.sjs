@@ -1608,7 +1608,6 @@ S("break").stmt(function(pctx) {
   var rv = "break";                               if (label !== null)                                 rv += " "+label;                                return rv+";"
 });
 
-
 S("return").stmt(function(pctx) {
   
   var exp = null;

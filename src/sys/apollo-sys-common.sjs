@@ -88,24 +88,26 @@ __js exports.getGlobal = function() { return __oni_rt.G; };
    @param {optional Object} [proto_context] 
    @param {Function} [block]
 */
-exports.withDynVarContext = function(/*args*/) {
+exports.withDynVarContext = function(...args) {
   __js var old_dyn_vars = __oni_rt.current_dyn_vars;
 
   var proto_context, block;
-  if (arguments.length === 1) {
+  if (args.length === 1) {
     __js proto_context = old_dyn_vars;
-    block = arguments[0];
+    block = args[0];
   }
-  else /* arguments.length === 2 */ {
-    proto_context = arguments[0];
-    block = arguments[1];
+  else /* args.length === 2 */ {
+    proto_context = args[0];
+    block = args[1];
   }
           
   try {
-    __js __oni_rt.current_dyn_vars = Object.create(proto_context);
+    __js __oni_rt.current_dyn_vars = __oni_rt.createDynVarContext(proto_context);
+    console.log("DV(sys-common::withDVC)> "+old_dyn_vars.id+" > "+__oni_rt.current_dyn_vars.id);
     block();
   }
   finally {
+    console.log("DV(reset[sys-common::withDVC])> "+__oni_rt.current_dyn_vars.id+" > "+old_dyn_vars.id);
     __js __oni_rt.current_dyn_vars = old_dyn_vars;
   }
 };
@@ -125,6 +127,7 @@ __js exports.getCurrentDynVarContext = function() {
    @param {Object} [value]
 */
 __js exports.setDynVar = function(name, value) {
+  if (Object.hasOwnProperty(__oni_rt.current_dyn_vars,'root')) throw new Error("Cannot set dynamic variable without context");
   if (__oni_rt.current_dyn_vars === null)
     throw new Error("No dynamic variable context to retrieve #{name}");
   var key = '$'+name;
@@ -1294,7 +1297,12 @@ function runGlobalStratum(r) {
 exports.spawn = function (f) {
   // create a global stratum and don't wait for it to complete:
   var r = {};
+  var dynvars = __oni_rt.current_dyn_vars;
   __js runGlobalStratum(r),null;
+  // runGlobalStratum will always reset the current_dyn_vars context to the root context
+  // Since we continue execution in SJS, we need to make sure to reset the context:
+  console.log("DV(sys-common::spawn)> "+__oni_rt.current_dyn_vars.id+" > "+dynvars.id);
+  __oni_rt.current_dyn_vars = dynvars; // (2)
   return r.stratum.spawn(f);
 };
 

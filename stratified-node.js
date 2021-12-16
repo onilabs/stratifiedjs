@@ -71,14 +71,14 @@ if(ef&&ef.parent)dumpExecutionFrameParents(ef.parent,indent+1);
 
 var str='';
 for(var i=0;i<indent;++i)str+='  ';
-str+=ef?ef:'<undefined>';
+str+=ef?ef:'<NULL>';
 console.log(str);
 }
 function dumpExecutionFrameChildren(ef,indent){indent=indent||0;
 
 var str='';
 for(var i=0;i<indent;++i)str+='  ';
-str+=ef?ef:'<undefined>';
+str+=ef?ef:'<NULL>';
 console.log(str);
 if(ef&&ef.child_frame)dumpExecutionFrameChildren(ef.child_frame,indent+1);else if(ef&&ef.children){
 
@@ -115,6 +115,7 @@ nextTick=exports.G.nextTick;
 
 nextTick=function(cb){Promise.resolve().then(cb)};
 }else throw new Error("host environment not supported - need 'Promise' or 'nextTick'");
+
 
 
 
@@ -219,7 +220,7 @@ if(line)value.__oni_stack.push([file||'unknown SJS source',line]);
 
 }
 
-var CFETypes={r:"return",b:"break",c:"continue",blb_old:"blocklambda break old",blb:"blocklambda break",blb_int:"internal blocklambda break"};
+var CFETypes={r:"return",b:"break",c:"continue",blb:"blocklambda break",blr:"blocklambda return"};
 CFException.prototype={__oni_cfx:true,toString:function(){
 
 if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";else return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
@@ -231,10 +232,7 @@ if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";e
 if(this.type=="t"){
 
 throw this.val;
-}else if(this.type==='blb'){
-
-throw this;
-}else if(!this.eid)throw new Error(this.toString());else throw this;
+}else if(!this.aid&&!this.eid)throw new Error(this.toString());else throw this;
 
 
 
@@ -243,6 +241,7 @@ throw this;
 
 
 
+exports.CFException=CFException;
 
 
 
@@ -252,7 +251,55 @@ throw this;
 
 
 
-exports.current_dyn_vars=null;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function createDynVarContext(proto_context){return Object.create(proto_context);
+
+}
+exports.createDynVarContext=createDynVarContext;
+
+var root_dyn_vars={id:'0'};
+exports.current_dyn_vars=root_dyn_vars;
+
+
 
 
 
@@ -353,6 +400,7 @@ throw e;
 
 if(this.child_frame){
 
+
 if(prevent_callstack_copy!==true&&this.child_frame.callstack){
 
 mergeCallstacks(ef,this.child_frame);
@@ -383,13 +431,14 @@ if(this.aborted){
 console.log('ERROR: '+this+': redundant abort');
 }
 
-if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")};
+if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
 this.aborted=true;
 this.pseudo_abort=pseudo_abort;
 
 
 if(!this.child_frame){
 
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 }else{
 
@@ -414,10 +463,11 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='t'&&this.cal
 
 val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
+
 if(this.swallow_r){
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type==="r"){
-if(!val.eid||val.eid===this.sid){
+if(true||!val.eid||val.eid===this.sid){
 val=val.val;
 if(this.swallow_r===3){
 
@@ -564,6 +614,8 @@ return rv;
 
 
 
+
+
 exports.exbl=function(env,args){var rv=I_blseq(args,env);
 
 
@@ -607,28 +659,18 @@ return rv;
 
 
 
-
-
-
-
-
-
-
-
-function Env(aobj,tobj,file,blbref,blrref,blscope,fold,branch,blanchor,reifiedstratum){this.aobj=aobj;
+function Env(aobj,tobj,file,blrref,fold,branch,blanchor,reifiedstratum){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
-this.blbref=blbref;
 this.blrref=blrref;
-this.blscope=blscope;
 this.fold=fold;
 this.branch=branch;
 this.blanchor=blanchor;
 this.reifiedstratum=reifiedstratum;
 }
 
-function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blbref,e.blrref,e.blscope,e.fold,e.branch,e.blanchor,e.reifiedstratum);
+function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blrref,e.fold,e.branch,e.blanchor,e.reifiedstratum);
 
 }
 
@@ -649,12 +691,7 @@ rv.callstack.push([env.file,ndata[1]]);
 return rv;
 }catch(e){
 
-if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
-if(e.type==='blb'){
-console.log('I_call saw: '+e);
-}
-}else{
-
+if(!(e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 e=new CFException("t",e,ndata[1],env.file);
 }
 return e;
@@ -719,23 +756,17 @@ this.env=env;
 
 if(ndata[0]&8){
 
-if(!(!!(ndata[0]&(1|16)))){console.log("Assertion failed: "+"!!(ndata[0] & (1|16))");throw new Error("Assertion failed: "+"!!(ndata[0] & (1|16))")};
-if(!(env.blbref===undefined)){console.log("Assertion failed: "+"env.blbref === undefined");throw new Error("Assertion failed: "+"env.blbref === undefined")};
-if(!(env.blrref===undefined)){console.log("Assertion failed: "+"env.blrref === undefined");throw new Error("Assertion failed: "+"env.blrref === undefined")};
-if(!(env.blscope===undefined)){console.log("Assertion failed: "+"env.blscope === undefined");throw new Error("Assertion failed: "+"env.blscope === undefined")};
-if(!(env.fold===undefined)){console.log("Assertion failed: "+"env.fold === undefined");throw new Error("Assertion failed: "+"env.fold === undefined")};
-if(!(env.branch===undefined)){console.log("Assertion failed: "+"env.branch === undefined");throw new Error("Assertion failed: "+"env.branch === undefined")};
-env.blbref=this;
+if(!(!!(ndata[0]&(1|16)))){console.log("Assertion failed: "+"!!(ndata[0] & (1|16))");throw new Error("Assertion failed: "+"!!(ndata[0] & (1|16))")}
+if(!(env.blrref===undefined)){console.log("Assertion failed: "+"env.blrref === undefined");throw new Error("Assertion failed: "+"env.blrref === undefined")}
+if(!(env.fold===undefined)){console.log("Assertion failed: "+"env.fold === undefined");throw new Error("Assertion failed: "+"env.fold === undefined")}
+if(!(env.branch===undefined)){console.log("Assertion failed: "+"env.branch === undefined");throw new Error("Assertion failed: "+"env.branch === undefined")}
 env.blrref=this;
-env.blscope=this;
 }else if(ndata[0]&1){
 
 
-if(!(env.blbref===undefined)){console.log("Assertion failed: "+"env.blbref === undefined");throw new Error("Assertion failed: "+"env.blbref === undefined")};
-if(!(env.blrref===undefined)){console.log("Assertion failed: "+"env.blrref === undefined");throw new Error("Assertion failed: "+"env.blrref === undefined")};
-if(!(env.blscope===undefined)){console.log("Assertion failed: "+"env.blscope === undefined");throw new Error("Assertion failed: "+"env.blscope === undefined")};
-if(!(env.fold===undefined)){console.log("Assertion failed: "+"env.fold === undefined");throw new Error("Assertion failed: "+"env.fold === undefined")};
-if(!(env.branch===undefined)){console.log("Assertion failed: "+"env.branch === undefined");throw new Error("Assertion failed: "+"env.branch === undefined")};
+if(!(env.blrref===undefined)){console.log("Assertion failed: "+"env.blrref === undefined");throw new Error("Assertion failed: "+"env.blrref === undefined")}
+if(!(env.fold===undefined)){console.log("Assertion failed: "+"env.fold === undefined");throw new Error("Assertion failed: "+"env.fold === undefined")}
+if(!(env.branch===undefined)){console.log("Assertion failed: "+"env.branch === undefined");throw new Error("Assertion failed: "+"env.branch === undefined")}
 
 }
 
@@ -782,12 +813,6 @@ this.setChildFrame(val,idx);
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='blb_old'&&this.env.blscope&&val.eid==this.env.blscope.sid){
-val=UNDEF;
-}else{
-
-
-
 
 if(this.child_frame){
 this.child_frame.parent=UNDEF;
@@ -795,7 +820,6 @@ this.child_frame=UNDEF;
 }
 
 return this.returnToParent(val);
-}
 }
 while(idx<this.ndata.length){
 if(this.sc&&idx>1){
@@ -827,15 +851,7 @@ if(++idx==this.ndata.length&&this.tailcall){
 break;
 }
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
-
-
-
-if(val.type==='blb_old'&&this.env.blscope&&val.eid===this.env.blscope.sid){
-val=UNDEF;
-console.log("HITTING THIS, idx="+idx+". total = "+this.ndata.length);
-}else break;
-
-
+break;
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 this.setChildFrame(val,idx);
@@ -881,6 +897,7 @@ return UNDEF;
 
 ef.wait_frames.add(wef);
 
+exports.current_dyn_vars=root_dyn_vars;
 return wef;
 },running:true,spawn:function(f){
 
@@ -904,6 +921,7 @@ return UNDEF;
 
 ef.join_frames.add(jef);
 
+exports.current_dyn_vars=root_dyn_vars;
 return jef;
 
 },abort:function(){
@@ -932,7 +950,7 @@ ef_to_adopt.callstack.push(current_call);
 
 
 
-if(!(ef_to_adopt.pending_caller)){console.log("Assertion failed: "+"ef_to_adopt.pending_caller");throw new Error("Assertion failed: "+"ef_to_adopt.pending_caller")};
+if(!(ef_to_adopt.pending_caller)){console.log("Assertion failed: "+"ef_to_adopt.pending_caller");throw new Error("Assertion failed: "+"ef_to_adopt.pending_caller")}
 ef_to_adopt.callstack=[current_call,ef_to_adopt.pending_caller];
 }
 
@@ -943,8 +961,12 @@ var id=++ef.substratumid;
 ef_to_adopt.id+='~'+ef.id+'/'+id;
 ++ef.pending;
 ef_to_adopt.async=true;
+
+var dynvars=exports.current_dyn_vars;
+
 if(old_parent){
 cont(old_parent,old_parent_idx,UNDEF);
+if(!(exports.current_dyn_vars===dynvars)){console.log("Assertion failed: "+"exports.current_dyn_vars === dynvars");throw new Error("Assertion failed: "+"exports.current_dyn_vars === dynvars")}
 }else{
 
 
@@ -953,6 +975,8 @@ ef_to_adopt.adopted=true;
 }
 
 cont(ef,-2,[id,ef_to_adopt]);
+
+exports.current_dyn_vars=dynvars;
 return ef_to_adopt.reifiedstratum;
 },_ef:ef,__oni_stratum:true};
 
@@ -972,7 +996,7 @@ reified_ef.callstack=[current_call];
 var val;
 try{
 var parent_dynvars=exports.current_dyn_vars;
-exports.current_dyn_vars=Object.create(parent_dynvars);
+
 
 val=f(reified_ef.reifiedstratum);
 }catch(e){
@@ -984,7 +1008,7 @@ e=new CFException("t",e,0,'');
 }
 val=e;
 }
-exports.current_dyn_vars=parent_dynvars;
+
 
 var substratum_val=cont(reified_ef,-1,val);
 if(!reified_ef.adopted){
@@ -996,6 +1020,7 @@ cont(parent_ef,-2,[id,substratum_val]);
 
 cont(parent_ef,-2,[id,UNDEF]);
 }
+exports.current_dyn_vars=parent_dynvars;
 return reified_ef.reifiedstratum;
 }
 
@@ -1003,6 +1028,7 @@ function EF_Reified(id){this.id=id;
 
 
 this.reifiedstratum=createReifiedStratum(this);
+this.dynvars=exports.current_dyn_vars;
 this.pending=0;
 this.substratumid=0;
 this.pending_rv=UNDEF;
@@ -1026,7 +1052,7 @@ return rv;
 
 EF_Reified.prototype.cont=function(idx,val){if(!(idx<=0||this.strata_children.has(idx))){
 
-console.log("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)");throw new Error("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)")};
+console.log("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)");throw new Error("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)")}
 
 if(idx===-1){
 
@@ -1114,49 +1140,63 @@ nextTick(function(){me.flush_wait_frames()});
 }
 
 
+
+exports.current_dyn_vars=this.dynvars;
+
 return this.returnToParent(this.pending_rv);
 }else if(idx===0){
 
 this.async=true;
 
+
+exports.current_dyn_vars=root_dyn_vars;
+
 return this;
+}else{
+
+
+exports.current_dyn_vars=root_dyn_vars;
 }
 };
 
-EF_Reified.prototype.flush_join_frames=function(){var frames=this.join_frames;
+EF_Reified.prototype.flush_join_frames=function(){if(this.join_frames.size===0)return;
 
+var frames=this.join_frames;
 this.join_frames=new Set();
+var current_dyn_vars=exports.current_dyn_vars;
 for(var join_frame of frames){
 if(join_frame.parent){
-var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=join_frame.__oni_dynvars;
 cont(join_frame.parent,join_frame.parent_idx,UNDEF);
-exports.current_dyn_vars=current_dyn_vars;
-}
 
 }
+}
+
 };
 
 EF_Reified.prototype.flush_wait_frames=function(){var frames=this.wait_frames;
 
+
 this.wait_frames=new Set();
 for(var wait_frame of frames){
 if(wait_frame.parent){
-var current_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=wait_frame.__oni_dynvars;
 cont(wait_frame.parent,wait_frame.parent_idx,this.reifiedstratum);
-exports.current_dyn_vars=current_dyn_vars;
+
+
 }
 
 }
 };
 
-EF_Reified.prototype.abort_child_strata=function(){this.strata_children_aborted=true;
+EF_Reified.prototype.abort_child_strata=function(){if(!(!this.strata_children_aborted)){
+
+console.log("Assertion failed: "+"!this.strata_children_aborted");throw new Error("Assertion failed: "+"!this.strata_children_aborted")};
 
 
 
-
-
+this.strata_children_aborted=true;
+if(this.strata_children.size===0)return;
 
 for(var child of this.strata_children){
 
@@ -1186,17 +1226,22 @@ this.pending_rv=mergeExceptions(abort_val,this.pending_rv);
 this.strata_children.delete(child[0]);
 }
 }
-
 };
 
-EF_Reified.prototype.abort=function(pseudo_abort){if(this.aborted)return this;
+EF_Reified.prototype.abort=function(pseudo_abort){if(this.aborted){
 
 
 
+
+
+exports.current_dyn_vars=root_dyn_vars;
+return this;
+}
 this.aborted=true;
 this.pseudo_abort=pseudo_abort;
 if(!this.main_child){
 
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 }else{
 
@@ -1216,13 +1261,18 @@ abort_val.val.__oni_stack=abort_val.val.__oni_stack.concat(this.callstack);
 this.pending_rv=mergeExceptions(abort_val,this.pending_rv);
 
 this.abort_child_strata();
+
 }
 
 if(this.pending<=1){
 this.flush_join_frames();
+
 }
 
-if(this.pending)return this;
+if(this.pending){
+exports.current_dyn_vars=root_dyn_vars;
+return this;
+}
 
 
 this.done=true;
@@ -1236,6 +1286,7 @@ nextTick(function(){me.flush_wait_frames()});
 
 
 this.unreturnable=true;
+exports.current_dyn_vars=this.dynvars;
 
 return this.pending_rv;
 }
@@ -1293,10 +1344,20 @@ reified_ef.pending_caller=current_call;
 
 inner_ef.env.reifiedstratum=reified_ef.reifiedstratum;
 
+var dynvars=exports.current_dyn_vars;
+
+
 var val=cont(inner_ef,0);
 
 var rv=cont(reified_ef,-1,val);
-return reified_ef.adopted?UNDEF:rv;
+
+if(reified_ef.adopted){
+exports.current_dyn_vars=dynvars;
+return UNDEF;
+}else{
+
+return rv;
+}
 }
 
 
@@ -1321,16 +1382,14 @@ function EF_BlSeq(ndata,env){this.sid=++seq_counter;
 
 this.id=this.sid;
 
-if(!(ndata[0]&1)){console.log("Assertion failed: "+"ndata[0] & 1");throw new Error("Assertion failed: "+"ndata[0] & 1")};
-if(!(!(ndata[0]&16))){console.log("Assertion failed: "+"!(ndata[0] & 16)");throw new Error("Assertion failed: "+"!(ndata[0] & 16)")};
-if(!(env.blanchor)){console.log("Assertion failed: "+"env.blanchor");throw new Error("Assertion failed: "+"env.blanchor")};
+if(!(ndata[0]&1)){console.log("Assertion failed: "+"ndata[0] & 1");throw new Error("Assertion failed: "+"ndata[0] & 1")}
+if(!(!(ndata[0]&16))){console.log("Assertion failed: "+"!(ndata[0] & 16)");throw new Error("Assertion failed: "+"!(ndata[0] & 16)")}
+if(!(env.blanchor)){console.log("Assertion failed: "+"env.blanchor");throw new Error("Assertion failed: "+"env.blanchor")}
 
 this.ndata=ndata;
 this.env=copyEnv(env);
 
 
-
-this.env.blbref=env.blscope;
 
 this.blanchor=env.blanchor;
 this.env.blanchor=undefined;
@@ -1338,14 +1397,13 @@ this.env.blanchor=undefined;
 
 if(ndata[0]&8){
 this.env.blrref=env.blrref;
-this.env.blscope=this;
 }else{
 
 
 
 
 
-this.env.blscope=null;
+
 }
 
 this.tailcall=false;
@@ -1355,8 +1413,10 @@ this.tailcall=false;
 
 
 
-this.swallow_r=1;
-if(ndata[0]&32)this.swallow_r=2;
+
+
+
+
 
 
 
@@ -1377,36 +1437,7 @@ this.setChildFrame(val,idx);
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='blb_int'){
-
-var rv=new CFException('blb');
-rv.blanchor=this.blanchor;
-return this.returnToParent(rv);
-}else{
-
-
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='blb_old'&&this.env.blscope&&val.eid==this.env.blscope.sid){
-val=UNDEF;
-}else{
-
-
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))val=this.translateCFEs(val);
 
 
 if(this.child_frame){
@@ -1415,8 +1446,6 @@ this.child_frame=UNDEF;
 }
 
 return this.returnToParent(val);
-}
-}
 }
 while(idx<this.ndata.length){
 if(this.sc&&idx>1){
@@ -1435,12 +1464,11 @@ this.child_frame=UNDEF;
 val=execIN(this.ndata[idx],this.env);
 if(this.aborted){
 
-
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 val.quench();
 val=val.abort(this.pseudo_abort);
-
 if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))val=this.translateCFEs(val);
 return this.returnToParent(val);
 }
 }
@@ -1455,35 +1483,7 @@ return this.returnToParent(val);
 
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if(val.type==='blb_int'){
-
-val=new CFException('blb');
-val.blanchor=this.blanchor;
-console.log('handing blb off to '+this.parent);
-}else if(val.type==='blb_old'&&this.env.blscope&&val.eid===this.env.blscope.sid){
-
-val=undefined;
-}
+val=this.translateCFEs(val);
 break;
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
@@ -1491,8 +1491,27 @@ this.setChildFrame(val,idx);
 return this;
 }
 }
+
 return this.returnToParent(val);
 }
+};
+
+EF_BlSeq.prototype.translateCFEs=function(val){if(val.type==='b'){
+
+
+
+val=new CFException('blb');
+val.aid=this.blanchor.aid;
+}else if(val.type==='r'){
+
+
+val=new CFException('blr',val.val);
+val.aid=this.blanchor.aid;
+}else if(val.type==='c'){
+
+val=UNDEF;
+}
+return val;
 };
 
 EF_BlSeq.prototype.abort=function(pseudo_abort){if(this.aborted){
@@ -1500,7 +1519,7 @@ EF_BlSeq.prototype.abort=function(pseudo_abort){if(this.aborted){
 console.log('ERROR: '+this+': redundant abort');
 }
 
-if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")};
+if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
 this.aborted=true;
 if(this.breaking)return UNDEF;
 this.pseudo_abort=pseudo_abort;
@@ -1509,15 +1528,18 @@ this.pseudo_abort=pseudo_abort;
 if(!this.child_frame){
 
 
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 }else{
 
 
 var abort_val=this.child_frame.abort(pseudo_abort);
+
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
 return this;
 }else{
 
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx))abort_val=this.translateCFEs(abort_val);
 if(((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx)&&abort_val.type==='t'&&abort_val.val!=null&&abort_val.val._oniE===token_oniE)&&this.callstack){
 abort_val.val.__oni_stack=abort_val.val.__oni_stack.concat(this.callstack);
 }
@@ -1538,7 +1560,7 @@ return abort_val;
 
 
 function I_blseq(ndata,env){if(!(env.blanchor)){
-console.log("Assertion failed: "+"env.blanchor");throw new Error("Assertion failed: "+"env.blanchor")};
+console.log("Assertion failed: "+"env.blanchor");throw new Error("Assertion failed: "+"env.blanchor")}
 if(env.blanchor.unreturnable)return new CFException("t",new Error("Blocklambda anchor at "+env.file+":"+env.blanchor.ndata[1]+" is inactive."));
 return cont(new EF_BlSeq(ndata,env),1);
 }
@@ -1550,39 +1572,6 @@ function I_blocklambda(ndata,env){return ndata.bind(env);
 }
 
 exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
-
-
-
-
-
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function I_blbreak(ndata,env){return new CFException("blb_int");
-
-
-}
-
-
-exports.BlBreak=function(){return {exec:I_blbreak,ndata:undefined,__oni_dis:token_dis};
 
 
 
@@ -1938,12 +1927,7 @@ rv=new CFException("i","Invalid Fcall mode");
 
 
 if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
-
-if(e.type=='blb_old'&&this.env.blscope&&e.eid==this.env.blscope.sid){
-rv=UNDEF;
-}else rv=e;
-
-
+rv=e;
 }else rv=new CFException("t",e,this.ndata[1],this.env.file);
 
 
@@ -1987,9 +1971,13 @@ exports.Fcall=function(...args){return {exec:I_fcall,ndata:args,__oni_dis:token_
 
 
 
+var facall_counter=0;
 
-function EF_FAcall(ndata,env){this.ndata=ndata;
+function EF_FAcall(ndata,env){this.aid=++facall_counter;
 
+
+
+this.ndata=ndata;
 this.env=env;
 this.i=2;
 this.pars=[];
@@ -1998,6 +1986,10 @@ this.pars=[];
 this.env=copyEnv(env);
 this.env.blanchor=this;
 
+this.parent_dynvars=exports.current_dyn_vars;
+this.param_dynvars=createDynVarContext(exports.current_dyn_vars);
+this.param_dynvars.__oni_anchor_route=exports.current_dyn_vars;
+this.param_dynvars.__oni_anchor=this;
 }
 setEFProto(EF_FAcall.prototype={});
 EF_FAcall.prototype.type="FAcall";
@@ -2009,11 +2001,10 @@ EF_FAcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='objec
 this.setChildFrame(val,idx);
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='blb'&&val.blanchor===this){
-console.log("GOT ASYNC BLB:"+val);
-val=UNDEF;
-}
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))val=this.translateCFEs(val);
 
+if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>>>>>> HIT 1");
+exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(val);
 }else if(idx===3){
 
@@ -2022,6 +2013,7 @@ return this.returnToParent(val);
 
 return this.returnToParent(val);
 }else if(idx==2){
+
 
 
 return this.returnToParent(typeof val==='object'?val:this.o);
@@ -2039,18 +2031,28 @@ var rv;
 var args_length=this.ndata.length;
 if(this.ndata[0]&4)--args_length;
 while(this.i<args_length){
+if(this.i===3){exports.current_dyn_vars=this.param_dynvars}
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 rv.quench();
 rv=rv.abort(this.pseudo_abort);
+if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>> HIT 2");
+if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+exports.current_dyn_vars=this.parent_dynvars;
+}
+
 return this.returnToParent(rv);
 }
 }
 
 ++this.i;
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return this.returnToParent(rv);
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)){
+if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>>>> HIT 3");
+exports.current_dyn_vars=this.parent_dynvars;
+return this.returnToParent(rv);
+}
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 this.setChildFrame(rv,1,true);
 return this;
@@ -2060,6 +2062,8 @@ if(this.i==3)this.l=rv;else this.pars.push(rv);
 
 
 }
+
+exports.current_dyn_vars=this.parent_dynvars;
 
 if(this.child_frame){
 this.child_frame.parent=UNDEF;
@@ -2199,20 +2203,9 @@ rv=new CFException("i","Invalid Fcall mode");
 
 
 
+
 if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
-if(e.type==='blb'&&e.blanchor===this){
-rv=UNDEF;
-}
-
-
-if(e.type=='blb_old'&&this.env.blscope&&e.eid==this.env.blscope.sid){
-rv=UNDEF;
-}else if(e.type==='blb'&&e.blanchor===this){
-
-console.log('GOT BLB: '+e);
-rv=UNDEF;
-}else rv=e;
-
+rv=this.translateCFEs(e);
 
 }else rv=new CFException("t",e,this.ndata[1],this.env.file);
 
@@ -2220,12 +2213,15 @@ rv=UNDEF;
 
 
 }
+
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
 if(this.aborted){
 
-
 rv=rv.abort(this.pseudo_abort);
+if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=this.translateCFEs(rv);
 return this.returnToParent(rv);
+}
 }
 
 
@@ -2253,32 +2249,56 @@ return this;
 }
 };
 
+EF_FAcall.prototype.translateCFEs=function(val){if(val.type==='blb'&&val.aid===this.aid){
+
+
+val=UNDEF;
+}else if(val.type==='blr'&&val.aid===this.aid){
+
+val=new CFException('r',val.val);
+}
+return val;
+};
+
+
+EF_FAcall.prototype.abort=function(pseudo_abort){if(this.aborted){
+
+console.log('ERROR: '+this+': redundant abort');
+}
+
+if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
+this.aborted=true;
+this.pseudo_abort=pseudo_abort;
+
+
+if(!this.child_frame){
+
+exports.current_dyn_vars=root_dyn_vars;
+return this;
+}else{
+
+var abort_val=this.child_frame.abort(pseudo_abort);
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
+return this;
+}else{
+
+if(((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx)&&abort_val.type==='t'&&abort_val.val!=null&&abort_val.val._oniE===token_oniE)&&this.callstack){
+abort_val.val.__oni_stack=abort_val.val.__oni_stack.concat(this.callstack);
+}
 
 
 
+this.unreturnable=true;
 
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx))abort_val=this.translateCFEs(abort_val);
 
+if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>>> HIT 5");
+exports.current_dyn_vars=this.parent_dynvars;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+return abort_val;
+}
+}
+};
 
 
 function I_facall(ndata,env){return cont(new EF_FAcall(ndata,env),0);
@@ -2598,7 +2618,7 @@ case 2:
 this.state=3;
 
 this.rv=val;
-if(((this.aborted&&!this.pseudo_abort)||((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='blb'))&&this.ndata[4]){
+if(((this.aborted&&!this.pseudo_abort)||((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&(val.type==='blb'||val.type==='blr')))&&this.ndata[4]){
 val=execIN(this.ndata[4],this.env);
 
 
@@ -2699,12 +2719,15 @@ EF_Try.prototype.abort=function(pseudo_abort){if(this.aborted){
 
 
 console.log('ERROR: '+this+' redundant abort');
-if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")};
+if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
 }
 this.aborted=true;
 this.pseudo_abort=pseudo_abort;
 
-if(!this.child_frame)return this;
+if(!this.child_frame){
+exports.current_dyn_vars=root_dyn_vars;
+return this;
+}
 
 if(!(this.state!==3)){console.log("Assertion failed: "+"this.state !== 3");throw new Error("Assertion failed: "+"this.state !== 3")}
 if(this.state!==4){
@@ -2726,7 +2749,7 @@ this.setChildFrame(val);
 
 this.async=false;
 var rv=cont(this,0,val);
-if(!(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)||rv===this)){console.log("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this");throw new Error("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this")};
+if(!(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)||rv===this)){console.log("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this");throw new Error("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this")}
 if(rv!==this){
 
 
@@ -2741,6 +2764,7 @@ this.async=true;
 
 }
 }
+
 return this;
 };
 
@@ -2823,11 +2847,6 @@ return this.returnToParent(val);
 while(1){
 if(idx>2){
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
-if(val.type==='blb_old'&&this.env.blscope&&val.eid===this.env.blscope.sid){
-
-val=UNDEF;
-}else{
-
 if(val.type==="b"){
 
 val=UNDEF;
@@ -2839,7 +2858,6 @@ val=UNDEF;
 break;
 }
 return this.returnToParent(val);
-}
 }
 if(idx>=this.ndata.length)break;
 
@@ -3083,6 +3101,7 @@ this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
 EF_Par.prototype.type="Par";
+EF_Par.prototype.toString=function(){return "<Par"+this.id+"@"+this.env.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"};
 
 EF_Par.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
@@ -3094,7 +3113,6 @@ var parent_dyn_vars=exports.current_dyn_vars;
 
 for(var i=0;i<this.ndata.length;++i){
 val=execIN(this.ndata[i],this.env);
-exports.current_dyn_vars=parent_dyn_vars;
 if(this.inner_aborted){
 
 
@@ -3109,7 +3127,11 @@ return this.pendingCFE;
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
 ++this.pending;
+
 this.setChildFrame(val,i);
+if(i<this.ndata.length-1){
+exports.current_dyn_vars=parent_dyn_vars;
+}
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 
@@ -3133,10 +3155,7 @@ if(this.children[idx]){
 this.children[idx].parent=UNDEF;
 this.children[idx]=UNDEF;
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb_old'&&this.env.blscope&&val.eid===this.env.blscope.sid)){
-
-
-
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted){
 
 this.pendingCFE=val;
 this.quench();
@@ -3156,6 +3175,7 @@ for(var i=0;i<this.children.length;++i)if((return_child=this.children[i])){
 
 
 
+exports.current_dyn_vars=root_dyn_vars;
 return this.returnToParent(return_child);
 }
 return this.returnToParent(new CFException("i","invalid state in Par"));
@@ -3188,6 +3208,7 @@ EF_Par.prototype.abort=function(pseudo_abort){if(this.aborted){
 
 
 
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 
 }else this.pseudo_abort=pseudo_abort;
@@ -3224,6 +3245,8 @@ this.children[i]=UNDEF;
 if(!this.pending)return this.pendingCFE;
 
 
+
+exports.current_dyn_vars=root_dyn_vars;
 this.async=true;
 return this;
 };
@@ -3299,7 +3322,6 @@ var env=copyEnv(this.env);
 env.fold=this;
 env.branch=i;
 val=execIN(this.ndata[i],env);
-exports.current_dyn_vars=parent_dyn_vars;
 
 if(this.inner_aborted){
 
@@ -3316,6 +3338,9 @@ return this.pendingRV;
 
 ++this.pending;
 this.setChildFrame(val,i);
+if(i<this.ndata.length-1){
+exports.current_dyn_vars=parent_dyn_vars;
+}
 }else{
 
 
@@ -3389,6 +3414,7 @@ EF_Alt.prototype.abort=function(pseudo_abort){if(this.aborted){
 
 
 
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 }
 
@@ -3397,9 +3423,11 @@ this.aborted=true;
 var rv;
 if(!this.inner_aborted){
 rv=this.abortInner();
-}else if(this.pending)rv=this;
+}else if(this.pending){
 
-
+exports.current_dyn_vars=root_dyn_vars;
+rv=this;
+}
 
 this.pendingRV=this.pendingRV;
 if(rv!==this&&!(rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=this.pendingRV;
@@ -3438,6 +3466,9 @@ this.children[i]=UNDEF;
 }
 }
 if(!this.pending)return this.pendingRV;
+
+
+exports.current_dyn_vars=root_dyn_vars;
 
 this.async=true;
 return this;
@@ -3482,7 +3513,7 @@ this.children[i]=UNDEF;
 }
 }
 if(!have_async_branch_retract){
-if(!(this.pending<=1)){console.log("Assertion failed: "+"this.pending <= 1");throw new Error("Assertion failed: "+"this.pending <= 1")};
+if(!(this.pending<=1)){console.log("Assertion failed: "+"this.pending <= 1");throw new Error("Assertion failed: "+"this.pending <= 1")}
 return true;
 }
 
@@ -3536,7 +3567,6 @@ var parent_dyn_vars=exports.current_dyn_vars;
 
 for(var i=0;i<2;++i){
 val=execIN(this.ndata[i],this.env);
-exports.current_dyn_vars=parent_dyn_vars;
 if(this.inner_aborted){
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
 
@@ -3553,6 +3583,9 @@ return this.pendingCFE;
 
 ++this.pending;
 this.setChildFrame(val,i);
+if(i===0){
+exports.current_dyn_vars=parent_dyn_vars;
+}
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||i===1){
 
 
@@ -3574,10 +3607,7 @@ if(this.children[idx]){
 this.children[idx].parent=UNDEF;
 this.children[idx]=UNDEF;
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted&&!(val.type==='blb_old'&&this.env.blscope&&val.eid===this.env.blscope.sid)){
-
-
-
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&!this.inner_aborted){
 
 this.pendingCFE=val;
 this.quench();
@@ -3618,6 +3648,7 @@ EF_WfW.prototype.abort=function(pseudo_abort){if(this.aborted){
 
 
 
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 
 }else this.pseudo_abort=pseudo_abort;
@@ -3653,8 +3684,8 @@ this.children[1]=UNDEF;
 if(this.children[0]){
 var val=this.children[0].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-
 this.async=true;
+
 return this;
 }else{
 
@@ -3719,8 +3750,12 @@ try{
 var ef=this;
 this.dyn_vars=exports.current_dyn_vars;
 
-var resumefunc=function(...args){try{
+var resumefunc=function(...args){if(ef.returning){
 
+console.log("Redundant resume()");
+return;
+}
+try{
 var caller_dyn_vars=exports.current_dyn_vars;
 exports.current_dyn_vars=ef.dyn_vars;
 cont(ef,2,args);
@@ -3782,6 +3817,8 @@ break;
 this.suspendCompleted=true;
 
 this.async=true;
+
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 case 2:
 
@@ -4012,6 +4049,8 @@ clear0=clearTimeout;
 exports.Hold=function(duration_ms){var dyn_vars=exports.current_dyn_vars;
 
 
+exports.current_dyn_vars=root_dyn_vars;
+
 function abort(){exports.current_dyn_vars=dyn_vars;
 
 
@@ -4039,9 +4078,10 @@ return [this.toString()]},abort:abort,quench:function(){
 sus=null;clear0(this.co)},co:hold0(function(){
 if(sus&&sus.parent){
 
+
 exports.current_dyn_vars=dyn_vars;
 cont(sus.parent,sus.parent_idx,UNDEF);
-exports.current_dyn_vars=null;
+
 }
 })};
 
@@ -4059,11 +4099,13 @@ sus=null;clearTimeout(this.co)}};
 sus.co=setTimeout(function(){
 if(sus&&sus.parent){
 
+
 exports.current_dyn_vars=dyn_vars;
 cont(sus.parent,sus.parent_idx,UNDEF);
-exports.current_dyn_vars=null;
+
 }
 },duration_ms);
+
 
 return sus;
 }
@@ -4114,18 +4156,12 @@ exports.Cont=function(lbl){return new CFException("c",lbl);
 
 };
 
-exports.BlBreakOld=function(env,lbl){var e=new CFException('blb_old',lbl);
 
 
-if(!env.blbref){
-console.log(env);
-throw new Error("Internal runtime error; no reference frame in BlBreak");
-}
-if(env.blbref.unreturnable&&!env.blbref.toplevel)throw new Error("Blocklambda break to inactive scope");
 
-e.eid=env.blbref.sid;
-return e;
-};
+
+
+
 
 exports.BlReturn=function(exp){var e=new CFException('r',exp);
 
@@ -5082,17 +5118,6 @@ ph_throw.prototype.val=function(){return "__oni_rt.Sc("+this.line+",__oni_rt.Thr
 };
 
 
-function ph_bl_return(exp,pctx){this.line=pctx.line;
-
-this.exp=exp;
-}
-ph_bl_return.prototype=new ph();
-ph_bl_return.prototype.val=function(){var v=this.exp?","+this.exp.v():"";
-
-return "__oni_rt.Sc("+this.line+",__oni_rt.BlReturn"+v+")";
-
-};
-
 
 
 function ph_return(exp,pctx){this.line=pctx.line-pctx.newline;
@@ -5126,6 +5151,35 @@ return "__oni_rt.Sc("+this.line+",__oni_rt.Return"+v+")";
 };
 
 
+function ph_pblr(exp,pctx){this.line=pctx.line-pctx.newline;
+
+
+this.exp=exp;
+
+this.js_ctx=pctx.js_ctx;
+this.is_nblock=pctx.allow_nblock&&(exp?exp.is_nblock:true);
+}
+ph_pblr.prototype=new ph();
+ph_pblr.prototype.nblock_val=function(){var rv;
+
+if(this.js_ctx){
+throw new Error("Blocklambdas cannot contain 'return' statements in __js{...} contexts");
+}else{
+
+
+rv="return __oni_rt.Return(";
+if(this.exp)rv+=this.exp.nb();
+rv+=");";
+}
+return rv;
+};
+ph_pblr.prototype.val=function(){var v=this.exp?","+this.exp.v():"";
+
+return "__oni_rt.Sc("+this.line+",__oni_rt.Return"+v+")";
+};
+
+
+
 function ph_collapse(pctx){this.line=pctx.line;
 
 }
@@ -5136,6 +5190,28 @@ ph_collapse.prototype.val=function(){return "__oni_rt.Collapse("+this.line+")";
 
 
 
+
+
+function ph_pblb(pctx,lbl){this.lbl=lbl;
+
+this.is_nblock=true;
+
+this.js_ctx=pctx.js_ctx;
+}
+ph_pblb.prototype=new ph();
+ph_pblb.prototype.nblock_val=function(){var rv;
+
+if(this.js_ctx){
+throw new Error("Blocklambdas cannot contain 'break' statements in __js{...} contexts");
+}else{
+
+
+rv="return __oni_rt.Break(";
+if(this.lbl)rv+="'"+this.lbl+"'";
+rv+=");";
+}
+return rv;
+};
 
 
 function ph_cfe(f,pctx,lbl){this.f=f;
@@ -5163,35 +5239,6 @@ rv+=");";
 }
 return rv;
 };
-
-function ph_bl_break(pctx,lbl){this.line=pctx.line;
-
-this.lbl=lbl;
-this.is_nblock=true;
-this.js_ctx=pctx.js_ctx;
-}
-ph_bl_break.prototype=new ph();
-ph_bl_break.prototype.nblock_val=function(){if(this.js_ctx)throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
-
-var rv="return __oni_rt.BlBreakOld(this";
-if(this.lbl)rv+=",'"+this.lbl+"'";
-rv+=");";
-return rv;
-};
-
-
-function ph_bl_breakdance(pctx){this.line=pctx.line;
-
-this.is_nblock=false;
-this.js_ctx=pctx.js_ctx;
-}
-ph_bl_breakdance.prototype=new ph();
-ph_bl_breakdance.prototype.val=function(){if(this.js_ctx)throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
-
-var rv="__oni_rt.BlBreak()";
-return rv;
-};
-
 
 
 
@@ -5853,7 +5900,10 @@ args+=","+this.args[i].v();
 
 var flags=0;
 
-rv="__oni_rt.F"+(blocklambda_args?'A':'')+"call(";
+if(blocklambda_args)rv="__oni_rt.FAcall(";else rv="__oni_rt.Fcall(";
+
+
+
 
 if(spreads.length){
 flags|=4;
@@ -7359,7 +7409,7 @@ scan(pctx);
 }
 parseStmtTermination(pctx);
 
-if(top_decl_scope(pctx).continue_scope)return new ph_cfe("c",pctx,label);else if(top_decl_scope(pctx).bl)return new ph_return(undefined,pctx);else throw new Error("Unexpected 'continue' statement");
+if(top_decl_scope(pctx).continue_scope)return new ph_cfe("c",pctx,label);else if(top_decl_scope(pctx).bl){if(pctx.js_ctx)return new ph_return(undefined,pctx);else return new ph_cfe("c",pctx,label)}else throw new Error("Unexpected 'continue' statement");
 });
 
 S("break").stmt(function(pctx){var label=null;
@@ -7372,14 +7422,7 @@ scan(pctx);
 }
 parseStmtTermination(pctx);
 
-if(top_decl_scope(pctx).break_scope)return new ph_cfe("b",pctx,label);else if(top_decl_scope(pctx).bl)return new ph_bl_break(pctx,label);else throw new Error("Unexpected 'break' statement");
-});
-
-S("breakdance").stmt(function(pctx){parseStmtTermination(pctx);
-
-
-
-if(top_decl_scope(pctx).bl)return new ph_bl_breakdance(pctx);else throw new Error("Unexpected breakdance");
+if(top_decl_scope(pctx).break_scope)return new ph_cfe("b",pctx,label);else if(top_decl_scope(pctx).bl)return new ph_pblb(pctx,label);else throw new Error("Unexpected 'break' statement");
 });
 
 S("return").stmt(function(pctx){var exp=null;
@@ -7391,7 +7434,7 @@ exp=parseExp(pctx);
 }
 parseStmtTermination(pctx);
 
-if(top_decl_scope(pctx).bl)return new ph_bl_return(exp,pctx);else return new ph_return(exp,pctx);
+if(top_decl_scope(pctx).bl)return new ph_pblr(exp,pctx);else return new ph_return(exp,pctx);
 });
 
 S("with").stmt(function(pctx){scan(pctx,"(");
@@ -7913,7 +7956,7 @@ return pctx.token;
 }
 
 
-})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__js __oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n__js if(!(__oni_rt.G.__oni_rt_bundle)){\n__oni_rt.G.__oni_rt_bundle={};\n}\n\n\n\n\n\n\n\n\n\n__js exports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\n__js exports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\nexports.withDynVarContext=function(){__js var old_dyn_vars=__oni_rt.current_dyn_vars;\n\n\nvar proto_context,block;\nif(arguments.length===1){\n__js proto_context=old_dyn_vars;\nblock=arguments[0];\n}else{\n\nproto_context=arguments[0];\nblock=arguments[1];\n}\n\ntry{\n__js __oni_rt.current_dyn_vars=Object.create(proto_context);\nblock();\n}finally{\n\n__js __oni_rt.current_dyn_vars=old_dyn_vars;\n}\n};\n\n\n\n\n\n__js exports.getCurrentDynVarContext=function(){return __oni_rt.current_dyn_vars;\n\n};\n\n\n\n\n\n\n\n__js exports.setDynVar=function(name,value){if(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to retrieve #{name}\");\n\n\nvar key=\'$\'+name;\n__oni_rt.current_dyn_vars[key]=value;\n};\n\n\n\n\n\n\n__js exports.clearDynVar=function(name){if(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to clear #{name}\");\n\n\nvar key=\'$\'+name;\ndelete __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n__js exports.getDynVar=function(name,default_val){var key=\'$\'+name;\n\nif(__oni_rt.current_dyn_vars===null){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist (no dynamic variable context)\");\n\n\n\n}\nif(!(key in __oni_rt.current_dyn_vars)){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist\");\n\n\n\n}\nreturn __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n\n__js var arrayCtors=[],arrayCtorNames=[\'Uint8Array\',\'Uint16Array\',\'Uint32Array\',\'Int8Array\',\'Int16Array\',\'Int32Array\',\'Float32Array\',\'Float64Array\',\'NodeList\',\'HTMLCollection\',\'FileList\',\'StaticNodeList\',\'DataTransferItemList\'];\n\n\n\n\n\n\n\n__js for(var i=0;i<arrayCtorNames.length;i++ ){\nvar c=__oni_rt.G[arrayCtorNames[i]];\nif(c)arrayCtors.push(c);\n}\n__js exports.isArrayLike=function(obj){if(Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\')))return true;\n\nfor(var i=0;i<arrayCtors.length;i++ )if(obj instanceof arrayCtors[i])return true;\nreturn false;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js {\nvar _flatten=function(arr,rv){var l=arr.length;\n\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))_flatten(elem,rv);else rv.push(elem);\n\n\n\n}\n};\n\nexports.flatten=function(arr){var rv=[];\n\nif(arr.length===UNDEF)throw new Error(\"flatten() called on non-array\");\n_flatten(arr,rv);\nreturn rv;\n};\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.expandSingleArgument=function(args){if(args.length==1&&exports.isArrayLike(args[0]))args=args[0];\n\n\nreturn args;\n};\n\n\n\n\n\n\n\n\n\n__js exports.isReifiedStratum=function(obj){return (obj!==null&&typeof (obj)===\'object\'&&!!obj.__oni_stratum);\n\n};\n\n\n\n\n\n\n\n\n\n__js exports.isQuasi=function(obj){return (obj instanceof __oni_rt.QuasiProto);\n\n};\n\n\n\n\n\n\n__js exports.Quasi=function(arr){return __oni_rt.Quasi.apply(__oni_rt,arr)};\n\n\n\n\n\n\n__js exports.mergeObjects=function(){var rv={};\n\nvar sources=exports.expandSingleArgument(arguments);\nfor(var i=0;i<sources.length;i++ ){\nexports.extendObject(rv,sources[i]);\n}\nreturn rv;\n};\n\n\n\n\n\n__js exports.extendObject=function(dest,source){for(var o in source){\n\nif(Object.prototype.hasOwnProperty.call(source,o))dest[o]=source[o];\n}\nreturn dest;\n};\n\n\n\n\n\n__js exports.overrideObject=function(dest,...sources){var sources=exports.flatten(sources);\n\n\nfor(var h=sources.length-1;h>=0;--h){\nif(sources[h]==null)sources.splice(h,1);\n\n}\nvar hl=sources.length;\nif(hl){\n\nfor(var o in dest){\nfor(var h=hl-1;h>=0;--h){\nvar source=sources[h];\nif(o in source){\ndest[o]=source[o];\nbreak;\n}\n}\n}\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js {\nfunction URI(){}\nURI.prototype={toString:function(){\nreturn \"#{this.protocol}://#{this.authority}#{this.relative}\";\n\n}};\n\nURI.prototype.params=function(){if(!this._params){\n\nvar rv={};\nthis.query.replace(parseURLOptions.qsParser,function(_,k,v){if(k)rv[decodeURIComponent(k)]=decodeURIComponent(v);\n\n});\nthis._params=rv;\n}\nreturn this._params;\n};\n\nvar parseURLOptions={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:\\/@]*)(?::([^:\\/@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\nexports.parseURL=function(str){var o=parseURLOptions,m=o.parser.exec(str),uri=new URI(),i=14;\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\nreturn uri;\n};\n}\n\n\n\n\n\n\n\n\n__js exports.encodeURIComponentRFC3986=function(str){return encodeURIComponent(str).replace(/[!\'()*]/g,function(c){\nreturn \'%\'+c.charCodeAt(0).toString(16);\n\n});\n};\n\n\n\n\n\n\n\n\n\n__js exports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\n__js exports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv;\n\n\nfor(var i=0;i<l;++i){\nvar comp=url_spec[i];\nif(exports.isQuasi(comp)){\ncomp=comp.parts.slice();\nfor(var k=1;k<comp.length;k+=2)comp[k]=exports.encodeURIComponentRFC3986(comp[k]);\n\ncomp=comp.join(\'\');\n}else if(typeof comp!=\"string\")break;\n\nif(rv!==undefined){\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}else rv=comp;\n\n\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\n__js exports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.normalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol){\na.directory=base.directory;\nif(!a.path&&(a.query||a.anchor))a.file=base.file;\n\n}else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\na.directory=a.directory.replace(/\\/\\/+/g,\'/\');\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"){\nif(pout.length>1)pout.pop();\n\n\n}else{\n\npout.push(c);\n}\n}\n\nif(a.file===\'.\')a.file=\'\';else if(a.file===\'..\'){\n\n\nif(pout.length>2){\npout.splice(-2,1);\n}\n\na.file=\'\';\n}\n\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js exports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\n__js exports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.request=request_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js if(console){\nfunction filter_console_args(args){var rv=[];\n\nfor(var i=0;i<args.length;++i){\nvar arg=args[i];\n\nif(arg&&arg._oniE){\narg=String(arg);\n}\nrv.push(arg);\n}\nreturn rv;\n}\n\nvar orig_console_log=console.log;\nvar orig_console_info=console.info;\nvar orig_console_warn=console.warn;\nvar orig_console_error=console.error;\n\nconsole.log=function(){return orig_console_log.apply(console,filter_console_args(arguments))};\nconsole.info=function(){return orig_console_info.apply(console,filter_console_args(arguments))};\nconsole.warn=function(){return orig_console_warn.apply(console,filter_console_args(arguments))};\nconsole.error=function(){return orig_console_error.apply(console,filter_console_args(arguments))};\n\n}\n\n\n\n\n\n\n\n\n__js exports.eval=eval_hostenv;\n\n\n\n\n__js var pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\n__js var opts=exports.extendObject({},settings);\n\nif(opts.callback){\ntry{\nvar rv=exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n}catch(e){\nopts.callback(e);return;\n}\nopts.callback(UNDEF,rv);\nreturn;\n}else return exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n\n\n};\n\n__js {\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},settings);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=augmentHubs(getHubs_hostenv());\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\n\n}\n\n\nrf.url=function(relative){return resolve(relative,rf,parent).path;\n\n};\n\nreturn rf;\n}\n__js exports._makeRequire=makeRequire;\n\n__js function augmentHubs(hubs){hubs.addDefault=function(hub){\n\nif(!this.defined(hub[0])){\n\nthis.unshift(hub);\nreturn true;\n}\nreturn false;\n};\nhubs.defined=function(prefix){for(var i=0;i<this.length;i++ ){\n\nvar h=this[i][0];\nvar l=Math.min(h.length,prefix.length);\nif(h.substr(0,l)==prefix.substr(0,l))return true;\n}\nreturn false;\n};\nreturn hubs;\n}\n\n__js function html_sjs_extractor(html,descriptor){var re=/<script (?:[^>]+ )?(?:type=[\'\"]text\\/sjs[\'\"]|main=[\'\"]([^\'\"]+)[\'\"])[^>]*>((.|[\\r\\n])*?)<\\/script>/mg;\n\nvar match;\nvar src=\'\';\nwhile(match=re.exec(html)){\nif(match[1])src+=\'require(\"\'+match[1]+\'\")\';else src+=match[2];\n\nsrc+=\';\';\n}\nif(!src)throw new Error(\"No sjs found in HTML file\");\nreturn default_compiler(src,descriptor);\n}\n\n\n__js function resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw new Error(\"Too much aliasing in modulename \'\"+module+\"\'\");\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\n__js function resolveHubs(module,hubs,require_obj,parent,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\nvar resolve=default_resolver;\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nvar match_prefix=typeof hub[0]===\'string\';\nif((match_prefix&&path.indexOf(hub[0])===0)||(!match_prefix&&hub[0].test(path))){\n\n\nif(typeof hub[1]==\"string\"){\nif(match_prefix)path=hub[1]+path.substring(hub[0].length);else path=path.replace(hub[0],hub[1]);\n\n\n\n\ni=0;\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\nif(--level==0)throw new Error(\"Too much indirection in hub resolution for module \'\"+module+\"\'\");\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\nresolve=hub[1].resolve||loader.resolve||resolve;\n\nbreak;\n}else throw new Error(\"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\");\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src,resolve:resolve};\n}\n\n\n__js function default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){try{\n\nvar f;\nif(typeof (src)===\'function\'){\n\nf=src;\n}else{\n\nif(!compiled_src_tag.exec(src)){\nvar filename=\"#{descriptor.id}\";\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nsrc=__oni_rt.c1.compile(src,{filename:filename,mode:\'normal\',globalReturn:true});\n\n\n}\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",\"__oni_altns\",src);\n}\nf(descriptor,descriptor.exports,descriptor.require,\"#{descriptor.id}\",{});\n\n}catch(e){\n\n\n\nif(e instanceof SyntaxError){\nthrow new Error(\"In module #{descriptor.id}: #{e.message}\");\n}else{\n\nthrow e;\n\n}\n}\n}\n\n__js default_compiler.module_args=[\'module\',\'exports\',\'require\',\'__onimodulename\',\'__oni_altns\'];\n\n__js var canonical_id_to_module={};\n\n\n__js {\n\n\n\n\n\n\nfunction checkForDependencyCycles(root_node,target_node){if(!root_node.waiting_on)return false;\n\nfor(var name in root_node.waiting_on){\nif(root_node.waiting_on[name]===target_node){\nreturn [root_node.id];\n}\nvar deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);\nif(deeper_cycle)return [root_node.id].concat(deeper_cycle);\n\n}\n\nreturn false;\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts,spec){__js var compile=exports.require.extensions[spec.type];\n\n\n\nif(!compile)throw new Error(\"Unknown type \'\"+spec.type+\"\'\");\n\n\n__js var descriptor=exports.require.modules[path];\n__js var pendingHook=pendingLoads[path];\n\nif((!descriptor&&!pendingHook)||opts.reload){\n\n\n\n__js descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};\n\n\n\n\n\n\nexports.spawn(function(S){pendingHook=pendingLoads[path]=S;\n\ntry{\n__js var src,loaded_from;\nif(typeof src_loader===\"string\"){\n__js {\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}\n}else if(path in __oni_rt.modsrc){\n\n__js {\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\n__js {\ndescriptor.loaded_from=loaded_from;\n\ndescriptor.require=makeRequire(descriptor);\n\nvar canonical_id=null;\n\ndescriptor.getCanonicalId=function(){return canonical_id;\n\n};\n\ndescriptor.setCanonicalId=function(id){if(id==null){\n\nthrow new Error(\"Canonical ID cannot be null\");\n}\n\nif(canonical_id!==null){\nthrow new Error(\"Canonical ID is already defined for module \"+path);\n}\n\nvar canonical=canonical_id_to_module[id];\nif(canonical!=null){\nthrow new Error(\"Canonical ID \"+id+\" is already defined in module \"+canonical.id);\n}\n\ncanonical_id=id;\ncanonical_id_to_module[id]=descriptor;\n};\n\nif(opts.main)descriptor.require.main=descriptor;\nexports.require.modules[path]=descriptor;\n}\ntry{\ncompile(src,descriptor);\nreturn;\n}catch(e){\n__js delete exports.require.modules[path];\nthrow e;\n}retract{\n__js delete exports.require.modules[path];\n}\n}catch(e){\n\npendingHook.error=e;\n}\n});\n\npendingHook.pending_descriptor=descriptor;\npendingHook.waiting=0;\n}else if(!descriptor){\n\ndescriptor=pendingHook.pending_descriptor;\n}\n\nif(pendingHook){\n\n\ntry{\n++pendingHook.waiting;\n\n__js {\nif(!parent.waiting_on)parent.waiting_on={};\n\nparent.waiting_on[path]=descriptor;\n}\n\n__js var dep_cycle=checkForDependencyCycles(descriptor,parent);\nif(dep_cycle)throw new Error(\"Cyclic require() dependency: #{parent.id} -> \"+dep_cycle.join(\' -> \'));\n\n\npendingHook.wait();\nif(pendingHook.error)throw pendingHook.error;\n\n__js {\n\n\n\n\n\n\ndelete parent.waiting_on[path];\n}\n}finally{\n\n\nif(--pendingHook.waiting===0){\ndelete pendingLoads[path];\nif(pendingHook.running){\npendingHook.abort().wait();\nif(pendingHook.error)throw pendingHook.error;\n}\n}\n}\n}\n\n__js if(!descriptor.required_by[parent.id])descriptor.required_by[parent.id]=1;else ++descriptor.required_by[parent.id];\n\n\n\n\nreturn descriptor.exports;\n}\n\n__js function default_resolver(spec){if(!spec.ext&&spec.path.charAt(spec.path.length-1)!==\'/\')spec.path+=\".\"+spec.type;\n\n\n};\n\n\nfunction http_src_loader(path){return {src:request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'}),loaded_from:path};\n\n\n\n\n}\n\n\n\n\n\n\n__js var github_api=\"https://api.github.com/\";\n__js var github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:\\/([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw new Error(\"Malformed module id \'\"+path+\"\'\")}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\nvar hubs=exports.require.hubs;\n\nvar resolveSpec=resolveHubs(path,hubs,require_obj,parent,opts||{});\n\n\n__js resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);\n\n\n\n__js var ext,extMatch=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\n__js if(extMatch){\next=extMatch[1].toLowerCase();\nresolveSpec.ext=ext;\nif(!exports.require.extensions[ext])ext=null;\n}\n__js if(!ext){\n\nif(parent.id.substr(-3)===\'.js\')resolveSpec.type=\'js\';else resolveSpec.type=\'sjs\';\n\n\n\n}else resolveSpec.type=ext;\n\n\n\nresolveSpec.resolve(resolveSpec,parent);\n\n__js {\n\nvar preload=__oni_rt.G.__oni_rt_bundle;\nvar pendingHubs=false;\nif(preload.h){\n\nvar deleteHubs=[];\nfor(var k in preload.h){\nif(!Object.prototype.hasOwnProperty.call(preload.h,k))continue;\nvar entries=preload.h[k];\nvar parent=getTopReqParent_hostenv();\nvar resolved=resolveHubs(k,hubs,exports.require,parent,{});\nif(resolved.path===k){\n\npendingHubs=true;\ncontinue;\n}\n\nfor(var i=0;i<entries.length;i++ ){\nvar ent=entries[i];\npreload.m[resolved.path+ent[0]]=ent[1];\n}\ndeleteHubs.push(k);\n}\n\nif(!pendingHubs)delete preload.h;else{\n\n\nfor(var i=0;i<deleteHubs.length;i++ )delete preload.h[deleteHubs[i]];\n\n}\n}\n\nif(module in __oni_rt.modsrc){\n\n\nif(!preload.m)preload.m={};\npreload.m[resolveSpec.path]=__oni_rt.modsrc[module];\ndelete __oni_rt.modsrc[module];\n}\n\nif(preload.m){\nvar path=resolveSpec.path;\n\nif(path.indexOf(\'!sjs\',path.length-4)!==-1)path=path.slice(0,-4);\n\nvar contents=preload.m[path];\nif(contents!==undefined){\nresolveSpec.src=function(){delete preload.m[path];\n\n\nreturn {src:contents,loaded_from:path+\"#bundle\"};\n};\n}\n}\n\n}\nreturn resolveSpec;\n}\n\n\n\n\n\n__js exports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){var resolveSpec=resolve(module,require_obj,parent,opts);\n\n\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec);\n\nreturn module;\n}\n\n\nfunction requireInnerMultiple(modules,require_obj,parent,opts){var rv={};\n\n\n\n\nfunction inner(i,l){if(l===1){\n\nvar descriptor=modules[i];\nvar id,exclude,include,name;\n__js if(typeof descriptor===\'string\'){\nid=descriptor;\nexclude=[];\ninclude=null;\nname=null;\n}else{\n\nid=descriptor.id;\nexclude=descriptor.exclude||[];\ninclude=descriptor.include||null;\nname=descriptor.name||null;\n}\n\nvar module=requireInner(id,require_obj,parent,opts);\n\n\n__js {\nvar addSym=function(k,v){if(rv[k]!==undefined){\n\nif(rv[k]===v)return;\nthrow new Error(\"require([.]) name clash while merging module \'#{id}\': Symbol \'#{k}\' defined in multiple modules\");\n}\nrv[k]=v;\n};\n\nif(name){\naddSym(name,module);\n}else if(include){\nfor(var i=0;i<include.length;i++ ){\nvar o=include[i];\nif(!(o in module))throw new Error(\"require([.]) module #{id} has no symbol #{o}\");\naddSym(o,module[o]);\n}\n}else{\nfor(var o in module){\n\n\n\nif(exclude.indexOf(o)!==-1)continue;\naddSym(o,module[o]);\n}\n}\n}\n}else{\n\nvar split=Math.floor(l/2);\nwaitfor{\ninner(i,split);\n}and{\n\ninner(i+split,l-split);\n}\n}\n}\n\n\nif(modules.length!==0)inner(0,modules.length);\nreturn rv;\n}\n\n\n__js exports.require=makeRequire(getTopReqParent_hostenv());\n\n__js exports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",required_by:{\"[system]\":1}};\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n\n\n\n\n\n\n\nfunction runGlobalStratum(r){r.stratum=reifiedStratum;\n\ntry{hold()}finally{\n\n\nhold(0);\n}\n}\n\nexports.spawn=function(f){var r={};\n\n\n__js runGlobalStratum(r),null;\nreturn r.stratum.spawn(f);\n};\n\n\n\n\nexports.captureStratum=function(S){reifiedStratum.adopt(S);\n\nreifiedStratum.join();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-nodejs.sjs']="var isWindows=process.platform===\'win32\';\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js var pathMod=(function(){var np=__oni_rt.nodejs_require(\'path\');\n\nvar sep=np.sep||(isWindows?\'\\\\\':\'/\');\nreturn {join:np.join,resolve:function(p){\n\nvar result=np.resolve.apply(this,arguments);\n\n\nif(/[\\\\\\/]$/.test(p))result+=sep;\nreturn result;\n}};\n\n})();\n\n__js var pathToFileUrl=exports.pathToFileUrl=function(path){var initialPath=path;\n\nvar prefix=\'file://\';\npath=pathMod.resolve(path);\nif(isWindows){\npath=path.replace(/\\\\/g,\'/\');\nif(path.lastIndexOf(\'//\',0)===0)prefix=\'file:\';else prefix=\'file:///\';\n\n\n\n\n}\n\n\nreturn prefix+encodeURIComponent(path).replace(/%(2f|3a)/gi,unescape);\n};\n\n__js var fileUrlToPath=exports.fileUrlToPath=function(url){var parsed=exports.parseURL(url);\n\nif(parsed.protocol.toLowerCase()!=\'file\'){\nthrow new Error(\"Not a file:// URL: #{url}\");\n}\nvar path=parsed.path;\n\nif(parsed.host===\'localhost\')parsed.host=\'\';\nif(isWindows){\npath=path.replace(/\\//g,\'\\\\\');\nif(parsed.host){\n\npath=\'\\\\\\\\\'+pathMod.join(parsed.host,path);\n}else{\n\n\npath=path.replace(/^\\\\/,\'\');\n}\n}else{\nif(parsed.host){\n\npath=pathMod.join(parsed.host,path);\n}\n}\nreturn decodeURIComponent(path);\n};\n\n__js var coerceToURL=exports.coerceToURL=function(path){if(path.indexOf(\':\',2)!==-1)return path;\n\n\n\n\nreturn pathToFileUrl(path);\n};\n\n\n\n\n\n\n\n\n\n\n\n\nfunction jsonp_hostenv(url,settings){var opts=exports.mergeObjects({cbfield:\"callback\",forcecb:\"jsonp\"},settings);\n\n\n\n\n\n\n\nvar query={};\nquery[opts.cbfield]=opts.forcecb;\n\nvar parser=/^[^{]*({[^]+})[^}]*$/;\nvar data=parser.exec(request_hostenv([url,opts.query,query]));\n\n\n\n\ndata[1]=data[1].replace(/([^\\\\])\\\\x/g,\"$1\\\\u00\");\n\ntry{\nreturn JSON.parse(data[1]);\n}catch(e){\n\nthrow new Error(\"Invalid jsonp response from \"+exports.constructURL(url)+\" (\"+e+\")\");\n}\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return \"*\";\n\n}\n\n\n\n\n\nvar req_base_descr;\nfunction getTopReqParent_hostenv(){if(!req_base_descr){\n\nvar base=pathToFileUrl(process.mainModule.filename);\nreq_base_descr={id:base,loaded_from:base,required_by:{\"[system]\":1}};\n\n\n\n\n}\nreturn req_base_descr;\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(/^\\.\\.?\\//.test(url_string))return exports.normalizeURL(url_string,parent.id);else if(!isWindows&&/^\\//.test(url_string))throw new Error(\"Absolute path passed to require.resolve: #{url_string}\");\n\n\n\n\n\n\n\nreturn \"nodejs:\"+url_string;\n}\n\n\n\n\n\n\nvar streamContents=exports.streamContents=function(stream,fn){var rv;\n\nvar chunk=null;\nvar ended=false;\nvar emitting=false;\nif(!fn){\nrv=[];\nfn=rv.push.bind(rv);\n}\nif(stream.readable===false)return rv;\n\n\nstream.pause();\n\nwaitfor{\nwaitfor(var exception){\nstream.on(\'error\',resume);\nstream.on(\'end\',resume);\n}finally{\n\nstream.removeListener(\'error\',resume);\nstream.removeListener(\'end\',resume);\n}\nif(exception)throw exception;\nif(emitting){\n\n\nended=true;\nhold();\n}\n}or{\nwhile(1){\nif(chunk===null){\nif(ended)break;\n\nwaitfor(){\nstream.on(\'readable\',resume);\n}finally{\n\nstream.removeListener(\'readable\',resume);\n}\n}\n__js chunk=stream.read();\nif(chunk===null){\ncontinue;\n}\nemitting=true;\nfn(chunk);\nemitting=false;\n}\n}\nreturn rv;\n};\n\n\n\n\n\nfunction request_hostenv(url,settings){__js {\n\nvar opts=exports.mergeObjects({method:\"GET\",headers:{},throwing:true,max_redirects:5},settings);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar pop=function(k){var rv=opts[k];\n\ndelete opts[k];\nreturn rv;\n};\nvar responseMode=pop(\'response\')||\'string\';\nvar body=pop(\'body\');\nvar throwing=pop(\'throwing\');\nvar max_redirects=pop(\'max_redirects\');\nvar username=pop(\'username\');\nvar password=pop(\'password\');\nvar query=pop(\'query\');\n\nvar url_string=exports.constructURL(url,query);\n\n\n\nvar url=exports.parseURL(url_string);\nvar protocol=url.protocol;\n\nif(url.host==\'unix\'){\n\nvar unix_parts=url.relative.split(\':\');\nopts.socketPath=unix_parts[0];\nopts.path=unix_parts[1];\n}else{\n\nopts.host=url.host;\nopts.port=url.port||(protocol===\'https\'?443:80);\nopts.path=url.relative||\'/\';\n}\n\nif(!opts.headers[\'Host\'])opts.headers.Host=url.authority;\n\n\nif(!opts.headers[\'User-Agent\'])opts.headers[\'User-Agent\']=\"Oni Labs StratifiedJS engine\";\n\n\nif(body&&!opts.headers[\'Transfer-Encoding\']){\n\n\n\nbody=Buffer.from(body);\nopts.headers[\'Content-Length\']=body.length;\n}else{\n\nopts.headers[\'Content-Length\']=0;\n}\nif(username!=null&&password!=null)opts.auth=username+\":\"+password;\n\n\n}\n\nif(!(protocol===\'http\'||protocol===\'https\')){\nthrow new Error(\'Unsupported protocol: \'+protocol);\n}\n\nvar request=__oni_rt.nodejs_require(protocol).request(opts);\nrequest.end(body);\n\nwaitfor{\nwaitfor(var err){\nrequest.on(\'error\',resume);\n}finally{\n\nrequest.removeListener(\'error\',resume);\n}\nif(throwing){\nerr.request=request;\nerr.response=null;\nerr.status=0;\nthrow new Error(err);\n}else if(responseMode===\'string\'){\n\nreturn \'\';\n}else if(responseMode===\'full\'){\n\nreturn {status:0,content:\'\'};\n\n\n\n}else if(responseMode===\'arraybuffer\'){\n\nreturn {status:0,content:new ArrayBuffer()};\n\n\n\n}else{\n\n\n\nreturn {readable:false,statusCode:0,error:String(err)};\n\n\n\n\n}\n}or{\n\nwaitfor(var response){\nrequest.on(\'response\',resume);\n}finally{\n\nrequest.removeListener(\'response\',resume);\n}\n}retract{\n\n\n\nrequest.on(\'error\',function(){});\nrequest.abort();\n}\n\nif(response.statusCode<200||response.statusCode>=300){\nswitch(response.statusCode){case 300:\ncase 301:case 302:case 303:case 307:\nif(max_redirects>0){\nresponse.socket.end();\n\n\n\n\nvar redirect_url=exports.normalizeURL(response.headers[\'location\'],url_string);\n\nif(url.host==\'unix\'){\n\n\nredirect_url=redirect_url.replace(\'unix:\',\'unix:\'+opts.socketPath+\':\');\n}\n\nopts=exports.mergeObjects(settings,{headers:exports.mergeObjects(settings,{host:null}),max_redirects:max_redirects-1});\n\n\n\n\nreturn request_hostenv(redirect_url,opts);\n\n\n}\n\ndefault:\nif(throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url_string+\"\'\";\ntxt+=\" (\"+response.statusCode+\")\";\nvar err=new Error(txt);\n\nerr.status=response.statusCode;\nerr.request=request;\nerr.response=response;\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\nerr.data=response.data;\nthrow err;\n}else if(responseMode===\'string\'){\n\nresponse.resume();\nreturn \"\";\n}\n\n}\n}\n\nif(responseMode===\'raw\'){\n\n\n\nrequest.on(\'error\',function(){});\nreturn response;\n}else if(responseMode===\'arraybuffer\'){\n\n\n\nvar buf=Buffer.concat(streamContents(response));\n\n\n__js {\nvar array_buf=new ArrayBuffer(buf.length);\nvar view=new Uint8Array(array_buf);\nfor(var i=0,l=buf.length;i<l;++i){\nview[i]=buf[i];\n}\n}\n\nreturn {status:response.statusCode,content:array_buf,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}else{\n\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\n\nif(responseMode===\'string\')return response.data;else{\n\n\n\nreturn {status:response.statusCode,content:response.data,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}\n}\n};\n\nfunction file_src_loader(path){waitfor(var err,data){\n\n\n__oni_rt.nodejs_require(\'fs\').readFile(fileUrlToPath(path),resume);\n}\nif(err)throw err;\nreturn {src:data.toString(),loaded_from:path};\n}\n\nfunction resolve_file_url(spec){if(!spec.ext){\n\nvar ext=\".\"+spec.type;\nvar path=fileUrlToPath(spec.path);\n\nwaitfor(var err){\n__oni_rt.nodejs_require(\'fs\').lstat(path+ext,resume);\n}\nif(!err)spec.path+=ext;\n}\n}\n\nfunction nodejs_mockModule(parent){var base;\n\nif(!(/^file:/.exec(parent.id)))base=getTopReqParent_hostenv().id;else base=parent.id;\n\n\n\nbase=fileUrlToPath(base);\n\nreturn {paths:__oni_rt.nodejs_require(\'module\')._nodeModulePaths(base)};\n\n\n};\n\n\nfunction nodejs_loader(path,parent,dummy_src,opts,spec){if(spec.type==\'js\'){\n\nreturn __oni_rt.nodejs_require(path);\n}\nreturn default_loader(pathToFileUrl(path),parent,file_src_loader,opts,spec);\n}\n\n__js nodejs_loader.resolve=function resolve_nodejs(spec,parent){var path=spec.path.substr(7);\n\n\n\nvar mockModule=nodejs_mockModule(parent||getTopReqParent_hostenv());\nvar mod=__oni_rt.nodejs_require(\'module\');\nfunction tryResolve(path){try{\n\nvar resolved=mod._resolveFilename(path,mockModule);\n\nif(resolved instanceof Array)resolved=resolved[1];\nspec.path=resolved;\nreturn true;\n}catch(e){\nreturn false;\n}\n};\n\nvar ok=tryResolve(path);\nif(!spec.ext){\nif(ok){\nspec.type=\'js\';\n}else{\n\nok=tryResolve(path+\".\"+spec.type);\n}\n}\n\nif(!ok)throw new Error(\"nodejs module at \'\"+path+\"\' not found\");\n};\n\n\nfunction getHubs_hostenv(){return [[\"sjs:\",pathToFileUrl(__oni_rt.nodejs_sjs_lib_dir)],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:file_src_loader,resolve:resolve_file_url}],[\"nodejs:\",{loader:nodejs_loader}]];\n\n\n\n\n\n\n\n\n}\n\nvar js_loader=function(src,descriptor){var nodejs_version=process.versions.node.split(\'.\').map(x->parseInt(x,10));\n\nvar vm=__oni_rt.nodejs_require(\"vm\");\njs_loader=(nodejs_version[0]===0&&nodejs_version[1]<=10)?function(src,descriptor){\nvar ctx=vm.createContext(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvm.runInContext(src,ctx,descriptor.id);\n}:function(src,descriptor){\nvar ctx=Object.create(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvar vm=__oni_rt.nodejs_require(\"vm\");\nctx=vm.createContext(ctx);\nvm.runInContext(src,ctx,descriptor.id);\n};\nreturn js_loader(src,descriptor);\n};\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'api\':default_compiler,\'mho\':default_compiler,\'js\':js_loader,\'html\':html_sjs_extractor};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\nvar _sjs_initialized=false;\nfunction init_hostenv(){if(_sjs_initialized)return;\n\n\n_sjs_initialized=true;\n\nvar init_path=process.env[\'SJS_INIT\'];\nif(init_path){\nvar node_fs=__oni_rt.nodejs_require(\'fs\');\nvar files=init_path.split(isWindows?\';\':\':\');\nfor(var i=0;i<files.length;i++ ){\nvar path=files[i];\nif(!path)continue;\ntry{\nexports.require(pathToFileUrl(path));\n}catch(e){\nconsole.error(\"Error loading init script at \"+path+\": \"+e);\nthrow e;\n}\n}\n}\n};\n\nexports.runMainExpression=function(ef){if(!__oni_rt.is_ef(ef))return ef;\n\n\n\n\nvar sig,signame;\n\n\n\n\n\n\nvar dummy_handler,noop;\nif(process.platform===\'win32\'){\nnoop=function(){};\ndummy_handler=function(){console.error(\'[SIGBREAK caught; killing process immediately due to libuv bug]\');\n\nprocess.exit(1);\n};\n}\n\nvar await=function(evt){waitfor(){\n\nprocess.on(evt,resume);\n}finally{\nprocess.removeListener(evt,resume);\nif(dummy_handler&&evt.lastIndexOf(\'SIG\',0)===0){\nprocess.on(\"SIGBREAK\",dummy_handler);\ndummy_handler=noop;\n}\n}\n};\n\nwaitfor{\ntry{\nef.wait();\n}catch(e){\ne=String(e).replace(/^Error: Cannot load module/,\"Error executing\");\ne=e.replace(/\\(in apollo-sys-common.sjs:\\d+\\)$/,\"\");\nconsole.error(e);\nprocess.exit(1);\n}\n}or{\nawait(\'SIGINT\');\nsig=2;\nsigname=\'SIGINT\';\n}or{\nawait(\'SIGHUP\');\nsig=1;\nsigname=\'SIGHUP\';\n}or{\nawait(\'SIGTERM\');\nsig=15;\nsigname=\'SIGTERM\';\n}or{\n\nawait(\'exit\');\n}\n\nif(sig){\nprocess.kill(process.pid,signame);\n\nhold(0);\n\n\n\n\n\nprocess.exit(128+sig);\n}\n};\n\n";var rt=global.__oni_rt;
+})(__oni_rt.c1={});__oni_rt.modsrc['builtin:apollo-sys-common.sjs']="__js __oni_rt.sys=exports;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar UNDEF;\n\n\n\n\n\n__js if(!(__oni_rt.G.__oni_rt_bundle)){\n__oni_rt.G.__oni_rt_bundle={};\n}\n\n\n\n\n\n\n\n\n\n__js exports.hostenv=__oni_rt.hostenv;\n\n\n\n\n\n__js exports.getGlobal=function(){return __oni_rt.G};\n\n\n\n\n\n\n\nexports.withDynVarContext=function(...args){__js var old_dyn_vars=__oni_rt.current_dyn_vars;\n\n\nvar proto_context,block;\nif(args.length===1){\n__js proto_context=old_dyn_vars;\nblock=args[0];\n}else{\n\nproto_context=args[0];\nblock=args[1];\n}\n\ntry{\n__js __oni_rt.current_dyn_vars=__oni_rt.createDynVarContext(proto_context);\nconsole.log(\"DV(sys-common::withDVC)> \"+old_dyn_vars.id+\" > \"+__oni_rt.current_dyn_vars.id);\nblock();\n}finally{\n\nconsole.log(\"DV(reset[sys-common::withDVC])> \"+__oni_rt.current_dyn_vars.id+\" > \"+old_dyn_vars.id);\n__js __oni_rt.current_dyn_vars=old_dyn_vars;\n}\n};\n\n\n\n\n\n__js exports.getCurrentDynVarContext=function(){return __oni_rt.current_dyn_vars;\n\n};\n\n\n\n\n\n\n\n__js exports.setDynVar=function(name,value){if(Object.hasOwnProperty(__oni_rt.current_dyn_vars,\'root\'))throw new Error(\"Cannot set dynamic variable without context\");\n\nif(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to retrieve #{name}\");\n\nvar key=\'$\'+name;\n__oni_rt.current_dyn_vars[key]=value;\n};\n\n\n\n\n\n\n__js exports.clearDynVar=function(name){if(__oni_rt.current_dyn_vars===null)throw new Error(\"No dynamic variable context to clear #{name}\");\n\n\nvar key=\'$\'+name;\ndelete __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n__js exports.getDynVar=function(name,default_val){var key=\'$\'+name;\n\nif(__oni_rt.current_dyn_vars===null){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist (no dynamic variable context)\");\n\n\n\n}\nif(!(key in __oni_rt.current_dyn_vars)){\nif(arguments.length>1)return default_val;else throw new Error(\"Dynamic Variable \'#{name}\' does not exist\");\n\n\n\n}\nreturn __oni_rt.current_dyn_vars[key];\n};\n\n\n\n\n\n\n\n\n__js var arrayCtors=[],arrayCtorNames=[\'Uint8Array\',\'Uint16Array\',\'Uint32Array\',\'Int8Array\',\'Int16Array\',\'Int32Array\',\'Float32Array\',\'Float64Array\',\'NodeList\',\'HTMLCollection\',\'FileList\',\'StaticNodeList\',\'DataTransferItemList\'];\n\n\n\n\n\n\n\n__js for(var i=0;i<arrayCtorNames.length;i++ ){\nvar c=__oni_rt.G[arrayCtorNames[i]];\nif(c)arrayCtors.push(c);\n}\n__js exports.isArrayLike=function(obj){if(Array.isArray(obj)||!!(obj&&Object.prototype.hasOwnProperty.call(obj,\'callee\')))return true;\n\nfor(var i=0;i<arrayCtors.length;i++ )if(obj instanceof arrayCtors[i])return true;\nreturn false;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js {\nvar _flatten=function(arr,rv){var l=arr.length;\n\nfor(var i=0;i<l;++i){\nvar elem=arr[i];\nif(exports.isArrayLike(elem))_flatten(elem,rv);else rv.push(elem);\n\n\n\n}\n};\n\nexports.flatten=function(arr){var rv=[];\n\nif(arr.length===UNDEF)throw new Error(\"flatten() called on non-array\");\n_flatten(arr,rv);\nreturn rv;\n};\n}\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.expandSingleArgument=function(args){if(args.length==1&&exports.isArrayLike(args[0]))args=args[0];\n\n\nreturn args;\n};\n\n\n\n\n\n\n\n\n\n__js exports.isReifiedStratum=function(obj){return (obj!==null&&typeof (obj)===\'object\'&&!!obj.__oni_stratum);\n\n};\n\n\n\n\n\n\n\n\n\n__js exports.isQuasi=function(obj){return (obj instanceof __oni_rt.QuasiProto);\n\n};\n\n\n\n\n\n\n__js exports.Quasi=function(arr){return __oni_rt.Quasi.apply(__oni_rt,arr)};\n\n\n\n\n\n\n__js exports.mergeObjects=function(){var rv={};\n\nvar sources=exports.expandSingleArgument(arguments);\nfor(var i=0;i<sources.length;i++ ){\nexports.extendObject(rv,sources[i]);\n}\nreturn rv;\n};\n\n\n\n\n\n__js exports.extendObject=function(dest,source){for(var o in source){\n\nif(Object.prototype.hasOwnProperty.call(source,o))dest[o]=source[o];\n}\nreturn dest;\n};\n\n\n\n\n\n__js exports.overrideObject=function(dest,...sources){var sources=exports.flatten(sources);\n\n\nfor(var h=sources.length-1;h>=0;--h){\nif(sources[h]==null)sources.splice(h,1);\n\n}\nvar hl=sources.length;\nif(hl){\n\nfor(var o in dest){\nfor(var h=hl-1;h>=0;--h){\nvar source=sources[h];\nif(o in source){\ndest[o]=source[o];\nbreak;\n}\n}\n}\n}\nreturn dest;\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js {\nfunction URI(){}\nURI.prototype={toString:function(){\nreturn \"#{this.protocol}://#{this.authority}#{this.relative}\";\n\n}};\n\nURI.prototype.params=function(){if(!this._params){\n\nvar rv={};\nthis.query.replace(parseURLOptions.qsParser,function(_,k,v){if(k)rv[decodeURIComponent(k)]=decodeURIComponent(v);\n\n});\nthis._params=rv;\n}\nreturn this._params;\n};\n\nvar parseURLOptions={key:[\"source\",\"protocol\",\"authority\",\"userInfo\",\"user\",\"password\",\"host\",\"port\",\"relative\",\"path\",\"directory\",\"file\",\"query\",\"anchor\"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\\/?#]+):)?(?:\\/\\/((?:(([^:\\/@]*)(?::([^:\\/@]*))?)?@)?([^:\\/?#]*)(?::(\\d*))?))?((((?:[^?#\\/]*\\/)*)([^?#]*))(?:\\?([^#]*))?(?:#(.*))?)/};\n\n\n\n\n\n\nexports.parseURL=function(str){var o=parseURLOptions,m=o.parser.exec(str),uri=new URI(),i=14;\n\n\n\n\nwhile(i-- )uri[o.key[i]]=m[i]||\"\";\nreturn uri;\n};\n}\n\n\n\n\n\n\n\n\n__js exports.encodeURIComponentRFC3986=function(str){return encodeURIComponent(str).replace(/[!\'()*]/g,function(c){\nreturn \'%\'+c.charCodeAt(0).toString(16);\n\n});\n};\n\n\n\n\n\n\n\n\n\n__js exports.constructQueryString=function(){var hashes=exports.flatten(arguments);\n\nvar hl=hashes.length;\nvar parts=[];\nfor(var h=0;h<hl;++h){\nvar hash=hashes[h];\nfor(var q in hash){\nvar l=encodeURIComponent(q)+\"=\";\nvar val=hash[q];\nif(!exports.isArrayLike(val))parts.push(l+encodeURIComponent(val));else{\n\n\nfor(var i=0;i<val.length;++i)parts.push(l+encodeURIComponent(val[i]));\n\n}\n}\n}\nreturn parts.join(\"&\");\n};\n\n\n\n\n\n\n\n\n__js exports.constructURL=function(){var url_spec=exports.flatten(arguments);\n\nvar l=url_spec.length;\nvar rv;\n\n\nfor(var i=0;i<l;++i){\nvar comp=url_spec[i];\nif(exports.isQuasi(comp)){\ncomp=comp.parts.slice();\nfor(var k=1;k<comp.length;k+=2)comp[k]=exports.encodeURIComponentRFC3986(comp[k]);\n\ncomp=comp.join(\'\');\n}else if(typeof comp!=\"string\")break;\n\nif(rv!==undefined){\nif(rv.charAt(rv.length-1)!=\"/\")rv+=\"/\";\nrv+=comp.charAt(0)==\"/\"?comp.substr(1):comp;\n}else rv=comp;\n\n\n}\n\n\nvar qparts=[];\nfor(;i<l;++i){\nvar part=exports.constructQueryString(url_spec[i]);\nif(part.length)qparts.push(part);\n\n}\nvar query=qparts.join(\"&\");\nif(query.length){\nif(rv.indexOf(\"?\")!=-1)rv+=\"&\";else rv+=\"?\";\n\n\n\nrv+=query;\n}\nreturn rv;\n};\n\n\n\n\n\n\n\n__js exports.isSameOrigin=function(url1,url2){var a1=exports.parseURL(url1).authority;\n\nif(!a1)return true;\nvar a2=exports.parseURL(url2).authority;\nreturn !a2||(a1==a2);\n};\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.normalizeURL=function(url,base){if(__oni_rt.hostenv==\"nodejs\"&&__oni_rt.G.process.platform==\'win32\'){\n\n\n\nurl=url.replace(/\\\\/g,\"/\");\nbase=base.replace(/\\\\/g,\"/\");\n}\n\nvar a=exports.parseURL(url);\n\n\nif(base&&(base=exports.parseURL(base))&&(!a.protocol||a.protocol==base.protocol)){\n\nif(!a.directory&&!a.protocol){\na.directory=base.directory;\nif(!a.path&&(a.query||a.anchor))a.file=base.file;\n\n}else if(a.directory&&a.directory.charAt(0)!=\'/\'){\n\n\na.directory=(base.directory||\"/\")+a.directory;\n}\nif(!a.protocol){\na.protocol=base.protocol;\nif(!a.authority)a.authority=base.authority;\n\n}\n}\n\n\na.directory=a.directory.replace(/\\/\\/+/g,\'/\');\n\n\nvar pin=a.directory.split(\"/\");\nvar l=pin.length;\nvar pout=[];\nfor(var i=0;i<l;++i){\nvar c=pin[i];\nif(c==\".\")continue;\nif(c==\"..\"){\nif(pout.length>1)pout.pop();\n\n\n}else{\n\npout.push(c);\n}\n}\n\nif(a.file===\'.\')a.file=\'\';else if(a.file===\'..\'){\n\n\nif(pout.length>2){\npout.splice(-2,1);\n}\n\na.file=\'\';\n}\n\na.directory=pout.join(\"/\");\n\n\nvar rv=\"\";\nif(a.protocol)rv+=a.protocol+\":\";\nif(a.authority)rv+=\"//\"+a.authority;else if(a.protocol==\"file\")rv+=\"//\";\n\n\n\nrv+=a.directory+a.file;\nif(a.query)rv+=\"?\"+a.query;\nif(a.anchor)rv+=\"#\"+a.anchor;\nreturn rv;\n};\n\n\n\n\n\n\n\n\n\n\n\n__js exports.jsonp=jsonp_hostenv;\n\n\n\n\n\n\n\n__js exports.getXDomainCaps=getXDomainCaps_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js exports.request=request_hostenv;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js if(console){\nfunction filter_console_args(args){var rv=[];\n\nfor(var i=0;i<args.length;++i){\nvar arg=args[i];\n\nif(arg&&arg._oniE){\narg=String(arg);\n}\nrv.push(arg);\n}\nreturn rv;\n}\n\nvar orig_console_log=console.log;\nvar orig_console_info=console.info;\nvar orig_console_warn=console.warn;\nvar orig_console_error=console.error;\n\nconsole.log=function(){return orig_console_log.apply(console,filter_console_args(arguments))};\nconsole.info=function(){return orig_console_info.apply(console,filter_console_args(arguments))};\nconsole.warn=function(){return orig_console_warn.apply(console,filter_console_args(arguments))};\nconsole.error=function(){return orig_console_error.apply(console,filter_console_args(arguments))};\n\n}\n\n\n\n\n\n\n\n\n__js exports.eval=eval_hostenv;\n\n\n\n\n__js var pendingLoads={};\n\n\n\n\nfunction makeRequire(parent){var rf=function(module,settings){\n\n__js var opts=exports.extendObject({},settings);\n\nif(opts.callback){\ntry{\nvar rv=exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n}catch(e){\nopts.callback(e);return;\n}\nopts.callback(UNDEF,rv);\nreturn;\n}else return exports.isArrayLike(module)?requireInnerMultiple(module,rf,parent,opts):requireInner(module,rf,parent,opts);\n\n\n};\n\n__js {\n\nrf.resolve=function(module,settings){var opts=exports.extendObject({},settings);\n\nreturn resolve(module,rf,parent,opts);\n};\n\nrf.path=\"\";\nrf.alias={};\n\n\nif(exports.require){\nrf.hubs=exports.require.hubs;\nrf.modules=exports.require.modules;\nrf.extensions=exports.require.extensions;\n}else{\n\n\nrf.hubs=augmentHubs(getHubs_hostenv());\nrf.modules={};\n\nrf.extensions=getExtensions_hostenv();\n}\n\n}\n\n\nrf.url=function(relative){return resolve(relative,rf,parent).path;\n\n};\n\nreturn rf;\n}\n__js exports._makeRequire=makeRequire;\n\n__js function augmentHubs(hubs){hubs.addDefault=function(hub){\n\nif(!this.defined(hub[0])){\n\nthis.unshift(hub);\nreturn true;\n}\nreturn false;\n};\nhubs.defined=function(prefix){for(var i=0;i<this.length;i++ ){\n\nvar h=this[i][0];\nvar l=Math.min(h.length,prefix.length);\nif(h.substr(0,l)==prefix.substr(0,l))return true;\n}\nreturn false;\n};\nreturn hubs;\n}\n\n__js function html_sjs_extractor(html,descriptor){var re=/<script (?:[^>]+ )?(?:type=[\'\"]text\\/sjs[\'\"]|main=[\'\"]([^\'\"]+)[\'\"])[^>]*>((.|[\\r\\n])*?)<\\/script>/mg;\n\nvar match;\nvar src=\'\';\nwhile(match=re.exec(html)){\nif(match[1])src+=\'require(\"\'+match[1]+\'\")\';else src+=match[2];\n\nsrc+=\';\';\n}\nif(!src)throw new Error(\"No sjs found in HTML file\");\nreturn default_compiler(src,descriptor);\n}\n\n\n__js function resolveAliases(module,aliases){var ALIAS_REST=/^([^:]+):(.*)$/;\n\nvar alias_rest,alias;\nvar rv=module;\nvar level=10;\nwhile((alias_rest=ALIAS_REST.exec(rv))&&(alias=aliases[alias_rest[1]])){\n\nif(--level==0)throw new Error(\"Too much aliasing in modulename \'\"+module+\"\'\");\n\nrv=alias+alias_rest[2];\n}\nreturn rv;\n}\n\n\n__js function resolveHubs(module,hubs,require_obj,parent,opts){var path=module;\n\nvar loader=opts.loader||default_loader;\nvar src=opts.src||default_src_loader;\nvar resolve=default_resolver;\n\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\n\nvar level=10;\nfor(var i=0,hub;hub=hubs[i++ ];){\nvar match_prefix=typeof hub[0]===\'string\';\nif((match_prefix&&path.indexOf(hub[0])===0)||(!match_prefix&&hub[0].test(path))){\n\n\nif(typeof hub[1]==\"string\"){\nif(match_prefix)path=hub[1]+path.substring(hub[0].length);else path=path.replace(hub[0],hub[1]);\n\n\n\n\ni=0;\n\nif(path.indexOf(\":\")==-1)path=resolveSchemelessURL_hostenv(path,require_obj,parent);\n\nif(--level==0)throw new Error(\"Too much indirection in hub resolution for module \'\"+module+\"\'\");\n\n}else if(typeof hub[1]==\"object\"){\n\nif(hub[1].src)src=hub[1].src;\nif(hub[1].loader)loader=hub[1].loader;\nresolve=hub[1].resolve||loader.resolve||resolve;\n\nbreak;\n}else throw new Error(\"Unexpected value for require.hubs element \'\"+hub[0]+\"\'\");\n\n\n}\n}\n\nreturn {path:path,loader:loader,src:src,resolve:resolve};\n}\n\n\n__js function default_src_loader(path){throw new Error(\"Don\'t know how to load module at \"+path);\n\n}\n\n\nvar compiled_src_tag=/^\\/\\*\\__oni_compiled_sjs_1\\*\\//;\nfunction default_compiler(src,descriptor){try{\n\nvar f;\nif(typeof (src)===\'function\'){\n\nf=src;\n}else{\n\nif(!compiled_src_tag.exec(src)){\nvar filename=\"#{descriptor.id}\";\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nsrc=__oni_rt.c1.compile(src,{filename:filename,mode:\'normal\',globalReturn:true});\n\n\n}\n\n\nf=new Function(\"module\",\"exports\",\"require\",\"__onimodulename\",\"__oni_altns\",src);\n}\nf(descriptor,descriptor.exports,descriptor.require,\"#{descriptor.id}\",{});\n\n}catch(e){\n\n\n\nif(e instanceof SyntaxError){\nthrow new Error(\"In module #{descriptor.id}: #{e.message}\");\n}else{\n\nthrow e;\n\n}\n}\n}\n\n__js default_compiler.module_args=[\'module\',\'exports\',\'require\',\'__onimodulename\',\'__oni_altns\'];\n\n__js var canonical_id_to_module={};\n\n\n__js {\n\n\n\n\n\n\nfunction checkForDependencyCycles(root_node,target_node){if(!root_node.waiting_on)return false;\n\nfor(var name in root_node.waiting_on){\nif(root_node.waiting_on[name]===target_node){\nreturn [root_node.id];\n}\nvar deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);\nif(deeper_cycle)return [root_node.id].concat(deeper_cycle);\n\n}\n\nreturn false;\n}\n\n}\n\nfunction default_loader(path,parent,src_loader,opts,spec){__js var compile=exports.require.extensions[spec.type];\n\n\n\nif(!compile)throw new Error(\"Unknown type \'\"+spec.type+\"\'\");\n\n\n__js var descriptor=exports.require.modules[path];\n__js var pendingHook=pendingLoads[path];\n\nif((!descriptor&&!pendingHook)||opts.reload){\n\n\n\n__js descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};\n\n\n\n\n\n\nexports.spawn(function(S){pendingHook=pendingLoads[path]=S;\n\ntry{\n__js var src,loaded_from;\nif(typeof src_loader===\"string\"){\n__js {\nsrc=src_loader;\nloaded_from=\"[src string]\";\n}\n}else if(path in __oni_rt.modsrc){\n\n__js {\n\nloaded_from=\"[builtin]\";\nsrc=__oni_rt.modsrc[path];\ndelete __oni_rt.modsrc[path];\n\n}\n}else{\n\n({src,loaded_from})=src_loader(path);\n}\n__js {\ndescriptor.loaded_from=loaded_from;\n\ndescriptor.require=makeRequire(descriptor);\n\nvar canonical_id=null;\n\ndescriptor.getCanonicalId=function(){return canonical_id;\n\n};\n\ndescriptor.setCanonicalId=function(id){if(id==null){\n\nthrow new Error(\"Canonical ID cannot be null\");\n}\n\nif(canonical_id!==null){\nthrow new Error(\"Canonical ID is already defined for module \"+path);\n}\n\nvar canonical=canonical_id_to_module[id];\nif(canonical!=null){\nthrow new Error(\"Canonical ID \"+id+\" is already defined in module \"+canonical.id);\n}\n\ncanonical_id=id;\ncanonical_id_to_module[id]=descriptor;\n};\n\nif(opts.main)descriptor.require.main=descriptor;\nexports.require.modules[path]=descriptor;\n}\ntry{\ncompile(src,descriptor);\nreturn;\n}catch(e){\n__js delete exports.require.modules[path];\nthrow e;\n}retract{\n__js delete exports.require.modules[path];\n}\n}catch(e){\n\npendingHook.error=e;\n}\n});\n\npendingHook.pending_descriptor=descriptor;\npendingHook.waiting=0;\n}else if(!descriptor){\n\ndescriptor=pendingHook.pending_descriptor;\n}\n\nif(pendingHook){\n\n\ntry{\n++pendingHook.waiting;\n\n__js {\nif(!parent.waiting_on)parent.waiting_on={};\n\nparent.waiting_on[path]=descriptor;\n}\n\n__js var dep_cycle=checkForDependencyCycles(descriptor,parent);\nif(dep_cycle)throw new Error(\"Cyclic require() dependency: #{parent.id} -> \"+dep_cycle.join(\' -> \'));\n\n\npendingHook.wait();\nif(pendingHook.error)throw pendingHook.error;\n\n__js {\n\n\n\n\n\n\ndelete parent.waiting_on[path];\n}\n}finally{\n\n\nif(--pendingHook.waiting===0){\ndelete pendingLoads[path];\nif(pendingHook.running){\npendingHook.abort().wait();\nif(pendingHook.error)throw pendingHook.error;\n}\n}\n}\n}\n\n__js if(!descriptor.required_by[parent.id])descriptor.required_by[parent.id]=1;else ++descriptor.required_by[parent.id];\n\n\n\n\nreturn descriptor.exports;\n}\n\n__js function default_resolver(spec){if(!spec.ext&&spec.path.charAt(spec.path.length-1)!==\'/\')spec.path+=\".\"+spec.type;\n\n\n};\n\n\nfunction http_src_loader(path){return {src:request_hostenv([path,{format:\'compiled\'}],{mime:\'text/plain\'}),loaded_from:path};\n\n\n\n\n}\n\n\n\n\n\n\n__js var github_api=\"https://api.github.com/\";\n__js var github_opts={cbfield:\"callback\"};\nfunction github_src_loader(path){var user,repo,tag;\n\ntry{\n[ ,user,repo,tag,path]=/github:\\/([^\\/]+)\\/([^\\/]+)\\/([^\\/]+)\\/(.+)/.exec(path);\n}catch(e){throw new Error(\"Malformed module id \'\"+path+\"\'\")}\n\nvar url=exports.constructURL(github_api,\'repos\',user,repo,\"contents\",path,{ref:tag});\n\nwaitfor{\nvar data=jsonp_hostenv(url,github_opts).data;\n}or{\n\nhold(10000);\nthrow new Error(\"Github timeout\");\n}\nif(data.message&&!data.content)throw new Error(data.message);\n\n\n\nvar str=exports.require(\'sjs:string\');\n\nreturn {src:str.utf8ToUtf16(str.base64ToOctets(data.content)),loaded_from:url};\n\n\n\n}\n\n\nfunction resolve(module,require_obj,parent,opts){var path=resolveAliases(module,require_obj.alias);\n\n\n\nvar hubs=exports.require.hubs;\n\nvar resolveSpec=resolveHubs(path,hubs,require_obj,parent,opts||{});\n\n\n__js resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);\n\n\n\n__js var ext,extMatch=/.+\\.([^\\.\\/]+)$/.exec(resolveSpec.path);\n__js if(extMatch){\next=extMatch[1].toLowerCase();\nresolveSpec.ext=ext;\nif(!exports.require.extensions[ext])ext=null;\n}\n__js if(!ext){\n\nif(parent.id.substr(-3)===\'.js\')resolveSpec.type=\'js\';else resolveSpec.type=\'sjs\';\n\n\n\n}else resolveSpec.type=ext;\n\n\n\nresolveSpec.resolve(resolveSpec,parent);\n\n__js {\n\nvar preload=__oni_rt.G.__oni_rt_bundle;\nvar pendingHubs=false;\nif(preload.h){\n\nvar deleteHubs=[];\nfor(var k in preload.h){\nif(!Object.prototype.hasOwnProperty.call(preload.h,k))continue;\nvar entries=preload.h[k];\nvar parent=getTopReqParent_hostenv();\nvar resolved=resolveHubs(k,hubs,exports.require,parent,{});\nif(resolved.path===k){\n\npendingHubs=true;\ncontinue;\n}\n\nfor(var i=0;i<entries.length;i++ ){\nvar ent=entries[i];\npreload.m[resolved.path+ent[0]]=ent[1];\n}\ndeleteHubs.push(k);\n}\n\nif(!pendingHubs)delete preload.h;else{\n\n\nfor(var i=0;i<deleteHubs.length;i++ )delete preload.h[deleteHubs[i]];\n\n}\n}\n\nif(module in __oni_rt.modsrc){\n\n\nif(!preload.m)preload.m={};\npreload.m[resolveSpec.path]=__oni_rt.modsrc[module];\ndelete __oni_rt.modsrc[module];\n}\n\nif(preload.m){\nvar path=resolveSpec.path;\n\nif(path.indexOf(\'!sjs\',path.length-4)!==-1)path=path.slice(0,-4);\n\nvar contents=preload.m[path];\nif(contents!==undefined){\nresolveSpec.src=function(){delete preload.m[path];\n\n\nreturn {src:contents,loaded_from:path+\"#bundle\"};\n};\n}\n}\n\n}\nreturn resolveSpec;\n}\n\n\n\n\n\n__js exports.resolve=function(url,require_obj,parent,opts){require_obj=require_obj||exports.require;\n\nparent=parent||getTopReqParent_hostenv();\nopts=opts||{};\nreturn resolve(url,require_obj,parent,opts);\n};\n\n\nfunction requireInner(module,require_obj,parent,opts){var resolveSpec=resolve(module,require_obj,parent,opts);\n\n\n\n\nmodule=resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec);\n\nreturn module;\n}\n\n\nfunction requireInnerMultiple(modules,require_obj,parent,opts){var rv={};\n\n\n\n\nfunction inner(i,l){if(l===1){\n\nvar descriptor=modules[i];\nvar id,exclude,include,name;\n__js if(typeof descriptor===\'string\'){\nid=descriptor;\nexclude=[];\ninclude=null;\nname=null;\n}else{\n\nid=descriptor.id;\nexclude=descriptor.exclude||[];\ninclude=descriptor.include||null;\nname=descriptor.name||null;\n}\n\nvar module=requireInner(id,require_obj,parent,opts);\n\n\n__js {\nvar addSym=function(k,v){if(rv[k]!==undefined){\n\nif(rv[k]===v)return;\nthrow new Error(\"require([.]) name clash while merging module \'#{id}\': Symbol \'#{k}\' defined in multiple modules\");\n}\nrv[k]=v;\n};\n\nif(name){\naddSym(name,module);\n}else if(include){\nfor(var i=0;i<include.length;i++ ){\nvar o=include[i];\nif(!(o in module))throw new Error(\"require([.]) module #{id} has no symbol #{o}\");\naddSym(o,module[o]);\n}\n}else{\nfor(var o in module){\n\n\n\nif(exclude.indexOf(o)!==-1)continue;\naddSym(o,module[o]);\n}\n}\n}\n}else{\n\nvar split=Math.floor(l/2);\nwaitfor{\ninner(i,split);\n}and{\n\ninner(i+split,l-split);\n}\n}\n}\n\n\nif(modules.length!==0)inner(0,modules.length);\nreturn rv;\n}\n\n\n__js exports.require=makeRequire(getTopReqParent_hostenv());\n\n__js exports.require.modules[\'builtin:apollo-sys.sjs\']={id:\'builtin:apollo-sys.sjs\',exports:exports,loaded_from:\"[builtin]\",required_by:{\"[system]\":1}};\n\n\n\n\n\n\nexports.init=function(cb){init_hostenv();\n\ncb();\n};\n\n\n\n\n\n\n\n\nfunction runGlobalStratum(r){r.stratum=reifiedStratum;\n\ntry{hold()}finally{\n\n\nhold(0);\n}\n}\n\nexports.spawn=function(f){var r={};\n\n\nvar dynvars=__oni_rt.current_dyn_vars;\n__js runGlobalStratum(r),null;\n\n\nconsole.log(\"DV(sys-common::spawn)> \"+__oni_rt.current_dyn_vars.id+\" > \"+dynvars.id);\n__oni_rt.current_dyn_vars=dynvars;\nreturn r.stratum.spawn(f);\n};\n\n\n\n\nexports.captureStratum=function(S){reifiedStratum.adopt(S);\n\nreifiedStratum.join();\n};\n\n";__oni_rt.modsrc['builtin:apollo-sys-nodejs.sjs']="var isWindows=process.platform===\'win32\';\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n__js var pathMod=(function(){var np=__oni_rt.nodejs_require(\'path\');\n\nvar sep=np.sep||(isWindows?\'\\\\\':\'/\');\nreturn {join:np.join,resolve:function(p){\n\nvar result=np.resolve.apply(this,arguments);\n\n\nif(/[\\\\\\/]$/.test(p))result+=sep;\nreturn result;\n}};\n\n})();\n\n__js var pathToFileUrl=exports.pathToFileUrl=function(path){var initialPath=path;\n\nvar prefix=\'file://\';\npath=pathMod.resolve(path);\nif(isWindows){\npath=path.replace(/\\\\/g,\'/\');\nif(path.lastIndexOf(\'//\',0)===0)prefix=\'file:\';else prefix=\'file:///\';\n\n\n\n\n}\n\n\nreturn prefix+encodeURIComponent(path).replace(/%(2f|3a)/gi,unescape);\n};\n\n__js var fileUrlToPath=exports.fileUrlToPath=function(url){var parsed=exports.parseURL(url);\n\nif(parsed.protocol.toLowerCase()!=\'file\'){\nthrow new Error(\"Not a file:// URL: #{url}\");\n}\nvar path=parsed.path;\n\nif(parsed.host===\'localhost\')parsed.host=\'\';\nif(isWindows){\npath=path.replace(/\\//g,\'\\\\\');\nif(parsed.host){\n\npath=\'\\\\\\\\\'+pathMod.join(parsed.host,path);\n}else{\n\n\npath=path.replace(/^\\\\/,\'\');\n}\n}else{\nif(parsed.host){\n\npath=pathMod.join(parsed.host,path);\n}\n}\nreturn decodeURIComponent(path);\n};\n\n__js var coerceToURL=exports.coerceToURL=function(path){if(path.indexOf(\':\',2)!==-1)return path;\n\n\n\n\nreturn pathToFileUrl(path);\n};\n\n\n\n\n\n\n\n\n\n\n\n\nfunction jsonp_hostenv(url,settings){var opts=exports.mergeObjects({cbfield:\"callback\",forcecb:\"jsonp\"},settings);\n\n\n\n\n\n\n\nvar query={};\nquery[opts.cbfield]=opts.forcecb;\n\nvar parser=/^[^{]*({[^]+})[^}]*$/;\nvar data=parser.exec(request_hostenv([url,opts.query,query]));\n\n\n\n\ndata[1]=data[1].replace(/([^\\\\])\\\\x/g,\"$1\\\\u00\");\n\ntry{\nreturn JSON.parse(data[1]);\n}catch(e){\n\nthrow new Error(\"Invalid jsonp response from \"+exports.constructURL(url)+\" (\"+e+\")\");\n}\n}\n\n\n\n\n\n\nfunction getXDomainCaps_hostenv(){return \"*\";\n\n}\n\n\n\n\n\nvar req_base_descr;\nfunction getTopReqParent_hostenv(){if(!req_base_descr){\n\nvar base=pathToFileUrl(process.mainModule.filename);\nreq_base_descr={id:base,loaded_from:base,required_by:{\"[system]\":1}};\n\n\n\n\n}\nreturn req_base_descr;\n}\n\n\n\n\n\n\n\n\n\nfunction resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(/^\\.\\.?\\//.test(url_string))return exports.normalizeURL(url_string,parent.id);else if(!isWindows&&/^\\//.test(url_string))throw new Error(\"Absolute path passed to require.resolve: #{url_string}\");\n\n\n\n\n\n\n\nreturn \"nodejs:\"+url_string;\n}\n\n\n\n\n\n\nvar streamContents=exports.streamContents=function(stream,fn){var rv;\n\nvar chunk=null;\nvar ended=false;\nvar emitting=false;\nif(!fn){\nrv=[];\nfn=rv.push.bind(rv);\n}\nif(stream.readable===false)return rv;\n\n\nstream.pause();\n\nwaitfor{\nwaitfor(var exception){\nstream.on(\'error\',resume);\nstream.on(\'end\',resume);\n}finally{\n\nstream.removeListener(\'error\',resume);\nstream.removeListener(\'end\',resume);\n}\nif(exception)throw exception;\nif(emitting){\n\n\nended=true;\nhold();\n}\n}or{\nwhile(1){\nif(chunk===null){\nif(ended)break;\n\nwaitfor(){\nstream.on(\'readable\',resume);\n}finally{\n\nstream.removeListener(\'readable\',resume);\n}\n}\n__js chunk=stream.read();\nif(chunk===null){\ncontinue;\n}\nemitting=true;\nfn(chunk);\nemitting=false;\n}\n}\nreturn rv;\n};\n\n\n\n\n\nfunction request_hostenv(url,settings){__js {\n\nvar opts=exports.mergeObjects({method:\"GET\",headers:{},throwing:true,max_redirects:5},settings);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nvar pop=function(k){var rv=opts[k];\n\ndelete opts[k];\nreturn rv;\n};\nvar responseMode=pop(\'response\')||\'string\';\nvar body=pop(\'body\');\nvar throwing=pop(\'throwing\');\nvar max_redirects=pop(\'max_redirects\');\nvar username=pop(\'username\');\nvar password=pop(\'password\');\nvar query=pop(\'query\');\n\nvar url_string=exports.constructURL(url,query);\n\n\n\nvar url=exports.parseURL(url_string);\nvar protocol=url.protocol;\n\nif(url.host==\'unix\'){\n\nvar unix_parts=url.relative.split(\':\');\nopts.socketPath=unix_parts[0];\nopts.path=unix_parts[1];\n}else{\n\nopts.host=url.host;\nopts.port=url.port||(protocol===\'https\'?443:80);\nopts.path=url.relative||\'/\';\n}\n\nif(!opts.headers[\'Host\'])opts.headers.Host=url.authority;\n\n\nif(!opts.headers[\'User-Agent\'])opts.headers[\'User-Agent\']=\"Oni Labs StratifiedJS engine\";\n\n\nif(body&&!opts.headers[\'Transfer-Encoding\']){\n\n\n\nbody=Buffer.from(body);\nopts.headers[\'Content-Length\']=body.length;\n}else{\n\nopts.headers[\'Content-Length\']=0;\n}\nif(username!=null&&password!=null)opts.auth=username+\":\"+password;\n\n\n}\n\nif(!(protocol===\'http\'||protocol===\'https\')){\nthrow new Error(\'Unsupported protocol: \'+protocol);\n}\n\nvar request=__oni_rt.nodejs_require(protocol).request(opts);\nrequest.end(body);\n\nwaitfor{\nwaitfor(var err){\nrequest.on(\'error\',resume);\n}finally{\n\nrequest.removeListener(\'error\',resume);\n}\nif(throwing){\nerr.request=request;\nerr.response=null;\nerr.status=0;\nthrow new Error(err);\n}else if(responseMode===\'string\'){\n\nreturn \'\';\n}else if(responseMode===\'full\'){\n\nreturn {status:0,content:\'\'};\n\n\n\n}else if(responseMode===\'arraybuffer\'){\n\nreturn {status:0,content:new ArrayBuffer()};\n\n\n\n}else{\n\n\n\nreturn {readable:false,statusCode:0,error:String(err)};\n\n\n\n\n}\n}or{\n\nwaitfor(var response){\nrequest.on(\'response\',resume);\n}finally{\n\nrequest.removeListener(\'response\',resume);\n}\n}retract{\n\n\n\nrequest.on(\'error\',function(){});\nrequest.abort();\n}\n\nif(response.statusCode<200||response.statusCode>=300){\nswitch(response.statusCode){case 300:\ncase 301:case 302:case 303:case 307:\nif(max_redirects>0){\nresponse.socket.end();\n\n\n\n\nvar redirect_url=exports.normalizeURL(response.headers[\'location\'],url_string);\n\nif(url.host==\'unix\'){\n\n\nredirect_url=redirect_url.replace(\'unix:\',\'unix:\'+opts.socketPath+\':\');\n}\n\nopts=exports.mergeObjects(settings,{headers:exports.mergeObjects(settings,{host:null}),max_redirects:max_redirects-1});\n\n\n\n\nreturn request_hostenv(redirect_url,opts);\n\n\n}\n\ndefault:\nif(throwing){\nvar txt=\"Failed \"+opts.method+\" request to \'\"+url_string+\"\'\";\ntxt+=\" (\"+response.statusCode+\")\";\nvar err=new Error(txt);\n\nerr.status=response.statusCode;\nerr.request=request;\nerr.response=response;\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\nerr.data=response.data;\nthrow err;\n}else if(responseMode===\'string\'){\n\nresponse.resume();\nreturn \"\";\n}\n\n}\n}\n\nif(responseMode===\'raw\'){\n\n\n\nrequest.on(\'error\',function(){});\nreturn response;\n}else if(responseMode===\'arraybuffer\'){\n\n\n\nvar buf=Buffer.concat(streamContents(response));\n\n\n__js {\nvar array_buf=new ArrayBuffer(buf.length);\nvar view=new Uint8Array(array_buf);\nfor(var i=0,l=buf.length;i<l;++i){\nview[i]=buf[i];\n}\n}\n\nreturn {status:response.statusCode,content:array_buf,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}else{\n\n\nresponse.setEncoding(\'utf8\');\nresponse.data=streamContents(response).join(\'\');\n\nif(responseMode===\'string\')return response.data;else{\n\n\n\nreturn {status:response.statusCode,content:response.data,getHeader:name->response.headers[name.toLowerCase()]};\n\n\n\n\n}\n}\n};\n\nfunction file_src_loader(path){waitfor(var err,data){\n\n\n__oni_rt.nodejs_require(\'fs\').readFile(fileUrlToPath(path),resume);\n}\nif(err)throw err;\nreturn {src:data.toString(),loaded_from:path};\n}\n\nfunction resolve_file_url(spec){if(!spec.ext){\n\nvar ext=\".\"+spec.type;\nvar path=fileUrlToPath(spec.path);\n\nwaitfor(var err){\n__oni_rt.nodejs_require(\'fs\').lstat(path+ext,resume);\n}\nif(!err)spec.path+=ext;\n}\n}\n\nfunction nodejs_mockModule(parent){var base;\n\nif(!(/^file:/.exec(parent.id)))base=getTopReqParent_hostenv().id;else base=parent.id;\n\n\n\nbase=fileUrlToPath(base);\n\nreturn {paths:__oni_rt.nodejs_require(\'module\')._nodeModulePaths(base)};\n\n\n};\n\n\nfunction nodejs_loader(path,parent,dummy_src,opts,spec){if(spec.type==\'js\'){\n\nreturn __oni_rt.nodejs_require(path);\n}\nreturn default_loader(pathToFileUrl(path),parent,file_src_loader,opts,spec);\n}\n\n__js nodejs_loader.resolve=function resolve_nodejs(spec,parent){var path=spec.path.substr(7);\n\n\n\nvar mockModule=nodejs_mockModule(parent||getTopReqParent_hostenv());\nvar mod=__oni_rt.nodejs_require(\'module\');\nfunction tryResolve(path){try{\n\nvar resolved=mod._resolveFilename(path,mockModule);\n\nif(resolved instanceof Array)resolved=resolved[1];\nspec.path=resolved;\nreturn true;\n}catch(e){\nreturn false;\n}\n};\n\nvar ok=tryResolve(path);\nif(!spec.ext){\nif(ok){\nspec.type=\'js\';\n}else{\n\nok=tryResolve(path+\".\"+spec.type);\n}\n}\n\nif(!ok)throw new Error(\"nodejs module at \'\"+path+\"\' not found\");\n};\n\n\nfunction getHubs_hostenv(){return [[\"sjs:\",pathToFileUrl(__oni_rt.nodejs_sjs_lib_dir)],[\"github:\",{src:github_src_loader}],[\"http:\",{src:http_src_loader}],[\"https:\",{src:http_src_loader}],[\"file:\",{src:file_src_loader,resolve:resolve_file_url}],[\"nodejs:\",{loader:nodejs_loader}]];\n\n\n\n\n\n\n\n\n}\n\nvar js_loader=function(src,descriptor){var nodejs_version=process.versions.node.split(\'.\').map(x->parseInt(x,10));\n\nvar vm=__oni_rt.nodejs_require(\"vm\");\njs_loader=(nodejs_version[0]===0&&nodejs_version[1]<=10)?function(src,descriptor){\nvar ctx=vm.createContext(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvm.runInContext(src,ctx,descriptor.id);\n}:function(src,descriptor){\nvar ctx=Object.create(global);\n\n\nctx.module=descriptor;\nctx.exports=descriptor.exports;\nctx.require=descriptor.require;\nvar vm=__oni_rt.nodejs_require(\"vm\");\nctx=vm.createContext(ctx);\nvm.runInContext(src,ctx,descriptor.id);\n};\nreturn js_loader(src,descriptor);\n};\n\nfunction getExtensions_hostenv(){return {\'sjs\':default_compiler,\'api\':default_compiler,\'mho\':default_compiler,\'js\':js_loader,\'html\':html_sjs_extractor};\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}\n\n\n\n\nfunction eval_hostenv(code,settings){var filename=(settings&&settings.filename)||\"sjs_eval_code\";\n\nfilename=\"\'#{filename.replace(/\\\'/g,\'\\\\\\\'\')}\'\";\nvar mode=(settings&&settings.mode)||\"normal\";\nvar js=__oni_rt.c1.compile(code,{filename:filename,mode:mode});\nreturn __oni_rt.G.eval(js);\n}\n\n\n\n\n\nvar _sjs_initialized=false;\nfunction init_hostenv(){if(_sjs_initialized)return;\n\n\n_sjs_initialized=true;\n\nvar init_path=process.env[\'SJS_INIT\'];\nif(init_path){\nvar node_fs=__oni_rt.nodejs_require(\'fs\');\nvar files=init_path.split(isWindows?\';\':\':\');\nfor(var i=0;i<files.length;i++ ){\nvar path=files[i];\nif(!path)continue;\ntry{\nexports.require(pathToFileUrl(path));\n}catch(e){\nconsole.error(\"Error loading init script at \"+path+\": \"+e);\nthrow e;\n}\n}\n}\n};\n\nexports.runMainExpression=function(ef){if(!__oni_rt.is_ef(ef))return ef;\n\n\n\n\nvar sig,signame;\n\n\n\n\n\n\nvar dummy_handler,noop;\nif(process.platform===\'win32\'){\nnoop=function(){};\ndummy_handler=function(){console.error(\'[SIGBREAK caught; killing process immediately due to libuv bug]\');\n\nprocess.exit(1);\n};\n}\n\nvar await=function(evt){waitfor(){\n\nprocess.on(evt,resume);\n}finally{\nprocess.removeListener(evt,resume);\nif(dummy_handler&&evt.lastIndexOf(\'SIG\',0)===0){\nprocess.on(\"SIGBREAK\",dummy_handler);\ndummy_handler=noop;\n}\n}\n};\n\nwaitfor{\ntry{\nef.wait();\n}catch(e){\ne=String(e).replace(/^Error: Cannot load module/,\"Error executing\");\ne=e.replace(/\\(in apollo-sys-common.sjs:\\d+\\)$/,\"\");\nconsole.error(e);\nprocess.exit(1);\n}\n}or{\nawait(\'SIGINT\');\nsig=2;\nsigname=\'SIGINT\';\n}or{\nawait(\'SIGHUP\');\nsig=1;\nsigname=\'SIGHUP\';\n}or{\nawait(\'SIGTERM\');\nsig=15;\nsigname=\'SIGTERM\';\n}or{\n\nawait(\'exit\');\n}\n\nif(sig){\nprocess.kill(process.pid,signame);\n\nhold(0);\n\n\n\n\n\nprocess.exit(128+sig);\n}\n};\n\n";var rt=global.__oni_rt;
 
 
 

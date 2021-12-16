@@ -60,15 +60,15 @@ function controlflow_type(e) {
     @assert.truthy(!!e[0]);
     
     if (e[0].type === 'r') {
-      if (e[0].eid)
-        rv = 'blocklambda-return';
-      else
         rv = 'return';
     }
     else if (e[0].type === 'b') {
       rv = 'break';
     }
-    else if (e[0].type === 'blb_old') {
+    else if (e[0].type === 'blr') {
+      rv = 'blocklambda-return';
+    }
+    else if (e[0].type === 'blb') {
       rv = 'blocklambda-break';
     }
     else if (e[0].type === 'c') {
@@ -877,6 +877,8 @@ function controlflow_type(e) {
     @assert.eq(rv, '12345b');
   })
 
+  // THIS USED TO YIELD 123456a, but that was incorrect... the break doesn't feed through to the 
+  // waitfor/or junction. after the exec we have sequential controlflow, and the return overrides it.
   @test("blmda-brk - later brk finishing first superceeds", function() {
 
     var rv = '';
@@ -910,7 +912,7 @@ function controlflow_type(e) {
     }
     var x = t();
     if (x !== undefined) rv += x;
-    @assert.eq(rv, '123456a');
+    @assert.eq(rv, '12345b');
   })
 
 })
@@ -922,19 +924,23 @@ function controlflow_type(e) {
 
   @test("blr routing", function() {
     var rv = '';
-    function t() {
+    function t(f) {
       @withBackgroundStrata {
         |strata|
-        strata.run {||
-        hold(0);
-        rv += '1';
-        return 'a';
-        };
+        strata.run(f);
         strata.wait();
       }
     }
     
-    rv += t();
+    function outer() {
+      t {||
+        hold(0);
+        rv += '1';
+        return 'a';
+      };
+    }
+
+    rv += outer();
 
     @assert.eq(rv, '1a');
   })
@@ -966,10 +972,17 @@ function controlflow_type(e) {
 
   @test("first bl return to clear all try/catch/finally wins", function() {
     var rv = '';
-    function t() {
+    function t(f1, f2) {
       @withBackgroundStrata {
         |strata|
-        strata.run {||
+        strata.run(f1);
+        strata.run(f2);        
+        strata.wait();
+      }
+    }
+
+    function outer() {
+      t({||
           try {
             rv += '1';
             return 'a';
@@ -979,8 +992,8 @@ function controlflow_type(e) {
             hold(20);
             rv += '4';
           }
-        };
-        strata.run {||
+        },
+        {||
           try {
             hold(0);
             rv += '3';
@@ -989,22 +1002,28 @@ function controlflow_type(e) {
           retract {
             rv += 'R';
           }
-        };
-        strata.wait();
-      }
+        });
+      return 'x';
     }
 
-    var x = t();
+    var x = outer();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '1234b');
   })
 
   @test("first bl return to clear all try/catch/finally wins - exception overrides", function() {
     var rv = '';
-    function t() {
+    function t(f1, f2) {
       @withBackgroundStrata {
         |strata|
-        strata.run {||
+        strata.run(f1);
+        strata.run(f2);
+        strata.wait();
+      }
+    }
+
+    function outer() {
+      t({||
           try {
             rv += '1';
             return 'a';
@@ -1015,8 +1034,8 @@ function controlflow_type(e) {
             rv += '4';
             throw 'E';
           }
-        };
-        strata.run {||
+        },
+        {||
           try {
             hold(0);
             rv += '3';
@@ -1025,13 +1044,11 @@ function controlflow_type(e) {
           retract {
             rv += 'R';
           }
-        }
-        strata.wait();
-      }
+        });
     }
 
     try {
-      var x = t();
+      var x = outer();
       if (x !== undefined) rv += x;
     }
     catch(e) { rv += e; }
@@ -1041,10 +1058,17 @@ function controlflow_type(e) {
 
   @test("first bl return to clear all try/catch/finally wins - async", function() {
     var rv = '';
-    function t() {
+    function t(f1, f2) {
       @withBackgroundStrata {
         |strata|
-        strata.run {||
+        strata.run(f1);
+        strata.run(f2);
+        strata.wait();
+      }
+    }
+
+    function outer() {
+      t({||
           try {
             rv += '1';
             hold(0);
@@ -1056,8 +1080,8 @@ function controlflow_type(e) {
             hold(20);
             rv += '5';
           }
-        };
-        strata.run {||
+        },
+        {||
           try {
             hold(0);
             hold(0);
@@ -1067,12 +1091,10 @@ function controlflow_type(e) {
           retract {
             rv += 'R';
           }
-        }
-        strata.wait();
-      }
+        });
     }
-
-    var x = t();
+    
+    var x = outer();
     if (x !== undefined) rv += x;
     @assert.eq(rv, '12345b');
   })

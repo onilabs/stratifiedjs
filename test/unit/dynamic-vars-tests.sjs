@@ -155,7 +155,7 @@ function base_test(interstitial) {
     and {
       stratum.wait();
       // make sure that the correct context is restored:
-    hold(0);
+      hold(0);
       @assert.is(@sys.getDynVar('foo'), 'x');
     }
   }
@@ -729,6 +729,8 @@ function waitfor_or_retraction(blocking1, blocking2) {
 })
 
 
+// XXX This doesn't really test what it purports to; the context is cleared further upstream
+// see v2 of the test below
 @test("js call / context cleared by hold()", function() {
 
   @assert.raises(->@sys.getDynVar('foo'));
@@ -744,6 +746,8 @@ function waitfor_or_retraction(blocking1, blocking2) {
 
 })
 
+// XXX This doesn't really test what it purports to; the context is cleared further upstream
+// see v2 of the test below
 @test("js call / context cleared by waitfor()", function() {
 
   @assert.raises(->@sys.getDynVar('foo'));
@@ -760,3 +764,325 @@ function waitfor_or_retraction(blocking1, blocking2) {
   }
 
 })
+
+// wraps v1 of the test in an extra setTimeout, so that there are no upstream 
+// callstack effects that reset the context
+@test("js call / context cleared by hold() 2", function() {
+
+  waitfor() {
+    var R = resume;
+    setTimeout(function() {
+      @assert.raises(->@sys.getDynVar('foo'));
+      
+      __js {
+        setTimeout(function() { @assert.raises(->@sys.getDynVar('foo')); }, 10);
+      }
+      @sys.withDynVarContext{
+        ||
+        @sys.setDynVar('foo', 'x');
+        hold(100);
+      }
+      R();
+    },10);
+  }
+});
+
+// wraps v1 of the test in an extra setTimeout, so that there are no upstream 
+// callstack effects that reset the context
+@test("js call / context cleared by waitfor() 2", function() {
+
+  waitfor() { 
+    var R = resume;
+    var prod;
+    setTimeout(function() {
+      @assert.raises(->@sys.getDynVar('foo'));
+      __js {
+        setTimeout(function() { @assert.raises(->@sys.getDynVar('foo')); prod(); }, 100);
+      }
+      @sys.withDynVarContext{
+        ||
+        @sys.setDynVar('foo', 'x');
+        waitfor() { prod = resume }
+      }
+      R();
+    }, 10);
+  }
+});
+
+@test("alt::abortInner child abort edge case", function() {
+  
+  var exception_thrown = false;
+  waitfor() {
+    var R = resume;
+    setTimeout(function() {
+      @assert.raises(->@sys.getDynVar('foo'));
+      __js {
+        setTimeout(function() { 
+          try { @sys.getDynVar('foo'); } catch(e) { exception_thrown = true} } , 10);
+      }
+      @sys.withDynVarContext {
+        ||
+        @sys.setDynVar('foo', 'x');
+        waitfor {
+          try { hold(); } finally { hold(100); }
+        }
+        or {
+          hold(1001);
+        }
+        or {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+        }
+        @assert.is(@sys.getDynVar('foo'), 'x');
+      }
+      R();
+    }, 10);
+  }
+  @assert.is(exception_thrown, true);  
+});
+
+
+@test("par::abortInner child abort edge case", function() {
+  
+  var exception_thrown = false;
+  waitfor() {
+    var R = resume;
+    setTimeout(function() {
+      @assert.raises(->@sys.getDynVar('foo'));
+      __js {
+        setTimeout(function() { 
+          try { @sys.getDynVar('foo'); } catch(e) { exception_thrown = true} } , 10);
+      }
+      @sys.withDynVarContext {
+        ||
+        @sys.setDynVar('foo', 'x');
+        (function() {
+          waitfor {
+            try { hold(); } finally { hold(100); }
+          }
+          and {
+            hold(1001);
+          }
+          and {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+            return;
+          }
+        })();
+        @assert.is(@sys.getDynVar('foo'), 'x');
+      }
+      R();
+    }, 10);
+  }
+  @assert.is(exception_thrown, true);  
+});
+
+@test("reentrant adoption edge case", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+  var otherParent;
+  waitfor {
+    @sys.withDynVarContext {
+      ||
+      @sys.setDynVar('foo', 'y');
+      (function() { otherParent = reifiedStratum; 
+                    @assert.is(@sys.getDynVar('foo'), 'y'); 
+                    try {
+                      hold();
+                    } finally {
+                      @assert.is(@sys.getDynVar('foo'), 'y'); 
+                    }})();
+    }
+  }
+  or {
+    @sys.withDynVarContext {
+      ||
+      @sys.setDynVar('foo', 'x');
+      (function() {
+        @assert.is(@sys.getDynVar('foo'), 'x'); 
+        otherParent.adopt(reifiedStratum);
+        @assert.is(@sys.getDynVar('foo'), 'x');
+        try {
+          hold();
+        }
+        finally {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+        }
+      })();
+      @assert.is(@sys.getDynVar('foo'), 'x'); 
+      hold(0);
+      @assert.is(@sys.getDynVar('foo'), 'x'); 
+    }
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+});
+
+@test("reentrant adoption edge case 2", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+  var otherParent;
+  waitfor {
+    @sys.withDynVarContext {
+      ||
+      @sys.setDynVar('foo', 'y');
+      try {
+        (function() { otherParent = reifiedStratum; 
+                      @assert.is(@sys.getDynVar('foo'), 'y'); 
+                      try {
+                        hold();
+                      } finally {
+                        @assert.is(@sys.getDynVar('foo'), 'y'); 
+                      }})();
+      }
+      finally {
+        @assert.is(@sys.getDynVar('foo'), 'y');
+      }
+    }
+  }
+  or {
+    @sys.withDynVarContext {
+      ||
+      @sys.setDynVar('foo', 'x');
+      (function() {
+        @assert.is(@sys.getDynVar('foo'), 'x'); 
+        otherParent.adopt(reifiedStratum);
+        @assert.is(@sys.getDynVar('foo'), 'x'); 
+        reifiedStratum.spawn(function() { try { hold(); } 
+                                          finally { hold(0); @assert.is(@sys.getDynVar('foo'), 'x'); } });
+        hold(0);
+      })();
+      @assert.is(@sys.getDynVar('foo'), 'x'); 
+      hold(0);
+      @assert.is(@sys.getDynVar('foo'), 'x'); 
+    }
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+});
+
+
+@test("wfw::abortInner child sequence & abort", function() {
+  
+  var exception_thrown = false;
+  waitfor() {
+    var R = resume;
+    setTimeout(function() {
+      @assert.raises(->@sys.getDynVar('foo'));
+      __js {
+        setTimeout(function() { 
+          try { @sys.getDynVar('foo'); } catch(e) { exception_thrown = true} } , 10);
+      }
+      @sys.withDynVarContext {
+        ||
+        @sys.setDynVar('foo', 'x');
+        waitfor {
+          try { hold(); } finally { hold(100); }
+        }
+        while {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+        }
+        @assert.is(@sys.getDynVar('foo'), 'x');
+      }
+      R();
+    }, 10);
+  }
+  @assert.is(exception_thrown, true);  
+});
+
+@test("spawn abort", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+  var S;
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'x');
+    S = reifiedStratum.spawn(function() { 
+      try {
+        @assert.is(@sys.getDynVar('foo'), 'x');
+        hold();
+      }
+      finally {
+        @assert.is(@sys.getDynVar('foo'),'x');
+      }
+    });
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'y');
+    S.abort();
+    @assert.is(@sys.getDynVar('foo'), 'y');
+  }
+     
+});
+
+@test("reified abort", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+  var S;
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'x');
+    waitfor {
+      (function() { S = reifiedStratum.spawn(function() { 
+        try {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+          hold();
+        }
+        finally {
+          hold(0);
+          @assert.is(@sys.getDynVar('foo'),'x');
+        }
+      });
+                  })();
+    }
+    or {
+      /**/
+    }
+    @assert.is(@sys.getDynVar('foo'),'x');
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+});
+
+@test("reified abort 2", function() {
+  @assert.raises(->@sys.getDynVar('foo'));
+  var S;
+  @sys.withDynVarContext {
+    ||
+    @sys.setDynVar('foo', 'x');
+    waitfor {
+      (function() { S = reifiedStratum.spawn(function() { 
+        try {
+          @assert.is(@sys.getDynVar('foo'), 'x');
+          hold();
+        }
+        finally {
+          hold(0);
+          @assert.is(@sys.getDynVar('foo'),'x');
+        }
+      });
+          hold()        })();
+    }
+    or {
+      /**/
+    }
+    @assert.is(@sys.getDynVar('foo'),'x');
+  }
+  @assert.raises(->@sys.getDynVar('foo'));
+});
+
+@test("reentrant abort", function() { 
+  var R;
+  @sys.withDynVarContext {
+    ||
+    waitfor {
+      @sys.setDynVar('foo', 'x');
+      waitfor() { 
+        R = resume;
+      }
+      @assert.is(@sys.getDynVar('foo'), 'x');
+    }
+    or {
+      hold(0);
+      @sys.withDynVarContext {
+        ||
+        @sys.setDynVar('foo', 'y');
+        try { @sys.withDynVarContext { || R(); } } 
+        finally { @assert.is(@sys.getDynVar('foo'),'y') }
+      }
+    }
+  }
+});

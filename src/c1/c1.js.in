@@ -297,7 +297,6 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #include "kernel-js.js.in"
 
 #elif defined(C1_KERNEL_SJS)
-#define BREAKDANCE 1
 #define SJS_CORE 1
 #define MULTILINE_STRINGS 1
 #define SJS___JS 1
@@ -1739,15 +1738,6 @@ S("break").stmt(function(pctx) {
   LOGM('break')
   GEN_BREAK(label, pctx, POP_EXTENT('GEN_BREAK'))
 });
-
-#ifdef BREAKDANCE
-S("breakdance").stmt(function(pctx) {
-  PUSH_EXTENT(pctx, null, '.stmt')
-  parseStmtTermination(pctx);
-  LOGM('breakdance')
-  GEN_BREAKDANCE(pctx, POP_EXTENT('GEN_BREAKDANCE'))
-});
-#endif
 
 S("return").stmt(function(pctx) {
   PUSH_EXTENT(pctx, null, '.stmt')

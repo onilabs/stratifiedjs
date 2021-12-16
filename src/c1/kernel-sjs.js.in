@@ -692,20 +692,9 @@ ph_throw.prototype.val = function() {
 #ifdef SJS_BLOCKLAMBDA
 #define GEN_RETURN(exp, pctx, ext)             \
     if (top_decl_scope(pctx).bl)          \
-      return new ph_bl_return(exp, pctx); \
+      return new ph_pblr(exp, pctx); \
     else                                  \
       return new ph_return(exp, pctx);
-
-function ph_bl_return(exp, pctx) {
-  this.line = pctx.line;
-  this.exp = exp;
-}
-ph_bl_return.prototype = new ph(WHENDEBUG("ph_bl_return"));
-ph_bl_return.prototype.val = function() {
-  var v = this.exp ? ","+this.exp.v() : "";
-  return "__oni_rt.Sc("+this.line+",__oni_rt.BlReturn"+v+")";
-//  return "__oni_rt.BlR("+this.line+v+")"; 
-};
 
 #else
 #define GEN_RETURN(exp, pctx, ext) return new ph_return(exp, pctx);
@@ -740,7 +729,36 @@ ph_return.prototype.nblock_val = function() {
 ph_return.prototype.val = function() {
     var v = this.exp ? ","+this.exp.v() : "";
     return "__oni_rt.Sc("+this.line+",__oni_rt.Return"+v+")";
+}
+
+//XXX consolidate with ph_return
+function ph_pblr(exp, pctx) {
+  // TODO: not sure why returns are special, and need `newline` subtracted from their lineno
+  this.line = pctx.line - pctx.newline;
+  this.exp = exp;
+  //XXX this is a bit fragile; need a new pctx flag for 'throwing'/'nonthrowing' context
+  this.js_ctx = pctx.js_ctx;
+  this.is_nblock = pctx.allow_nblock && (exp ? exp.is_nblock : true);
+}
+ph_pblr.prototype = new ph(WHENDEBUG("ph_pblr"));
+ph_pblr.prototype.nblock_val = function() {
+  var rv;
+  if (this.js_ctx) {
+    throw new Error("Blocklambdas cannot contain 'return' statements in __js{...} contexts");
   }
+  else {
+    // we're nblock, but not in an nblock ctx; need to create a CFE:
+    rv = "return __oni_rt.Return(";
+    if (this.exp) rv += this.exp.nb();
+    rv += ");";
+  }
+  return rv;
+};
+ph_pblr.prototype.val = function() {
+    var v = this.exp ? ","+this.exp.v() : "";
+    return "__oni_rt.Sc("+this.line+",__oni_rt.Return"+v+")";
+}
+
 
 #define GEN_COLLAPSE(pctx, ext) return new ph_collapse(pctx);
 
@@ -756,23 +774,43 @@ ph_collapse.prototype.val = function() {
     if (top_decl_scope(pctx).break_scope)       \
       return new ph_cfe("b", pctx, lbl);        \
     else if (top_decl_scope(pctx).bl)           \
-      return new ph_bl_break(pctx, lbl);        \
+      return new ph_pblb(pctx, lbl);            \
     else                                        \
       throw new Error("Unexpected 'break' statement");
-
-#define GEN_BREAKDANCE(pctx, ext)               \
-    if (top_decl_scope(pctx).bl)                \
-      return new ph_bl_breakdance(pctx);              \
-    else                                        \
-      throw new Error("Unexpected breakdance");
 
 #define GEN_CONTINUE(lbl, pctx, ext)                 \
     if (top_decl_scope(pctx).continue_scope)    \
       return new ph_cfe("c", pctx, lbl);        \
-    else if (top_decl_scope(pctx).bl)           \
-      return new ph_return(undefined, pctx);    \
-    else                                        \
+    else if (top_decl_scope(pctx).bl) {         \
+      if (pctx.js_ctx)                          \
+        return new ph_return(undefined, pctx);  \
+      else                                      \
+        return new ph_cfe("c", pctx, lbl);      \
+    } else                                      \
       throw new Error("Unexpected 'continue' statement");
+
+// pre-blocklambda break:
+// XXX consolidate with ph_cfe
+function ph_pblb(pctx, lbl) {
+  this.lbl = lbl;
+  this.is_nblock = true;
+  // XXX this is a bit fragile; need a new pctx flag for 'throwing'/'nonthrowing' context
+  this.js_ctx = pctx.js_ctx;
+}
+ph_pblb.prototype = new ph(WHENDEBUG("ph_pblb"));
+ph_pblb.prototype.nblock_val = function() {
+  var rv;
+  if (this.js_ctx) {
+    throw new Error("Blocklambdas cannot contain 'break' statements in __js{...} contexts");
+  }
+  else {
+    // we're not in a __js context; need to create a CFE:
+    rv = "return __oni_rt.Break(";
+    if (this.lbl) rv += "'"+this.lbl+"'";
+    rv += ");";
+  }
+  return rv;
+};
 
 // control flow exception:
 function ph_cfe(f, pctx, lbl) {
@@ -801,37 +839,6 @@ ph_cfe.prototype.nblock_val = function() {
   return rv;
 };
 
-#ifdef SJS_BLOCKLAMBDA
-function ph_bl_break(pctx, lbl) {
-  this.line = pctx.line;
-  this.lbl = lbl;
-  this.is_nblock = true;
-  this.js_ctx = pctx.js_ctx;
-}
-ph_bl_break.prototype = new ph(WHENDEBUG("ph_bl_break"));
-ph_bl_break.prototype.nblock_val = function() {
-  if (this.js_ctx) throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
-  var rv = "return __oni_rt.BlBreakOld(this";
-  if (this.lbl) rv += ",'"+this.lbl+"'";
-  rv += ");";
-  return rv;
-};
-
-
-function ph_bl_breakdance(pctx) {
-  this.line = pctx.line;
-  this.is_nblock = false;
-  this.js_ctx = pctx.js_ctx;
-}
-ph_bl_breakdance.prototype = new ph(WHENDEBUG("ph_bl_breakdance"));
-ph_bl_breakdance.prototype.val = function() {
-  if (this.js_ctx) throw new Error("Blocklamdas cannot contain 'break' statements in __js{...} contexts");
-  var rv = "__oni_rt.BlBreak()";
-  return rv;
-};
-
-
-#endif
 
 #define GEN_FOR(init_exp, decls, test_exp, inc_exp, body, pctx, ext) \
 return gen_for(init_exp, decls, test_exp, inc_exp, body, pctx);
@@ -1564,7 +1571,10 @@ ph_fun_call.prototype.val = function() {
 
       var flags = 0;
 
-      rv = "__oni_rt.F"+(blocklambda_args ? 'A':'')+"call(";
+      if (blocklambda_args)
+        rv = "__oni_rt.FAcall(";
+      else
+        rv = "__oni_rt.Fcall(";        
 
       if (spreads.length) {
         flags |= 4 /* FCALL_FLAG_SPREAD */;

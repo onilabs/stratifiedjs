@@ -52,14 +52,14 @@ function dumpExecutionFrameParents(ef, indent) {
     dumpExecutionFrameParents(ef.parent, indent+1);
   var str = '';
   for (var i=0; i<indent;++i) str += '  ';
-  str += ef ? ef : '<undefined>';
+  str += ef ? ef : '<NULL>';
   console.log(str);
 }
 function dumpExecutionFrameChildren(ef, indent) {
   indent = indent || 0;
   var str = '';
   for (var i=0; i<indent;++i) str += '  ';
-  str += ef ? ef : '<undefined>';
+  str += ef ? ef : '<NULL>';
   console.log(str);
   if (ef && ef.child_frame)
     dumpExecutionFrameChildren(ef.child_frame, indent+1);
@@ -72,7 +72,7 @@ function dumpExecutionFrameChildren(ef, indent) {
 #define EF_TYPES
 #define LOG(x) console.log(x);
 // XXX figure out why normal CPP stringification is screwed
-#define ASSERT(X) if(!(X)) { console.log("Assertion failed: " + "X" ); throw new Error("Assertion failed: " + "X")}
+#define ASSERT(X) if(!(X)) { console.log("Assertion failed: " + "X"); throw new Error("Assertion failed: " + "X")}
 #define WHENDEBUG(X) X
 #else
 #define ASSERT(X)
@@ -119,7 +119,8 @@ else throw new Error("host environment not supported - need 'Promise' or 'nextTi
 /*
 {
   __oni_cfx: true,
-  type:      "i"(internal)|"r"(return)|"b"(break)|"c"(continue)|"t"(thrown)|"blb"(blklambda break)|"blb_int"(internal blocklambda break),
+  type:      "i"(internal)|"r"(return)|"b"(break)|"c"(continue)|"t"(thrown)|"blb"(blklambda break)|
+             "blr"(blocklambda return),
   val:       value
 }
 */
@@ -215,7 +216,7 @@ function CFException(type, value, line, file) {
   // this.eid = UNDEF;  // 'execution frame' tag for targetted return/break/continue
 }
 
-var CFETypes = { r:"return", b:"break", c:"continue", blb_old: "blocklambda break old", blb: "blocklambda break", blb_int: "internal blocklambda break"};
+var CFETypes = { r:"return", b:"break", c:"continue", blb: "blocklambda break", blr: "blocklambda return"};
 CFException.prototype = {
   __oni_cfx : true,
   toString : function() {
@@ -259,16 +260,15 @@ CFException.prototype = {
 #endif // CLIENTSIDE
         throw this.val;
     }
-    else if (this.type === 'blb') {
-      throw this;
-    }
-    else if (!this.eid) // XXX DO WE NEED THIS???
+    else if (!this.aid && !this.eid) // XXX DO WE NEED THIS???
       throw new Error(this.toString());
-    else // this is a 'blb' or 'r' tunneling through a JS functions:
+    else // this is a 'blb' or 'blr' tunneling through a JS functions:
       throw this;
   }
 };
 
+// exported for use in bridge, to remote blbreaks:
+exports.CFException = CFException;
 
 #define is_annotated_oni_cfx(obj) (is_cfx(obj) && obj.type === 't' && obj.val != null && obj.val._oniE === token_oniE)
 
@@ -276,11 +276,78 @@ CFException.prototype = {
 // Dynamic variable support:
 
 // current_dyn_vars is a global variable holding dynamic variable
-// bindings for the currently stratum. It will be manipulated by the
-// VM when a stratum switch takes place:
+// bindings for the currently stratum. 
 // We cannot use 'Env' for this, because environments get reset at every function
 // boundary (to support SJS being callable from JS)
-exports.current_dyn_vars = null; 
+
+// The bindings can be amended for a given stratum with `withDynVarContext`, which creates
+// a new dyn vars object with the current dyn vars as parent.
+// When a stratum blocks (at a hold() or waitfor() { resume }), the blocking EF will store the
+// current dynvar context.
+// When a blocking EF resumes (or is aborted), it pages in the stored dynvar context again.
+// A blocking EF also pages in the root dynvar context when blocking and returning up the stack.
+// This is done so that any external asynchronous invocations (such as via a setTimeout or
+// addEventListener) always see the root dynvar context. EFs that continue excuting code after one of
+// their child EFs has blocked need to store the current dynvar context before executing their 
+// children and page it back in before resuming with the next child.
+
+// current dynvar context will be remembered and paged back in when the stratum resumes. Furthermore,
+// the context will be remembered and reset whenever there is a parallel continuation (Par, Alt, WfW, spawn).
+
+// Dynamic variable contexts are also used to maintain a chain of blocklambda anchors:
+// EF_FAcall hands its arguments an amended context with __oni_anchor_route set to its parent 
+// context and __oni_anchor set to itself.
+
+/*
+
+Some context switching guidelines:
+
+(1) We need to *start* an EF with the correct DC
+(2) If we execute something right after calling cont()/execIN, we need to restore the correct EF. Special care has to be taken when running JS code that continues on to SJS code, such as in apollo-sys-common::spawn, or cutil::Waitable.emit. See comments there
+(3) On blocking (i.e. if we return an EF), we need to return the root DC - whether for cont or abort
+(4) On resuming a blocked EF, we need to restore the original DC
+(5) On aborting a blocked EF, we need to restore the original DC
+(6) Reified is special: Because of adoption, its parent DC might not be its own DCs:
+  (a) whenever a child stratum calls cont() on a Reified, the Reified must restore its own context (i), or the root context (ii), depending on whether the Reified returns to its parent (i) or not (ii).
+  (b) whenever a child stratum is aborted, the Reified parent must restore its own context
+  (c) when a reifiedseq is reentrantly being adopted, we must restore the original DC
+(7) FAcall calls its parameters' EFs with a new context. It must restore its parent context:
+  (a) when we are done with parameter EFs
+  (b) when a parameter EF is aborted 
+*/
+
+#ifdef DEBUG_VM_XXX
+#define DEBUG_DYNVARS
+#endif
+
+#ifdef DEBUG
+#define ASSERTDYNVARSROOT(LBL) if (exports.current_dyn_vars !== root_dyn_vars) throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+LBL+')');
+#else
+#define ASSERTDYNVARSROOT(LBL)
+#endif
+
+#ifdef DEBUG_DYNVARS
+#define SETDYNVARS(NEW,LBL) if (exports.current_dyn_vars !== NEW)  { if (String(LBL).indexOf('verified') == -1) console.log("DV("+LBL+")>",exports.current_dyn_vars.id,">",NEW.id); exports.current_dyn_vars = NEW; }
+var dynvar_ctx_counter = 0;
+#else
+#define SETDYNVARS(NEW,LBL) exports.current_dyn_vars = NEW;
+#endif
+
+function createDynVarContext(proto_context) {
+#ifdef DEBUG_DYNVARS
+  var ctx = Object.create(proto_context);
+  ctx.id = proto_context.id + '/' + (++dynvar_ctx_counter);
+  return ctx;
+#else
+  return Object.create(proto_context);
+#endif
+}
+exports.createDynVarContext = createDynVarContext;
+
+var root_dyn_vars = { id: '0' };
+exports.current_dyn_vars = root_dyn_vars;
+
+
 
 //----------------------------------------------------------------------
 // Callstack support:
@@ -388,6 +455,7 @@ var EF_Proto = {
 #endif
 
   setChildFrame: function(ef, idx, prevent_callstack_copy) {
+    ASSERTDYNVARSROOT(this+'::setchildframe('+ef+')')
     if (this.child_frame) {
       if (prevent_callstack_copy !== true && this.child_frame.callstack) {
         // merge callstacks of old & new childframes:
@@ -420,7 +488,7 @@ var EF_Proto = {
       console.log('ERROR: '+this + ': redundant abort');
     }
     // leave the assert, so that the process exits:
-    ASSERT(!this.aborted);
+    ASSERT(!this.aborted)
 #endif
     this.aborted = true;
     this.pseudo_abort = pseudo_abort;
@@ -428,6 +496,7 @@ var EF_Proto = {
     // check for 'this.child_frame' here and in 'quench'
     if (!this.child_frame) {
       // reentrant abortion
+      SETDYNVARS(root_dyn_vars, 'reentrant abort // (3)')
       return this;
     }
     else {
@@ -463,10 +532,11 @@ var EF_Proto = {
     if(is_cfx(val) && val.type == 't' && this.callstack && val.val!=null && val.val.__oni_stack) {
       val.val.__oni_stack = val.val.__oni_stack.concat(this.callstack);
     }
+//    if (is_cfx(val) && val.type === 'r' && (val.val === 'toplevel' || val.val === 'inner' || val.val === 'outer')) console.log(this+":RTP "+val.val+' async:'+this.async+" swallow="+this.swallow_r);
     if (this.swallow_r) {
       if (is_cfx(val)) {
         if (val.type === "r") {
-          if (!val.eid || val.eid === this.sid) {
+          if (true || !val.eid || val.eid === this.sid) {
             val = val.val;
             if (this.swallow_r === 3) {
               // we've received a tail-called 'return' that shouldn't
@@ -611,8 +681,10 @@ exports.exrseq = function(aobj,tobj,file,args) {
   return rv;
 };
 
-// block lambda bodies: create a blseq and exec it. XXX don't map exceptions?
+// block lambda bodies: create a blseq and exec it.
 // short for __oni_rt.exec(__oni_rt.Seq(...), env)
+// we need to map exceptions for cases where a blocklambda return tunnels through a
+// js function. See sjs-tests:'{||} in JS forEach'
 exports.exbl = function(env, args) {
   var rv = I_blseq(args, env);
 //  var rv = (new EF_Seq(args, env)).cont(1);
@@ -645,16 +717,8 @@ exports.exbl = function(env, args) {
     aobj: 'arguments' object,
     tobj: 'this' object,
     file: filename,
-    blbref: function execution frame that blocklambda breaks should
-            target in current environment 
     blrref: function execution frame that blocklambda returns should
             target in current environment
-    blscope: this is the target ef scope (seq+some children) that will be returned to by blbreaks. 
-             The scope a particular blbreak will be sent to is given by 'blbref' which is (usually) 
-             the parent's blscope.
-             blbreaks return to the topmost active execution frame within the 'blscope' env.
-             blscope will be reset at function boundaries. 
-
     blanchor: blocklambda anchor call (ef of type 'EF_FAcall' - valid in argument children of EF_FAcall)
     bl: blocklambda execution frame (valid within children of a bl execution frame)
 
@@ -664,13 +728,11 @@ exports.exbl = function(env, args) {
 
 */
 
-function Env(aobj, tobj, file, blbref, blrref, blscope, fold, branch, blanchor, reifiedstratum) { 
+function Env(aobj, tobj, file, blrref, fold, branch, blanchor, reifiedstratum) { 
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
-  this.blbref = blbref;
   this.blrref = blrref;
-  this.blscope = blscope;
   this.fold = fold; // place where 'alt' forks
   this.branch = branch; // id of fork branch. XXX should be merged with 'fold'
   this.blanchor = blanchor; // blocklambda anchor
@@ -678,7 +740,7 @@ function Env(aobj, tobj, file, blbref, blrref, blscope, fold, branch, blanchor, 
 }
 
 function copyEnv(e) {
-  return new Env(e.aobj, e.tobj, e.file, e.blbref, e.blrref, e.blscope, e.fold, e.branch, e.blanchor, e.reifiedstratum);  
+  return new Env(e.aobj, e.tobj, e.file, e.blrref, e.fold, e.branch, e.blanchor, e.reifiedstratum);  
 }
 
 //----------------------------------------------------------------------
@@ -700,12 +762,7 @@ function I_call(ndata, env) {
     return rv;
   }
   catch (e) {
-    if (is_cfx(e)) {
-      if (e.type === 'blb') {
-        console.log('I_call saw: '+e);
-      }
-    }
-    else { //if (!is_cfx(e)) {
+    if (!is_cfx(e)) {
       e = new CFException("t", e, NDATA_CALL_LINENO(), env.file);
     }
     return e;
@@ -782,24 +839,18 @@ function EF_Seq(ndata, env) {
 
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) {
     // No need to copy env here, because we are (by implication) a non-blocklambda function or the top-level
-    ASSERT(!!(NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_FUNCTION|NDATA_SEQ_FLAG_UNRETURNABLE)));
-    ASSERT(env.blbref === undefined);
-    ASSERT(env.blrref === undefined);
-    ASSERT(env.blscope === undefined);
-    ASSERT(env.fold === undefined);
-    ASSERT(env.branch === undefined);
-    env.blbref = this; // note down function execution frame in environment
+    ASSERT(!!(NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_FUNCTION|NDATA_SEQ_FLAG_UNRETURNABLE)))
+    ASSERT(env.blrref === undefined)
+    ASSERT(env.fold === undefined)
+    ASSERT(env.branch === undefined)
     env.blrref = this;
-    env.blscope = this;
   }
   else if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
 #ifdef DEBUG_VM
     // assert that we're a 'normal' function with a fresh env:
-    ASSERT(env.blbref === undefined);
-    ASSERT(env.blrref === undefined);
-    ASSERT(env.blscope === undefined);
-    ASSERT(env.fold === undefined);
-    ASSERT(env.branch === undefined);
+    ASSERT(env.blrref === undefined)
+    ASSERT(env.fold === undefined)
+    ASSERT(env.branch === undefined)
     // i.e. no need to copy env!
 #endif // DEBUG_VM
   }
@@ -855,21 +906,14 @@ EF_Seq.prototype.cont = function(idx, val) {
   }
   else {
     if (is_cfx(val) || this.aborted) {
-      // block lambda break
-      if (is_cfx(val) && val.type == 'blb_old' && this.env.blscope && val.eid == this.env.blscope.sid) {
-        val = UNDEF;
+      // pass through exceptions/abort
+      // some cleanup first:
+      if (this.child_frame) {
+        this.child_frame.parent = UNDEF;
+        this.child_frame = UNDEF;
       }
-      else {
-        // pass through other exceptions/abort
-
-        // some cleanup first:
-        if (this.child_frame) {
-          this.child_frame.parent = UNDEF;
-          this.child_frame = UNDEF;
-        }
-
-        return this.returnToParent(val);
-      }
+      
+      return this.returnToParent(val);
     }
     while (idx<this.ndata.length) {
       if (this.sc && idx > 1) {
@@ -901,15 +945,7 @@ EF_Seq.prototype.cont = function(idx, val) {
         break;
       }
       if (is_cfx(val)) {
-        // THE ACTUAL TEST CASE HITTING THIS IS observable-tests:'observe multiple values at once':
-        // handle reentrant blocklambda breaks
-        // (see sjs-2-tests:reentrant blocklambda resume/break)
-        if (val.type === 'blb_old' && this.env.blscope && val.eid === this.env.blscope.sid) {
-          val = UNDEF;
-          console.log("HITTING THIS, idx="+idx+". total = "+this.ndata.length);
-        }
-        else
-          break;
+        break;
       }
       else if (is_ef(val)) {
         this.setChildFrame(val, idx);
@@ -960,8 +996,8 @@ function I_seq(ndata, env) {
 
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
     if (is_cfx(val)) {
-      if (val.type == "r") { 
-        if (!val.eid)
+      if (val.type === "r") { 
+        if (!val.eid) 
           val = val.val;
       }
     }
@@ -999,7 +1035,7 @@ function createReifiedStratum(ef) {
         wait: function() { return wef; },
         quench: function() { ef.wait_frames.delete(wef); },
         abort: function() { 
-          exports.current_dyn_vars = wef.__oni_dynvars;
+          SETDYNVARS(wef.__oni_dynvars, 'abort[stratum.wait] //(5) -- verified')
           //to aid gc; check if this is possible: wef.__oni_dynvars = UNDEF;
           return UNDEF;
         },
@@ -1009,6 +1045,7 @@ function createReifiedStratum(ef) {
 
       ef.wait_frames.add(wef);
 
+      SETDYNVARS(root_dyn_vars, 'block[stratum.wait] // (3) -- verified')
       return wef;
     },
     running: true,
@@ -1024,7 +1061,7 @@ function createReifiedStratum(ef) {
         quench: function() { ef.join_frames.delete(jef); },
         abort: function() { 
           //console.log("ABORT JOIN FRAME for "+ef);  
-          exports.current_dyn_vars = jef.__oni_dynvars;
+          SETDYNVARS(jef.__oni_dynvars, "abort[stratum.join] //(5) -- verified")
           //XXX to aid gc; check if this is ok: jef.__oni_dynvars = UNDEF;
           return UNDEF; 
         },
@@ -1034,6 +1071,7 @@ function createReifiedStratum(ef) {
 
       ef.join_frames.add(jef);
 
+      SETDYNVARS(root_dyn_vars, "block[stratum.join] // (3) -- verified")
       return jef;
 
     },
@@ -1044,7 +1082,7 @@ function createReifiedStratum(ef) {
         if ((ef.abort() !== ef) && ef.parent) {
           cont(ef.parent, ef.parent_idx, ef.pending_rv); 
         }
-        exports.current_dyn_vars = dyn_vars;
+        SETDYNVARS(dyn_vars, "stratum.abort() call // (2) -- verified")
       }; 
       return RS; 
     },
@@ -1062,7 +1100,7 @@ function createReifiedStratum(ef) {
       else {
         // for reentrant adoption of non-spawned stratum, we won't have a callstack, but
         // we will have 'pending_caller' set:
-        ASSERT(ef_to_adopt.pending_caller);
+        ASSERT(ef_to_adopt.pending_caller)
         ef_to_adopt.callstack = [ current_call, ef_to_adopt.pending_caller ];
       }
       // ef_to_adopt might not have a parent if it is reentrantly adopted 
@@ -1073,8 +1111,12 @@ function createReifiedStratum(ef) {
       ef_to_adopt.id += '~'+ef.id+'/'+id;
       ++ef.pending;
       ef_to_adopt.async = true;
+
+      var dynvars = exports.current_dyn_vars;
+
       if (old_parent) {
         cont(old_parent, old_parent_idx, UNDEF);
+        ASSERT(exports.current_dyn_vars === dynvars)
       }
       else {
         //console.log("---------- ADOPT WITH NO PARENT");
@@ -1083,6 +1125,8 @@ function createReifiedStratum(ef) {
       }
       // this needs to come after cont(old_parent,...), because that code might set child_frame.parent=UNDEF
       cont(ef, -2, [id,ef_to_adopt]);
+
+      SETDYNVARS(dynvars, "stratum.adopt() // (2) -- verified")
       return ef_to_adopt.reifiedstratum;
     },
     _ef:ef,
@@ -1102,7 +1146,7 @@ function spawnSubStratum(f, parent_ef) {
   var val;
   try {
     var parent_dynvars = exports.current_dyn_vars;
-    exports.current_dyn_vars = Object.create(parent_dynvars);
+
     // start executing substratum:
     val = f(reified_ef.reifiedstratum);
   }
@@ -1114,8 +1158,8 @@ function spawnSubStratum(f, parent_ef) {
     }
     val = e;
   }
-  exports.current_dyn_vars = parent_dynvars;
   // initialize substratum execution frame with main thread rv:
+
   var substratum_val = cont(reified_ef,-1,val);
   if (!reified_ef.adopted) {
     // hook up to parent stratum:
@@ -1126,6 +1170,7 @@ function spawnSubStratum(f, parent_ef) {
     // need to clear pending: (XXX might be able to do this by direct setting?)
     cont(parent_ef, -2, [id, UNDEF]);
   }
+  SETDYNVARS(parent_dynvars, 'spawn //(2) -- verified')
   return reified_ef.reifiedstratum;
 }
 
@@ -1133,6 +1178,7 @@ function EF_Reified(id) {
   // inject stratum interface
   this.id = id;
   this.reifiedstratum = createReifiedStratum(this);
+  this.dynvars = exports.current_dyn_vars;
   this.pending = 0;
   this.substratumid = 0;
   this.pending_rv = UNDEF;
@@ -1158,7 +1204,7 @@ EF_Reified.prototype.type = function() {
 */
 EF_Reified.prototype.cont = function(idx, val) {
   //console.log(this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
-  ASSERT(idx <= 0 || this.strata_children.has(idx));
+  ASSERT(idx <= 0 || this.strata_children.has(idx))
 
   if (idx === -1) {
     // main stratum setup
@@ -1246,38 +1292,50 @@ EF_Reified.prototype.cont = function(idx, val) {
     }
 
     //console.log(this+".rtp ASYNC = "+this.async+', returning: '+this.pending_rv);
+
+    SETDYNVARS(this.dynvars, "Reified.cont // (6)(a)(i) -- verified")
+
     return this.returnToParent(this.pending_rv);
   }
   else if (idx === 0) {
     this.async = true;
+    // under certain abort scenarios (e.g. still need to wait for child frame), we haven't got the 
+    // the right dynvars, so need to reset here:
+    SETDYNVARS(root_dyn_vars, "Reified // (3) -- verified")
     //console.log(this + " RET THIS, parent="+this.parent+" pending="+this.pending);
     return this;
+  }
+  else {
+    // this was a cont() for a child stratum; we need to reset the dyn vars:
+    SETDYNVARS(root_dyn_vars, "Reified.cont // (6)(a)(ii) -- verified")
   }
 };
 
 EF_Reified.prototype.flush_join_frames = function() {
+  if (this.join_frames.size === 0) return;
   var frames = this.join_frames;
   this.join_frames = new Set();
+  var current_dyn_vars = exports.current_dyn_vars;
   for (var join_frame of frames) {
     if (join_frame.parent) {
-      var current_dyn_vars = exports.current_dyn_vars;
-      exports.current_dyn_vars = join_frame.__oni_dynvars;
+      SETDYNVARS(join_frame.__oni_dynvars, "join[child] // (3) -- verified")
       cont(join_frame.parent, join_frame.parent_idx, UNDEF);
-      exports.current_dyn_vars = current_dyn_vars;
+      //XXX to aid gc; check if this is possible: join_frame.__oni_dynvars = UNDEF;
     }
-    //XXX to aid gc; check if this is possible: join_frame.__oni_dynvars = UNDEF;
   }
+  // we continue on with processing in EF_Reified::cont or ::abort:
 };
 
 EF_Reified.prototype.flush_wait_frames = function() {
+  ASSERTDYNVARSROOT('reified::flush_wait_frames')
   var frames = this.wait_frames;
   this.wait_frames = new Set(); // XXX UNNECESSARY?
   for (var wait_frame of frames) {
     if (wait_frame.parent) {
-      var current_dyn_vars = exports.current_dyn_vars;
-      exports.current_dyn_vars = wait_frame.__oni_dynvars;
+      SETDYNVARS(wait_frame.__oni_dynvars, "wait[child] // (3) -- verified")
       cont(wait_frame.parent, wait_frame.parent_idx, this.reifiedstratum);
-      exports.current_dyn_vars = current_dyn_vars;
+      // cont(.) should restore the root DC in all cases, because we are always called async
+      ASSERTDYNVARSROOT('reified::flush_wait_frames:2')
     }
     //XXX to aid gc; check if this is possible: wait_frame.__oni_dynvars = UNDEF;
   }
@@ -1285,11 +1343,13 @@ EF_Reified.prototype.flush_wait_frames = function() {
 
 EF_Reified.prototype.abort_child_strata = function() {
   //console.log(this+' aborting child strata');
-  //ASSERT(!this.strata_children_aborted);
+  ASSERT(!this.strata_children_aborted);
 
   /* we need to be careful about how to quench&abort our children, since a still-running child
      can re-adopt another child */
   this.strata_children_aborted = true;
+  if (this.strata_children.size === 0) return;
+
   for (var child of this.strata_children) {
     //console.log(this+' abort child '+child[0]);
     if (child[1].parent === this) {
@@ -1318,23 +1378,28 @@ EF_Reified.prototype.abort_child_strata = function() {
       this.strata_children.delete(child[0]);
     }
   }
-//  console.log('pending after child_strata abort: '+this.pending);
 };
 
 EF_Reified.prototype.abort = function(pseudo_abort) {
   //console.log(this+".ABORT pending = "+this.pending+", aborted="+this.aborted+", done="+this.done+", main_child="+this.main_child+" parent="+this.parent);
-  // allow redundant aborts
-  if (this.aborted) return this;//this.done ? UNDEF : this;
+  // allow redundant aborts. this could be engineered better, but we're using 'aborted' also as 
+  // a flag in cont() to note that the main thread has ended. If a child stratum blocks, we can still
+  // get an abort() from the upstream.
+  if (this.aborted) {
+    SETDYNVARS(root_dyn_vars, 'redundant abort')
+    return this;//this.done ? UNDEF : this; <- probably unnecessary (unless there are delays somewhere - xxx bridge)
+  }
   this.aborted = true;
   this.pseudo_abort = pseudo_abort;
   if (!this.main_child) { 
     // reentrant abortion; we need to wait
+    SETDYNVARS(root_dyn_vars, 'reified::redundant abort')
     return this; 
   }
   else {
     var abort_val = this.main_child.abort(pseudo_abort);
     if (is_ef(abort_val)) {
-      //XXXUNN this.setChildFrame(abort_val, 0);
+      ASSERTDYNVARSROOT('reified::abort:2')
       return this;
     }
     else {
@@ -1348,13 +1413,18 @@ EF_Reified.prototype.abort = function(pseudo_abort) {
       this.pending_rv = mergeExceptions(abort_val, this.pending_rv);
       //console.log(this+' pending_rv='+this.pending_rv);
       this.abort_child_strata();
+      // dynvars after this call will be undetermined
     }
 
     if (this.pending <= 1) {
       this.flush_join_frames();
+      // dynvars after this will be undetermined
     }
     //console.log(this+" after abort, pending="+this.pending);
-    if (this.pending) return this; // need to stay in picture because abort must not return child frame
+    if (this.pending) {
+      SETDYNVARS(root_dyn_vars, "reified::abort:3 -- verified")
+      return this; // need to stay in picture because abort must not return child frame
+    }
     
     // XXX consolidate this code with the equivalent in 'cont':
     this.done = true;
@@ -1368,6 +1438,7 @@ EF_Reified.prototype.abort = function(pseudo_abort) {
     // XXX check if this is still an issue:
     // this fixes sjs-3-tests.sjs:'return via inactive scope edgecase':
     this.unreturnable = true;
+    SETDYNVARS(this.dynvars, 'reified::abort // (6)(b)')
     //console.log(this+" ABORT DONE & RETURNING: "+this.pending_rv);
     return this.pending_rv;
   }
@@ -1424,11 +1495,21 @@ function I_reifiedseq(ndata, env) {
   ++reified_ef.pending;
   // inject stratum interface:
   inner_ef.env.reifiedstratum = reified_ef.reifiedstratum;
+
+  var dynvars = exports.current_dyn_vars;
+
   // start inner seq:
   var val = cont(inner_ef, 0);
   // initialize stratum ef & return:
   var rv = cont(reified_ef,-1,val);
-  return reified_ef.adopted ? UNDEF : rv;
+
+  if (reified_ef.adopted) {
+    SETDYNVARS(dynvars, "I_reifiedseq // (6)(c) - verified")
+    return UNDEF;
+  }
+  else {
+    return rv;
+  }
 }
 
 //----------------------------------------------------------------------
@@ -1455,31 +1536,28 @@ function EF_BlSeq(ndata, env) {
   this.id = this.sid;
 #endif
 
-  ASSERT(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION);
-  ASSERT(!(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_UNRETURNABLE));
-  ASSERT(env.blanchor);
+  ASSERT(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION)
+  ASSERT(!(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_UNRETURNABLE))
+  ASSERT(env.blanchor)
 
   this.ndata = ndata;
   this.env = copyEnv(env);
   
 //  this.env.bl = this;
 
-  this.env.blbref = env.blscope; // `break` in our scope targets our parent's scope
-  
   this.blanchor = env.blanchor;
   this.env.blanchor = undefined;
 
 
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) {
     this.env.blrref = env.blrref;
-    this.env.blscope = this; // we're a scope for any `break`s in nested blocklambdas
   }
   else {
     // we're a blocklambda but NOT a scope for any `break`s in child frames (otherwise the compiler would
     // have marked us 'notailcall'). clear blscope so that targeted `break` calls that travel down the call tree will
     // find their way to the correct scope (we need the `break` to 'tunnel' through these non-targeted functions)
     // XXX could equally set this to 'this'
-    this.env.blscope = null;
+    // this.env.blscope = null;
   }
 
   this.tailcall = false; //!(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
@@ -1489,9 +1567,11 @@ function EF_BlSeq(ndata, env) {
   // swallow_r == 1    : 'catch' returns
   // swallow_r == 2    : allow implicit returns (i.e. last expression returns result)
   // swallow_r == 3    : 'catch' a tailcalled Return(exp) that should not be returned (i.e. convert to undefined)
-  this.swallow_r = 1;
-  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_IMPLICIT_RETURN)
-    this.swallow_r = 2;
+
+  // we swallow returns, because 'continue's are encoded as returns:
+//  this.swallow_r = 1;
+//  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_IMPLICIT_RETURN)
+//    this.swallow_r = 2;
 
   // short-circuited?:
   this.sc = NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_SHORTCIRCUIT_OR |
@@ -1512,47 +1592,16 @@ EF_BlSeq.prototype.cont = function(idx, val) {
   }
   else {
     if (is_cfx(val) || this.aborted) {
-      // block lambda break
-      /*if (val.type == 'blb') {
-        var rv;
-        if (!this.aborted) {
-          rv = this.do_break();
-          if (!this.aborted) {
-            if (is_returnToParent(rv)) {
-              nextTick(function() {
-                while (is_returnToParent(rv)) {
-                  rv = rv.execute();
-                }
-              });
-            }
-            return this;
-          }
-        }
-        return rv;
-      }*/
-      if (is_cfx(val) && val.type === 'blb_int') {
-        //XXX check if blanchor still alive
-        var rv = new CFException('blb');
-        rv.blanchor = this.blanchor; // XXX make this a serializable ID
-        return this.returnToParent(rv);
+      // pass through exceptions/abort
+      if (is_cfx(val)) val = this.translateCFEs(val);
+      
+      // some cleanup first:
+      if (this.child_frame) {
+        this.child_frame.parent = UNDEF;
+        this.child_frame = UNDEF;
       }
-      else {
-        // block lambda break
-        if (is_cfx(val) && val.type == 'blb_old' && this.env.blscope && val.eid == this.env.blscope.sid) {
-          val = UNDEF;
-        }
-        else {
-          // pass through other exceptions/abort
-
-          // some cleanup first:
-          if (this.child_frame) {
-            this.child_frame.parent = UNDEF;
-            this.child_frame = UNDEF;
-          }
-
-          return this.returnToParent(val);
-        }
-      }
+      
+      return this.returnToParent(val);
     }
     while (idx<this.ndata.length) {
       if (this.sc && idx > 1) {
@@ -1570,13 +1619,12 @@ EF_BlSeq.prototype.cont = function(idx, val) {
       }
       val = execIN(this.ndata[idx], this.env);
       if (this.aborted) {
-        //console.log(this + ' reentrantly aborting return value: '+val);
         // a reentrant abortion
         if (is_ef(val)) {
           val.quench();
           val = val.abort(this.pseudo_abort);
-          //console.log(this + ' reentrant aborting yields: '+val);
           if (!is_ef(val)) {
+            if (is_cfx(val)) val = this.translateCFEs(val);
             return this.returnToParent(val);
           }
         }
@@ -1591,35 +1639,7 @@ EF_BlSeq.prototype.cont = function(idx, val) {
 //        break;
 //      }
       if (is_cfx(val)) {
-        // handle reentrant blocklambda breaks
-        // (see sjs2-tests:reentrant blocklambda resume/break)
-        /* if (val.type === 'blb') {
-          var rv;
-          if (!this.aborted) {
-            rv = this.do_break();
-            // this do_break might have (usually will have) aborted us
-            if (!this.aborted) {
-              if (is_returnToParent(rv)) {
-                nextTick(function() {
-                  while (is_returnToParent(rv)) {
-                    rv = rv.execute();
-                  }
-                 });
-              }
-              return this;
-            }
-          }
-          return rv;
-        } */
-        if (val.type === 'blb_int') {
-          //XXX check if blanchor still alive
-          val = new CFException('blb');
-          val.blanchor = this.blanchor; // XXX make this a serializable ID
-          console.log('handing blb off to '+this.parent);
-        }
-        else if (val.type === 'blb_old' && this.env.blscope && val.eid === this.env.blscope.sid) {
-          val = undefined;
-        }
+        val = this.translateCFEs(val);
         break; // bail out of while loop
       }
       else if (is_ef(val)) {
@@ -1627,8 +1647,27 @@ EF_BlSeq.prototype.cont = function(idx, val) {
         return this;
       }
     }
+//    console.log(this+' returning '+val);
     return this.returnToParent(val);
   }
+};
+
+EF_BlSeq.prototype.translateCFEs = function(val) {
+//  console.log(this+":translateCFEs: "+val);
+  if (val.type === 'b') {
+    // a break inside a blocklambda becomes a blocklambda break, which will be caught by the FAcall 'blanchor':
+    val = new CFException('blb');
+    val.aid = this.blanchor.aid;
+  }
+  else if (val.type === 'r') {
+    // a return inside a blocklambda becomes a blocklambda return, which will be caught by the FAcall 'blanchor':
+    val = new CFException('blr', val.val);
+    val.aid = this.blanchor.aid;
+  }
+  else if (val.type === 'c') {
+    val = UNDEF;
+  }
+  return val;
 };
 
 EF_BlSeq.prototype.abort = function(pseudo_abort) {
@@ -1637,7 +1676,7 @@ EF_BlSeq.prototype.abort = function(pseudo_abort) {
     console.log('ERROR: '+ this + ': redundant abort');
   }
   // leave the assert, so that the process exits:
-  ASSERT(!this.aborted);
+  ASSERT(!this.aborted)
 #endif
   this.aborted = true;
   if (this.breaking) return UNDEF;
@@ -1647,15 +1686,18 @@ EF_BlSeq.prototype.abort = function(pseudo_abort) {
   if (!this.child_frame) {
     //console.log(this+ ' reentrant abort');
     // reentrant abortion
+    SETDYNVARS(root_dyn_vars, 'blseq::reentrant abort')
     return this;
   }
   else {
-    //console.log(this + ' abort child frame:'+this.child_frame);
+//    console.log(this + ' abort child frame:'+this.child_frame);
     var abort_val = this.child_frame.abort(pseudo_abort);
+//    console.log(this + ' abort  val = '+abort_val);
     if (is_ef(abort_val)) {
       return this; // need to stay in picture because abort must not return child frame
     }
     else {
+      if (is_cfx(abort_val)) abort_val = this.translateCFEs(abort_val);
       if (is_annotated_oni_cfx(abort_val) && this.callstack) {
         abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
       }
@@ -1676,7 +1718,7 @@ EF_BlSeq.prototype.do_break = function() {
 */
 // called only by 'exbl':
 function I_blseq(ndata, env) {
-  ASSERT(env.blanchor);
+  ASSERT(env.blanchor)
   if (env.blanchor.unreturnable) return new CFException("t", new Error("Blocklambda anchor at "+env.file+":"+env.blanchor.ndata[1]+" is inactive."));
   return cont(new EF_BlSeq(ndata, env), 1);
 }
@@ -1692,41 +1734,6 @@ exports.Bl = function(f) {
   return {
     exec: I_blocklambda,
     ndata: f,
-    __oni_dis: token_dis
-  }
-};
-
-//----------------------------------------------------------------------
-// blocklambda break
-
-/*
-function EF_BlBreak(ndata, env) {
-  this.dyn_vars = exports.current_dyn_vars;
-  this.bl = env.bl;
-}
-setEFProto(EF_BlBreak.prototype={});
-#ifdef EF_TYPES
-EF_BlBreak.prototype.type = "BlBreak";
-#endif
-
-EF_BlBreak.prototype.cont = function(idx, val) {
-  this.bl.do_break();
-  return this.aborted ? null : this;
-};
-
-EF_BlBreak.prototype.quench = dummy;
-EF_BlBreak.prototype.abort = function() { exports.current_dyn_vars = this.dyn_vars; this.aborted = true; return UNDEF};
-*/
-function I_blbreak(ndata, env) {
-  return new CFException("blb_int");
-//  return cont(new EF_BlBreak(ndata, env), 0);
-}
-  
-//exports.BlBreak = makeINCtor(I_blbreak);
-exports.BlBreak = function() {
-  return {
-    exec: I_blbreak,
-    ndata: undefined,
     __oni_dis: token_dis
   }
 };
@@ -2107,12 +2114,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       // The *pragmatic* thing seems to be to annotate.
 //      rv = new CFException("t", e, "passthrough");
       if (is_cfx(e)) {
-        // handle blocklambda break: 
-        if (e.type == 'blb_old' && this.env.blscope && e.eid == this.env.blscope.sid) {
-          rv = UNDEF;
-        }
-        else
-          rv = e;
+        rv = e;
       }
       else
         rv = new CFException("t", e,
@@ -2156,8 +2158,12 @@ exports.Fcall = function(...args) {
     3: returning from waiting for function call result (we're never tail-called)
 */
 
+var facall_counter = 0;
 
 function EF_FAcall(ndata, env) {
+  // this.aid is an id used in blocklambda break and return references.
+  this.aid = ++facall_counter;
+
   this.ndata = ndata;
   this.env = env;
   this.i = NDATA_L_INDEX;
@@ -2167,6 +2173,10 @@ function EF_FAcall(ndata, env) {
   this.env = copyEnv(env);
   this.env.blanchor = this;
 
+  this.parent_dynvars = exports.current_dyn_vars;
+  this.param_dynvars = createDynVarContext(exports.current_dyn_vars);
+  this.param_dynvars.__oni_anchor_route = exports.current_dyn_vars;
+  this.param_dynvars.__oni_anchor = this;
 }
 setEFProto(EF_FAcall.prototype={});
 #ifdef EF_TYPES
@@ -2180,11 +2190,10 @@ EF_FAcall.prototype.cont = function(idx, val) {
     this.setChildFrame(val, idx);
   }
   else if (is_cfx(val) || this.aborted) {
-    if (is_cfx(val) && val.type === 'blb' && val.blanchor === this) {
-      console.log("GOT ASYNC BLB:"+val);
-      val = UNDEF;
-    }
+    if (is_cfx(val)) val = this.translateCFEs(val);
     // XXX CLEAN UP CHILDFRAME
+    if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>>>>>> HIT 1");
+    SETDYNVARS(this.parent_dynvars, "FAcall::cont(cfx/abort) //(7)(b)")
     return this.returnToParent(val);
   }
   else if (idx === 3) {
@@ -2194,6 +2203,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
     return this.returnToParent(val);
   }
   else if (idx == 2) {
+    // XXX can this go?
     // returning from a 'new' call
     return this.returnToParent(typeof val === 'object' ? val : this.o);
   }
@@ -2210,18 +2220,28 @@ EF_FAcall.prototype.cont = function(idx, val) {
     var args_length = this.ndata.length;
     if (this.NDATA_FCALL_FLAGS() & FCALL_FLAG_SPREAD) --args_length;
     while (this.i<args_length) {
+      if (this.i === NDATA_FCALL_ARGS_OFFSET) { SETDYNVARS(this.param_dynvars, "FAcall<"+this+"> arg //(7)") }
       rv = execIN(this.ndata[this.i], this.env);
       if (this.aborted) {
         // a reentrant abortion
         if (is_ef(rv)) {
           rv.quench(); // not sure this is needed here XXX
           rv = rv.abort(this.pseudo_abort);
+          if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>> HIT 2");
+          if (!is_ef(rv)) {
+            SETDYNVARS(this.parent_dynvars, "FAcall.cont[reent par abort] //(7)(b)")
+          }
+          // XXX can we return child ef here??? TESTCASE
           return this.returnToParent(rv);
         }
       }
 
       ++this.i;
-      if (is_cfx(rv)) return this.returnToParent(rv);
+      if (is_cfx(rv)) {
+        if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>>>> HIT 3");
+        SETDYNVARS(this.parent_dynvars, "FAcall.cont[par cfx] //(7)(a)")
+        return this.returnToParent(rv);
+      }
       if (is_ef(rv)) {
         this.setChildFrame(rv, 1, true); // prevent unnecessary callstack copying
         return this;
@@ -2230,8 +2250,10 @@ EF_FAcall.prototype.cont = function(idx, val) {
         this.l = rv;
       else
         this.pars.push(rv);
-    }
+    } // while
     
+    SETDYNVARS(this.parent_dynvars, "FAcall.cont[par reset] //(7)(a)")
+
     if (this.child_frame) {
       this.child_frame.parent = UNDEF;
       this.child_frame = UNDEF;
@@ -2375,6 +2397,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
       }
     }
     catch (e) {
+//      console.log(this + " caught "+e);
       // XXX not sure if we should amend this
       // exception. it might have been thrown by JS code, and I'm
       // pretty sure if it was thrown by SJS code it will already
@@ -2382,32 +2405,23 @@ EF_FAcall.prototype.cont = function(idx, val) {
       // The *pragmatic* thing seems to be to annotate.
 //      rv = new CFException("t", e, "passthrough");
       if (is_cfx(e)) {
-        if (e.type === 'blb' && e.blanchor === this) {
-          rv = UNDEF;
-        }
-
-        // handle blocklambda break: 
-        if (e.type == 'blb_old' && this.env.blscope && e.eid == this.env.blscope.sid) {
-          rv = UNDEF;
-        }
-        else if (e.type === 'blb' && e.blanchor === this) {
-          console.log('GOT BLB: '+e);
-          rv = UNDEF;
-        }
-        else
-          rv = e;
+        rv = this.translateCFEs(e);
+       //see below rv = this.translateCFEs(e);
       }
       else
         rv = new CFException("t", e,
                              this.NDATA_FCALL_LINE(),
                              this.env.file);
     }
+
     if (is_ef(rv)) {
       if (this.aborted) {
         // reentrant abortion
-        //console.log(this+': applying reentrant abortion to child frame');
         rv = rv.abort(this.pseudo_abort);
-        return this.returnToParent(rv);
+        if (!is_ef(rv)) {
+          if (is_cfx(rv)) rv = this.translateCFEs(rv);
+          return this.returnToParent(rv);
+        }
       }
 /*
       else if (this.breaked) {
@@ -2435,33 +2449,59 @@ EF_FAcall.prototype.cont = function(idx, val) {
   }
 };
 
-/*
-EF_FAcall.prototype.do_break = function() {
-  console.log(this+' do_break');
-  if (this.breaked) {
-    console.log('ERROR: '+this+' redundant break');
-    return;
+EF_FAcall.prototype.translateCFEs = function(val) {
+//  console.log(this+"::translateCFEs:"+val);
+  if (val.type === 'blb' && val.aid === this.aid) {
+    val = UNDEF;
   }
-  this.breaked = true;
-  if (this.child_frame) {
-    console.log(this + ' aborting '+this.child_frame);
-    this.child_frame.quench();
-    var rv = this.child_frame.abort();
-    console.log(this + ' do_break abort childframe returned: '+rv);
-    if (is_ef(rv)) {
-      // we need to wait
-      this.setChildFrame(rv, 3);
+  else if (val.type === 'blr' && val.aid === this.aid) {
+    val = new CFException('r', val.val);
+  }
+  return val;
+};
+
+  // abort must either return 'this' (if we need to wait), or a controlflow exception
+EF_FAcall.prototype.abort = function(pseudo_abort) {
+#ifdef DEBUG_VM
+  if (this.aborted) {
+    console.log('ERROR: '+this + ': redundant abort');
+  }
+  // leave the assert, so that the process exits:
+  ASSERT(!this.aborted)
+#endif
+  this.aborted = true;
+  this.pseudo_abort = pseudo_abort;
+  // see sjs-2-test 'reentrant quench/abort' for why we need to
+  // check for 'this.child_frame' here and in 'quench'
+  if (!this.child_frame) {
+    // reentrant abortion
+    SETDYNVARS(root_dyn_vars, 'facall::redundant abort')
+    return this;
+  }
+  else {
+    var abort_val = this.child_frame.abort(pseudo_abort);
+    if (is_ef(abort_val)) {
+      return this; // need to stay in picture because abort must not return child frame
     }
     else {
-      // xxx not sure needed
-      this.child_frame.parent = UNDEF;
-      this.child_frame = UNDEF;
-      console.log(this+' do break returning to parent '+this.parent);
-      return this.returnToParent(UNDEF);
+      if (is_annotated_oni_cfx(abort_val) && this.callstack) {
+        abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
+      }
+      
+      // this fixes sjs-3-tests.sjs:'return via inactive scope edgecase':
+      // XXX needed?
+      this.unreturnable = true;
+
+      if (is_cfx(abort_val)) abort_val = this.translateCFEs(abort_val);
+
+      if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>>> HIT 5");
+      SETDYNVARS(this.parent_dynvars, "FAcall::abort // (7)(b)")
+
+      return abort_val;
     }
   }
 };
-*/
+
 
 function I_facall(ndata, env) {
   return cont(new EF_FAcall(ndata, env), 0);
@@ -2806,7 +2846,7 @@ EF_Try.prototype.cont = function(idx, val) {
     this.state = 3;
     // save value from catch/try:
     this.rv = val;
-    if (((this.aborted && !this.pseudo_abort) || (is_cfx(val) && val.type==='blb')) && this.NDATA_TRY_RETRACT_BLOCK()) {
+    if (((this.aborted && !this.pseudo_abort) || (is_cfx(val) && (val.type==='blb'||val.type==='blr'))) && this.NDATA_TRY_RETRACT_BLOCK()) {
       val = execIN(this.NDATA_TRY_RETRACT_BLOCK(), this.env);
 
       // tail-call optimization:
@@ -2908,13 +2948,16 @@ EF_Try.prototype.abort = function(pseudo_abort) {
 #ifdef DEBUG_VM
   if (this.aborted) {
     console.log('ERROR: '+this + ' redundant abort');
-    ASSERT(!this.aborted); // sanity check; aborted before
+    ASSERT(!this.aborted) // sanity check; aborted before
   }
 #endif
   this.aborted = true;
   this.pseudo_abort = pseudo_abort;
 
-  if (!this.child_frame) return this; // reentrant abort
+  if (!this.child_frame) {
+    SETDYNVARS(root_dyn_vars, "try::reentrant abort")
+    return this; // reentrant abort
+  }
 
   ASSERT(this.state !== 3) // sanity check; aborted before
   if (this.state !== 4) { // don't abort finally block
@@ -2936,7 +2979,7 @@ EF_Try.prototype.abort = function(pseudo_abort) {
       // return to non-existing parent, which would cause exceptions to go uncaught
       this.async = false;
       var rv = cont(this, 0, val);
-      ASSERT(!is_ef(rv) || rv === this);
+      ASSERT(!is_ef(rv) || rv === this)
       if (rv !== this) {
         // XXX this would override any finally(e) clauses.
         //if (!is_cfx(rv))
@@ -2951,6 +2994,7 @@ EF_Try.prototype.abort = function(pseudo_abort) {
       // & fall through. we need to block
     }
   }
+  ASSERTDYNVARSROOT('Try::abort')
   return this;
 };
 
@@ -3039,23 +3083,17 @@ EF_Loop.prototype.cont = function(idx, val) {
         while (1) {
           if (idx > 2) {
             if (is_cfx(val)) {
-              if (val.type === 'blb_old' && this.env.blscope && val.eid === this.env.blscope.sid) {
-                // blocklambda return
+              if (val.type === "b") {
+                // break statement
                 val = UNDEF;
               }
-              else {
-                if (val.type === "b") {
-                  // break statement
-                  val = UNDEF;
-                }
-                else if (val.type === "c") {
-                  // continue statement
-                  val = UNDEF;
-                  // break out of the loop; pick up again at increment:
-                  break;
-                }
-                return this.returnToParent(val);
+              else if (val.type === "c") {
+                // continue statement
+                val = UNDEF;
+                // break out of the loop; pick up again at increment:
+                break;
               }
+              return this.returnToParent(val);
             }
             if (idx >= this.ndata.length)
               break; // pick up at increment
@@ -3308,6 +3346,7 @@ function EF_Par(ndata, env) {
 setEFProto(EF_Par.prototype={});
 #ifdef EF_TYPES
 EF_Par.prototype.type = "Par";
+EF_Par.prototype.toString = function() { return "<Par"+this.id+"@"+this.env.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"; }
 #endif
 
 EF_Par.prototype.cont = function(idx, val) {
@@ -3320,7 +3359,6 @@ EF_Par.prototype.cont = function(idx, val) {
       // kick off all children
       for (var i=0; i<this.ndata.length; ++i) {
         val = execIN(this.ndata[i], this.env);
-        exports.current_dyn_vars = parent_dyn_vars;
         if (this.inner_aborted) {
           // this check is to catch the case of reentrant abortion through
           // suspend/resume
@@ -3335,7 +3373,11 @@ EF_Par.prototype.cont = function(idx, val) {
         }
         else if (is_ef(val)) {
           ++this.pending;
+          ASSERTDYNVARSROOT('par:cont')
           this.setChildFrame(val, i);
+          if (i<this.ndata.length-1) {
+            SETDYNVARS(parent_dyn_vars, "Par::cont[-1] // (2) - verified")
+          }
         }
         else if (is_cfx(val)) {
           // an exception aborts all other pending branches:
@@ -3359,11 +3401,8 @@ EF_Par.prototype.cont = function(idx, val) {
         this.children[idx].parent = UNDEF;
         this.children[idx] = UNDEF;
       }
-      if (is_cfx(val) && !this.inner_aborted && 
-          !(val.type === 'blb_old' && this.env.blscope && val.eid === this.env.blscope.sid)) {
-        // an exception aborts all other pending branches: (but only
-        // if it is not a blb break targetted at us - this can happen
-        // when a break is tail-called: see "sjs-2-tests:tailcalled blocklambda break / par edge case")
+      if (is_cfx(val) && !this.inner_aborted) {
+        // an exception aborts all other pending branches: 
         this.pendingCFE = val;
         this.quench();
         return this.returnToParent(this.abortInner());
@@ -3382,6 +3421,7 @@ EF_Par.prototype.cont = function(idx, val) {
             // We must NOT delete the child array here
             // to prevent a reentrancy case (see sjs-2-tests:par-reentrant-tailcall-edgecase)
             // this.children = undefined;
+            SETDYNVARS(root_dyn_vars, "Par::cont[child return] //(3) - verified")
             return this.returnToParent(return_child);
           }
         return this.returnToParent(new CFException("i", "invalid state in Par"));
@@ -3414,6 +3454,7 @@ EF_Par.prototype.abort = function(pseudo_abort) {
     // we already aborted internally.
     // can delete pendingCFE; our caller is not interested in it
     //this.pendingCFE = UNDEF;
+    SETDYNVARS(root_dyn_vars, "par:redundant abort")
     return this;
     //return this.pendingCFE;
   }
@@ -3450,6 +3491,8 @@ EF_Par.prototype.abortInner = function() {
   if (!this.pending) // all done
     return this.pendingCFE; // if there is no pending cfe, pendingCFE is undefined
   // we need to wait:
+
+  SETDYNVARS(root_dyn_vars, "Par::abortInner //(3) - verified")
   this.async = true;
   return this;
 };
@@ -3533,7 +3576,6 @@ EF_Alt.prototype.cont = function(idx, val) {
         env.fold = this;
         env.branch = i;
         val = execIN(this.ndata[i], env);
-        exports.current_dyn_vars = parent_dyn_vars;
                      
         if (this.inner_aborted) {
           // the check for !aborted here is to catch the case of
@@ -3550,6 +3592,9 @@ EF_Alt.prototype.cont = function(idx, val) {
         else if (is_ef(val)) {
           ++this.pending;
           this.setChildFrame(val, i);
+          if (i < this.ndata.length - 1) {
+            SETDYNVARS(parent_dyn_vars, "Alt::cont[-1] //(2) -- verified")
+          }
         }
         else {
           // an exception or real value aborts all other pending branches:
@@ -3623,6 +3668,7 @@ EF_Alt.prototype.abort = function(pseudo_abort) {
   if (this.aborted) {
     //XXX not sure what the rationale was here
     //this.pendingRV = UNDEF;
+    SETDYNVARS(root_dyn_vars, "alt::redundant abort")
     return this;
   }
 
@@ -3632,8 +3678,10 @@ EF_Alt.prototype.abort = function(pseudo_abort) {
   if (!this.inner_aborted) {
     rv = this.abortInner();
   }
-  else if (this.pending)
+  else if (this.pending) {
+    SETDYNVARS(root_dyn_vars, "alt::abort")
     rv = this;
+  }
 
   this.pendingRV = this.pendingRV;
   if (rv !== this && !is_cfx(rv)) rv = this.pendingRV;
@@ -3641,7 +3689,7 @@ EF_Alt.prototype.abort = function(pseudo_abort) {
 };
 
 EF_Alt.prototype.abortInner = function() {
-//  ASSERT(!this.inner_aborted);
+//  ASSERT(!this.inner_aborted)
 
   // see Par::abortInner for more details
   this.inner_aborted = true;
@@ -3673,6 +3721,9 @@ EF_Alt.prototype.abortInner = function() {
   }
   if (!this.pending)
     return this.pendingRV;
+
+  SETDYNVARS(root_dyn_vars, "Alt::abortInner // (3) - verified")
+
   this.async = true;
   return this;
 };
@@ -3718,7 +3769,7 @@ EF_Alt.prototype.docollapse = function(branch, cf) {
     }
   }
   if (!have_async_branch_retract) {
-    ASSERT(this.pending <= 1); // =0 for sync case, =1 for async case 
+    ASSERT(this.pending <= 1) // =0 for sync case, =1 for async case 
     return true;
   }
   // ... else we need to wait
@@ -3774,7 +3825,6 @@ EF_WfW.prototype.cont = function(idx, val) {
       // kick off children
       for (var i=0; i<2;++i) {
         val = execIN(this.ndata[i], this.env);
-        exports.current_dyn_vars = parent_dyn_vars;
         if (this.inner_aborted) {
           if (is_ef(val)) {
             // reentrant abortion through suspend/resume
@@ -3791,6 +3841,9 @@ EF_WfW.prototype.cont = function(idx, val) {
         else if (is_ef(val)) {
           ++this.pending;
           this.setChildFrame(val, i);
+          if (i === 0) {
+            SETDYNVARS(parent_dyn_vars, "WfW::cont[-1] // (2) -- verified")
+          }
         }
         else if (is_cfx(val) || i===1) {
           // an exception in either branch or a 'normal' exit from the 
@@ -3812,11 +3865,8 @@ EF_WfW.prototype.cont = function(idx, val) {
         this.children[idx].parent = UNDEF;
         this.children[idx] = UNDEF;
       }
-      if (is_cfx(val) && !this.inner_aborted &&
-          !(val.type === 'blb_old' && this.env.blscope && val.eid === this.env.blscope.sid)) {
-        // an exception aborts all other pending branches: (but only
-        // if it is not a blb break targetted at us - this can happen
-        // when a break is tail-called: "see sjs-3-tests:tailcalled blocklambda break / wfw edge case")
+      if (is_cfx(val) && !this.inner_aborted) {
+        // an exception aborts all other pending branches: 
         this.pendingCFE = val;
         this.quench();
         return this.returnToParent(this.abortInner());
@@ -3856,6 +3906,7 @@ EF_WfW.prototype.abort = function(pseudo_abort) {
     // we already aborted internally.
     // can delete pendingCFE; our caller is not interested in it
     //this.pendingCFE = UNDEF;
+    SETDYNVARS(root_dyn_vars, "wfw::redundant abort")
     return this;
     //return this.pendingCFE;
   }
@@ -3875,7 +3926,7 @@ EF_WfW.prototype.abortInner = function() {
   if (this.children[1]) {
     var val = this.children[1].abort(this.pseudo_abort);
     if (is_ef(val)) { // need to wait
-      //XXXUN this.setChildFrame(val, 1);
+      ASSERTDYNVARSROOT('wfw::abortInner')
       this.async = true;
       return this;
     }
@@ -3891,9 +3942,9 @@ EF_WfW.prototype.abortInner = function() {
   if (this.children[0]) {
     var val = this.children[0].abort(this.pseudo_abort);
     if (is_ef(val)) { // need to wait
-      //XXXUN this.setChildFrame(val, 0);
       this.async = true;
-     return this;
+      ASSERTDYNVARSROOT('wfw::abortInner:2')
+      return this;
     }
     else {
       this.pendingCFE = mergeExceptions(val, this.pendingCFE);
@@ -3992,9 +4043,13 @@ EF_Suspend.prototype.cont = function(idx, val) {
 #else
   // XXX We could return something from resumefunc
   var resumefunc = function(...args) {
+    if (ef.returning) {
+      LOG("Redundant resume()")
+      return;
+    }
     try {
       var caller_dyn_vars = exports.current_dyn_vars;
-      exports.current_dyn_vars = ef.dyn_vars;
+      SETDYNVARS(ef.dyn_vars, "resume // (4)")
       cont(ef, 2, args);
     }
     catch(e) {
@@ -4009,7 +4064,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
     }
     finally {
       ef.dyn_vars = undefined; // aid gc
-      exports.current_dyn_vars = caller_dyn_vars;
+      SETDYNVARS(caller_dyn_vars, "restore[resume] // (2)")
     }
   };
 
@@ -4061,6 +4116,8 @@ EF_Suspend.prototype.cont = function(idx, val) {
     this.suspendCompleted = true;
     // suspend:
     this.async = true;
+
+    SETDYNVARS(root_dyn_vars, "suspend // (3) -- verified")
     return this;
     case 2:
     // returning from execution of resume function.        
@@ -4128,7 +4185,7 @@ EF_Suspend.prototype.quench = function() {
 
 EF_Suspend.prototype.abort = function(pseudo_abort) {
   //  LOG('SUSPEND abort (childf='+this.child_frame+')')
-  exports.current_dyn_vars = this.dyn_vars;
+  SETDYNVARS(this.dyn_vars, "suspend::abort // (5) -- verified")
   this.returning = true;
   this.aborted = true;
   this.pseudo_abort = pseudo_abort;
@@ -4293,11 +4350,13 @@ if (!hold0) {
 
 exports.Hold = function(duration_ms) {
   var dyn_vars = exports.current_dyn_vars;
+  // reset current_dyn_vars to root dyn vars - see note at definition of current_dyn_vars for rationale:
+  SETDYNVARS(root_dyn_vars, "hold("+(duration_ms===UNDEF?"":duration_ms)+") // (3) -- verified")
 
   function abort() {
     //console.log('HOLD ABORT sus.parent='+(sus ? sus.parent:'undef'));
     // restore dyn vars for finally clauses
-    exports.current_dyn_vars = dyn_vars;
+    SETDYNVARS(dyn_vars, "hold("+(duration_ms===UNDEF?"":duration_ms)+")::abort // (5)")
     return UNDEF;
   }
   
@@ -4329,9 +4388,10 @@ exports.Hold = function(duration_ms) {
                 quench: function() { sus = null; clear0(this.co); },
                 co: hold0(function() {
                   if (sus && sus.parent) {
-                    exports.current_dyn_vars = dyn_vars;
+                    ASSERTDYNVARSROOT('hold0')
+                    SETDYNVARS(dyn_vars, "hold(0) resume // (4)")
                     cont(sus.parent, sus.parent_idx, UNDEF);
-                    exports.current_dyn_vars = null;
+                    ASSERTDYNVARSROOT('hold(0):2')
                   }
                 })
               };
@@ -4357,12 +4417,14 @@ exports.Hold = function(duration_ms) {
     sus.co = setTimeout(
       function() {
         if (sus && sus.parent) {
-          exports.current_dyn_vars = dyn_vars;
+          ASSERTDYNVARSROOT('hold')
+          SETDYNVARS(dyn_vars, "hold("+duration_ms+") resume")
           cont(sus.parent, sus.parent_idx, UNDEF);
-          exports.current_dyn_vars = null;
+          ASSERTDYNVARSROOT('hold:2')
         }
       },
       duration_ms);
+
     return sus;
   }
 };
@@ -4412,19 +4474,7 @@ exports.Cont = function(lbl) {
   return new CFException("c", lbl);
 };
 
-exports.BlBreakOld = function(env, lbl) {
-//  return new CFException('blb');
-  var e = new CFException('blb_old', lbl);
-  if (!env.blbref) {
-    console.log(env);
-    throw new Error("Internal runtime error; no reference frame in BlBreak");
-  }
-  if (env.blbref.unreturnable && !env.blbref.toplevel) // the return scope is not active anymore!
-    throw new Error("Blocklambda break to inactive scope");
-  e.eid = env.blbref.sid;
-  return e;
-};
-
+// XXX remove
 exports.BlReturn = function(exp) {
   var e = new CFException('r', exp);
   if (!this.blrref) throw new Error("Internal runtime error; no reference frame in BlReturn");
