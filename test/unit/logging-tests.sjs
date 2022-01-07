@@ -74,14 +74,14 @@ testEq('enabled levels at INFO', {DEBUG: false, VERBOSE:false, INFO:true, WARN:t
 
 //--------------------------------------------------------------------------------
 context(function() {
-  test.beforeEach {|s|
+  test.beforeEach:: function(s) {
     s.consoles = [];
-  }
-  test.afterEach {|s|
+  };
+  test.afterEach:: function(s) {
     s.consoles .. each { |c|
       c.shutdown();
     }
-  }
+  };
   test('logging to xbrowser.console objects', function(state) {
     var shutdown = function(c) {
       state.consoles .. remove(c) .. assert.ok();

@@ -591,6 +591,10 @@ __js ConditionProto.clear = function clear() {
      in the previous case, the get/put cycle is synchronous, i.e. only cancellable after
      the second `hold(0)` has been reached.
 
+     ### Note
+     For queues of capacity 0, consider using a [::Channel]. Channels are more performant, but 
+     have some concurrency limitations (`get` and `put` are not individually concurrency-safe).
+
 */
 __js function Queue(capacity, sync) {
   var rv = Object.create(QueueProto);
@@ -677,6 +681,75 @@ var QueueProto = {
     this.S_nonempty.release();
     return item;
   }
+};
+
+
+/**
+   @class Channel
+   @summary A [::Queue] with capacity 0
+   @function Channel
+   @summary Creates a Channel object
+   @desc
+     A Channel can be used to synchronize communication between two strata. It is effectively
+     a [::Queue] with capacity 0. It is somewhat more performant, but has the limitation that
+     there must not be any multiple concurrent calls to `put` or multiple concurrent calls to `get`.
+
+     A channel consists of two methods: `get` and `put`:
+     `get()` waits until a value `x` is being `put(x)`, and `put(x)` waits until the value
+     `x` is being collected with a call to `get()`.
+*/
+exports.Channel = function() {
+  __js var resume_put, resume_get;
+
+  /**
+     @function Channel.put
+     @summary Put an item into the Channel. Blocks until a `get` retrieves the item.
+     @param {anything} [item] Item to put into the Channel.
+     @desc
+       ### Note: 
+       `put` must not be called multiple times concurrently
+  */
+  __js function put(x) {
+    if (resume_get) 
+      resume_get(x);
+    else
+      return async_put(x);
+  }
+
+  function async_put(x) {
+    waitfor() {
+      __js resume_put = -> (resume(),x);
+    }
+    finally {
+      __js resume_put = null;
+    }
+  }
+
+  /**
+     @function Channel.get
+     @summary Retrieve an item from the Channel. Blocks until a `put` emits an item into the Channel.
+     @return {item} [item] Item retrieved from Channel.
+     @desc
+       ### Note: 
+       `get` must not be called multiple times concurrently
+  */
+  __js function get() {
+    if (resume_put)
+      return resume_put();
+    else
+      return async_get();
+  }
+
+  function async_get() {
+    waitfor(var rv) {
+      __js resume_get = resume;
+    }
+    finally {
+      __js resume_get = null;
+    }
+    return rv;
+  }
+  return { put: put, get: get };
 };
 
 
@@ -782,7 +855,7 @@ var QueueProto = {
     to `ctx.resume()`.
 */
 exports.breaking = function(block) {
-  console.warn("CODE USES DEPRECATED cutil::breaking");
+  console.log("CODE USES DEPRECATED cutil::breaking");
   var cont, stratum;
   var uncaught = Condition();
   var retracted = function() {

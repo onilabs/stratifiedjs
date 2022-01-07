@@ -519,8 +519,7 @@ Console.prototype = {
           me.output.scrollTop = me.output.scrollHeight;
       } or {
         try {
-          // this.cmdloop_stratum.wait();
-          this.cmdloop_stratum.waitforValue();
+          this.cmdloop_stratum.wait();
         } catch(e) { /* retract (i.e shutdown) */ }
       }
     }).bind(this));

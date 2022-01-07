@@ -114,12 +114,19 @@ function dummy(){}
 
 
 
+
+var random64;
 exports.G=window;
+exports.VMID="X";
+var bytes=new Uint8Array(8);
+window.crypto.getRandomValues(bytes);
+random64=window.btoa(String.fromCharCode(...bytes));
+exports.VMID+=random64.replace(/\//g,'_').replace(/\+/g,'-').replace(/=/g,'');
 
 
 var nextTick;
-if(exports.G.nextTick){
-nextTick=exports.G.nextTick;
+if(exports.G.process&&exports.G.process.nextTick){
+nextTick=exports.G.process.nextTick;
 }else if(exports.G.Promise){
 
 nextTick=function(cb){Promise.resolve().then(cb)};
@@ -327,14 +334,18 @@ exports.CFException=CFException;
 
 
 
+var dynvar_ctx_counter=0;
 
 
-function createDynVarContext(proto_context){return Object.create(proto_context);
+function createDynVarContext(proto_context){var ctx=Object.create(proto_context);
 
+ctx.id=proto_context.id+'/'+(++dynvar_ctx_counter);
+return ctx;
 }
 exports.createDynVarContext=createDynVarContext;
 
 var root_dyn_vars={id:'0'};
+exports.root_dyn_vars=root_dyn_vars;
 exports.current_dyn_vars=root_dyn_vars;
 
 
@@ -385,7 +396,11 @@ rv=rv.execute();
 return rv;
 }
 
-exports.is_ef=function(obj){return obj&&obj.__oni_ef;
+
+
+var ONI_EF={};
+
+exports.is_ef=function(obj){return obj&&obj.__oni_ef===ONI_EF;
 
 };
 
@@ -421,10 +436,13 @@ var rv="<"+(typeof (this.type)==='function'?this.type():this.type)+""+(this.id?t
 if(this.callstack)rv+='['+this.callstack.join(' > ')+']';
 
 return rv;
-},__oni_ef:true,wait:function(){
+},__oni_ef:ONI_EF,wait:function(){
 
 
-return this},gatherSuspensionTree:function(){
+exports.current_dyn_vars=root_dyn_vars;
+
+return this;
+},gatherSuspensionTree:function(){
 
 try{
 
@@ -436,9 +454,9 @@ throw e;
 }
 },setChildFrame:function(ef,idx,prevent_callstack_copy){
 
+if(exports.current_dyn_vars!==root_dyn_vars){
+console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+'::setchildframe('+ef+')'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+'::setchildframe('+ef+')'+')')}
 if(this.child_frame){
-
-
 if(prevent_callstack_copy!==true&&this.child_frame.callstack){
 
 mergeCallstacks(ef,this.child_frame);
@@ -481,7 +499,7 @@ return this;
 }else{
 
 var abort_val=this.child_frame.abort(pseudo_abort);
-if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
 return this;
 }else{
 
@@ -499,6 +517,13 @@ return abort_val;
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val!=null&&val.val.__oni_stack){
 
 
+
+
+
+
+
+
+
 val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 }
 
@@ -514,7 +539,7 @@ val=UNDEF;
 }
 }
 }
-}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 
@@ -566,8 +591,9 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 
-
 val.mapToJS(true);
+
+
 }
 }else return val;
 
@@ -721,7 +747,7 @@ function I_call(ndata,env){try{
 
 current_call=[env.file,ndata[1]];
 var rv=(ndata[0]).call(env);
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 
 if(!rv.callstack)rv.callstack=[];
 rv.callstack.push([env.file,ndata[1]]);
@@ -841,7 +867,7 @@ if(this.ndata[0]&8)rv+="(notail)";
 
 return rv;
 };
-EF_Seq.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Seq.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 
@@ -876,10 +902,10 @@ this.child_frame=UNDEF;
 val=execIN(this.ndata[idx],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
-if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 return this.returnToParent(val);
 }
 }
@@ -890,7 +916,7 @@ break;
 }
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 break;
-}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,idx);
 return this;
@@ -922,13 +948,16 @@ if(ef.done)return RS;
 
 var wef={toString:function(){
 return "<wait on stratum "+ef.id+">"},wait:function(){
-return wef},quench:function(){
+exports.current_dyn_vars=root_dyn_vars;
+
+return wef;
+},quench:function(){
 ef.wait_frames.delete(wef)},abort:function(){
 exports.current_dyn_vars=wef.__oni_dynvars;
 
 
 return UNDEF;
-},__oni_ef:true,__oni_dynvars:exports.current_dyn_vars};
+},__oni_ef:ONI_EF,__oni_dynvars:exports.current_dyn_vars};
 
 
 
@@ -945,14 +974,17 @@ if(ef.pending<2)return;
 
 var jef={toString:function(){
 return "<join on stratum "+ef.id+">"},wait:function(){
-return jef},quench:function(){
+exports.current_dyn_vars=root_dyn_vars;
+
+return jef;
+},quench:function(){
 ef.join_frames.delete(jef)},abort:function(){
 exports.current_dyn_vars=jef.__oni_dynvars;
 
 
 
 return UNDEF;
-},__oni_ef:true,__oni_dynvars:exports.current_dyn_vars};
+},__oni_ef:ONI_EF,__oni_dynvars:exports.current_dyn_vars};
 
 
 
@@ -1004,16 +1036,19 @@ var dynvars=exports.current_dyn_vars;
 
 if(old_parent){
 cont(old_parent,old_parent_idx,UNDEF);
-if(!(exports.current_dyn_vars===dynvars)){console.log("Assertion failed: "+"exports.current_dyn_vars === dynvars");throw new Error("Assertion failed: "+"exports.current_dyn_vars === dynvars")}
-}else{
+if(!(exports.current_dyn_vars===dynvars||exports.current_dyn_vars===root_dyn_vars)){console.log("Assertion failed: "+"exports.current_dyn_vars === dynvars || exports.current_dyn_vars === root_dyn_vars");throw new Error("Assertion failed: "+"exports.current_dyn_vars === dynvars || exports.current_dyn_vars === root_dyn_vars")}
+}
+
 
 
 
 ef_to_adopt.adopted=true;
-}
+
+
+ef_to_adopt.dynvars.__oni_anchor_route=ef.dynvars;
+
 
 cont(ef,-2,[id,ef_to_adopt]);
-
 exports.current_dyn_vars=dynvars;
 return ef_to_adopt.reifiedstratum;
 },_ef:ef,__oni_stratum:true};
@@ -1025,21 +1060,21 @@ return RS;
 
 function spawnSubStratum(f,parent_ef){if(parent_ef.done)throw new Error("Cannot spawn stratum with inactive parent");
 
+var parent_dynvars=exports.current_dyn_vars;
 var id=++parent_ef.substratumid;
-var reified_ef=new EF_Reified(parent_ef.id+'/'+id);
+var reified_ef=new EF_Reified(parent_ef.id+'/'+id,parent_ef.dynvars);
+
+exports.current_dyn_vars=reified_ef.dynvars;
+
 
 ++reified_ef.pending;
 ++parent_ef.pending;
 reified_ef.callstack=[current_call];
 var val;
 try{
-var parent_dynvars=exports.current_dyn_vars;
-
 
 val=f(reified_ef.reifiedstratum);
 }catch(e){
-
-
 
 if(!(e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 e=new CFException("t",e,0,'');
@@ -1054,7 +1089,7 @@ if(!reified_ef.adopted){
 cont(parent_ef,-2,[id,substratum_val]);
 }else{
 
-
+console.log("NOT HOOKING UP ADOPTED STRATUM IN .SPAWN (parent="+reified_ef.parent+")");
 
 cont(parent_ef,-2,[id,UNDEF]);
 }
@@ -1062,11 +1097,14 @@ exports.current_dyn_vars=parent_dynvars;
 return reified_ef.reifiedstratum;
 }
 
-function EF_Reified(id){this.id=id;
+function EF_Reified(id,anchor_route){this.id=id;
 
 
 this.reifiedstratum=createReifiedStratum(this);
-this.dynvars=exports.current_dyn_vars;
+this.dynvars=createDynVarContext(exports.current_dyn_vars);
+this.dynvars.__oni_anchor=UNDEF;
+this.dynvars.__oni_anchor_route=anchor_route;
+
 this.pending=0;
 this.substratumid=0;
 this.pending_rv=UNDEF;
@@ -1088,6 +1126,16 @@ return rv;
 
 
 
+EF_Reified.prototype.contOUTERDEBUG=function(idx,val){try{
+
+if(String(this)==="<Reified32>")console.log("<<<<<<<<<< "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+return this.cont_inner(idx,val);
+}finally{
+
+if(String(this)==="<Reified32>")console.log(">>>>>>>>>> "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+}
+};
+
 EF_Reified.prototype.cont=function(idx,val){if(!(idx<=0||this.strata_children.has(idx))){
 
 console.log("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)");throw new Error("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)")}
@@ -1096,7 +1144,7 @@ if(idx===-1){
 
 
 idx=0;
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 if(this.aborted){
 
 val.quench();
@@ -1109,7 +1157,7 @@ idx=val[0];
 val=val[1];
 
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 if(this.strata_children_aborted){
 
 val.quench();
@@ -1117,8 +1165,11 @@ val=val.abort();
 }
 }
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
+if(idx===0)this.async=true;
+
 this.setChildFrame(val,idx);
+return this;
 }else{
 
 
@@ -1152,6 +1203,8 @@ this.pending_rv=mergeExceptions(val,this.pending_rv);
 
 this.quench();
 this.abort();
+if(this.done)return this.returnToParent(this.pending_rv);else return this;
+
 }else if(val.type==='t'){
 
 this.pending_rv=mergeExceptions(val,this.pending_rv);
@@ -1165,10 +1218,21 @@ if(console.error)console.error(msg);else console.log(msg);
 }
 
 if(this.pending<=1){
+if(this.flushing){
+return;
+}else{
+
+this.flushing=true;
 this.flush_join_frames();
+this.flushing=false;
+}
 }
 
 if(this.pending===0){
+if(this.done){
+console.log(this+" WE ARE SO DONE WITH THIS");
+process.exit(1);
+}
 this.done=true;
 this.reifiedstratum.running=false;
 
@@ -1179,9 +1243,9 @@ nextTick(function(){me.flush_wait_frames()});
 
 
 
-exports.current_dyn_vars=this.dynvars;
+exports.current_dyn_vars=this.dynvars.__oni_anchor_route;
 
-return this.returnToParent(this.pending_rv);
+return this.returnToParent(this.assertRoutable(this.pending_rv));
 }else if(idx===0){
 
 this.async=true;
@@ -1212,17 +1276,21 @@ cont(join_frame.parent,join_frame.parent_idx,UNDEF);
 
 };
 
-EF_Reified.prototype.flush_wait_frames=function(){var frames=this.wait_frames;
-
-
+EF_Reified.prototype.flush_wait_frames=function(){if(exports.current_dyn_vars!==root_dyn_vars){
+console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::flush_wait_frames'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::flush_wait_frames'+')')}
+var frames=this.wait_frames;
 this.wait_frames=new Set();
 for(var wait_frame of frames){
 if(wait_frame.parent){
 exports.current_dyn_vars=wait_frame.__oni_dynvars;
+
 cont(wait_frame.parent,wait_frame.parent_idx,this.reifiedstratum);
 
-
 }
+
+
+
+exports.current_dyn_vars=root_dyn_vars;
 
 }
 };
@@ -1241,7 +1309,7 @@ for(var child of this.strata_children){
 if(child[1].parent===this){
 child[1].quench();
 var abort_val=child[1].abort();
-if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
 
 
 }else{
@@ -1284,8 +1352,8 @@ return this;
 }else{
 
 var abort_val=this.main_child.abort(pseudo_abort);
-if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
-
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::abort:2'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::abort:2'+')')}
 return this;
 }else{
 
@@ -1324,10 +1392,32 @@ nextTick(function(){me.flush_wait_frames()});
 
 
 this.unreturnable=true;
-exports.current_dyn_vars=this.dynvars;
+exports.current_dyn_vars=this.dynvars.__oni_anchor_route;
 
-return this.pending_rv;
+return this.assertRoutable(this.pending_rv);
 }
+};
+
+
+EF_Reified.prototype.assertRoutable=function(rv){if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx)&&(rv.type==='blb'||rv.type==='blr')){
+
+
+
+
+var node=this.dynvars.__oni_anchor_route;
+
+while(node){
+
+if(node.__oni_anchor===rv.aid){
+
+return rv;
+}
+node=node.__oni_anchor_route;
+}
+console.log(this+"::assertRoutable (2nd line) ANCHOR "+rv.aid+" NOT FOUND!!!");
+return new CFException("t",new Error("Unroutable blocklambda break/return"));
+}
+return rv;
 };
 
 
@@ -1345,6 +1435,8 @@ EF_Reified.prototype.quench=function(){if(this.main_child)this.main_child.quench
 
 
 EF_Reified.prototype.setChildFrame=function(ef,idx){if(idx===0){
+
+
 
 
 if(this.main_child){
@@ -1371,9 +1463,13 @@ ef.parent_idx=idx;
 };
 
 var reified_counter=0;
-function I_reifiedseq(ndata,env){var inner_ef=new EF_Seq(ndata,env);
+function I_reifiedseq(ndata,env){var dynvars=exports.current_dyn_vars;
 
-var reified_ef=new EF_Reified(++reified_counter);
+var reified_ef=new EF_Reified(++reified_counter,dynvars);
+
+exports.current_dyn_vars=reified_ef.dynvars;
+
+var inner_ef=new EF_Seq(ndata,env);
 
 
 reified_ef.pending_caller=current_call;
@@ -1382,13 +1478,20 @@ reified_ef.pending_caller=current_call;
 
 inner_ef.env.reifiedstratum=reified_ef.reifiedstratum;
 
-var dynvars=exports.current_dyn_vars;
 
 
 var val=cont(inner_ef,0);
 
+if(!(exports.current_dyn_vars===root_dyn_vars||exports.current_dyn_vars===reified_ef.dynvars)){
+console.log("XXXXXXXXXXXXXXXXX current dynvars = "+exports.current_dyn_vars.id+" / expected=root or "+reified_ef.dynvars.id);
+}
+
+
 var rv=cont(reified_ef,-1,val);
 
+if(!(exports.current_dyn_vars===root_dyn_vars||exports.current_dyn_vars===reified_ef.dynvars.__oni_anchor_route)){console.log("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === reified_ef.dynvars.__oni_anchor_route");throw new Error("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === reified_ef.dynvars.__oni_anchor_route")}
+
+if(!(exports.current_dyn_vars===root_dyn_vars||exports.current_dyn_vars===dynvars)){console.log("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === dynvars");throw new Error("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === dynvars")}
 if(reified_ef.adopted){
 exports.current_dyn_vars=dynvars;
 return UNDEF;
@@ -1467,7 +1570,7 @@ EF_BlSeq.prototype.type=function(){var rv="BlSeq";
 
 return rv;
 };
-EF_BlSeq.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_BlSeq.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 this.setChildFrame(val,idx);
@@ -1502,10 +1605,10 @@ this.child_frame=UNDEF;
 val=execIN(this.ndata[idx],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
-if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))val=this.translateCFEs(val);
 return this.returnToParent(val);
 }
@@ -1523,7 +1626,7 @@ return this.returnToParent(val);
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 val=this.translateCFEs(val);
 break;
-}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,idx);
 return this;
@@ -1534,22 +1637,41 @@ return this.returnToParent(val);
 }
 };
 
-EF_BlSeq.prototype.translateCFEs=function(val){if(val.type==='b'){
+EF_BlSeq.prototype.translateCFEs=function(val){switch(val.type){case 'b':
+
 
 
 
 val=new CFException('blb');
-val.aid=this.blanchor.aid;
-}else if(val.type==='r'){
-
+break;
+case 'r':
 
 val=new CFException('blr',val.val);
-val.aid=this.blanchor.aid;
-}else if(val.type==='c'){
-
-val=UNDEF;
-}
+break;
+case 'c':
+return UNDEF;
+default:
 return val;
+}
+
+
+val.aid=this.blanchor.aid;
+
+
+
+
+var node=exports.current_dyn_vars;
+while(node){
+
+if(node.__oni_anchor===val.aid){
+
+return val;
+}
+node=node.__oni_anchor_route;
+}
+
+console.log(this+"::assertRoutable ANCHOR NOT FOUND!!!");
+return new CFException("t",new Error("Unroutable blocklambda break/return"));
 };
 
 EF_BlSeq.prototype.abort=function(pseudo_abort){if(this.aborted){
@@ -1573,7 +1695,7 @@ return this;
 
 var abort_val=this.child_frame.abort(pseudo_abort);
 
-if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
 return this;
 }else{
 
@@ -1666,7 +1788,7 @@ EF_Sc.prototype.toString=function(){return "<Sc@"+this.env.file.substr(-20)+':'+
 
 };
 
-EF_Sc.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Sc.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,idx);
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
@@ -1691,7 +1813,7 @@ while(this.i<this.ndata.length){
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 rv.quench();
 rv=rv.abort(this.pseudo_abort);
 return this.returnToParent(rv);
@@ -1700,7 +1822,7 @@ return this.returnToParent(rv);
 
 ++this.i;
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return this.returnToParent(rv);
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 this.setChildFrame(rv,1);
 return this;
 }
@@ -1777,7 +1899,7 @@ setEFProto(EF_Fcall.prototype={});
 EF_Fcall.prototype.type="Fcall";
 EF_Fcall.prototype.toString=function(){return "<Fcall@"+this.env.file.substr(-20)+":"+this.ndata[1]+">"};
 
-EF_Fcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Fcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,idx);
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
@@ -1805,7 +1927,7 @@ while(this.i<args_length){
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 rv.quench();
 rv=rv.abort(this.pseudo_abort);
 return this.returnToParent(rv);
@@ -1814,7 +1936,7 @@ return this.returnToParent(rv);
 
 ++this.i;
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return this.returnToParent(rv);
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 this.setChildFrame(rv,1,true);
 return this;
 }
@@ -1954,7 +2076,7 @@ case 2:
 
 var ctor=this.l;
 rv=new ctor(...pars);
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 if(!rv.env)throw new Error("Invalid constructor function (no environment)");
 this.o=rv.env.tobj;
 
@@ -1981,7 +2103,7 @@ rv=e;
 
 
 }
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 if(this.aborted){
 
 rv=rv.abort(this.pseudo_abort);
@@ -2034,15 +2156,15 @@ this.env=copyEnv(env);
 this.env.blanchor=this;
 
 this.parent_dynvars=exports.current_dyn_vars;
-this.param_dynvars=createDynVarContext(exports.current_dyn_vars);
-this.param_dynvars.__oni_anchor_route=exports.current_dyn_vars;
-this.param_dynvars.__oni_anchor=this;
+this.facall_dynvars=createDynVarContext(exports.current_dyn_vars);
+this.facall_dynvars.__oni_anchor_route=exports.current_dyn_vars;
+this.facall_dynvars.__oni_anchor=this.aid;
 }
 setEFProto(EF_FAcall.prototype={});
 EF_FAcall.prototype.type="FAcall";
 EF_FAcall.prototype.toString=function(){return "<FAcall@"+this.env.file.substr(-20)+":"+this.ndata[1]+">"};
 
-EF_FAcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_FAcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 this.setChildFrame(val,idx);
@@ -2050,19 +2172,20 @@ this.setChildFrame(val,idx);
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))val=this.translateCFEs(val);
 
-if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>>>>>> HIT 1");
+if(!(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))){console.log("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)");throw new Error("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)")}
 exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(val);
 }else if(idx===3){
 
-
-
-
+if(!(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))){console.log("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)");throw new Error("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)")}
+exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(val);
 }else if(idx==2){
 
 
 
+if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>>>>>> HIT 1/2");
+exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(typeof val==='object'?val:this.o);
 }else{
 
@@ -2078,16 +2201,19 @@ var rv;
 var args_length=this.ndata.length;
 if(this.ndata[0]&4)--args_length;
 while(this.i<args_length){
-if(this.i===3){exports.current_dyn_vars=this.param_dynvars}
+
 rv=execIN(this.ndata[this.i],this.env);
 if(this.aborted){
 
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 rv.quench();
 rv=rv.abort(this.pseudo_abort);
 if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>> HIT 2");
-if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 exports.current_dyn_vars=this.parent_dynvars;
+}else{
+
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 3321'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 3321'+')')}
 }
 
 return this.returnToParent(rv);
@@ -2100,7 +2226,7 @@ if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>>>> HIT 3
 exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(rv);
 }
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 this.setChildFrame(rv,1,true);
 return this;
 }
@@ -2110,7 +2236,8 @@ if(this.i==3)this.l=rv;else this.pars.push(rv);
 
 }
 
-exports.current_dyn_vars=this.parent_dynvars;
+
+exports.current_dyn_vars=this.facall_dynvars;
 
 if(this.child_frame){
 this.child_frame.parent=UNDEF;
@@ -2135,6 +2262,8 @@ spreads.shift();
 }else pars=this.pars;
 
 
+
+current_call=[this.env.file,this.ndata[1]];
 
 switch(this.ndata[0]&3){case 0:
 
@@ -2240,7 +2369,7 @@ case 2:
 
 var ctor=this.l;
 rv=new ctor(...pars);
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 if(!rv.env)throw new Error("Invalid constructor function (no environment)");
 this.o=rv.env.tobj;
 
@@ -2270,24 +2399,17 @@ rv=this.translateCFEs(e);
 
 }
 
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 23266'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 23266'+')')}
 if(this.aborted){
 
 rv=rv.abort(this.pseudo_abort);
-if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))rv=this.translateCFEs(rv);
+exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(rv);
 }
 }
-
-
-
-
-
-
-
-
-
 if(rv){
 
 if(!rv.callstack)rv.callstack=[];
@@ -2296,12 +2418,15 @@ rv.callstack.push([this.env.file,this.ndata[1]]);
 }
 
 
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)){
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 232ds66'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 232ds66'+')')}
 this.setChildFrame(rv,3);
 return this;
-}else return this.returnToParent(rv);
+}else{
 
-
+exports.current_dyn_vars=this.parent_dynvars;
+return this.returnToParent(rv);
+}
 }
 };
 
@@ -2334,7 +2459,8 @@ return this;
 }else{
 
 var abort_val=this.child_frame.abort(pseudo_abort);
-if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'FACall::abort 23'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'FACall::abort 23'+')')}
 return this;
 }else{
 
@@ -2348,7 +2474,7 @@ this.unreturnable=true;
 
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx))abort_val=this.translateCFEs(abort_val);
 
-if(exports.current_dyn_vars!==this.parent_dynvars)console.log(">>>>>>>>>> HIT 5");
+if(!(!(abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF))){console.log("Assertion failed: "+"!(abort_val !== null && typeof(abort_val) === 'object' && abort_val.__oni_ef===ONI_EF)");throw new Error("Assertion failed: "+"!(abort_val !== null && typeof(abort_val) === 'object' && abort_val.__oni_ef===ONI_EF)")}
 exports.current_dyn_vars=this.parent_dynvars;
 
 return abort_val;
@@ -2399,7 +2525,7 @@ EF_If.prototype.cont=function(idx,val){switch(idx){case 0:
 val=execIN(this.ndata[0],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
@@ -2412,7 +2538,7 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
 
 break;
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,1);
 return this;
 }
@@ -2423,7 +2549,7 @@ if(val)val=execIN(this.ndata[1],this.env);else val=execIN(this.ndata[2],this.env
 
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 }
@@ -2490,7 +2616,7 @@ if(idx==0){
 val=execIN(this.ndata[0],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
@@ -2501,7 +2627,7 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
 
 return this.returnToParent(val);
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,1);
 return this;
 }
@@ -2512,7 +2638,7 @@ case 1:
 while(true){
 if(idx>-1){
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))return this.returnToParent(val);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,idx);
 return this;
 }else if(val==Default||val==this.testval)break;
@@ -2529,7 +2655,7 @@ this.child_frame=UNDEF;
 val=execIN(this.ndata[1][idx][0],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
@@ -2540,7 +2666,7 @@ this.phase=2;
 val=0;
 case 2:
 while(true){
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,idx);
 return this;
 }
@@ -2560,7 +2686,7 @@ this.child_frame=UNDEF;
 val=execIN(this.ndata[1][idx][1],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
@@ -2617,7 +2743,7 @@ this.state=0;
 setEFProto(EF_Try.prototype={});
 EF_Try.prototype.type=function(){return "Try("+this.state+")"};
 
-EF_Try.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Try.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 this.setChildFrame(val,this.state);
@@ -2635,13 +2761,27 @@ switch(this.state){case 0:
 this.state=1;
 val=execIN(this.ndata[1],this.env);
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val);
 return this;
 }
 case 1:
 
 this.state=2;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if(this.ndata[2]&&((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=="t")){
 
 var v;
@@ -2650,7 +2790,7 @@ val=this.ndata[2](this.env,v);
 
 
 
-if(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 }
@@ -2658,13 +2798,13 @@ val=val.abort(this.pseudo_abort);
 
 
 
-if(!this.ndata[4]&&!this.ndata[3]&&!(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))){
+if(!this.ndata[4]&&!this.ndata[3]&&!(this.aborted&&(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))){
 
 
 return this.returnToParent(val);
 }
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,0,true);
 return this;
 }
@@ -2683,7 +2823,7 @@ val=execIN(this.ndata[4],this.env);
 
 
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,0,true);
 return this;
 }
@@ -2712,7 +2852,7 @@ val=execIN(this.ndata[3],this.env);
 }
 
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,0,true);
 return this;
 }
@@ -2788,7 +2928,7 @@ return this;
 if(!(this.state!==3)){console.log("Assertion failed: "+"this.state !== 3");throw new Error("Assertion failed: "+"this.state !== 3")}
 if(this.state!==4){
 var val=this.child_frame.abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 this.setChildFrame(val);
@@ -2805,7 +2945,7 @@ this.setChildFrame(val);
 
 this.async=false;
 var rv=cont(this,0,val);
-if(!(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===true)||rv===this)){console.log("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this");throw new Error("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===true) || rv === this")}
+if(!(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)||rv===this)){console.log("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===ONI_EF) || rv === this");throw new Error("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===ONI_EF) || rv === this")}
 if(rv!==this){
 
 
@@ -2819,8 +2959,11 @@ this.async=true;
 }
 
 }
-}
+}else{
 
+exports.current_dyn_vars=root_dyn_vars;
+}
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+': Try::abort'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+': Try::abort'+')')}
 return this;
 };
 
@@ -2856,7 +2999,7 @@ this.env=env;
 setEFProto(EF_Loop.prototype={});
 EF_Loop.prototype.type="Loop";
 
-EF_Loop.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Loop.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,idx);
 }else if(this.aborted){
@@ -2878,14 +3021,14 @@ return this.returnToParent(val);
 val=execIN(this.ndata[1],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,2,true);
 return this;
 }
@@ -2927,17 +3070,17 @@ this.child_frame=UNDEF;
 val=execIN(this.ndata[idx+1],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 
 
-if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===true))return this.returnToParent(val);
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))return this.returnToParent(val);
 
 }
 }
 ++idx;
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,idx);
 return this;
 }
@@ -2950,14 +3093,14 @@ if(this.ndata[2]){
 val=execIN(this.ndata[2],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,0,true);
 return this;
 }
@@ -2999,7 +3142,7 @@ this.env=env;
 setEFProto(EF_ForIn.prototype={});
 EF_ForIn.prototype.type="ForIn";
 
-EF_ForIn.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_ForIn.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,idx);
 }else{
@@ -3008,14 +3151,14 @@ if(idx==0){
 val=execIN(this.ndata[0],this.env);
 if(this.aborted){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 val.quench();
 val=val.abort(this.pseudo_abort);
 return this.returnToParent(val);
 }
 }
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,1,true);
 return this;
 }
@@ -3041,7 +3184,7 @@ continue;
 }
 return this.returnToParent(val);
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.remainingX=[];
 this.for_in_obj=for_in_obj;
 }
@@ -3049,7 +3192,7 @@ this.for_in_obj=for_in_obj;
 
 
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 if(!this.remainingX)this.remainingX=[];
 this.setChildFrame(val,2,true);
 return this;
@@ -3073,7 +3216,7 @@ if(this.remainingX.length)continue;
 }
 return this.returnToParent(val);
 }
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,2,true);
 return this;
 }
@@ -3159,7 +3302,8 @@ setEFProto(EF_Par.prototype={});
 EF_Par.prototype.type="Par";
 EF_Par.prototype.toString=function(){return "<Par"+this.id+"@"+this.env.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"};
 
-EF_Par.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Par.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
+
 
 this.setChildFrame(val,idx);
 }else{
@@ -3172,7 +3316,7 @@ val=execIN(this.ndata[i],this.env);
 if(this.inner_aborted){
 
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 ++this.pending;
 this.setChildFrame(val,i);
 this.quench();
@@ -3180,10 +3324,10 @@ return this.abortInner();
 }
 this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 return this.pendingCFE;
-}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 ++this.pending;
-
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'par:cont'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'par:cont'+')')}
 this.setChildFrame(val,i);
 if(i<this.ndata.length-1){
 exports.current_dyn_vars=parent_dyn_vars;
@@ -3247,6 +3391,7 @@ if(this.pending===0)return this.returnToParent(this.pendingCFE);
 
 }
 }
+exports.current_dyn_vars=root_dyn_vars;
 this.async=true;
 return this;
 }
@@ -3284,7 +3429,7 @@ EF_Par.prototype.abortInner=function(){this.inner_aborted=true;
 for(var i=0;i<this.children.length;++i)if(this.children[i]){
 
 var val=this.children[i].abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,i);else{
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))this.setChildFrame(val,i);else{
 
 
 this.pendingCFE=mergeExceptions(val,this.pendingCFE);
@@ -3363,7 +3508,8 @@ this.children=new Array(this.ndata.length);
 setEFProto(EF_Alt.prototype={});
 EF_Alt.prototype.type=function(){return "Alt(aborted="+!!this.aborted+")"};
 
-EF_Alt.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Alt.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
+
 
 this.setChildFrame(val,idx);
 }else{
@@ -3382,7 +3528,7 @@ val=execIN(this.ndata[i],env);
 if(this.inner_aborted){
 
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 ++this.pending;
 this.setChildFrame(val,i);
 this.quench();
@@ -3390,7 +3536,7 @@ return this.abortInner();
 }
 this.pendingRV=mergeExceptions(val,this.pendingRV);
 return this.pendingRV;
-}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 ++this.pending;
 this.setChildFrame(val,i);
@@ -3440,6 +3586,7 @@ if(this.pending==0)return this.returnToParent(this.pendingRV);
 }
 }
 this.async=true;
+exports.current_dyn_vars=root_dyn_vars;
 return this;
 }
 };
@@ -3500,7 +3647,7 @@ if(this.collapsing){
 var branch=this.collapsing.branch;
 this.collapsing=UNDEF;
 var val=this.children[branch].abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,branch);else{
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))this.setChildFrame(val,branch);else{
 
 
 --this.pending;
@@ -3512,7 +3659,7 @@ this.children[branch]=UNDEF;
 for(var i=0;i<this.children.length;++i)if(this.children[i]){
 
 var val=this.children[i].abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true))this.setChildFrame(val,i);else{
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))this.setChildFrame(val,i);else{
 
 
 this.pendingRV=mergeExceptions(val,this.pendingRV);
@@ -3558,7 +3705,7 @@ for(var i=0;i<this.children.length;++i){
 if(i==branch)continue;
 if(this.children[i]){
 var val=this.children[i].abort();
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 have_async_branch_retract=true;
 this.setChildFrame(val,i);
 }else{
@@ -3611,7 +3758,7 @@ this.children=new Array(2);
 setEFProto(EF_WfW.prototype={});
 EF_WfW.prototype.type=function(){return "WfW(aborted="+!!this.aborted+")"};
 
-EF_WfW.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_WfW.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 
@@ -3624,7 +3771,7 @@ var parent_dyn_vars=exports.current_dyn_vars;
 for(var i=0;i<2;++i){
 val=execIN(this.ndata[i],this.env);
 if(this.inner_aborted){
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
 
@@ -3635,7 +3782,7 @@ return this.abortInner();
 }
 this.pendingCFE=mergeExceptions(val,this.pendingCFE);
 return this.pendingCFE;
-}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+}else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 ++this.pending;
 this.setChildFrame(val,i);
@@ -3674,6 +3821,7 @@ return this.returnToParent(this.abortInner());
 if(this.pending===1){
 if(this.pendingCFE===undefined&&this.children[1]){
 
+exports.current_dyn_vars=root_dyn_vars;
 return this.returnToParent(this.children[1]);
 }else if(this.children[0]){
 
@@ -3686,7 +3834,6 @@ if(this.pending===0){
 
 return this.returnToParent(mergeExceptions(val,this.pendingCFE));
 }
-
 this.async=true;
 return this;
 }
@@ -3695,6 +3842,7 @@ return this;
 EF_WfW.prototype.quench=quenchPar;
 
 EF_WfW.prototype.abort=function(pseudo_abort){if(this.aborted){
+
 
 
 
@@ -3723,8 +3871,8 @@ EF_WfW.prototype.abortInner=function(){this.inner_aborted=true;
 
 if(this.children[1]){
 var val=this.children[1].abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
-
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner'+')')}
 this.async=true;
 return this;
 }else{
@@ -3739,9 +3887,9 @@ this.children[1]=UNDEF;
 }
 if(this.children[0]){
 var val=this.children[0].abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.async=true;
-
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner:2'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner:2'+')')}
 return this;
 }else{
 
@@ -3794,7 +3942,7 @@ this.env=env;
 setEFProto(EF_Suspend.prototype={});
 EF_Suspend.prototype.type="Suspend";
 
-EF_Suspend.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+EF_Suspend.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 if(!(idx==1||idx==3)){console.log("Assertion failed: "+"idx == 1 || idx == 3");throw new Error("Assertion failed: "+"idx == 1 || idx == 3")}
 this.setChildFrame(val,idx);
@@ -3817,8 +3965,7 @@ exports.current_dyn_vars=ef.dyn_vars;
 cont(ef,2,args);
 }catch(e){
 
-var s=function(){throw e};
-setTimeout(s,0);
+hold0(function(){throw e});
 }finally{
 
 ef.dyn_vars=undefined;
@@ -3842,13 +3989,13 @@ val=new CFException("t",e);
 
 if(this.returning){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 if(!(!this.child_frame)){console.log("Assertion failed: "+"!this.child_frame");throw new Error("Assertion failed: "+"!this.child_frame")}
 
 this.setChildFrame(val,0);
 this.quench();
 val=val.abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,3);
 
@@ -3860,7 +4007,7 @@ return this;
 return cont(this,3,null);
 }
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val,1);
 return this;
 }
@@ -3904,7 +4051,7 @@ return;
 
 this.quench();
 val=this.child_frame.abort(this.pseudo_abort);
-if((val!==null&&typeof (val)==='object'&&val.__oni_ef===true)){
+if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 this.setChildFrame(val,3);
 return this;
@@ -3948,7 +4095,7 @@ this.aborted=true;
 this.pseudo_abort=pseudo_abort;
 if(!this.suspendCompleted){
 var abort_val=this.child_frame.abort(pseudo_abort);
-if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===true)){
+if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
 this.setChildFrame(abort_val,4);
 return this;
 }else{
@@ -3993,18 +4140,25 @@ EF_Collapse.prototype.__oni_collapse=true;
 
 EF_Collapse.prototype.cont=function(idx,val){if(idx==0){
 
+
 var fold=this.env.fold;
 if(!fold)return new CFException("t",new Error("Unexpected collapse statement"),this.ndata,this.env.file);
 
 
-if(fold.docollapse(this.env.branch,this))return true;
-
+this.restore_dynvars=exports.current_dyn_vars;
+if(fold.docollapse(this.env.branch,this)){
+exports.current_dyn_vars=this.restore_dynvars;
+return true;
+}
 
 this.async=true;
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'collapse'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'collapse'+')')}
 return this;
-}else if(idx==1)return this.returnToParent(true);else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata,this.env.file));
+}else if(idx==1){
 
-
+exports.current_dyn_vars=this.restore_dynvars;
+return this.returnToParent(true);
+}else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata,this.env.file));
 
 
 
@@ -4012,7 +4166,11 @@ return this;
 
 
 EF_Collapse.prototype.quench=dummy;
-EF_Collapse.prototype.abort=function(){this.aborted=true;return UNDEF};
+EF_Collapse.prototype.abort=function(){this.aborted=true;
+
+exports.current_dyn_vars=this.restore_dynvars;
+return UNDEF;
+};
 
 function I_collapse(ndata,env){return cont(new EF_Collapse(ndata,env),0);
 
@@ -4116,9 +4274,12 @@ return UNDEF;
 
 if(duration_ms===UNDEF)return {toString:function(){
 
-return "<HOLD()>"},__oni_ef:true,wait:function(){
+return "<HOLD()>"},__oni_ef:ONI_EF,wait:function(){
 
-return this},gatherSuspensionTree:function(){
+exports.current_dyn_vars=root_dyn_vars;
+
+return this;
+},gatherSuspensionTree:function(){
 return [this.toString()]},quench:dummy,abort:abort};
 
 
@@ -4126,18 +4287,24 @@ return [this.toString()]},quench:dummy,abort:abort};
 
 if(duration_ms===0){
 var sus={toString:function(){
-return "<HOLD(0)>"},__oni_ef:true,wait:function(){
+return "<HOLD(0)>"},__oni_ef:ONI_EF,wait:function(){
 
-return this},gatherSuspensionTree:function(){
+exports.current_dyn_vars=root_dyn_vars;
+
+return this;
+},gatherSuspensionTree:function(){
 return [this.toString()]},abort:abort,quench:function(){
 
 sus=null;clear0(this.co)},co:hold0(function(){
 if(sus&&sus.parent){
 
-
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold0'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold0'+')')}
 exports.current_dyn_vars=dyn_vars;
 cont(sus.parent,sus.parent_idx,UNDEF);
 
+
+
+exports.current_dyn_vars=root_dyn_vars;
 }
 })};
 
@@ -4145,9 +4312,12 @@ return sus;
 }else{
 
 var sus={toString:function(){
-return "<HOLD("+duration_ms+"ms)>"},__oni_ef:true,wait:function(){
+return "<HOLD("+duration_ms+"ms)>"},__oni_ef:ONI_EF,wait:function(){
 
-return this},gatherSuspensionTree:function(){
+exports.current_dyn_vars=root_dyn_vars;
+
+return this;
+},gatherSuspensionTree:function(){
 return [this.toString()]},abort:abort,quench:function(){
 
 sus=null;clearTimeout(this.co)}};
@@ -4155,10 +4325,19 @@ sus=null;clearTimeout(this.co)}};
 sus.co=setTimeout(function(){
 if(sus&&sus.parent){
 
-
+if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold('+duration_ms+")"+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold('+duration_ms+")"+')')}
 exports.current_dyn_vars=dyn_vars;
+var PPP=sus.parent;
 cont(sus.parent,sus.parent_idx,UNDEF);
+if(exports.current_dyn_vars!==root_dyn_vars){
+console.log("------ INCORRECT DYNVARS AFTER ASYNC CONT ----");
+console.log('parent:'+PPP);
+dumpExecutionFrameParents(PPP,10);
+}
 
+
+
+exports.current_dyn_vars=root_dyn_vars;
 }
 },duration_ms);
 
@@ -4211,12 +4390,6 @@ exports.Break=function(lbl){return new CFException("b",lbl);
 exports.Cont=function(lbl){return new CFException("c",lbl);
 
 };
-
-
-
-
-
-
 
 
 exports.BlReturn=function(exp){var e=new CFException('r',exp);
@@ -4485,5 +4658,5 @@ String.prototype.trim=function(){return this.replace(/^\s+|\s+$/g,'');
 
 
 
-(function(exports) {var UNDEF,arrayCtors,arrayCtorNames,c,i,_flatten,parseURLOptions,orig_console_log,orig_console_info,orig_console_warn,orig_console_error,pendingLoads,compiled_src_tag,canonical_id_to_module,github_api,github_opts;function URI(){}function filter_console_args(args){var rv,arg,i;rv=[];i=0;for(;i < args.length;++ i){arg=args[i];if(arg && arg._oniE){arg=String(arg);}rv.push(arg);}return rv;}function makeRequire(parent){var rf;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rf=function (module,settings){var opts,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){opts=exports.extendObject({},settings);},678),__oni_rt.Nb(function(){if(opts.callback)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Try(0,__oni_rt.Sc(681,function(_oniX){return rv=_oniX;},__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},680),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},680),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},680))),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return opts.callback(e)},682),__oni_rt.Nb(function(){return __oni_rt.Return();},682)),__oni_env)},0),__oni_rt.C(function(){return opts.callback(UNDEF,rv)},684),__oni_rt.Nb(function(){return __oni_rt.Return();},685)),this);else return __oni_rt.ex(__oni_rt.Sc(688,__oni_rt.Return,__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},688),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},688),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},688))),this);},678)])};rf.resolve=function (module,settings){var opts;opts=exports.extendObject({},settings);return resolve(module,rf,parent,opts);};rf.path="";rf.alias={};if(exports.require){rf.hubs=exports.require.hubs;rf.modules=exports.require.modules;rf.extensions=exports.require.extensions;}else{rf.hubs=augmentHubs(getHubs_hostenv());rf.modules={};rf.extensions=getExtensions_hostenv();}rf.url=function (relative){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(719,__oni_rt.Return,__oni_rt.Sc(719,(l)=>l.path,__oni_rt.C(function(){return resolve(relative,rf,parent)},719)))])};return __oni_rt.Return(rf);},691)])}function augmentHubs(hubs){hubs.addDefault=function (hub){if(! this.defined(hub[0])){this.unshift(hub);return true;}return false;};hubs.defined=function (prefix){var h,l,i;i=0;for(;i < this.length;i++ ){h=this[i][0];l=Math.min(h.length,prefix.length);if(h.substr(0,l) == prefix.substr(0,l)){return true;}}return false;};return hubs;}function html_sjs_extractor(html,descriptor){var re,match,src;re=/<script (?:[^>]+ )?(?:type=['"]text\/sjs['"]|main=['"]([^'"]+)['"])[^>]*>((.|[\r\n])*?)<\/script>/mg;src='';while(match=re.exec(html)){if(match[1]){src+='require("' + match[1] + '")';}else{src+=match[2];}src+=';';}if(! src){throw new Error("No sjs found in HTML file");}return default_compiler(src,descriptor);}function resolveAliases(module,aliases){var ALIAS_REST,alias_rest,alias,rv,level;ALIAS_REST=/^([^:]+):(.*)$/;rv=module;level=10;while((alias_rest=ALIAS_REST.exec(rv)) && (alias=aliases[alias_rest[1]])){if(-- level == 0){throw new Error("Too much aliasing in modulename '" + module + "'");}rv=alias + alias_rest[2];}return rv;}function resolveHubs(module,hubs,require_obj,parent,opts){var path,loader,src,resolve,level,match_prefix,i,hub;path=module;loader=opts.loader || default_loader;src=opts.src || default_src_loader;resolve=default_resolver;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}level=10;i=0;while(hub=hubs[i++ ]){match_prefix=typeof hub[0] === 'string';if((match_prefix && path.indexOf(hub[0]) === 0) || (! match_prefix && hub[0].test(path))){if(typeof hub[1] == "string"){if(match_prefix){path=hub[1] + path.substring(hub[0].length);}else{path=path.replace(hub[0],hub[1]);}i=0;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}if(-- level == 0){throw new Error("Too much indirection in hub resolution for module '" + module + "'");}}else{if(typeof hub[1] == "object"){if(hub[1].src){src=hub[1].src;}if(hub[1].loader){loader=hub[1].loader;}resolve=hub[1].resolve || loader.resolve || resolve;break;}else{throw new Error("Unexpected value for require.hubs element '" + hub[0] + "'");}}}}return {path:path,loader:loader,src:src,resolve:resolve};}function default_src_loader(path){throw new Error("Don't know how to load module at " + path);}function default_compiler(src,descriptor){var f,filename;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof (src) === 'function')return __oni_rt.ex(__oni_rt.Nb(function(){return f=src;},831),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.If(__oni_rt.Sc(834,(r)=>! r,__oni_rt.C(function(){return compiled_src_tag.exec(src)},834)),__oni_rt.Seq(0,__oni_rt.Nb(function(){filename=((descriptor.id));},836),__oni_rt.Sc(836,function(_oniX){return filename=_oniX;},__oni_rt.Sc(836,__oni_rt.join_str,"'",__oni_rt.C(function(){return filename.replace(/\'/g,'\\\'')},836),"'")),__oni_rt.Sc(839,function(_oniX){return src=_oniX;},__oni_rt.C(function(){return __oni_rt.c1.compile(src,{filename:filename,mode:'normal',globalReturn:true})},838)))),__oni_rt.Sc(843,function(_oniX){return f=_oniX;},__oni_rt.Fcall(2,843,__oni_rt.Nb(function(){return Function},843),"module","exports","require","__onimodulename","__oni_altns",__oni_rt.Nb(function(){return src},843)))),this);},829),__oni_rt.C(function(){return f(descriptor,descriptor.exports,descriptor.require,((descriptor.id)),{})},845)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Nb(function(){if(e instanceof SyntaxError)return __oni_rt.ex(__oni_rt.Sc(852,__oni_rt.Throw,__oni_rt.Fcall(2,852,__oni_rt.Nb(function(){return Error},852),__oni_rt.Nb(function(){return ("In module "+(descriptor.id)+": "+(e.message))},852)),852,'apollo-sys-common.sjs'),this);else return __oni_rt.ex(__oni_rt.Sc(855,__oni_rt.Throw,__oni_rt.Nb(function(){return e},855),855,'apollo-sys-common.sjs'),this);},851),__oni_env)},0)])}function checkForDependencyCycles(root_node,target_node){var deeper_cycle,name;if(! root_node.waiting_on){return false;}for(name in root_node.waiting_on){if(root_node.waiting_on[name] === target_node){return [root_node.id];}deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);if(deeper_cycle){return [root_node.id].concat(deeper_cycle);}}return false;}function default_loader(path,parent,src_loader,opts,spec){var compile,descriptor,pendingHook,dep_cycle;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){compile=exports.require.extensions[spec.type];},893),__oni_rt.Nb(function(){if(! compile)return __oni_rt.ex(__oni_rt.Sc(894,__oni_rt.Throw,__oni_rt.Fcall(2,894,__oni_rt.Nb(function(){return Error},894),__oni_rt.Nb(function(){return "Unknown type '" + spec.type + "'"},894)),894,'apollo-sys-common.sjs'),this);},893),__oni_rt.Nb(function(){descriptor=exports.require.modules[path];pendingHook=pendingLoads[path];},897),__oni_rt.Nb(function(){if((! descriptor && ! pendingHook) || opts.reload)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};},908),__oni_rt.C(function(){return exports.spawn(function (S){var src,loaded_from,canonical_id;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){return pendingHook=pendingLoads[path]=S;},911),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof src_loader === "string")return __oni_rt.ex(__oni_rt.Nb(function(){src=src_loader;loaded_from="[src string]";},0),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(path in __oni_rt.modsrc)return __oni_rt.ex(__oni_rt.Nb(function(){loaded_from="[builtin]";src=__oni_rt.modsrc[path];delete __oni_rt.modsrc[path];},0),this);else return __oni_rt.ex(__oni_rt.Sc(930,function(_oniX){src=_oniX.src;loaded_from=_oniX.loaded_from;return _oniX;},__oni_rt.C(function(){return src_loader(path)},930)),this);},920),this);},914),__oni_rt.Nb(function(){descriptor.loaded_from=loaded_from;descriptor.require=makeRequire(descriptor);canonical_id=null;descriptor.getCanonicalId=function (){return canonical_id;};descriptor.setCanonicalId=function (id){var canonical;if(id == null){throw new Error("Canonical ID cannot be null");}if(canonical_id !== null){throw new Error("Canonical ID is already defined for module " + path);}canonical=canonical_id_to_module[id];if(canonical != null){throw new Error("Canonical ID " + id + " is already defined in module " + canonical.id);}canonical_id=id;canonical_id_to_module[id]=descriptor;};if(opts.main){descriptor.require.main=descriptor;}exports.require.modules[path]=descriptor;},0),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.C(function(){return compile(src,descriptor)},965),__oni_rt.Nb(function(){return __oni_rt.Return();},966)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},968),__oni_rt.Sc(969,__oni_rt.Throw,__oni_rt.Nb(function(){return e},969),969,'apollo-sys-common.sjs')),__oni_env)},0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},971))),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Nb(function(){return pendingHook.error=e;},975),__oni_env)},0)])})},910),__oni_rt.Nb(function(){pendingHook.pending_descriptor=descriptor;return pendingHook.waiting=0;},979)),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(! descriptor)return __oni_rt.ex(__oni_rt.Nb(function(){return descriptor=pendingHook.pending_descriptor;},983),this);},982),this);},899),__oni_rt.Nb(function(){if(pendingHook)return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){++ pendingHook.waiting;if(! parent.waiting_on){parent.waiting_on={};}parent.waiting_on[path]=descriptor;dep_cycle=checkForDependencyCycles(descriptor,parent);},990),__oni_rt.Nb(function(){if(dep_cycle)return __oni_rt.ex(__oni_rt.Sc(1000,__oni_rt.Throw,__oni_rt.Fcall(2,1000,__oni_rt.Nb(function(){return Error},1000),__oni_rt.Sc(1000,__oni_rt.infix['+'],__oni_rt.Nb(function(){return ("Cyclic require() dependency: "+(parent.id)+" -> ")},1000),__oni_rt.C(function(){return dep_cycle.join(' -> ')},1000))),1000,'apollo-sys-common.sjs'),this);},999),__oni_rt.C(function(){return pendingHook.wait()},1002),__oni_rt.Nb(function(){if(pendingHook.error)return __oni_rt.ex(__oni_rt.Sc(1003,__oni_rt.Throw,__oni_rt.Nb(function(){return pendingHook.error},1003),1003,'apollo-sys-common.sjs'),this);},1003),__oni_rt.Nb(function(){return delete parent.waiting_on[path];},1012)),0,__oni_rt.Nb(function(){if(-- pendingHook.waiting === 0)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return delete pendingLoads[path];},1018),__oni_rt.Nb(function(){if(pendingHook.running)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Fcall(1,1020,__oni_rt.Sc(1020,(l)=>[l,'wait'],__oni_rt.C(function(){return pendingHook.abort()},1020))),__oni_rt.Nb(function(){if(pendingHook.error)return __oni_rt.ex(__oni_rt.Sc(1021,__oni_rt.Throw,__oni_rt.Nb(function(){return pendingHook.error},1021),1021,'apollo-sys-common.sjs'),this);},1021)),this);},1019)),this);},1017)),this);},986),__oni_rt.Nb(function(){if(! descriptor.required_by[parent.id]){descriptor.required_by[parent.id]=1;}else{++ descriptor.required_by[parent.id];}return __oni_rt.Return(descriptor.exports);},1027)])}function default_resolver(spec){if(! spec.ext && spec.path.charAt(spec.path.length - 1) !== '/'){spec.path+="." + spec.type;}}function http_src_loader(path){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1045,__oni_rt.Return,__oni_rt.Sc(1045,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.C(function(){return request_hostenv([path,{format:'compiled'}],{mime:'text/plain'})},1043),__oni_rt.Nb(function(){return path},1045)))])}function github_src_loader(path){var user,repo,tag,url,data,str;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Sc(1058,function(_oniX){user=_oniX[1];repo=_oniX[2];tag=_oniX[3];path=_oniX[4];return _oniX;},__oni_rt.C(function(){return /github:\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path)},1058)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Sc(1059,__oni_rt.Throw,__oni_rt.Fcall(2,1059,__oni_rt.Nb(function(){return Error},1059),__oni_rt.Nb(function(){return "Malformed module id '" + path + "'"},1059)),1059,'apollo-sys-common.sjs'),__oni_env)},0),__oni_rt.Sc(1063,function(_oniX){return url=_oniX;},__oni_rt.C(function(){return exports.constructURL(github_api,'repos',user,repo,"contents",path,{ref:tag})},1061)),__oni_rt.Alt(__oni_rt.Sc(1065,function(_oniX){return data=_oniX;},__oni_rt.Sc(1064,(l)=>l.data,__oni_rt.C(function(){return jsonp_hostenv(url,github_opts)},1064))),__oni_rt.Seq(0,__oni_rt.C(function(){return __oni_rt.Hold(10000)},1067),__oni_rt.Sc(1068,__oni_rt.Throw,__oni_rt.Fcall(2,1068,__oni_rt.Nb(function(){return Error},1068),"Github timeout"),1068,'apollo-sys-common.sjs'))),__oni_rt.Nb(function(){if(data.message && ! data.content)return __oni_rt.ex(__oni_rt.Sc(1071,__oni_rt.Throw,__oni_rt.Fcall(2,1071,__oni_rt.Nb(function(){return Error},1071),__oni_rt.Nb(function(){return data.message},1071)),1071,'apollo-sys-common.sjs'),this);},1070),__oni_rt.Sc(1076,function(_oniX){return str=_oniX;},__oni_rt.C(function(){return exports.require('sjs:string')},1074)),__oni_rt.Sc(1079,__oni_rt.Return,__oni_rt.Sc(1079,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.Fcall(1,1077,__oni_rt.Nb(function() { return [str,'utf8ToUtf16']},1077),__oni_rt.C(function(){return str.base64ToOctets(data.content)},1077)),__oni_rt.Nb(function(){return url},1079)))])}function resolve(module,require_obj,parent,opts){var path,hubs,resolveSpec,ext,extMatch,preload,pendingHubs,deleteHubs,entries,parent,resolved,ent,i,k,i,path,contents;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1087,function(_oniX){return path=_oniX;},__oni_rt.C(function(){return resolveAliases(module,require_obj.alias)},1085)),__oni_rt.Nb(function(){hubs=exports.require.hubs;},1089),__oni_rt.Sc(1092,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolveHubs(path,hubs,require_obj,parent,opts || {})},1089)),__oni_rt.Nb(function(){resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);extMatch=/.+\.([^\.\/]+)$/.exec(resolveSpec.path);if(extMatch){ext=extMatch[1].toLowerCase();resolveSpec.ext=ext;if(! exports.require.extensions[ext]){ext=null;}}if(! ext){if(parent.id.substr(- 3) === '.js'){resolveSpec.type='js';}else{resolveSpec.type='sjs';}}else{resolveSpec.type=ext;}},1092),__oni_rt.C(function(){return resolveSpec.resolve(resolveSpec,parent)},1112),__oni_rt.Nb(function(){preload=__oni_rt.G.__oni_rt_bundle;pendingHubs=false;if(preload.h){deleteHubs=[];for(k in preload.h){if(! Object.prototype.hasOwnProperty.call(preload.h,k)){continue;}entries=preload.h[k];parent=getTopReqParent_hostenv();resolved=resolveHubs(k,hubs,exports.require,parent,{});if(resolved.path === k){pendingHubs=true;continue;}i=0;for(;i < entries.length;i++ ){ent=entries[i];preload.m[resolved.path + ent[0]]=ent[1];}deleteHubs.push(k);}if(! pendingHubs){delete preload.h;}else{i=0;for(;i < deleteHubs.length;i++ ){delete preload.h[deleteHubs[i]];}}}if(module in __oni_rt.modsrc){if(! preload.m){preload.m={};}preload.m[resolveSpec.path]=__oni_rt.modsrc[module];delete __oni_rt.modsrc[module];}if(preload.m){path=resolveSpec.path;if(path.indexOf('!sjs',path.length - 4) !== - 1){path=path.slice(0,- 4);}contents=preload.m[path];if(contents !== undefined){resolveSpec.src=function (){delete preload.m[path];return {src:contents,loaded_from:path + "#bundle"};};}}return __oni_rt.Return(resolveSpec);},0)])}function requireInner(module,require_obj,parent,opts){var resolveSpec;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1191,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolve(module,require_obj,parent,opts)},1188)),__oni_rt.Sc(1191,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec)},1191)),__oni_rt.Nb(function(){return __oni_rt.Return(module);},1193)])}function requireInnerMultiple(modules,require_obj,parent,opts){var rv;function inner(i,l){var descriptor,id,exclude,include,name,module,addSym,o,i,o,split;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){if(l === 1)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){descriptor=modules[i];if(typeof descriptor === 'string'){id=descriptor;exclude=[];include=null;name=null;}else{id=descriptor.id;exclude=descriptor.exclude || [];include=descriptor.include || null;name=descriptor.name || null;}},1205),__oni_rt.Sc(1222,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return requireInner(id,require_obj,parent,opts)},1219)),__oni_rt.Nb(function(){addSym=function (k,v){if(rv[k] !== undefined){if(rv[k] === v){return;}throw new Error(("require([.]) name clash while merging module '"+(id)+"': Symbol '"+(k)+"' defined in multiple modules"));}rv[k]=v;};if(name){addSym(name,module);}else{if(include){i=0;for(;i < include.length;i++ ){o=include[i];if(! (o in module)){throw new Error(("require([.]) module "+(id)+" has no symbol "+(o)));}addSym(o,module[o]);}}else{for(o in module){if(exclude.indexOf(o) !== - 1){continue;}addSym(o,module[o]);}}}},0)),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Sc(1252,function(_oniX){return split=_oniX;},__oni_rt.C(function(){return Math.floor(l / 2)},1251)),__oni_rt.Par(__oni_rt.C(function(){return inner(i,split)},1253),__oni_rt.C(function(){return inner(i + split,l - split)},1256))),this);},1203)])}return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rv={};},1202),__oni_rt.Nb(function(){if(modules.length !== 0)return __oni_rt.ex(__oni_rt.C(function(){return inner(0,modules.length)},1262),this);},1262),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},1263)])}function runGlobalStratum(r){return __oni_rt.exrseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1289,function(_oniX){return r.stratum=_oniX;},__oni_rt.Reify()),__oni_rt.Try(0,__oni_rt.C(function(){return __oni_rt.Hold()},1290),0,__oni_rt.C(function(){return __oni_rt.Hold(0)},1293))])}__oni_rt.exseq(this ? this.arguments : undefined,this,'apollo-sys-common.sjs',[24,__oni_rt.Nb(function(){__oni_rt.sys=exports;if(! (__oni_rt.G.__oni_rt_bundle)){__oni_rt.G.__oni_rt_bundle={};}exports.hostenv=__oni_rt.hostenv;exports.getGlobal=function (){return __oni_rt.G;};exports.withDynVarContext=function (...args){var old_dyn_vars,proto_context,block;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){old_dyn_vars=__oni_rt.current_dyn_vars;},94),__oni_rt.Nb(function(){if(args.length === 1)return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=old_dyn_vars;return block=args[0];},96),this);else return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=args[0];return block=args[1];},100),this);},95),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=__oni_rt.createDynVarContext(proto_context);},105),__oni_rt.C(function(){return console.log("DV(sys-common::withDVC)> " + old_dyn_vars.id + " > " + __oni_rt.current_dyn_vars.id)},106),__oni_rt.C(function(){return block()},107)),0,__oni_rt.Seq(0,__oni_rt.C(function(){return console.log("DV(reset[sys-common::withDVC])> " + __oni_rt.current_dyn_vars.id + " > " + old_dyn_vars.id)},110),__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=old_dyn_vars;},111)))])};exports.getCurrentDynVarContext=function (){return __oni_rt.current_dyn_vars;};exports.setDynVar=function (name,value){var key;if(Object.hasOwnProperty(__oni_rt.current_dyn_vars,'root')){throw new Error("Cannot set dynamic variable without context");}if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to retrieve "+(name)));}key='$' + name;__oni_rt.current_dyn_vars[key]=value;};exports.clearDynVar=function (name){var key;if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to clear "+(name)));}key='$' + name;delete __oni_rt.current_dyn_vars[key];};exports.getDynVar=function (name,default_val){var key;key='$' + name;if(__oni_rt.current_dyn_vars === null){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist (no dynamic variable context)"));}}if(! (key in __oni_rt.current_dyn_vars)){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist"));}}return __oni_rt.current_dyn_vars[key];};arrayCtors=[];arrayCtorNames=['Uint8Array','Uint16Array','Uint32Array','Int8Array','Int16Array','Int32Array','Float32Array','Float64Array','NodeList','HTMLCollection','FileList','StaticNodeList','DataTransferItemList'];i=0;for(;i < arrayCtorNames.length;i++ ){c=__oni_rt.G[arrayCtorNames[i]];if(c){arrayCtors.push(c);}}exports.isArrayLike=function (obj){var i;if(Array.isArray(obj) || ! ! (obj && Object.prototype.hasOwnProperty.call(obj,'callee'))){return true;}i=0;for(;i < arrayCtors.length;i++ ){if(obj instanceof arrayCtors[i]){return true;}}return false;};_flatten=function (arr,rv){var l,elem,i;l=arr.length;i=0;for(;i < l;++ i){elem=arr[i];if(exports.isArrayLike(elem)){_flatten(elem,rv);}else{rv.push(elem);}}};exports.flatten=function (arr){var rv;rv=[];if(arr.length === UNDEF){throw new Error("flatten() called on non-array");}_flatten(arr,rv);return rv;};exports.expandSingleArgument=function (args){if(args.length == 1 && exports.isArrayLike(args[0])){args=args[0];}return args;};exports.isReifiedStratum=function (obj){return (obj !== null && typeof (obj) === 'object' && ! ! obj.__oni_stratum);};exports.isQuasi=function (obj){return (obj instanceof __oni_rt.QuasiProto);};exports.Quasi=function (arr){return __oni_rt.Quasi.apply(__oni_rt,arr);};exports.mergeObjects=function (){var rv,sources,i;rv={};sources=exports.expandSingleArgument(arguments);i=0;for(;i < sources.length;i++ ){exports.extendObject(rv,sources[i]);}return rv;};exports.extendObject=function (dest,source){var o;for(o in source){if(Object.prototype.hasOwnProperty.call(source,o)){dest[o]=source[o];}}return dest;};exports.overrideObject=function (dest,...sources){var sources,h,hl,source,h,o;sources=exports.flatten(sources);h=sources.length - 1;for(;h >= 0;-- h){if(sources[h] == null){sources.splice(h,1);}}hl=sources.length;if(hl){for(o in dest){h=hl - 1;for(;h >= 0;-- h){source=sources[h];if(o in source){dest[o]=source[o];break;}}}}return dest;};URI.prototype={toString:function (){return ((this.protocol)+"://"+(this.authority)+(this.relative));}};URI.prototype.params=function (){var rv;if(! this._params){rv={};this.query.replace(parseURLOptions.qsParser,function (_,k,v){if(k){rv[decodeURIComponent(k)]=decodeURIComponent(v);}});this._params=rv;}return this._params;};parseURLOptions={key:["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:\/@]*)(?::([^:\/@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/};exports.parseURL=function (str){var o,m,uri,i;o=parseURLOptions;m=o.parser.exec(str);uri=new URI();i=14;while(i-- ){uri[o.key[i]]=m[i] || "";}return uri;};exports.encodeURIComponentRFC3986=function (str){return encodeURIComponent(str).replace(/[!'()*]/g,function (c){return '%' + c.charCodeAt(0).toString(16);});};exports.constructQueryString=function (){var hashes,hl,parts,hash,l,val,i,q,h;hashes=exports.flatten(arguments);hl=hashes.length;parts=[];h=0;for(;h < hl;++ h){hash=hashes[h];for(q in hash){l=encodeURIComponent(q) + "=";val=hash[q];if(! exports.isArrayLike(val)){parts.push(l + encodeURIComponent(val));}else{i=0;for(;i < val.length;++ i){parts.push(l + encodeURIComponent(val[i]));}}}}return parts.join("&");};exports.constructURL=function (){var url_spec,l,rv,comp,k,i,qparts,part,query;url_spec=exports.flatten(arguments);l=url_spec.length;i=0;for(;i < l;++ i){comp=url_spec[i];if(exports.isQuasi(comp)){comp=comp.parts.slice();k=1;for(;k < comp.length;k+=2){comp[k]=exports.encodeURIComponentRFC3986(comp[k]);}comp=comp.join('');}else{if(typeof comp != "string"){break;}}if(rv !== undefined){if(rv.charAt(rv.length - 1) != "/"){rv+="/";}rv+=comp.charAt(0) == "/"?comp.substr(1):comp;}else{rv=comp;}}qparts=[];for(;i < l;++ i){part=exports.constructQueryString(url_spec[i]);if(part.length){qparts.push(part);}}query=qparts.join("&");if(query.length){if(rv.indexOf("?") != - 1){rv+="&";}else{rv+="?";}rv+=query;}return rv;};exports.isSameOrigin=function (url1,url2){var a1,a2;a1=exports.parseURL(url1).authority;if(! a1){return true;}a2=exports.parseURL(url2).authority;return ! a2 || (a1 == a2);};exports.normalizeURL=function (url,base){var a,pin,l,pout,c,i,rv;if(__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32'){url=url.replace(/\\/g,"/");base=base.replace(/\\/g,"/");}a=exports.parseURL(url);if(base && (base=exports.parseURL(base)) && (! a.protocol || a.protocol == base.protocol)){if(! a.directory && ! a.protocol){a.directory=base.directory;if(! a.path && (a.query || a.anchor)){a.file=base.file;}}else{if(a.directory && a.directory.charAt(0) != '/'){a.directory=(base.directory || "/") + a.directory;}}if(! a.protocol){a.protocol=base.protocol;if(! a.authority){a.authority=base.authority;}}}a.directory=a.directory.replace(/\/\/+/g,'/');pin=a.directory.split("/");l=pin.length;pout=[];i=0;for(;i < l;++ i){c=pin[i];if(c == "."){continue;}if(c == ".."){if(pout.length > 1){pout.pop();}}else{pout.push(c);}}if(a.file === '.'){a.file='';}else{if(a.file === '..'){if(pout.length > 2){pout.splice(- 2,1);}a.file='';}}a.directory=pout.join("/");rv="";if(a.protocol){rv+=a.protocol + ":";}if(a.authority){rv+="//" + a.authority;}else{if(a.protocol == "file"){rv+="//";}}rv+=a.directory + a.file;if(a.query){rv+="?" + a.query;}if(a.anchor){rv+="#" + a.anchor;}return rv;};exports.jsonp=jsonp_hostenv;exports.getXDomainCaps=getXDomainCaps_hostenv;exports.request=request_hostenv;if(console){orig_console_log=console.log;orig_console_info=console.info;orig_console_warn=console.warn;orig_console_error=console.error;console.log=function (){return orig_console_log.apply(console,filter_console_args(arguments));};console.info=function (){return orig_console_info.apply(console,filter_console_args(arguments));};console.warn=function (){return orig_console_warn.apply(console,filter_console_args(arguments));};console.error=function (){return orig_console_error.apply(console,filter_console_args(arguments));};}exports.eval=eval_hostenv;pendingLoads={};exports._makeRequire=makeRequire;compiled_src_tag=/^\/\*\__oni_compiled_sjs_1\*\//;default_compiler.module_args=['module','exports','require','__onimodulename','__oni_altns'];canonical_id_to_module={};github_api="https://api.github.com/";github_opts={cbfield:"callback"};exports.resolve=function (url,require_obj,parent,opts){require_obj=require_obj || exports.require;parent=parent || getTopReqParent_hostenv();opts=opts || {};return resolve(url,require_obj,parent,opts);};exports.require=makeRequire(getTopReqParent_hostenv());exports.require.modules['builtin:apollo-sys.sjs']={id:'builtin:apollo-sys.sjs',exports:exports,loaded_from:"[builtin]",required_by:{"[system]":1}};exports.init=function (cb){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.C(function(){return init_hostenv()},1277),__oni_rt.C(function(){return cb()},1278)])};exports.spawn=function (f){var r,dynvars;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){r={};dynvars=__oni_rt.current_dyn_vars;return runGlobalStratum(r) , null;},1300),__oni_rt.C(function(){return console.log("DV(sys-common::spawn)> " + __oni_rt.current_dyn_vars.id + " > " + dynvars.id)},1304),__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=dynvars;},1305),__oni_rt.Sc(1306,__oni_rt.Return,__oni_rt.C(function(){return r.stratum.spawn(f)},1306))])};return exports.captureStratum=function (S){return __oni_rt.exrseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Fcall(1,1313,__oni_rt.Sc(1313,(l)=>[l,'adopt'],__oni_rt.Reify()),__oni_rt.Nb(function(){return S},1313)),__oni_rt.Fcall(1,1314,__oni_rt.Sc(1314,(l)=>[l,'join'],__oni_rt.Reify()))])};},55)])
+(function(exports) {var UNDEF,arrayCtors,arrayCtorNames,c,i,_flatten,parseURLOptions,orig_console_log,orig_console_info,orig_console_warn,orig_console_error,pendingLoads,compiled_src_tag,canonical_id_to_module,github_api,github_opts;function URI(){}function filter_console_args(args){var rv,arg,i;rv=[];i=0;for(;i < args.length;++ i){arg=args[i];if(arg && arg._oniE){arg=String(arg);}rv.push(arg);}return rv;}function makeRequire(parent){var rf;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rf=function (module,settings){var opts,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){opts=exports.extendObject({},settings);},676),__oni_rt.Nb(function(){if(opts.callback)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Try(0,__oni_rt.Sc(679,function(_oniX){return rv=_oniX;},__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},678),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},678),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},678))),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return opts.callback(e)},680),__oni_rt.Nb(function(){return __oni_rt.Return();},680)),__oni_env)},0),__oni_rt.C(function(){return opts.callback(UNDEF,rv)},682),__oni_rt.Nb(function(){return __oni_rt.Return();},683)),this);else return __oni_rt.ex(__oni_rt.Sc(686,__oni_rt.Return,__oni_rt.If(__oni_rt.C(function(){return exports.isArrayLike(module)},686),__oni_rt.C(function(){return requireInnerMultiple(module,rf,parent,opts)},686),__oni_rt.C(function(){return requireInner(module,rf,parent,opts)},686))),this);},676)])};rf.resolve=function (module,settings){var opts;opts=exports.extendObject({},settings);return resolve(module,rf,parent,opts);};rf.path="";rf.alias={};if(exports.require){rf.hubs=exports.require.hubs;rf.modules=exports.require.modules;rf.extensions=exports.require.extensions;}else{rf.hubs=augmentHubs(getHubs_hostenv());rf.modules={};rf.extensions=getExtensions_hostenv();}rf.url=function (relative){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(717,__oni_rt.Return,__oni_rt.Sc(717,(l)=>l.path,__oni_rt.C(function(){return resolve(relative,rf,parent)},717)))])};return __oni_rt.Return(rf);},689)])}function augmentHubs(hubs){hubs.addDefault=function (hub){if(! this.defined(hub[0])){this.unshift(hub);return true;}return false;};hubs.defined=function (prefix){var h,l,i;i=0;for(;i < this.length;i++ ){h=this[i][0];l=Math.min(h.length,prefix.length);if(h.substr(0,l) == prefix.substr(0,l)){return true;}}return false;};return hubs;}function html_sjs_extractor(html,descriptor){var re,match,src;re=/<script (?:[^>]+ )?(?:type=['"]text\/sjs['"]|main=['"]([^'"]+)['"])[^>]*>((.|[\r\n])*?)<\/script>/mg;src='';while(match=re.exec(html)){if(match[1]){src+='require("' + match[1] + '")';}else{src+=match[2];}src+=';';}if(! src){throw new Error("No sjs found in HTML file");}return default_compiler(src,descriptor);}function resolveAliases(module,aliases){var ALIAS_REST,alias_rest,alias,rv,level;ALIAS_REST=/^([^:]+):(.*)$/;rv=module;level=10;while((alias_rest=ALIAS_REST.exec(rv)) && (alias=aliases[alias_rest[1]])){if(-- level == 0){throw new Error("Too much aliasing in modulename '" + module + "'");}rv=alias + alias_rest[2];}return rv;}function resolveHubs(module,hubs,require_obj,parent,opts){var path,loader,src,resolve,level,match_prefix,i,hub;path=module;loader=opts.loader || default_loader;src=opts.src || default_src_loader;resolve=default_resolver;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}level=10;i=0;while(hub=hubs[i++ ]){match_prefix=typeof hub[0] === 'string';if((match_prefix && path.indexOf(hub[0]) === 0) || (! match_prefix && hub[0].test(path))){if(typeof hub[1] == "string"){if(match_prefix){path=hub[1] + path.substring(hub[0].length);}else{path=path.replace(hub[0],hub[1]);}i=0;if(path.indexOf(":") == - 1){path=resolveSchemelessURL_hostenv(path,require_obj,parent);}if(-- level == 0){throw new Error("Too much indirection in hub resolution for module '" + module + "'");}}else{if(typeof hub[1] == "object"){if(hub[1].src){src=hub[1].src;}if(hub[1].loader){loader=hub[1].loader;}resolve=hub[1].resolve || loader.resolve || resolve;break;}else{throw new Error("Unexpected value for require.hubs element '" + hub[0] + "'");}}}}return {path:path,loader:loader,src:src,resolve:resolve};}function default_src_loader(path){throw new Error("Don't know how to load module at " + path);}function default_compiler(src,descriptor){var f,filename;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof (src) === 'function')return __oni_rt.ex(__oni_rt.Nb(function(){return f=src;},829),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.If(__oni_rt.Sc(832,(r)=>! r,__oni_rt.C(function(){return compiled_src_tag.exec(src)},832)),__oni_rt.Seq(0,__oni_rt.Nb(function(){filename=((descriptor.id));},834),__oni_rt.Sc(834,function(_oniX){return filename=_oniX;},__oni_rt.Sc(834,__oni_rt.join_str,"'",__oni_rt.C(function(){return filename.replace(/\'/g,'\\\'')},834),"'")),__oni_rt.Sc(837,function(_oniX){return src=_oniX;},__oni_rt.C(function(){return __oni_rt.c1.compile(src,{filename:filename,mode:'normal',globalReturn:true})},836)))),__oni_rt.Sc(841,function(_oniX){return f=_oniX;},__oni_rt.Fcall(2,841,__oni_rt.Nb(function(){return Function},841),"module","exports","require","__onimodulename","__oni_altns",__oni_rt.Nb(function(){return src},841)))),this);},827),__oni_rt.C(function(){return f(descriptor,descriptor.exports,descriptor.require,((descriptor.id)),{})},843)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Nb(function(){if(e instanceof SyntaxError)return __oni_rt.ex(__oni_rt.Sc(850,__oni_rt.Throw,__oni_rt.Fcall(2,850,__oni_rt.Nb(function(){return Error},850),__oni_rt.Nb(function(){return ("In module "+(descriptor.id)+": "+(e.message))},850)),850,'apollo-sys-common.sjs'),this);else return __oni_rt.ex(__oni_rt.Sc(853,__oni_rt.Throw,__oni_rt.Nb(function(){return e},853),853,'apollo-sys-common.sjs'),this);},849),__oni_env)},0)])}function checkForDependencyCycles(root_node,target_node){var deeper_cycle,name;if(! root_node.waiting_on){return false;}for(name in root_node.waiting_on){if(root_node.waiting_on[name] === target_node){return [root_node.id];}deeper_cycle=checkForDependencyCycles(root_node.waiting_on[name],target_node);if(deeper_cycle){return [root_node.id].concat(deeper_cycle);}}return false;}function default_loader(path,parent,src_loader,opts,spec){var compile,descriptor,pendingHook,dep_cycle;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){compile=exports.require.extensions[spec.type];},891),__oni_rt.Nb(function(){if(! compile)return __oni_rt.ex(__oni_rt.Sc(892,__oni_rt.Throw,__oni_rt.Fcall(2,892,__oni_rt.Nb(function(){return Error},892),__oni_rt.Nb(function(){return "Unknown type '" + spec.type + "'"},892)),892,'apollo-sys-common.sjs'),this);},891),__oni_rt.Nb(function(){descriptor=exports.require.modules[path];pendingHook=pendingLoads[path];},895),__oni_rt.Nb(function(){if((! descriptor && ! pendingHook) || opts.reload)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return descriptor={id:path,exports:{},loaded_by:parent,required_by:{}};},906),__oni_rt.C(function(){return exports.spawn(function (S){var src,loaded_from,canonical_id;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){return pendingHook=pendingLoads[path]=S;},909),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof src_loader === "string")return __oni_rt.ex(__oni_rt.Nb(function(){src=src_loader;loaded_from="[src string]";},0),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(path in __oni_rt.modsrc)return __oni_rt.ex(__oni_rt.Nb(function(){loaded_from="[builtin]";src=__oni_rt.modsrc[path];delete __oni_rt.modsrc[path];},0),this);else return __oni_rt.ex(__oni_rt.Sc(928,function(_oniX){src=_oniX.src;loaded_from=_oniX.loaded_from;return _oniX;},__oni_rt.C(function(){return src_loader(path)},928)),this);},918),this);},912),__oni_rt.Nb(function(){descriptor.loaded_from=loaded_from;descriptor.require=makeRequire(descriptor);canonical_id=null;descriptor.getCanonicalId=function (){return canonical_id;};descriptor.setCanonicalId=function (id){var canonical;if(id == null){throw new Error("Canonical ID cannot be null");}if(canonical_id !== null){throw new Error("Canonical ID is already defined for module " + path);}canonical=canonical_id_to_module[id];if(canonical != null){throw new Error("Canonical ID " + id + " is already defined in module " + canonical.id);}canonical_id=id;canonical_id_to_module[id]=descriptor;};if(opts.main){descriptor.require.main=descriptor;}exports.require.modules[path]=descriptor;},0),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.C(function(){return compile(src,descriptor)},963),__oni_rt.Nb(function(){return __oni_rt.Return();},964)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},966),__oni_rt.Sc(967,__oni_rt.Throw,__oni_rt.Nb(function(){return e},967),967,'apollo-sys-common.sjs')),__oni_env)},0,__oni_rt.Nb(function(){return delete exports.require.modules[path];},969))),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Nb(function(){return pendingHook.error=e;},973),__oni_env)},0)])})},908),__oni_rt.Nb(function(){pendingHook.pending_descriptor=descriptor;return pendingHook.waiting=0;},977)),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(! descriptor)return __oni_rt.ex(__oni_rt.Nb(function(){return descriptor=pendingHook.pending_descriptor;},981),this);},980),this);},897),__oni_rt.Nb(function(){if(pendingHook)return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){++ pendingHook.waiting;if(! parent.waiting_on){parent.waiting_on={};}parent.waiting_on[path]=descriptor;dep_cycle=checkForDependencyCycles(descriptor,parent);},988),__oni_rt.Nb(function(){if(dep_cycle)return __oni_rt.ex(__oni_rt.Sc(998,__oni_rt.Throw,__oni_rt.Fcall(2,998,__oni_rt.Nb(function(){return Error},998),__oni_rt.Sc(998,__oni_rt.infix['+'],__oni_rt.Nb(function(){return ("Cyclic require() dependency: "+(parent.id)+" -> ")},998),__oni_rt.C(function(){return dep_cycle.join(' -> ')},998))),998,'apollo-sys-common.sjs'),this);},997),__oni_rt.C(function(){return pendingHook.wait()},1000),__oni_rt.Nb(function(){if(pendingHook.error)return __oni_rt.ex(__oni_rt.Sc(1001,__oni_rt.Throw,__oni_rt.Nb(function(){return pendingHook.error},1001),1001,'apollo-sys-common.sjs'),this);},1001),__oni_rt.Nb(function(){return delete parent.waiting_on[path];},1010)),0,__oni_rt.Nb(function(){if(-- pendingHook.waiting === 0)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){return delete pendingLoads[path];},1016),__oni_rt.Nb(function(){if(pendingHook.running)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Fcall(1,1018,__oni_rt.Sc(1018,(l)=>[l,'wait'],__oni_rt.C(function(){return pendingHook.abort()},1018))),__oni_rt.Nb(function(){if(pendingHook.error)return __oni_rt.ex(__oni_rt.Sc(1019,__oni_rt.Throw,__oni_rt.Nb(function(){return pendingHook.error},1019),1019,'apollo-sys-common.sjs'),this);},1019)),this);},1017)),this);},1015)),this);},984),__oni_rt.Nb(function(){if(! descriptor.required_by[parent.id]){descriptor.required_by[parent.id]=1;}else{++ descriptor.required_by[parent.id];}return __oni_rt.Return(descriptor.exports);},1025)])}function default_resolver(spec){if(! spec.ext && spec.path.charAt(spec.path.length - 1) !== '/'){spec.path+="." + spec.type;}}function http_src_loader(path){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1043,__oni_rt.Return,__oni_rt.Sc(1043,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.C(function(){return request_hostenv([path,{format:'compiled'}],{mime:'text/plain'})},1041),__oni_rt.Nb(function(){return path},1043)))])}function github_src_loader(path){var user,repo,tag,url,data,str;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Try(0,__oni_rt.Sc(1056,function(_oniX){user=_oniX[1];repo=_oniX[2];tag=_oniX[3];path=_oniX[4];return _oniX;},__oni_rt.C(function(){return /github:\/([^\/]+)\/([^\/]+)\/([^\/]+)\/(.+)/.exec(path)},1056)),function(__oni_env,e){return __oni_rt.ex(__oni_rt.Sc(1057,__oni_rt.Throw,__oni_rt.Fcall(2,1057,__oni_rt.Nb(function(){return Error},1057),__oni_rt.Nb(function(){return "Malformed module id '" + path + "'"},1057)),1057,'apollo-sys-common.sjs'),__oni_env)},0),__oni_rt.Sc(1061,function(_oniX){return url=_oniX;},__oni_rt.C(function(){return exports.constructURL(github_api,'repos',user,repo,"contents",path,{ref:tag})},1059)),__oni_rt.Alt(__oni_rt.Sc(1063,function(_oniX){return data=_oniX;},__oni_rt.Sc(1062,(l)=>l.data,__oni_rt.C(function(){return jsonp_hostenv(url,github_opts)},1062))),__oni_rt.Seq(0,__oni_rt.C(function(){return __oni_rt.Hold(10000)},1065),__oni_rt.Sc(1066,__oni_rt.Throw,__oni_rt.Fcall(2,1066,__oni_rt.Nb(function(){return Error},1066),"Github timeout"),1066,'apollo-sys-common.sjs'))),__oni_rt.Nb(function(){if(data.message && ! data.content)return __oni_rt.ex(__oni_rt.Sc(1069,__oni_rt.Throw,__oni_rt.Fcall(2,1069,__oni_rt.Nb(function(){return Error},1069),__oni_rt.Nb(function(){return data.message},1069)),1069,'apollo-sys-common.sjs'),this);},1068),__oni_rt.Sc(1074,function(_oniX){return str=_oniX;},__oni_rt.C(function(){return exports.require('sjs:string')},1072)),__oni_rt.Sc(1077,__oni_rt.Return,__oni_rt.Sc(1077,__oni_rt.Obj, ["src","loaded_from"],__oni_rt.Fcall(1,1075,__oni_rt.Nb(function() { return [str,'utf8ToUtf16']},1075),__oni_rt.C(function(){return str.base64ToOctets(data.content)},1075)),__oni_rt.Nb(function(){return url},1077)))])}function resolve(module,require_obj,parent,opts){var path,hubs,resolveSpec,ext,extMatch,preload,pendingHubs,deleteHubs,entries,parent,resolved,ent,i,k,i,path,contents;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1085,function(_oniX){return path=_oniX;},__oni_rt.C(function(){return resolveAliases(module,require_obj.alias)},1083)),__oni_rt.Nb(function(){hubs=exports.require.hubs;},1087),__oni_rt.Sc(1090,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolveHubs(path,hubs,require_obj,parent,opts || {})},1087)),__oni_rt.Nb(function(){resolveSpec.path=exports.normalizeURL(resolveSpec.path,parent.id);extMatch=/.+\.([^\.\/]+)$/.exec(resolveSpec.path);if(extMatch){ext=extMatch[1].toLowerCase();resolveSpec.ext=ext;if(! exports.require.extensions[ext]){ext=null;}}if(! ext){if(parent.id.substr(- 3) === '.js'){resolveSpec.type='js';}else{resolveSpec.type='sjs';}}else{resolveSpec.type=ext;}},1090),__oni_rt.C(function(){return resolveSpec.resolve(resolveSpec,parent)},1110),__oni_rt.Nb(function(){preload=__oni_rt.G.__oni_rt_bundle;pendingHubs=false;if(preload.h){deleteHubs=[];for(k in preload.h){if(! Object.prototype.hasOwnProperty.call(preload.h,k)){continue;}entries=preload.h[k];parent=getTopReqParent_hostenv();resolved=resolveHubs(k,hubs,exports.require,parent,{});if(resolved.path === k){pendingHubs=true;continue;}i=0;for(;i < entries.length;i++ ){ent=entries[i];preload.m[resolved.path + ent[0]]=ent[1];}deleteHubs.push(k);}if(! pendingHubs){delete preload.h;}else{i=0;for(;i < deleteHubs.length;i++ ){delete preload.h[deleteHubs[i]];}}}if(module in __oni_rt.modsrc){if(! preload.m){preload.m={};}preload.m[resolveSpec.path]=__oni_rt.modsrc[module];delete __oni_rt.modsrc[module];}if(preload.m){path=resolveSpec.path;if(path.indexOf('!sjs',path.length - 4) !== - 1){path=path.slice(0,- 4);}contents=preload.m[path];if(contents !== undefined){resolveSpec.src=function (){delete preload.m[path];return {src:contents,loaded_from:path + "#bundle"};};}}return __oni_rt.Return(resolveSpec);},0)])}function requireInner(module,require_obj,parent,opts){var resolveSpec;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1189,function(_oniX){return resolveSpec=_oniX;},__oni_rt.C(function(){return resolve(module,require_obj,parent,opts)},1186)),__oni_rt.Sc(1189,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return resolveSpec.loader(resolveSpec.path,parent,resolveSpec.src,opts,resolveSpec)},1189)),__oni_rt.Nb(function(){return __oni_rt.Return(module);},1191)])}function requireInnerMultiple(modules,require_obj,parent,opts){var rv;function inner(i,l){var descriptor,id,exclude,include,name,module,addSym,o,i,o,split;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){if(l === 1)return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){descriptor=modules[i];if(typeof descriptor === 'string'){id=descriptor;exclude=[];include=null;name=null;}else{id=descriptor.id;exclude=descriptor.exclude || [];include=descriptor.include || null;name=descriptor.name || null;}},1203),__oni_rt.Sc(1220,function(_oniX){return module=_oniX;},__oni_rt.C(function(){return requireInner(id,require_obj,parent,opts)},1217)),__oni_rt.Nb(function(){addSym=function (k,v){if(rv[k] !== undefined){if(rv[k] === v){return;}throw new Error(("require([.]) name clash while merging module '"+(id)+"': Symbol '"+(k)+"' defined in multiple modules"));}rv[k]=v;};if(name){addSym(name,module);}else{if(include){i=0;for(;i < include.length;i++ ){o=include[i];if(! (o in module)){throw new Error(("require([.]) module "+(id)+" has no symbol "+(o)));}addSym(o,module[o]);}}else{for(o in module){if(exclude.indexOf(o) !== - 1){continue;}addSym(o,module[o]);}}}},0)),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Sc(1250,function(_oniX){return split=_oniX;},__oni_rt.C(function(){return Math.floor(l / 2)},1249)),__oni_rt.Par(__oni_rt.C(function(){return inner(i,split)},1251),__oni_rt.C(function(){return inner(i + split,l - split)},1254))),this);},1201)])}return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){rv={};},1200),__oni_rt.Nb(function(){if(modules.length !== 0)return __oni_rt.ex(__oni_rt.C(function(){return inner(0,modules.length)},1260),this);},1260),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},1261)])}function runGlobalStratum(r){return __oni_rt.exrseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Sc(1287,function(_oniX){return r.stratum=_oniX;},__oni_rt.Reify()),__oni_rt.Try(0,__oni_rt.C(function(){return __oni_rt.Hold()},1288),0,__oni_rt.C(function(){return __oni_rt.Hold(0)},1291))])}__oni_rt.exseq(this ? this.arguments : undefined,this,'apollo-sys-common.sjs',[24,__oni_rt.Nb(function(){__oni_rt.sys=exports;if(! (__oni_rt.G.__oni_rt_bundle)){__oni_rt.G.__oni_rt_bundle={};}exports.hostenv=__oni_rt.hostenv;exports.getGlobal=function (){return __oni_rt.G;};exports.withDynVarContext=function (...args){var old_dyn_vars,proto_context,block;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){old_dyn_vars=__oni_rt.current_dyn_vars;},94),__oni_rt.Nb(function(){if(args.length === 1)return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=old_dyn_vars;return block=args[0];},96),this);else return __oni_rt.ex(__oni_rt.Nb(function(){proto_context=args[0];return block=args[1];},100),this);},95),__oni_rt.Try(0,__oni_rt.Seq(0,__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=__oni_rt.createDynVarContext(proto_context);},105),__oni_rt.C(function(){return block()},106)),0,__oni_rt.Nb(function(){return __oni_rt.current_dyn_vars=old_dyn_vars;},109))])};exports.getCurrentDynVarContext=function (){return __oni_rt.current_dyn_vars;};exports.setDynVar=function (name,value){var key;if(Object.hasOwnProperty(__oni_rt.current_dyn_vars,'root')){throw new Error("Cannot set dynamic variable without context");}if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to retrieve "+(name)));}key='$' + name;__oni_rt.current_dyn_vars[key]=value;};exports.clearDynVar=function (name){var key;if(__oni_rt.current_dyn_vars === null){throw new Error(("No dynamic variable context to clear "+(name)));}key='$' + name;delete __oni_rt.current_dyn_vars[key];};exports.getDynVar=function (name,default_val){var key;key='$' + name;if(__oni_rt.current_dyn_vars === null){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist (no dynamic variable context)"));}}if(! (key in __oni_rt.current_dyn_vars)){if(arguments.length > 1){return default_val;}else{throw new Error(("Dynamic Variable '"+(name)+"' does not exist"));}}return __oni_rt.current_dyn_vars[key];};arrayCtors=[];arrayCtorNames=['Uint8Array','Uint16Array','Uint32Array','Int8Array','Int16Array','Int32Array','Float32Array','Float64Array','NodeList','HTMLCollection','FileList','StaticNodeList','DataTransferItemList'];i=0;for(;i < arrayCtorNames.length;i++ ){c=__oni_rt.G[arrayCtorNames[i]];if(c){arrayCtors.push(c);}}exports.isArrayLike=function (obj){var i;if(Array.isArray(obj) || ! ! (obj && Object.prototype.hasOwnProperty.call(obj,'callee'))){return true;}i=0;for(;i < arrayCtors.length;i++ ){if(obj instanceof arrayCtors[i]){return true;}}return false;};_flatten=function (arr,rv){var l,elem,i;l=arr.length;i=0;for(;i < l;++ i){elem=arr[i];if(exports.isArrayLike(elem)){_flatten(elem,rv);}else{rv.push(elem);}}};exports.flatten=function (arr){var rv;rv=[];if(arr.length === UNDEF){throw new Error("flatten() called on non-array");}_flatten(arr,rv);return rv;};exports.expandSingleArgument=function (args){if(args.length == 1 && exports.isArrayLike(args[0])){args=args[0];}return args;};exports.isReifiedStratum=function (obj){return (obj !== null && typeof (obj) === 'object' && ! ! obj.__oni_stratum);};exports.isQuasi=function (obj){return (obj instanceof __oni_rt.QuasiProto);};exports.Quasi=function (arr){return __oni_rt.Quasi.apply(__oni_rt,arr);};exports.mergeObjects=function (){var rv,sources,i;rv={};sources=exports.expandSingleArgument(arguments);i=0;for(;i < sources.length;i++ ){exports.extendObject(rv,sources[i]);}return rv;};exports.extendObject=function (dest,source){var o;for(o in source){if(Object.prototype.hasOwnProperty.call(source,o)){dest[o]=source[o];}}return dest;};exports.overrideObject=function (dest,...sources){var sources,h,hl,source,h,o;sources=exports.flatten(sources);h=sources.length - 1;for(;h >= 0;-- h){if(sources[h] == null){sources.splice(h,1);}}hl=sources.length;if(hl){for(o in dest){h=hl - 1;for(;h >= 0;-- h){source=sources[h];if(o in source){dest[o]=source[o];break;}}}}return dest;};URI.prototype={toString:function (){return ((this.protocol)+"://"+(this.authority)+(this.relative));}};URI.prototype.params=function (){var rv;if(! this._params){rv={};this.query.replace(parseURLOptions.qsParser,function (_,k,v){if(k){rv[decodeURIComponent(k)]=decodeURIComponent(v);}});this._params=rv;}return this._params;};parseURLOptions={key:["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],qsParser:/(?:^|&)([^&=]*)=?([^&]*)/g,parser:/^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:\/@]*)(?::([^:\/@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/};exports.parseURL=function (str){var o,m,uri,i;o=parseURLOptions;m=o.parser.exec(str);uri=new URI();i=14;while(i-- ){uri[o.key[i]]=m[i] || "";}return uri;};exports.encodeURIComponentRFC3986=function (str){return encodeURIComponent(str).replace(/[!'()*]/g,function (c){return '%' + c.charCodeAt(0).toString(16);});};exports.constructQueryString=function (){var hashes,hl,parts,hash,l,val,i,q,h;hashes=exports.flatten(arguments);hl=hashes.length;parts=[];h=0;for(;h < hl;++ h){hash=hashes[h];for(q in hash){l=encodeURIComponent(q) + "=";val=hash[q];if(! exports.isArrayLike(val)){parts.push(l + encodeURIComponent(val));}else{i=0;for(;i < val.length;++ i){parts.push(l + encodeURIComponent(val[i]));}}}}return parts.join("&");};exports.constructURL=function (){var url_spec,l,rv,comp,k,i,qparts,part,query;url_spec=exports.flatten(arguments);l=url_spec.length;i=0;for(;i < l;++ i){comp=url_spec[i];if(exports.isQuasi(comp)){comp=comp.parts.slice();k=1;for(;k < comp.length;k+=2){comp[k]=exports.encodeURIComponentRFC3986(comp[k]);}comp=comp.join('');}else{if(typeof comp != "string"){break;}}if(rv !== undefined){if(rv.charAt(rv.length - 1) != "/"){rv+="/";}rv+=comp.charAt(0) == "/"?comp.substr(1):comp;}else{rv=comp;}}qparts=[];for(;i < l;++ i){part=exports.constructQueryString(url_spec[i]);if(part.length){qparts.push(part);}}query=qparts.join("&");if(query.length){if(rv.indexOf("?") != - 1){rv+="&";}else{rv+="?";}rv+=query;}return rv;};exports.isSameOrigin=function (url1,url2){var a1,a2;a1=exports.parseURL(url1).authority;if(! a1){return true;}a2=exports.parseURL(url2).authority;return ! a2 || (a1 == a2);};exports.normalizeURL=function (url,base){var a,pin,l,pout,c,i,rv;if(__oni_rt.hostenv == "nodejs" && __oni_rt.G.process.platform == 'win32'){url=url.replace(/\\/g,"/");base=base.replace(/\\/g,"/");}a=exports.parseURL(url);if(base && (base=exports.parseURL(base)) && (! a.protocol || a.protocol == base.protocol)){if(! a.directory && ! a.protocol){a.directory=base.directory;if(! a.path && (a.query || a.anchor)){a.file=base.file;}}else{if(a.directory && a.directory.charAt(0) != '/'){a.directory=(base.directory || "/") + a.directory;}}if(! a.protocol){a.protocol=base.protocol;if(! a.authority){a.authority=base.authority;}}}a.directory=a.directory.replace(/\/\/+/g,'/');pin=a.directory.split("/");l=pin.length;pout=[];i=0;for(;i < l;++ i){c=pin[i];if(c == "."){continue;}if(c == ".."){if(pout.length > 1){pout.pop();}}else{pout.push(c);}}if(a.file === '.'){a.file='';}else{if(a.file === '..'){if(pout.length > 2){pout.splice(- 2,1);}a.file='';}}a.directory=pout.join("/");rv="";if(a.protocol){rv+=a.protocol + ":";}if(a.authority){rv+="//" + a.authority;}else{if(a.protocol == "file"){rv+="//";}}rv+=a.directory + a.file;if(a.query){rv+="?" + a.query;}if(a.anchor){rv+="#" + a.anchor;}return rv;};exports.jsonp=jsonp_hostenv;exports.getXDomainCaps=getXDomainCaps_hostenv;exports.request=request_hostenv;if(console){orig_console_log=console.log;orig_console_info=console.info;orig_console_warn=console.warn;orig_console_error=console.error;console.log=function (){return orig_console_log.apply(console,filter_console_args(arguments));};console.info=function (){return orig_console_info.apply(console,filter_console_args(arguments));};console.warn=function (){return orig_console_warn.apply(console,filter_console_args(arguments));};console.error=function (){return orig_console_error.apply(console,filter_console_args(arguments));};}exports.eval=eval_hostenv;pendingLoads={};exports._makeRequire=makeRequire;compiled_src_tag=/^\/\*\__oni_compiled_sjs_1\*\//;default_compiler.module_args=['module','exports','require','__onimodulename','__oni_altns'];canonical_id_to_module={};github_api="https://api.github.com/";github_opts={cbfield:"callback"};exports.resolve=function (url,require_obj,parent,opts){require_obj=require_obj || exports.require;parent=parent || getTopReqParent_hostenv();opts=opts || {};return resolve(url,require_obj,parent,opts);};exports.require=makeRequire(getTopReqParent_hostenv());exports.require.modules['builtin:apollo-sys.sjs']={id:'builtin:apollo-sys.sjs',exports:exports,loaded_from:"[builtin]",required_by:{"[system]":1}};exports.init=function (cb){return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.C(function(){return init_hostenv()},1275),__oni_rt.C(function(){return cb()},1276)])};exports.spawn=function (f){var r,dynvars;return __oni_rt.exseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Nb(function(){r={};dynvars=__oni_rt.current_dyn_vars;__oni_rt.current_dyn_vars=__oni_rt.root_dyn_vars;runGlobalStratum(r) , null;return __oni_rt.current_dyn_vars=dynvars;},1298),__oni_rt.Sc(1304,__oni_rt.Return,__oni_rt.C(function(){return r.stratum.spawn(f)},1304))])};return exports.captureStratum=function (S){return __oni_rt.exrseq(arguments,this,'apollo-sys-common.sjs',[1,__oni_rt.Fcall(1,1311,__oni_rt.Sc(1311,(l)=>[l,'adopt'],__oni_rt.Reify()),__oni_rt.Nb(function(){return S},1311)),__oni_rt.Fcall(1,1312,__oni_rt.Sc(1312,(l)=>[l,'join'],__oni_rt.Reify()))])};},55)])
 var location,jsonp_req_count,jsonp_cb_obj,XHR_caps,activex_xhr_ver;function determineLocation(){var scripts,matches,i;if(! location){location={};scripts=document.getElementsByTagName("script");i=0;for(;i < scripts.length;++ i){if((matches=/^(.*\/)(?:[^\/]*)stratified(?:[^\/]*)\.js(?:\?.*)?$/.exec(scripts[i].src))){location.location=exports.normalizeURL(matches[1] + "modules/",document.location.href);location.requirePrefix=scripts[i].getAttribute("require-prefix");location.req_base=scripts[i].getAttribute("req-base") || document.location.href;location.main=scripts[i].getAttribute("main");location.noInlineScripts=scripts[i].getAttribute("no-inline-scripts");location.waitForBundle=scripts[i].getAttribute("wait-for-bundle");break;}}if(! location.req_base){location.req_base=document.location.href;}}return location;}function jsonp_hostenv(url,settings){var opts;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){opts=exports.mergeObjects({iframe:false,cbfield:"callback"},settings);url=exports.constructURL(url,opts.query);},0),__oni_rt.Nb(function(){if(opts.iframe || opts.forcecb)return __oni_rt.ex(__oni_rt.Sc(112,__oni_rt.Return,__oni_rt.C(function(){return jsonp_iframe(url,opts)},112)),this);else return __oni_rt.ex(__oni_rt.Sc(114,__oni_rt.Return,__oni_rt.C(function(){return jsonp_indoc(url,opts)},114)),this);},111)])}function jsonp_indoc(url,opts){var cb,cb_query,elem,complete,readystatechange,error,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(! window[jsonp_cb_obj]){window[jsonp_cb_obj]={};}cb="cb" + (jsonp_req_count++ );cb_query={};cb_query[opts.cbfield]=jsonp_cb_obj + "." + cb;url=exports.constructURL(url,cb_query);elem=document.createElement("script");elem.setAttribute("src",url);elem.setAttribute("async","async");elem.setAttribute("type","text/javascript");complete=false;},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){window[jsonp_cb_obj][cb]=resume;return document.getElementsByTagName("head")[0].appendChild(elem);},136),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Nb(function(){if(elem.addEventListener)return __oni_rt.ex(__oni_rt.C(function(){return elem.addEventListener("error",resume,false)},141),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){readystatechange=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(elem.readyState == 'loaded' && ! complete)return __oni_rt.ex(__oni_rt.Fcall(0,144,__oni_rt.Nb(function(){return resume},144),__oni_rt.Fcall(2,144,__oni_rt.Nb(function(){return Error},144),"script loaded but `complete` flag not set")),this);},144)])};},146),__oni_rt.C(function(){return elem.attachEvent("onreadystatechange",readystatechange)},146)),this);},140),__oni_env)}, function() {error=arguments[0];}),0,__oni_rt.Nb(function(){if(elem.removeEventListener)return __oni_rt.ex(__oni_rt.C(function(){return elem.removeEventListener("error",resume,false)},151),this);else return __oni_rt.ex(__oni_rt.C(function(){return elem.detachEvent("onreadystatechange",readystatechange)},153),this);},150)),this)},155),__oni_rt.Sc(155,__oni_rt.Throw,__oni_rt.Fcall(2,155,__oni_rt.Nb(function(){return Error},155),__oni_rt.Nb(function(){return "Could not complete JSONP request to '" + url + "'" + (error?"\n" + error.message:"")},155)),155,'apollo-sys-xbrowser.sjs')),__oni_env)}, function() {rv=arguments[0];}),0,__oni_rt.Seq(0,__oni_rt.C(function(){return elem.parentNode.removeChild(elem)},158),__oni_rt.Nb(function(){return delete window[jsonp_cb_obj][cb];},159))),this)},161),__oni_rt.Nb(function(){complete=true;return __oni_rt.Return(rv);},161)])}function jsonp_iframe(url,opts){var cb,cb_query,iframe,doc,rv;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){cb=opts.forcecb || "R";cb_query={};if(opts.cbfield){cb_query[opts.cbfield]=cb;}url=exports.constructURL(url,cb_query);iframe=document.createElement("iframe");document.getElementsByTagName("head")[0].appendChild(iframe);doc=iframe.contentWindow.document;},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.C(function(){return doc.open()},178),__oni_rt.Nb(function(){return iframe.contentWindow[cb]=resume;},179),__oni_rt.C(function(){return __oni_rt.Hold(0)},182),__oni_rt.C(function(){return doc.write("\x3Cscript type='text/javascript' src=\"" + url + "\">\x3C/script>")},183),__oni_rt.C(function(){return doc.close()},184)),__oni_env)}, function() {rv=arguments[0];}),0,__oni_rt.C(function(){return iframe.parentNode.removeChild(iframe)},187)),this)},191),__oni_rt.C(function(){return __oni_rt.Hold(0)},191),__oni_rt.Nb(function(){return __oni_rt.Return(rv);},192)])}function getXHRCaps(){if(! XHR_caps){XHR_caps={};if(__oni_rt.G.XMLHttpRequest){XHR_caps.XHR_ctor=function (){return new XMLHttpRequest();};}else{XHR_caps.XHR_ctor=function (){var req,v;if(typeof activex_xhr_ver !== 'undefined'){return new ActiveXObject(activex_xhr_ver);}for(v in {"MSXML2.XMLHTTP.6.0":1,"MSXML2.XMLHTTP.3.0":1,"MSXML2.XMLHTTP":1}){try{req=new ActiveXObject(v);activex_xhr_ver=v;return req;}catch(e){;}}throw new Error("Browser does not support XMLHttpRequest");};}XHR_caps.XHR_CORS=("withCredentials" in XHR_caps.XHR_ctor());if(! XHR_caps.XHR_CORS){XHR_caps.XDR=(typeof __oni_rt.G.XDomainRequest !== 'undefined');}XHR_caps.CORS=(XHR_caps.XHR_CORS || XHR_caps.XDR)?"CORS":"none";}return XHR_caps;}function getXDomainCaps_hostenv(){return getXHRCaps().CORS;}function getTopReqParent_hostenv(){var base;base=determineLocation().req_base;return {id:base,loaded_from:base,required_by:{"[system]":1}};}function resolveSchemelessURL_hostenv(url_string,req_obj,parent){if(req_obj.path && req_obj.path.length){url_string=exports.constructURL(req_obj.path,url_string);}return exports.normalizeURL(url_string,parent.id);}function request_hostenv(url,settings){var opts,caps,req,h,error,txt,err;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){opts=exports.mergeObjects({method:"GET",body:null,response:'string',throwing:true},settings);url=exports.constructURL(url,opts.query);caps=getXHRCaps();if(! caps.XDR || exports.isSameOrigin(url,document.location)){req=caps.XHR_ctor();req.open(opts.method,url,true,opts.username || "",opts.password || "");}else{req=new XDomainRequest();req.open(opts.method,url);}},0),__oni_rt.Nb(function(){var resume;return __oni_rt.ex(__oni_rt.Try(0,__oni_rt.Suspend(function(__oni_env,_oniX){resume=_oniX;return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){if(typeof req.onerror !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){req.onload=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume()},300)])};req.onerror=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume(true)},301)])};return req.onabort=function (){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.C(function(){return resume(true)},302)])};},300),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return req.onreadystatechange=function (evt){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){if(req.readyState != 4)return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return();},307),this);else return __oni_rt.ex(__oni_rt.C(function(){return resume()},309),this);},306)])};},310),this);},299),__oni_rt.Nb(function(){if(opts.headers && req.setRequestHeader){for(h in opts.headers){req.setRequestHeader(h,opts.headers[h]);}}if(opts.mime && req.overrideMimeType){req.overrideMimeType(opts.mime);}if(opts.response === 'arraybuffer'){req.responseType='arraybuffer';}req.send(opts.body);},0)),__oni_env)}, function() {error=arguments[0];}),0,__oni_rt.Nb(function(){if(typeof req.onerror !== 'undefined')return __oni_rt.ex(__oni_rt.Nb(function(){req.onload=null;req.onerror=null;return req.onabort=null;},333),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return req.onreadystatechange=null},338),this);},332),__oni_rt.C(function(){return req.abort()},329)),this)},342),__oni_rt.If(__oni_rt.Seq(2,__oni_rt.Nb(function(){return error},342),__oni_rt.Seq(4,__oni_rt.Nb(function(){return typeof req.status !== 'undefined'},343),__oni_rt.Sc(344,(r)=>! r,__oni_rt.Sc(344,__oni_rt.infix['in'],__oni_rt.Fcall(1,344,__oni_rt.Sc(344,(l)=>[l,'charAt'],__oni_rt.C(function(){return req.status.toString()},344)),0),__oni_rt.Nb(function(){return {'0':1,'2':1}},344))))),__oni_rt.Seq(0,__oni_rt.Nb(function(){if(opts.throwing){txt="Failed " + opts.method + " request to '" + url + "'";if(req.statusText){txt+=": " + req.statusText;}if(req.status){txt+=" (" + req.status + ")";}err=new Error(txt);err.status=req.status;err.data=req.response;throw err;}},345),__oni_rt.Nb(function(){if(opts.response === 'string')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return("");},356),this);},355))),__oni_rt.Nb(function(){if(opts.response === 'string')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return(req.responseText);},361),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(opts.response === 'arraybuffer')return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return({status:req.status,content:req.response,getHeader:function(name){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[33,__oni_rt.C(function(){return req.getResponseHeader(name)},366)])}});},367),this);else return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.Return({status:req.status,content:req.responseText,getHeader:function(name){return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[33,__oni_rt.C(function(){return req.getResponseHeader(name)},374)])}});},375),this);},362),this);},360)])}function getHubs_hostenv(){return [["sjs:",determineLocation().location || {src:function (path){throw new Error("Can't load module '" + path + "': The location of the StratifiedJS standard module lib is unknown - it can only be inferred automatically if you load stratified.js in the normal way through a <script> element.");}}],["github:",{src:github_src_loader}],["http:",{src:http_src_loader}],["https:",{src:http_src_loader}],["file:",{src:http_src_loader}],["x-wmapp1:",{src:http_src_loader}],["local:",{src:http_src_loader}]];}function getExtensions_hostenv(){return {'sjs':default_compiler,'js':function (src,descriptor){var f;f=new Function("module","exports","require",src + ("\n//# sourceURL="+(descriptor.id)));return f.apply(descriptor.exports,[descriptor,descriptor.exports,descriptor.require]);},'html':html_sjs_extractor};}function eval_hostenv(code,settings){var filename,mode,js;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.Nb(function(){filename=(settings && settings.filename) || "sjs_eval_code";},422),__oni_rt.Sc(422,function(_oniX){return filename=_oniX;},__oni_rt.Sc(422,__oni_rt.join_str,"'",__oni_rt.C(function(){return filename.replace(/\'/g,'\\\'')},422),"'")),__oni_rt.Nb(function(){mode=(settings && settings.mode) || "normal";},424),__oni_rt.Sc(425,function(_oniX){return js=_oniX;},__oni_rt.C(function(){return __oni_rt.c1.compile(code,{filename:filename,mode:mode})},424)),__oni_rt.Sc(425,__oni_rt.Return,__oni_rt.C(function(){return __oni_rt.G.eval(js)},425))])}function init_hostenv(){}function runScripts(){var scripts,ss,s,i,s,m,content,descriptor,f,i,mainModule;return __oni_rt.exseq(arguments,this,'apollo-sys-xbrowser.sjs',[1,__oni_rt.If(__oni_rt.Sc(449,(l)=>l.waitForBundle,__oni_rt.C(function(){return determineLocation()},449)),__oni_rt.Nb(function(){if(__oni_rt_bundle.h === undefined)return __oni_rt.ex(__oni_rt.Nb(function(){__oni_rt_bundle_hook=runScripts;return __oni_rt.Return();},453),this);},451)),__oni_rt.If(__oni_rt.Sc(458,(r)=>! r[0][r[1]],__oni_rt.Sc(458,(l)=>[l,'noInlineScripts'],__oni_rt.C(function(){return determineLocation()},458))),__oni_rt.Seq(0,__oni_rt.Nb(function(){scripts=document.getElementsByTagName("script");ss=[];i=0;for(;i < scripts.length;++ i){s=scripts[i];if(s.getAttribute("type") == "text/sjs"){ss.push(s);}}},0),__oni_rt.Seq(0,__oni_rt.Nb(function(){i=0;},501),__oni_rt.Loop(0,__oni_rt.Nb(function(){return i < ss.length},478),__oni_rt.Nb(function(){return ++ i},478),__oni_rt.Nb(function(){s=ss[i];m=s.getAttribute("module");content=s.textContent || s.innerHTML;if(__oni_rt.UA == "msie"){content=content.replace(/\r\n/,"");}},0),__oni_rt.Nb(function(){if(m)return __oni_rt.ex(__oni_rt.Nb(function(){return __oni_rt.modsrc[m]=content},490),this);else return __oni_rt.ex(__oni_rt.Seq(0,__oni_rt.Nb(function(){descriptor={id:document.location.href + "_inline_sjs_" + (i + 1)};return __oni_rt.sys.require.main=descriptor;},495),__oni_rt.Sc(498,function(_oniX){return f=_oniX;},__oni_rt.C(function(){return exports.eval("(function(module, __onimodulename){" + content + "\n})",{filename:("module "+(descriptor.id))})},496)),__oni_rt.C(function(){return f(descriptor)},498)),this);},489))))),__oni_rt.Nb(function(){mainModule=determineLocation().main;},503),__oni_rt.Nb(function(){if(mainModule)return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.sys.require(mainModule,{main:true})},504),this);},503)])}__oni_rt.exseq(this ? this.arguments : undefined,this,'apollo-sys-xbrowser.sjs',[24,__oni_rt.Nb(function(){if(determineLocation().requirePrefix){__oni_rt.G[determineLocation().requirePrefix]={require:__oni_rt.sys.require};}else{__oni_rt.G.require=__oni_rt.sys.require;}jsonp_req_count=0;jsonp_cb_obj="_oni_jsonpcb";return window.onerror=function (a,b,c,d,e){if(e){console.error("Uncaught " + e.toString());return true;}};},78),__oni_rt.Nb(function(){if(! __oni_rt.G.__oni_rt_no_script_load)return __oni_rt.ex(__oni_rt.Nb(function(){if(document.readyState === "complete" || document.readyState === "interactive")return __oni_rt.ex(__oni_rt.C(function(){return runScripts()},509),this);else return __oni_rt.ex(__oni_rt.Nb(function(){if(__oni_rt.G.addEventListener)return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.G.addEventListener("DOMContentLoaded",runScripts,true)},513),this);else return __oni_rt.ex(__oni_rt.C(function(){return __oni_rt.G.attachEvent("onload",runScripts)},515),this);},512),this);},508),this);},446)])})({})

@@ -810,7 +810,11 @@ context('withBackgroundStrata', function() {
           cutil.withBackgroundStrata {
             |scope|
             rv.push('in scope');
-            scope.run {
+            function run_and_hold(bl) {
+              scope.run(bl);
+              hold();
+            }
+            run_and_hold {
               ||
               rv.push('1 start');
               rv.push('1 returning');
@@ -830,7 +834,7 @@ context('withBackgroundStrata', function() {
         rv.push(f());
         rv.push('out of scope');
         assert.eq(rv,[ 'in scope', '1 start', '1 returning', '2 start', 'cont', '2 retract', '2 finally', 'rv', 'out of scope' ]);
-      })
+      }).skip('not sure if this can be made to work as intended');
 
       test('exception sync', function() {
         var rv = [];
@@ -883,7 +887,7 @@ context('withBackgroundStrata', function() {
         rv.push(f());
         rv.push('out of scope');
         assert.eq(rv,[ 'in scope', '1 start', '2 start', 'cont', '1 returning', '2 retract', '2 finally', 'rv', 'out of scope' ]);
-      })
+      }).skip('not sure this can be made to work as intended');
 
       test('exception 1', function() {
         var rv = [];

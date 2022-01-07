@@ -1598,7 +1598,7 @@ testEq("detached blocklambda return from aborted stratum", 'y', function() {
   rv += f();
   return rv;
 
-});
+}).skip('legacy controlflow');
 
 testEq("complex detached blocklambda return", 111, function() {
   var rv = 0;

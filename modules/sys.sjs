@@ -57,6 +57,15 @@ module.exports = {
   hostenv: s.hostenv,
 
 /**
+   @variable VMID
+   @summary Human-readable VM ID (64bit randomness), prefixed 'N' for nodejs hostenv, 'X' for xbrowser
+   @desc
+     * The character set used for the encoding of the random bytes is `A`-`Z`, `a`-`z`, `0`-`9`, `-`, `_`.
+
+*/
+  VMID: __oni_rt.VMID,
+
+/**
   @function getGlobal
   @summary Returns the global object (i.e. window or global, depending on [::hostenv])
 */

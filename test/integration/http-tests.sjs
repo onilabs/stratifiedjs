@@ -177,12 +177,12 @@ context("full return objects", function() {
   testEq('head request', 'text/plain', function() {
     return http.request("http://code.onilabs.com/sjs/unstable/modules/http.sjs",
                         { method: 'HEAD', response: 'full' }).getHeader('Content-Type');
-  }).skipIf(IE9);
+  }).skip('code.onilabs removed');
 
   testEq('get request', true, function() {
     return http.request("http://code.onilabs.com/sjs/unstable/modules/http.sjs",
                         { method: 'GET', response: 'full' }).content.length > 0;
-  });
+  }).skip('code.onilabs removed');
 })
 
 context("raw return objects", function() {
@@ -193,6 +193,6 @@ context("raw return objects", function() {
     assert.eq(response.headers['content-type'], 'text/plain');
     var data = response .. @stream.readAll();
     assert.ok(data.length > 1024);
-  });
+  }).skip('code.onilabs removed');
 
 }).serverOnly();

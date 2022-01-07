@@ -470,9 +470,9 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
     }
   })
 
-  @test('terminate 3', function() {
-    @product([true,false],[true,false],[true,false],[true,false],[true,false]) .. @each {
-      |[p1,p2,p3,p4,p5]|
+  @product([true,false],[true,false],[true,false],[true,false],[true,false]) .. @each {
+    |[p1,p2,p3,p4,p5]|
+    @test("terminate 3 - #{p1},#{p2},#{p3},#{p4},#{p5}", function() {
       //console.log(p1,p2,p3,p4,p5);
       var rv = '';
       try {
@@ -498,7 +498,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         @assert.eq(rv, 'abCc');
       else 
         @assert.eq(rv, 'abc');
-    }
-  })
+    });
+  }
 
 })

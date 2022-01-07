@@ -816,11 +816,35 @@ function withOpenStream(seq, block) {
   }
 }
 
-*/
+  Another naive implementation with Channels (3-10 times slower in sync case):
 
+var END = {};
+function withOpenStream(seq, block) {
+  var {get,put} = Channel();
+  waitfor {
+    seq .. each { |x| 
+      put(x);
+    }
+    while (1) {
+      put(END);
+    }
+  }
+  or {
+    block(Stream::function(r) {
+      while (1) {
+        var v = get();
+        if (v === END) return;
+        r(v);
+      }
+    });
+  }
+}
+
+
+*/
 function withOpenStream(seq, block) {
   var Connected = Object.create(_Waitable); Connected.init();
-  var receiver;
+  var receiver, receiver_dynvars, saved_dynvars;
   var redirect;
 
   // helpers:
@@ -829,8 +853,15 @@ function withOpenStream(seq, block) {
     if (!receiver)
       return iter_wait_async(x);
     try {
+      
+      saved_dynvars = __oni_rt.current_dyn_vars;
+      __oni_rt.current_dyn_vars = receiver_dynvars;
       var rv = receiver(x);
-      if (rv && __oni_rt.is_ef(rv)) return iter_handle_controlflow_async(rv);
+      if (rv && __oni_rt.is_ef(rv)) {
+        return iter_handle_controlflow_async(rv);
+      }
+      else 
+        __oni_rt.current_dyn_vars = saved_dynvars;
     }
     catch(e) {
       receiver = null;
@@ -847,9 +878,11 @@ function withOpenStream(seq, block) {
       if (e[1]) {
         receiver = null;
         redirect(e);
+        __oni_rt.current_dyn_vars = saved_dynvars;
         throw [undefined];
       }
       else {
+        __oni_rt.current_dyn_vars = saved_dynvars;
         throw [undefined];
       }
     }
@@ -874,6 +907,7 @@ function withOpenStream(seq, block) {
   or {
     return block(Stream::function(r) {
       receiver = r;
+      receiver_dynvars = __oni_rt.current_dyn_vars; 
       waitfor(var control_flow) {
         redirect = resume;
         __js Connected.emit();

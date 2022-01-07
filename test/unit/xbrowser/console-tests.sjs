@@ -1,7 +1,7 @@
 var {test, context, assert, isIE} = require('sjs:test/suite');
 var logging = require('sjs:logging');
 
-context("console") {||
+context("console", function() {
   var {console} = require('sjs:xbrowser/console');
 
   var sendReturn = function(elem) {
@@ -22,13 +22,13 @@ context("console") {||
     input .. sendReturn();
   }
 
-  test.afterEach {|state|
+  test.afterEach:: function(state) {
     if(state.console) state.console.shutdown();
-  }
+  };
 
   // --------------------------------------------
   
-  test("leaves no elements behind") {||
+  test("leaves no elements behind", function() {
     var body = document.getElementsByTagName('body')[0];
     // childElementCount not supported on IE7
     var elemCount = -> 'childElementCount' in body ? body.childElementCount : body.childNodes.length;
@@ -39,21 +39,21 @@ context("console") {||
     c.shutdown();
 
     assert.eq(elemCount(), initial);
-  }
+  });
 
-  test("aborts its running strata on shutdown") {|s|
+  test("aborts its running strata on shutdown", function(s) {
     var c = s.console = console({collapsed:false});
     var testState = window.testState = { count: 0 };
-      
-    c .. exec("testState.logging = require('sjs:logging'); while(1) { testState.logging.info('LOOP'); testState.count++; hold(10); }");
-    hold(12);
-    // after 12ms, should have run loop twice
+
+    c .. exec("testState.logging = require('sjs:logging'); while(1) { testState.logging.info('LOOP'); testState.count++; hold(100); }");
+    hold(120);
+    // after 120ms, should have run loop twice
     assert.eq(testState.count, 2);
     c.shutdown();
     logging.info("shut down");
 
     hold(20);
     assert.eq(testState.count, 2);
-  }.skipIf(isIE(), "doesn't work on IE");
+  });
 
-}.browserOnly().ignoreLeaks('testState');
+}).browserOnly().ignoreLeaks('testState');

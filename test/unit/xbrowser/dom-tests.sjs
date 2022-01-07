@@ -48,7 +48,7 @@ if(testUtil.isBrowser) {
     return true;
   });
 
-  context("matchesSelector") {||
+  context("matchesSelector", function() {
     testEq("matchesSelector", true, function() {
       var elem = document.createElement('div');
       elem.innerHTML = "<div class='foo'><div id='bar'></div></div>";
@@ -60,7 +60,7 @@ if(testUtil.isBrowser) {
       elem.innerHTML = "<div class='foo'><div id='barx'></div></div>";
       return dom.matchesSelector(elem.firstChild.firstChild, '.foo #bar');
     });
-  }.skipIf(IE7);
+  })
 
   testEq("traverseDOM", true, function() {
     var elem = document.createElement('div');
@@ -72,7 +72,7 @@ if(testUtil.isBrowser) {
     return false;
   });
 
-  context("findNode") {||
+  context("findNode", function() {
     testEq("findNode", 'bar', function() {
       var elem = document.createElement('div');
       elem.innerHTML = "<div class='foo'><div data-x='bar'><div id='baz'></div></div></div>";
@@ -95,12 +95,12 @@ if(testUtil.isBrowser) {
       var node = dom.findNode('.xyz',elem.firstChild.firstChild.firstChild, elem, true);
       return node ? 'found' : 'not found';
     });
-  }.skipIf(IE7);
+  });
 
-  context('isDOMNode') {||
+  context('isDOMNode', function() {
     test('on DOM node', -> dom.isDOMNode(document.createElement('div')) .. assert.ok);
     test('on non-html DOM node', -> dom.isDOMNode(document.createElement('some-elem')) .. assert.ok);
     test('on text DOM node', -> dom.isDOMNode(document.createTextNode('txt')) .. assert.ok);
-  }
+  });
 }
 

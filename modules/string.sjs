@@ -608,7 +608,7 @@ __js exports.utf8ToString = exports.utf8ToUtf16 = function(s) {
    @desc
       **Notes:**
 
-        * On modern browsers, this function is equivalent to `window.atob`.
+        * On browsers, this function is equivalent to `window.btoa`.
         * This function will produce incorrect output or throw an error if any
           character code of the input
           falls outside the range 0-255.
@@ -619,44 +619,17 @@ __js exports.utf8ToString = exports.utf8ToUtf16 = function(s) {
           length is not a multiple of 3.
         * No line breaks will be inserted into the output string.
 */
-__js var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 __js {
 
-if (global.btoa) {
+if (sys.hostenv === 'nodejs') {
+  exports.octetsToBase64 = s -> Buffer.from(s).toString('base64');
+}
+else if (global.btoa) {
   exports.octetsToBase64 = s -> global.btoa(s);
 }
 else {
-  // fallback for IE9 and below
-  exports.octetsToBase64 = function(s) {
-    var rv = "";
-    var i = 0, l = s.length;
-    while (i<l) {
-      var c1 = s.charCodeAt(i++);
-      var c2 = s.charCodeAt(i++);
-      var c3 = s.charCodeAt(i++);
-
-      var e1,e2,e3,e4;
-      var e1 = c1 >> 2;
-      if (isNaN(c2)) {
-        e2 = (c1 & 3) << 4;
-        e3 = e4 = 64;
-      }
-      else {
-        e2 = ((c1 & 3) << 4)  | (c2 >> 4);
-        if (isNaN(c3)) {
-          e3 = (c2 & 15) << 2;
-          e4 = 64;
-        }
-        else {
-          e3 = ((c2 & 15) << 2) | (c3 >> 6);
-          e4 = c3 & 63;
-        }
-      }
-      rv += keyStr.charAt(e1) + keyStr.charAt(e2) + keyStr.charAt(e3) + keyStr.charAt(e4);
-    }
-    return rv;
-  };
+  exports.octetsToBase64 = function(s) { throw new Error("sjs:string::octetsToBase64 undefined in this hostenv"); };
 }
 
 } // __js
@@ -676,34 +649,17 @@ else {
           encoded string length is not a multiple of 3.
 */
 __js {
-var atob_ignore = /[^A-Za-z0-9\+\/\=]/g;
 if (global.atob) {
+  var atob_ignore = /[^A-Za-z0-9\+\/\=]/g;
   exports.base64ToOctets = s -> global.atob(s.replace(atob_ignore, ""));
 }
-else {
-  // fallback for IE9 and below
-  exports.base64ToOctets = function(s) {
-    var rv = "";
-    s = s.replace(atob_ignore, "");
-    var i=0, l=s.length;
-
-    while (i<l) {
-      var e1,e2,e3,e4;
-      e1 = keyStr.indexOf(s.charAt(i++));
-      e2 = keyStr.indexOf(s.charAt(i++));
-      e3 = keyStr.indexOf(s.charAt(i++));
-      e4 = keyStr.indexOf(s.charAt(i++));
-
-      rv += String.fromCharCode((e1 << 2) | (e2 >> 4));
-      if (e3 != 64) {
-        rv += String.fromCharCode(((e2 & 15) << 4) | (e3 >> 2));
-        if (e4 != 64)
-          rv += String.fromCharCode(((e3 & 3) << 6) | e4);
-      }
-    }
-    return rv;
-  };
+else if (sys.hostenv === 'nodejs') {
+  exports.base64ToOctets = s -> Buffer.from(s, 'base64').toString('utf-8');
 }
+else {
+  exports.base64ToOctets = function(s) { throw new Error("sjs:string::base64ToOctets undefined in this hostenv"); };
+}
+
 } // __js
 
 /**

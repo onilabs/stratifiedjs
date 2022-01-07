@@ -402,6 +402,20 @@
     "cutil": {
       "type": "module",
       "children": {
+        "Channel": {
+          "type": "class",
+          "children": {
+            "Channel": {
+              "type": "ctor"
+            },
+            "get": {
+              "type": "function"
+            },
+            "put": {
+              "type": "function"
+            }
+          }
+        },
         "Condition": {
           "type": "class",
           "children": {
@@ -2354,6 +2368,9 @@
     "sys": {
       "type": "module",
       "children": {
+        "VMID": {
+          "type": "variable"
+        },
         "argv": {
           "type": "function"
         },

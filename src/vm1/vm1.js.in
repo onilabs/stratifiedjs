@@ -39,12 +39,12 @@ define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
                              bit flaky with exceptions that are thrown by
                              JS code and caught/rethrown by SJS.
 
-
-    we really don't want async resume:
-define ASYNC_RESUME  : obsolete asynchronous resume code path
-
 */
 #define DEBUG_VM 1
+//#define DEBUG_DYNVARS 1
+//#define DEBUG_STACK 1
+//#define DEBUG_MULTIVM 1
+
 #ifdef DEBUG_VM
 function dumpExecutionFrameParents(ef, indent) {
   indent = indent || 0;
@@ -96,16 +96,25 @@ function dummy() {}
 
 //----------------------------------------------------------------------
 
+// XXX could consolidate the VMID generation code with sjs:string/sjs:crypto
+var random64;
 #if defined (CLIENTSIDE)
 exports.G = window;
+exports.VMID = "X";
+var bytes = new Uint8Array(8);
+window.crypto.getRandomValues(bytes);
+random64 = window.btoa(String.fromCharCode(...bytes));
 #elif defined (NODEJS)
 exports.G = global;
+exports.VMID = "N";
+random64 = require('crypto').randomBytes(8).toString('base64');
 #endif
+exports.VMID += random64.replace(/\//g,'_').replace(/\+/g, '-').replace(/=/g, '');
 
 // XXX
 var nextTick;
-if (exports.G.nextTick) {
-  nextTick  = exports.G.nextTick;
+if (exports.G.process && exports.G.process.nextTick) {
+  nextTick  = exports.G.process.nextTick;
 }
 else if (exports.G.Promise) {
  nextTick = function(cb) { Promise.resolve().then(cb); };
@@ -316,25 +325,26 @@ Some context switching guidelines:
   (b) when a parameter EF is aborted 
 */
 
-#ifdef DEBUG_VM_XXX
-#define DEBUG_DYNVARS
-#endif
 
-#ifdef DEBUG
-#define ASSERTDYNVARSROOT(LBL) if (exports.current_dyn_vars !== root_dyn_vars) throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+LBL+')');
+#ifdef DEBUG_VM
+var dynvar_ctx_counter = 0;
+#define ASSERTDYNVARSROOT(LBL) if (exports.current_dyn_vars !== root_dyn_vars) { console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+LBL+')'); throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+LBL+')'); }
 #else
 #define ASSERTDYNVARSROOT(LBL)
 #endif
 
 #ifdef DEBUG_DYNVARS
-#define SETDYNVARS(NEW,LBL) if (exports.current_dyn_vars !== NEW)  { if (String(LBL).indexOf('verified') == -1) console.log("DV("+LBL+")>",exports.current_dyn_vars.id,">",NEW.id); exports.current_dyn_vars = NEW; }
-var dynvar_ctx_counter = 0;
+#ifdef DEBUG_MULTIVM
+#define SETDYNVARS(NEW,LBL) if (exports.current_dyn_vars !== NEW)  { if (String(LBL).indexOf('verifiedxx') == -1) console.log(exports.VMID+":DV("+LBL+")>",exports.current_dyn_vars.id,">",NEW.id); exports.current_dyn_vars = NEW; }
+#else
+#define SETDYNVARS(NEW,LBL) if (exports.current_dyn_vars !== NEW)  { if (String(LBL).indexOf('verifiedxx') == -1) console.log("DV("+LBL+")>",exports.current_dyn_vars.id,">",NEW.id); exports.current_dyn_vars = NEW; }
+#endif /* MULTIVM */
 #else
 #define SETDYNVARS(NEW,LBL) exports.current_dyn_vars = NEW;
 #endif
 
 function createDynVarContext(proto_context) {
-#ifdef DEBUG_DYNVARS
+#ifdef DEBUG_VM
   var ctx = Object.create(proto_context);
   ctx.id = proto_context.id + '/' + (++dynvar_ctx_counter);
   return ctx;
@@ -345,6 +355,7 @@ function createDynVarContext(proto_context) {
 exports.createDynVarContext = createDynVarContext;
 
 var root_dyn_vars = { id: '0' };
+exports.root_dyn_vars = root_dyn_vars;
 exports.current_dyn_vars = root_dyn_vars;
 
 
@@ -352,7 +363,7 @@ exports.current_dyn_vars = root_dyn_vars;
 //----------------------------------------------------------------------
 // Callstack support:
 
-// current_call is set to [file,lineno] for every Fcall & I_call 
+// current_call is set to [file,lineno] for every Fcall, FACall & I_call 
 // This is used to extract stack information for stratum calls (spawn/adopt):
 exports.current_call = null;
 
@@ -396,11 +407,15 @@ function cont(frame, idx, val) {
   return rv;
 }
 
+// Execution frames are tied to a particular VM (e.g. they don't work across iframes).
+// This is because dynamic variable contexts don't work across VMs:
+var ONI_EF = {};
+
 exports.is_ef = function(obj) {
-  return obj && obj.__oni_ef;
+  return obj && obj.__oni_ef === ONI_EF;
 }
 // The type checking here is to prevent V8 deoptimization when obj is a Smi
-#define is_ef(obj) (obj !== null && typeof(obj) === 'object' && obj.__oni_ef===true)
+#define is_ef(obj) (obj !== null && typeof(obj) === 'object' && obj.__oni_ef===ONI_EF)
 
 function setEFProto(t) { for (var p in EF_Proto) t[p] = EF_Proto[p]; }
 //function setEFProto(t) { t.__proto__ = EF_Proto; }
@@ -433,14 +448,20 @@ var EF_Proto = {
   toString: function() { var rv = "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+((this.env && this.env.file) ? '@'+this.env.file.substr(-20): '')+">";
                          if (this.callstack)
                            rv += '[' + this.callstack.join(' > ') + ']';
+#ifdef DEBUG_MULTIVM
+                         rv = exports.VMID + rv;
+#endif
                          return rv;
  },
 #else
   toString: function() { return "<suspended SJS>"; },
 #endif
-  __oni_ef : true,
+  __oni_ef : ONI_EF,
 
-  wait: function() { return this; },
+  wait: function() { 
+    SETDYNVARS(root_dyn_vars, this+':wait')
+    return this; 
+  },
 
 #ifdef DEBUG_VM
   gatherSuspensionTree: function() {
@@ -506,6 +527,9 @@ var EF_Proto = {
       }
       else {
         if (is_annotated_oni_cfx(abort_val) && this.callstack) {
+#ifdef DEBUG_STACK
+          console.log(this+" 1 adding ",this.callstack," to "+abort_val.val);
+#endif
           abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
         }
 
@@ -516,7 +540,14 @@ var EF_Proto = {
     }
   },
 
-  returnToParent: function(val) {
+  returnToParent: function(val) { 
+//    if (String(this).indexOf("Reified") !== -1) {
+//      console.log(this+":RTP "+val+" --- "+(is_cfx(val) && val.type==='r'?val.val:''));
+//      console.log('swallow_r='+this.swallow_r);
+//      console.log('parent = '+this.parent);
+//      this.DDD = true;
+//      console.log('async = '+this.async);
+//    }
 #ifdef DEBUG_VM_X
     // We currently call returnToParent prematurely under various reentrancy scenarios in
     // Alt, Par, and Spawn.
@@ -530,6 +561,9 @@ var EF_Proto = {
 #endif
 
     if(is_cfx(val) && val.type == 't' && this.callstack && val.val!=null && val.val.__oni_stack) {
+#ifdef DEBUG_STACK
+      console.log(this+" 2 adding ",this.callstack," to "+val.val);
+#endif
       val.val.__oni_stack = val.val.__oni_stack.concat(this.callstack);
     }
 //    if (is_cfx(val) && val.type === 'r' && (val.val === 'toplevel' || val.val === 'inner' || val.val === 'outer')) console.log(this+":RTP "+val.val+' async:'+this.async+" swallow="+this.swallow_r);
@@ -597,8 +631,9 @@ var EF_Proto = {
       }
       else // noone waiting for result; make sure exceptions get reported
         if (is_cfx(val)) {
-          //console.log("UNREPORTED EXCEPTION IN "+this+":"+val.type+" eid="+val.eid);
           val.mapToJS(true);
+//          var v = val;
+//          nextTick(function() { v.mapToJS(true); });
         }
     }
     else // sync context
@@ -1032,14 +1067,17 @@ function createReifiedStratum(ef) {
 #ifdef EF_TYPES
         toString: function() { return "<wait on stratum "+ef.id+">"; },
 #endif
-        wait: function() { return wef; },
+        wait: function() { 
+          SETDYNVARS(root_dyn_vars, wef+':wait')
+          return wef; 
+        },
         quench: function() { ef.wait_frames.delete(wef); },
         abort: function() { 
           SETDYNVARS(wef.__oni_dynvars, 'abort[stratum.wait] //(5) -- verified')
           //to aid gc; check if this is possible: wef.__oni_dynvars = UNDEF;
           return UNDEF;
         },
-        __oni_ef: true,
+        __oni_ef: ONI_EF,
         __oni_dynvars: exports.current_dyn_vars
       };
 
@@ -1057,7 +1095,10 @@ function createReifiedStratum(ef) {
 #ifdef EF_TYPES
         toString: function() { return "<join on stratum "+ef.id+">"; },
 #endif
-        wait: function() { return jef; },
+        wait: function() { 
+          SETDYNVARS(root_dyn_vars, jef+':wait')
+          return jef; 
+        },
         quench: function() { ef.join_frames.delete(jef); },
         abort: function() { 
           //console.log("ABORT JOIN FRAME for "+ef);  
@@ -1065,7 +1106,7 @@ function createReifiedStratum(ef) {
           //XXX to aid gc; check if this is ok: jef.__oni_dynvars = UNDEF;
           return UNDEF; 
         },
-        __oni_ef: true,
+        __oni_ef: ONI_EF,
         __oni_dynvars: exports.current_dyn_vars
       };
 
@@ -1095,12 +1136,18 @@ function createReifiedStratum(ef) {
 
       // see unit/stack-tests spawn/adopt tests
       if (ef_to_adopt.callstack) { 
+#ifdef DEBUG_STACK
+        console.log(this+'::adopt pushing callstack 1 ',current_call);
+#endif
         ef_to_adopt.callstack.push(current_call);
       }
       else {
         // for reentrant adoption of non-spawned stratum, we won't have a callstack, but
         // we will have 'pending_caller' set:
         ASSERT(ef_to_adopt.pending_caller)
+#ifdef DEBUG_STACK
+        console.log(this+'::adopt pushing callstack 2 ',current_call, ef_to_adopt.pending_caller);
+#endif
         ef_to_adopt.callstack = [ current_call, ef_to_adopt.pending_caller ];
       }
       // ef_to_adopt might not have a parent if it is reentrantly adopted 
@@ -1116,16 +1163,19 @@ function createReifiedStratum(ef) {
 
       if (old_parent) {
         cont(old_parent, old_parent_idx, UNDEF);
-        ASSERT(exports.current_dyn_vars === dynvars)
+        ASSERT(exports.current_dyn_vars === dynvars || exports.current_dyn_vars === root_dyn_vars)
       }
-      else {
+//      else {
         //console.log("---------- ADOPT WITH NO PARENT");
         // mark as adopted, so that we don't hook up to parent in `spawn`:
+      // XXX this flag is ALWAYS needed if we are adopted; not only for `spawn`
         ef_to_adopt.adopted = true;
-      }
+//      }
+
+      ef_to_adopt.dynvars.__oni_anchor_route = ef.dynvars;
+
       // this needs to come after cont(old_parent,...), because that code might set child_frame.parent=UNDEF
       cont(ef, -2, [id,ef_to_adopt]);
-
       SETDYNVARS(dynvars, "stratum.adopt() // (2) -- verified")
       return ef_to_adopt.reifiedstratum;
     },
@@ -1137,22 +1187,25 @@ function createReifiedStratum(ef) {
 
 function spawnSubStratum(f, parent_ef) {
   if (parent_ef.done) throw new Error("Cannot spawn stratum with inactive parent");
+  var parent_dynvars = exports.current_dyn_vars;
   var id = ++parent_ef.substratumid;
-  var reified_ef = new EF_Reified(parent_ef.id+'/'+id);
+  var reified_ef = new EF_Reified(parent_ef.id+'/'+id, parent_ef.dynvars);
+
+  SETDYNVARS(reified_ef.dynvars, "spawnSubStratum // (1)")
+
   //console.log("!spawn "+reified_ef);
   ++reified_ef.pending;
   ++parent_ef.pending;
+#ifdef DEBUG_STACK
+        console.log(reified_ef+'::spawnSubStratum setting callstack ',current_call);
+#endif
   reified_ef.callstack = [ current_call ];
   var val;
   try {
-    var parent_dynvars = exports.current_dyn_vars;
-
     // start executing substratum:
     val = f(reified_ef.reifiedstratum);
   }
   catch(e) {
-    // dispatch synchronous exception to parent_ef, then return 
-    //XXX handle me
     if (!is_cfx(e)) {
       e = new CFException("t", e, 0, ''); // XXX call info
     }
@@ -1166,7 +1219,7 @@ function spawnSubStratum(f, parent_ef) {
     cont(parent_ef, -2, [id,substratum_val]);
   }
   else {
-    //console.log("NOT HOOKING UP ADOPTED STRATUM IN .SPAWN (parent="+reified_ef.parent+")");
+    console.log("NOT HOOKING UP ADOPTED STRATUM IN .SPAWN (parent="+reified_ef.parent+")");
     // need to clear pending: (XXX might be able to do this by direct setting?)
     cont(parent_ef, -2, [id, UNDEF]);
   }
@@ -1174,11 +1227,14 @@ function spawnSubStratum(f, parent_ef) {
   return reified_ef.reifiedstratum;
 }
 
-function EF_Reified(id) {
+function EF_Reified(id, anchor_route) {
   // inject stratum interface
   this.id = id;
   this.reifiedstratum = createReifiedStratum(this);
-  this.dynvars = exports.current_dyn_vars;
+  this.dynvars = createDynVarContext(exports.current_dyn_vars);
+  this.dynvars.__oni_anchor = UNDEF;
+  this.dynvars.__oni_anchor_route = anchor_route;
+  //console.log(this+" dynvars = ",this.dynvars);
   this.pending = 0;
   this.substratumid = 0;
   this.pending_rv = UNDEF;
@@ -1202,8 +1258,18 @@ EF_Reified.prototype.type = function() {
    -2: new stratum
 
 */
+EF_Reified.prototype.contOUTERDEBUG = function(idx, val) {
+  try {
+    if (String(this) === "<Reified32>") console.log("<<<<<<<<<< "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+    return this.cont_inner(idx, val);
+  }
+  finally {
+if (String(this) === "<Reified32>") console.log(">>>>>>>>>> "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+  }
+};
+
 EF_Reified.prototype.cont = function(idx, val) {
-  //console.log(this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+  //console.log(">> "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
   ASSERT(idx <= 0 || this.strata_children.has(idx))
 
   if (idx === -1) {
@@ -1232,7 +1298,10 @@ EF_Reified.prototype.cont = function(idx, val) {
     }
   }
   if (is_ef(val)) {
+    if (idx === 0) 
+      this.async = true;
     this.setChildFrame(val, idx);
+    return this;
   }
   else {
     //console.log(this+"--PENDING(idx "+idx+") IN CONT >"+(this.pending-1));
@@ -1266,6 +1335,8 @@ EF_Reified.prototype.cont = function(idx, val) {
 //        console.log(this+' pending_rv='+this.pending_rv);
         this.quench();
         this.abort();
+        if (this.done) return this.returnToParent(this.pending_rv);
+        else return this;
       }
       else if (val.type === 't') {
         this.pending_rv = mergeExceptions(val, this.pending_rv);
@@ -1279,10 +1350,21 @@ EF_Reified.prototype.cont = function(idx, val) {
   }
   
   if (this.pending <= 1) {
-    this.flush_join_frames();
+    if (this.flushing) {
+      return;
+    }
+    else {
+      this.flushing = true;
+      this.flush_join_frames();
+      this.flushing = false;
+    }
   }
 
   if (this.pending===0) {
+    if (this.done) {
+      console.log(this+" WE ARE SO DONE WITH THIS");
+      process.exit(1);
+    }
     this.done = true;
     this.reifiedstratum.running = false;
 
@@ -1293,21 +1375,21 @@ EF_Reified.prototype.cont = function(idx, val) {
 
     //console.log(this+".rtp ASYNC = "+this.async+', returning: '+this.pending_rv);
 
-    SETDYNVARS(this.dynvars, "Reified.cont // (6)(a)(i) -- verified")
+    SETDYNVARS(this.dynvars.__oni_anchor_route, this+".cont // (6)(a)(i), val="+this.pending_rv)
 
-    return this.returnToParent(this.pending_rv);
+    return this.returnToParent(this.assertRoutable(this.pending_rv));
   }
   else if (idx === 0) {
     this.async = true;
     // under certain abort scenarios (e.g. still need to wait for child frame), we haven't got the 
     // the right dynvars, so need to reset here:
-    SETDYNVARS(root_dyn_vars, "Reified // (3) -- verified")
+    SETDYNVARS(root_dyn_vars, this+".cont // (3) -- verified")
     //console.log(this + " RET THIS, parent="+this.parent+" pending="+this.pending);
     return this;
   }
   else {
     // this was a cont() for a child stratum; we need to reset the dyn vars:
-    SETDYNVARS(root_dyn_vars, "Reified.cont // (6)(a)(ii) -- verified")
+    SETDYNVARS(root_dyn_vars, this+".cont // (6)(a)(ii) -- verified")
   }
 };
 
@@ -1333,16 +1415,20 @@ EF_Reified.prototype.flush_wait_frames = function() {
   for (var wait_frame of frames) {
     if (wait_frame.parent) {
       SETDYNVARS(wait_frame.__oni_dynvars, "wait[child] // (3) -- verified")
+//      console.log("CONT "+wait_frame.parent+" from "+this);
       cont(wait_frame.parent, wait_frame.parent_idx, this.reifiedstratum);
       // cont(.) should restore the root DC in all cases, because we are always called async
-      ASSERTDYNVARSROOT('reified::flush_wait_frames:2')
     }
+    // this doesn't always hold when we call SJS through JS and let the 
+    // continuation go nowhere:
+    // ASSERTDYNVARSROOT('reified::flush_wait_frames:2')
+    SETDYNVARS(root_dyn_vars, "reified::flush_wait_frames:2")
     //XXX to aid gc; check if this is possible: wait_frame.__oni_dynvars = UNDEF;
   }
 }
 
 EF_Reified.prototype.abort_child_strata = function() {
-  //console.log(this+' aborting child strata');
+//  console.log(this+' aborting child strata');
   ASSERT(!this.strata_children_aborted);
 
   /* we need to be careful about how to quench&abort our children, since a still-running child
@@ -1366,6 +1452,9 @@ EF_Reified.prototype.abort_child_strata = function() {
         --this.pending;
         // XXX check this is correct:
         if (is_annotated_oni_cfx(abort_val) && this.callstack) {
+#ifdef DEBUG_STACK
+          console.log(this+" 3 adding ",this.callstack," to "+abort_val.val);
+#endif
           abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
         }
         //console.log(this+' on child abort: merging '+abort_val);
@@ -1381,7 +1470,7 @@ EF_Reified.prototype.abort_child_strata = function() {
 };
 
 EF_Reified.prototype.abort = function(pseudo_abort) {
-  //console.log(this+".ABORT pending = "+this.pending+", aborted="+this.aborted+", done="+this.done+", main_child="+this.main_child+" parent="+this.parent);
+//  console.log(this+".ABORT pending = "+this.pending+", aborted="+this.aborted+", done="+this.done+", main_child="+this.main_child+" parent="+this.parent);
   // allow redundant aborts. this could be engineered better, but we're using 'aborted' also as 
   // a flag in cont() to note that the main thread has ended. If a child stratum blocks, we can still
   // get an abort() from the upstream.
@@ -1408,6 +1497,9 @@ EF_Reified.prototype.abort = function(pseudo_abort) {
       --this.pending;
       // XXX check this is correct:
       if (is_annotated_oni_cfx(abort_val) && this.callstack) {
+#ifdef DEBUG_STACK
+        console.log(this+" 4 adding ",this.callstack," to "+abort_val.val);
+#endif
         abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
         }
       this.pending_rv = mergeExceptions(abort_val, this.pending_rv);
@@ -1438,10 +1530,32 @@ EF_Reified.prototype.abort = function(pseudo_abort) {
     // XXX check if this is still an issue:
     // this fixes sjs-3-tests.sjs:'return via inactive scope edgecase':
     this.unreturnable = true;
-    SETDYNVARS(this.dynvars, 'reified::abort // (6)(b)')
+    SETDYNVARS(this.dynvars.__oni_anchor_route, 'reified::abort // (6)(b)')
     //console.log(this+" ABORT DONE & RETURNING: "+this.pending_rv);
-    return this.pending_rv;
+    return this.assertRoutable(this.pending_rv);
   }
+};
+
+// XXX consolidate this with the code in EF_Try
+EF_Reified.prototype.assertRoutable = function(rv) {
+  if (is_cfx(rv) && (rv.type === 'blb' || rv.type === 'blr')) {
+//    console.log(this+"::assertRoutable (2nd line)");
+//    console.log(this.dynvars.__oni_anchor_route);
+
+    var node = this.dynvars.__oni_anchor_route;
+
+    while (node) {
+//      console.log(node.__oni_anchor+' --- '+rv.aid);
+      if (node.__oni_anchor === rv.aid) {
+//        console.log("ANCHOR FOUND");
+        return rv;
+      }
+      node = node.__oni_anchor_route;
+    }
+    console.log(this+"::assertRoutable (2nd line) ANCHOR "+rv.aid+" NOT FOUND!!!");
+    return new CFException("t", new Error("Unroutable blocklambda break/return"));
+  }
+  return rv;
 };
 
 // XXX can't use quenchPar here, because we have to use a Map for children:
@@ -1459,6 +1573,8 @@ EF_Reified.prototype.quench = function() {
 
 // XXX can't use setChildFramePar here, because we have to use a Map for children:
 EF_Reified.prototype.setChildFrame = function(ef, idx) {
+  // NOTE: The following assert DOES NOT hold for EF_Reified when adopting:
+  //ASSERTDYNVARSROOT("EF_Reified::setChildFrame")
   //console.log(this+'.setchildframe('+ef+','+idx+' parent='+this.parent+')');
   if (idx === 0) {
     if (this.main_child) {
@@ -1486,8 +1602,12 @@ EF_Reified.prototype.setChildFrame = function(ef, idx) {
 
 var reified_counter = 0;
 function I_reifiedseq(ndata, env) {
+  var dynvars = exports.current_dyn_vars;
+  var reified_ef = new EF_Reified(++reified_counter/*inner_ef.type()*/, dynvars);
+
+  SETDYNVARS(reified_ef.dynvars, "I_reifiedseq // (1)")
+
   var inner_ef = new EF_Seq(ndata, env);
-  var reified_ef = new EF_Reified(++reified_counter/*inner_ef.type()*/);
   // we're setting pending_caller, in case there is a reentrant adopt:
   // - see also unit/stack-tests:'function abort'
   reified_ef.pending_caller = current_call;
@@ -1496,15 +1616,22 @@ function I_reifiedseq(ndata, env) {
   // inject stratum interface:
   inner_ef.env.reifiedstratum = reified_ef.reifiedstratum;
 
-  var dynvars = exports.current_dyn_vars;
 
   // start inner seq:
   var val = cont(inner_ef, 0);
+
+  if(!(exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === reified_ef.dynvars)) {
+    console.log("XXXXXXXXXXXXXXXXX current dynvars = "+exports.current_dyn_vars.id+" / expected=root or "+reified_ef.dynvars.id);
+  }
+
   // initialize stratum ef & return:
   var rv = cont(reified_ef,-1,val);
 
+  ASSERT(exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === reified_ef.dynvars.__oni_anchor_route)
+
+  ASSERT(exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === dynvars)
   if (reified_ef.adopted) {
-    SETDYNVARS(dynvars, "I_reifiedseq // (6)(c) - verified")
+    SETDYNVARS(dynvars, "I_reifiedseq // (6)(c)")
     return UNDEF;
   }
   else {
@@ -1654,20 +1781,39 @@ EF_BlSeq.prototype.cont = function(idx, val) {
 
 EF_BlSeq.prototype.translateCFEs = function(val) {
 //  console.log(this+":translateCFEs: "+val);
-  if (val.type === 'b') {
+  switch(val.type) {
+  case 'b':
     // a break inside a blocklambda becomes a blocklambda break, which will be caught by the FAcall 'blanchor':
     val = new CFException('blb');
-    val.aid = this.blanchor.aid;
-  }
-  else if (val.type === 'r') {
+    break;
+  case 'r':
     // a return inside a blocklambda becomes a blocklambda return, which will be caught by the FAcall 'blanchor':
     val = new CFException('blr', val.val);
-    val.aid = this.blanchor.aid;
+    break;
+  case 'c':
+    return UNDEF;
+  default:
+    return val;
   }
-  else if (val.type === 'c') {
-    val = UNDEF;
+
+  // we have a blb or blr:
+  val.aid = this.blanchor.aid;
+
+  // check routability:
+//  console.log(this+"::assertRoutable");
+//  console.log(exports.current_dyn_vars);
+  var node = exports.current_dyn_vars;
+  while (node) {
+//    console.log(node.__oni_anchor+' --- '+val.aid);
+    if (node.__oni_anchor === val.aid) {
+//      console.log("ANCHOR FOUND");
+      return val;
+    }
+    node = node.__oni_anchor_route;
   }
-  return val;
+
+  console.log(this+"::assertRoutable ANCHOR NOT FOUND!!!");
+  return new CFException("t", new Error("Unroutable blocklambda break/return"));
 };
 
 EF_BlSeq.prototype.abort = function(pseudo_abort) {
@@ -1699,6 +1845,9 @@ EF_BlSeq.prototype.abort = function(pseudo_abort) {
     else {
       if (is_cfx(abort_val)) abort_val = this.translateCFEs(abort_val);
       if (is_annotated_oni_cfx(abort_val) && this.callstack) {
+#ifdef DEBUG_STACK
+        console.log(this+" 5 adding ",this.callstack," to "+abort_val.val);
+#endif
         abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
       }
       
@@ -2174,9 +2323,9 @@ function EF_FAcall(ndata, env) {
   this.env.blanchor = this;
 
   this.parent_dynvars = exports.current_dyn_vars;
-  this.param_dynvars = createDynVarContext(exports.current_dyn_vars);
-  this.param_dynvars.__oni_anchor_route = exports.current_dyn_vars;
-  this.param_dynvars.__oni_anchor = this;
+  this.facall_dynvars = createDynVarContext(exports.current_dyn_vars);
+  this.facall_dynvars.__oni_anchor_route = exports.current_dyn_vars;
+  this.facall_dynvars.__oni_anchor = this.aid;
 }
 setEFProto(EF_FAcall.prototype={});
 #ifdef EF_TYPES
@@ -2192,19 +2341,20 @@ EF_FAcall.prototype.cont = function(idx, val) {
   else if (is_cfx(val) || this.aborted) {
     if (is_cfx(val)) val = this.translateCFEs(val);
     // XXX CLEAN UP CHILDFRAME
-    if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>>>>>> HIT 1");
+    ASSERT(!is_ef(val))
     SETDYNVARS(this.parent_dynvars, "FAcall::cont(cfx/abort) //(7)(b)")
     return this.returnToParent(val);
   }
   else if (idx === 3) {
-/*    if (this.breaked && !this.aborted) {
-      val = UNDEF;
-    }*/
+    ASSERT(!is_ef(val))
+    SETDYNVARS(this.parent_dynvars, "FAcall::cont(idx3) //(7)(b)")
     return this.returnToParent(val);
   }
   else if (idx == 2) {
     // XXX can this go?
     // returning from a 'new' call
+    if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>>>>>> HIT 1/2");
+    SETDYNVARS(this.parent_dynvars, "FAcall::cont(idx2) //(7)(b)")
     return this.returnToParent(typeof val === 'object' ? val : this.o);
   }
   else {
@@ -2220,7 +2370,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
     var args_length = this.ndata.length;
     if (this.NDATA_FCALL_FLAGS() & FCALL_FLAG_SPREAD) --args_length;
     while (this.i<args_length) {
-      if (this.i === NDATA_FCALL_ARGS_OFFSET) { SETDYNVARS(this.param_dynvars, "FAcall<"+this+"> arg //(7)") }
+//      if (this.i === NDATA_FCALL_ARGS_OFFSET) { SETDYNVARS(this.facall_dynvars, "FAcall<"+this+"> arg //(7)") }
       rv = execIN(this.ndata[this.i], this.env);
       if (this.aborted) {
         // a reentrant abortion
@@ -2230,6 +2380,9 @@ EF_FAcall.prototype.cont = function(idx, val) {
           if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>> HIT 2");
           if (!is_ef(rv)) {
             SETDYNVARS(this.parent_dynvars, "FAcall.cont[reent par abort] //(7)(b)")
+          }
+          else {
+            ASSERTDYNVARSROOT('facall 3321')
           }
           // XXX can we return child ef here??? TESTCASE
           return this.returnToParent(rv);
@@ -2251,8 +2404,9 @@ EF_FAcall.prototype.cont = function(idx, val) {
       else
         this.pars.push(rv);
     } // while
-    
-    SETDYNVARS(this.parent_dynvars, "FAcall.cont[par reset] //(7)(a)")
+  
+//    ASSERT(this.facall_dynvars === exports.current_dyn_vars)
+    SETDYNVARS(this.facall_dynvars, "FAcall.cont[call]")
 
     if (this.child_frame) {
       this.child_frame.parent = UNDEF;
@@ -2277,6 +2431,8 @@ EF_FAcall.prototype.cont = function(idx, val) {
       }
       else 
         pars = this.pars;
+
+      current_call = [this.env.file, this.NDATA_FCALL_LINE()];
 
       switch (this.NDATA_FCALL_FLAGS() & FCALL_FLAGS_MODE_MASK) {
       case FCALL_MODE_NORMAL:
@@ -2415,23 +2571,16 @@ EF_FAcall.prototype.cont = function(idx, val) {
     }
 
     if (is_ef(rv)) {
+      ASSERTDYNVARSROOT('facall 23266')
       if (this.aborted) {
         // reentrant abortion
         rv = rv.abort(this.pseudo_abort);
         if (!is_ef(rv)) {
           if (is_cfx(rv)) rv = this.translateCFEs(rv);
+          SETDYNVARS(this.parent_dynvars, "FAcall::cont[reset 1]")
           return this.returnToParent(rv);
         }
       }
-/*
-      else if (this.breaked) {
-        //console.log(this + ' reentrant break');
-        // reentrant break
-        rv = rv.abort();
-        //console.log(this + ' rv aborted; abort returned:'+rv);
-        if (!is_ef(rv)) rv = undefined;
-      }
-*/
       if (rv) {
         // the call is blocking -> insert ourselves into callstack:
         if (!rv.callstack) rv.callstack = [];
@@ -2441,11 +2590,14 @@ EF_FAcall.prototype.cont = function(idx, val) {
 
     // make sure we're not tail-called:
     if (is_ef(rv)) {
+      ASSERTDYNVARSROOT('facall 232ds66')
       this.setChildFrame(rv, 3);
       return this;
     }
-    else
+    else {
+      SETDYNVARS(this.parent_dynvars, "FAcall::cont[reset 2]")
       return this.returnToParent(rv);
+    }
   }
 };
 
@@ -2481,10 +2633,14 @@ EF_FAcall.prototype.abort = function(pseudo_abort) {
   else {
     var abort_val = this.child_frame.abort(pseudo_abort);
     if (is_ef(abort_val)) {
+      ASSERTDYNVARSROOT('FACall::abort 23')
       return this; // need to stay in picture because abort must not return child frame
     }
     else {
       if (is_annotated_oni_cfx(abort_val) && this.callstack) {
+#ifdef DEBUG_STACK
+        console.log(this+" 6 adding ",this.callstack," to "+abort_val.val);
+#endif
         abort_val.val.__oni_stack = abort_val.val.__oni_stack.concat(this.callstack);
       }
       
@@ -2494,7 +2650,7 @@ EF_FAcall.prototype.abort = function(pseudo_abort) {
 
       if (is_cfx(abort_val)) abort_val = this.translateCFEs(abort_val);
 
-      if (exports.current_dyn_vars !== this.parent_dynvars) console.log(">>>>>>>>>> HIT 5");
+      ASSERT(!is_ef(abort_val))
       SETDYNVARS(this.parent_dynvars, "FAcall::abort // (7)(b)")
 
       return abort_val;
@@ -2814,6 +2970,20 @@ EF_Try.prototype.cont = function(idx, val) {
     case 1:
       // returning from try block
       this.state = 2;
+
+/* XXX NOT SURE THIS IS NEEDED AFTER ALL
+      // XXX consolidate this with the code in EF_Reified
+      
+      if (is_cfx(val) && (val.type === 'blb' || val.type === 'blr')) {
+        console.log(this+"::assertRoutable (3rd line)");
+        var node = exports.current_dyn_vars;
+        while (node) {
+          if (node.__oni_anchor === val.aid) break;
+          node = node.__oni_anchor_route;
+        }
+        if (!node) val = new CFException("t", new Error("Unroutable blocklambda break/return"));
+      }
+*/
       if (this.NDATA_TRY_CATCH_FUNC() &&
           (is_cfx(val) && val.type == "t")) {
         var v;
@@ -2994,7 +3164,10 @@ EF_Try.prototype.abort = function(pseudo_abort) {
       // & fall through. we need to block
     }
   }
-  ASSERTDYNVARSROOT('Try::abort')
+  else {
+    SETDYNVARS(root_dyn_vars, 'Try::abort state 4')
+  }
+  ASSERTDYNVARSROOT(this+': Try::abort')
   return this;
 };
 
@@ -3350,6 +3523,7 @@ EF_Par.prototype.toString = function() { return "<Par"+this.id+"@"+this.env.file
 #endif
 
 EF_Par.prototype.cont = function(idx, val) {
+//  console.log(this+".cont("+idx+","+val+")");
   if (is_ef(val)) {
     this.setChildFrame(val, idx);
   }
@@ -3437,6 +3611,7 @@ EF_Par.prototype.cont = function(idx, val) {
           return this.returnToParent(this.pendingCFE);
       }
     }
+    SETDYNVARS(root_dyn_vars, "Par::cont[waiting]")
     this.async = true;
     return this;
   }
@@ -3562,6 +3737,7 @@ EF_Alt.prototype.type = function() {return "Alt(aborted="+!!this.aborted+")"};
 #endif
 
 EF_Alt.prototype.cont = function(idx, val) {
+//  console.log(this+":ALT("+idx+",val="+val);
   if (is_ef(val)) {
     this.setChildFrame(val, idx);
   }
@@ -3638,6 +3814,7 @@ EF_Alt.prototype.cont = function(idx, val) {
       }
     }
     this.async = true;
+    SETDYNVARS(root_dyn_vars, "EF_Alt final -- needed for sync collapse")
     return this;
   }
 };
@@ -3814,7 +3991,7 @@ EF_WfW.prototype.type = function() {return "WfW(aborted="+!!this.aborted+")"};
 #endif
 
 EF_WfW.prototype.cont = function(idx, val) {
-  //console.log("wfw cont("+idx+","+val+",pending="+this.pending+")");
+//  console.log("wfw cont("+idx+","+val+",pending="+this.pending+")");
   if (is_ef(val)) {
     // child frame being replaced
     this.setChildFrame(val, idx);
@@ -3876,6 +4053,7 @@ EF_WfW.prototype.cont = function(idx, val) {
     if (this.pending === 1) {
       if (this.pendingCFE === undefined && this.children[1]) {
         // we can make a tailcall:
+        SETDYNVARS(root_dyn_vars,'wfm tailcall')
         return this.returnToParent(this.children[1]);
       }
       else if (this.children[0]) {
@@ -3888,7 +4066,6 @@ EF_WfW.prototype.cont = function(idx, val) {
       // XXX do we need the mergeExceptions call here?
       return this.returnToParent(mergeExceptions(val, this.pendingCFE));
     }
-
     this.async = true;
     return this;
   }
@@ -3897,6 +4074,7 @@ EF_WfW.prototype.cont = function(idx, val) {
 EF_WfW.prototype.quench = quenchPar;
 
 EF_WfW.prototype.abort = function(pseudo_abort) {
+//  console.log(this+'.abort');
   // Leftover from old abort code. Not sure what the logic was here.
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
@@ -3973,33 +4151,6 @@ exports.WfW = function(...args) {
 //----------------------------------------------------------------------
 // Suspend: stratified suspend operation
 
-#ifdef ASYNC_RESUME
-var ResumeQueue = {
-  messages: [],
-  pickup_pending: false,
-  post: function(resume_struct) {
-    this.messages.push(resume_struct);
-    if (!this.pickup_pending) {
-      this.pickup_pending = true;
-#ifdef CLIENTSIDE
-      setTimeout(function() { ResumeQueue.pickup(); }, 0);
-#else
-      callAsync(function() { ResumeQueue.pickup(); });
-#endif
-    }
-  },
-  pickup: function() {
-    this.pickup_pending = false;
-    var ms = this.messages;
-    this.messages = [];
-    for (var i=0; i<ms.length; ++i) {
-      var m = ms[i];
-      cont(m[0],m[1],m[2]);
-    }
-  }
-};
-exports.Q = ResumeQueue;
-#endif
 
 // structure of ndata array:
 #define NDATA_SUSPEND_SUSPENDFUNC() ndata[0]
@@ -4038,9 +4189,6 @@ EF_Suspend.prototype.cont = function(idx, val) {
     try {
       var ef = this;
       this.dyn_vars = exports.current_dyn_vars;
-#ifdef ASYNC_RESUME
-      var resumefunc = function(...args) { ResumeQueue.post([ef,2,args]); };
-#else
   // XXX We could return something from resumefunc
   var resumefunc = function(...args) {
     if (ef.returning) {
@@ -4053,14 +4201,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
       cont(ef, 2, args);
     }
     catch(e) {
-      var s = function() { throw e; };
-#if defined (CLIENTSIDE)
-      setTimeout(s, 0);
-#elif defined (NODEJS)
-      process.nextTick(s);
-#else
-      callAsync(s);
-#endif
+      hold0(function() { throw e; });
     }
     finally {
       ef.dyn_vars = undefined; // aid gc
@@ -4068,7 +4209,6 @@ EF_Suspend.prototype.cont = function(idx, val) {
     }
   };
 
-#endif
       // XXX If we want to enable the 'clearOrphanedBLR' functionality in the bridge
       // then we need to reflect the execution frame onto the resume function here:
       //resumefunc.ef = ef; 
@@ -4238,19 +4378,26 @@ EF_Collapse.prototype.type = "Collapse";
 EF_Collapse.prototype.__oni_collapse = true;
 
 EF_Collapse.prototype.cont = function(idx, val) {
+//  console.log('collapse ' + this.env.fold + ".cont idx = "+idx+" val="+val);
   if (idx == 0) {
     var fold = this.env.fold;
     if (!fold)
       return new CFException("t", new Error("Unexpected collapse statement"),
                              this.NDATA_COLLAPSE_LINE(), this.env.file);
-    if (fold.docollapse(this.env.branch, this))
+    this.restore_dynvars = exports.current_dyn_vars;
+    if (fold.docollapse(this.env.branch, this)) {
+      SETDYNVARS(this.restore_dynvars, 'collapse 1')
       return true;
+    }
     // else ... we're going async
     this.async = true;
+    ASSERTDYNVARSROOT('collapse')
     return this;
   }
-  else if (idx == 1) // returning from collapsing
+  else if (idx == 1) { // returning from collapsing
+    SETDYNVARS(this.restore_dynvars, 'collapse 2')
     return this.returnToParent(true);
+  }
   else 
     return this.returnToParent(new CFException("t", "Internal error in SJS runtime (collapse)",
                                                this.NDATA_COLLAPSE_LINE(), this.env.file));
@@ -4258,7 +4405,11 @@ EF_Collapse.prototype.cont = function(idx, val) {
 
 // don't need to do anything for quenching/aborting. we'll never be prodded by upstream after an abort.
 EF_Collapse.prototype.quench = dummy;
-EF_Collapse.prototype.abort = function() { this.aborted = true; return UNDEF};
+EF_Collapse.prototype.abort = function() { 
+  this.aborted = true; 
+  SETDYNVARS(this.restore_dynvars, 'collapse 3')
+  return UNDEF;
+};
 
 function I_collapse(ndata, env) {
   return cont(new EF_Collapse(ndata, env), 0);
@@ -4365,8 +4516,11 @@ exports.Hold = function(duration_ms) {
 #ifdef EF_TYPES
              toString: function() { return "<HOLD()>"; },
 #endif
-             __oni_ef: true,
-             wait: function() { return this; },
+             __oni_ef: ONI_EF,
+             wait: function() { 
+               SETDYNVARS(root_dyn_vars, '<HOLD()>:wait')
+               return this; 
+             },
 #ifdef DEBUG_VM
              gatherSuspensionTree: function() { return [this.toString()] },
 #endif
@@ -4379,8 +4533,11 @@ exports.Hold = function(duration_ms) {
 #ifdef EF_TYPES
                 toString: function() { return "<HOLD(0)>"; },
 #endif
-                __oni_ef: true, 
-                wait: function() { return this },
+                __oni_ef: ONI_EF, 
+                wait: function() { 
+                  SETDYNVARS(root_dyn_vars, sus+':wait')
+                  return this;
+                },
 #ifdef DEBUG_VM
                 gatherSuspensionTree: function() { return [this.toString()] },
 #endif
@@ -4391,7 +4548,10 @@ exports.Hold = function(duration_ms) {
                     ASSERTDYNVARSROOT('hold0')
                     SETDYNVARS(dyn_vars, "hold(0) resume // (4)")
                     cont(sus.parent, sus.parent_idx, UNDEF);
-                    ASSERTDYNVARSROOT('hold(0):2')
+                    // this doesn't always hold when we call SJS through JS and let the 
+                    // continuation go nowhere:
+                    //ASSERTDYNVARSROOT('hold(0):2')
+                    SETDYNVARS(root_dyn_vars, "hold(0) reset")
                   }
                 })
               };
@@ -4402,8 +4562,11 @@ exports.Hold = function(duration_ms) {
 #ifdef EF_TYPES
                 toString: function() { return "<HOLD("+duration_ms+"ms)>"; },
 #endif
-                __oni_ef: true,
-                wait: function() { return this },
+                __oni_ef: ONI_EF,
+                wait: function() { 
+                  SETDYNVARS(root_dyn_vars, sus+':wait')
+                  return this; 
+                },
 #ifdef DEBUG_VM
                 gatherSuspensionTree: function() { return [this.toString()] },
 #endif
@@ -4417,10 +4580,19 @@ exports.Hold = function(duration_ms) {
     sus.co = setTimeout(
       function() {
         if (sus && sus.parent) {
-          ASSERTDYNVARSROOT('hold')
+          ASSERTDYNVARSROOT('hold('+duration_ms+")")
           SETDYNVARS(dyn_vars, "hold("+duration_ms+") resume")
+ var PPP = sus.parent;
           cont(sus.parent, sus.parent_idx, UNDEF);
-          ASSERTDYNVARSROOT('hold:2')
+          if (exports.current_dyn_vars !== root_dyn_vars) {
+            console.log("------ INCORRECT DYNVARS AFTER ASYNC CONT ----");
+            console.log('parent:'+PPP);
+            dumpExecutionFrameParents(PPP, 10);
+          }
+          // this doesn't always hold when we call SJS through JS and let the 
+          // continuation go nowhere:
+          //ASSERTDYNVARSROOT('hold:2('+duration_ms+')')
+          SETDYNVARS(root_dyn_vars, 'hold:reset('+duration_ms+')')
         }
       },
       duration_ms);

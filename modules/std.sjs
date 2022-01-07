@@ -134,6 +134,7 @@ module.exports = require(modules);
   ### Symbols from the [sjs:cutil](#sjs%3Acutil) module:
   
    - **breaking**: (function [sjs:cutil::breaking])
+   - **Channel**: (class [sjs:cutil::Channel])
    - **Condition**: (class [sjs:cutil::Condition])
    - **Queue**: (class [sjs:cutil::Queue])
    - **Semaphore**: (class [sjs:cutil::Semaphore])

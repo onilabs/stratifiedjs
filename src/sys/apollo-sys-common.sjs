@@ -103,11 +103,9 @@ exports.withDynVarContext = function(...args) {
           
   try {
     __js __oni_rt.current_dyn_vars = __oni_rt.createDynVarContext(proto_context);
-    console.log("DV(sys-common::withDVC)> "+old_dyn_vars.id+" > "+__oni_rt.current_dyn_vars.id);
     block();
   }
   finally {
-    console.log("DV(reset[sys-common::withDVC])> "+__oni_rt.current_dyn_vars.id+" > "+old_dyn_vars.id);
     __js __oni_rt.current_dyn_vars = old_dyn_vars;
   }
 };
@@ -1298,10 +1296,10 @@ exports.spawn = function (f) {
   // create a global stratum and don't wait for it to complete:
   var r = {};
   var dynvars = __oni_rt.current_dyn_vars;
+  __oni_rt.current_dyn_vars = __oni_rt.root_dyn_vars;
   __js runGlobalStratum(r),null;
   // runGlobalStratum will always reset the current_dyn_vars context to the root context
   // Since we continue execution in SJS, we need to make sure to reset the context:
-  console.log("DV(sys-common::spawn)> "+__oni_rt.current_dyn_vars.id+" > "+dynvars.id);
   __oni_rt.current_dyn_vars = dynvars; // (2)
   return r.stratum.spawn(f);
 };
