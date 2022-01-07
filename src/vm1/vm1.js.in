@@ -40,7 +40,7 @@ define VERBOSE_EXCEPTIONS : add line/file/stack members to exceptions
                              JS code and caught/rethrown by SJS.
 
 */
-#define DEBUG_VM 1
+//#define DEBUG_VM 1
 //#define DEBUG_DYNVARS 1
 //#define DEBUG_STACK 1
 //#define DEBUG_MULTIVM 1
@@ -222,7 +222,6 @@ function CFException(type, value, line, file) {
     if (line)
       value.__oni_stack.push([file || 'unknown SJS source', line]);
   }
-  // this.eid = UNDEF;  // 'execution frame' tag for targetted return/break/continue
 }
 
 var CFETypes = { r:"return", b:"break", c:"continue", blb: "blocklambda break", blr: "blocklambda return"};
@@ -269,7 +268,7 @@ CFException.prototype = {
 #endif // CLIENTSIDE
         throw this.val;
     }
-    else if (!this.aid && !this.eid) // XXX DO WE NEED THIS???
+    else if (!this.aid) // XXX DO WE NEED THIS???
       throw new Error(this.toString());
     else // this is a 'blb' or 'blr' tunneling through a JS functions:
       throw this;
@@ -570,13 +569,11 @@ var EF_Proto = {
     if (this.swallow_r) {
       if (is_cfx(val)) {
         if (val.type === "r") {
-          if (true || !val.eid || val.eid === this.sid) {
-            val = val.val;
-            if (this.swallow_r === 3) {
-              // we've received a tail-called 'return' that shouldn't
-              // be returned via the present function. see also notes below
-              val = UNDEF;
-            }
+          val = val.val;
+          if (this.swallow_r === 3) {
+            // we've received a tail-called 'return' that shouldn't
+            // be returned via the present function. see also notes below
+            val = UNDEF;
           }
         }
       }
@@ -856,13 +853,13 @@ exports.Nb = function(...args/*f, line*/) {
   2..end : returning from ndata[n-1] (last one tail-called)  
  */
 
+#ifdef DEBUG_VM
 var seq_counter = 0;
+#endif
 
 function EF_Seq(ndata, fenv) {
-  // 'sid' is an id used in blocklambda break and return references
-  this.sid = ++seq_counter;
 #ifdef DEBUG_VM
-  this.id = this.sid; 
+  this.id = ++seq_counter; 
 #endif
   this.ndata = ndata;
   this.fenv = fenv;
@@ -1024,8 +1021,7 @@ function I_seq(ndata, fenv) {
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
     if (is_cfx(val)) {
       if (val.type === "r") { 
-        if (!val.eid) 
-          val = val.val;
+        val = val.val;
       }
     }
     else
@@ -1648,11 +1644,8 @@ function I_reifiedseq(ndata, fenv) {
 //var blseq_counter = 0;
 
 function EF_BlSeq(ndata, fenv) {
-//  this.blsid = ++blseq_counter;
-  this.sid = ++seq_counter;
 #ifdef DEBUG_VM
-//  this.id = this.blsid; 
-  this.id = this.sid;
+  this.id = ++seq_counter;
 #endif
 
   ASSERT(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION)

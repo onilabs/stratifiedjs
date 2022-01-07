@@ -28,7 +28,7 @@
  * THE SOFTWARE.
  *
  */
-var __oni_rt={};(function(exports){function dumpExecutionFrameParents(ef,indent){
+var __oni_rt={};(function(exports){var UNDEF;
 
 
 
@@ -74,34 +74,11 @@ var __oni_rt={};(function(exports){function dumpExecutionFrameParents(ef,indent)
 
 
 
-indent=indent||0;
-
-if(ef&&ef.parent)dumpExecutionFrameParents(ef.parent,indent+1);
-
-var str='';
-for(var i=0;i<indent;++i)str+='  ';
-str+=ef?ef:'<NULL>';
-console.log(str);
-}
-function dumpExecutionFrameChildren(ef,indent){indent=indent||0;
-
-var str='';
-for(var i=0;i<indent;++i)str+='  ';
-str+=ef?ef:'<NULL>';
-console.log(str);
-if(ef&&ef.child_frame)dumpExecutionFrameChildren(ef.child_frame,indent+1);else if(ef&&ef.children){
-
-
-for(var i=0;i<ef.children.length;++i){
-dumpExecutionFrameChildren(ef.children[i],indent+1);
-}
-}
-}
 
 
 
 
-var UNDEF;
+
 
 
 
@@ -233,7 +210,6 @@ if(!value.hasOwnProperty('toString'))value.toString=CFException_toString;
 if(line)value.__oni_stack.push([file||'unknown SJS source',line]);
 
 }
-
 }
 
 var CFETypes={r:"return",b:"break",c:"continue",blb:"blocklambda break",blr:"blocklambda return"};
@@ -277,7 +253,7 @@ if(console.error)console.error(msg);else console.log(msg);
 }else throw this.val;
 
 
-}else if(!this.aid&&!this.eid)throw new Error(this.toString());else throw this;
+}else if(!this.aid)throw new Error(this.toString());else throw this;
 
 
 
@@ -334,13 +310,10 @@ exports.CFException=CFException;
 
 
 
-var dynvar_ctx_counter=0;
 
 
-function createDynVarContext(proto_context){var ctx=Object.create(proto_context);
+function createDynVarContext(proto_context){return Object.create(proto_context);
 
-ctx.id=proto_context.id+'/'+(++dynvar_ctx_counter);
-return ctx;
 }
 exports.createDynVarContext=createDynVarContext;
 
@@ -432,31 +405,18 @@ target_ef.callstack=src_ef.callstack;
 
 
 var EF_Proto={toString:function(){
-var rv="<"+(typeof (this.type)==='function'?this.type():this.type)+""+(this.id?this.id:'')+((this.fenv&&this.fenv.file)?'@'+this.fenv.file.substr(-20):'')+">";
-if(this.callstack)rv+='['+this.callstack.join(' > ')+']';
-
-return rv;
-},__oni_ef:ONI_EF,wait:function(){
+return "<suspended SJS>"},__oni_ef:ONI_EF,wait:function(){
 
 
 exports.current_dyn_vars=root_dyn_vars;
 
 return this;
-},gatherSuspensionTree:function(){
-
-try{
-
-return (this.callstack||[]).concat(this.child_frame?this.child_frame.gatherSuspensionTree():[]);
-}catch(e){
-
-console.log("ERROR GATHERING SUSPENSION TREE FOR "+this.child_frame);
-throw e;
-}
 },setChildFrame:function(ef,idx,prevent_callstack_copy){
 
-if(exports.current_dyn_vars!==root_dyn_vars){
-console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+'::setchildframe('+ef+')'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+'::setchildframe('+ef+')'+')')}
+
 if(this.child_frame){
+
+
 if(prevent_callstack_copy!==true&&this.child_frame.callstack){
 
 mergeCallstacks(ef,this.child_frame);
@@ -482,13 +442,8 @@ if(this.child_frame)this.child_frame.quench();
 },abort:function(pseudo_abort){
 
 
-if(this.aborted){
-
-console.log('ERROR: '+this+': redundant abort');
-}
-
-if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
 this.aborted=true;
+
 this.pseudo_abort=pseudo_abort;
 
 
@@ -530,13 +485,11 @@ val.val.__oni_stack=val.val.__oni_stack.concat(this.callstack);
 if(this.swallow_r){
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type==="r"){
-if(true||!val.eid||val.eid===this.sid){
 val=val.val;
 if(this.swallow_r===3){
 
 
 val=UNDEF;
-}
 }
 }
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -804,25 +757,17 @@ exports.Nb=function(...args){return {exec:I_nblock,ndata:args,__oni_dis:token_di
 
 
 
-var seq_counter=0;
 
-function EF_Seq(ndata,fenv){this.sid=++seq_counter;
+function EF_Seq(ndata,fenv){this.ndata=ndata;
 
-
-this.id=this.sid;
-this.ndata=ndata;
 this.fenv=fenv;
 
 if(ndata[0]&8){
 
-if(!(!!(ndata[0]&(1|16)))){console.log("Assertion failed: "+"!!(ndata[0] & (1|16))");throw new Error("Assertion failed: "+"!!(ndata[0] & (1|16))")}
-if(!(fenv.fold===undefined)){console.log("Assertion failed: "+"fenv.fold === undefined");throw new Error("Assertion failed: "+"fenv.fold === undefined")}
-if(!(fenv.branch===undefined)){console.log("Assertion failed: "+"fenv.branch === undefined");throw new Error("Assertion failed: "+"fenv.branch === undefined")}
+
+
+
 }else if(ndata[0]&1){
-
-
-if(!(fenv.fold===undefined)){console.log("Assertion failed: "+"fenv.fold === undefined");throw new Error("Assertion failed: "+"fenv.fold === undefined")}
-if(!(fenv.branch===undefined)){console.log("Assertion failed: "+"fenv.branch === undefined");throw new Error("Assertion failed: "+"fenv.branch === undefined")}
 
 }
 
@@ -850,15 +795,6 @@ this.toplevel=true;
 }
 }
 setEFProto(EF_Seq.prototype={});
-EF_Seq.prototype.type=function(){var rv="Seq";
-
-if(this.ndata[0]&1)rv+="(fun)";
-
-if(this.ndata[0]&8)rv+="(notail)";
-
-
-return rv;
-};
 EF_Seq.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
@@ -938,8 +874,7 @@ function createReifiedStratum(ef){var RS={toString:function(){
 return "[object Stratum '"+ef.id+"']"},wait:function(){
 if(ef.done)return RS;
 
-var wef={toString:function(){
-return "<wait on stratum "+ef.id+">"},wait:function(){
+var wef={wait:function(){
 exports.current_dyn_vars=root_dyn_vars;
 
 return wef;
@@ -964,8 +899,7 @@ return spawnSubStratum(f,ef)},join:function(){
 if(ef.pending<2)return;
 
 
-var jef={toString:function(){
-return "<join on stratum "+ef.id+">"},wait:function(){
+var jef={wait:function(){
 exports.current_dyn_vars=root_dyn_vars;
 
 return jef;
@@ -1012,7 +946,7 @@ ef_to_adopt.callstack.push(current_call);
 
 
 
-if(!(ef_to_adopt.pending_caller)){console.log("Assertion failed: "+"ef_to_adopt.pending_caller");throw new Error("Assertion failed: "+"ef_to_adopt.pending_caller")}
+
 ef_to_adopt.callstack=[current_call,ef_to_adopt.pending_caller];
 }
 
@@ -1028,7 +962,7 @@ var dynvars=exports.current_dyn_vars;
 
 if(old_parent){
 cont(old_parent,old_parent_idx,UNDEF);
-if(!(exports.current_dyn_vars===dynvars||exports.current_dyn_vars===root_dyn_vars)){console.log("Assertion failed: "+"exports.current_dyn_vars === dynvars || exports.current_dyn_vars === root_dyn_vars");throw new Error("Assertion failed: "+"exports.current_dyn_vars === dynvars || exports.current_dyn_vars === root_dyn_vars")}
+
 }
 
 
@@ -1107,10 +1041,6 @@ this.wait_frames=new Set();
 this.join_frames=new Set();
 }
 setEFProto(EF_Reified.prototype={});
-EF_Reified.prototype.type=function(){var rv="Reified";
-
-return rv;
-};
 
 
 
@@ -1128,11 +1058,11 @@ if(String(this)==="<Reified32>")console.log(">>>>>>>>>> "+this+".cont("+idx+", "
 }
 };
 
-EF_Reified.prototype.cont=function(idx,val){if(!(idx<=0||this.strata_children.has(idx))){
+EF_Reified.prototype.cont=function(idx,val){if(idx===-1){
 
-console.log("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)");throw new Error("Assertion failed: "+"idx <= 0 || this.strata_children.has(idx)")}
 
-if(idx===-1){
+
+
 
 
 idx=0;
@@ -1268,9 +1198,9 @@ cont(join_frame.parent,join_frame.parent_idx,UNDEF);
 
 };
 
-EF_Reified.prototype.flush_wait_frames=function(){if(exports.current_dyn_vars!==root_dyn_vars){
-console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::flush_wait_frames'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::flush_wait_frames'+')')}
-var frames=this.wait_frames;
+EF_Reified.prototype.flush_wait_frames=function(){var frames=this.wait_frames;
+
+
 this.wait_frames=new Set();
 for(var wait_frame of frames){
 if(wait_frame.parent){
@@ -1287,9 +1217,9 @@ exports.current_dyn_vars=root_dyn_vars;
 }
 };
 
-EF_Reified.prototype.abort_child_strata=function(){if(!(!this.strata_children_aborted)){
+EF_Reified.prototype.abort_child_strata=function(){;
 
-console.log("Assertion failed: "+"!this.strata_children_aborted");throw new Error("Assertion failed: "+"!this.strata_children_aborted")};
+
 
 
 
@@ -1345,7 +1275,7 @@ return this;
 
 var abort_val=this.main_child.abort(pseudo_abort);
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::abort:2'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'reified::abort:2'+')')}
+
 return this;
 }else{
 
@@ -1481,9 +1411,9 @@ console.log("XXXXXXXXXXXXXXXXX current dynvars = "+exports.current_dyn_vars.id+"
 
 var rv=cont(reified_ef,-1,val);
 
-if(!(exports.current_dyn_vars===root_dyn_vars||exports.current_dyn_vars===reified_ef.dynvars.__oni_anchor_route)){console.log("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === reified_ef.dynvars.__oni_anchor_route");throw new Error("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === reified_ef.dynvars.__oni_anchor_route")}
 
-if(!(exports.current_dyn_vars===root_dyn_vars||exports.current_dyn_vars===dynvars)){console.log("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === dynvars");throw new Error("Assertion failed: "+"exports.current_dyn_vars === root_dyn_vars || exports.current_dyn_vars === dynvars")}
+
+
 if(reified_ef.adopted){
 exports.current_dyn_vars=dynvars;
 return UNDEF;
@@ -1509,17 +1439,13 @@ return rv;
 
 
 
-function EF_BlSeq(ndata,fenv){this.sid=++seq_counter;
+function EF_BlSeq(ndata,fenv){this.ndata=ndata;
 
 
 
-this.id=this.sid;
 
-if(!(ndata[0]&1)){console.log("Assertion failed: "+"ndata[0] & 1");throw new Error("Assertion failed: "+"ndata[0] & 1")}
-if(!(!(ndata[0]&16))){console.log("Assertion failed: "+"!(ndata[0] & 16)");throw new Error("Assertion failed: "+"!(ndata[0] & 16)")}
-if(!(fenv.blanchor)){console.log("Assertion failed: "+"fenv.blanchor");throw new Error("Assertion failed: "+"fenv.blanchor")}
 
-this.ndata=ndata;
+
 this.fenv=copyFEnv(fenv);
 
 this.blanchor=fenv.blanchor;
@@ -1544,10 +1470,6 @@ this.sc=ndata[0]&(2|4);
 
 }
 setEFProto(EF_BlSeq.prototype={});
-EF_BlSeq.prototype.type=function(){var rv="BlSeq";
-
-return rv;
-};
 EF_BlSeq.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 
@@ -1652,13 +1574,8 @@ console.log(this+"::assertRoutable ANCHOR NOT FOUND!!!");
 return new CFException("t",new Error("Unroutable blocklambda break/return"));
 };
 
-EF_BlSeq.prototype.abort=function(pseudo_abort){if(this.aborted){
+EF_BlSeq.prototype.abort=function(pseudo_abort){this.aborted=true;
 
-console.log('ERROR: '+this+': redundant abort');
-}
-
-if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
-this.aborted=true;
 if(this.breaking)return UNDEF;
 this.pseudo_abort=pseudo_abort;
 
@@ -1697,9 +1614,9 @@ return abort_val;
 
 
 
-function I_blseq(ndata,fenv){if(!(fenv.blanchor)){
-console.log("Assertion failed: "+"fenv.blanchor");throw new Error("Assertion failed: "+"fenv.blanchor")}
-if(fenv.blanchor.unreturnable)return new CFException("t",new Error("Blocklambda anchor at "+fenv.file+":"+fenv.blanchor.ndata[1]+" is inactive."));
+function I_blseq(ndata,fenv){if(fenv.blanchor.unreturnable)return new CFException("t",new Error("Blocklambda anchor at "+fenv.file+":"+fenv.blanchor.ndata[1]+" is inactive."));
+
+
 return cont(new EF_BlSeq(ndata,fenv),1);
 }
 
@@ -1761,10 +1678,6 @@ this.i=2;
 this.pars=[];
 }
 setEFProto(EF_Sc.prototype={});
-EF_Sc.prototype.type="Sc";
-EF_Sc.prototype.toString=function(){return "<Sc@"+this.fenv.file.substr(-20)+':'+this.ndata[0]+'>';
-
-};
 
 EF_Sc.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -1874,8 +1787,6 @@ this.pars=[];
 
 }
 setEFProto(EF_Fcall.prototype={});
-EF_Fcall.prototype.type="Fcall";
-EF_Fcall.prototype.toString=function(){return "<Fcall@"+this.fenv.file.substr(-20)+":"+this.ndata[1]+">"};
 
 EF_Fcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -2139,8 +2050,6 @@ this.facall_dynvars.__oni_anchor_route=exports.current_dyn_vars;
 this.facall_dynvars.__oni_anchor=this.aid;
 }
 setEFProto(EF_FAcall.prototype={});
-EF_FAcall.prototype.type="FAcall";
-EF_FAcall.prototype.toString=function(){return "<FAcall@"+this.fenv.file.substr(-20)+":"+this.ndata[1]+">"};
 
 EF_FAcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -2150,12 +2059,12 @@ this.setChildFrame(val,idx);
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx))val=this.translateCFEs(val);
 
-if(!(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))){console.log("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)");throw new Error("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)")}
+
 exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(val);
 }else if(idx===3){
 
-if(!(!(val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF))){console.log("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)");throw new Error("Assertion failed: "+"!(val !== null && typeof(val) === 'object' && val.__oni_ef===ONI_EF)")}
+
 exports.current_dyn_vars=this.parent_dynvars;
 return this.returnToParent(val);
 }else if(idx==2){
@@ -2191,7 +2100,7 @@ if(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 exports.current_dyn_vars=this.parent_dynvars;
 }else{
 
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 3321'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 3321'+')')}
+
 }
 
 return this.returnToParent(rv);
@@ -2378,7 +2287,7 @@ rv=this.translateCFEs(e);
 }
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 23266'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 23266'+')')}
+
 if(this.aborted){
 
 rv=rv.abort(this.pseudo_abort);
@@ -2397,7 +2306,7 @@ rv.callstack.push([this.fenv.file,this.ndata[1]]);
 
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 232ds66'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'facall 232ds66'+')')}
+
 this.setChildFrame(rv,3);
 return this;
 }else{
@@ -2420,13 +2329,8 @@ return val;
 };
 
 
-EF_FAcall.prototype.abort=function(pseudo_abort){if(this.aborted){
+EF_FAcall.prototype.abort=function(pseudo_abort){this.aborted=true;
 
-console.log('ERROR: '+this+': redundant abort');
-}
-
-if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
-this.aborted=true;
 this.pseudo_abort=pseudo_abort;
 
 
@@ -2438,7 +2342,7 @@ return this;
 
 var abort_val=this.child_frame.abort(pseudo_abort);
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF)){
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'FACall::abort 23'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'FACall::abort 23'+')')}
+
 return this;
 }else{
 
@@ -2452,7 +2356,7 @@ this.unreturnable=true;
 
 if((abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_cfx))abort_val=this.translateCFEs(abort_val);
 
-if(!(!(abort_val!==null&&typeof (abort_val)==='object'&&abort_val.__oni_ef===ONI_EF))){console.log("Assertion failed: "+"!(abort_val !== null && typeof(abort_val) === 'object' && abort_val.__oni_ef===ONI_EF)");throw new Error("Assertion failed: "+"!(abort_val !== null && typeof(abort_val) === 'object' && abort_val.__oni_ef===ONI_EF)")}
+
 exports.current_dyn_vars=this.parent_dynvars;
 
 return abort_val;
@@ -2486,15 +2390,12 @@ exports.FAcall=function(...args){return {exec:I_facall,ndata:args,__oni_dis:toke
 
 
 
-var if_counter=0;
 
-function EF_If(ndata,fenv){this.id=++if_counter;
+function EF_If(ndata,fenv){this.ndata=ndata;
 
-this.ndata=ndata;
 this.fenv=fenv;
 }
 setEFProto(EF_If.prototype={});
-EF_If.prototype.type="If";
 
 EF_If.prototype.cont=function(idx,val){switch(idx){case 0:
 
@@ -2585,7 +2486,6 @@ this.fenv=fenv;
 this.phase=0;
 }
 setEFProto(EF_Switch.prototype={});
-EF_Switch.prototype.type="Switch";
 
 EF_Switch.prototype.cont=function(idx,val){switch(this.phase){case 0:
 
@@ -2710,16 +2610,13 @@ exports.Switch=function(...args){return {exec:I_switch,ndata:args,__oni_dis:toke
 
 
 
-var try_counter=0;
 
-function EF_Try(ndata,fenv){this.id=++try_counter;
+function EF_Try(ndata,fenv){this.ndata=ndata;
 
-this.ndata=ndata;
 this.fenv=fenv;
 this.state=0;
 }
 setEFProto(EF_Try.prototype={});
-EF_Try.prototype.type=function(){return "Try("+this.state+")"};
 
 EF_Try.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -2889,13 +2786,9 @@ EF_Try.prototype.quench=function(){if(this.child_frame&&this.state!==4&&this.sta
 
 };
 
-EF_Try.prototype.abort=function(pseudo_abort){if(this.aborted){
+EF_Try.prototype.abort=function(pseudo_abort){this.aborted=true;
 
 
-console.log('ERROR: '+this+' redundant abort');
-if(!(!this.aborted)){console.log("Assertion failed: "+"!this.aborted");throw new Error("Assertion failed: "+"!this.aborted")}
-}
-this.aborted=true;
 this.pseudo_abort=pseudo_abort;
 
 if(!this.child_frame){
@@ -2903,7 +2796,7 @@ exports.current_dyn_vars=root_dyn_vars;
 return this;
 }
 
-if(!(this.state!==3)){console.log("Assertion failed: "+"this.state !== 3");throw new Error("Assertion failed: "+"this.state !== 3")}
+
 if(this.state!==4){
 var val=this.child_frame.abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -2923,7 +2816,7 @@ this.setChildFrame(val);
 
 this.async=false;
 var rv=cont(this,0,val);
-if(!(!(rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)||rv===this)){console.log("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===ONI_EF) || rv === this");throw new Error("Assertion failed: "+"!(rv !== null && typeof(rv) === 'object' && rv.__oni_ef===ONI_EF) || rv === this")}
+
 if(rv!==this){
 
 
@@ -2941,7 +2834,7 @@ this.async=true;
 
 exports.current_dyn_vars=root_dyn_vars;
 }
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+': Try::abort'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+this+': Try::abort'+')')}
+
 return this;
 };
 
@@ -2975,7 +2868,6 @@ function EF_Loop(ndata,fenv){this.ndata=ndata;
 this.fenv=fenv;
 }
 setEFProto(EF_Loop.prototype={});
-EF_Loop.prototype.type="Loop";
 
 EF_Loop.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -3118,7 +3010,6 @@ function EF_ForIn(ndata,fenv){this.ndata=ndata;
 this.fenv=fenv;
 }
 setEFProto(EF_ForIn.prototype={});
-EF_ForIn.prototype.type="ForIn";
 
 EF_ForIn.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -3267,18 +3158,14 @@ return original_exception;
 }
 }
 
-var par_counter=0;
 
-function EF_Par(ndata,fenv){this.id=++par_counter;
+function EF_Par(ndata,fenv){this.ndata=ndata;
 
-this.ndata=ndata;
 this.fenv=fenv;
 this.pending=0;
 this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
-EF_Par.prototype.type="Par";
-EF_Par.prototype.toString=function(){return "<Par"+this.id+"@"+this.fenv.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"};
 
 EF_Par.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -3305,7 +3192,7 @@ return this.pendingCFE;
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
 ++this.pending;
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'par:cont'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'par:cont'+')')}
+
 this.setChildFrame(val,i);
 if(i<this.ndata.length-1){
 exports.current_dyn_vars=parent_dyn_vars;
@@ -3430,22 +3317,6 @@ this.async=true;
 return this;
 };
 
-EF_Par.prototype.gatherSuspensionTree=function(){var st=this.callstack||[];
-
-var child_trees=[];
-for(var i=0;i<this.children.length;++i){
-try{
-if(this.children[i])child_trees.push(this.children[i].gatherSuspensionTree());
-
-}catch(e){
-
-console.log("Waitfor/and: Error gathering suspension tree for "+this.children[i]);
-throw e;
-}
-}
-st.push(['WAITFOR/AND',child_trees]);
-return st;
-};
 
 EF_Par.prototype.setChildFrame=setChildFramePar;
 
@@ -3473,18 +3344,15 @@ exports.Par=function(...args){return {exec:I_par,ndata:args,__oni_dis:token_dis}
 
 
 
-var alt_counter=0;
 
-function EF_Alt(ndata,fenv){this.id=++alt_counter;
+function EF_Alt(ndata,fenv){this.ndata=ndata;
 
-this.ndata=ndata;
 this.fenv=fenv;
 
 this.pending=0;
 this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Alt.prototype={});
-EF_Alt.prototype.type=function(){return "Alt(aborted="+!!this.aborted+")"};
 
 EF_Alt.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -3655,24 +3523,8 @@ this.async=true;
 return this;
 };
 
-EF_Alt.prototype.gatherSuspensionTree=function(){var st=this.callstack||[];
 
-var child_trees=[];
-for(var i=0;i<this.children.length;++i){
-try{
-if(this.children[i])child_trees.push(this.children[i].gatherSuspensionTree());
-
-}catch(e){
-
-console.log("Waitfor/or: Error gathering suspension tree for "+this.children[i]);
-throw e;
-}
-}
-st.concat([['WAITFOR/OR',child_trees]]);
-return st;
-},EF_Alt.prototype.setChildFrame=setChildFramePar;
-
-
+EF_Alt.prototype.setChildFrame=setChildFramePar;
 
 EF_Alt.prototype.docollapse=function(branch,cf){this.collapsed=true;
 
@@ -3694,7 +3546,7 @@ this.children[i]=UNDEF;
 }
 }
 if(!have_async_branch_retract){
-if(!(this.pending<=1)){console.log("Assertion failed: "+"this.pending <= 1");throw new Error("Assertion failed: "+"this.pending <= 1")}
+
 return true;
 }
 
@@ -3734,7 +3586,6 @@ this.pending=0;
 this.children=new Array(2);
 }
 setEFProto(EF_WfW.prototype={});
-EF_WfW.prototype.type=function(){return "WfW(aborted="+!!this.aborted+")"};
 
 EF_WfW.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -3850,7 +3701,7 @@ EF_WfW.prototype.abortInner=function(){this.inner_aborted=true;
 if(this.children[1]){
 var val=this.children[1].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner'+')')}
+
 this.async=true;
 return this;
 }else{
@@ -3867,7 +3718,7 @@ if(this.children[0]){
 var val=this.children[0].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.async=true;
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner:2'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'wfw::abortInner:2'+')')}
+
 return this;
 }else{
 
@@ -3918,11 +3769,10 @@ function EF_Suspend(ndata,fenv){this.ndata=ndata;
 this.fenv=fenv;
 }
 setEFProto(EF_Suspend.prototype={});
-EF_Suspend.prototype.type="Suspend";
 
 EF_Suspend.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
-if(!(idx==1||idx==3)){console.log("Assertion failed: "+"idx == 1 || idx == 3");throw new Error("Assertion failed: "+"idx == 1 || idx == 3")}
+
 this.setChildFrame(val,idx);
 }else{
 
@@ -3934,7 +3784,7 @@ this.dyn_vars=exports.current_dyn_vars;
 
 var resumefunc=function(...args){if(ef.returning){
 
-console.log("Redundant resume()");
+
 return;
 }
 try{
@@ -3968,7 +3818,7 @@ val=new CFException("t",e);
 if(this.returning){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
-if(!(!this.child_frame)){console.log("Assertion failed: "+"!this.child_frame");throw new Error("Assertion failed: "+"!this.child_frame")}
+
 
 this.setChildFrame(val,0);
 this.quench();
@@ -4111,7 +3961,6 @@ function EF_Collapse(ndata,fenv){this.ndata=ndata;
 this.fenv=fenv;
 }
 setEFProto(EF_Collapse.prototype={});
-EF_Collapse.prototype.type="Collapse";
 
 
 EF_Collapse.prototype.__oni_collapse=true;
@@ -4130,7 +3979,7 @@ return true;
 }
 
 this.async=true;
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'collapse'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'collapse'+')')}
+
 return this;
 }else if(idx==1){
 
@@ -4250,33 +4099,29 @@ function abort(){exports.current_dyn_vars=dyn_vars;
 return UNDEF;
 }
 
-if(duration_ms===UNDEF)return {toString:function(){
+if(duration_ms===UNDEF)return {__oni_ef:ONI_EF,wait:function(){
 
-return "<HOLD()>"},__oni_ef:ONI_EF,wait:function(){
 
 exports.current_dyn_vars=root_dyn_vars;
 
 return this;
-},gatherSuspensionTree:function(){
-return [this.toString()]},quench:dummy,abort:abort};
+},quench:dummy,abort:abort};
 
 
 
 
 if(duration_ms===0){
-var sus={toString:function(){
-return "<HOLD(0)>"},__oni_ef:ONI_EF,wait:function(){
+var sus={__oni_ef:ONI_EF,wait:function(){
 
 exports.current_dyn_vars=root_dyn_vars;
 
 return this;
-},gatherSuspensionTree:function(){
-return [this.toString()]},abort:abort,quench:function(){
+},abort:abort,quench:function(){
 
 sus=null;clear0(this.co)},co:hold0(function(){
 if(sus&&sus.parent){
 
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold0'+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold0'+')')}
+
 exports.current_dyn_vars=dyn_vars;
 cont(sus.parent,sus.parent_idx,UNDEF);
 
@@ -4289,21 +4134,19 @@ exports.current_dyn_vars=root_dyn_vars;
 return sus;
 }else{
 
-var sus={toString:function(){
-return "<HOLD("+duration_ms+"ms)>"},__oni_ef:ONI_EF,wait:function(){
+var sus={__oni_ef:ONI_EF,wait:function(){
 
 exports.current_dyn_vars=root_dyn_vars;
 
 return this;
-},gatherSuspensionTree:function(){
-return [this.toString()]},abort:abort,quench:function(){
+},abort:abort,quench:function(){
 
 sus=null;clearTimeout(this.co)}};
 
 sus.co=setTimeout(function(){
 if(sus&&sus.parent){
 
-if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold('+duration_ms+")"+')');throw new Error('Dynvars('+exports.current_dyn_vars.id+') !== root ('+'hold('+duration_ms+")"+')')}
+
 exports.current_dyn_vars=dyn_vars;
 var PPP=sus.parent;
 cont(sus.parent,sus.parent_idx,UNDEF);
