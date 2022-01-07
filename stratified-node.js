@@ -392,7 +392,7 @@ target_ef.callstack=src_ef.callstack;
 
 
 var EF_Proto={toString:function(){
-var rv="<"+(typeof (this.type)==='function'?this.type():this.type)+""+(this.id?this.id:'')+((this.env&&this.env.file)?'@'+this.env.file.substr(-20):'')+">";
+var rv="<"+(typeof (this.type)==='function'?this.type():this.type)+""+(this.id?this.id:'')+((this.fenv&&this.fenv.file)?'@'+this.fenv.file.substr(-20):'')+">";
 if(this.callstack)rv+='['+this.callstack.join(' > ')+']';
 
 return rv;
@@ -608,11 +608,11 @@ ef.parent_idx=idx;
 var token_dis={};
 
 
-function execIN(node,env){if(!node||node.__oni_dis!=token_dis){
+function execIN(node,fenv){if(!node||node.__oni_dis!=token_dis){
 
 return node;
 }
-return node.exec(node.ndata,env);
+return node.exec(node.ndata,fenv);
 }
 exports.ex=execIN;
 
@@ -620,7 +620,7 @@ exports.ex=execIN;
 
 
 
-exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new Env(aobj,tobj,file));
+exports.exseq=function(aobj,tobj,file,args){var rv=I_seq(args,new FEnv(aobj,tobj,file));
 
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return rv.mapToJS();
@@ -629,19 +629,7 @@ return rv;
 };
 
 
-exports.exrseq=function(aobj,tobj,file,args){var rv=I_reifiedseq(args,new Env(aobj,tobj,file));
-
-if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return rv.mapToJS();
-
-return rv;
-};
-
-
-
-
-
-exports.exbl=function(env,args){var rv=I_blseq(args,env);
-
+exports.exrseq=function(aobj,tobj,file,args){var rv=I_reifiedseq(args,new FEnv(aobj,tobj,file));
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return rv.mapToJS();
 
@@ -652,6 +640,13 @@ return rv;
 
 
 
+exports.exbl=function(fenv,args){var rv=I_blseq(args,fenv);
+
+
+if((rv!==null&&typeof (rv)==='object'&&rv.__oni_cfx))return rv.mapToJS();
+
+return rv;
+};
 
 
 
@@ -683,18 +678,18 @@ return rv;
 
 
 
-function Env(aobj,tobj,file,blrref,fold,branch,blanchor,reifiedstratum){this.aobj=aobj;
+
+function FEnv(aobj,tobj,file,fold,branch,blanchor,reifiedstratum){this.aobj=aobj;
 
 this.tobj=tobj;
 this.file=file;
-this.blrref=blrref;
 this.fold=fold;
 this.branch=branch;
 this.blanchor=blanchor;
 this.reifiedstratum=reifiedstratum;
 }
 
-function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blrref,e.fold,e.branch,e.blanchor,e.reifiedstratum);
+function copyFEnv(e){return new FEnv(e.aobj,e.tobj,e.file,e.fold,e.branch,e.blanchor,e.reifiedstratum);
 
 }
 
@@ -703,20 +698,20 @@ function copyEnv(e){return new Env(e.aobj,e.tobj,e.file,e.blrref,e.fold,e.branch
 
 
 
-function I_call(ndata,env){try{
+function I_call(ndata,fenv){try{
 
-current_call=[env.file,ndata[1]];
-var rv=(ndata[0]).call(env);
+current_call=[fenv.file,ndata[1]];
+var rv=(ndata[0]).call(fenv);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 
 if(!rv.callstack)rv.callstack=[];
-rv.callstack.push([env.file,ndata[1]]);
+rv.callstack.push([fenv.file,ndata[1]]);
 }
 return rv;
 }catch(e){
 
 if(!(e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
-e=new CFException("t",e,ndata[1],env.file);
+e=new CFException("t",e,ndata[1],fenv.file);
 }
 return e;
 }
@@ -735,13 +730,13 @@ exports.C=function(...args){return {exec:I_call,ndata:args,__oni_dis:token_dis};
 
 
 
-function I_nblock(ndata,env){try{
+function I_nblock(ndata,fenv){try{
 
-return (ndata[0]).call(env);
+return (ndata[0]).call(fenv);
 }catch(e){
 
 if(!(e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
-e=new CFException("t",e,ndata[1],env.file);
+e=new CFException("t",e,ndata[1],fenv.file);
 }
 return e;
 }
@@ -771,26 +766,23 @@ exports.Nb=function(...args){return {exec:I_nblock,ndata:args,__oni_dis:token_di
 
 var seq_counter=0;
 
-function EF_Seq(ndata,env){this.sid=++seq_counter;
+function EF_Seq(ndata,fenv){this.sid=++seq_counter;
 
 
 this.id=this.sid;
 this.ndata=ndata;
-this.env=env;
+this.fenv=fenv;
 
 if(ndata[0]&8){
 
 if(!(!!(ndata[0]&(1|16)))){console.log("Assertion failed: "+"!!(ndata[0] & (1|16))");throw new Error("Assertion failed: "+"!!(ndata[0] & (1|16))")}
-if(!(env.blrref===undefined)){console.log("Assertion failed: "+"env.blrref === undefined");throw new Error("Assertion failed: "+"env.blrref === undefined")}
-if(!(env.fold===undefined)){console.log("Assertion failed: "+"env.fold === undefined");throw new Error("Assertion failed: "+"env.fold === undefined")}
-if(!(env.branch===undefined)){console.log("Assertion failed: "+"env.branch === undefined");throw new Error("Assertion failed: "+"env.branch === undefined")}
-env.blrref=this;
+if(!(fenv.fold===undefined)){console.log("Assertion failed: "+"fenv.fold === undefined");throw new Error("Assertion failed: "+"fenv.fold === undefined")}
+if(!(fenv.branch===undefined)){console.log("Assertion failed: "+"fenv.branch === undefined");throw new Error("Assertion failed: "+"fenv.branch === undefined")}
 }else if(ndata[0]&1){
 
 
-if(!(env.blrref===undefined)){console.log("Assertion failed: "+"env.blrref === undefined");throw new Error("Assertion failed: "+"env.blrref === undefined")}
-if(!(env.fold===undefined)){console.log("Assertion failed: "+"env.fold === undefined");throw new Error("Assertion failed: "+"env.fold === undefined")}
-if(!(env.branch===undefined)){console.log("Assertion failed: "+"env.branch === undefined");throw new Error("Assertion failed: "+"env.branch === undefined")}
+if(!(fenv.fold===undefined)){console.log("Assertion failed: "+"fenv.fold === undefined");throw new Error("Assertion failed: "+"fenv.fold === undefined")}
+if(!(fenv.branch===undefined)){console.log("Assertion failed: "+"fenv.branch === undefined");throw new Error("Assertion failed: "+"fenv.branch === undefined")}
 
 }
 
@@ -859,7 +851,7 @@ if(this.child_frame){
 this.child_frame.parent=UNDEF;
 this.child_frame=UNDEF;
 }
-val=execIN(this.ndata[idx],this.env);
+val=execIN(this.ndata[idx],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -886,7 +878,7 @@ return this.returnToParent(val);
 }
 };
 
-function I_seq(ndata,env){return cont(new EF_Seq(ndata,env),1);
+function I_seq(ndata,fenv){return cont(new EF_Seq(ndata,fenv),1);
 
 }
 
@@ -1423,20 +1415,20 @@ ef.parent_idx=idx;
 };
 
 var reified_counter=0;
-function I_reifiedseq(ndata,env){var dynvars=exports.current_dyn_vars;
+function I_reifiedseq(ndata,fenv){var dynvars=exports.current_dyn_vars;
 
 var reified_ef=new EF_Reified(++reified_counter,dynvars);
 
 exports.current_dyn_vars=reified_ef.dynvars;
 
-var inner_ef=new EF_Seq(ndata,env);
+var inner_ef=new EF_Seq(ndata,fenv);
 
 
 reified_ef.pending_caller=current_call;
 
 ++reified_ef.pending;
 
-inner_ef.env.reifiedstratum=reified_ef.reifiedstratum;
+inner_ef.fenv.reifiedstratum=reified_ef.reifiedstratum;
 
 
 
@@ -1477,7 +1469,7 @@ return rv;
 
 
 
-function EF_BlSeq(ndata,env){this.sid=++seq_counter;
+function EF_BlSeq(ndata,fenv){this.sid=++seq_counter;
 
 
 
@@ -1485,27 +1477,13 @@ this.id=this.sid;
 
 if(!(ndata[0]&1)){console.log("Assertion failed: "+"ndata[0] & 1");throw new Error("Assertion failed: "+"ndata[0] & 1")}
 if(!(!(ndata[0]&16))){console.log("Assertion failed: "+"!(ndata[0] & 16)");throw new Error("Assertion failed: "+"!(ndata[0] & 16)")}
-if(!(env.blanchor)){console.log("Assertion failed: "+"env.blanchor");throw new Error("Assertion failed: "+"env.blanchor")}
+if(!(fenv.blanchor)){console.log("Assertion failed: "+"fenv.blanchor");throw new Error("Assertion failed: "+"fenv.blanchor")}
 
 this.ndata=ndata;
-this.env=copyEnv(env);
+this.fenv=copyFEnv(fenv);
 
-
-
-this.blanchor=env.blanchor;
-this.env.blanchor=undefined;
-
-
-if(ndata[0]&8){
-this.env.blrref=env.blrref;
-}else{
-
-
-
-
-
-
-}
+this.blanchor=fenv.blanchor;
+this.fenv.blanchor=undefined;
 
 this.tailcall=false;
 
@@ -1562,7 +1540,7 @@ if(this.child_frame){
 this.child_frame.parent=UNDEF;
 this.child_frame=UNDEF;
 }
-val=execIN(this.ndata[idx],this.env);
+val=execIN(this.ndata[idx],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -1679,15 +1657,15 @@ return abort_val;
 
 
 
-function I_blseq(ndata,env){if(!(env.blanchor)){
-console.log("Assertion failed: "+"env.blanchor");throw new Error("Assertion failed: "+"env.blanchor")}
-if(env.blanchor.unreturnable)return new CFException("t",new Error("Blocklambda anchor at "+env.file+":"+env.blanchor.ndata[1]+" is inactive."));
-return cont(new EF_BlSeq(ndata,env),1);
+function I_blseq(ndata,fenv){if(!(fenv.blanchor)){
+console.log("Assertion failed: "+"fenv.blanchor");throw new Error("Assertion failed: "+"fenv.blanchor")}
+if(fenv.blanchor.unreturnable)return new CFException("t",new Error("Blocklambda anchor at "+fenv.file+":"+fenv.blanchor.ndata[1]+" is inactive."));
+return cont(new EF_BlSeq(ndata,fenv),1);
 }
 
 
 
-function I_blocklambda(ndata,env){return ndata.bind(env);
+function I_blocklambda(ndata,fenv){return ndata.bind(fenv);
 
 }
 
@@ -1706,7 +1684,7 @@ exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
 
 
 
-function I_reify(ndata,env){var s=env.reifiedstratum;
+function I_reify(ndata,fenv){var s=fenv.reifiedstratum;
 
 if(!s)return new CFException("t",new Error("Context is not reifiable"));
 return s;
@@ -1736,15 +1714,15 @@ exports.Reify=function(){return {exec:I_reify,ndata:undefined,__oni_dis:token_di
 
 
 
-function EF_Sc(ndata,env){this.ndata=ndata;
+function EF_Sc(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 this.i=2;
 this.pars=[];
 }
 setEFProto(EF_Sc.prototype={});
 EF_Sc.prototype.type="Sc";
-EF_Sc.prototype.toString=function(){return "<Sc@"+this.env.file.substr(-20)+':'+this.ndata[0]+'>';
+EF_Sc.prototype.toString=function(){return "<Sc@"+this.fenv.file.substr(-20)+':'+this.ndata[0]+'>';
 
 };
 
@@ -1770,7 +1748,7 @@ this.pars.push(val);
 }
 var rv;
 while(this.i<this.ndata.length){
-rv=execIN(this.ndata[this.i],this.env);
+rv=execIN(this.ndata[this.i],this.fenv);
 if(this.aborted){
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
@@ -1795,10 +1773,10 @@ this.child_frame=UNDEF;
 
 
 try{
-rv=this.ndata[1].apply(this.env,this.pars);
+rv=this.ndata[1].apply(this.fenv,this.pars);
 }catch(e){
 
-rv=new CFException("t",e,this.ndata[0],this.env.file);
+rv=new CFException("t",e,this.ndata[0],this.fenv.file);
 
 
 }
@@ -1806,7 +1784,7 @@ return this.returnToParent(rv);
 }
 };
 
-function I_sc(ndata,env){return cont(new EF_Sc(ndata,env),0);
+function I_sc(ndata,fenv){return cont(new EF_Sc(ndata,fenv),0);
 
 }
 
@@ -1848,16 +1826,16 @@ return /(^| )\[[^o]/.test(""+f);
 
 
 
-function EF_Fcall(ndata,env){this.ndata=ndata;
+function EF_Fcall(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 this.i=2;
 this.pars=[];
 
 }
 setEFProto(EF_Fcall.prototype={});
 EF_Fcall.prototype.type="Fcall";
-EF_Fcall.prototype.toString=function(){return "<Fcall@"+this.env.file.substr(-20)+":"+this.ndata[1]+">"};
+EF_Fcall.prototype.toString=function(){return "<Fcall@"+this.fenv.file.substr(-20)+":"+this.ndata[1]+">"};
 
 EF_Fcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -1884,7 +1862,7 @@ var rv;
 var args_length=this.ndata.length;
 if(this.ndata[0]&4)--args_length;
 while(this.i<args_length){
-rv=execIN(this.ndata[this.i],this.env);
+rv=execIN(this.ndata[this.i],this.fenv);
 if(this.aborted){
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
@@ -1930,7 +1908,7 @@ spreads.shift();
 
 
 
-current_call=[this.env.file,this.ndata[1]];
+current_call=[this.fenv.file,this.ndata[1]];
 
 switch(this.ndata[0]&3){case 0:
 
@@ -1939,7 +1917,7 @@ if(typeof this.l=="function"){
 rv=this.l(...pars);
 }else if(!testIsFunction(this.l)){
 
-rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -1965,7 +1943,7 @@ this.l(...pars);
 
 
 
-rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -1975,7 +1953,7 @@ break;
 case 1:
 
 if(typeof this.l[0]==='undefined'){
-rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -1989,7 +1967,7 @@ rv=this.l[0][this.l[1]].apply(this.l[0],pars);
 
 
 
-rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -2016,7 +1994,7 @@ rv=eval(command);
 
 
 
-rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -2028,8 +2006,8 @@ case 2:
 var ctor=this.l;
 rv=new ctor(...pars);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
-if(!rv.env)throw new Error("Invalid constructor function (no environment)");
-this.o=rv.env.tobj;
+if(!rv.fenv)throw new Error("Invalid constructor function (no function execution environment)");
+this.o=rv.fenv.tobj;
 
 this.setChildFrame(rv,2);
 return this;
@@ -2048,7 +2026,7 @@ rv=new CFException("i","Invalid Fcall mode");
 
 if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 rv=e;
-}else rv=new CFException("t",e,this.ndata[1],this.env.file);
+}else rv=new CFException("t",e,this.ndata[1],this.fenv.file);
 
 
 
@@ -2063,13 +2041,13 @@ return this.returnToParent(rv);
 
 
 if(!rv.callstack)rv.callstack=[];
-rv.callstack.push([this.env.file,this.ndata[1]]);
+rv.callstack.push([this.fenv.file,this.ndata[1]]);
 }
 return this.returnToParent(rv);
 }
 };
 
-function I_fcall(ndata,env){return cont(new EF_Fcall(ndata,env),0);
+function I_fcall(ndata,fenv){return cont(new EF_Fcall(ndata,fenv),0);
 
 }
 
@@ -2093,18 +2071,18 @@ exports.Fcall=function(...args){return {exec:I_fcall,ndata:args,__oni_dis:token_
 
 var facall_counter=0;
 
-function EF_FAcall(ndata,env){this.aid=++facall_counter;
+function EF_FAcall(ndata,fenv){this.aid=++facall_counter;
 
 
 
 this.ndata=ndata;
-this.env=env;
+this.fenv=fenv;
 this.i=2;
 this.pars=[];
 
 
-this.env=copyEnv(env);
-this.env.blanchor=this;
+this.fenv=copyFEnv(fenv);
+this.fenv.blanchor=this;
 
 this.parent_dynvars=exports.current_dyn_vars;
 this.facall_dynvars=createDynVarContext(exports.current_dyn_vars);
@@ -2113,7 +2091,7 @@ this.facall_dynvars.__oni_anchor=this.aid;
 }
 setEFProto(EF_FAcall.prototype={});
 EF_FAcall.prototype.type="FAcall";
-EF_FAcall.prototype.toString=function(){return "<FAcall@"+this.env.file.substr(-20)+":"+this.ndata[1]+">"};
+EF_FAcall.prototype.toString=function(){return "<FAcall@"+this.fenv.file.substr(-20)+":"+this.ndata[1]+">"};
 
 EF_FAcall.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -2153,7 +2131,7 @@ var args_length=this.ndata.length;
 if(this.ndata[0]&4)--args_length;
 while(this.i<args_length){
 
-rv=execIN(this.ndata[this.i],this.env);
+rv=execIN(this.ndata[this.i],this.fenv);
 if(this.aborted){
 
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
@@ -2214,7 +2192,7 @@ spreads.shift();
 
 
 
-current_call=[this.env.file,this.ndata[1]];
+current_call=[this.fenv.file,this.ndata[1]];
 
 switch(this.ndata[0]&3){case 0:
 
@@ -2223,7 +2201,7 @@ if(typeof this.l=="function"){
 rv=this.l(...pars);
 }else if(!testIsFunction(this.l)){
 
-rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -2249,7 +2227,7 @@ this.l(...pars);
 
 
 
-rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -2259,7 +2237,7 @@ break;
 case 1:
 
 if(typeof this.l[0]==='undefined'){
-rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -2273,7 +2251,7 @@ rv=this.l[0][this.l[1]].apply(this.l[0],pars);
 
 
 
-rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -2300,7 +2278,7 @@ rv=eval(command);
 
 
 
-rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.env.file);
+rv=new CFException("t",new Error("'"+this.l[0][this.l[1]]+"' is not a function"),this.ndata[1],this.fenv.file);
 
 
 
@@ -2312,8 +2290,8 @@ case 2:
 var ctor=this.l;
 rv=new ctor(...pars);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
-if(!rv.env)throw new Error("Invalid constructor function (no environment)");
-this.o=rv.env.tobj;
+if(!rv.fenv)throw new Error("Invalid constructor function (no function execution environment)");
+this.o=rv.fenv.tobj;
 
 this.setChildFrame(rv,2);
 return this;
@@ -2334,7 +2312,7 @@ rv=new CFException("i","Invalid Fcall mode");
 if((e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
 rv=this.translateCFEs(e);
 
-}else rv=new CFException("t",e,this.ndata[1],this.env.file);
+}else rv=new CFException("t",e,this.ndata[1],this.fenv.file);
 
 
 
@@ -2355,7 +2333,7 @@ return this.returnToParent(rv);
 if(rv){
 
 if(!rv.callstack)rv.callstack=[];
-rv.callstack.push([this.env.file,this.ndata[1]]);
+rv.callstack.push([this.fenv.file,this.ndata[1]]);
 }
 }
 
@@ -2425,7 +2403,7 @@ return abort_val;
 };
 
 
-function I_facall(ndata,env){return cont(new EF_FAcall(ndata,env),0);
+function I_facall(ndata,fenv){return cont(new EF_FAcall(ndata,fenv),0);
 
 }
 
@@ -2452,10 +2430,10 @@ exports.FAcall=function(...args){return {exec:I_facall,ndata:args,__oni_dis:toke
 
 var if_counter=0;
 
-function EF_If(ndata,env){this.id=++if_counter;
+function EF_If(ndata,fenv){this.id=++if_counter;
 
 this.ndata=ndata;
-this.env=env;
+this.fenv=fenv;
 }
 setEFProto(EF_If.prototype={});
 EF_If.prototype.type="If";
@@ -2464,7 +2442,7 @@ EF_If.prototype.cont=function(idx,val){switch(idx){case 0:
 
 
 
-val=execIN(this.ndata[0],this.env);
+val=execIN(this.ndata[0],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -2485,7 +2463,7 @@ this.setChildFrame(val,1);
 return this;
 }
 
-if(val)val=execIN(this.ndata[1],this.env);else val=execIN(this.ndata[2],this.env);
+if(val)val=execIN(this.ndata[1],this.fenv);else val=execIN(this.ndata[2],this.fenv);
 
 
 
@@ -2503,7 +2481,7 @@ val=new CFException("i","invalid state in EF_If");
 return this.returnToParent(val);
 };
 
-function I_if(ndata,env){return cont(new EF_If(ndata,env),0);
+function I_if(ndata,fenv){return cont(new EF_If(ndata,fenv),0);
 
 }
 
@@ -2543,9 +2521,9 @@ exports.Default=Default;
 
 
 
-function EF_Switch(ndata,env){this.ndata=ndata;
+function EF_Switch(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 this.phase=0;
 }
 setEFProto(EF_Switch.prototype={});
@@ -2555,7 +2533,7 @@ EF_Switch.prototype.cont=function(idx,val){switch(this.phase){case 0:
 
 
 if(idx==0){
-val=execIN(this.ndata[0],this.env);
+val=execIN(this.ndata[0],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -2594,7 +2572,7 @@ if(this.child_frame){
 this.child_frame.parent=UNDEF;
 this.child_frame=UNDEF;
 }
-val=execIN(this.ndata[1][idx][0],this.env);
+val=execIN(this.ndata[1][idx][0],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -2625,7 +2603,7 @@ if(this.child_frame){
 this.child_frame.parent=UNDEF;
 this.child_frame=UNDEF;
 }
-val=execIN(this.ndata[1][idx][1],this.env);
+val=execIN(this.ndata[1][idx][1],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -2641,7 +2619,7 @@ throw new Error("Invalid phase in Switch SJS node");
 }
 };
 
-function I_switch(ndata,env){return cont(new EF_Switch(ndata,env),0);
+function I_switch(ndata,fenv){return cont(new EF_Switch(ndata,fenv),0);
 
 }
 
@@ -2676,10 +2654,10 @@ exports.Switch=function(...args){return {exec:I_switch,ndata:args,__oni_dis:toke
 
 var try_counter=0;
 
-function EF_Try(ndata,env){this.id=++try_counter;
+function EF_Try(ndata,fenv){this.id=++try_counter;
 
 this.ndata=ndata;
-this.env=env;
+this.fenv=fenv;
 this.state=0;
 }
 setEFProto(EF_Try.prototype={});
@@ -2701,7 +2679,7 @@ this.child_frame=UNDEF;
 switch(this.state){case 0:
 
 this.state=1;
-val=execIN(this.ndata[1],this.env);
+val=execIN(this.ndata[1],this.fenv);
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.setChildFrame(val);
@@ -2728,7 +2706,7 @@ if(this.ndata[2]&&((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.typ
 
 var v;
 v=val.val;
-val=this.ndata[2](this.env,v);
+val=this.ndata[2](this.fenv,v);
 
 
 
@@ -2757,7 +2735,7 @@ this.state=3;
 
 this.rv=val;
 if(((this.aborted&&!this.pseudo_abort)||((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&(val.type==='blb'||val.type==='blr')))&&this.ndata[4]){
-val=execIN(this.ndata[4],this.env);
+val=execIN(this.ndata[4],this.fenv);
 
 
 
@@ -2787,10 +2765,10 @@ if(this.ndata[0]&1){
 var v=(this.rv!==null&&typeof (this.rv)==='object'&&this.rv.__oni_cfx)?[this.rv,true,!!this.aborted,!!this.pseudo_abort,this.parent]:[this.rv,false,!!this.aborted,!!this.pseudo_abort,this.parent];
 
 
-val=this.ndata[3](this.env,v);
+val=this.ndata[3](this.fenv,v);
 }else{
 
-val=execIN(this.ndata[3],this.env);
+val=execIN(this.ndata[3],this.fenv);
 }
 
 
@@ -2909,7 +2887,7 @@ if(exports.current_dyn_vars!==root_dyn_vars){console.log('Dynvars('+exports.curr
 return this;
 };
 
-function I_try(ndata,env){return cont(new EF_Try(ndata,env),0);
+function I_try(ndata,fenv){return cont(new EF_Try(ndata,fenv),0);
 
 }
 
@@ -2934,9 +2912,9 @@ exports.Try=function(...args){return {exec:I_try,ndata:args,__oni_dis:token_dis}
 
 
 
-function EF_Loop(ndata,env){this.ndata=ndata;
+function EF_Loop(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 }
 setEFProto(EF_Loop.prototype={});
 EF_Loop.prototype.type="Loop";
@@ -2960,7 +2938,7 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted){
 return this.returnToParent(val);
 }
 
-val=execIN(this.ndata[1],this.env);
+val=execIN(this.ndata[1],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -3009,7 +2987,7 @@ if(this.child_frame){
 this.child_frame.parent=UNDEF;
 this.child_frame=UNDEF;
 }
-val=execIN(this.ndata[idx+1],this.env);
+val=execIN(this.ndata[idx+1],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -3032,7 +3010,7 @@ idx=1;
 
 if(this.ndata[2]){
 
-val=execIN(this.ndata[2],this.env);
+val=execIN(this.ndata[2],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -3052,7 +3030,7 @@ idx=0;
 }
 };
 
-function I_loop(ndata,env){return cont(new EF_Loop(ndata,env),ndata[0],true);
+function I_loop(ndata,fenv){return cont(new EF_Loop(ndata,fenv),ndata[0],true);
 
 }
 
@@ -3077,9 +3055,9 @@ exports.Loop=function(...args){return {exec:I_loop,ndata:args,__oni_dis:token_di
 
 
 
-function EF_ForIn(ndata,env){this.ndata=ndata;
+function EF_ForIn(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 }
 setEFProto(EF_ForIn.prototype={});
 EF_ForIn.prototype.type="ForIn";
@@ -3090,7 +3068,7 @@ this.setChildFrame(val,idx);
 }else{
 
 if(idx==0){
-val=execIN(this.ndata[0],this.env);
+val=execIN(this.ndata[0],this.fenv);
 if(this.aborted){
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -3113,7 +3091,7 @@ if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)||this.aborted)return thi
 var for_in_obj=val;
 for(var x in for_in_obj){
 if(typeof this.remainingX==='undefined'){
-val=this.ndata[1](this.env,x);
+val=this.ndata[1](this.fenv,x);
 if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 if(val.type=="b"){
 
@@ -3172,14 +3150,14 @@ arg=this.remainingX.shift();
 if(arg in this.for_in_obj)break;
 
 }
-val=this.ndata[1](this.env,arg);
+val=this.ndata[1](this.fenv,arg);
 
 }
 }
 }
 };
 
-function I_forin(ndata,env){return cont(new EF_ForIn(ndata,env),0);
+function I_forin(ndata,fenv){return cont(new EF_ForIn(ndata,fenv),0);
 
 }
 
@@ -3233,16 +3211,16 @@ return original_exception;
 
 var par_counter=0;
 
-function EF_Par(ndata,env){this.id=++par_counter;
+function EF_Par(ndata,fenv){this.id=++par_counter;
 
 this.ndata=ndata;
-this.env=env;
+this.fenv=fenv;
 this.pending=0;
 this.children=new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
 EF_Par.prototype.type="Par";
-EF_Par.prototype.toString=function(){return "<Par"+this.id+"@"+this.env.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"};
+EF_Par.prototype.toString=function(){return "<Par"+this.id+"@"+this.fenv.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"};
 
 EF_Par.prototype.cont=function(idx,val){if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -3254,7 +3232,7 @@ if(idx==-1){
 var parent_dyn_vars=exports.current_dyn_vars;
 
 for(var i=0;i<this.ndata.length;++i){
-val=execIN(this.ndata[i],this.env);
+val=execIN(this.ndata[i],this.fenv);
 if(this.inner_aborted){
 
 
@@ -3413,7 +3391,7 @@ return st;
 
 EF_Par.prototype.setChildFrame=setChildFramePar;
 
-function I_par(ndata,env){return cont(new EF_Par(ndata,env),-1);
+function I_par(ndata,fenv){return cont(new EF_Par(ndata,fenv),-1);
 
 }
 
@@ -3439,10 +3417,10 @@ exports.Par=function(...args){return {exec:I_par,ndata:args,__oni_dis:token_dis}
 
 var alt_counter=0;
 
-function EF_Alt(ndata,env){this.id=++alt_counter;
+function EF_Alt(ndata,fenv){this.id=++alt_counter;
 
 this.ndata=ndata;
-this.env=env;
+this.fenv=fenv;
 
 this.pending=0;
 this.children=new Array(this.ndata.length);
@@ -3462,10 +3440,10 @@ var parent_dyn_vars=exports.current_dyn_vars;
 for(var i=0;i<this.ndata.length;++i){
 
 
-var env=copyEnv(this.env);
-env.fold=this;
-env.branch=i;
-val=execIN(this.ndata[i],env);
+var fenv=copyFEnv(this.fenv);
+fenv.fold=this;
+fenv.branch=i;
+val=execIN(this.ndata[i],fenv);
 
 if(this.inner_aborted){
 
@@ -3668,7 +3646,7 @@ this.collapsing={branch:branch,cf:cf};
 return false;
 };
 
-function I_alt(ndata,env){return cont(new EF_Alt(ndata,env),-1);
+function I_alt(ndata,fenv){return cont(new EF_Alt(ndata,fenv),-1);
 
 }
 
@@ -3691,9 +3669,9 @@ exports.Alt=function(...args){return {exec:I_alt,ndata:args,__oni_dis:token_dis}
 
 
 
-function EF_WfW(ndata,env){this.ndata=ndata;
+function EF_WfW(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 this.pending=0;
 this.children=new Array(2);
 }
@@ -3711,7 +3689,7 @@ if(idx===-1){
 var parent_dyn_vars=exports.current_dyn_vars;
 
 for(var i=0;i<2;++i){
-val=execIN(this.ndata[i],this.env);
+val=execIN(this.ndata[i],this.fenv);
 if(this.inner_aborted){
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 
@@ -3849,7 +3827,7 @@ return this.pendingCFE;
 
 EF_WfW.prototype.setChildFrame=setChildFramePar;
 
-function I_wfw(ndata,env){return cont(new EF_WfW(ndata,env),-1);
+function I_wfw(ndata,fenv){return cont(new EF_WfW(ndata,fenv),-1);
 
 }
 exports.WfW=function(...args){return {exec:I_wfw,ndata:args,__oni_dis:token_dis};
@@ -3877,9 +3855,9 @@ exports.WfW=function(...args){return {exec:I_wfw,ndata:args,__oni_dis:token_dis}
 
 
 
-function EF_Suspend(ndata,env){this.ndata=ndata;
+function EF_Suspend(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 }
 setEFProto(EF_Suspend.prototype={});
 EF_Suspend.prototype.type="Suspend";
@@ -3920,7 +3898,7 @@ exports.current_dyn_vars=caller_dyn_vars;
 
 
 
-val=this.ndata[0](this.env,resumefunc);
+val=this.ndata[0](this.fenv,resumefunc);
 }catch(e){
 
 
@@ -4005,7 +3983,7 @@ return this;
 case 3:
 
 try{
-this.ndata[1].apply(this.env,this.retvals);
+this.ndata[1].apply(this.fenv,this.retvals);
 val=UNDEF;
 }catch(e){
 
@@ -4048,7 +4026,7 @@ return abort_val;
 return UNDEF;
 };
 
-function I_sus(ndata,env){return cont(new EF_Suspend(ndata,env),0);
+function I_sus(ndata,fenv){return cont(new EF_Suspend(ndata,fenv),0);
 
 }
 
@@ -4070,9 +4048,9 @@ exports.Suspend=function(...args){return {exec:I_sus,ndata:args,__oni_dis:token_
 
 
 
-function EF_Collapse(ndata,env){this.ndata=ndata;
+function EF_Collapse(ndata,fenv){this.ndata=ndata;
 
-this.env=env;
+this.fenv=fenv;
 }
 setEFProto(EF_Collapse.prototype={});
 EF_Collapse.prototype.type="Collapse";
@@ -4083,12 +4061,12 @@ EF_Collapse.prototype.__oni_collapse=true;
 EF_Collapse.prototype.cont=function(idx,val){if(idx==0){
 
 
-var fold=this.env.fold;
-if(!fold)return new CFException("t",new Error("Unexpected collapse statement"),this.ndata,this.env.file);
+var fold=this.fenv.fold;
+if(!fold)return new CFException("t",new Error("Unexpected collapse statement"),this.ndata,this.fenv.file);
 
 
 this.restore_dynvars=exports.current_dyn_vars;
-if(fold.docollapse(this.env.branch,this)){
+if(fold.docollapse(this.fenv.branch,this)){
 exports.current_dyn_vars=this.restore_dynvars;
 return true;
 }
@@ -4100,7 +4078,7 @@ return this;
 
 exports.current_dyn_vars=this.restore_dynvars;
 return this.returnToParent(true);
-}else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata,this.env.file));
+}else return this.returnToParent(new CFException("t","Internal error in SJS runtime (collapse)",this.ndata,this.fenv.file));
 
 
 
@@ -4114,7 +4092,7 @@ exports.current_dyn_vars=this.restore_dynvars;
 return UNDEF;
 };
 
-function I_collapse(ndata,env){return cont(new EF_Collapse(ndata,env),0);
+function I_collapse(ndata,fenv){return cont(new EF_Collapse(ndata,fenv),0);
 
 }
 
@@ -4331,22 +4309,6 @@ exports.Break=function(lbl){return new CFException("b",lbl);
 
 exports.Cont=function(lbl){return new CFException("c",lbl);
 
-};
-
-
-exports.BlReturn=function(exp){var e=new CFException('r',exp);
-
-if(!this.blrref)throw new Error("Internal runtime error; no reference frame in BlReturn");
-if(this.blrref.unreturnable){
-if(this.blrref.toplevel)throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");else{
-
-
-
-throw new Error("Blocklambda return to inactive function");
-}
-}
-e.eid=this.blrref.sid;
-return e;
 };
 
 exports.With=function(exp,bodyf){return bodyf(this,exp);

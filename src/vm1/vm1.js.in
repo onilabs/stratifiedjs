@@ -286,7 +286,7 @@ exports.CFException = CFException;
 
 // current_dyn_vars is a global variable holding dynamic variable
 // bindings for the currently stratum. 
-// We cannot use 'Env' for this, because environments get reset at every function
+// We cannot use 'FEnv' for this, because function execution environments get reset at every function
 // boundary (to support SJS being callable from JS)
 
 // The bindings can be amended for a given stratum with `withDynVarContext`, which creates
@@ -445,7 +445,7 @@ function mergeCallstacks(target_ef, src_ef) {
 // base prototype object for execution frames
 var EF_Proto = {
 #ifdef EF_TYPES
-  toString: function() { var rv = "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+((this.env && this.env.file) ? '@'+this.env.file.substr(-20): '')+">";
+  toString: function() { var rv = "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+((this.fenv && this.fenv.file) ? '@'+this.fenv.file.substr(-20): '')+">";
                          if (this.callstack)
                            rv += '[' + this.callstack.join(' > ') + ']';
 #ifdef DEBUG_MULTIVM
@@ -611,7 +611,7 @@ var EF_Proto = {
 
     // a little cleanup which might aid GC:
     // XXX this breaks function-tests.sjs:exclusive
-    // this.env = UNDEF;
+    // this.fenv = UNDEF;
 
     if (this.async) {
       if (this.parent) {
@@ -688,11 +688,11 @@ function setChildFramePar(ef, idx) {
 var token_dis = {};
 
 // execute an instruction node without mapping exceptions:
-function execIN(node, env) {
+function execIN(node, fenv) {
   if (!node || node.__oni_dis != token_dis) {
     return node; // a literal value
   }
-  return node.exec(node.ndata, env);
+  return node.exec(node.ndata, fenv);
 }
 exports.ex = execIN;
 
@@ -701,8 +701,8 @@ exports.ex = execIN;
 // aobj: effective `arguments`
 // tobj: effective `this`
 exports.exseq = function(aobj,tobj,file, args) {
-  var rv = I_seq(args, new Env(aobj,tobj,file));
-//  var rv = (new EF_Seq(args, new Env(aobj,tobj,file))).cont(1);
+  var rv = I_seq(args, new FEnv(aobj,tobj,file));
+//  var rv = (new EF_Seq(args, new FEnv(aobj,tobj,file))).cont(1);
   if (is_cfx(rv))
     return rv.mapToJS(); // throw exceptions, so that we can call this from normal js
   return rv;
@@ -710,19 +710,19 @@ exports.exseq = function(aobj,tobj,file, args) {
 
 // reified function body:
 exports.exrseq = function(aobj,tobj,file,args) {
-  var rv = I_reifiedseq(args, new Env(aobj,tobj,file));
+  var rv = I_reifiedseq(args, new FEnv(aobj,tobj,file));
   if (is_cfx(rv))
     return rv.mapToJS(); // throw exceptions, so that we can call this from normal js
   return rv;
 };
 
 // block lambda bodies: create a blseq and exec it.
-// short for __oni_rt.exec(__oni_rt.Seq(...), env)
+// short for __oni_rt.exec(__oni_rt.Seq(...), fenv)
 // we need to map exceptions for cases where a blocklambda return tunnels through a
 // js function. See sjs-tests:'{||} in JS forEach'
-exports.exbl = function(env, args) {
-  var rv = I_blseq(args, env);
-//  var rv = (new EF_Seq(args, env)).cont(1);
+exports.exbl = function(fenv, args) {
+  var rv = I_blseq(args, fenv);
+//  var rv = (new EF_Seq(args, fenv)).cont(1);
   if (is_cfx(rv))
     return rv.mapToJS();
   return rv;
@@ -745,60 +745,55 @@ exports.exbl = function(env, args) {
 
 
 //----------------------------------------------------------------------
-// Execution environment
+// Function Execution environment
 /*
 
   {
     aobj: 'arguments' object,
     tobj: 'this' object,
     file: filename,
-    blrref: function execution frame that blocklambda returns should
-            target in current environment
     blanchor: blocklambda anchor call (ef of type 'EF_FAcall' - valid in argument children of EF_FAcall)
-    bl: blocklambda execution frame (valid within children of a bl execution frame)
-
     XXX ONLY PROPAGATE blanchor to _arguments_
 
   }
 
 */
 
-function Env(aobj, tobj, file, blrref, fold, branch, blanchor, reifiedstratum) { 
+function FEnv(aobj, tobj, file, fold, branch, blanchor, reifiedstratum) { 
   this.aobj = aobj; // 'arguments' object
   this.tobj = tobj; // 'this' object
   this.file = file; // filename
-  this.blrref = blrref;
   this.fold = fold; // place where 'alt' forks
   this.branch = branch; // id of fork branch. XXX should be merged with 'fold'
   this.blanchor = blanchor; // blocklambda anchor
   this.reifiedstratum = reifiedstratum;
 }
 
-function copyEnv(e) {
-  return new Env(e.aobj, e.tobj, e.file, e.blrref, e.fold, e.branch, e.blanchor, e.reifiedstratum);  
+function copyFEnv(e) {
+  return new FEnv(e.aobj, e.tobj, e.file, e.fold, e.branch, e.blanchor, e.reifiedstratum);  
 }
 
 //----------------------------------------------------------------------
 // C : instruction node for function calls with non-blocking args
-// Calls the given function with 'this' set to current environment 
+// Calls the given function with 'this' set to current function environment 
 
 // structure of ndata array:
 #define NDATA_CALL_JSFUNC() ndata[0]
 #define NDATA_CALL_LINENO() ndata[1]
-function I_call(ndata, env) {
+function I_call(ndata, fenv) {
   try {
-    current_call = [env.file, NDATA_CALL_LINENO()];
-    var rv = (NDATA_CALL_JSFUNC()).call(env);
+    current_call = [fenv.file, NDATA_CALL_LINENO()];
+    var rv = (NDATA_CALL_JSFUNC()).call(fenv);
     if (is_ef(rv)) {
       // collect callstack on the execution frame:
       if (!rv.callstack) rv.callstack = [];
-      rv.callstack.push([env.file, NDATA_CALL_LINENO()]);
+      rv.callstack.push([fenv.file, NDATA_CALL_LINENO()]);
     }
     return rv;
   }
   catch (e) {
     if (!is_cfx(e)) {
-      e = new CFException("t", e, NDATA_CALL_LINENO(), env.file);
+      e = new CFException("t", e, NDATA_CALL_LINENO(), fenv.file);
     }
     return e;
   }
@@ -814,18 +809,18 @@ exports.C = function(...args/*f, line*/) {
 
 //----------------------------------------------------------------------
 // Nb : instruction node for non-blocking, argument-less javascript code 
-// Calls the given function with 'this' set to current environment.
+// Calls the given function with 'this' set to current function environment.
 
 // structure of ndata array:
 #define NDATA_NBLOCK_JSFUNC() ndata[0]
 #define NDATA_NBLOCK_LINENO() ndata[1]
-function I_nblock(ndata, env) {
+function I_nblock(ndata, fenv) {
   try {
-    return (NDATA_NBLOCK_JSFUNC()).call(env);
+    return (NDATA_NBLOCK_JSFUNC()).call(fenv);
   }
   catch (e) {
     if (!is_cfx(e)) {
-      e = new CFException("t", e, NDATA_NBLOCK_LINENO(), env.file);
+      e = new CFException("t", e, NDATA_NBLOCK_LINENO(), fenv.file);
     }
     return e;
   }
@@ -863,30 +858,27 @@ exports.Nb = function(...args/*f, line*/) {
 
 var seq_counter = 0;
 
-function EF_Seq(ndata, env) {
+function EF_Seq(ndata, fenv) {
   // 'sid' is an id used in blocklambda break and return references
   this.sid = ++seq_counter;
 #ifdef DEBUG_VM
   this.id = this.sid; 
 #endif
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
 
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) {
-    // No need to copy env here, because we are (by implication) a non-blocklambda function or the top-level
+    // No need to copy fenv here, because we are (by implication) a non-blocklambda function or the top-level
     ASSERT(!!(NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_FUNCTION|NDATA_SEQ_FLAG_UNRETURNABLE)))
-    ASSERT(env.blrref === undefined)
-    ASSERT(env.fold === undefined)
-    ASSERT(env.branch === undefined)
-    env.blrref = this;
+    ASSERT(fenv.fold === undefined)
+    ASSERT(fenv.branch === undefined)
   }
   else if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION) {
 #ifdef DEBUG_VM
-    // assert that we're a 'normal' function with a fresh env:
-    ASSERT(env.blrref === undefined)
-    ASSERT(env.fold === undefined)
-    ASSERT(env.branch === undefined)
-    // i.e. no need to copy env!
+    // assert that we're a 'normal' function with a fresh fenv:
+    ASSERT(fenv.fold === undefined)
+    ASSERT(fenv.branch === undefined)
+    // i.e. no need to copy fenv!
 #endif // DEBUG_VM
   }
 
@@ -931,7 +923,7 @@ EF_Seq.prototype.cont = function(idx, val) {
     var sub = val && val.type;
     return "Seq/" + (sub || "??");
   };
-  LOG("EF_Seq.prototype.cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "]) @ " + this.env.file);
+  LOG("EF_Seq.prototype.cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "]) @ " + this.fenv.file);
 #endif
  // console.log(this+"cont(" + idx + " of " + this.ndata.length + ", val[ef=" + is_ef(val) + ",cfx=" + is_cfx(val) + "])");
 
@@ -964,7 +956,7 @@ EF_Seq.prototype.cont = function(idx, val) {
         this.child_frame.parent = UNDEF;
         this.child_frame = UNDEF; // ensures correct reentrant aborting
       }
-      val = execIN(this.ndata[idx], this.env);
+      val = execIN(this.ndata[idx], this.fenv);
       if (this.aborted) {
         // a reentrant abortion
         if (is_ef(val)) {
@@ -992,9 +984,9 @@ EF_Seq.prototype.cont = function(idx, val) {
 };
 
 #ifdef HOTPATH
-function I_seq(ndata, env) {
+function I_seq(ndata, fenv) {
   if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL)
-    return cont(new EF_Seq(ndata, env), 1);
+    return cont(new EF_Seq(ndata, fenv), 1);
 
   var sc = NDATA_SEQ_FLAGS() & (NDATA_SEQ_FLAG_SHORTCIRCUIT_OR |
                                 NDATA_SEQ_FLAG_SHORTCIRCUIT_AND); 
@@ -1002,7 +994,7 @@ function I_seq(ndata, env) {
   var val;
   var l = ndata.length;
   while (idx<l) {
-    val = execIN(ndata[idx++], env);
+    val = execIN(ndata[idx++], fenv);
     if (this.aborted) {
       // a reentrant abortion
       if (is_ef(val)) {
@@ -1015,7 +1007,7 @@ function I_seq(ndata, env) {
     if (is_cfx(val)) break;
     if (is_ef(val)) {
       // need to create an execution frame for ourselves... 
-      var ef = new EF_Seq(ndata, env);
+      var ef = new EF_Seq(ndata, fenv);
       ef.setChildFrame(val, idx);
       return ef;
     }
@@ -1042,8 +1034,8 @@ function I_seq(ndata, env) {
   return val;
 }
 #else /* !HOTPATH */
-function I_seq(ndata, env) {
-  return cont(new EF_Seq(ndata, env), 1);
+function I_seq(ndata, fenv) {
+  return cont(new EF_Seq(ndata, fenv), 1);
 }
 #endif /* HOTPATH */
 //exports.Seq = makeINCtor(I_seq);
@@ -1601,20 +1593,20 @@ EF_Reified.prototype.setChildFrame = function(ef, idx) {
 }
 
 var reified_counter = 0;
-function I_reifiedseq(ndata, env) {
+function I_reifiedseq(ndata, fenv) {
   var dynvars = exports.current_dyn_vars;
   var reified_ef = new EF_Reified(++reified_counter/*inner_ef.type()*/, dynvars);
 
   SETDYNVARS(reified_ef.dynvars, "I_reifiedseq // (1)")
 
-  var inner_ef = new EF_Seq(ndata, env);
+  var inner_ef = new EF_Seq(ndata, fenv);
   // we're setting pending_caller, in case there is a reentrant adopt:
   // - see also unit/stack-tests:'function abort'
   reified_ef.pending_caller = current_call;
   //console.log("!seq "+reified_ef);
   ++reified_ef.pending;
   // inject stratum interface:
-  inner_ef.env.reifiedstratum = reified_ef.reifiedstratum;
+  inner_ef.fenv.reifiedstratum = reified_ef.reifiedstratum;
 
 
   // start inner seq:
@@ -1655,7 +1647,7 @@ function I_reifiedseq(ndata, env) {
 // ndata[0] contains flags - same as for seq
 //var blseq_counter = 0;
 
-function EF_BlSeq(ndata, env) {
+function EF_BlSeq(ndata, fenv) {
 //  this.blsid = ++blseq_counter;
   this.sid = ++seq_counter;
 #ifdef DEBUG_VM
@@ -1665,27 +1657,13 @@ function EF_BlSeq(ndata, env) {
 
   ASSERT(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_FUNCTION)
   ASSERT(!(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_UNRETURNABLE))
-  ASSERT(env.blanchor)
+  ASSERT(fenv.blanchor)
 
   this.ndata = ndata;
-  this.env = copyEnv(env);
+  this.fenv = copyFEnv(fenv);
   
-//  this.env.bl = this;
-
-  this.blanchor = env.blanchor;
-  this.env.blanchor = undefined;
-
-
-  if (NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL) {
-    this.env.blrref = env.blrref;
-  }
-  else {
-    // we're a blocklambda but NOT a scope for any `break`s in child frames (otherwise the compiler would
-    // have marked us 'notailcall'). clear blscope so that targeted `break` calls that travel down the call tree will
-    // find their way to the correct scope (we need the `break` to 'tunnel' through these non-targeted functions)
-    // XXX could equally set this to 'this'
-    // this.env.blscope = null;
-  }
+  this.blanchor = fenv.blanchor;
+  this.fenv.blanchor = undefined;
 
   this.tailcall = false; //!(NDATA_SEQ_FLAGS() & NDATA_SEQ_FLAG_NOTAILCALL);
   //WHENDEBUG(if (!this.tailcall) console.log("no tailcall!!");)
@@ -1744,7 +1722,7 @@ EF_BlSeq.prototype.cont = function(idx, val) {
         this.child_frame.parent = UNDEF;
         this.child_frame = UNDEF; // ensures correct reentrant aborting
       }
-      val = execIN(this.ndata[idx], this.env);
+      val = execIN(this.ndata[idx], this.fenv);
       if (this.aborted) {
         // a reentrant abortion
         if (is_ef(val)) {
@@ -1866,17 +1844,17 @@ EF_BlSeq.prototype.do_break = function() {
 };
 */
 // called only by 'exbl':
-function I_blseq(ndata, env) {
-  ASSERT(env.blanchor)
-  if (env.blanchor.unreturnable) return new CFException("t", new Error("Blocklambda anchor at "+env.file+":"+env.blanchor.ndata[1]+" is inactive."));
-  return cont(new EF_BlSeq(ndata, env), 1);
+function I_blseq(ndata, fenv) {
+  ASSERT(fenv.blanchor)
+  if (fenv.blanchor.unreturnable) return new CFException("t", new Error("Blocklambda anchor at "+fenv.file+":"+fenv.blanchor.ndata[1]+" is inactive."));
+  return cont(new EF_BlSeq(ndata, fenv), 1);
 }
 
 
 // structure of ndata array:
 #define NDATA_BLOCKLAMBDA_JSFUNC() ndata
-function I_blocklambda(ndata, env) {
-  return NDATA_BLOCKLAMBDA_JSFUNC().bind(env);
+function I_blocklambda(ndata, fenv) {
+  return NDATA_BLOCKLAMBDA_JSFUNC().bind(fenv);
 }
 //exports.Bl = makeINCtor(I_blocklambda);
 exports.Bl = function(f) {
@@ -1890,12 +1868,12 @@ exports.Bl = function(f) {
 //----------------------------------------------------------------------
 // Reify (executed by 'reifiedStratum' builtin)
 
-// no execution frame needed, but we need access to 'env'
+// no execution frame needed, but we need access to 'fenv'
 // could also encode this as a strict function:
 // kernel-sjs: nblock, 'return __oni_rt.Reify(this)'
 
-function I_reify(ndata, env) {
-  var s = env.reifiedstratum;
+function I_reify(ndata, fenv) {
+  var s = fenv.reifiedstratum;
   if (!s) return new CFException("t", new Error("Context is not reifiable"));
   return s;
 };
@@ -1911,7 +1889,7 @@ exports.Reify = function() {
 //----------------------------------------------------------------------
 // Sc : simple strict function call
 //
-// executes env.SC_L(arg1, arg2, ...) where arg1..n are strictly
+// executes fenv.SC_L(arg1, arg2, ...) where arg1..n are strictly
 // evaluated instruction nodes
 
 
@@ -1927,9 +1905,9 @@ exports.Reify = function() {
    1 : returning from args evaluation
 */
 
-function EF_Sc(ndata, env) {
+function EF_Sc(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
   this.i = NDATA_SC_ARGS_OFFSET;
   this.pars = [];
 }
@@ -1937,7 +1915,7 @@ setEFProto(EF_Sc.prototype={});
 #ifdef EF_TYPES
 EF_Sc.prototype.type = "Sc";
 EF_Sc.prototype.toString = function() {
-  return "<Sc@"+this.env.file.substr(-20)+':'+this.ndata[0]+'>';
+  return "<Sc@"+this.fenv.file.substr(-20)+':'+this.ndata[0]+'>';
 };
 #endif
 
@@ -1963,7 +1941,7 @@ EF_Sc.prototype.cont = function(idx, val) {
     }
     var rv;
     while (this.i<this.ndata.length) {
-      rv = execIN(this.ndata[this.i], this.env);
+      rv = execIN(this.ndata[this.i], this.fenv);
       if (this.aborted) {
         // a reentrant abortion
         if (is_ef(rv)) {
@@ -1988,19 +1966,19 @@ EF_Sc.prototype.cont = function(idx, val) {
 
     // alright, we've got the pars, let's do the call:
     try {
-        rv = this.NDATA_SC_L().apply(this.env, this.pars);
+        rv = this.NDATA_SC_L().apply(this.fenv, this.pars);
     }
     catch (e) {
       rv = new CFException("t", e,
                            this.NDATA_SC_LINE(),
-                           this.env.file);
+                           this.fenv.file);
     }
     return this.returnToParent(rv);
   }
 };
 
-function I_sc(ndata, env) {
-  return cont(new EF_Sc(ndata, env), 0);
+function I_sc(ndata, fenv) {
+  return cont(new EF_Sc(ndata, fenv), 0);
 }
 
 //exports.Sc = makeINCtor(I_sc);
@@ -2051,9 +2029,9 @@ function testIsFunction(f) {
    2 : returning from 'new' call (need to return 'this.o') 
 */
 
-function EF_Fcall(ndata, env) {
+function EF_Fcall(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
   this.i = NDATA_L_INDEX;
   this.pars = [];
 
@@ -2061,7 +2039,7 @@ function EF_Fcall(ndata, env) {
 setEFProto(EF_Fcall.prototype={});
 #ifdef EF_TYPES
 EF_Fcall.prototype.type = "Fcall";
-EF_Fcall.prototype.toString = function() { return "<Fcall@"+this.env.file.substr(-20)+":"+this.NDATA_FCALL_LINE()+">"};
+EF_Fcall.prototype.toString = function() { return "<Fcall@"+this.fenv.file.substr(-20)+":"+this.NDATA_FCALL_LINE()+">"};
 #endif
 
 EF_Fcall.prototype.cont = function(idx, val) {
@@ -2089,7 +2067,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
     var args_length = this.ndata.length;
     if (this.NDATA_FCALL_FLAGS() & FCALL_FLAG_SPREAD) --args_length;
     while (this.i<args_length) {
-      rv = execIN(this.ndata[this.i], this.env);
+      rv = execIN(this.ndata[this.i], this.fenv);
       if (this.aborted) {
         // a reentrant abortion
         if (is_ef(rv)) {
@@ -2135,7 +2113,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       else 
         pars = this.pars;
 
-      current_call = [this.env.file, this.NDATA_FCALL_LINE()];
+      current_call = [this.fenv.file, this.NDATA_FCALL_LINE()];
 
       switch (this.NDATA_FCALL_FLAGS() & FCALL_FLAGS_MODE_MASK) {
       case FCALL_MODE_NORMAL:
@@ -2147,7 +2125,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
         rv = new CFException("t",
                              new Error("'"+this.l+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
       }
       else {
         // a 'builtin' (on IE, maybe others)
@@ -2173,7 +2151,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
           rv = new CFException("t",
                                new Error("'"+this.l+"' is not a function"),
                                this.NDATA_FCALL_LINE(),
-                               this.env.file);
+                               this.fenv.file);
         }
       }
       break;
@@ -2183,7 +2161,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
         rv = new CFException("t",
                              new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
       }
       else if (typeof this.l[0][this.l[1]] == "function") {
         // 'normal' function
@@ -2208,7 +2186,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
         rv = new CFException("t",
                              new Error("'"+this.l[0][this.l[1]]+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
       }
       else {
         // a 'builtin' (on IE, maybe others)
@@ -2235,7 +2213,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
           rv = new CFException("t",
                                new Error("'"+this.l[0][this.l[1]]+"' is not a function"),
                                this.NDATA_FCALL_LINE(),
-                               this.env.file);
+                               this.fenv.file);
         }
       }
       break;
@@ -2244,8 +2222,8 @@ EF_Fcall.prototype.cont = function(idx, val) {
         var ctor = this.l;
         rv = new ctor(...pars);
         if (is_ef(rv)) {
-          if (!rv.env) throw new Error("Invalid constructor function (no environment)");
-          this.o = rv.env.tobj;
+          if (!rv.fenv) throw new Error("Invalid constructor function (no function execution environment)");
+          this.o = rv.fenv.tobj;
           // we need to stay in the picture
           this.setChildFrame(rv, 2);
           return this;
@@ -2268,7 +2246,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       else
         rv = new CFException("t", e,
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
     }
     if (is_ef(rv)) {
       if (this.aborted) {
@@ -2279,14 +2257,14 @@ EF_Fcall.prototype.cont = function(idx, val) {
 
       // the call is blocking -> insert ourselves into callstack:
       if (!rv.callstack) rv.callstack = [];
-      rv.callstack.push([this.env.file, this.NDATA_FCALL_LINE()]);
+      rv.callstack.push([this.fenv.file, this.NDATA_FCALL_LINE()]);
     }
     return this.returnToParent(rv);
   }
 };
 
-function I_fcall(ndata, env) {
-  return cont(new EF_Fcall(ndata, env), 0);
+function I_fcall(ndata, fenv) {
+  return cont(new EF_Fcall(ndata, fenv), 0);
 }
 
 //exports.Fcall = makeINCtor(I_fcall);
@@ -2309,18 +2287,18 @@ exports.Fcall = function(...args) {
 
 var facall_counter = 0;
 
-function EF_FAcall(ndata, env) {
+function EF_FAcall(ndata, fenv) {
   // this.aid is an id used in blocklambda break and return references.
   this.aid = ++facall_counter;
 
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
   this.i = NDATA_L_INDEX;
   this.pars = [];
 
-  // inject ourselves into environment:
-  this.env = copyEnv(env);
-  this.env.blanchor = this;
+  // inject ourselves into function execution environment:
+  this.fenv = copyFEnv(fenv);
+  this.fenv.blanchor = this;
 
   this.parent_dynvars = exports.current_dyn_vars;
   this.facall_dynvars = createDynVarContext(exports.current_dyn_vars);
@@ -2330,7 +2308,7 @@ function EF_FAcall(ndata, env) {
 setEFProto(EF_FAcall.prototype={});
 #ifdef EF_TYPES
 EF_FAcall.prototype.type = "FAcall";
-EF_FAcall.prototype.toString = function() { return "<FAcall@"+this.env.file.substr(-20)+":"+this.NDATA_FCALL_LINE()+">"};
+EF_FAcall.prototype.toString = function() { return "<FAcall@"+this.fenv.file.substr(-20)+":"+this.NDATA_FCALL_LINE()+">"};
 #endif
 
 EF_FAcall.prototype.cont = function(idx, val) {
@@ -2371,7 +2349,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
     if (this.NDATA_FCALL_FLAGS() & FCALL_FLAG_SPREAD) --args_length;
     while (this.i<args_length) {
 //      if (this.i === NDATA_FCALL_ARGS_OFFSET) { SETDYNVARS(this.facall_dynvars, "FAcall<"+this+"> arg //(7)") }
-      rv = execIN(this.ndata[this.i], this.env);
+      rv = execIN(this.ndata[this.i], this.fenv);
       if (this.aborted) {
         // a reentrant abortion
         if (is_ef(rv)) {
@@ -2432,7 +2410,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
       else 
         pars = this.pars;
 
-      current_call = [this.env.file, this.NDATA_FCALL_LINE()];
+      current_call = [this.fenv.file, this.NDATA_FCALL_LINE()];
 
       switch (this.NDATA_FCALL_FLAGS() & FCALL_FLAGS_MODE_MASK) {
       case FCALL_MODE_NORMAL:
@@ -2444,7 +2422,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
         rv = new CFException("t",
                              new Error("'"+this.l+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
       }
       else {
         // a 'builtin' (on IE, maybe others)
@@ -2470,7 +2448,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
           rv = new CFException("t",
                                new Error("'"+this.l+"' is not a function"),
                                this.NDATA_FCALL_LINE(),
-                               this.env.file);
+                               this.fenv.file);
         }
       }
       break;
@@ -2480,7 +2458,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
         rv = new CFException("t",
                              new Error("'"+this.l[1]+"' on '"+this.l[0]+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
       }
       else if (typeof this.l[0][this.l[1]] == "function") {
         // 'normal' function
@@ -2505,7 +2483,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
         rv = new CFException("t",
                              new Error("'"+this.l[0][this.l[1]]+"' is not a function"),
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
       }
       else {
         // a 'builtin' (on IE, maybe others)
@@ -2532,7 +2510,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
           rv = new CFException("t",
                                new Error("'"+this.l[0][this.l[1]]+"' is not a function"),
                                this.NDATA_FCALL_LINE(),
-                               this.env.file);
+                               this.fenv.file);
         }
       }
       break;
@@ -2541,8 +2519,8 @@ EF_FAcall.prototype.cont = function(idx, val) {
         var ctor = this.l;
         rv = new ctor(...pars);
         if (is_ef(rv)) {
-          if (!rv.env) throw new Error("Invalid constructor function (no environment)");
-          this.o = rv.env.tobj;
+          if (!rv.fenv) throw new Error("Invalid constructor function (no function execution environment)");
+          this.o = rv.fenv.tobj;
           // we need to stay in the picture
           this.setChildFrame(rv, 2);
           return this;
@@ -2567,7 +2545,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
       else
         rv = new CFException("t", e,
                              this.NDATA_FCALL_LINE(),
-                             this.env.file);
+                             this.fenv.file);
     }
 
     if (is_ef(rv)) {
@@ -2584,7 +2562,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
       if (rv) {
         // the call is blocking -> insert ourselves into callstack:
         if (!rv.callstack) rv.callstack = [];
-        rv.callstack.push([this.env.file, this.NDATA_FCALL_LINE()]);
+        rv.callstack.push([this.fenv.file, this.NDATA_FCALL_LINE()]);
       }
     }
 
@@ -2659,8 +2637,8 @@ EF_FAcall.prototype.abort = function(pseudo_abort) {
 };
 
 
-function I_facall(ndata, env) {
-  return cont(new EF_FAcall(ndata, env), 0);
+function I_facall(ndata, fenv) {
+  return cont(new EF_FAcall(ndata, fenv), 0);
 }
 
 //exports.FAcall = makeINCtor(I_facall);
@@ -2691,12 +2669,12 @@ exports.FAcall = function(...args) {
 var if_counter = 0;
 #endif
 
-function EF_If(ndata, env) {
+function EF_If(ndata, fenv) {
 #ifdef DEBUG_VM
   this.id = ++if_counter;
 #endif
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
 }
 setEFProto(EF_If.prototype={});
 #ifdef EF_TYPES
@@ -2707,7 +2685,7 @@ EF_If.prototype.cont = function(idx, val) {
   switch (idx) {
   case 0:
   //  LOG("IF: exec test")
-  val = execIN(this.NDATA_IF_TEST(), this.env);
+  val = execIN(this.NDATA_IF_TEST(), this.fenv);
     if (this.aborted) {
       // a reentrant abortion
       if (is_ef(val)) {
@@ -2729,9 +2707,9 @@ EF_If.prototype.cont = function(idx, val) {
   }
   // tail calls:
   if (val)
-    val = execIN(this.NDATA_IF_CONSEQUENT(), this.env);
+    val = execIN(this.NDATA_IF_CONSEQUENT(), this.fenv);
   else
-    val = execIN(this.NDATA_IF_ALTERNATIVE(), this.env);
+    val = execIN(this.NDATA_IF_ALTERNATIVE(), this.fenv);
     if (this.aborted) {
       // a reentrant abortion
       if (is_ef(val)) {
@@ -2746,8 +2724,8 @@ EF_If.prototype.cont = function(idx, val) {
   return this.returnToParent(val);
 };
 
-function I_if(ndata, env) {
-  return cont(new EF_If(ndata, env), 0);
+function I_if(ndata, fenv) {
+  return cont(new EF_If(ndata, fenv), 0);
 }
 
 //exports.If = makeINCtor(I_if);
@@ -2788,9 +2766,9 @@ phase 2: (executing clause code)
    0...n : next clause to run
 */
 
-function EF_Switch(ndata, env) {
+function EF_Switch(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
   this.phase = 0;
 }
 setEFProto(EF_Switch.prototype={});
@@ -2802,7 +2780,7 @@ EF_Switch.prototype.cont = function(idx, val) {
   switch (this.phase) {
   case 0: // evaluate switch expression
   if (idx == 0) {
-    val = execIN(this.NDATA_SWITCH_EXP(), this.env);
+    val = execIN(this.NDATA_SWITCH_EXP(), this.fenv);
     if (this.aborted) {
       // a reentrant abortion
       if (is_ef(val)) {
@@ -2841,7 +2819,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       this.child_frame.parent = UNDEF;
       this.child_frame = UNDEF; // prevent callstack copying; stack-tests 21
     }
-    val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][0], this.env);
+    val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][0], this.fenv);
     if (this.aborted) {
       // a reentrant abortion
       if (is_ef(val)) {
@@ -2872,7 +2850,7 @@ EF_Switch.prototype.cont = function(idx, val) {
       this.child_frame.parent = UNDEF;
       this.child_frame = UNDEF; // prevent callstack copying; stack-tests 22
     }
-    val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][1], this.env);
+    val = execIN(this.NDATA_SWITCH_CLAUSES()[idx][1], this.fenv);
     if (this.aborted) {
       // a reentrant abortion
       if (is_ef(val)) {
@@ -2888,8 +2866,8 @@ EF_Switch.prototype.cont = function(idx, val) {
   }
 };
 
-function I_switch(ndata, env) {
-  return cont(new EF_Switch(ndata, env), 0);
+function I_switch(ndata, fenv) {
+  return cont(new EF_Switch(ndata, fenv), 0);
 }
 
 //exports.Switch = makeINCtor(I_switch);
@@ -2932,12 +2910,12 @@ exports.Switch = function(...args/*exp, clauses*/) {
 var try_counter = 0;
 #endif
 
-function EF_Try(ndata, env) {
+function EF_Try(ndata, fenv) {
 #ifdef DEBUG_VM
   this.id = ++try_counter;
 #endif
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
   this.state = 0;
 }
 setEFProto(EF_Try.prototype={});
@@ -2961,7 +2939,7 @@ EF_Try.prototype.cont = function(idx, val) {
     switch (this.state) {
     case 0:
     this.state = 1;
-    val = execIN(this.NDATA_TRY_TRY_BLOCK(), this.env);
+    val = execIN(this.NDATA_TRY_TRY_BLOCK(), this.fenv);
 
     if (is_ef(val)) {
       this.setChildFrame(val);
@@ -2988,7 +2966,7 @@ EF_Try.prototype.cont = function(idx, val) {
           (is_cfx(val) && val.type == "t")) {
         var v;
         v = val.val;
-        val = this.NDATA_TRY_CATCH_FUNC()(this.env, v);
+        val = this.NDATA_TRY_CATCH_FUNC()(this.fenv, v);
         
         // Check for a reentrant abortion triggered by our catch() block
         // see sjs-2-tests.sjs: reentrant abortion from catch()
@@ -3017,7 +2995,7 @@ EF_Try.prototype.cont = function(idx, val) {
     // save value from catch/try:
     this.rv = val;
     if (((this.aborted && !this.pseudo_abort) || (is_cfx(val) && (val.type==='blb'||val.type==='blr'))) && this.NDATA_TRY_RETRACT_BLOCK()) {
-      val = execIN(this.NDATA_TRY_RETRACT_BLOCK(), this.env);
+      val = execIN(this.NDATA_TRY_RETRACT_BLOCK(), this.fenv);
 
       // tail-call optimization:
       // XXX this breaks sjs-testsuite2:51
@@ -3047,10 +3025,10 @@ EF_Try.prototype.cont = function(idx, val) {
         var v = is_cfx(this.rv) ?
           [this.rv, true, !!this.aborted, !!this.pseudo_abort, this.parent] :
           [this.rv, false, !!this.aborted, !!this.pseudo_abort, this.parent];
-        val = this.NDATA_TRY_FINALLY_BLOCK()(this.env, v);
+        val = this.NDATA_TRY_FINALLY_BLOCK()(this.fenv, v);
       }
       else {
-        val = execIN(this.NDATA_TRY_FINALLY_BLOCK(), this.env);
+        val = execIN(this.NDATA_TRY_FINALLY_BLOCK(), this.fenv);
       }
       // we can't tail-call this, because we might have to return
       // the stored rv (if it is an exception)
@@ -3171,8 +3149,8 @@ EF_Try.prototype.abort = function(pseudo_abort) {
   return this;
 };
 
-function I_try(ndata, env) {
-  return cont(new EF_Try(ndata, env), 0);
+function I_try(ndata, fenv) {
+  return cont(new EF_Try(ndata, fenv), 0);
 }
 
 //exports.Try = makeINCtor(I_try);
@@ -3200,9 +3178,9 @@ exports.Try = function(...args) {
    1 : perform inc next 
 */
 
-function EF_Loop(ndata, env) {
+function EF_Loop(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
 }
 setEFProto(EF_Loop.prototype={});
 #ifdef EF_TYPES
@@ -3228,7 +3206,7 @@ EF_Loop.prototype.cont = function(idx, val) {
           return this.returnToParent(val);
         }
         // perform loop test
-        val = execIN(this.NDATA_LOOP_TEST(), this.env);
+        val = execIN(this.NDATA_LOOP_TEST(), this.fenv);
         if (this.aborted) {
           // a reentrant abortion
           if (is_ef(val)) {
@@ -3277,7 +3255,7 @@ EF_Loop.prototype.cont = function(idx, val) {
             this.child_frame.parent = UNDEF;
             this.child_frame = UNDEF; // ensure correct reentrant aborting & prevent callstack copying 
           }
-          val = execIN(this.NDATA_LOOP_BODY(idx), this.env);
+          val = execIN(this.NDATA_LOOP_BODY(idx), this.fenv);
           if (this.aborted) {
             // a reentrant abortion
             if (is_ef(val)) {
@@ -3300,7 +3278,7 @@ EF_Loop.prototype.cont = function(idx, val) {
       // this point will be reached directly if idx = 1
       if (this.NDATA_LOOP_INC())  {
         // perform inc
-        val = execIN(this.NDATA_LOOP_INC(), this.env);
+        val = execIN(this.NDATA_LOOP_INC(), this.fenv);
         if (this.aborted) {
           // a reentrant abortion
           if (is_ef(val)) {
@@ -3320,8 +3298,8 @@ EF_Loop.prototype.cont = function(idx, val) {
   }
 };
 
-function I_loop(ndata, env) {
-  return cont(new EF_Loop(ndata, env), NDATA_LOOP_INIT_STATE(), true);
+function I_loop(ndata, fenv) {
+  return cont(new EF_Loop(ndata, fenv), NDATA_LOOP_INIT_STATE(), true);
 }
 
 //exports.Loop = makeINCtor(I_loop);
@@ -3347,9 +3325,9 @@ exports.Loop = function(...args) {
    2   : returning from loopf
 */
 
-function EF_ForIn(ndata, env) {
+function EF_ForIn(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
 }
 setEFProto(EF_ForIn.prototype={});
 #ifdef EF_TYPES
@@ -3362,7 +3340,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
   }
   else {
     if (idx == 0) {
-      val = execIN(this.NDATA_FORIN_OBJ(), this.env);
+      val = execIN(this.NDATA_FORIN_OBJ(), this.fenv);
       if (this.aborted) {
         // a reentrant abortion
         if (is_ef(val)) {
@@ -3385,7 +3363,7 @@ EF_ForIn.prototype.cont = function(idx, val) {
       var for_in_obj = val;
       for (var x in for_in_obj) {
         if (typeof this.remainingX === 'undefined') {
-          val = this.NDATA_FORIN_LOOPF()(this.env,x);
+          val = this.NDATA_FORIN_LOOPF()(this.fenv,x);
           if (is_cfx(val)) {
               if (val.type == "b") {
                 // break statement
@@ -3444,15 +3422,15 @@ EF_ForIn.prototype.cont = function(idx, val) {
           if (arg in this.for_in_obj)
             break;
         }
-        val = this.NDATA_FORIN_LOOPF()(this.env, arg);
+        val = this.NDATA_FORIN_LOOPF()(this.fenv, arg);
         // go round the loop again
       }
     }
   }
 };
 
-function I_forin(ndata, env) {
-  return cont(new EF_ForIn(ndata, env), 0);
+function I_forin(ndata, fenv) {
+  return cont(new EF_ForIn(ndata, fenv), 0);
 }
 
 //exports.ForIn = makeINCtor(I_forin);
@@ -3507,19 +3485,19 @@ function mergeExceptions(new_exception, original_exception) {
 var par_counter = 0;
 #endif
 
-function EF_Par(ndata, env) {
+function EF_Par(ndata, fenv) {
 #ifdef DEBUG_VM
   this.id = ++par_counter;
 #endif
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
   this.pending = 0;
   this.children = new Array(this.ndata.length);
 }
 setEFProto(EF_Par.prototype={});
 #ifdef EF_TYPES
 EF_Par.prototype.type = "Par";
-EF_Par.prototype.toString = function() { return "<Par"+this.id+"@"+this.env.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"; }
+EF_Par.prototype.toString = function() { return "<Par"+this.id+"@"+this.fenv.file.substr(-20)+">(aborted="+this.aborted+", inner_aborted="+this.inner_aborted+")"; }
 #endif
 
 EF_Par.prototype.cont = function(idx, val) {
@@ -3532,7 +3510,7 @@ EF_Par.prototype.cont = function(idx, val) {
       var parent_dyn_vars = exports.current_dyn_vars;
       // kick off all children
       for (var i=0; i<this.ndata.length; ++i) {
-        val = execIN(this.ndata[i], this.env);
+        val = execIN(this.ndata[i], this.fenv);
         if (this.inner_aborted) {
           // this check is to catch the case of reentrant abortion through
           // suspend/resume
@@ -3693,8 +3671,8 @@ EF_Par.prototype.abortInner = function() {
 
 EF_Par.prototype.setChildFrame = setChildFramePar;
 
-function I_par(ndata, env) {
-  return cont(new EF_Par(ndata, env), -1);
+function I_par(ndata, fenv) {
+  return cont(new EF_Par(ndata, fenv), -1);
 }
 
 //exports.Par = makeINCtor(I_par);
@@ -3721,12 +3699,12 @@ exports.Par = function(...args) {
 var alt_counter = 0;
 #endif
 
-function EF_Alt(ndata, env) {
+function EF_Alt(ndata, fenv) {
 #ifdef DEBUG_VM
   this.id = ++alt_counter;
 #endif
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
 
   this.pending = 0;
   this.children = new Array(this.ndata.length);
@@ -3746,12 +3724,12 @@ EF_Alt.prototype.cont = function(idx, val) {
       var parent_dyn_vars = exports.current_dyn_vars;
       // kick off all children
       for (var i=0; i<this.ndata.length; ++i) {
-        // create a new environment for 'collapse' support
+        // create a new function execution environment for 'collapse' support
         // XXX it sucks that we have to create a new environment for each branch here 
-        var env = copyEnv(this.env);
-        env.fold = this;
-        env.branch = i;
-        val = execIN(this.ndata[i], env);
+        var fenv = copyFEnv(this.fenv);
+        fenv.fold = this;
+        fenv.branch = i;
+        val = execIN(this.ndata[i], fenv);
                      
         if (this.inner_aborted) {
           // the check for !aborted here is to catch the case of
@@ -3956,8 +3934,8 @@ EF_Alt.prototype.docollapse = function(branch, cf) {
   return false;
 };
 
-function I_alt(ndata, env) {
-  return cont(new EF_Alt(ndata, env), -1);
+function I_alt(ndata, fenv) {
+  return cont(new EF_Alt(ndata, fenv), -1);
 }
 
 //exports.Alt = makeINCtor(I_alt);
@@ -3979,9 +3957,9 @@ exports.Alt = function(...args) {
    -1: start
 */
 
-function EF_WfW(ndata, env) {
+function EF_WfW(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
   this.pending = 0;
   this.children = new Array(2);
 }
@@ -4001,7 +3979,7 @@ EF_WfW.prototype.cont = function(idx, val) {
       var parent_dyn_vars = exports.current_dyn_vars;
       // kick off children
       for (var i=0; i<2;++i) {
-        val = execIN(this.ndata[i], this.env);
+        val = execIN(this.ndata[i], this.fenv);
         if (this.inner_aborted) {
           if (is_ef(val)) {
             // reentrant abortion through suspend/resume
@@ -4139,8 +4117,8 @@ EF_WfW.prototype.abortInner = function() {
 
 EF_WfW.prototype.setChildFrame = setChildFramePar;
 
-function I_wfw(ndata, env) {
-  return cont(new EF_WfW(ndata, env), -1);
+function I_wfw(ndata, fenv) {
+  return cont(new EF_WfW(ndata, fenv), -1);
 }
 exports.WfW = function(...args) {
   return { exec: I_wfw,
@@ -4169,9 +4147,9 @@ exports.WfW = function(...args) {
   retvals: return values as passed into resume function
 */
 
-function EF_Suspend(ndata, env) {
+function EF_Suspend(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
 }
 setEFProto(EF_Suspend.prototype={});
 #ifdef EF_TYPES
@@ -4214,7 +4192,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
       //resumefunc.ef = ef; 
 
       //      LOG("executing suspend")
-      val = this.NDATA_SUSPEND_SUSPENDFUNC()(this.env, resumefunc);
+      val = this.NDATA_SUSPEND_SUSPENDFUNC()(this.fenv, resumefunc);
     }
     catch (e) {
       // XXX is this required??
@@ -4299,7 +4277,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
     case 3:
     // set values with return function:
     try {
-      this.NDATA_SUSPEND_RETURNFUNC().apply(this.env, this.retvals);
+      this.NDATA_SUSPEND_RETURNFUNC().apply(this.fenv, this.retvals);
       val = UNDEF;
     }
     catch (e) {
@@ -4342,8 +4320,8 @@ EF_Suspend.prototype.abort = function(pseudo_abort) {
   return UNDEF;
 };
 
-function I_sus(ndata, env) {
-  return cont(new EF_Suspend(ndata, env), 0);
+function I_sus(ndata, fenv) {
+  return cont(new EF_Suspend(ndata, fenv), 0);
 }
 
 //exports.Suspend = makeINCtor(I_sus);
@@ -4365,9 +4343,9 @@ exports.Suspend = function(...args/*s,r*/) {
 // 0: start
 // 1: returning from async execution
   
-function EF_Collapse(ndata, env) {
+function EF_Collapse(ndata, fenv) {
   this.ndata = ndata;
-  this.env = env;
+  this.fenv = fenv;
 }
 setEFProto(EF_Collapse.prototype={});
 #ifdef EF_TYPES
@@ -4378,14 +4356,14 @@ EF_Collapse.prototype.type = "Collapse";
 EF_Collapse.prototype.__oni_collapse = true;
 
 EF_Collapse.prototype.cont = function(idx, val) {
-//  console.log('collapse ' + this.env.fold + ".cont idx = "+idx+" val="+val);
+//  console.log('collapse ' + this.fenv.fold + ".cont idx = "+idx+" val="+val);
   if (idx == 0) {
-    var fold = this.env.fold;
+    var fold = this.fenv.fold;
     if (!fold)
       return new CFException("t", new Error("Unexpected collapse statement"),
-                             this.NDATA_COLLAPSE_LINE(), this.env.file);
+                             this.NDATA_COLLAPSE_LINE(), this.fenv.file);
     this.restore_dynvars = exports.current_dyn_vars;
-    if (fold.docollapse(this.env.branch, this)) {
+    if (fold.docollapse(this.fenv.branch, this)) {
       SETDYNVARS(this.restore_dynvars, 'collapse 1')
       return true;
     }
@@ -4400,7 +4378,7 @@ EF_Collapse.prototype.cont = function(idx, val) {
   }
   else 
     return this.returnToParent(new CFException("t", "Internal error in SJS runtime (collapse)",
-                                               this.NDATA_COLLAPSE_LINE(), this.env.file));
+                                               this.NDATA_COLLAPSE_LINE(), this.fenv.file));
 };
 
 // don't need to do anything for quenching/aborting. we'll never be prodded by upstream after an abort.
@@ -4411,8 +4389,8 @@ EF_Collapse.prototype.abort = function() {
   return UNDEF;
 };
 
-function I_collapse(ndata, env) {
-  return cont(new EF_Collapse(ndata, env), 0);
+function I_collapse(ndata, fenv) {
+  return cont(new EF_Collapse(ndata, fenv), 0);
 }
   
 //exports.Collapse = makeINCtor(I_collapse);
@@ -4644,22 +4622,6 @@ exports.Break = function(lbl) {
 
 exports.Cont = function(lbl) {
   return new CFException("c", lbl);
-};
-
-// XXX remove
-exports.BlReturn = function(exp) {
-  var e = new CFException('r', exp);
-  if (!this.blrref) throw new Error("Internal runtime error; no reference frame in BlReturn");
-  if (this.blrref.unreturnable) { 
-    if (this.blrref.toplevel)
-      throw new Error("Invalid blocklambda 'return' statement; 'return' is only allowed in blocklambdas that are nested in functions");
-    else {
-      // return scope not active anymore!
-      throw new Error("Blocklambda return to inactive function");
-    }
-  }
-  e.eid = this.blrref.sid;
-  return e;
 };
 
 exports.With = function(exp, bodyf) {
