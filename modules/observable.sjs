@@ -176,13 +176,12 @@ module.setCanonicalId('sjs:observable');
 var unchanged = {};
 function ObservableVar(val) {
   var rev = 1;
-  var change = Object.create(cutil._Waitable);
-  change.init();
+  var change = cutil.Dispatcher();
 
   function wait(have_rev) {
     if (have_rev !== rev)
       return rev;
-    return change.wait();
+    return change.receive();
   }
 
   var rv = Stream(function(receiver) {
@@ -197,13 +196,13 @@ function ObservableVar(val) {
   rv.set = function(v) {
     if (val === v) return;
     val = v;
-    change.emit(++rev);
+    change.dispatch(++rev);
   };
 
   rv.modify = function(f) {
     var newval;
     waitfor {
-      change.wait();
+      change.receive();
       collapse;
       throw ConflictError("value changed during modification");
     } or {
@@ -263,8 +262,7 @@ __js {
    @summary  [::Observable] of the variable. (A 'rolling' [sequence::StructuredStream])
 */
 function ObservableWindowVar(window) {
-  var Update = Object.create(cutil._Waitable);
-  Update.init();
+  var Update = cutil.Dispatcher();
   var queue = [];
   var adds = 0;
   var stream = StructuredStream('rolling') ::
@@ -281,7 +279,7 @@ function ObservableWindowVar(window) {
           } // __js 
           r(rv);
           if (pos === adds)
-            Update.wait();
+            Update.receive();
         }
       };
 
@@ -294,12 +292,12 @@ function ObservableWindowVar(window) {
         ++adds;
         if (queue.length > window) queue.shift();
       }
-      Update.emit();
+      Update.dispatch();
     },
 
     clear: function() {
       __js queue = [];
-      Update.emit();
+      Update.dispatch();
     },
 
     __oni_is_ObservableWindowVar: true
@@ -470,17 +468,16 @@ function observe(/* var1, ...*/) {
 
   return Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
-    var change = Object.create(cutil._Waitable);
-    change.init();
+    var change = cutil.Dispatcher();
 
     waitfor {
       var current_rev = 0;
       while (1) {
-        change.wait();
+        change.receive();
         if (primed < deps.length) continue;
         while (current_rev < rev) {
           waitfor {
-            change.wait();
+            change.receive();
           }
           or {
             current_rev = rev;
@@ -505,7 +502,7 @@ function observe(/* var1, ...*/) {
               ++rev;
             }
             inputs[i] = x;
-            change.emit();
+            change.dispatch();
           }
         },
         integers(0,deps.length-1) .. toArray);
@@ -598,17 +595,16 @@ function CompoundObservable(sources, transformer) {
 
   return Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
-    var change = Object.create(cutil._Waitable);
-    change.init();
+    var change = cutil.Dispatcher();
 
     waitfor {
       var current_rev = 0;
       while (1) {
-        change.wait();
+        change.receive();
         if (primed < sources.length) continue;
         while (current_rev < rev) {
           waitfor {
-            change.wait();
+            change.receive();
           }
           or {
             current_rev = rev;
@@ -635,7 +631,7 @@ function CompoundObservable(sources, transformer) {
               ++rev;
             }
             inputs[i] = x;
-            change.emit();
+            change.dispatch();
           }
         },
         integers(0,sources.length-1) .. toArray);
@@ -684,28 +680,28 @@ function updatesToObservable(updates, getInitial) {
   return Stream(function(receiver) {
     var val, ver = 0, current_ver = 0;
     waitfor {
-      var have_new_val = Object.create(cutil._Waitable);
-      have_new_val.init();
+      var have_new_val = cutil.Dispatcher();
+
       waitfor {
         updates .. each {
           |e|
           val = e; 
           ++ver;
           collapse;
-          have_new_val.emit();
+          have_new_val.dispatch();
         }
       }
       or {
         val = getInitial();
         ++ver;
-        have_new_val.emit();
+        have_new_val.dispatch();
         hold();
       }
     }
     and {
       while (true) {
         if (current_ver === ver)
-          have_new_val.wait();
+          have_new_val.receive();
         ++current_ver;
         receiver(val);
       }

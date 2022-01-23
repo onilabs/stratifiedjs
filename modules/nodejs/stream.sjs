@@ -158,25 +158,25 @@ exports.contents = function(stream, encoding) {
     var buf = [];
     var eof = false;
     var error = null;
-    var check = @Emitter();
+    var check = @Dispatcher();
     stream.on('data', function(d) {
       buf.push(d);
-      check.emit();
+      check.dispatch();
     });
     stream.on('error', function(e) {
       error = e;
-      check.emit();
+      check.dispatch();
     });
     stream.on('end', function(e) {
       eof = true;
-      check.emit();
+      check.dispatch();
     });
     return @Stream(function(emit) {
       while(true) {
         while(buf.length > 0) { emit(buf.shift()); }
         if (error) throw error;
         if (eof) return;
-        check .. @wait();
+        check.receive();
       }
     });
   }

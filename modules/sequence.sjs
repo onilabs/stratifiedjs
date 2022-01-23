@@ -44,7 +44,7 @@
 'use strict';
 
 var {isArrayLike, isQuasi, streamContents, overrideObject, spawn } = require('builtin:apollo-sys');
-var { waitforAll, Queue, Semaphore, Condition, _Waitable } = require('./cutil');
+var { waitforAll, Queue, Semaphore, Condition, Dispatcher } = require('./cutil');
 var { Interface, hasInterface, Token } = require('./type');
 var sys = require('builtin:apollo-sys');
 
@@ -843,7 +843,7 @@ function withOpenStream(seq, block) {
 
 */
 function withOpenStream(seq, block) {
-  var Connected = Object.create(_Waitable); Connected.init();
+  var Connected = Dispatcher();
   var receiver, receiver_dynvars, saved_dynvars;
   var redirect;
 
@@ -869,7 +869,7 @@ function withOpenStream(seq, block) {
     }
   };
   var iter_wait_async = function(x) {
-    Connected.wait();
+    Connected.receive();
     return __js iter_sync(x);
   };
 
@@ -895,7 +895,7 @@ function withOpenStream(seq, block) {
     // stream has ended; end consumer whenever they are trying to iterate us:
     while(1) {
       waitfor {
-        Connected.wait();
+        Connected.receive();
       }
       and {
         if (redirect) {
@@ -910,7 +910,7 @@ function withOpenStream(seq, block) {
       receiver_dynvars = __oni_rt.current_dyn_vars; 
       waitfor(var control_flow) {
         redirect = resume;
-        __js Connected.emit();
+        __js Connected.dispatch();
       }
       if (control_flow) {
         // copy controlflow to @Stream function:
@@ -3431,6 +3431,7 @@ each.track = function(seq, r) {
       if (old_downstream) {
         // - adopting old downstream, so that controlflow during abort shuts us right down.
         reifiedStratum.adopt(old_downstream).abort().wait();
+        // instead of the wait above, we could also do: reifiedStratum.join();
       }
       r(x);
     }));
@@ -3523,7 +3524,7 @@ each.track = function(seq, r) {
 
 */
 exports.mirror = function(stream, latest) {
-  var emitter = Object.create(_Waitable); emitter.init();
+  var emitter = Dispatcher();
   var listeners = 0;
   var done = false, err;
   var current, current_version = 0;
@@ -3542,7 +3543,7 @@ exports.mirror = function(stream, latest) {
       ++listeners;
       catchupLoop();
       while(true) {
-        emitter.wait();
+        emitter.receive();
         if (done) return;
         have_version = current_version;
         emit(current);
@@ -3557,14 +3558,14 @@ exports.mirror = function(stream, latest) {
             stream .. each {|item|
               current = item;
               ++current_version;
-              emitter.emit();
+              emitter.dispatch();
             }
           }
           catch(e) {
             err = e;
           }
           done = true;
-          emitter.emit();
+          emitter.dispatch();
         });
       }
     } finally {

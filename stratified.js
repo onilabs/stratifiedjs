@@ -469,7 +469,7 @@ return abort_val;
 }
 },returnToParent:function(val){
 
-if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type=='t'&&this.callstack&&val.val!=null&&val.val.__oni_stack){
+if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)&&val.type==='t'&&this.callstack&&val.val!=null&&val.val.__oni_stack){
 
 
 
@@ -544,9 +544,11 @@ return new ReturnToParentContinuation(this.parent,this.parent_idx,val);
 }else if((val!==null&&typeof (val)==='object'&&val.__oni_cfx)){
 
 
-val.mapToJS(true);
 
 
+
+var v=val;
+nextTick(function(){v.mapToJS(true)});
 }
 }else return val;
 
@@ -935,8 +937,11 @@ return RS;
 return exports.sys.captureStratum(RS);
 
 },adopt:function(s){
-if(s._ef.done||s._ef.parent===ef)return s;
+if(ef.done)throw new Error("Inactive stratum cannot adopt");
 
+
+
+if(s._ef.done||s._ef.parent===ef)return s;
 var ef_to_adopt=s._ef;
 
 
@@ -976,6 +981,7 @@ ef_to_adopt.dynvars.__oni_anchor_route=ef.dynvars;
 
 cont(ef,-2,[id,ef_to_adopt]);
 exports.current_dyn_vars=dynvars;
+
 return ef_to_adopt.reifiedstratum;
 },_ef:ef,__oni_stratum:true};
 
@@ -1003,7 +1009,7 @@ val=f(reified_ef.reifiedstratum);
 }catch(e){
 
 if(!(e!==null&&typeof (e)==='object'&&e.__oni_cfx)){
-e=new CFException("t",e,0,'');
+e=new CFException("t",e);
 }
 val=e;
 }
@@ -1050,11 +1056,11 @@ setEFProto(EF_Reified.prototype={});
 
 EF_Reified.prototype.contOUTERDEBUG=function(idx,val){try{
 
-if(String(this)==="<Reified32>")console.log("<<<<<<<<<< "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+if(String(this).startsWith("<Reified3"))console.log("<<<<<<<<<< "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
 return this.cont_inner(idx,val);
 }finally{
 
-if(String(this)==="<Reified32>")console.log(">>>>>>>>>> "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+if(String(this).startsWith("<Reified3"))console.log(">>>>>>>>>> "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
 }
 };
 
@@ -1152,14 +1158,18 @@ this.flushing=false;
 
 if(this.pending===0){
 if(this.done){
-console.log(this+" WE ARE SO DONE WITH THIS");
-process.exit(1);
+throw new Error(this+": Invalid internal VM state");
 }
 this.done=true;
 this.reifiedstratum.running=false;
 
 if(this.wait_frames.size){
 var me=this;
+
+
+
+
+
 nextTick(function(){me.flush_wait_frames()});
 }
 
@@ -1255,6 +1265,17 @@ this.strata_children.delete(child[0]);
 }
 }
 };
+
+EF_Reified.prototype.abortOUTERDEBUG=function(pseudo_abort){if(String(this).startsWith("<Reified3"))console.log("<<<< "+this+".abort(pending="+this.pending+",parent="+this.parent+")");
+
+try{
+return this.abort_inner(pseudo_abort);
+}finally{
+
+if(String(this).startsWith("<Reified3"))console.log(">>>> "+this+".abort(pending="+this.pending+",parent="+this.parent+")");
+}
+};
+
 
 EF_Reified.prototype.abort=function(pseudo_abort){if(this.aborted){
 
@@ -1643,7 +1664,7 @@ exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
 
 function I_reify(ndata,fenv){var s=fenv.reifiedstratum;
 
-if(!s)return new CFException("t",new Error("Context is not reifiable"));
+if(!s)return new CFException("t",new Error("'reifiedStratum' used in non-refiable context"),current_call[1],current_call[0]);
 return s;
 };
 
@@ -3764,6 +3785,7 @@ exports.WfW=function(...args){return {exec:I_wfw,ndata:args,__oni_dis:token_dis}
 
 
 
+
 function EF_Suspend(ndata,fenv){this.ndata=ndata;
 
 this.fenv=fenv;
@@ -3832,7 +3854,7 @@ return this;
 }
 
 }
-return cont(this,3,null);
+return cont(this,3,val);
 }
 
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
@@ -3892,7 +3914,7 @@ case 3:
 
 try{
 this.ndata[1].apply(this.fenv,this.retvals);
-val=UNDEF;
+if(!(val!==null&&typeof (val)==='object'&&val.__oni_cfx))val=UNDEF;
 }catch(e){
 
 val=new CFException("i","Suspend: Return function threw ("+e+")");

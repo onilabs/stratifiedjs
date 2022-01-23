@@ -132,7 +132,7 @@ function base_test(interstitial) {
 
 
 @test("context survives spawed stratum", function() {
-  var signal = @Emitter();
+  var signal = @Dispatcher();
   var stratum;
   @sys.withDynVarContext{
     ||
@@ -143,14 +143,14 @@ function base_test(interstitial) {
       
       @sys.setDynVar('foo', 'y');
       stratum = reifiedStratum.spawn (function() {
-        signal .. @wait;
+        signal.receive();
         @assert.is(@sys.getDynVar('foo'), 'y');
       });
     }
   
     waitfor {
       hold(10);
-      signal.emit();
+      signal.dispatch();
     }
     and {
       stratum.wait();
@@ -162,7 +162,7 @@ function base_test(interstitial) {
 })
 
 @test("context survives global spawed stratum", function() {
-  var signal = @Emitter();
+  var signal = @Dispatcher();
   var stratum;
   @sys.withDynVarContext{
     ||
@@ -173,14 +173,14 @@ function base_test(interstitial) {
       
       @sys.setDynVar('foo', 'y');
       stratum = @sys.spawn (function() {
-        signal .. @wait;
+        signal.receive();
         @assert.is(@sys.getDynVar('foo'), 'y');
       });
     }
   
     waitfor {
       hold(10);
-      signal.emit();
+      signal.dispatch();
     }
     and {
       stratum.wait();

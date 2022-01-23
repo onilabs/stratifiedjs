@@ -1896,7 +1896,7 @@ test('detached blocklambda break / stratum.value / stratum.abort interaction', '
            }
            finally {
              rv += 'finally ';
-             stratum.abort();
+             stratum.abort(); // <- this abort is actually ineffective & unnecessary
            }
          }
          

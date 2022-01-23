@@ -7,6 +7,7 @@ var array = require('sjs:array');
 var sys = require('builtin:apollo-sys');
 var func = require('sjs:function');
 var logging = require('sjs:logging');
+var cutil = require('sjs:cutil');
 
 // An abstraction for a host-environment event emitter that
 // we can manually trigger event on:
@@ -84,51 +85,6 @@ if (sys.hostenv == 'nodejs') {
     },
   }
 }
-
-
-
-context("Emitter", function() {
-  test('block/resume', function() {
-    var result = (function() {
-      var e = event.Emitter();
-      waitfor {
-        e .. event.wait();
-        return 1;
-      } or {
-        e.emit();
-        hold(100);
-        return 2;
-      }
-    })();
-    assert.eq(result, 1);
-  })
-
-  test('retract from wait()', function() {
-    var e = event.Emitter();
-    waitfor {
-      e .. event.wait();
-    } or {
-      hold(100);
-    }
-    //XXX now that we don't expose e.waiting anymore, this test is a bit pointless
-    //assert.eq(e.waiting, []);
-  });
-
-  test('setting with a value', function() {
-    var e = event.Emitter();
-    var results = [];
-    waitfor {
-      results.push(e .. event.wait());
-      results.push(e .. event.wait());
-    } or {
-      e.emit("first");
-      hold(100);
-      e.emit("second");
-      hold();
-    }
-    assert.eq(results, ["first", "second"]);
-  });
-})
 
 context(function() {
   test.beforeEach:: function(s) {
@@ -327,11 +283,11 @@ context(function() {
     };
 
     test('queues sjs events', function() {
-      var emitter = event.Emitter();
-      runTest(emitter) {||
-        emitter.emit({detail: 1});
-        emitter.emit({detail: 2});
-        emitter.emit({detail: 3});
+      var emitter = cutil.Dispatcher();
+      runTest(event.events(emitter)) {||
+        emitter.dispatch({detail: 1});
+        emitter.dispatch({detail: 2});
+        emitter.dispatch({detail: 3});
       }
     })
 
@@ -367,9 +323,10 @@ context(function() {
 })
 
 
-context("stream", function() {
+context("dispatcher events", function() {
   test('basic iteration', function() {
-    var stream = event.Emitter();
+    var dispatcher = cutil.Dispatcher();
+    var stream = event.events(dispatcher);
     var result = [];
     waitfor {
       stream .. seq.each {|item|
@@ -377,17 +334,18 @@ context("stream", function() {
       }
     } or {
       hold(10);
-      stream.emit(1)
+      dispatcher.dispatch(1)
       hold(10);
-      stream.emit(2)
-      stream.emit(3)
-      stream.emit(4)
+      dispatcher.dispatch(2)
+      dispatcher.dispatch(3)
+      dispatcher.dispatch(4)
     }
     result .. assert.eq([1,2,3,4]);
   });
 
   test('buffers up to one item if iteration blocks', function() {
-    var stream = event.Emitter();
+    var dispatcher = cutil.Dispatcher();
+    var stream = event.events(dispatcher);
     var result = [];
     waitfor {
       stream .. seq.tailbuffer .. seq.each {|item|
@@ -395,28 +353,29 @@ context("stream", function() {
         if (item == 1) hold(150);
       }
     } or {
-      stream.emit(1)
+      dispatcher.dispatch(1)
       hold(100);
-      stream.emit(2)
-      stream.emit(3)
-      stream.emit(4)
+      dispatcher.dispatch(2)
+      dispatcher.dispatch(3)
+      dispatcher.dispatch(4)
       hold(150);
-      stream.emit(5)
+      dispatcher.dispatch(5)
       hold(100);
     }
     result .. assert.eq([1,4,5]);
   })
 
   test('ignore events before iteration', function() {
-    var stream = event.Emitter();
+    var dispatcher = cutil.Dispatcher();
+    var stream = event.events(dispatcher);
     var result = [];
     waitfor {
-      stream.emit(1)
+      dispatcher.dispatch(1)
       hold(10);
-      stream.emit(2)
+      dispatcher.dispatch(2)
       hold(10);
-      stream.emit(3)
-      stream.emit(4)
+      dispatcher.dispatch(3)
+      dispatcher.dispatch(4)
     } or {
       
       stream .. seq.each {|item|
@@ -429,54 +388,17 @@ context("stream", function() {
 
 context('wait()', function() {
   test('with filter arg', function() {
-    var stream = event.Emitter();
+    var dispatcher = cutil.Dispatcher();
+    var stream = event.events(dispatcher);
     var rv;
     waitfor {
       rv = stream .. event.wait(x -> x == 2 );
     } or {
-      stream.emit(1);
-      stream.emit(2);
-      stream.emit(3);
+      dispatcher.dispatch(1);
+      dispatcher.dispatch(2);
+      dispatcher.dispatch(3);
     }
     rv .. assert.eq(2);
   })
 })
 
-test('concurrent retract edgecase', function() {
-  var rv = '';
-
-  var E = event.Emitter();
-  var R;
-
-  waitfor {
-    E .. event.wait();
-    waitfor {
-      E .. event.wait(); // this listener used to be erroneously removed by the listener
-                         // retraction triggered by R(), causing the test to hang forever
-      rv += 'C';
-    }
-    and {
-      R(); // this call will abort the event listener in the clause below
-      rv += 'B';
-    }
-
-    rv += 'D';
-  }
-  and {
-    waitfor() {
-      R = resume;
-      // R() will be called before we receive the event, causing the wait() call to be 
-      // aborted
-      E .. event.wait();
-    }
-    rv += 'A';
-  }
-  and {
-    hold(0);
-    E.emit();
-    hold(0);
-    E.emit();
-    rv += 'E';
-  }
-  rv .. assert.eq('ABCDE');
-})

@@ -1198,3 +1198,109 @@ context('withBackgroundStrata', function() {
     }
   }).skip("'ignore return flag' has been retired for now"); 
 })
+
+context("Dispatcher", function() {
+  test('block/resume', function() {
+    var result = (function() {
+      var D = @Dispatcher();
+      waitfor {
+        D.receive();
+        return 1;
+      } or {
+        D.dispatch();
+        hold(100);
+        return 2;
+      }
+    })();
+    assert.eq(result, 1);
+  });
+
+  test('retract from receive()', function() {
+    var rv = '';
+    var D = @Dispatcher();
+    waitfor {
+      rv += '1';
+      D.receive();
+      rv += 'x';
+    } or {
+      hold(10);
+      rv += '2';
+    }
+    assert.eq(rv, '12');
+  });
+
+  test('dispatch value', function() {
+    var D = @Dispatcher();
+    var results = [];
+    waitfor {
+      results.push(D.receive());
+      results.push(D.receive());
+    } or {
+      D.dispatch("first");
+      hold(10);
+      D.dispatch("second");
+      hold();
+    }
+    assert.eq(results, ["first", "second"]);
+  });
+
+  test('multiple receivers', function() {
+    var D = @Dispatcher();
+    var results = [];
+    waitfor {
+      waitfor {
+        results.push(D.receive());
+        results.push(D.receive());
+      }
+      and {
+        results.push('2-'+D.receive());
+      }
+    } or {
+      D.dispatch("first");
+      hold(10);
+      D.dispatch("second");
+      hold();
+    }
+    assert.eq(results, ["first", "2-first", "second"]);
+  });
+
+  test('concurrent retract edgecase', function() {
+    var rv = '';
+    
+    var E = @Dispatcher();
+    var R;
+    
+    waitfor {
+      E.receive();
+      waitfor {
+        E.receive(); // this listener used to be erroneously removed by the listener
+        // retraction triggered by R(), causing the test to hang forever
+        rv += 'C';
+      }
+      and {
+        R(); // this call will abort the event listener in the clause below
+        rv += 'B';
+      }
+      
+      rv += 'D';
+    }
+    and {
+      waitfor() {
+        R = resume;
+        // R() will be called before we receive the event, causing the wait() call to be 
+        // aborted
+        E.receive();
+      }
+      rv += 'A';
+    }
+    and {
+      hold(0);
+      E.dispatch();
+      hold(0);
+      E.dispatch();
+      rv += 'E';
+    }
+    rv .. assert.eq('ABCDE');
+  })
+});
+

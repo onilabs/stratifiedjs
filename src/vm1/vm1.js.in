@@ -311,7 +311,7 @@ exports.CFException = CFException;
 Some context switching guidelines:
 
 (1) We need to *start* an EF with the correct DC
-(2) If we execute something right after calling cont()/execIN, we need to restore the correct EF. Special care has to be taken when running JS code that continues on to SJS code, such as in apollo-sys-common::spawn, or cutil::Waitable.emit. See comments there
+(2) If we execute something right after calling cont()/execIN, we need to restore the correct EF. Special care has to be taken when running JS code that continues on to SJS code, such as in apollo-sys-common::spawn. See comments there
 (3) On blocking (i.e. if we return an EF), we need to return the root DC - whether for cont or abort
 (4) On resuming a blocked EF, we need to restore the original DC
 (5) On aborting a blocked EF, we need to restore the original DC
@@ -445,8 +445,10 @@ function mergeCallstacks(target_ef, src_ef) {
 var EF_Proto = {
 #ifdef EF_TYPES
   toString: function() { var rv = "<"+(typeof(this.type) === 'function' ? this.type() : this.type)+""+(this.id ? this.id:'')+((this.fenv && this.fenv.file) ? '@'+this.fenv.file.substr(-20): '')+">";
+#ifdef DEBUG_STACK
                          if (this.callstack)
                            rv += '[' + this.callstack.join(' > ') + ']';
+#endif
 #ifdef DEBUG_MULTIVM
                          rv = exports.VMID + rv;
 #endif
@@ -559,7 +561,7 @@ var EF_Proto = {
     }
 #endif
 
-    if(is_cfx(val) && val.type == 't' && this.callstack && val.val!=null && val.val.__oni_stack) {
+    if(is_cfx(val) && val.type === 't' && this.callstack && val.val!=null && val.val.__oni_stack) {
 #ifdef DEBUG_STACK
       console.log(this+" 2 adding ",this.callstack," to "+val.val);
 #endif
@@ -628,9 +630,11 @@ var EF_Proto = {
       }
       else // noone waiting for result; make sure exceptions get reported
         if (is_cfx(val)) {
-          val.mapToJS(true);
-//          var v = val;
-//          nextTick(function() { v.mapToJS(true); });
+//          val.mapToJS(true);
+          // XXX the reason we perform this on nextTick is so that upstream SJS code takes dynvars
+          // back to root_dyn_vars
+          var v = val;
+          nextTick(function() { v.mapToJS(true); });
         }
     }
     else // sync context
@@ -1119,6 +1123,9 @@ function createReifiedStratum(ef) {
       return exports.sys.captureStratum(RS);
     },
     adopt: function(s) { 
+//      console.log("!!!<"+ef+":adopt("+s._ef+")");
+      if (ef.done) throw new Error("Inactive stratum cannot adopt");
+
       if (s._ef.done || s._ef.parent === ef) return s; // stratum is already done; no need to adopt
       var ef_to_adopt = s._ef;
 
@@ -1165,6 +1172,7 @@ function createReifiedStratum(ef) {
       // this needs to come after cont(old_parent,...), because that code might set child_frame.parent=UNDEF
       cont(ef, -2, [id,ef_to_adopt]);
       SETDYNVARS(dynvars, "stratum.adopt() // (2) -- verified")
+//      console.log("!!!>"+ef+":adopt("+s._ef+")");
       return ef_to_adopt.reifiedstratum;
     },
     _ef:ef,
@@ -1195,7 +1203,7 @@ function spawnSubStratum(f, parent_ef) {
   }
   catch(e) {
     if (!is_cfx(e)) {
-      e = new CFException("t", e, 0, ''); // XXX call info
+      e = new CFException("t", e);
     }
     val = e;
   }
@@ -1248,11 +1256,11 @@ EF_Reified.prototype.type = function() {
 */
 EF_Reified.prototype.contOUTERDEBUG = function(idx, val) {
   try {
-    if (String(this) === "<Reified32>") console.log("<<<<<<<<<< "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+    if (String(this).startsWith("<Reified3")) console.log("<<<<<<<<<< "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
     return this.cont_inner(idx, val);
   }
   finally {
-if (String(this) === "<Reified32>") console.log(">>>>>>>>>> "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
+if (String(this).startsWith("<Reified3")) console.log(">>>>>>>>>> "+this+".cont("+idx+", "+val+", pending="+this.pending+",parent="+this.parent+")");
   }
 };
 
@@ -1350,14 +1358,18 @@ EF_Reified.prototype.cont = function(idx, val) {
 
   if (this.pending===0) {
     if (this.done) {
-      console.log(this+" WE ARE SO DONE WITH THIS");
-      process.exit(1);
+      throw new Error(this+": Invalid internal VM state"); 
     }
     this.done = true;
     this.reifiedstratum.running = false;
 
     if (this.wait_frames.size) {
       var me = this;
+      // the reason we perform this on nextTick is because we want cfx controlflow to take effect
+      // *before* executing any wait frames. This is important for recursive scenarios, e.g. 
+      // each.track. We could use reifiedstratum.join there instead, but in other scenarios this
+      // might be surprising. Note that join() & waitfor/resume operate differently - but 
+      // that's ok. If in doubt, we always prefer not to use nextTick.
       nextTick(function() { me.flush_wait_frames(); });
     }
 
@@ -1425,7 +1437,7 @@ EF_Reified.prototype.abort_child_strata = function() {
   if (this.strata_children.size === 0) return;
 
   for (var child of this.strata_children) {
-    //console.log(this+' abort child '+child[0]);
+//    console.log(this+' abort child '+child[0]);
     if (child[1].parent === this) {
       child[1].quench();
       var abort_val = child[1].abort(); // XXX do we need support for pseudo-abort?
@@ -1456,6 +1468,17 @@ EF_Reified.prototype.abort_child_strata = function() {
     }
   }
 };
+
+EF_Reified.prototype.abortOUTERDEBUG = function(pseudo_abort) {
+  if (String(this).startsWith("<Reified3")) console.log("<<<< "+this+".abort(pending="+this.pending+",parent="+this.parent+")");
+  try {
+    return this.abort_inner(pseudo_abort);
+  }
+  finally {
+    if (String(this).startsWith("<Reified3")) console.log(">>>> "+this+".abort(pending="+this.pending+",parent="+this.parent+")");
+  }
+}
+
 
 EF_Reified.prototype.abort = function(pseudo_abort) {
 //  console.log(this+".ABORT pending = "+this.pending+", aborted="+this.aborted+", done="+this.done+", main_child="+this.main_child+" parent="+this.parent);
@@ -1867,7 +1890,7 @@ exports.Bl = function(f) {
 
 function I_reify(ndata, fenv) {
   var s = fenv.reifiedstratum;
-  if (!s) return new CFException("t", new Error("Context is not reifiable"));
+  if (!s) return new CFException("t", new Error("'reifiedStratum' used in non-refiable context"), current_call[1], current_call[0]);
   return s;
 };
 
@@ -4140,7 +4163,14 @@ exports.WfW = function(...args) {
   retvals: return values as passed into resume function
 */
 
+#ifdef DEBUG_VM
+var suspend_counter = 0;
+#endif
+
 function EF_Suspend(ndata, fenv) {
+#ifdef DEBUG_VM
+  this.id = ++suspend_counter;
+#endif
   this.ndata = ndata;
   this.fenv = fenv;
 }
@@ -4163,7 +4193,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
   // XXX We could return something from resumefunc
   var resumefunc = function(...args) {
     if (ef.returning) {
-      LOG("Redundant resume()")
+      LOG(ef+": redundant resume()")
       return;
     }
     try {
@@ -4211,7 +4241,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
         }
         // ... else fall through
       }
-      return cont(this, 3, null);
+      return cont(this, 3, val);
     }
     
     if (is_ef(val)) {
@@ -4271,7 +4301,7 @@ EF_Suspend.prototype.cont = function(idx, val) {
     // set values with return function:
     try {
       this.NDATA_SUSPEND_RETURNFUNC().apply(this.fenv, this.retvals);
-      val = UNDEF;
+      if (!is_cfx(val)) val = UNDEF;
     }
     catch (e) {
       val = new CFException("i", "Suspend: Return function threw ("+e+")");

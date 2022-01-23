@@ -471,11 +471,11 @@ __js {
 
 */
 // helper for withControlledService
-function runControlledServiceStateMachine({service,args,State,Cmd}) {
+function runControlledServiceStateMachine({service,args,State,CmdStream}) {
   var call_args = args .. @clone;
   call_args.push(function(itf) {
     waitfor {
-      var [cmd,arg] = Cmd .. @filter(__js [cmd,arg] -> cmd === 'stop' || cmd === 'terminate') .. @first;
+      var [cmd,arg] = CmdStream .. @filter(__js [cmd,arg] -> cmd === 'stop' || cmd === 'terminate') .. @first;
       if (cmd === 'terminate') { throw arg; }
       // else cmd === 'stop'... just finish branch
     }
@@ -523,7 +523,7 @@ function runControlledServiceStateMachine({service,args,State,Cmd}) {
 
   while (1) {
     waitfor {
-      var [cmd,arg] = Cmd .. @filter(__js [cmd,arg] -> cmd === 'start' || cmd === 'terminate') .. @first;
+      var [cmd,arg] = CmdStream .. @filter(__js [cmd,arg] -> cmd === 'start' || cmd === 'terminate') .. @first;
       if (cmd === 'terminate') { throw arg; }
       // else cmd === 'start' ... just finish branch
     }
@@ -540,7 +540,7 @@ function withControlledService(base_service, ...args_and_session_f) {
   var args = args_and_session_f;
 
   var State = @ObservableVar(['stopped']);
-  var Cmd = @Emitter();
+  var Cmd = @Dispatcher();
 
   function start(sync) {
     var state = State .. @filter(__js s->s[0] !== 'stopping') .. @current;
@@ -552,7 +552,7 @@ function withControlledService(base_service, ...args_and_session_f) {
         State .. @filter(__js s->s[0] === 'initializing') .. @current;
       }
       and {
-        Cmd.emit(['start']);
+        Cmd.dispatch(['start']);
       }
     }
     else if (state[0] === 'terminated')
@@ -580,7 +580,7 @@ function withControlledService(base_service, ...args_and_session_f) {
         State .. @filter(__js s->s[0] === 'stopping') .. @current;
       }
       and {
-        Cmd.emit(['stop']);
+        Cmd.dispatch(['stop']);
       }
     }
     
@@ -593,7 +593,7 @@ function withControlledService(base_service, ...args_and_session_f) {
     var state = State .. @filter(__js s->s[0] !== 'initializing' && s[0] !== 'stopping') .. @current;
     if (state[0] === 'terminated') return;
     else {
-      Cmd.emit(['terminate', error]);
+      Cmd.dispatch(['terminate', error]);
     }
     if (sync) {
       State .. @filter(__js s->s[0] === 'terminated') .. @current;
@@ -626,7 +626,7 @@ function withControlledService(base_service, ...args_and_session_f) {
   
   waitfor {
     try {
-      runControlledServiceStateMachine({service:base_service, args:args, State:State, Cmd:Cmd});
+      runControlledServiceStateMachine({service:base_service, args:args, State:State, CmdStream:@events(Cmd)});
     }
     catch(e) {
       State.set(['terminated', e]);

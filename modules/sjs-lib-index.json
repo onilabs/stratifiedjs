@@ -439,6 +439,20 @@
             }
           }
         },
+        "Dispatcher": {
+          "type": "class",
+          "children": {
+            "Dispatcher": {
+              "type": "ctor"
+            },
+            "dispatch": {
+              "type": "function"
+            },
+            "receive": {
+              "type": "function"
+            }
+          }
+        },
         "IBackgroundStrataSession": {
           "type": "class",
           "children": {
@@ -577,17 +591,6 @@
     "event": {
       "type": "module",
       "children": {
-        "Emitter": {
-          "type": "class",
-          "children": {
-            "Emitter": {
-              "type": "ctor"
-            },
-            "emit": {
-              "type": "function"
-            }
-          }
-        },
         "EventStream": {
           "type": "class",
           "children": {}

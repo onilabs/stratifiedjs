@@ -38,19 +38,6 @@
   @desc
     This module provides abstractions around *event streams* ([::EventStream]), 
     which are a type of [./sequence::Stream] composed of discrete events.
-
-    ### Explicitly triggered  events:
-    
-    To create an event stream that is composed of programatically triggered 
-    events, this module provides the function [::Emitter].
-    Emitters are [::EventStream]s that have an `emit(value)` method, 
-    which is used to explicitly trigger events.
-
-    ### External events:
-
-    To respond to events on a DOM object or a nodejs EventEmitter, this module
-    provides the function [::events].
-
 */
 'use strict';
 
@@ -76,65 +63,16 @@ var sys = require('builtin:apollo-sys');
 
      To wait for a single occurance of an event, you can call [::wait].
 
+     To create EventStreams for DOM object events or nodejs EventEmitters use [::events].
+     This function can also be used to create an EventStream for [./cutil::Dispatcher] objects.
 */
-
-//----------------------------------------------------------------------
-
-/**
-   @class Emitter
-   @inherit ::EventStream
-   @summary An [::EventStream] with an `emit` function
-
-   @function Emitter
-
-   @function Emitter.emit
-   @param {Object} [event] Event value to emit.
-   @summary Emit a event value
-*/
-function Emitter() {
-  var listeners = [];
-  
-  var rv = seq.Stream(function(receiver) {
-    while(1) {
-      waitfor(var val) {
-        listeners.push(resume);
-      }
-      retract {
-        __js {
-          // the listeners array gets exchanged from 'emit',
-          // so if this is a concurrent retract, we must take care not to try 
-          // to accidentally call splice(-1,1) on listeners when our listener isn't found.
-          // i.e., we must not do:
-          //   listeners.splice(listeners.indexOf(resume), 1);
-          // see also event-tests.sjs:concurrent retract edgecase
-          var i = listeners.indexOf(resume);
-          if (i >= 0)
-            listeners.splice(i, 1);
-        } // __js
-
-      }
-      receiver(val);
-    }
-  });
-
-  __js rv.emit = function(val) {
-    var _listeners = listeners;
-    listeners = [];
-    // because rv.emit is encoded as __js, the following is equivalent to a 'spawn':
-    for (var i=0,l=_listeners.length; i<l; ++i)
-      _listeners[i](val);
-  }
-
-  return rv;
-}
-exports.Emitter = Emitter;
-
 
 //----------------------------------------------------------------------
 
 /**
    @function events
-   @summary  An [::EventStream] of DOMElement or nodejs EventEmitter events. 
+   @altsyntax events(dispatcher) // Form operating on Dispatchers - see description
+   @summary  An [::EventStream] of [./cutil::Dispatcher], DOMElement or nodejs EventEmitter events. 
    @param    {Array|Object} [emitters] (Array of) DOMElement(s) or nodejs EventEmitters on which to listen for events.
    @param    {Array|String} [events] (Array of) event name(s) to listen for.
    @param    {optional Settings} [settings]
@@ -149,6 +87,10 @@ exports.Emitter = Emitter;
    @desc
 
     ### Notes
+
+    * `events()` is polymorphic: If called with a single argument - a [./cutil::Dispatcher] - it 
+      will return an [::EventStream] of dispatcher events. If called with two or three arguments
+      it will return an [::EventStream[ of the described DOMElement or nodejs EventEmitter events.
 
     * If the underlying event emitter passes a single argument to listener functions,
       the event stream will be composed of these single values. But if multiple arguments are passed
@@ -177,28 +119,93 @@ exports.Emitter = Emitter;
       information to an event before it can be filtered. It is not the place
       for calling things like `e.preventDefault`, as it runs *before* any event filter.
 */
-function events(emitters, events, opts) {
-  if (arguments.length < 2) throw new Error("Too few arguments supplied to event::events; expected at least an emitter (e.g. a DOM element) and a string naming the event");
-  return seq.Stream(function(receiver) {
-    var host_emitter = HostEmitter(emitters, events, opts);
-    try {
-      while (true) {
-        receiver(host_emitter.wait());
-      }
-    }
-    finally {
-      host_emitter.stop();
-    }
-  });
+__js function events(...args/* dispatcher | emitters, events, opts*/) {
+  if (args.length < 2)
+    return dispatcher_events(args[0]);
+  else 
+    return host_events(args);
 }
 exports.events = events;
 
+function dispatcher_events(dispatcher) {
+  return seq.Stream(function(receiver) {
+    while (1) {
+      receiver(dispatcher.receive());
+    }
+  });
+}
+
+var _listen, _unlisten;
+if (sys.hostenv === 'nodejs') {
+  _listen = function(emitter, event, dispatch) {
+    emitter.on(event, dispatch);
+  }
+  _unlisten = function(emitter, event, dispatch) {
+    emitter.removeListener(event, dispatch);
+  }
+}
+else if (sys.hostenv === 'xbrowser') {
+  var {addListener, removeListener } = require('sjs:xbrowser/dom');
+  _listen = function(emitter, event, dispatch) {
+    addListener(emitter, event, dispatch);
+  }
+  _unlisten = function(emitter, event, dispatch) {
+    removeListener(emitter, event, dispatch);
+  }
+}
+
+function host_events(args) {
+  __js {
+    var emitters = sys.expandSingleArgument([args[0]]);
+    var events = sys.expandSingleArgument([args[1]]);
+    if (args[2])
+      var {transform, filter, handle} = args[2];
+
+    var dispatcher = cutil.Dispatcher();
+
+    function dispatch(...args) {
+      dispatcher.dispatch(args.length <= 1 ? args[0] : args);
+    }
+  } // __js
+
+
+  return seq.Stream(function(receiver) {
+    
+    try {
+      emitters .. seq.each { 
+        |emitter|
+        events .. seq.each {
+          |event|
+          _listen(emitter, event, dispatch);
+        }
+      }
+
+      while (true) {
+        var ev = dispatcher.receive();
+        if (transform) ev = transform(ev);
+        if (filter && !filter(ev)) continue;
+        if (handle) handle(ev);
+        receiver(ev);
+      }
+
+    }
+    finally {
+      emitters .. seq.each { 
+        |emitter|
+        events .. seq.each {
+          |event|
+          _unlisten(emitter, event, dispatch);
+        }
+      }
+    }
+  });
+}
 
 /**
    @function wait
    @param {./sequence::Stream|Object} [stream_or_emitter]
    @param {optional any} [...] Optional `filter` function, if first argument is a [./sequence::Stream], 
-                               otherwise additional arguments as for [::events].
+                               otherwise arguments as for [::events].
    @summary Wait for an event or the first item of a [./sequence::Stream]
    @return {Object} Item emitted from stream
    @desc
@@ -247,112 +254,3 @@ var wait = exports.wait = function(stream /*,...*/) {
 
   return seq.first(stream);
 };
-
-//----------------------------------------------------------------------
-// EVERYTHING BELOW IS DEPRECATED
-
-
-/* -- not part of documentation --
-  @class     HostEmitter
-  @summary   wraps a "host" event emitter.
-  @function  HostEmitter
-  @param     {Array|Object} [emitters] Host object or objects to watch (DOMElement or nodejs EventEmitter).
-  @param     {Array|String} [events] Event name (or array of names) to watch for.
-  @param     {optional Settings} [settings]
-  @setting   {Function} [filter] Function through which received
-             events will be passed. An event will only be emitted if this
-             function returns a value == true.
-  @setting   {Function} [handle] A handler function to call directly on the event.
-  @setting   {Function} [transform] Function through which an
-             event will be passed before filtering.
-  @desc
-    A "host" event emitter is a native [nodejs EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) object when running in nodejs,
-    and a DOM element in the browser.
-
-    Note that since creating a `HostEmitter` adds a listener to the
-    underlying emitter, you *must* call `emitter.stop()` to prevent resource leaks.
-
-*/
-function HostEmitter(emitter, event) {
-  var rv = Object.create(HostEmitterProto);
-  rv.init.apply(rv, arguments);
-  return rv;
-};
-//exports.HostEmitter = HostEmitter;
-//exports.from = HostEmitter;
-
-var HostEmitterProto = Object.create(cutil._Waitable);
-HostEmitterProto.init = function(emitters, events, opts) {
-  cutil._Waitable.init.call(this);
-  this.emitters = sys.expandSingleArgument([emitters]);
-  this.events = sys.expandSingleArgument([events]);
-
-  var transform, filter, handle;
-  if (opts)
-    var {transform, filter, handle} = opts;
-
-  var self = this;
-  this._handleEvent = function(val) {
-    var arg = (arguments.length > 1) ? Array.prototype.slice.call(arguments) : val;
-    if (transform) arg = transform(arg) || arg;
-    if (filter && !filter(arg)) return;
-    if (handle) handle(arg);
-    if (this._transformEvent) arg = this._transformEvent(arg);
-    self.emit(arg);
-  };
-  this._stopped = false;
-  this._start();
-}
-
-HostEmitterProto._start = function() {
-  this.emitters .. seq.each {|emitter|
-    this.events .. seq.each {|event|
-      this._listen(emitter, event, this._handleEvent);
-    }
-  }
-};
-
-/* -- not part of documentation -- 
-  @function HostEmitter.stop
-  @summary Stop listening for events
-  @desc
-    You must call this method when you are finished with this
-    object.
-*/
-HostEmitterProto.stop = function() {
-  if (this._stopped) return;
-  this.emitters .. seq.each {|emitter|
-    this.events .. seq.each {|event|
-      this._unlisten(emitter, event);
-    }
-  }
-};
-
-if (sys.hostenv == 'nodejs') {
-  HostEmitterProto._listen = function(emitter, event) {
-    emitter.on(event, this._handleEvent);
-  }
-  HostEmitterProto._unlisten = function(emitter, event) {
-    emitter.removeListener(event, this._handleEvent);
-  }
-} else {
-  // xbrowser
-  var {addListener, removeListener } = require('sjs:xbrowser/dom');
-  HostEmitterProto._listen = function(emitter, event) {
-    addListener(emitter, event, this._handleEvent);
-  }
-  HostEmitterProto._unlisten = function(emitter, event) {
-    removeListener(emitter, event, this._handleEvent);
-  }
-  if (__oni_rt.UA == 'msie') {
-    HostEmitterProto._transformEvent = function(evt) {
-      var ret = {};
-      for (var p in evt) {
-        ret[p] = evt[p];
-      }
-      return ret;
-    }
-  }
-}
-
-

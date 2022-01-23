@@ -40,6 +40,59 @@
 
 var sys  = require('builtin:apollo-sys');
 
+/**
+   @class Dispatcher
+   @summary Communication structure for dispatching/receiving events
+   @function Dispatcher
+   @summary Creates a Dispatcher object
+   @desc
+     A Dispatcher is an object with two methods `dispatch` and `receive`:
+     `dispatch(x)` passes `x` to all pending `receive()` calls.
+     `receive()` blocks until a value `x` is dispatched and returns it.
+
+     See also [::Condition], [::Channel], and [./event::events].
+*/
+function Dispatcher() {
+  var listeners = [];
+  return {
+    /**
+       @function Dispatcher.dispatch
+       @param {optional Object} [x] Event object
+       @summary Pass `x` to all pending [::Dispatcher::receive] calls.
+    */
+    dispatch: __js function(x) {
+      var _listeners = listeners;
+      listeners = [];
+      for (var i=0, l=_listeners.length; i<l; ++i)
+        _listeners[i](x);
+    },
+    /**
+        @function Dispatcher.receive
+        @summary  Block until an event `x` is being dispatched by [::Dispatcher::dispatch] and return `x`
+    */
+    receive: function() {
+      waitfor(var x) {
+        listeners.push(resume);
+      }
+      retract {
+        __js {
+          // the listeners array gets exchanged from 'emit',
+          // so if this is a concurrent retract, we must take care not to try 
+          // to accidentally call splice(-1,1) on listeners when our listener isn't found.
+          // i.e., we must not do:
+          //   listeners.splice(listeners.indexOf(resume), 1);
+          // see also event-tests.sjs:concurrent retract edgecase
+          var i = listeners.indexOf(resume);
+          if (i >= 0)
+            listeners.splice(i, 1);
+        } // __js
+      }
+      return x;
+    }
+  };
+}
+exports.Dispatcher = Dispatcher;
+
 
 /**
    @function withBackgroundStrata
@@ -423,106 +476,70 @@ var SemaphoreProto = {
 
 };
 
-
-// shared prototype for events.HostEmitter & cutil.Condition objects
-// (undocumented)
-__js {
-  var Waitable = {};
-  exports._Waitable = Waitable;
-  Waitable.init = function() {
-    this.waiting = [];
-  }
-  
-  Waitable.emit = function emit(value) {
-    if(this.waiting.length == 0) return;
-    var waiting = this.waiting;
-    this.waiting = [];
-    // because we are in a __js block, the code below is equivalent to 
-    //  spawn(waiting .. each { |resume| resume(value) });
-    for (var i=0; i<waiting.length; ++i)
-      waiting[i](value);
-  };
-} // __js
-
-Waitable.wait = function wait() {
-  waitfor(var result) {
-    this.waiting.push(resume);
-  } retract {
-    var idx = this.waiting.indexOf(resume);
-    if (idx !== -1) this.waiting.splice(idx, 1);
-  }
-  return result;
-};
-
-
 /**
   @class    Condition
   @summary  A single condition value that can be waited upon, set and cleared.
   @function Condition
-
-  @variable Condition.isSet
-  @summary  (Boolean) whether the condition is currently set
-  @variable Condition.value
-  @summary  the currently set value, or `undefined` if the condition is not set
 */
 function Condition() {
-  __js var rv = Object.create(ConditionProto);
-  rv.init();
-  return rv;
-};
-exports.Condition = Condition;
+  var D = Dispatcher();
+  var C = {
+    /**
+       @variable Condition.isSet
+       @summary  (Boolean) whether the condition is currently set
+    */
+    isSet: false,
+    
+    /**
+       @variable Condition.value
+       @summary  the currently set value, or `undefined` if the condition is not set
+    */
+    value: undefined,
 
-var ConditionProto = Object.create(Waitable);
-ConditionProto.init = function() {
-  Waitable.init.call(this);
-  this.clear();
+    /**
+       @function  Condition.wait
+       @summary   Block until this condition is set, and return the condition's `value`.
+       @desc
+       If the condition has already been set, this function returns immediately.
+    */
+    wait: function() {
+      if (!C.isSet) {
+        D.receive();
+      }
+      return C.value;
+    },
+    /**
+       @function  Condition.set
+       @param     {optional Object} [value] the value to set
+       @summary   Trigger (set) this condition
+       @desc
+       Does nothing if this condition is already set. Otherwise, this will
+       resume all strata that are waiting on this condition object.
+       
+       If `val` is provided, it will become this condition's value (and
+       will be the return value of all outstanding `wait()` calls).
+    */
+    set: function(_value) {
+      if(C.isSet) return; // noop
+      C.isSet = true;
+      C.value = _value;
+      D.dispatch();
+    },
+    /**
+       @function  Condition.clear
+       @summary   Un-set (clear) this condition
+       @desc
+       Once cleared, the condition can be waited upon and triggered again with
+       `wait` and `set`.
+    */
+    clear: __js function() {
+      C.isSet = false;
+      C.value = undefined;
+    }
+  };
+  return C;
 }
-
-/**
-  @function  Condition.wait
-  @summary   Block until this condition is set, and return the condition's `value`.
-  @desc
-    If the condition has already been set, this function returns immediately.
-*/
-ConditionProto.wait = function wait() {
-  if (!this.isSet) {
-    this.value = Waitable.wait.call(this);
-  }
-  return this.value;
-};
-
-ConditionProto.toString = function toString() { return "[object Condition]"; }
-
-/**
-  @function  Condition.set
-  @param     {optional Object} [value] the value to set
-  @summary   Trigger (set) this condition
-  @desc
-    Does nothing if this condition is already set. Otherwise, this will
-    resume all strata that are waiting on this condition object.
-
-    If `val` is provided, it will become this condition's value (and
-    will be the return value of all outstanding `wait()` calls).
-*/
-ConditionProto.set = function set(value) {
-  if(this.isSet) return; // noop
-  this.isSet = true;
-  this.value = value;
-  Waitable.emit.call(this, value);
-};
-
-/**
-  @function  Condition.clear
-  @summary   Un-set (clear) this condition
-  @desc
-    Once cleared, the condition can be waited upon and triggered again with
-    `wait` and `set`.
-*/
-__js ConditionProto.clear = function clear() {
-  this.isSet = false;
-  this.value = undefined;
-};
-
+exports.Condition = Condition;
 
 /**
   @class   Queue
@@ -686,7 +703,7 @@ var QueueProto = {
 
 /**
    @class Channel
-   @summary A [::Queue] with capacity 0
+   @summary Communication structure for synchronized passing of values between strata.
    @function Channel
    @summary Creates a Channel object
    @desc
@@ -697,6 +714,8 @@ var QueueProto = {
      A channel consists of two methods: `get` and `put`:
      `get()` waits until a value `x` is being `put(x)`, and `put(x)` waits until the value
      `x` is being collected with a call to `get()`.
+
+     See also [::Dispatcher].
 */
 exports.Channel = function() {
   __js var resume_put, resume_get;
