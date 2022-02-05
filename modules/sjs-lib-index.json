@@ -2946,6 +2946,9 @@
     "yaml": {
       "type": "module",
       "children": {
+        "dump": {
+          "type": "function"
+        },
         "safeLoad": {
           "type": "function"
         }

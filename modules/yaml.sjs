@@ -39,6 +39,15 @@
   @return {Object}
   @desc
     * See https://github.com/nodeca/js-yaml#api for API documentation.
+
+
+  @function dump
+  @summary Serialize `obj` as a YAML document.
+  @param {Object} [obj]
+  @return {String}
+  @desc
+    * See https://github.com/nodeca/js-yaml#api for API documentation.
+
 */
 
 

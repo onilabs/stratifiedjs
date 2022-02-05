@@ -301,7 +301,7 @@ function withBackgroundServices(session_f) {
           stratum = background_strata.run(function() {
             args.push(function(itf){ cont(itf, false); hold(); });
             try {
-              service.apply(null, args);
+              service(...args);
             }
             catch (e) {
               if (have_caller) cont(e, true);
@@ -531,7 +531,7 @@ function runControlledServiceStateMachine({service,args,State,CmdStream}) {
       State.set(['stopped']);
     }
     State.set(['initializing']);
-    service.apply(null, call_args);
+    service(...call_args);
   } // while (1)
 }
 
