@@ -2,7 +2,7 @@
 @type doclib
 
 @desc
-  StratifiedJS executes code in logical units we call **strata**. Unlike normal JS code, strata are allowed to "block", i.e. the control flow is allowed to stop at a particular point to be picked up again later at the same point where it left off. An example would be the [::builtins::hold] function which blocks for a given period of time.
+  StratifiedJS executes code in logical units we call **strata**. Unlike normal JS code, strata are allowed to "block", i.e. the control flow is allowed to stop at a particular point to be picked up again later at the same point where it left off. An example would be the [::builtins::hold] function which blocks for a given period of time (but still allows other strata to be executed while it is blocking its own stratum).
 
   ### Concurrent strata
 
@@ -15,25 +15,19 @@
   
   ## Base language
 
-  StratifiedJS is based on the JavaScript language as defined in [ECMA-262 Edition 3][]. In addition, StratifiedJS supports several functions defined in [ECMA-262 Edition 5][]:
+  StratifiedJS is based on the JavaScript language as originally defined in [ECMA-262 Edition 3][]. In addition, StratifiedJS supports many features defined in more recent standards, such as:
 
   [ECMA-262 Edition 3]: http://www.ecma-international.org/publications/files/ECMA-ST-ARCH/ECMA-262,%203rd%20edition,%20December%201999.pdf
-  [ECMA-262 Edition 5]: http://www.ecma-international.org/publications/files/ECMA-ST/Ecma-262.pdf
 
-
-   - [Array.isArray](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/isArray)
-   - [Array.prototype.indexOf](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/indexOf)
-   - [Array.prototype.lastIndexOf](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/lastIndexOf)
-   - [Object.keys](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/keys)
-   - [Object.create](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object/create)
-   - [Function.prototype.bind](https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind)
-
-  Depending on the particular browser or server environment, additional features from recent ECMA editions (such as e.g. `Object.seal`) **might** be available.
+   - Rest parameters
+   - Spread syntax
+   - Destructuring 
+  
 
   ## Concurrency primitives:
 
-  StratifiedJS contains constructs for casting asynchronous logic into
-  blocking form (`waitfor()`) and constructs for combining multiple strata (`waitfor/and`, `waitfor/or`, `waitfor/while`, `spawn`) in a structured way.
+  StratifiedJS contains language constructs for casting asynchronous logic into
+  blocking form (`waitfor()`), constructs for orchestrating the execution of multiple strata (`waitfor/and`, `waitfor/or`, `waitfor/while`, `collapse`) in a structured way, as well as a facility for implementing more complex concurrency scenarios (`reifiedStratum`).
 
 
   ### Pausing execution - [::builtins::hold]
@@ -136,35 +130,20 @@
       }
 
 
-  ### Unstructured spawning of strata - [./syntax::spawn]
+  ### Accessing strata under the hood - [./syntax::reifiedStratum]
 
-  In addition to the structured composition operators, StratifiedJS has the `spawn` operator to execute some code in the background in an unstructured fashion, similar to how you would "spawn a thread" in other programming languages:
+  StratifiedJS contains many higher-level concurrency primitives (such as dispatchers, semaphores, 
+  conditions, ...), all built on top of the structured concurrency language features detailed above.
 
-
-      spawn <subexpression>;
-
-
-  This `spawn expression` executes `subexpression` *synchronously* until `subexpression` suspends or finishes, and then returns a [./builtins::Stratum] object.
-
-
+  For more complicated concurrency scenarios that cannot easily be implemented with these facilities, 
+  StratifiedJS has the `reifiedStratum` keyword, which can be used within a function to access its 
+  [./builtins::Stratum] object.
 
   
   ## Syntax enhancements over JavaScript
 
   On top of the base JavaScript language, StratifiedJS supports a number of syntactic additions. Unlike the core stratified constructs, most of these (with the notable exception of blocklambdas) are *syntactic sugar* - they don't add anything the language couldn't already do, but they provide a convenient and readable syntax for constructs that can otherwise be cumbersome to express.
 
-
-  ### Destructuring assignment - [::syntax::destructure]
-
-  *proposed for ECMA-262 Edition 6*
-  
-  Destructuring is a convenient syntax for picking apart structured data, mirroring the way array and object literals are constructed.
-
-      // extract fields from an object:
-      var {title, content, author} = getArticle(id);
-
-      // extract fields from an array
-      var [error, value] = runFunction();
 
   ### String interpolation - [::syntax::string-interpolation]
 

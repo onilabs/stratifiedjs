@@ -514,98 +514,120 @@
 
 
 @class Stratum
-@summary The return value of [./syntax::spawn]
+@summary SJS's concurrent process abstraction
 @desc
   Strata are SJS's concurrent process abstraction. They are created and orchestrated transparently
-  by SJS's structured concurrency operators (like [./syntax::waitfor-and]) and are not directly 
-  accessible ('reified') in user code.  
+  by SJS's structured concurrency primitives (like [./syntax::waitfor-and]). Usually these primitives
+  (alongside the high-level concurrency facilities in the sjs library, such as dispatchers, semaphores, each.par, each.track, ...) are all that is needed in user code.
 
-  The exception is the unstructured concurrency operator [./syntax::spawn], which returns a reified stratum that can be manipulated by user code.
+  In very rare instances it can be helpful to manipulate strata in a more direct way.
+  For this purpose, _some_ strata can be made directly accessible ('reified') in SJS:
+
+  - The [::reifiedStratum] primitive returns the stratum for the current function.
+  - [../sys::spawn] runs a function in the background and returns its stratum. (Note that usage of this function is HIGHLY discouraged, because any uncaught error in the stratum can terminate the SJS process - instead consider [../cutil::withBackgroundStrata] or [::reifiedStratum::spawn] )
+  - Primitives like `waitfor/and` create _implicit_ strata which cannot be reified.
+
+  ### Child strata
+
+  A stratum can have child strata, which can be _implicit_ - as created by primitives like `waitfor/and` etc - or _explicit_ as created by [::Stratum::spawn] or adopted by [::Stratum::adopt]. 
+
+  The lifecycle of explicit child strata is governed by their parent stratum: They run in the background until they complete or until the parent stratum completes. In the latter case, they will be aborted. If a child stratum throws an exception, the parent stratum will be aborted, and the exception thrown from there. 
+
+
+  ### Blocklambda controlflow
+
+  If a child stratum generates blocklambda controlflow, this controlflow will be routed through their parent stratum (in the process causing the parent stratum to be aborted), e.g.:
+
+      function foo(F) {
+        reifiedStratum.spawn(F);
+        hold(1000); // <-- this will be retracted
+        throw new Error('not reached');
+      }
+
+      foo { || break; }
+
+  * If the target of blocklambda controlflow cannot be reached via the parent (which can be the case
+  because of reconfiguring of parents through adoption), an "Unroutable blocklambda break/return" exception will be thrown.
+
+  ### Other notes
 
   You can use [../sys::isStratum] to check if a given object is a stratum.
 
 @function Stratum.abort
-@param {optional Boolean} [omit_retract=false] Whether to omit executing `retract` clauses
 @summary Aborts the stratum if it is not finished yet, otherwise does nothing
 @desc
-  Calling `abort` on a stratum is similar to the implicit cancellation performed by [./syntax::waitfor-and]/[./syntax::waitfor-or]/[./syntax::waitfor-while]:
-
   * `abort` is asynchronous: It will initiate a retraction of the stratum (if running and not yet retracted), and return.
-  
-  * An `abort` call can not be aborted itself. Even if aborted, it will only return once 
-    the abortee has finished aborting (which might include blocking `retract`/`finally` clauses).
-    An exception are 'cyclic aborts' - see below.
-
-  * Unless `omit_retract` is set to `true`, aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses inside the stratum will be honored. This is also true for 'cyclic aborts' (see below). Otherwise, for `omit_retract=false`, `retract` clauses inside the stratum will not be executed. `finally` clauses will be executed in either case.
-
-  * If the stratum throws an exception during abortion (in a finally or retract clause), the exception
-  will be propagated to the abort call.
-
-
-  #### Cyclic aborts
-
-  A 'cyclic abort' is a stratum calling `abort` on itself, as in e.g: 
-  
-      var S = _task(function(){ 
-        try { 
-          hold(100); 
-          S.abort(); 
-          console.log('not reached'); 
-        } retract { 
-          console.log('retract called') 
-        } 
-      })();
-
-  Here, `console.log('not reached')` will not be executed because `S.abort()` will immediately terminate `S` (but the retract clause will be honored).
-
-  Another variant of a cyclic abort calls `abort` from within a `finally` clause:
-
-      var S = _task(function(){ 
-        try { 
-          hold(100); 
-          try {} finally { S.abort(); }
-          console.log('this will be executed'); 
-          hold(0); // <-- now the stratum will be aborted
-          console.log('not reached');
-        } retract { 
-          console.log('retract called') 
-        } 
-      })();
-
-  In this variant, the `finally` clause prevents `abort` from stopping 
-  synchronous execution: The following (synchronous) code will be executed 
-  until an actual suspend point (`hold` or `waitfor/resume`) is reached.
-
-
-  While these cyclic aborts are allowed (even across multiple spawned strata), they can be indicative of flawed program logic, so be careful.
-  If you really do need to abort a stratum from within (rather than returning 'normally' via return or via an exception), it might be more appropriate to use a
-  non-synchronous form of abortion:
-
-      var S = _task(function() { 
-        try { 
-          hold(100);
-          _task S.abort();
-          console.log('this will be executed');
-          hold(); // <-- now the stratum will be aborted
-          console.log('not reached');
-        }
-        retract {
-          console.log('retract called');
-        }
-      })();
+  * Aborting a stratum will be seen as a retraction inside the stratum, i.e. any pending `retract` clauses inside the stratum will be honored. 
 
 
 @function Stratum.wait
 @summary Waits until the stratum has completed
 @return {::Stratum} 
 @desc
+  * If the stratum isn't finished yet, `wait()` blocks until it is. 
+  * `wait()` calls return _after_ the stratum has returned. E.g. if the stratum throws an exception, 
+    then that exception will be returned to the stratum's parent stratum before pending `wait()` 
+    calls are resolved. (In most cases this is an inconsequential implementation detail, but it is 
+    important for certain recursive scenarios - see e.g. the source code for [../sequence::each.track]).
+  * Returns the stratum
 
-  - If the stratum isn't finished yet, `wait()` blocks until it is.
-  - Returns the stratum
+
+@variable Stratum.running
+@summary `true` if the stratum is still running, `false` otherwise
 
 
-@function Stratum.running
-@summary Return `true` if the stratum is still running, `false` otherwise
-@return {Boolean}
+@function Stratum.spawn
+@summary Execute a function in a child stratum
+@param {Function} [f]
+@return {::Stratum}
+@desc
+  * `S.spawn(f)` creates a new child stratum `T` with parent `S`, returns `T` and then executes `f(T)` in the background in the stratum `T`.
+  * When `S` exits, it will abort all still running child strata.
+  * If `T` throws an exception, `S` will be aborted and throw the exception to its parent.
+  * If `T` returns normally, its return value will be discarded.
+  * If `T` generates blocklambda controlflow (blocklambda returns or breaks), this controlflow
+    will be routed through `S` (causing `S` to be retracted).
 
+
+@function Stratum.join
+@summary Wait for completion of all explicit child strata
+@desc
+  Blocks until all explicit child strata have completed
+
+
+@function Stratum.adopt
+@summary Adopt a child stratum
+@return {::Stratum} Child stratum
+@param {::Stratum} [T] Stratum to adopt as new child
+@desc
+  * `S.adopt(T)` removes stratum `T` from its current parent and adopts it as a new child of stratum `S`, and returns `T` (so that e.g. a [::Stratum::wait] call can be chained)
+  * An exception will be thrown if `S` is not running anymore at the time of the call.
+  * If `T` is a reifiedStratum of a function `t` that was being called by another function `p`, the
+    adoption will cause that call to return `undefined` immediately. Any future return value of `t` will be 
+    discarded:
+
+        var stratum;
+        function t() { stratum = reifiedStratum; hold(1000); return 'rv'; }
+        function p() { console.log(t()); }
+        function q() { reifiedStratum.adopt(stratum).wait(); }
+        waitfor {
+          p(); // <-- this will log 'undefined', not 'rv'
+        } and {
+          q(); // <-- this will block for 1s to wait for completion of t()
+               //     'rv' will be discarded
+        }
+
+
+@function Stratum.capture
+@summary Continue a stratum as a function call
+@desc
+  * `S.capture()` initiates a function call that adopts `S` and waits for its completion.
+  * Any exception thrown by `S` will be thrown by the capture call.
+  * Return values from `S` will be ignored, i.e. the capture call always returns 'undefined' or
+    an exception (unless it is aborted, either from the outside or by blocklambda controlflow from
+    within the call).
+
+  `S.capture()` is similar to calling `reifiedStratum.adopt(S).wait()`. However, the latter can only
+  be called in a function context (i.e. not from the top-level of a script), and any exception thrown
+  by `S` will be re-thrown by the enclosing function and cannot be caught within it.
 */
