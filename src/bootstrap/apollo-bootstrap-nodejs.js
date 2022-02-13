@@ -6,7 +6,7 @@
  * Part of the Oni StratifiedJS Runtime
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *

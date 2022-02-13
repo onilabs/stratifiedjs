@@ -4,7 +4,7 @@
  * Part of the StratifiedJS Runtime
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2010-2013 Oni Labs, http://onilabs.com
+ * (c) 2010-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *

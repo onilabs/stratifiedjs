@@ -2,10 +2,10 @@
  * StratifiedJS 'sys' module
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.20.0-development'
+ * Version: '1.0.0'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2013-2016 Oni Labs, http://onilabs.com
+ * (c) 2013-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -180,7 +180,7 @@ module.exports = {
 
 /**
    @function isStratum
-   @summary  Tests if an object is a reified stratum
+   @summary  Tests if an object is a reified [sjs:#language/builtins::Stratum]
    @param    {anything} [testObj] Object to test.
    @return   {Boolean}
 */
@@ -210,15 +210,15 @@ module.exports = {
       whereas [::getDynVar] retrieves values from the closest context in which the variable 
       is defined.
 
-      #### Spawned strata
+      ####  Spawned strata and adopted strata
       
-      A stratum spawned (using [sjs:#language/syntax::spawn]) in a given context maintains
-      affinity to the context, even if the context has been exited on the original stratum:
+      A stratum spawned in a given context via [sjs:sys::spawn] or [sjs:#language/builtins::Stratum::spawn] 
+      maintains affinity to this context, even if the context has been exited on the original stratum:
 
           @sys.withDynVarContext {
             ||
             @sys.setDynVar('foo', 'bar');
-            _taskXXX (function() {
+            reifiedStratum.spawn(function() {
                      hold(1000);
                      @assert.is(@sys.getDynVar('foo'), 'bar'); // true
                    })();
@@ -312,7 +312,7 @@ module.exports = {
 */
   // NOTE: version property is in double-quotes so
   // the buildscript treats it like JSON
-  "version" : "0.20.0-development",
+  "version" : "1.0.0",
 };
 
 

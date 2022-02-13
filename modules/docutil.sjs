@@ -3,7 +3,7 @@
  * Utility functions for extracting JS-style comments from source code 
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.20.0-development'
+ * Version: '1.0.0'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2011-2016 Oni Labs, http://onilabs.com

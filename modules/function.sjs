@@ -3,10 +3,10 @@
  * Function wrappers & composition helpers
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.20.0-development'
+ * Version: '1.0.0'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2012-2016 Oni Labs, http://onilabs.com
+ * (c) 2012-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *
@@ -454,7 +454,7 @@ var ITF_SIGNAL = exports.ITF_SIGNAL = module .. Interface('signal');
    @summary Call a function asynchronously without waiting for the return value
    @desc
      Calling `f .. signal(this_obj, arguments)` is equivalent to
-     executing `_XXXtask f.apply(this_obj, arguments)`.
+     executing `@sys.spawn(-> f.apply(this_obj, arguments))`.
 
      Signalling is more efficient than spawning but doesn't allow the caller to interact with the
      called function: Whereas the `spawn` call returns a [#language/builtins::Stratum], the 

@@ -13,7 +13,19 @@
                 "abort": {
                   "type": "function"
                 },
+                "adopt": {
+                  "type": "function"
+                },
+                "capture": {
+                  "type": "function"
+                },
+                "join": {
+                  "type": "function"
+                },
                 "running": {
+                  "type": "variable"
+                },
+                "spawn": {
                   "type": "function"
                 },
                 "wait": {
@@ -134,7 +146,7 @@
             "quasi-quote": {
               "type": "syntax"
             },
-            "spawn": {
+            "reifiedStratum": {
               "type": "syntax"
             },
             "string-interpolation": {
@@ -2957,5 +2969,5 @@
     }
   },
   "summary": "Standard collection of modules for the StratifiedJS language",
-  "version": "0.20.0-development"
+  "version": "1.0.0"
 }

@@ -2,7 +2,7 @@
   "name": "stratifiedjs",
   "description": "StratifiedJS Framework",
   "author": "Oni Labs <maintainers@onilabs.com>",
-  "version" : "0.20.0-development",
+  "version" : "1.0.0",
   "homepage": "http://onilabs.com/stratifiedjs",
   "private" : true,
   "repository": {

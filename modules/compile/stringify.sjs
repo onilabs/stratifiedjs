@@ -5,7 +5,7 @@ __js {
  * Part of StratifiedJS
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the GPL v2, see
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -293,7 +293,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
  * Part of Oni StratifiedJS
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011 Oni Labs, http://onilabs.com
+ * (c) 2011-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the GPL v2, see
  * http://www.gnu.org/licenses/gpl-2.0.html

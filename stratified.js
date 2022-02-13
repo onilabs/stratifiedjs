@@ -2,10 +2,10 @@
  * Oni StratifiedJS Runtime
  * Client-side Cross-Browser implementation
  *
- * Version: '0.20.0-development'
+ * Version: '1.0.0'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2010-2013 Oni Labs, http://onilabs.com
+ * (c) 2010-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the MIT License:
  *

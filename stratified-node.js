@@ -2,10 +2,10 @@
  * Oni StratifiedJS Runtime
  * Server-side NodeJS-based implementation
  *
- * Version: '0.20.0-development'
+ * Version: '1.0.0'
  * http://onilabs.com/stratifiedjs
  *
- * (c) 2011-2013 Oni Labs, http://onilabs.com
+ * (c) 2011-2022 Oni Labs, http://onilabs.com
  *
  * This file is licensed under the terms of the GPL v2, see
  * http://www.gnu.org/licenses/gpl-2.0.html

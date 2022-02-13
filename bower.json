@@ -1,6 +1,6 @@
 {
   "name": "stratifiedjs",
-  "version" : "0.20.0-development",
+  "version" : "1.0.0",
   "author" : "Oni Labs <maintainers@onilabs.com>",
   "homepage" : "http://onilabs.com/stratifiedjs",
   "private" : true,

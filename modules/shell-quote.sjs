@@ -3,7 +3,7 @@
  * Quote and parse shell commands
  *
  * Part of the Stratified JavaScript Standard Module Library
- * Version: '0.20.0-development'
+ * Version: '1.0.0'
  * http://onilabs.com/stratifiedjs
  *
  * (c) 2013-2016 Oni Labs, http://onilabs.com
