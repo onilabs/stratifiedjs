@@ -240,8 +240,8 @@ __js {
    @desc
      A variable containing a rolling `window`-sized window of elements with an associated [::Observable] stream.
 
-     Elements are shifted (from the left) into the window using [::ObservableWindowVar::add]. The oldest
-     element will be shifted out (to the right) to maintain the number of elements in the variable
+     Elements are shifted (from the right) into the window using [::ObservableWindowVar::add]. The oldest
+     element will be shifted out (to the left) to maintain the number of elements in the variable
      at `<=window`.
 
      ### Stream structuring details
