@@ -1128,7 +1128,7 @@ S("->")
   .exc(120, function(left, pctx) {
     PUSH_EXTENT(pctx, left, 'arrow call')
     var body = parseExp(pctx, 119.5);
-    LOGM('thinarray/infix')
+    LOGM('thinarrow/infix')
     GEN_THIN_ARROW_WITH_PARS(left, body, pctx, POP_EXTENT('GEN_THIN_ARROW'))
   });
 S("=>")
@@ -1136,7 +1136,7 @@ S("=>")
   .exs(function(pctx) {
     PUSH_EXTENT(pctx, pctx.token, 'arrow call')
     var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
-    LOGM('fatarray/prefix')
+    LOGM('fatarrow/prefix')
     GEN_FAT_ARROW(body, pctx, POP_EXTENT('GEN_FAT_ARROW'))
   })
   // infix form with parameters expression

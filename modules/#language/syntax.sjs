@@ -474,30 +474,16 @@
         return rv;
       }
 
-@syntax spawn
-@summary Unstructured spawning of strata
+@syntax reifiedStratum
+@summary Stratum object for the current function
 @desc
-  In addition to the structured composition operators, StratifiedJS has the `spawn` operator to execute some code in the background in an unstructured fashion, similar to how you would "spawn a thread" in other programming languages:
+   * `reifiedStratum` returns the [./builtins::Stratum] object for the current function.
+   * `reifiedStratum` is not available within [::arrow-function]s or from the top-level of a script. Usage of the primitive in these contexts generates an exception.
 
-      _task <expression>;
-
-  This *_task expression* executes `expression` *synchronously* until `expression` suspends or finishes, and then returns a [./builtins::Stratum] object.
-
-  Further execution of `expression` proceeds asynchronously until it finishes or is aborted through a call to [./builtins::Stratum::abort].
-
-  ### Notes: 
-
-  - Instead of spawning a stratum it is often a better idea to use one of
-  the *structured concurrency constructs* [::waitfor-and], [::waitfor-or] and [::waitfor-while] where possible.
-
-  - If structured concurrency primitives cannot be used, consider using *sessioned* spawned strata
-  (see [../cutil::withBackgroundStrata]) - in particular if you want to use spawned strata to process
-  blocklambda functions. See the discussion at the end of the [::blocklambda] documentation.
 
 @syntax destructure
 @summary Assign multiple variables from a single expression
 @desc
-  *proposed for ECMA-262 Edition 6*
 
   Destructuring is a convenient syntax for picking apart structured data, mirroring the way array and object literals are constructed. 
 
@@ -520,7 +506,7 @@
 
   Often, the variable names and property names used are the same when destructuring objects. If so, you can use a [DRY](http://en.wikipedia.org/wiki/Don't_repeat_yourself) shorthand whereby the pattern `{author, content}` is equivalent to `{author:author, content:content}`.
 
-  Please see the [destructuring docs at ecmascript.org](http://wiki.ecmascript.org/doku.php?id=harmony:destructuring) for full syntax details.
+  Please see the [destructuring docs at mozilla.org](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment) for full syntax details.
 
   Note that destructuring support as implemented in StratifiedJS does not currently support destructuring in `catch` clauses, but they do work everywhere else.
 
@@ -670,214 +656,227 @@
 @syntax blocklambda
 @summary Block-like syntax supporting custom control-flow
 @desc
-  *adopted from the [block lambda revival](http://wiki.ecmascript.org/doku.php?id=strawman:block_lambda_revival) proposal for ECMAScript*
-  
-  Blocklambdas are a cross between anonymous functions and the builtin block syntax for conditional statements, loops, function bodies, etc.
 
-  They are intended to be used with 'higher-order' functions which take a function parameter, and have a special call syntax ("paren-free call syntax") similar to that of blocks in the ruby language:
+  ### Motivation
 
+  Blocklambdas are a generalization of the block syntax of SJS's builtin primitives (conditional statements, loops, function bodies, etc.) that overcome some of the limitations of conventional callback functions. They play a central part in SJS and are used ideomatically in many settings, mainly with 
+  [../sequence::Sequence]s and [../service::Service]s.
 
-      function someFunction(f) {
-        ...
-        f(param1, param2);
-        ...
-      }
-    
-      someFunction { |param1, param2|
-        // block_body
+  As an illustration of the problem with conventional callbacks, assume we have some complex 
+  datastructure and want to write a function that iterates over it, executing a piece of code
+  for each element of the datastructure:
+
+      function iterate(code) {
+         ... for each element x in the datastructure call code(x) ...
       }
 
+  This works fine with `code` being a conventional callback function as long as we want to 
+  iterate over ALL elements of the datastructure, e.g.:
 
-  At runtime, blocklambda syntax is converted to a function object - so in the above example, `someFunction` will be called with a function object that will execute the block_body when called. Unlike ruby, the called function doesn't see a special "block" argument.
+      iterate(function(x) { console.log(x); })
 
-  In a variant of the paren-free call syntax, if `someFunction` takes more than one argument (the last one being a function argument), we can write:
+  But let's assume we only want to iterate until we find some particular element and then return
+  that element. We would have to implement special logic in `iterate` to propagate some returns and 
+  not others, e.g.:
 
-
-      function someFunction(argument1, argument2, f) {
-        ...
-        f(param1, param2);
-        ...
-      }
-    
-      someFunction(argument1, argument2) { |param1, param2|
-        // block_body
-      }
-
-
-
-  Here, `someFunction` will be called with three arguments - `argument1`, `argument2` and a function object that will execute block_body when called. Even though the blocklamda is 'tacked on' to the `someFunction(argument1, argument2)` call it will be appended to  `someFunction`'s argument list. (I.e. it will effectively be 'pulled under' the parentheses.)
-
-  Blocklambdas are not just shorthand for `function() { ... }` syntax. They have important semantic differences:
-
-
-  - The `this` binding of the surrounding code is maintained inside the blocklambda 
-  - A `return` statement inside a blocklambda will return back up the callstack  up to and including the enclosing *lexical* function scope, i.e. the function in which the blocklambda is defined. This also means that you can't return a value to the caller of a blocklambda (you should use a function if you need that). 
-  - A `break` statement inside a blocklambda will cause the blocklambda to return back up the callstack up to and including the function call that called the blocklambda inside the *lexical* scope in which the blocklambda is defined. 
-  - A `continue` statement inside a blocklambda will skip the rest of the blocklambda body and return to the caller.
-
-  In all cases, `finally` handlers along the return path will be honored, and parallel strata (such as in a `waitfor{} or {}`) retracted as appropriate.
-
-
-  These differences are all intended to make the blocklambda useable as a control-flow mechanism, akin to the builtin block syntax of JavaScript. It allows for block-like constructs that aren't part of the core language. For example, many of the [sjs:sequence::] module functions work well with blocklambdas:
-
-
-      var { each } = require('sjs:sequence');
-      var { ownKeys } = require('sjs:object');
-      
-      var obj = {a: "aye", b: "bee", c:"cee"};
-      
-      ownKeys(obj) .. each { |key|
-        var value = obj[key];
-        console.log("object.#{key} = #{value}");
-      
-        // stop iterating after we hit `b`
-        if (key == "b") break;
+      function iterate(code) {
+         ... for each element x call rv = code(x) ...
+         if (rv !== undefined) return rv;
+         else ... continue iterating ...
       }
       
-      // If the keys of `obj` are traversed alphabetically, this prints:
-      //   object.a = aye
-      //   object.b = bee
-      // (c will not be processed, just as if we broke out of a loop early)
-    
-  This provides a similar syntax to the builtin `for(var key in obj) { ... }` but it ignores inherited properties, and is implemented with normal functions - you can use this syntax to implement your own control-flow mechanisms.
+      ...
 
+      iterate(function(x) { if (x === item_to_find) return x; })
 
-  ### Blocklambdas and [./syntax::spawn]
+  Another possibility that wouldn't require any special logic inside `iterate` would be to 
+  designate a special exception thrown by `code` as a "return":
 
-  When authoring a function that processes a callback on a spawned stratum, there are some special 
-  considerations to ensure that `throw`, `break` and `return` are routed as expected when the callback is a blocklambda.
-
-  Firstly, the scope from which `break` or `return` return from must still be
-  active. E.g. the following code will generate a runtime error, because by the time `f` is called, function `foo` has already returned:
-
-      function foo(f) {
-        _task (hold(100),f());
+      var rv;
+      try {
       }
+      catch(e) {
+        if (e.type === 'return')
+          rv = e.rv;
+        else throw e;
+      }
+
+      ...
+
+      iterate(function(x) { if (x === item_to_find) throw {type: 'return', rv: x }; }
+
+  Neither of these two approaches are particularly appealing. With blocklambdas we can regain the
+  functionality of `break`, `return` and `continue` in a callback setting:
+
+      function iterate(code) {
+         ... for each element x in the datastructure call code(x) ...
+      }
+
+      ...
       
-      foo { || console.log('blocklambda here'); break; }
-
-  Secondly, the callstack across which the blocklambda is called must not be
-  'disjointed', i.e. the blocklambda must not be called from a stratum that wasn't started from the callstack rooted in the blocklambda's return scope. E.g. this code generates a runtime error, because the blocklambda is called from a stratum that is not rooted in the scope that `break` wants to return from (`foo` in this case):
-
-      var callback;
-
-      function foo(f) {
-        callback = f;
-        hold();
-      }
-
-      _task (function() { while (1) { if (callback) callback(); hold(1000); } })();
-      foo { || console.log('blocklambda here'); break; }
-
-   Conversely, this code works fine:
-
-      function foo(f) {
-        _task (function() { hold(1000); f(); })();
-        hold();
-      }
-
-      foo { || console.log('blocklambda here'); break; }
-
-   In practice, a good rule of thumb to ensure that `break` and `return` operate correctly is to never store a blocklambda in a variable that can be accessed from external strata.
-
-   Thirdly, to ensure exceptions are routed correctly and don't end up uncaught, there needs
-   to be an active [./builtins::Stratum::value] call. In the example above
-   any exception thrown in in the blocklambda would NOT be routed correctly. This code 
-   on the other hand would work correctly:
-
-      function foo(f) {
-        var stratum = _task (function() { hold(1000); f(); })();
-        stratum.value();
-      }
-
-   Furthermore, executing a blocklambda from a `spawn`ed stratum (as in the
-   examples above) is discouraged because special attention needs to be paid
-   to make the code safe under retraction. E.g. the following code generates
-   a runtime error because the spawned stratum is not being retracted:
-
-      function test() {
-        function foo(f) {
-          var stratum = _task (function() { hold(1000); f(); })();
-          stratum.value();
-        }
-
-        waitfor {
-          foo { || console.log('blocklambda here'); break; }
-        }
-        or {
-          hold(100);
-        }
-      }
-
-      test();
-
-   The runtime error ('Blocklambda break to inactive scope') is generated because the scope `test`
-   will have been exited (by virtue of the `hold(100)` in the second branch of the `waitfor{}or{}`) by
-   the time the spawned stratum executes the `break`.
-
-   A retraction-safe version of this code would look like this:
-
-      function test() {
-        function foo(f) {
-          var stratum = _task (function() { hold(1000); f(); })();
-          try {
-            stratum.value();
-          }
-          retract {
-            stratum.abort();
-          }
-        }
-
-        waitfor {
-          foo { || console.log('blocklambda here'); break; }
-        }
-        or {
-          hold(100);
-        }
-      }
-
-      test();
-
-   Note, however, that in most cases code that makes use of `spawn` can
-   be reformulated into a 'structured' form (i.e. one that doesn't make use
-   of `spawn`), in which retraction is handled implicitly. E.g. a simpler 
-   alternative to the above code would be:
-
-      function test() {
-        function foo(f) {
-          hold(1000);
-          f();
-          hold();
-        }
-  
-        waitfor {
-          foo { || console.log('blocklambda here'); break; }
-        }
-        or {
-          hold(100);
-        }     
-      }
-
-      test();
-
-   If spawned strata absolutely need to be used (e.g. because the level of concurrency is 
-   unknown at the time of authoring the function - as is e.g. the case for 
-   [../sequence::each.par]),
-   consider using sessioned spawned strata instead ([../cutil::withBackgroundStrata]). E.g. a somewhat
-   simplified implementation of [../sequence::each.par] that automatically takes care of 
-   all of the controlflow edgecases discussed above would look like this:
-
-       function each_par(seq, f) {
-         @withBackgroundStrata {
-           |background_strata|
-           seq .. @each {
-             |x|
-             background_strata.run(()->f(x));
-           }
-           background_strata.wait();
+      function foo() {
+        iterate { 
+          |x| 
+          if (x === item_to_find) 
+            return x; // <-- exits foo with return value x
          }
+         return 'item_not_found';
        }
-   
+
+       ...
+      
+       function foo() {
+         iterate {
+           |x|
+           if (x === item_to_find)
+             break; // <-- bails out of iterate
+         }
+         ... continue here ...
+       }
+        
+
+  ### Syntax
+
+  Blocklambdas have the following structure:
+
+      {
+        |argument_list|
+        statements...
+      }
+
+  Here, `argument_list` has the same syntax as the argument list for a normal function (i.e. it can
+  use destructuring, rest parameters, etc.
+
+  Blocklambda can only be used in function calls, e.g.:
+  
+      some_function({ |...| ...});
+
+      arr[idx]({ |...| ...});
+
+      foo.bar(x,y, { |...| ... }, z, { |...| ... }, ...);
+
+
+  As a shorthand, if the blocklambda is the only argument of the function call, it does not need to
+  be placed in parentheses:
+      
+      some_function { |...| ...}; // equivalent to some_function({ |...| ...});
+
+  As a variation of this shorthand, if `some_function` takes more than one argument, 
+  with the final one being a blocklambda, that blocklambda can be placed _behind_ the parenthesized
+  areguments list:
+
+      some_function(a,b,c) { |...| ...} // equivalent to some_function(a,b,c,{|...|...});
+      
+      foo.bar(x,y) { |...| ...} // equivalent to foo.bar(x,y,{|...| ...})
+
+  
+  ### Semantics
+
+  As stated above, blocklambdas can only be used in a function call. This function call is called
+  a blocklambda's __anchor__.
+
+  To the anchor function, the blocklambda looks like a conventional callback function:
+
+      function log_type(bl) {
+        console.log(typeof bl); // -> "function"
+      }
+
+      log_type { || }
+
+  `break` can be used inside the blocklambda to bail out of the anchor function call:
+
+      function count(cb) {
+        var i=0;
+        while (true)
+          cb(++i);
+      }
+
+      count {
+        |x|
+        if (x > 10) break;
+        console.log(x);
+      }
+      console.log('done');
+      // logs 1,2,3,4,5,6,7,8,9,10,done
+  
+  `return` exits the function context _surrounding_ the anchor call. If there is no function context 
+  (i.e. the blocklambda call is performed from the top-level of a script), `return` will throw an 
+  exception.
+
+      function forever(bl) {
+        while (true) {
+          bl();
+        }
+      }
+
+      function countdown(cb) {
+        var i=10;
+        forever {
+          ||
+          console.log(i);
+          if (--i == 0) return 'liftoff';
+        }
+      }
+
+      var result = countdown(); 
+      // logs 10,9,8,7,6,5,4,3,2,1 and assigns 'liftoff' to result.
+
+  Both `break` and `return` retract the anchor call and any other calls that might be between the
+  blocklambda call and the anchor call:
+
+      function inner(cb) { 
+        try {
+          cb();
+        }
+        retract {
+          console.log('inner retract');
+        }
+      }
+
+      function outer(cb) {
+        try {
+          inner(cb);
+        }
+        retract {
+          console.log('outer retract');
+        }
+      }
+
+      outer { || console.log('breaking'); break; }
+      console.log('done');
+      // logs 'breaking', 'inner retract', 'outer retract', 'done'
+
+  There is no way for a blocklambda to return a value to its anchor call. When executing a blocklambda,
+  the anchor function will either see an 'undefined' return value, an exception thrown by the 
+  blocklambda, or be retracted.
+
+  Calling a blocklambda when its anchor call is not active any longer throws an exception:
+
+      var cb;
+      function defer(_cb) { cb = _cb }
+
+      defer { || console.log('blocklambda') };
+      cb(); // <--- throws "Blocklambda anchor inactive" exception
+
+
+  Other features of blocklambdas:
+
+  - `continue` can be used to skip the remainder of the blocklambda.
+  - The `this` binding of the surrounding code is maintained inside the blocklambda.
+  - `reifiedStratum` inside a blocklambda returns the [../builtins::Stratum] of the enclosing function
+    context - if there is no enclosing function context, usage of `reifiedStratum` causes an exception to be thrown.
+
+  ### Unroutable blocklambda returns and breaks
+
+  As long as the anchor call is still active, blocklambdas can be called from strata that are not 
+  rooted in the anchor call, e.g. via [../sys::spawn]. 
+  However, in this case there will not be a path back to the anchor call, and any `return` or `break` 
+  performed in the blocklambda will throw an "Unroutable blocklambda break/return" exception.
+
+  The same consideration applies when manipulating the callstack parent chain via [./builtins::Stratum::adopt]: If at the initiation of a blocklamda `break` or `return`, the anchor call is unreachable, an
+  exception will be thrown. Furthermore, if the anchor call _becomes_ unreachable during traversal
+  of the callstack (e.g. by modifying the callstack in an upstream `finally` clause with 
+  [./builtins::Stratum::adopt]), an exception will be thrown at that point.
 
 @syntax double-colon
 @summary Prefix function chaining operator
@@ -1016,9 +1015,6 @@
 @syntax arrow-function
 @summary Shorthand function syntax
 @desc
-
-  *adopted from the proposed ECMA-262 Edition 6 arrow syntax and CoffeScript's arrow syntax*
-
   Arrow syntax is a shorthand for a function that only consists of a single expression and which returns the result of this expression.
   For example:
 
@@ -1026,21 +1022,29 @@
       // equivalent to:
       var add = function(x, y) { return x + y; };
 
+  In contrast to JS, StratifiedJS has two versions of arrow functions, and the syntax is slightly
+  different:
 
-  You can also bind the current value of `this` by using the "fat arrow" variant:
-
-      var addOne = (x) => this.add(x, 1);
-      // equivalent to:
-      var x = function(x) { return this.add(x, 1); }.bind(this);
-
-
-  The parentheses around the argument list are optional in the case of zero or one arguments, so the following are also valid lambda expressions:
+  * The 'thin arrow' version (`->`) has its own 'this' object.
+  * The 'fat arrow' version (`=>`) binds 'this' from its enclosing context.
+  * In contrast to JS, arrow functions in SJS have an 'arguments' object defined.
+  * The parentheses around the argument list are optional in the case of zero or one arguments, so the following are valid:
 
       var addOne = x -> x + 1;
       var returnOne = -> 1;
 
+  * In contrast to JS, the body of arrow functions in SJS always has to be an _expression_ and 
+    cannot be a block. Any `{...}` is interpreted
+    as object literal syntax (and does not need to be parenthesized like in JS):
 
-  **Note:** The body of an arrow function needs to be an *expression*. Multiple expressions can be chained together using parentheses and the comma operator, e.g. `a -> (console.log(a), a+1)`, but you cannot put *statements* (such as `for(...) {...}`) into an arrow function. If you need statements, you should use the regular `function() {...}` syntax. 
+        // this SJS code:
+        () => {a:1}; // returns an object {a:1}
+        // is equivalent to this JS code:
+        () => ({a:1}); // returns an object {a:1}
+        // and NOT this JS code:
+        () => {a:1}; // executes a block with an 'a' labeled expression '1' and return undefined
+
+  * [::reifiedStratum] cannot be used inside arrow functions.
 
 @syntax calling-javascript
 @summary Interfacing with plain Javascript code
