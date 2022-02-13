@@ -6,10 +6,6 @@ Oni StratifiedJS (previously known as "Oni Apollo") is the reference
 supporting set of modules. It runs server-side (based on NodeJS) as well
 as client-side (cross-browser).
 
-For an overview see [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
-
-Please post questions to the [StratifiedJS Google Group](https://groups.google.com/forum/#!forum/stratifiedjs).
-
 
 How to run/install
 ------------------
@@ -38,8 +34,8 @@ stratified.js
 -------------
 
  - Client-side cross-browser StratifiedJS runtime.
- - ~25kB gzipped, MIT-licensed.
- - For more information please read the docs at [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
+ - MIT-licensed.
+ - For more information please read the docs at [onilabs.com](http://onilabs.com/).
 
 stratified-node.js, 'sjs' executable
 ---------------------------------------
@@ -54,7 +50,7 @@ modules/
  - 'Oni StratifiedJS Standard Module Library'
  - All MIT-licensed.
  - Runs server-side or client-side.
- - Documentation at [onilabs.com/modules](http://onilabs.com/modules).
+ - Documentation at [onilabs.com/doc](https://onilabs.com/doc/#sjs:).
 
 src/
 ----

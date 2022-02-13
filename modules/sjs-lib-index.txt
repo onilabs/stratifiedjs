@@ -3,7 +3,7 @@
 @summary Standard collection of modules for the StratifiedJS language
 @desc
     This Library is the standard collection of modules
-    accompanying the [StratifiedJS](http://onilabs.com/stratifiedjs) language.
+    accompanying the [StratifiedJS] language.
 
 
     ### Loading `sjs` Modules
