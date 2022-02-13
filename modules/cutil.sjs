@@ -108,7 +108,7 @@ exports.Dispatcher = Dispatcher;
      the session will be aborted.
 
      Exceptions thrown from `session_func` itself or by any sessioned background stratum 
-     not 'waited on' by a [sjs:#language/builtins::Stratum::value] call will cause `session_func` 
+      will cause `session_func` 
      (and, by implication, any other running sessioned strata) to be aborted and the 
      `withBackgroundStrata` call to throw the exception. If there are multiple exceptions, 
      the final one will be thrown and previous ones logged to stderr.
@@ -176,8 +176,7 @@ exports.Dispatcher = Dispatcher;
       
       If `f` throws an exception before `run` returns, `run` will throw the exception.
 
-      If `f` throws an exception after the `run` call returns, it will be routed to any 
-      pending [sjs:#language/builtins::Stratum::value] calls, or, if there are no such calls,
+      If `f` throws an exception after the `run` call returns,
       it will cause the session to be aborted, and the exception 
       to be thrown by the enclosing [::withBackgroundStrata] call. 
 

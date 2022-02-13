@@ -863,7 +863,7 @@
 
   - `continue` can be used to skip the remainder of the blocklambda.
   - The `this` binding of the surrounding code is maintained inside the blocklambda.
-  - `reifiedStratum` inside a blocklambda returns the [../builtins::Stratum] of the enclosing function
+  - `reifiedStratum` inside a blocklambda returns the [./builtins::Stratum] of the enclosing function
     context - if there is no enclosing function context, usage of `reifiedStratum` causes an exception to be thrown.
 
   ### Unroutable blocklambda returns and breaks

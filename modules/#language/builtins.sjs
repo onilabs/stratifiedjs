@@ -523,8 +523,8 @@
   In very rare instances it can be helpful to manipulate strata in a more direct way.
   For this purpose, _some_ strata can be made directly accessible ('reified') in SJS:
 
-  - The [::reifiedStratum] primitive returns the stratum for the current function.
-  - [../sys::spawn] runs a function in the background and returns its stratum. (Note that usage of this function is HIGHLY discouraged, because any uncaught error in the stratum can terminate the SJS process - instead consider [../cutil::withBackgroundStrata] or [::reifiedStratum::spawn] )
+  - The [./syntax::reifiedStratum] primitive returns the stratum for the current function.
+  - [../sys::spawn] runs a function in the background and returns its stratum. (Note that usage of this function is HIGHLY discouraged, because any uncaught error in the stratum can terminate the SJS process - instead consider [../cutil::withBackgroundStrata] or [::Stratum::spawn] )
   - Primitives like `waitfor/and` create _implicit_ strata which cannot be reified.
 
   ### Child strata
