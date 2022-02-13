@@ -2,7 +2,7 @@ Oni StratifiedJS - Multi-Platform Stratified JavaScript Implementation
 ======================================================================
 
 Oni StratifiedJS (previously known as "Oni Apollo") is the reference
-[StratifiedJS Language](http://onilabs.com/reference) implementation + a
+StratifiedJS Language implementation + a
 supporting set of modules. It runs server-side (based on NodeJS) as well
 as client-side (cross-browser).
 
@@ -13,8 +13,8 @@ How to run/install
 For server-side use, you can just execute the `sjs` executable
 (provided you have nodejs installed).
 
-For client-side use, just include `stratified.js` in your html,
-as described at [onilabs.com/stratifiedjs](http://onilabs.com/stratifiedjs).
+For client-side use, include `stratified.js` in your html and write sjs code in
+<script type='sjs'> tags.
 
 For a complete sjs web app stack, check out [conductance.io](https://conductance.io).
 
