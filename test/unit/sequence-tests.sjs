@@ -2044,6 +2044,19 @@ context("rollingWindow", function() {
     [1,2,3,4] .. s.rollingWindow({window:3,cliff:false}) .. s.rollingWindow(2) .. @toArray ..
       assert.eq([ [[1],[1,2]], [[1,2],[1,2,3]], [[1,2,3],[2,3,4]], [[2,3,4],[3,4]], [[3,4],[4]] ]);
   })
+  test("batched 1", function() {
+    [1,2,3,4,5] .. s.batch(2) .. @rollingWindow({window:3, cliff: false}) .. @toArray ..
+      assert.eq([ [1], [1,2], [1,2,3], [2,3,4], [3,4,5], [4,5], [5] ]);
+  });
+  test("batched 2", function() {
+    [1,2,3,4,5] .. s.batch(2) .. @rollingWindow({window:3, cliff: false, batched:true}) .. @toArray ..
+      assert.eq([ [1,2], [2,3,4], [3,4,5] ]);
+  });
+  test("batched 3", function() {
+    [1,2,3,4,5] .. s.batch(2) .. @rollingWindow({window:3, batched:true}) .. @toArray ..
+      assert.eq([ [2,3,4], [3,4,5] ]);
+  });
+
 })
 
 context("transform typing/batching", function() {

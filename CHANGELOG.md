@@ -2,4 +2,4 @@ This changelog lists the most prominent, developer-visible changes beginning at 
 
 ## Version 1.0.0+
 
-  
+  * New 'batched' mode for sequence::rollingWindow.

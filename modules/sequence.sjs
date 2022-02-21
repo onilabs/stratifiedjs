@@ -786,16 +786,21 @@ exports.consumeMultiple = consumeMultiple;
 
      ### Caveats
 
-     When successively iterating open streams, be careful of sequence primitives that 
+     * When successively iterating open streams, be careful of sequence primitives that 
      'swallow' elements as part of their operation. E.g. [::takeWhile] will swallow 
      the first element that doesn't match its predicate:
 
-         [0,2,4,5,6,7,8] .. @withOpenStream {
-           |S|
-           S .. @takeWhile(x->x%2==0) .. @toArray; // = [0,2,4]
-           // 5 IS IMPLICITLY SWALLOWED BY @takeWhile!
-           S .. @toArray; // [6,7,8]
-         }
+           [0,2,4,5,6,7,8] .. @withOpenStream {
+             |S|
+             S .. @takeWhile(x->x%2==0) .. @toArray; // = [0,2,4]
+             // 5 IS IMPLICITLY SWALLOWED BY @takeWhile!
+             S .. @toArray; // [6,7,8]
+           }
+
+     * Note that the stream presented to the session function will always be a plain stream. If 
+     the input stream is a [::StructuredStream], it will be reconstructed to a plain [::Stream].
+     If you need to operate on the raw base stream, use `withOpenStream(S.base)`.
+
 */
 
 /*
@@ -3650,7 +3655,8 @@ __js exports.batchN = batch;
    @param {Object} [settings]
    @return {::StructuredStream} structured stream of type 'rolling'
    @setting {Integer} [window] Number of elements in the rolling window
-   @setting {Boolean} [cliff=true] If `false`, the window will gradually be built up from 1 to `window` at the start of the sequence, and wound down from `window` to 1 at the end of the sequence. If `true`, only elements with a full window (i.e. arrays of `window` elements) will be emitted; the first output element only being emitted after `window` input elements have been consumed. 
+   @setting {Boolean} [batched=false] If `true`, and the input sequence is a batched [::StructuredStream], the rolling window will advance at the size of each batch obtained from the input stream.
+   @setting {Boolean} [cliff=true] If `true`, only elements with a full window (i.e. arrays of `window` elements) will be emitted; the first output element only being emitted after `window` input elements have been consumed. If `false`: For non-batched input sequences or `batched==false`, the window will gradually be built up from 1 to `window` at the start of the sequence, and wound down from `window` to 1 at the end of the sequence. Otherwise if the input sequence is a batched [::StruturedStream] and `batched==false`, the window will contain as many elements as have been obtained from the input stream (up to a maximum of configured `window` size).
    @desc
       ### Examples:
 
@@ -3666,16 +3672,74 @@ __js exports.batchN = batch;
            [1,2,3,4] .. @rollingWindow({window:3, cliff: false})
            // = [1], [1,2], [1,2,3], [2,3,4], [3,4], [4]
 
+           // batched:
+
+           [1,2,3,4,5] .. @batch(2) .. @rollingWindows({window:3, cliff: false})
+           // = [1], [1,2], [1,2,3], [2,3,4], [3,4,5], [4,5], [5]
+
+           [1,2,3,4,5] .. @batch(2) .. @rollingWindow({window: 3, cliff: false, batched: true})
+           // = [1,2], [2,3,4], [3,4,5]
+
+           [1,2,3,4,5] .. @batch(2) .. @rollingWindow({window: 3, cliff: true, batched: true})
+           // = [2,3,4], [3,4,5]
+
       ### Stream structuring details
 
-      `rollingWindow` creates a [::StructuredStream] of type 'rolling'.
+      * `rollingWindow` creates a [::StructuredStream] of type 'rolling'.
+      * Input [::StructuredStream]s of type 'batched' will be treated like 'normal' streams, if 
+        flag `batched` is set to `false` (the default). Otherwise, they will cause the rolling window
+        to advance at the size of each batch obtained from the input stream.
 */
-function rollingWindow(seq, settings) {
-  __js settings = { window: 1,
-                    cliff: true } .. 
+__js function rollingWindow(seq, settings) {
+  settings = { window: 1,
+               cliff: true,
+               batched: false 
+             } .. 
     overrideObject(typeof(settings) === 'number' ? 
-                 {window: settings} : settings);
+                   {window: settings} : settings);
 
+  if (settings.batched && seq .. isStructuredStream('batched')) 
+    return batchedRollingWindow(seq, settings);
+  else
+    return nonbatchedRollingWindow(seq, settings);
+}
+
+function batchedRollingWindow(seq, settings) {
+  var eos = {};
+  return StructuredStream('rolling') ::
+    Stream :: function(r) {
+      // seq is a batched stream
+      seq.base .. consume(eos) {
+        |next|
+        var current_window = 0;
+        var emit = !settings.cliff;
+        var new_items;
+        if (settings.cliff) {
+          new_items = [];
+          do {
+            var items = next();
+            if (new_items === eos) return;
+            new_items.push(...items);
+          } while (new_items.length < settings.window);
+        }
+        else
+          new_items = next();
+
+        while (new_items !== eos) {
+          __js {
+            var accept_count = Math.min(settings.window, new_items.length)
+            var drop_count = Math.max(0,accept_count - (settings.window-current_window));
+            var arr = new_items.slice(new_items.length - accept_count);
+            current_window = current_window + accept_count - drop_count;
+          }
+          r([drop_count, arr]);
+          new_items = next();
+        }
+      }
+    };
+}
+
+function nonbatchedRollingWindow(seq, settings) {
   return StructuredStream('rolling') ::
     Stream :: function(r) {
       seq .. withOpenStream {
