@@ -3656,7 +3656,7 @@ __js exports.batchN = batch;
    @return {::StructuredStream} structured stream of type 'rolling'
    @setting {Integer} [window] Number of elements in the rolling window
    @setting {Boolean} [batched=false] If `true`, and the input sequence is a batched [::StructuredStream], the rolling window will advance at the size of each batch obtained from the input stream.
-   @setting {Boolean} [cliff=true] If `true`, only elements with a full window (i.e. arrays of `window` elements) will be emitted; the first output element only being emitted after `window` input elements have been consumed. If `false`: For non-batched input sequences or `batched==false`, the window will gradually be built up from 1 to `window` at the start of the sequence, and wound down from `window` to 1 at the end of the sequence. Otherwise if the input sequence is a batched [::StruturedStream] and `batched==false`, the window will contain as many elements as have been obtained from the input stream (up to a maximum of configured `window` size).
+   @setting {Boolean} [cliff=true] If `true`, only elements with a full window (i.e. arrays of `window` elements) will be emitted; the first output element only being emitted after `window` input elements have been consumed. If `false`: For non-batched input sequences or `batched==false`, the window will gradually be built up from 1 to `window` at the start of the sequence, and wound down from `window` to 1 at the end of the sequence. Otherwise if the input sequence is a batched [::StructuredStream] and `batched==false`, the window will contain as many elements as have been obtained from the input stream (up to a maximum of configured `window` size).
    @desc
       ### Examples:
 
