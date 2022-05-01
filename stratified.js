@@ -3689,10 +3689,9 @@ return this;
 }
 };
 
-EF_WfW.prototype.quench=quenchPar;
+EF_WfW.prototype.quench=function(){if(this.children[1])this.children[1].quench()};
 
 EF_WfW.prototype.abort=function(pseudo_abort){if(this.aborted){
-
 
 
 
@@ -3736,6 +3735,7 @@ this.children[1]=UNDEF;
 }
 }
 if(this.children[0]){
+this.children[0].quench();
 var val=this.children[0].abort(this.pseudo_abort);
 if((val!==null&&typeof (val)==='object'&&val.__oni_ef===ONI_EF)){
 this.async=true;

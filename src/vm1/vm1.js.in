@@ -4065,10 +4065,9 @@ EF_WfW.prototype.cont = function(idx, val) {
   }
 };
 
-EF_WfW.prototype.quench = quenchPar;
+EF_WfW.prototype.quench = function() { if (this.children[1]) this.children[1].quench(); };
 
 EF_WfW.prototype.abort = function(pseudo_abort) {
-//  console.log(this+'.abort');
   // Leftover from old abort code. Not sure what the logic was here.
   // prevent continuation from ending up at parent, we want to feed
   // it to the abortee directly:
@@ -4112,6 +4111,7 @@ EF_WfW.prototype.abortInner = function() {
     } 
   }
   if (this.children[0]) {
+    this.children[0].quench();
     var val = this.children[0].abort(this.pseudo_abort);
     if (is_ef(val)) { // need to wait
       this.async = true;

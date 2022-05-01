@@ -521,6 +521,39 @@
     rv += foo();
     @assert.eq(rv, 'abc');
   })  
+
+  @test("quench edgecase", function() {
+    // waitfor/while used to quench the first branch on abort, causing a deadlock
+    // edgecase in e.g. IControlledService
+    // In the below testcase the flip() call would not return, because the resume of the
+    // first branch was quenched
+    waitfor {
+      var flip,flop;
+      waitfor {
+        waitfor() {
+          flip = resume;
+        }
+        flop();
+      }
+      while {
+        try {
+          hold();
+        }
+        finally {
+          waitfor() {
+            flop = resume;
+            flip();
+          }
+        }
+      }
+    }
+    or {
+      hold(0);
+      // abort waitfor/while
+    }
+
+  });
+
 })
 
 @test('catch-abort edgecase', function() {
