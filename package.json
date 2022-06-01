@@ -7,7 +7,7 @@
   "private" : true,
   "repository": {
     "type": "git",
-    "url": "git://github.com/onilabs/stratifiedjs.git"
+    "url": "https://github.com/onilabs/stratifiedjs.git"
   },
   "main": "stratified-node.js",
   "keywords": [
@@ -19,7 +19,7 @@
     "sjs": "sjs"
   },
   "devDependencies": {
-    "eslint": "git://github.com/gfxmonk/eslint.git#da9f557b0857c4a4325d324ffe903bdb9a4262a4",
+    "eslint": "https://github.com/gfxmonk/eslint.git#da9f557b0857c4a4325d324ffe903bdb9a4262a4",
     "espree": "~1.10.0",
     "karma-chrome-launcher": "*",
     "karma-firefox-launcher": "*",
