@@ -426,21 +426,18 @@ __js {
    @param {optional Boolean} [sync=false] If `false`, `stop` will return as soon as service is stopping, otherwise `stop` will wait until service is fully stopped.
    @summary Stops the controlled service if it is currently running
    @desc
-     - If the service is in state 'initializing', `stop` waits until the next state is reached.
-     - Stops the controlled service if it is in state 'running'.
+     - Stops (retracts) the controlled service if it is in state 'running' or 'initializing'.
      - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
      - For `sync`=`true`, returns when the service is in state 'stopped' or 'terminated'.
      
-     Note that stopping a service effectively *aborts* the service. In practice this means that - similar to a service being torn down by the session exiting - 'retract' clauses in the service will be executed.
 
    @function IControlledService.terminate
    @param {Object} [exception] Exception to throw
    @param {optional Boolean} [sync=false] If `false`, `terminate` will return as soon as service is stopping, otherwise `terminate` will wait until service has terminated.
    @summary Terminate the controlled service by throwing an exception
    @desc
-     - If the controlled service is in state 'initializing' or 'stopping', `terminate` waits until the next state is reached.
-     - Stops the controlled service if it is in state 'running' by throwing `exception` from within
-       the controlled service's session.
+     - If the controlled service is in state 'stopping', `terminate` waits until the next state is reached.
+     - Stops (retracts) the controlled service if it is in state 'running' or 'initializing'. 
      - For `sync`=`false` (the default), returns when the service is in state 'stopped', 'stopping' or 'terminated'.
      - For `sync`=`true`, returns when the service is in state 'terminated'.
      - Once the 'terminated' state is reached, the enclosing [::withControlledService] session will
@@ -467,21 +464,25 @@ __js {
    @variable IControlledService.Status
    @summary [./observable::Observable] of the controlled service's current status
    @desc
-     The status can be one of: `'stopped'`, `'initializing'`, `'running'`, `'stopping'` or `'terminated'`.
+     The status can be one of: `'stopped'`, `'initializing'`, `'running'`, `'stopping'`, or `'terminated'`.
 
 */
 // helper for withControlledService
 function runControlledServiceStateMachine({service,args,State,CmdStream}) {
   var call_args = args .. @clone;
   call_args.push(function(itf) {
-    waitfor {
-      var [cmd,arg] = CmdStream .. @filter(__js [cmd,arg] -> cmd === 'stop' || cmd === 'terminate') .. @first;
-      if (cmd === 'terminate') { throw arg; }
-      // else cmd === 'stop'... just finish branch
+    State.set(['running', itf]);
+    try {
+      hold();
     }
-    and {
-      State.set(['running', itf]);
+    finally {
+      // this is important for timely retraction of use-sessions. 
+      // See 'service-tests::withControlledService:throw from service - async sequencing'
+      State.set(['stopping']);
+    }
       /*
+        XXX not sure this note is still 100% accurate
+        
         Note: State.set is synchronous, in the sense that it will execute any listeners up to 
               the point where they block, and then continue. 
               This can lead to some surprising behavior between blocking and non-blocking code.
@@ -515,10 +516,6 @@ function runControlledServiceStateMachine({service,args,State,CmdStream}) {
               See also testcase 'withControlledService terminate 3'.
                     
        */
-    }
-    finally {
-      State.set(['stopping']);
-    }
   });
 
   while (1) {
@@ -531,7 +528,19 @@ function runControlledServiceStateMachine({service,args,State,CmdStream}) {
       State.set(['stopped']);
     }
     State.set(['initializing']);
-    service(...call_args);
+    waitfor {
+      var [cmd,arg] = CmdStream .. @filter(__js [cmd,arg] -> cmd === 'stop' || cmd === 'terminate') .. @first;
+      State.set(['stopping']);
+      if (cmd === 'terminate') { 
+        throw arg; 
+      }
+      else { // stop
+        //  fall through
+      }
+    } or {
+      service(...call_args);
+      // XXX could throw here... unexpected service exit
+    }
   } // while (1)
 }
 
@@ -556,13 +565,14 @@ function withControlledService(base_service, ...args_and_session_f) {
       }
     }
     else if (state[0] === 'terminated')
-      throw state[1];
+      throw ServiceUnavailableError(); // state[1];
     
     if (sync) {
       var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
       if (state[0] !== 'running') {
-        if (state[1] !== undefined) throw state[1];
+/*        if (state[1] !== undefined) throw state[1];
         else 
+*/
           throw ServiceUnavailableError(/* reason? */);
       }
       // return interface
@@ -570,14 +580,14 @@ function withControlledService(base_service, ...args_and_session_f) {
     }
   }
   
-  function stop(sync) {
-    var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
-    if (state[0] === 'running') {
+  function stop(sync) { 
+    var state = State .. @current;
+    if (state[0] === 'running' || state[0] === 'initializing') {
       waitfor {
         // this 'start' call might have been reentrantly from a 'start' call. in this case
-        // we must only progress when we're sure we're in 'stopping'.
-        // Otherwise synchronous follow-up code might still see state 'running'
-        State .. @filter(__js s->s[0] === 'stopping') .. @current;
+        // we must only progress when we're sure we're not in 'running'/'initializing'.
+        // Otherwise synchronous follow-up code might still see state 'running'/'initializing'
+        State .. @filter(__js s->s[0] !== 'initializing' && s[0] !== 'running') .. @current;
       }
       and {
         Cmd.dispatch(['stop']);
@@ -590,7 +600,7 @@ function withControlledService(base_service, ...args_and_session_f) {
   }
 
   function terminate(error, sync) {
-    var state = State .. @filter(__js s->s[0] !== 'initializing' && s[0] !== 'stopping') .. @current;
+    var state = State .. @filter(__js s->s[0] !== 'stopping') .. @current;
     if (state[0] === 'terminated') return;
     else {
       Cmd.dispatch(['terminate', error]);

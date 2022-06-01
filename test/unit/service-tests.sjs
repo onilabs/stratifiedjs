@@ -98,7 +98,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         }
         @assert.eq(service.Status .. @current, 'running');
         service.stop(b5);
-        @assert.eq(service.Status .. @current, (b3 && !b5) ? 'stopping' : 'stopped');
+        @assert.eq(service.Status .. @current, (b3||b2) && !b5 ? 'stopping' : 'stopped');
 
         service.use {
           |hello|
@@ -108,7 +108,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('background_session done');
       @assert.eq(rv, ['background_session start', 
-                      '1:init1', '1:init2', '1:hello', '1:finally1', '1:finally2',
+                      '1:init1', '1:init2', '1:hello', '1:retract', '1:finally1', '1:finally2',
                       '1:init1', '1:init2', '1:hello', '1:retract', '1:finally1', '1:finally2', 
                       'background_session done']);
     }) // @test
@@ -126,14 +126,15 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
         service.start();
         @assert.eq(service.Status .. @current, b1 ? 'initializing' : 'running');
         service.stop();
-        @assert.eq(service.Status .. @current, b1||b3 ? 'stopping' : 'stopped');
+        @assert.eq(service.Status .. @current, b2||b3 ? 'stopping' : 'stopped');
         hold(0);
       }
       @assert.eq(service.Status .. @current, 'terminated');
       rv.push('background_session done');
-      @assert.eq(rv, ['background_session start', 
-                      '1:init1', '1:init2', '1:finally1', '1:finally2',
-                      'background_session done']);
+      var expect = ['background_session start', '1:init1'];
+      if (!b1) expect.push('1:init2');
+      expect.push('1:retract', '1:finally1', '1:finally2', 'background_session done');
+      @assert.eq(rv, expect);
     }) // @test
   } // @product
 
@@ -457,7 +458,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       |[p1,p2]|
       var rv = '';
       try {
-        @withControlledService(function(sf) { if(p1) hold(0); rv += 'a'; try { return sf(); }retract{rv += 'x'}finally{rv+='b'; if(p2) hold(0);} }) {
+        @withControlledService(function(sf) { if(p1) hold(0); rv += 'a'; try { return sf(); }retract{rv += 'r'}finally{rv+='b'; if(p2) hold(0);} }) {
           |cs|
           cs.start(true);
           cs.terminate('c');
@@ -466,7 +467,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       catch (e) {
         rv += e;
       }
-      @assert.eq(rv, 'abc');
+      @assert.eq(rv, 'arbc');
     }
   })
 
@@ -476,7 +477,7 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
       //console.log(p1,p2,p3,p4,p5);
       var rv = '';
       try {
-        @withControlledService(function(sf) { if(p1) hold(0); rv += 'a'; try { return sf(); }retract{rv += 'x'}finally{rv+='b'; if(p2) hold(0);} }) {
+        @withControlledService(function(sf) { if(p1) hold(0); rv += 'a'; try { return sf(); }retract{rv += 'r'}finally{rv+='b'; if(p2) hold(0);} }) {
           |cs|
           cs.use { 
             ||
@@ -493,12 +494,56 @@ function simple_service({id,rv,block_init,block_finally,block_retract, block_api
 
       // see the comment in modules/service.sjs:~480 for why/how these cases differ:
       if (p1 /* && p2=any */ && !p3 && !p4 && !p5)
-        @assert.eq(rv, 'aCbc');
+        @assert.eq(rv, 'aCrbc');
       else if (/* p1=any && */ p2 && !p3 && !p4 && !p5)
-        @assert.eq(rv, 'abCc');
+        @assert.eq(rv, 'arbCc');
       else 
-        @assert.eq(rv, 'abc');
+        @assert.eq(rv, 'arbc');
     });
   }
+
+  @test('stop during initialization', function() {
+    var rv = '';
+    
+    waitfor {
+      @withControlledService(function(sf) { try { hold(); } retract { rv += 'r'; } }) { 
+        |service| 
+        try {
+          service.use { || rv += 'not reached'; hold(); };
+        }
+        finally {
+          rv += 's';
+          service.stop(); // this used to deadlock
+          rv += 'f';
+        }
+      }
+    }
+    or {
+      hold(0);
+    }
+    @assert.eq(rv, 'srf'); 
+  });
+
+  @test('terminate during initialization', function() {
+    var rv = '';
+    
+    waitfor {
+      @withControlledService(function(sf) { try { hold(); } retract { rv += 'r'; } }) { 
+        |service| 
+        try {
+          service.use { || rv += 'not reached'; hold(); };
+        }
+        finally {
+          rv += 't';
+          service.terminate(); // this used to deadlock
+          rv += 'f';
+        }
+      }
+    }
+    or {
+      hold(0);
+    }
+    @assert.eq(rv, 'trf'); 
+  });
 
 })
