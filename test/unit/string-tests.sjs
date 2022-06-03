@@ -62,6 +62,16 @@ testEq('base64ToOctets 6 (no padding)', 'any carnal pleasure', function() {
   return str.base64ToOctets('YW55IGNhcm5hbCBwbGVhc3VyZQ');
 }).skip('not supported');
 
+// this used to fail on nodejs, because octets were interpreted as UTF-8 and base64-encoded as such (i.e. as 2 bytes for codepoints > 127)
+testEq('octetsToBase64 non-ascii encoding', true, function() {
+  var octets = "";
+  for (var i=128; i<256; ++i)
+    octets += String.fromCharCode(i);
+  var encoded = str.octetsToBase64(octets);
+console.log(encoded);
+return encoded == "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8=";
+});
+
 testEq('base64ToOctets(octetsToBase64)', true, function() {
   var octets = "";
   for (var i=0; i<256; ++i)

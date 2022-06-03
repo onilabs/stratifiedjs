@@ -623,7 +623,7 @@ __js exports.utf8ToString = exports.utf8ToUtf16 = function(s) {
 __js {
 
 if (sys.hostenv === 'nodejs') {
-  exports.octetsToBase64 = s -> Buffer.from(s).toString('base64');
+  exports.octetsToBase64 = s -> Buffer.from(s, 'latin1').toString('base64');
 }
 else if (global.btoa) {
   exports.octetsToBase64 = s -> global.btoa(s);
@@ -649,12 +649,12 @@ else {
           encoded string length is not a multiple of 3.
 */
 __js {
-if (global.atob) {
+if (sys.hostenv === 'nodejs') {
+  exports.base64ToOctets = s -> Buffer.from(s, 'base64').toString('latin1');
+}
+else if (global.atob) {
   var atob_ignore = /[^A-Za-z0-9\+\/\=]/g;
   exports.base64ToOctets = s -> global.atob(s.replace(atob_ignore, ""));
-}
-else if (sys.hostenv === 'nodejs') {
-  exports.base64ToOctets = s -> Buffer.from(s, 'base64').toString('utf-8');
 }
 else {
   exports.base64ToOctets = function(s) { throw new Error("sjs:string::base64ToOctets undefined in this hostenv"); };
