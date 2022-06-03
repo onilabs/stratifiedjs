@@ -68,7 +68,6 @@ testEq('octetsToBase64 non-ascii encoding', true, function() {
   for (var i=128; i<256; ++i)
     octets += String.fromCharCode(i);
   var encoded = str.octetsToBase64(octets);
-console.log(encoded);
 return encoded == "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8=";
 });
 
