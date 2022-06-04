@@ -259,7 +259,7 @@ exports.commonTests = function(child_process, opts) {
     // a bug in nodejs
     var input = @fs.readFile(module.id .. @url.toPath(), 'ascii');
     var run = function(block) {
-      var cmd = 'python';
+      var cmd = 'python3';
       var args = ['-c', '
 from __future__ import print_function
 import sys, time
