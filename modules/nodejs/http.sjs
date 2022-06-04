@@ -329,7 +329,17 @@ function withServer(config, server_loop) {
               each.par(config.max_connections) {
                 |server_request|
                 waitfor {
-                  event.wait(server_request.request, 'close');
+                  // We used to listen to 'close' on the IncomingMessage, but since node v16 that
+                  // will trigger whenever the full body has been read.
+                  // The code below seems to be the equivalent.
+                  // See https://github.com/nodejs/node/issues/40775
+                  if (server_request.upgrade) {
+                    event.wait(server_request.socket, 'close');
+                  }
+                  else {
+                    event.wait(server_request.response, 
+                               'close', {filter:->!server_request.response.writableFinished});
+                  }
                   config.log("Connection closed");
                 }
                 or {
