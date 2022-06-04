@@ -117,13 +117,11 @@ exports.readAll = function(stream, encoding) {
   return Buffer.concat(result);
 };
 
-
-// warning: parent must listen for errors, _write doesn't do that
-var _write = exports._write = function(dest, data /*, ... */) {
-  var wrote = dest.write.apply(dest, Array.prototype.slice.call(arguments, 1));
-  if(!wrote) {
-    dest .. @wait('drain');
+var _write = exports._write = function(dest, ...args) {
+  waitfor (var err) {
+    dest.write(...args,resume);
   }
+  if (err) throw err;
 };
 
 /**
@@ -253,6 +251,8 @@ exports.pump = function(src, dest, fn_or_opts) {
   var end = opts.end !== false;
 
   waitfor {
+    // XXX we've now got error handling in _write; not sure we need this:
+    // (maybe only for 'end')
     throw dest .. @wait('error');
   } or {
     if (@isString(src)) {
