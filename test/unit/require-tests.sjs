@@ -98,8 +98,7 @@ context("server-side", function() {
   test('require.resolve() on valid nodejs modules', function() {
     // at least one of these will be installed (either it's a dev environment or a self-install bundle)
     var packages = [
-      ['karma-sjs-adapter', path.join('karma-sjs-adapter', 'index.js')],
-      ['fstream',               path.join('fstream', 'fstream.js')],
+      ['mkdirp',               path.join('mkdirp', 'index.js')]
     ];
     var found = 0;
     packages .. each {|[name, tail]|
