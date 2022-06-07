@@ -406,8 +406,16 @@ __js function getExtensions_hostenv() {
 
     // plain non-sjs js modules
     'js': function(src, descriptor) {
-      var f = new Function("module", "exports", "require", src+"\n//# sourceURL=#{descriptor.id}");
-      return f.apply(descriptor.exports, [descriptor, descriptor.exports, descriptor.require]);
+      try {
+        var f = new Function("module", "exports", "require", src+"\n//# sourceURL=#{descriptor.id}");
+        return f.apply(descriptor.exports, [descriptor, descriptor.exports, descriptor.require]);
+      }
+      catch(e) {
+        // XXX for some reason we can't seem to get a linenumber in chrome, other than logging to the
+        // console:
+        console.log("Compilation of module #{descriptor.id} threw:", e);
+        throw new Error("In module #{descriptor.id}:#{e.message}");
+      }
     },
 
     'html': html_sjs_extractor
