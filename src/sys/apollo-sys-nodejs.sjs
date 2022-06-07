@@ -504,19 +504,6 @@ function resolve_file_url (spec) {
   }
 }
 
-function nodejs_mockModule(parent) {
-  var base;
-  if (!(/^file:/.exec(parent.id))) // e.g. we are being loaded from a http module
-    base = getTopReqParent_hostenv().id;
-  else
-    base = parent.id;
-  base = fileUrlToPath(base);
-
-  return {
-    paths: __oni_rt.nodejs_require('module')._nodeModulePaths(base)
-  };
-};
-
 // load a builtin nodejs module:
 function nodejs_loader(path, parent, dummy_src, opts, spec) {
   if (spec.type == 'js') {
@@ -528,14 +515,28 @@ function nodejs_loader(path, parent, dummy_src, opts, spec) {
 __js nodejs_loader.resolve = function resolve_nodejs(spec, parent) {
   // resolve using node's require mechanism
 
-  var path = spec.path.substr(7); // strip nodejs:
-  var mockModule = nodejs_mockModule(parent || getTopReqParent_hostenv());
-  var mod = __oni_rt.nodejs_require('module');
-  function tryResolve(path) {
+  /* we could support specifying a different resolution root here, so that e.g. conductance's
+     node_modules/ could be easily referenced by hub from a different directory. But it is 
+     probably not a good idea. Instead, stable node_modules modules that we
+     want to expose can be copied (using e.g. browserify) into modules/.
+
+     var paths = spec.path.substr(7).split(':'); // strip nodejs:, separate resolve_base & module_path
+     var resolve_base, module_path;
+     if (paths.length == 1) {
+     resolve_base = (parent || getTopReqParent_hostenv()).id .. fileUrlToPath;
+     module_path = paths[0];
+     }
+     else if (paths.length == 2) {
+     resolve_base = paths[0];
+     module_path = paths[1];
+     }
+  */
+  var module_path = spec.path.substr(7); // strip nodejs:
+  var resolve_base = (parent || getTopReqParent_hostenv()).id .. fileUrlToPath;
+
+  function tryResolve(module_path) {
     try {
-      var resolved = mod._resolveFilename(path, mockModule);
-      // compatibility with older nodejs (e.g. v0.7.0):
-      if (resolved instanceof Array) resolved = resolved[1];
+      var resolved = __oni_rt.nodejs_require.resolve(module_path, {paths:[resolve_base]});
       spec.path = resolved;
       return true;
     } catch(e) {
@@ -543,17 +544,17 @@ __js nodejs_loader.resolve = function resolve_nodejs(spec, parent) {
     }
   };
 
-  var ok = tryResolve(path);
+  var ok = tryResolve(module_path);
   if (!spec.ext) {
     if (ok) {
       spec.type = 'js'; // must be a builtin nodejs module
     } else {
       // if the require() call lacked an extension, try resolving [path].[type]
-      ok = tryResolve(path + "." + spec.type);
+      ok = tryResolve(module_path + "." + spec.type);
     }
   }
 
-  if (!ok) throw new Error("nodejs module at '"+path+"' not found");
+  if (!ok) throw new Error("nodejs module at '"+module_path+"' not found");
 }
 
 
@@ -568,29 +569,15 @@ function getHubs_hostenv() {
   ];
 }
 
-var js_loader = function(src, descriptor) {
-  var nodejs_version = process.versions.node.split('.').map(x -> parseInt(x, 10));
+function js_loader(src, descriptor) {
+  // new api (since 0.12) - create new global object and then wrap it:
+  var ctx = Object.create(global);
+  ctx.module = descriptor;
+  ctx.exports = descriptor.exports;
+  ctx.require = descriptor.require;
   var vm = __oni_rt.nodejs_require("vm");
-  js_loader = (nodejs_version[0] === 0 && nodejs_version[1] <= 10)
-    ? function(src, descriptor) {
-        // old api (pre 0.12) - wrap global object and then extend it:
-        var ctx = vm.createContext(global);
-        ctx.module = descriptor;
-        ctx.exports = descriptor.exports;
-        ctx.require = descriptor.require;
-        vm.runInContext(src, ctx, descriptor.id);
-      }
-    : function(src, descriptor) {
-        // new api (since 0.12) - create new global object and then wrap it:
-        var ctx = Object.create(global);
-        ctx.module = descriptor;
-        ctx.exports = descriptor.exports;
-        ctx.require = descriptor.require;
-        var vm = __oni_rt.nodejs_require("vm");
-        ctx = vm.createContext(ctx);
-        vm.runInContext(src, ctx, descriptor.id);
-      };
-  return js_loader(src, descriptor);
+  ctx = vm.createContext(ctx);
+  vm.runInContext(src, ctx, descriptor.id);
 };
 
 function getExtensions_hostenv() {
