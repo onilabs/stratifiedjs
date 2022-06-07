@@ -1042,7 +1042,7 @@ function http_src_loader(path) {
     loaded_from: path
   };
 }
-
+exports.http_src_loader = http_src_loader;
 
 // loader that loads directly from github
 // XXX the github API is now x-domain capable; at some point, when we
