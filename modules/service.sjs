@@ -565,15 +565,14 @@ function withControlledService(base_service, ...args_and_session_f) {
       }
     }
     else if (state[0] === 'terminated')
-      throw ServiceUnavailableError(); // state[1];
+      throw ServiceUnavailableError(state[1]);
     
     if (sync) {
       var state = State .. @filter(__js s->s[0] !== 'initializing') .. @current;
       if (state[0] !== 'running') {
-/*        if (state[1] !== undefined) throw state[1];
+        if (state[1] !== undefined) throw ServiceUnavailableError(state[1]);
         else 
-*/
-          throw ServiceUnavailableError(/* reason? */);
+          throw ServiceUnavailableError("odd state after trying to start - #{state[0]}");
       }
       // return interface
       return state[1];
@@ -643,7 +642,7 @@ function withControlledService(base_service, ...args_and_session_f) {
       throw e;
     }
     retract {
-      State.set(['terminated', ServiceUnavailableError(/* reason */)]);
+      State.set(['terminated', ServiceUnavailableError('retracted')]);
     }
   }
   while {
