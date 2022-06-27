@@ -63,8 +63,11 @@ var sys = require('builtin:apollo-sys');
 
      To wait for a single occurance of an event, you can call [::wait].
 
-     To create EventStreams for DOM object events or nodejs EventEmitters use [::events].
+     To create EventStreams for DOM object events or NodeJS EventEmitters use [::events].
      This function can also be used to create an EventStream for [./cutil::Dispatcher] objects.
+
+     An alternative to using EventStreams for DOM objects events or NodeJS EventEmitters is
+     [::withEventListener].
 */
 
 //----------------------------------------------------------------------
@@ -72,8 +75,8 @@ var sys = require('builtin:apollo-sys');
 /**
    @function events
    @altsyntax events(dispatcher) // Form operating on Dispatchers - see description
-   @summary  An [::EventStream] of [./cutil::Dispatcher], DOMElement or nodejs EventEmitter events. 
-   @param    {Array|Object} [emitters] (Array of) DOMElement(s) or nodejs EventEmitters on which to listen for events.
+   @summary  An [::EventStream] of [./cutil::Dispatcher], DOMElement or NodeJS EventEmitter events. 
+   @param    {Array|Object} [emitters] (Array of) DOMElement(s) or NodeJS EventEmitters on which to listen for events.
    @param    {Array|String} [events] (Array of) event name(s) to listen for.
    @param    {optional Settings} [settings]
    @setting  {Function} [filter] Function through which received events 
@@ -87,6 +90,8 @@ var sys = require('builtin:apollo-sys');
    @desc
 
     ### Notes
+
+    * For an alternative way to listen for DOMElement or NodeJS EventEmitter events see [::withEventListener].
 
     * `events()` is polymorphic: If called with a single argument - a [./cutil::Dispatcher] - it 
       will return an [::EventStream] of dispatcher events. If called with two or three arguments
@@ -180,14 +185,19 @@ function host_events(args) {
         }
       }
 
-      while (true) {
-        var ev = dispatcher.receive();
-        if (transform) ev = transform(ev);
-        if (filter && !filter(ev)) continue;
-        if (handle) handle(ev);
-        receiver(ev);
+      if (transform || filter || handle) {
+        var original_receiver = receiver;
+        receiver = function(ev) {
+          if (transform) ev = transform(ev);
+          if (filter && !filter(ev)) return;
+          if (handle) handle(ev);
+          original_receiver(ev);
+        };
       }
 
+      while (true) {
+        receiver(dispatcher.receive());
+      }
     }
     finally {
       emitters .. seq.each { 
@@ -254,3 +264,64 @@ var wait = exports.wait = function(stream /*,...*/) {
 
   return seq.first(stream);
 };
+
+/**
+   @function withEventListener
+   @summary A [./service::Service] for listening to events on DOMElements or NodeJS EventEmitters
+   @param    {Array|Object} [emitters] (Array of) DOMElement(s) or NodeJS EventEmitters on which to listen for events.
+   @param    {Array|String} [events] (Array of) event name(s) to listen for.
+   @param    {Function} [session_f] Session function; see interface below
+   @desc
+     * `session_f` will be called with a Function parameter `receive`.
+       For the duration of the session, calling `receive()` will block until the next event is 
+       emitted from the specified emitter(s) and return the event.
+       Any events emitted when there is no active `receive()` call will be lost.
+
+     * If the underlying event emitter passes a single argument to listener functions,
+       the event stream will be composed of these single values. But if multiple arguments are passed
+       to the listener, the event stream will be composed of *array* of all arguments.
+
+     * In the browser, [xbrowser/dom::addListener] is used to bind the event
+       listener - so you can prefix events with "!" to have the event fire
+       during the "capture" phase.
+
+     * Multiple strata can call `receive` concurrently. Events will be dispatched to all active
+       `receive()` calls.
+      
+     * If the events are desired as an [::EventStream], you can use [::events] instead 
+       of `withEventListener`. Alternatively, you can generate an [::EventStream] from the 
+       `receive` function using [./sequence::generate].
+
+*/
+function withEventListener(emitters, events, session_f) {
+  __js {
+    emitters = sys.expandSingleArgument([emitters]);
+    events = sys.expandSingleArgument([events]);
+    var dispatcher = cutil.Dispatcher();
+
+    function dispatch(...args) {
+      dispatcher.dispatch(args.length <= 1 ? args[0] : args);
+    }
+  } // __js
+
+  try {
+    emitters .. seq.each { 
+      |emitter|
+      events .. seq.each {
+        |event|
+        _listen(emitter, event, dispatch);
+      }
+    }
+    return session_f(dispatcher.receive);
+  }
+  finally {
+    emitters .. seq.each { 
+      |emitter|
+      events .. seq.each {
+        |event|
+        _unlisten(emitter, event, dispatch);
+      }
+    }
+  }
+}
+exports.withEventListener = withEventListener;

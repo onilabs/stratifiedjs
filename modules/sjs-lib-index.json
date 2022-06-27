@@ -612,6 +612,9 @@
         },
         "wait": {
           "type": "function"
+        },
+        "withEventListener": {
+          "type": "function"
         }
       },
       "summary": "Event emitter and utilities for dealing with events."

@@ -320,7 +320,7 @@ context(function() {
     })
 
   })
-})
+});
 
 
 context("dispatcher events", function() {
@@ -384,7 +384,7 @@ context("dispatcher events", function() {
     }
     result .. assert.eq([2,3,4]);
   });
-})
+});
 
 context('wait()', function() {
   test('with filter arg', function() {
@@ -400,5 +400,102 @@ context('wait()', function() {
     }
     rv .. assert.eq(2);
   })
-})
+});
 
+context("withEventListener", function() {
+  test.beforeEach:: function(s) {
+    s.emitter = new HostEmitter();
+  }
+
+  test.afterEach:: function(s) {
+    s.emitter.cleanup();
+    // normal usage should never leave listeners attached
+    assert.eq(s.emitter.listeners('click').length, 0, 'test left listeners attached!');
+  }
+
+  context("HostEmitter", function() {
+    test("captures specific event and unregisters listener", function(s) {
+      var result = [];
+      waitfor {
+        event.withEventListener(s.emitter.raw, 'click') {
+          |next_event|
+          // `consume` only starts iterating the stream when we call 'next_event':
+          assert.eq(s.emitter.listeners('click').length, 1);
+          while(true) {
+            logging.info("waiting");
+            var e = next_event().detail;
+            assert.eq(s.emitter.listeners('click').length, 1);
+            logging.info("got");
+            result.push(e);
+            logging.info(`got event: ${e}`);
+            if (e >= 3) break; // stop after event 3
+          }
+        }
+        assert.eq(s.emitter.listeners('click').length, 0);
+      } and {
+        s.emitter.trigger('click', 1);
+        s.emitter.trigger('drag', 2);
+        s.emitter.trigger('click', 3);
+        s.emitter.trigger('click', 4);
+      }
+
+      assert.eq(result, [1,3]);
+    })
+
+    test("captures multiple events from multiple emitters", function(s) {
+      var result = [];
+      var emitter2 = new HostEmitter();
+      event.withEventListener([s.emitter.raw, emitter2.raw], ['click', 'drag']) {
+        |next_event|
+        assert.eq(s.emitter.listeners('click').length, 1);
+        assert.eq(s.emitter.listeners('drag').length, 1);
+        waitfor {
+          while(true) {
+            result.push(next_event().detail);
+            assert.eq(s.emitter.listeners('click').length, 1);
+            assert.eq(s.emitter.listeners('drag').length, 1);
+          }
+        } or {
+          s.emitter.trigger('click', 1);
+          s.emitter.trigger('drag', 2);
+          emitter2.trigger('click', 3);
+        }
+      }
+      assert.eq(s.emitter.listeners('click').length, 0);
+      assert.eq(s.emitter.listeners('drag').length, 0);
+
+      assert.eq(result, [1, 2, 3]);
+    })
+
+    context('nodejs', function() {
+      test('multiple event arguments', function(s) {
+        waitfor {
+          (event.withEventListener(s.emitter.raw, 'click', r->r()))
+            .. assert.eq([1,2]);
+        } and {
+          s.emitter.raw.emit('click', 1, 2);
+        }
+      })
+
+      test('empty event arguments', function(s) {
+        waitfor {
+          (event.withEventListener(s.emitter.raw, 'click', r->r()))
+            .. assert.eq(undefined);
+        } and {
+          s.emitter.raw.emit('click');
+        }
+      })
+    }).serverOnly();
+
+    test('wait() shortcut', function(s) {
+      var result = [];
+      waitfor {
+        result.push((event.withEventListener(s.emitter.raw, 'click', r->r())).detail);
+      } and {
+        s.emitter.trigger('click', 1);
+        s.emitter.trigger('click', 2);
+      }
+      assert.eq(result, [1]);
+    })
+  })
+});

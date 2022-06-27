@@ -155,6 +155,7 @@ module.exports = require(modules);
   
    - **events**: (function [sjs:event::events])
    - **wait**: (function [sjs:event::wait])
+   - **withEventListener**: (function [sjs:event::withEventListener])
   
   
   ### Symbols from the [sjs:logging](#sjs%3Alogging) module:
