@@ -306,6 +306,10 @@ function formatPrimitive(ctx, value) {
   if (value === null) {
     return ctx.stylize('null', 'null');
   }
+  // XXX THIS IS A QUICK HACK TO IDENTIFY BIG NUMBERS:
+  if (typeof value == 'object' && value.s !== undefined && value.e !== undefined && value.c !== undefined) {
+    return ctx.stylize('@big(' + value + ')', 'number');
+  }
 }
 
 
