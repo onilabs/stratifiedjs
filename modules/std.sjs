@@ -10,6 +10,7 @@
   @require sjs:object
   @require sjs:array
   @require sjs:set
+  @require sjs:map
   @require sjs:sequence
   @require sjs:string
   @require sjs:compare
@@ -33,6 +34,7 @@ var modules = [
   'sjs:object',
   'sjs:array',
   'sjs:set',
+  'sjs:map',
   'sjs:sequence',
   'sjs:string',
   'sjs:compare',
@@ -168,6 +170,12 @@ module.exports = require(modules);
    - **warn**: (function [sjs:logging::warn])
   
   
+  ### Symbols from the [sjs:map](#sjs%3Amap) module:
+  
+   - **isMap**: (function [sjs:map::isMap])
+   - **Map**: (class [sjs:map::Map])
+  
+  
   ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
   *(when in the nodejs environment)*
   
@@ -208,8 +216,10 @@ module.exports = require(modules);
    - **current**: (function [sjs:observable::current])
    - **DelayedObservable**: (function [sjs:observable::DelayedObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
+   - **isObservableMapVar**: (function [sjs:observable::isObservableMapVar])
    - **isObservableVar**: (function [sjs:observable::isObservableVar])
    - **isObservableWindowVar**: (function [sjs:observable::isObservableWindowVar])
+   - **ObservableMapVar**: (class [sjs:observable::ObservableMapVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
    - **ObservableWindowVar**: (class [sjs:observable::ObservableWindowVar])
    - **observe**: (function [sjs:observable::observe])
@@ -261,6 +271,7 @@ module.exports = require(modules);
    - **intersperse**: (function [sjs:sequence::intersperse])
    - **intersperse_n_1**: (function [sjs:sequence::intersperse_n_1])
    - **isConcreteSequence**: (function [sjs:sequence::isConcreteSequence])
+   - **isMaterialSequence**: (function [sjs:sequence::isMaterialSequence])
    - **isSequence**: (function [sjs:sequence::isSequence])
    - **isStream**: (function [sjs:sequence::isStream])
    - **isStructuredStream**: (function [sjs:sequence::isStructuredStream])

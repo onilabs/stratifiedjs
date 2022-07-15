@@ -317,6 +317,66 @@
 
 }) // context 'ObservableWindowVar'
 
+@context("ObservableMapVar", function() {
+
+  @test("typing", function() {
+    var a = @ObservableMapVar();
+    @assert.eq(a .. @isStream, false);
+    @assert.eq(a .. @isObservableMapVar, true);
+    @assert.eq(a.stream .. @isStream, true);
+    @assert.eq(a.stream .. @isStructuredStream('map'), true);
+  })
+
+  @test("set/stream", function() {
+    var A = @ObservableMapVar();
+    var rv = [];
+    waitfor {
+      A.stream .. @each { |x| rv.push(x); }
+    }
+    or {
+      [['a',1],['b',2],['c','x'],['d','y'],['e','z']] .. @each {|x| A.set(...x); }
+    }
+    @assert.eq(rv, [@Map(),@Map([['a',1]]),@Map([['a',1],['b',2]]),
+                    @Map([['a',1],['b',2],['c','x']]),@Map([['a',1],['b',2],['c','x'],['d','y']]),
+                    @Map([['a',1],['b',2],['c','x'],['d','y'],['e','z']])]);
+    A.stream .. @first .. @assert.eq(@Map([['a',1],['b',2],['c','x'],['d','y'],['e','z']]));
+  });
+
+  @test("stream/ consume with delay", function() {
+    var A = @ObservableMapVar();
+    var rv = [];
+    waitfor {
+      A.stream .. @each { |x| rv.push(x); hold(0); }
+    }
+    or {
+      [['a',1],['b',2],['c','x'],['d','y'],['e','z']] .. @each {|x| A.set(...x); }
+      hold(0);
+      hold(0);
+    }
+    @assert.eq(rv, [@Map(),
+                    @Map([['a',1],['b',2],['c','x'],['d','y'],['e','z']])]);
+  });
+
+  @test("observe", function() {
+    var A = @ObservableMapVar([['y','a'],['e',1]]);
+    var rv = [];
+    waitfor {
+      A.observe('x') .. @each { |x| rv.push('x:'+x); }
+    }
+    or {
+      A.observe('y') .. @each { |y| rv.push('y:'+y); }
+    }
+    or {
+      A.set('x', 1); A.set('x',2); A.set('b',3); A.delete('x'); 
+      A.set('y', 4); A.set('x', 5); A.delete('y'); A.set('c', 6);
+      A.set('x', 7); A.set('y', 8);
+    }
+    @assert.eq(rv, ['x:undefined', 'y:a', 'x:1', 'x:2', 'x:undefined', 'y:4',
+                    'x:5', 'y:undefined', 'x:7', 'y:8' ]);
+  });
+}) // context 'ObservableMapVar'
+
+
 @context('sample', function() {
   @test('typing', function() {
     var A = @integers() .. @sample;

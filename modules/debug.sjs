@@ -42,6 +42,7 @@
 var { map, reduce, join, toArray } = require('./sequence');
 var { padRight } = require('./string');
 var { isSet } = require('./set');
+var { isMap } = require('./map');
 var { isQuasi } = require('./quasi');
 var sys = require('builtin:apollo-sys');
 var isDOMNode = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isDOMNode : -> false;
@@ -222,6 +223,15 @@ __js function formatValue(ctx, value, recurseTimes) {
     array = true;
     base = " [Set] ";
     //braces = ['[', ']'];
+    value = value .. toArray;
+    visibleKeys = Object.keys(value);
+    keys = ctx.showHidden ? Object.getOwnPropertyNames(value) : visibleKeys;
+  }
+
+  // Make Maps say that they are Maps
+  if (isMap(value)) {
+    array = true; 
+    base = " [Map] ";
     value = value .. toArray;
     visibleKeys = Object.keys(value);
     keys = ctx.showHidden ? Object.getOwnPropertyNames(value) : visibleKeys;

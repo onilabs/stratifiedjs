@@ -3,6 +3,7 @@
   @require sjs:object
   @require sjs:array
   @require sjs:set
+  @require sjs:map
   @require sjs:sequence
   @require sjs:string
   @require sjs:compare
@@ -26,6 +27,7 @@ var modules = [
   'sjs:object',
   'sjs:array',
   'sjs:set',
+  'sjs:map',
   'sjs:sequence',
   'sjs:string',
   'sjs:compare',

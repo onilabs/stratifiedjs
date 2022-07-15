@@ -79,7 +79,7 @@ context(function() {
     });
 
     bundle .. bundledModuleNames .. assert.eq([
-      [ 'sjs:', ['array.sjs', 'cutil.sjs', 'object.sjs','sequence.sjs', 'string.sjs', 'type.sjs', 'xbrowser/console.sjs']],
+      [ 'sjs:', ['array.sjs', 'cutil.sjs', 'object.sjs','sequence.sjs', 'string.sjs', 'xbrowser/console.sjs']],
       [ null, fixtureDependencyUrls]
     ]);
   })

@@ -3,7 +3,11 @@ var testEq = testUtil.test;
 var testFn = testUtil.testFn;
 var {test, context, assert} = require('sjs:test/suite');
 
-@ = require('sjs:test/std');
+@ = require([
+  'sjs:test/std',
+  'sjs:set',
+  'sjs:map'
+]);
 var s = require("sjs:sequence");
 var seq = s;
 var { eq } = require('sjs:compare');
@@ -1763,6 +1767,62 @@ context("batch", function() {
     (s.integers(1,102) .. s.batch(10) .. s.batch(10)).base .. s.isStructuredStream() .. assert.notOk();
     s.integers(1,102) .. s.batch(10) .. s.batch(10) .. s.count() .. assert.eq(102);
   })
+
+  test("batching structured streams", function() {
+    // it doesn't really make sense to have a rolling stream wrapped by a batch stream, but this is
+    // just a synthetic example to test that, when applying `batch` to this stream, it will be 
+    // applied as innermost structured stream:
+
+    var S = s.StructuredStream('batched') :: s.StructuredStream('rolling') :: 
+      [ [0, [ [1],[1,2] ] ],
+        [2, [ [1,2,3], [2,3] ] ],
+        [2, [ [2,3,4] ] ]
+      ];
+    assert.truthy(S .. s.isStructuredStream('batched'));
+    assert.truthy(S.base .. s.isStructuredStream('rolling'));
+    assert.falsy(S.base.base .. s.isStructuredStream());
+    assert.eq(S.base .. @toArray,
+              [ [ [1], [1,2] ],
+                [ [1,2,3], [2,3] ],
+                [ [2,3,4] ]
+              ]);
+    assert.eq(S .. @toArray,
+              [ [1], [1,2], [1,2,3], [2,3], [2,3,4] ]);
+
+    // apply `batch`:
+    var T = S .. s.batch(2);
+    assert.truthy(T .. s.isStructuredStream('batched'));
+    assert.truthy(T.base .. s.isStructuredStream('rolling'));
+    assert.truthy(T.base.base .. s.isStructuredStream('batched'));
+    assert.falsy(T.base.base.base .. s.isStructuredStream());
+
+    assert.eq(T.base.base.base .. @toArray,
+              [ [ [0, [ [1],[1,2] ] ],
+                  [2, [ [1,2,3], [2,3] ] ] ],
+                [ [2, [ [2,3,4] ] ] ]
+              ]);
+    assert.eq(T.base.base .. @toArray, S.base.base);
+    assert.eq(T .. @toArray,
+              [ [1], [1,2], [1,2,3], [2,3], [2,3,4] ]);
+
+    // finally check that another `batch` application gets consolidated with the innermost `batched` 
+    // stream:
+    var U = T .. s.batch(2);
+    assert.truthy(U .. s.isStructuredStream('batched'));
+    assert.truthy(U.base .. s.isStructuredStream('rolling'));
+    assert.truthy(U.base.base .. s.isStructuredStream('batched'));
+    assert.falsy(U.base.base.base .. s.isStructuredStream());
+    assert.eq(U.base.base.base .. @toArray,
+              [ [ [0, [ [1],[1,2] ] ],
+                  [2, [ [1,2,3], [2,3] ] ],
+                  [2, [ [2,3,4] ] ] ]
+              ]);
+    assert.eq(U.base.base .. @toArray, S.base.base);
+    assert.eq(U .. @toArray,
+              [ [1], [1,2], [1,2,3], [2,3], [2,3,4] ]);
+
+
+  });
 })
 
 
@@ -2305,3 +2365,31 @@ context('filter', function() {
     assert.eq(a.base .. s.toArray, [[2,4],[6,8]]);
   })
 })
+
+context('Set', function() {
+  test('iterate', function() {
+    @Set([1,2,3,4]) .. s.toArray() .. assert.eq([1,2,3,4]);
+  });
+  test('from stream', function() {
+    @Set(s.integers() .. s.take(5)) .. s.toArray .. assert.eq([0,1,2,3,4]);
+  });
+  test('count', function() {
+    @Set(s.integers() .. s.take(5)) .. @count .. assert.eq(5);
+  });
+});
+
+context('Map', function() {
+  var some_obj = {};
+  var arr = [[1,'a'],[some_obj,'b'],['x',3],['y','z']];
+  test('iterate', function() {
+    var some_obj = {};
+    var arr = [[1,'a'],[some_obj,'b'],['x',3],['y','z']];
+    @Map(arr) .. s.toArray() .. assert.eq(arr);
+  });
+  test('from stream', function() {
+    @Map(s.toStream(arr)) .. s.toArray .. assert.eq(arr);
+  });
+  test('count', function() {
+    @Map(s.toStream(arr)) .. @count .. assert.eq(4);
+  });
+});

@@ -43,7 +43,7 @@
 
 var isNode = require('builtin:apollo-sys').hostenv === 'nodejs';
 
-@ = require(['./sequence', './set']);
+@ = require(['./sequence', './set', './map']);
 
 __js {
 
@@ -62,6 +62,9 @@ __js {
 
       * Two [./set::Set]s are equal if they contain the same elements (under `===`).
         I.e. the content of sets is always compared shallowly.
+
+      * Two [./map::Map]s are equal if they contain the same [key,value] pairs (under `===`).
+        I.e. the content of maps is always compared shallowly.
 
       * Two concrete [./sequence::Sequence]s (e.g. arrays) are equal if they have the same number of
         elements and the respective elements from each sequence
@@ -220,6 +223,22 @@ __js {
       else {
         for (var e of a) {
           if (!b.has(e)) {
+            result = [false, null];
+            break;
+          }
+        }
+      }
+    }
+    else if (@isMap(a)) {
+      // compare element count to determine if an examination of the elements is necessary.
+      size = a.size;
+      var size2 = b.size;
+      if (size !== size2)
+        result = [false, describe && ('expected has ' + size2 + ' elements, actual has ' + size)];
+      else {
+        for (var e of a) {
+          var f = b.get(e[0]);
+          if (f !== e[1]) {
             result = [false, null];
             break;
           }

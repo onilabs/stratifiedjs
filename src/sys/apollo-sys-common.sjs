@@ -283,12 +283,8 @@ __js exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)}
    @summary See [../../modules/object::merge]
 */
 __js exports.mergeObjects = function(/*source*/) {
-  var rv = {};
   var sources = exports.expandSingleArgument(arguments);
-  for (var i=0; i<sources.length; i++) {
-    exports.extendObject(rv, sources[i]);
-  }
-  return rv;
+  return Object.assign({}, ...sources);
 };
 
 /**
@@ -296,10 +292,7 @@ __js exports.mergeObjects = function(/*source*/) {
    @summary See [../../modules/object::extend]
 */
 __js exports.extendObject = function(dest, source) {
-  for (var o in source) {
-    if (Object.prototype.hasOwnProperty.call(source, o)) dest[o] = source[o];
-  }
-  return dest;
+  return Object.assign(dest, source);
 };
 
 /**

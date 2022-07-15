@@ -807,6 +807,41 @@
       },
       "summary": "Least Recently Used Cache"
     },
+    "map": {
+      "type": "module",
+      "children": {
+        "Map": {
+          "type": "class",
+          "children": {
+            "Map": {
+              "type": "ctor"
+            },
+            "clear": {
+              "type": "function"
+            },
+            "delete": {
+              "type": "function"
+            },
+            "get": {
+              "type": "function"
+            },
+            "has": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "size": {
+              "type": "variable"
+            }
+          }
+        },
+        "isMap": {
+          "type": "function"
+        }
+      },
+      "summary": "Functions for working with maps"
+    },
     "marked": {
       "type": "module",
       "children": {
@@ -1646,6 +1681,26 @@
           "type": "class",
           "children": {}
         },
+        "ObservableMapVar": {
+          "type": "class",
+          "children": {
+            "ObservableMapVar": {
+              "type": "ctor"
+            },
+            "delete": {
+              "type": "function"
+            },
+            "observe": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "stream": {
+              "type": "function"
+            }
+          }
+        },
         "ObservableVar": {
           "type": "class",
           "children": {
@@ -1690,6 +1745,9 @@
           "type": "function"
         },
         "isConflictError": {
+          "type": "function"
+        },
+        "isObservableMapVar": {
           "type": "function"
         },
         "isObservableVar": {
@@ -1882,6 +1940,9 @@
           "type": "function"
         },
         "isConcreteSequence": {
+          "type": "function"
+        },
+        "isMaterialSequence": {
           "type": "function"
         },
         "isSequence": {

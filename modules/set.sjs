@@ -1,6 +1,6 @@
 /*
  * StratifiedJS 'set' module
- * Functions for working with arrays
+ * Functions for working with sets
  *
  * Part of the Stratified JavaScript Standard Module Library
  * Version: '1.0.0'
@@ -42,6 +42,7 @@
 
 /**
    @class Set
+   @inherit ./sequence::Sequence
    @summary Abstraction of JS [Set](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) datatype
    @desc 
      * A Set object lets you store unique values of any type, whether primitive values, or object references.

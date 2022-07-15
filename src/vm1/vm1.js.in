@@ -1890,7 +1890,7 @@ exports.Bl = function(f) {
 
 function I_reify(ndata, fenv) {
   var s = fenv.reifiedstratum;
-  if (!s) return new CFException("t", new Error("'reifiedStratum' used in non-refiable context"), current_call[1], current_call[0]);
+  if (!s) return new CFException("t", new Error("'reifiedStratum' used in non-reifiable context"), current_call[1], current_call[0]);
   return s;
 };
 

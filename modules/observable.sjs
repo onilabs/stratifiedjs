@@ -39,7 +39,8 @@
 'use strict';
 
 @ = require([
-  {id: 'sjs:sys', name: 'sys'}
+  {id: 'sjs:sys', name: 'sys'},
+  'sjs:map'
 ]);
 var cutil = require('./cutil');
 var { Stream, isSequence, isStream, toArray, slice, integers, first, each, skip, mirror, consume, isStructuredStream, StructuredStream } = require('./sequence');
@@ -74,7 +75,7 @@ module.setCanonicalId('sjs:observable');
   @desc
     **Notes:**
 
-    - ObservableVars are "debounced": modifications such as `set(val)`
+    - ObservableVars are "deduped": modifications such as `set(val)`
       will only cause the observable to emit a new value if `val` is not
       equal to the current observable value (under `===`).
 
@@ -89,6 +90,10 @@ module.setCanonicalId('sjs:observable');
   @summary Set a new observable value
   @desc
     **Notes:**
+
+    - As ObservableVars are deduped, do not pass in a mutation of the observable's current
+    value (e.g. `obs.set(obs.get().push('x'),obs.get())`). Observers will not be notified
+    of these changes.
 
     - If this ObservableVar is shared by multiple pieces of
     code, it is typically better to use [::ObservableVar::modify], which
@@ -127,10 +132,9 @@ module.setCanonicalId('sjs:observable');
     to a single observable_var, you should catch this exception yourself and
     retry as appropriate.
 
-    ### Warning: avoid mutation
+    ### Warning: don't mutate an ObservableVar's value
 
-    It is highly recommended that the `change` function
-    should be pure. That is, it should *not* modify the current
+    The `change` function should *not* modify the ObservableVar's current
     value, but instead return a new value based on `current`.
 
     That is, **don't** do this:
@@ -141,16 +145,17 @@ module.setCanonicalId('sjs:observable');
 
         val.modify(function(items) { return items.concat([newItem]); });
 
-    If you mutate the current value but a conflict occurs with other
-    code trying to modify the same value, the results will likely
-    be inconsistent - the value may have changed, but no observers
-    will be notified of the change.
+    As ObservableVars are deduped, if you mutate the current array or object value, 
+    observers will not be notified of the change: From the perspective of the ObservableVar the 
+    value hasn't 'changed'. 
+    Furthermore, a conflict might occur with other
+    code trying to modify the same value, with the value ending up in an inconsistent state.
 
     ### Cancelling a modification
 
     In some circumstances, you may call `modify`, only to find that
     the current value requires no modification.
-    Because observables are debounced (see notes for [::ObservableVar]),
+    Because observable vars are deduped (see notes for [::ObservableVar]),
     you can simply return the current value in this case, and no change will occur:
 
         var decrement = function(observable_var) {
@@ -316,6 +321,116 @@ __js {
     return o && o.__oni_is_ObservableWindowVar === true;
   }
   exports.isObservableWindowVar = isObservableWindowVar;
+}
+
+/**
+   @class ObservableMapVar
+   @summary A Map-type variable driving an [::Observable] stream and individual key observables
+   @desc
+     ObservableMapVar contains a [./map::Map] with an associated [::Observable] stream and a facility
+     for observing individual keys in the map.
+
+     ### Stream structuring details
+     The generated stream, [::ObservableMapVar::stream], is an efficiently encoded
+     [sequence::StructuredStream] of type 'map'.
+
+   @function ObservableMapVar
+   @summary Create an ObservableMapVar object
+   @param {optional ./sequence::Sequence} [initial_elements] Initial elements in the map. Sequence elements must be [key,value] pairs - see also [./map::Map] constructor.
+
+   @function ObservableMapVar.set
+   @summary Set the given `key` in the map to `value`
+   @param {Any} [key]
+   @param {Any} [value]
+
+   @function ObservableMapVar.delete
+   @summary Remove the element with the given key from the map.
+   @param {Any} [key] Key of element to remove
+   @return {Boolean} Returns `true` if the element was removed from the map, `false` if the map didn't contain an element with the given key.
+
+   @function ObservableMapVar.stream
+   @summary  [::Observable] of the variable. (A 'map' [sequence::StructuredStream])
+
+   @function ObservableMapVar.observe
+   @summary Observe the value of the element with the given key
+   @param {Any} [key] Key of element to observe
+   @return {::Observable} Observable of the value associated with `key`
+
+*/
+function ObservableMapVar(initial) {
+  var restarting = false;
+  var Update = cutil.Dispatcher();
+  var map = @Map(initial);
+  
+  return {
+    __oni_is_ObservableMapVar: true,
+
+    set: function(key, val) {map.set(key,val); Update.dispatch([key,val]); },
+    delete: function(key) { if (map.delete(key)) { Update.dispatch([key]); return true; } else return false; },
+
+    stream: StructuredStream('map') :: Stream :: function(r) {
+      var cache = [];
+      waitfor {
+        while (1) {
+          var change = Update.receive();
+          if (cache.length > map.size+10 /* XXX optimize this for various scenarios */) {
+            restarting = true;
+            cache = [map];
+            continue;
+          }
+          else if (restarting) {
+            if (cache.length === 1) { // value not picked up
+              continue;
+            }
+            else
+              restarting = false; // fall through to push updates to cache
+          }
+          cache.push(change);
+        }
+      }
+      or {
+        r([map]);
+        while (1) {
+          while (!cache.length) Update.receive();
+          var batch = cache;
+          cache = [];
+          r(batch);
+        }
+      }
+      
+    },
+    observe: key -> Stream:: function(r) {
+      var have = 0;
+      waitfor {
+        while (1) {
+          var change = Update.receive();
+          if (!Array.isArray(change) || change[0] === key)
+            ++have;
+        }
+      }
+      or {
+        while (1) {
+          var seen = have;
+          r(map.get(key));
+          while (seen === have) Update.receive();
+        }
+      }
+    }
+  };
+}
+exports.ObservableMapVar = ObservableMapVar;
+
+/**
+   @function isObservableMapVar
+   @param  {Object} [o] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `o` is an [::ObservableMapVar], `false` otherwise.
+*/
+__js {
+  function isObservableMapVar(o) {
+    return o && o.__oni_is_ObservableMapVar === true;
+  }
+  exports.isObservableMapVar = isObservableMapVar;
 }
 
 

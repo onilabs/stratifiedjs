@@ -43,9 +43,8 @@
 */
 'use strict';
 
-var {isArrayLike, isQuasi, streamContents, overrideObject, spawn } = require('builtin:apollo-sys');
-var { waitforAll, Queue, Semaphore, Condition, Dispatcher } = require('./cutil');
-var { Interface, hasInterface, Token } = require('./type');
+var {isArrayLike, isQuasi, overrideObject, spawn } = require('builtin:apollo-sys');
+var { waitforAll, Queue, Semaphore, Dispatcher } = require('./cutil');
 var sys = require('builtin:apollo-sys');
 
 module.setCanonicalId('sjs:sequence');
@@ -63,6 +62,9 @@ __js {
   }
   function isSet(obj) {
     return obj instanceof Set;
+  }
+  function isMap(obj) {
+    return obj instanceof Map;
   }
 }
 
@@ -174,7 +176,7 @@ function sequential(f) {
 /**
    @function StructuredStream
    @param {::Sequence} [base] Sequence to wrap as being structured
-   @param {String} [type] One of: 'batched' or 'rolling'.
+   @param {String} [type] One of: 'batched', 'rolling', or 'map'.
    @summary Add a wrapper to a sequence `base` that designates `base` as being structured according to `type`
    @desc
      'Structured streams' are streams where the individual elements are encoded in some way
@@ -250,6 +252,23 @@ function sequential(f) {
      `x->x*x` only once for every number seen (i.e. 9 times). Operating on the 
      reconstructed stream, it would need to call `x->x*x` 21 times.
 
+     ### type='map'
+
+     Map streams consist of arrays with elements of the following kind:
+
+         Map object // A Map object means 'reset to this map'
+         [key]      // An array with one member means 'clear given key'
+         [key,val]  // An array with two members means 'set key to val'
+
+     E.g. the base stream `[@Map([[foo,1], [bar,2]])], [['foo']], [[bar, 4], [baz, 5]]` reconstructs to
+     `@Map([[foo,1], [bar,2]]), @Map([[bar,2]]), @Map([[bar,4], [baz,5]])`.
+
+     Note that elements in the reconstructed stream will never be in-place mutations of 
+     earlier elements (i.e. for two elements `x`, `y`, in the reconstructed stream, `x!==y` will
+     always hold. This makes map streams safe to use in sampling environments.
+
+     Map streams are e.g. produced by [sjs:observable::ObservableMapVar::stream].
+
 */
 __js {
 
@@ -258,7 +277,7 @@ __js {
   }
 
   function StructuredStream(base, type) {
-    if (type !== 'batched' && type !== 'rolling') 
+    if (type !== 'batched' && type !== 'rolling' && type !== 'map') 
       throw new Error("StructuredStream constructor: Invalid structured stream type '#{type}'");
     if (!isSequence(base))
       throw new Error("StructuredStream constructor: Invalid base object (needs to be a sequence)");
@@ -350,7 +369,7 @@ __js var isStream = exports.isStream = (s) -> s && (s.__oni_is_Stream === true |
    @summary A finite sequence for which all elements are already known and present in memory
    @desc
      See the classification notes under the documentation for [::Sequence].
-     A sequence is material if [::isStream] returns false.
+     You can use [::isMaterialSequence] to check if a sequence is material.
 
      Material sequences are further classified into concrete and semi-concrete:
 
@@ -362,7 +381,7 @@ __js var isStream = exports.isStream = (s) -> s && (s.__oni_is_Stream === true |
       - iteration will not mutate the sequence
       - iteration will not suspend between successive elements
       - the sequence object has a `length` member containing the number of elements
-      - elements are accessible using bracket notation (i.e. `seq[index]`)
+      - elements are positionally accessible using bracket notation (i.e. `seq[index]`)
 
      # Concrete sequence types:
 
@@ -382,12 +401,13 @@ __js var isStream = exports.isStream = (s) -> s && (s.__oni_is_Stream === true |
       - all elements are already known and present in memory
       - iteration will not mutate the sequence
       - iteration will not suspend between successive elements
-      - the iteration order is undefined
+      - the sequence object has a `size` property containing the number of elements.
+      - in contrast to concrete sequences, elements are not accessible by a position (index)
 
      # Semi-concrete sequence types:
 
      - [./set::Set]s
-
+     - [./map::Map]s (treated as sequences of [key,value] pairs)
 
 
 */
@@ -405,13 +425,24 @@ __js var isConcrete = exports.isConcreteSequence = (s) ->
     isArrayLike(s) || isString(s) || isBuffer(s);
 
 /**
+   @function isMaterialSequence
+   @param {Object} [s] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `s` is a material sequence
+   @desc
+    See [::Sequence] for a taxonomy of sequences
+*/
+__js var isMaterial = exports.isMaterialSequence = (s) ->
+   isConcrete(s) || isSet(s) || isMap(s);
+
+/**
    @function isSequence
    @param {Object} [s] Object to test
    @return {Boolean}
    @summary Returns `true` if `s` is a [::Sequence], `false` otherwise.
 */
 __js var isSequence = exports.isSequence = (s) ->
-  isConcrete(s) ||
+  isMaterial(s) ||
   isStream(s);
 
 /**
@@ -450,6 +481,8 @@ exports.generate = generate;
    @param {Function} [f] Function to execute for each `item` in `sequence`
    @summary Executes `f(item)` for each `item` in `sequence`
    @desc
+     * Note: Iteration over [./map::Map]s yields [key,value]-pair items.
+
      ### Example:
 
          each([1,2,3,4], function(x) { console.log(x) })
@@ -478,6 +511,9 @@ function each(sequence, r) {
       case 'rolling':
       return iterate_rolling_stream(sequence.base, r);
       break;
+      case 'map':
+      return iterate_map_stream(sequence.base, r);
+      break;
       default:
         throw new Error("Cannot iterate unknown structured sequence type '#{sequence.type}'");
     }
@@ -487,6 +523,9 @@ function each(sequence, r) {
   } 
   else if (isSet(sequence)) {
     return iterate_set(sequence, r);
+  }
+  else if (isMap(sequence)) {
+    return iterate_map(sequence, r);
   }
   else {
     if (isConcrete(sequence)) {
@@ -526,10 +565,37 @@ function iterate_rolling_stream(sequence, r) {
   }
 }
 
+function iterate_map_stream(sequence, r) {
+  var map;
+  sequence .. each {
+    |ops|
+    ops .. each {
+      |op|
+      __js if (Array.isArray(op)) {
+        if (op.length === 2)
+          map.set(op[0],op[1]);
+        else
+          map.delete(op[0]);
+      }
+      else {
+        map = op;
+      }
+    }
+    r(__js new Map(map));
+  }
+}
+
 function iterate_set(set, r) {
-  var values = set.values();
+  __js var values = set.values();
   var x;
   while ((x = values.next()).done !== true)
+    r(x.value);
+}
+
+function iterate_map(map, r) {
+  __js var entries = map.entries();
+  var x;
+  while ((x = entries.next()).done !== true)
     r(x.value);
 }
 
@@ -1492,7 +1558,7 @@ exports.reverse = reverse;
 __js function count(sequence) {
   if (isConcrete(sequence)) 
     return sequence.length;
-  else if (isSet(sequence))
+  else if (isSet(sequence) || isMap(sequence))
     return sequence.size;
   else
     return countStream(sequence);
@@ -2915,11 +2981,13 @@ exports.find = find;
    @desc
      * For arrays, uses `Array.prototype.indexOf` to check if `elem` is part of the array.
      * For sets, uses `Set.prototype.has`.
+     * For maps, `elem` must be a [key,value] pair. `hasElem` tests `map.get(key) === value`.
      * For other sequences, sequentially iterates the stream until `elem` is found (using `===`) or the stream is exhausted.
 */
 function hasElem(sequence, elem) {
   if (Array.isArray(sequence)) return (sequence.indexOf(elem) != -1);
   if (isSet(sequence)) return sequence.has(elem);
+  if (isMap(sequence)) return sequence.get(elem[0]) === elem[1];
   sequence .. each { |x| if (x === elem) return true; }
   return false;
 }
@@ -3614,17 +3682,17 @@ exports.mirror = function(stream, latest) {
      have exactly one innermost batched StructuredStream, with potentially a StructuredStream of another
      type wrapped around it. E.g. applying `batch` to a stream
 
-         StructuredStream('batched') :: StructuredStream('rolling') :: StructuredStream('batched')
+         StructuredStream('rolling') :: StructuredStream('batched')
 
      generates a stream of the same structure:
 
-         StructuredStream('batched') :: StructuredStream('rolling') :: StructuredStream('batched')
+         StructuredStream('rolling') :: StructuredStream('batched')
 
      where the innermost batched stream is merged with the new batching.
 */
 __js {
   function batch(seq, settings) {
-    if (seq .. isStructuredStream('batched')) {
+    if (seq .. isStructuredStream('batched') && !seq.base .. isStructuredStream) {
       return StructuredStream('batched') :: seq.base .. pack(settings) .. transform(__js arr -> arr.reduce((acc,val)->acc.concat(val), []));
     }
     else if (seq .. isStructuredStream)
