@@ -38,7 +38,7 @@ types .. @each {|[className, testMethod, convertMethod, sourceExample]|
 			sourceExample .. @isBytes .. @assert.eq(true);
 		})
 
-		types .. @each {|[desc, _, _, example]|
+		types .. @each {|[desc,,,example]|
 			var isSelf = example === sourceExample;
 
       // since ca. node v 4.5, buffers are also unit8arrays:

@@ -103,7 +103,18 @@
     var f2 = (a,b,...args) => [a,b,args];
     @assert.eq(f2(1,2,3,4), [1,2,[3,4]])
   })
-})
+});
+
+@context("destructuring parameters", function() {
+  @test('complex', function() {
+    var f1 = function({a:x, b:{c:[y,z]}}, [,,v], ...r) {
+      @assert.eq(x, 1); @assert.eq(y, 2); 
+      @assert.eq(z, 3); @assert.eq(v, 4);
+      @assert.eq(r, [5,6]);
+    };
+    f1({a:1, b: {c:[2,3]}}, [-2,-1,4], 5, 6);
+  });
+});
 
 @context("reentrant quench", function() {
   // this used to produce '1234not reached', because EF_Alt didn't emit a 'quench'

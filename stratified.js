@@ -4654,6 +4654,12 @@ rv+=decls.funs;
 return rv;
 }
 
+function ensure_unique_name(candidate,names){if(names.has(candidate))throw "Non-unique name '"+candidate+"'";
+
+
+names.add(candidate);
+}
+
 function top_decl_scope(pctx){return pctx.decl_scopes[pctx.decl_scopes.length-1];
 
 }
@@ -5463,6 +5469,11 @@ ph_literal.prototype.is_nblock=true;
 ph_literal.prototype.v=function(){return this.value};
 ph_literal.prototype.nblock_val=function(){return this.value};
 ph_literal.prototype.destruct=function(){if(this.value!="")throw new Error("invalid pattern");return ""};
+ph_literal.prototype.collect_par_decls=function(pars,names){if(this.value!=="")throw "Invalid in destructuring pattern: '"+this.value+"'";
+
+
+pars.push('');
+};
 ph_literal.prototype.collect_var_decls=function(){};
 
 function ph_infix_op(left,id,right,pctx){this.left=left;
@@ -5693,41 +5704,27 @@ return rv;
 
 
 
-function gen_function_header(pars,pctx){var code="";
+function gen_function_header(pars,pctx){if(!pars.length)return "(){";
 
 
 
 
 
 
-var trivial=true;
-var vars=[];
-if(!pars.length)return "(){";
 
-var assignments="";
+
+var param_list=[];
 
 try{
 for(var i=0;i<pars.length;++i){
-if(trivial&&!(pars[i] instanceof ph_identifier))trivial=false;
-
-
-pars[i].collect_var_decls(vars);
-assignments+=pars[i].destruct('arguments['+i+']');
+pars[i].collect_par_decls(param_list,new Set());
 }
-
-if(trivial){
-
-return "("+vars.join(",")+"){";
-}
-
-if(vars.length){
-code+="var "+vars.join(',')+";";
-}
-
-code+="try{"+assignments+"}catch(e){e.__oni_stack=[["+pctx.filename+","+pars.line+"]]; throw e;}";
-return '(){'+code;
+return "("+param_list.join(",")+"){";
 }catch(e){
-throw {mes:"Invalid syntax in parameter list",line:pars.line};
+var mes="Invalid syntax in parameter list";
+if(typeof e==='string')mes+=" ("+e+")";
+
+throw {mes:mes,line:pars.line};
 }
 
 }
@@ -5879,6 +5876,10 @@ ph_identifier.prototype.nblock_val=function(){return this.name};
 ph_identifier.prototype.destruct=function(dpath){if(this.name==='__oni_altns')dpath='Object.create('+dpath+')';
 
 return this.name+"="+dpath+";";
+};
+ph_identifier.prototype.collect_par_decls=function(pars,names){ensure_unique_name(this.name,names);
+
+pars.push(this.name);
 };
 ph_identifier.prototype.collect_var_decls=function(vars){vars.push(this.name);
 
@@ -6123,6 +6124,12 @@ ph_arr_lit.prototype.collect_var_decls=function(vars){for(var i=0;i<this.element
 
 
 };
+ph_arr_lit.prototype.collect_par_decls=function(pars,names){var sub=[];
+
+for(var i=0;i<this.elements.length;++i)this.elements[i].collect_par_decls(sub,names);
+
+pars.push("["+sub.join(",")+"]");
+};
 
 
 function ph_obj_lit(props,pctx){this.props=props;
@@ -6212,6 +6219,26 @@ vars.push(p[1]);
 }else p[2].collect_var_decls(vars);
 
 }
+};
+ph_obj_lit.prototype.collect_par_decls=function(pars,names){var sub=[];
+
+for(var i=0;i<this.props.length;++i){
+var p=this.props[i];
+if(p[0]==="pat"){
+if(p[1].charAt(0)==='@')throw new Error("Invalid '"+p[1]+"' in paramter list");
+ensure_unique_name(p[1],names);
+sub.push(p[1]);
+}else if(p[0]==='prop'){
+
+var destr=[];
+p[2].collect_par_decls(destr,names);
+if(destr.length!==1)throw new Error("Invalid destructuring pattern in parameter list");
+sub.push(p[1]+":"+destr[0]);
+}else throw new Error("Invalid syntax in parameter list");
+
+
+}
+pars.push("{"+sub.join(",")+"}");
 };
 
 

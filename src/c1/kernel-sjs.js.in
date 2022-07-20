@@ -94,6 +94,12 @@ function collect_decls(decls) {
   return rv;
 }
 
+function ensure_unique_name(candidate, names) {
+  if (names.has(candidate))
+    throw "Non-unique name '"+candidate+"'";
+  names.add(candidate);
+}
+
 function top_decl_scope(pctx) {
   return pctx.decl_scopes[pctx.decl_scopes.length-1];
 }
@@ -1007,6 +1013,11 @@ ph_literal.prototype.v = function() { return this.value; };
 ph_literal.prototype.nblock_val = function() { return this.value; };
 #ifdef SJS_DESTRUCTURE
 ph_literal.prototype.destruct = function() { if (this.value != "") throw new Error("invalid pattern"); return "";};
+ph_literal.prototype.collect_par_decls = function(pars, names) {
+  // only elisions (which we map onto literals in kernel-sjs) are allowed in destructuring patterns:
+  if (this.value!=="") throw "Invalid in destructuring pattern: '"+this.value+"'";
+  pars.push('');
+};
 ph_literal.prototype.collect_var_decls = function() { };
 #endif
 
@@ -1273,38 +1284,24 @@ throw new Error("Arrows require destructuring support!");
 function gen_function_header(pars, pctx) {
   // Given a list of params, generate a function header.
   // The `header` includes both the param list *as well as* the
-  // start of the function body, since both params and body initializer
-  // may be needed to implement param destructuring.
+  // start of the function body, (so that we can e.g. add some procedural code 
+  // at the start of the function - this used to be done for destructuring before it became
+  // part of the JS standard).
   // i.e minimal function header is "(){"
-  var code = "";
-  var trivial = true;
-  var vars = [];
   if (!pars.length) return "(){";
 
-  var assignments = "";
+  var param_list = [];
   
   try {
     for (var i=0;i<pars.length;++i) {
-      if (trivial && !(pars[i] instanceof ph_identifier))
-        trivial = false;
-
-      pars[i].collect_var_decls(vars);
-      assignments += pars[i].destruct('arguments['+i+']');
+      pars[i].collect_par_decls(param_list, new Set());
     }
-
-    if (trivial) {
-      // no destructuring required
-      return "(" + vars.join(",") + "){";
-    }
-
-    if (vars.length) {
-      code += "var "+vars.join(',')+";"
-    }
-
-    code += "try{"+assignments+"}catch(e){e.__oni_stack=[["+pctx.filename+","+pars.line+"]]; throw e;}";
-    return '(){' + code;
+    return "(" + param_list.join(",") + "){";
   } catch (e) {
-    throw { mes:"Invalid syntax in parameter list", line:pars.line };
+    var mes = "Invalid syntax in parameter list";
+    if (typeof e === 'string')
+      mes += " ("+e+")";
+    throw { mes:mes, line:pars.line };
   }
 
 }
@@ -1474,6 +1471,10 @@ ph_identifier.prototype.nblock_val = function() { return this.name; };
 ph_identifier.prototype.destruct = function(dpath) {
   WRAP_RHS_IF_ALTNS(this, dpath);
   return this.name + "=" + dpath + ";";
+};
+ph_identifier.prototype.collect_par_decls = function(pars, names) {
+  ensure_unique_name(this.name, names);
+  pars.push(this.name);
 };
 ph_identifier.prototype.collect_var_decls = function(vars) {
   vars.push(this.name);
@@ -1745,6 +1746,12 @@ ph_arr_lit.prototype.collect_var_decls = function(vars) {
   for (var i=0; i<this.elements.length; ++i)
     this.elements[i].collect_var_decls(vars);
 };
+ph_arr_lit.prototype.collect_par_decls = function(pars, names) {
+  var sub = [];
+  for (var i=0; i<this.elements.length; ++i)
+    this.elements[i].collect_par_decls(sub, names);
+  pars.push("[" + sub.join(",") + "]");
+};
 #endif
 
 #define GEN_ELISION(pctx) return new ph_literal("", pctx);
@@ -1850,6 +1857,28 @@ ph_obj_lit.prototype.collect_var_decls = function(vars) {
       p[2].collect_var_decls(vars);
   }
 };
+ph_obj_lit.prototype.collect_par_decls = function(pars, names) {
+  var sub = [];
+  for (var i=0; i<this.props.length; ++i) {
+    var p = this.props[i];
+    if (p[0] === "pat") {
+#ifdef SJS_ALTERNATE_NAMESPACE
+      if(p[1].charAt(0) === '@') throw new Error("Invalid '"+p[1]+"' in paramter list");
+#endif // SJS_ALTERNATE_NAMESPACE
+      ensure_unique_name(p[1], names);
+      sub.push(p[1]);
+    }
+    else if (p[0] === 'prop') {
+      var destr = [];
+      p[2].collect_par_decls(destr, names);
+      if (destr.length !== 1) throw new Error("Invalid destructuring pattern in parameter list");
+      sub.push(p[1]+":"+destr[0]);
+    }
+    else
+      throw new Error("Invalid syntax in parameter list");
+  }
+  pars.push("{"+sub.join(",")+"}");
+}
 #endif
 
 //XXX merge with GEN_IF?
