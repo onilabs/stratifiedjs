@@ -4112,13 +4112,13 @@ if(sus&&sus.parent){
 
 
 exports.current_dyn_vars=dyn_vars;
-var PPP=sus.parent;
+
 cont(sus.parent,sus.parent_idx,UNDEF);
-if(exports.current_dyn_vars!==root_dyn_vars){
-console.log("------ INCORRECT DYNVARS AFTER ASYNC CONT ----");
-console.log('parent:'+PPP);
-dumpExecutionFrameParents(PPP,10);
-}
+
+
+
+
+
 
 
 

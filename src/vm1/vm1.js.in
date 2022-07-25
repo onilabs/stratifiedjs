@@ -4583,13 +4583,13 @@ exports.Hold = function(duration_ms) {
         if (sus && sus.parent) {
           ASSERTDYNVARSROOT('hold('+duration_ms+")")
           SETDYNVARS(dyn_vars, "hold("+duration_ms+") resume")
- var PPP = sus.parent;
+// var PPP = sus.parent;
           cont(sus.parent, sus.parent_idx, UNDEF);
-          if (exports.current_dyn_vars !== root_dyn_vars) {
-            console.log("------ INCORRECT DYNVARS AFTER ASYNC CONT ----");
-            console.log('parent:'+PPP);
-            dumpExecutionFrameParents(PPP, 10);
-          }
+//          if (exports.current_dyn_vars !== root_dyn_vars) {
+//            console.log("------ INCORRECT DYNVARS AFTER ASYNC CONT ----");
+//            console.log('parent:'+PPP);
+//            dumpExecutionFrameParents(PPP, 10);
+//          }
           // this doesn't always hold when we call SJS through JS and let the 
           // continuation go nowhere:
           //ASSERTDYNVARSROOT('hold:2('+duration_ms+')')
