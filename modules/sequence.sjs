@@ -176,7 +176,7 @@ function sequential(f) {
 /**
    @function StructuredStream
    @param {::Sequence} [base] Sequence to wrap as being structured
-   @param {String} [type] One of: 'batched', 'rolling', or 'map'.
+   @param {String} [type] One of: 'batched', 'rolling', 'map', or 'chunked.json'.
    @summary Add a wrapper to a sequence `base` that designates `base` as being structured according to `type`
    @desc
      'Structured streams' are streams where the individual elements are encoded in some way
@@ -252,6 +252,7 @@ function sequential(f) {
      `x->x*x` only once for every number seen (i.e. 9 times). Operating on the 
      reconstructed stream, it would need to call `x->x*x` 21 times.
 
+
      ### type='map'
 
      Map streams consist of arrays with elements of the following kind:
@@ -269,6 +270,23 @@ function sequential(f) {
 
      Map streams are e.g. produced by [sjs:observable::ObservableMapVar::stream].
 
+
+     ### type='chunked.json'
+
+     These streams are e.g. producted by [::chunk.json] which takes a sequence of 
+     JSON-encodable elements, encodes each element and emits a sequence of chunks with a given 
+     maximum size. An element of the original sequence will be encoded as one or more chunks, depending on
+     size.
+
+     The elements of a chunked.json stream take the form:
+
+         [complete, data]
+
+     Here, `complete` is a flag indicating whether this chunk completes an element of the original sequence, 
+     and `data` is a (string) chunk of the JSON-encoded original element.
+
+     E.g. the base stream `[[true,'10'],[false,'10'],[true, '0']]` reconstructs to `[10,100]`.
+     
 */
 __js {
 
@@ -277,7 +295,7 @@ __js {
   }
 
   function StructuredStream(base, type) {
-    if (type !== 'batched' && type !== 'rolling' && type !== 'map') 
+    if (type !== 'batched' && type !== 'rolling' && type !== 'map' && type !== 'chunked.json') 
       throw new Error("StructuredStream constructor: Invalid structured stream type '#{type}'");
     if (!isSequence(base))
       throw new Error("StructuredStream constructor: Invalid base object (needs to be a sequence)");
@@ -514,6 +532,9 @@ function each(sequence, r) {
       case 'map':
       return iterate_map_stream(sequence.base, r);
       break;
+      case 'chunked.json':
+      return iterate_chunked_json_stream(sequence.base, r);
+      break;
       default:
         throw new Error("Cannot iterate unknown structured sequence type '#{sequence.type}'");
     }
@@ -582,6 +603,18 @@ function iterate_map_stream(sequence, r) {
       }
     }
     r(__js new Map(map));
+  }
+}
+
+function iterate_chunked_json_stream(sequence, r) {
+  var data = '';
+  sequence .. each {
+    |[complete,chunk]|
+    data += chunk;
+    if (complete) {
+      r(JSON.parse(data));
+      data = '';
+    }
   }
 }
 
@@ -3675,7 +3708,7 @@ exports.mirror = function(stream, latest) {
    @summary  Create a batched [::StructuredStream] by collecting multiple values from the input sequence into one element of the output stream.
    @desc
      Note: This function has the same arguments as [::pack], but instead of generating a plain [::Stream]
-     it generates a [::StructuredStream] of type 'batched'. If the input stream is a (possibly nested) 
+     it generates a [::StructuredStream] of type 'batched'. If the input sequence is a (possibly nested) 
      structured stream, the nesting structure will be maintained, with the innermost base sequence being
      wrapped as a 'batched' StructuredStream. If the innermost structured stream is a batched 
      StructuredStream, it will be merged into the generated batched stream. I.e. the output stream will
@@ -3712,6 +3745,43 @@ __js {
    @summary Deprecated synonym for [::batch]
 */
 __js exports.batchN = batch;
+
+/**
+   @function chunk.json
+   @summary Create a chunked.json [::StructuredStream] by JSON-encoding elements of the input sequence and emitting chunks of a given maximum size
+   @param {::Sequence} [sequence] Input sequence
+   @param {Integer} [max_chunk] Maximum chunk size (characters)
+   @return {::StructuredStream} chunked.json stream that maintains any existing [::StructuedStream] structure
+   @desc
+      * The elements of the input sequence need to be JSON-encodable.
+      * If the input sequence is a (possibly nested) structured stream, the nesting structure will be 
+        maintained, with the innermost base sequence wrapped as a 'chunked.json' stream.
+*/
+var chunk = {};
+exports.chunk = chunk;
+chunk.json = function(seq, max_chunk) {
+  // XXX handle this case:
+  //if (seq .. isStructuredStream('chunked.json') && !seq.base .. isStructuredStream) {
+    //XXX
+  //}
+  // else
+  if (seq .. isStructuredStream)
+    return StructuredStream(seq.type) :: chunk.json(seq.base, max_chunk);
+  else
+    return StructuredStream('chunked.json') :: 
+      Stream :: function(r) {
+        seq .. each {
+          |elem|
+          var data = JSON.stringify(elem);
+          var offset = 0;
+          while (offset<data.length) {
+            r([offset+max_chunk>=data.length, data.slice(offset, offset+max_chunk)]);
+            offset += max_chunk;
+          }
+        }
+      }
+};
+
 
 //----------------------------------------------------------------------
 

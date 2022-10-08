@@ -357,6 +357,48 @@ exports.extend = extendObject;
 exports.merge = mergeObjects;
 
 /**
+   @function mergeProperties
+   @summary Applies a merge to all properties of the source objects
+   @param {Object} [...sources] Source Object(s)
+   @return New object with merged properties
+   @desc
+      - Applies [sjs:object::merge] to all 1st level properties in the
+        order that they appear in the objects in `sources`, and returns a
+        new object containing the merged properties.
+      - A source object must only contain 1st level properties of `Object` type (or be
+      `undefined`).
+
+      ### Example:
+
+          @mergeProperties({a:{x:1, y:2, z:3}, b: {l:1, k:2}},
+                           {},
+                           undefined,
+                           {a:{x:4, q:5}, c: {m:6}});
+          // returns a new object:
+          { 
+            a:{x:4, y:2, z:3, q:5}, 
+            b:{l:1, k:2},
+            c:{m:6}
+          }
+*/
+__js exports.mergeProperties = function(...sources) {
+  var rv = {};
+  sources .. each {
+    |src|
+    if (src == undefined) continue;
+    ownPropertyPairs(src) .. each {
+      |[k,v]|
+      if (!rv[k])
+        rv[k] = exports.extend({},v);
+      else
+        rv[k] .. exports.extend(v);
+    }
+  }
+  return rv;
+};
+
+
+/**
   @function clone
   @summary Shallow-clone an object or array
   @param {Object|Array} [source] Source Object or Array

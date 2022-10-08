@@ -1637,6 +1637,9 @@
         "merge": {
           "type": "function"
         },
+        "mergeProperties": {
+          "type": "function"
+        },
         "override": {
           "type": "function"
         },
@@ -1868,6 +1871,9 @@
           "type": "function"
         },
         "buffer": {
+          "type": "function"
+        },
+        "chunk.json": {
           "type": "function"
         },
         "combine": {

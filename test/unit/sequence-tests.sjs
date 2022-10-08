@@ -2119,6 +2119,18 @@ context("rollingWindow", function() {
 
 })
 
+context("chunk.json", function() {
+  test("typing", function() {
+    [1,10,100] .. s.chunk.json(2) .. s.isStructuredStream('chunked.json') .. assert.ok();
+  });
+  test("basic", function() {
+    [1,10,100, 'test', {a:1, b:'foo'}] .. s.chunk.json(2) .. s.toArray .. assert.eq([1,10,100, 'test', {a:1, b:'foo'}]);
+  });
+  test("base stream structure", function() {
+    ([1,10,100] .. s.chunk.json(2)).base .. s.toArray .. assert.eq([[true,'1'],[true,'10'],[false,'10'],[true,'0']]);
+  });
+});
+
 context("transform typing/batching", function() {
   test("typing", function() {
     var a = [1,2,3,4] .. s.transform(x->x*x);
