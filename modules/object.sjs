@@ -360,7 +360,7 @@ exports.merge = mergeObjects;
    @function mergeProperties
    @summary Applies a merge to all properties of the source objects
    @param {Object} [...sources] Source Object(s)
-   @return New object with merged properties
+   @return {Object} New object with merged properties
    @desc
       - Applies [sjs:object::merge] to all 1st level properties in the
         order that they appear in the objects in `sources`, and returns a
