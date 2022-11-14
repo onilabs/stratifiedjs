@@ -289,7 +289,7 @@
 @summary Execute two code paths with one controlled by the other
 @desc
   Conceptually, waitfor/while performs 'asymmetric concurrency composition', where
-  the 'waitfor'-branch "controls" the lifetime of the 'waitfor'-branch.
+  the 'while'-branch "controls" the lifetime of the 'waitfor'-branch.
   waitfor/while offers the immensely useful guarantee that the 'waitfor'-branch will never 
   be aborted before the 'while' branch. This means that finalization code in an aborted 
   'waitfor'-branch can rely on the fact that the 'while'-branch's finalization code has 
