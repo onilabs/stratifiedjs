@@ -22,7 +22,7 @@
   @require sjs:service
 */
 
-var hostenv = require('builtin:apollo-sys').hostenv;
+var { hostenv, getGlobal } = require('builtin:apollo-sys');
 var modules = [
   'sjs:object',
   'sjs:array',
@@ -59,10 +59,14 @@ if (hostenv === 'nodejs') {
   ]);
 } else {
   modules = modules.concat([
-    {id:'sjs:sys', include: ['eval']},
-    {id: 'sjs:xbrowser/dom', name: 'dom'},
-    {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']},
+    {id:'sjs:sys', include: ['eval']}
   ]);
+  if (getGlobal().document && getGlobal().document.createElement) {
+    modules = modules.concat([
+      {id: 'sjs:xbrowser/dom', name: 'dom'},
+      {id: 'sjs:xbrowser/dom', include: ['preventDefault','stopEvent', 'eventTarget']}
+    ]);
+  }
 }
 
 module.exports = require(modules);

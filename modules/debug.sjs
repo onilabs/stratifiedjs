@@ -45,7 +45,7 @@ var { isSet } = require('./set');
 var { isMap } = require('./map');
 var { isQuasi } = require('./quasi');
 var sys = require('builtin:apollo-sys');
-var isDOMNode = sys.hostenv == 'xbrowser' ? require('sjs:xbrowser/dom').isDOMNode : -> false;
+var isDOMNode = sys.hostenv == 'xbrowser' && sys.getGlobal().document && sys.getGlobal().document.createElement ? require('sjs:xbrowser/dom').isDOMNode : -> false;
 
 
 /**

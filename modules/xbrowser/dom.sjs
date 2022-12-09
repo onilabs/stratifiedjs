@@ -48,10 +48,6 @@ if (sys.hostenv != 'xbrowser')
 
 var { map, toArray, find } = require('../sequence');
 
-// see if we need to load the shim:
-if (typeof document !== "undefined" && !("classList" in document.createElement("a")))
-  require('./dom-shim');
-
 /**
   @function addListener
   @summary Cross-platform event helper. Adds event listener.
@@ -414,22 +410,10 @@ exports.traverseDOM = traverseDOM;
     @param    {String} [selector] CSS selector
     @return   {Boolean} 
 */
-__js var matchesSelectorFunc = 
-  [ 'matches',
-    'matchesSelector',
-   'webkitMatchesSelector',
-   'mozMatchesSelector',
-   'msMatchesSelector'
-  ] .. 
-  find(f -> document.body[f] != undefined, undefined);
-
 __js function matchesSelector(elem, selector) {
-  return elem[matchesSelectorFunc](selector);
+  return elem.matches(selector);
 }
-exports.matchesSelector = matchesSelectorFunc ? 
-  matchesSelector : 
-  require('./dom-shim').matchesSelector;
-
+exports.matchesSelector = matchesSelector;
 
 /**
    @function findNode

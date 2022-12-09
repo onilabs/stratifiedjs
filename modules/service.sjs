@@ -53,7 +53,7 @@
    @desc
      A Service is a function of signature `function S([optional_params...], session_func)`,
      where `session_func` is a functional argument that takes one optional 
-     arguments (this argument being the service's "interface").
+     argument (this argument being the service's "interface").
 
      When invoking `S([...],session_func)`, `S` calls `session_func` to establish a "service session". `session_func` is called with a single (possibly void) argument, the "service session interface".
 

@@ -2704,6 +2704,15 @@
       },
       "summary": "Automated testing utilities"
     },
+    "thread": {
+      "type": "module",
+      "children": {
+        "withThread": {
+          "type": "function"
+        }
+      },
+      "summary": "Asynchronous threads support"
+    },
     "type": {
       "type": "module",
       "children": {
@@ -2787,6 +2796,22 @@
         }
       },
       "summary": "Functions for manipulating URLs"
+    },
+    "vmbridge": {
+      "type": "module",
+      "children": {
+        "BridgeTransportService": {
+          "type": "class",
+          "children": {}
+        },
+        "isVMBridgeError": {
+          "type": "function"
+        },
+        "withVMBridge": {
+          "type": "function"
+        }
+      },
+      "summary": "Code execution across asynchronous SJS VMs"
     },
     "xbrowser/": {
       "type": "lib",
