@@ -37,60 +37,13 @@
 'use strict';
 
 @ = require([
-  './sequence', './event', './cutil', './vmbridge', './string'
+  './sequence', './event', './cutil', './vmbridge', './string', {id:'./sys',name:'sys'}
 ]);
 
-__js {
-
-  // rv is sent as worker.postMessage(...[data, buffers])
-  function serializeWorkerThreadMessage(message) {
-    /*
-        message is [data, buffers_array], where
-        data contains pointers into buffers_array.
-
-        To make sure buffers_array members get sent as actual transferables, 
-        we need to return
-        
-          [[data, buffers_array], buffers_array]
-      
-        This gets posted as:
-
-          postMessage([data, buffers_array], buffers_array);
-
-        and will be received as
-
-          [data, buffers_array] with every element in buffers_array sent as 
-          an actual transferable.
-
-        If we wanted to send *copies* instead of transferables, we would just return
-
-          [message] 
-
-     */
-
-    return [message, message[1]];
-  }
-  function deserializeWorkerThreadMessage(message) {
-    return message;
-  }
-} // __js
-
-// exported for use within worker:
-exports.withWorkerThreadWorkerTransport = function(session_f) {
-  var Messages = @Dispatcher();
-  self.onmessage = function({data}) { Messages.dispatch(deserializeWorkerThreadMessage(data)); };
-  session_f({
-    receive: Messages.receive,
-    handshake: function(data) { 
-      waitfor(var rv) {
-        waitfor { resume(Messages.receive()); }
-        and { self.postMessage(...serializeWorkerThreadMessage(data)); }
-      }
-      return rv;
-    },
-    send: (data)->self.postMessage(...serializeWorkerThreadMessage(data))
-  });
-};
+/**
+   @variable isMainThread
+   @summary `true` if the current VM is running on the main thread 
+ */
 
 /**
    @function withThread
@@ -118,55 +71,207 @@ exports.withWorkerThreadWorkerTransport = function(session_f) {
 
 
 */
-exports.withThread = function(session_f) {
-  // XXX make this configurable
-  var root_location = document.location.protocol+'//'+document.location.host;
-  //require.hubs .. @find([name,path]->(name == 'mho:')) .. console.log;
-  // XXX take this from require.hubs:
-  var additional_hubs = "[['mho:', '#{document.location.protocol}//#{document.location.host}/__mho/']]";
-  var sjs_location = (require.hubs .. @find([name,path]->name == 'sjs:'))[1].replace(/\/modules\/$/,'');
-  if (!(sjs_location .. @startsWith('http')))
-    sjs_location = document.location.protocol+'//'+document.location.host+sjs_location;
-//  console.log("sjs_location = #{sjs_location}");
 
-  /*
+if (@sys.hostenv === 'nodejs') {
 
-    We're using stratified.js in our webworker. This requires some monkey-patching. Alternatively,
-    we could create a hostenv-specific 'stratified-webworker.js' for a new 'webworker' hostenv.
-    In particular, we need to monkey-patch 'document', which is used by apollo-sys-xbrowser to
-    determine the request root.
+  @node_worker = require('nodejs:worker_threads');
+
+  exports.isMainThread = @node_worker.isMainThread;
 
 
-    Message protocol:
+  // exported for use within worker:
+  exports.withWorkerThreadWorkerTransport = function(session_f) {
+    var Messages = @Dispatcher();
+    var port = @node_worker.parentPort;
+    port.on('message', function(data) { Messages.dispatch(data); });
+    session_f({
+      receive: Messages.receive,
+      handshake: function(data) {
+        waitfor (var rv) {
+          waitfor { resume(Messages.receive()); }
+          and { port.postMessage(data); }
+        }
+        return rv;
+      },
+      send: (data)->port.postMessage(data)
+    });
+    
+  };
 
-    ['eval', return_channel_id, code_string]
+  exports.withThread = function(session_f) {
 
-       - executes code_string on worker (message only accepted on webworker side).
-       - 'rv' message is expected at return_channel_id
+    var sjs_home = (require.hubs .. @find([name,path]->name == 'sjs:'))[1].replace(/^file:\/\//,'').replace(/\/modules\/$/,'');
+    var sjs_node = sjs_home + '/stratified-node';
 
-    ['rv', return_channel_id, marshalled_rv]
+    var additional_hubs = [];
 
-       - returns 
+    var mho_hub = require.hubs .. @find([name,path]->name == 'mho:', undefined);
+    if (mho_hub)
+      additional_hubs.push(mho_hub);
 
-   */
+    additional_hubs = JSON.stringify(additional_hubs);
 
-  var root_sjs_code = 
-"@ = require(['sjs:std', 'sjs:vmbridge', 'sjs:thread']);"+
-"function eval_call(code) {"+
-" return eval(__oni_rt.c1.compile(code));"+
-"};"+
-"try {"+
-"var id='WORKER-'+@sys.VMID;"+
-"@withVMBridge({local_itf:eval_call, withTransport:@withWorkerThreadWorkerTransport, id:id}) {"+
-"  |itf|"+
-"  hold();"+
-"};"+
-"}catch(e){"+
-" console.log('Uncaught error in '+id+': ', e); "+
-"}"+
-"self.close();";
+    var root_sjs_code = 
+      "@ = require(['sjs:std', 'sjs:vmbridge', 'sjs:thread', {id:'nodejs:worker_threads', name:'node_worker'}]);"+
+      "function eval_call(code) {"+
+      " return eval(__oni_rt.c1.compile(code));"+
+      "};"+
+      "try{"+
+      "var id='WORKER-'+@sys.VMID;"+
+      "@withVMBridge({local_itf:eval_call, withTransport:@withWorkerThreadWorkerTransport,id:id}) {"+
+      "  |itf|"+
+      "  hold();"+
+      "};"+
+      "}catch(e) {"+
+      " console.log('Uncaught error in '+id+': ', e);"+
+      "}"+
+      "process.exit();"
+      ;
 
-  var root_script = "
+
+    var root_script = "
+process.mainModule = {filename:'#{sjs_node}'};
+var sjs_node = require('#{sjs_node}');
+sjs_node.getGlobal().require = sjs_node._makeRequire({id:sjs_node.pathToFileUrl('./')});
+require.hubs.push(...#{additional_hubs});
+eval(__oni_rt.c1.compile(\"#{root_sjs_code}\"));
+null;
+";
+
+
+    function withWorkerBridgeTransport(session_f) {
+      var worker = new @node_worker.Worker(root_script, {eval:true});
+      var Messages = @Dispatcher();
+      waitfor {
+        worker .. @events('message') .. @each { |data| Messages.dispatch(data); }
+      }
+      while {
+        session_f({
+          receive: Messages.receive,
+          // note the asymmetric handshake
+          handshake: function(data) { var rv = Messages.receive(); worker.postMessage(data); return rv;},
+          send: (data)->worker.postMessage(data)
+        });
+      }
+      finally {
+        console.log('terminating worker');
+        worker.terminate();
+      }
+    }
+
+    return @withVMBridge({withTransport:withWorkerBridgeTransport}, itf->session_f({eval:itf.remote, kill:itf.kill}));
+
+  };
+
+} // hostenv == 'nodejs'
+else if (@sys.hostenv === 'xbrowser') {
+
+  __js {
+
+    exports.isMainThread = !document.isThread; // set in root_script below
+
+
+    // rv is sent as worker.postMessage(...[data, buffers])
+    function serializeWorkerThreadMessage(message) {
+      /*
+        message is [data, buffers_array], where
+        data contains pointers into buffers_array.
+        
+        To make sure buffers_array members get sent as actual transferables, 
+        we need to return
+        
+          [[data, buffers_array], buffers_array]
+      
+        This gets posted as:
+
+          postMessage([data, buffers_array], buffers_array);
+
+        and will be received as
+
+          [data, buffers_array] with every element in buffers_array sent as 
+          an actual transferable.
+
+        If we wanted to send *copies* instead of transferables, we would just return
+
+          [message] 
+
+     */
+      
+      return [message, message[1]];
+    }
+    function deserializeWorkerThreadMessage(message) {
+      return message;
+    }
+  } // __js
+
+  // exported for use within worker:
+  exports.withWorkerThreadWorkerTransport = function(session_f) {
+    var Messages = @Dispatcher();
+    self.onmessage = function({data}) { Messages.dispatch(deserializeWorkerThreadMessage(data)); };
+    session_f({
+      receive: Messages.receive,
+      handshake: function(data) { 
+        waitfor(var rv) {
+          waitfor { resume(Messages.receive()); }
+          and { self.postMessage(...serializeWorkerThreadMessage(data)); }
+        }
+        return rv;
+      },
+      send: (data)->self.postMessage(...serializeWorkerThreadMessage(data))
+    });
+  };
+  
+  
+  
+  exports.withThread = function(session_f) {
+    // XXX make this configurable
+    var root_location = document.location.protocol+'//'+document.location.host;
+    //require.hubs .. @find([name,path]->(name == 'mho:')) .. console.log;
+    // XXX take this from require.hubs:
+    var additional_hubs = "[['mho:', '#{document.location.protocol}//#{document.location.host}/__mho/']]";
+    var sjs_location = (require.hubs .. @find([name,path]->name == 'sjs:'))[1].replace(/\/modules\/$/,'');
+    if (!(sjs_location .. @startsWith('http')))
+      sjs_location = document.location.protocol+'//'+document.location.host+sjs_location;
+    //  console.log("sjs_location = #{sjs_location}");
+    
+    /*
+      
+      We're using stratified.js in our webworker. This requires some monkey-patching. Alternatively,
+      we could create a hostenv-specific 'stratified-webworker.js' for a new 'webworker' hostenv.
+      In particular, we need to monkey-patch 'document', which is used by apollo-sys-xbrowser to
+      determine the request root.
+      
+      
+      Message protocol:
+      
+      ['eval', return_channel_id, code_string]
+      
+      - executes code_string on worker (message only accepted on webworker side).
+      - 'rv' message is expected at return_channel_id
+      
+      ['rv', return_channel_id, marshalled_rv]
+      
+      - returns 
+      
+    */
+    
+    var root_sjs_code = 
+      "@ = require(['sjs:std', 'sjs:vmbridge', 'sjs:thread']);"+
+      "function eval_call(code) {"+
+      " return eval(__oni_rt.c1.compile(code));"+
+      "};"+
+      "try {"+
+      "var id='WORKER-'+@sys.VMID;"+
+      "@withVMBridge({local_itf:eval_call, withTransport:@withWorkerThreadWorkerTransport, id:id}) {"+
+      "  |itf|"+
+      "  hold();"+
+      "};"+
+      "}catch(e){"+
+      " console.log('Uncaught error in '+id+': ', e); "+
+      "}"+
+      "self.close();";
+    
+    var root_script = "
 window = self;
 document = {isThread:true};
 document.location = {href:'#{root_location}/webworker'};
@@ -178,29 +283,33 @@ eval(__oni_rt.c1.compile(\"#{root_sjs_code}\"));
 null;
 ";
 
-  function withWorkerBridgeTransport(session_f) {
-    var worker_url = URL.createObjectURL(new Blob([root_script]));
-//    var worker_url = "data:text/plain;base64,"+btoa(root_script);
-//    console.log(worker_url);
-    var worker = new Worker(worker_url);
-    var Messages = @Dispatcher();
-    waitfor {
-      worker .. @events('message') .. @each { |{data}| Messages.dispatch(deserializeWorkerThreadMessage(data)); }
+    function withWorkerBridgeTransport(session_f) {
+      var worker_url = URL.createObjectURL(new Blob([root_script]));
+      //    var worker_url = "data:text/plain;base64,"+btoa(root_script);
+      //    console.log(worker_url);
+      var worker = new Worker(worker_url);
+      var Messages = @Dispatcher();
+      waitfor {
+        worker .. @events('message') .. @each { |{data}| Messages.dispatch(deserializeWorkerThreadMessage(data)); }
+      }
+      while {
+        session_f({
+          receive: Messages.receive,
+          // note the asymmetric handshake: because the worker thread takes time to start up, the main
+          // thread waits to receive before sending.
+          handshake: function(data) { var rv = Messages.receive(); worker.postMessage(...serializeWorkerThreadMessage(data)); return rv; },
+          send: (data)->worker.postMessage(...serializeWorkerThreadMessage(data))
+        });
+      }
+      finally {
+        console.log('terminating worker');
+        worker.terminate();
+      }
     }
-    while {
-      session_f({
-        receive: Messages.receive,
-        // note the asymmetric handshake: because the worker thread takes time to start up, the main
-        // thread waits to receive before sending.
-        handshake: function(data) { var rv = Messages.receive(); worker.postMessage(...serializeWorkerThreadMessage(data)); return rv; },
-        send: (data)->worker.postMessage(...serializeWorkerThreadMessage(data))
-      });
-    }
-    finally {
-      console.log('terminating worker');
-      worker.terminate();
-    }
-  }
-
-  return @withVMBridge({withTransport:withWorkerBridgeTransport}, itf->session_f({eval:itf.remote, kill:itf.kill}));
-};
+    
+    return @withVMBridge({withTransport:withWorkerBridgeTransport}, itf->session_f({eval:itf.remote, kill:itf.kill}));
+  };
+  
+} // hostenv == 'xbrowser'
+else
+  throw new Error("thread.sjs unavailable in hostenv #{@sys.hostenv}");
