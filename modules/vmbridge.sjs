@@ -616,7 +616,10 @@ function executeRemoteToLocalCall(bridge_itf, call_id, dynvar_call_ctx, local_fu
             // no need to return the rv to our side:
             e = [undefined];
           }
-          bridge_itf.send(rv);
+          // only attempt to send rv/error to other side if the transport is alive; otherwise we'll just get a
+          // superfluous error:
+          if (!bridge_itf.transport_dead.isSet)
+            bridge_itf.send(rv);
 //          console.log(bridge_itf.id+">done #{call_id}");
           throw e;
         }
@@ -813,13 +816,14 @@ function withVMBridge(settings, session_f) {
         bridge_itf.transport_dead.set();
         bridge_itf.localToRemoteCalls .. @ownPropertyPairs .. @each {
           |[k,v]|
-          //console.log(bridge_itf.id+': Killing straggling local->remote call '+k);
+          console.log(bridge_itf.id+': Killing straggling local->remote call '+k);
           v[0](pending_error, true);
         }
         
         bridge_itf.remoteToLocalCalls .. @ownPropertyPairs .. @each {
           |[k,v]| 
-          console.log(bridge_itf.id+': Remaining straggling remote->local call '+k);
+          console.log(bridge_itf.id+': Killing straggling remote->local call '+k);
+          v.abort();
         }
       }
     });
