@@ -459,7 +459,7 @@ __js {
      `itf.use(f)`, `f` will be aborted and a [::ServiceUnavailableError] or, in the case of 
      termination, the exception passed to [::IControlledService::terminate] will be thrown.
      
-     Attempting to use a controlled service whose associated [::withControlledService] session has exited will throw a [::ServiceUnavailableError] or the last exception (either explicitly or via [::IControlledService::terminate]) thrown by the controlled service.
+     Attempting to use a controlled service whose associated [::withControlledService] session has exited will throw a [::ServiceUnavailableError] or the last exception thrown (either explicitly or via [::IControlledService::terminate]) by the controlled service.
 
    @variable IControlledService.Status
    @summary [./observable::Observable] of the controlled service's current status
