@@ -329,7 +329,8 @@ __js exports.overrideObject = function(dest, ...sources) {
   @param {String} [url] URL to parse.
   @return {Object} Parsed URL as described at <http://stevenlevithan.com/demo/parseuri/js/> (using 'strict' mode).
   @desc
-     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
+     - Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri>.
+     - Amended to handle IPV6 URLS (see e.g. github.com/galkn/parseuri )
 */
 /*
   Implementation is taken originally from
@@ -364,11 +365,32 @@ function URI() {}
   }
 
   exports.parseURL = function(str) {
+    str = String(str);
+    // easiest way to handle ipv6 addresses is to temporarily replace ':' within '[ ... ]' by another character
+    // (as per github.com/galkn/parseuri)
+    var src = str;
+    var b = str.indexOf('[');
+    var e = (b !== -1) ? str.indexOf(']') : -1;
+
+    if (e!==-1) {
+      str = str.substring(0,b) + str.substring(b,e).replace(/:/g,';') + str.substring(e, str.length);
+    }
+
     var o = parseURLOptions,
     m = o.parser.exec(str),
     uri = new URI(),
     i = 14;
     while (i--) uri[o.key[i]] = m[i] || "";
+
+    if (e!==-1) {
+      uri.source = src;
+      uri.host = uri.host.substring(1, uri.host.length-1).replace(/;/g,':');
+      uri.authority = uri.authority.replace(/;/g,':');
+      uri.ipv6 = true;
+    }
+    else
+      uri.ipv6 = false;
+
     return uri;
   };
 }

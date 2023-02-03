@@ -27,6 +27,14 @@ context('parsing', function() {
     var u = url.parse('http://example.com?q=%c3%28');
     assert.raises( -> u.params());
   })
+
+  test('ipv6', function() {
+    var u = url.parse('http://[2607:f8b0:4005:802::1007]:1212/');
+    assert.eq(u.host, '2607:f8b0:4005:802::1007');
+    assert.eq(u.port, '1212');
+    assert.eq(u.authority, '[2607:f8b0:4005:802::1007]:1212');
+    assert.eq(u.ipv6, true);
+  })
 })
 
 context('build URL', function() {

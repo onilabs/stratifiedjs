@@ -170,7 +170,7 @@ exports.build = sys.constructURL;
   @param {String} [url] URL to parse.
   @return {Object} Parsed URL as described below.
   @desc
-     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri> in 'strict' mode, with an additional bug fix that corrects a parsing issue with '@' characters.
+     Uses the parseuri function from <http://blog.stevenlevithan.com/archives/parseuri> in 'strict' mode, with an additional bug fix that corrects a parsing issue with '@' characters, as well as an amendment that correctly parses IPV6 addresses.
 
      A url such as `http://www.onilabs.com/foo/bar?x=y&z=a%20b#anchor%201` will be parsed to an object:
 
@@ -189,6 +189,7 @@ exports.build = sys.constructURL;
            source: "http://www.onilabs.com/foo/bar?x=y&z=a%20b#anchor%201"
            user: ""
            userInfo: ""
+           ipv6: false
          }
 
      **Note:** this function does *NOT* decode the URL components.
