@@ -2073,3 +2073,102 @@ context("spreads", function() {
     
   })
 })
+
+context("spreads in assignments", function() {
+
+  test('non-spreadable function value', function() {
+    function n() { return 1; }
+    var not_reached = false;
+    try {
+      var a= [...n()];
+      not_reached = true;
+    }
+    catch(e) {
+      // good, this should throw
+    }
+    assert.eq(not_reached, false);
+  });
+
+  test("inline", function() {
+    var a, b;
+    a = [1,...[2,3],4];
+    assert.eq(a, [1,2,3,4]);
+    __js b = [1,...[2,3],4];
+    assert.eq(b, [1,2,3,4]);
+  })
+
+  test("var", function() {
+    var numbers = [2,3],a,b;
+    a = [1,...numbers,4];
+    assert.eq(a, [1,2,3,4]);
+    __js b = [1,...numbers,4];
+    assert.eq(b, [1,2,3,4]);
+  })
+
+
+  test("multiple vars", function() {
+    var numbers1 = [2,3], numbers2 = [5,6], a, b;
+    a = [1,...numbers1,4, ...numbers2, 7];
+    assert.eq(a, [1,2,3,4, 5, 6, 7]);
+    __js b = [1,...numbers1,4, ...numbers2, 7];
+    assert.eq(b, [1,2,3,4, 5, 6, 7]);
+  })
+
+  test("nested", function() {
+    var numbers1 = [2,3], numbers2 = [5,6], a, b;
+    a = [1,...[...numbers1,4], ...numbers2, 7];
+    assert.eq(a, [1,2,3,4, 5, 6, 7]);
+    __js b = [1,...[...numbers1,4], ...numbers2, 7];
+    assert.eq(b, [1,2,3,4, 5, 6, 7]);
+  })
+
+  test("nested funcs", function() {
+    var numbers1 = -> [2,3], numbers2 = -> [5,6], a, b;
+    a = [1,...[...numbers1(),4], ...numbers2(), 7];
+    assert.eq(a, [1,2,3,4, 5, 6, 7]);
+    __js b = [1,...[...numbers1(),4], ...numbers2(), 7];
+    assert.eq(b, [1,2,3,4, 5, 6, 7]);
+  })
+
+  test("var assign - inline", function() {
+    var a = [1,...[2,3],4];
+    assert.eq(a, [1,2,3,4]);
+    __js var b = [1,...[2,3],4];
+    assert.eq(b, [1,2,3,4]);
+  })
+
+  test("var assign - var", function() {
+    var numbers = [2,3];
+    var a = [1,...numbers,4];
+    assert.eq(a, [1,2,3,4]);
+    __js var b = [1,...numbers,4];
+    assert.eq(b, [1,2,3,4]);
+  })
+
+
+  test("var assign - multiple vars", function() {
+    var numbers1 = [2,3], numbers2 = [5,6];
+    var a = [1,...numbers1,4, ...numbers2, 7];
+    assert.eq(a, [1,2,3,4, 5, 6, 7]);
+    __js var b = [1,...numbers1,4, ...numbers2, 7];
+    assert.eq(b, [1,2,3,4, 5, 6, 7]);
+  })
+
+  test("var assign - nested", function() {
+    var numbers1 = [2,3], numbers2 = [5,6];
+    var a = [1,...[...numbers1,4], ...numbers2, 7];
+    assert.eq(a, [1,2,3,4, 5, 6, 7]);
+    __js var b = [1,...[...numbers1,4], ...numbers2, 7];
+    assert.eq(b, [1,2,3,4, 5, 6, 7]);
+  })
+
+  test("var assign - nested funcs", function() {
+    var numbers1 = -> [2,3], numbers2 = -> [5,6];
+    var a = [1,...[...numbers1(),4], ...numbers2(), 7];
+    assert.eq(a, [1,2,3,4, 5, 6, 7]);
+    __js var b = [1,...[...numbers1(),4], ...numbers2(), 7];
+    assert.eq(b, [1,2,3,4, 5, 6, 7]);
+  })
+
+
+})

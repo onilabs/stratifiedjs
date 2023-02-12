@@ -4197,6 +4197,7 @@ exports.ArrS=function(spreads,...args){var rv=[];
 
 for(var i=0;i<args.length;++i){
 if(spreads[0]===i){
+if(!Array.isArray(args[i]))throw new Error("Cannot spread non-array.");
 rv=rv.concat(args[i]);
 spreads.shift();
 }else rv.push(args[i]);

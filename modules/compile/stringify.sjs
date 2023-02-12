@@ -638,7 +638,7 @@ SemanticToken.prototype = {
     if (right_assoc) bp -= .5;
     this.excf = function(left, pctx) {
       
-      var right = parseExp(pctx, bp);
+      var right = parseExp(pctx, bp, undefined, this.id === '=' ? 2 : 0);
       
       return left+this.id+right;
     };
@@ -869,7 +869,7 @@ S("...").exs(function(pctx, exs_flags) {
     //return tok.exsf(pctx);
     
       
-      var right = parseExp(pctx, 119);
+      var right = parseExp(pctx, 119, undefined, 2);
       
       
       return '...'+right;
@@ -917,7 +917,7 @@ S("(").
       return op.exsf(pctx);
     }
     
-    var e = parseExp(pctx, 0, undefined, exs_flags);
+    var e = parseExp(pctx, 0, undefined, exs_flags & ~2);
     scan(pctx, ")");
     
     return "("+e+")";
@@ -1461,7 +1461,7 @@ function parseVarDecls(pctx, noInOf) {
     var id_or_pattern = parse(pctx, 120);
     if (pctx.token.id == "=") {
       scan(pctx);
-      var initialiser = parse(pctx, 110);
+      var initialiser = parse(pctx, 110, undefined, 2);
       
       decls.push([id_or_pattern, initialiser/*, null*/]);
     }

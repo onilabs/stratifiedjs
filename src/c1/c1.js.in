@@ -643,7 +643,7 @@ SemanticToken.prototype = {
     if (right_assoc) bp -= .5;
     this.excf = function(left, pctx) {
       PUSH_EXTENT(pctx, left, 'assign op')
-      var right = parseExp(pctx, bp);
+      var right = parseExp(pctx, bp, undefined, this.id === '=' ? EXS_ALLOW_SPREAD : 0);
       LOGM('assign_op('+this.id+')')
       GEN_ASSIGN_OP(left, this.id, right, pctx, POP_EXTENT('GEN_ASSIGN_OP'))
     };
@@ -923,7 +923,7 @@ S("...").exs(function(pctx, exs_flags) {
     //return tok.exsf(pctx);
     
       PUSH_EXTENT(pctx, this, 'GEN_SPREAD')
-      var right = parseExp(pctx, 119);
+      var right = parseExp(pctx, 119, undefined, EXS_ALLOW_SPREAD);
       LOGM('spread')
       END_EXTENT(pctx, right)
       GEN_SPREAD(right, pctx, POP_EXTENT('GEN_SPREAD'))
@@ -973,7 +973,7 @@ S("(").
     }
 #endif
     PUSH_EXTENT(pctx, null, 'GEN_GROUP')
-    var e = parseExp(pctx, 0, undefined, exs_flags);
+    var e = parseExp(pctx, 0, undefined, exs_flags & ~EXS_ALLOW_SPREAD);
 #ifdef TRACK_EXTENTS
     var closer = pctx.token;
     END_EXTENT(pctx, closer)
@@ -1588,7 +1588,7 @@ function parseVarDecls(pctx, noInOf) {
     var id_or_pattern = parse(pctx, BP_ASSIGN);
     if (pctx.token.id == "=") {
       scan(pctx);
-      var initialiser = parse(pctx, BP_COMMA);
+      var initialiser = parse(pctx, BP_COMMA, undefined, EXS_ALLOW_SPREAD);
       END_EXTENT(pctx, initialiser)
       decls.push([id_or_pattern, initialiser/*, POP_EXTENT('parseVarDecls')*/]);
     }

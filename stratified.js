@@ -4197,6 +4197,7 @@ exports.ArrS=function(spreads,...args){var rv=[];
 
 for(var i=0;i<args.length;++i){
 if(spreads[0]===i){
+if(!Array.isArray(args[i]))throw new Error("Cannot spread non-array.");
 rv=rv.concat(args[i]);
 spreads.shift();
 }else rv.push(args[i]);
@@ -6590,7 +6591,7 @@ return this;
 this.excbp=bp;
 
 if(right_assoc)bp-=.5;
-this.excf=function(left,pctx){var right=parseExp(pctx,bp);
+this.excf=function(left,pctx){var right=parseExp(pctx,bp,undefined,this.id==='='?2:0);
 
 
 
@@ -6823,7 +6824,7 @@ S("...").exs(function(pctx,exs_flags){if((exs_flags&2)){
 
 
 
-var right=parseExp(pctx,119);
+var right=parseExp(pctx,119,undefined,2);
 
 
 return gen_spread(right);
@@ -6871,7 +6872,7 @@ scan(pctx);
 return op.exsf(pctx);
 }
 
-var e=parseExp(pctx,0,undefined,exs_flags);
+var e=parseExp(pctx,0,undefined,exs_flags&~2);
 scan(pctx,")");
 
 return new ph_group(e,pctx);
@@ -7415,7 +7416,7 @@ if(decls.length)scan(pctx,",");
 var id_or_pattern=parse(pctx,120);
 if(pctx.token.id=="="){
 scan(pctx);
-var initialiser=parse(pctx,110);
+var initialiser=parse(pctx,110,undefined,2);
 
 decls.push([id_or_pattern,initialiser]);
 }else decls.push([id_or_pattern]);
