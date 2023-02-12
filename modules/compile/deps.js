@@ -1181,14 +1181,14 @@ S("->")
   // prefix form without parameters expression
   .exs(function(pctx) {
     
-    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    var body = parseExp(pctx, 119.5, undefined, 2); // 119.5 because of right-associativity
     
     return Dynamic;
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     
-    var body = parseExp(pctx, 119.5);
+    var body = parseExp(pctx, 119.5, undefined, 2);
     
     return Dynamic;
   });
@@ -1196,14 +1196,14 @@ S("=>")
   // prefix form without parameters expression
   .exs(function(pctx) {
     
-    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    var body = parseExp(pctx, 119.5, undefined, 2); // 119.5 because of right-associativity
     
     return Dynamic;
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     
-    var body = parseExp(pctx, 119.5);
+    var body = parseExp(pctx, 119.5, undefined, 2);
     
     return Dynamic;
   });

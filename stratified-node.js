@@ -6924,14 +6924,14 @@ S("|=").asg(120,true);
 
 S("->").exs(function(pctx){
 
-var body=parseExp(pctx,119.5);
+var body=parseExp(pctx,119.5,undefined,2);
 
 
 
 return new ph_arrow(undefined,body,pctx);
 }).exc(120,function(left,pctx){
 
-var body=parseExp(pctx,119.5);
+var body=parseExp(pctx,119.5,undefined,2);
 
 
 
@@ -6939,14 +6939,14 @@ return new ph_arrow(left,body,pctx);
 });
 S("=>").exs(function(pctx){
 
-var body=parseExp(pctx,119.5);
+var body=parseExp(pctx,119.5,undefined,2);
 
 
 
 return new ph_arrow(undefined,body,pctx,true);
 }).exc(120,function(left,pctx){
 
-var body=parseExp(pctx,119.5);
+var body=parseExp(pctx,119.5,undefined,2);
 
 
 

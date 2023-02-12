@@ -1041,14 +1041,14 @@ S("->")
   // prefix form without parameters expression
   .exs(function(pctx) {
     
-    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    var body = parseExp(pctx, 119.5, undefined, 2); // 119.5 because of right-associativity
     
     return gen_prefix_op('->', body, pctx);
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     
-    var body = parseExp(pctx, 119.5);
+    var body = parseExp(pctx, 119.5, undefined, 2);
     
     return gen_infix_op(left, '->', body, pctx);
   });
@@ -1056,14 +1056,14 @@ S("=>")
   // prefix form without parameters expression
   .exs(function(pctx) {
     
-    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    var body = parseExp(pctx, 119.5, undefined, 2); // 119.5 because of right-associativity
     
     return gen_prefix_op(' =>', body, pctx);
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     
-    var body = parseExp(pctx, 119.5);
+    var body = parseExp(pctx, 119.5, undefined, 2);
     
     return gen_infix_op(left, '=>', body, pctx);
   });

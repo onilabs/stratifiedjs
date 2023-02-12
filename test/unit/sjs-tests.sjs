@@ -2074,6 +2074,24 @@ context("spreads", function() {
   })
 })
 
+context("spreads in arrow bodies", function() {
+  test('simple', function() {
+    var a = (...args) -> [...args, 3];
+    assert.eq(a(1,2), [1,2,3]);
+    // prefix form
+    var nn = [1,2];
+    a =  -> [...nn, 3];
+    assert.eq(a(1,2), [1,2,3]);
+
+    // fat arrows
+    a = (...args) => [...args, 3];
+    assert.eq(a(1,2), [1,2,3]);
+    // prefix form
+    a =  => [...nn, 3];
+    assert.eq(a(1,2), [1,2,3]);
+  });
+});
+
 context("spreads in assignments", function() {
 
   test('non-spreadable function value', function() {

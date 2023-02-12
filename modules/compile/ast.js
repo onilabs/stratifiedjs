@@ -1675,14 +1675,14 @@ S("->")
   // prefix form without parameters expression
   .exs(function(pctx) {
     push_extent(pctx, pctx.token, 'arrow call');
-    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    var body = parseExp(pctx, 119.5, undefined, 2); // 119.5 because of right-associativity
     
     return Node.ArrowFunctionExpression(pctx, pop_extent(pctx, 'GEN_THIN_ARROW'), null, body);
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     push_extent(pctx, left, 'arrow call');
-    var body = parseExp(pctx, 119.5);
+    var body = parseExp(pctx, 119.5, undefined, 2);
     
     return Node.ArrowFunctionExpression(pctx, pop_extent(pctx, 'GEN_THIN_ARROW'), left, body);
   });
@@ -1690,14 +1690,14 @@ S("=>")
   // prefix form without parameters expression
   .exs(function(pctx) {
     push_extent(pctx, pctx.token, 'arrow call');
-    var body = parseExp(pctx, 119.5); // 119.5 because of right-associativity
+    var body = parseExp(pctx, 119.5, undefined, 2); // 119.5 because of right-associativity
     
     return Node.ArrowFunctionExpression(pctx, pop_extent(pctx, 'GEN_THIN_ARROW'), null, body);
   })
   // infix form with parameters expression
   .exc(120, function(left, pctx) {
     push_extent(pctx, left, 'arrow call');
-    var body = parseExp(pctx, 119.5);
+    var body = parseExp(pctx, 119.5, undefined, 2);
     
     return Node.ArrowFunctionExpression(pctx, pop_extent(pctx, 'GEN_THIN_ARROW'), left, body);
   });
