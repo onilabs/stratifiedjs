@@ -1818,6 +1818,11 @@ context("destructuring", function() {
     return rv + x + y + z;
   });
 
+  testEq("destructuring var [,...b] = [1,2,3,4]", [2,3,4], function() {
+    var [,...b] = [1,2,3,4];
+    return b;
+  });
+
   function callWith(/* args ..., fn */) {
     var len = arguments.length;
     var args = Array.prototype.slice.call(arguments, 0, len - 1);

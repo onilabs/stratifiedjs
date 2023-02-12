@@ -116,6 +116,27 @@
   });
 });
 
+@context("complex rest destructuring", function() {
+  @test('nested rest in function', function() {
+    var f1 = function([,,...a],...b) {
+      @assert.eq(a,[2,[3,4]]);
+      @assert.eq(b,['a','b', ['c','d']])
+    }
+    f1([0,1,2,[3,4]],'a','b',['c','d']);
+  });
+  @test('nested rest in arrow function', function() {
+    var f1 = ([,,...a],...b) -> {a:a,b:b};
+    var r = f1([0,1,2,[3,4]],'a','b',['c','d']);
+    @assert.eq(r.a,[2,[3,4]]);
+    @assert.eq(r.b,['a','b', ['c','d']])
+  });
+  @test('nested rest in assignment', function() {
+    var [[,,...a],...b] = [[0,1,2,[3,4]],'a','b',['c','d']]
+    @assert.eq(a,[2,[3,4]]);
+    @assert.eq(b,['a','b', ['c','d']])
+  });
+});
+
 @context("reentrant quench", function() {
   // this used to produce '1234not reached', because EF_Alt didn't emit a 'quench'
   @test("waitfor/or", function() {

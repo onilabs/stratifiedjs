@@ -2707,6 +2707,9 @@
     "thread": {
       "type": "module",
       "children": {
+        "isMainThread": {
+          "type": "variable"
+        },
         "withThread": {
           "type": "function"
         }

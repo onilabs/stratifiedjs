@@ -857,6 +857,9 @@ Node.TryStatement.prototype.handlers = [];
 #define GEN_SPREAD(right, pctx, ext) \
     return UnaryExpression(pctx, etc, '...', right, true);
 
+#define GEN_REST(right, pctx, ext) \
+    return UnaryExpression(pctx, etc, '...', right, true);
+
 #define GEN_POSTFIX_OP(left, id, pctx, ext)          \
   return UnaryExpression(pctx, ext, id, left, false);
 

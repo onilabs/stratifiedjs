@@ -207,7 +207,8 @@ GEN_ASSIGN_OP(left, id, right, pctx)
   id: = *= /= %= += -= <<= >>= >>>= &= ^= |=
 GEN_PREFIX_OP(id, right, pctx)
   id: ++ -- delete void typeof + - ~ !
-GEN_SPREAD(right, pctx): '...' when used as spread. rest arguments gets '...' merged into name 
+GEN_SPREAD(right, pctx): '...' when used as spread
+GEN_REST(right, pctx): '...' when used as rest property
 GEN_POSTFIX_OP(left, id, pctx)
   id: ++ --
 GEN_LITERAL(type, value, pctx)
@@ -995,6 +996,7 @@ Node.TryStatement.prototype.handlers = [];
 
 
 
+
 // note the intentional space in ' =>' below; it is to fix cases like '= => ...'
 
 function gen_doubledot_call(l, r, pctx, ext) {
@@ -1446,7 +1448,7 @@ S("[").
       else if (pctx.token.id == "]")
         break; // allows trailing ','
       else
-        elements.push(parseExp(pctx, 110, undefined, exs_flags|2));
+        elements.push(parseExp(pctx, 110, undefined, exs_flags));
     }
     scan(pctx, "]");
     
@@ -1487,16 +1489,7 @@ function is_arrow(id) { return id === '=>' || id === '->'; }
 
 //S("...").pre(119);
 S("...").exs(function(pctx, exs_flags) {
-  // XXX hackish... identify '...x' rest parameter for arrow function
-  // function/blb-lambda param list rest params are handled elsewhere.
-  var lookahead_pctx = Object.assign({}, pctx);
-  if (pctx.token.id == "<id>" && scan(lookahead_pctx).id == ')' && is_arrow(scan(lookahead_pctx).id) ) {
-    pctx.token.value = "..."+pctx.token.value;
-    var tok = pctx.token;
-    scan(pctx);
-    return tok.exsf(pctx);
-  }
-  else if ((exs_flags & 2) /*&& pctx.token.id == "<id>"*/) {
+  if ((exs_flags & 2) /*&& pctx.token.id == "<id>"*/) {
     //var tok = pctx.token;
     //tok.value = "..."+tok.value;
     //scan(pctx);
@@ -1507,6 +1500,16 @@ S("...").exs(function(pctx, exs_flags) {
       
       end_extent(pctx, right);
       return UnaryExpression(pctx, etc, '...', right, true);
+  }
+  else if (pctx.token.id == "<id>" || pctx.token.id == '[' || pctx.token.id == '<@id>') {
+    // we're in a context that only allows rest properties, but no spreads.
+    // we'll only allow a sub-syntax for now (`...a`, `...[]`, `...@a`)
+    push_extent(pctx, this, 'GEN_REST');
+    var right = parseExp(pctx, 119);
+    
+    end_extent(pctx, right);
+    if (pctx.token.id == ',') throw new Error("Invalid location of rest ('...') property");
+    return UnaryExpression(pctx, etc, '...', right, true);    
   }
   else throw new Error("Unexpected '...'");
 });
@@ -1862,6 +1865,8 @@ function parseFunctionParam(pctx) {
 }
 
 function parseFunctionParams(pctx, starttok, endtok) {
+  // XXX This code - in particular the hackish treatment of '...' below -  
+  // should be consolidated with generic expression parsing
   if (!starttok) { starttok = '('; endtok = ')'; }
   var pars = [];
   var have_rest = false;

@@ -4684,6 +4684,18 @@ exports.infix = {
   'in':  function(a,b) { return a in b; }
 };
 
+//----------------------------------------------------------------------
+// Misc helpers
+
+// helper to obtain rest properties in destructuring, and throw a helpful 
+// error if the object is not an array
+exports.destructRestProperty = function(obj, idx) {
+  // XXX JS can obtain a rest property from any iterable. We only do arrays for now
+  if (!Array.isArray(obj))
+    throw new Error("Cannot obtain rest property for non-array in destructuring pattern");
+  return obj.slice(idx);
+}
+
 #if defined (CLIENTSIDE)
 //----------------------------------------------------------------------
 // UA sniffing

@@ -303,6 +303,9 @@ function gen_infix_op(left, id, right, pctx) {
 #define GEN_SPREAD(right, pctx, ext)                 \
   return '...'+right;
 
+#define GEN_REST(right, pctx, ext)                 \
+  return '...'+right;
+
 #define GEN_PREFIX_OP(id, right, pctx, ext)          \
   return gen_prefix_op(id, right, pctx);
 

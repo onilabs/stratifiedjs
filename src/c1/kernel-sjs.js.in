@@ -1193,7 +1193,7 @@ ph_assign_op.prototype.val = function() {
         rv += ")";
       }
       catch (e) {
-        throw { mes:"Invalid left side in destructuring assignment ",
+        throw { mes:"Invalid left side in destructuring assignment ("+e+")",
                 line:this.line }; 
       }
     }
@@ -1219,6 +1219,30 @@ function gen_spread(right) {
   right.spread = true;
   return right;
 }
+
+#define GEN_REST(right, pctx, ext) return new ph_rest(right);
+function ph_rest(right) {
+  this.right = right;
+  this.is_rest = true;
+}
+ph_rest.prototype = new ph(WHENDEBUG("ph_rest"));
+ph_rest.prototype.val = function() { throw new Error("Unexpected '...'"); /* e.g. in `...[a] = [1,2,3]` */ }
+ph_rest.prototype.collect_var_decls = function(vars) {
+  return this.right.collect_var_decls(vars);
+};
+ph_rest.prototype.collect_par_decls = function(pars, names) {
+  var sub = [];
+  this.right.collect_par_decls(sub, names);
+  pars.push("..."+sub[0]);
+};
+
+ph_rest.prototype.destruct = function(dpath,drefs) {
+  throw new Error("Invalid location of rest property (should be caught in c1.js.in - not here)");
+};
+ph_rest.prototype.destructRest = function(dpath, location, drefs) {
+  return this.right.destruct("__oni_rt.destructRestProperty("+dpath+","+location+")", drefs);
+};
+
 
 #define GEN_PREFIX_OP(id, right, pctx, ext) return new ph_prefix_op(id, right, pctx);
 function ph_prefix_op(id, right, pctx) {
@@ -1736,10 +1760,18 @@ ph_arr_lit.prototype.val = function() {
 };
 #ifdef SJS_DESTRUCTURE
 ph_arr_lit.prototype.destruct = function(dpath, drefs) {
-  var rv = "";
-  for (var i=0; i<this.elements.length; ++i) {
+  var rv = "", i=0;
+  for (; i<this.elements.length-1; ++i) {
     rv += this.elements[i].destruct(dpath+"["+i+"]", drefs);
   }
+  if (i<this.elements.length) {
+    if (this.elements[i].is_rest) {
+      rv += this.elements[i].destructRest(dpath, i, drefs);
+    }
+    else
+      rv += this.elements[i].destruct(dpath+"["+i+"]", drefs);
+  }
+
   return rv;  
 };
 ph_arr_lit.prototype.collect_var_decls = function(vars) {
@@ -1863,7 +1895,7 @@ ph_obj_lit.prototype.collect_par_decls = function(pars, names) {
     var p = this.props[i];
     if (p[0] === "pat") {
 #ifdef SJS_ALTERNATE_NAMESPACE
-      if(p[1].charAt(0) === '@') throw new Error("Invalid '"+p[1]+"' in paramter list");
+      if(p[1].charAt(0) === '@') throw new Error("Invalid '"+p[1]+"' in parameter list");
 #endif // SJS_ALTERNATE_NAMESPACE
       ensure_unique_name(p[1], names);
       sub.push(p[1]);

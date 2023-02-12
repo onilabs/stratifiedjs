@@ -4213,12 +4213,25 @@ return a instanceof b},'in':function(a,b){
 return a in b}};
 
 
+
+
+
+
+
+exports.destructRestProperty=function(obj,idx){if(!Array.isArray(obj))throw new Error("Cannot obtain rest property for non-array in destructuring pattern");
+
+
+
+return obj.slice(idx);
+};
+
 var UA="nodejs";
 exports.hostenv="nodejs";
 exports.UA=UA;
 
 
 exports.modules={};exports.modsrc={};})(__oni_rt);(function(exports){function push_decl_scope(pctx,bl){
+
 
 
 
@@ -5554,7 +5567,7 @@ for(var i=0;i<drefs.length;++i)rv+=","+drefs[i];
 rv+=")";
 }catch(e){
 
-throw {mes:"Invalid left side in destructuring assignment ",line:this.line};
+throw {mes:"Invalid left side in destructuring assignment ("+e+")",line:this.line};
 
 }
 }else if(!this.left.is_ref||this.left.is_nblock){
@@ -5578,6 +5591,29 @@ function gen_spread(right){right.spread=true;
 
 return right;
 }
+
+function ph_rest(right){this.right=right;
+
+this.is_rest=true;
+}
+ph_rest.prototype=new ph();
+ph_rest.prototype.val=function(){throw new Error("Unexpected '...'")};
+ph_rest.prototype.collect_var_decls=function(vars){return this.right.collect_var_decls(vars);
+
+};
+ph_rest.prototype.collect_par_decls=function(pars,names){var sub=[];
+
+this.right.collect_par_decls(sub,names);
+pars.push("..."+sub[0]);
+};
+
+ph_rest.prototype.destruct=function(dpath,drefs){throw new Error("Invalid location of rest property (should be caught in c1.js.in - not here)");
+
+};
+ph_rest.prototype.destructRest=function(dpath,location,drefs){return this.right.destruct("__oni_rt.destructRestProperty("+dpath+","+location+")",drefs);
+
+};
+
 
 function ph_prefix_op(id,right,pctx){this.id=id;
 
@@ -6043,11 +6079,19 @@ rv+=","+this.elements[i].v();
 }
 return rv+")";
 };
-ph_arr_lit.prototype.destruct=function(dpath,drefs){var rv="";
+ph_arr_lit.prototype.destruct=function(dpath,drefs){var rv="",i=0;
 
-for(var i=0;i<this.elements.length;++i){
+for(;i<this.elements.length-1;++i){
 rv+=this.elements[i].destruct(dpath+"["+i+"]",drefs);
 }
+if(i<this.elements.length){
+if(this.elements[i].is_rest){
+rv+=this.elements[i].destructRest(dpath,i,drefs);
+}else rv+=this.elements[i].destruct(dpath+"["+i+"]",drefs);
+
+
+}
+
 return rv;
 };
 ph_arr_lit.prototype.collect_var_decls=function(vars){for(var i=0;i<this.elements.length;++i)this.elements[i].collect_var_decls(vars);
@@ -6155,7 +6199,7 @@ ph_obj_lit.prototype.collect_par_decls=function(pars,names){var sub=[];
 for(var i=0;i<this.props.length;++i){
 var p=this.props[i];
 if(p[0]==="pat"){
-if(p[1].charAt(0)==='@')throw new Error("Invalid '"+p[1]+"' in paramter list");
+if(p[1].charAt(0)==='@')throw new Error("Invalid '"+p[1]+"' in parameter list");
 ensure_unique_name(p[1],names);
 sub.push(p[1]);
 }else if(p[0]==='prop'){
@@ -6657,7 +6701,7 @@ while(pctx.token.id!="]"){
 if(elements.length)scan(pctx,",");
 if(pctx.token.id==","){
 elements.push((function(pctx){return new ph_literal("",pctx)})(pctx));
-}else if(pctx.token.id=="]")break;else elements.push(parseExp(pctx,110,undefined,exs_flags|2));
+}else if(pctx.token.id=="]")break;else elements.push(parseExp(pctx,110,undefined,exs_flags));
 
 
 
@@ -6701,16 +6745,7 @@ return new ph_dot_accessor(l,name,pctx);
 function is_arrow(id){return id==='=>'||id==='->'}
 
 
-S("...").exs(function(pctx,exs_flags){var lookahead_pctx=Object.assign({},pctx);
-
-
-
-if(pctx.token.id=="<id>"&&scan(lookahead_pctx).id==')'&&is_arrow(scan(lookahead_pctx).id)){
-pctx.token.value="..."+pctx.token.value;
-var tok=pctx.token;
-scan(pctx);
-return tok.exsf(pctx);
-}else if((exs_flags&2)){
+S("...").exs(function(pctx,exs_flags){if((exs_flags&2)){
 
 
 
@@ -6722,6 +6757,16 @@ var right=parseExp(pctx,119);
 
 
 return gen_spread(right);
+}else if(pctx.token.id=="<id>"||pctx.token.id=='['||pctx.token.id=='<@id>'){
+
+
+
+
+var right=parseExp(pctx,119);
+
+
+if(pctx.token.id==',')throw new Error("Invalid location of rest ('...') property");
+return new ph_rest(right);
 }else throw new Error("Unexpected '...'");
 
 });
@@ -7070,6 +7115,8 @@ return left;
 }
 
 function parseFunctionParams(pctx,starttok,endtok){if(!starttok){
+
+
 starttok='(';endtok=')'}
 var pars=[];
 var have_rest=false;

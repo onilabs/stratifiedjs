@@ -4273,6 +4273,18 @@ return a in b}};
 
 
 
+
+
+
+exports.destructRestProperty=function(obj,idx){if(!Array.isArray(obj))throw new Error("Cannot obtain rest property for non-array in destructuring pattern");
+
+
+
+return obj.slice(idx);
+};
+
+
+
 var UA=navigator.userAgent.toLowerCase();
 if(UA.indexOf(" chrome/")>=0)UA="chrome";else if(UA.indexOf(" firefox/")>=0)UA="firefox";else if(UA.indexOf(" safari/")>=0)UA="safari";else if(UA.indexOf(" msie ")>=0)UA="msie";else UA="unknown";
 
