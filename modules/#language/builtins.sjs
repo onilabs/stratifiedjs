@@ -581,12 +581,14 @@
 @param {Function} [f]
 @return {::Stratum}
 @desc
-  * `S.spawn(f)` creates a new child stratum `T` with parent `S`, returns `T` and then executes `f(T)` in the background in the stratum `T`.
+  * `S.spawn(f)` creates a new child stratum `T` with parent `S`, and proceeds to execute `f(T)` in the background in the stratum `T`. When `T` blocks, or returns (either normally, with an exception, or with blocklambda returns or breaks), control passes back to the `spawn` call, which returns the value `T` (a stratum) to `S`. 
   * When `S` exits, it will abort all still running child strata.
   * If `T` throws an exception, `S` will be aborted and throw the exception to its parent.
   * If `T` returns normally, its return value will be discarded.
   * If `T` generates blocklambda controlflow (blocklambda returns or breaks), this controlflow
     will be routed through `S` (causing `S` to be retracted).
+  * Note that the `spawn` call will *always* return to the parent `S`. Any synchronous controlflow
+    generated in `T` will only be handled when `S` blocks or returns.
 
 
 @function Stratum.join

@@ -287,6 +287,9 @@
      `service` will have the lifetime of its session bound to the enclosing 'background 
      services session' - if the former hasn't been terminated by the time the latter exits, 
      it will be terminated then.     
+
+     Note that `runService` will return synchronously without blocking iff `service` calls its session
+     function synchronously without blocking. (This fact can often simplify reasoning about potential race conditions which might arise when starting services concurrently from multiple strata.) 
 */
 function withBackgroundServices(session_f) {
   @withBackgroundStrata {
@@ -402,7 +405,9 @@ __js {
    @param {optional Objects} [...args] Arguments to provide to controlled service
    @param {Function} [session_f] Session function which will be passed an [::IControlledService] interface
    @desc
-     The controlled service starts out in state 'stopped'.
+     - The controlled service starts out in state 'stopped'.
+     - Note withControlledService does not block before calling `session_f`. (This fact can often 
+       simplify reasoning about potential race conditions which might arise when controlled services are created concurrently from multiple strata).
 */
 /**
    @class IControlledService
