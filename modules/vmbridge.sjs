@@ -237,8 +237,13 @@ __js {
 // MISC BRIDGE FUNCTIONS
 
 __js function publishFunction(bridge_itf, f) {
-  var id = ++bridge_itf.published_func_id_counter;
-  bridge_itf.published_funcs[id] = function(...args) { return f(...args); };
+  var id = bridge_itf.known_id_by_func.get(f);
+  if (id == undefined) {
+    id = ++bridge_itf.published_func_id_counter;
+    bridge_itf.published_funcs[id] = f;
+    bridge_itf.known_id_by_func.set(f, id);
+  }
+//  else console.log("We're reusing already published function ",f);
   return id;
 };
 
@@ -785,7 +790,8 @@ function withVMBridge(settings, session_f) {
     remoteToLocalCalls: {},
 
     published_func_id_counter: 0,
-    published_funcs: {}
+    published_funcs: {},
+    known_id_by_func: new WeakMap()
 
   }; // bridge_itf
 
