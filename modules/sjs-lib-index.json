@@ -1718,6 +1718,9 @@
             },
             "set": {
               "type": "function"
+            },
+            "stream": {
+              "type": "variable"
             }
           }
         },
@@ -1818,6 +1821,13 @@
     "sequence": {
       "type": "module",
       "children": {
+        "ITF_STREAM": {
+          "type": "variable"
+        },
+        "IndirectedStream": {
+          "type": "class",
+          "children": {}
+        },
         "MaterialSequence": {
           "type": "class",
           "children": {}
@@ -1925,6 +1935,12 @@
           "type": "function"
         },
         "generate": {
+          "type": "function"
+        },
+        "getStructuredStreamBase": {
+          "type": "function"
+        },
+        "getStructuredStreamType": {
           "type": "function"
         },
         "groupBy": {

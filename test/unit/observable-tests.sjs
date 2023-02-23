@@ -10,6 +10,12 @@
     @assert.eq(a .. @isObservableVar, true);
   })
 
+  @test("stream", function() {
+    var a = @ObservableVar();
+    @assert.eq(a.stream .. @isObservableVar, false);
+    @assert.eq(a.stream .. @isStream, true);
+  });
+
 	@test("conflict", function() {
 		var a = @ObservableVar();
 		@assert.raises({filter:@isConflictError}, function() {
@@ -211,10 +217,12 @@
 
   @test("typing", function() {
     var a = @ObservableWindowVar(10);
-    @assert.eq(a .. @isStream, false);
+    @assert.eq(a .. @isStream, true);
+    @assert.eq(a .. @isStructuredStream('rolling'), true);
     @assert.eq(a .. @isObservableWindowVar, true);
     @assert.eq(a.stream .. @isStream, true);
     @assert.eq(a.stream .. @isStructuredStream('rolling'), true);
+    @assert.eq(a.stream .. @isObservableWindowVar, false);
   })
 
   @test("add/stream", function() {
@@ -229,6 +237,20 @@
     @assert.eq(rv, [[],[1],[1,2],[1,2,3],[2,3,4],[3,4,5],[4,5,6]]);
     A.stream .. @first .. @assert.eq([4,5,6]);
   })
+  @test("add/stream / indirected", function() {
+    var A = @ObservableWindowVar(3);
+    var rv = [];
+    waitfor {
+      A .. @each { |x| rv.push(x); }
+    }
+    or {
+      [1,2,3,4,5,6] .. @each {|x| A.add(x); }
+    }
+    @assert.eq(rv, [[],[1],[1,2],[1,2,3],[2,3,4],[3,4,5],[4,5,6]]);
+    A .. @first .. @assert.eq([4,5,6]);
+  })
+
+
   @test("add/stream async", function() {
     var A = @ObservableWindowVar(3);
     var rv = [];
@@ -245,13 +267,13 @@
     var A = @ObservableWindowVar(3);
     var rv = [];
     waitfor {
-      A.stream.base .. @each { |x| rv.push(x); }
+      @getStructuredStreamBase(A) .. @each { |x| rv.push(x); }
     }
     or {
       [1,2,3,4,5,6] .. @each {|x| A.add(x); }
     }
     @assert.eq(rv, [[0,[]],[0,[1]],[0,[2]],[0,[3]],[1,[4]],[1,[5]],[1,[6]]]);
-    A.stream.base .. @first .. @assert.eq([0,[4,5,6]]);
+    @getStructuredStreamBase(A) .. @first .. @assert.eq([0,[4,5,6]]);
   })
   @test("multiple streams", function() {
     var A = @ObservableWindowVar(3);
@@ -321,10 +343,12 @@
 
   @test("typing", function() {
     var a = @ObservableMapVar();
-    @assert.eq(a .. @isStream, false);
+    @assert.eq(a .. @isStream, true);
+    @assert.eq(a .. @isStructuredStream('map'), true);
     @assert.eq(a .. @isObservableMapVar, true);
     @assert.eq(a.stream .. @isStream, true);
     @assert.eq(a.stream .. @isStructuredStream('map'), true);
+    @assert.eq(a.stream .. @isObservableMapVar, false);
   })
 
   @test("set/stream", function() {
@@ -341,6 +365,22 @@
                     @Map([['a',1],['b',2],['c','x'],['d','y'],['e','z']])]);
     A.stream .. @first .. @assert.eq(@Map([['a',1],['b',2],['c','x'],['d','y'],['e','z']]));
   });
+
+  @test("set/stream indirected", function() {
+    var A = @ObservableMapVar();
+    var rv = [];
+    waitfor {
+      A .. @each { |x| rv.push(x); }
+    }
+    or {
+      [['a',1],['b',2],['c','x'],['d','y'],['e','z']] .. @each {|x| A.set(...x); }
+    }
+    @assert.eq(rv, [@Map(),@Map([['a',1]]),@Map([['a',1],['b',2]]),
+                    @Map([['a',1],['b',2],['c','x']]),@Map([['a',1],['b',2],['c','x'],['d','y']]),
+                    @Map([['a',1],['b',2],['c','x'],['d','y'],['e','z']])]);
+    A .. @first .. @assert.eq(@Map([['a',1],['b',2],['c','x'],['d','y'],['e','z']]));
+  });
+
 
   @test("stream/ consume with delay", function() {
     var A = @ObservableMapVar();

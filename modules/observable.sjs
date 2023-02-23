@@ -43,7 +43,7 @@
   'sjs:map'
 ]);
 var cutil = require('./cutil');
-var { Stream, isSequence, isStream, toArray, slice, integers, first, each, skip, mirror, consume, isStructuredStream, StructuredStream } = require('./sequence');
+var { Stream, isSequence, isStream, toArray, slice, integers, first, each, skip, mirror, consume, isStructuredStream, StructuredStream, getStructuredStreamBase, ITF_STREAM } = require('./sequence');
 var { override } = require('./object');
 
 module.setCanonicalId('sjs:observable');
@@ -51,8 +51,13 @@ module.setCanonicalId('sjs:observable');
 /**
   @class Observable
   @inherit sjs:sequence::Stream
-  @summary A stream with 'observable' semantics
+  @summary A category of stream with 'observable' semantics
   @desc
+    Observable streams are a _semantic_ category of streams - neither is there a way to mark a
+    particular stream as being an observable stream, nor to test for it. Documenting a stream as
+    an observable stream constitutes a promise between a producer and consumer of adhering to a
+    certain protocol.
+
     A stream is said to be an "observable" if it consists of a
     *temporal* sequence of values representing some changing state
     (e.g. that of an [::ObservableVar]). The most recent value emitted
@@ -79,8 +84,18 @@ module.setCanonicalId('sjs:observable');
       will only cause the observable to emit a new value if `val` is not
       equal to the current observable value (under `===`).
 
+    - ObservableVars are [sequence::IndirectedStream]s that resolve to their [::Observable] 
+      stream when used in a context that expects a [sequence::Sequence]. Note that passing 
+      the full ObservableVar object to an API that expects just an [::Observable] stream is at
+      best bad practice and at worst dangerous, because the ObservableVar interface contains 
+      methods that allow for mutation. You can instead use [::ObservableVar::stream] to resolve to 
+      the 'naked' [::Observable] stream.
+
   @function ObservableVar
   @param {Object} [val] Initial value
+
+  @variable ObservableVar.stream
+  @summary The naked [::Observable] stream driven by the ObservableVar.
 
   @function ObservableVar.get
   @summary Get the current observable value.
@@ -189,7 +204,7 @@ function ObservableVar(val) {
     return change.receive();
   }
 
-  var rv = Stream(function(receiver) {
+  var stream = Stream(function(receiver) {
     var have_rev = 0;
     while (true) {
       wait(have_rev);
@@ -198,29 +213,31 @@ function ObservableVar(val) {
     }
   });
 
-  rv.set = function(v) {
-    if (val === v) return;
-    val = v;
-    change.dispatch(++rev);
+  var rv = {
+    set: function(v) {
+      if (val === v) return;
+      val = v;
+      change.dispatch(++rev);
+    },
+    modify: function(f) {
+      var newval;
+      waitfor {
+        change.receive();
+        collapse;
+        throw ConflictError("value changed during modification");
+      } or {
+        newval = f(val, unchanged);
+      }
+      var changed = newval !== unchanged;
+      if (changed) rv.set(newval);
+      return changed;
+    },
+    get: -> val,
+    stream: stream,
+    __oni_is_ObservableVar: true
   };
 
-  rv.modify = function(f) {
-    var newval;
-    waitfor {
-      change.receive();
-      collapse;
-      throw ConflictError("value changed during modification");
-    } or {
-      newval = f(val, unchanged);
-    }
-    var changed = newval !== unchanged;
-    if (changed) rv.set(newval);
-    return changed;
-  };
-
-  rv.get = -> val;
-
-  rv.__oni_is_ObservableVar = true;
+  rv[ITF_STREAM] = stream;
 
   return rv;
 }
@@ -241,16 +258,20 @@ __js {
 
 /**
    @class ObservableWindowVar
+   @inherit ::Observable
    @summary A variable containing a rolling window of elements driving an [::Observable] stream
    @desc
-     A variable containing a rolling `window`-sized window of elements with an associated [::Observable] stream.
+     - A variable containing a rolling `window`-sized window of elements with an associated [::Observable] stream.
 
-     Elements are shifted (from the right) into the window using [::ObservableWindowVar::add]. The oldest
+     - Elements are shifted (from the right) into the window using [::ObservableWindowVar::add]. The oldest
      element will be shifted out (to the left) to maintain the number of elements in the variable
      at `<=window`.
 
+     - ObservableWindowVars are [sequence::IndirectedStream]s that resolve to their [::Observable] stream.
+     The 'naked' stream is accessible through [::ObservableWindowVar::stream].
+
      ### Stream structuring details
-     The generated stream, [::ObservableWindowVar::stream], is an efficiently encoded
+     The generated stream is an efficiently encoded
      [sequence::StructuredStream] of type 'rolling'.
 
    @function ObservableWindowVar
@@ -264,7 +285,7 @@ __js {
    @summary Clears all elements from the rolling window.
 
    @variable ObservableWindowVar.stream
-   @summary  [::Observable] of the variable. (A 'rolling' [sequence::StructuredStream])
+   @summary  The naked [::Observable] stream driven by the variable. (A 'rolling' [sequence::StructuredStream])
 */
 function ObservableWindowVar(window) {
   var Update = cutil.Dispatcher();
@@ -288,7 +309,7 @@ function ObservableWindowVar(window) {
         }
       };
 
-  return {
+  var rv = {
     stream: stream,
 
     add: function(x) { 
@@ -307,6 +328,10 @@ function ObservableWindowVar(window) {
 
     __oni_is_ObservableWindowVar: true
   };
+
+  rv[ITF_STREAM] = stream;
+
+  return rv;
 }
 __js exports.ObservableWindowVar = ObservableWindowVar;
 
@@ -325,13 +350,16 @@ __js {
 
 /**
    @class ObservableMapVar
+   @inherit ::Observable
    @summary A Map-type variable driving an [::Observable] stream and individual key observables
    @desc
-     ObservableMapVar contains a [./map::Map] with an associated [::Observable] stream and a facility
+     - ObservableMapVar contains a [./map::Map] with an associated [::Observable] stream and a facility
      for observing individual keys in the map.
 
+     - ObservableMapVars are [sequence::IndirectedStream]s that resolve to their [::Observable] stream. The 'naked' stream is accessible through [::ObservableMapVar::stream].
+
      ### Stream structuring details
-     The generated stream, [::ObservableMapVar::stream], is an efficiently encoded
+     The generated stream is an efficiently encoded
      [sequence::StructuredStream] of type 'map'.
 
    @function ObservableMapVar
@@ -349,7 +377,7 @@ __js {
    @return {Boolean} Returns `true` if the element was removed from the map, `false` if the map didn't contain an element with the given key.
 
    @function ObservableMapVar.stream
-   @summary  [::Observable] of the variable. (A 'map' [sequence::StructuredStream])
+   @summary  The naked [::Observable] stream driven by the variable. (A 'map' [sequence::StructuredStream])
 
    @function ObservableMapVar.observe
    @summary Observe the value of the element with the given key
@@ -362,7 +390,7 @@ function ObservableMapVar(initial) {
   var Update = cutil.Dispatcher();
   var map = @Map(initial);
   
-  return {
+  var rv = {
     __oni_is_ObservableMapVar: true,
 
     set: function(key, val) {map.set(key,val); Update.dispatch([key,val]); },
@@ -417,6 +445,10 @@ function ObservableMapVar(initial) {
       }
     }
   };
+
+  rv[ITF_STREAM] = rv.stream;
+
+  return rv;
 }
 exports.ObservableMapVar = ObservableMapVar;
 
@@ -970,7 +1002,7 @@ function sample(seq) {
   if (isStructuredStream('rolling') :: seq) {
     return StructuredStream('rolling') :: 
       Stream ::
-        function(receiver) { return sample_inner(seq.base, withSampler_rolling, receiver); }
+        function(receiver) { return sample_inner(getStructuredStreamBase(seq), withSampler_rolling, receiver); }
   }
   else {
     return Stream ::

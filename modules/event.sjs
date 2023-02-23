@@ -50,8 +50,13 @@ var sys = require('builtin:apollo-sys');
 /**
    @class EventStream
    @inherit sjs:sequence::Stream
-   @summary A stream with 'event' semantics
+   @summary A category of streams with 'event' semantics
    @desc
+     Event streams are a _semantic_ category of streams - neither is there a way to mark a 
+     particular stream as being an event stream, nor to test for it. Documenting a stream 
+     as an event stream constitutes a promise between a producer and consumer of adhering 
+     to a certain protocol.
+
      A stream is said to be an "event stream" if it consists of a *temporal*
      sequence of discrete values. In contrast to an [sjs:observable::Observable], 
      event streams do not have the concept of a 'current' value, i.e. calling [sjs:sequence::first] on 

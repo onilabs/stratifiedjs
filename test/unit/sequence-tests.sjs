@@ -2405,3 +2405,15 @@ context('Map', function() {
     @Map(s.toStream(arr)) .. @count .. assert.eq(4);
   });
 });
+
+context('Indirected', function() {
+  test('basic', function() {
+    var obj = {};
+    obj[s.ITF_STREAM] = s.integers();
+    assert.ok(s.isStream(obj));
+    assert.ok(s.isSequence(obj));
+    assert.notOk(s.isStructuredStream(obj));
+    assert.eq([0,1,2], obj .. s.take(3) .. s.toArray());
+  });
+
+});

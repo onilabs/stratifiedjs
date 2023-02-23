@@ -45,6 +45,7 @@
 
 var {isArrayLike, isQuasi, overrideObject, spawn } = require('builtin:apollo-sys');
 var { waitforAll, Queue, Semaphore, Dispatcher } = require('./cutil');
+var { Interface, hasInterface } = require('./type');
 var sys = require('builtin:apollo-sys');
 
 module.setCanonicalId('sjs:sequence');
@@ -90,13 +91,12 @@ function sequential(f) {
     An Array, array-like object (like `arguments`, `NodeList`, `TypedArray`, etc),
     String, [./set::Set],
     [bytes::Bytes],
-    [::StructuredStream],
     or [::Stream]
    @desc
      A sequence is a datastructure that can be sequentially processed by [::each].
 
-     Sequences are either [::MaterialSequence]s or [::Stream]s. Material sequences
-     are sequences where the elements are known in advance (such as Arrays).
+     Sequences fall into two classes: They are either [::MaterialSequence]s or [::Stream]s.
+     Material sequences are sequences where the elements are known in advance (such as Arrays).
      Streams are sequences where the elements are generated on-demand.
 
      A sequence is a [::Stream] if [::isStream] returns `true` for it. Otherwise it
@@ -109,7 +109,7 @@ function sequential(f) {
      streams. Also, some primitives (such as [::count]) can operate on material
      sequences without actually iterating the sequence.
 
-     Secondly, a powerful design pattern is for a function to accept either a
+     Secondly, a powerful design pattern is for a function to polymorphically accept either a
      material sequence or an [observable::Observable] of a material sequence as argument.
      A distinction between material sequences and [observable::Observable]s (which are 
      streams, but not material sequences) is needed to facilitate this.
@@ -129,24 +129,43 @@ function sequential(f) {
      Streams (as opposed to [::MaterialSequence]s) are sequences where the 
      elements are produced programmatically.
 
-     There are no particular guarantees about the behaviour of non-concrete
-     sequences. In particular, each individual sequence _may or may not_ be:
+     Streams take one the following forms:
+     
+       - a 'streaming function' tagged as being a Stream (see section below).
+       - a [::StructuredStream] object.
+       - an [::IndirectedStream].     
+
+     ### Stream semantics
+
+     There are no particular guarantees about the behaviour of streams. 
+     In particular, an individual stream _may or may not_ be:
 
      - infinite
      - arbitrarily large
      - non-replayable (i.e. you may only iterate over the sequence once)
      - intermittent (successive items may be separated by long periods of time)
+     - free-running/unbuffered (i.e. values might be produced and lost if the stream is 
+       consumed by a blocking consumer).
 
-     Whether or not a given sequence has any of these traits depends
+     Whether or not a given stream has any of these traits depends
      on its implementation, and cannot be tested programmatically.
 
-     ### Subtypes
+     In practice, many streams fall into two important semantic categories:
 
-     There are two subtypes of streams: [::StructuredStream]s and [observable::ObservableVar]s.
+     - [event::EventStream]
+     - [observable::Observable]
+
+     Many of the SJS library functions produce or expect streams that adhere to these semantics.
+
+     E.g.:
+
+       - [observable::ObservableVar] objects are streams that implement [observable::Observable] semantics. 
+       - [event::events] produces streams with [event::EventStream] semantics.
+
 
      ### Creating a stream from a streaming function
 
-     `@Stream(S)` creates a stream from a streaming function `S`.
+     `@Stream(S)` tags a 'streaming function' `S` as being a stream and returns `S`.
      A streaming function `S` is a function with signature `S(emit)`, where `emit`, is a
      function of a single argument.
      When called, `S(emit)` must sequentially invoke `emit(x)` with the stream's data elements
@@ -166,6 +185,32 @@ function sequential(f) {
           s .. each { |x| console.log(x*x) }  // -> 1,4,9,...,100
 
 */
+
+/**
+   @class IndirectedStream
+   @inherit ::Stream
+   @summary An object with an [::ITF_STREAM] property
+   @desc
+     - ITF_STREAM property must point to a [::Stream] (which could be a another [::IndirectedStream])
+     - Can be used in place of any non-indirected stream.
+
+     ### Example:
+
+         var my_obj = { ... };
+         my_obj[@ITF_STREAM] = @integers();
+
+         @isSequence(my_obj); // -> true
+         @isStream(my_obj);   // -> true
+*/
+
+/**
+   @variable ITF_STREAM
+   @summary Interface implemented by [::IndirectedStream] objects
+*/
+__js {
+  var ITF_STREAM = Interface(module, 'stream');
+  exports.ITF_STREAM = ITF_STREAM;
+}
 
 /**
    @class StructuredStream
@@ -209,7 +254,9 @@ function sequential(f) {
 
      ### Implementation details
 
-     Structured streams are objects with a `base` and a `type` member.
+     A structured stream is a type-tagged object with a `base` and a `type` member, 
+     or an [::IndirectedStream] resolving to the former.
+
      `base` is a [::Sequence] that contains the encoded elements.
      As `base` can be *any* sequence, streams can have nested structure: E.g.
      you might have a 'rolling batched' stream, or even a 
@@ -218,6 +265,9 @@ function sequential(f) {
      To inspect the raw elements of a structured stream (with all levels
      of structuring removed) while iterating the stream you can use [::monitor.raw].
      
+     Because structured streams might be [::IndirectedStream]s, the `base` and `type` 
+     members must not be accessed directly, but via [::getStructuredStreamBase] and 
+     [::getStructuredStreamType].
    
      ### type='batched'
 
@@ -317,11 +367,45 @@ __js {
 */
 __js {
   function isStructuredStream(obj, type) {
+    // resolve indirection
+    while (obj && obj[ITF_STREAM])
+      obj = obj[ITF_STREAM];
+
     if (!obj || obj.__oni_structured_stream !== true) return false;
     return (type === undefined)|| (obj.type === type);
   }
   exports.isStructuredStream = isStructuredStream;
 } // __js 
+
+/**
+   @function getStructuredStreamType
+   @summary Returns the type of structured stream `ss`
+   @param {::StructuredStream} [ss] A structured stream
+   @return {::Stream}
+*/
+__js {
+  function getStructuredStreamType(ss) {
+    // resolve indirection
+    while (ss[ITF_STREAM]) ss = ss[ITF_STREAM];
+    return ss.type;
+  }
+  exports.getStructuredStreamType = getStructuredStreamType;
+}
+
+/**
+   @function getStructuredStreamBase
+   @summary Returns the base stream of structured stream `ss`
+   @param {::StructuredStream} [ss] A structured stream
+   @return {::Stream}
+*/
+__js {
+  function getStructuredStreamBase(ss) {
+    // resolve indirection
+    while (ss[ITF_STREAM]) ss = ss[ITF_STREAM];
+    return ss.base;
+  }
+  exports.getStructuredStreamBase = getStructuredStreamBase;
+}
 
 
 __js {
@@ -379,7 +463,8 @@ __js var toStream = exports.toStream = function(arr) {
    @return {Boolean}
    @summary Returns `true` if `s` is a [::Stream], `false` otherwise.
 */
-__js var isStream = exports.isStream = (s) -> s && (s.__oni_is_Stream === true || s.__oni_structured_stream === true);
+__js var isStream = exports.isStream = (s) -> !!s && (s.__oni_is_Stream === true || s.__oni_structured_stream === true || isStream(s[ITF_STREAM]));
+
 
 /**
    @class MaterialSequence
@@ -521,6 +606,10 @@ non-synchronous case:
 */
 __js {
 function each(sequence, r) {
+  // resolve indirection:
+  while (sequence && sequence[ITF_STREAM])
+    sequence = sequence[ITF_STREAM];
+
   if (isStructuredStream(sequence)) {
     switch(sequence.type) {
       case 'batched':
@@ -898,7 +987,7 @@ exports.consumeMultiple = consumeMultiple;
 
      * Note that the stream presented to the session function will always be a plain stream. If 
      the input stream is a [::StructuredStream], it will be reconstructed to a plain [::Stream].
-     If you need to operate on the raw base stream, use `withOpenStream(S.base)`.
+     If you need to operate on the raw base stream, use `withOpenStream(getStructuredStreamBase(S))`.
 
 */
 
@@ -1833,7 +1922,7 @@ __js function filter(sequence, predicate) {
   if (!predicate) predicate = identity;
   if (sequence .. isStructuredStream('batched'))
     return StructuredStream('batched') ::
-             sequence.base .. 
+             getStructuredStreamBase(sequence) .. 
                transform(arr -> arr .. filter_inner(predicate) .. toArray) .. 
                filter_inner(x->x.length>0);
   else
@@ -1978,7 +2067,7 @@ map.filter = (sequence, fn) -> transform.filter(sequence, fn) .. toArray;
 __js function transform(sequence, f) {
   if (sequence .. isStructuredStream('batched'))
     return StructuredStream('batched') ::
-             sequence.base .. transform(arr -> arr .. map(f))
+             getStructuredStreamBase(sequence) .. transform(arr -> arr .. map(f))
   else
     return transform_inner(sequence, f);
 }
@@ -2058,7 +2147,7 @@ var transform_map_rolling = (seq, f) -> StructuredStream('rolling') ::
 
 function transform$map(seq, f) {
   if (isStructuredStream('rolling') :: seq) {
-    return transform_map_rolling(seq.base, f);
+    return transform_map_rolling(getStructuredStreamBase(seq), f);
   }
   else
     return seq .. transform(elems -> elems .. map(f));
@@ -2195,7 +2284,7 @@ __js exports.monitor = monitor;
 */
 __js monitor.raw = function(sequence, f) {
   if (sequence .. isStructuredStream) 
-    return StructuredStream(sequence.type):: monitor.raw(sequence.base, f);
+    return StructuredStream(getStructuredStreamType(sequence)) :: monitor.raw(getStructuredStreamBase(sequence), f);
   else
     return sequence .. monitor(f);
 }
@@ -2218,7 +2307,7 @@ __js monitor.raw = function(sequence, f) {
 */
 __js monitor.start = function(sequence, f) {
   if (sequence .. isStructuredStream)
-    return StructuredStream(sequence.type):: monitor.start(sequence.base, f);
+    return StructuredStream(getStructuredStreamType(sequence)):: monitor.start(getStructuredStreamBase(sequence), f);
   else
     return sequence .. _monitor_start(f);
 };
@@ -3725,11 +3814,11 @@ exports.mirror = function(stream, latest) {
 */
 __js {
   function batch(seq, settings) {
-    if (seq .. isStructuredStream('batched') && !seq.base .. isStructuredStream) {
-      return StructuredStream('batched') :: seq.base .. pack(settings) .. transform(__js arr -> arr.reduce((acc,val)->acc.concat(val), []));
+    if (seq .. isStructuredStream('batched') && !getStructuredStreamBase(seq) .. isStructuredStream) {
+      return StructuredStream('batched') :: getStructuredStreamBase(seq) .. pack(settings) .. transform(__js arr -> arr.reduce((acc,val)->acc.concat(val), []));
     }
     else if (seq .. isStructuredStream)
-      return StructuredStream(seq.type) :: batch(seq.base, settings);
+      return StructuredStream(getStructuredStreamType(seq)) :: batch(getStructuredStreamBase(seq), settings);
     else
       return StructuredStream('batched') :: seq .. pack(settings);
   }
@@ -3761,12 +3850,12 @@ var chunk = {};
 exports.chunk = chunk;
 chunk.json = function(seq, max_chunk) {
   // XXX handle this case:
-  //if (seq .. isStructuredStream('chunked.json') && !seq.base .. isStructuredStream) {
+  //if (seq .. isStructuredStream('chunked.json') && !getStructuredStreamBase(seq) .. isStructuredStream) {
     //XXX
   //}
   // else
   if (seq .. isStructuredStream)
-    return StructuredStream(seq.type) :: chunk.json(seq.base, max_chunk);
+    return StructuredStream(getStructuredStreamType(seq)) :: chunk.json(getStructuredStreamBase(seq), max_chunk);
   else
     return StructuredStream('chunked.json') :: 
       Stream :: function(r) {
@@ -3847,7 +3936,7 @@ function batchedRollingWindow(seq, settings) {
   return StructuredStream('rolling') ::
     Stream :: function(r) {
       // seq is a batched stream
-      seq.base .. consume(eos) {
+      getStructuredStreamBase(seq) .. consume(eos) {
         |next|
         var current_window = 0;
         var emit = !settings.cliff;
