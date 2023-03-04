@@ -79,3 +79,14 @@ context("permutations", function() {
     assert.eq(rv, [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]);
   })
 })
+
+context("shuffle", function() {
+  test('0', function() {
+    var arr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+    array.shuffle(arr);
+    assert.eq(arr.length, 14);
+    assert.notEq(arr, [1,2,3,4,5,6,7,8,9,10,11,12,13,14]); // this test might fail with a 1-in-10^11 chance
+    arr.sort((x,y)->x-y);
+    assert.eq(arr, [1,2,3,4,5,6,7,8,9,10,11,12,13,14]);
+  });
+});

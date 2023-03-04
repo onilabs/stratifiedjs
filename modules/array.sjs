@@ -114,6 +114,23 @@ exports.permutations = (arr) -> Stream(function(receiver) {
   recurse(arr, []);
 });
 
+/**
+   @function shuffle
+   @summary Randomly shuffles the elements of `arr` in place
+   @param {Array} [arr]
+   @return {Array} the shuffled input array
+   @desc
+     Uses Fisher-Yates algorithm and default JS random number generator
+*/
+__js exports.shuffle = function(arr) {
+  for (var i=arr.length-1; i>0; --i) {
+    var j = Math.floor(Math.random() * (i+1));
+    var tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+};
 
 /**
    @function cycle

@@ -112,6 +112,7 @@ module.exports = require(modules);
    - **kCombinations**: (function [sjs:array::kCombinations])
    - **permutations**: (function [sjs:array::permutations])
    - **remove**: (function [sjs:array::remove])
+   - **shuffle**: (function [sjs:array::shuffle])
   
   
   ### Symbols from the [sjs:bytes](#sjs%3Abytes) module:

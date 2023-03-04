@@ -204,6 +204,9 @@
         },
         "remove": {
           "type": "function"
+        },
+        "shuffle": {
+          "type": "function"
         }
       },
       "summary": "Functions for working with arrays"
