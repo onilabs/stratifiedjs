@@ -839,7 +839,39 @@
             }
           }
         },
+        "SortedMap": {
+          "type": "class",
+          "children": {
+            "SortedMap": {
+              "type": "ctor"
+            },
+            "clone": {
+              "type": "function"
+            },
+            "count": {
+              "type": "function"
+            },
+            "delete": {
+              "type": "function"
+            },
+            "elements": {
+              "type": "variable"
+            },
+            "get": {
+              "type": "function"
+            },
+            "has": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            }
+          }
+        },
         "isMap": {
+          "type": "function"
+        },
+        "isSortedMap": {
           "type": "function"
         }
       },
@@ -1707,6 +1739,29 @@
             }
           }
         },
+        "ObservableSortedMapVar": {
+          "type": "class",
+          "children": {
+            "ObservableSortedMapVar": {
+              "type": "ctor"
+            },
+            "Values": {
+              "type": "function"
+            },
+            "delete": {
+              "type": "function"
+            },
+            "observe": {
+              "type": "function"
+            },
+            "set": {
+              "type": "function"
+            },
+            "stream": {
+              "type": "function"
+            }
+          }
+        },
         "ObservableVar": {
           "type": "class",
           "children": {
@@ -1757,6 +1812,9 @@
           "type": "function"
         },
         "isObservableMapVar": {
+          "type": "function"
+        },
+        "isObservableSortedMapVar": {
           "type": "function"
         },
         "isObservableVar": {

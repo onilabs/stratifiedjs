@@ -177,7 +177,9 @@ module.exports = require(modules);
   ### Symbols from the [sjs:map](#sjs%3Amap) module:
   
    - **isMap**: (function [sjs:map::isMap])
+   - **isSortedMap**: (function [sjs:map::isSortedMap])
    - **Map**: (class [sjs:map::Map])
+   - **SortedMap**: (class [sjs:map::SortedMap])
   
   
   ### Symbols from the [sjs:nodejs/stream](#sjs%3Anodejs%2Fstream) module:
@@ -222,9 +224,11 @@ module.exports = require(modules);
    - **DelayedObservable**: (function [sjs:observable::DelayedObservable])
    - **isConflictError**: (function [sjs:observable::isConflictError])
    - **isObservableMapVar**: (function [sjs:observable::isObservableMapVar])
+   - **isObservableSortedMapVar**: (function [sjs:observable::isObservableSortedMapVar])
    - **isObservableVar**: (function [sjs:observable::isObservableVar])
    - **isObservableWindowVar**: (function [sjs:observable::isObservableWindowVar])
    - **ObservableMapVar**: (class [sjs:observable::ObservableMapVar])
+   - **ObservableSortedMapVar**: (class [sjs:observable::ObservableSortedMapVar])
    - **ObservableVar**: (class [sjs:observable::ObservableVar])
    - **ObservableWindowVar**: (class [sjs:observable::ObservableWindowVar])
    - **observe**: (function [sjs:observable::observe])

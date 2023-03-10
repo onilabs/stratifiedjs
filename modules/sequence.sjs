@@ -221,7 +221,7 @@ __js {
 /**
    @function StructuredStream
    @param {::Sequence} [base] Sequence to wrap as being structured
-   @param {String} [type] One of: 'batched', 'rolling', 'map', or 'chunked.json'.
+   @param {String} [type] One of: 'batched', 'array.mutations', 'rolling', 'map', or 'chunked.json'.
    @summary Add a wrapper to a sequence `base` that designates `base` as being structured according to `type`
    @desc
      'Structured streams' are streams where the individual elements are encoded in some way
@@ -239,7 +239,7 @@ __js {
      more efficient than operating on the reconstructed stream, or that maintain the 
      structure of the stream. E.g.:
 
-     - [::transform$map] can operate on 'rolling' structured streams in a way that
+     - [::transform$map] can operate on 'array.mutations' or 'rolling' structured streams in a way that
      only processes a fraction of the data than a comparable unstructured stream.
      - When presented with a 'batched' structured stream, [::transform] will maintain
      the batching structure, and return a 'batched' structured stream itself.
@@ -287,9 +287,22 @@ __js {
      To create a batched stream, use [::batch].
 
 
-     ### type='rolling'
+     ### type='array.mutations'
 
-     For rolling streams, the base stream consists of `[drop_count, new_elems]` elements.
+     These streams reconstruct to streams of 'Array' elements:
+     The base stream consists of arrays of elements of the following kind:
+
+         [0, [x1,x2,x3,...]] // resets to [x1,x2,x3,...]
+         [1, IDX, x1] // insert element x1 at IDX
+         [2, IDX, x1] // replace element at IDX with x1
+         [3, IDX] // remove element at IDX
+        
+
+
+     ### type='rolling'
+     
+     Rolling streams reconstruct to streams of 'Array' elements:
+     The base stream consists of `[drop_count, new_elems]` elements.
      The reconstructed stream consists of elements that accumulate `new_elems` and drop
      `drop_count` elements compared to the previous value. E.g. the base stream 
      `[0,[1,2,3]], [0, [4,5,6]], [2, [7,8,9]], [2,[]]` reconstructs to 
@@ -305,21 +318,21 @@ __js {
 
      ### type='map'
 
-     Map streams consist of arrays with elements of the following kind:
+     These streams reconstruct to streams of 'Map' or 'SortedMap' elements. 
+     They consist of arrays with elements of the following kind:
 
-         Map object // A Map object means 'reset to this map'
+         Map or SortedMap object // A Map object means 'reset to this map'
          [key]      // An array with one member means 'clear given key'
          [key,val]  // An array with two members means 'set key to val'
 
-     E.g. the base stream `[@Map([[foo,1], [bar,2]])], [['foo']], [[bar, 4], [baz, 5]]` reconstructs to
-     `@Map([[foo,1], [bar,2]]), @Map([[bar,2]]), @Map([[bar,4], [baz,5]])`.
+     E.g. the base stream `[@Map([['foo',1], ['bar',2]])], [['foo']], [['bar', 4], ['baz', 5]]` reconstructs to
+     `@Map([['foo',1], ['bar',2]]), @Map([['bar',2]]), @Map([['bar',4], ['baz',5]])`.
 
      Note that elements in the reconstructed stream will never be in-place mutations of 
      earlier elements (i.e. for two elements `x`, `y`, in the reconstructed stream, `x!==y` will
      always hold. This makes map streams safe to use in sampling environments.
 
-     Map streams are e.g. produced by [sjs:observable::ObservableMapVar::stream].
-
+     'map'-streams are e.g. produced by [sjs:observable::ObservableMapVar] or [sjs:observable::ObservableSortedMapVar].
 
      ### type='chunked.json'
 
@@ -345,7 +358,7 @@ __js {
   }
 
   function StructuredStream(base, type) {
-    if (type !== 'batched' && type !== 'rolling' && type !== 'map' && type !== 'chunked.json') 
+    if (type !== 'batched' && type !== 'rolling' && type !== 'array.mutations' && type !== 'map' && type !== 'chunked.json') 
       throw new Error("StructuredStream constructor: Invalid structured stream type '#{type}'");
     if (!isSequence(base))
       throw new Error("StructuredStream constructor: Invalid base object (needs to be a sequence)");
@@ -505,7 +518,8 @@ __js var isStream = exports.isStream = (s) -> !!s && (s.__oni_is_Stream === true
       - iteration will not mutate the sequence
       - iteration will not suspend between successive elements
       - the sequence object has a `size` property containing the number of elements.
-      - in contrast to concrete sequences, elements are not accessible by a position (index)
+      - in contrast to concrete sequences, elements are not readily accessible 
+        by position (index).
 
      # Semi-concrete sequence types:
 
@@ -545,8 +559,7 @@ __js var isMaterial = exports.isMaterialSequence = (s) ->
    @summary Returns `true` if `s` is a [::Sequence], `false` otherwise.
 */
 __js var isSequence = exports.isSequence = (s) ->
-  isMaterial(s) ||
-  isStream(s);
+  isStream(s) || isMaterial(s);
 
 /**
    @function generate
@@ -615,6 +628,9 @@ function each(sequence, r) {
       case 'batched':
       return iterate_batched_stream(sequence.base, r);
       break;
+      case 'array.mutations':
+      return iterate_array_mutations_stream(sequence.base, r);
+      break;
       case 'rolling':
       return iterate_rolling_stream(sequence.base, r);
       break;
@@ -666,6 +682,33 @@ function iterate_batched_stream(sequence, r) {
   }
 }
 
+function iterate_array_mutations_stream(sequence, r) {
+  var arr = [];
+  sequence .. each {
+    |xs|
+    __js {
+      for (var i=0; i<xs.length; ++i) {
+        var x = xs[i];
+        switch(x[0]) {
+        case 0:
+          arr = [].concat(x[1]);
+          break;
+        case 1:
+          arr.splice(x[1], 0, x[2]);
+          break;
+        case 2:
+          arr[x[1]] = x[2];
+          break;
+        case 3:
+          arr.splice(x[1], 1);
+          break;
+        }
+      }//__js
+    }
+    r(__js [].concat(arr));
+  }
+}
+
 function iterate_rolling_stream(sequence, r) {
   var accu = [];
   sequence .. each {
@@ -676,7 +719,7 @@ function iterate_rolling_stream(sequence, r) {
 }
 
 function iterate_map_stream(sequence, r) {
-  var map;
+  var map, is_sorted_map = false;
   sequence .. each {
     |ops|
     ops .. each {
@@ -689,9 +732,10 @@ function iterate_map_stream(sequence, r) {
       }
       else {
         map = op;
+        is_sorted_map = !(map instanceof Map);
       }
     }
-    r(__js new Map(map));
+    r(__js is_sorted_map ? map.clone() : new Map(map));
   }
 }
 
@@ -740,6 +784,8 @@ __js function exhaust(seq) { return each(seq, noop); }
      calls to `next()` will yield `eos`.
 
      Iteration of `sequence` will only begin with the first call of `next` (unlike [::withOpenStream]).
+     `sequence` also performs no buffering: The `receive` function presented to the emitter will always
+     be blocked after a `next` call and only return to the emitter upon the subsequent `next` call.
 
      It is *not* safe to call `next()` concurrently from multiple
      strata. If you need to do that, sequentialize access to `next`
@@ -956,8 +1002,11 @@ exports.consumeMultiple = consumeMultiple;
      within `block` will pick up iteration of `sequence` where the
      previous iteration left off.
 
-     `sequence` will be opened prior to the start of `block` (unlike [::consume], which
-     only begins iteration when the consumer makes the first call to `next`).
+     Unlike [::consume], `withOpenStream` buffers the next item of the input, if the receiver isn't
+     ready to receive it yet.
+     In particular, `sequence` will be opened prior to the start of `block` (unlike [::consume], which
+     only begins iteration when the consumer makes the first call to `next`), and the first item 
+     from the sequence will be buffered until requested through `open_stream`. 
 
      ### Example
 
@@ -983,6 +1032,17 @@ exports.consumeMultiple = consumeMultiple;
              S .. @takeWhile(x->x%2==0) .. @toArray; // = [0,2,4]
              // 5 IS IMPLICITLY SWALLOWED BY @takeWhile!
              S .. @toArray; // [6,7,8]
+           }
+
+     * `withOpenStream` implicitly requests and buffers the next stream item if the receiver 
+       is not ready to receive it yet:
+
+           var consumed = 0;
+           [0,1,2] .. @monitor(->++consumed) .. @withOpenStream {
+             |S|
+             // consumed equals 1 here; first item buffered
+             S .. @take(2) .. @toArray;
+             // consumed equals 3 here, not 2!!
            }
 
      * Note that the stream presented to the session function will always be a plain stream. If 
@@ -2107,12 +2167,12 @@ transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(__js x ->
   @param {::Sequence} [sequence] Input sequence
   @param {Function} [f] Function to map over each element of `sequence`
   @summary Map a function over the (array) elements of `sequence`
-  @return {::Stream|::StructuredStream} Plain stream or structured stream of type 'rolling' (see below)
+  @return {::Stream|::StructuredStream} Plain stream or structured stream of type 'rolling' or 'array.mutations' (see below)
   @desc
      `seq .. @transform$map(f)` is synonymous to 
      `seq .. @transform(arr -> arr .. @map(f))`.
      However, unlike the latter form, `transform$map` will maintain the 
-     structure of 'rolling' [::StructuredStream]s, and can operate more efficiently
+     structure of 'rolling' or 'array.mutations' [::StructuredStream]s, and can operate more efficiently
      on them.
      E.g.:
 
@@ -2145,15 +2205,45 @@ var transform_map_rolling = (seq, f) -> StructuredStream('rolling') ::
       }
     };
 
-function transform$map(seq, f) {
-  if (isStructuredStream('rolling') :: seq) {
-    return transform_map_rolling(getStructuredStreamBase(seq), f);
-  }
-  else
-    return seq .. transform(elems -> elems .. map(f));
-};
-exports.transform$map = transform$map;
+var transform_map_array_mutations = (seq, f) -> StructuredStream('array.mutations') ::
+  Stream :: function(r) {
+    seq .. each {
+      |xs|
+      var ys = [];
+      for (var i=0; i<xs.length; ++i) {
+        var x = xs[i];
+        switch(x[0]) {
+        case 0:
+          ys.push([0,x[1]..map(f)]);
+          break;
+        case 1:
+          ys.push([1,x[1], f(x[2])]);
+          break;
+        case 2:
+          ys.push([2,x[1], f(x[2])]);
+          break;
+        case 3:
+          ys.push(x);
+          break;
+        }
+      }
+      r(ys);
+    }
+  };
 
+__js {
+  function transform$map(seq, f) {
+    if (isStructuredStream('rolling') :: seq) {
+      return transform_map_rolling(getStructuredStreamBase(seq), f);
+    }
+    else if (isStructuredStream('array.mutations') :: seq) {
+      return transform_map_array_mutations(getStructuredStreamBase(seq), f);
+    }
+    else
+      return seq .. transform(elems -> elems .. map(f));
+  };
+  exports.transform$map = transform$map;
+}
 
 /**
    @function scan

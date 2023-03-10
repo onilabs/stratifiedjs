@@ -2038,7 +2038,60 @@ context("withOpenStream", function() {
       S .. s.toArray .. assert.eq([6,7,8]);
     }
   })
+  test("implicit buffering", function() {
+    var consumed = 0;
+    [0,1,2,3] .. s.monitor(->++consumed) .. s.withOpenStream {
+      |S|
+      assert.eq(consumed, 1);
+      S .. s.first .. assert.eq(0);
+      assert.eq(consumed, 2);
+      S .. s.first .. assert.eq(1);
+      assert.eq(consumed, 3);
+      hold(0);
+      assert.eq(consumed, 3);
+      S .. s.first .. assert.eq(2);
+      assert.eq(consumed, 4);
+      S .. s.first .. assert.eq(3);
+      assert.eq(consumed, 4);
+      hold(0);
+      assert.eq(consumed, 4);
+      S .. @toArray .. assert.eq([]);
+      assert.eq(consumed, 4);
+    }
+  });
+
+  test("implicit buffering 2", function() {
+    var consumed = 0;
+    [0,1,2] .. s.monitor(->++consumed) .. s.withOpenStream {
+      |S|
+      S .. @take(2) .. @toArray();
+      assert.eq(consumed, 3);
+    }
+    assert.eq(consumed, 3);
+  });
 })
+
+test("consume buffering", function() {
+    var consumed = 0;
+    [0,1,2,3] .. s.monitor(->++consumed) .. s.consume {
+      |next|
+      assert.eq(consumed, 0);
+      next() .. assert.eq(0);
+      assert.eq(consumed, 1);
+      next() .. assert.eq(1);
+      assert.eq(consumed, 2);
+      hold(0);
+      assert.eq(consumed, 2);
+      next() .. assert.eq(2);
+      assert.eq(consumed, 3);
+      next() .. assert.eq(3);
+      assert.eq(consumed, 4);
+      hold(0);
+      assert.eq(consumed, 4);
+      next() .. assert.eq(undefined);
+      assert.eq(consumed, 4);
+    }
+});
 
 context("rollingWindow", function() {
   test("typing", function() {
@@ -2185,6 +2238,27 @@ context("transform$map", function() {
       assert.eq([[1,4],[4,9],[9,16]]);
     assert.eq(executions, 4);
   })
+  test("array.mutations", function() {
+    var executions = 0;
+    var A = s.StructuredStream([ [ [0,[1,2]] ], // [1,2] 
+                                 [ [1,2,3], [3,0] ], // [2,3]
+                                 [ [3,0], [1,1,4] ], // [3,4]
+                                 [ [2,0,4], [2,1,5] ] // [4,5] 
+                               ], 
+                               'array.mutations');
+    assert.eq(A .. s.toArray, [ [1,2], [2,3], [3,4], [4,5] ]);
+    A .. s.transform$map(x->(++executions,x*x)) .. s.toArray .. assert.eq([[1,4],[4,9],[9,16],[16,25]]);
+    assert.eq(executions, 6);
+  })
+  test("plain blocking", function() {
+    var executions = 0;
+    // emit [1,2], [2,3], [3,4], as paced streams
+    var S = [1,2,2,3,3,4] .. s.pack(next->(hold(0),[next(),next()]..@monitor(->hold(0))));
+    S .. s.transform$map(x->(++executions,hold(0),x*x)) .. s.toArray ..
+      assert.eq([[1,4],[4,9],[9,16]]);
+    assert.eq(executions, 6);
+  })
+
 })
 
 context("monitor.raw", function() {

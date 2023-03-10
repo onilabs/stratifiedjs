@@ -40,10 +40,10 @@
 
 @ = require([
   {id: 'sjs:sys', name: 'sys'},
-  'sjs:map'
+  'sjs:map',
+  'sjs:sequence'
 ]);
 var cutil = require('./cutil');
-var { Stream, isSequence, isStream, toArray, slice, integers, first, each, skip, mirror, consume, isStructuredStream, StructuredStream, getStructuredStreamBase, ITF_STREAM } = require('./sequence');
 var { override } = require('./object');
 
 module.setCanonicalId('sjs:observable');
@@ -204,7 +204,7 @@ function ObservableVar(val) {
     return change.receive();
   }
 
-  var stream = Stream(function(receiver) {
+  var stream = @Stream(function(receiver) {
     var have_rev = 0;
     while (true) {
       wait(have_rev);
@@ -237,7 +237,7 @@ function ObservableVar(val) {
     __oni_is_ObservableVar: true
   };
 
-  rv[ITF_STREAM] = stream;
+  rv[@ITF_STREAM] = stream;
 
   return rv;
 }
@@ -291,8 +291,8 @@ function ObservableWindowVar(window) {
   var Update = cutil.Dispatcher();
   var queue = [];
   var adds = 0;
-  var stream = StructuredStream('rolling') ::
-      Stream :: function(r) {
+  var stream = @StructuredStream('rolling') ::
+      @Stream :: function(r) {
         var pos = 0; // stream position
         var have = 0;
         while (1) {
@@ -329,7 +329,7 @@ function ObservableWindowVar(window) {
     __oni_is_ObservableWindowVar: true
   };
 
-  rv[ITF_STREAM] = stream;
+  rv[@ITF_STREAM] = stream;
 
   return rv;
 }
@@ -386,7 +386,6 @@ __js {
 
 */
 function ObservableMapVar(initial) {
-  var restarting = false;
   var Update = cutil.Dispatcher();
   var map = @Map(initial);
   
@@ -396,7 +395,8 @@ function ObservableMapVar(initial) {
     set: function(key, val) {map.set(key,val); Update.dispatch([key,val]); },
     delete: function(key) { if (map.delete(key)) { Update.dispatch([key]); return true; } else return false; },
 
-    stream: StructuredStream('map') :: Stream :: function(r) {
+    stream: @StructuredStream('map') :: @Stream :: function(r) {
+      var restarting = false;
       var cache = [];
       waitfor {
         while (1) {
@@ -427,7 +427,7 @@ function ObservableMapVar(initial) {
       }
       
     },
-    observe: key -> Stream:: function(r) {
+    observe: key -> @Stream:: function(r) {
       var have = 0;
       waitfor {
         while (1) {
@@ -446,7 +446,7 @@ function ObservableMapVar(initial) {
     }
   };
 
-  rv[ITF_STREAM] = rv.stream;
+  rv[@ITF_STREAM] = rv.stream;
 
   return rv;
 }
@@ -463,6 +463,180 @@ __js {
     return o && o.__oni_is_ObservableMapVar === true;
   }
   exports.isObservableMapVar = isObservableMapVar;
+}
+
+/**
+   @class ObservableSortedMapVar
+   @inherit ::Observable
+   @summary A [./map::SortedMap]-type variable driving a [::Observable] [key,value] and value-only streams, as well as individual key observables
+   @desc
+     - ObservableSortedMapVar contains a [./map::SortedMap] with an associated [::Observable] stream, 
+     and a facility for observing individual keys in the SortedMap.
+
+     - ObservableSortedMapVars are [sequence::IndirectedStream]s that resolve to their [./map::SortedMap]-valued [::Observable] stream. The 'naked' stream is accessible through [::ObservableSortedMapVar::stream].
+
+     ### Stream structuring details
+
+     - The [::ObservableSortedMapVar::stream] stream is an [::Observable] of [./map::SortedMap] type, efficiently encoded as a [sequence::StructuredStream] of type 'map'.
+
+     - The [::ObservableSortedMapVar::Values] stream is an efficiently encoded [::Observable] of the SortedMap's values-Array, encoded as a 
+     [sequence::StructuredStream] of type 'array'.
+
+   @function ObservableSortedMapVar
+   @summary Create an ObservableSortedMapVar object
+   @param {optional ./sequence::Sequence|./map::SortedMap} [initial_elements] Initial elements. Sequence elements must be `[key,value]` pairs - see also [./map::SortedMap] constructor.
+
+   @function ObservableSortedMapVar.set
+   @summary Set the given `key` in the map to `value`
+   @param {Any} [key]
+   @param {Any} [value]
+   @return {Integer} Returns the rank (1-based index) of the element changed, or,if a new element was added to the map, `-rank` of the new element (i.e. a negative number).
+
+   @function ObservableSortedMapVar.delete
+   @summary Remove the element with the given key from the map.
+   @param {Any} [key] Key of element to remove
+   @return {Integer} Returns the rank (1-based index) of the removed element or `0` if the map didn't contain an element with the given key.
+
+   @function ObservableSortedMapVar.stream
+   @summary  The naked [::Observable] stream driven by the variable: An [::Observable] of type [./map::SortedMap], encoded as a 'map' [sequence::StructuredStream].
+
+   @function ObservableSortedMapVar.Values
+   @summary  An [::Observable] of the SortedMap's values-Array, encoded as a [sequence::StructuredStream] of type 'array'
+
+   @function ObservableSortedMapVar.observe
+   @summary Observe the value of the element with the given key
+   @param {Any} [key] Key of element to observe
+   @return {::Observable} Observable of the value associated with `key`
+
+*/
+function ObservableSortedMapVar(initial) {
+  var Update = cutil.Dispatcher();
+  var map = @SortedMap(initial);
+  
+  var rv = {
+    __oni_is_ObservableSortedMapVar: true,
+
+    set: function(key, val) {var idx = map.set(key,val); Update.dispatch([idx, [key, val]]); return idx;},
+    delete: function(key) { var idx = map.delete(key);
+                            if (idx !== 0) Update.dispatch([idx, [key]]); 
+                            return idx; },
+
+    stream: @StructuredStream('map') :: @Stream :: function(r) {
+      var restarting = false;
+      var cache = [];
+      waitfor {
+        while (1) {
+          var change = Update.receive();
+          if (cache.length > map.count()+10 /* XXX optimize this for various scenarios */) {
+            restarting = true;
+            cache = [map];
+            continue;
+          }
+          else if (restarting) {
+            if (cache.length === 1) { // value not picked up
+              continue;
+            }
+            else
+              restarting = false; // fall through to push updates to cache
+          }
+          cache.push(change[1]);
+        }
+      }
+      or {
+        r([map]);
+        while (1) {
+          while (!cache.length) Update.receive();
+          var batch = cache;
+          cache = [];
+          r(batch);
+        }
+      }
+      
+    },
+
+    observe: key -> @Stream:: function(r) {
+      var have = 0;
+      waitfor {
+        while (1) {
+          var change = Update.receive();
+          if (change[1][0] === key)
+            ++have;
+        }
+      }
+      or {
+        while (1) {
+          var seen = have;
+          r(map.get(key));
+          while (seen === have) Update.receive();
+        }
+      }
+    },
+
+    Values: @StructuredStream('array.mutations') :: @Stream :: function(r) {
+      // XXX kinda hackish
+      var overflow = false;
+      var cache = [];
+      waitfor {
+        while (1) {
+          var change = Update.receive();
+          if (cache.length > map.count()+10 /* XXX optimize this for various scenarios */) {
+            overflow = true;
+            cache = [];
+            continue;
+          }
+          else if (overflow) {
+            continue;
+          }
+          var idx = change[0];
+          if (change[1].length === 1) {
+            // delete:
+            cache.push([3,idx-1]);
+          }
+          else if (idx < 0) {
+            // insert
+            cache.push([1,-idx-1, change[1][1]]);
+          }
+          else {
+            // replace
+            cache.push([2,idx-1, change[1][1]]);
+          }
+        }
+      }
+      or {
+        r(__js [[0,map.elements..@map([k,v]->v)]]);
+        while (1) {
+          while (!cache.length && !overflow) Update.receive();
+          if (overflow) {
+            overflow = false;
+            r(__js [[0,map.elements..@map([k,v]->v)]]);
+          }
+          else {
+            var batch = cache;
+            cache = [];
+            r(batch);
+          }
+        }
+      }
+    }
+  };
+
+  rv[@ITF_STREAM] = rv.stream;
+
+  return rv;
+}
+exports.ObservableSortedMapVar = ObservableSortedMapVar;
+
+/**
+   @function isObservableSortedMapVar
+   @param  {Object} [o] Object to test
+   @return {Boolean}
+   @summary Returns `true` if `o` is an [::ObservableSortedMapVar], `false` otherwise.
+*/
+__js {
+  function isObservableSortedMapVar(o) {
+    return o && o.__oni_is_ObservableSortedMapVar === true;
+  }
+  exports.isObservableSortedMapVar = isObservableSortedMapVar;
 }
 
 
@@ -520,7 +694,7 @@ function synchronize(A, B, settings) {
   var BfromA = UNSET_TOKEN;
 
   waitfor {
-    A .. each.track { 
+    A .. @each.track { 
       |valA|
       if (valA === AfromB) continue;
       if (settings.aToB)
@@ -531,7 +705,7 @@ function synchronize(A, B, settings) {
     }
   }
   and {
-    B .. exports.changes .. each.track {
+    B .. exports.changes .. @each.track {
       |valB|
       if (valB === BfromA) continue;
       if (settings.bToA)
@@ -602,18 +776,18 @@ exports.synchronize = synchronize;
 
 */
 function observe(/* var1, ...*/) {
-  var deps = arguments .. slice(0,-1) .. toArray;
+  var deps = arguments .. @slice(0,-1) .. @toArray;
   var f = arguments[arguments.length-1];
 
   __js {
-    deps .. each {
+    deps .. @each {
       |dep|
-      if (!isStream(dep)) 
+      if (!@isStream(dep)) 
         throw new Error("invalid non-stream argument '#{typeof dep}' passed to 'observe()'");
     }
   }
 
-  return Stream(function(receiver) {
+  return @Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = cutil.Dispatcher();
 
@@ -639,7 +813,7 @@ function observe(/* var1, ...*/) {
       cutil.waitforAll(
         function(i) {
           var first = true;
-          deps[i] .. each {
+          deps[i] .. @each {
             |x|
             if (first) {
               ++primed;
@@ -652,9 +826,9 @@ function observe(/* var1, ...*/) {
             change.dispatch();
           }
         },
-        integers(0,deps.length-1) .. toArray);
+        @integers(0,deps.length-1) .. @toArray);
     }
-  }) .. mirror;
+  }) .. @mirror;
 }
 exports.observe = observe;
 
@@ -732,15 +906,15 @@ exports.observe = observe;
 */
 function CompoundObservable(sources, transformer) {
   __js {
-    sources .. each {
+    sources .. @each {
       |source|
-      if (!isStream(source)) {
-          throw new Error("invalid non-stream argument of type '#{isSequence(source) ? source : typeof source}' passed to 'CompoundObservable()'");
+      if (!@isStream(source)) {
+          throw new Error("invalid non-stream argument of type '#{@isSequence(source) ? source : typeof source}' passed to 'CompoundObservable()'");
       }
     }
   } /* __js */
 
-  return Stream(function(receiver) {
+  return @Stream(function(receiver) {
     var inputs = [], primed = 0, rev=1;
     var change = cutil.Dispatcher();
 
@@ -768,7 +942,7 @@ function CompoundObservable(sources, transformer) {
       cutil.waitforAll(
         function(i) {
           var first = true;
-          sources[i] .. each {
+          sources[i] .. @each {
             |x|
             if (first) {
               ++primed;
@@ -781,9 +955,9 @@ function CompoundObservable(sources, transformer) {
             change.dispatch();
           }
         },
-        integers(0,sources.length-1) .. toArray);
+        @integers(0,sources.length-1) .. @toArray);
     }
-  }) .. mirror;
+  }) .. @mirror;
 }
 exports.CompoundObservable = CompoundObservable;
 
@@ -792,14 +966,14 @@ exports.CompoundObservable = CompoundObservable;
    @param {sjs:sequence::Stream} [obs] Stream (usually an [::Observable])
    @summary Obtain the current value of an [::Observable]; synonym for [sjs:sequence::first]
 */
-exports.current = first;
+exports.current = @first;
 
 /**
    @function changes
    @param {sjs:sequence::Stream} [obs] Stream (usually an [::Observable])
    @summary Obtain a stream of *changes* of an [::Observable], omitting the initial value; synonym for `skip(1)`.
 */
-exports.changes = obs -> obs .. skip(1);
+exports.changes = obs -> obs .. @skip(1);
 
 /**
    @function updatesToObservable
@@ -824,13 +998,13 @@ exports.changes = obs -> obs .. skip(1);
 
 */
 function updatesToObservable(updates, getInitial) {
-  return Stream(function(receiver) {
+  return @Stream(function(receiver) {
     var val, ver = 0, current_ver = 0;
     waitfor {
       var have_new_val = cutil.Dispatcher();
 
       waitfor {
-        updates .. each {
+        updates .. @each {
           |e|
           val = e; 
           ++ver;
@@ -867,7 +1041,7 @@ exports.updatesToObservable = updatesToObservable;
    @summary Create an observable that always returns `obj` and then `hold()`s.
 */
 exports.ConstantObservable = exports.constantObservable = function(obj) {
-  return Stream(function(receiver) {
+  return @Stream(function(receiver) {
     receiver(obj);
     hold();
   });
@@ -888,9 +1062,9 @@ exports.ConstantObservable = exports.constantObservable = function(obj) {
 exports.DelayedObservable = function(observable, dt) {
   if (dt === undefined) dt = 0;
 
-  return Stream(function(receiver) {
+  return @Stream(function(receiver) {
     var eos = {};
-    observable .. consume(eos) {
+    observable .. @consume(eos) {
       |next|
       var val = next();
       while (val !== eos) {
@@ -927,7 +1101,7 @@ function stencil(val, block) {
 exports.stencil = stencil;
 
 function _(name, defval) {
-  return Stream(function(r) {
+  return @Stream(function(r) {
     var Stencil = @sys.getDynVar('__sjs_stencil', defval);
     if (!Stencil || Stencil[name] === undefined) {
       r(defval);
@@ -999,13 +1173,13 @@ function withSampler_rolling(block) {
 }
 
 function sample(seq) {
-  if (isStructuredStream('rolling') :: seq) {
-    return StructuredStream('rolling') :: 
-      Stream ::
-        function(receiver) { return sample_inner(getStructuredStreamBase(seq), withSampler_rolling, receiver); }
+  if (@isStructuredStream('rolling') :: seq) {
+    return @StructuredStream('rolling') :: 
+      @Stream ::
+        function(receiver) { return sample_inner(@getStructuredStreamBase(seq), withSampler_rolling, receiver); }
   }
   else {
-    return Stream ::
+    return @Stream ::
       function(receiver) { return sample_inner(seq, withSampler_plain, receiver); }
   }
 }
@@ -1018,7 +1192,7 @@ function sample_inner(seq, withSampler, receiver) {
   withSampler {
     |{add_elem, retrieve_sample}|
     waitfor {
-      seq .. each {
+      seq .. @each {
         |x|
         add_elem(x);
         have_sample = true;

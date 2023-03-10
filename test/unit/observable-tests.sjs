@@ -355,7 +355,12 @@
     var A = @ObservableMapVar();
     var rv = [];
     waitfor {
-      A.stream .. @each { |x| rv.push(x); }
+      A.stream .. @each { 
+        |x| 
+        rv.push(@Map(x)); 
+        x.set('foo', 'bar');
+        x.delete('a');  
+      }
     }
     or {
       [['a',1],['b',2],['c','x'],['d','y'],['e','z']] .. @each {|x| A.set(...x); }
@@ -370,7 +375,12 @@
     var A = @ObservableMapVar();
     var rv = [];
     waitfor {
-      A .. @each { |x| rv.push(x); }
+      A .. @each { 
+        |x| 
+        rv.push(@Map(x)); 
+        x.set('foo', 'bar');
+        x.delete('a');
+      }
     }
     or {
       [['a',1],['b',2],['c','x'],['d','y'],['e','z']] .. @each {|x| A.set(...x); }
@@ -386,7 +396,13 @@
     var A = @ObservableMapVar();
     var rv = [];
     waitfor {
-      A.stream .. @each { |x| rv.push(x); hold(0); }
+      A.stream .. @each { 
+        |x| 
+        rv.push(@Map(x)); 
+        x.set('foo', 'bar');
+        x.delete('a');
+        hold(0); 
+      }
     }
     or {
       [['a',1],['b',2],['c','x'],['d','y'],['e','z']] .. @each {|x| A.set(...x); }
@@ -415,6 +431,148 @@
                     'x:5', 'y:undefined', 'x:7', 'y:8' ]);
   });
 }) // context 'ObservableMapVar'
+
+
+@context("ObservableSortedMapVar", function() {
+
+  @test("typing", function() {
+    var a = @ObservableSortedMapVar();
+    @assert.eq(a .. @isStream, true);
+    @assert.eq(a .. @isStructuredStream('map'), true);
+    @assert.eq(a .. @isObservableSortedMapVar, true);
+    @assert.eq(a.stream .. @isStream, true);
+    @assert.eq(a.stream .. @isStructuredStream('map'), true);
+    @assert.eq(a.stream .. @isObservableSortedMapVar, false);
+  })
+
+  @test("set/stream", function() {
+    var A = @ObservableSortedMapVar();
+    var rv = [];
+    waitfor {
+      A.stream .. @each { |x| 
+        @assert.truthy(x .. @isSortedMap);
+        rv.push(x.elements..@toArray); 
+        x.set('foo', 'bar');
+        x.delete('a');
+      }
+    }
+    or {
+      [['a',1],['c',2],['b','x'],['e','y'],['d','z']] .. @each {|x| A.set(...x); }
+    }
+
+    @assert.eq(rv, [[],
+                    [['a',1]],
+                    [['a',1],['c',2]],
+                    [['a',1],['b','x'],['c',2]],
+                    [['a',1],['b','x'],['c',2],['e','y']],
+                    [['a',1],['b','x'],['c',2],['d','z'],['e','y']]
+                   ]);
+    (A.stream .. @first).elements .. @toArray .. @assert.eq([['a',1],['b','x'],['c',2],['d','z'],['e','y']]);
+  });
+
+  @test("set/stream indirected", function() {
+    var A = @ObservableSortedMapVar();
+    var rv = [];
+    waitfor {
+      A .. @each { |x| 
+        @assert.truthy(x .. @isSortedMap);
+        rv.push(x.elements..@toArray); 
+        x.set('foo', 'bar');
+        x.delete('a');
+      }
+    }
+    or {
+      [['a',1],['c',2],['b','x'],['e','y'],['d','z']] .. @each {|x| A.set(...x); }
+    }
+
+    @assert.eq(rv, [[],
+                    [['a',1]],
+                    [['a',1],['c',2]],
+                    [['a',1],['b','x'],['c',2]],
+                    [['a',1],['b','x'],['c',2],['e','y']],
+                    [['a',1],['b','x'],['c',2],['d','z'],['e','y']]
+                   ]);
+    (A .. @first).elements .. @toArray .. @assert.eq([['a',1],['b','x'],['c',2],['d','z'],['e','y']]);
+  });
+
+
+  @test("stream/ consume with delay", function() {
+    var A = @ObservableSortedMapVar();
+    var rv = [];
+    waitfor {
+      A.stream .. @each { |x| 
+        @assert.truthy(x .. @isSortedMap);
+        hold(0); 
+        rv.push(x.elements..@toArray);         
+        x.set('foo', 'bar');
+        x.delete('a');
+      }
+    }
+    or {
+      [['a',1],['c',2],['b','x'],['e','y'],['d','z']] .. @each {|x| A.set(...x); }
+      hold(0);
+      hold(0);
+    }
+    @assert.eq(rv, [[],
+                    [['a',1],['b','x'],['c',2],['d','z'],['e','y']]
+                   ]);
+  });
+
+  @test("observe", function() {
+    var A = @ObservableSortedMapVar([['y','a'],['e',1]]);
+    var rv = [];
+    waitfor {
+      A.observe('x') .. @each { |x| rv.push('x:'+x); }
+    }
+    or {
+      A.observe('y') .. @each { |y| rv.push('y:'+y); }
+    }
+    or {
+      A.set('x', 1); A.set('x',2); A.set('b',3); A.delete('x'); 
+      A.set('y', 4); A.set('x', 5); A.delete('y'); A.set('c', 6);
+      A.set('x', 7); A.set('y', 8);
+    }
+    @assert.eq(rv, ['x:undefined', 'y:a', 'x:1', 'x:2', 'x:undefined', 'y:4',
+                    'x:5', 'y:undefined', 'x:7', 'y:8' ]);
+  });
+
+  @test("Values", function() {
+    var A = @ObservableSortedMapVar();
+    var rv = [];
+    waitfor {
+      A.Values .. @each { |x| 
+        @assert.truthy(Array.isArray(x));
+        rv.push(x); 
+      }
+    }
+    or {
+      [['a',1],['c',2],['b','x'],['e','y'],['d','z']] .. @each {|x| A.set(...x); }
+    }
+
+    @assert.eq(rv, [[],
+                    [1],
+                    [1,2],
+                    [1,'x',2],
+                    [1,'x',2,'y'],
+                    [1,'x',2,'z','y']
+                   ]);
+
+    (A.Values .. @first) .. @assert.eq([1,'x',2,'z','y']);    
+  });
+
+  @test("Values array.modifications overflow condition", function() {
+    var A = @ObservableSortedMapVar([[2,4],[1,1]]);
+    @consume(A.Values) {
+      |next|
+      next() .. @assert.eq([1,4]);
+      @integers() .. @take(50) .. @each {|x| hold(0); A.set(2, x); }
+      next() .. @assert.eq([1,49]);
+      A.set(2, 0);
+      next() .. @assert.eq([1,0]);
+    }
+  });
+
+}) // context 'ObservableSortedMapVar'
 
 
 @context('sample', function() {
