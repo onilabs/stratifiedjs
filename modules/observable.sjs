@@ -480,7 +480,7 @@ __js {
      - The [::ObservableSortedMapVar::stream] stream is an [::Observable] of [./map::SortedMap] type, efficiently encoded as a [sequence::StructuredStream] of type 'map'.
 
      - The [::ObservableSortedMapVar::Values] stream is an efficiently encoded [::Observable] of the SortedMap's values-Array, encoded as a 
-     [sequence::StructuredStream] of type 'array'.
+     [sequence::StructuredStream] of type 'array.mutations'.
 
    @function ObservableSortedMapVar
    @summary Create an ObservableSortedMapVar object
@@ -501,7 +501,7 @@ __js {
    @summary  The naked [::Observable] stream driven by the variable: An [::Observable] of type [./map::SortedMap], encoded as a 'map' [sequence::StructuredStream].
 
    @function ObservableSortedMapVar.Values
-   @summary  An [::Observable] of the SortedMap's values-Array, encoded as a [sequence::StructuredStream] of type 'array'
+   @summary  An [::Observable] of the SortedMap's values-Array, encoded as a [sequence::StructuredStream] of type 'array.mutations'
 
    @function ObservableSortedMapVar.observe
    @summary Observe the value of the element with the given key
