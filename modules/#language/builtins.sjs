@@ -364,7 +364,8 @@
 
   Note that require.resolve automatically appends default extensions to the resolved path. In the
   'xbrowser' hostenv, this will be '.sjs' (unless a directory location is being resolved). In the
-  'nodejs' hostenv, '.sjs' will be appended if the given file exists on disk with an 'sjs' extension.
+  'nodejs' hostenv, '.sjs' will be appended if the given module is already loaded, or the file 
+  exists on disk with an 'sjs' extension.
 
 @function require.url
 @summary Resolve a module ID (or directory) to a URL without loading it

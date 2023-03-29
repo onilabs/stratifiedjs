@@ -492,15 +492,19 @@ function file_src_loader(path) {
   return { src: data.toString(), loaded_from: path };
 }
 
-function resolve_file_url (spec) {
+function resolve_file_url (spec, {require}) {
+  // for extensionless require()s, resolve to `[path].[type]` only if it already loaded or 
+  // exists in the filesystem
   if (!spec.ext) {
     var ext = "." + spec.type;
-    var path = fileUrlToPath(spec.path);
-    // for extensionless require()s, resolve to `[path].[type]` only if it exists
-    waitfor (var err) {
-      __oni_rt.nodejs_require('fs').lstat(path + ext, resume);
+    if (require === undefined || require.modules === undefined || require.modules[spec.path+ext] === undefined) {
+      var path = fileUrlToPath(spec.path);  
+      waitfor (var err) {
+        __oni_rt.nodejs_require('fs').lstat(path + ext, resume);
+      }
+      if (err) return;
     }
-    if(!err) spec.path += ext;
+    spec.path += ext;
   }
 }
 

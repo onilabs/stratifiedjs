@@ -2189,8 +2189,8 @@ transform.filter = (sequence, fn) -> transform(sequence, fn) .. filter(__js x ->
 
       ### Stream structuring details
 
-      If the input sequence is a [::StructuredStream] of type `rolling`, 
-      `transform$map` will also return a rolling structured stream, and
+      If the input sequence is a [::StructuredStream] of type `rolling` or `array.mutations`, 
+      `transform$map` will return a structured stream of the same type, and
       will operate on the stream more efficiently, as outlined in the 
       example above.
       For generic input sequences, `transform` returns a plain [::Stream].
