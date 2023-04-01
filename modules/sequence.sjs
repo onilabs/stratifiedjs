@@ -2739,8 +2739,9 @@ exports.combine = combine;
 
      #### Notes
 
-     Note that the order in which values are arranged in the value array should not be relied upon by the
+     * Note that the order in which values are arranged in the value array should not be relied upon by the
      `pick` function.
+     * The pick function will only be called when there are two or more input sequences that have not been consumed yet.
 */
 function combineSort(sequences, pick) {
   var eos = {};
@@ -2757,7 +2758,7 @@ function combineSort(sequences, pick) {
       }
       
       while (nexts.length) {
-        var idx = pick(vals);
+        var idx = nexts.length > 1 ? pick(vals) : 0;
         receiver(vals[idx]);
         var val = nexts[idx]();
         if (val === eos) {
