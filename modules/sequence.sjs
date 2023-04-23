@@ -1687,7 +1687,7 @@ function sortBy(sequence, key) {
   for (var i=0; i<arr.length; i++) {
     expanded[i] = [arr[i], key(arr[i], i)];
   }
-  expanded.sort(function(a,b) {
+  expanded.sort(__js function(a,b) {
     // grab the result of `key(item)` for both pairs:
     a = a[1];
     b = b[1];
