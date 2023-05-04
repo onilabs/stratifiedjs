@@ -1748,6 +1748,9 @@
             "Values": {
               "type": "function"
             },
+            "current": {
+              "type": "function"
+            },
             "delete": {
               "type": "function"
             },
