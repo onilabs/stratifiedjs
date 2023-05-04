@@ -335,6 +335,7 @@ function signalRemote(bridge_itf, remote_function_id, args) {
   array:       ['a', [ elements... ]]
   Set:         ['s', [ elements... ]]
   Map:         ['m', [ elements... ]]
+  SortedMap:   ['n', [ elements... ]]
   object:      ['o', PROPS]
   undefined:   ['u']
   Error:       ['e', message, PROPS]
@@ -372,6 +373,9 @@ __js {
       else if (@isMap(obj)) {
         return ['m', obj .. @map(x->bridge_itf .. marshall(x, buffers))];
       }
+      else if (@isSortedMap(obj)) {
+        return ['n', obj.elements .. @map(x->bridge_itf .. marshall(x, buffers))];
+      }
       else if (obj instanceof Error || obj._oniE) {
         return ['e', obj.message, bridge_itf .. marshallErrorProps(obj, buffers)];
       }
@@ -399,10 +403,13 @@ __js {
       else if (Object.getPrototypeOf(obj) === Object.prototype) {
         return ['o', bridge_itf .. marshallObjectProps(obj, buffers)];
       }
-      else
+      else {
+        console.log("vmbridge: Cannot marshall object '#{obj}'");
         throw VMBridgeError("Cannot marshall object '#{obj}'", bridge_itf.id);
+      }
     }
     else {
+      console.log("vmbridge: Cannot marshall type '#{t}'");
       throw VMBridgeError("Cannot marshall type '#{t}'", bridge_itf.id);
     }
   }
@@ -464,6 +471,8 @@ __js {
       return @Set(obj[1] .. @map(x->bridge_itf .. unmarshall(x,buffers)));
     case 'm':
       return @Map(obj[1] .. @map(x->bridge_itf .. unmarshall(x,buffers)));
+    case 'n':
+      return @SortedMap(obj[1] .. @map(x->bridge_itf .. unmarshall(x,buffers)));
     case 'u':
       return undefined;
       break;
