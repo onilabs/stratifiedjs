@@ -497,6 +497,10 @@ __js {
    @param {Any} [key] Key of element to remove
    @return {Integer} Returns the rank (1-based index) of the removed element or `0` if the map didn't contain an element with the given key.
 
+   @function ObservableSortedMapVar.current
+   @summary Return current value of the variable
+   @return {./map::SortedMap}
+
    @function ObservableSortedMapVar.stream
    @summary  The naked [::Observable] stream driven by the variable: An [::Observable] of type [./map::SortedMap], encoded as a 'map' [sequence::StructuredStream].
 
@@ -520,6 +524,8 @@ function ObservableSortedMapVar(initial) {
     delete: function(key) { var idx = map.delete(key);
                             if (idx !== 0) Update.dispatch([idx, [key]]); 
                             return idx; },
+
+    current: -> map.clone(),
 
     stream: @StructuredStream('map') :: @Stream :: function(r) {
       var restarting = false;
