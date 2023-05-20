@@ -235,6 +235,10 @@ exports.parseModuleDocs = function(src, module) {
       curr = { type: "class", children: {} };
       module.children[value] = curr;
       break;
+    case "service":
+      curr = { type: "service", children: {} };
+      module.children[value] = curr;
+      break;
     case "function":
     case "variable":
     case "syntax":
@@ -243,6 +247,10 @@ exports.parseModuleDocs = function(src, module) {
     case "directive":
       // append to existing symbol for a dotted name
       var matches = /(.+)\.([^.]+)/.exec(value);
+      // XXX dotted notation for classes is deprecated - we want to use '::' for children
+      // The problem with '.' is that it makes it impossible to distinguish between class
+      // members and static members.
+      if (!matches) matches = /(.+)\:\:([^:]+)/.exec(value);
       // class member?
       if (matches && module.children[matches[1]] && module.children[matches[1]].children) {
         curr = module.children[matches[1]].children[matches[2]] = { type: prop };
@@ -253,12 +261,22 @@ exports.parseModuleDocs = function(src, module) {
         }
         // add class members
         if (prop == 'function') {
-          // creation function: a ctor that isn't being called with 'new'
-          curr = module.children[value].children[value] = { type: "ctor",
-                                                            nonew: true,
-                                                            "return": {type:"return", valtype:"::"+value},
-                                                            summary: "Create #{english_a(value)} object."
-                                                          };
+          if (module.children[value].type === 'class') {
+            // creation function: a ctor that isn't being called with 'new'
+            curr = module.children[value].children[value] = { type: "ctor",
+                                                              nonew: true,
+                                                              "return": {type:"return", valtype:"::"+value},
+                                                              summary: "Create #{english_a(value)} object."
+                                                            };
+          }
+          else if (module.children[value].type === 'service') {
+            curr = module.children[value].children[value] = { type: 'ctor',
+                                                              nonew: true,
+                                                              summary: "Run #{english_a(value)} service session"
+                                                            };
+          }
+          else 
+            throw new Error("Unexpected duplicate documentation symbol #{value}");
         }
         else if (prop == 'constructor') {
           // constructor
