@@ -376,6 +376,24 @@ exports.write = function(fd, buffer, offset, length, position /*=null*/) {
 };
 
 /**
+   @function writev
+   @summary Write multiple buffers to the given file
+   @param {Integer} [fd] File descriptor
+   @param {Array of bytes::Bytes}  [data] 
+   @param {optional Integer} [position=null] Where to begin writing to the file (`null` = write to current position)
+*/
+exports.writev = function(fd, buffers, position /*=null*/) {
+  if (position === undefined) position = null;
+
+  waitfor (var err, written) {
+    fs.writev(fd, buffers, position, resume);
+  }
+  if (err) throw err;
+  return written;
+};
+
+
+/**
    @function read
    @summary Read data from the given file descriptor
    @param {Integer} [fd] File descriptor

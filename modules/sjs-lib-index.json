@@ -1021,6 +1021,9 @@
             },
             "writeFile": {
               "type": "function"
+            },
+            "writev": {
+              "type": "function"
             }
           },
           "summary": "Stratified wrapper of [nodejs filesystem lib](http://nodejs.org/api/fs.html) and higher level file utilities"
