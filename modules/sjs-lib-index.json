@@ -1745,6 +1745,9 @@
         "ObservableSortedMapVar": {
           "type": "class",
           "children": {
+            "Elements": {
+              "type": "function"
+            },
             "ObservableSortedMapVar": {
               "type": "ctor"
             },

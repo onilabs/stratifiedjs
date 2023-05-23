@@ -536,8 +536,46 @@
                     'x:5', 'y:undefined', 'x:7', 'y:8' ]);
   });
 
+  @test("Elements", function() {
+    var A = @ObservableSortedMapVar();
+    var rv = [];
+    @assert.truthy(@isStructuredStream(A.Elements, 'array.mutations'));
+    waitfor {
+      A.Elements .. @each { |x| 
+        @assert.truthy(Array.isArray(x));
+        rv.push(x); 
+      }
+    }
+    or {
+      [['a',1],['c',2],['b','x'],['e','y'],['d','z']] .. @each {|x| A.set(...x); }
+    }
+
+    @assert.eq(rv, [[],
+                    [['a',1]],
+                    [['a',1],['c',2]],
+                    [['a',1],['b','x'],['c',2]],
+                    [['a',1],['b','x'],['c',2],['e','y']],
+                    [['a',1],['b','x'],['c',2],['d','z'],['e','y']]
+                   ]);
+
+    (A.Elements .. @first) .. @assert.eq([['a',1],['b','x'],['c',2],['d','z'],['e','y']]);    
+  });
+
+  @test("Elements array.modifications overflow condition", function() {
+    var A = @ObservableSortedMapVar([[2,4],[1,1]]);
+    @consume(A.Elements) {
+      |next|
+      next() .. @assert.eq([[1,1],[2,4]]);
+      @integers() .. @take(50) .. @each {|x| hold(0); A.set(2, x); }
+      next() .. @assert.eq([[1,1],[2,49]]);
+      A.set(2, 0);
+      next() .. @assert.eq([[1,1],[2,0]]);
+    }
+  });
+
   @test("Values", function() {
     var A = @ObservableSortedMapVar();
+    @assert.truthy(@isStructuredStream(A.Values, 'array.mutations'));
     var rv = [];
     waitfor {
       A.Values .. @each { |x| 

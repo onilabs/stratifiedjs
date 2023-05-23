@@ -97,10 +97,10 @@ module.setCanonicalId('sjs:observable');
   @variable ObservableVar.stream
   @summary The naked [::Observable] stream driven by the ObservableVar.
 
-  @function ObservableVar.get
+  @function ObservableVar::get
   @summary Get the current observable value.
 
-  @function ObservableVar.set
+  @function ObservableVar::set
   @param {Object} [val] Value to set
   @summary Set a new observable value
   @desc
@@ -114,7 +114,7 @@ module.setCanonicalId('sjs:observable');
     code, it is typically better to use [::ObservableVar::modify], which
     will protect against concurrent modifications to the same object.
 
-  @function ObservableVar.modify
+  @function ObservableVar::modify
   @summary Modify the current observable value
   @param {Function} [change]
   @return {Boolean} whether the value was modified
@@ -277,14 +277,14 @@ __js {
    @function ObservableWindowVar
    @param {Integer} [window] Number of elements in the rolling window
 
-   @function ObservableWindowVar.add
+   @function ObservableWindowVar::add
    @param {Object} [val] Element to shift into the window.
    @summary Shift an element into the rolling window.
 
-   @function ObservableWindowVar.clear
+   @function ObservableWindowVar::clear
    @summary Clears all elements from the rolling window.
 
-   @variable ObservableWindowVar.stream
+   @variable ObservableWindowVar::stream
    @summary  The naked [::Observable] stream driven by the variable. (A 'rolling' [sequence::StructuredStream])
 */
 function ObservableWindowVar(window) {
@@ -366,20 +366,20 @@ __js {
    @summary Create an ObservableMapVar object
    @param {optional ./sequence::Sequence} [initial_elements] Initial elements in the map. Sequence elements must be [key,value] pairs - see also [./map::Map] constructor.
 
-   @function ObservableMapVar.set
+   @function ObservableMapVar::set
    @summary Set the given `key` in the map to `value`
    @param {Any} [key]
    @param {Any} [value]
 
-   @function ObservableMapVar.delete
+   @function ObservableMapVar::delete
    @summary Remove the element with the given key from the map.
    @param {Any} [key] Key of element to remove
    @return {Boolean} Returns `true` if the element was removed from the map, `false` if the map didn't contain an element with the given key.
 
-   @function ObservableMapVar.stream
+   @function ObservableMapVar::stream
    @summary  The naked [::Observable] stream driven by the variable. (A 'map' [sequence::StructuredStream])
 
-   @function ObservableMapVar.observe
+   @function ObservableMapVar::observe
    @summary Observe the value of the element with the given key
    @param {Any} [key] Key of element to observe
    @return {::Observable} Observable of the value associated with `key`
@@ -479,35 +479,41 @@ __js {
 
      - The [::ObservableSortedMapVar::stream] stream is an [::Observable] of [./map::SortedMap] type, efficiently encoded as a [sequence::StructuredStream] of type 'map'.
 
-     - The [::ObservableSortedMapVar::Values] stream is an efficiently encoded [::Observable] of the SortedMap's values-Array, encoded as a 
+     - The [::ObservableSortedMapVar::Elements] stream is an efficiently encoded [::Observable] of the `key`-sorted Array of `[key,value]` pairs in the SortedMap's, encoded as a 
+     [sequence::StructuredStream] of type 'array.mutations'.
+
+     - The [::ObservableSortedMapVar::Values] stream is an efficiently encoded [::Observable] of the `key`-sorted Array of `value`s in the SortedMap's, encoded as a 
      [sequence::StructuredStream] of type 'array.mutations'.
 
    @function ObservableSortedMapVar
    @summary Create an ObservableSortedMapVar object
    @param {optional ./sequence::Sequence|./map::SortedMap} [initial_elements] Initial elements. Sequence elements must be `[key,value]` pairs - see also [./map::SortedMap] constructor.
 
-   @function ObservableSortedMapVar.set
+   @function ObservableSortedMapVar::set
    @summary Set the given `key` in the map to `value`
    @param {Any} [key]
    @param {Any} [value]
    @return {Integer} Returns the rank (1-based index) of the element changed, or,if a new element was added to the map, `-rank` of the new element (i.e. a negative number).
 
-   @function ObservableSortedMapVar.delete
+   @function ObservableSortedMapVar::delete
    @summary Remove the element with the given key from the map.
    @param {Any} [key] Key of element to remove
    @return {Integer} Returns the rank (1-based index) of the removed element or `0` if the map didn't contain an element with the given key.
 
-   @function ObservableSortedMapVar.current
+   @function ObservableSortedMapVar::current
    @summary Return current value of the variable
    @return {./map::SortedMap}
 
-   @function ObservableSortedMapVar.stream
+   @function ObservableSortedMapVar::stream
    @summary  The naked [::Observable] stream driven by the variable: An [::Observable] of type [./map::SortedMap], encoded as a 'map' [sequence::StructuredStream].
 
-   @function ObservableSortedMapVar.Values
-   @summary  An [::Observable] of the SortedMap's values-Array, encoded as a [sequence::StructuredStream] of type 'array.mutations'
+   @function ObservableSortedMapVar::Elements
+   @summary  An [::Observable] of the `key`-sorted array of `[key,value]` pairs in the SortedMap, encoded as a [sequence::StructuredStream] of type 'array.mutations'
 
-   @function ObservableSortedMapVar.observe
+   @function ObservableSortedMapVar::Values
+   @summary  An [::Observable] of the `key`-sorted array of `value`s in the SortedMap, encoded as a [sequence::StructuredStream] of type 'array.mutations'
+
+   @function ObservableSortedMapVar::observe
    @summary Observe the value of the element with the given key
    @param {Any} [key] Key of element to observe
    @return {::Observable} Observable of the value associated with `key`
@@ -578,7 +584,7 @@ function ObservableSortedMapVar(initial) {
       }
     },
 
-    Values: @StructuredStream('array.mutations') :: @Stream :: function(r) {
+    Elements: @StructuredStream('array.mutations') :: @Stream :: function(r) {
       // XXX kinda hackish
       var overflow = false;
       var cache = [];
@@ -600,21 +606,21 @@ function ObservableSortedMapVar(initial) {
           }
           else if (idx < 0) {
             // insert
-            cache.push([1,-idx-1, change[1][1]]);
+            cache.push([1,-idx-1, change[1]]);
           }
           else {
             // replace
-            cache.push([2,idx-1, change[1][1]]);
+            cache.push([2,idx-1, change[1]]);
           }
         }
       }
       or {
-        r(__js [[0,map.elements..@map([k,v]->v)]]);
+        r(__js [[0,map.elements..@toArray]]);
         while (1) {
           while (!cache.length && !overflow) Update.receive();
           if (overflow) {
             overflow = false;
-            r(__js [[0,map.elements..@map([k,v]->v)]]);
+            r(__js [[0,map.elements..@toArray]]);
           }
           else {
             var batch = cache;
@@ -625,6 +631,8 @@ function ObservableSortedMapVar(initial) {
       }
     }
   };
+
+  rv.Values = rv.Elements .. @transform$map(__js [k,v]->v);
 
   rv[@ITF_STREAM] = rv.stream;
 

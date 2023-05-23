@@ -373,7 +373,7 @@ __js {
 
 /**
    @function isStructuredStream
-   @summary Returns `true` if `obj` is a [::StructuredStream] and of the given `type` (if provided) 
+   @summary Returns `true` if `obj` is a (possibly indirected - see [::IndirectedStream]) [::StructuredStream] and of the given `type` (if provided) 
    @param {Object} [obj] Object to test
    @param {optional String} [type] Type to test against (if not provided, test against any structured stream type
    @return {Boolean}
