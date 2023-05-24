@@ -21,14 +21,14 @@ context('SortedMap', function() {
   }
 
   test('basic', function() {
-    var SM = @SortedMap(arr_permuted);
+    var SM = @SortedMap({initial_elements:arr_permuted});
     test_start_config(SM);
 
     var EMPTY = @SortedMap();
     arr_permuted .. @each {|x| EMPTY.set(...x) }
     test_start_config(EMPTY);
 
-    var C1 = @SortedMap(SM);
+    var C1 = @SortedMap({initial_elements:SM});
     var C2 = SM.clone();
 
     assert.eq(SM.set(10, 'x'), 2);
@@ -56,7 +56,7 @@ context('SortedMap', function() {
 
   test('mutation during iteration', function() {
     var ARR = @integers() .. @take(100) .. @map(x->[x,x*x]);
-    var M = @SortedMap(ARR .. @clone .. @shuffle);
+    var M = @SortedMap({initial_elements:ARR .. @clone .. @shuffle});
     assert.eq(M.elements ..  @toArray, ARR);
     @withOpenStream(M.elements) {
       |S|
@@ -72,7 +72,7 @@ context('SortedMap', function() {
 
   test('mutation during iteration - blocking', function() {
     var ARR = @integers() .. @take(100) .. @map(x->[x,x*x]);
-    var M = @SortedMap(ARR .. @clone .. @shuffle);
+    var M = @SortedMap({initial_elements:ARR .. @clone .. @shuffle});
     assert.eq(M.elements ..  @toArray, ARR);
     @withOpenStream(M.elements) {
       |S|
@@ -84,6 +84,28 @@ context('SortedMap', function() {
       hold(0);
       assert.eq(S..@toArray(), ARR);
     }
+  });
+
+  test('comparator numericArray', function() {
+    var ARR = [ [ [10,10,11], 'b' ],
+                [ [10,10], 'a' ],
+                [ [11], 'd' ],
+                [ [10,10,100], 'c' ] ];
+    var M = @SortedMap({initial_elements: ARR, comparator: 'numericArray'});
+    assert.eq(M.elements .. @transform([,v]->v) .. @toArray, ['a', 'b', 'c', 'd']);
+  });
+
+  test('comparator localeCompare', function() {
+    // XXX this might not work for some locales
+    var ARR = [ [ 'z', 2 ], ['ä', 1] ];
+    var M = @SortedMap({initial_elements: ARR, comparator: 'localeCompare'});
+    assert.eq(M.elements .. @map([,v]->v), [1,2]);
+  });
+
+  test('comparator numeric', function() {
+    var ARR = [ [ '10', 2 ], ['2', 1] ];
+    var M = @SortedMap({initial_elements: ARR, comparator: 'numeric'});
+    assert.eq(M.elements .. @map([,v]->v), [1,2]);
   });
 
 });

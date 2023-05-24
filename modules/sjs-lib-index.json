@@ -860,6 +860,9 @@
             "get": {
               "type": "function"
             },
+            "getComparator": {
+              "type": "function"
+            },
             "has": {
               "type": "function"
             },

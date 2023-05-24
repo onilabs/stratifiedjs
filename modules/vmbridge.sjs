@@ -335,7 +335,7 @@ function signalRemote(bridge_itf, remote_function_id, args) {
   array:       ['a', [ elements... ]]
   Set:         ['s', [ elements... ]]
   Map:         ['m', [ elements... ]]
-  SortedMap:   ['n', [ elements... ]]
+  SortedMap:   ['n', comparator, [ elements... ]]
   object:      ['o', PROPS]
   undefined:   ['u']
   Error:       ['e', message, PROPS]
@@ -374,7 +374,7 @@ __js {
         return ['m', obj .. @map(x->bridge_itf .. marshall(x, buffers))];
       }
       else if (@isSortedMap(obj)) {
-        return ['n', obj.elements .. @map(x->bridge_itf .. marshall(x, buffers))];
+        return ['n', obj.getComparator(), obj.elements .. @map(x->bridge_itf .. marshall(x, buffers))];
       }
       else if (obj instanceof Error || obj._oniE) {
         return ['e', obj.message, bridge_itf .. marshallErrorProps(obj, buffers)];
@@ -472,7 +472,8 @@ __js {
     case 'm':
       return @Map(obj[1] .. @map(x->bridge_itf .. unmarshall(x,buffers)));
     case 'n':
-      return @SortedMap(obj[1] .. @map(x->bridge_itf .. unmarshall(x,buffers)));
+      return @SortedMap({initial_elements: obj[2] .. @map(x->bridge_itf .. unmarshall(x,buffers)),
+                         comparator: obj[1]});
     case 'u':
       return undefined;
       break;

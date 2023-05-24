@@ -38,7 +38,7 @@
 */
 'use strict';
 
-@ = require('./sequence');
+@ = require(['./sequence','./object']);
 
 /**
    @class Map
@@ -57,31 +57,31 @@
    @desc
      Note: A map itself is a sequence of [key,value] pair elements, so `Map` can be called with a map as `initial_arguments` (which would produce a clone of the map).
 
-   @function Map.clear
+   @function Map::clear
    @summary Remove all elements from the map
 
-   @function Map.delete
+   @function Map::delete
    @summary Remove the element with the given key from the map.
    @param {Any} [key] Key of element to remove
    @return {Boolean} Returns `true` if the element was removed from the map, `false` if the map didn't contain an element with the given key.
 
-   @function Map.get
+   @function Map::get
    @summary Returns the value associated with the given key, or `undefined` if the map doesn't contain an element under `key`.
    @param {Any} [key] Key of value to retrieve
    @return {Any} 
 
-   @function Map.has
+   @function Map::has
    @summary Test if the map contains an element under the given key.
    @param {Any} [key] 
    @return {Boolean} Returns `true` if the map contains an element under the given key, `false` otherwise.
 
-   @function Map.set
+   @function Map::set
    @summary Set the given `key` in the map to `value`
    @param {Any} [key]
    @param {Any} [value]
    @return {::Map} Returns the map object
 
-   @variable Map.size
+   @variable Map::size
    @summary Integer representing the number of elements currently in the map
 
 */
@@ -188,62 +188,65 @@ __js {
       return _avl_balanced_node(l, l.LEFT, _avl_concat(l.RIGHT, r));
   }
 
-  // z: start node, k: key, v: value, r: rank offset
+  // cf: comparator function, z: start node, k: key, v: value, r: rank offset
   // returns [tree_node,modify_index|-insert_index] (negative index iff inserted new node)
-  function _avl_node_set(z, k, v, r) {
+  function _avl_node_set(cf, z, k, v, r) {
     if (z === NIL) {
       return [AVLNode(NIL, NIL, k, v), -(r+1)];
     }
-    if (k == z.KEY) { // XXX should this be '==='?
+    var d = cf(k,z.KEY);
+    if (d === 0) {
       return [AVLNode(z.LEFT, z.RIGHT, k, v), z.LEFT.SIZE+1+r];
     }
-    else if (k < z.KEY) {
-      var [L,r] = _avl_node_set(z.LEFT, k, v, r);
+    else if (d < 0) {
+      var [L,r] = _avl_node_set(cf, z.LEFT, k, v, r);
       return [_avl_balanced_node(z, L, z.RIGHT), r];
     }
     else {
-      var [R,r] = _avl_node_set(z.RIGHT, k, v, z.LEFT.SIZE+1+r);
+      var [R,r] = _avl_node_set(cf, z.RIGHT, k, v, z.LEFT.SIZE+1+r);
       return [_avl_balanced_node(z, z.LEFT, R), r];
     }
   }
 
-  // z: start node, k: key, r: rank offset
-  function _avl_node_del_by_key(z, k, r) {
+  // cf: comparator function, z: start node, k: key, r: rank offset
+  function _avl_node_del_by_key(cf, z, k, r) {
     if (z === NIL)
       return [NIL,0];
-    else if (k == z.KEY) { // XXX should this be '==='?
+    var d = cf(k,z.KEY);
+    if (d === 0) {
       return [_avl_concat(z.LEFT,z.RIGHT), z.LEFT.SIZE+1+r];
     }
-    else if (k < z.KEY) {
-      var [L,r] = _avl_node_del_by_key(z.LEFT, k, r);
+    else if (d < 0) {
+      var [L,r] = _avl_node_del_by_key(cf, z.LEFT, k, r);
       return [_avl_balanced_node(z, L, z.RIGHT), r];
     }
     else {
-      var [R,r] = _avl_node_del_by_key(z.RIGHT, k, z.LEFT.SIZE+1+r);
+      var [R,r] = _avl_node_del_by_key(cf, z.RIGHT, k, z.LEFT.SIZE+1+r);
       return [_avl_balanced_node(z, z.LEFT, R), r];
     }
   }
 
   // returns 1-based index of modified element, or -index if new element
-  function avl_set(T, k, v) {
-    var rv = _avl_node_set(T.root, k, v, 0);
+  function avl_set(T, cf, k, v) {
+    var rv = _avl_node_set(cf, T.root, k, v, 0);
     T.root = rv[0];
     return rv[1];
   }
 
   // returns 1-based index of deleted element, or 0 if not found
-  function avl_del_by_key(T, k) {
-    var rv = _avl_node_del_by_key(T.root, k, 0);
+  function avl_del_by_key(T, cf, k) {
+    var rv = _avl_node_del_by_key(cf, T.root, k, 0);
     T.root = rv[0];
     return rv[1];
   }
 
   // retrieval -----------------------------------------------------------------------------
 
-  function _avl_node_get_by_key(z, k) {
+  function _avl_node_get_by_key(cf, z, k) {
     while (z !== NIL) { 
-      if (k < z.KEY) z = z.LEFT;
-      else if (k == z.KEY) break;
+      var d = cf(k,z.KEY);
+      if (d < 0) z = z.LEFT;
+      else if (d === 0) break;
       else z = z.RIGHT;
     }
     return z;
@@ -258,13 +261,13 @@ __js {
       return _avl_node_get_by_rank(z.RIGHT, r - s);
   }
 
-  function avl_get_by_key(T, k) {
-    var z = _avl_node_get_by_key(T.root, k);
+  function avl_get_by_key(T, cf, k) {
+    var z = _avl_node_get_by_key(cf, T.root, k);
     return z.VALUE;
   }
 
-  function avl_has_key(T, k) {
-    return _avl_node_get_by_key(T.root, k) !== NIL;
+  function avl_has_key(T, cf, k) {
+    return _avl_node_get_by_key(cf, T.root, k) !== NIL;
   }
 
   function avl_get_by_index(T, i) {
@@ -291,24 +294,24 @@ __js {
   }
   var avl_tree_dump = (T) -> _avl_node_dump(T.root);
 
-  function avl_assert_valid_node(z) {
+  function avl_assert_valid_node(cf, z) {
     if (z === NIL) {
       if (!(z.KEY === null && z.VALUE === null && z.LEFT === null && z.RIGHT === null && z.DEPTH === 0)) throw new Error('Invalid NIL Node '+z);
       return 0;
     }
     else {
       if (z.DEPTH !== max(z.LEFT.DEPTH,z.RIGHT.DEPTH)+1) throw new Error('Invalid depth '+z.DEPTH+' -- '+z.LEFT.DEPTH+' --- '+z.RIGHT.DEPTH);
-      if (z.LEFT !== NIL && z.LEFT.KEY >= z.KEY) throw new Error('Invalid sorting 1');
-      if (z.RIGHT !== NIL && z.RIGHT.KEY <= z.KEY) throw new Error('Invalid sorting 2');
+      if (z.LEFT !== NIL && cf(z.LEFT.KEY,z.KEY)>=0) throw new Error('Invalid sorting 1');
+      if (z.RIGHT !== NIL && cf(z.RIGHT.KEY,z.KEY)<=0) throw new Error('Invalid sorting 2');
       if (Math.abs(z.LEFT.DEPTH-z.RIGHT.DEPTH) >= 2) throw new Error('Unbalanced');
       if (z.SIZE !== z.LEFT.SIZE+z.RIGHT.SIZE+1) throw new Error("Invalid size");
-      return avl_assert_valid_node(z.LEFT) + avl_assert_valid_node(z.RIGHT) +1;
+      return avl_assert_valid_node(cf, z.LEFT) + avl_assert_valid_node(cf, z.RIGHT) +1;
     }
   }
 
-  function avl_assert_valid_tree(T) {
+  function avl_assert_valid_tree(T, cf) {
 //    console.log("DEPTH = #{T.root.DEPTH}");
-    return T.root .. avl_assert_valid_node;
+    return avl_assert_valid_node(cf, T.root);
   }
 
 } // __js
@@ -332,48 +335,60 @@ __js var avl_stream = (T) -> @Stream:: function(r) {
    @class SortedMap
    @summary key-value map sorted by key
    @desc
-     * A SortedMap object holds key-value pairs sorted by key (with '<' & '=='). 
+     * A SortedMap object holds key-value pairs sorted by key according to the configured comparator.
      * Any values, whether primitive or object references, may be used as keys and values.
-     * Entries will be sorted on keys using '<' & '==' relations, and can be iterated in this order using [::SortedMap::elements].
+     * Entries can be iterated in key-order using [::SortedMap::elements].
 
    @function SortedMap
    @summary Construct a new SortedMap
-   @param {optional ./sequence::Sequence|::SortedMap} [initial_elements] Initial elements. Sequence elements must be `[key,value]` pairs.
+   @param {optional Object} [settings]
+   @setting {optional ./sequence::Sequence|::SortedMap} [initial_elements] Initial elements. Sequence elements must be `[key,value]` pairs.
+   @setting {optional String} [comparator='</=='] Comparator used for sorting the keys. See below.
    @return {::SortedMap}
    @desc
-     - Initializing with a sequence is of complexity `O(n*log(n))`; initializing with another
-     SortedMap is of complexity `O(1)`.
+     - Initializing `initial_elements` with a sequence is of complexity `O(n*log(n))`; 
+       initializing with another SortedMap that has the same comparator is of complexity `O(1)`.
 
-   @function SortedMap.delete
+     #### Comparator
+
+     * __'</=='__ (the default): `(x,y)-> x<y ? -1 : (x==y ? 0 : 1)`
+     * __'numericArray'__: does a pointwise 'numeric' comparison between elements of an Array, Buffer, or TypedArray. If an array `x` is a prefix of `y`, `x` gets sorted before `y`.
+     * __'localeCompare'__: uses `String.localeCompare`
+     * __'numeric'__: `(x,y)->x-y`
+
+   @function SortedMap::delete
    @summary Remove the element with the given key from the sorted map (`O(log n)`).
    @param {Any} [key] Key of element to remove
    @return {Integer} Returns the rank (1-based index) of the removed element or `0` if the map didn't contain an element with the given key.
 
-   @function SortedMap.get
+   @function SortedMap::get
    @summary Returns the value associated with the given key, or `undefined` if the sorted map doesn't contain an element under `key` (`O(log n)`).
    @param {Any} [key] Key of value to retrieve
    @return {Any} 
 
-   @function SortedMap.has
+   @function SortedMap::has
    @summary Test if the sorted map contains an element under the given key (`O(log n)`).
    @param {Any} [key] 
    @return {Boolean} Returns `true` if the sorted map contains an element under the given key, `false` otherwise.
 
-   @function SortedMap.set
+   @function SortedMap::set
    @summary Set the given `key` in the map to `value` (`O(log n)`).
    @param {Any} [key]
    @param {Any} [value]
    @return {Integer} Returns the rank (1-based index) of the element changed, or,if a new element was added to the map, `-rank` of the new element (i.e. a negative number).
 
-   @function SortedMap.count
+   @function SortedMap::count
    @summary Return number of elements in the sorted map (`O(1)`).
 
-   @function SortedMap.clone
+   @function SortedMap::clone
    @summary Return a clone of the SortedMap (`O(1)`).
    @return {::SortedMap}
 
+   @function SortedMap::getComparator
+   @summary Returns the name of the comparator in use by the SortedMap.
+   @return {::String}
 
-   @variable SortedMap.elements
+   @variable SortedMap::elements
    @summary [./sequence::Stream] of `[key,value]` elements in the map, sorted by `key`.
    @desc
      Each iteration operates on the state of the SortedMap at the time that iteration starts. 
@@ -392,30 +407,52 @@ __js {
 } // __js
 
 __js {
-  function _SortedMap(T) {
+  function _SortedMap(T, comparator, comparator_f) {
     return {
       __oni_is_SortedMap: true,
-      clone: -> _SortedMap(avl_clone(T)),
+      clone: -> _SortedMap(avl_clone(T), comparator, comparator_f),
       count: -> T.root.SIZE,
-      get: key -> T .. avl_get_by_key(key),
-      has: key -> T .. avl_has_key(key),
-      set: (key, val) ->  T .. avl_set(key, val),
-      delete: key -> T .. avl_del_by_key(key),
-      elements: avl_stream(T)
+      get: key -> T .. avl_get_by_key(comparator_f, key),
+      has: key -> T .. avl_has_key(comparator_f, key),
+      set: (key, val) ->  T .. avl_set(comparator_f, key, val),
+      delete: key -> T .. avl_del_by_key(comparator_f, key),
+      elements: avl_stream(T),
+      getComparator: -> comparator
     };
   }
 
-  function SortedMap(initial) {
+  var COMPARATORS = {
+    '</==': (a,b) -> a<b? -1 : (a==b ? 0 : +1),
+    'numericArray': function(a,b) { 
+      var min_l = Math.min(a.length, b.length), diff;
+      for (var i=0; i<min_l;++i) {
+        diff = a[i] - b[i];
+        if (diff !== 0) return diff;
+      }
+      return (a.length - b.length);
+    },
+    'numeric': (a,b) -> a-b,
+    'localeCompare': (a,b) -> a.localeCompare(b)
+  };
+
+  function SortedMap(settings) {
+    settings = {
+      initial_elements: undefined,
+      comparator: '</=='
+    } .. @override(settings);
+
     var T;
-    if (isSortedMap(initial)) {
-      return initial.clone();
+    if (isSortedMap(settings.initial_elements) && settings.initial_elements.getComparator() == settings.comparator) {
+      return settings.initial_elements.clone();
     }
     else {
+      var comparator_f = COMPARATORS[settings.comparator];
+      if (!comparator_f) throw new Error("SortedMap: Unknown comparator '#{settings.comparator}'");
       T = AVLTree();
-      if (initial) {
-      initial .. @each {|[k,v]| avl_set(T, k, v); }
+      if (settings.initial_elements) {
+        settings.initial_elements .. @each {|[k,v]| avl_set(T, comparator_f, k, v); }
       }
-      return _SortedMap(T);
+      return _SortedMap(T, settings.comparator, comparator_f);
     }
   }
   exports.SortedMap = SortedMap;

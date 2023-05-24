@@ -519,7 +519,7 @@
   });
 
   @test("observe", function() {
-    var A = @ObservableSortedMapVar([['y','a'],['e',1]]);
+    var A = @ObservableSortedMapVar({initial_elements:[['y','a'],['e',1]]});
     var rv = [];
     waitfor {
       A.observe('x') .. @each { |x| rv.push('x:'+x); }
@@ -562,7 +562,7 @@
   });
 
   @test("Elements array.modifications overflow condition", function() {
-    var A = @ObservableSortedMapVar([[2,4],[1,1]]);
+    var A = @ObservableSortedMapVar({initial_elements:[[2,4],[1,1]]});
     @consume(A.Elements) {
       |next|
       next() .. @assert.eq([[1,1],[2,4]]);
@@ -599,7 +599,7 @@
   });
 
   @test("Values array.modifications overflow condition", function() {
-    var A = @ObservableSortedMapVar([[2,4],[1,1]]);
+    var A = @ObservableSortedMapVar({initial_elements:[[2,4],[1,1]]});
     @consume(A.Values) {
       |next|
       next() .. @assert.eq([1,4]);

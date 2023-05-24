@@ -487,7 +487,7 @@ __js {
 
    @function ObservableSortedMapVar
    @summary Create an ObservableSortedMapVar object
-   @param {optional ./sequence::Sequence|./map::SortedMap} [initial_elements] Initial elements. Sequence elements must be `[key,value]` pairs - see also [./map::SortedMap] constructor.
+   @param {optional Object} [settings] Same options as for [./map::SortedMap]
 
    @function ObservableSortedMapVar::set
    @summary Set the given `key` in the map to `value`
@@ -519,9 +519,9 @@ __js {
    @return {::Observable} Observable of the value associated with `key`
 
 */
-function ObservableSortedMapVar(initial) {
+function ObservableSortedMapVar(settings) {
   var Update = cutil.Dispatcher();
-  var map = @SortedMap(initial);
+  var map = @SortedMap(settings);
   
   var rv = {
     __oni_is_ObservableSortedMapVar: true,
