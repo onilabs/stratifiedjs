@@ -108,5 +108,12 @@ context('SortedMap', function() {
     assert.eq(M.elements .. @map([,v]->v), [1,2]);
   });
 
+
+  test('initializing with blocking stream', function() {
+    var init = @integers() .. @transform(x->[x,x*x]) ..
+      @monitor(->hold(0));
+    var M = @SortedMap({initial_elements: init .. @take(5)});
+    assert.eq(M.elements .. @toArray, [[0,0],[1,1],[2,4],[3,9],[4,16]]); 
+  });
 });
 

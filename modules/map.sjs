@@ -434,26 +434,27 @@ __js {
     'numeric': (a,b) -> a-b,
     'localeCompare': (a,b) -> a.localeCompare(b)
   };
-
-  function SortedMap(settings) {
-    settings = {
-      initial_elements: undefined,
-      comparator: '</=='
-    } .. @override(settings);
-
-    var T;
-    if (isSortedMap(settings.initial_elements) && settings.initial_elements.getComparator() == settings.comparator) {
-      return settings.initial_elements.clone();
-    }
-    else {
-      var comparator_f = COMPARATORS[settings.comparator];
-      if (!comparator_f) throw new Error("SortedMap: Unknown comparator '#{settings.comparator}'");
-      T = AVLTree();
-      if (settings.initial_elements) {
-        settings.initial_elements .. @each {|[k,v]| avl_set(T, comparator_f, k, v); }
-      }
-      return _SortedMap(T, settings.comparator, comparator_f);
-    }
-  }
-  exports.SortedMap = SortedMap;
 } // __js
+
+// note: this function is not __js, because 'settings.initial_elements' might be a stream
+function SortedMap(settings) {
+  settings = {
+    initial_elements: undefined,
+    comparator: '</=='
+  } .. @override(settings);
+  
+  var T;
+  if (isSortedMap(settings.initial_elements) && settings.initial_elements.getComparator() == settings.comparator) {
+    return settings.initial_elements.clone();
+  }
+  else {
+    var comparator_f = COMPARATORS[settings.comparator];
+    if (!comparator_f) throw new Error("SortedMap: Unknown comparator '#{settings.comparator}'");
+    T = AVLTree();
+    if (settings.initial_elements) {
+      settings.initial_elements .. @each {|[k,v]| avl_set(T, comparator_f, k, v); }
+    }
+    return _SortedMap(T, settings.comparator, comparator_f);
+  }
+}
+exports.SortedMap = SortedMap;
