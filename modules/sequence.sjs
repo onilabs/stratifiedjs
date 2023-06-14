@@ -191,7 +191,7 @@ function sequential(f) {
    @inherit ::Stream
    @summary An object with an [::ITF_STREAM] property
    @desc
-     - ITF_STREAM property must point to a [::Stream] (which could be a another [::IndirectedStream])
+     - ITF_STREAM property must point to a [::Stream] (which could be another [::IndirectedStream])
      - Can be used in place of any non-indirected stream.
 
      ### Example:
