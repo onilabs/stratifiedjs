@@ -107,7 +107,7 @@ function top_decl_scope(pctx) {
 function push_stmt_scope(pctx) {
   pctx.stmt_scopes.push({seq:[]});
 }
-function pop_stmt_scope(pctx, pre, post) {
+function pop_stmt_scope(pctx, pre, post, return_last) {
   var seq = pctx.stmt_scopes.pop().seq;
   var rv = "";
   if (seq.length) {
@@ -127,8 +127,15 @@ function pop_stmt_scope(pctx, pre, post) {
     }
     else {
       // non-blocking context
-      for (var i=0; i<seq.length; ++i)
-        rv += seq[i].nb();      
+      if (return_last) {
+        for (var i=0; i<seq.length-1; ++i)
+          rv += seq[i].nb();
+        rv += "return "+seq[i].nb();
+      }
+      else {
+        for (var i=0; i<seq.length; ++i)
+          rv += seq[i].nb();      
+      }
     }
   }
   return rv; 
@@ -2116,6 +2123,44 @@ ph_blocklambda.prototype.nblock_val = function() {
   return this.code; 
 };
 #endif /* SJS_BLOCKLAMBDA */
+
+#ifdef SJS_DFUNC
+#define BEGIN_DFUNCBODY(pctx)  \
+  push_decl_scope(pctx); \
+  push_stmt_scope(pctx);
+
+#define ADD_DFUNCBODY_STMT(stmt, pctx) add_stmt(stmt, pctx);
+
+#define END_DFUNCBODY(pctx, ext)      \
+  var decls = pctx.decl_scopes.pop(); \
+  var flags = SEQ_FLAG_FUNCTION+SEQ_FLAG_IMPLICIT_RETURN;      \
+  if (decls.notail) flags += SEQ_FLAG_NOTAILCALL; \
+  return collect_decls(decls) + \
+    pop_stmt_scope(pctx, "return __oni_rt.ex"+(decls.reify?"r":"")+"seq(arguments,this,"+pctx.filename+",["+flags, "])", true);
+
+#define GEN_DFUNC(pars, body, pctx, etc) return new ph_dfunc(pars, body, pctx);
+
+function ph_dfunc(pars, body, pctx) {
+  this.is_nblock = pctx.allow_nblock;
+  var param_list = [];
+  if (pctx.filename === '__onimodulename')
+    param_list.push('__onimodulename');
+  for (var i=0;i<pars.length;++i) {
+    pars[i].collect_par_decls(param_list, new Set());
+  }
+  var arg_list = param_list.map(x=>("'"+x+"'"));
+  arg_list = arg_list.concat('"'+body.replace(/"/g,'\\"')+'"');
+  var code = '['+arg_list.join(',')+']';
+  this.dfunc = '__oni_rt.DFunc('+code+',['+param_list.join(",")+'])';
+}
+ph_dfunc.prototype = new ph(WHENDEBUG("ph_dfunc"));
+//ph_dfunc.prototype.is_value = true;
+ph_dfunc.prototype.v = function() { return this.dfunc; };
+ph_dfunc.prototype.nblock_val = function() {
+  return this.dfunc;
+};
+
+#endif /* SJS_DFUNC */
 
 #define GEN_LBL_STMT(lbl, stmt, pctx, ext) return new ph_lbl_stmt(lbl, stmt);
 

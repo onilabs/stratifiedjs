@@ -277,6 +277,34 @@ __js exports.isQuasi = function(obj) {
 */
 __js exports.Quasi = function(arr) { return __oni_rt.Quasi.apply(__oni_rt, arr)};
 
+/**
+   @function DFuncThunk
+   @summary Used internally by vm1.js.in (needs to be sjs - hence in sys)
+*/
+exports.DFuncThunk = function(...args) {
+  var f = this.f;
+  if (!f) {
+    // note that this function call might block before resolving to 'f' - hence we need this
+    // code to be SJS, not JS
+    f = this.f = (new Function('require','__oni_altns',...this.code))(exports.require, {},...this.context);
+    if (typeof f !== 'function') throw new Error("dfunc code is not returning a function");
+  }
+  return f(...args);
+};
+
+/**
+   @function isDFunc
+   @summary  Tests if an object is a dfunc
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+   @desc
+     See [../../modules/sys::isDfunc]
+*/
+__js exports.isDFunc = function(obj) {
+  return (obj !== null && typeof(obj) === 'function' && !!obj.__oni_is_dfunc);
+};
+
+
 
 /**
    @function mergeObjects

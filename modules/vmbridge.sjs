@@ -123,7 +123,7 @@ __js {
          {
            send: function(DATA),
            receive: function() -> DATA,
-           handshake: OPTIONAL function(DATA) -> DATA
+           handshake: OPTIONAL function(local_settings, marshall, unmarshall) -> [remote_settings]
          }
 
 
@@ -138,11 +138,14 @@ __js {
 
      - `handshake` - if provided by the transport - will be called by [::withVMBridge] 
      exactly once when the bridge session is being established (and
-     before any `send`/`receive` calls. Its purpose is as a protocol optimization: If transport
+     before any `send`/`receive` calls to exchange the local and remote interfaces. 
+     Its purpose is (1) as a protocol optimization: If transport
      implementations have to exchange data packages as part of establishing the transport, they can
-     piggyback the handshake data, saving additional `send`/`receive` roundtrips. 
+     piggyback on the handshake data, saving additional `send`/`receive` roundtrips. And (2) to
+     provide for more complex ways to exchange local & remote interfaces (e.g. if one of the 
+     interfaces depends on the other - see e.g. [sjs:thread::withThread]).
      If the transport doesn't provide a `handshake` implementation, the 
-     VMBridge's handshake data will be exchanged using `send` & `receive`.
+     VMBridge's handshake data will be exchanged using `send` & `receive`. 
 
 /**
    @function withVMBridge
@@ -150,8 +153,10 @@ __js {
    @param {Object} [settings] 
    @param {Function} [session_f] Session function
    @setting {Object} [local_itf] Local interface which will be passed to remote VM bridge
-   @setting {::BridgeTransportService} [withTransport] Transport service over which a bridge session will be stablished
+   @setting {::BridgeTransportService} [withTransport] Transport service over which a bridge session will be established
    @setting {optional String} [id] Id of this side of the VM bridge - must be unique across all connected VMs. Default: `"#{@sys.VMID}-#{counter}"`
+   @setting {optional Boolean} [acceptDFuncs=false] Whether the bridge accepts [sjs:#language/syntax::dfunc]s. See notes below.
+   @setting {optional Boolean} [acceptHandshakeDFuncs=false] Whether the bridge accepts [sjs:#language/syntax::dfunc]s during initial local/remote interface exchange. See notes below.
    @desc
 
      ##### General operation
@@ -204,12 +209,14 @@ __js {
          - ArrayBuffer
          - Uint8Array
          - function
+         - dfunc (sending always allowed/ receiving only if enabled via 'acceptDFuncs'/'acceptHandshakeDFuncs')
 
      - Only `Object`s, with `prototype == Object.prototype` can be remoted. All 'own' properties
      apart from `toString` and some other internal SJS properties will be remoted 
      (and have to be remotable themselves).
 
-     - Apart from `Object`, only `Error` and `function` will have their object properties remoted.
+     - Apart from `Object`, only `Error`, `function` and [sjs:#language/syntax::dfunc] will have 
+     their object properties remoted.
      For functions this e.g. implies [sjs:sequence::Stream]s maintain their tagging.
 
      - Depending on transport, `ArrayBuffer` and `Uint8Array` might be 'transferred' rather than 
@@ -231,6 +238,39 @@ __js {
      mutating the properties of a (structural) object passed across the bridge will not mutate the 
      corresponding property on the original object on the other side of the bridge.
 
+     - While functions are also remoted *by value* (i.e. any properties set on the function are 
+     remoted by value), invoking a remoted function will call the function on the side of 
+     the bridge that the function was originally defined on (see 'dfuncs' section below for an 
+     alternative). 
+     Arguments and return values will
+     be marshalled to the side of bridge where the call originated.
+
+
+     ##### DFuncs
+
+     - [sjs:#language/syntax::dfunc]s can be be used to remote functions that will
+     execute on the side of the bridge where they are invoked. I.e. dfuncs effectively remote
+     actual **code**.
+
+     - Note that because this effectively 
+     enables arbitrary code functionality on the side of the bridge receiving and executing a dfunc,
+     this functionality is guarded by the `acceptDFuncs` setting. If `acceptDFuncs` is false (the 
+     default), attempts to pass a dfunc to the bridge will cause a marshalling exception. There is also
+     and option `acceptHandshakeDFuncs` which will allow dfuncs during the initial local/remote 
+     interface exchanges if true. Note that if `acceptHandshakeDFuncs` is false, and `acceptDFuncs`
+     is true, dfuncs will be accepted during the handshake.
+
+     - If a dfunc imports symbols from its lexical closure, those symbols will be marshalled
+     according to their type when the dfunc is marshalled. E.g.:
+
+           function foo() { console.log("foo called"); };
+
+           var bar = @{ -> console.log("bar called"); };
+
+           var baz = @(foo,bar) { ->(foo(),bar()); };
+
+           // if baz is passed through a vmbridge from VM A to VM B, and executed on VM B, 
+           // then 'foo called' will be logged on VM A, and 'bar called' on VM B.
 */
 
 //----------------------------------------------------------------------
@@ -332,6 +372,7 @@ function signalRemote(bridge_itf, remote_function_id, args) {
 
   null|string|bool|number: no encoding
   function:    ['f', remote_id:STRING, props:PROPS]
+  dfunc:       ['g', code, context:marshalled array, props:PROPS]
   array:       ['a', [ elements... ]]
   Set:         ['s', [ elements... ]]
   Map:         ['m', [ elements... ]]
@@ -361,7 +402,13 @@ __js {
       return ['u'];
     }
     else if (t === 'function') {
-      return bridge_itf .. marshallFunction(obj, buffers);
+      if (@sys.isDFunc(obj)) {
+        if (bridge_itf.postHandshake && !bridge_itf.remote_settings.acceptDFuncs)
+          throw new Error("Remote bridge does not accept dfuncs");
+        return ['g', obj.code, bridge_itf .. marshall(obj.context, buffers), bridge_itf .. marshallDFuncProps(obj, buffers)];
+      }
+      else
+        return bridge_itf .. marshallFunction(obj, buffers);
     }
     else if (t === 'object') {
       if (Array.isArray(obj)) {
@@ -441,6 +488,20 @@ __js {
       @toArray;    
   }
 
+  function marshallDFuncProps(bridge_itf, f, buffers) {
+    return @ownPropertyPairs(f) .. 
+      @filter([k,v]-> 
+              k !== 'toString' &&
+              k !== @fn.ITF_SIGNAL &&
+              k !== 'code' && 
+              k !== 'f' &&
+              k !== 'context' &&
+              !__oni_rt.is_ef(v)) ..
+      @unpack([k,v]->[k,bridge_itf .. marshall(v, buffers)]) ..
+      @toArray;    
+  }
+
+
   function marshallErrorProps(bridge_itf, err, buffers) {
     // like object props, but no need to go into __oni_stack
     return @ownPropertyPairs(err) ..
@@ -464,6 +525,9 @@ __js {
     case 'f':
       return bridge_itf .. unmarshallFunction(obj[1], obj[2], buffers);
       break;
+    case 'g':
+      if (!bridge_itf.acceptDFuncs && !(!bridge_itf.postHandshake && bridge_itf.acceptHandshakeDFuncs)) throw VMBridgeError("Unmarshalling error: Bridge does not accept dfuncs", bridge_itf.id);
+      return bridge_itf .. unmarshallObjectProps(__oni_rt.DFunc(obj[1], bridge_itf .. unmarshall(obj[2], buffers)), obj[3], buffers);
     case 'a':
       return obj[1] .. @map(x->bridge_itf .. unmarshall(x, buffers));
       break;
@@ -780,11 +844,21 @@ function withVMBridge(settings, session_f) {
   settings = {
     local_itf: undefined,
     withTransport: undefined,
-    id: "#{@sys.VMID}-#{++bridge_id_counter}"
+    id: "#{@sys.VMID}-#{++bridge_id_counter}",
+    acceptDFuncs: false,
+    acceptHandshakeDFuncs: false
   } .. @override(settings);
 
   var bridge_itf = {
     id: settings.id,
+
+    remote_settings: undefined, // will be set by handshake
+
+    postHandshake: false, // whether we are post-handshake
+
+    acceptDFuncs: settings.acceptDFuncs,
+
+    acceptHandshakeDFuncs: settings.acceptHandshakeDFuncs,
 
     kill_transport: @Dispatcher(),
 
@@ -848,18 +922,33 @@ function withVMBridge(settings, session_f) {
 
   // handshake:
   var handshake = transport.handshake;
+
+  function handshake_marshall(local_data) {
+    var b = [];
+    var d = bridge_itf .. marshall(local_data, b);
+    return [d,b];
+  }
+
+  function handshake_unmarshall(remote_data) {
+    return bridge_itf .. unmarshall(...remote_data);
+  }
+
   if (!handshake)
-    handshake = function(data) {
+    handshake = function(local_settings, handshake_marshall, handshake_unmarshall) {
       waitfor(var rv) {
         waitfor { resume(transport.receive()); }
-        and { transport.send(data); }
+        and { transport.send(handshake_marshall(local_settings)); }
       }
-      return rv;
+      return handshake_unmarshall(rv);
     }
 
-  var local_itf_buffers = [];
-  var marshalled_local_itf = bridge_itf .. marshall(settings.local_itf, local_itf_buffers);
-  var remote_itf = bridge_itf .. unmarshall(...(handshake([marshalled_local_itf, local_itf_buffers])));
+  var local_settings = {
+    itf: settings.local_itf,
+    acceptDFuncs: settings.acceptDFuncs
+  };
+
+  bridge_itf.remote_settings = handshake(local_settings, handshake_marshall, handshake_unmarshall);
+  bridge_itf.postHandshake = true;
 
   // main loop:
   waitfor {
@@ -916,7 +1005,7 @@ function withVMBridge(settings, session_f) {
   }
   while {
     waitfor {
-      session_f({remote: remote_itf, kill:bridge_itf.kill_transport.dispatch, id: bridge_itf.id});
+      session_f({remote: bridge_itf.remote_settings.itf, kill:bridge_itf.kill_transport.dispatch, id: bridge_itf.id});
     }
     or {
       bridge_itf.transport_dead.wait();

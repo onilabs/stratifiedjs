@@ -171,6 +171,11 @@ BEGIN_BLAMBDABODY(pctx)
 ADD_BLAMBDABODY_STMT(stmt, pctx)
 END_BLAMBDABODY(pctx)
 
+- if SJS_DFUNC is defined:
+BEGIN_DFUNCBODY(pctx)
+ADD_DFUNCBODY_STMT(stmt, pctx)
+END_DFUNCBODY(pctx)
+
 Statements:
 ===========
 
@@ -283,6 +288,9 @@ GEN_INTERPOLATING_STR(parts, pctx)
 
 - if QUASIS is set:
 GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
+
+- if SJS_DFUNC is set:
+GEN_DFUNC(pars, body, pctx)
 
 */
 
@@ -701,7 +709,7 @@ Hash.prototype = {
 
 var TOKENIZER_RAW_UNTIL_END_TOKEN = /[ \t]*([^ \t\n]+)[ \t]*\n/g;
 
-var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(\.\.\.|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
+var TOKENIZER_SA = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|((?:0[xX][\da-fA-F]+)|(?:0[oO][0-7]+)|(?:0[bB][0-1]+)|(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?))|(\/(?:\\.|\[(?:\\[^\r\n]|[^\n\r\]])*\]|[^\[\/\r\n])+\/[gimy]*)|(__raw_until)|(\.\.\.|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|\@\(|\@\{|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+)|('(?:\\[^\r\n]|[^\\\'\r\n])*')|('(?:\\(?:(?:[^\r\n]|(?:\r\n|\n|\r)))|[^\\\'])*')|(\S+))/g;
 
 // tokenizer for tokens in an operator position:
 var TOKENIZER_OP = /(?:[ \f\t\v\u00A0\u2028\u2029]+|\/\/.*|#!.*)*(?:((?:(?:\r\n|\n|\r)|\/\*(?:.|\n|\r)*?\*\/)+)|(>>>=|===|!==|>>>|<<=|>>=|\.\.\.|==|!=|->|=>|>>|<<|<=|>=|--|\+\+|\|\||&&|\.\.|\:\:|[-*\/%+&^|]=|[;,?:|^&=<>+\-*\/%!~.\[\]{}()\"`]|[$@_\w]+))/g;
@@ -1326,6 +1334,38 @@ S("{").
   // block:
   stmt(parseBlock);
 
+function parseDFuncBody(pctx) {
+  
+  
+  /* */
+  while (pctx.token.id != '}') {
+    var stmt = parseStmt(pctx);
+    /* */;
+  }
+  scan(pctx, "}")
+  
+  /* */
+}
+
+S("@(").
+  exs(function(pctx, exs_flags) {
+    
+    var pars = parseFunctionParams(pctx, undefined,')');
+    scan(pctx, "{");
+    var body = parseDFuncBody(pctx);
+    
+    return Dynamic;
+  });
+
+S("@{").
+  exs(function(pctx, exs_flags) {
+    
+    var body = parseDFuncBody(pctx);
+    
+    return Dynamic;
+    
+  });
+
 // deliminators
 S(";").stmt(function(pctx) {  return Dynamic; });
 S(")", TOKENIZER_OP);
@@ -1373,10 +1413,10 @@ function parseFunctionParam(pctx) {
 function parseFunctionParams(pctx, starttok, endtok) {
   // XXX This code - in particular the hackish treatment of '...' below -  
   // should be consolidated with generic expression parsing
-  if (!starttok) { starttok = '('; endtok = ')'; }
   var pars = [];
   var have_rest = false;
-  scan(pctx, starttok);
+  if (starttok)
+    scan(pctx, starttok);
   pars.line = pctx.line;
   while (pctx.token.id != endtok) {
     if (have_rest) throw new Error("Rest parameter must be last formal parameter");
@@ -1415,7 +1455,7 @@ S("function").
       fname = pctx.token.value;
       scan(pctx);
     }
-    var pars = parseFunctionParams(pctx);
+    var pars = parseFunctionParams(pctx, '(', ')');
     var body = parseFunctionBody(pctx);
     
     
@@ -1427,7 +1467,7 @@ S("function").
     if (pctx.token.id != "<id>") throw new Error("Malformed function declaration");
     var fname = pctx.token.value;
     scan(pctx);
-    var pars = parseFunctionParams(pctx);
+    var pars = parseFunctionParams(pctx, '(', ')');
     var body = parseFunctionBody(pctx);
     
     

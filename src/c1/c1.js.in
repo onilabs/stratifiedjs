@@ -178,6 +178,11 @@ BEGIN_BLAMBDABODY(pctx)
 ADD_BLAMBDABODY_STMT(stmt, pctx)
 END_BLAMBDABODY(pctx)
 
+- if SJS_DFUNC is defined:
+BEGIN_DFUNCBODY(pctx)
+ADD_DFUNCBODY_STMT(stmt, pctx)
+END_DFUNCBODY(pctx)
+
 Statements:
 ===========
 
@@ -291,6 +296,9 @@ GEN_INTERPOLATING_STR(parts, pctx)
 - if QUASIS is set:
 GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 
+- if SJS_DFUNC is set:
+GEN_DFUNC(pars, body, pctx)
+
 */
 
 #if defined(C1_KERNEL_JS)
@@ -311,6 +319,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #define ONE_SIDED_CONDITIONALS 1
+#define SJS_DFUNC 1
 #include "kernel-sjs.js.in"
 
 #elif defined(C1_KERNEL_JSMIN)
@@ -394,6 +403,7 @@ GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
 #define INTERPOLATING_STRINGS 1
 #define QUASIS 1
 #define ONE_SIDED_CONDITIONALS 1
+#define SJS_DFUNC 1
 #include "kernel-deps.js.in"
 
 #else
@@ -467,9 +477,13 @@ Hash.prototype = {
 #endif
 
 // symbols that can appear in an 'statement/argument position':
+#ifdef SJS_DFUNC
+#define PAT_ARGSYMBOL PAT_SPREAD|PAT_OPERATOR2|\@\(|\@\{|PAT_OPERATOR1|PAT_IDENTIFIER
+#else
 #define PAT_ARGSYMBOL PAT_SPREAD|PAT_OPERATOR2|PAT_OPERATOR1|PAT_IDENTIFIER
+#endif /* SJS_DFUNC */
 // symbols that can appear in an 'operator position':
-#define PAT_SYMBOL PAT_OPERATOR4|PAT_OPERATOR3|PAT_ARGSYMBOL
+#define PAT_SYMBOL PAT_OPERATOR4|PAT_OPERATOR3|PAT_SPREAD|PAT_OPERATOR2|PAT_OPERATOR1|PAT_IDENTIFIER
 
 #define PAT_STRLIT_SGL '(?:\\PAT_DOT|[^\\\'\r\n])*'
 #ifdef INTERPOLATING_STRINGS
@@ -1263,7 +1277,7 @@ S("{").
           // property setter
           prop = parsePropertyName(pctx.token, pctx);
           scan(pctx);
-          var pars = parseFunctionParams(pctx);
+          var pars = parseFunctionParams(pctx, '(', ')');
           var body = parseFunctionBody(pctx);
           if (pars.length != 1)
             throw new Error("Exactly one parameter expected in property setter definition");
@@ -1302,6 +1316,40 @@ S("{").
 #endif /* SJS_BLOCKLAMBDA */
   // block:
   stmt(parseBlock);
+
+#ifdef SJS_DFUNC
+function parseDFuncBody(pctx) {
+  PUSH_EXTENT(pctx, null, 'DFUNC_BODY')
+  LOGM('dfuncbody<')
+  BEGIN_DFUNCBODY(pctx)
+  while (pctx.token.id != '}') {
+    var stmt = parseStmt(pctx);
+    ADD_DFUNCBODY_STMT(stmt, pctx);
+  }
+  scan(pctx, "}")
+  LOGM('>dfuncbody')
+  END_DFUNCBODY(pctx, POP_EXTENT('DFUNC_BODY'))
+}
+
+S("@(").
+  exs(function(pctx, exs_flags) {
+    PUSH_EXTENT(pctx, pctx.token, 'DFUNC')
+    var pars = parseFunctionParams(pctx, undefined,')');
+    scan(pctx, "{");
+    var body = parseDFuncBody(pctx);
+    LOGM('dfunc')
+    GEN_DFUNC(pars, body, pctx, POP_EXTENT('GEN_DFUNC'))
+  });
+
+S("@{").
+  exs(function(pctx, exs_flags) {
+    PUSH_EXTENT(pctx, pctx.token, 'DFUNC')
+    var body = parseDFuncBody(pctx);
+    LOGM('dfunc')
+    GEN_DFUNC([], body, pctx, POP_EXTENT('GEN_DFUNC'))
+    
+  });
+#endif /* SJS_DFUNC */
 
 // deliminators
 S(";").stmt(function(pctx) { LOGM('empty_stmt') GEN_EMPTY_STMT(pctx, TOP_EXTENT()) });
@@ -1350,10 +1398,10 @@ function parseFunctionParam(pctx) {
 function parseFunctionParams(pctx, starttok, endtok) {
   // XXX This code - in particular the hackish treatment of '...' below -  
   // should be consolidated with generic expression parsing
-  if (!starttok) { starttok = '('; endtok = ')'; }
   var pars = [];
   var have_rest = false;
-  scan(pctx, starttok);
+  if (starttok)
+    scan(pctx, starttok);
   pars.line = pctx.line;
   while (pctx.token.id != endtok) {
     if (have_rest) throw new Error("Rest parameter must be last formal parameter");
@@ -1394,7 +1442,7 @@ S("function").
       fname = pctx.token.value;
       scan(pctx);
     }
-    var pars = parseFunctionParams(pctx);
+    var pars = parseFunctionParams(pctx, '(', ')');
     var body = parseFunctionBody(pctx);
     END_EXTENT(pctx, body)
     LOGM('fun_exp('+(fname||'')+')')
@@ -1406,7 +1454,7 @@ S("function").
     if (pctx.token.id != "<id>") throw new Error("Malformed function declaration");
     var fname = pctx.token.value;
     scan(pctx);
-    var pars = parseFunctionParams(pctx);
+    var pars = parseFunctionParams(pctx, '(', ')');
     var body = parseFunctionBody(pctx);
     END_EXTENT(pctx, body)
     LOGM('fun_decl')

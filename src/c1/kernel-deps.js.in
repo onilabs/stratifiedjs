@@ -336,6 +336,10 @@ ObjectLit.prototype.toString = function() { return "JSON(" + this.staticVal().ma
 
 #define END_BLAMBDABODY(pctx, ext) return Dynamic;
 
+#define BEGIN_DFUNCBODY(pctx) /* */
+#define ADD_DFUNCBODY_STMT(stmt, pctx) /* */
+#define END_DFUNCBODY(pctx, ext) /* */
+#define GEN_DFUNC(pars, body, pctx, ext) return Dynamic;
 
 //----------------------------------------------------------------------
 // statements:

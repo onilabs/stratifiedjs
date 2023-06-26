@@ -171,6 +171,11 @@ BEGIN_BLAMBDABODY(pctx)
 ADD_BLAMBDABODY_STMT(stmt, pctx)
 END_BLAMBDABODY(pctx)
 
+- if SJS_DFUNC is defined:
+BEGIN_DFUNCBODY(pctx)
+ADD_DFUNCBODY_STMT(stmt, pctx)
+END_DFUNCBODY(pctx)
+
 Statements:
 ===========
 
@@ -283,6 +288,9 @@ GEN_INTERPOLATING_STR(parts, pctx)
 
 - if QUASIS is set:
 GEN_QUASI(parts, pctx) with even parts=strings, odd parts=expressions
+
+- if SJS_DFUNC is set:
+GEN_DFUNC(pars, body, pctx)
 
 */
 
@@ -1820,6 +1828,7 @@ S("{").
   // block:
   stmt(parseBlock);
 
+
 // deliminators
 S(";").stmt(function(pctx) {  return Node.EmptyStatement(pctx, (pctx.extents ? pctx.extents[pctx.extents.length-1] : null)); });
 S(")", TOKENIZER_OP);
@@ -1867,10 +1876,10 @@ function parseFunctionParam(pctx) {
 function parseFunctionParams(pctx, starttok, endtok) {
   // XXX This code - in particular the hackish treatment of '...' below -  
   // should be consolidated with generic expression parsing
-  if (!starttok) { starttok = '('; endtok = ')'; }
   var pars = [];
   var have_rest = false;
-  scan(pctx, starttok);
+  if (starttok)
+    scan(pctx, starttok);
   pars.line = pctx.line;
   while (pctx.token.id != endtok) {
     if (have_rest) throw new Error("Rest parameter must be last formal parameter");
@@ -1909,7 +1918,7 @@ S("function").
       fname = pctx.token.value;
       scan(pctx);
     }
-    var pars = parseFunctionParams(pctx);
+    var pars = parseFunctionParams(pctx, '(', ')');
     var body = parseFunctionBody(pctx);
     end_extent(pctx, body);
     
@@ -1921,7 +1930,7 @@ S("function").
     if (pctx.token.id != "<id>") throw new Error("Malformed function declaration");
     var fname = pctx.token.value;
     scan(pctx);
-    var pars = parseFunctionParams(pctx);
+    var pars = parseFunctionParams(pctx, '(', ')');
     var body = parseFunctionBody(pctx);
     end_extent(pctx, body);
     

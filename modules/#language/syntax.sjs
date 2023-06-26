@@ -1174,4 +1174,58 @@
   In SJS code, the ` : z` part may be omitted, in which case `undefined` is assumed.
   So `x ? y` is equivalent to `x ? y : undefined`.
 
+@syntax dfunc
+@summary Decontextualized function expressions
+@desc
+  A 'dfunc' denotes a specialized function expression that is isolated from its lexical environment,
+  meaning it lacks access to variables and context of its defining scope unless explicitly passed in.
+  This detachment makes dfuncs transportable, allowing them to be transmitted across networks, 
+  executed remotely, or stored in databases, unlike traditional functions that are bound to
+  their closures. 
+
+  Dfuncs are similar to functions created with the `new Function` constructor, but they employ 
+  regular non-quoted syntax for defining the body, thereby enhancing readability, debugging, and 
+  maintainability by facilitating syntax highlighting and static analysis, which are hindered 
+  when code is defined within a string. Additionally, dfuncs establish a closure through code
+  executed during their first invocation. Symbols defined in this closure will be private to the 
+  dfunc and not be seen in the global scope (or any other scope).
+
+  See also [sjs:vmbridge::withVMBridge].
+
+  ### Syntax
+
+  Dfuncs are defined using two syntax variations: `@{ DFUNC_BODY }` for a context-isolated version, 
+  and `@(x1, x2, ...) { DFUNC_BODY }` for importing specific variables from the surrounding 
+  lexical scope. 
+  Inside `DFUNC_BODY`, you can include arbitrary code which gets executed during the initial call 
+  to the dfunc, effectively serving as the closure for the dfunc.
+  This code must ultimately yield a function definition. 
+  Both on the first invocation and on subsequent calls, the dfunc executes this resulting function.
+   
+  ### Examples
+
+      // simple usage:
+      remote_data.sort(@{ (x,y) -> x-y });
+
+      // symbols from the environment can be explicitly imported into a dfunc:
+      var DISTANCE = 0.3;
+      var is_close = @(DISTANCE) { (x,y) -> Math.abs(x-y)<DISTANCE };
+
+      // setting up an environment in the dfunc body:
+      var ANCHOR = 10;
+      var filter_close = @(is_close, ANCHOR) {
+        @ = require('sjs:sequence'); // will be executed once
+        seq -> seq  .. @filter(x -> is_close(x,ANCHOR));
+      };
+
+      // keeping state in the dfunc's closure:
+      var count_invocations = @{
+        var counter = 0; // counter is private to the dfunc
+        (function() { 
+          console.log(++counter + " calls made to count_invocations");
+         });
+      };
+
+
+
 */

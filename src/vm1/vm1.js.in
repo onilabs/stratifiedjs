@@ -4636,6 +4636,14 @@ exports.Quasi = function(...args) {
   return new QuasiProto(args);
 };
 
+exports.DFunc = function(code,context) { 
+  var bound = exports.sys.DFuncThunk.bind({code:code,context:context});
+  bound.code = code;
+  bound.context = context;
+  bound.__oni_is_dfunc = true;
+  return bound;
+};
+
 exports.Return = function(exp) {
   return new CFException("r", exp);
 };

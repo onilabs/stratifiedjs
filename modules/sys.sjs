@@ -187,6 +187,15 @@ module.exports = {
   isStratum: s.isReifiedStratum,
 
 /**
+   @function isDFunc
+   @summary  Tests if an object is a [sjs:#language/syntax::dfunc]
+   @param    {anything} [testObj] Object to test.
+   @return   {Boolean}
+*/
+  isDFunc: s.isDFunc,
+
+
+/**
    @function withDynVarContext
    @altsyntax withDynVarContext([proto_context]) { || ... }
    @summary  Execute code in a new dynamic variable context
