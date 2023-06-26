@@ -338,7 +338,7 @@ function generateBundle(deps, settings) {
           js = src.substr(24);
         }
         else {
-          js = compiler.compile(src, {globalReturn:true, filename: "'#{path.replace(/\'/g,'\\\'')}'"});
+          js = compiler.compile(src, {globalReturn:true, filename: '__onimodulename' /*"'#{path.replace(/\'/g,'\\\'')}'"*/ });
         }
         return "function(#{require.extensions['sjs'].module_args.join(',')}) {
           #{js}
