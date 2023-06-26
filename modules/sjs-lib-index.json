@@ -137,6 +137,9 @@
             "destructure": {
               "type": "syntax"
             },
+            "dfunc": {
+              "type": "syntax"
+            },
             "double-colon": {
               "type": "syntax"
             },
@@ -2569,6 +2572,9 @@
         "hostenv": {
           "type": "variable"
         },
+        "isDFunc": {
+          "type": "function"
+        },
         "isStratum": {
           "type": "function"
         },
@@ -2800,7 +2806,12 @@
           "type": "variable"
         },
         "withThread": {
-          "type": "function"
+          "type": "service",
+          "children": {
+            "withThread": {
+              "type": "ctor"
+            }
+          }
         }
       },
       "summary": "Asynchronous threads support"
