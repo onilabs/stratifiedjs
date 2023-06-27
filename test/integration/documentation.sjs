@@ -255,6 +255,11 @@ exports.testLibrary = function(hub) {
                 'inherit',
               ]);
               break;
+            case 'service':
+              knownKeys = knownKeys.concat([
+                'children'
+              ]);
+              break;
             case 'syntax':
             case 'feature':
             case 'directive':
