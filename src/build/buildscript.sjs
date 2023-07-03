@@ -46,6 +46,7 @@ function build_deps() {
                                                   "modules/moment.sjs",
                                                   "modules/moment-timezone.sjs",
                                                   "modules/yaml.sjs",
+                                                  "modules/big.sjs",
                                                   "modules/test/diff.sjs",
                                                   "tmp/version_stamp",
                                                   "modules/compile/ast.js",
@@ -326,7 +327,7 @@ function build_deps() {
          "src/deps/moment-timezone/apollo-module-footer.txt"
         ]);
 
-  // marked module
+  // yaml module
   BUILD("modules/yaml.sjs",
         ["cat $0 $1 $2 > $TARGET",
          replacements_from_config
@@ -335,6 +336,17 @@ function build_deps() {
          "src/deps/js-yaml/dist/js-yaml.min.js",
          "src/deps/js-yaml/apollo-module-footer.txt"]
        );
+
+  // big module
+  BUILD("modules/big.sjs",
+        ["cat $0 $1 $2 > $TARGET",
+         replacements_from_config
+        ],
+        ["src/deps/big.js/apollo-module-header.txt",
+         "src/deps/big.js/big.js",
+         "src/deps/big.js/apollo-module-footer.txt"]
+       );
+
 
   // std module
   BUILD("modules/std.sjs", function(dest) {

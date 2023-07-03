@@ -1,0 +1,39 @@
+/*
+ * StratifiedJS 'big' module
+ *
+ * Part of the Stratified JavaScript Standard Module Library
+ * Version: 'unstable'
+ * http://onilabs.com/stratifiedjs
+ *
+ * (c) 2023 Oni Labs, http://onilabs.com
+ *
+ *
+ *   ***************************************************************
+ *   *    DO NOT EDIT marked.sjs - IT IS A GENERATED FILE!         *
+ *   *    EDIT THE SOURCE CODE UNDER stratifiedjs/src/deps AND RUN *
+ *   *    stratifiedjs/src/build/make-sjs                          *
+ *   ***************************************************************
+ *
+ *
+ * This file is derived from the "big.js" project 
+ * (https://github.com/MikeMcl/big.js), 
+ * which is available under the terms of the MIT License.
+ *
+ */
+
+/**
+  @module    big
+  @summary   arbitrary-precision decimal arithmetic (tracking the [big.js library](http://mikemcl.github.io/big.js/))
+  @home      sjs:big
+*/
+
+/**
+   @function Big
+   @summary Constructor as documented at [http://mikemcl.github.io/big.js/]
+*/
+
+/** 
+  turn off docs from this point onwards:
+  @docsoff
+*/
+__js {

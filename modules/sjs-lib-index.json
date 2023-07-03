@@ -294,6 +294,15 @@
       },
       "summary": "Assertion functions, primarily for use in tests."
     },
+    "big": {
+      "type": "module",
+      "children": {
+        "Big": {
+          "type": "function"
+        }
+      },
+      "summary": "arbitrary-precision decimal arithmetic (tracking the [big.js library](http://mikemcl.github.io/big.js/))"
+    },
     "bundle": {
       "type": "module",
       "children": {

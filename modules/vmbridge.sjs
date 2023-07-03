@@ -73,6 +73,7 @@ module.setCanonicalId('sjs:vmbridge');
   './quasi',
   './set',
   './map',
+  './big',
   {id: './function', name: 'fn'},
   './cutil',
   {id: './type', name: 'type'}
@@ -203,11 +204,12 @@ __js {
          - Object
          - Date
          - Quasi
+         - big.Big
          - Error
          - Set
          - Map
          - ArrayBuffer
-         - Uint8Array
+         - Uint8Array/Buffer
          - function
          - dfunc (sending always allowed/ receiving only if enabled via 'acceptDFuncs'/'acceptHandshakeDFuncs')
 
@@ -381,7 +383,8 @@ function signalRemote(bridge_itf, remote_function_id, args) {
   undefined:   ['u']
   Error:       ['e', message, PROPS]
   Date:        ['d', obj.getTime()]
-  Quasi:       ['q' marshalled_parts]
+  Quasi:       ['q', marshalled_parts]
+  Big:         ['r', string] // big.Big number 
   ArrayBuffer: ['b', index_into_buffers_array] // buffer pushed into buffers_array
   Uint8Array:  ['i', index_into_buffers_array] // assoc. buffer pushed into buffers_array
 
@@ -429,6 +432,9 @@ __js {
       else if (obj instanceof Date) {
         return ['d', obj.getTime()];
       }
+      else if (obj instanceof @Big) {
+        return ['r', String(obj)];
+      }
       else if (@isQuasi(obj)) {
         return ['q', obj.parts .. @map(x->bridge_itf .. marshall(x, buffers))];
       }
@@ -440,7 +446,7 @@ __js {
       else if (obj instanceof Uint8Array) {
         var i = buffers.length;
         if (obj.byteOffset !== 0 || obj.length !== obj.buffer.byteLength) {
-          console.log("bridge #{bridge_itf.id}: Uint8Array with byteOffset=#{obj.byteOffset} & buffer_length-length=#{obj.buffer.byteLength -obj.length} will be copied, not transferred.");
+//          console.log("bridge #{bridge_itf.id}: Uint8Array with byteOffset=#{obj.byteOffset} & buffer_length-length=#{obj.buffer.byteLength -obj.length} will be copied, not transferred.");
           obj = new Uint8Array(obj);
         }
         if (obj.buffer.byteLength === 0) throw new Error('nope');
@@ -451,12 +457,12 @@ __js {
         return ['o', bridge_itf .. marshallObjectProps(obj, buffers)];
       }
       else {
-        console.log("vmbridge: Cannot marshall object '#{obj}'");
+        console.log("vmbridge #{bridge_itf.id}: Cannot marshall object '#{obj}' with prototype '#{Object.getPrototypeOf(obj)}'");
         throw VMBridgeError("Cannot marshall object '#{obj}'", bridge_itf.id);
       }
     }
     else {
-      console.log("vmbridge: Cannot marshall type '#{t}'");
+      console.log("vmbridge #{bridge_itf.id}: Cannot marshall type '#{t}'");
       throw VMBridgeError("Cannot marshall type '#{t}'", bridge_itf.id);
     }
   }
@@ -551,13 +557,19 @@ __js {
     case 'd':
       return new Date(obj[1]);
       break;
+    case 'r':
+      return @Big(obj[1]);
+      break;
     case 'q':
       return @Quasi(obj[1] .. @map(x->bridge_itf .. unmarshall(x, buffers)));
       break;
     case 'b':
       return buffers[obj[1]];
     case 'i':
-      return new Uint8Array(buffers[obj[1]]);
+      if (@sys.hostenv === 'nodejs')
+        return Buffer.from(buffers[obj[1]]);
+      else
+        return new Uint8Array(buffers[obj[1]]);
       break;
     default:
       throw VMBridgeError("Unmarshalling error: Unknown type '#{obj[0]}'", bridge_itf.id);
