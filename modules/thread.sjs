@@ -40,52 +40,54 @@
   './object', './sequence', './event', './cutil', './vmbridge', './string', {id:'./sys',name:'sys'}
 ]);
 
+
+// counter for disambiguating multiple bridges from this thread
+var BRIDGE_COUNTER = 0;
+
 // helpers:
 
 __js {
+
+  /*
+    XXX As it turns out, transferring buffers is more expensive than just copying (at least on 
+    nodejs threads), so we'll not use serializeWorkerThreadMessage.
+
   // rv is sent as worker.postMessage(...[data, buffers])
   function serializeWorkerThreadMessage(message) {
-    /*
-      message is [data, buffers_array], where
-      data contains pointers into buffers_array.
-      
-      To make sure buffers_array members get sent as actual transferables, 
-      we need to return
-      
-      [[data, buffers_array], buffers_array]
-      
-      This gets posted as:
-      
-      postMessage([data, buffers_array], buffers_array);
-      
-      and will be received as
-      
-      [data, buffers_array] with every element in buffers_array sent as 
-      an actual transferable.
-      
-      If we wanted to send *copies* instead of transferables, we would just return
-      
-      [message] 
-      
-    */
-    
+    //
+    //  message is [data, buffers_array], where
+    //  data contains pointers into buffers_array.
+    //  
+    //  To make sure buffers_array members get sent as actual transferables, 
+    //  we need to return
+    //  
+    //  [[data, buffers_array], buffers_array]
+    //  
+    //  This gets posted as:
+    //  
+    //  postMessage([data, buffers_array], buffers_array);
+    //  
+    //  and will be received as
+    //  
+    //  [data, buffers_array] with every element in buffers_array sent as 
+    //  an actual transferable.
+    //  
+    //  If we wanted to send *copies* instead of transferables, we would just return
+    //  
+    //  [message] 
+    //      
     return [message, message[1]];
   }
-// NOT NEEDED:
-//  function deserializeWorkerThreadMessage(message) {
-//    return message;
-//  }
+  */
 
-
-
-  var SJS_THREAD_SCRIPT = 
+  var SJS_THREAD_SCRIPT = settings -> 
     "@ = require(['sjs:std', 'sjs:vmbridge', 'sjs:thread']);"+
     "function eval_call(code) {"+
     " return eval(__oni_rt.c1.compile(code));"+
     "};"+
     "try{"+
     "var id='WORKER-'+@sys.VMID;"+
-    "@withVMBridge({acceptHandshakeDFuncs:true, local_itf:{eval:eval_call}, withTransport:@withWorkerThreadWorkerTransport,id:id}) {"+
+    "@withVMBridge({acceptHandshakeDFuncs:true, acceptDFuncs:#{settings.allowDFuncsToThread}, local_itf:{eval:eval_call}, withTransport:@withWorkerThreadWorkerTransport,id:id}) {"+
     "  |itf|"+
     "  hold();"+
     "};"+
@@ -110,6 +112,9 @@ __js {
    @param {optional sjs:#language/syntax::dfunc} [thread_itf_func] Thread interface function - see description
    @param {optional Object} [settings]
    @param {Function} [session_f] Session function
+   @setting {optional Array} [hubs] Array of [sjs:#language/builtins::require.hubs] to install in thread. (Note 'sjs:' and 'mho:' hubs will be installed automatically.)
+   @setting {optional Boolean} [allowDFuncsFromThread=false] If `true`, [sjs:#language/syntax::dfunc]s can be sent from the thread.
+   @setting {optional Boolean} [allowDFuncsToThread=false] If `true`, [sjs:#language/syntax::dfunc]s can be sent to the thread.
    @desc
 
     #### Overview
@@ -123,10 +128,11 @@ __js {
     Notes:
 
     - `require()` can be used in the thread, and both 'sjs:' and 'mho:' hubs will automatically be 
-    pre-configured if available on the caller
+    pre-configured (if available on the caller).
 
     - By default, [sjs:#language/syntax::dfunc]s can not be sent or received across the thread
       interface, and will throw an exception. (The exception being the initial `thread_itf_func`.)
+      Flags `allowDFuncsFromThread` and `allowDFuncsToThread` can be used to override this behavior.
 
     - When `session_f` is being retracted, any pending calls will be aborted, and the webworker thread will be 
       terminated. Note that abortion is synchronous: `session_f` will wait for the worker calls to 
@@ -167,11 +173,11 @@ if (@sys.hostenv === 'nodejs') {
   @node_worker = require('nodejs:worker_threads');
   exports.isMainThread = @node_worker.isMainThread;
   var getPort = -> @node_worker.parentPort;
-  var createWorker = function() {
+  var createWorker = function(settings) {
     var sjs_home = (require.hubs .. @find([name,path]->name == 'sjs:'))[1].replace(/^file:\/\//,'').replace(/\/modules\/$/,'');
     var sjs_node = sjs_home + '/stratified-node';
     
-    var additional_hubs = [];
+    var additional_hubs = [...settings.hubs];
     
     var mho_hub = require.hubs .. @find([name,path]->name == 'mho:', undefined);
     if (mho_hub)
@@ -185,7 +191,7 @@ var sjs_node = require('#{sjs_node}');
 function terminate_self() {process.exit(); }
 sjs_node.getGlobal().require = sjs_node._makeRequire({id:sjs_node.pathToFileUrl('./')});
 require.hubs.push(...#{additional_hubs});
-eval(__oni_rt.c1.compile(\"#{SJS_THREAD_SCRIPT}\"));
+eval(__oni_rt.c1.compile(\"#{SJS_THREAD_SCRIPT(settings)}\"));
 null;
 ";
     return new @node_worker.Worker(root_script, {eval:true});
@@ -194,12 +200,18 @@ null;
 else if (@sys.hostenv === 'xbrowser') {
   exports.isMainThread = !document.isThread; // set in root_script below
   var getPort = -> self;
-  var createWorker = function() {
+  var createWorker = function(settings) {
     // XXX make this configurable
     var root_location = document.location.protocol+'//'+document.location.host;
     //require.hubs .. @find([name,path]->(name == 'mho:')) .. console.log;
-    // XXX take this from require.hubs:
-    var additional_hubs = "[['mho:', '#{document.location.protocol}//#{document.location.host}/__mho/']]";
+
+    //var additional_hubs = "[['mho:', '#{document.location.protocol}//#{document.location.host}/__mho/']]";
+    var additional_hubs = [...settings.hubs];
+    var mho_hub = require.hubs .. @find([name,path]->name == 'mho:', undefined);
+    if (mho_hub)
+      additional_hubs.push(mho_hub);
+    
+    additional_hubs = JSON.stringify(additional_hubs);
     var sjs_location = (require.hubs .. @find([name,path]->name == 'sjs:'))[1].replace(/\/modules\/$/,'');
     if (!(sjs_location .. @startsWith('http')))
       sjs_location = document.location.protocol+'//'+document.location.host+sjs_location;
@@ -222,7 +234,7 @@ document.getElementsByTagName = function(x) { if (x=='script') return [{src:'#{s
 importScripts('#{sjs_location}/modules/thread.sjs!bundle');
 importScripts('#{sjs_location}/stratified.js');
 require.hubs.push(...#{additional_hubs});
-eval(__oni_rt.c1.compile(\"#{SJS_THREAD_SCRIPT}\"));
+eval(__oni_rt.c1.compile(\"#{SJS_THREAD_SCRIPT(settings)}\"));
 null;
 ";
     
@@ -256,10 +268,10 @@ exports.withWorkerThreadWorkerTransport = function(session_f) {
         // communicate any errors of dfunc evaluation to main thread:
         local_settings = e; 
       }
-      port.postMessage(...serializeWorkerThreadMessage(local_settings .. marshall));
+      port.postMessage(/*...serializeWorkerThreadMessage(*/local_settings .. marshall/*)*/);
       return remote_settings;
     },
-    send: (data)->port.postMessage(...serializeWorkerThreadMessage(data))
+    send: (data)->port.postMessage(/*...serializeWorkerThreadMessage(*/data/*)*/)
   });  
 };
 
@@ -290,11 +302,15 @@ exports.withThread = function(/*[thread_itf], [settings], session_f*/ ...args) {
     if (thread_itf !== undefined && !@sys.isDFunc(thread_itf))
       throw new Error("thread_itf must be a dfunc");
     
-    settings = {} .. @override(settings);
+    settings = {
+      hubs: [],
+      allowDFuncsToThread: false,
+      allowDFuncsFromThread: false
+    } .. @override(settings);
   } // __js
 
   function withWorkerBridgeTransport(session_f) {
-    var worker = createWorker();
+    var worker = createWorker(settings);
     var Messages = @Dispatcher();
     waitfor {
       if (@sys.hostenv === 'xbrowser')
@@ -312,13 +328,29 @@ exports.withThread = function(/*[thread_itf], [settings], session_f*/ ...args) {
         // return the value of the next received message. 
         handshake: function(local_settings, marshall, unmarshall) { 
           Messages.receive(); 
-          worker.postMessage(...serializeWorkerThreadMessage(local_settings .. marshall));
+          worker.postMessage(/*...serializeWorkerThreadMessage(*/local_settings .. marshall/*)*/);
           var rv = Messages.receive();
           rv = rv .. unmarshall;
           if (rv instanceof Error) throw rv;
           return rv;
         },
-        send: (data)->worker.postMessage(...serializeWorkerThreadMessage(data))
+        send: (data)->worker.postMessage(data)
+/*        send: function(data) {
+          var start = new Date();
+          var serialized = serializeWorkerThreadMessage(data);
+          var end = new Date();
+          if (end-start > 100) console.log("@@@@@@@@@@@@@ serialization took #{end-start}ms");
+          start = new Date();
+          worker.postMessage(...serialized);
+          end = new Date();
+          if (end-start > 100) {
+            console.log("@@@@@@@@@@@@@ worker send took #{end-start}ms");
+            console.log("serialized = [[,#{serialized[0][1].length}],#{serialized[1].length}]");
+            console.log("first=l=#{serialized[0][1][0].byteLength}");
+            console.log("firsttx=l=#{serialized[1][0].byteLength}");
+          }
+        }
+*/
       });
     }
     finally {
@@ -330,7 +362,9 @@ exports.withThread = function(/*[thread_itf], [settings], session_f*/ ...args) {
   return @withVMBridge(
     {
       withTransport:withWorkerBridgeTransport, 
-      local_itf:thread_itf
+      acceptDFuncs: settings.allowDFuncsFromThread,
+      local_itf:thread_itf,
+      id: "CLIENT-"+@sys.VMID+"-"+(++BRIDGE_COUNTER)
     }, 
     itf->session_f([itf.remote, {kill:itf.kill}])
   );
