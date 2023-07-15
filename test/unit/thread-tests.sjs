@@ -114,7 +114,7 @@ context('withThread', function() {
       assert.eq(arr2.byteLength, 3);
       check();
     }
-  });
+  }).skip("Threads don't use transferables anymore because of performance issues");
 
   test('dfuncs disallowed by default', function() {
     @thread.withThread(
