@@ -379,7 +379,7 @@ exports.write = function(fd, buffer, offset, length, position /*=null*/) {
    @function writev
    @summary Write multiple buffers to the given file
    @param {Integer} [fd] File descriptor
-   @param {Array of bytes::Bytes}  [data] 
+   @param {Array}  [data] Array of [bytes::Bytes] 
    @param {optional Integer} [position=null] Where to begin writing to the file (`null` = write to current position)
 */
 exports.writev = function(fd, buffers, position /*=null*/) {

@@ -386,7 +386,7 @@ __js var avl_stream = (T) -> @Stream:: function(r) {
 
    @function SortedMap::getComparator
    @summary Returns the name of the comparator in use by the SortedMap.
-   @return {::String}
+   @return {String}
 
    @variable SortedMap::elements
    @summary [./sequence::Stream] of `[key,value]` elements in the map, sorted by `key`.
