@@ -353,26 +353,28 @@ function build_deps() {
     var { generateDocDescription } = require('sjs:../tools/document-stdlib');
     // XXX contents should be generated from '@inlibrary' doc-comments 
     var contents = fs.readFile(url.normalize('./std.sjs', module.id) .. url.toPath, 'utf-8');
+    contents += "module.exports = require(modules);\n";
     var descriptionDocs = generateDocDescription(contents, "
 This module combines commonly-used functionality from the
 StratifiedJS standard library.");
     dest .. fs.writeFile("
-/* ----------------------------------- *
-* NOTE:                                *
-*   This file is auto-generated        *
-*   any manual edits will be LOST      *
-*   (edit src/build/std.sjs instead)   *
-* ------------------------------------ */
+/* ---------------------------------------- *
+ * NOTE:                                    *
+ * This file is auto-generated.             *
+ * Any manual edits will be LOST            *
+ * (edit src/build/buildscript.sjs instead) *
+ * ---------------------------------------- */
 #{contents}
 /**
 @noindex
-@summary Common functionality for SJS modules
+@summary Common functionality for SJS applications
 #{descriptionDocs}
 */
 ");
   },
   ['src/build/std.sjs', 'tools/document-stdlib.sjs']);
-  PSEUDO("modules/std.sjs"); // only enumerable while building
+// XXX This possibly dates back to build problems on FAT32 (2s resolution on mtime):
+//  PSEUDO("modules/std.sjs"); // only enumerable while building XXX why?
 
   // test/diff module
   CONCAT("modules/test/diff.sjs",

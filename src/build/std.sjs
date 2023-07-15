@@ -69,4 +69,3 @@ if (hostenv === 'nodejs') {
   }
 }
 
-module.exports = require(modules);
