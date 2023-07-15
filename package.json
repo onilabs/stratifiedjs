@@ -18,22 +18,12 @@
   "bin": {
     "sjs": "sjs"
   },
-  "devDependencies": {
-    "eslint": "https://github.com/gfxmonk/eslint.git#da9f557b0857c4a4325d324ffe903bdb9a4262a4",
-    "espree": "~1.10.0",
-    "karma-chrome-launcher": "*",
-    "karma-firefox-launcher": "*",
-    "karma-ie-launcher": "*",
-    "karma-phantomjs-launcher": "*",
-    "karma-quiet-reporter": "*",
-    "karma-script-launcher": "*",
-    "karma-sjs-adapter": "~0.2.2"
-  },
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=16.15.0"
   },
   "scripts": {
-    "test": "./sjs test/run.html"
+    "test": "./sjs test/run.html",
+    "build": "./src/build/make-sjs"
   },
   "dependencies": {
     "mkdirp": "^1.0.4",

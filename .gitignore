@@ -1,9 +1,3 @@
 tmp/
 *~
-/node_modules/.bin
-/node_modules/karma*
-/node_modules/eslint
-/node_modules/espree
-/node_modules/mime
-/node_modules/uglify-js
-/node_modules/conductance
+/node_modules

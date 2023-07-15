@@ -35,7 +35,6 @@
    @home    sjs:array
    @inlibrary sjs:std
    @inlibrary mho:std
-   @eslint  { "rules": { "no-labels": 0 } }
 */
 'use strict';
 

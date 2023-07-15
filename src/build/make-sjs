@@ -1,4 +1,7 @@
 #!/bin/bash
 
 SJS_HOME=`dirname $0`/../..
-$SJS_HOME/sjs $SJS_HOME/src/build/buildscript.sjs "$@"
+pushd $SJS_HOME > /dev/null
+npm install
+./sjs ./src/build/buildscript.sjs "$@"
+popd > /dev/null

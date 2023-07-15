@@ -1,10 +1,10 @@
 
-/* ----------------------------------- *
-* NOTE:                                *
-*   This file is auto-generated        *
-*   any manual edits will be LOST      *
-*   (edit src/build/std.sjs instead)   *
-* ------------------------------------ */
+/* ---------------------------------------- *
+ * NOTE:                                    *
+ * This file is auto-generated.             *
+ * Any manual edits will be LOST            *
+ * (edit src/build/buildscript.sjs instead) *
+ * ---------------------------------------- */
 /**
   // metadata for sjs:bundle:
   @require sjs:object
@@ -80,7 +80,7 @@ module.exports = require(modules);
 
 /**
 @noindex
-@summary Common functionality for SJS modules
+@summary Common functionality for SJS applications
 @desc
   
   This module combines commonly-used functionality from the
