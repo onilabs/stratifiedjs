@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SJS_HOME=`dirname $0`/../..
 pushd $SJS_HOME > /dev/null
