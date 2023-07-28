@@ -313,10 +313,16 @@ exports.withThread = function(/*[thread_itf], [settings], session_f*/ ...args) {
     var worker = createWorker(settings);
     var Messages = @Dispatcher();
     waitfor {
-      if (@sys.hostenv === 'xbrowser')
-        worker .. @events('message') .. @each { |{data}| Messages.dispatch(data); }
-      else
-        worker .. @events('message') .. @each { |data| Messages.dispatch(data); }
+      waitfor {
+        // this catches e.g. out-of-memory errors on nodejs
+        throw new Error(worker .. @events('error') .. @first);
+      }
+      and {
+        if (@sys.hostenv === 'xbrowser')
+          worker .. @events('message') .. @each { |{data}| Messages.dispatch(data); }
+        else
+          worker .. @events('message') .. @each { |data| Messages.dispatch(data); }
+      }
     }
     while {
       session_f({
