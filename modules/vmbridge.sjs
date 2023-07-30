@@ -62,6 +62,8 @@
   ['B', call_id, anchor_id, anchor_bridge_id] // blocklambda break via call_id
 
   ['Q', call_id, anchor_id, anchor_bridge_id] // blocklambda return via call_id
+
+  ['G', function_id] // garbage collect; function_id will not be called anymore
 */
 
 module.setCanonicalId('sjs:vmbridge');
@@ -208,6 +210,7 @@ __js {
          - Error
          - Set
          - Map
+         - SortedMap
          - ArrayBuffer
          - Uint8Array/Buffer
          - function
@@ -238,7 +241,9 @@ __js {
 
      - All objects can assumed to be remoted *by value* and not *by reference*. This implies e.g. that
      mutating the properties of a (structural) object passed across the bridge will not mutate the 
-     corresponding property on the original object on the other side of the bridge.
+     corresponding property on the original object on the other side of the bridge. It also
+     implies that object equivalence will not hold if the same object is remoted multiple times (this
+     includes functions).
 
      - While functions are also remoted *by value* (i.e. any properties set on the function are 
      remoted by value), invoking a remoted function will call the function on the side of 
@@ -279,13 +284,13 @@ __js {
 // MISC BRIDGE FUNCTIONS
 
 __js function publishFunction(bridge_itf, f) {
-  var id = bridge_itf.known_id_by_func.get(f);
-  if (id == undefined) {
-    id = ++bridge_itf.published_func_id_counter;
-    bridge_itf.published_funcs[id] = f;
-    bridge_itf.known_id_by_func.set(f, id);
-  }
-//  else console.log("We're reusing already published function ",f);
+  //var id = bridge_itf.known_id_by_published_func.get(f);
+  //if (id == undefined) {
+  var id = ++bridge_itf.published_func_id_counter;
+  bridge_itf.published_funcs.set(id,f);
+  //bridge_itf.known_id_by_published_func.set(f, id);
+  //}
+  //else console.log("We're reusing already published function ",f);
   return id;
 };
 
@@ -573,18 +578,26 @@ __js {
       break;
     default:
       throw VMBridgeError("Unmarshalling error: Unknown type '#{obj[0]}'", bridge_itf.id);
-    } 
+    }
   }
 
   function unmarshallFunction(bridge_itf, id, props, buffers) {
-    var f = function(...args) {
-      return bridge_itf .. callRemote(id, args);
+    var f = bridge_itf.remote_funcs.get(id);
+    if (!f || !(f=f.deref())) {
+      f = function(...args) {
+        return bridge_itf .. callRemote(id, args);
+      }
+      f[@fn.ITF_SIGNAL] = function(this_obj, args) {
+        return bridge_itf .. signalRemote(id, args);
+      };
+      
+      if (props) bridge_itf .. unmarshallObjectProps(f, props, buffers);
+    
+      bridge_itf.finalizationRegistry.register(f, id);
+      bridge_itf.remote_funcs.set(id, new WeakRef(f));
     }
-    f[@fn.ITF_SIGNAL] = function(this_obj, args) {
-      return bridge_itf .. signalRemote(id, args);
-    };
-
-    if (props) bridge_itf .. unmarshallObjectProps(f, props, buffers);
+    //else
+    //  console.log("Bridge #{bridge_itf.id}: unmarshall found existing function #{id}");
 
     return f;
   }
@@ -663,7 +676,7 @@ function executeRemoteToLocalCall(bridge_itf, call_id, dynvar_call_ctx, local_fu
     // an execution frame if the call went async. in that case we spawn a
     // stratum to manage the call.
     __js var call_rv = bridge_itf .. executeRemoteToLocalCallSync(call_id, 
-                                                                  bridge_itf.published_funcs[local_function_id], 
+                                                                  bridge_itf.published_funcs.get(local_function_id), 
                                                                   args);
 
     if (__js __oni_rt.is_ef(call_rv)) {
@@ -861,6 +874,14 @@ function withVMBridge(settings, session_f) {
     acceptHandshakeDFuncs: false
   } .. @override(settings);
 
+  // proxied function finalization callback:
+  __js function cleanRemoteFunction(id) {
+    if (!bridge_itf.transport_dead.isSet) {
+      bridge_itf.remote_funcs.delete(id);
+      bridge_itf.send([['G', id],[]]);
+    }
+  }
+
   var bridge_itf = {
     id: settings.id,
 
@@ -886,8 +907,24 @@ function withVMBridge(settings, session_f) {
     remoteToLocalCalls: {},
 
     published_func_id_counter: 0,
-    published_funcs: {},
-    known_id_by_func: new WeakMap()
+
+    // map of id->published_funcs for routing remote->local calls 
+    // will be cleaned by remote GC messages, when the proxied function is not 
+    // reachable on the remote side any longer and its finalizer is called
+    published_funcs: @Map(),
+
+    // weak map of published_func -> id, so that we can identify already 
+    // published functions
+    // XXX it would be nice to use this, but there is an unlikely but plausible race condition
+    // with cross-bridge gc
+    //   known_id_by_published_func: new WeakMap(),
+
+    // map of id->WeakRef(remote_func), so that we can identify already
+    // proxied functions.
+    // will be cleaned through the remote_funcs' finalizers
+    remote_funcs: @Map(),
+
+    finalizationRegistry: __js new FinalizationRegistry(cleanRemoteFunction)
 
   }; // bridge_itf
 
@@ -974,7 +1011,7 @@ function withVMBridge(settings, session_f) {
                                                  message[4] .. @map(a-> bridge_itf .. unmarshall(a, message_objects)));
           break;
         case 'S':
-          bridge_itf.published_funcs[message[1]] .. @fn.signal(null, message[2] .. @map(x->bridge_itf .. unmarshall(x, message_objects)));
+          bridge_itf.published_funcs.get(message[1]) .. @fn.signal(null, message[2] .. @map(x->bridge_itf .. unmarshall(x, message_objects)));
           break;
         case 'R':
           var cb = bridge_itf.localToRemoteCalls[message[1]];
@@ -1003,6 +1040,15 @@ function withVMBridge(settings, session_f) {
             call.abort();
           }
           break;
+        case 'G':
+          var f = bridge_itf.published_funcs.get(message[1]);
+          if (f) {
+            // important that we remove it from this weak map, so that we
+            // don't get spurious matches if the function is republished:
+            // bridge_itf.known_id_by_published_func.delete(f);
+            bridge_itf.published_funcs.delete(message[1]);
+          }
+          break;
         default:
           throw VMBridgeError("Unknown message of type '#{message[0]}'", bridge_itf.id);
         }
@@ -1011,6 +1057,7 @@ function withVMBridge(settings, session_f) {
     catch(e) {
       // once the receiving loop is dead, we won't get replies to any messages... so might as well
       // kill the transport
+      console.log("Bridge #{bridge_itf} internal error: #{e}");
       bridge_itf.kill_transport.dispatch();
       throw e;
     }
