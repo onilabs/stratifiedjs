@@ -155,12 +155,21 @@ __js {
     `eval(code_str)` asynchronously evaluates the sjs code `code_str` in the webworker, 
     waits for and returns the result. 
 
-    - `THREAD_CTRL` is the thread control interface - an object `{kill:function}`. 
-      `kill` immediately terminates the worker thread and exits the `withThread` call with an 
-      exception. This can e.g. be helpful if the code 
-      running in the worker thread is in a state where it cannot be aborted 
-      normally (e.g. if it is running a busy loop such as `while(1) { }`). 
-      [sjs:vmbridge::isVMBridgeError] will return 'true' for the exception.
+    - `THREAD_CTRL` is the thread control and monitoring interface:
+    
+          {
+             kill:function,
+             getBridgeMetrics: function
+          }
+
+ 
+       - `kill` immediately terminates the worker thread and exits the `withThread` call with an 
+          exception. This can e.g. be helpful if the code 
+          running in the worker thread is in a state where it cannot be aborted 
+          normally (e.g. if it is running a busy loop such as `while(1) { }`). 
+          [sjs:vmbridge::isVMBridgeError] will return 'true' for the exception.
+       - `getBridgeMetrics` is a proxy for the `getMetrics` function in the session interface of the
+          thread's underlying vmbridge (see [sjs:vmbridge::withVMBridge]).
 
    #### thread_itf_func
 
@@ -372,6 +381,6 @@ exports.withThread = function(/*[thread_itf], [settings], session_f*/ ...args) {
       local_itf:thread_itf,
       id: "CLIENT-"+@sys.VMID+"-"+(++BRIDGE_COUNTER)
     }, 
-    itf->session_f([itf.remote, {kill:itf.kill}])
+    itf->session_f([itf.remote, {kill:itf.kill, getBridgeMetrics:itf.getMetrics}])
   );
 };
