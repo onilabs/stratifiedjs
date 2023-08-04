@@ -175,7 +175,8 @@ __js {
          {
            remote: object,
            kill: function(),
-           id: String
+           id: String,
+           getMetrics: function()
          }
 
      - Here, `remote` is the `local_itf` of the remote VM. 
@@ -183,6 +184,8 @@ __js {
      of the bridge becomes unresponsive or doesn't adhere to the bridge protocol and cannot be 
      'cleanly' shut down using the normal SJS abortion mechanism. 
      - `id` is the (globally unique) id of this side of the SJS bridge.
+     - `getMetrics` returns a metrics object `{local_funcs, remote_funcs, remote_func_gcs, local_func_gcs}`, giving 
+     counts for the number of functions marshalled and garbage collected across the bridge.
 
      Once a session is established, either side of the bridge can make calls to the other side 
      utilizing functions passed to each other as part of the `remote` interfaces.
@@ -582,9 +585,10 @@ __js {
   }
 
   function unmarshallFunction(bridge_itf, id, props, buffers) {
-    var f = bridge_itf.remote_funcs.get(id);
-    if (!f || !(f=f.deref())) {
-      f = function(...args) {
+    //var f = bridge_itf.remote_funcs.get(id);
+    //if (!f || !(f=f.deref())) {
+      ++bridge_itf.remote_func_id_counter;
+      var f = function(...args) {
         return bridge_itf .. callRemote(id, args);
       }
       f[@fn.ITF_SIGNAL] = function(this_obj, args) {
@@ -594,8 +598,8 @@ __js {
       if (props) bridge_itf .. unmarshallObjectProps(f, props, buffers);
     
       bridge_itf.finalizationRegistry.register(f, id);
-      bridge_itf.remote_funcs.set(id, new WeakRef(f));
-    }
+      //bridge_itf.remote_funcs.set(id, new WeakRef(f));
+    //}
     //else
     //  console.log("Bridge #{bridge_itf.id}: unmarshall found existing function #{id}");
 
@@ -877,13 +881,23 @@ function withVMBridge(settings, session_f) {
   // proxied function finalization callback:
   __js function cleanRemoteFunction(id) {
     if (!bridge_itf.transport_dead.isSet) {
-      bridge_itf.remote_funcs.delete(id);
+      //bridge_itf.remote_funcs.delete(id);
+      ++bridge_itf.remote_func_gc_counter;
       bridge_itf.send([['G', id],[]]);
     }
   }
 
   var bridge_itf = {
     id: settings.id,
+    
+    getMetrics: function() {
+      return {
+        local_funcs: bridge_itf.published_func_id_counter,
+        remote_funcs: bridge_itf.remote_func_id_counter,
+        remote_func_gcs: bridge_itf.remote_func_gc_counter,
+        local_func_gcs: bridge_itf.local_func_gc_counter
+      };
+    },
 
     remote_settings: undefined, // will be set by handshake
 
@@ -908,6 +922,11 @@ function withVMBridge(settings, session_f) {
 
     published_func_id_counter: 0,
 
+    // keeping track of these for metrics purposes:
+    remote_func_id_counter: 0,
+    remote_func_gc_counter: 0,
+    local_func_gc_counter: 0,
+
     // map of id->published_funcs for routing remote->local calls 
     // will be cleaned by remote GC messages, when the proxied function is not 
     // reachable on the remote side any longer and its finalizer is called
@@ -922,7 +941,8 @@ function withVMBridge(settings, session_f) {
     // map of id->WeakRef(remote_func), so that we can identify already
     // proxied functions.
     // will be cleaned through the remote_funcs' finalizers
-    remote_funcs: @Map(),
+    // XXX this only makes sense when `known_id_by_published` is also used
+    // remote_funcs: @Map(),
 
     finalizationRegistry: __js new FinalizationRegistry(cleanRemoteFunction)
 
@@ -964,6 +984,11 @@ function withVMBridge(settings, session_f) {
           console.log(bridge_itf.id+': Killing straggling remote->local call '+k);
           v.abort();
         }
+        
+        // remote->local functions hang onto bridge_itf, which might keep published
+        // functions alive for longer than necessary. Aid GC (especially GC across 
+        // mulitple vmbridges):
+        delete bridge_itf.published_funcs;
       }
     });
   }
@@ -1046,6 +1071,8 @@ function withVMBridge(settings, session_f) {
             // important that we remove it from this weak map, so that we
             // don't get spurious matches if the function is republished:
             // bridge_itf.known_id_by_published_func.delete(f);
+
+            ++bridge_itf.local_func_gc_counter;
             bridge_itf.published_funcs.delete(message[1]);
           }
           break;
@@ -1057,14 +1084,19 @@ function withVMBridge(settings, session_f) {
     catch(e) {
       // once the receiving loop is dead, we won't get replies to any messages... so might as well
       // kill the transport
-      console.log("Bridge #{bridge_itf} internal error: #{e}");
+      console.log("Bridge #{bridge_itf.id} internal error: #{e}");
       bridge_itf.kill_transport.dispatch();
       throw e;
     }
   }
   while {
     waitfor {
-      session_f({remote: bridge_itf.remote_settings.itf, kill:bridge_itf.kill_transport.dispatch, id: bridge_itf.id});
+      session_f({
+        remote: bridge_itf.remote_settings.itf, 
+        kill:bridge_itf.kill_transport.dispatch, 
+        id: bridge_itf.id,
+        getMetrics: bridge_itf.getMetrics
+      });
     }
     or {
       bridge_itf.transport_dead.wait();
