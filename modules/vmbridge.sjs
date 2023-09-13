@@ -378,6 +378,18 @@ function signalRemote(bridge_itf, remote_function_id, args) {
 //----------------------------------------------------------------------
 // ARGUMENT MARSHALLING/UNMARSHALLING
 
+// high-level marshalling wrappers:
+
+// marshalls 'obj' and generates an 'R' message, or 'E' if there is a marshalling error:
+function generateReturnMessage(bridge_itf, call_id, obj, buffers) {
+  try {
+    return [['R', call_id, bridge_itf .. marshall(obj, buffers)], buffers];
+  }
+  catch(e) {
+    return [['E', call_id, bridge_itf .. marshall(e, buffers)], buffers];
+  }
+}
+
 /*
 
   marshalling schema:
@@ -652,7 +664,7 @@ __js function executeRemoteToLocalCallSync(bridge_itf, call_id, f, args) {
   if (__oni_rt.is_ef(rv)) 
     return rv;
   else
-    return [['R', call_id, bridge_itf .. marshall(rv, buffers)], buffers];
+    return bridge_itf .. generateReturnMessage(call_id, rv, buffers);
 }
 
 function executeRemoteToLocalCall(bridge_itf, call_id, dynvar_call_ctx, local_function_id, args) {
@@ -723,7 +735,7 @@ function executeRemoteToLocalCall(bridge_itf, call_id, dynvar_call_ctx, local_fu
           } // exception
           else {
             // no exception
-            rv = [['R', call_id, bridge_itf .. marshall(e[0], buffers)], buffers];
+            rv = bridge_itf .. generateReturnMessage(call_id, e[0], buffers);
             // no need to return the rv to our side:
             e = [undefined];
           }
