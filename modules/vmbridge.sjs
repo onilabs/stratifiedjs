@@ -64,6 +64,8 @@
   ['Q', call_id, anchor_id, anchor_bridge_id] // blocklambda return via call_id
 
   ['G', function_id] // garbage collect; function_id will not be called anymore
+
+  ['F', marshalled_error] // fatal vmbridge error; see thread module for usage
 */
 
 module.setCanonicalId('sjs:vmbridge');
@@ -628,12 +630,9 @@ __js {
 
 __js function executeRemoteToLocalCallSync(bridge_itf, call_id, f, args) {
   var buffers = [];
+  var rv;
   try {
-    var rv = f(...args);
-    if (__oni_rt.is_ef(rv)) 
-      return rv;
-    else
-      return [['R', call_id, bridge_itf .. marshall(rv, buffers)], buffers];
+    rv = f(...args);
   }
   catch(e) {
     if (e && e.__oni_cfx) {
@@ -650,6 +649,10 @@ __js function executeRemoteToLocalCallSync(bridge_itf, call_id, f, args) {
     }
     return [['E', call_id, bridge_itf .. marshall(e, buffers)], buffers];
   }
+  if (__oni_rt.is_ef(rv)) 
+    return rv;
+  else
+    return [['R', call_id, bridge_itf .. marshall(rv, buffers)], buffers];
 }
 
 function executeRemoteToLocalCall(bridge_itf, call_id, dynvar_call_ctx, local_function_id, args) {
@@ -1076,6 +1079,8 @@ function withVMBridge(settings, session_f) {
             bridge_itf.published_funcs.delete(message[1]);
           }
           break;
+        case 'F':
+          throw bridge_itf .. unmarshall(message[1], message_objects);
         default:
           throw VMBridgeError("Unknown message of type '#{message[0]}'", bridge_itf.id);
         }

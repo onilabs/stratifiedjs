@@ -93,6 +93,7 @@ __js {
     "};"+
     "}catch(e) {"+
     " console.log('Uncaught error in '+id+': ', e);"+
+    " @withWorkerThreadWorkerTransport { |{send}| send([['F', String(e)],[]])};"+ // make sure to close CLIENT side. XXX need to wrap this with 'serializeWorkerThreadMessage' if we reactivate that function
     "}"+
     "terminate_self();"
   ;
