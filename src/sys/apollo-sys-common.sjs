@@ -287,7 +287,7 @@ exports.DFuncThunk = function(...args) {
     // note that this function call might block before resolving to 'f' - hence we need this
     // code to be SJS, not JS
     f = this.f = (new Function('require','__oni_altns',...this.code))(exports.require, {},...this.context);
-    if (typeof f !== 'function') throw new Error("dfunc code is not returning a function");
+    if (typeof f !== 'function') throw new Error("dfunc code is not yielding a function");
   }
   return f(...args);
 };

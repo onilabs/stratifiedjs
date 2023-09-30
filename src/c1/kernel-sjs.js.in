@@ -2149,7 +2149,7 @@ function ph_dfunc(pars, body, pctx) {
     pars[i].collect_par_decls(param_list, new Set());
   }
   var arg_list = param_list.map(x=>("'"+x+"'"));
-  arg_list = arg_list.concat('"'+body.replace(/"/g,'\\"')+'"');
+  arg_list = arg_list.concat('"'+body.replace(/\\/g, '\\\\').replace(/"/g,'\\"')+'"');
   var code = '['+arg_list.join(',')+']';
   this.dfunc = '__oni_rt.DFunc('+code+',['+param_list.join(",")+'])';
 }

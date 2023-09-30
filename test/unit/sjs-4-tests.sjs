@@ -848,3 +848,41 @@ var TF = [true,false];
   rv += foo();
   @assert.eq(rv, "rfrfFi");
 });
+
+@context('dfuncs', function() {
+  @test('decontextualized', function() {
+    var f = @{ 
+      var G = x->x+x;
+      (function(x) { return G(x); }) 
+    };
+    @assert.truthy(@sys.isDFunc(f));
+    @assert.eq(2, f(1));
+  });
+  @test('contextualized', function() {
+    function g() { return 10; }
+    var C = 100;
+    var f = @(g,C){ 
+      var G = x->x+x;
+      (function(x) { return G(x)+C+g(); }) 
+    };
+    @assert.truthy(@sys.isDFunc(f));
+    @assert.eq(112, f(1));
+  });
+  @test('not yielding function', function() {
+    function T() {
+      var invalid = @{ 
+        function foo() {}
+        1;
+      };
+      invalid();
+    }
+    @assert.raises({message:'dfunc code is not yielding a function'}, T);
+  });
+  @test('escaping backslash', function() {
+    // this used to fail with an 'Invalid or unexpected token error'
+    var f = @{
+      (function(x) { return x+"\n" })
+    };
+    @assert.eq(f('a'), 'a\n');
+  });
+});
