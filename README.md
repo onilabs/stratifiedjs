@@ -16,7 +16,7 @@ For server-side use, you can just execute the `sjs` executable
 For client-side use, include `stratified.js` in your html and write sjs code in
 `<script type='text/sjs'>` tags.
 
-For a complete sjs web app stack, check out [conductance.io](https://conductance.io).
+For a complete sjs web app stack, check out [conductance](https://onilabs.com).
 
 Prebuilt packages:
 ------------------
