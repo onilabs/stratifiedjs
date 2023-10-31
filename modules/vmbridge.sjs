@@ -218,7 +218,8 @@ __js {
          - SortedMap
          - ArrayBuffer
          - Uint8Array/Buffer
-         - function
+         - Symbol (see caveats below)
+         - function (see caveats below)
          - dfunc (sending always allowed/ receiving only if enabled via 'acceptDFuncs'/'acceptHandshakeDFuncs')
 
      - Only `Object`s, with `prototype == Object.prototype` can be remoted. All 'own' properties
@@ -231,7 +232,8 @@ __js {
 
      - Depending on transport, `ArrayBuffer` and `Uint8Array` might be 'transferred' rather than 
      copied. I.e. in general it should be assumed that ownership for these objects is relinquished, 
-     and they shouldn't be reused.
+     and they shouldn't be reused. (Note: Because of performance issues with transferring, non of the 
+     built-in transports actually do this yet - All binary data is copied.)
 
 
      ##### Caveats and limitations
@@ -257,6 +259,8 @@ __js {
      Arguments and return values will
      be marshalled to the side of bridge where the call originated.
 
+     - Only registered symbols (i.e. `Symbol.keyFor(.) !== undefined`) are remotable. They will be 
+     unmarshalled under the same key as on the marshalling side (i.e. they are treated as truly 'global').
 
      ##### DFuncs
 
@@ -399,6 +403,7 @@ function generateReturnMessage(bridge_itf, call_id, obj, buffers) {
   dfunc:       ['g', code, context:marshalled array, props:PROPS]
   array:       ['a', [ elements... ]]
   Set:         ['s', [ elements... ]]
+  Symbol:      ['t', name:STRING ]
   Map:         ['m', [ elements... ]]
   SortedMap:   ['n', comparator, [ elements... ]]
   object:      ['o', PROPS]
@@ -434,6 +439,11 @@ __js {
       }
       else
         return bridge_itf .. marshallFunction(obj, buffers);
+    }
+    else if (t === 'symbol') {
+      var name = Symbol.keyFor(obj);
+      if (name === undefined) throw new Error("Cannot marshal unregistered symbols");
+      return ['t', name];
     }
     else if (t === 'object') {
       if (Array.isArray(obj)) {
@@ -561,6 +571,8 @@ __js {
       break;
     case 's':
       return @Set(obj[1] .. @map(x->bridge_itf .. unmarshall(x,buffers)));
+    case 't':
+      return Symbol.for(obj[1]);
     case 'm':
       return @Map(obj[1] .. @map(x->bridge_itf .. unmarshall(x,buffers)));
     case 'n':

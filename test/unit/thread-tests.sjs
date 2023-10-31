@@ -90,96 +90,119 @@ context('withThread', function() {
     }
   });
 
-  test('transferable objects - Uint8Array', function() {
-    @thread.withThread(
-      @{
-        @ = require('sjs:std');
-        var saved;
-        -> { 
-          xfer: function(arr) {
-            @assert.eq(arr.byteLength, 3);
-            saved = arr;
-            return arr;
-          },
-          check: function() {
-            @assert.eq(saved.byteLength, 0);
+  context('marshalling', function() {
+
+    test('symbols', function() {
+      @thread.withThread(
+        @{
+          @ = require('sjs:std');
+          -> {
+            check: function(s) {
+              @assert.eq(typeof s, "symbol");
+              @assert.eq(s, Symbol.for('THESYMBOL'));
+              return s;
+            }
           }
-        };
-      }) {
-      |[{xfer, check}]|
-      var arr = new Uint8Array([1,2,3]);
-      assert.eq(arr.byteLength, 3);
-      var arr2 = xfer(arr);
-      assert.eq(arr.byteLength, 0);
-      assert.eq(arr2.byteLength, 3);
-      check();
-    }
-  }).skip("Threads don't use transferables anymore because of performance issues");
+        }) {
+        |[{check}]|
 
-  test('dfuncs disallowed by default', function() {
-    @thread.withThread(
-      @{ 
-        @ = require('sjs:std');
-        -> { exec: (f -> f()),
-             exec_and_catch_rv: function(f) {
-               try {
-                 f();
-               }
-               catch(e) {
-                 @assert.eq(e.message, 'Remote bridge does not accept dfuncs');
-                 return true;
-               }
-               return false;
-             },
-             send_dfunc: function(f) {
-               try {
-                 f(@{ ()->undefined });
-               }
-               catch(e) {
-                 @assert.eq(e.message, 'Remote bridge does not accept dfuncs');
-               }
-             },
-             return_dfunc: function() { 
-               try {
-                 return @{ () -> undefined }; 
-               }
-               catch(e) { 
-                 // error in return marshalling is uncatchable on this side
-                 @assert.fail('not reached'); 
-               }
-             }
-           }
-      }) {
-      |[{exec,exec_and_catch_rv, send_dfunc, return_dfunc}]|
-      // 'normal' remoted function:
-      assert.eq(exec(->3), 3);
-
-      // dfunc as parameter:
-      try {
-        exec(@{-> (-> 3)});
+        var s = Symbol.for("THESYMBOL");
+        @assert.eq(s,check(s));
       }
-      catch(e) {
-        assert.eq(e.message, 'Remote bridge does not accept dfuncs');
-      }
-      
-      // dfunc as return value:
-      exec_and_catch_rv(-> @{ ()->undefined }) .. assert.truthy;
+    });
 
-      // get remote to send a dfunc:
-      send_dfunc(function(x) { assert.fail('not reached'); } );
-
-      // get remote to return a dfunc:
-      try {
-        return_dfunc();
+    test('transferable objects - Uint8Array', function() {
+      @thread.withThread(
+        @{
+          @ = require('sjs:std');
+          var saved;
+            -> { 
+              xfer: function(arr) {
+                @assert.eq(arr.byteLength, 3);
+                saved = arr;
+                return arr;
+              },
+              check: function() {
+                @assert.eq(saved.byteLength, 0);
+              }
+            };
+        }) {
+        |[{xfer, check}]|
+        var arr = new Uint8Array([1,2,3]);
+        assert.eq(arr.byteLength, 3);
+        var arr2 = xfer(arr);
+        assert.eq(arr.byteLength, 0);
+        assert.eq(arr2.byteLength, 3);
+        check();
       }
-      catch(e) {
-        assert.eq(e.message, 'Remote bridge does not accept dfuncs');
-      }
+    }).skip("Threads don't use transferables anymore because of performance issues");
 
-      return;
-    }
-    assert.fail('not reached');
-  });
+    test('dfuncs disallowed by default', function() {
+      @thread.withThread(
+        @{ 
+          @ = require('sjs:std');
+            -> { exec: (f -> f()),
+                 exec_and_catch_rv: function(f) {
+                   try {
+                     f();
+                   }
+                   catch(e) {
+                     @assert.eq(e.message, 'Remote bridge does not accept dfuncs');
+                     return true;
+                   }
+                   return false;
+                 },
+                 send_dfunc: function(f) {
+                   try {
+                     f(@{ ()->undefined });
+                   }
+                   catch(e) {
+                     @assert.eq(e.message, 'Remote bridge does not accept dfuncs');
+                   }
+                 },
+                 return_dfunc: function() { 
+                   try {
+                     return @{ () -> undefined }; 
+                   }
+                   catch(e) { 
+                     // error in return marshalling is uncatchable on this side
+                     @assert.fail('not reached'); 
+                   }
+                 }
+               }
+        }) {
+        |[{exec,exec_and_catch_rv, send_dfunc, return_dfunc}]|
+        // 'normal' remoted function:
+        assert.eq(exec(->3), 3);
+        
+        // dfunc as parameter:
+        try {
+          exec(@{-> (-> 3)});
+        }
+        catch(e) {
+          assert.eq(e.message, 'Remote bridge does not accept dfuncs');
+        }
+        
+        // dfunc as return value:
+        exec_and_catch_rv(-> @{ ()->undefined }) .. assert.truthy;
+        
+        // get remote to send a dfunc:
+        send_dfunc(function(x) { assert.fail('not reached'); } );
+        
+        // get remote to return a dfunc:
+        try {
+          return_dfunc();
+        }
+        catch(e) {
+          assert.eq(e.message, 'Remote bridge does not accept dfuncs');
+        }
+        
+        return;
+      }
+      assert.fail('not reached');
+    });
+    
+  }); // context 'marshalling'
 
   test('retract withThread', function() {
     var retract_called = 0;
