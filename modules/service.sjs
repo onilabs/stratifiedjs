@@ -249,7 +249,7 @@
 
      As an example, a server might want to open/interact with/close a file in response to 
      asynchronous user input. Because open/close calls are not necessarily balanced, this 
-     code would be different to write without withBackgroundServices:
+     code would be difficult to write without `withBackgroundServices`:
 
          @withBackgroundServices { 
            |bs|

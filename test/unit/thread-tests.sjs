@@ -101,13 +101,26 @@ context('withThread', function() {
               @assert.eq(typeof s, "symbol");
               @assert.eq(s, Symbol.for('THESYMBOL'));
               return s;
+            },
+            checkObj: function(o) {
+              var key = Symbol.for('MYKEY');
+              @assert.eq(o[key], 42);
             }
           }
         }) {
-        |[{check}]|
+        |[{check, checkObj}]|
 
         var s = Symbol.for("THESYMBOL");
         @assert.eq(s,check(s));
+
+        /*
+          symbols on objects are not marshalled (yet)!
+
+        var key = Symbol.for('MYKEY');
+        var obj = {};
+        obj[key] = 42;
+        @assert.eq(checkObj(obj)[key], 42);
+        */
       }
     });
 
