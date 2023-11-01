@@ -38,7 +38,8 @@
 */
 'use strict';
 
-@ = require(['./sequence','./object']);
+@ = require(['./sequence','./object', 
+             {id:'./tuple-key-encoding', name:'tuplekeys'}]);
 
 /**
    @class Map
@@ -328,7 +329,23 @@ __js var avl_stream = (T) -> @Stream:: function(r) {
   return T.root .. _avl_stream_node(r);
 }
 
+// (not js, because r might block)
+function _avl_range_node(z, cf, k_gte, k_lt, r) {
+  if (z === NIL) return;
+  var in_left_bound = cf(k_gte, z.KEY) <= 0;
+  var in_right_bound = cf(z.KEY, k_lt) < 0;
+  if (in_left_bound) {
+    _avl_range_node(z.LEFT, cf, k_gte, k_lt, r);
+    if (in_right_bound)
+      r([z.KEY,z.VALUE]);
+  }
+  if (in_right_bound)
+    _avl_range_node(z.RIGHT, cf, k_gte, k_lt, r);
+}
 
+__js var avl_range = (T, cf, k_gte, k_lt) -> @Stream:: function(r) {
+  return T.root .. _avl_range_node(cf, k_gte, k_lt, r);
+};
 
 
 /**
@@ -355,6 +372,7 @@ __js var avl_stream = (T) -> @Stream:: function(r) {
      * __'numericArray'__: does a pointwise 'numeric' comparison between elements of an Array, Buffer, or TypedArray. If an array `x` is a prefix of `y`, `x` gets sorted before `y`.
      * __'localeCompare'__: uses `String.localeCompare`
      * __'numeric'__: `(x,y)->x-y`
+     * __'encodedTuples'__: uses [./tuple-key-encoding::encodedKeyCompare]
 
    @function SortedMap::delete
    @summary Remove the element with the given key from the sorted map (`O(log n)`).
@@ -393,6 +411,15 @@ __js var avl_stream = (T) -> @Stream:: function(r) {
    @desc
      Each iteration operates on the state of the SortedMap at the time that iteration starts. 
      Mutations to the SortedMap after this point will not be reflected in that iterated sequence.
+
+   @function SortedMap::range
+   @summary Returns a `key`-sorted [./sequence::Stream] of `[key,value]` elements in the map, where `key>=key_gte && key<lt`
+   @param {Any} [key_gte] Start key
+   @param {Any} [key_lt] End key
+   @desc
+     Each iteration operates on the state of the SortedMap at the time that iteration of the returned stream starts.
+     Mutations to the SortedMap after this point will not be reflected in that iterated sequence.
+
 */
 
 /**
@@ -417,6 +444,7 @@ __js {
       set: (key, val) ->  T .. avl_set(comparator_f, key, val),
       delete: key -> T .. avl_del_by_key(comparator_f, key),
       elements: avl_stream(T),
+      range: (key_gte, key_lt) -> T .. avl_range(comparator_f, key_gte, key_lt),
       getComparator: -> comparator
     };
   }
@@ -432,7 +460,8 @@ __js {
       return (a.length - b.length);
     },
     'numeric': (a,b) -> a-b,
-    'localeCompare': (a,b) -> a.localeCompare(b)
+    'localeCompare': (a,b) -> a.localeCompare(b),
+    'encodedTuples': @tuplekeys.encodedKeyCompare
   };
 } // __js
 

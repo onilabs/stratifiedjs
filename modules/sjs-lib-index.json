@@ -878,6 +878,9 @@
             "has": {
               "type": "function"
             },
+            "range": {
+              "type": "function"
+            },
             "set": {
               "type": "function"
             }
@@ -2824,6 +2827,35 @@
         }
       },
       "summary": "Asynchronous threads support"
+    },
+    "tuple-key-encoding": {
+      "type": "module",
+      "children": {
+        "EncodedTupleKey": {
+          "type": "class",
+          "children": {}
+        },
+        "RangeEnd": {
+          "type": "variable"
+        },
+        "TupleKey": {
+          "type": "class",
+          "children": {}
+        },
+        "decodeKey": {
+          "type": "function"
+        },
+        "encodeKey": {
+          "type": "function"
+        },
+        "encodedKeyCompare": {
+          "type": "function"
+        },
+        "encodedKeyEquals": {
+          "type": "function"
+        }
+      },
+      "summary": "Functions for working with tuple keys"
     },
     "type": {
       "type": "module",
