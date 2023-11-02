@@ -117,5 +117,4 @@ function main() {
   }
   return run();
 };
-
-sjs_node.init(main);
+main();
