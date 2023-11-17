@@ -81,16 +81,16 @@ var { Token } = require('./type');
 
      Key-value stores should never store any value under an out-of-bounds key.
      The intended use case for out-of-bounds keys is to establish boundaries for key ranges, like specifying
-     the start and end points for a specific range query.  
+     the start and end points for a specific range query.
 
      Examples:
 
-     - `[RangeEnd]` is a key larger than any in-bounds tuple key `K`: `[null] <= K < [RangeEnd]`
+     - `[RangeEnd]` is a key larger than any in-bounds tuple key `K`: `[null] <= K < [RangeEnd]`.
      - A multi-element tuple key `K=[P1,P2,P3,...,Pn,S1,S2,S3,...,Sm]` can be thought of consisting of a prefix 
        `P=P1,P2,P3,...,Pn` and a suffix `S=S1,S2,S3,...,Sm`. `K` can be thought of a __child__ of key `P` (and `P` as the
        __parent__ of `K`). The following range encompasses all children `C` of `P`: `[P1,P2,P3,...,Pn,null] <= C < [P1,P2,P3,...,Pn,RangeEnd]`.
-     - In an ordered key-value store, the next __sibling__ of key `P=[P1,P2,P3,...,Pn]` is the first `n`-element key `S` (if any) for which `[P1,P2,P3,...,Pn,RangeEnd] < S`.
-
+     - In an ordered key-value store, the right __sibling trees__ of key `P=[P1,P2,P3,...,Pn]` are all keys `R` (if any) for which `[P1,P2,P3,...,Pn,RangeEnd] <= R < [P1,P2,P3,...,Pn-1,RangeEnd]`.
+     - The left sibling trees are all keys `L` for which `[P1,P2,P3,...,Pn-1,null] <= L < P`.
 
 */
 
@@ -353,6 +353,7 @@ __js {
 
    */
   function encodeKey(arr, allowOutOfBounds) {
+    if (!Array.isArray(arr)) throw new Error('Key must be an array');
     allowOutOfBounds = !!allowOutOfBounds;
     var totalLength = 0;
     var l = arr.length;
