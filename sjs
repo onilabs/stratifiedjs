@@ -58,14 +58,17 @@ function loadDevExtensions(next) {
 };
 
 function runEval(str) {
-  return function() {
-    // XXX eval'd code will be operating on global scope; place sjs's 'require' function there:
-    var cwdModule = {
-      id: sjs_node.pathToFileUrl('./')
-    };
-    sjs_node.getGlobal().require = sjs_node._makeRequire(cwdModule);
-    var rv = sjs_node.eval(str);
-    sjs_node.runMainExpression(rv);
+  return function() { 
+      return sjs_node.init(
+          function() {
+              // XXX eval'd code will be operating on global scope; place sjs's 'require' function there:
+              var cwdModule = {
+                  id: sjs_node.pathToFileUrl('./')
+              };
+              sjs_node.getGlobal().require = sjs_node._makeRequire(cwdModule);
+              var rv = sjs_node.eval(str);
+              sjs_node.runMainExpression(rv);
+          });
   };
 };
 

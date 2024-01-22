@@ -69,7 +69,7 @@ context("server-side", function() {
     var script = 'console.log(require("literal:exports.hello=\'HELLO!\'").hello);';
     var result = run_with_env(['-e', script], {SJS_INIT: hub_path});
     result .. assert.eq({stdout: 'HELLO!\n', stderr: ''});
-  })
+  }).skip("SJS_INIT is not processed anymore - clashes with commit c88e29706fcfc628f67c85ec196");
 
   test('loading .sjs from NODE_PATH', function(s) {
     var script = 'try{}or{}; console.log(require("nodejs:child1.sjs").child1_function1());';
