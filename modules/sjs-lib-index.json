@@ -1772,6 +1772,9 @@
             "Values": {
               "type": "function"
             },
+            "batch_update": {
+              "type": "function"
+            },
             "current": {
               "type": "function"
             },

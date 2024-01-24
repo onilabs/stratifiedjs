@@ -500,9 +500,22 @@ __js {
    @param {Any} [key] Key of element to remove
    @return {Integer} Returns the rank (1-based index) of the removed element or `0` if the map didn't contain an element with the given key.
 
+   @function ObservableSortedMapVar::batch_update
+   @summary Atomically apply a number of `set`s and/or `delete`s
+   @param {Array} [changes] Array of changes to apply - see description
+   @desc
+     `changes` is an array of any number of the following elements: 
+     
+      - `[key]`: delete the given `key`
+      - `[key,val]`: set the given `key` to `val`
+
+     The actions denoted by these elements will be applied to the map as an atomic batch in the order in which they appear in the `changes` array.
+
    @function ObservableSortedMapVar::current
-   @summary Return current value of the variable
+   @summary Return a snapshot of the current value of the variable
    @return {./map::SortedMap}
+   @desc
+     Note: Mutations performed on this value have no effect on the observable. Use [::ObservableSortedMapVar::set] and [::ObservableSortedMapVar::delete] instead.
 
    @function ObservableSortedMapVar::stream
    @summary  The naked [::Observable] stream driven by the variable: An [::Observable] of type [./map::SortedMap], encoded as a 'map' [sequence::StructuredStream].
@@ -526,10 +539,28 @@ function ObservableSortedMapVar(settings) {
   var rv = {
     __oni_is_ObservableSortedMapVar: true,
 
-    set: function(key, val) {var idx = map.set(key,val); Update.dispatch([idx, [key, val]]); return idx;},
+    set: function(key, val) {var idx = map.set(key,val); Update.dispatch([[idx, [key, val]]]); return idx;},
     delete: function(key) { var idx = map.delete(key);
-                            if (idx !== 0) Update.dispatch([idx, [key]]); 
+                            if (idx !== 0) Update.dispatch([[idx, [key]]]); 
                             return idx; },
+    batch_update: function(changes) {
+      var updates = [];
+      changes .. @each {
+        |change|
+        if (change.length === 1) {
+          // delete
+          var idx = map.delete(change[0]);
+          if (idx !== 0) updates.push([idx, [key]]);
+        }
+        else {
+          // set
+          var idx = map.set(change[0], change[1]);
+          updates.push([idx, [change[0], change[1]]]);
+        }
+      }
+      if (updates.length > 0)
+        Update.dispatch(updates);
+    },
 
     current: -> map.clone(),
 
@@ -538,8 +569,8 @@ function ObservableSortedMapVar(settings) {
       var cache = [];
       waitfor {
         while (1) {
-          var change = Update.receive();
-          if (cache.length > map.count()+10 /* XXX optimize this for various scenarios */) {
+          var changes = Update.receive();
+          if (cache.length + changes.length > map.count()+10 /* XXX optimize this for various scenarios */) {
             restarting = true;
             cache = [map];
             continue;
@@ -551,7 +582,8 @@ function ObservableSortedMapVar(settings) {
             else
               restarting = false; // fall through to push updates to cache
           }
-          cache.push(change[1]);
+          __js for (var i=0; i<changes.length;++i) 
+            cache.push(changes[i][1]);
         }
       }
       or {
@@ -570,8 +602,8 @@ function ObservableSortedMapVar(settings) {
       var have = 0;
       waitfor {
         while (1) {
-          var change = Update.receive();
-          if (change[1][0] === key)
+          var changes = Update.receive();
+          __js if (changes .. @any(change -> change[1][0] === key))
             ++have;
         }
       }
@@ -590,8 +622,8 @@ function ObservableSortedMapVar(settings) {
       var cache = [];
       waitfor {
         while (1) {
-          var change = Update.receive();
-          if (cache.length > map.count()+10 /* XXX optimize this for various scenarios */) {
+          var changes = Update.receive();
+          if (cache.length + changes.length > map.count()+10 /* XXX optimize this for various scenarios */) {
             overflow = true;
             cache = [];
             continue;
@@ -599,18 +631,21 @@ function ObservableSortedMapVar(settings) {
           else if (overflow) {
             continue;
           }
-          var idx = change[0];
-          if (change[1].length === 1) {
-            // delete:
-            cache.push([3,idx-1]);
-          }
-          else if (idx < 0) {
-            // insert
-            cache.push([1,-idx-1, change[1]]);
-          }
-          else {
-            // replace
-            cache.push([2,idx-1, change[1]]);
+          __js for (var i=0; i<changes.length; ++i) {
+            var change = changes[i];
+            var idx = change[0];
+            if (change[1].length === 1) {
+              // delete:
+              cache.push([3,idx-1]);
+            }
+            else if (idx < 0) {
+              // insert
+              cache.push([1,-idx-1, change[1]]);
+            }
+            else {
+              // replace
+              cache.push([2,idx-1, change[1]]);
+            }
           }
         }
       }
