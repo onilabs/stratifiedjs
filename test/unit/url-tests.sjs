@@ -11,6 +11,7 @@ context('build query string', function() {
   testFn(url, 'buildQuery', [{a:1}, {b:2}], 'a=1&b=2');
   testFn(url, 'buildQuery', {a:1,b:"foo&bar"}, "a=1&b=foo%26bar");
   testFn(url, 'buildQuery', [[[null,[{a:1,b:["x","y"]},{c:3}],[[]]]]], "a=1&b=x&b=y&c=3");
+  testFn(url, 'buildQuery', {a:1,b:undefined,c:2}, "a=1&c=2");
 })
 
 context('parsing', function() {

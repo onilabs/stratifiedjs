@@ -451,8 +451,9 @@ __js exports.constructQueryString = function(/*hashes*/) {
   for (var h=0; h<hl; ++h) {
     var hash = hashes[h];
     for (var q in hash) {
-      var l = encodeURIComponent(q) + "=";
       var val = hash[q];
+      if (val === undefined) continue;
+      var l = encodeURIComponent(q) + "=";
       if (!exports.isArrayLike(val))
         parts.push(l + encodeURIComponent(val));
       else {

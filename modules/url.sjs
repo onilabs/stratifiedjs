@@ -62,8 +62,10 @@ var {startsWith, endsWith} = require('sjs:string');
          url.buildQuery([{a:1}, {b:1}]);
 
 
-    If the value in a key/value pair is an array [a,b,c], then
-    a key=value query will be encoded for each of the array elements.
+    If the value in a key/value pair is an array `[a,b,c]`, then
+    a `key=value` query will be encoded for each of the array elements.
+
+    If the value in a key/value pair is `undefined`, then the key will be omitted.
 
     ###Examples:
 
