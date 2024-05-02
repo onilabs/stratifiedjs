@@ -1118,7 +1118,7 @@ function withOpenStream(seq, block) {
     }
     catch(e) {
       receiver = null;
-      redirect([e]);
+      redirect(e);
     }
   };
   var iter_wait_async = function(x) {

@@ -2069,6 +2069,35 @@ context("withOpenStream", function() {
     }
     assert.eq(consumed, 3);
   });
+
+  test("async exception", function() {
+    function T() {
+      [0,1,2] .. s.withOpenStream {
+        |S|
+        S .. @each {
+          |x|
+          hold(0);
+          throw new Error('deliberate');
+        }
+      }
+    }
+    assert.raises({message:'deliberate'}, T);
+  });
+
+  // this used to fail:
+  test("sync exception", function() {
+    function T() {
+      [0,1,2] .. s.withOpenStream {
+        |S|
+        S .. @each {
+          |x|
+          throw new Error('deliberate');
+        }
+      }
+    }
+    assert.raises({message:'deliberate'}, T);
+  });
+
 })
 
 test("consume buffering", function() {
