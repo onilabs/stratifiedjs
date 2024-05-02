@@ -550,7 +550,7 @@ function ObservableSortedMapVar(settings) {
         if (change.length === 1) {
           // delete
           var idx = map.delete(change[0]);
-          if (idx !== 0) updates.push([idx, [key]]);
+          if (idx !== 0) updates.push([idx, [change[0]]]);
         }
         else {
           // set
