@@ -229,9 +229,9 @@ CFException.prototype = {
   __oni_cfx : true,
   toString : function() {
     if (this.type in CFETypes)
-      return "Unexpected "+CFETypes[this.type]+" statement";
+      return "<SJS controlflow exception>: Unexpected "+CFETypes[this.type]+" statement";
     else
-      return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
+      return "<SJS controlflow exception>: Uncaught internal ("+this.type+":: "+this.val+")";
   },
   mapToJS : function(uncaught) {
     if (this.type == "t") {
@@ -277,6 +277,10 @@ CFException.prototype = {
 
 // exported for use in bridge, to remote blbreaks:
 exports.CFException = CFException;
+// exported for use in e.g. sequence.sjs::withOpenStream, to distinguish cfe's from other exceptions:
+exports.is_cfx = function(obj) {
+  return is_cfx(obj);
+};
 
 #define is_annotated_oni_cfx(obj) (is_cfx(obj) && obj.type === 't' && obj.val != null && obj.val._oniE === token_oniE)
 
@@ -3065,10 +3069,18 @@ EF_Try.prototype.cont = function(idx, val) {
           // 'e' (or an array with a value - exception or otherwise - as 
           // first argument). 
           // We also want to be able to cope with 'real' exceptions thrown
-          // if e.g. there is a logic error in the finally block, so we
-          // only resolve to val.val[0] if val.val is an array:
-          if (Array.isArray(val.val))
-            val = val.val[0];
+          // if e.g. there is a logic error in the finally block, or there is a controlflow exception,
+          // so we only resolve to val.val[0] if this is a cfx of type 't' & val.val is an array:
+          if (val.type === 't') {
+            if (Array.isArray(val.val))
+              val = val.val[0];
+            else {
+              // check that this is a 'real' exception:
+              if (!(val.val instanceof Error))
+                val = new CFException("t", new Error(exports.VMID+" invalid value thrown in augmented finally(){} block. Expected an array or exception; saw '"+val.val+"'"));
+            }
+          }
+          // else... this is a controlflow exception, e.g. blb, blr
         }
       }
       else {

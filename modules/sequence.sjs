@@ -1118,7 +1118,12 @@ function withOpenStream(seq, block) {
     }
     catch(e) {
       receiver = null;
-      redirect(e);
+      // `e` is either (1) an unwrapped exception thrown from a synchronous 
+      // receiver or (2) a control flow exception.
+      // For (1) we want this to be rethrown, so we need to wrap it
+      if (!__oni_rt.is_cfx(e))
+        e = new __oni_rt.CFException("t", e);
+      redirect([e]);
     }
   };
   var iter_wait_async = function(x) {

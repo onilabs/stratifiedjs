@@ -1804,13 +1804,20 @@ function controlflow_type(e) {
         /* */
       }
       finally(e) {
-        throw 'plain_string_exception';
+        // now that we disallow exceptions, that are not instanceof Error, this needs to be wrapped:
+        // throw 'plain_string_exception';
+
+        // Note that we use 'if(1)' to ensure that the __js is a statement, not an expression.
+        // If it were an expression, 'e' would be passed up to SJS code and acted upon before we
+        // reach the 'throw'
+        __js if (1) e = new __oni_rt.CFException("t", 'plain_string_exception');
+        throw [e];
       }
     }
     var rv;
     try { foo(); } catch(e) { rv = e }
     @assert.eq(rv, 'plain_string_exception');
-  })
+  });
   
 })
 

@@ -355,8 +355,10 @@ function callRemote(bridge_itf, remote_function_id, args) {
           abort_rv.postLocally();
           throw new Error('not reached');
         }
-        else //XXX if (!isVMBridgeError(abort_rv, bridge_itf.id)) 
-          throw abort_rv;
+        else { //XXX if (!isVMBridgeError(abort_rv, bridge_itf.id)) 
+          __js if (!__oni_rt.is_cfx(abort_rv)) abort_rv = new __oni_rt.CFException("t", abort_rv);
+          throw [abort_rv];
+        }
       }
     }
     throw e;

@@ -215,7 +215,7 @@ if(line)value.__oni_stack.push([file||'unknown SJS source',line]);
 var CFETypes={r:"return",b:"break",c:"continue",blb:"blocklambda break",blr:"blocklambda return"};
 CFException.prototype={__oni_cfx:true,toString:function(){
 
-if(this.type in CFETypes)return "Unexpected "+CFETypes[this.type]+" statement";else return "Uncaught internal SJS control flow exception ("+this.type+":: "+this.val+")";
+if(this.type in CFETypes)return "<SJS controlflow exception>: Unexpected "+CFETypes[this.type]+" statement";else return "<SJS controlflow exception>: Uncaught internal ("+this.type+":: "+this.val+")";
 
 
 
@@ -263,6 +263,10 @@ if(console.error)console.error(msg);else console.log(msg);
 
 
 exports.CFException=CFException;
+
+exports.is_cfx=function(obj){return (obj!==null&&typeof (obj)==='object'&&obj.__oni_cfx);
+
+};
 
 
 
@@ -2767,7 +2771,15 @@ val=new CFException("t",new Error("augmented finally(){} block needs to throw a 
 
 
 
-if(Array.isArray(val.val))val=val.val[0];
+if(val.type==='t'){
+if(Array.isArray(val.val))val=val.val[0];else{
+
+
+
+if(!(val.val instanceof Error))val=new CFException("t",new Error(exports.VMID+" invalid value thrown in augmented finally(){} block. Expected an array or exception; saw '"+val.val+"'"));
+
+}
+}
 
 }
 }else{

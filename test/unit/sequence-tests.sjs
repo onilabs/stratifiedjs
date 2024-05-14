@@ -2098,6 +2098,20 @@ context("withOpenStream", function() {
     assert.raises({message:'deliberate'}, T);
   });
 
+  // the fix for the sync exception bug caused failure of the following edgecase
+  // of passing around arrays ([0], [1]) through blocklambda return controlflow
+  // (implicit in s.first) because of the semantics of the augmented-finally clause
+  // in the withOpenStream implementation which expects any controlflow to be wrapped in an array.
+  // The 'fix' for the sync exception bug was to pass the unwrapped controlflow.
+  test("controlflow routing bug", function() {
+    [[0],[1]] .. s.withOpenStream {
+      |S|
+      S .. s.first .. assert.eq([0]);
+      hold(0);
+      S .. s.first .. assert.eq([1]);
+    }
+  });
+
 })
 
 test("consume buffering", function() {
