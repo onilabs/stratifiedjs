@@ -346,7 +346,7 @@ function request_hostenv(url, settings) {
       err.request = request;
       err.response = null;
       err.status = 0;
-      throw new Error(err);
+      throw err;
     }
     else if (responseMode === 'string') {
       return '';
@@ -678,6 +678,20 @@ exports.runMainExpression = function(ef) {
   }
   or {
     await('exit');
+  }
+  or {
+    // Since at least v20.13.1 node immediately exits a program - with no ability to perform any asynchronous
+    // cleanup when the exit happens from an expired timer. This change broke some of the async cleanup tests in 
+    // unit/node/process-tests.sjs.
+    // By adding this renewing timer (at 1h intervals, but any interval will do), we fix those tests and also 
+    // fix another long-standing issue whereby the sjs program 
+    //  `try{hold()}finally{console.log('a'); hold(0); console.log('b')}` 
+    // would exit immediately and log 'a' but not 'b'.
+    // Now the program will correctly hold until externally interrupted, and perform both the synchronous and 
+    // asynchronous cleanup.
+    while (1) {
+      hold(36000000);
+    }
   }
 
   if(sig) {
