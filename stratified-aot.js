@@ -699,7 +699,7 @@ function copyFEnv(e){return new FEnv(e.aobj,e.tobj,e.file,e.fold,e.branch,e.blan
 
 function I_call(ndata,fenv){try{
 
-current_call=[fenv.file,ndata[1]];
+exports.current_call=[fenv.file,ndata[1]];
 var rv=(ndata[0]).call(fenv);
 if((rv!==null&&typeof (rv)==='object'&&rv.__oni_ef===ONI_EF)){
 
@@ -950,13 +950,13 @@ var ef_to_adopt=s._ef;
 
 
 if(ef_to_adopt.callstack){
-ef_to_adopt.callstack.push(current_call);
+ef_to_adopt.callstack.push(exports.current_call);
 }else{
 
 
 
 
-ef_to_adopt.callstack=[current_call,ef_to_adopt.pending_caller];
+ef_to_adopt.callstack=[exports.current_call,ef_to_adopt.pending_caller];
 }
 
 var old_parent=s._ef.parent;
@@ -1005,7 +1005,7 @@ exports.current_dyn_vars=reified_ef.dynvars;
 
 ++reified_ef.pending;
 ++parent_ef.pending;
-reified_ef.callstack=[current_call];
+reified_ef.callstack=[exports.current_call];
 var val;
 try{
 
@@ -1419,7 +1419,7 @@ exports.current_dyn_vars=reified_ef.dynvars;
 var inner_ef=new EF_Seq(ndata,fenv);
 
 
-reified_ef.pending_caller=current_call;
+reified_ef.pending_caller=exports.current_call;
 
 ++reified_ef.pending;
 
@@ -1668,7 +1668,7 @@ exports.Bl=function(f){return {exec:I_blocklambda,ndata:f,__oni_dis:token_dis};
 
 function I_reify(ndata,fenv){var s=fenv.reifiedstratum;
 
-if(!s)return new CFException("t",new Error("'reifiedStratum' used in non-reifiable context"),current_call[1],current_call[0]);
+if(!s)return new CFException("t",new Error("'reifiedStratum' used in non-reifiable context"),exports.current_call[1],exports.current_call[0]);
 return s;
 };
 
@@ -1884,7 +1884,7 @@ spreads.shift();
 
 
 
-current_call=[this.fenv.file,this.ndata[1]];
+exports.current_call=[this.fenv.file,this.ndata[1]];
 
 switch(this.ndata[0]&3){case 0:
 
@@ -2175,7 +2175,7 @@ spreads.shift();
 
 
 
-current_call=[this.fenv.file,this.ndata[1]];
+exports.current_call=[this.fenv.file,this.ndata[1]];
 
 switch(this.ndata[0]&3){case 0:
 

@@ -787,7 +787,7 @@ function copyFEnv(e) {
 #define NDATA_CALL_LINENO() ndata[1]
 function I_call(ndata, fenv) {
   try {
-    current_call = [fenv.file, NDATA_CALL_LINENO()];
+    exports.current_call = [fenv.file, NDATA_CALL_LINENO()];
     var rv = (NDATA_CALL_JSFUNC()).call(fenv);
     if (is_ef(rv)) {
       // collect callstack on the execution frame:
@@ -1136,18 +1136,18 @@ function createReifiedStratum(ef) {
       // see unit/stack-tests spawn/adopt tests
       if (ef_to_adopt.callstack) { 
 #ifdef DEBUG_STACK
-        console.log(this+'::adopt pushing callstack 1 ',current_call);
+        console.log(this+'::adopt pushing callstack 1 ',exports.current_call);
 #endif
-        ef_to_adopt.callstack.push(current_call);
+        ef_to_adopt.callstack.push(exports.current_call);
       }
       else {
         // for reentrant adoption of non-spawned stratum, we won't have a callstack, but
         // we will have 'pending_caller' set:
         ASSERT(ef_to_adopt.pending_caller)
 #ifdef DEBUG_STACK
-        console.log(this+'::adopt pushing callstack 2 ',current_call, ef_to_adopt.pending_caller);
+        console.log(this+'::adopt pushing callstack 2 ',exports.current_call, ef_to_adopt.pending_caller);
 #endif
-        ef_to_adopt.callstack = [ current_call, ef_to_adopt.pending_caller ];
+        ef_to_adopt.callstack = [ exports.current_call, ef_to_adopt.pending_caller ];
       }
       // ef_to_adopt might not have a parent if it is reentrantly adopted 
       var old_parent = s._ef.parent;
@@ -1197,9 +1197,9 @@ function spawnSubStratum(f, parent_ef) {
   ++reified_ef.pending;
   ++parent_ef.pending;
 #ifdef DEBUG_STACK
-        console.log(reified_ef+'::spawnSubStratum setting callstack ',current_call);
+        console.log(reified_ef+'::spawnSubStratum setting callstack ',exports.current_call);
 #endif
-  reified_ef.callstack = [ current_call ];
+  reified_ef.callstack = [ exports.current_call ];
   var val;
   try {
     // start executing substratum:
@@ -1625,7 +1625,7 @@ function I_reifiedseq(ndata, fenv) {
   var inner_ef = new EF_Seq(ndata, fenv);
   // we're setting pending_caller, in case there is a reentrant adopt:
   // - see also unit/stack-tests:'function abort'
-  reified_ef.pending_caller = current_call;
+  reified_ef.pending_caller = exports.current_call;
   //console.log("!seq "+reified_ef);
   ++reified_ef.pending;
   // inject stratum interface:
@@ -1894,7 +1894,7 @@ exports.Bl = function(f) {
 
 function I_reify(ndata, fenv) {
   var s = fenv.reifiedstratum;
-  if (!s) return new CFException("t", new Error("'reifiedStratum' used in non-reifiable context"), current_call[1], current_call[0]);
+  if (!s) return new CFException("t", new Error("'reifiedStratum' used in non-reifiable context"), exports.current_call[1], exports.current_call[0]);
   return s;
 };
 
@@ -2133,7 +2133,7 @@ EF_Fcall.prototype.cont = function(idx, val) {
       else 
         pars = this.pars;
 
-      current_call = [this.fenv.file, this.NDATA_FCALL_LINE()];
+      exports.current_call = [this.fenv.file, this.NDATA_FCALL_LINE()];
 
       switch (this.NDATA_FCALL_FLAGS() & FCALL_FLAGS_MODE_MASK) {
       case FCALL_MODE_NORMAL:
@@ -2430,7 +2430,7 @@ EF_FAcall.prototype.cont = function(idx, val) {
       else 
         pars = this.pars;
 
-      current_call = [this.fenv.file, this.NDATA_FCALL_LINE()];
+      exports.current_call = [this.fenv.file, this.NDATA_FCALL_LINE()];
 
       switch (this.NDATA_FCALL_FLAGS() & FCALL_FLAGS_MODE_MASK) {
       case FCALL_MODE_NORMAL:
