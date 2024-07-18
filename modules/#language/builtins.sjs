@@ -29,11 +29,6 @@
 
   To load a module, use the [::require] function.
 
-  ### Module guidelines
-
-  If you're building modules that you intend to publish and allow others to use,
-  we ask that you follow our [Module Guidelines](http://onilabs.com//module-guidelines) wherever possible.
-  This allows users to integrate your modules into their application with minimal effort.
 
 @syntax inline-modules
 @summary Embed SJS modules directly in HTML pages
