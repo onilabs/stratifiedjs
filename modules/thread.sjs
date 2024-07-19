@@ -82,12 +82,9 @@ __js {
 
   var SJS_THREAD_SCRIPT = settings -> 
     "@ = require(['sjs:std', 'sjs:vmbridge', 'sjs:thread']);"+
-    "function eval_call(code) {"+
-    " return eval(__oni_rt.c1.compile(code));"+
-    "};"+
     "try{"+
     "var id='WORKER-'+@sys.VMID;"+
-    "@withVMBridge({acceptHandshakeDFuncs:true, acceptDFuncs:#{settings.allowDFuncsToThread}, local_itf:{eval:eval_call}, withTransport:@withWorkerThreadWorkerTransport,id:id}) {"+
+    "@withVMBridge({acceptHandshakeDFuncs:true, acceptDFuncs:#{settings.allowDFuncsToThread}, local_itf:{eval:code->eval(__oni_rt.c1.compile(code))}, withTransport:@withWorkerThreadWorkerTransport,id:id}) {"+
     "  |itf|"+
     "  hold();"+
     "};"+
@@ -195,7 +192,12 @@ if (@sys.hostenv === 'nodejs') {
     
     additional_hubs = JSON.stringify(additional_hubs);
     
+    // root_script notes:
+    // nodejs inserts 'module' & 'exports' variables at the top level, which we remove to avoid
+    // any confusion when executing non-module code in the worker
     var root_script = "
+if (typeof module !== 'undefined') delete module; 
+if (typeof exports !== 'undefined') delete exports;
 process.mainModule = {filename:'#{sjs_node}'};
 var sjs_node = require('#{sjs_node}');
 function terminate_self() {process.exit(); }
