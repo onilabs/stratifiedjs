@@ -872,6 +872,9 @@
             "get": {
               "type": "function"
             },
+            "getAt": {
+              "type": "function"
+            },
             "getComparator": {
               "type": "function"
             },

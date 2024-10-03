@@ -384,6 +384,11 @@ __js var avl_range = (T, cf, k_gte, k_lt) -> @Stream:: function(r) {
    @param {Any} [key] Key of value to retrieve
    @return {Any} 
 
+   @function SortedMap::getAt
+   @summary Returns the `[key,value]` pair at the given index 
+   @param {Integer} [i] 0<=i<SortedMap::count()
+   @return {Array} [key,value] pair
+
    @function SortedMap::has
    @summary Test if the sorted map contains an element under the given key (`O(log n)`).
    @param {Any} [key] 
@@ -440,6 +445,7 @@ __js {
       clone: -> _SortedMap(avl_clone(T), comparator, comparator_f),
       count: -> T.root.SIZE,
       get: key -> T .. avl_get_by_key(comparator_f, key),
+      getAt: i -> T .. avl_get_by_index(i+1),
       has: key -> T .. avl_has_key(comparator_f, key),
       set: (key, val) ->  T .. avl_set(comparator_f, key, val),
       delete: key -> T .. avl_del_by_key(comparator_f, key),
