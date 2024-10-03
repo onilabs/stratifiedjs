@@ -224,7 +224,7 @@ else if (@sys.hostenv === 'xbrowser') {
       additional_hubs.push(mho_hub);
     
     additional_hubs = JSON.stringify(additional_hubs);
-    var sjs_location = (require.hubs .. @find([name,path]->name == 'sjs:'))[1].replace(/\/modules\/$/,'');
+    var sjs_location = require.url('sjs:').replace(/\/modules\/$/,'');
     if (!(sjs_location .. @startsWith('http')))
       sjs_location = document.location.protocol+'//'+document.location.host+sjs_location;
     //  console.log("sjs_location = #{sjs_location}");
@@ -327,7 +327,11 @@ exports.withThread = function(/*[thread_itf], [settings], session_f*/ ...args) {
     waitfor {
       waitfor {
         // this catches e.g. out-of-memory errors on nodejs
-        throw new Error(worker .. @events('error') .. @first);
+        var err = worker .. @events('error') .. @first;
+        // note: 'err' is an 'ErrorEvent', not an 'Error':
+        err = err.message || String(err);
+        err = "WEBWORKER: "+err;
+        throw new Error(err);
       }
       and {
         if (@sys.hostenv === 'xbrowser')
