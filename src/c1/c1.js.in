@@ -942,9 +942,9 @@ S("...").exs(function(pctx, exs_flags) {
       END_EXTENT(pctx, right)
       GEN_SPREAD(right, pctx, POP_EXTENT('GEN_SPREAD'))
   }
-  else if (pctx.token.id == "<id>" || pctx.token.id == '[' || pctx.token.id == '<@id>') {
+  else if (pctx.token.id == "<id>" || pctx.token.id == '[' || pctx.token.id == '<@id>' || pctx.token.id == 'this') {
     // we're in a context that only allows rest properties, but no spreads.
-    // we'll only allow a sub-syntax for now (`...a`, `...[]`, `...@a`)
+    // we only allow a sub-syntax for now (`...a`, `...[]`, `...@a`, `...a.b`,...)
     PUSH_EXTENT(pctx, this, 'GEN_REST')
     var right = parseExp(pctx, 119);
     LOGM('rest')
