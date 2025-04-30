@@ -170,7 +170,10 @@ __js function concatBuffers(b1, b2, offset1) {
           {
             emit: function(elem), emit an element into the output stream
             readUint8: function(), // read a Uint8 from the input stream,
+            peekUint8: function(), // read but don't consume a Uint8 from the input stream,
             readUint8Array: function(l), // read a Uint8Array of bytelength l
+            peekUint8Array: function(l), // read but don't consume a Uint8Array of bytelength l
+            readUint16: function(le) // read a Uint16 (little-endian if le=true)
             readUint32: function(le) // read a Uint32 (little-endian if le=true)
           }
 
@@ -207,16 +210,19 @@ function parseBytes(/*stream, eos, parse*/) {
         return true;
       }
       
+      var readOrPeekUint8 = peek -> function() {
+        while (length-offset < 1 && fetchData())
+          /**/;
+        if (length-offset < 1) return eos;
+        var view = new DataView(buffer, offset, 1);
+        if (!peek) ++offset;
+        return view.getUint8(0);
+      };
+
       parse({
         emit: emit,
-        readUint8: function() {
-          while (length-offset < 1 && fetchData())
-            /**/;
-          if (length-offset < 1) return eos;
-          var view = new DataView(buffer, offset, 1);
-          ++offset;
-          return view.getUint8(0);
-        },
+        readUint8: readOrPeekUint8(false),
+        peekUint8: readOrPeekUint8(true),
         readUint8Array: function(l) {
           while (length-offset < l && fetchData())
             /**/;
@@ -224,6 +230,21 @@ function parseBytes(/*stream, eos, parse*/) {
           var arr = new Uint8Array(buffer, offset, l);
           offset += l;
           return arr;
+        },
+        peekUint8Array: function(l) {
+          while (length-offset < l && fetchData())
+            /**/;
+          if (length-offset < l) return eos;
+          var arr = new Uint8Array(buffer, offset, l);
+          return arr;
+        },
+        readUint16: function(littleEndian) {
+          while (length-offset < 2 && fetchData())
+            /**/;
+          if (length-offset < 2) return eos;
+          var view = new DataView(buffer, offset, 2);
+          offset += 2;
+          return view.getUint16(littleEndian);
         },
         readUint32: function(littleEndian) {
           while (length-offset < 4 && fetchData())
