@@ -500,6 +500,9 @@ __js {
    @param {Any} [key] Key of element to remove
    @return {Integer} Returns the rank (1-based index) of the removed element or `0` if the map didn't contain an element with the given key.
 
+   @function ObservableSortedMapVar::clear
+   @summary Remove all element from the map.
+
    @function ObservableSortedMapVar::batch_update
    @summary Atomically apply a number of `set`s and/or `delete`s
    @param {Array} [changes] Array of changes to apply - see description
@@ -543,6 +546,7 @@ function ObservableSortedMapVar(settings) {
     delete: function(key) { var idx = map.delete(key);
                             if (idx !== 0) Update.dispatch([[idx, [key]]]); 
                             return idx; },
+    clear: function() { map.clear(); Update.dispatch([/*empty update signals reset below*/]); },
     batch_update: function(changes) {
       var updates = [];
       changes .. @each {
@@ -570,7 +574,8 @@ function ObservableSortedMapVar(settings) {
       waitfor {
         while (1) {
           var changes = Update.receive();
-          if (cache.length + changes.length > map.count()+10 /* XXX optimize this for various scenarios */) {
+          if (changes.length==0 /* reset to empty map.. see clear() above */ ||
+              cache.length + changes.length > map.count()+10 /* XXX optimize this for various scenarios */) {
             restarting = true;
             cache = [map];
             continue;
@@ -603,7 +608,8 @@ function ObservableSortedMapVar(settings) {
       waitfor {
         while (1) {
           var changes = Update.receive();
-          __js if (changes .. @any(change -> change[1][0] === key))
+          __js if (changes.length /* a map reset will have zero-length change - see 'clear()' */ && 
+changes .. @any(change -> change[1][0] === key))
             ++have;
         }
       }
@@ -623,7 +629,8 @@ function ObservableSortedMapVar(settings) {
       waitfor {
         while (1) {
           var changes = Update.receive();
-          if (cache.length + changes.length > map.count()+10 /* XXX optimize this for various scenarios */) {
+          if (changes.length==0 /* reset to empty map.. see clear() above */ ||
+              cache.length + changes.length > map.count()+10 /* XXX optimize this for various scenarios */) {
             overflow = true;
             cache = [];
             continue;

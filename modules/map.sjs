@@ -241,6 +241,10 @@ __js {
     return rv[1];
   }
 
+  function avl_clear(T) {
+    T.root = NIL;
+  }
+
   // retrieval -----------------------------------------------------------------------------
 
   function _avl_node_get_by_key(cf, z, k) {
@@ -379,6 +383,9 @@ __js var avl_range = (T, cf, k_gte, k_lt) -> @Stream:: function(r) {
    @param {Any} [key] Key of element to remove
    @return {Integer} Returns the rank (1-based index) of the removed element or `0` if the map didn't contain an element with the given key.
 
+   @function SortedMap::clear
+   @summary Remove all element from the sorted map.
+
    @function SortedMap::get
    @summary Returns the value associated with the given key, or `undefined` if the sorted map doesn't contain an element under `key` (`O(log n)`).
    @param {Any} [key] Key of value to retrieve
@@ -449,6 +456,7 @@ __js {
       has: key -> T .. avl_has_key(comparator_f, key),
       set: (key, val) ->  T .. avl_set(comparator_f, key, val),
       delete: key -> T .. avl_del_by_key(comparator_f, key),
+      clear: -> avl_clear(T),
       elements: avl_stream(T),
       range: (key_gte, key_lt) -> T .. avl_range(comparator_f, key_gte, key_lt),
       getComparator: -> comparator

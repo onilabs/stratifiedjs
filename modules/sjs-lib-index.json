@@ -857,6 +857,9 @@
             "SortedMap": {
               "type": "ctor"
             },
+            "clear": {
+              "type": "function"
+            },
             "clone": {
               "type": "function"
             },
@@ -1776,6 +1779,9 @@
               "type": "function"
             },
             "batch_update": {
+              "type": "function"
+            },
+            "clear": {
               "type": "function"
             },
             "current": {
