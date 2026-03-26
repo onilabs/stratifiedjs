@@ -27,6 +27,6 @@
   },
   "dependencies": {
     "mkdirp": "^1.0.4",
-    "rimraf": "^2.7.1"
+    "rimraf": "^6.1.3"
   }
 }
